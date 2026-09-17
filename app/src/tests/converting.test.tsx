@@ -319,6 +319,25 @@ describe("the trail tells a conversion", () => {
     expect(screen.getByText(/read again by what it holds/i)).toBeTruthy();
   });
 
+  it("tells when the task was let to an agent, and when it was kept again", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "task_story"
+        ? Promise.resolve({
+            id: "01A",
+            pages: [
+              { n: 1, at: "2026-08-12T10:00:00Z", by: "dev_a", chapter: "opened" },
+              { n: 2, at: "2026-08-13T10:00:00Z", by: "dev_a", chapter: "shut" },
+            ],
+          })
+        : Promise.resolve(null);
+
+    render(<Trail task="01A" lists={[]} />);
+    await screen.findByRole("list");
+
+    expect(screen.getByText(/let to an agent/i)).toBeTruthy();
+    expect(screen.getByText(/kept to yourself again/i)).toBeTruthy();
+  });
+
   // The conversion is the one chapter written while the detail is open: the trail asks again
   // when the task moved, not only when another task is opened.
   it("asks for the story again when the task moved under an open detail", async () => {

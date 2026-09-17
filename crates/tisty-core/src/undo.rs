@@ -88,6 +88,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 d: TaskPatch {
                     title: d.title.as_ref().map(|_| task.title.clone()),
                     read_as: d.read_as.as_ref().map(|_| task.read_as),
+                    open_to_agents: d.open_to_agents.map(|_| task.open_to_agents),
                     date: d.date.as_ref().map(|_| task.date.clone()),
                     deadline: d.deadline.as_ref().map(|_| task.deadline.clone()),
                     priority: d.priority.map(|_| task.priority),
@@ -345,6 +346,32 @@ mod tests {
         let (before, undone) = round_trip(kept, ev(4, converted(id, Some(crate::Reading::Trace))));
         assert_eq!(before, undone);
         assert_eq!(undone.tasks[&id].read_as, Some(crate::Reading::Story));
+    }
+
+    fn opened(id: Ulid, open: bool) -> Op {
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                open_to_agents: Some(open),
+                ..Default::default()
+            },
+        }
+    }
+
+    #[test]
+    fn opening_to_agents_is_undone_to_how_the_door_stood() {
+        let id = Ulid::generate();
+
+        let (before, undone) = round_trip(vec![a_task(id)], ev(2, opened(id, true)));
+        assert_eq!(before, undone);
+        assert!(!undone.tasks[&id].open_to_agents);
+
+        let (before, undone) = round_trip(
+            vec![a_task(id), ev(2, opened(id, true))],
+            ev(3, opened(id, false)),
+        );
+        assert_eq!(before, undone);
+        assert!(undone.tasks[&id].open_to_agents);
     }
 
     /// A conversion and an edit, interleaved: each undo takes back its own and leaves the other.

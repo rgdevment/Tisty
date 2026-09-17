@@ -53,6 +53,7 @@ const show = (status: Task["status"], expanded: boolean) =>
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );

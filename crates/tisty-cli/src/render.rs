@@ -658,6 +658,8 @@ fn chapter(what: &tisty_core::story::Chapter, state: &State, today: Date, lang: 
             Some(tisty_core::Reading::Trace) => lang.get("trail-read-trace").into(),
             _ => lang.get("trail-read-by-itself").into(),
         },
+        Chapter::Opened => lang.get("trail-opened").into(),
+        Chapter::Shut => lang.get("trail-shut").into(),
     }
 }
 

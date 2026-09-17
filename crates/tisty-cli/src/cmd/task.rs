@@ -319,6 +319,8 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
             reminders: recalled(app, id, &args, lang)?,
             repeat: over,
             read_as,
+            // The terminal is frozen: opening a task to agents is the window's.
+            open_to_agents: None,
         };
 
         if d == TaskPatch::default() {

@@ -253,6 +253,22 @@ mod tests {
     }
 
     #[test]
+    fn a_patch_carries_the_door_to_agents_only_when_it_moves() {
+        let untouched: TaskPatch = serde_json::from_str("{}").unwrap();
+        assert_eq!(untouched.open_to_agents, None);
+
+        let opened: TaskPatch = serde_json::from_str(r#"{"open_to_agents": true}"#).unwrap();
+        assert_eq!(opened.open_to_agents, Some(true));
+
+        let written = serde_json::to_string(&TaskPatch {
+            open_to_agents: Some(false),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(written, r#"{"open_to_agents":false}"#);
+    }
+
+    #[test]
     fn patch_distinguishes_absent_from_null() {
         let untouched: TaskPatch = serde_json::from_str("{}").unwrap();
         assert_eq!(untouched.date, None);

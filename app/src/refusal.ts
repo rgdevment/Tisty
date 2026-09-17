@@ -27,6 +27,8 @@ const KNOWN = [
   "routineReadsAsRoutine",
   "notAReading",
   "traceChanged",
+  "onlyOpenOpens",
+  "alreadyTheirs",
   "notAListId",
   "pastEnd",
   "manyLists",

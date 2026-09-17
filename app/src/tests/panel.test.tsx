@@ -43,6 +43,7 @@ const show = (expanded = false) => {
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={closed}
     />,
   );

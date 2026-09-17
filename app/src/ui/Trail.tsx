@@ -101,6 +101,9 @@ function glyph(page: Page): string {
       return "⨯";
     case "reopened":
       return "⊕";
+    case "opened":
+    case "shut":
+      return "◆";
     default:
       return "·";
   }
@@ -157,6 +160,10 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
         : page.to === "trace"
           ? t("trailReadTrace")
           : t("trailReadByItself");
+    case "opened":
+      return t("trailOpened");
+    case "shut":
+      return t("trailShut");
     default:
       return unreadable(page);
   }

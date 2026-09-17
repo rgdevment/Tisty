@@ -168,6 +168,8 @@ read-trace        = "◇ read as a trace"
 trail-kept-story  = "kept as a story"
 trail-read-trace  = "read as a trace"
 trail-read-by-itself = "read by what it holds again"
+trail-opened      = "open to an assistant"
+trail-shut        = "kept to the person"
 
 
 series-running    = "still running"

@@ -526,19 +526,22 @@ on the other, [FAQ.md](docs/FAQ.md) lists the causes worth checking, in order.
 
 ## A Command Line, If You Want One
 
-The window is the main way in. But everything it does, the terminal does too:
-the same store, the same tasks, the same natural language. It exists because I
-wanted it, and it is entirely optional.
+The window is the way in. The terminal was a second one — the same store, the
+same tasks, the same natural language — and it is being retired, by stages:
+what it still does keeps working, nothing new reaches it, and the task and
+document commands go in the next major version. What stays is the `tisty`
+binary itself, because it is the door your assistant comes through (`tisty
+mcp`) and the place for maintenance: `doctor`, `sync`, `export`, `agent`.
 
 ```console
-$ tisty "call the bank at 3"
-$ tisty ls today
-$ tisty set 2 --remind 2026-09-30T20:00
-$ tisty done 2
+$ tisty doctor
+$ tisty sync
+$ tisty export --markdown
 ```
 
-Settings puts it within reach of your terminal, or you can install only the
-command with `brew install rgdevment/tap/tisty-cli` and never open the window.
+If you script against `tisty ls --json` or `tisty add`, plan to move: the
+window is where Tisty happens, and the assistant's door is how a program
+reaches it.
 
 ## An Assistant, If You Use One
 
@@ -580,6 +583,13 @@ download lands, or file the same thing twice. A task you closed is history to
 it: it comes with a notice saying so, reads as it ended, takes no note, no new
 day, no bell and no file, and if the same work comes back the assistant
 proposes a new one that says how the last one ended.
+
+A task you wrote stays yours unless you say otherwise. Open one to agents from
+its detail — «Let an agent fill it in» — and an assistant may say it is done,
+for you to confirm; describe it, where there is no description yet; plan its
+steps; and tick them off as it goes, which is the one thing it does without
+asking. Its day, its title, its list and its closing stay yours all the same.
+«Keep it to myself» shuts the door again and keeps what was filled in.
 
 **The command line is yours, not the assistant's.** An assistant with a shell
 could type `tisty done 3` the day its MCP server is not connected, and act as

@@ -20,6 +20,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   BUILD_MACOS: "true"
+  # The command line ships inside the app as the assistant's door; the loose binary and its
+  # formula are built only when a release has a reason to (a fix for whoever installed
+  # only that). Set the repository variable SHIP_CLI to "true" for that tag.
+  SHIP_CLI: ${{ vars.SHIP_CLI || 'false' }}
 
 jobs:
   gate:
@@ -136,12 +140,13 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
           echo "macos=${BUILD_MACOS}" >> "$GITHUB_OUTPUT"
+          echo "cli=${SHIP_CLI}" >> "$GITHUB_OUTPUT"
           echo "version $version (pre-release: $prerelease)"
 
   build-macos:
     name: tisty-macos-cli
     needs: version
-    if: needs.version.outputs.macos == 'true'
+    if: needs.version.outputs.macos == 'true' && needs.version.outputs.cli == 'true'
     runs-on: macos-latest
     timeout-minutes: 45
     env:
@@ -238,6 +243,7 @@ jobs:
   build-windows:
     name: tisty-windows-cli
     needs: version
+    if: needs.version.outputs.cli == 'true'
     runs-on: windows-latest
     timeout-minutes: 45
     env:
@@ -667,7 +673,7 @@ jobs:
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
-      && needs.build-windows.result == 'success'
+      && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
       && needs.bundle-windows.result == 'success'
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
@@ -703,9 +709,10 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           status=0
-          want="tisty-cli-$v-windows-x86_64.zip tisty-installer-$v-windows-x86_64.exe"
+          want="tisty-installer-$v-windows-x86_64.exe"
+          if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-windows-x86_64.zip"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then
-            want="$want tisty-cli-$v-macos-universal.tar.gz"
+            if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-macos-universal.tar.gz"; fi
             want="$want tisty-installer-$v-macos-universal.dmg"
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
@@ -1018,8 +1025,11 @@ jobs:
             return 1
           }
 
-          fetch "$CLI"
-          CLI_SHA=$(sha256sum "/tmp/$CLI" | awk '{print $1}')
+          CLI_SHA=""
+          if [ "${SHIP_CLI}" = "true" ]; then
+            fetch "$CLI"
+            CLI_SHA=$(sha256sum "/tmp/$CLI" | awk '{print $1}')
+          fi
 
           DMG_SHA=""
           if fetch "$DMG"; then
@@ -1052,8 +1062,7 @@ jobs:
 
           	  app "Tisty.app"
 
-          	  # The command line travels inside the app; Settings puts it within
-          	  # reach. The tisty-cli formula is for whoever wants only that.
+          	  # The command line travels inside the app, as the assistant's door.
           	  zap trash: [
           	    "~/Library/Application Support/dev.rgdevment.tisty",
           	    "~/Library/Caches/dev.rgdevment.tisty",
@@ -1062,6 +1071,9 @@ jobs:
           CASK
           fi
 
+          # The formula is refreshed only when a release shipped the loose binary; otherwise
+          # whoever installed only the command line keeps the version they have.
+          if [ -n "$CLI_SHA" ]; then
           cat > "Formula/${FORMULA}.rb" <<-FORMULA
           	class ${CLASS} < Formula
           	  desc "Command line for Tisty, the local task manager${SUFFIX}"
@@ -1085,6 +1097,7 @@ jobs:
           	  end
           	end
           FORMULA
+          fi
 
           for stale in Formula/tisty.rb Formula/tisty-beta.rb; do
             if [ -f "$stale" ]; then

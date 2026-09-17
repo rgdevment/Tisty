@@ -76,7 +76,6 @@ import { type Brittle, scanned } from "../scanning";
 import Apart, { type Door } from "./Apart";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
-import { onMac } from "./WindowChrome";
 
 const carried = {
   came: "syncCame",
@@ -814,54 +813,32 @@ export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, g
 
             <Band label={t("bandOutside")} />
             <div className="border-t border-hair">
-              {reach?.shipped && (
+              {reach?.shipped && reach.withinReach && (
                 <Line
                   title={t("terminal")}
-                  why={
-                    reach.withinReach
-                      ? fill("terminalOn", reach.through ?? reach.at ?? "")
-                      : t("terminalOff")
-                  }
+                  why={fill("terminalOn", reach.through ?? reach.at ?? "")}
                   which="terminal"
                   said={said}
                   trouble={trouble}
                   more={
-                    reach.withinReach &&
-                    !reach.onPath && (
-                      <div className="mt-2 rounded-[10px] bg-mark-priority px-3 py-2.5">
-                        <p className="text-[12.5px] leading-relaxed text-ink">
-                          {t("terminalNotOnPath")}
-                        </p>
-                        <code className="mt-1.5 block font-mono text-[11.5px] break-all text-soft">
-                          export PATH=&quot;$HOME/.local/bin:$PATH&quot;
-                        </code>
-                        <p className="mt-1.5 text-[11.5px] leading-relaxed text-faint">
-                          {t("terminalOrBrew")}
-                        </p>
-                      </div>
-                    )
+                    <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
+                      {t("terminalRetiring")}
+                    </p>
                   }
                 >
-                  <Knob
-                    on={reach.withinReach}
-                    label={t(reach.withinReach ? "terminalRemove" : "terminalAdd")}
+                  <button
+                    type="button"
                     disabled={held}
-                    onPress={() =>
-                      run("terminal", reachFor(!reach.withinReach), (now) => {
+                    onClick={() =>
+                      run("terminal", reachFor(false), (now) => {
                         setReach(now);
-                        setSaid({
-                          card: "terminal",
-                          text: t(
-                            now.withinReach
-                              ? onMac
-                                ? "terminalFreshNow"
-                                : "terminalFresh"
-                              : "terminalGone",
-                          ),
-                        });
+                        setSaid({ card: "terminal", text: t("terminalGone") });
                       })
                     }
-                  />
+                    className={mild}
+                  >
+                    {t("terminalRemove")}
+                  </button>
                 </Line>
               )}
 

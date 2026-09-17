@@ -302,6 +302,9 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
         [
             "propose",
             "remind",
+            "describe",
+            "plan",
+            "tick",
             "note",
             "attach",
             "write_doc",
@@ -337,6 +340,8 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
         "unresolve",
         "still_open",
         "reopen",
+        "open_to_agents",
+        "hand_over",
     ] {
         let said = served.call(barred, serde_json::json!({}));
         assert_eq!(said["error"]["code"], -32602, "{barred} answered: {said}");
@@ -4331,5 +4336,210 @@ fn the_persons_reading_of_a_task_is_not_handed_to_the_agent() {
     assert!(
         !whole.contains("read_as") && !whole.contains("\"reading\""),
         "{whole}"
+    );
+}
+
+// The person opens one of their own tasks to agents from the terminal's frozen twin — the
+// window's command — which the test reaches through the log directly.
+fn opened_to_agents(served: &Served, id: &str, open: bool) {
+    let store = served.home.path().join("data/store");
+    let dir = std::fs::read_dir(&store)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|at| at.is_dir())
+        .find(|at| {
+            !at.join("active.tisty").exists() || {
+                let held = std::fs::read_to_string(at.join("active.tisty")).unwrap_or_default();
+                !held.contains("\"device.join\"") || !held.contains("\"k\":\"agent\"")
+            }
+        })
+        .expect("the person's own directory");
+    let by = dir.file_name().unwrap().to_string_lossy().into_owned();
+    let at = dir.join("active.tisty");
+    let mut held = std::fs::read_to_string(&at).unwrap();
+    let last = held
+        .lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+        .filter_map(|one| one["ts"].as_str()?.parse::<jiff::Timestamp>().ok())
+        .max()
+        .unwrap_or(jiff::Timestamp::UNIX_EPOCH);
+    // Never in the future: the replay orders by stamp, and what the agent writes next must
+    // land after this.
+    let ts = jiff::Timestamp::now().max(last + jiff::SignedDuration::from_millis(1));
+    let n = held.lines().count() as u64;
+    held.push_str(&format!(
+        "{{\"v\":{},\"ts\":\"{ts}\",\"by\":\"{by}\",\"n\":{n},\"op\":\"task.update\",\"id\":\"{id}\",\"d\":{{\"open_to_agents\":{open}}}}}\n",
+        tisty_core::event::SCHEMA_VERSION
+    ));
+    std::fs::write(&at, held).unwrap();
+}
+
+#[test]
+fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.cli(&["renew the certificate"]);
+    let id = served.call("find", serde_json::json!({ "query": "certificate" }))["result"]
+        ["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    for (tool, args) in [
+        (
+            "say_done",
+            serde_json::json!({ "task": &id, "body": "renewed" }),
+        ),
+        (
+            "describe",
+            serde_json::json!({ "task": &id, "body": "the yearly one" }),
+        ),
+        (
+            "plan",
+            serde_json::json!({ "task": &id, "steps": ["pay", "download"] }),
+        ),
+        ("tick", serde_json::json!({ "task": &id, "step": "pay" })),
+    ] {
+        let tried = served.call(tool, args);
+        assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
+        assert!(
+            tried["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("not opened it to you"),
+            "{tool}: {tried}"
+        );
+    }
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert!(
+        read["result"]["structuredContent"]["open_to_agents"].is_null(),
+        "{read}"
+    );
+
+    opened_to_agents(&served, &id, true);
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    assert_eq!(
+        read["result"]["structuredContent"]["open_to_agents"], true,
+        "{read}"
+    );
+    let sifted = served.call("find", serde_json::json!({ "open_to_agents": true }));
+    assert!(sifted.to_string().contains(&id), "{sifted}");
+
+    let described = served.call(
+        "describe",
+        serde_json::json!({ "task": &id, "body": "the yearly one, at the registry" }),
+    );
+    assert!(described["result"]["isError"].is_null(), "{described}");
+    let again = served.call(
+        "describe",
+        serde_json::json!({ "task": &id, "body": "something else" }),
+    );
+    assert_eq!(
+        again["result"]["isError"], true,
+        "a description is not written over: {again}"
+    );
+
+    let planned = served.call(
+        "plan",
+        serde_json::json!({ "task": &id, "steps": ["pagar la inscripción", "download the file"] }),
+    );
+    assert_eq!(
+        planned["result"]["structuredContent"]["added"], 2,
+        "{planned}"
+    );
+    let ticked = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "step": "PAGAR LA INSCRIPCIÓN" }),
+    );
+    assert_eq!(
+        ticked["result"]["structuredContent"]["ticked"], true,
+        "{ticked}"
+    );
+    let twice = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "step": "pagar la inscripción" }),
+    );
+    assert_eq!(
+        twice["result"]["structuredContent"]["ticked"], false,
+        "{twice}"
+    );
+    let none = served.call(
+        "tick",
+        serde_json::json!({ "task": &id, "step": "sign it" }),
+    );
+    assert_eq!(none["result"]["isError"], true, "{none}");
+
+    let read = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = &read["result"]["structuredContent"];
+    assert_eq!(kept["steps"][0]["done"], true, "{read}");
+    assert_eq!(kept["steps"][1]["done"], false, "{read}");
+    assert!(
+        kept["description"].as_str().unwrap().contains("registry"),
+        "{read}"
+    );
+
+    let moved = served.call(
+        "reschedule",
+        serde_json::json!({ "task": &id, "date": "2026-12-01" }),
+    );
+    assert_eq!(
+        moved["result"]["isError"], true,
+        "the day stays the person's: {moved}"
+    );
+
+    let done = served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "paid and downloaded" }),
+    );
+    assert_eq!(done["result"]["structuredContent"]["open"], true, "{done}");
+    let stacked = served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "again" }),
+    );
+    assert!(
+        stacked["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("you already said"),
+        "{stacked}"
+    );
+    assert!(
+        served.cli(&["ls", "all"]).contains("renew the certificate"),
+        "still open"
+    );
+
+    opened_to_agents(&served, &id, false);
+    let shut = served.call(
+        "plan",
+        serde_json::json!({ "task": &id, "steps": ["one more"] }),
+    );
+    assert_eq!(
+        shut["result"]["isError"], true,
+        "kept to the person again: {shut}"
+    );
+}
+
+#[test]
+fn what_an_assistant_filed_it_fills_in_without_being_opened() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let id = filed(&served, "pasar biome sobre el front");
+
+    let described = served.call(
+        "describe",
+        serde_json::json!({ "task": &id, "body": "lint del front" }),
+    );
+    assert!(described["result"]["isError"].is_null(), "{described}");
+    let planned = served.call(
+        "plan",
+        serde_json::json!({ "task": &id, "steps": ["lint"] }),
+    );
+    assert!(planned["result"]["isError"].is_null(), "{planned}");
+    let ticked = served.call("tick", serde_json::json!({ "task": &id, "step": "lint" }));
+    assert_eq!(
+        ticked["result"]["structuredContent"]["ticked"], true,
+        "{ticked}"
     );
 }

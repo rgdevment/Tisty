@@ -284,6 +284,8 @@ If you use an assistant, it can file documents and propose tasks of its own acco
 
 When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **Agents** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
+A task of your own you can let it have: in the detail, **Let an agent fill it in**. From there an assistant may say it is done — for you to confirm — describe it if it has no description, plan its steps and tick them off as it goes, which is the one thing it does without asking. The day, the title, the list and the closing stay yours. **Keep it to myself** shuts the door and keeps what it managed to fill in.
+
 To rewrite a whole document it is handed a print of the exact text it read, and it has to send that print back when it writes. If you wrote in between, the print no longer matches: nothing is written and it is told to read the document again. The window tells you when something wrote in the document you have open.
 
 ### 12. Your copies

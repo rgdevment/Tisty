@@ -35,6 +35,7 @@ interface Props {
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
+  onOpenToAgents: (open: boolean) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -61,6 +62,7 @@ export default function Detail({
   onErase,
   onFold,
   onReadAs,
+  onOpenToAgents,
   onClose,
   onError,
   onDoc,
@@ -87,6 +89,7 @@ export default function Detail({
           task.read_as ?? "",
           task.completed_at ?? "",
           task.hidden ? "hidden" : "",
+          task.open_to_agents ? "open" : "",
           task.log?.length ?? task.volume?.journal ?? 0,
           task.steps?.length ?? task.volume?.steps ?? 0,
           task.title,
@@ -120,6 +123,12 @@ export default function Detail({
             ? fill("agentNamedSaidDone", agentNamed(task.resolved.by) as string)
             : t("agentSaidDone")}
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
+        </p>
+      )}
+      {task.status === "open" && task.open_to_agents && (
+        <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hair bg-hover px-2.5 py-1.5 text-[12.5px] text-soft">
+          <span aria-hidden="true">◆</span>
+          {t("openToAgents")}
         </p>
       )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
@@ -275,6 +284,7 @@ export default function Detail({
           onErase={onErase}
           onFold={onFold}
           onReadAs={onReadAs}
+          onOpenToAgents={onOpenToAgents}
         />
       </main>
     );
@@ -318,6 +328,7 @@ export default function Detail({
         onErase={onErase}
         onFold={onFold}
         onReadAs={onReadAs}
+        onOpenToAgents={onOpenToAgents}
       />
     </aside>
   );
@@ -333,6 +344,7 @@ function Settled({
   onErase,
   onFold,
   onReadAs,
+  onOpenToAgents,
 }: {
   task: Task;
   wide?: boolean;
@@ -343,6 +355,7 @@ function Settled({
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
+  onOpenToAgents: (open: boolean) => void;
 }) {
   const reading = readingOf(task);
   const seat = "flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-hover";
@@ -382,6 +395,16 @@ function Settled({
                 className={`${seat} hover:text-ink`}
               >
                 <span aria-hidden="true">↩</span> {t("stillOpen")}
+              </button>
+            )}
+            {!agentNamed(task.created_by) && (
+              <button
+                type="button"
+                onClick={() => onOpenToAgents(!task.open_to_agents)}
+                className={`${seat} ml-auto hover:text-ink`}
+              >
+                <span aria-hidden="true">◆</span>{" "}
+                {t(task.open_to_agents ? "keepToMyself" : "letAgentFill")}
               </button>
             )}
           </>
@@ -491,6 +514,7 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         {task.read_as &&
           readingOf(task) !== "routine" &&
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
+        {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}

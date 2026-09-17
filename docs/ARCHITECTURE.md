@@ -63,6 +63,7 @@ Some payload fields carry more than their name says:
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
 | `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what `tisty set --read-as auto` asks for |
+| `open_to_agents` | `task.update` | the person let an assistant fill this task in. Only their own hand sets it: written by an assistant, the field is dropped and the rest of the patch lands |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
@@ -134,11 +135,25 @@ is its own. It is not a way out of the guarantee so much as a way of saying it
 out loud: the body it writes over is kept in turn, so the call that went too far
 is undone by the same call without the flag.
 
-`reschedule` and `say_done` are the two tools that write over something already
-filed, and both reach only tasks whose `created_by` is a device the person
-turned on as an agent. A day the person set is refused with the reason, and so
-is a task they wrote. Everything else an agent knows it must add rather than
-change: a journal note, a new task, a new document.
+`reschedule` writes over something already filed, and reaches only tasks whose
+`created_by` is a device the person turned on as an agent: a day the person set
+is refused with the reason, and so is a task they wrote. Everything else an
+agent knows it must add rather than change: a journal note, a new task, a new
+document.
+
+Filling a task in is the one thing an agent does on a task it did not file, and
+only where the person let it. `say_done`, `describe`, `plan` and `tick` reach a
+task an assistant filed, or one the person opened with `open_to_agents` — a
+verb of the window, on an open task of their own, never part of an edit and
+never the terminal's. Opened, the task stays theirs: its day, its title, its
+list and its closing are as out of reach as before, `tick` marks a step and
+never unmarks one, `describe` writes a description where there was none and
+refuses to write over one, and `plan` adds steps under whatever is there. The
+core judges it again at replay — `TaskResolve`, `TaskDescribe`, `StepAdd` and
+`StepDone` from an assistant on a task nobody opened to them are let go,
+whatever the server that wrote them believed — so a fill-in written on one
+machine before the person shut the door on another projects the same
+everywhere. Shutting it keeps what was filled in; it is not an unsaying.
 
 A task the person closed is history to an agent. It comes back from `read`
 and `find` with `closed` set to the moment it ended and, from `read`, a
@@ -271,6 +286,17 @@ answers with line numbers, and `tag`, `list`, `by_agent`, `said_done` and a
 read of each hit. `said_done` is how an agent tells what it has already spoken
 for from what it has not, so it does not say the same thing twice. Fields
 that say nothing — a null, an empty list — are left out of every answer.
+
+**The person's command line is frozen, and being retired by stages.** The
+binary is not: `tisty mcp` is the door, the window carries it as a sidecar, and
+`agent`, `doctor`, `sync`, `export`, `leave` and `demo` are maintenance that
+stays. What goes is the terminal as a second window — the task and document
+commands — because every rule was being written three times: core, window,
+terminal, and the third copy is the one nobody uses. Until they go, no new
+rule reaches them and no new command joins them; what has to hold in the
+terminal for safety is enforced in the core, which is where `erasable()` and
+the assistant guard already live. When they are gone, the check below shrinks
+to what is left: nothing an assistant could reach for.
 
 **The terminal is the person's, and the binary checks that it is.** An
 assistant with a shell could type `tisty done 3` the day its server is not

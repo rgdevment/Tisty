@@ -1378,6 +1378,26 @@ mod tests {
     }
 
     #[test]
+    fn a_summary_keeps_the_door_to_agents_it_was_handed() {
+        let f = loaded();
+        let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+        store
+            .append(Op::TaskUpdate {
+                id: f.task,
+                d: crate::event::TaskPatch {
+                    open_to_agents: Some(true),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+        project(&f.store_root, &f.cache_dir).unwrap();
+
+        let light = summarised(&f.store_root, &f.cache_dir).unwrap();
+        assert!(light.tasks[&f.task].open_to_agents);
+        assert!(light.attended_by_agents(&light.tasks[&f.task]));
+    }
+
+    #[test]
     fn a_write_that_is_not_carried_leaves_the_cache_behind() {
         let f = loaded();
         project(&f.store_root, &f.cache_dir).unwrap();

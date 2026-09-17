@@ -44,6 +44,7 @@ import {
   foldTrace,
   markStep,
   noteTrouble,
+  openToAgents,
   owed,
   type Papers,
   type Pick,
@@ -1771,6 +1772,7 @@ export default function App() {
                 onErase={() => wipe(task)}
                 onFold={(away) => act(fold(task.id, away))}
                 onReadAs={(how) => act(readAs(task.id, how))}
+                onOpenToAgents={(open) => act(openToAgents(task.id, open))}
                 onClose={shut}
                 onError={(e) => setError(saidPlainly(e))}
                 onDoc={openDoc}
@@ -2094,6 +2096,7 @@ export default function App() {
               onErase={() => wipe(task)}
               onFold={(away) => act(fold(task.id, away))}
               onReadAs={(how) => act(readAs(task.id, how))}
+              onOpenToAgents={(open) => act(openToAgents(task.id, open))}
               onClose={shut}
               onError={(e) => setError(saidPlainly(e))}
               onDoc={openDoc}

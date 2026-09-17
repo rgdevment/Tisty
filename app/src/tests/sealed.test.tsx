@@ -45,6 +45,7 @@ const shown = (task: Task) =>
       onErase={nothing}
       onFold={() => {}}
       onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={nothing}
     />,
   );

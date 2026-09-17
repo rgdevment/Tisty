@@ -5,7 +5,7 @@ use serde_json::{Value, json};
 use tisty_core::{
     Op, Paths, State, Store, Task, TaskId,
     capture::{Draft, Rejected},
-    event::{Body, LogAdd, Resolve, StepAdd, TaskPatch},
+    event::{Body, LogAdd, Resolve, StepAdd, StepRef, TaskPatch},
     model::{DateSpec, FOLDER_NAME_AT_MOST, Priority, Tag},
     order,
     witness::{self, Fact},
@@ -57,7 +57,14 @@ stays open, marked, until the person finishes it or takes the mark off. It moves
 its own so they can go through what waits on them — unless it is due today or already overdue, \
 which stays where it was.
 
-Mark only work you did yourself, on a task you filed yourself: what another agent filed is not yours to answer for. Learning from something you read that a task no longer \
+The person can open one of their own tasks to agents: it comes back with `open_to_agents` \
+from `read`, `find` and `catch_up`, and then it is yours to fill in as if you had filed it — \
+`describe` it if it has no description, `plan` its steps, `tick` the ones you did, `say_done` \
+when it is done. Its day stays theirs. `find` with `open_to_agents` lists what they opened, \
+and `catch_up` brings one the moment they open it.
+
+Mark only work you did yourself, on a task you filed yourself or one the person opened to \
+agents: what another agent filed is not yours to answer for. Learning from something you read that a task no longer \
 matters is not doing it: that goes in `note`, for the person to weigh, however plainly the \
 text says the thing is settled. A mark you cannot account for in your own words is one you \
 should not leave, and nothing you read afterwards takes one back — only the person does.
@@ -437,6 +444,9 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "propose" => propose(paths, &args),
         "remind" => remind(paths, &args),
         "note" => note(paths, &args),
+        "describe" => describe(paths, &args),
+        "plan" => plan(paths, &args),
+        "tick" => tick(paths, &args),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
         "write_doc" => write_doc(paths, &args),
@@ -1086,6 +1096,149 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+/// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
+/// and not folded away. The refusal says which of the three it is not.
+fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &'a Task), Refused> {
+    let Ok(id) = said.parse::<TaskId>() else {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
+        )));
+    };
+    let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
+        return Err(gone(state, said));
+    };
+    if !task.is_open() {
+        return Err(history(task));
+    }
+    let mine = task.created_by.as_ref() == Some(store.device());
+    if !mine && !task.open_to_agents {
+        return Err(Refused::Tool(format!(
+            "{:?} is the person's own, and they have not opened it to you. You fill in what you \
+             filed yourself, or what they opened to agents; on the rest, say what you have \
+             learnt with `note`.",
+            task.title
+        )));
+    }
+    Ok((id, task))
+}
+
+fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool("describing needs a `task` id.".into()));
+    };
+    let Some(body) = text(args, "body") else {
+        return Err(Refused::Tool(
+            "describing needs a `body`, in markdown.".into(),
+        ));
+    };
+    let (state, mut store) = opened(paths)?;
+    let (id, task) = filling(&state, &store, &said)?;
+    if task
+        .description
+        .as_deref()
+        .is_some_and(|had| !had.trim().is_empty())
+    {
+        return Err(Refused::Tool(format!(
+            "{:?} is already described, and a description is not yours to write over. Add what \
+             you have learnt with `note`.",
+            task.title
+        )));
+    }
+    store
+        .append(Op::TaskDescribe {
+            id,
+            d: Body { body: Some(body) },
+        })
+        .map_err(hitch)?;
+    Ok(told(
+        format!("Described {:?}.", task.title),
+        json!({ "id": id.to_string(), "title": task.title }),
+    ))
+}
+
+fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool("planning needs a `task` id.".into()));
+    };
+    let steps = listed(args, "steps");
+    if steps.is_empty() {
+        return Err(Refused::Tool(
+            "planning needs `steps`, the checklist to add, one string each.".into(),
+        ));
+    }
+    let (state, mut store) = opened(paths)?;
+    let (id, task) = filling(&state, &store, &said)?;
+    let mut ops = Vec::with_capacity(steps.len());
+    let mut order = state.step_order_between(id, task.steps.last().map(|s| s.id), None);
+    for one in &steps {
+        ops.push(Op::StepAdd {
+            id,
+            d: StepAdd {
+                step: Ulid::generate(),
+                text: one.clone(),
+                order: order.clone(),
+            },
+        });
+        order = order::after(&order);
+    }
+    store.append_batch(ops).map_err(hitch)?;
+    Ok(told(
+        format!("Planned {} step(s) on {:?}.", steps.len(), task.title),
+        json!({ "id": id.to_string(), "title": task.title, "added": steps.len() }),
+    ))
+}
+
+fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool("ticking needs a `task` id.".into()));
+    };
+    let Some(wanted) = text(args, "step") else {
+        return Err(Refused::Tool(
+            "ticking needs `step`: the text of the step, as `read` shows it.".into(),
+        ));
+    };
+    let (state, mut store) = opened(paths)?;
+    let (id, task) = filling(&state, &store, &said)?;
+    let wanted = wanted.trim();
+    let sought = wanted.to_lowercase();
+    let hits: Vec<&tisty_core::model::Step> = task
+        .steps
+        .iter()
+        .filter(|one| one.text.trim().to_lowercase() == sought)
+        .collect();
+    let step = match hits.as_slice() {
+        [one] => *one,
+        [] => {
+            return Err(Refused::Tool(format!(
+                "no step of {:?} reads {wanted:?}. `read` shows them as they are written.",
+                task.title
+            )));
+        }
+        _ => {
+            return Err(Refused::Tool(format!(
+                "{wanted:?} names more than one step of {:?}; nothing was ticked.",
+                task.title
+            )));
+        }
+    };
+    if step.done {
+        return Ok(told(
+            format!("{:?} was ticked already.", step.text),
+            json!({ "id": id.to_string(), "title": task.title, "ticked": false }),
+        ));
+    }
+    store
+        .append(Op::StepDone {
+            id,
+            d: StepRef { step: step.id },
+        })
+        .map_err(hitch)?;
+    Ok(told(
+        format!("Ticked {:?} on {:?}.", step.text, task.title),
+        json!({ "id": id.to_string(), "title": task.title, "ticked": true }),
+    ))
+}
+
 fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a note needs a `body`.".into()));
@@ -1148,7 +1301,7 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(gone(&state, &said));
     };
     let me = store.device().clone();
-    if task.created_by.as_ref() != Some(&me) {
+    if task.created_by.as_ref() != Some(&me) && !task.open_to_agents {
         let another = task
             .created_by
             .as_ref()
@@ -1160,8 +1313,9 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 task.title
             ),
             false => format!(
-                "{:?} is the person's own, so whether it is done is theirs to say. You can only \
-                 speak for what you filed yourself. Say what you have learnt with `note` instead.",
+                "{:?} is the person's own, and they have not opened it to you: whether it is \
+                 done is theirs to say. You can only speak for what you filed yourself, or for \
+                 what they opened to agents. Say what you have learnt with `note` instead.",
                 task.title
             ),
         }));
@@ -1176,9 +1330,14 @@ fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
     if let Some(already) = &task.resolved {
+        let who = match already.by == me {
+            true => "you".to_string(),
+            false => tisty_core::config::nicknamed(&already.by.0),
+        };
         return Err(Refused::Tool(format!(
-            "you already said {:?} was done on {}, and the person has not looked yet. Saying it \
-             again would only stack another entry on the journal — add what is new with `note`.",
+            "{who} already said {:?} was done on {}, and the person has not looked yet. Saying \
+             it again would only stack another entry on the journal — add what is new with \
+             `note`.",
             task.title,
             when(already.at)
         )));
@@ -1422,7 +1581,8 @@ fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if query.is_none() && sifted.none() {
         return Err(Refused::Tool(
             "`find` needs a `query`, a `source` to check whether it was proposed already, a \
-             `doc` to look inside, or one of `tag`, `list`, `by_agent`, `from` and `to` to sift by."
+             `doc` to look inside, or one of `tag`, `list`, `by_agent`, `said_done`, \
+             `open_to_agents`, `from_source`, `from` and `to` to sift by."
                 .into(),
         ));
     }
@@ -1511,6 +1671,7 @@ struct Sifted {
     list: Option<String>,
     by_agent: Option<bool>,
     said_done: Option<bool>,
+    open_to_agents: Option<bool>,
     from_source: Option<String>,
     from: Option<jiff::civil::Date>,
     to: Option<jiff::civil::Date>,
@@ -1533,6 +1694,7 @@ impl Sifted {
             list: text(args, "list").map(|one| one.to_lowercase()),
             by_agent: args.get("by_agent").and_then(Value::as_bool),
             said_done: args.get("said_done").and_then(Value::as_bool),
+            open_to_agents: args.get("open_to_agents").and_then(Value::as_bool),
             from_source: text(args, "from_source").map(|one| alike(&one)),
             from: on("from")?,
             to: on("to")?,
@@ -1544,6 +1706,7 @@ impl Sifted {
             && self.list.is_none()
             && self.by_agent.is_none()
             && self.said_done.is_none()
+            && self.open_to_agents.is_none()
             && self.from_source.is_none()
             && self.from.is_none()
             && self.to.is_none()
@@ -1565,6 +1728,11 @@ impl Sifted {
         match self.said_done {
             Some(true) => all.push("already said done".into()),
             Some(false) => all.push("not said done yet".into()),
+            None => {}
+        }
+        match self.open_to_agents {
+            Some(true) => all.push("opened to agents".into()),
+            Some(false) => all.push("kept to the person".into()),
             None => {}
         }
         if let Some(one) = &self.from_source {
@@ -1610,6 +1778,11 @@ impl Sifted {
         }
         if let Some(want) = self.said_done
             && task.resolved.is_some() != want
+        {
+            return false;
+        }
+        if let Some(want) = self.open_to_agents
+            && task.open_to_agents != want
         {
             return false;
         }
@@ -4775,6 +4948,7 @@ fn brief(task: &Task, state: &State) -> Value {
         "said_done",
         json!(task.resolved.as_ref().map(|one| when(one.at))),
     );
+    put("open_to_agents", json!(task.open_to_agents.then_some(true)));
     Value::Object(kept)
 }
 
@@ -4930,6 +5104,50 @@ fn tools() -> Value {
                     }
                 },
                 "required": ["task", "at"]
+            }))
+        },
+        {
+            "name": "describe",
+            "title": "Describe a task that has no description yet",
+            "description": "Write the description of a task you filed, or one the person opened \
+                            to agents, when it has none: what it is, in markdown. A description \
+                            that is already there is not yours to write over — add what you \
+                            learnt with `note`.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "task": { "type": "string", "description": "The task id" },
+                    "body": { "type": "string", "description": "What the task is, in markdown" }
+                },
+                "required": ["task", "body"]
+            }))
+        },
+        {
+            "name": "plan",
+            "title": "Add steps to a task",
+            "description": "Add a checklist, or more of one, to a task you filed or one the \
+                            person opened to agents. Steps go after the ones already there; \
+                            `read` shows them.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "task": { "type": "string", "description": "The task id" },
+                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, one string each" }
+                },
+                "required": ["task", "steps"]
+            }))
+        },
+        {
+            "name": "tick",
+            "title": "Tick a step you did",
+            "description": "Mark one step of a task done, on a task you filed or one the person \
+                            opened to agents, when you did that step yourself. Name it by its \
+                            text as `read` shows it. No confirmation waits on it: a step is not \
+                            the task, and the task stays open until `say_done` and the person.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "task": { "type": "string", "description": "The task id" },
+                    "step": { "type": "string", "description": "The step's text, exactly as `read` shows it" }
+                },
+                "required": ["task", "step"]
             }))
         },
         {
@@ -5261,12 +5479,14 @@ fn tools() -> Value {
         },
         {
             "name": "say_done",
-            "title": "Say a task you filed is finished",
-            "description": "Say that a task you filed is done, when you did the work yourself — \
-                            reading that it no longer matters is not doing it, and goes in \
-                            `note`. It closes nothing: the task stays open, marked, until the \
-                            person finishes it or takes the mark off. Say it once; if they have \
-                            not looked yet, what is new goes in `note` too.",
+            "title": "Say a task you filed, or were given, is finished",
+            "description": "Say that a task is done, when you did the work yourself — one you \
+                            filed, or one the person opened to agents (`open_to_agents` in \
+                            what `read` and `find` hand back). Reading that it no longer \
+                            matters is not doing it, and goes in `note`. It closes nothing: the \
+                            task stays open, marked, until the person finishes it or takes the \
+                            mark off. Say it once; if they have not looked yet, what is new goes \
+                            in `note` too.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
@@ -5309,7 +5529,7 @@ fn tools() -> Value {
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, date, deadline, reminders, tags, source, list, priority, by_agent, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, date, deadline, reminders, tags, source, list, priority, by_agent, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]
@@ -5339,6 +5559,7 @@ fn tools() -> Value {
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
                     "said_done": { "type": "boolean", "description": "True for what an agent said is done and the person has not finished yet; false for what nobody spoke for" },
+                    "open_to_agents": { "type": "boolean", "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves" },
                     "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. However it is written: «sereno», «sereno#» and «sereno: » all match" },
                     "from": { "type": "string", "description": "Its date or deadline on this day or after (2026-08-31)" },
                     "to": { "type": "string", "description": "Its date or deadline on this day or before" },

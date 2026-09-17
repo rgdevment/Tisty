@@ -493,6 +493,9 @@ pub struct TaskPatch {
     /// what undo writes and what `--read-as auto` asks for.
     #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
     pub read_as: Option<Option<Reading>>,
+    /// Whether an assistant may fill the task in; only the person writes it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_to_agents: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]

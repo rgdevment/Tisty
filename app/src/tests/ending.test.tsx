@@ -40,6 +40,7 @@ const open = (one: Task) =>
       onErase={() => {}}
       onFold={() => {}}
       onReadAs={() => {}}
+      onOpenToAgents={() => {}}
       onClose={() => {}}
     />,
   );

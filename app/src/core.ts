@@ -67,6 +67,7 @@ export interface Task {
   source?: string;
   closed_in?: string;
   read_as?: Reading;
+  open_to_agents?: boolean;
 }
 
 export const STORY_AT = 3;
@@ -186,7 +187,9 @@ export type Chapter =
   | { chapter: "closed" }
   | { chapter: "dropped" }
   | { chapter: "reopened" }
-  | { chapter: "converted"; from?: Reading | null; to?: Reading | null };
+  | { chapter: "converted"; from?: Reading | null; to?: Reading | null }
+  | { chapter: "opened" }
+  | { chapter: "shut" };
 
 export type Page = { n: number; at: string; by: string; undoing?: boolean } & Chapter;
 
@@ -305,6 +308,8 @@ export const writeLog = (id: string, body: string, entry?: string): Promise<Task
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
   invoke("read_as", { id, how });
+export const openToAgents = (id: string, open: boolean): Promise<Task> =>
+  invoke("open_to_agents", { id, open });
 export const foldTrace = (): Promise<number> => invoke("fold_trace");
 export const eraseTrace = (seen: number): Promise<number> => invoke("erase_trace", { seen });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });

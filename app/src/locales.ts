@@ -47,6 +47,8 @@ const en = {
   notAReading: "That is not a way to read a task",
   traceChanged:
     "The trace changed since you looked — a sync, or the terminal. Look again before erasing",
+  onlyOpenOpens: "Only an open task is let to an agent. A closed one is history to them",
+  alreadyTheirs: "An agent filed this one: it is already theirs to fill in",
   notAClosing: "That is not a way to close",
   notATheme: "That is not a look the window has",
   eraseIt: "Erase for good",
@@ -118,6 +120,10 @@ const en = {
   readAsTrace: "Read as a trace",
   keptAsStory: "kept as a story",
   readAsTraceNow: "read as a trace",
+  letAgentFill: "Let an agent fill it in",
+  keepToMyself: "Keep it to myself",
+  openToAgents: "Open to agents: one may say it is done, describe it, plan its steps and tick them",
+  wasOpenToAgents: "open to agents",
   foldTrace: "Hide all",
   foldTraceSure:
     "Hide the {name} traces? They stay in the archive under «hidden», and search still reaches them.",
@@ -132,6 +138,8 @@ const en = {
   trailKeptStory: "Kept as a story",
   trailReadTrace: "Read as a trace",
   trailReadByItself: "Read again by what it holds",
+  trailOpened: "Let to an agent",
+  trailShut: "Kept to yourself again",
   folded: "hidden",
   backToArchive: "Back to the archive",
   discardIt: "Not doing it",
@@ -986,16 +994,10 @@ const en = {
   closingRemember: "Remember my choice",
   closingStay: "Stay open",
   terminal: "Command line",
-  terminalOn: "Your terminal already finds «tisty», through {name}",
-  terminalOff: "Tisty ships the «tisty» command, but your terminal cannot find it yet.",
-  terminalNotOnPath:
-    "The link is made, but no shell looks in that folder yet. Add this line to your shell profile — «.zshrc» on macOS — and open a new terminal:",
-  terminalOrBrew:
-    "Or install just the command line with Homebrew, which puts it somewhere your shell already looks: brew install rgdevment/tap/tisty-cli",
-  terminalAdd: "Make it reachable",
+  terminalOn: "Your terminal finds «tisty», through {name}",
+  terminalRetiring:
+    "The task and document commands are being retired: nothing new reaches them, and they go in the next major version. The window is where Tisty happens; the binary stays as your assistant's door and for maintenance.",
   terminalRemove: "Take it back out",
-  terminalFresh: "Ready the next time you sign in",
-  terminalFreshNow: "Ready in any terminal you open from now on",
   terminalGone: "No longer reachable",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
@@ -1317,6 +1319,9 @@ const es: Catalog = {
   notAReading: "Esa no es una forma de leer una tarea",
   traceChanged:
     "El rastro cambió desde que lo viste — un sync, o la terminal. Míralo de nuevo antes de borrar",
+  onlyOpenOpens:
+    "Solo una tarea abierta se le deja a un agente. Una cerrada es historia para ellos",
+  alreadyTheirs: "Esta la archivó un agente: ya es suya para completarla",
   notAClosing: "Esa no es una forma de cerrar",
   notATheme: "La ventana no tiene ese aspecto",
   eraseIt: "Borrar para siempre",
@@ -1388,6 +1393,11 @@ const es: Catalog = {
   readAsTrace: "Leer como rastro",
   keptAsStory: "guardada como historia",
   readAsTraceNow: "leída como rastro",
+  letAgentFill: "Dejar que un agente la complete",
+  keepToMyself: "Quedármela",
+  openToAgents:
+    "Abierta a los agentes: uno puede darla por hecha, describirla, planear sus pasos y marcarlos",
+  wasOpenToAgents: "abierta a los agentes",
   foldTrace: "Ocultar todo",
   foldTraceSure:
     "¿Ocultar los {name} rastros? Siguen en el archivo, bajo «ocultas», y la búsqueda sigue alcanzándolos.",
@@ -1402,6 +1412,8 @@ const es: Catalog = {
   trailKeptStory: "Guardada como historia",
   trailReadTrace: "Leída como rastro",
   trailReadByItself: "Leída otra vez por lo que tiene",
+  trailOpened: "Dejada a un agente",
+  trailShut: "Vuelta a quedar contigo",
   folded: "ocultas",
   backToArchive: "Volver al archivo",
   discardIt: "No lo haré",
@@ -2261,16 +2273,10 @@ const es: Catalog = {
   closingRemember: "Recordar mi elección",
   closingStay: "Seguir aquí",
   terminal: "Línea de comandos",
-  terminalOn: "Tu terminal ya encuentra «tisty», desde {name}",
-  terminalOff: "Tisty incluye el comando «tisty», pero tu terminal todavía no lo encuentra.",
-  terminalNotOnPath:
-    "El enlace ya está creado, pero tu terminal todavía no busca en esa carpeta. Agrega esta línea a tu perfil —«.zshrc» en macOS— y abre una terminal nueva:",
-  terminalOrBrew:
-    "También puedes instalar solo el comando con Homebrew, que lo deja donde tu terminal ya busca: brew install rgdevment/tap/tisty-cli",
-  terminalAdd: "Dejarlo disponible",
+  terminalOn: "Tu terminal encuentra «tisty», desde {name}",
+  terminalRetiring:
+    "Los comandos de tareas y documentos se retiran: nada nuevo les llega, y se van en la siguiente versión mayor. Tisty pasa en la ventana; el binario se queda como puerta de tu asistente y para mantenimiento.",
   terminalRemove: "Quitarlo",
-  terminalFresh: "Quedará listo la próxima vez que inicies sesión",
-  terminalFreshNow: "Listo en cualquier terminal que abras a partir de ahora",
   terminalGone: "Ya no está disponible",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",

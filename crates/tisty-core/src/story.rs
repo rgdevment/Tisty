@@ -72,6 +72,8 @@ pub enum Chapter {
         from: Option<Reading>,
         to: Option<Reading>,
     },
+    Opened,
+    Shut,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -101,6 +103,7 @@ struct Standing {
     tags: Vec<Tag>,
     repeat: Option<Repeat>,
     read_as: Option<Reading>,
+    open_to_agents: bool,
     described: bool,
     steps: HashMap<StepId, String>,
 }
@@ -224,6 +227,13 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                         to: read_as,
                     });
                     standing.read_as = read_as;
+                }
+                if let Some(open) = d.open_to_agents
+                    && open != standing.open_to_agents
+                    && !assistants.contains(&event.device)
+                {
+                    write(if open { Chapter::Opened } else { Chapter::Shut });
+                    standing.open_to_agents = open;
                 }
             }
 
@@ -549,6 +559,54 @@ mod tests {
             2,
             "born and closed, nothing more: {:?}",
             chapters(&told)
+        );
+    }
+
+    #[test]
+    fn opening_a_task_to_agents_is_a_chapter_and_shutting_it_another() {
+        let id = Ulid::generate();
+        let door = |seconds: i64, open: bool| {
+            patched(
+                seconds,
+                id,
+                TaskPatch {
+                    open_to_agents: Some(open),
+                    ..Default::default()
+                },
+            )
+        };
+        let agent = DeviceId("dev_agent".into());
+        let mut joined = event(
+            1,
+            Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(crate::event::DeviceKind::Agent),
+            },
+        );
+        joined.device = agent.clone();
+        let mut theirs = door(15, true);
+        theirs.device = agent;
+        let log = vec![
+            joined,
+            born(id, "renew the certificate"),
+            door(10, true),
+            door(12, true),
+            theirs,
+            door(20, false),
+        ];
+
+        let told = story(&log, id);
+
+        assert_eq!(
+            chapters(&told),
+            vec![
+                &Chapter::Born {
+                    title: "renew the certificate".into()
+                },
+                &Chapter::Opened,
+                &Chapter::Shut,
+            ],
+            "the same opening twice is one chapter, and an assistant's never landed"
         );
     }
 

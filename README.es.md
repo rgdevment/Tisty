@@ -529,19 +529,22 @@ enumera las causas en el orden en que conviene revisarlas (en inglés).
 
 ## Una línea de comandos, si la quieres
 
-La ventana es la entrada principal. Pero todo lo que hace ella lo hace también la
-terminal: el mismo almacén, las mismas tareas, el mismo lenguaje natural. Existe
-porque yo la quería, y es totalmente opcional.
+La ventana es la entrada. La terminal fue una segunda —el mismo almacén, las
+mismas tareas, el mismo lenguaje natural— y se retira por etapas: lo que aún
+hace sigue funcionando, nada nuevo le llega, y los comandos de tareas y
+documentos se van en la siguiente versión mayor. Lo que se queda es el binario
+`tisty`, porque es la puerta por la que entra tu asistente (`tisty mcp`) y el
+sitio del mantenimiento: `doctor`, `sync`, `export`, `agent`.
 
 ```console
-$ tisty "llamar al banco a las 3"
-$ tisty ls hoy
-$ tisty set 2 --recordar 2026-09-30T20:00
-$ tisty done 2
+$ tisty doctor
+$ tisty sync
+$ tisty export --markdown
 ```
 
-Ajustes la deja al alcance de tu terminal, o puedes instalar solo el comando con
-`brew install rgdevment/tap/tisty-cli` y no abrir nunca la ventana.
+Si tienes scripts contra `tisty ls --json` o `tisty add`, ve pensando en
+moverlos: Tisty pasa en la ventana, y la puerta del asistente es como un
+programa llega a ella.
 
 ## Un asistente, si usas uno
 
@@ -584,6 +587,14 @@ descarga, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico
 para él: le llega con un aviso que lo dice, se lee como terminó, no admite
 bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
 vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
+
+Una tarea que escribiste tú sigue siendo tuya salvo que digas otra cosa. Ábrela
+a los agentes desde su detalle —«Dejar que un agente la complete»— y un
+asistente puede darla por hecha, para que la confirmes; describirla, si aún no
+tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es lo
+único que hace sin preguntar. Su día, su título, su lista y su cierre siguen
+siendo tuyos igual. «Quedármela» cierra la puerta otra vez y conserva lo que
+alcanzó a completar.
 
 **La línea de comandos es tuya, no del asistente.** Un asistente con shell
 podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y

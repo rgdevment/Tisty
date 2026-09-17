@@ -165,6 +165,8 @@ read-trace        = "◇ leída como rastro"
 trail-kept-story  = "guardada como historia"
 trail-read-trace  = "leída como rastro"
 trail-read-by-itself = "vuelve a leerse por lo que tiene"
+trail-opened      = "abierta a un asistente"
+trail-shut        = "vuelve a ser solo de la persona"
 
 
 series-running    = "sigue en marcha"

@@ -284,6 +284,8 @@ Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta.
 
 Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Agentes** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 
+Una tarea tuya se la puedes dejar: en su detalle, **Dejar que un agente la complete**. Desde ahí un asistente puede darla por hecha —para que la confirmes—, describirla si no tiene descripción, planear sus pasos y marcarlos a medida que avanza, que es lo único que hace sin preguntar. El día, el título, la lista y el cierre siguen siendo tuyos. **Quedármela** cierra la puerta y conserva lo que alcanzó a completar.
+
 Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto.
 
 ### 12. Tus copias

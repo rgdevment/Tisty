@@ -189,6 +189,10 @@ pub struct Task {
     /// The layer the person chose, story or trace; absent, the weight decides.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub read_as: Option<Reading>,
+    /// The person let an assistant fill this one in: say it is done, describe it, plan and
+    /// tick its steps — what an assistant may do on a task it filed itself.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub open_to_agents: bool,
 
     #[serde(default, skip_serializing_if = "Volume::is_empty")]
     pub volume: Volume,
@@ -255,6 +259,7 @@ impl Task {
             filled: false,
             completed_at: None,
             read_as: None,
+            open_to_agents: false,
             volume: Volume::default(),
         }
     }
@@ -507,6 +512,7 @@ mod tests {
             "reminders",
             "completed_at",
             "read_as",
+            "open_to_agents",
         ] {
             assert!(
                 !json.contains(absent),

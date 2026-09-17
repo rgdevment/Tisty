@@ -1543,7 +1543,8 @@ fn patch(
         tags: tagged(&task, &change)?,
         reminders: recalled(&task, &change, &now)?,
         repeat: repeated(&change, &now)?,
-        read_as: None,
+        // Converting and opening to agents are verbs of their own, never part of an edit.
+        ..Default::default()
     };
 
     let mut ops = Vec::new();
@@ -6522,6 +6523,50 @@ fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -
     reading_as(&mut held(&session), id, how)
 }
 
+#[tauri::command]
+fn open_to_agents(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    open: bool,
+) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    opening_to_agents(&mut held(&session), id, open)
+}
+
+/// Only an open task the person wrote takes the permission: a closed one is history to an
+/// assistant, and one an assistant filed is already its own to fill in.
+fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) -> Answer<Task> {
+    session.reload()?;
+    let task = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?;
+    if !task.is_open() {
+        return Err(Refusal::of("onlyOpenOpens"));
+    }
+    if task
+        .created_by
+        .as_ref()
+        .is_some_and(|who| session.state.assistants.contains(who))
+    {
+        return Err(Refusal::of("alreadyTheirs"));
+    }
+    session.commit(Op::TaskUpdate {
+        id,
+        d: TaskPatch {
+            open_to_agents: Some(open),
+            ..Default::default()
+        },
+    })?;
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
 fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> Answer<Task> {
     session.reload()?;
     let task = session
@@ -6939,6 +6984,7 @@ pub fn run() {
             keep_theme,
             erase,
             read_as,
+            open_to_agents,
             fold_trace,
             erase_trace,
             guide,
@@ -8358,8 +8404,10 @@ mod behind_tests {
 
 #[cfg(test)]
 mod letting_go {
-    use super::{Session, erasing, erasing_the_trace, folding_the_trace, reading_as};
-    use tisty_core::{Op, Paths, Reading, TaskId};
+    use super::{
+        Session, erasing, erasing_the_trace, folding_the_trace, opening_to_agents, reading_as,
+    };
+    use tisty_core::{DeviceId, Op, Paths, Reading, TaskId};
 
     struct Desk {
         _tmp: tempfile::TempDir,
@@ -8486,6 +8534,61 @@ mod letting_go {
             0,
             "nothing left, nothing written"
         );
+    }
+
+    #[test]
+    fn opening_to_agents_is_for_an_open_task_the_person_wrote() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let mine = ulid::Ulid::generate();
+        session
+            .commit(Op::TaskAdd {
+                id: mine,
+                d: tisty_core::event::TaskAdd::new("renew the certificate", "a0"),
+            })
+            .unwrap();
+        let errand = closed(&mut session, "buy bread");
+        let theirs = ulid::Ulid::generate();
+        let agent = DeviceId("dev_agent".into());
+        let mut wrote = tisty_core::Store::open(desk.paths.store(), agent.clone()).unwrap();
+        wrote
+            .append(Op::DeviceJoin {
+                d: agent,
+                k: Some(tisty_core::event::DeviceKind::Agent),
+            })
+            .unwrap();
+        wrote
+            .append(Op::TaskAdd {
+                id: theirs,
+                d: tisty_core::event::TaskAdd::new("pasar biome", "a1"),
+            })
+            .unwrap();
+
+        assert_eq!(
+            code(opening_to_agents(&mut session, errand, true)),
+            "onlyOpenOpens"
+        );
+        assert_eq!(
+            code(opening_to_agents(&mut session, theirs, true)),
+            "alreadyTheirs"
+        );
+        assert_eq!(
+            code(opening_to_agents(
+                &mut session,
+                ulid::Ulid::generate(),
+                true
+            )),
+            "notATaskId"
+        );
+        let told = opening_to_agents(&mut session, mine, true).unwrap();
+        assert!(told.open_to_agents);
+        assert!(
+            session
+                .state
+                .attended_by_agents(&session.state.tasks[&mine])
+        );
+        let told = opening_to_agents(&mut session, mine, false).unwrap();
+        assert!(!told.open_to_agents);
     }
 
     #[test]

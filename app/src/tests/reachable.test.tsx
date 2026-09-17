@@ -229,6 +229,7 @@ describe("opening a task", () => {
         onErase={() => {}}
         onFold={() => {}}
         onReadAs={() => {}}
+        onOpenToAgents={() => {}}
         onClose={() => {}}
         onError={() => {}}
       />,
