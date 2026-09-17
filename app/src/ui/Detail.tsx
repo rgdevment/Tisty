@@ -371,8 +371,6 @@ function Settled({
   const seat =
     "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 hover:bg-hover";
 
-  // The pair that moves the task sits in the footer; the rest waits behind «⋯», where a label
-  // may be as long as its language needs.
   const discard: Choice = {
     key: "discard",
     label: task.repeat ? t("endRepeat") : t("discardIt"),
@@ -489,9 +487,16 @@ function Settled({
               title={t("more")}
               aria-haspopup="menu"
               aria-expanded={more !== null}
-              onClick={(e) => {
+              // The menu closes on any mousedown outside it, this button included, so a mouse
+              // toggles here and only a keyboard's click — detail 0 — reaches onClick.
+              onMouseDown={(e) => {
                 const box = e.currentTarget.getBoundingClientRect();
-                setMore({ x: box.right - 210, y: box.top - 4 });
+                setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
+              }}
+              onClick={(e) => {
+                if (e.detail !== 0) return;
+                const box = e.currentTarget.getBoundingClientRect();
+                setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
               }}
               className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink"
             >

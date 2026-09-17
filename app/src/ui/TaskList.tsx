@@ -4,11 +4,8 @@ import type { List, Task } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
-import { agentNamed } from "../who";
+import { agentNamed, agentTag } from "../who";
 import { Lozenge, Pip, spokenLabel } from "./Spoke";
-
-// The tag the server adds to what an agent files; said in words, the tag is noise.
-const AGENT_TAG = "agent";
 
 interface Props {
   tasks: Task[];
@@ -392,7 +389,7 @@ function Meta({ task, list }: { task: Task; list?: string }) {
   }
   if (list) bits.push(<span key="list">@{list}</span>);
   const filedBy = agentNamed(task.created_by);
-  const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === AGENT_TAG));
+  const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === agentTag()));
   if (tags.length) {
     bits.push(
       <span key="tags" className="text-faint">

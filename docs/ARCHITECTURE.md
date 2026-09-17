@@ -388,10 +388,15 @@ Judged at replay, the door is judged in the order the merged log sorts, by
 stamp, and a clock behind another machine's would stamp a fill-in before the
 opening that let it in — let go everywhere, the machine that wrote it
 included, after the agent was told it landed. So every fill-in is written
-under the lock, judged against the whole log and stamped after the newest
-event in it (`Store::append_batch_unless`): what was read as open lands after
-what opened it, whatever the clocks say. An opening that has not synced over
-yet is simply not there, and the server refuses rather than writes.
+under the agent's lock, judged against the whole log as read then and stamped
+after the newest event in it (`Store::append_batch_unless`): what was read as
+open lands after what opened it, whatever the clocks say. The lock is one
+device's, so the person's window can still write in the same instant; what the
+re-check closes is the gap between reading and writing, not the other hand.
+An opening that has not synced over yet is simply not there, and the server
+refuses rather than writes. Filling in is judged by the one door: what an
+agent filed — any agent, this one or one since retired — or what the person
+opened; `attended_by_agents` in the core, and nothing else in the server.
 
 The trade it takes: this changes how an already-written log projects, so a machine
 on an older build still honours what this one drops.

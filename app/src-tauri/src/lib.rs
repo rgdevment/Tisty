@@ -790,6 +790,7 @@ struct Snapshot {
     counts: std::collections::BTreeMap<String, usize>,
     locale: Option<String>,
     agents: std::collections::BTreeMap<String, String>,
+    agent_tag: &'static str,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -1247,6 +1248,7 @@ fn snapshot(
         counts: tally(&session.state),
         locale: session.locale.clone(),
         agents: named_agents(&session.state),
+        agent_tag: tisty_core::model::AGENT_TAG,
     })
 }
 
