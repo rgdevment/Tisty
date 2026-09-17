@@ -2572,7 +2572,12 @@ async fn update_ready(
                 })?;
                 Ok(None)
             }
-            shop::Shelf::Silent => Ok(last_said()),
+            // Asked and not answered is still asked: the next look waits its turn like any other,
+            // and a copy the Store never signed is not asked again every few hours.
+            shop::Shelf::Silent => {
+                held(&session).keep(|c| c.checked_at = Some(now))?;
+                Ok(last_said())
+            }
         };
     }
 

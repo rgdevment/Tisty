@@ -311,6 +311,11 @@ fn introduced(params: &Value) {
         .and_then(Value::as_str)
         .and_then(tisty_core::agent::client_said);
     if let Some(said) = said {
+        witness::note(
+            witness::channel::AGENT,
+            "a client introduced itself",
+            &[("as", Fact::Why(said.clone()))],
+        );
         let _ = SPEAKING_THROUGH.set(said);
     }
 }
