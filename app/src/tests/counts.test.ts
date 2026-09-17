@@ -23,7 +23,6 @@ const ASKED = [
   "folded",
   "stories",
   "traces",
-  "tracesTold",
 ];
 
 describe("the counts the sidebar and the chips paint", () => {

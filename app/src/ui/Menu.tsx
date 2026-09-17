@@ -7,6 +7,7 @@ export interface Choice {
   danger?: boolean;
   apart?: boolean;
   off?: boolean;
+  hint?: string;
   into?: { label: string; choices: Choice[] };
   onPick?: () => void;
 }
@@ -15,10 +16,12 @@ interface Props {
   at: { x: number; y: number };
   choices: Choice[];
   label: string;
+  /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
+  up?: boolean;
   onClose: () => void;
 }
 
-export default function Menu({ at, choices, label, onClose }: Props) {
+export default function Menu({ at, choices, label, up, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
   const [where, setWhere] = useState(at);
   const [deeper, setDeeper] = useState<{ label: string; choices: Choice[] } | null>(null);
@@ -28,11 +31,12 @@ export default function Menu({ at, choices, label, onClose }: Props) {
   useLayoutEffect(() => {
     const box = card.current?.getBoundingClientRect();
     if (!box) return;
+    const y = up ? at.y - box.height : at.y;
     setWhere({
       x: Math.max(6, Math.min(at.x, window.innerWidth - box.width - 6)),
-      y: Math.max(6, Math.min(at.y, window.innerHeight - box.height - 6)),
+      y: Math.max(6, Math.min(y, window.innerHeight - box.height - 6)),
     });
-  }, [at, deeper]);
+  }, [at, deeper, up]);
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
@@ -101,6 +105,7 @@ export default function Menu({ at, choices, label, onClose }: Props) {
             type="button"
             role="menuitem"
             aria-haspopup={one.into ? "menu" : undefined}
+            title={one.hint}
             onClick={() => {
               if (one.into) return setDeeper(one.into);
               onClose();

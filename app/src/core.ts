@@ -306,11 +306,10 @@ export const dropStep = (id: string, step: string): Promise<Task> =>
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
-export const readAs = (id: string, how: "story" | "trace" | "auto"): Promise<Task> =>
+export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
   invoke("read_as", { id, how });
 export const openToAgents = (id: string, open: boolean): Promise<Task> =>
   invoke("open_to_agents", { id, open });
-export const eraseTrace = (seen: number): Promise<number> => invoke("erase_trace", { seen });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
 export const complete = (id: string, also?: string[]): Promise<Task> =>
   invoke("complete", { id, also });

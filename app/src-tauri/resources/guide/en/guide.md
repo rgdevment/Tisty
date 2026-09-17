@@ -282,9 +282,9 @@ Rather than open it and destroy those on your first keystroke, Tisty says so and
 
 If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote.
 
-When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **Agents** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
+When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
-A task of your own you can let it have: in the detail, **Let an agent fill it in**. From there an assistant may say it is done — for you to confirm — describe it if it has no description, plan its steps and tick them off as it goes, which is the one thing it does without asking. The day, the title, the list and the closing stay yours. **Keep it to myself** shuts the door and keeps what it managed to fill in.
+A task of your own you can open to it: in the detail, **Allow agents**. From there an assistant may say it is done — for you to confirm — describe it if it has no description, plan its steps and tick them off as it goes, which is the one thing it does without asking. The day, the title, the list and the closing stay yours. **No agents** shuts the door and keeps what it managed to fill in.
 
 To rewrite a whole document it is handed a print of the exact text it read, and it has to send that print back when it writes. If you wrote in between, the print no longer matches: nothing is written and it is told to read the document again. The window tells you when something wrote in the document you have open.
 
@@ -304,7 +304,7 @@ Settings can also write you a full backup whenever you want one.
 - **Dropping** puts it aside without doing it: it lands in the Archive too.
 - What is in the Archive stays there in case you look for it.
 
-The Archive reads in three layers: the **stories**, which left something written; the **routines**, which come back; and the **trace**, what closed leaving next to nothing. You decide which layer each one reads in: in the detail of a closed task, «Keep as a story» or «Read as a trace», and «Read by what it holds» takes the choice back. In the trace layer you can erase all of it at once, and what is hidden stays where it is.
+The Archive reads in three layers: the **stories**, which left something written; the **routines**, which come back; and the **trace**, what closed leaving next to nothing. You decide which layer each one reads in: in the detail of a closed task, «Move to the trace» or «Move to the stories». The trail keeps each move. A trace is erased or hidden one at a time, from its detail or its row.
 
 > **Before erasing for good.** It is only possible for what is already closed **and** reads as a trace. A story is only hidden: to erase it, read it as a trace first. Erasing takes it off this computer, and off the others at the next sync, with no undo.
 

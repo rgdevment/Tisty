@@ -9,6 +9,7 @@ import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
+import Menu, { type Choice } from "./Menu";
 import Prose from "./Prose";
 import Routine from "./Routine";
 import Steps from "./Steps";
@@ -34,7 +35,7 @@ interface Props {
   onStillOpen: () => void;
   onErase: () => void;
   onFold: (away: boolean) => void;
-  onReadAs: (how: "story" | "trace" | "auto") => void;
+  onReadAs: (how: "story" | "trace") => void;
   onOpenToAgents: (open: boolean) => void;
   onClose: () => void;
   onError?: (problem: unknown) => void;
@@ -118,6 +119,11 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
+      {task.status === "open" && agentNamed(task.created_by) && (
+        <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal">
+          {fill("agentWrote", agentNamed(task.created_by) as string)}
+        </p>
+      )}
       {task.resolved && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
           <span aria-hidden="true">◆</span>
@@ -129,7 +135,7 @@ export default function Detail({
       )}
       {task.status === "open" && task.open_to_agents && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hair bg-hover px-2.5 py-1.5 text-[12.5px] text-soft">
-          <span aria-hidden="true">◆</span>
+          <span aria-hidden="true">⊚</span>
           {t("openToAgents")}
         </p>
       )}
@@ -356,108 +362,154 @@ function Settled({
   onStillOpen: () => void;
   onErase: () => void;
   onFold: (away: boolean) => void;
-  onReadAs: (how: "story" | "trace" | "auto") => void;
+  onReadAs: (how: "story" | "trace") => void;
   onOpenToAgents: (open: boolean) => void;
 }) {
+  const [more, setMore] = useState<{ x: number; y: number } | null>(null);
+  const open = task.status === "open";
   const reading = readingOf(task);
-  const seat = "flex items-center gap-1 rounded-md px-2.5 py-1 hover:bg-hover";
+  const seat =
+    "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 hover:bg-hover";
+
+  // The pair that moves the task sits in the footer; the rest waits behind «⋯», where a label
+  // may be as long as its language needs.
+  const discard: Choice = {
+    key: "discard",
+    label: task.repeat ? t("endRepeat") : t("discardIt"),
+    icon: "⊘",
+    hint: task.repeat ? t("endRepeatWhy") : undefined,
+    onPick: onDiscard,
+  };
+  const choices: Choice[] = open
+    ? [
+        ...(task.resolved ? [discard] : []),
+        ...(agentNamed(task.created_by)
+          ? []
+          : [
+              {
+                key: "agents",
+                label: t(task.open_to_agents ? "keepToMyself" : "letAgentFill"),
+                icon: "⊚",
+                hint: t(task.open_to_agents ? "keepToMyselfWhy" : "letAgentFillWhy"),
+                apart: task.resolved !== undefined,
+                onPick: () => onOpenToAgents(!task.open_to_agents),
+              },
+            ]),
+      ]
+    : [
+        ...(reading === "routine"
+          ? []
+          : [
+              {
+                key: "move",
+                label: t(reading === "trace" ? "moveToStories" : "moveToTrace"),
+                icon: "◇",
+                hint: t(reading === "trace" ? "moveToStoriesWhy" : "moveToTraceWhy"),
+                onPick: () => onReadAs(reading === "trace" ? "story" : "trace"),
+              },
+            ]),
+        ...(erasable(task)
+          ? [
+              {
+                key: "erase",
+                label: t("eraseIt"),
+                icon: "✕",
+                hint: t("eraseForGood"),
+                danger: true,
+                apart: reading !== "routine",
+                onPick: onErase,
+              },
+            ]
+          : []),
+      ];
 
   return (
-    <footer
-      aria-label={t("taskDoings")}
-      className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
-    >
-      <div
-        className={
-          wide ? "mx-auto flex w-full max-w-[720px] items-center gap-1" : "flex items-center gap-1"
-        }
+    <>
+      <footer
+        aria-label={t("taskDoings")}
+        className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
       >
-        {task.status === "open" ? (
-          <>
+        <div
+          className={
+            wide
+              ? "mx-auto flex w-full max-w-[720px] items-center gap-1"
+              : "flex items-center gap-1"
+          }
+        >
+          {open ? (
+            <>
+              <button
+                type="button"
+                onClick={onComplete}
+                className={`${seat} font-medium text-accent`}
+              >
+                <span aria-hidden="true">✓</span> {t("markDone")}
+              </button>
+              {task.resolved ? (
+                <button
+                  type="button"
+                  onClick={onStillOpen}
+                  title={fill("stillOpenIt", task.title)}
+                  className={`${seat} hover:text-ink`}
+                >
+                  <span aria-hidden="true">↩</span> {t("stillOpen")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onDiscard}
+                  title={discard.hint}
+                  className={`${seat} hover:text-ink`}
+                >
+                  <span aria-hidden="true">⊘</span> {discard.label}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={onReopen} className={`${seat} hover:text-ink`}>
+                <span aria-hidden="true">↺</span> {t("reopenIt")}
+              </button>
+              {task.status !== "dropped" && (
+                <button
+                  type="button"
+                  onClick={() => onFold(!task.hidden)}
+                  className={`${seat} hover:text-ink`}
+                >
+                  <span aria-hidden="true">{task.hidden ? "⊕" : "⊖"}</span>{" "}
+                  {t(task.hidden ? "showIt" : "hideIt")}
+                </button>
+              )}
+            </>
+          )}
+          {choices.length > 0 && (
             <button
               type="button"
-              onClick={onComplete}
-              className={`${seat} font-medium text-accent`}
+              aria-label={t("more")}
+              title={t("more")}
+              aria-haspopup="menu"
+              aria-expanded={more !== null}
+              onClick={(e) => {
+                const box = e.currentTarget.getBoundingClientRect();
+                setMore({ x: box.right - 210, y: box.top - 4 });
+              }}
+              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink"
             >
-              <span aria-hidden="true">✓</span> {t("markDone")}
+              <span aria-hidden="true">⋯</span>
             </button>
-            <button
-              type="button"
-              onClick={onDiscard}
-              title={task.repeat ? t("endRepeatWhy") : undefined}
-              className={`${seat} hover:text-ink`}
-            >
-              <span aria-hidden="true">⊘</span> {task.repeat ? t("endRepeat") : t("discardIt")}
-            </button>
-            {task.resolved && (
-              <button
-                type="button"
-                onClick={onStillOpen}
-                title={fill("stillOpenIt", task.title)}
-                className={`${seat} hover:text-ink`}
-              >
-                <span aria-hidden="true">↩</span> {t("stillOpen")}
-              </button>
-            )}
-            {!agentNamed(task.created_by) && (
-              <button
-                type="button"
-                onClick={() => onOpenToAgents(!task.open_to_agents)}
-                className={`${seat} ml-auto hover:text-ink`}
-              >
-                <span aria-hidden="true">◆</span>{" "}
-                {t(task.open_to_agents ? "keepToMyself" : "letAgentFill")}
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <button type="button" onClick={onReopen} className={`${seat} hover:text-ink`}>
-              <span aria-hidden="true">↺</span> {t("reopenIt")}
-            </button>
-            {task.status !== "dropped" && (
-              <button
-                type="button"
-                onClick={() => onFold(!task.hidden)}
-                className={`${seat} hover:text-ink`}
-              >
-                <span aria-hidden="true">{task.hidden ? "⊕" : "⊖"}</span>{" "}
-                {t(task.hidden ? "showIt" : "hideIt")}
-              </button>
-            )}
-            {reading !== "routine" && (
-              <button
-                type="button"
-                onClick={() => onReadAs(reading === "trace" ? "story" : "trace")}
-                className={`${seat} hover:text-ink`}
-              >
-                <span aria-hidden="true">◇</span>{" "}
-                {t(reading === "trace" ? "keepAsStory" : "readAsTrace")}
-              </button>
-            )}
-            {reading !== "routine" && task.read_as && (
-              <button
-                type="button"
-                onClick={() => onReadAs("auto")}
-                title={t("readByItselfWhy")}
-                className={`${seat} hover:text-ink`}
-              >
-                <span aria-hidden="true">◈</span> {t("readByItself")}
-              </button>
-            )}
-            {erasable(task) && (
-              <button
-                type="button"
-                onClick={onErase}
-                className={`${seat} ml-auto text-faint hover:text-urgent`}
-              >
-                <span aria-hidden="true">✕</span> {t("eraseIt")}
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    </footer>
+          )}
+        </div>
+      </footer>
+      {more && (
+        <Menu
+          at={more}
+          up
+          choices={choices}
+          label={t("taskDoings")}
+          onClose={() => setMore(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -527,6 +579,12 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
           readingOf(task) !== "routine" &&
           ` · ${t(task.read_as === "story" ? "keptAsStory" : "readAsTraceNow")}`}
         {task.open_to_agents && ` · ${t("wasOpenToAgents")}`}
+        {agentNamed(task.created_by) && (
+          <span className="text-hue-teal">
+            {" · "}
+            {fill("agentWrote", agentNamed(task.created_by) as string)}
+          </span>
+        )}
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}

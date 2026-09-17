@@ -470,8 +470,8 @@ them. The rest is the trace: what left little or nothing written, listed dense
 and out of the way, because it still happened and search still reaches it. You
 decide which layer each one reads in: a story that was only noise goes to the
 trace, and a trace worth keeping is kept as a story. The trace is the only layer
-that can be erased — one at a time or all at once — and any of it can be hidden,
-one at a time; a story is only ever hidden.
+that can be erased, and both erasing and hiding are one task at a time; a story
+is only ever hidden.
 
 ## Your Data and Privacy
 
@@ -586,11 +586,11 @@ day, no bell and no file, and if the same work comes back the assistant
 proposes a new one that says how the last one ended.
 
 A task you wrote stays yours unless you say otherwise. Open one to agents from
-its detail — «Let an agent fill it in» — and an assistant may say it is done,
+its detail — «Allow agents» — and an assistant may say it is done,
 for you to confirm; describe it, where there is no description yet; plan its
 steps; and tick them off as it goes, which is the one thing it does without
 asking. Its day, its title, its list and its closing stay yours all the same.
-«Keep it to myself» shuts the door again and keeps what was filled in.
+«No agents» shuts the door again and keeps what was filled in.
 
 **The command line is yours, not the assistant's.** An assistant with a shell
 could type `tisty done 3` the day its MCP server is not connected, and act as

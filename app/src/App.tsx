@@ -1,7 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AXES } from "./archive";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { asPlain } from "./copying";
@@ -29,7 +28,6 @@ import {
   docsUnpack,
   dropStep,
   erase,
-  eraseTrace,
   type Filed,
   FOLDER_NAME_AT_MOST,
   type Folded,
@@ -75,6 +73,7 @@ import { noticeBehind, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
+import Axis from "./ui/Axis";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
@@ -108,7 +107,6 @@ import WindowChrome from "./ui/WindowChrome";
 import {
   accepts,
   asView,
-  axisWord,
   type Chosen,
   invite,
   LAYERS,
@@ -846,31 +844,6 @@ export default function App() {
         });
       })
       .catch((e) => setError(saidPlainly(e)));
-  };
-
-  // The set is the core's to decide, under the lock, the instant it runs: the window only
-  // asks, with the count it painted, and says how many went.
-  const sweepTrace = () => {
-    const seen = data.counts.traces ?? 0;
-    const told = data.counts.tracesTold ?? 0;
-    const sure = `${fill("eraseTraceSure", String(seen))}${told ? ` ${fill("eraseTraceTold", String(told))}` : ""}`;
-    ask(sure, { kind: "warning" })
-      .then((yes) => {
-        if (!yes) return;
-        setError(null);
-        return eraseTrace(seen).then((went) => {
-          setSelected(undefined);
-          setFound(null);
-          say(fill("erasedMany", String(went)));
-          load();
-          carries.current?.changed();
-        });
-      })
-      .catch((e) => {
-        setError(saidPlainly(e));
-        // «Look again» is only possible once the list shows what the store holds now.
-        load();
-      });
   };
 
   const marking = (id: string, title: string) => {
@@ -1917,10 +1890,8 @@ export default function App() {
                           {found === null && !chosen.folded && (
                             <Tally counts={data.counts} onError={(e) => setError(saidPlainly(e))} />
                           )}
-                          <div className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
-                            <span className="mr-0.5 text-[9px] font-semibold tracking-[0.07em] text-faint uppercase">
-                              {t("archiveShowing")}
-                            </span>
+                          <fieldset className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
+                            <legend className="sr-only">{t("archiveShowing")}</legend>
                             {LAYERS.map((layer) => {
                               const on = !chosen.folded && (chosen.layer ?? "story") === layer;
                               const many = data.counts[layerCount(layer)];
@@ -1947,66 +1918,43 @@ export default function App() {
                                 </button>
                               );
                             })}
-                            <span className="mx-1.5 h-3.5 w-px bg-hair" />
-                            <span className="mr-0.5 text-[9px] font-semibold tracking-[0.07em] text-faint uppercase">
-                              {t("archiveGrouped")}
-                            </span>
-                            {AXES.map((axis) => {
-                              const on = (chosen.axis ?? "time") === axis;
-                              return (
-                                <button
-                                  key={axis}
-                                  type="button"
-                                  aria-pressed={on}
-                                  onClick={() => {
-                                    setSelected(undefined);
-                                    setChosen({ ...chosen, named: "archive", axis, folded: false });
-                                  }}
-                                  className={`rounded-full px-2 py-0.5 text-[11.5px] ${
-                                    on
-                                      ? "bg-active font-semibold text-ink"
-                                      : "text-faint hover:text-soft"
-                                  }`}
-                                >
-                                  {t(axisWord(axis))}
-                                </button>
-                              );
-                            })}
-                            {found === null &&
-                            !chosen.folded &&
-                            chosen.layer === "trace" &&
-                            data.counts.traces ? (
-                              <>
-                                <span className="mx-1.5 h-3.5 w-px bg-hair" />
-                                <button
-                                  type="button"
-                                  onClick={sweepTrace}
-                                  className="text-[11.5px] text-faint hover:text-urgent"
-                                >
-                                  ✕ {t("eraseTrace")}
-                                  <span className="ml-1 tabular-nums opacity-70">
-                                    {data.counts.traces}
-                                  </span>
-                                </button>
-                              </>
-                            ) : null}
                             {data.counts.folded || chosen.folded ? (
                               <button
                                 type="button"
                                 aria-pressed={chosen.folded === true}
+                                title={chosen.folded ? t("backToArchive") : undefined}
                                 onClick={() => {
                                   setSelected(undefined);
                                   setFound(null);
                                   setChosen({ named: "archive", folded: !chosen.folded });
                                 }}
-                                className="ml-1 text-[11.5px] text-faint hover:text-ink"
+                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+                                  chosen.folded
+                                    ? "border-ink bg-ink text-bg"
+                                    : "border-line text-faint hover:text-soft"
+                                }`}
                               >
-                                {chosen.folded
-                                  ? `⊕ ${t("backToArchive")}`
-                                  : `⊖ ${data.counts.folded} ${t("folded")}`}
+                                {t("hiddenOnes")}
+                                {data.counts.folded ? (
+                                  <span className="ml-1 tabular-nums opacity-70">
+                                    {data.counts.folded}
+                                  </span>
+                                ) : null}
                               </button>
                             ) : null}
-                          </div>
+                            {!chosen.folded && (chosen.layer ?? "story") !== "routine" && (
+                              <>
+                                <span className="mx-1.5 h-3.5 w-px bg-hair" />
+                                <Axis
+                                  axis={chosen.axis ?? "time"}
+                                  onChange={(axis) => {
+                                    setSelected(undefined);
+                                    setChosen({ ...chosen, named: "archive", axis, folded: false });
+                                  }}
+                                />
+                              </>
+                            )}
+                          </fieldset>
                         </>
                       ) : chosen.named === "tags" || chosen.tags?.length ? (
                         <Tags

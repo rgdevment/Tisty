@@ -4,7 +4,11 @@ import type { List, Task } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
+import { agentNamed } from "../who";
 import { Lozenge, Pip, spokenLabel } from "./Spoke";
+
+// The tag the server adds to what an agent files; said in words, the tag is noise.
+const AGENT_TAG = "agent";
 
 interface Props {
   tasks: Task[];
@@ -339,9 +343,7 @@ export default function TaskList({
                   </span>
                   {leaf.band}
                   <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
-                    {leaf.band === t("agentBand")
-                      ? fill("toConfirm", String(many.get(leaf.band)))
-                      : many.get(leaf.band)}
+                    {many.get(leaf.band)}
                   </span>
                 </button>
               )}
@@ -389,10 +391,19 @@ function Meta({ task, list }: { task: Task; list?: string }) {
     );
   }
   if (list) bits.push(<span key="list">@{list}</span>);
-  if (task.tags?.length) {
+  const filedBy = agentNamed(task.created_by);
+  const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === AGENT_TAG));
+  if (tags.length) {
     bits.push(
       <span key="tags" className="text-faint">
-        {task.tags.map((tag) => `#${tag}`).join(" ")}
+        {tags.map((tag) => `#${tag}`).join(" ")}
+      </span>,
+    );
+  }
+  if (filedBy) {
+    bits.push(
+      <span key="by" className="text-hue-teal">
+        {fill("agentWrote", filedBy)}
       </span>,
     );
   }

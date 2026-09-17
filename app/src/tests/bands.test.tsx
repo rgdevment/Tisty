@@ -107,7 +107,7 @@ describe("banded", () => {
     ]);
 
     expect(rows.map((row) => row.key)).toEqual(["2", "1", "3"]);
-    expect(rows.map((row) => row.band)).toEqual(["Today", "Agents", "Agents"]);
+    expect(rows.map((row) => row.band)).toEqual(["Today", "To confirm", "To confirm"]);
   });
 
   it("leaves what is due today or already late where the person looks for it", () => {
@@ -117,7 +117,7 @@ describe("banded", () => {
       spoken(task("3", "revisar el icono")),
     ]);
 
-    expect(rows.map((row) => row.band)).toEqual(["Overdue", "Today", "Agents"]);
+    expect(rows.map((row) => row.band)).toEqual(["Overdue", "Today", "To confirm"]);
   });
 
   it("leaves a task the person already finished where the date put it", () => {
@@ -145,13 +145,17 @@ describe("the band of what an agent says is done", () => {
   beforeEach(() => vi.setSystemTime(NOW));
   afterEach(() => vi.useRealTimers());
 
-  it("counts what is waiting instead of how many there are", () => {
+  // The band is named for what it asks of the person, not for who filed what is in it: every
+  // task an agent filed is signed by name already, so «Agents» would say nothing.
+  it("is named for what waits on the person", () => {
     show([
       task("1", "llamar al dentista", "2026-08-11"),
       spoken(task("2", "pasar biome sobre el front")),
     ]);
 
-    expect(screen.getByText("1 to confirm")).toBeTruthy();
+    const band = screen.getByText("To confirm");
+    expect(band.parentElement?.textContent).toContain("1");
+    expect(screen.queryByText(/^Agents$/)).toBeNull();
   });
 
   it("does not call a band of its own making a queue of confirmations", () => {
@@ -161,8 +165,8 @@ describe("the band of what an agent says is done", () => {
       spoken(task("3", "pasar biome sobre el front")),
     ]);
 
-    expect(screen.getAllByText("1 to confirm")).toHaveLength(1);
-    expect(screen.getByText("Overdue").parentElement?.textContent).not.toContain("to confirm");
+    expect(screen.getAllByText("To confirm")).toHaveLength(1);
+    expect(screen.getByText("Overdue").parentElement?.textContent).not.toContain("confirm");
   });
 
   it("says when it was said rather than what the task carries", () => {

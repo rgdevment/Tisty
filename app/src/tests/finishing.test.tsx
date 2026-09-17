@@ -200,94 +200,73 @@ describe("erasing what is already archived", () => {
     return onErase;
   };
 
-  it("is offered on a dropped task", async () => {
-    const erased = shown(task({ status: "dropped" }));
+  // The pair that moves the task sits in the footer; what is left waits behind «More».
+  const behindMore = async () => {
+    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
+    return screen.getByRole("menu");
+  };
+  const noMore = () => screen.queryByRole("button", { name: /^more$/i });
 
-    await userEvent.click(screen.getByRole("button", { name: /erase for good/i }));
+  it("is offered on a dropped task, behind «more»", async () => {
+    const erased = shown(task({ status: "dropped" }));
+    await behindMore();
+
+    await userEvent.click(screen.getByRole("menuitem", { name: /^erase$/i }));
 
     expect(erased).toHaveBeenCalled();
   });
 
-  it("is offered on a completed task that was put away", () => {
+  it("is offered on a completed task that was put away", async () => {
     shown(task({ status: "done", hidden: true }));
+    await behindMore();
 
-    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /^erase$/i })).toBeTruthy();
   });
 
   // A trace goes directly: the person closed it and nothing was written on it. Hiding it
   // first is no longer the step that makes it erasable.
-  it("is offered on a completed trace still in plain sight", () => {
+  it("is offered on a completed trace still in plain sight", async () => {
     shown(task({ status: "done" }));
+    await behindMore();
 
-    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /^erase$/i })).toBeTruthy();
   });
 
-  it("is never offered on a story, hidden or not, until it is read as a trace", () => {
+  it("is never offered on a story, hidden or not, until it is moved to the trace", async () => {
     const story = { status: "done" as const, volume: { prose: 3, journal: 3 } };
     shown(task(story));
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
-    expect(screen.getByRole("button", { name: /read as a trace/i })).toBeTruthy();
+    await behindMore();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: /move to the trace/i })).toBeTruthy();
     cleanup();
 
     shown(task({ ...story, hidden: true }));
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    await behindMore();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
     cleanup();
 
     shown(task({ ...story, read_as: "trace" }));
-    expect(screen.getByRole("button", { name: /erase for good/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /keep as a story/i })).toBeTruthy();
+    await behindMore();
+    expect(screen.getByRole("menuitem", { name: /^erase$/i })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /move to the stories/i })).toBeTruthy();
   });
 
-  it("offers to read by what it holds only while a layer was chosen", async () => {
-    shown(task({ status: "done" }));
-    expect(screen.queryByRole("button", { name: /read by what it holds/i })).toBeNull();
-    cleanup();
-
-    const readAs = vi.fn();
-    render(
-      <Detail
-        task={task({ status: "done", read_as: "story" })}
-        lists={[]}
-        known={[]}
-        expanded={false}
-        onExpand={() => {}}
-        onCollapse={() => {}}
-        onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
-        onLog={() => {}}
-        onComplete={() => {}}
-        onDiscard={() => {}}
-        onReopen={() => {}}
-        onStillOpen={() => {}}
-        onErase={() => {}}
-        onFold={() => {}}
-        onReadAs={readAs}
-        onOpenToAgents={() => {}}
-        onClose={() => {}}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /read as a trace/i })).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /read by what it holds/i }));
-    expect(readAs).toHaveBeenCalledWith("auto");
-  });
-
-  it("is never offered on a trace kept as a story, nor on a turn of a routine", () => {
+  it("is never offered on a trace kept as a story, nor on a turn of a routine", async () => {
     shown(task({ status: "done", read_as: "story" }));
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
+    await behindMore();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
     cleanup();
 
     shown(task({ status: "done", after: "01S" }));
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /as a (story|trace)/i })).toBeNull();
+    expect(noMore()).toBeNull();
   });
 
-  it("is never offered while the task is open", () => {
+  it("is never offered while the task is open", async () => {
     shown(task({ status: "open" }));
+    await behindMore();
 
-    expect(screen.queryByRole("button", { name: /erase for good/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /as a (story|trace)/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /move to the/i })).toBeNull();
   });
 
   it("converts through the handler and hides or shows through the other", async () => {
@@ -318,7 +297,8 @@ describe("erasing what is already archived", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /keep as a story/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /move to the stories/i }));
     expect(readAs).toHaveBeenCalledWith("story");
 
     await userEvent.click(screen.getByRole("button", { name: /^hide it$/i }));

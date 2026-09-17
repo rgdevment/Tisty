@@ -6,6 +6,8 @@ import { agentNamed } from "../who";
 export function spokenLabel(task: Task): string {
   const bits = [task.title];
   if (task.status !== "open") bits.push(t(task.status));
+  const filedBy = agentNamed(task.created_by);
+  if (filedBy) bits.push(fill("agentWrote", filedBy));
   if (task.resolved) bits.push(saidBy(task));
   return bits.join(" — ");
 }

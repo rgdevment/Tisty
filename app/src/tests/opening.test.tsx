@@ -57,10 +57,11 @@ describe("letting an agent fill a task in", () => {
     knowAgents({});
   });
 
-  it("is offered on an open task the person wrote, and opens it", async () => {
+  it("is offered on an open task the person wrote, behind «more», and opens it", async () => {
     const door = open(task());
 
-    await userEvent.click(screen.getByRole("button", { name: /let an agent fill it in/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^allow agents$/i }));
 
     expect(door).toHaveBeenCalledWith(true);
     expect(screen.queryByText(/open to agents/i)).toBeNull();
@@ -70,23 +71,24 @@ describe("letting an agent fill a task in", () => {
     const door = open(task({ open_to_agents: true }));
 
     expect(screen.getByText(/open to agents/i)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /keep it to myself/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /^no agents$/i }));
 
     expect(door).toHaveBeenCalledWith(false);
   });
 
-  it("is not offered on what an agent filed, which is already theirs", () => {
+  it("is not offered on what an agent filed, which is the agents' already", () => {
     knowAgents({ dev_agent: "peral 76" });
     open(task({ created_by: "dev_agent" }));
 
-    expect(screen.queryByRole("button", { name: /let an agent fill it in/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^more$/i })).toBeNull();
   });
 
   it("is not offered once the task is closed, and the closing says it was open", () => {
     open(task({ status: "done", completed_at: "2026-09-10T10:00:00Z", open_to_agents: true }));
 
-    expect(screen.queryByRole("button", { name: /keep it to myself/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /let an agent fill it in/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /^no agents$/i })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: /^allow agents$/i })).toBeNull();
     expect(screen.getByText(/· was open to agents/i)).toBeTruthy();
   });
 });

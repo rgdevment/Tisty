@@ -472,8 +472,8 @@ El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
 densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo. Tú decides
 en qué capa se lee cada una: una historia que era ruido pasa al rastro, y un
 rastro que vale la pena se guarda como historia. El rastro es la única capa que
-se puede borrar —de una en una o todo a la vez— y también se puede ocultar, de
-una en una; una historia solo se oculta.
+se puede borrar, y tanto borrar como ocultar van de una en una; una historia solo
+se oculta.
 
 ## Tus datos y tu privacidad
 
@@ -590,11 +590,11 @@ bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
 vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
 
 Una tarea que escribiste tú sigue siendo tuya salvo que digas otra cosa. Ábrela
-a los agentes desde su detalle —«Dejar que un agente la complete»— y un
+a los agentes desde su detalle —«Permitir agentes»— y un
 asistente puede darla por hecha, para que la confirmes; describirla, si aún no
 tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es lo
 único que hace sin preguntar. Su día, su título, su lista y su cierre siguen
-siendo tuyos igual. «Quedármela» cierra la puerta otra vez y conserva lo que
+siendo tuyos igual. «Sin agentes» cierra la puerta otra vez y conserva lo que
 alcanzó a completar.
 
 **La línea de comandos es tuya, no del asistente.** Un asistente con shell

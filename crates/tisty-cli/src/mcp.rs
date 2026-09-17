@@ -1175,8 +1175,8 @@ fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &
             .is_some_and(|who| state.assistants.contains(who));
         return Err(Refused::Tool(match another {
             true => format!(
-                "{:?} was filed by another agent, and the person has not opened it to you. You \
-                 fill in what you filed yourself, or what they opened to agents; on the rest, \
+                "{:?} was filed by another agent, so it is not yours to fill in. You fill in \
+                 what you filed yourself, or what the person opened to agents; on the rest, \
                  say what you have learnt with `note`.",
                 task.title
             ),

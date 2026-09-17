@@ -1169,21 +1169,10 @@ impl State {
     }
 
     /// What the trace layer shows: closed, not folded away, and read as a trace this instant.
-    /// The bulk actions take exactly this, decided under the lock, never a list the window sent.
     pub fn the_trace(&self) -> impl Iterator<Item = &Task> {
         self.tasks
             .values()
             .filter(|t| t.is_archived() && !t.folded() && t.reading() == Reading::Trace)
-    }
-
-    /// A root other turns hang from shows in the trace but stays when the trace is erased:
-    /// cutting it would cut the series it still heads.
-    pub fn erasing_the_trace(&self) -> Vec<Op> {
-        let roots = self.roots();
-        self.the_trace()
-            .filter(|t| !roots.contains(&t.id))
-            .map(|t| Op::TaskDelete { id: t.id })
-            .collect()
     }
 
     /// A trace pin is let go on reopening — work starts again and is judged again by what it
@@ -5854,7 +5843,7 @@ mod converting {
     }
 
     #[test]
-    fn the_trace_is_what_the_layer_shows_and_the_bulk_names_no_more() {
+    fn the_trace_is_what_the_layer_shows_and_no_more() {
         let mut state = State::default();
         let seen = closed(&mut state, 1, "dev_laptop", "comprar pan");
         let hidden = closed(&mut state, 10, "dev_laptop", "regar");
@@ -5909,16 +5898,7 @@ mod converting {
             assert!(!listed.contains(&id), "{why}");
         }
 
-        let erasing: Vec<TaskId> = state
-            .erasing_the_trace()
-            .into_iter()
-            .filter_map(|op| match op {
-                Op::TaskDelete { id } => Some(id),
-                _ => None,
-            })
-            .collect();
-        assert_eq!(erasing.len(), 2);
-        assert!(erasing.contains(&demoted));
+        assert!(listed.contains(&demoted));
     }
 
     /// A root whose repeat was taken off reads as a trace, but turns still hang from it:
@@ -5955,13 +5935,6 @@ mod converting {
         assert!(
             state.the_trace().any(|t| t.id == root) && state.the_trace().all(|t| t.id != turn),
             "the root shows in the trace as the layer shows it; the turn is a routine's"
-        );
-        assert!(
-            state
-                .erasing_the_trace()
-                .iter()
-                .all(|op| !matches!(op, Op::TaskDelete { id } if *id == root)),
-            "but never erased with it"
         );
         assert_eq!(
             state.erasable(Ulid::generate()),

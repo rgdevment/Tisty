@@ -62,7 +62,7 @@ Some payload fields carry more than their name says:
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
-| `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what the window's «Read by what it holds» and `tisty set --read-as auto` ask for |
+| `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what `tisty set --read-as auto` asks for; the window only moves between the two |
 | `open_to_agents` | `task.update` | the person let an assistant fill this task in. Only their own hand sets it: written by an assistant, the field is dropped and the rest of the patch lands |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
@@ -694,13 +694,13 @@ the core — `Task::erasable()` reads the task alone, and the state adds that a
 task other turns hang from counts as a routine's root, however bare — and the
 window and `tisty rm` both obey it at the moment they commit, judged again
 under the lock, since erasing has no undo and an agent or the other window may
-have written since they last looked. The bulk erase carries how many the
-person was shown, and a layer that changed under them is a reason to look again
-rather than a guess; a root shows in the trace and is hidden with it, and stays
-when the trace is erased. One thing is judged at replay, deterministically, the
-way an assistant's deletion is: a delete that reaches a task the person kept as
-a story is let go, on every machine alike, because that word outlives a delete
-written elsewhere while the task still read as a trace. Two deletions are not
+have written since they last looked. Erasing and hiding are one task at a time:
+a sweep of the whole layer was built and taken out, because a trace is let go
+of by looking at it, not by a count. One thing is judged at replay,
+deterministically, the way an assistant's deletion is: a delete that reaches a
+task the person kept as a story is let go, on every machine alike, because that
+word outlives a delete written elsewhere while the task still read as a trace.
+Two deletions are not
 the person's and stay outside the rule: reopening a routine's turn deletes the
 untouched turn born from it, and undoing a capture deletes what it captured.
 The tombstone travels, and it keeps what the task was written from: an

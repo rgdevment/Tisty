@@ -645,11 +645,6 @@ fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     for list in state.ordered_lists() {
         counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
     }
-    // A trace the person converted may hold a journal: the bulk erase says how many do.
-    counts.insert(
-        "tracesTold".to_string(),
-        state.the_trace().filter(|t| t.weight() > 0).count(),
-    );
     counts
 }
 
@@ -6526,9 +6521,8 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
 fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let how = match how.as_str() {
-        "story" => Some(Reading::Story),
-        "trace" => Some(Reading::Trace),
-        "auto" => None,
+        "story" => Reading::Story,
+        "trace" => Reading::Trace,
         _ => return Err(Refusal::of("notAReading")),
     };
     reading_as(&mut held(&session), id, how)
@@ -6544,9 +6538,8 @@ fn open_to_agents(
     opening_to_agents(&mut held(&session), id, open)
 }
 
-/// Only an open task takes the permission: a closed one is history to an assistant. What this
-/// machine's own agent filed is already its to fill in; what another identity filed — the
-/// agent on the other machine, or one since retired — is not, so the door is what lets it on.
+/// Only an open task the person wrote takes the permission: a closed one is history to an
+/// assistant, and what an agent filed is the agents' already.
 fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) -> Answer<Task> {
     session.reload()?;
     let task = session
@@ -6557,7 +6550,7 @@ fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) 
     if !task.is_open() {
         return Err(Refusal::of("onlyOpenOpens"));
     }
-    if task.created_by.is_some() && task.created_by == session.config.agent_id {
+    if session.state.filed_by_agents(task) {
         return Err(Refusal::of("alreadyTheirs"));
     }
     session.commit(Op::TaskUpdate {
@@ -6575,8 +6568,7 @@ fn opening_to_agents(session: &mut Session, id: tisty_core::TaskId, open: bool) 
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-/// `None` reads the task by what it holds again: the pin taken off, the way undo takes it.
-fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Option<Reading>) -> Answer<Task> {
+fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> Answer<Task> {
     session.reload()?;
     let task = session
         .state
@@ -6592,7 +6584,7 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Option<Reading
     session.commit(Op::TaskUpdate {
         id,
         d: TaskPatch {
-            read_as: Some(how),
+            read_as: Some(Some(how)),
             ..Default::default()
         },
     })?;
@@ -6602,30 +6594,6 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Option<Reading
         .get(&id)
         .cloned()
         .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-// The set is decided here, under the lock, the instant it runs — never a list the window sent,
-// which may have been painted before a sync converted one of them into a story. `seen` is how
-// many the person was shown when they said yes: erasing has no undo, so a layer that changed
-// under them is a reason to look again, not to guess which of the two lists they meant.
-#[tauri::command]
-fn erase_trace(session: tauri::State<'_, Mutex<Session>>, seen: usize) -> Answer<usize> {
-    erasing_the_trace(&mut held(&session), seen)
-}
-
-/// `seen` is what the layer showed; what goes is that minus the roots a series still hangs
-/// from, so the answer can be smaller than the count on the button and never larger.
-fn erasing_the_trace(session: &mut Session, seen: usize) -> Answer<usize> {
-    session.reload()?;
-    if session.state.the_trace().count() != seen {
-        return Err(Refusal::of("traceChanged"));
-    }
-    let ops = session.state.erasing_the_trace();
-    let many = ops.len();
-    if many > 0 {
-        session.commit_all(ops)?;
-    }
-    Ok(many)
 }
 
 #[tauri::command]
@@ -6980,7 +6948,6 @@ pub fn run() {
             erase,
             read_as,
             open_to_agents,
-            erase_trace,
             guide,
             capture,
             read,
@@ -8398,7 +8365,7 @@ mod behind_tests {
 
 #[cfg(test)]
 mod letting_go {
-    use super::{Session, erasing, erasing_the_trace, opening_to_agents, reading_as};
+    use super::{Session, erasing, opening_to_agents, reading_as};
     use tisty_core::{DeviceId, Op, Paths, Reading, TaskId};
 
     struct Desk {
@@ -8445,7 +8412,7 @@ mod letting_go {
             .unwrap();
         let errand = closed(&mut session, "buy bread");
         let kept = closed(&mut session, "the certificate");
-        reading_as(&mut session, kept, Some(Reading::Story)).unwrap();
+        reading_as(&mut session, kept, Reading::Story).unwrap();
 
         assert_eq!(code(erasing(&mut session, open)), "onlyArchivedGoes");
         assert_eq!(code(erasing(&mut session, kept)), "storyStays");
@@ -8481,27 +8448,23 @@ mod letting_go {
         let errand = closed(&mut session, "buy bread");
 
         assert_eq!(
-            code(reading_as(&mut session, open, Some(Reading::Story))),
+            code(reading_as(&mut session, open, Reading::Story)),
             "onlyClosedConverts"
         );
         assert_eq!(
-            code(reading_as(&mut session, turn, Some(Reading::Trace))),
+            code(reading_as(&mut session, turn, Reading::Trace)),
             "routineReadsAsRoutine"
         );
-        let told = reading_as(&mut session, errand, Some(Reading::Story)).unwrap();
+        let told = reading_as(&mut session, errand, Reading::Story).unwrap();
         assert_eq!(told.read_as, Some(Reading::Story));
         assert_eq!(code(erasing(&mut session, errand)), "storyStays");
         assert_eq!(code(erasing(&mut session, turn)), "routineStays");
-        let told = reading_as(&mut session, errand, None).unwrap();
-        assert_eq!(told.read_as, None, "read by what it holds again");
-        assert_eq!(code(erasing(&mut session, errand)), "ok");
     }
 
     /// A closed root with no repeat left reads as a trace by itself; the turn hanging from it
-    /// makes it a routine's to the state, so the window refuses to erase it and leaves it when
-    /// the trace is erased.
+    /// makes it a routine's to the state, so the window refuses to erase it.
     #[test]
-    fn a_bare_root_a_turn_hangs_from_is_never_erased_with_the_trace() {
+    fn a_bare_root_a_turn_hangs_from_is_never_erased() {
         let desk = desk();
         let mut session = Session::at(desk.paths.clone()).unwrap();
         let root = closed(&mut session, "pills");
@@ -8518,53 +8481,8 @@ mod letting_go {
         let errand = closed(&mut session, "buy bread");
 
         assert_eq!(code(erasing(&mut session, root)), "routineStays");
-        assert_eq!(
-            session.state.the_trace().count(),
-            2,
-            "the root shows with the errand"
-        );
-        assert_eq!(
-            erasing_the_trace(&mut session, 2).unwrap(),
-            1,
-            "only the errand goes"
-        );
-        assert!(session.state.is_erased(errand));
+        assert_eq!(code(erasing(&mut session, errand)), "ok");
         assert!(session.state.tasks.contains_key(&root));
-    }
-
-    /// What the person was shown is what goes: a trace that changed under them — the
-    /// terminal wrote while the dialog was open — is a reason to look again.
-    #[test]
-    fn the_sweep_erases_what_was_seen_and_refuses_what_changed_meanwhile() {
-        let desk = desk();
-        let mut session = Session::at(desk.paths.clone()).unwrap();
-        let one = closed(&mut session, "buy bread");
-        let two = closed(&mut session, "water the plants");
-        let kept = closed(&mut session, "the certificate");
-        reading_as(&mut session, kept, Some(Reading::Story)).unwrap();
-
-        assert_eq!(code(erasing_the_trace(&mut session, 3)), "traceChanged");
-        assert!(session.state.tasks.contains_key(&one), "nothing went");
-
-        let mut elsewhere = Session::at(desk.paths.clone()).unwrap();
-        closed(&mut elsewhere, "written from the terminal meanwhile");
-        assert_eq!(
-            code(erasing_the_trace(&mut session, 2)),
-            "traceChanged",
-            "the store moved on since the window counted"
-        );
-
-        assert_eq!(erasing_the_trace(&mut session, 3).unwrap(), 3);
-        assert!(session.state.is_erased(one) && session.state.is_erased(two));
-        assert!(
-            session.state.tasks.contains_key(&kept),
-            "kept as a story, it stays"
-        );
-        assert_eq!(
-            erasing_the_trace(&mut session, 0).unwrap(),
-            0,
-            "nothing left, nothing written"
-        );
     }
 
     #[test]
