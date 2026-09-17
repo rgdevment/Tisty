@@ -136,7 +136,7 @@ describe("what About suggests", () => {
   });
 
   it("hands the button back when the install was refused, and clears what was underway", async () => {
-    refuse.next = { code: "updateGone" };
+    refuse.next = { code: "updateFailed", name: "no room left" };
     const onError = vi.fn();
     const onGaveUp = vi.fn();
     render(<About ready={ready("download")} onError={onError} onGaveUp={onGaveUp} />);

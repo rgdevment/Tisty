@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { saidPlainly } from "../refusal";
 import About from "../ui/About";
 
 const opened = vi.hoisted(() => ({ urls: [] as string[] }));
@@ -156,6 +157,42 @@ describe("a newer version the Store itself offers", () => {
   });
 
   const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
+
+  // A copy left closed for weeks remembers an offer the feed has moved past; the button must not
+  // fail the same way for ever, but look again and offer what is out now.
+  it("looks again when the offer it clicked is off the feed, and offers what is out now", async () => {
+    const problems: unknown[] = [];
+    const seen: string[] = [];
+    ipc.answer = (cmd) => {
+      seen.push(cmd);
+      if (cmd === "update_install") return Promise.reject({ code: "updateMoved", name: "1.17.0" });
+      if (cmd === "update_ready")
+        return Promise.resolve({
+          version: "1.17.0",
+          route: "download",
+          package: null,
+          installs: true,
+        });
+      return Promise.resolve(build);
+    };
+    render(
+      <About
+        ready={{ version: "1.15.1", route: "download", package: null, installs: true }}
+        onError={(problem) => problems.push(problem)}
+      />,
+    );
+
+    await screen.findByText("0.1.0");
+    expect(screen.getByText(/1\.15\.1/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /update/i }));
+
+    await screen.findByText(/1\.17\.0/);
+    expect(screen.queryByText(/1\.15\.1/)).toBeNull();
+    expect(seen.filter((cmd) => cmd === "update_ready")).toEqual(["update_ready"]);
+    expect(problems.map((one) => saidPlainly(one))).toEqual([
+      "That version is no longer offered; 1.17.0 is.",
+    ]);
+  });
 
   it("is taken with the one button, and never through a door to the Store", async () => {
     render(<About ready={waiting} onError={() => {}} />);

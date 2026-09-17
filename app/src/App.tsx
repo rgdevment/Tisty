@@ -69,7 +69,7 @@ import { decideAll, decidesByBlock } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
 import { todayLong } from "./format";
 import { adopt, fill, t, type Word } from "./locales";
-import { noticeBehind, saidPlainly } from "./refusal";
+import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
@@ -1392,6 +1392,11 @@ export default function App() {
                 updateInstall().catch((problem) => {
                   setUnderway(null);
                   setError(saidPlainly(problem));
+                  if (offerMoved(problem)) {
+                    updateReady(true)
+                      .then(setReady)
+                      .catch(() => {});
+                  }
                 });
               }}
               className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"

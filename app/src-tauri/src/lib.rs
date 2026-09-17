@@ -2640,7 +2640,7 @@ async fn update_install(
     };
     let Some(want) = update::remembered(HERE, found.as_deref(), kept, wants).map(|one| one.version)
     else {
-        return Err(Refusal::of("updateGone"));
+        return Err(moved_on(&session, kept, wants).await);
     };
 
     let asked = want.clone();
@@ -2665,7 +2665,7 @@ async fn update_install(
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
 
     let Some(mut update) = update else {
-        return Err(Refusal::of("updateGone"));
+        return Err(moved_on(&session, kept, wants).await);
     };
 
     // The feed names the address the installer comes from, so it is checked against where our
@@ -2718,6 +2718,30 @@ async fn update_install(
     app.run_on_main_thread(move || handle.restart())
         .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
     Ok(())
+}
+
+/// The version the person was shown is not on the feed any more — a copy left closed for weeks
+/// remembers an offer the feed has moved past. Looking again on the spot keeps what is offered
+/// now and says so, rather than leaving them with a button that only ever fails.
+async fn moved_on(
+    session: &tauri::State<'_, Mutex<Session>>,
+    kept: update::Kept,
+    wants: Option<bool>,
+) -> Refusal {
+    let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
+        .await
+        .ok()
+        .flatten();
+    let seen = manifest.and_then(|manifest| update::newer(HERE, &manifest, kept, wants));
+    let version = seen.map(|one| one.version);
+    let _ = held(session).keep(|c| {
+        c.found_version = version.clone();
+        c.found_in_the_shop = None;
+    });
+    match version {
+        Some(version) => Refusal::about("updateMoved", version),
+        None => Refusal::of("updateGone"),
+    }
 }
 
 /// Windows ends the process to put the new package in place, so the progress left behind is the

@@ -14,7 +14,7 @@ import {
 } from "../core";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
-import { saidPlainly } from "../refusal";
+import { offerMoved, saidPlainly } from "../refusal";
 import Composed from "./Composed";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
@@ -169,6 +169,7 @@ export default function About({
                       setAsked(false);
                       onGaveUp?.();
                       onError(problem);
+                      if (offerMoved(problem)) lookAgain();
                     });
                 }}
                 className="shrink-0 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white disabled:opacity-60"

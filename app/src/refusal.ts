@@ -11,6 +11,7 @@ const KNOWN = [
   "updateElsewhere",
   "updateNotHere",
   "updateGone",
+  "updateMoved",
   "updateStopped",
   "updateFailed",
   "untitled",
@@ -124,6 +125,10 @@ type Known = (typeof KNOWN)[number];
 const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).includes(code);
 
 const BEHIND = ["storeNewer", "syncNewer"];
+
+/** The offer the person clicked is off the feed: what is offered now has to be looked up again. */
+export const offerMoved = (problem: unknown): boolean =>
+  ["updateGone", "updateMoved"].includes((problem as Refusal | undefined)?.code ?? "");
 
 let noticing: ((behind: boolean) => void) | null = null;
 
