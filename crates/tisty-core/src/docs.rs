@@ -593,18 +593,49 @@ pub fn headings(body: &str) -> Vec<(usize, usize, String)> {
 /// The blank lines before the next heading separate the two, so they belong to neither.
 pub fn section_lines(body: &str, at: usize) -> Option<(usize, usize)> {
     let all = headings(body);
-    let (line, deep, _) = all.get(at)?.clone();
     let lines: Vec<&str> = body.lines().collect();
+    section_ends(&all, &lines, at)
+}
+
+fn section_ends(
+    all: &[(usize, usize, String)],
+    lines: &[&str],
+    at: usize,
+) -> Option<(usize, usize)> {
+    let (line, deep, _) = all.get(at)?;
     let mut last = all
         .iter()
         .skip(at + 1)
-        .find(|(_, other, _)| *other <= deep)
+        .find(|(_, other, _)| other <= deep)
         .map(|(next, _, _)| next - 1)
         .unwrap_or(lines.len());
-    while last > line && lines.get(last - 1).is_some_and(|one| one.trim().is_empty()) {
+    while last > *line && lines.get(last - 1).is_some_and(|one| one.trim().is_empty()) {
         last -= 1;
     }
-    Some((line, last))
+    Some((*line, last))
+}
+
+pub fn outlined(body: &str) -> Vec<Heading> {
+    let all = headings(body);
+    let lines: Vec<&str> = body.lines().collect();
+    all.iter()
+        .enumerate()
+        .map(|(at, (line, level, title))| {
+            let (_, to) = section_ends(&all, &lines, at).unwrap_or((*line, *line));
+            let chars = lines[line - 1..to]
+                .iter()
+                .map(|one| one.chars().count() + 1)
+                .sum();
+            Heading {
+                at,
+                line: *line,
+                level: *level,
+                title: title.clone(),
+                to,
+                chars,
+            }
+        })
+        .collect()
 }
 
 /// Cut where the lines really end, so a body that ended in a newline still does. A run that ends
@@ -658,6 +689,10 @@ pub struct Heading {
     pub line: usize,
     pub level: usize,
     pub title: String,
+    #[serde(default)]
+    pub to: usize,
+    #[serde(default)]
+    pub chars: usize,
 }
 
 fn none_at_all(many: &usize) -> bool {
@@ -686,16 +721,7 @@ const A_WORD_AT_LEAST: usize = 4;
 
 impl Card {
     pub fn read_from(body: &str) -> Self {
-        let outline: Vec<Heading> = headings(body)
-            .into_iter()
-            .enumerate()
-            .map(|(at, (line, level, title))| Heading {
-                at,
-                line,
-                level,
-                title,
-            })
-            .collect();
+        let outline = outlined(body);
         let (pictures, links) = pointed_at(body);
         Self {
             print: crate::attach::printed(body.as_bytes()),
@@ -808,11 +834,15 @@ fn pointed_at(body: &str) -> (usize, usize) {
     let (mut drawn, mut followed) = (0, 0);
     let bytes = body.as_bytes();
     for (at, _) in body.match_indices('[') {
-        let picture = at > 0 && bytes[at - 1] == b'!';
-        match body[at..].find("](") {
-            Some(_) if picture => drawn += 1,
-            Some(_) => followed += 1,
-            None => {}
+        let Some(shut) = crate::refs::shuts(&body[at + 1..]) else {
+            continue;
+        };
+        if bytes.get(at + 1 + shut + 1) != Some(&b'(') {
+            continue;
+        }
+        match at > 0 && bytes[at - 1] == b'!' {
+            true => drawn += 1,
+            false => followed += 1,
         }
     }
     (drawn, followed)
@@ -5067,6 +5097,43 @@ mod cards {
             card.keywords.iter().any(|one| one == "riego"),
             "what it leans on: {:?}",
             card.keywords
+        );
+    }
+
+    #[test]
+    fn a_link_is_counted_only_where_a_target_follows_its_label() {
+        let card = Card::read_from("- [ ] tarea\n- [x] hecha\n\nver [el plano](tisty:doc/abc)\n");
+        assert_eq!(card.links, 1, "a checklist box is not a link");
+        assert_eq!(card.pictures, 0);
+
+        let card = Card::read_from("[x] y [z](u) y ![foto](f.png)\n");
+        assert_eq!(card.links, 1);
+        assert_eq!(card.pictures, 1);
+
+        let card = Card::read_from("[a](b)\n");
+        assert_eq!(card.links, 1, "a link on the very first byte");
+    }
+
+    #[test]
+    fn a_heading_says_where_its_section_ends_and_how_much_it_holds() {
+        let card =
+            Card::read_from("# Acta\n\nintro\n\n## Riego\n\nuno\ndos\n\n\n## Porton\n\ntres\n");
+        let riego = &card.outline[1];
+        assert_eq!(
+            (riego.line, riego.to),
+            (5, 8),
+            "the blank lines before Porton are nobody's"
+        );
+        assert_eq!(riego.chars, "## Riego\n\nuno\ndos\n".chars().count());
+        let porton = &card.outline[2];
+        assert_eq!((porton.line, porton.to), (11, 13));
+        assert_eq!(
+            section_lines(
+                "# Acta\n\nintro\n\n## Riego\n\nuno\ndos\n\n\n## Porton\n\ntres\n",
+                1
+            ),
+            Some((5, 8)),
+            "the outline and a section read agree on where it ends"
         );
     }
 
