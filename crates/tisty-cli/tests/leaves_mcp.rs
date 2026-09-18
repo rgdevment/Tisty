@@ -1813,3 +1813,186 @@ fn a_body_written_over_can_be_put_back_whether_or_not_it_ended_in_a_newline() {
         );
     }
 }
+
+#[test]
+fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Plan\n\nintro\n\n## El riego\n\nLa migración a Windows y macOS va en mayo.\n\n## El portón\n\nsin fecha\n",
+        None,
+    );
+    let inside = |query: &str| {
+        served.call("find", serde_json::json!({ "doc": &doc, "query": query }))["result"]
+            ["structuredContent"]
+            .clone()
+    };
+
+    let kept = inside("macos windows");
+    assert_eq!(kept["total"], 1, "two words in the other order: {kept}");
+    assert_eq!(kept["lines"][0]["line"], 7);
+    assert_eq!(kept["lines"][0]["section"]["at"], 1);
+    assert_eq!(kept["lines"][0]["section"]["title"], "El riego");
+    assert_eq!(
+        kept["lines"][0]["around"], "\nLa migración a Windows y macOS va en mayo.\n",
+        "the line before and the line after, no more"
+    );
+
+    let kept = inside("migracion");
+    assert_eq!(kept["total"], 1, "typed without its accent: {kept}");
+
+    let kept = inside("porton");
+    assert_eq!(kept["lines"][0]["line"], 9);
+    assert_eq!(
+        kept["lines"][0]["section"]["at"], 2,
+        "a hit on the heading line itself belongs to that section: {kept}"
+    );
+
+    assert_eq!(
+        inside("\"macos va\"")["total"],
+        1,
+        "a phrase in quotes, as written"
+    );
+    assert_eq!(
+        inside("\"va macos\"")["total"],
+        0,
+        "a phrase in quotes is looked for whole"
+    );
+    assert_eq!(inside("va macos")["total"], 1, "the same two words loose");
+    assert!(
+        inside("\"\"")["error"].is_object() || inside("\"\"").get("total").is_none(),
+        "nothing to look for is refused"
+    );
+
+    let bare = served.wrote(
+        "Sin titulo con almohadilla\n\nuna linea que dice riego\n",
+        None,
+    );
+    let kept = served.call(
+        "find",
+        serde_json::json!({ "doc": &bare, "query": "riego" }),
+    )["result"]["structuredContent"]
+        .clone();
+    assert_eq!(kept["total"], 1);
+    assert!(
+        kept["lines"][0].get("section").is_none(),
+        "no heading, so no section to sit in: {kept}"
+    );
+    let told = served.call(
+        "find",
+        serde_json::json!({ "doc": &bare, "query": "riego" }),
+    )["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(told.contains("line 3 — una linea"), "{told}");
+    let told = served.call(
+        "find",
+        serde_json::json!({ "doc": &doc, "query": "porton" }),
+    )["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(told.contains("line 9 (section 2, El portón) — "), "{told}");
+}
+
+#[test]
+fn the_outline_of_a_book_names_each_page_with_what_it_holds() {
+    let served = Served::new();
+    let book = served.wrote(
+        "# Actas\n\n## Enero\n\nlo de enero\n\n## Febrero\n\nlo de febrero\n",
+        None,
+    );
+    let first = served.wrote(
+        "# Acta del 3\n\n## Riego\n\nuno dos tres #riego\n",
+        Some(&book),
+    );
+    let second = served.wrote("# Acta del 10\n\ncuatro cinco\n", Some(&book));
+    let third = served.wrote("seis siete ocho\n", Some(&book));
+    served.call(
+        "sum_up",
+        serde_json::json!({ "doc": &second, "summary": "the tenth, in short", "notes": "not for the list" }),
+    );
+
+    let said = served.call("outline_doc", serde_json::json!({ "doc": &book }));
+    let kept = &said["result"]["structuredContent"];
+    let pages = kept["pages"].as_array().expect("a row per page");
+    assert_eq!(pages.len(), 3);
+    assert_eq!(pages[0]["doc"], first);
+    assert_eq!(pages[0]["title"], "Acta del 3");
+    assert_eq!(pages[0]["sections"], 2);
+    assert_eq!(pages[0]["words"], 10);
+    assert_eq!(
+        pages[0]["about"],
+        serde_json::json!(["riego"]),
+        "{}",
+        pages[0]
+    );
+    assert_eq!(pages[1]["doc"], second);
+    assert_eq!(pages[1]["title"], "Acta del 10");
+    assert_eq!(pages[1]["sections"], 1, "the title is a heading too");
+    assert_eq!(pages[1]["gist"]["summary"], "the tenth, in short");
+    assert!(
+        pages[1]["gist"].get("notes").is_none(),
+        "notes are not for a list: {}",
+        pages[1]
+    );
+    assert_eq!(pages[2]["doc"], third);
+    assert_eq!(pages[2]["words"], 3);
+    assert!(
+        pages[2].get("sections").is_none(),
+        "no heading at all: {}",
+        pages[2]
+    );
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        told.contains("Pages, in the order they are read (3):"),
+        "{told}"
+    );
+    assert!(
+        told.contains(&format!("{first} — Acta del 3 (10 words, 2 sections)")),
+        "{told}"
+    );
+    assert!(
+        told.contains(&format!("{third} — seis siete ocho (3 words)")),
+        "{told}"
+    );
+    assert!(told.contains("Enero  ·  lines 3-5, 22 chars"), "{told}");
+
+    let enero = &kept["outline"][1];
+    assert_eq!(enero["title"], "Enero");
+    assert_eq!(enero["line"], 3);
+    assert_eq!(enero["to"], 5, "the blank line before Febrero is nobody's");
+    assert_eq!(enero["chars"], "## Enero\n\nlo de enero\n".chars().count());
+
+    let said = served.call("outline_doc", serde_json::json!({ "doc": &first }));
+    assert_eq!(
+        said["result"]["structuredContent"]["page_of"], book,
+        "a page's outline says whose page it is"
+    );
+}
+
+#[test]
+fn a_long_document_read_whole_comes_back_as_an_outline_that_weighs_each_part() {
+    let served = Served::new();
+    let long = (1..=200)
+        .map(|n| format!("Linea {n} con bastante texto detras para pasar del presupuesto."))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let body = format!("# Largo\n\n## Uno\n\n{long}\n\n## Dos\n\nfin\n");
+    let doc = served.wrote(&body, None);
+
+    let said = served.call("read_doc", serde_json::json!({ "doc": &doc }));
+    let kept = &said["result"]["structuredContent"];
+    assert_eq!(kept["whole"], false);
+    let uno = &kept["outline"][1];
+    assert_eq!(uno["title"], "Uno");
+    assert_eq!(uno["line"], 3);
+    assert_eq!(uno["to"], 3 + 2 + 200 - 1);
+    let held: usize = body
+        .lines()
+        .skip(2)
+        .take(2 + 200)
+        .map(|one| one.chars().count() + 1)
+        .sum();
+    assert_eq!(uno["chars"], held, "what reading section 1 would cost");
+}

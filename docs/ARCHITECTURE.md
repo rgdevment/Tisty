@@ -208,8 +208,9 @@ A tool that hands back more than was asked is a tool that is used once and then
 worked around. Three rules keep the door cheap.
 
 *Read the shape before the body.* `outline_doc` answers with the headings, the
-line each sits on, the length and the print — a few hundred tokens for a
-document that costs tens of thousands whole. `read_doc` then takes a `section`,
+lines each one spans and what it costs, the length, the print, and for a book a
+row per page — a few hundred tokens for a document that costs tens of thousands
+whole. `read_doc` then takes a `section`,
 a run of lines, or a budget of `chars` with a cursor; a body past 12 000
 characters comes back as its outline anyway, with `whole` set to false, rather
 than filling the window with text nobody asked for. A run of lines is held to
@@ -302,7 +303,7 @@ take the good ones with it. What the door costs an agent is mostly the
 conversation it has to send again every time, not the writing.
 
 `find` carries the same idea: a `doc` argument searches inside one document and
-answers with line numbers, and `tag`, `list`, `by_agent`, `said_done` and a
+answers with line numbers and the section each line sits in, and `tag`, `list`, `by_agent`, `said_done` and a
 `from`/`to` range sift by what a task *is* rather than what it says, so
 «everything an agent filed for next week» is one call instead of a search and a
 read of each hit. `said_done` is how an agent tells what it has already spoken
