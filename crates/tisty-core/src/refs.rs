@@ -100,7 +100,7 @@ fn named(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     at + end + 2
 }
 
-fn shuts(rest: &str) -> Option<usize> {
+pub(crate) fn shuts(rest: &str) -> Option<usize> {
     let mut escaped = false;
     let mut any = None;
     for (at, c) in rest.char_indices() {

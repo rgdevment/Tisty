@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 4;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 5;
 
 pub struct Cache {
     db: Connection,
@@ -57,8 +57,7 @@ impl Cache {
                  DROP TABLE IF EXISTS folder;
                  DROP TABLE IF EXISTS doc;
                  DROP TABLE IF EXISTS tombstone;
-                 DROP TABLE IF EXISTS paper;
-                 DROP TABLE IF EXISTS gist;",
+                 DROP TABLE IF EXISTS paper;",
             )
         {
             witness::warn(
@@ -523,7 +522,10 @@ impl Cache {
 
     /// A document deleted or renamed leaves its card behind, and nothing ever asks for it again.
     pub fn forget_cards(&self, kept: &std::collections::BTreeSet<String>) {
-        let Ok(mut all) = self.db.prepare("SELECT id FROM paper") else {
+        let Ok(mut all) = self
+            .db
+            .prepare("SELECT id FROM paper UNION SELECT id FROM gist")
+        else {
             return;
         };
         let Ok(found) = all.query_map([], |row| row.get::<_, String>(0)) else {
@@ -1435,6 +1437,57 @@ mod tests {
             cache.load(&print, true).is_some(),
             "the cache loads again after the rebuild"
         );
+    }
+
+    #[test]
+    fn a_gist_outlives_a_schema_that_moved() {
+        let f = loaded();
+        let cache = Cache::open(&f.cache_dir).unwrap().unwrap();
+        let said = crate::docs::Gist {
+            print: "abc".into(),
+            summary: "the roof, and who pays for it".into(),
+            notes: String::new(),
+            at: jiff::Timestamp::UNIX_EPOCH,
+            by: None,
+        };
+        assert!(cache.note_gist("mac0-0001", &said));
+        let card = crate::docs::Card::read_from("# Roof\n\nwho pays\n");
+        cache.note_card("mac0-0001", (7, 7), &card, "roof who pays");
+        assert!(cache.card("mac0-0001", (7, 7)).is_some());
+        drop(cache);
+
+        let db = Connection::open(f.cache_dir.join("read.db")).unwrap();
+        db.execute("INSERT OR REPLACE INTO meta VALUES ('schema', '1')", [])
+            .unwrap();
+        drop(db);
+
+        let cache = Cache::open(&f.cache_dir).unwrap().unwrap();
+        assert!(
+            cache.card("mac0-0001", (7, 7)).is_none(),
+            "the rebuild did not run, so nothing was put to the test"
+        );
+        assert_eq!(
+            cache.gist("mac0-0001").map(|one| one.summary),
+            Some(said.summary),
+            "the rebuild threw the agents' margin away"
+        );
+    }
+
+    #[test]
+    fn a_gist_whose_document_is_gone_is_forgotten_even_without_a_card() {
+        let f = loaded();
+        let cache = Cache::open(&f.cache_dir).unwrap().unwrap();
+        let said = crate::docs::Gist {
+            print: "abc".into(),
+            summary: "gone".into(),
+            notes: String::new(),
+            at: jiff::Timestamp::UNIX_EPOCH,
+            by: None,
+        };
+        assert!(cache.note_gist("mac0-0009", &said));
+
+        cache.forget_cards(&std::collections::BTreeSet::new());
+        assert!(cache.gist("mac0-0009").is_none());
     }
 
     #[test]

@@ -148,13 +148,15 @@ the work. It stays on this machine, never syncs, and the person does not see it:
 agents' own margin, not part of what they wrote. Never let it stand in for the document when \
 the answer has to be right — it is a way to choose, not a source to quote.
 
-Read a long document by parts rather than whole. `outline_doc` gives its headings with the line \
-each sits on, its length and its print, for a fraction of what the body costs; `read_doc` then \
-takes a `section`, a run of lines, or a budget of `chars` with a cursor to carry on from. A \
-document longer than a few pages comes back as its outline anyway, with `whole` set to false. \
-`find` with a `doc` says which lines say a word. With the outline and the print you can change \
-one part of a document you never read, and nothing you write is ever handed back to you: a \
-writing tool answers with the title, the length and the new print.
+Read a long document by parts rather than whole. `outline_doc` gives its headings with the lines \
+each one spans and how many characters it holds, the document's length and its print, and for a \
+document with pages one row per page — title, length, sections — in the order they are read, for \
+a fraction of what the bodies cost; `read_doc` then takes a `section`, a run of lines, or a \
+budget of `chars` with a cursor to carry on from. A document longer than a few pages comes back \
+as its outline anyway, with `whole` set to false. `find` with a `doc` says which lines say the \
+words, and which section each line sits in. With the outline and the print you can change one \
+part of a document you never read, and nothing you write is ever handed back to you: a writing \
+tool answers with the title, the length and the new print.
 
 To replace a body entirely, `write_doc` takes the document's name and the `print` `read_doc` \
 handed you with its text. If anyone wrote in it between your reading and your writing the print \
@@ -178,8 +180,8 @@ one is too big. The file is copied into Tisty, not pointed at, so a copy stays b
 original is moved or deleted: only copy what you were asked to copy.
 
 `find` takes words, not a phrase: each word has to turn up somewhere in the same task or \
-document, in any order, and an accent typed or not typed makes no difference. Put a phrase in \
-quotes when the order is the point.
+document — on the same line, when looking inside one with `doc` — in any order, and an accent \
+typed or not typed makes no difference. Put a phrase in quotes when the order is the point.
 
 `note` appends to a task's journal, including tasks the person wrote themselves. Use it \
 when something new turns up about work that already exists, rather than filing a duplicate. \
@@ -2058,27 +2060,46 @@ fn inside_a_doc(paths: &Paths, state: &State, which: &str, args: &Value) -> Resu
         .unwrap_or(20)
         .clamp(1, 100) as usize;
 
+    let terms = tisty_core::text::terms(&query);
+    if terms.is_empty() {
+        return Err(Refused::Tool(
+            "looking inside a document needs a `query` with a word in it.".into(),
+        ));
+    }
     let lines: Vec<&str> = body.lines().collect();
-    let want = query.to_lowercase();
     let at: Vec<usize> = lines
         .iter()
         .enumerate()
-        .filter(|(_, one)| one.to_lowercase().contains(&want))
+        .filter(|(_, one)| {
+            let flat = tisty_core::text::folded(one);
+            terms.iter().all(|term| flat.contains(term.as_str()))
+        })
         .map(|(n, _)| n)
         .collect();
     let all = at.len();
 
+    let outline = tisty_core::docs::outlined(&body);
+    let section_of = |line: usize| {
+        outline
+            .iter()
+            .rev()
+            .find(|one| one.line <= line && line <= one.to)
+            .map(|one| json!({ "at": one.at, "title": one.title }))
+    };
     let found: Vec<Value> = at
         .iter()
         .take(most)
         .map(|n| {
             let first = n.saturating_sub(AROUND_A_HIT);
             let last = (n + AROUND_A_HIT).min(lines.len().saturating_sub(1));
-            json!({
-                "line": n + 1,
-                "text": lines[*n],
-                "around": lines[first..=last].join("\n"),
-            })
+            let mut hit = serde_json::Map::new();
+            hit.insert("line".into(), json!(n + 1));
+            hit.insert("text".into(), json!(lines[*n]));
+            hit.insert("around".into(), json!(lines[first..=last].join("\n")));
+            if let Some(section) = section_of(n + 1) {
+                hit.insert("section".into(), section);
+            }
+            Value::Object(hit)
         })
         .collect();
 
@@ -2089,7 +2110,16 @@ fn inside_a_doc(paths: &Paths, state: &State, which: &str, args: &Value) -> Resu
             found.len(),
             found
                 .iter()
-                .map(|one| format!("line {} — {}", said(one, "line"), said(one, "text")))
+                .map(|one| match one["section"].is_object() {
+                    true => format!(
+                        "line {} (section {}, {}) — {}",
+                        one["line"],
+                        one["section"]["at"],
+                        said(&one["section"], "title"),
+                        said(one, "text")
+                    ),
+                    false => format!("line {} — {}", one["line"], said(one, "text")),
+                })
                 .collect::<Vec<_>>()
                 .join("\n")
         ),
@@ -4595,14 +4625,20 @@ fn tags(paths: &Paths) -> Result<Value, Refused> {
 
 /// The outline as a person would read it aloud, not as JSON.
 fn said_outline(body: &str) -> String {
-    tisty_core::docs::headings(body)
+    tisty_core::docs::outlined(body)
         .iter()
-        .map(|(line, deep, title)| format!("{}{title}  ·  line {line}", "  ".repeat(deep - 1)))
+        .map(|one| {
+            format!(
+                "{}{}  ·  lines {}-{}, {} chars",
+                "  ".repeat(one.level - 1),
+                one.title,
+                one.line,
+                one.to,
+                one.chars
+            )
+        })
         .collect::<Vec<_>>()
-        .join(
-            "
-",
-        )
+        .join("\n")
 }
 
 /// A summary is the one thing about a document that cannot be worked out from it, so an agent
@@ -4739,10 +4775,32 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              be arriving from another one."
         )));
     };
-    let pages: Vec<String> = state
-        .pages_of(kept.id)
+    let pages = state.pages_of(kept.id);
+    let names: Vec<String> = pages.iter().map(|one| one.file.clone()).collect();
+    let cards = tisty_core::docs::cards_of(&paths.docs(), held.as_ref(), &names);
+    let rows: Vec<Value> = pages
         .iter()
-        .map(|one| one.file.clone())
+        .map(|one| {
+            let mut row = serde_json::Map::new();
+            row.insert("doc".into(), json!(one.file));
+            if let Some(card) = cards.get(&one.file) {
+                row.insert("title".into(), json!(card.title));
+                row.insert("words".into(), json!(card.words));
+                if !card.outline.is_empty() {
+                    row.insert("sections".into(), json!(card.outline.len()));
+                }
+                if !card.keywords.is_empty() {
+                    row.insert("about".into(), json!(card.keywords));
+                }
+                if let Some(said) = gist_of(held.as_ref(), &one.file, &card.print) {
+                    row.insert("gist".into(), shortened(said));
+                }
+            }
+            if state.held_away(one) {
+                row.insert("archived".into(), json!(true));
+            }
+            Value::Object(row)
+        })
         .collect();
 
     let mut kept_of = serde_json::Map::new();
@@ -4765,8 +4823,11 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(said) = gist_of(held.as_ref(), &which, &card.print) {
         kept_of.insert("gist".into(), json!(said));
     }
-    if !pages.is_empty() {
-        kept_of.insert("pages".into(), json!(pages));
+    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
+        kept_of.insert("page_of".into(), json!(up));
+    }
+    if !rows.is_empty() {
+        kept_of.insert("pages".into(), json!(rows));
     }
     if state.held_away(kept) {
         kept_of.insert("archived".into(), json!(true));
@@ -4775,38 +4836,52 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         kept_of.insert("locked".into(), json!(true));
     }
 
-    let said = card
+    let mut shown = card
         .outline
         .iter()
         .map(|one| {
             format!(
-                "{}{}  ·  line {}",
+                "{}{}  ·  lines {}-{}, {} chars",
                 "  ".repeat(one.level - 1),
                 one.title,
-                one.line
+                one.line,
+                one.to,
+                one.chars
             )
         })
         .collect::<Vec<_>>()
         .join("\n");
-    Ok(told(
-        match said.is_empty() {
-            true => format!(
-                "{:?} holds no headings — {} words in all.",
-                card.title, card.words
-            ),
-            false => said,
-        },
-        Value::Object(kept_of),
-    ))
+    if shown.is_empty() {
+        shown = format!(
+            "{:?} holds no headings — {} words in all.",
+            card.title, card.words
+        );
+    }
+    if !rows.is_empty() {
+        shown.push_str(&format!(
+            "\n\nPages, in the order they are read ({}):",
+            rows.len()
+        ));
+        for row in &rows {
+            let holds = match (row["words"].as_u64(), row["sections"].as_u64()) {
+                (Some(words), Some(sections)) => format!(" ({words} words, {sections} sections)"),
+                (Some(words), None) => format!(" ({words} words)"),
+                _ => String::new(),
+            };
+            shown.push_str(&format!(
+                "\n  {} — {}{holds}",
+                said(row, "doc"),
+                said(row, "title")
+            ));
+        }
+    }
+    Ok(told(shown, Value::Object(kept_of)))
 }
 
 fn outline_of(body: &str) -> Vec<Value> {
-    tisty_core::docs::headings(body)
-        .into_iter()
-        .enumerate()
-        .map(|(at, (line, deep, said))| {
-            json!({ "at": at, "line": line, "level": deep, "title": said })
-        })
+    tisty_core::docs::outlined(body)
+        .iter()
+        .map(|one| json!(one))
         .collect()
 }
 
@@ -5776,7 +5851,7 @@ fn tools() -> Value {
         {
             "name": "outline_doc",
             "title": "What is in a document",
-            "description": "The headings of a document with the line each one sits on, how long the whole is, its pages, and the `print` it reads at — a few hundred tokens instead of the body. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read, and with the print you can write into it without having read it at all.",
+            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field()
@@ -5808,7 +5883,8 @@ fn tools() -> Value {
                             narrowing a query — or by `source` alone, to check whether something \
                             was already filed from it. With `doc` it looks inside that one \
                             document instead and hands back the lines that match with their \
-                            numbers, so you can read or change just that part.",
+                            numbers and the section each sits in, so you can read or change \
+                            just that part.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "query": { "type": "string", "description": "Words to look for. Not needed when sifting by the fields below" },
@@ -5818,7 +5894,7 @@ fn tools() -> Value {
                     },
                     "doc": {
                         "type": "string",
-                        "description": "Look inside this one document rather than across the tasks. Hands back matching lines with their numbers and the lines around them"
+                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them, and the section each sits in"
                     },
                     "tag": { "type": "string", "description": "Carrying this tag, with or without the #" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
