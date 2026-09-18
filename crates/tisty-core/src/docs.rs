@@ -615,8 +615,6 @@ fn section_ends(
     Some((*line, last))
 }
 
-/// Every heading with the run of lines it holds, so a reader can weigh a section before asking
-/// for it. Worked out in one pass over the headings rather than one per section.
 pub fn outlined(body: &str) -> Vec<Heading> {
     let all = headings(body);
     let lines: Vec<&str> = body.lines().collect();

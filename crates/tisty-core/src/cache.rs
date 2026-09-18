@@ -43,7 +43,6 @@ impl Cache {
         };
         // A schema that moved is a cache that is thrown away whole, tables included: `IF NOT
         // EXISTS` keeps an old table's columns, and a write into it fails forever after.
-        // `gist` stays: agents wrote it, nothing can compute it again, and its JSON never moves.
         let held = db
             .query_row("SELECT value FROM meta WHERE key = 'schema'", [], |row| {
                 row.get::<_, String>(0)
@@ -1440,8 +1439,6 @@ mod tests {
         );
     }
 
-    /// What an agent wrote about a document cannot be worked out again from the files, so a
-    /// cache that is rebuilt for a schema that moved has to keep it.
     #[test]
     fn a_gist_outlives_a_schema_that_moved() {
         let f = loaded();
@@ -1476,8 +1473,6 @@ mod tests {
         );
     }
 
-    /// After a rebuild the cards come back one at a time, so a document that went before its
-    /// card did would leave its gist behind for ever if only the cards were looked through.
     #[test]
     fn a_gist_whose_document_is_gone_is_forgotten_even_without_a_card() {
         let f = loaded();

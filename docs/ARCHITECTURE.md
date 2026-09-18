@@ -303,8 +303,9 @@ take the good ones with it. What the door costs an agent is mostly the
 conversation it has to send again every time, not the writing.
 
 `find` carries the same idea: a `doc` argument searches inside one document and
-answers with line numbers and the section each line sits in, and `tag`, `list`, `by_agent`, `said_done` and a
-`from`/`to` range sift by what a task *is* rather than what it says, so
+answers with line numbers and the section each sits in, and `tag`, `list`,
+`by_agent`, `said_done` and a `from`/`to` range sift by what a task *is* rather
+than what it says, so
 «everything an agent filed for next week» is one call instead of a search and a
 read of each hit. `said_done` is how an agent tells what it has already spoken
 for from what it has not, so it does not say the same thing twice. Fields
