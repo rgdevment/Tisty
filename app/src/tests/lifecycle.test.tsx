@@ -382,6 +382,8 @@ function menuFor(rowLabel: string): HTMLElement {
   return screen.getByRole("button", { name: rowLabel }).parentElement as HTMLElement;
 }
 
+const SETTLES_LONG_ENOUGH = 900;
+
 async function chooseFor(rowLabel: string, itemLabel: string) {
   fireEvent.contextMenu(menuFor(rowLabel), { clientX: 5, clientY: 5 });
   await userEvent.click(await screen.findByRole("menuitem", { name: itemLabel }));
@@ -681,12 +683,15 @@ describe("deleting a document", () => {
     await boot();
     await userEvent.click(screen.getByRole("button", { name: "Draft" }));
     const editor = await screen.findByTestId("editor");
-    fireEvent.change(editor, { target: { value: "half finished thought" } });
 
-    await chooseFor("Draft", t("deleteIt"));
+    // The edit settles on a timer, so anything awaited between typing and deleting gives that
+    // timer a chance to win the race and the test would be reporting the clock, not the discard.
+    fireEvent.change(editor, { target: { value: "half finished thought" } });
+    fireEvent.contextMenu(menuFor("Draft"), { clientX: 5, clientY: 5 });
+    fireEvent.click(screen.getByRole("menuitem", { name: t("deleteIt") }));
 
     await waitFor(() => expect(screen.queryByTestId("editor")).toBeNull());
-    await new Promise((go) => setTimeout(go, 900));
+    await new Promise((go) => setTimeout(go, SETTLES_LONG_ENOUGH));
     expect(store.writes.filter((one) => one.id === doc.file)).toHaveLength(0);
   });
 });
