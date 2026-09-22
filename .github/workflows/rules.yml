@@ -4,14 +4,22 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   conventions:
     name: Project conventions
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
 
@@ -21,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           for one in .github/workflows/*.yml; do
-            if ! npx --yes js-yaml "$one" > /dev/null; then
+            if ! npx --yes js-yaml@4.1.0 "$one" > /dev/null; then
               echo "::error::$one is not valid YAML, so whatever it runs will not run"
               exit 1
             fi
@@ -105,6 +113,10 @@ jobs:
 
       - name: Tests are deterministic
         run: |
-          for i in $(seq 1 20); do
+          turns=1
+          if [ "${GITHUB_EVENT_NAME}" = "schedule" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            turns=20
+          fi
+          for i in $(seq 1 "$turns"); do
             cargo test -p tisty-core -p tisty-nl -p tisty-sync --quiet || exit 1
           done

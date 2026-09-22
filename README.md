@@ -285,7 +285,13 @@ got solved. Three things follow from that, and they shaped everything else:
 **Windows** — from the
 [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), which keeps
 it updated for you. About asks the Store for one on the spot when you would
-rather not wait.
+rather not wait. Or with the Windows Package Manager, which takes the signed
+installer from the releases page and then stands aside, because Tisty keeps
+itself up to date:
+
+```console
+> winget install rgdevment.Tisty
+```
 
 **macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
 again. After that Tisty keeps itself up to date, so Homebrew stands aside:
