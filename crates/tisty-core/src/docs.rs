@@ -896,15 +896,12 @@ pub struct Alone(std::fs::File);
 
 impl Drop for Alone {
     fn drop(&mut self) {
-        use fs4::fs_std::FileExt;
-        let _ = FileExt::unlock(&self.0);
+        let _ = self.0.unlock();
     }
 }
 
 /// For a writer that would rather carry on unheld than not write at all.
 pub fn hold(root: &Path) -> Option<Alone> {
-    use fs4::fs_std::FileExt;
-
     std::fs::create_dir_all(root).ok()?;
 
     let mut waited = 0;
@@ -915,7 +912,7 @@ pub fn hold(root: &Path) -> Option<Alone> {
             .truncate(false)
             .open(root.join(LOCK))
             .ok()
-            .filter(|file| file.try_lock_exclusive().unwrap_or(false));
+            .filter(|file| file.try_lock().is_ok());
         if let Some(file) = taken {
             return Some(Alone(file));
         }
@@ -2763,7 +2760,6 @@ tres",
 
     #[test]
     fn the_lock_holds_every_writer_and_not_only_the_agent() {
-        use fs4::fs_std::FileExt;
         let room = root();
         write(
             room.path(),
@@ -2780,7 +2776,7 @@ lo que escribio la persona
             .truncate(false)
             .open(room.path().join(".lock"))
             .unwrap();
-        assert!(held.try_lock_exclusive().unwrap());
+        assert!(held.try_lock().is_ok());
 
         let while_held = write(
             room.path(),
@@ -2802,7 +2798,7 @@ lo que guardo la ventana
 lo que escribio la persona
 "
         );
-        FileExt::unlock(&held).unwrap();
+        held.unlock().unwrap();
         assert!(
             write(
                 room.path(),
