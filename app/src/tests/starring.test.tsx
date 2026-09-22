@@ -9,6 +9,7 @@ Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 })
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   due: false,
+  agents: false,
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
@@ -80,6 +81,7 @@ beforeEach(() => {
   localStorage.clear();
   ipc.calls = [];
   ipc.due = false;
+  ipc.agents = false;
   bus.heard.clear();
   tasks = structuredClone([bread]);
   ipc.answer = (cmd, args) => {
@@ -97,6 +99,8 @@ beforeEach(() => {
         return Promise.resolve([]);
       case "star_due":
         return Promise.resolve(ipc.due);
+      case "door_due":
+        return Promise.resolve(ipc.agents);
       case "complete":
         if (held) held.status = "done";
         return Promise.resolve(held);
@@ -115,6 +119,8 @@ const complete = async () =>
   await userEvent.click(screen.getByRole("button", { name: /complete buy bread/i }));
 
 const card = () => screen.queryByRole("status", { name: /support tisty/i });
+
+const door = () => screen.queryByRole("status", { name: /your assistants/i });
 
 describe("when the card is allowed on screen", () => {
   it("stays away while the door is shut, and is asked about all the same", async () => {
@@ -167,5 +173,44 @@ describe("what takes the card away without answering it", () => {
 
     await waitFor(() => expect(card()).toBeNull());
     expect(ipc.calls.some((one) => one.cmd === "star_done")).toBe(false);
+  });
+});
+
+describe("the card that offers the assistant a door", () => {
+  it("waits for nothing to be finished, unlike the star", async () => {
+    ipc.agents = true;
+    await started();
+
+    await waitFor(() => expect(door()).toBeTruthy());
+  });
+
+  it("stays away on a machine with no assistant on it", async () => {
+    await started();
+
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "door_due")).toBe(true));
+    expect(door()).toBeNull();
+  });
+
+  it("goes first when the star falls due at the same moment", async () => {
+    ipc.due = true;
+    ipc.agents = true;
+    await started();
+    await complete();
+
+    await waitFor(() => expect(door()).toBeTruthy());
+    expect(card()).toBeNull();
+  });
+
+  it("walks to the assistants, not to the settings at large", async () => {
+    ipc.agents = true;
+    await started();
+    await waitFor(() => expect(door()).toBeTruthy());
+
+    await userEvent.click(screen.getByRole("button", { name: /open settings/i }));
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: /assistants/i })).toBeTruthy());
+    expect(screen.getByRole("tab", { name: /assistants/i }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
   });
 });
