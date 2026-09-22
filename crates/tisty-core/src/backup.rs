@@ -334,16 +334,16 @@ fn rescued(dest: &Path) {
 }
 
 fn only_one_taking_over(dest: &Path) -> Result<std::fs::File> {
-    use fs4::fs_std::FileExt;
     let gate = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(false)
         .open(dest.join(".taking-over.lock"))?;
-    if !gate.try_lock_exclusive()? {
-        return Err(Error::AlreadyRunning);
+    match gate.try_lock() {
+        Ok(()) => Ok(gate),
+        Err(std::fs::TryLockError::WouldBlock) => Err(Error::AlreadyRunning),
+        Err(std::fs::TryLockError::Error(why)) => Err(why.into()),
     }
-    Ok(gate)
 }
 
 pub fn take_over(dest: &Path, ours: &str, into: &Path, aside: &Path) -> Result<Made> {

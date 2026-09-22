@@ -203,14 +203,13 @@ fn roll(at: &Path) {
     else {
         return;
     };
-    use fs4::fs_std::FileExt;
-    if gate.try_lock_exclusive().is_err() {
+    if gate.try_lock().is_err() {
         return;
     }
     if std::fs::metadata(at).map(|now| now.len()).unwrap_or(0) >= ROLLS_AT {
         let _ = std::fs::rename(at, rolled(at));
     }
-    let _ = FileExt::unlock(&gate);
+    let _ = gate.unlock();
 }
 
 pub fn catches(channel: &'static str) {
@@ -346,6 +345,29 @@ mod tests {
 
     fn now() -> jiff::Zoned {
         "2026-08-11T17:04:03-04[America/Santiago]".parse().unwrap()
+    }
+
+    #[test]
+    fn a_log_another_writer_holds_is_not_rolled_out_from_under_them() {
+        let room = tempfile::tempdir().unwrap();
+        let at = room.path().join("tisty.log");
+        std::fs::write(&at, vec![b'x'; ROLLS_AT as usize + 1]).unwrap();
+
+        let gate = std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .write(true)
+            .open(at.with_extension("log.lock"))
+            .unwrap();
+        gate.try_lock().unwrap();
+
+        roll(&at);
+        assert!(at.exists());
+        assert!(!rolled(&at).exists());
+
+        gate.unlock().unwrap();
+        roll(&at);
+        assert!(rolled(&at).exists());
     }
 
     #[test]
