@@ -21,7 +21,7 @@ tauri-build = { workspace = true }
 
 [target."cfg(windows)".dependencies]
 winreg = "0.55"
-windows = { version = "0.61", features = [
+windows = { version = "0.62", features = [
   "ApplicationModel",
   "Services_Store",
   "Win32_Foundation",
