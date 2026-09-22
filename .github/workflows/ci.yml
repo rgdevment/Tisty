@@ -35,13 +35,12 @@ jobs:
       - uses: taiki-e/install-action@nextest
       - run: cargo clippy --workspace --all-targets
       - run: cargo nextest run --workspace --no-tests=pass
-      - if: runner.os == 'Windows'
-        run: cargo test --doc --workspace
-      - if: runner.os == 'Windows'
-        run: cargo nextest run --workspace --no-tests=pass
+      - run: cargo nextest run --workspace --no-tests=pass
         env:
           LC_ALL: es_ES.UTF-8
           LANG: es_ES.UTF-8
+      - if: runner.os == 'Windows'
+        run: cargo test --doc --workspace
 
   lint:
     name: fmt + clippy
@@ -85,6 +84,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm run lint:md
 

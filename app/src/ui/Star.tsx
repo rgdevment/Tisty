@@ -1,4 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useEffect } from "react";
 import { starDone } from "../core";
 import { t } from "../locales";
 
@@ -7,34 +8,49 @@ const REPO = "https://github.com/rgdevment/Tisty";
 interface Props {
   apart: string;
   onSettled: () => void;
+  onError: (problem: unknown) => void;
 }
 
-export default function Star({ apart, onSettled }: Props) {
+export default function Star({ apart, onSettled, onError }: Props) {
+  useEffect(() => {
+    const away = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      onSettled();
+    };
+    window.addEventListener("keydown", away, true);
+    return () => window.removeEventListener("keydown", away, true);
+  }, [onSettled]);
+
   const settle = (open: boolean) => {
     onSettled();
-    starDone().catch(() => {});
-    if (open) openUrl(REPO).catch(() => {});
+    starDone().catch(onError);
+    if (open) openUrl(REPO).catch(onError);
   };
 
   return (
     <section
       role="status"
       aria-label={t("supportTitle")}
-      onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        onSettled();
-      }}
       className={`arrive absolute bottom-3 z-30 w-[280px] rounded-[10px] border border-line bg-bg px-[13px] py-3 shadow-lift ${apart}`}
     >
       <div className="flex items-start gap-2.5">
         <StarMark className="mt-px size-[15px] shrink-0 text-hue-amber" />
-        <span className="min-w-0">
+        <span className="min-w-0 flex-1">
           <b className="block text-[13px] leading-snug font-semibold">{t("starThanks")}</b>
           <span className="mt-1 block text-[11.5px] leading-relaxed text-faint">
             {t("starWhy")}
           </span>
         </span>
+        <button
+          type="button"
+          aria-label={t("starLater")}
+          title={t("starLater")}
+          onClick={onSettled}
+          className="-mr-1 shrink-0 cursor-pointer rounded-md px-1 text-[11.5px] text-faint outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          ✕
+        </button>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button

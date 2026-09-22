@@ -5231,11 +5231,17 @@ fn asking(
 }
 
 #[tauri::command]
-fn star_due(session: tauri::State<'_, Mutex<Session>>, papers: usize) -> Answer<bool> {
+fn star_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
     let mut session = held(&session);
     let now = jiff::Timestamp::now();
     let asked = session.config.asked_for_a_star;
     let since = session.config.here_since;
+    let papers = session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.page_of.is_none())
+        .count();
     let counted = || {
         let filter = Filter {
             scope: Scope::Archived,
@@ -5761,6 +5767,7 @@ fn close_window(
     }
     match how {
         tisty_core::config::Closing::Hide => {
+            let _ = window.emit("withdrawn", ());
             let _ = window.hide();
         }
         tisty_core::config::Closing::Quit => parting(window.app_handle()),
@@ -7160,6 +7167,7 @@ pub fn run() {
                 }
                 Some(tisty_core::config::Closing::Hide) => {
                     api.prevent_close();
+                    let _ = window.emit("withdrawn", ());
                     let _ = window.hide();
                 }
                 None => {

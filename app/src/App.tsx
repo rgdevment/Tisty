@@ -251,7 +251,7 @@ export default function App() {
   const asked = useRef(0);
 
   const lookForAStar = () => {
-    starDue(papers.docs.filter((one) => !one.pageOf).length)
+    starDue()
       .then((due) => setStarring((was) => was || due))
       .catch(() => {});
   };
@@ -741,6 +741,7 @@ export default function App() {
 
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
+    const gone = listen("withdrawn", () => setStarring(false));
     const caught = listen("captured", () => latest.current());
     // The snapshot carries no documents, so a paper written from outside the window — by an
     // assistant, or by the terminal — would go unseen until the next launch.
@@ -762,6 +763,7 @@ export default function App() {
     });
     return () => {
       stop.then((off) => off()).catch(() => {});
+      gone.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
       stirred.then((off) => off()).catch(() => {});
       landed.then((off) => off()).catch(() => {});
@@ -772,6 +774,8 @@ export default function App() {
 
   const where = useRef(chosen);
   where.current = chosen;
+
+  useEffect(() => setStarring(false), [chosen]);
 
   useEffect(
     () =>
@@ -818,6 +822,17 @@ export default function App() {
   const beside = open && !outside && !sheet;
   const aside =
     (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) && !sheet;
+  const quiet =
+    !asking &&
+    !greet &&
+    !open &&
+    !leaving &&
+    !torn &&
+    !afoot &&
+    !error &&
+    !whoFor &&
+    !movingTo &&
+    !locked;
   const papered =
     chosen.named === "tasks" ||
     chosen.named === "tags" ||
@@ -1623,7 +1638,6 @@ export default function App() {
           setSelected(undefined);
           setFound(null);
           setError(null);
-          setStarring(false);
         }}
       />
 
@@ -2084,10 +2098,13 @@ export default function App() {
             />
           )}
 
-          {starring && (aside || chosen.named === "docs") && !asking && !greet && !open && (
+          {starring && quiet && (aside || chosen.named === "docs") && (
             <Star
-              apart={aside ? "right-3 @min-[884px]:right-[324px]" : "right-[344px]"}
+              apart={
+                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
+              }
               onSettled={() => setStarring(false)}
+              onError={(problem) => setError(saidPlainly(problem))}
             />
           )}
         </div>
