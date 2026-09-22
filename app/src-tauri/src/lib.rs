@@ -5270,6 +5270,27 @@ fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
     held(&session).keep(|c| c.asked_for_a_star = Some(true))
 }
 
+fn offering(seen: usize, wired: usize) -> bool {
+    seen > 0 && wired == 0
+}
+
+#[tauri::command]
+fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
+    if held(&session).config.asked_to_wire.unwrap_or(false) {
+        return Ok(false);
+    }
+    let seen = wiring::seen();
+    Ok(offering(
+        seen.len(),
+        seen.iter().filter(|one| one.wired).count(),
+    ))
+}
+
+#[tauri::command]
+fn door_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    held(&session).keep(|c| c.asked_to_wire = Some(true))
+}
+
 /// A copy only ever reaches the candidates' track from here. Turning it off does not walk it back:
 /// a candidate already installed stays one until a stable release passes it.
 #[tauri::command]
@@ -7271,6 +7292,8 @@ pub fn run() {
             update_candidates,
             star_due,
             star_done,
+            door_due,
+            door_done,
             logs,
             icons,
             families,
@@ -8826,6 +8849,33 @@ mod starring {
             Asking::Now
         );
         assert_eq!(walked.get(), 0);
+    }
+}
+
+#[cfg(test)]
+mod doors {
+    use super::offering;
+
+    #[test]
+    fn a_machine_without_an_assistant_is_never_offered_one() {
+        assert!(!offering(0, 0));
+    }
+
+    #[test]
+    fn an_assistant_that_is_found_and_not_yet_wired_is_worth_offering() {
+        assert!(offering(1, 0));
+        assert!(offering(6, 0));
+    }
+
+    #[test]
+    fn somebody_who_already_wired_one_knows_where_the_door_is() {
+        assert!(!offering(1, 1));
+        assert!(!offering(6, 6));
+    }
+
+    #[test]
+    fn one_wired_assistant_speaks_for_the_rest() {
+        assert!(!offering(6, 1));
     }
 }
 

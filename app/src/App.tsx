@@ -26,6 +26,7 @@ import {
   docsPack,
   docsTakeOut,
   docsUnpack,
+  doorDue,
   dropStep,
   erase,
   type Filed,
@@ -81,6 +82,7 @@ import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
 import Digits, { HOW_MANY } from "./ui/Digits";
 import Docs from "./ui/Docs";
+import Door from "./ui/Door";
 import Folder from "./ui/Folder";
 import Keeping from "./ui/Keeping";
 import Lists from "./ui/Lists";
@@ -580,6 +582,7 @@ export default function App() {
   const acted = useRef<string | null>(null);
   const [greet, setGreet] = useState(false);
   const [starring, setStarring] = useState(false);
+  const [offering, setOffering] = useState(false);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
@@ -741,7 +744,10 @@ export default function App() {
 
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
-    const gone = listen("withdrawn", () => setStarring(false));
+    const gone = listen("withdrawn", () => {
+      setStarring(false);
+      setOffering(false);
+    });
     const caught = listen("captured", () => latest.current());
     // The snapshot carries no documents, so a paper written from outside the window — by an
     // assistant, or by the terminal — would go unseen until the next launch.
@@ -775,7 +781,16 @@ export default function App() {
   const where = useRef(chosen);
   where.current = chosen;
 
-  useEffect(() => setStarring(false), [chosen]);
+  useEffect(() => {
+    setStarring(false);
+    setOffering(false);
+  }, [chosen]);
+
+  useEffect(() => {
+    doorDue()
+      .then((due) => setOffering((was) => was || due))
+      .catch(() => {});
+  }, [greeted]);
 
   useEffect(
     () =>
@@ -1744,6 +1759,7 @@ export default function App() {
             ) : chosen.named === "keeping" ? (
               <Keeping
                 greeted={greeted}
+                start={chosen.tab}
                 onPack={() => packUp([], "tisty")}
                 onUnpack={takeParcel}
                 onGreet={() => setGreet(true)}
@@ -2098,7 +2114,18 @@ export default function App() {
             />
           )}
 
-          {starring && quiet && (aside || chosen.named === "docs") && (
+          {offering && quiet && (aside || chosen.named === "docs") && (
+            <Door
+              apart={
+                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
+              }
+              onSettled={() => setOffering(false)}
+              onOpen={() => setChosen({ named: "keeping", tab: "agents" })}
+              onError={(problem) => setError(saidPlainly(problem))}
+            />
+          )}
+
+          {starring && !offering && quiet && (aside || chosen.named === "docs") && (
             <Star
               apart={
                 aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"

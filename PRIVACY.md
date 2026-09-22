@@ -70,11 +70,14 @@ visible instead of making it for you.
   identifier itself does appear in the shared folder — it names your device's
   directory and stamps every event — because that is what tells two writers
   apart. What must never be shared is the file that binds it to this machine.
-  It also holds the day this copy first opened and whether it has already asked
-  you to star the project, so that the asking happens once and never again. The
-  first of those is, with the time zone below, the only field here that says
-  anything about you rather than about your work, and neither of them leaves
-  this machine: the file is not synced, not backed up, and not put in a parcel.
+  It also holds the day this copy first opened, whether it has already asked
+  you to star the project, and whether it has already offered your assistant a
+  door, so that each of those is asked once and never again. Which assistants
+  are on this machine is read when the offer is decided and is not written down.
+  The day this copy opened is, with the time zone below, the only field here
+  that says anything about you rather than about your work, and none of them
+  leaves this machine: the file is not synced, not backed up, and not put in a
+  parcel.
 - **An alias, if you write one** — it exists so that a document you share still
   says who wrote it. It is optional, it lives in the log like everything else,
   and so it reaches your other machines through the folder you sync and travels

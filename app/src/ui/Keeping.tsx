@@ -75,6 +75,7 @@ import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
 import { type Brittle, scanned } from "../scanning";
+import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
@@ -110,7 +111,6 @@ type Which =
   | "tongue"
   | "look";
 type Word = { card: Which; text: string };
-type Tab = "general" | "data" | "agents" | "upkeep";
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
@@ -126,10 +126,19 @@ interface Props {
   onGreet: () => void;
   onDoc: (paper: string) => void;
   greeted?: number;
+  start?: Tab;
 }
 
-export default function Keeping({ onPack, onUnpack, onChanged, onGreet, onDoc, greeted }: Props) {
-  const [tab, setTab] = useState<Tab>("general");
+export default function Keeping({
+  onPack,
+  onUnpack,
+  onChanged,
+  onGreet,
+  onDoc,
+  greeted,
+  start,
+}: Props) {
+  const [tab, setTab] = useState<Tab>(start ?? "general");
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agents, setAgents] = useState<Wired[] | null>(null);
   const [hands, setHands] = useState<Assistant[] | null>(null);

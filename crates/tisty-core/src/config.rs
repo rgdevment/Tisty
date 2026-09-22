@@ -139,6 +139,8 @@ pub struct Config {
     pub here_since: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_for_a_star: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asked_to_wire: Option<bool>,
 }
 
 impl Config {
@@ -170,6 +172,7 @@ impl Config {
             candidates: None,
             here_since: Some(jiff::Timestamp::now()),
             asked_for_a_star: None,
+            asked_to_wire: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -464,6 +467,7 @@ mod tests {
             sown: Some(true),
             here_since: Some(jiff::Timestamp::from_second(1_700_000_000).unwrap()),
             asked_for_a_star: Some(true),
+            asked_to_wire: Some(true),
         };
 
         let written = toml::to_string_pretty(&config).unwrap();
@@ -518,6 +522,7 @@ mod tests {
                 guide: None,
                 here_since: None,
                 asked_for_a_star: None,
+                asked_to_wire: None,
             }
         }
 
