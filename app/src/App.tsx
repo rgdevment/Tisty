@@ -56,6 +56,7 @@ import {
   snapshot,
   sow,
   spelled,
+  starDue,
   stillOpen,
   syncState,
   type Task,
@@ -98,6 +99,7 @@ import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
 import Spine from "./ui/Spine";
 import Spread from "./ui/Spread";
+import Star from "./ui/Star";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
 import Tally from "./ui/Tally";
@@ -570,6 +572,7 @@ export default function App() {
   const [held, setHeld] = useState<Task | undefined>();
   const acted = useRef<string | null>(null);
   const [greet, setGreet] = useState(false);
+  const [starring, setStarring] = useState(false);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
@@ -852,6 +855,12 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   };
 
+  const lookForAStar = () => {
+    starDue()
+      .then((due) => setStarring((was) => was || due))
+      .catch(() => {});
+  };
+
   const marking = (id: string, title: string) => {
     setError(null);
     const mine = ++asked.current;
@@ -862,6 +871,7 @@ export default function App() {
         if (!days.length) {
           say(fill("saidDone", title));
           act(complete(id));
+          lookForAStar();
           return;
         }
         setAsking({ id, title, days });
@@ -876,6 +886,7 @@ export default function App() {
         say(fill("saidDone", asking.title));
         act(complete(asking.id, days));
         setAsking(null);
+        lookForAStar();
       }}
     />
   ) : null;
@@ -2068,6 +2079,13 @@ export default function App() {
                 setSelected(undefined);
                 setChosen({ named: "quadrants" });
               }}
+            />
+          )}
+
+          {starring && !asking && !captured && !greet && !open && (
+            <Star
+              apart={aside ? "right-3 @min-[884px]:right-[324px]" : "right-3"}
+              onSettled={() => setStarring(false)}
             />
           )}
         </div>

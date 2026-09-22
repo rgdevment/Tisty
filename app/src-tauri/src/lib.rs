@@ -5194,6 +5194,41 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
     })
 }
 
+const SETTLED_IN: jiff::SignedDuration = jiff::SignedDuration::from_hours(24 * 14);
+const CLOSED_ENOUGH: usize = 40;
+
+#[tauri::command]
+fn star_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
+    let mut session = held(&session);
+    if session.config.asked_for_a_star.unwrap_or(false) {
+        return Ok(false);
+    }
+    let now = jiff::Timestamp::now();
+    let Some(since) = session.config.here_since else {
+        session.keep(|c| c.here_since = Some(now))?;
+        return Ok(false);
+    };
+    if now.duration_since(since) < SETTLED_IN {
+        return Ok(false);
+    }
+    let closed = session
+        .state
+        .matching(
+            &Filter {
+                scope: Scope::Archived,
+                ..Default::default()
+            },
+            today(),
+        )
+        .len();
+    Ok(closed >= CLOSED_ENOUGH)
+}
+
+#[tauri::command]
+fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    held(&session).keep(|c| c.asked_for_a_star = Some(true))
+}
+
 /// A copy only ever reaches the candidates' track from here. Turning it off does not walk it back:
 /// a candidate already installed stays one until a stable release passes it.
 #[tauri::command]
@@ -7191,6 +7226,8 @@ pub fn run() {
             update_ready,
             update_install,
             update_candidates,
+            star_due,
+            star_done,
             logs,
             icons,
             families,

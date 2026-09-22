@@ -583,6 +583,10 @@ export const about = (): Promise<About> => invoke("about");
 export const updateCandidates = (wants: boolean): Promise<void> =>
   invoke("update_candidates", { wants });
 export const notices = (): Promise<string> => invoke("notices");
+
+export const starDue = (): Promise<boolean> => invoke("star_due");
+
+export const starDone = (): Promise<void> => invoke("star_done");
 export const facts = (names: boolean, paths: boolean): Promise<Facts> =>
   invoke("facts", { names, paths });
 export const keepReport = (at: string, text: string, logs: boolean): Promise<void> =>

@@ -1249,3 +1249,26 @@ jobs:
           done
           echo "::error::could not push the tap after 5 attempts"
           exit 1
+
+  winget:
+    name: winget-pkgs
+    needs: [version, publish]
+    if: >-
+      !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.version.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: Open the pull request that adds this version
+        if: env.WINGET_TOKEN != ''
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: rgdevment.Tisty
+          version: ${{ needs.version.outputs.version }}
+          release-tag: ${{ github.ref_name }}
+          installers-regex: 'tisty-installer-.*-windows-x86_64\.exe$'
+          fork-user: rgdevment
+          token: ${{ secrets.WINGET_TOKEN }}

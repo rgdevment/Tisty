@@ -19,6 +19,8 @@ import Composed from "./Composed";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
 const SPONSOR = "https://github.com/sponsors/rgdevment";
+const STARS = "https://github.com/rgdevment/Tisty";
+const ALTERNATIVE = "https://alternativeto.net/software/tisty/about/";
 
 const TOOLS = [
   {
@@ -100,8 +102,33 @@ export default function About({
           </span>
         </div>
 
-        <p className="mt-4 text-[13px] leading-relaxed text-soft">{t("aboutWhat")}</p>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
+        <div className="mt-4 rounded-[10px] border border-hair bg-panel px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+            <Drawn>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 16v-4M12 8h.01" />
+            </Drawn>
+            Tisty
+          </p>
+          <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Badge said={t("badgeLocal")}>
+              <rect x="5" y="11" width="14" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </Badge>
+            <Badge said={t("badgeOpen")}>
+              <path d="m9 17-5-5 5-5M15 7l5 5-5 5" />
+            </Badge>
+            <Badge said={t("badgeFree")}>
+              <path d="M12 20.5 4.5 13a4.6 4.6 0 0 1 6.5-6.5l1 1 1-1A4.6 4.6 0 0 1 19.5 13Z" />
+            </Badge>
+            <Badge said={t("badgeQuiet")}>
+              <path d="M3 3l18 18M9 9v3a3 3 0 0 0 4.6 2.5M15 11V6a3 3 0 0 0-5.9-.7" />
+              <path d="M19 10v2a7 7 0 0 1-1.2 3.9M5 10v2a7 7 0 0 0 7 7v3" />
+            </Badge>
+          </div>
+        </div>
 
         {trouble && (
           <div className="mt-4">
@@ -222,6 +249,17 @@ export default function About({
         <p className="text-[13px] leading-relaxed text-soft">{t("supportWhy")}</p>
         <div className="mt-2.5 grid grid-cols-2 gap-2.5">
           <Gives
+            wide
+            said={t("supportStar")}
+            where="github.com/rgdevment/Tisty"
+            onPick={() => openUrl(STARS).catch(onError)}
+          >
+            <path
+              fill="#e3b341"
+              d="M8 1.2l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 12l-4.2 2.2.8-4.7L1.2 6.2l4.7-.7L8 1.2z"
+            />
+          </Gives>
+          <Gives
             said={t("supportSponsor")}
             where="github.com/sponsors"
             onPick={() => openUrl(SPONSOR).catch(onError)}
@@ -275,6 +313,13 @@ export default function About({
             </button>
             <button
               type="button"
+              onClick={() => openUrl(ALTERNATIVE).catch(onError)}
+              className={mild}
+            >
+              {t("aboutAlternative")}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 if (said !== null) return setSaid(null);
                 notices().then(setSaid).catch(onError);
@@ -322,14 +367,42 @@ function Rule({ said }: { said: string }) {
   );
 }
 
+function Drawn({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-[11px] shrink-0"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function Badge({ said, children }: { said: string; children: React.ReactNode }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-hair px-2.5 py-1 text-[11.5px] text-soft">
+      <Drawn>{children}</Drawn>
+      {said}
+    </span>
+  );
+}
+
 function Gives({
   said,
   where,
+  wide,
   onPick,
   children,
 }: {
   said: string;
   where: string;
+  wide?: boolean;
   onPick: () => void;
   children: React.ReactNode;
 }) {
@@ -337,7 +410,9 @@ function Gives({
     <button
       type="button"
       onClick={onPick}
-      className="flex items-center gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+      className={`flex items-center gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
+        wide ? "col-span-2" : ""
+      }`}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true" className="size-[17px] shrink-0">
         {children}
