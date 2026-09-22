@@ -1307,7 +1307,7 @@ jobs:
           exit 1
 
   winget:
-    name: winget-pkgs
+    name: Windows Package Manager
     needs: [version, publish]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
