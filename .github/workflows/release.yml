@@ -1319,10 +1319,27 @@ jobs:
       group: release-winget
       cancel-in-progress: false
     env:
+      WINGET_PUBLISH: ${{ vars.WINGET_PUBLISH }}
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     steps:
+      # The action refuses a package the community repository does not carry yet, so the
+      # first version has to be submitted by hand before this is worth turning on.
+      - name: Is there anything to add a version to
+        id: gate
+        shell: bash
+        run: |
+          if [ "$WINGET_PUBLISH" != "true" ]; then
+            echo "::notice::WINGET_PUBLISH is not true; winget-pkgs gets nothing until it is"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          elif [ -z "$WINGET_TOKEN" ]; then
+            echo "::notice::no winget token; skipping"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Open the pull request that adds this version
-        if: env.WINGET_TOKEN != ''
+        if: steps.gate.outputs.go == 'yes'
         uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: rgdevment.Tisty
