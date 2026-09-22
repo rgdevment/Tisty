@@ -1022,16 +1022,37 @@ jobs:
           done
           jq . channel.json
 
-          # A release that goes out minutes after another can find the feed already moved on:
-          # that says nothing bad about this build, and the run that moved it checks what is live.
-          newest=$(printf "%s\n%s\n" "$v" "$said" | sort -V | tail -1)
-          if [ -n "$said" ] && [ "$said" != "$v" ] && [ "$newest" = "$said" ]; then
-            echo "::warning::$file already says $said, so $v was overtaken before it could be taken here. Its signatures were not checked by this run."
+          # Only a later release can legitimately be in the channel instead of this one, and a
+          # candidate leaves no file behind at all once the stable it led to goes out. Anything
+          # else — a missing field, a word — is a feed that does not answer for us.
+          ahead=$(jq -r .version channel.json 2>/dev/null || echo "")
+          if [ ! -s channel.json ] && [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            ahead=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 3 \
+                      -H "Cache-Control: no-cache" \
+                      "https://raw.githubusercontent.com/${{ github.repository }}/manifest/latest.json" \
+                    | jq -r .version 2>/dev/null || echo "")
+          fi
+
+          overtaken=no
+          if printf "%s" "$ahead" | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$"; then
+            mine=${v%%-*}
+            theirs=${ahead%%-*}
+            if [ "$theirs" != "$mine" ]; then
+              if [ "$(printf "%s\n%s\n" "$mine" "$theirs" | sort -V | tail -1)" = "$theirs" ]; then
+                overtaken=yes
+              fi
+            elif [ "$v" != "$mine" ] && [ "$ahead" = "$theirs" ]; then
+              overtaken=yes
+            fi
+          fi
+
+          if [ "$said" != "$v" ] && [ "$overtaken" = "yes" ]; then
+            echo "::warning::the feed already carries $ahead, so $v was overtaken before it could be taken here. Its signatures were not checked by this run."
             exit 0
           fi
 
           if [ "$said" != "$v" ]; then
-            echo "::error::$file says $said, this release is $v"
+            echo "::error::$file says ${said:-nothing}, this release is $v"
             exit 1
           fi
 

@@ -154,7 +154,10 @@ jobs:
     needs: coverage
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.actor != 'dependabot[bot]'
+      && (github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - uses: actions/checkout@v6
         with:
