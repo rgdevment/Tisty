@@ -41,6 +41,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         if: steps.touched.outputs.any == 'yes'
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
+          save-if: false
         if: steps.touched.outputs.any == 'yes'
       - uses: taiki-e/install-action@nextest
         if: steps.touched.outputs.any == 'yes'

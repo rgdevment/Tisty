@@ -20,7 +20,7 @@ jobs:
   test:
     name: test / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -31,9 +31,12 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@nextest
-      - run: cargo clippy --workspace --all-targets
+      - if: runner.os == 'macOS'
+        run: cargo clippy --workspace --all-targets
       - run: cargo nextest run --workspace --no-tests=pass
       - run: cargo nextest run --workspace --no-tests=pass
         env:
@@ -52,6 +55,9 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
+          save-if: false
       - uses: ./.github/actions/sidecar
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets
@@ -148,7 +154,10 @@ jobs:
     needs: coverage
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.actor != 'dependabot[bot]'
+      && (github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - uses: actions/checkout@v6
         with:

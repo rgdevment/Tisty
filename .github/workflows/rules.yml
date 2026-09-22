@@ -107,6 +107,8 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
 
       - name: Locales define the same keys
         run: cargo test -p tisty-cli --bin tisty i18n

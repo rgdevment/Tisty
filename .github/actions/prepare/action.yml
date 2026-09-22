@@ -23,6 +23,7 @@ runs:
     - uses: Swatinem/rust-cache@v2
       with:
         key: ${{ inputs.cache-key }}
+        save-if: false
 
     - name: Stamp the version
       shell: bash
