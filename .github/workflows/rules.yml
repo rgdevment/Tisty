@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # A workflow that will not parse fails in no time at all, with no job and no line number, and
       # the one that matters is the release: it is only ever run when a tag is already pushed.
