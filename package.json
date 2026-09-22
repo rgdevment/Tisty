@@ -3,7 +3,7 @@
   "private": true,
   "repository": "github:rgdevment/Tisty",
   "devDependencies": {
-    "markdownlint-cli2": "^0.20.0"
+    "markdownlint-cli2": "^0.23.2"
   },
   "scripts": {
     "lint:md": "markdownlint-cli2",
