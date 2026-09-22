@@ -109,6 +109,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Locales define the same keys
         run: cargo test -p tisty-cli --bin tisty i18n

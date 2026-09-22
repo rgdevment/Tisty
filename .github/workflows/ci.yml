@@ -33,6 +33,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@nextest
       - if: runner.os == 'macOS'
@@ -114,6 +115,8 @@ jobs:
         with:
           components: llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: taiki-e/install-action@cargo-llvm-cov
       - uses: taiki-e/install-action@nextest
 
