@@ -112,7 +112,7 @@ export default function About({
           <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Badge icon="laptop" said={t("badgeLocal")} />
+            <Badge icon="key" said={t("badgeLocal")} />
             <Badge icon="code" said={t("badgeOpen")} />
             <Badge icon="gift" said={t("badgeFree")} />
             <Badge icon="cloud-off" said={t("badgeQuiet")} />

@@ -18,7 +18,8 @@ ShortDescription: Notas, documentos y tareas, todo local. Sin suscripción ni te
 Description: |-
   Tisty guarda lo que sabes en tu propio equipo: notas, documentos y tareas, en archivos
   Markdown que puedes leer sin él. Todo lo que haces se escribe en un registro que solo
-  crece, así que nada se pierde y cualquier cambio se puede deshacer. Sin cuenta, sin
+  crece, así que nada se pierde por accidente y un cambio se puede deshacer; borrar para
+  siempre es el único paso que no. Sin cuenta, sin
   suscripción, sin telemetría y sin servidor. La sincronización, si la quieres, pasa por
   una carpeta que tus equipos ya alcanzan, y un asistente entra por una puerta que abres tú.
 Tags:
@@ -32,6 +33,7 @@ Tags:
   - sin-conexion
   - software-libre
   - tareas
+  - todo
 ReleaseNotesUrl: https://github.com/rgdevment/Tisty/releases/tag/v1.18.0
 ManifestType: locale
 ManifestVersion: 1.12.0

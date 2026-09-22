@@ -1298,5 +1298,5 @@ jobs:
           release-tag: ${{ github.ref_name }}
           installers-regex: 'tisty-installer-.*-windows-x86_64\.exe$'
           max-versions-to-keep: 5
-          fork-user: rgdevment
+          fork-user: rgdevment-bot
           token: ${{ secrets.WINGET_TOKEN }}
