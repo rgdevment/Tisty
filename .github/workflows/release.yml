@@ -15,10 +15,10 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -27,7 +27,7 @@ env:
   # The command line ships inside the app as the assistant's door; the loose binary and its
   # formula are built only when a release has a reason to (a fix for whoever installed
   # only that). Set the repository variable SHIP_CLI to "true" for that tag.
-  SHIP_CLI: ${{ inputs.ship_cli || vars.SHIP_CLI || 'false' }}
+  SHIP_CLI: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.ship_cli) || vars.SHIP_CLI || 'false' }}
 
 jobs:
   gate:
@@ -39,6 +39,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
       - run: npm ci
       - run: npm run lint:md
       - name: Frontend style
@@ -334,9 +338,9 @@ jobs:
           version: ${{ needs.version.outputs.version }}
           targets: ${{ env.TARGET }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -441,6 +445,7 @@ jobs:
         with:
           name: bundle-windows
           path: dist/*
+          retention-days: 7
           if-no-files-found: error
 
   # One disk image per architecture: half the bytes to upload, half for the updater to fetch,
@@ -477,9 +482,9 @@ jobs:
           targets: ${{ matrix.target }}
           cache-key: ${{ matrix.target }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -602,6 +607,7 @@ jobs:
         with:
           name: bundle-macos-${{ matrix.arch }}
           path: dist/*
+          retention-days: 7
           if-no-files-found: error
 
   bundle-msix:
@@ -694,6 +700,7 @@ jobs:
         with:
           name: bundle-msix
           path: dist/*
+          retention-days: 7
           if-no-files-found: error
 
   publish:
@@ -710,6 +717,9 @@ jobs:
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    concurrency:
+      group: release-publish
+      cancel-in-progress: false
     permissions:
       contents: write
       id-token: write
@@ -744,6 +754,8 @@ jobs:
         run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
       - name: Verify every artifact to attest is present
+        env:
+          HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
         run: |
           v="${{ needs.version.outputs.version }}"
           status=0
@@ -754,7 +766,7 @@ jobs:
             for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
-          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+          if [ "${HAS_UPDATER_KEY}" = "true" ]; then
             want="$want tisty-installer-$v-windows-x86_64.exe.sig"
             if [ "${BUILD_MACOS}" = "true" ]; then
               for arch in aarch64 x86_64; do
@@ -963,7 +975,8 @@ jobs:
               exit 0
             fi
             echo "the feed would not push (${attempt}/5)"
-            git fetch origin manifest && git rebase origin/manifest || true
+            git fetch origin manifest || true
+            git rebase origin/manifest || git rebase --abort || true
             sleep $((attempt * 5))
           done
           echo "::error::the feed could not be pushed; the release is out and nothing announces it"
@@ -984,7 +997,12 @@ jobs:
       # the wrong bytes reads exactly like a working release until someone tries to install it.
       - name: Take the update the way an installed copy would
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq minisign
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq && sudo apt-get install -y -qq minisign && break
+            echo "minisign would not install (${attempt}/3)"
+            sleep $((attempt * 5))
+          done
+          command -v minisign
           v="${{ needs.version.outputs.version }}"
           file=latest.json
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then file=candidate.json; fi
@@ -1011,7 +1029,7 @@ jobs:
           for os in $(jq -r '.platforms | keys[]' channel.json); do
             url=$(jq -r --arg os "$os" '.platforms[$os].url' channel.json)
             jq -r --arg os "$os" '.platforms[$os].signature' channel.json | base64 -d > one.sig
-            curl -fsSL -o one.bin "$url"
+            curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o one.bin "$url"
             if minisign -Vm one.bin -p tisty.pub -x one.sig; then
               echo "$os verifies"
             else
@@ -1030,6 +1048,9 @@ jobs:
       && needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
     timeout-minutes: 20
+    concurrency:
+      group: release-msstore
+      cancel-in-progress: false
     env:
       STORE_PUBLISH: ${{ vars.STORE_PUBLISH }}
       STORE_APP_ID: ${{ vars.STORE_APP_ID }}
@@ -1108,6 +1129,9 @@ jobs:
       && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    concurrency:
+      group: release-homebrew
+      cancel-in-progress: false
     env:
       GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
     steps:
@@ -1245,7 +1269,34 @@ jobs:
             fi
             echo "push rejected (attempt ${attempt}/5); rebasing onto the concurrent release"
             git fetch origin main
-            git rebase origin/main
+            git rebase origin/main || { git rebase --abort || true; continue; }
           done
           echo "::error::could not push the tap after 5 attempts"
           exit 1
+
+  winget:
+    name: winget-pkgs
+    needs: [version, publish]
+    if: >-
+      !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.version.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: release-winget
+      cancel-in-progress: false
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - name: Open the pull request that adds this version
+        if: env.WINGET_TOKEN != ''
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: rgdevment.Tisty
+          version: ${{ needs.version.outputs.version }}
+          release-tag: ${{ github.ref_name }}
+          installers-regex: 'tisty-installer-.*-windows-x86_64\.exe$'
+          max-versions-to-keep: 5
+          fork-user: rgdevment-bot
+          token: ${{ secrets.WINGET_TOKEN }}

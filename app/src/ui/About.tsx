@@ -16,9 +16,13 @@ import { fill, t } from "../locales";
 import { composed } from "../markdown";
 import { offerMoved, saidPlainly } from "../refusal";
 import Composed from "./Composed";
+import Glyph from "./Glyph";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
 const SPONSOR = "https://github.com/sponsors/rgdevment";
+const STARS = "https://github.com/rgdevment/Tisty";
+const ALTERNATIVE = "https://alternativeto.net/software/tisty/about/";
+const RATING = "ms-windows-store://review/?ProductId=9PGVWXD8X93N";
 
 const TOOLS = [
   {
@@ -100,8 +104,20 @@ export default function About({
           </span>
         </div>
 
-        <p className="mt-4 text-[13px] leading-relaxed text-soft">{t("aboutWhat")}</p>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
+        <div className="mt-4 rounded-[10px] border border-hair bg-panel px-4 py-3.5">
+          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+            <Glyph name="badge-info" className="size-[13px]" />
+            Tisty
+          </p>
+          <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <Badge icon="key" said={t("badgeLocal")} />
+            <Badge icon="code" said={t("badgeOpen")} />
+            <Badge icon="gift" said={t("badgeFree")} />
+            <Badge icon="cloud-off" said={t("badgeQuiet")} />
+          </div>
+        </div>
 
         {trouble && (
           <div className="mt-4">
@@ -222,6 +238,29 @@ export default function About({
         <p className="text-[13px] leading-relaxed text-soft">{t("supportWhy")}</p>
         <div className="mt-2.5 grid grid-cols-2 gap-2.5">
           <Gives
+            wide={!build?.keptByTheStore}
+            said={t("supportStar")}
+            where="github.com/rgdevment/Tisty"
+            onPick={() => openUrl(STARS).catch(onError)}
+          >
+            <path
+              fill="#e3b341"
+              d="M8 1.2l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 12l-4.2 2.2.8-4.7L1.2 6.2l4.7-.7L8 1.2z"
+            />
+          </Gives>
+          {build?.keptByTheStore && (
+            <Gives
+              said={t("supportRate")}
+              where="Microsoft Store"
+              onPick={() => openUrl(RATING).catch(onError)}
+            >
+              <path
+                fill="#0078d4"
+                d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6l-4 3V4a1 1 0 0 1 1-1Z"
+              />
+            </Gives>
+          )}
+          <Gives
             said={t("supportSponsor")}
             where="github.com/sponsors"
             onPick={() => openUrl(SPONSOR).catch(onError)}
@@ -275,6 +314,13 @@ export default function About({
             </button>
             <button
               type="button"
+              onClick={() => openUrl(ALTERNATIVE).catch(onError)}
+              className={mild}
+            >
+              {t("aboutAlternative")}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 if (said !== null) return setSaid(null);
                 notices().then(setSaid).catch(onError);
@@ -322,14 +368,25 @@ function Rule({ said }: { said: string }) {
   );
 }
 
+function Badge({ icon, said }: { icon: string; said: string }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-hair px-2.5 py-1 text-[11.5px] text-soft">
+      <Glyph name={icon} className="size-[13px]" />
+      {said}
+    </span>
+  );
+}
+
 function Gives({
   said,
   where,
+  wide,
   onPick,
   children,
 }: {
   said: string;
   where: string;
+  wide?: boolean;
   onPick: () => void;
   children: React.ReactNode;
 }) {
@@ -337,7 +394,9 @@ function Gives({
     <button
       type="button"
       onClick={onPick}
-      className="flex items-center gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+      className={`flex items-center gap-2.5 rounded-[10px] border border-hair bg-panel px-3 py-2.5 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
+        wide ? "col-span-2" : ""
+      }`}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true" className="size-[17px] shrink-0">
         {children}

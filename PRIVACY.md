@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** September 17, 2026
+**Last updated:** September 22, 2026
 
 ## The short version
 
@@ -70,6 +70,11 @@ visible instead of making it for you.
   identifier itself does appear in the shared folder — it names your device's
   directory and stamps every event — because that is what tells two writers
   apart. What must never be shared is the file that binds it to this machine.
+  It also holds the day this copy first opened and whether it has already asked
+  you to star the project, so that the asking happens once and never again. The
+  first of those is, with the time zone below, the only field here that says
+  anything about you rather than about your work, and neither of them leaves
+  this machine: the file is not synced, not backed up, and not put in a parcel.
 - **An alias, if you write one** — it exists so that a document you share still
   says who wrote it. It is optional, it lives in the log like everything else,
   and so it reaches your other machines through the folder you sync and travels
@@ -200,6 +205,14 @@ opens your browser, the way any Markdown reader does. Tisty does not follow it
 on its own, and never opens anything without a click. Worth knowing if a
 document reached you from a shared folder someone else can write to — the words
 of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
+
+Tisty's own screens carry a few links of their own: the repository, the pages
+for sponsorship and for a coffee, the AlternativeTo listing, and — on a copy the
+Microsoft Store keeps — the Store's own rating window. Where each one leads is
+fixed in the program, not fetched from anywhere, and they behave like any link
+above: nothing is requested, nothing is sent, and your browser opens only when
+you click. The card that asks for a star is the same: it reads no count and
+checks nothing over the network, it only opens the page if you press it.
 
 A link left alone in its own paragraph is drawn as a card, and that card is made
 of the address itself: the site's name and the words you wrote. Nothing is

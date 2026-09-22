@@ -135,6 +135,10 @@ pub struct Config {
     /// somebody saying so here, and a manifest cannot do it on its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub candidates: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub here_since: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asked_for_a_star: Option<bool>,
 }
 
 impl Config {
@@ -164,6 +168,8 @@ impl Config {
             guide: None,
             sown: Some(false),
             candidates: None,
+            here_since: Some(jiff::Timestamp::now()),
+            asked_for_a_star: None,
         };
         config.save(paths)?;
         Ok(config)
@@ -456,6 +462,8 @@ mod tests {
             holds: None,
             guide: Some("mac0-0001".into()),
             sown: Some(true),
+            here_since: Some(jiff::Timestamp::from_second(1_700_000_000).unwrap()),
+            asked_for_a_star: Some(true),
         };
 
         let written = toml::to_string_pretty(&config).unwrap();
@@ -508,6 +516,8 @@ mod tests {
                 synced_at: None,
                 heard_at: None,
                 guide: None,
+                here_since: None,
+                asked_for_a_star: None,
             }
         }
 

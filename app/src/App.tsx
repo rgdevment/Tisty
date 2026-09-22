@@ -56,6 +56,7 @@ import {
   snapshot,
   sow,
   spelled,
+  starDue,
   stillOpen,
   syncState,
   type Task,
@@ -98,6 +99,7 @@ import Sidebar from "./ui/Sidebar";
 import Sightings from "./ui/Sightings";
 import Spine from "./ui/Spine";
 import Spread from "./ui/Spread";
+import Star from "./ui/Star";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
 import Tally from "./ui/Tally";
@@ -248,11 +250,18 @@ export default function App() {
   const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
   const asked = useRef(0);
 
+  const lookForAStar = () => {
+    starDue()
+      .then((due) => setStarring((was) => was || due))
+      .catch(() => {});
+  };
+
   const newDoc = (folder?: string, pageOf?: string) =>
     docNew(folder, pageOf)
       .then((made) => {
         papersChanged();
         setChosen({ named: "docs", doc: made.id });
+        if (!pageOf) lookForAStar();
       })
       .catch((e) => setError(saidPlainly(e)));
 
@@ -570,6 +579,7 @@ export default function App() {
   const [held, setHeld] = useState<Task | undefined>();
   const acted = useRef<string | null>(null);
   const [greet, setGreet] = useState(false);
+  const [starring, setStarring] = useState(false);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
@@ -731,6 +741,7 @@ export default function App() {
 
   useEffect(() => {
     const stop = listen("closing", () => setLeaving(true));
+    const gone = listen("withdrawn", () => setStarring(false));
     const caught = listen("captured", () => latest.current());
     // The snapshot carries no documents, so a paper written from outside the window — by an
     // assistant, or by the terminal — would go unseen until the next launch.
@@ -752,6 +763,7 @@ export default function App() {
     });
     return () => {
       stop.then((off) => off()).catch(() => {});
+      gone.then((off) => off()).catch(() => {});
       caught.then((off) => off()).catch(() => {});
       stirred.then((off) => off()).catch(() => {});
       landed.then((off) => off()).catch(() => {});
@@ -762,6 +774,8 @@ export default function App() {
 
   const where = useRef(chosen);
   where.current = chosen;
+
+  useEffect(() => setStarring(false), [chosen]);
 
   useEffect(
     () =>
@@ -808,6 +822,17 @@ export default function App() {
   const beside = open && !outside && !sheet;
   const aside =
     (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) && !sheet;
+  const quiet =
+    !asking &&
+    !greet &&
+    !open &&
+    !leaving &&
+    !torn &&
+    !afoot &&
+    !error &&
+    !whoFor &&
+    !movingTo &&
+    !locked;
   const papered =
     chosen.named === "tasks" ||
     chosen.named === "tags" ||
@@ -862,6 +887,7 @@ export default function App() {
         if (!days.length) {
           say(fill("saidDone", title));
           act(complete(id));
+          lookForAStar();
           return;
         }
         setAsking({ id, title, days });
@@ -876,6 +902,7 @@ export default function App() {
         say(fill("saidDone", asking.title));
         act(complete(asking.id, days));
         setAsking(null);
+        lookForAStar();
       }}
     />
   ) : null;
@@ -2068,6 +2095,16 @@ export default function App() {
                 setSelected(undefined);
                 setChosen({ named: "quadrants" });
               }}
+            />
+          )}
+
+          {starring && quiet && (aside || chosen.named === "docs") && (
+            <Star
+              apart={
+                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
+              }
+              onSettled={() => setStarring(false)}
+              onError={(problem) => setError(saidPlainly(problem))}
             />
           )}
         </div>

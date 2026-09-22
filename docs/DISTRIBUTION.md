@@ -1,14 +1,28 @@
 # How Tisty is distributed
 
-Tisty reaches you in one of three ways, and they do not carry the same terms.
-This page exists so nobody has to guess which one applies.
+Tisty reaches you in one of a few ways, and they do not all carry the same
+terms. This page exists so nobody has to guess which one applies.
 
 | What you have | Under what terms |
 |---|---|
 | The **source code**, from this repository | [AGPL-3.0](../LICENSE) |
 | A **build you compiled yourself** from that source | [AGPL-3.0](../LICENSE) |
-| A **signed build** downloaded from an app store or from the releases page | The terms below, plus the store's own |
+| A **signed build** from the releases page, or from a package manager that takes it from there | [AGPL-3.0](../LICENSE) |
+| A **signed build** kept by an app store | The terms below, plus the store's own |
 | A build under a **commercial licence** | [COMMERCIAL.md](COMMERCIAL.md) |
+
+## The signed build on the releases page is the AGPL one
+
+Signing a build and having it notarised does not change the licence it carries.
+The installers and disk images on the releases page — and the copies that
+Homebrew and the Windows Package Manager take from there — are the AGPL-3.0
+program, and everything that licence grants over them is granted. Mirror them,
+hand them to a colleague, put them on a USB stick: none of that needs anyone's
+permission.
+
+The AGPL asks one thing in return, and it is the same thing it asks of any
+binary: whoever receives a build has to be able to reach the source that made
+it. The releases page carries both, side by side, so pointing at it is enough.
 
 ## Why the store build is not simply AGPL
 
@@ -29,18 +43,20 @@ not on that list: every copy outside a store does it, a build you compiled
 yourself included. If you would rather not, compile it yourself: the source is here,
 it is complete, and it is free forever.
 
-## The terms for a signed build
+## The terms for a store build
 
 Mario Hidalgo G. (rgdevment), and whoever holds the copyright after him, grants
 you a **non-exclusive, worldwide, non-transferable licence** to install and use
-the signed build, on any number of devices you own or control, for as long as
+the store's build, on any number of devices you own or control, for as long as
 you like, personally or at work. A build already in your hands keeps the licence
 it came with, whoever the project belongs to afterwards.
 
-You may not redistribute the signed build itself, decompile it, or remove its
-signature. **None of that limits the source**: everything the AGPL grants over
-the code stays granted, including your right to build, modify and redistribute
-it under those terms.
+You may not redistribute **the store's copy** itself, decompile it, or remove
+its signature — those are the store's conditions, not ours, and they are the
+price of being listed there. The build on the releases page is the same program
+under the AGPL, and it is yours to pass on. **None of this limits the source**:
+everything the AGPL grants over the code stays granted, including your right to
+build, modify and redistribute it under those terms.
 
 The build is provided **as is**, without warranty of any kind, to the extent the
 law where you live allows. That is the same warranty the AGPL-3.0 gives, worded

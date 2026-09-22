@@ -204,3 +204,28 @@ describe("a newer version the Store itself offers", () => {
     expect(opened.urls).toEqual([]);
   });
 });
+
+describe("a copy the Store keeps", () => {
+  it("is offered the rating beside the star, and neither is offered twice", async () => {
+    ipc.answer = (cmd) =>
+      Promise.resolve(cmd === "about" ? { ...build, keptByTheStore: true } : null);
+    render(<About ready={null} onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    await userEvent.click(screen.getByRole("button", { name: /rate it in the store/i }));
+    await userEvent.click(screen.getByRole("button", { name: /star on github/i }));
+
+    expect(opened.urls).toEqual([
+      "ms-windows-store://review/?ProductId=9PGVWXD8X93N",
+      "https://github.com/rgdevment/Tisty",
+    ]);
+  });
+
+  it("keeps the rating out of a copy the Store does not keep", async () => {
+    render(<About ready={null} onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    expect(screen.queryByRole("button", { name: /rate it in the store/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /star on github/i })).toBeTruthy();
+  });
+});

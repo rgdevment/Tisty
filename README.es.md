@@ -286,7 +286,13 @@ resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 **Windows** — desde la
 [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), que además se
 encarga de mantenerla al día. Si prefieres no esperar, Acerca de se la pide en
-el momento.
+el momento. O con el gestor de paquetes de Windows, que toma el instalador
+firmado de la página de releases y después se aparta, porque Tisty se mantiene
+al día sola:
+
+```console
+> winget install rgdevment.Tisty
+```
 
 **macOS** — con [Homebrew](https://brew.sh). El tap se agrega una sola vez y no
 se vuelve a tocar. Desde ahí Tisty se mantiene al día sola, y Homebrew se
