@@ -22,6 +22,7 @@ const COFFEE = "https://buymeacoffee.com/rgdevment";
 const SPONSOR = "https://github.com/sponsors/rgdevment";
 const STARS = "https://github.com/rgdevment/Tisty";
 const ALTERNATIVE = "https://alternativeto.net/software/tisty/about/";
+const RATING = "ms-windows-store://review/?ProductId=9PGVWXD8X93N";
 
 const TOOLS = [
   {
@@ -237,7 +238,7 @@ export default function About({
         <p className="text-[13px] leading-relaxed text-soft">{t("supportWhy")}</p>
         <div className="mt-2.5 grid grid-cols-2 gap-2.5">
           <Gives
-            wide
+            wide={!build?.keptByTheStore}
             said={t("supportStar")}
             where="github.com/rgdevment/Tisty"
             onPick={() => openUrl(STARS).catch(onError)}
@@ -247,6 +248,18 @@ export default function About({
               d="M8 1.2l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 12l-4.2 2.2.8-4.7L1.2 6.2l4.7-.7L8 1.2z"
             />
           </Gives>
+          {build?.keptByTheStore && (
+            <Gives
+              said={t("supportRate")}
+              where="Microsoft Store"
+              onPick={() => openUrl(RATING).catch(onError)}
+            >
+              <path
+                fill="#0078d4"
+                d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6l-4 3V4a1 1 0 0 1 1-1Z"
+              />
+            </Gives>
+          )}
           <Gives
             said={t("supportSponsor")}
             where="github.com/sponsors"

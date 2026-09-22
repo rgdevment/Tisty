@@ -584,7 +584,7 @@ export const updateCandidates = (wants: boolean): Promise<void> =>
   invoke("update_candidates", { wants });
 export const notices = (): Promise<string> => invoke("notices");
 
-export const starDue = (): Promise<boolean> => invoke("star_due");
+export const starDue = (papers: number): Promise<boolean> => invoke("star_due", { papers });
 
 export const starDone = (): Promise<void> => invoke("star_done");
 export const facts = (names: boolean, paths: boolean): Promise<Facts> =>

@@ -250,11 +250,18 @@ export default function App() {
   const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
   const asked = useRef(0);
 
+  const lookForAStar = () => {
+    starDue(papers.docs.filter((one) => !one.pageOf).length)
+      .then((due) => setStarring((was) => was || due))
+      .catch(() => {});
+  };
+
   const newDoc = (folder?: string, pageOf?: string) =>
     docNew(folder, pageOf)
       .then((made) => {
         papersChanged();
         setChosen({ named: "docs", doc: made.id });
+        if (!pageOf) lookForAStar();
       })
       .catch((e) => setError(saidPlainly(e)));
 
@@ -853,12 +860,6 @@ export default function App() {
         });
       })
       .catch((e) => setError(saidPlainly(e)));
-  };
-
-  const lookForAStar = () => {
-    starDue()
-      .then((due) => setStarring((was) => was || due))
-      .catch(() => {});
   };
 
   const marking = (id: string, title: string) => {
@@ -2083,8 +2084,11 @@ export default function App() {
             />
           )}
 
-          {starring && aside && !asking && !greet && !open && (
-            <Star apart="right-3 @min-[884px]:right-[324px]" onSettled={() => setStarring(false)} />
+          {starring && (aside || chosen.named === "docs") && !asking && !greet && !open && (
+            <Star
+              apart={aside ? "right-3 @min-[884px]:right-[324px]" : "right-[344px]"}
+              onSettled={() => setStarring(false)}
+            />
           )}
         </div>
 
