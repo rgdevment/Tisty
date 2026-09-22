@@ -39,7 +39,7 @@ runs:
           tar czf "dist/$name.tar.gz" "$name"
         fi
 
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       with:
         name: cli-${{ inputs.name }}
         path: dist/*

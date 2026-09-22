@@ -63,6 +63,9 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
+          save-if: false
       - uses: ./.github/actions/sidecar
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets
@@ -380,7 +383,7 @@ jobs:
           fi
           echo "sha=$(cat stage/Tisty.exe stage/cli/tisty.exe | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: stage-windows
           path: stage
@@ -441,7 +444,7 @@ jobs:
           npm run tauri -- signer sign "$exe"
           test -s "$exe.sig" || { echo "::error::no updater signature was written"; exit 1; }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bundle-windows
           path: dist/*
@@ -603,7 +606,7 @@ jobs:
           cp "$dmg" "dist/tisty-installer-$v-macos-$ARCH.dmg"
           ls -l dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bundle-macos-${{ matrix.arch }}
           path: dist/*
@@ -695,7 +698,7 @@ jobs:
           & "$($sdk.FullName)\x64\makeappx.exe" pack /d msix /p "dist/tisty-$v-windows-x86_64.msix" /o
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: steps.gate.outputs.go == 'yes'
         with:
           name: bundle-msix
@@ -784,7 +787,7 @@ jobs:
           done
           exit $status
 
-      - uses: actions/attest-build-provenance@v4
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: dist/tisty-*
 
@@ -976,7 +979,7 @@ jobs:
             fi
             echo "the feed would not push (${attempt}/5)"
             git fetch origin manifest || true
-            git rebase origin/manifest || git rebase --abort || true
+            git rebase FETCH_HEAD || git rebase --abort || true
             sleep $((attempt * 5))
           done
           echo "::error::the feed could not be pushed; the release is out and nothing announces it"
@@ -1019,8 +1022,37 @@ jobs:
           done
           jq . channel.json
 
+          # Only a later release can legitimately be in the channel instead of this one, and a
+          # candidate leaves no file behind at all once the stable it led to goes out. Anything
+          # else — a missing field, a word — is a feed that does not answer for us.
+          ahead=$(jq -r .version channel.json 2>/dev/null || echo "")
+          if [ ! -s channel.json ] && [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
+            ahead=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 3 \
+                      -H "Cache-Control: no-cache" \
+                      "https://raw.githubusercontent.com/${{ github.repository }}/manifest/latest.json" \
+                    | jq -r .version 2>/dev/null || echo "")
+          fi
+
+          overtaken=no
+          if printf "%s" "$ahead" | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$"; then
+            mine=${v%%-*}
+            theirs=${ahead%%-*}
+            if [ "$theirs" != "$mine" ]; then
+              if [ "$(printf "%s\n%s\n" "$mine" "$theirs" | sort -V | tail -1)" = "$theirs" ]; then
+                overtaken=yes
+              fi
+            elif [ "$v" != "$mine" ] && [ "$ahead" = "$theirs" ]; then
+              overtaken=yes
+            fi
+          fi
+
+          if [ "$said" != "$v" ] && [ "$overtaken" = "yes" ]; then
+            echo "::warning::the feed already carries $ahead, so $v was overtaken before it could be taken here. Its signatures were not checked by this run."
+            exit 0
+          fi
+
           if [ "$said" != "$v" ]; then
-            echo "::error::$file says $said, this release is $v"
+            echo "::error::$file says ${said:-nothing}, this release is $v"
             exit 1
           fi
 
@@ -1083,7 +1115,7 @@ jobs:
           name: bundle-msix
           path: dist
 
-      - uses: microsoft/microsoft-store-apppublisher@v1.3
+      - uses: microsoft/microsoft-store-apppublisher@b76227f539d68e6465f79bbbc82ed92f61081aa4 # v1.3
         if: steps.gate.outputs.go == 'yes'
         with:
           version: v0.4.2
@@ -1291,7 +1323,7 @@ jobs:
     steps:
       - name: Open the pull request that adds this version
         if: env.WINGET_TOKEN != ''
-        uses: vedantmgoyal9/winget-releaser@v2
+        uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: rgdevment.Tisty
           version: ${{ needs.version.outputs.version }}
