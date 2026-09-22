@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: mutants-sweep
+  cancel-in-progress: false
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -20,6 +24,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
+          save-if: false
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@cargo-mutants
 
@@ -52,6 +59,9 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: workspace
+          save-if: false
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@cargo-mutants
 
@@ -89,8 +99,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          save-if: ${{ matrix.shard == 1 }}
-          cache-on-failure: true
+          shared-key: workspace
+          save-if: false
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@cargo-mutants
 
@@ -128,8 +138,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          save-if: ${{ matrix.shard == 1 }}
-          cache-on-failure: true
+          shared-key: workspace
+          save-if: false
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@cargo-mutants
 
@@ -268,4 +278,14 @@ jobs:
             exit 0
           fi
           git commit -m "chore: what the sweep of $(date -u +%Y-%m-%d) came to"
-          git push origin score
+          for attempt in 1 2 3; do
+            if git push origin score; then
+              exit 0
+            fi
+            echo "the score would not push (${attempt}/3)"
+            git fetch origin score --depth 1 || true
+            git rebase FETCH_HEAD || git rebase --abort || true
+            sleep $((attempt * 5))
+          done
+          echo "::error::the score could not be pushed"
+          exit 1
