@@ -14,6 +14,8 @@ export type Named =
   | "keeping"
   | "aboutScreen";
 
+export type Tab = "general" | "data" | "agents" | "upkeep";
+
 export type Slice = "today" | "upcoming" | "repeating" | "all";
 
 export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
@@ -46,6 +48,7 @@ export const axisWord = (axis: Axis) =>
 export interface Chosen {
   named?: Named;
   doc?: string;
+  tab?: Tab;
   list?: string;
   lists?: string[];
   tags?: string[];
