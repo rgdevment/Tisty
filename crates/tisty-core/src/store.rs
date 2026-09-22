@@ -2,8 +2,6 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
-use fs4::fs_std::FileExt;
-
 use crate::{
     Error, Result,
     event::{DeviceId, Event, KNOWN_OPS, Op, SCHEMA_VERSION},
@@ -90,7 +88,10 @@ impl Store {
             .open(self.dir.join(LOCK))?;
 
         let mut waited = 0;
-        while !file.try_lock_exclusive()? {
+        while let Err(held) = file.try_lock() {
+            if let std::fs::TryLockError::Error(why) = held {
+                return Err(why.into());
+            }
             if waited >= LOCK_WAIT_MS {
                 return Err(Error::AlreadyRunning);
             }
@@ -944,7 +945,7 @@ pub struct Alone(File);
 
 impl Drop for Alone {
     fn drop(&mut self) {
-        let _ = FileExt::unlock(&self.0);
+        let _ = self.0.unlock();
     }
 }
 
@@ -958,8 +959,8 @@ pub fn alone(device_dir: &Path) -> Option<Alone> {
         .ok()?;
 
     let mut waited = 0;
-    while !file.try_lock_exclusive().ok()? {
-        if waited >= LOCK_WAIT_MS {
+    while let Err(held) = file.try_lock() {
+        if matches!(held, std::fs::TryLockError::Error(_)) || waited >= LOCK_WAIT_MS {
             return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
@@ -985,7 +986,7 @@ fn mend(dir: &Path) {
     else {
         return;
     };
-    if !guard.try_lock_exclusive().unwrap_or(false) {
+    if guard.try_lock().is_err() {
         return;
     }
 
