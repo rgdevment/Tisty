@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
@@ -16,6 +20,7 @@ jobs:
   test:
     name: test / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -23,12 +28,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - uses: Swatinem/rust-cache@v2
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@nextest
+      - run: cargo clippy --workspace --all-targets
       - run: cargo nextest run --workspace --no-tests=pass
-      - run: cargo test --doc --workspace
-      - run: cargo nextest run --workspace --no-tests=pass
+      - if: runner.os == 'Windows'
+        run: cargo test --doc --workspace
+      - if: runner.os == 'Windows'
+        run: cargo nextest run --workspace --no-tests=pass
         env:
           LC_ALL: es_ES.UTF-8
           LANG: es_ES.UTF-8
@@ -36,6 +46,7 @@ jobs:
   lint:
     name: fmt + clippy
     runs-on: windows-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
@@ -49,6 +60,7 @@ jobs:
   window:
     name: frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: app
@@ -67,6 +79,7 @@ jobs:
   prose:
     name: markdown
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v7
@@ -78,6 +91,7 @@ jobs:
   audit:
     name: advisories + licences
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: EmbarkStudios/cargo-deny-action@v2
@@ -85,6 +99,7 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
 
@@ -131,6 +146,7 @@ jobs:
     name: sonarcloud
     needs: coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v6

@@ -16,6 +16,7 @@ import { fill, t } from "../locales";
 import { composed } from "../markdown";
 import { offerMoved, saidPlainly } from "../refusal";
 import Composed from "./Composed";
+import Glyph from "./Glyph";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
 const SPONSOR = "https://github.com/sponsors/rgdevment";
@@ -104,29 +105,16 @@ export default function About({
 
         <div className="mt-4 rounded-[10px] border border-hair bg-panel px-4 py-3.5">
           <p className="flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
-            <Drawn>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 16v-4M12 8h.01" />
-            </Drawn>
+            <Glyph name="badge-info" className="size-[13px]" />
             Tisty
           </p>
           <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Badge said={t("badgeLocal")}>
-              <rect x="5" y="11" width="14" height="10" rx="2" />
-              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-            </Badge>
-            <Badge said={t("badgeOpen")}>
-              <path d="m9 17-5-5 5-5M15 7l5 5-5 5" />
-            </Badge>
-            <Badge said={t("badgeFree")}>
-              <path d="M12 20.5 4.5 13a4.6 4.6 0 0 1 6.5-6.5l1 1 1-1A4.6 4.6 0 0 1 19.5 13Z" />
-            </Badge>
-            <Badge said={t("badgeQuiet")}>
-              <path d="M3 3l18 18M9 9v3a3 3 0 0 0 4.6 2.5M15 11V6a3 3 0 0 0-5.9-.7" />
-              <path d="M19 10v2a7 7 0 0 1-1.2 3.9M5 10v2a7 7 0 0 0 7 7v3" />
-            </Badge>
+            <Badge icon="laptop" said={t("badgeLocal")} />
+            <Badge icon="code" said={t("badgeOpen")} />
+            <Badge icon="gift" said={t("badgeFree")} />
+            <Badge icon="cloud-off" said={t("badgeQuiet")} />
           </div>
         </div>
 
@@ -367,27 +355,10 @@ function Rule({ said }: { said: string }) {
   );
 }
 
-function Drawn({ children }: { children: React.ReactNode }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-[11px] shrink-0"
-    >
-      {children}
-    </svg>
-  );
-}
-
-function Badge({ said, children }: { said: string; children: React.ReactNode }) {
+function Badge({ icon, said }: { icon: string; said: string }) {
   return (
     <span className="flex items-center gap-1.5 rounded-full border border-hair px-2.5 py-1 text-[11.5px] text-soft">
-      <Drawn>{children}</Drawn>
+      <Glyph name={icon} className="size-[13px]" />
       {said}
     </span>
   );

@@ -1622,6 +1622,7 @@ export default function App() {
           setSelected(undefined);
           setFound(null);
           setError(null);
+          setStarring(false);
         }}
       />
 
@@ -2082,11 +2083,8 @@ export default function App() {
             />
           )}
 
-          {starring && !asking && !captured && !greet && !open && (
-            <Star
-              apart={aside ? "right-3 @min-[884px]:right-[324px]" : "right-3"}
-              onSettled={() => setStarring(false)}
-            />
+          {starring && aside && !asking && !greet && !open && (
+            <Star apart="right-3 @min-[884px]:right-[324px]" onSettled={() => setStarring(false)} />
           )}
         </div>
 

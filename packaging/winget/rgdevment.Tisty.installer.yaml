@@ -12,7 +12,10 @@ InstallModes:
   - silent
   - silentWithProgress
 UpgradeBehavior: install
+RequireExplicitUpgrade: true
 ReleaseDate: 2026-09-17
+InstallationMetadata:
+  DefaultInstallLocation: '%LOCALAPPDATA%\Programs\Tisty'
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/rgdevment/Tisty/releases/download/v1.18.0/tisty-installer-1.18.0-windows-x86_64.exe

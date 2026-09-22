@@ -13,6 +13,7 @@ PackageUrl: https://github.com/rgdevment/Tisty
 License: AGPL-3.0-only
 LicenseUrl: https://github.com/rgdevment/Tisty/blob/main/LICENSE
 Copyright: Copyright (c) 2026 rgdevment
+CopyrightUrl: https://github.com/rgdevment/Tisty/blob/main/LICENSE
 ShortDescription: Notas, documentos y tareas, todo local. Sin suscripción ni telemetría.
 Description: |-
   Tisty guarda lo que sabes en tu propio equipo: notas, documentos y tareas, en archivos
@@ -22,7 +23,6 @@ Description: |-
   una carpeta que tus equipos ya alcanzan, y un asistente entra por una puerta que abres tú.
 Tags:
   - documentos
-  - kanban
   - local
   - markdown
   - mcp

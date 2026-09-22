@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -88,6 +92,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ matrix.shard == 1 }}
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@cargo-mutants
 
@@ -124,6 +130,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ matrix.shard == 1 }}
       - uses: taiki-e/install-action@nextest
       - uses: taiki-e/install-action@cargo-mutants
 
@@ -151,7 +159,7 @@ jobs:
   window:
     name: window / shard ${{ matrix.shard }} of 24
     runs-on: ubuntu-latest
-    timeout-minutes: 355
+    timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:

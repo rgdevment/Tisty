@@ -27,7 +27,15 @@ beforeEach(() => {
 });
 
 describe("the card that asks for a star", () => {
-  it("opens the repository and never asks again", async () => {
+  it("announces itself and asks nothing until it is answered", () => {
+    render(<Star apart="right-3" onSettled={() => {}} />);
+
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(ipc.sent).toEqual([]);
+    expect(opened.urls).toEqual([]);
+  });
+
+  it("opens the repository and never comes back", async () => {
     let settled = 0;
     render(<Star apart="right-3" onSettled={() => (settled += 1)} />);
 
@@ -42,10 +50,22 @@ describe("the card that asks for a star", () => {
     let settled = 0;
     render(<Star apart="right-3" onSettled={() => (settled += 1)} />);
 
-    await userEvent.click(screen.getByRole("button", { name: /no thanks/i }));
+    await userEvent.click(screen.getByRole("button", { name: /don't show again/i }));
 
     expect(opened.urls).toEqual([]);
     expect(ipc.sent).toEqual(["star_done"]);
     expect(settled).toBe(1);
+  });
+
+  it("is only silenced by Escape, which is not an answer", async () => {
+    let settled = 0;
+    render(<Star apart="right-3" onSettled={() => (settled += 1)} />);
+
+    screen.getByRole("button", { name: /don't show again/i }).focus();
+    await userEvent.keyboard("{Escape}");
+
+    expect(settled).toBe(1);
+    expect(ipc.sent).toEqual([]);
+    expect(opened.urls).toEqual([]);
   });
 });

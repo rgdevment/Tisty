@@ -5197,31 +5197,61 @@ fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
 const SETTLED_IN: jiff::SignedDuration = jiff::SignedDuration::from_hours(24 * 14);
 const CLOSED_ENOUGH: usize = 40;
 
+#[derive(Debug, PartialEq, Eq)]
+enum Asking {
+    Start,
+    Wait,
+    Now,
+}
+
+fn asking(
+    asked: Option<bool>,
+    since: Option<jiff::Timestamp>,
+    now: jiff::Timestamp,
+    closed: impl FnOnce() -> usize,
+) -> Asking {
+    if asked.unwrap_or(false) {
+        return Asking::Wait;
+    }
+    let Some(since) = since.filter(|at| *at <= now) else {
+        return Asking::Start;
+    };
+    if now.duration_since(since) < SETTLED_IN {
+        return Asking::Wait;
+    }
+    if closed() < CLOSED_ENOUGH {
+        return Asking::Wait;
+    }
+    Asking::Now
+}
+
 #[tauri::command]
 fn star_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
     let mut session = held(&session);
-    if session.config.asked_for_a_star.unwrap_or(false) {
-        return Ok(false);
-    }
     let now = jiff::Timestamp::now();
-    let Some(since) = session.config.here_since else {
-        session.keep(|c| c.here_since = Some(now))?;
-        return Ok(false);
+    let asked = session.config.asked_for_a_star;
+    let since = session.config.here_since;
+    let counted = || {
+        let filter = Filter {
+            scope: Scope::Archived,
+            ..Default::default()
+        };
+        let today = today();
+        session
+            .state
+            .archived_tasks()
+            .filter(|task| filter.matches(task, today))
+            .count()
     };
-    if now.duration_since(since) < SETTLED_IN {
-        return Ok(false);
+    let decided = asking(asked, since, now, counted);
+    match decided {
+        Asking::Start => {
+            session.keep(|c| c.here_since = Some(now))?;
+            Ok(false)
+        }
+        Asking::Wait => Ok(false),
+        Asking::Now => Ok(true),
     }
-    let closed = session
-        .state
-        .matching(
-            &Filter {
-                scope: Scope::Archived,
-                ..Default::default()
-            },
-            today(),
-        )
-        .len();
-    Ok(closed >= CLOSED_ENOUGH)
 }
 
 #[tauri::command]
@@ -8671,6 +8701,82 @@ mod hands_of {
             "{rows:?}"
         );
         assert_eq!(rows[0].last.as_deref(), Some("1970-01-01T00:00:20Z"));
+    }
+}
+
+#[cfg(test)]
+mod starring {
+    use super::{Asking, CLOSED_ENOUGH, asking};
+
+    fn at(text: &str) -> jiff::Timestamp {
+        text.parse().expect("a timestamp")
+    }
+
+    fn now() -> jiff::Timestamp {
+        at("2026-09-22T12:00:00Z")
+    }
+
+    #[test]
+    fn a_copy_that_was_asked_once_is_never_asked_again() {
+        assert_eq!(
+            asking(Some(true), Some(at("2026-01-01T00:00:00Z")), now(), || {
+                10_000
+            }),
+            Asking::Wait
+        );
+    }
+
+    #[test]
+    fn a_copy_with_no_mark_lays_one_and_says_nothing_yet() {
+        assert_eq!(asking(None, None, now(), || 10_000), Asking::Start);
+    }
+
+    #[test]
+    fn a_mark_from_a_clock_that_was_ahead_is_laid_again_rather_than_waited_on_for_ever() {
+        assert_eq!(
+            asking(None, Some(at("2030-01-01T00:00:00Z")), now(), || 10_000),
+            Asking::Start
+        );
+    }
+
+    #[test]
+    fn a_fortnight_is_the_floor_and_the_day_before_it_is_not() {
+        assert_eq!(
+            asking(None, Some(at("2026-09-08T12:00:01Z")), now(), || 10_000),
+            Asking::Wait
+        );
+        assert_eq!(
+            asking(None, Some(at("2026-09-08T12:00:00Z")), now(), || 10_000),
+            Asking::Now
+        );
+    }
+
+    #[test]
+    fn the_count_is_a_floor_too() {
+        let long_ago = Some(at("2026-01-01T00:00:00Z"));
+        assert_eq!(
+            asking(None, long_ago, now(), || CLOSED_ENOUGH - 1),
+            Asking::Wait
+        );
+        assert_eq!(asking(None, long_ago, now(), || CLOSED_ENOUGH), Asking::Now);
+    }
+
+    #[test]
+    fn the_archive_is_not_walked_when_the_answer_is_known_without_it() {
+        let walked = std::cell::Cell::new(0);
+        let count = || {
+            walked.set(walked.get() + 1);
+            10_000
+        };
+        assert_eq!(asking(Some(true), None, now(), count), Asking::Wait);
+        assert_eq!(walked.get(), 0);
+
+        let count = || {
+            walked.set(walked.get() + 1);
+            10_000
+        };
+        assert_eq!(asking(None, Some(now()), now(), count), Asking::Wait);
+        assert_eq!(walked.get(), 0);
     }
 }
 

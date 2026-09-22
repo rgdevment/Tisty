@@ -18,7 +18,13 @@ export default function Star({ apart, onSettled }: Props) {
 
   return (
     <section
+      role="status"
       aria-label={t("supportTitle")}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        onSettled();
+      }}
       className={`arrive absolute bottom-3 z-30 w-[280px] rounded-[10px] border border-line bg-bg px-[13px] py-3 shadow-lift ${apart}`}
     >
       <div className="flex items-start gap-2.5">
@@ -30,11 +36,11 @@ export default function Star({ apart, onSettled }: Props) {
           </span>
         </span>
       </div>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => settle(true)}
-          className="flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white"
+          className="flex cursor-pointer items-center gap-1.5 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-bg outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <StarMark className="size-[13px]" />
           {t("starGo")}
@@ -42,7 +48,7 @@ export default function Star({ apart, onSettled }: Props) {
         <button
           type="button"
           onClick={() => settle(false)}
-          className="ml-auto cursor-pointer rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] text-soft hover:bg-hover"
+          className="ml-auto cursor-pointer rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] text-soft outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
         >
           {t("starNo")}
         </button>
