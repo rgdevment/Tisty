@@ -21,14 +21,14 @@ tauri-build = { workspace = true }
 
 [target."cfg(windows)".dependencies]
 winreg = "0.55"
-windows = { version = "0.61", features = [
+windows = { version = "0.62", features = [
   "ApplicationModel",
   "Services_Store",
   "Win32_Foundation",
   "Win32_System_Com",
   "Win32_UI_Shell",
 ] }
-windows-future = "0.2"
+windows-future = "0.3"
 
 [dependencies]
 tisty-core.workspace = true

@@ -192,7 +192,7 @@ mod there {
         };
         if wanted {
             task.RequestEnableAsync()
-                .and_then(|asking| asking.get())
+                .and_then(|asking| asking.join())
                 .map(|_| ())
                 .map_err(sour)
         } else {
@@ -201,7 +201,10 @@ mod there {
     }
 
     fn asked() -> Option<StartupTask> {
-        StartupTask::GetAsync(&HSTRING::from(TASK)).ok()?.get().ok()
+        StartupTask::GetAsync(&HSTRING::from(TASK))
+            .ok()?
+            .join()
+            .ok()
     }
 
     fn sour(why: windows::core::Error) -> std::io::Error {
