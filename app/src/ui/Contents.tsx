@@ -14,10 +14,11 @@ export default function Contents({ pages, told, onOpen, onPut }: Props) {
   const loose = pages.filter((one) => !told.has(one.file));
 
   const row = (page: Filed, at: string) => (
-    <li key={page.id} className="leaf-row">
+    <li key={page.id} className={page.away ? "leaf-row leaf-away" : "leaf-row"}>
       <button type="button" onClick={() => onOpen(page)} className="leaf-open">
         <span className="leaf-num">{at}</span>
         <span className="leaf-name">{page.title || t("untitledDoc")}</span>
+        {page.away && <span className="leaf-said">{t("archived")}</span>}
       </button>
       {onPut && !told.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">
