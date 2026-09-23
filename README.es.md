@@ -49,6 +49,11 @@
         src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=6C5CE7"
         alt="Última versión"/>
     </a>
+    <a href="#un-asistente-si-usas-uno">
+      <img
+        src="https://img.shields.io/badge/MCP-Official_Registry-6C5CE7?style=flat-square"
+        alt="Tisty en el registro oficial de MCP"/>
+    </a>
     <img
       src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-6C5CE7?style=flat-square"
       alt="Plataformas: Windows y macOS"/>
