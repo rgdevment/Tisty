@@ -176,13 +176,9 @@ impl State {
         (!names.is_empty()).then_some(names)
     }
 
-    // A page keeps a mark of its own and the document only covers it, so coming back out wakes
-    // what was awake and leaves apart what the person had already put apart.
     fn shelve(&mut self, id: DocId, away: bool, by_person: bool) {
         if let Some(doc) = self.docs.get_mut(&id) {
             doc.archived = away;
-            // Putting it away is an answer to the mark, but only when the hand is the person's:
-            // an assistant archiving one of its own marks would bury it.
             if away && by_person {
                 doc.flagged = None;
             }
@@ -437,8 +433,6 @@ impl State {
                     if doc.folder == Some(*id) {
                         doc.folder = None;
                         doc.archived = doc.archived || (away && doc.page_of.is_none());
-                        // A page lands where its document lands, so it is never asked where to
-                        // go back to and has no use for the way it came.
                         if doc.archived && doc.page_of.is_none() {
                             doc.folder_was = gone.clone();
                         }

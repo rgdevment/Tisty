@@ -566,8 +566,12 @@ fn pointed(name: &str) -> Option<&'static str> {
          learnt goes in `note`.";
     const DROPPING_A_TASK: &str = "Closing, dropping and erasing a task are the person's alone, \
          and no tool here does any of them. Record what you found with `note`.";
-    const LOOKING_BACK: &str = "What is finished is not somewhere else: `find` and `docs` reach          it with `scope` set to `archive`, or `either` for both at once. A task the person closed          comes back from `find` like any other, and `read` says when and how it ended.";
-    const LISTING: &str = "`find` searches the tasks and the documents — by text, or by the          sifting fields alone — and `docs` lists what is written with the folder each one sits          in. `catch_up` is the one to ask first when you arrive.";
+    const LOOKING_BACK: &str = "What is finished is not somewhere else: `find` and `docs` reach \
+         it with `scope` set to `archive`, or `either` for both at once. A task the person closed \
+         comes back from `find` like any other, and `read` says when and how it ended.";
+    const LISTING: &str = "`find` searches the tasks and the documents — by text, or by the \
+         sifting fields alone — and `docs` lists what is written with the folder each one sits \
+         in. `catch_up` is the one to ask first when you arrive.";
 
     Some(match name {
         "delete_doc" | "remove_doc" | "drop_doc" | "erase_doc" | "trash_doc"
@@ -4156,12 +4160,10 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             json!({ "doc": which, "archived": away }),
         ));
     }
-    // Only the ones this call is moving: a page already apart on its own neither went with the
-    // document nor comes back with it, and saying it did is the one lie that matters.
     let pages: Vec<String> = state
         .pages_of(kept.id)
         .iter()
-        .filter(|one| one.archived != away)
+        .filter(|one| !one.archived)
         .map(|one| one.file.clone())
         .collect();
     let pointing = match away {
@@ -4344,7 +4346,9 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     if state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which} is in the archive, and taking it out of the document that holds it would              take it out of the archive with no hand on it. The person brings it back from the              window first."
+            "{which} is in the archive, and taking it out of the document that holds it \
+             would take it out of the archive with no hand on it. The person brings it back from \
+             the window first."
         )));
     }
     let page_of = match text(args, "page_of") {

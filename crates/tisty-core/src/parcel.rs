@@ -148,8 +148,6 @@ pub struct Paper {
     /// Set when only the folder above put it away, so bringing that folder back opens it again.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub by_folder: bool,
-    /// Its own mark, apart from what covers it. Absent in a package written before a page could
-    /// be put away by itself, and then `archived` is the only reading there was.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub away_alone: Option<bool>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -1025,8 +1023,6 @@ fn taken_in(
         // A folder that lands closed answers for what it holds; marking the document again would
         // outlive the folder and never come back with it.
         let by_folder = paper.by_folder && folder.is_some_and(|at| shut.contains(&at));
-        // A package written before pages could be put away on their own says nothing about it,
-        // and then what it carries as archived is the mark it had: the old reading still holds.
         let alone = paper.away_alone.unwrap_or(paper.archived);
         if alone && !by_folder {
             ops.push(Op::DocArchive { id });

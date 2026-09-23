@@ -5114,3 +5114,63 @@ fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
     );
     assert!(done["result"]["isError"].is_null(), "{done}");
 }
+
+#[test]
+fn nothing_the_server_says_carries_a_gap_the_reader_can_see() {
+    fn gaps(said: &serde_json::Value, path: &str, found: &mut Vec<String>) {
+        match said {
+            serde_json::Value::String(text) => {
+                for line in text.lines() {
+                    if let Some(at) = line.find("  ")
+                        && line[..at].trim_end() == &line[..at]
+                        && !line[..at].is_empty()
+                    {
+                        found.push(format!("{path}: {}", &line[at.saturating_sub(40)..]));
+                    }
+                }
+            }
+            serde_json::Value::Object(one) => {
+                for (key, value) in one {
+                    gaps(value, &format!("{path}/{key}"), found);
+                }
+            }
+            serde_json::Value::Array(many) => {
+                for (at, value) in many.iter().enumerate() {
+                    gaps(value, &format!("{path}/{at}"), found);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let served = Served::new();
+    let told = served.talk(&[
+        &serde_json::json!({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": { "protocolVersion": "2025-06-18", "capabilities": {},
+                        "clientInfo": { "name": "test", "version": "1" } },
+        })
+        .to_string(),
+        &serde_json::json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {} })
+            .to_string(),
+    ]);
+
+    let mut found = Vec::new();
+    for one in &told {
+        gaps(one, "", &mut found);
+    }
+    for name in [
+        "list_docs",
+        "archived_tasks",
+        "delete_doc",
+        "unarchive_doc",
+        "complete_task",
+        "delete_task",
+    ] {
+        gaps(&served.call(name, serde_json::json!({})), name, &mut found);
+    }
+    assert!(
+        found.is_empty(),
+        "a line continued in the source loses its backslash and the gap reaches the agent: {found:#?}"
+    );
+}

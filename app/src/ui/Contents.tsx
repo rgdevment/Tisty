@@ -1,5 +1,6 @@
 import type { Filed } from "../core";
 import { t } from "../locales";
+import Glyph from "./Glyph";
 
 interface Props {
   pages: Filed[];
@@ -15,10 +16,15 @@ export default function Contents({ pages, told, onOpen, onPut }: Props) {
 
   const row = (page: Filed, at: string) => (
     <li key={page.id} className={page.away ? "leaf-row leaf-away" : "leaf-row"}>
-      <button type="button" onClick={() => onOpen(page)} className="leaf-open">
+      <button
+        type="button"
+        onClick={() => onOpen(page)}
+        aria-label={page.away ? `${page.title || t("untitledDoc")} — ${t("archived")}` : undefined}
+        className="leaf-open"
+      >
         <span className="leaf-num">{at}</span>
         <span className="leaf-name">{page.title || t("untitledDoc")}</span>
-        {page.away && <span className="leaf-said">{t("archived")}</span>}
+        {page.away && <Glyph name="archive" className="leaf-mark" />}
       </button>
       {onPut && !told.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">

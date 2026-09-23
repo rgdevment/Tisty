@@ -353,6 +353,15 @@ impl Served {
         String::from_utf8_lossy(&out.stderr).into_owned()
     }
 
+    fn said(&self, name: &str, args: serde_json::Value) -> String {
+        let told = self.call(name, args);
+        assert!(told["result"]["isError"].as_bool() != Some(true), "{told}");
+        told["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    }
+
     fn refused(&self, name: &str, args: serde_json::Value) -> String {
         let said = self.call(name, args);
         assert_eq!(
@@ -2006,4 +2015,119 @@ fn a_long_document_read_whole_comes_back_as_an_outline_that_weighs_each_part() {
         .map(|one| one.chars().count() + 1)
         .sum();
     assert_eq!(uno["chars"], held, "what reading section 1 would cost");
+}
+
+#[test]
+fn a_page_the_archive_holds_is_sent_back_to_its_document_and_not_to_a_folder() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nlas de este año.", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let why = served.refused(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": false }),
+    );
+
+    assert!(
+        why.contains("document that holds it") && why.contains(&book),
+        "a page hangs from a document, and sending the person to a folder sends them nowhere: {why}"
+    );
+    assert!(!why.contains("  "), "{why}");
+}
+
+#[test]
+fn what_a_document_takes_to_the_archive_is_what_it_brings_back() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    let two = served.wrote("# Abril", Some(&book));
+
+    let went = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+    assert!(
+        went.contains("Its pages went with it") && went.contains(&one) && went.contains(&two),
+        "{went}"
+    );
+
+    let back = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    assert!(
+        back.contains("Its pages came back with it"),
+        "coming back is not going away, and the answer has to read like what happened: {back}"
+    );
+
+    let again = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    assert!(
+        again.contains("already out of the archive") && !again.contains("pages"),
+        "asking twice changes nothing and takes no page anywhere: {again}"
+    );
+}
+
+#[test]
+fn a_page_in_the_archive_is_not_pulled_out_of_the_document_that_holds_it() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let why = served.refused("page_doc", serde_json::json!({ "doc": &page }));
+
+    assert!(
+        why.contains("in the archive"),
+        "taking it out would leave it awake outside the archive with nobody's hand on it: {why}"
+    );
+    assert!(!why.contains("  "), "{why}");
+    assert_eq!(served.pages_of(&book), vec![page]);
+}
+
+#[test]
+fn a_task_pointing_at_a_page_of_a_book_in_the_archive_says_it_is_put_away() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "propose",
+        serde_json::json!({
+            "title": "read what March says",
+            "description": format!("lo dejado en [Marzo](tisty:doc/{page})"),
+            "source": "test#1",
+        }),
+    );
+
+    let listed = served.cli(&["ls", "all"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("read what March says"))
+        .and_then(|line| line.split_whitespace().next())
+        .expect("the task is listed")
+        .trim_end_matches('.')
+        .to_string();
+
+    let before = served.cli(&["story", &number]);
+    assert!(!before.contains("(put away)"), "{before}");
+
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let after = served.cli(&["story", &number]);
+    assert!(
+        after.contains("(put away)"),
+        "the page went to the archive inside its document, and the task has to say so: {after}"
+    );
 }
