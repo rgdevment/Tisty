@@ -1596,7 +1596,9 @@ overwritten.
 
 **Export for Tisty** is the one that does not lose anything, because it is not
 Markdown: a zip named `.tistyx` carrying the bodies byte for byte, the
-attachments they name, and a manifest with what Markdown cannot hold — folders
+attachments they name, a `README.txt` telling whoever it lands on what the file
+is and that the documents inside are readable without Tisty, and a manifest with
+what Markdown cannot hold — folders
 with their order, icon and colour, which document each page hangs from, what is
 archived, what is locked, and the alias the writing was signed with. **Not one
 line of the log travels inside it.** What lands in the store that takes it in is
