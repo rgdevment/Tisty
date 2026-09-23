@@ -452,7 +452,9 @@ propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
 carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
 archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
 carpetas con su orden, su icono y su color, de qué documento cuelga cada
-página, qué está archivado y con qué alias se firmó. Al exportarlos todos te
+página, qué está archivado y con qué alias se firmó. Lleva también un
+`README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty y
+sepa dónde encontrarlo si quiere lo demás. Al exportarlos todos te
 pregunta para quién son: abiertos, para dárselos a alguien, o cerrados con seis
 dígitos para otro equipo tuyo —que es lo que hace que allí lleguen como tuyos y
 no como de un desconocido—. En cualquiera de los dos casos, dentro no viaja ni
