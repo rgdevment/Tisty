@@ -8,7 +8,8 @@ import sys
 VERSION = os.environ["VERSION"]
 BUNDLE = os.environ["BUNDLE"]
 AT = os.environ.get("LISTING", "server.json")
-URL = f"https://github.com/rgdevment/Tisty/releases/download/v{VERSION}/tisty-mcp-{VERSION}.mcpb"
+REPO = os.environ.get("REPO", "rgdevment/Tisty")
+URL = f"https://github.com/{REPO}/releases/download/v{VERSION}/tisty-mcp-{VERSION}.mcpb"
 
 listing = json.load(io.open(AT, encoding="utf-8"))
 listing["version"] = VERSION

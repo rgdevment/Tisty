@@ -748,6 +748,7 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
           STAGED: staged
           DIST: dist
+          REPO: ${{ github.repository }}
         run: python3 scripts/mcpb.py
 
       - uses: actions/upload-artifact@v7
@@ -1277,7 +1278,7 @@ jobs:
           # A wrong hash publishes without complaint and leaves that version uninstallable
           # for ever, because the registry never revisits a version it already took.
           sha256sum --check --strict --ignore-missing SHA256SUMS
-          BUNDLE="tisty-mcp-$VERSION.mcpb" python3 scripts/listing.py
+          BUNDLE="tisty-mcp-$VERSION.mcpb" REPO="$GITHUB_REPOSITORY" python3 scripts/listing.py
 
       - name: Install mcp-publisher
         if: steps.listed.outputs.go == 'yes'

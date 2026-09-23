@@ -6,6 +6,8 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
+  schedule:
+    - cron: "17 6 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -31,11 +33,11 @@ jobs:
         run: gh cache delete --all --ref "$REF" --succeed-on-no-caches
 
   generations:
-    name: main keeps one generation of each cache
+    name: one generation of each cache, and nothing a tag left behind
     # The branch filter on workflow_run reads the branch of the run that triggered it, and a
     # fork's pull request can name its branch main. Only a push to this repository counts.
     if: >-
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
       || (github.event_name == 'workflow_run'
       && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_branch == 'main'
@@ -53,7 +55,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: What a newer lockfile left behind
+      - name: What no build will ask for again
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

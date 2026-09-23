@@ -6,7 +6,8 @@ import subprocess
 import sys
 from datetime import datetime
 
-REF = "refs/heads/main"
+MAIN = "refs/heads/main"
+TAGS = "refs/heads/refs/tags/"
 DRY = os.environ.get("DRY_RUN", "").lower() == "true"
 # Only rust: a setup-node key carries the hash of its lockfile and nothing else, so two live
 # caches for one platform look alike and the sweep would take one of them for a leftover.
@@ -21,35 +22,46 @@ def gh(*args):
     return done.stdout
 
 
-def main():
-    kept = json.loads(
-        gh("cache", "list", "--ref", REF, "--limit", "100", "--json", "key,sizeInBytes,createdAt")
-    )
+def listed(ref=None):
+    args = ["cache", "list", "--limit", "100", "--json", "key,ref,sizeInBytes,createdAt"]
+    if ref:
+        args += ["--ref", ref]
+    return json.loads(gh(*args))
 
+
+def superseded():
     households = {}
-    for one in kept:
+    for one in listed(MAIN):
         found = RUST.match(one["key"])
         if found:
-            households.setdefault(found.group(1), []).append(one)
-
+            households.setdefault(found.group(1), []).append({**one, "ref": MAIN})
     stale = []
     for household in households.values():
         household.sort(key=lambda one: datetime.fromisoformat(one["createdAt"]), reverse=True)
         stale.extend(household[1:])
+    return stale
 
+
+# A tag is written once and never built again, so nothing will ever ask for these by key.
+def petrified():
+    return [one for one in listed() if one["ref"].startswith(TAGS)]
+
+
+def main():
+    stale = superseded() + petrified()
     if not stale:
-        print(f"{len(kept)} cache(s) on main, one generation each: nothing to sweep")
+        print("nothing superseded and no tag left anything behind")
         return
 
     freed = 0
     failed = []
     for one in stale:
-        print(f"  {one['sizeInBytes'] // 1048576:>5} MB  {one['key']}")
+        print(f"  {one['sizeInBytes'] // 1048576:>5} MB  {one['ref']}  {one['key']}")
         if DRY:
             freed += one["sizeInBytes"]
             continue
         done = subprocess.run(
-            ["gh", "cache", "delete", one["key"], "--ref", REF],
+            ["gh", "cache", "delete", one["key"], "--ref", one["ref"]],
             capture_output=True,
             text=True,
         )
@@ -61,7 +73,7 @@ def main():
             failed.append(f"{one['key']}: {done.stderr.strip()}")
 
     said = "would sweep" if DRY else "swept"
-    print(f"::notice::{said} {len(stale) - len(failed)} superseded cache(s), {freed // 1048576} MB")
+    print(f"::notice::{said} {len(stale) - len(failed)} cache(s), {freed // 1048576} MB")
     if failed:
         sys.exit("::error::" + "; ".join(failed))
 
