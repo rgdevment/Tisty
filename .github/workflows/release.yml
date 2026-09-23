@@ -35,7 +35,7 @@ jobs:
   gate:
     name: Style and prose
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -69,9 +69,8 @@ jobs:
                 exit 1
                 ;;
               "")
-                echo "::error::no CI run for ${GITHUB_SHA:0:8}: a tag belongs on a commit that \
-                  reached main and was tested there"
-                exit 1
+                echo "no CI run for ${GITHUB_SHA:0:8} yet (${attempt}/30)"
+                sleep 30
                 ;;
               *)
                 echo "CI on ${GITHUB_SHA:0:8} is still running (${attempt}/30)"
@@ -79,9 +78,9 @@ jobs:
                 ;;
             esac
           done
-          echo "::error::CI on ${GITHUB_SHA:0:8} did not finish in fifteen minutes"
+          echo "::error::fifteen minutes and CI on ${GITHUB_SHA:0:8} has not finished, or never \
+            ran: a tag belongs on a commit that reached main and was tested there"
           exit 1
-
 
       # The registry has rules of its own — a description over 100 characters is the one
       # that bites — and finding out after the release is announced is too late.
@@ -435,8 +434,6 @@ jobs:
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
 
-      # A public key in the config makes the private one a build requirement, so a run without the
-      # secret has to say so rather than fail on a line about an environment variable.
       # `tauri build` compiles and packs in one step, so what ends up inside the installer can
       # only be signed by the bundler. The certificate goes to the store and the command picks it
       # by thumbprint: no password on a command line. Merged in, never in the config file — a
@@ -468,6 +465,8 @@ jobs:
           } } } } | ConvertTo-Json -Depth 8 | Set-Content -Path app/sign.json -Encoding utf8
           Write-Host "the bundler signs with $($cert.Thumbprint)"
 
+      # A public key in the config makes the private one a build requirement, so a run without
+      # the secret has to say so rather than fail on a line about an environment variable.
       - name: Bundle
         working-directory: app
         shell: bash
