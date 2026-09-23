@@ -2576,6 +2576,9 @@ async fn update_ready(
             // and a copy the Store never signed is not asked again every few hours.
             shop::Shelf::Silent => {
                 held(&session).keep(|c| c.checked_at = Some(now))?;
+                if asked {
+                    return Err(Refusal::of("updateUnanswered"));
+                }
                 Ok(last_said())
             }
         };

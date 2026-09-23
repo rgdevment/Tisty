@@ -30,3 +30,6 @@ app/reports
 app/stryker-setup-*.js
 mutants.json
 window.json
+app/sign.json
+
+__pycache__/

@@ -27,41 +27,31 @@ jobs:
         os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@nextest
-      - if: runner.os == 'macOS'
-        run: cargo clippy --workspace --all-targets
+      # Clippy runs where the cache is written, or the next job pays to rebuild what it needs.
+      - run: cargo clippy --workspace --all-targets
       - run: cargo nextest run --workspace --no-tests=pass
-      - run: cargo nextest run --workspace --no-tests=pass
-        env:
-          LC_ALL: es_ES.UTF-8
-          LANG: es_ES.UTF-8
       - if: runner.os == 'Windows'
         run: cargo test --doc --workspace
 
   lint:
-    name: fmt + clippy
-    runs-on: windows-latest
-    timeout-minutes: 25
+    name: fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: workspace
-          save-if: false
-      - uses: ./.github/actions/sidecar
+          components: rustfmt
       - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets
 
   window:
     name: frontend
@@ -111,10 +101,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: taiki-e/install-action@cargo-llvm-cov

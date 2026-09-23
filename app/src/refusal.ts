@@ -14,6 +14,7 @@ const KNOWN = [
   "updateMoved",
   "updateStopped",
   "updateFailed",
+  "updateUnanswered",
   "untitled",
   "noSuchList",
   "ambiguousList",

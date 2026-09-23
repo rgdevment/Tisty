@@ -2,6 +2,7 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "packageManager": "npm",
   "testRunner": "vitest",
+  "tsconfigFile": "tsconfig.none.json",
   "vitest": {
     "configFile": "vite.config.ts"
   },

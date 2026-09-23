@@ -156,6 +156,23 @@ describe("a newer version the Store itself offers", () => {
     expect(screen.queryByText(/newest version/i)).toBeNull();
   });
 
+  // «Could not ask» and «nothing for you» read the same on screen, and that is what hid a Store
+  // that had not answered for whole versions.
+  it("reports a Store that did not answer instead of leaving «nothing newer» standing", async () => {
+    const problems: unknown[] = [];
+    ipc.answer = (cmd) =>
+      cmd === "update_ready"
+        ? Promise.reject({ code: "updateUnanswered" })
+        : Promise.resolve({ ...build, keptByTheStore: true });
+    render(<About ready={null} onError={(problem) => problems.push(problem)} />);
+
+    await screen.findByText("0.1.0");
+    await userEvent.click(screen.getByRole("button", { name: /check for updates/i }));
+
+    await waitFor(() => expect(problems.length).toBe(1));
+    expect(saidPlainly(problems[0])).toMatch(/did not answer/i);
+  });
+
   const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
 
   // A copy left closed for weeks remembers an offer the feed has moved past; the button must not
