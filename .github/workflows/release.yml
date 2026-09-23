@@ -35,7 +35,7 @@ jobs:
   gate:
     name: Style and prose
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -47,6 +47,30 @@ jobs:
             app/package-lock.json
       - run: npm ci
       - run: npm run lint:md
+      # The registry has rules of its own — a description over 100 characters is the one
+      # that bites — and finding out after the release is announced is too late.
+      - name: Would the registry take this listing
+        run: |
+          curl -sSL --fail -o publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum --check --strict
+          tar xzf publisher.tar.gz mcp-publisher
+          ./mcp-publisher validate
+      - name: Frontend style
+        working-directory: app
+        run: |
+          npm ci
+          npm run lint
+
+  tested:
+    name: Tested when it landed
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
       # Nothing here runs the suite, and a tag can be put on any commit. The one that reached
       # main was already tested there; a tag on anything else has no such claim behind it.
       - name: This commit was tested when it landed
@@ -55,9 +79,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           for attempt in $(seq 1 40); do
-            said=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --event push \
+            # A call that fails is not an answer: swallowed, a missing permission reads exactly
+            # like a commit that never reached main, and waits the whole window to say so.
+            if ! said=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --event push \
               --limit 1 --json status,conclusion \
-              --jq 'if length == 0 then "" else .[0] | "\(.status) \(.conclusion)" end'               2>/dev/null || echo "")
+              --jq 'if length == 0 then "" else .[0] | "\(.status) \(.conclusion)" end' \
+              2>"$RUNNER_TEMP/gh.err"); then
+              echo "::error::the run history could not be read: $(cat "$RUNNER_TEMP/gh.err")"
+              exit 1
+            fi
             case "$said" in
               "completed success")
                 echo "the commit this tag names passed CI on main"
@@ -81,20 +111,6 @@ jobs:
           echo "::error::twenty minutes and CI on ${GITHUB_SHA:0:8} has not finished, or never \
             ran: a tag belongs on a commit that reached main and was tested there"
           exit 1
-
-      # The registry has rules of its own — a description over 100 characters is the one
-      # that bites — and finding out after the release is announced is too late.
-      - name: Would the registry take this listing
-        run: |
-          curl -sSL --fail -o publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER/mcp-publisher_linux_amd64.tar.gz"
-          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum --check --strict
-          tar xzf publisher.tar.gz mcp-publisher
-          ./mcp-publisher validate
-      - name: Frontend style
-        working-directory: app
-        run: |
-          npm ci
-          npm run lint
 
   rust:
     name: fmt + clippy
@@ -928,6 +944,7 @@ jobs:
     needs:
       [
         rust,
+        tested,
         version,
         build-macos,
         build-windows,
@@ -938,7 +955,8 @@ jobs:
       ]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-      && needs.rust.result == 'success' && needs.version.result == 'success'
+      && needs.rust.result == 'success' && needs.tested.result == 'success'
+      && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
       && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
       && (needs.bundle-mcpb.result == 'success' || needs.bundle-mcpb.result == 'skipped')
@@ -1140,6 +1158,13 @@ jobs:
             ws=$(cat "dist/$win.sig")
             as=$(cat "dist/$arm.sig" 2>/dev/null || true)
             is=$(cat "dist/$intel.sig" 2>/dev/null || true)
+            # Windows missing stops the release below; a Mac missing used to drop out of the
+            # channel without a word, and every Mac out there would be told there is nothing.
+            if [ "${{ needs.version.outputs.macos }}" = "true" ] \
+               && { [ -z "$as" ] || [ -z "$is" ]; }; then
+              echo "::error::no updater signature for a Mac, so no Mac would be offered $v"
+              exit 1
+            fi
             jq -n --arg v "$v" \
                   --arg n "https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF_NAME}" \
                   --arg wu "$base/$win" --arg ws "$ws" \
