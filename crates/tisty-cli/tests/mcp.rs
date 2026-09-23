@@ -3479,6 +3479,39 @@ fn what_cannot_survive_the_editor_never_reaches_a_document_that_exists() {
 }
 
 #[test]
+fn a_name_that_is_not_here_hands_back_the_one_that_is() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    for (asked, expected) in [
+        ("delete_doc", "`flag_doc`"),
+        ("erase_doc", "`flag_doc`"),
+        ("unarchive_doc", "`archive_doc`"),
+        ("complete_task", "`say_done`"),
+        ("close_task", "`say_done`"),
+        ("delete_task", "`note`"),
+        ("archived_tasks", "`scope`"),
+        ("completed_tasks", "`scope`"),
+        ("list_docs", "`docs`"),
+    ] {
+        let said = served.call(asked, serde_json::json!({}));
+        let text = said["error"]["message"].as_str().unwrap_or_default();
+        assert_eq!(said["error"]["code"], -32602, "{asked}: {said}");
+        assert!(
+            text.contains(expected),
+            "{asked} was turned away without the way in: {text}"
+        );
+    }
+
+    let stranger = served.call("blorp", serde_json::json!({}));
+    assert_eq!(stranger["error"]["code"], -32602, "{stranger}");
+    assert_eq!(
+        stranger["error"]["message"], "unknown tool: blorp",
+        "a name nobody would mistake for ours gets no lecture"
+    );
+}
+
+#[test]
 fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);

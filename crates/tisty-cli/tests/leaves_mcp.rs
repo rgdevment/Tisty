@@ -536,14 +536,25 @@ fn a_document_put_away_by_an_agent_comes_back_the_same_way() {
 }
 
 #[test]
-fn a_page_is_not_put_away_on_its_own() {
+fn a_page_is_put_away_on_its_own_and_the_book_stays_open() {
     let served = Served::new();
     let book = served.wrote("# Curso", None);
     let page = served.wrote("# Clase uno", Some(&book));
+    let other = served.wrote("# Clase dos", Some(&book));
 
-    let why = served.refused("archive_doc", serde_json::json!({ "doc": &page }));
+    let said = served.call("archive_doc", serde_json::json!({ "doc": &page }));
+    assert!(said["result"]["isError"].is_null(), "{said}");
 
-    assert!(why.contains("page of"), "{why}");
+    let listed = served.call("docs", serde_json::json!({ "scope": "open" }));
+    let here: Vec<String> = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["doc"].as_str().unwrap_or_default().to_string())
+        .collect();
+    assert!(here.contains(&book), "the book stays open: {here:?}");
+    assert!(here.contains(&other), "so does the page nobody touched");
+    assert!(!here.contains(&page), "only the one named went away");
 }
 
 fn on_disk(named: &str, body: &str) -> (tempfile::TempDir, std::path::PathBuf) {

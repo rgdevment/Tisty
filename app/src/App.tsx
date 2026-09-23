@@ -1107,7 +1107,7 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   };
 
-  const byFolder = (doc: Filed) => doc.away && !doc.archived;
+  const byAnother = (doc: Filed) => doc.away && !doc.archived;
 
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
     setMenu({
@@ -1243,7 +1243,7 @@ export default function App() {
           key: "lock",
           icon: doc.locked ? "◉" : "○",
           label: doc.locked ? t("unlockIt") : t("lockIt"),
-          off: !!doc.pageOf || byFolder(doc),
+          off: !!doc.pageOf || byAnother(doc),
           apart: true,
           onPick: () =>
             docLock(doc.id, !doc.locked)
@@ -1256,7 +1256,7 @@ export default function App() {
           key: "away",
           icon: doc.archived ? "▢" : "▣",
           label: doc.archived ? t("bringBack") : t("putAway"),
-          off: !!doc.pageOf || byFolder(doc),
+          off: byAnother(doc),
           apart: true,
           onPick: () => {
             if (doc.archived) return bringBack(doc);
@@ -1269,7 +1269,7 @@ export default function App() {
           key: "drop",
           icon: "✕",
           label: t("deleteIt"),
-          off: doc.locked || byFolder(doc),
+          off: doc.locked || byAnother(doc),
           danger: true,
           onPick: () => dropDoc(doc),
         },

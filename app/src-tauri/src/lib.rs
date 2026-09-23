@@ -4287,13 +4287,14 @@ fn folder_open(state: &State, at: tisty_core::model::FolderId, holds: bool) -> A
     }
 }
 
-/// A document the archive reaches through its folder has no door of its own.
+/// What the archive reaches through the folder that holds it — or, for a page, through its own
+/// document — has no door of its own: only what was put away by itself answers for coming back.
 fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
-    let held_by_folder = state
+    let held_by_another = state
         .docs
         .get(&id)
         .is_some_and(|one| !one.archived && state.held_away(one));
-    match held_by_folder {
+    match held_by_another {
         true => Err(Refusal::of("folderIsAway")),
         false => Ok(()),
     }
@@ -4303,10 +4304,8 @@ fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
 fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let mut session = held(&session);
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
-        Some(_) => {}
+    if !session.state.docs.contains_key(&id) {
+        return Err(Refusal::of("noSuchDoc"));
     }
     doc_out(&session.state, id)?;
     session.commit(if away {

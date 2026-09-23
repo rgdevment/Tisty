@@ -128,6 +128,25 @@ same, and the person sees the mark when they open it. Archiving it, deleting it 
 mark off are all theirs, from the window, the way finishing a task is. `docs` and `read_doc` say \
 which documents carry one, so the same mark is never left twice.
 
+The index of a document is not written, it is made: `outline_doc` hands back what the window \
+draws down the right — every heading with the lines it spans and what it holds, and a row per \
+page with its title, its length and its sections, in reading order — for a few hundred tokens \
+instead of the bodies. Read it before you move anything. It is what tells you which heading has \
+grown into a chapter and is asking to be a page, which page nothing names any more, what each \
+part costs, and where a document has two of the same thing. Organising is then moving: `page_doc` \
+hangs a chapter off its document or takes it back out, `file_doc` changes the folder, \
+`archive_doc` puts away a document or a single page, and `flag_doc` says what has had its day. \
+Compacting or rewriting the prose is the person's call — yours is to say what and why, with the \
+index in hand.
+
+Which means «delete this document» and «mark this document» ask for the same thing here, and \
+`flag_doc` answers both: you never delete, so you mark and they delete in one click. Say that \
+plainly when they ask — that it is marked and waiting for them — rather than that you cannot. \
+Two more words lead somewhere they do not look like: putting a document away and bringing it \
+back are both `archive_doc`, and finishing a task is `say_done`, which marks it and leaves the \
+closing to them. Nothing here closes, drops or erases a task, and `note` is where what you only \
+learnt goes.
+
 A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
 A whole folder can be in the archive too, and then everything under it is — every subfolder, every document, every page — without any of them being marked one by one. What the archive reaches that way is read, exported and packed as always, and written by nobody: no `write_doc`, no `append_doc`, no `edit_doc`, no `attach`, no `page_doc`, no `file_doc` in or out of it, and nothing new goes into that folder — `write_doc` with it as `folder`, `import_doc`, and `folder` naming it as `inside` are all refused, as is changing how it looks. A document in there has no door of its own: `archive_doc` will not hand it back, because only the folder can be brought back, and only by the person from the window. Its own mark is kept untouched while it waits, so a document somebody had archived by hand stays archived when the folder returns.
@@ -524,8 +543,48 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "tags" => tags(paths),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
-        other => Err(Refused::Protocol(-32602, format!("unknown tool: {other}"))),
+        other => Err(Refused::Protocol(
+            -32602,
+            match pointed(other) {
+                Some(way) => format!("unknown tool: {other}. {way}"),
+                None => format!("unknown tool: {other}"),
+            },
+        )),
     }
+}
+
+fn pointed(name: &str) -> Option<&'static str> {
+    const ERASING_A_DOCUMENT: &str = "There is no deleting a document here, on purpose. Mark it \
+         with `flag_doc`, saying what makes it old and how you know: the person sees the mark when \
+         they open it and deletes it from the window in one click. Putting it away instead is \
+         `archive_doc`.";
+    const SHELVING: &str = "Putting a document away and bringing it back are both `archive_doc` — \
+         with `archived` false it comes back. (`restore_doc` is another thing entirely: it takes \
+         back an edit.)";
+    const FINISHING: &str = "Finishing is the person's, and there is no tool for it. Say what you \
+         did with `say_done` and the task stays open, marked, until they close it. What you only \
+         learnt goes in `note`.";
+    const DROPPING_A_TASK: &str = "Closing, dropping and erasing a task are the person's alone, \
+         and no tool here does any of them. Record what you found with `note`.";
+    const LOOKING_BACK: &str = "What is finished is not somewhere else: `find` and `docs` reach          it with `scope` set to `archive`, or `either` for both at once. A task the person closed          comes back from `find` like any other, and `read` says when and how it ended.";
+    const LISTING: &str = "`find` searches the tasks and the documents — by text, or by the          sifting fields alone — and `docs` lists what is written with the folder each one sits          in. `catch_up` is the one to ask first when you arrive.";
+
+    Some(match name {
+        "delete_doc" | "remove_doc" | "drop_doc" | "erase_doc" | "trash_doc"
+        | "delete_document" | "doc_delete" | "rm_doc" => ERASING_A_DOCUMENT,
+        "unarchive_doc" | "unarchive" | "archive" | "shelve_doc" | "restore_archive"
+        | "put_away" | "bring_back" => SHELVING,
+        "complete" | "complete_task" | "close_task" | "finish" | "finish_task" | "mark_done"
+        | "task_done" | "resolve" | "resolve_task" | "check_off" => FINISHING,
+        "delete_task" | "remove_task" | "drop_task" | "erase_task" | "task_delete" | "close"
+        | "done" | "drop" | "rm" => DROPPING_A_TASK,
+        "archived" | "archived_tasks" | "archived_docs" | "list_archived" | "archive_list"
+        | "completed" | "completed_tasks" | "done_tasks" | "closed_tasks" | "history" => {
+            LOOKING_BACK
+        }
+        "list_tasks" | "tasks" | "list_docs" | "documents" | "search" | "query" | "list" => LISTING,
+        _ => return None,
+    })
 }
 
 /// A misspelt argument would otherwise be dropped in silence, teaching the model nothing.
@@ -4076,11 +4135,6 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
-        return Err(Refused::Tool(format!(
-            "{which} is a page of {up}, and a page is put away with the document that holds it. Name {up} instead, or take the page out first with `page_doc`."
-        )));
-    }
     // A folder in the archive answers for everything under it, so the document has no say while
     // it is there. The shortcut below compares its own mark, or archiving one that is already
     // away by its folder would be swallowed and lost when the folder comes back.
@@ -4162,11 +4216,6 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
-        return Err(Refused::Tool(format!(
-            "{which} is a page of {up}, and a page is weighed with the document that holds \n             it. Mark {up} instead."
-        )));
-    }
     if state.held_away(kept) {
         return Err(Refused::Tool(format!(
             "{which} is already in the archive, so it is out of the way. Nothing to mark."
@@ -5795,8 +5844,8 @@ fn tools() -> Value {
         },
         {
             "name": "archive_doc",
-            "title": "Put a document away, or bring it back",
-            "description": "Put a document away when it is finished or was written by mistake, and bring it back with `archived` false. Nothing is deleted and no text changes: `docs` and `find` still reach it by asking for the `archive` scope. Its pages go away and come back with it. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
+            "title": "Put a document or one of its pages away, or bring it back",
+            "description": "Put a document away when it is finished or was written by mistake, and bring it back with `archived` false. Nothing is deleted and no text changes: `docs` and `find` still reach it by asking for the `archive` scope. A single page can be put away on its own, and it stays where it lives — under its document, greyed and read-only — rather than moving to the archive. Putting the document away covers its pages too, and bringing it back wakes each page as it was: one that was already apart stays apart. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -5810,8 +5859,8 @@ fn tools() -> Value {
         },
         {
             "name": "flag_doc",
-            "title": "Say a document has had its day",
-            "description": "Mark a document you found is no longer worth keeping — a handover for a flow that was retired, notes for a decision already taken — and say in `body` what makes it old and how you know. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. What happens next is theirs alone: archive it, delete it, or take the mark off. There is no tool here for any of those, on purpose. One mark at a time — a document already marked is refused until the person has looked.",
+            "title": "Say a document has had its day, which is how a document gets deleted",
+            "description": "The tool for «delete this document», and the only one: you cannot delete, so you mark and the person deletes. Mark a document you found is no longer worth keeping — a handover for a flow that was retired, notes for a decision already taken — and say in `body` what makes it old and how you know. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. What happens next is theirs alone: archive it, delete it, or take the mark off. There is no tool here for any of those, on purpose. One mark at a time — a document already marked is refused until the person has looked.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),

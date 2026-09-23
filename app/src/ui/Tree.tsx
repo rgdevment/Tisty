@@ -478,7 +478,7 @@ export default function Tree({
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
       <Glyph
-        name={page ? "alignleft" : "page"}
+        name={page ? (doc.away ? "archive" : "alignleft") : "page"}
         className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
       />
     );

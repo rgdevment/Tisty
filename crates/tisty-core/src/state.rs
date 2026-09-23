@@ -117,7 +117,13 @@ impl State {
 
     /// What the archive holds: the document's own mark, or the folder it sits in.
     pub fn held_away(&self, kept: &Kept) -> bool {
-        kept.archived || kept.folder.is_some_and(|at| self.folder_away(at))
+        kept.archived
+            || kept.folder.is_some_and(|at| self.folder_away(at))
+            || kept.page_of.is_some_and(|up| {
+                self.docs.get(&up).is_some_and(|doc| {
+                    doc.archived || doc.folder.is_some_and(|at| self.folder_away(at))
+                })
+            })
     }
 
     pub fn stowed(&self, id: DocId) -> bool {
@@ -170,24 +176,15 @@ impl State {
         (!names.is_empty()).then_some(names)
     }
 
+    // A page keeps a mark of its own and the document only covers it, so coming back out wakes
+    // what was awake and leaves apart what the person had already put apart.
     fn shelve(&mut self, id: DocId, away: bool, by_person: bool) {
-        if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
-            return;
-        }
-        let pages: Vec<DocId> = self
-            .docs
-            .values()
-            .filter(|one| one.page_of == Some(id))
-            .map(|one| one.id)
-            .collect();
-        for one in pages.into_iter().chain(std::iter::once(id)) {
-            if let Some(doc) = self.docs.get_mut(&one) {
-                doc.archived = away;
-                // Putting it away is an answer to the mark, but only when the hand is the
-                // person's: an assistant archiving one of its own marks would bury it.
-                if away && by_person {
-                    doc.flagged = None;
-                }
+        if let Some(doc) = self.docs.get_mut(&id) {
+            doc.archived = away;
+            // Putting it away is an answer to the mark, but only when the hand is the person's:
+            // an assistant archiving one of its own marks would bury it.
+            if away && by_person {
+                doc.flagged = None;
             }
         }
     }
@@ -440,7 +437,9 @@ impl State {
                     if doc.folder == Some(*id) {
                         doc.folder = None;
                         doc.archived = doc.archived || away;
-                        if doc.archived {
+                        // A page lands where its document lands, so it is never asked where to
+                        // go back to and has no use for the way it came.
+                        if doc.archived && doc.page_of.is_none() {
                             doc.folder_was = gone.clone();
                         }
                     }
@@ -5710,7 +5709,7 @@ mod tests {
     }
 
     #[test]
-    fn archiving_a_document_takes_the_marks_of_its_pages_too() {
+    fn a_mark_on_a_page_is_answered_by_putting_that_page_away() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
@@ -5726,17 +5725,20 @@ mod tests {
         }
 
         state.apply(&ev(3, "a", Op::DocArchive { id: minutes }));
-
         assert!(state.docs[&minutes].flagged.is_none());
         assert!(
-            state.docs[&march].flagged.is_none(),
-            "the page went into the archive with it, so its mark was answered too"
+            state.docs[&march].flagged.is_some(),
+            "the document covered the page, which answers nothing about the page itself"
         );
+
+        state.apply(&ev(4, "a", Op::DocArchive { id: march }));
+        assert!(state.docs[&march].flagged.is_none());
     }
 
     #[test]
-    fn archiving_aimed_at_a_page_leaves_the_page_exactly_as_it_was() {
+    fn a_page_put_away_by_an_assistant_keeps_the_mark_it_was_given() {
         let mut state = State::default();
+        state.assistants.insert(DeviceId("dev_agent".into()));
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
         state.apply(&ev(
@@ -5748,25 +5750,30 @@ mod tests {
             },
         ));
 
-        state.apply(&ev(3, "a", Op::DocArchive { id: march }));
+        state.apply(&ev(3, "dev_agent", Op::DocArchive { id: march }));
 
-        assert!(!state.docs[&march].archived, "a page stays put");
+        assert!(state.docs[&march].archived, "a page answers for itself now");
         assert!(
             state.docs[&march].flagged.is_some(),
-            "nothing happened to it, so nothing answered its mark"
+            "only the person answers a mark, and no person was here"
         );
     }
 
     #[test]
-    fn a_page_keeps_no_trace_of_a_folder_once_its_document_lands_again() {
+    fn a_page_carries_no_way_back_because_it_is_never_asked_for_one() {
         let mut state = State::default();
         let work = folder(&mut state, "work", None);
         let home = folder(&mut state, "home", None);
         let minutes = doc(&mut state, "a3f1-0001", Some(work));
         let march = page(&mut state, "a3f1-0002", minutes);
         state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+
         state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
-        assert!(state.docs[&march].folder_was.is_some());
+        assert!(state.docs[&minutes].folder_was.is_some());
+        assert_eq!(
+            state.docs[&march].folder_was, None,
+            "it goes wherever its document goes, so nobody asks it where"
+        );
 
         state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
         moved(
@@ -5779,7 +5786,7 @@ mod tests {
             },
         );
 
-        assert_eq!(state.docs[&march].folder_was, None);
+        assert_eq!(state.docs[&march].folder, Some(home), "it followed");
         assert_eq!(state.docs[&minutes].folder_was, None);
     }
 
@@ -5883,16 +5890,33 @@ mod tests {
     }
 
     #[test]
-    fn archiving_a_document_puts_its_pages_away_and_brings_them_back() {
+    fn archiving_a_document_covers_its_pages_and_gives_each_one_back_as_it_was() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
+        let april = page(&mut state, "a3f1-0003", minutes);
+        state.apply(&ev(2, "a", Op::DocArchive { id: march }));
 
         state.apply(&ev(3, "a", Op::DocArchive { id: minutes }));
-        assert!(state.docs[&march].archived);
+        assert!(state.held_away(&state.docs[&march]));
+        assert!(
+            state.held_away(&state.docs[&april]),
+            "covered by the document"
+        );
+        assert!(
+            !state.docs[&april].archived,
+            "covering is not marking: the page itself was never put away"
+        );
 
         state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
-        assert!(!state.docs[&march].archived);
+        assert!(
+            state.held_away(&state.docs[&march]),
+            "it was apart before the document went, and stays apart"
+        );
+        assert!(
+            !state.held_away(&state.docs[&april]),
+            "it was awake, and wakes"
+        );
     }
 
     #[test]
@@ -5987,18 +6011,17 @@ mod tests {
     }
 
     #[test]
-    fn a_page_is_not_put_away_on_its_own() {
+    fn a_page_goes_away_on_its_own_and_leaves_its_document_alone() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
+        let april = page(&mut state, "a3f1-0003", minutes);
 
         state.apply(&ev(3, "a", Op::DocArchive { id: march }));
 
-        assert!(
-            !state.docs[&march].archived,
-            "it goes away with its document"
-        );
-        assert!(!state.docs[&minutes].archived);
+        assert!(state.held_away(&state.docs[&march]));
+        assert!(!state.held_away(&state.docs[&april]), "only the one named");
+        assert!(!state.held_away(&state.docs[&minutes]));
     }
 
     #[test]

@@ -874,6 +874,8 @@ export default function Docs({
           kept={saved}
           blocks={blocks}
           heads={heads}
+          pages={above ? sisters : pages}
+          onPage={(one) => onDoc?.(one.file)}
           leaf={leaf}
           onLeaf={resize}
           making={making}
