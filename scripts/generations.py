@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 import json
+import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 REF = "refs/heads/main"
-# A rust-cache key ends in the hash of the lockfiles, and a setup-node one in the hash of
-# the lockfile itself. Everything before that names the same cache across versions.
-FAMILY = [
-    re.compile(r"^(.*)-[0-9a-f]{8}$"),
-    re.compile(r"^(node-cache-.*-npm)-[0-9a-f]{64}$"),
-]
+DRY = os.environ.get("DRY_RUN", "").lower() == "true"
+# Only rust: a setup-node key carries the hash of its lockfile and nothing else, so two live
+# caches for one platform look alike and the sweep would take one of them for a leftover.
+RUST = re.compile(r"^(v0-rust-.+)-[0-9a-f]{8}-[0-9a-f]{8}$")
+GONE = "Could not find a cache matching"
 
 
 def gh(*args):
@@ -20,38 +21,33 @@ def gh(*args):
     return done.stdout
 
 
-def family(key):
-    for shape in FAMILY:
-        found = shape.match(key)
-        if found:
-            return found.group(1)
-    return key
-
-
 def main():
     kept = json.loads(
         gh("cache", "list", "--ref", REF, "--limit", "100", "--json", "key,sizeInBytes,createdAt")
     )
-    if not kept:
-        print("main holds no caches")
-        return
 
     households = {}
     for one in kept:
-        households.setdefault(family(one["key"]), []).append(one)
+        found = RUST.match(one["key"])
+        if found:
+            households.setdefault(found.group(1), []).append(one)
 
     stale = []
     for household in households.values():
-        household.sort(key=lambda one: one["createdAt"], reverse=True)
+        household.sort(key=lambda one: datetime.fromisoformat(one["createdAt"]), reverse=True)
         stale.extend(household[1:])
 
     if not stale:
-        print(f"{len(kept)} cache(s), one generation each: nothing to sweep")
+        print(f"{len(kept)} cache(s) on main, one generation each: nothing to sweep")
         return
 
     freed = 0
+    failed = []
     for one in stale:
         print(f"  {one['sizeInBytes'] // 1048576:>5} MB  {one['key']}")
+        if DRY:
+            freed += one["sizeInBytes"]
+            continue
         done = subprocess.run(
             ["gh", "cache", "delete", one["key"], "--ref", REF],
             capture_output=True,
@@ -59,10 +55,15 @@ def main():
         )
         if done.returncode == 0:
             freed += one["sizeInBytes"]
+        elif GONE in done.stderr:
+            print(f"         evicted before we got to it: {one['key']}")
         else:
-            print(f"         gone already: {one['key']}")
+            failed.append(f"{one['key']}: {done.stderr.strip()}")
 
-    print(f"::notice::swept {len(stale)} superseded cache(s), {freed // 1048576} MB")
+    said = "would sweep" if DRY else "swept"
+    print(f"::notice::{said} {len(stale) - len(failed)} superseded cache(s), {freed // 1048576} MB")
+    if failed:
+        sys.exit("::error::" + "; ".join(failed))
 
 
 if __name__ == "__main__":

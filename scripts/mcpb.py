@@ -23,9 +23,11 @@ MANIFEST = {
         "type": "binary",
         "entry_point": "server/tisty",
         "mcp_config": {
-            "command": "server/tisty",
+            # The reference host only substitutes ${...}; nothing there resolves a bare
+            # relative path against the extension directory, so a plain one finds nothing.
+            "command": "${__dirname}/server/tisty",
             "args": ["mcp"],
-            "platform_overrides": {"win32": {"command": "server/tisty.exe"}},
+            "platform_overrides": {"win32": {"command": "${__dirname}/server/tisty.exe"}},
         },
     },
     "compatibility": {"platforms": ["darwin", "win32"]},

@@ -6,7 +6,12 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would go, delete nothing."
+        type: boolean
+        default: true
 
 permissions:
   actions: write
@@ -27,18 +32,30 @@ jobs:
 
   generations:
     name: main keeps one generation of each cache
+    # The branch filter on workflow_run reads the branch of the run that triggered it, and a
+    # fork's pull request can name its branch main. Only a push to this repository counts.
     if: >-
-      github.event_name == 'workflow_run'
-      && github.event.workflow_run.conclusion == 'success'
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'workflow_run'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+      && github.event.workflow_run.conclusion != 'cancelled')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
     concurrency:
       group: cache-generations
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: What a newer lockfile left behind
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         run: python3 scripts/generations.py

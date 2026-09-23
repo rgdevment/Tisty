@@ -24,6 +24,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   BUILD_MACOS: "true"
+  PUBLISHER: v1.8.1
+  PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
   # The command line ships inside the app as the assistant's door; the loose binary and its
   # formula are built only when a release has a reason to (a fix for whoever installed
   # only that). Set the repository variable SHIP_CLI to "true" for that tag.
@@ -45,6 +47,15 @@ jobs:
             app/package-lock.json
       - run: npm ci
       - run: npm run lint:md
+
+      # The registry has rules of its own — a description over 100 characters is the one
+      # that bites — and finding out after the release is announced is too late.
+      - name: Would the registry take this listing
+        run: |
+          curl -sSL --fail -o publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum --check --strict
+          tar xzf publisher.tar.gz mcp-publisher
+          ./mcp-publisher validate
       - name: Frontend style
         working-directory: app
         run: |
@@ -711,6 +722,7 @@ jobs:
     needs: [version, build-macos, build-windows]
     if: >-
       !cancelled() && needs.version.outputs.cli == 'true'
+      && needs.version.outputs.prerelease == 'false'
       && needs.build-macos.result == 'success' && needs.build-windows.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -742,6 +754,7 @@ jobs:
         with:
           name: cli-mcpb
           path: dist/*.mcpb
+          if-no-files-found: error
           retention-days: 5
 
   publish:
@@ -814,7 +827,10 @@ jobs:
           if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-windows-x86_64.zip"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then
             if [ "${SHIP_CLI}" = "true" ]; then
-              want="$want tisty-cli-$v-macos-universal.tar.gz tisty-mcp-$v.mcpb"
+              want="$want tisty-cli-$v-macos-universal.tar.gz"
+              if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
+                want="$want tisty-mcp-$v.mcpb"
+              fi
             fi
             for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
@@ -1235,29 +1251,45 @@ jobs:
       - uses: actions/checkout@v7
         if: steps.gate.outputs.go == 'yes'
 
-      - name: Point the listing at what this tag published
+      # A version is immutable once listed, so republishing a tag is a permanent red job.
+      - name: Is this version already listed
+        id: listed
         if: steps.gate.outputs.go == 'yes'
         env:
           VERSION: ${{ needs.version.outputs.version }}
-          BUNDLE: bundle.mcpb
         run: |
-          curl -sSL --fail -o bundle.mcpb             "https://github.com/rgdevment/Tisty/releases/download/v$VERSION/tisty-mcp-$VERSION.mcpb"
-          python3 scripts/listing.py
+          at="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.rgdevment%2Ftisty/versions/$VERSION"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$at")
+          if [ "$code" = "200" ]; then
+            echo "::notice::the registry already carries $VERSION; nothing to send"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Point the listing at what this tag published
+        if: steps.listed.outputs.go == 'yes'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "v$VERSION" --pattern "tisty-mcp-$VERSION.mcpb" --pattern SHA256SUMS
+          # A wrong hash publishes without complaint and leaves that version uninstallable
+          # for ever, because the registry never revisits a version it already took.
+          sha256sum --check --strict --ignore-missing SHA256SUMS
+          BUNDLE="tisty-mcp-$VERSION.mcpb" python3 scripts/listing.py
 
       - name: Install mcp-publisher
-        if: steps.gate.outputs.go == 'yes'
+        if: steps.listed.outputs.go == 'yes'
         run: |
-          curl -sSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz"             | tar xz mcp-publisher
-
-      # The registry refuses on its own rules, and a refusal here is cheaper than one after
-      # the tag has been announced: description length is the one that bites.
-      - name: Would the registry take it
-        if: steps.gate.outputs.go == 'yes'
-        run: ./mcp-publisher validate
+          curl -sSL --fail -o publisher.tar.gz             "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum --check --strict
+          tar xzf publisher.tar.gz mcp-publisher
 
       - name: Publish
-        if: steps.gate.outputs.go == 'yes'
+        if: steps.listed.outputs.go == 'yes'
         run: |
+          ./mcp-publisher validate
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
 
