@@ -47,6 +47,41 @@ jobs:
             app/package-lock.json
       - run: npm ci
       - run: npm run lint:md
+      # Nothing here runs the suite, and a tag can be put on any commit. The one that reached
+      # main was already tested there; a tag on anything else has no such claim behind it.
+      - name: This commit was tested when it landed
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for attempt in $(seq 1 30); do
+            said=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --event push \
+              --limit 1 --json status,conclusion \
+              --jq 'if length == 0 then "" else .[0] | "\(.status) \(.conclusion)" end'               2>/dev/null || echo "")
+            case "$said" in
+              "completed success")
+                echo "the commit this tag names passed CI on main"
+                exit 0
+                ;;
+              "completed "*)
+                echo "::error::CI on ${GITHUB_SHA:0:8} ended ${said#completed }, so this tag is \
+                  not a release"
+                exit 1
+                ;;
+              "")
+                echo "::error::no CI run for ${GITHUB_SHA:0:8}: a tag belongs on a commit that \
+                  reached main and was tested there"
+                exit 1
+                ;;
+              *)
+                echo "CI on ${GITHUB_SHA:0:8} is still running (${attempt}/30)"
+                sleep 30
+                ;;
+            esac
+          done
+          echo "::error::CI on ${GITHUB_SHA:0:8} did not finish in fifteen minutes"
+          exit 1
+
 
       # The registry has rules of its own — a description over 100 characters is the one
       # that bites — and finding out after the release is announced is too late.
