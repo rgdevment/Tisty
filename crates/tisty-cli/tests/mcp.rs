@@ -315,6 +315,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "import_doc",
             "export_doc",
             "archive_doc",
+            "flag_doc",
             "file_doc",
             "page_doc",
             "folder",
@@ -3474,6 +3475,92 @@ fn what_cannot_survive_the_editor_never_reaches_a_document_that_exists() {
     assert_eq!(
         whole["result"]["structuredContent"]["body"], "# Acta\n\nuno.\n",
         "the document is untouched by a refused add"
+    );
+}
+
+#[test]
+fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
+
+    let marked = served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "the beta channel was retired in 0.1.0" }),
+    );
+    assert!(marked["result"]["isError"].is_null(), "{marked}");
+    assert_eq!(marked["result"]["structuredContent"]["flagged"], true);
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        read["result"]["structuredContent"]["flagged"]["said"],
+        "the beta channel was retired in 0.1.0",
+        "{read}"
+    );
+    assert!(
+        read["result"]["structuredContent"]["archived"].is_null(),
+        "marking it must not put it away: {read}"
+    );
+
+    let listed = served.call("docs", serde_json::json!({}));
+    let here = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| one["doc"] == serde_json::json!(doc))
+        .expect("the document left the listing")
+        .clone();
+    assert_eq!(here["flagged"], true, "{listed}");
+}
+
+#[test]
+fn a_document_already_marked_is_not_marked_again_until_the_person_looks() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "the beta channel was retired" }),
+    );
+
+    let again = served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "it is still of no use" }),
+    );
+
+    assert_eq!(again["result"]["isError"], true, "{again}");
+    let text = again["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("already marked"), "{again}");
+}
+
+#[test]
+fn marking_needs_the_why_and_is_refused_on_what_the_archive_holds() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
+
+    let bare = served.call("flag_doc", serde_json::json!({ "doc": &doc }));
+    assert_eq!(bare["result"]["isError"], true, "{bare}");
+    assert!(
+        bare["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("`body`"),
+        "{bare}"
+    );
+
+    served.call("archive_doc", serde_json::json!({ "doc": &doc }));
+    let away = served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "it has had its day" }),
+    );
+    assert_eq!(away["result"]["isError"], true, "{away}");
+    assert!(
+        away["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("archive"),
+        "{away}"
     );
 }
 

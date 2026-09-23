@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 5;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 6;
 
 pub struct Cache {
     db: Connection,

@@ -338,6 +338,8 @@ mod tests {
                     archived: false,
                     locked: false,
                     edited_by: None,
+                    flagged: None,
+                    folder_was: None,
                 },
             );
         };

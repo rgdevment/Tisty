@@ -23,6 +23,8 @@ interface FakeDoc {
   folder: string | null;
   archived: boolean;
   pageOf?: string;
+  flagged?: { at: string; said: string; via?: string };
+  folderWas?: string[];
 }
 
 const store = vi.hoisted(() => ({
@@ -220,7 +222,15 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     }
     case "doc_away": {
       const doc = store.docs.find((one) => one.id === args.id);
-      if (doc) doc.archived = Boolean(args.away);
+      if (doc) {
+        doc.archived = Boolean(args.away);
+        if (doc.archived) doc.flagged = undefined;
+      }
+      return Promise.resolve(null);
+    }
+    case "doc_unflag": {
+      const doc = store.docs.find((one) => one.id === args.id);
+      if (doc) doc.flagged = undefined;
       return Promise.resolve(null);
     }
     case "folder_away": {
@@ -311,7 +321,7 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
         icon: (args.icon as string | undefined) ?? null,
         color: (args.color as string | undefined) ?? null,
       });
-      return Promise.resolve(null);
+      return Promise.resolve(id);
     }
     default:
       return Promise.resolve(null);
@@ -378,15 +388,20 @@ async function boot() {
   unfoldAll();
 }
 
-function menuFor(rowLabel: string): HTMLElement {
+function menuFor(rowLabel: string | RegExp): HTMLElement {
   return screen.getByRole("button", { name: rowLabel }).parentElement as HTMLElement;
 }
 
 const SETTLES_LONG_ENOUGH = 900;
 
-async function chooseFor(rowLabel: string, itemLabel: string) {
+async function chooseFor(rowLabel: string | RegExp, itemLabel: string) {
   fireEvent.contextMenu(menuFor(rowLabel), { clientX: 5, clientY: 5 });
   await userEvent.click(await screen.findByRole("menuitem", { name: itemLabel }));
+}
+
+async function backHome() {
+  const box = await screen.findByRole("dialog");
+  await userEvent.click(within(box).getByRole("button", { name: t("bringBack") }));
 }
 
 async function moveTo(rowLabel: string, destination: string) {
@@ -466,12 +481,141 @@ describe("archiving and bringing back a document", () => {
     expect(countBadge("Work")).toBe("");
 
     await chooseFor("Report", t("bringBack"));
+    await backHome();
 
     await waitFor(() => expect(countBadge("Work")).toBe("1"));
     expect(
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
     ).toBeTruthy();
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
+  });
+
+  it("asks where an unarchived document goes, and takes the answer over where it was", async () => {
+    const folder = seedFolder({ name: "Work" });
+    const doc = seedDoc({ title: "Report", folder: folder.id, archived: true });
+    await boot();
+
+    await chooseFor("Report", t("bringBack"));
+    await userEvent.click(
+      await screen.findByRole("radio", { name: new RegExp(`^${t("backToNone")}`) }),
+    );
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
+    );
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === doc.id)?.folder).toBeNull());
+    expect(countBadge("Work")).toBe("");
+  });
+
+  it("keeps the folders a lone archived document hung from, inside the archive", async () => {
+    const folder = seedFolder({ name: "Work" });
+    seedDoc({ title: "Report", folder: folder.id, archived: true });
+    await boot();
+
+    const shelf = within(screen.getByRole("list", { name: t("archived") }));
+    expect(shelf.getByText("Work")).toBeTruthy();
+    expect(shelf.getByText(t("folderTrace"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Work" })).toBeTruthy();
+  });
+
+  it("hangs the document from the folder that was made again under the same name", async () => {
+    const folder = seedFolder({ name: "Packaging" });
+    const doc = seedDoc({ title: "Report", archived: true, folderWas: ["Packaging"] });
+    await boot();
+
+    await chooseFor("Report", t("bringBack"));
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
+    );
+
+    await waitFor(() =>
+      expect(store.docs.find((one) => one.id === doc.id)?.folder).toBe(folder.id),
+    );
+    expect(store.folders.filter((one) => one.name === "Packaging")).toHaveLength(1);
+  });
+
+  it("takes the agent's mark off a document the person puts away", async () => {
+    const doc = seedDoc({
+      title: "Handover",
+      flagged: { at: "2026-09-23T10:00:00Z", said: "The beta channel was retired." },
+    });
+    await boot();
+
+    await chooseFor(/^Handover/, t("putAway"));
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === doc.id)?.archived).toBe(true));
+    unfoldAll();
+    const shelf = within(screen.getByRole("list", { name: t("archived") }));
+    expect(shelf.queryByTitle(t("docFlagged"))).toBeNull();
+  });
+
+  it("offers to make the folder again when it went while the document waited", async () => {
+    const doc = seedDoc({ title: "Report", archived: true, folderWas: ["Packaging"] });
+    await boot();
+
+    const shelf = within(screen.getByRole("list", { name: t("archived") }));
+    expect(shelf.getByText("Packaging")).toBeTruthy();
+
+    await chooseFor("Report", t("bringBack"));
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
+    );
+
+    await waitFor(() => expect(store.folders.some((one) => one.name === "Packaging")).toBe(true));
+    const made = store.folders.find((one) => one.name === "Packaging");
+    expect(store.docs.find((one) => one.id === doc.id)?.folder).toBe(made?.id);
+  });
+});
+
+describe("what an agent says about a document", () => {
+  it("marks the row it speaks of, and leaves the document where it was", async () => {
+    const folder = seedFolder({ name: "Work" });
+    seedDoc({
+      title: "Handover",
+      folder: folder.id,
+      flagged: { at: "2026-09-23T10:00:00Z", said: "The beta channel was retired." },
+    });
+    await boot();
+
+    const row = screen.getByRole("button", { name: /^Handover/ }).parentElement as HTMLElement;
+    expect(within(row).getByTitle(t("docFlagged"))).toBeTruthy();
+    const branch = screen.getByRole("button", { name: "Work" }).closest("li") as HTMLElement;
+    expect(within(branch).getByRole("button", { name: /^Handover/ })).toBeTruthy();
+  });
+
+  it("says what the agent said, and takes the mark off without touching the document", async () => {
+    const doc = seedDoc({
+      title: "Handover",
+      flagged: { at: "2026-09-23T10:00:00Z", said: "The beta channel was retired." },
+    });
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: /^Handover/ }));
+    expect(await screen.findByText("The beta channel was retired.")).toBeTruthy();
+
+    await userEvent.click(screen.getByRole("button", { name: t("unflagIt") }));
+
+    await waitFor(() =>
+      expect(store.docs.find((one) => one.id === doc.id)?.flagged).toBeUndefined(),
+    );
+    expect(store.docs.some((one) => one.id === doc.id)).toBe(true);
+  });
+
+  it("puts a marked document away when the person says so, and the mark goes quiet", async () => {
+    const doc = seedDoc({
+      title: "Handover",
+      flagged: { at: "2026-09-23T10:00:00Z", said: "The beta channel was retired." },
+    });
+    await boot();
+
+    await userEvent.click(screen.getByRole("button", { name: /^Handover/ }));
+    await screen.findByTestId("editor");
+    await userEvent.click(
+      within(screen.getByRole("main")).getByRole("button", { name: t("putAway") }),
+    );
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === doc.id)?.archived).toBe(true));
+    expect(screen.queryByText("The beta channel was retired.")).toBeNull();
   });
 });
 

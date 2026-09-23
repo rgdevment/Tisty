@@ -5,6 +5,9 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Shelf {
     Waiting(String),
+    /// Already on this machine, staged beside the copy in use, and it takes over when this one
+    /// closes. Nothing left to download, so nothing to offer but the closing.
+    Landed(String),
     Current,
     Silent,
 }
@@ -27,8 +30,8 @@ pub fn step(far: f64) -> (&'static str, u64) {
     ("getting", (far.max(0.0) / DOWNLOADED * 100.0) as u64)
 }
 
-pub fn asked(window: isize) -> Shelf {
-    there::asked(window)
+pub fn asked(window: isize, forced: bool) -> Shelf {
+    there::asked(window, forced)
 }
 
 pub fn take(
@@ -53,6 +56,11 @@ mod there {
     use windows_future::AsyncOperationProgressHandler;
 
     const PATIENCE: std::time::Duration = std::time::Duration::from_secs(10);
+    /// Asking wakes the Store's own errand, and its answer is the state from before it looked:
+    /// at 15:06 it says nothing and at 15:07 it is installing. A person who pressed the button
+    /// is owed the answer that comes out of that errand, not the one that preceded it.
+    const AGAIN: std::time::Duration = std::time::Duration::from_secs(6);
+    const UNTIL: std::time::Duration = std::time::Duration::from_secs(75);
     /// Long past the point where the process should already have been taken down by the install.
     const AT_LENGTH: std::time::Duration = std::time::Duration::from_secs(30 * 60);
 
@@ -78,7 +86,7 @@ mod there {
             .is_ok_and(|kind| kind == PackageSignatureKind::Store)
     }
 
-    pub fn asked(window: isize) -> Shelf {
+    pub fn asked(window: isize, forced: bool) -> Shelf {
         if !sold_here() {
             witness::warn(
                 channel::WINDOW,
@@ -87,8 +95,12 @@ mod there {
             );
             return Shelf::Silent;
         }
+        if let Some(version) = beside_us() {
+            return Shelf::Landed(version);
+        }
         match apart(PATIENCE, move || waiting(window)) {
             Some(Ok(Some(version))) => Shelf::Waiting(version),
+            Some(Ok(None)) if forced => waited_out(window),
             Some(Ok(None)) => Shelf::Current,
             Some(Err(why)) => {
                 witness::warn(
@@ -107,6 +119,58 @@ mod there {
                 Shelf::Silent
             }
         }
+    }
+
+    /// The Store was just asked and said nothing, which is what it says while its own errand is
+    /// still running. Waiting it out turns «nothing for you» into what it actually found.
+    fn waited_out(window: isize) -> Shelf {
+        let since = std::time::Instant::now();
+        while since.elapsed() < UNTIL {
+            std::thread::sleep(AGAIN);
+            if let Some(version) = beside_us() {
+                witness::note(
+                    channel::WINDOW,
+                    "the Store brought the update down while the person waited on the answer",
+                    &[("version", Fact::Id(version.clone()))],
+                );
+                return Shelf::Landed(version);
+            }
+            if let Some(Ok(Some(version))) = apart(PATIENCE, move || waiting(window)) {
+                witness::note(
+                    channel::WINDOW,
+                    "the Store named an update only after its own errand had run",
+                    &[
+                        ("version", Fact::Id(version.clone())),
+                        ("waited", Fact::Count(since.elapsed().as_secs() as usize)),
+                    ],
+                );
+                return Shelf::Waiting(version);
+            }
+        }
+        Shelf::Current
+    }
+
+    /// A newer package of our own family already registered for this user is one the Store has
+    /// finished bringing down: it cannot replace a copy that is running, so it waits for the
+    /// window to close. The Store's own answer never mentions it — there is nothing left to get.
+    fn beside_us() -> Option<String> {
+        let ours = Package::Current().ok()?;
+        let family = ours.Id().ok()?.FamilyName().ok()?;
+        let here = numbered(&ours.Id().ok()?.Version().ok()?);
+        let shelf = windows::Management::Deployment::PackageManager::new().ok()?;
+        let mut newest: Option<semver::Version> = None;
+        let mine: semver::Version = here.parse().ok()?;
+        for one in shelf.FindPackagesByPackageFamilyName(&family).ok()? {
+            let Ok(id) = one.Id() else { continue };
+            let Ok(version) = id.Version() else { continue };
+            let Ok(said) = numbered(&version).parse::<semver::Version>() else {
+                continue;
+            };
+            if said > mine && newest.as_ref().is_none_or(|had| said > *had) {
+                newest = Some(said);
+            }
+        }
+        newest.map(|one| one.to_string())
     }
 
     /// The errand covers optional packages too, and the version of one of those is not a version
@@ -234,7 +298,7 @@ mod there {
 mod there {
     use super::{Shelf, Trouble};
 
-    pub fn asked(_window: isize) -> Shelf {
+    pub fn asked(_window: isize, _forced: bool) -> Shelf {
         Shelf::Silent
     }
 
