@@ -5174,3 +5174,184 @@ fn nothing_the_server_says_carries_a_gap_the_reader_can_see() {
         "a line continued in the source loses its backslash and the gap reaches the agent: {found:#?}"
     );
 }
+
+#[test]
+fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Proyectos", "inside": "Personal" }),
+    );
+
+    let made = served.call(
+        "folder",
+        serde_json::json!({ "name": "Personal / Proyectos / LinkUnbound" }),
+    );
+
+    assert_eq!(made["result"]["structuredContent"]["made"], true);
+    assert_eq!(
+        made["result"]["structuredContent"]["folder"], "LinkUnbound",
+        "a folder is named, not pathed: the rail would read the whole path as one name"
+    );
+    let folders = served.call("docs", serde_json::json!({ "folders": true }));
+    let hit = folders["result"]["structuredContent"]["folders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| one["folder"] == "LinkUnbound")
+        .expect("it is there under its own name");
+    assert_eq!(hit["path"], "Personal / Proyectos / LinkUnbound");
+}
+
+#[test]
+fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+
+    let said = served.call(
+        "folder",
+        serde_json::json!({ "name": "Personal / Proyectos / LinkUnbound" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(why.contains("`inside`"), "{why}");
+    assert_eq!(
+        served.call("docs", serde_json::json!({ "folders": true }))["result"]["structuredContent"]
+            ["folders"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1,
+        "nothing was made under a name that reads like a path"
+    );
+}
+
+#[test]
+fn a_folder_answers_to_its_whole_path_as_well_as_to_its_name() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Notas", "inside": "Personal" }),
+    );
+    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Notas", "inside": "Trabajo" }),
+    );
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Minuta", "folder": "Trabajo / Notas" }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(
+        said["result"]["structuredContent"]["folder"], "Trabajo / Notas",
+        "two folders share a name, and the path is what tells them apart"
+    );
+}
+
+#[test]
+fn listing_can_be_asked_for_one_folder_and_for_the_pages_of_one_document() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Actas" }));
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Libro", "folder": "Actas" }),
+    );
+    let book = served.call("write_doc", serde_json::json!({ "body": "# Suelto" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo", "page_of": &book }),
+    );
+
+    let within = served.call("docs", serde_json::json!({ "folder": "Actas" }));
+    let rows = within["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    assert_eq!(rows.len(), 1, "{within}");
+    assert_eq!(rows[0]["title"], "Libro");
+
+    let under = served.call("docs", serde_json::json!({ "page_of": &book }));
+    let pages = under["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    assert_eq!(pages.len(), 1, "{under}");
+    assert_eq!(pages[0]["title"], "Marzo");
+}
+
+#[test]
+fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Proyectos" }));
+    let doc = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true }),
+    );
+
+    let said = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": &doc, "folder": "Proyectos" }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        told.contains("Viejo") && told.contains("stays in the archive"),
+        "moving is not writing, and the answer has to say it is still put away: {told}"
+    );
+    let listed = served.call(
+        "docs",
+        serde_json::json!({ "folder": "Proyectos", "scope": "archive" }),
+    );
+    assert_eq!(
+        listed["result"]["structuredContent"]["docs"][0]["doc"], doc,
+        "{listed}"
+    );
+}
+
+#[test]
+fn a_document_is_put_away_and_filed_in_one_call() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Historico" }));
+    let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true, "folder": "Historico" }),
+    );
+
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(told.contains("Filed in Historico"), "{told}");
+    assert!(
+        told.contains("Cerrado"),
+        "the person looks for a title, not an id: {told}"
+    );
+    let listed = served.call(
+        "docs",
+        serde_json::json!({ "folder": "Historico", "scope": "archive" }),
+    );
+    assert_eq!(listed["result"]["structuredContent"]["docs"][0]["doc"], doc);
+}

@@ -2131,3 +2131,70 @@ fn a_task_pointing_at_a_page_of_a_book_in_the_archive_says_it_is_put_away() {
         "the page went to the archive inside its document, and the task has to say so: {after}"
     );
 }
+
+#[test]
+fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    served.wrote("# Abril", Some(&book));
+    let old = served.wrote("# Enero", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &old, "archived": true }),
+    );
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &one, "body": "it has had its day" }),
+    );
+
+    let listed = served.call("docs", serde_json::json!({ "folders": false }));
+    let row = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["doc"] == serde_json::json!(book))
+        .expect("the document that holds them is listed");
+    assert_eq!(row["pages"], 3);
+    assert_eq!(row["pages_archived"], 1, "three pages is not three to read");
+    assert_eq!(row["pages_flagged"], 1);
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": &book }));
+    assert_eq!(
+        read["result"]["structuredContent"]["pages_archived"],
+        serde_json::json!([old]),
+        "which one it is, not only how many"
+    );
+    assert_eq!(
+        read["result"]["structuredContent"]["pages_flagged"],
+        serde_json::json!([one])
+    );
+
+    let outline = served.call("outline_doc", serde_json::json!({ "doc": &book }));
+    let said = outline["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        said.contains("1 of them in the archive") && said.contains("1 an agent gave up for old"),
+        "the prose has to say what the rows say: {said}"
+    );
+    assert!(said.contains("in the archive, read-only"), "{said}");
+}
+
+#[test]
+fn what_a_document_is_called_is_what_the_person_is_told() {
+    let served = Served::new();
+    let book = served.wrote("# Actas de enero\n\nlo que se dijo.", None);
+
+    let said = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    assert!(
+        said.contains("\"Actas de enero\""),
+        "an id is not a name they can look up in the window: {said}"
+    );
+    assert!(
+        said.contains(&book),
+        "and the id still has to be there for the next call: {said}"
+    );
+}

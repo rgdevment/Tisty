@@ -147,6 +147,12 @@ back are both `archive_doc`, and finishing a task is `say_done`, which marks it 
 closing to them. Nothing here closes, drops or erases a task, and `note` is where what you only \
 learnt goes.
 
+An id is for the call, never for the person. A name like `zs9kf3wq-0065` says nothing to \
+them and the window gives them no way to look one up: when you tell them what you did, \
+name the document by its title and, when it helps them find it, the folder it sits in. The \
+answers here are written that way already — the title in quotes, the id in brackets after \
+it — so what you read back to them is the part before the brackets.
+
 A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
 A whole folder can be in the archive too, and then everything under it is — every subfolder, every document, every page — without any of them being marked one by one. What the archive reaches that way is read, exported and packed as always, and written by nobody: no `write_doc`, no `append_doc`, no `edit_doc`, no `attach`, no `page_doc`, no `file_doc` in or out of it, and nothing new goes into that folder — `write_doc` with it as `folder`, `import_doc`, and `folder` naming it as `inside` are all refused, as is changing how it looks. A document in there has no door of its own: `archive_doc` will not hand it back, because only the folder can be brought back, and only by the person from the window. Its own mark is kept untouched while it waits, so a document somebody had archived by hand stays archived when the folder returns.
@@ -3371,28 +3377,51 @@ fn trail(state: &State, at: tisty_core::model::FolderId) -> String {
     named.join(" / ")
 }
 
+fn as_path(said: &str) -> String {
+    said.split('/')
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+        .map(tisty_core::text::folded)
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId, Refused> {
+    let found = folder_found(state, said)?;
+    match state.folder_away(found) {
+        true => Err(Refused::Tool(format!(
+            "{said:?} is in the archive, so nothing new goes into it. The person brings it back from the window when it is meant to be used again."
+        ))),
+        false => Ok(found),
+    }
+}
+
+fn folder_found(state: &State, said: &str) -> Result<tisty_core::model::FolderId, Refused> {
     if let Ok(id) = said.parse::<Ulid>()
         && state.folders.contains_key(&id)
     {
-        if state.folder_away(id) {
-            return Err(Refused::Tool(format!(
-                "{said:?} is in the archive, so nothing new goes into it. The person brings it back from the window when it is meant to be used again."
-            )));
-        }
         return Ok(id);
     }
     let wanted = tisty_core::text::folded(said);
-    let hit: Vec<&tisty_core::model::Folder> = state
+    let mut hit: Vec<&tisty_core::model::Folder> = state
         .folders
         .values()
         .filter(|one| tisty_core::text::folded(&one.name) == wanted)
         .collect();
 
+    if hit.len() != 1 {
+        let path = as_path(said);
+        let walked: Vec<&tisty_core::model::Folder> = state
+            .folders
+            .values()
+            .filter(|one| as_path(&trail(state, one.id)) == path)
+            .collect();
+        if walked.len() == 1 {
+            hit = walked;
+        }
+    }
+
     match hit.as_slice() {
-        [one] if state.folder_away(one.id) => Err(Refused::Tool(format!(
-            "{said:?} is in the archive, so nothing new goes into it. The person brings it back from the window when it is meant to be used again."
-        ))),
         [one] => Ok(one.id),
         [] => Err(Refused::Tool({
             let mut all: Vec<String> = state
@@ -3401,6 +3430,7 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
                 .filter(|id| !state.folder_away(**id))
                 .map(|id| trail(state, *id))
                 .collect();
+            all.dedup();
             all.sort();
             match all.is_empty() {
                 true => format!(
@@ -3408,13 +3438,15 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
                      makes one."
                 ),
                 false => format!(
-                    "no folder here is called {said:?}. These exist: {}. `folder` makes a new one.",
+                    "no folder here is called {said:?}. These exist, and each one answers to its \
+                     own name or to the whole path: {}. `folder` makes a new one.",
                     all.join(", ")
                 ),
             }
         })),
         many => Err(Refused::Tool(format!(
-            "{said:?} is the name of {} folders. Send the id of the one you mean instead: {}.",
+            "{said:?} is the name of {} folders. Send the whole path, or the id, of the one you \
+             mean instead: {}.",
             many.len(),
             many.iter()
                 .map(|one| format!("{} ({})", one.id, trail(state, one.id)))
@@ -3427,6 +3459,26 @@ fn folder_named(state: &State, said: &str) -> Result<tisty_core::model::FolderId
 fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let scope = scoped(args)?;
+    let within = match text(args, "folder") {
+        Some(said) => Some(folder_found(&state, &said)?),
+        None => None,
+    };
+    let under = match text(args, "page_of") {
+        Some(said) => Some(
+            state
+                .docs
+                .values()
+                .find(|one| one.file == said)
+                .map(|one| one.id)
+                .ok_or_else(|| {
+                    Refused::Tool(format!(
+                        "no document here is called {said:?}, so nothing hangs from it. `docs` \
+                         lists them all."
+                    ))
+                })?,
+        ),
+        None => None,
+    };
     let most = args
         .get("limit")
         .and_then(Value::as_u64)
@@ -3442,6 +3494,8 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             tisty_core::view::Scope::Archived => state.held_away(one),
             tisty_core::view::Scope::Either => true,
         })
+        .filter(|one| within.is_none_or(|at| one.folder == Some(at)))
+        .filter(|one| under.is_none_or(|up| one.page_of == Some(up)))
         .collect();
     // What moved last, not what was made last: an agent coming back asks what has changed.
     kept.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
@@ -3477,9 +3531,20 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if let Some(up) = one.page_of.and_then(|up| named_doc(&state, up)) {
                 kept_of.insert("page_of".into(), json!(up));
             }
-            let pages = state.pages_of(one.id).len();
-            if pages > 0 {
-                kept_of.insert("pages".into(), json!(pages));
+            let pages = state.pages_of(one.id);
+            if !pages.is_empty() {
+                kept_of.insert("pages".into(), json!(pages.len()));
+                let away = pages.iter().filter(|page| page.archived).count();
+                if away > 0 {
+                    kept_of.insert("pages_archived".into(), json!(away));
+                }
+                let marked = pages
+                    .iter()
+                    .filter(|page| page.flagged.is_some() && !page.archived)
+                    .count();
+                if marked > 0 {
+                    kept_of.insert("pages_flagged".into(), json!(marked));
+                }
             }
             if state.held_away(one) {
                 kept_of.insert("archived".into(), json!(true));
@@ -4144,18 +4209,35 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     // away by its folder would be swallowed and lost when the folder comes back.
     if !kept.archived && state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which} is in the archive with the {}, so it does not come back on its own. The person brings it back from the window.",
-            match kept.page_of.and_then(|up| named_doc(&state, up)) {
+            "{} is in the archive with the {}, so it does not come back on its own. The person brings it back from the window.",
+            doc_named(&state, &which),
+            match kept.page_of.and_then(|up| up_named(&state, up)) {
                 Some(up) => format!("document that holds it, {up}"),
                 None => "folder that holds it".to_string(),
             }
         )));
     }
-    if kept.archived == away {
+    let folder = match text(args, "folder") {
+        None => None,
+        Some(said) => match kept.page_of {
+            Some(_) => {
+                return Err(Refused::Tool(format!(
+                    "{which} is a page, and a page is kept where its document is, so there is no \
+                     folder to put it in."
+                )));
+            }
+            None => Some(folder_named(&state, &said)?),
+        },
+    };
+    let filing = folder.filter(|at| kept.folder != Some(*at));
+    if kept.archived == away && filing.is_none() {
         return Ok(told(
             match away {
-                true => format!("{which} was already put away."),
-                false => format!("{which} was already out of the archive."),
+                true => format!("{} was already put away.", doc_named(&state, &which)),
+                false => format!(
+                    "{} was already out of the archive.",
+                    doc_named(&state, &which)
+                ),
             },
             json!({ "doc": which, "archived": away }),
         ));
@@ -4170,21 +4252,44 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         true => pointed_at(paths, &state, &which),
         false => Vec::new(),
     };
-    store
-        .append(match away {
-            true => Op::DocArchive { id: kept.id },
-            false => Op::DocUnarchive { id: kept.id },
-        })
-        .map_err(hitch)?;
+    if let Some(at) = filing {
+        store
+            .append(Op::DocMove {
+                id: kept.id,
+                d: tisty_core::event::Filed {
+                    page_of: None,
+                    folder: Some(Some(at)),
+                    order: None,
+                },
+            })
+            .map_err(hitch)?;
+    }
+    if kept.archived != away {
+        store
+            .append(match away {
+                true => Op::DocArchive { id: kept.id },
+                false => Op::DocUnarchive { id: kept.id },
+            })
+            .map_err(hitch)?;
+    }
 
     Ok(told(
         format!(
-            "{}{}",
-            match away {
-                true => format!(
-                    "Put {which} away. It is not gone: `docs` and `find` still reach it with `scope`, and this same call with `archived` false brings it back."
+            "{}{}{}",
+            match (kept.archived == away, away) {
+                (true, _) => format!("{} was already where it is.", doc_named(&state, &which)),
+                (false, true) => format!(
+                    "Put {} away. It is not gone: `docs` and `find` still reach it with `scope`, and this same call with `archived` false brings it back.",
+                    doc_named(&state, &which)
                 ),
-                false => format!("Brought {which} back out of the archive."),
+                (false, false) => format!(
+                    "Brought {} back out of the archive.",
+                    doc_named(&state, &which)
+                ),
+            },
+            match filing.map(|at| trail(&state, at)) {
+                Some(named) => format!(" Filed in {named}."),
+                None => String::new(),
             },
             match pages.is_empty() {
                 true => String::new(),
@@ -4281,16 +4386,19 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
+    if let Some(up) = kept.page_of.and_then(|up| up_named(&state, up)) {
         return Err(Refused::Tool(format!(
-            "{which} is a page of {up}, and a page is kept where its document is. `page_doc` \
-             takes it out as a document of its own first."
+            "{} is a page of {up}, and a page is kept where its document is. `page_doc` \
+             takes it out as a document of its own first.",
+            doc_named(&state, &which)
         )));
     }
-    if state.held_away(kept) {
+    if !kept.archived && state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which} is in the archive, and what the archive holds stays where it was put. \
-             The person brings it back from the window first."
+            "{} is in the archive with the folder that holds it, and taking it out from under \
+             that folder would take it out of the archive with nobody's hand on it. The person \
+             brings the folder back from the window first.",
+            doc_named(&state, &which)
         )));
     }
     let folder = match text(args, "folder") {
@@ -4300,8 +4408,8 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if kept.folder == folder {
         return Ok(told(
             match folder.map(|at| trail(&state, at)) {
-                Some(named) => format!("{which} was already in {named}."),
-                None => format!("{which} was already in no folder."),
+                Some(named) => format!("{} was already in {named}.", doc_named(&state, &which)),
+                None => format!("{} was already in no folder.", doc_named(&state, &which)),
             },
             json!({ "doc": which, "folder": folder.map(|at| trail(&state, at)) }),
         ));
@@ -4318,12 +4426,19 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .map_err(hitch)?;
 
     let where_at = folder.map(|at| trail(&state, at));
+    let still = match kept.archived {
+        true => " It stays in the archive: filing it says where it belongs, not that it is back.",
+        false => "",
+    };
     Ok(told(
         match &where_at {
-            Some(named) => format!("Filed {which} in {named}."),
-            None => format!("Took {which} out of every folder."),
+            Some(named) => format!("Filed {} in {named}.{still}", doc_named(&state, &which)),
+            None => format!(
+                "Took {} out of every folder.{still}",
+                doc_named(&state, &which)
+            ),
         },
-        json!({ "doc": which, "folder": where_at }),
+        json!({ "doc": which, "folder": where_at, "archived": kept.archived }),
     ))
 }
 
@@ -4433,10 +4548,40 @@ fn named_doc(state: &State, id: tisty_core::model::DocId) -> Option<String> {
     state.docs.get(&id).map(|one| one.file.clone())
 }
 
+fn doc_named(state: &State, which: &str) -> String {
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return which.to_string();
+    };
+    match kept
+        .title
+        .as_deref()
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+    {
+        Some(title) => format!("{title:?} ({which})"),
+        None => which.to_string(),
+    }
+}
+
+fn up_named(state: &State, id: tisty_core::model::DocId) -> Option<String> {
+    let which = named_doc(state, id)?;
+    Some(doc_named(state, &which))
+}
+
 fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "name") else {
         return Err(Refused::Tool("a folder needs a `name`.".into()));
     };
+    let steps: Vec<&str> = said
+        .split('/')
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+        .collect();
+    let under = match steps.len() > 1 {
+        true => Some(steps[..steps.len() - 1].join(" / ")),
+        false => None,
+    };
+    let said = steps.last().map(|one| (*one).to_string()).unwrap_or(said);
     let name = tisty_core::text::plainly(&said);
     if name.chars().count() > FOLDER_NAME_AT_MOST {
         return Err(Refused::Tool(format!(
@@ -4473,12 +4618,31 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
 
-    let wanted = tisty_core::text::folded(&name);
-    if let Some(one) = state
-        .folders
-        .values()
-        .find(|one| tisty_core::text::folded(&one.name) == wanted)
+    let parent = match (text(args, "inside"), &under) {
+        (Some(inside), _) => Some(folder_named(&state, &inside)?),
+        (None, Some(path)) => Some(folder_named(&state, path).map_err(|why| match why {
+            Refused::Tool(said) => Refused::Tool(format!(
+                "a folder's name is its own and never a path, so {path:?} was read as the folder \
+                 to nest it in, and {said} Make each step of the path first, and nest with \
+                 `inside`."
+            )),
+            other => other,
+        })?),
+        (None, None) => None,
+    };
+    if let Some(at) = parent
+        && state.depth(Some(at)) >= tisty_core::model::DEEPEST
     {
+        return Err(Refused::Tool(format!(
+            "folders only nest {} deep here. Make it beside that one instead.",
+            tisty_core::model::DEEPEST
+        )));
+    }
+
+    let wanted = tisty_core::text::folded(&name);
+    if let Some(one) = state.folders.values().find(|one| {
+        tisty_core::text::folded(&one.name) == wanted && (parent.is_none() || one.parent == parent)
+    }) {
         if state.folder_away(one.id) && (icon.is_some() || color.is_some()) {
             return Err(Refused::Tool(format!(
                 "{:?} is in the archive, and what it looks like is not changed while it is there.",
@@ -4509,16 +4673,6 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool(format!(
             "there are already {FOLDERS_AT_MOST} folders here. File the document in one of them \
              instead of making another."
-        )));
-    }
-    let parent = match text(args, "inside") {
-        Some(said) => Some(folder_named(&state, &said)?),
-        None => None,
-    };
-    if parent.is_some_and(|at| state.depth(Some(at)) >= tisty_core::model::DEEPEST) {
-        return Err(Refused::Tool(format!(
-            "folders only nest {} deep here. Make it beside that one instead.",
-            tisty_core::model::DEEPEST
         )));
     }
     let id = Ulid::generate();
@@ -4948,6 +5102,9 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if state.held_away(one) {
                 row.insert("archived".into(), json!(true));
             }
+            if one.flagged.is_some() && !state.held_away(one) {
+                row.insert("flagged".into(), json!(true));
+            }
             Value::Object(row)
         })
         .collect();
@@ -5007,9 +5164,25 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
     }
     if !rows.is_empty() {
+        let away = rows
+            .iter()
+            .filter(|row| row["archived"] == json!(true))
+            .count();
+        let marked = rows
+            .iter()
+            .filter(|row| row["flagged"] == json!(true))
+            .count();
         shown.push_str(&format!(
-            "\n\nPages, in the order they are read ({}):",
-            rows.len()
+            "\n\nPages, in the order they are read ({}{}{}):",
+            rows.len(),
+            match away {
+                0 => String::new(),
+                _ => format!(", {away} of them in the archive"),
+            },
+            match marked {
+                0 => String::new(),
+                _ => format!(", {marked} an agent gave up for old"),
+            }
         ));
         for row in &rows {
             let holds = match (row["words"].as_u64(), row["sections"].as_u64()) {
@@ -5017,8 +5190,16 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 (Some(words), None) => format!(" ({words} words)"),
                 _ => String::new(),
             };
+            let state_of = match (
+                row["archived"] == json!(true),
+                row["flagged"] == json!(true),
+            ) {
+                (true, _) => " — in the archive, read-only",
+                (false, true) => " — an agent says it has had its day",
+                (false, false) => "",
+            };
             shown.push_str(&format!(
-                "\n  {} — {}{holds}",
+                "\n  {} — {}{holds}{state_of}",
                 said(row, "doc"),
                 said(row, "title")
             ));
@@ -5072,6 +5253,23 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     if !pages.is_empty() {
         kept_of.insert("pages".into(), json!(pages));
+        let held = state.pages_of(kept.id);
+        let shelved: Vec<String> = held
+            .iter()
+            .filter(|one| one.archived)
+            .map(|one| one.file.clone())
+            .collect();
+        if !shelved.is_empty() {
+            kept_of.insert("pages_archived".into(), json!(shelved));
+        }
+        let marked: Vec<String> = held
+            .iter()
+            .filter(|one| one.flagged.is_some() && !one.archived)
+            .map(|one| one.file.clone())
+            .collect();
+        if !marked.is_empty() {
+            kept_of.insert("pages_flagged".into(), json!(marked));
+        }
     }
     if away {
         kept_of.insert("archived".into(), json!(true));
@@ -5816,6 +6014,16 @@ fn tools() -> Value {
                         "description": "Send every folder back too, with its id, path, icon and \
                                         how much it holds. The answer already names them all in \
                                         its text, so ask for this only when a name is not enough"
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "Only what sits in this one folder, by its name, its whole \
+                                        path or its id. What its folders below hold is theirs, \
+                                        not this one's"
+                    },
+                    "page_of": {
+                        "type": "string",
+                        "description": "Only the pages of this one document, in reading order"
                     }
                 }
             }))
@@ -5871,6 +6079,10 @@ fn tools() -> Value {
                     "archived": {
                         "type": "boolean",
                         "description": "True to put it away, which is what happens if you leave this out; false to bring it back"
+                    },
+                    "folder": {
+                        "type": "string",
+                        "description": "A folder to file it in as it goes, or as it comes back, by its name, its whole path or its id. It is filed either way: what the archive holds can still be put where it belongs"
                     }
                 },
                 "required": ["doc"]
@@ -5894,7 +6106,7 @@ fn tools() -> Value {
         {
             "name": "file_doc",
             "title": "Put a document in a folder",
-            "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes.",
+            "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes. Moving is not writing, so a document the archive holds by itself moves too and stays put away: that is how something already archived is filed where it belongs.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -5935,11 +6147,11 @@ fn tools() -> Value {
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "A word or two, at most 40 characters"
+                        "description": "A word or two, at most 40 characters. It is the folder's own name, never a path: send the whole path only to say where to nest it, and then every step but the last has to exist already"
                     },
                     "inside": {
                         "type": "string",
-                        "description": "An existing folder to nest it in, by name. Four deep at most"
+                        "description": "An existing folder to nest it in, by its name, its whole path or its id. Four deep at most"
                     },
                     "icon": {
                         "type": "string",
