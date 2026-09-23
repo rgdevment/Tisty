@@ -706,15 +706,63 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  bundle-mcpb:
+    name: tisty-mcp-bundle
+    needs: [version, build-macos, build-windows]
+    if: >-
+      !cancelled() && needs.version.outputs.cli == 'true'
+      && needs.build-macos.result == 'success' && needs.build-windows.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: cli-*
+          path: staged
+          merge-multiple: true
+
+      - name: Unwrap what the command line jobs left
+        env:
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          cd staged
+          tar xzf "tisty-cli-$V-macos-universal.tar.gz"
+          unzip -q "tisty-cli-$V-windows-x86_64.zip"
+
+      - name: Bundle it for the assistants
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          STAGED: staged
+          DIST: dist
+        run: python3 scripts/mcpb.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli-mcpb
+          path: dist/*.mcpb
+          retention-days: 5
+
   publish:
     name: GitHub Release
     needs:
-      [rust, version, build-macos, build-windows, bundle-windows, bundle-macos, bundle-msix]
+      [
+        rust,
+        version,
+        build-macos,
+        build-windows,
+        bundle-mcpb,
+        bundle-windows,
+        bundle-macos,
+        bundle-msix,
+      ]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.rust.result == 'success' && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
       && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
+      && (needs.bundle-mcpb.result == 'success' || needs.bundle-mcpb.result == 'skipped')
       && needs.bundle-windows.result == 'success'
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
@@ -765,7 +813,9 @@ jobs:
           want="tisty-installer-$v-windows-x86_64.exe"
           if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-windows-x86_64.zip"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then
-            if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-macos-universal.tar.gz"; fi
+            if [ "${SHIP_CLI}" = "true" ]; then
+              want="$want tisty-cli-$v-macos-universal.tar.gz tisty-mcp-$v.mcpb"
+            fi
             for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
@@ -1151,6 +1201,65 @@ jobs:
           msstore submission status "$STORE_APP_ID" || true
           echo "::error::the package reached the Store but no commit was confirmed. Read the status \
           above before tagging again: a submission already committed must not be sent twice."
+
+  registry:
+    name: MCP Registry
+    needs: [version, publish]
+    if: >-
+      !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.version.outputs.cli == 'true'
+      && needs.version.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: read
+    concurrency:
+      group: release-registry
+      cancel-in-progress: false
+    env:
+      MCP_PUBLISH: ${{ vars.MCP_PUBLISH }}
+    steps:
+      - name: Nothing to list until the switch is on
+        id: gate
+        shell: bash
+        run: |
+          if [ "$MCP_PUBLISH" != "true" ]; then
+            echo "::notice::MCP_PUBLISH is not true; the registry gets nothing until it is"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.gate.outputs.go == 'yes'
+
+      - name: Point the listing at what this tag published
+        if: steps.gate.outputs.go == 'yes'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          BUNDLE: bundle.mcpb
+        run: |
+          curl -sSL --fail -o bundle.mcpb             "https://github.com/rgdevment/Tisty/releases/download/v$VERSION/tisty-mcp-$VERSION.mcpb"
+          python3 scripts/listing.py
+
+      - name: Install mcp-publisher
+        if: steps.gate.outputs.go == 'yes'
+        run: |
+          curl -sSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz"             | tar xz mcp-publisher
+
+      # The registry refuses on its own rules, and a refusal here is cheaper than one after
+      # the tag has been announced: description length is the one that bites.
+      - name: Would the registry take it
+        if: steps.gate.outputs.go == 'yes'
+        run: ./mcp-publisher validate
+
+      - name: Publish
+        if: steps.gate.outputs.go == 'yes'
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
 
   homebrew:
     name: Homebrew tap
