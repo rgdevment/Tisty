@@ -412,6 +412,13 @@ impl Session {
         if kept.page_of.is_some_and(|up| self.state.shut(up)) {
             return Err(Refusal::of("pageOfLocked"));
         }
+        if kept
+            .page_of
+            .and_then(|up| self.state.docs.get(&up))
+            .is_some_and(|up| self.state.held_away(up))
+        {
+            return Err(Refusal::of("pageOfAway"));
+        }
         if let Some(at) = kept.folder {
             folder_open(&self.state, at, true)?;
         }
@@ -3668,9 +3675,6 @@ fn doc_file(
         Some(_) => {}
     }
     doc_out(&session.state, id)?;
-    if session.state.stowed(id) {
-        return Err(Refusal::of("documentAway"));
-    }
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
@@ -4436,13 +4440,13 @@ fn folder_open(state: &State, at: tisty_core::model::FolderId, holds: bool) -> A
 }
 
 fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
-    let held_by_another = state
-        .docs
-        .get(&id)
-        .is_some_and(|one| !one.archived && state.held_away(one));
-    match held_by_another {
-        true => Err(Refusal::of("folderIsAway")),
-        false => Ok(()),
+    let Some(kept) = state.docs.get(&id) else {
+        return Ok(());
+    };
+    match (state.held_by_another(kept), kept.page_of.is_some()) {
+        (true, true) => Err(Refusal::of("pageIsAway")),
+        (true, false) => Err(Refusal::of("folderIsAway")),
+        (false, _) => Ok(()),
     }
 }
 
@@ -7525,6 +7529,21 @@ mod copying {
             vec![true, false],
             "the copy has to hold the same two pages, one of them put away"
         );
+    }
+
+    #[test]
+    fn a_page_of_a_document_in_the_archive_is_not_copied_into_it() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let book = wrote(&mut session, "Book", None);
+        let page = wrote(&mut session, "Page", Some(book));
+        session.commit(Op::DocArchive { id: book }).unwrap();
+
+        assert!(
+            session.copy_doc(&page.to_string()).is_err(),
+            "a copy is a new page, and nothing new goes into the archive"
+        );
+        assert_eq!(session.state.pages_of(book).len(), 1);
     }
 
     #[test]

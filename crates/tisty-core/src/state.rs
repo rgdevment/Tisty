@@ -117,8 +117,13 @@ impl State {
 
     /// What the archive holds: the document's own mark, or the folder it sits in.
     pub fn held_away(&self, kept: &Kept) -> bool {
-        kept.archived
-            || kept.folder.is_some_and(|at| self.folder_away(at))
+        kept.archived || self.held_by_another(kept)
+    }
+
+    /// What holds it from above, its own mark left out: nothing it answers for by itself, and so
+    /// nothing `archive_doc` or a move can take back.
+    pub fn held_by_another(&self, kept: &Kept) -> bool {
+        kept.folder.is_some_and(|at| self.folder_away(at))
             || kept.page_of.is_some_and(|up| {
                 self.docs.get(&up).is_some_and(|doc| {
                     doc.archived || doc.folder.is_some_and(|at| self.folder_away(at))
@@ -509,7 +514,9 @@ impl State {
                     if allowed.is_some() || page_of.is_none() {
                         let under = allowed
                             .and_then(|up| self.docs.get(&up))
-                            .map(|one| (one.folder, one.archived));
+                            .map(|one| one.folder);
+                        let leaving = allowed.is_none()
+                            && self.docs.get(id).is_some_and(|one| self.held_away(one));
                         let beside = allowed.map(|up| {
                             crate::order::last_of(
                                 self.docs
@@ -520,13 +527,16 @@ impl State {
                         });
                         if let Some(doc) = self.docs.get_mut(id) {
                             doc.page_of = allowed;
-                            if let Some((folder, archived)) = under {
+                            if let Some(folder) = under {
                                 doc.folder = folder;
-                                doc.archived = archived;
+                                doc.archived = false;
                                 doc.folder_was = None;
                                 doc.flagged = None;
                                 doc.locked = false;
                                 doc.order = beside.unwrap_or_else(|| doc.order.clone());
+                            }
+                            if leaving {
+                                doc.archived = true;
                             }
                         }
                     }
@@ -5957,7 +5967,7 @@ mod tests {
     }
 
     #[test]
-    fn a_page_hung_under_a_document_that_is_away_is_away_too() {
+    fn a_page_hung_under_a_document_that_is_away_is_covered_and_not_marked() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let loose = doc(&mut state, "a3f1-0002", None);
@@ -5973,7 +5983,40 @@ mod tests {
             },
         );
 
-        assert!(state.docs[&loose].archived);
+        assert!(state.held_away(&state.docs[&loose]));
+        assert!(
+            !state.docs[&loose].archived,
+            "the document covers it; a mark of its own would outlive the cover"
+        );
+
+        state.apply(&ev(3, "a", Op::DocUnarchive { id: minutes }));
+        assert!(
+            !state.held_away(&state.docs[&loose]),
+            "and it wakes with the document that took it in"
+        );
+    }
+
+    #[test]
+    fn a_page_taken_out_of_a_document_in_the_archive_keeps_the_archive_around_it() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(None),
+                order: None,
+            },
+        );
+
+        assert!(
+            state.docs[&march].archived,
+            "what the archive held does not walk out of it by being unhung"
+        );
     }
 
     #[test]

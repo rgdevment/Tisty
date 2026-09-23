@@ -2198,3 +2198,37 @@ fn what_a_document_is_called_is_what_the_person_is_told() {
         "and the id still has to be there for the next call: {said}"
     );
 }
+
+#[test]
+fn a_page_the_document_covers_is_not_woken_behind_its_back() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": true }),
+    );
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let why = served.refused(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": false }),
+    );
+    assert!(
+        why.contains("document that holds it"),
+        "nothing here takes it out while the document holds it: {why}"
+    );
+
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    let read = served.call("read_doc", serde_json::json!({ "doc": &page }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "the page was apart before, and it stays apart: {read}"
+    );
+}

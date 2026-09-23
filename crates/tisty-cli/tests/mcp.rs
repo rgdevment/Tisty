@@ -5355,3 +5355,87 @@ fn a_document_is_put_away_and_filed_in_one_call() {
     );
     assert_eq!(listed["result"]["structuredContent"]["docs"][0]["doc"], doc);
 }
+
+#[test]
+fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    let doc = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Acta", "folder": "Trabajo" }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true }),
+    );
+    served.shelve_folder("Trabajo");
+
+    let out = served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": false }),
+    );
+    assert_eq!(out["result"]["isError"], true, "{out}");
+    let why = out["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        why.contains("folder that holds it"),
+        "what a shelved folder holds does not come back one document at a time: {why}"
+    );
+
+    let moved = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": &doc, "folder": "Personal" }),
+    );
+    assert_eq!(moved["result"]["isError"], true, "{moved}");
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "and its own mark is still there, waiting for the folder: {read}"
+    );
+}
+
+#[test]
+fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Historico" }));
+    let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true, "folder": "Historico" }),
+    );
+
+    let mut batches = Vec::new();
+    for at in std::fs::read_dir(served.home.path().join("data/store")).unwrap() {
+        let at = at.unwrap().path().join("active.tisty");
+        let Ok(said) = std::fs::read_to_string(&at) else {
+            continue;
+        };
+        for line in said.lines() {
+            let Ok(one) = serde_json::from_str::<serde_json::Value>(line) else {
+                continue;
+            };
+            let op = one["op"].as_str().unwrap_or_default().to_string();
+            if op == "doc.move" || op == "doc.archive" {
+                batches.push((op, one["tx"].clone()));
+            }
+        }
+    }
+
+    assert_eq!(batches.len(), 2, "both were written: {batches:?}");
+    assert!(!batches[0].1.is_null(), "{batches:?}");
+    assert_eq!(
+        batches[0].1, batches[1].1,
+        "one call is one thing in the log, or half of it can be taken back: {batches:?}"
+    );
+}

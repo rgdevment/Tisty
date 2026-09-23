@@ -1153,7 +1153,7 @@ export default function App() {
           key: "ownDoc",
           icon: "⇤",
           label: t("ownDoc"),
-          off: !doc.pageOf,
+          off: !doc.pageOf || byAnother(doc),
           onPick: () =>
             docPage(doc.id)
               .then(papersChanged)
@@ -1163,7 +1163,7 @@ export default function App() {
           key: "move",
           icon: "⇢",
           label: t("moveTo"),
-          off: doc.away || !!doc.pageOf,
+          off: byAnother(doc) || !!doc.pageOf,
           into: {
             label: t("moveHere"),
             choices: destinations(doc.folder, (folder) =>

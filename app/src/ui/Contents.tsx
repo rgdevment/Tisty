@@ -19,12 +19,14 @@ export default function Contents({ pages, told, onOpen, onPut }: Props) {
       <button
         type="button"
         onClick={() => onOpen(page)}
-        aria-label={page.away ? `${page.title || t("untitledDoc")} — ${t("archived")}` : undefined}
+        aria-label={
+          page.away ? `${page.title || t("untitledDoc")} — ${t("isArchived")}` : undefined
+        }
         className="leaf-open"
       >
         <span className="leaf-num">{at}</span>
         <span className="leaf-name">{page.title || t("untitledDoc")}</span>
-        {page.away && <Glyph name="archive" className="leaf-mark" />}
+        {page.archived && <Glyph name="archive" className="leaf-mark" />}
       </button>
       {onPut && !told.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">

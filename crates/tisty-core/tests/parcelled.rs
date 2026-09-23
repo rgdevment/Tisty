@@ -563,10 +563,9 @@ fn a_parcel_from_a_newer_tisty_is_turned_away_rather_than_half_understood() {
         let mut body = Vec::new();
         std::io::Read::read_to_end(&mut held, &mut body).unwrap();
         if named == "tisty-docs.json" {
-            let said = String::from_utf8(body)
-                .unwrap()
-                .replace("\"version\": 1", "\"version\": 99");
-            body = said.into_bytes();
+            let mut said: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            said["version"] = serde_json::json!(99);
+            body = serde_json::to_vec(&said).unwrap();
         }
         out.start_file(named, zip::write::SimpleFileOptions::default())
             .unwrap();
@@ -2430,4 +2429,47 @@ fn a_parcel_says_what_it_is_to_somebody_who_has_never_heard_of_tisty() {
     let landed = there.take_in(&box_at);
     assert_eq!((landed.docs, landed.pages, landed.folders), (3, 1, 2));
     assert_eq!(landed.missed, 0);
+}
+
+#[test]
+fn a_parcel_from_before_pages_answered_for_themselves_lands_them_covered_and_not_marked() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (book, _) = here.doc("# Actas", None, None);
+    here.doc("# Marzo", None, Some(book));
+    here.tell(Op::DocArchive { id: book });
+    let box_at = room.path().join("vieja.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let held = std::fs::read(&box_at).unwrap();
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(held)).unwrap();
+    let mut said = Vec::new();
+    {
+        let mut one = zip.by_name("tisty-docs.json").unwrap();
+        std::io::Read::read_to_end(&mut one, &mut said).unwrap();
+    }
+    let mut manifest: serde_json::Value = serde_json::from_slice(&said).unwrap();
+    for one in manifest["docs"].as_array_mut().unwrap() {
+        if one.get("page_of").is_some_and(|up| !up.is_null()) {
+            one.as_object_mut().unwrap().remove("away_alone");
+            one["archived"] = serde_json::json!(true);
+        }
+    }
+    let older = with_manifest(room.path(), &box_at, serde_json::to_vec(&manifest).unwrap());
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&older);
+
+    let landed = there.state.docs.values().find(|one| one.page_of.is_some());
+    let page = landed.expect("the page came in with its document").id;
+    assert!(
+        !there.state.docs[&page].archived,
+        "the old parcel said archived because the document was; a mark of its own outlives it"
+    );
+    let up = there.state.docs[&page].page_of.unwrap();
+    there.tell(Op::DocUnarchive { id: up });
+    assert!(
+        !there.state.held_away(&there.state.docs[&page]),
+        "bringing the document back has to wake what it covered"
+    );
 }

@@ -105,6 +105,7 @@ const KNOWN = [
   "folderAway",
   "folderAwayHolds",
   "folderIsAway",
+  "pageIsAway",
   "pageOfLocked",
   "lockedStaysPut",
   "lockIsTheDocs",

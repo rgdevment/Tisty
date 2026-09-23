@@ -333,7 +333,7 @@ export default function Beside({
                   onClick={() => onPage?.(one)}
                   aria-label={
                     one.away
-                      ? `${one.title || t("untitledDoc")} — ${t("archived")}`
+                      ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
                       : one.flagged
                         ? `${one.title || t("untitledDoc")} — ${t("docFlagged")}`
                         : undefined
@@ -344,7 +344,7 @@ export default function Beside({
                   } ${one.away ? "text-faint opacity-60" : "text-soft"}`}
                 >
                   <Glyph
-                    name={one.away ? "archive" : "alignleft"}
+                    name={one.archived ? "archive" : "alignleft"}
                     className="h-[13px] w-[13px] shrink-0"
                   />
                   <span className="min-w-0 flex-1 truncate">{one.title || t("untitledDoc")}</span>

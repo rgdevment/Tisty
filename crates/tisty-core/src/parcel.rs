@@ -14,7 +14,7 @@ use crate::{
 
 pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
-const VERSION: u32 = 1;
+const VERSION: u32 = 2;
 const MANIFEST: &str = "tisty-docs.json";
 const READING: &str = "README.txt";
 const READ_ME: &str = "This is a Tisty parcel.
@@ -1023,7 +1023,9 @@ fn taken_in(
         // A folder that lands closed answers for what it holds; marking the document again would
         // outlive the folder and never come back with it.
         let by_folder = paper.by_folder && folder.is_some_and(|at| shut.contains(&at));
-        let alone = paper.away_alone.unwrap_or(paper.archived);
+        let alone = paper
+            .away_alone
+            .unwrap_or(paper.archived && paper.page_of.is_none());
         if alone && !by_folder {
             ops.push(Op::DocArchive { id });
         }

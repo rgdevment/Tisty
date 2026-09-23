@@ -775,8 +775,8 @@ describe("a page of its own", () => {
     await screen.findByTestId("editor");
 
     const pages = screen.getByRole("region", { name: t("theseLeaves") });
-    expect(within(pages).getByRole("button", { name: `April — ${t("archived")}` })).toBeTruthy();
-    expect(within(pages).queryByText(t("archived")), "the word itself is noise").toBeNull();
+    expect(within(pages).getByRole("button", { name: `April — ${t("isArchived")}` })).toBeTruthy();
+    expect(within(pages).queryByText(t("isArchived")), "the word itself is noise").toBeNull();
   });
 
   it("covers every page while the document is away, and wakes only what was awake", async () => {

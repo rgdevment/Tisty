@@ -478,7 +478,7 @@ export default function Tree({
       <span className="text-[12.5px] leading-none">{worn.mark}</span>
     ) : (
       <Glyph
-        name={page ? (doc.away ? "archive" : "alignleft") : "page"}
+        name={page ? (doc.archived ? "archive" : "alignleft") : "page"}
         className={page ? "h-[11px] w-[11px] opacity-70" : "h-[13px] w-[13px]"}
       />
     );
@@ -540,7 +540,7 @@ export default function Tree({
               lifted?.id === doc.id
                 ? fill("liftedIs", name)
                 : doc.away
-                  ? `${name} — ${t("archived")}`
+                  ? `${name} — ${t("isArchived")}`
                   : doc.flagged
                     ? `${name} — ${t("docFlagged")}`
                     : name

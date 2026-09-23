@@ -111,7 +111,7 @@ describe("the pages a document holds, seen from the column", () => {
     ]);
 
     const aside = await index();
-    expect(await aside.findByRole("button", { name: "Fruta — Archived" })).toBeTruthy();
+    expect(await aside.findByRole("button", { name: "Fruta — in the archive" })).toBeTruthy();
     expect(
       aside.getByRole("button", { name: "Verdura — An agent says this has had its day" }),
     ).toBeTruthy();
@@ -131,7 +131,7 @@ describe("the pages a document holds, seen from the column", () => {
     ]);
 
     const aside = await index();
-    expect(await aside.findByRole("button", { name: "Untitled — Archived" })).toBeTruthy();
+    expect(await aside.findByRole("button", { name: "Untitled — in the archive" })).toBeTruthy();
     expect(aside.queryByText("\u25c6"), "the archive already answered the mark").toBeNull();
   });
 

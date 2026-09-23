@@ -473,6 +473,10 @@ const en = {
   folderAwayHolds: "That folder is in the archive. Nothing new goes into it",
   folderIsAway:
     "This one is in the archive with the folder that holds it. Bring the folder back to reach it",
+  pageIsAway:
+    "This page is in the archive with the document that holds it. Bring the document back to reach it",
+  isArchived: "in the archive",
+  heldShelved: "The document that holds this one is in the archive, and it is read here as it was",
   documentLocked: "This document is locked. Unlock it before writing in it",
   documentMoved: "Something wrote in this document while you had it open here",
   docStirred: "Something wrote in this document, and what you are reading is what it left",
@@ -1796,6 +1800,10 @@ const es: Catalog = {
   folderAwayHolds: "Esa carpeta está en el archivo. Nada nuevo entra en ella",
   folderIsAway:
     "Este está en el archivo con la carpeta que lo guarda. Desarchiva la carpeta para llegar a él",
+  pageIsAway:
+    "Esta página está en el archivo con el documento que la guarda. Desarchiva el documento para llegar a ella",
+  isArchived: "en el archivo",
+  heldShelved: "El documento que la guarda está en el archivo, y aquí se lee tal como quedó",
   documentLocked: "Este documento está bloqueado. Desbloquéalo antes de escribir en él",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
