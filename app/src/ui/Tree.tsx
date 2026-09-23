@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
 import { led } from "../leading";
 import { fill, t } from "../locales";
+import { clientNamed } from "../who";
 import {
   type Carried,
   DEEPEST,
@@ -370,6 +371,84 @@ export default function Tree({
 
   const away = papers.docs.filter((one) => one.away && !one.pageOf && !shelved(one.folder ?? null));
 
+  const folderNamed = (id: string) => papers.folders.find((one) => one.id === id);
+
+  const pathOf = (doc: Filed): string[] =>
+    doc.folder && folderNamed(doc.folder) ? lineTo(doc.folder) : [];
+
+  const trace = (folder: Folded, depth: number, key: string) => (
+    <li key={key} className="relative opacity-55">
+      <div className="group/row flex items-center rounded-md" title={t("folderTraceWhy")}>
+        <span
+          aria-hidden="true"
+          className="grid h-5 w-[18px] shrink-0 place-items-center"
+          style={{ marginLeft: `${8 + depth * STEP}px` }}
+        >
+          <span className={`flex items-center ${painted(folder.color)}`}>
+            <Glyph name={folder.icon ?? "folder"} className="h-[15px] w-[15px]" />
+          </span>
+        </span>
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-[13px] text-faint">
+          <span className="truncate">{folder.name}</span>
+          <span className="ml-auto shrink-0 pr-1 text-[10.5px] opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
+            {t("folderTrace")}
+          </span>
+        </span>
+      </div>
+    </li>
+  );
+
+  const lost = (name: string, depth: number, key: string) => (
+    <li key={key} className="relative opacity-55">
+      <div className="flex items-center rounded-md" title={t("folderTraceGone")}>
+        <span
+          aria-hidden="true"
+          className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
+          style={{ marginLeft: `${8 + depth * STEP}px` }}
+        >
+          <Glyph name="folder" className="h-[15px] w-[15px]" />
+        </span>
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-[13px] text-faint italic">
+          <span className="truncate">{name}</span>
+          <span className="ml-auto shrink-0 pr-1 text-[10.5px] not-italic">
+            {t("folderTraceLost")}
+          </span>
+        </span>
+      </div>
+    </li>
+  );
+
+  const shelfOf = (doc: Filed) =>
+    pathOf(doc)
+      .map((id) => folderNamed(id)?.name ?? "")
+      .concat(doc.folderWas ? [doc.folderWas] : [])
+      .join("/");
+
+  const pathed = () => {
+    const rows: React.ReactNode[] = [];
+    const drawn = new Set<string>();
+    const sorted = [...away].sort((one, two) => shelfOf(one).localeCompare(shelfOf(two)));
+    for (const doc of sorted) {
+      const path = pathOf(doc);
+      path.forEach((id, at) => {
+        const key = path.slice(0, at + 1).join("/");
+        const folder = folderNamed(id);
+        if (drawn.has(key) || !folder) return;
+        drawn.add(key);
+        rows.push(trace(folder, at + 1, `trace-${key}`));
+      });
+      if (!path.length && doc.folderWas) {
+        const key = `lost:${doc.folderWas}`;
+        if (!drawn.has(key)) {
+          drawn.add(key);
+          rows.push(lost(doc.folderWas, 1, `trace-${key}`));
+        }
+      }
+      rows.push(paper(doc, (path.length || (doc.folderWas ? 1 : 0)) + 1));
+    }
+    return rows;
+  };
+
   const takesPages = (doc: Filed) => !doc.pageOf && !doc.away && Boolean(onPage);
 
   const nextOf = <T extends { id: string }>(all: T[], id: string) => {
@@ -458,6 +537,18 @@ export default function Tree({
             {doc.gone && (
               <span title={t("goneDoc")} className="shrink-0 text-[9px] text-urgent">
                 ⚠
+              </span>
+            )}
+            {doc.flagged && (
+              <span
+                title={
+                  clientNamed(doc.flagged.via)
+                    ? fill("docFlaggedBy", clientNamed(doc.flagged.via) as string)
+                    : t("docFlagged")
+                }
+                className="shrink-0 text-[9px] text-hue-teal"
+              >
+                ◆
               </span>
             )}
             {doc.guest !== null && doc.guest !== undefined && (
@@ -673,7 +764,7 @@ export default function Tree({
         onClick={() => fold("away")}
         aria-expanded={opened.has("away")}
         aria-label={t("archived")}
-        className="flex w-full items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+        className="sticky top-[29px] z-10 flex w-full items-center gap-1.5 bg-rail px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
       >
         <span
           aria-hidden
@@ -687,7 +778,7 @@ export default function Tree({
       {opened.has("away") && (
         <ul aria-label={t("archived")} className="flex flex-col gap-px">
           {shelves.map((folder) => branch(folder, 1))}
-          {away.map((doc) => paper(doc, 1))}
+          {pathed()}
         </ul>
       )}
     </div>

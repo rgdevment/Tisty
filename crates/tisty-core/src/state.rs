@@ -401,6 +401,7 @@ impl State {
                 // would let all of it back out at once, so the mark is written down before the
                 // anchor goes — here, where a delete arriving from another machine lands too.
                 let away = self.folder_away(*id);
+                let gone = self.folders.get(id).map(|one| one.name.clone());
                 self.folders.remove(id);
                 self.tombstones.insert(*id);
                 let orphaned: Vec<FolderId> = self
@@ -419,6 +420,9 @@ impl State {
                     if doc.folder == Some(*id) {
                         doc.folder = None;
                         doc.archived = doc.archived || away;
+                        if doc.archived {
+                            doc.folder_was = gone.clone();
+                        }
                     }
                 }
             }
@@ -457,6 +461,8 @@ impl State {
                                 .and_then(|one| one.tags.clone())
                                 .unwrap_or_default(),
                         ),
+                        flagged: None,
+                        folder_was: None,
                     },
                 );
             }
@@ -520,6 +526,7 @@ impl State {
                     && doc.page_of.is_none()
                 {
                     doc.folder = folder;
+                    doc.folder_was = None;
                 }
                 // Pages live where their document lives, and follow it without being told.
                 if let Some(under) = self.docs.get(id).filter(|one| one.page_of.is_none()) {
@@ -568,7 +575,28 @@ impl State {
             Op::DocArchive { id } => self.shelve(*id, true),
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
-            Op::DocUnarchive { id } => self.shelve(*id, false),
+            Op::DocUnarchive { id } => {
+                self.shelve(*id, false);
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.folder_was = None;
+                }
+            }
+            Op::DocFlag { id, d } => {
+                let said = crate::model::Flagged {
+                    at: d.at.unwrap_or(event.timestamp),
+                    by: d.by.clone().unwrap_or_else(|| event.device.clone()),
+                    body: d.body.clone(),
+                    via: d.via.clone().or_else(|| event.via.clone()),
+                };
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.flagged = Some(said);
+                }
+            }
+            Op::DocUnflag { id } => {
+                if let Some(doc) = self.docs.get_mut(id) {
+                    doc.flagged = None;
+                }
+            }
             Op::DeviceJoin { d, k } => {
                 self.dropped.remove(d);
                 self.devices.insert(d.clone());
@@ -5569,6 +5597,85 @@ mod tests {
 
         assert!(state.docs.contains_key(&minutes));
         assert!(!state.docs.contains_key(&march));
+    }
+
+    #[test]
+    fn what_an_assistant_marked_carries_the_hand_that_said_it() {
+        let mut state = State::default();
+        let one = doc(&mut state, "a3f1-0001", None);
+
+        let mut said = ev(
+            2,
+            "dev_agent",
+            Op::DocFlag {
+                id: one,
+                d: crate::event::Flag::new("the beta channel was retired"),
+            },
+        );
+        said.via = Some("claude-code".into());
+        state.apply(&said);
+
+        let mark = state.docs[&one].flagged.clone().expect("the mark was lost");
+        assert_eq!(mark.by, DeviceId("dev_agent".into()));
+        assert_eq!(mark.via.as_deref(), Some("claude-code"));
+        assert_eq!(mark.body, "the beta channel was retired");
+
+        state.apply(&ev(3, "dev_laptop", Op::DocUnflag { id: one }));
+        assert!(state.docs[&one].flagged.is_none(), "the person took it off");
+    }
+
+    #[test]
+    fn a_document_in_the_archive_remembers_the_folder_that_was_deleted_under_it() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+
+        state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
+
+        assert_eq!(state.docs[&one].folder, None);
+        assert_eq!(state.docs[&one].folder_was.as_deref(), Some("work"));
+    }
+
+    #[test]
+    fn the_trace_of_a_deleted_folder_goes_when_the_document_lands_somewhere() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+        state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
+        let home = folder(&mut state, "home", None);
+
+        state.apply(&ev(4, "a", Op::DocUnarchive { id: one }));
+        assert_eq!(state.docs[&one].folder_was, None);
+
+        state.apply(&ev(5, "a", Op::DocArchive { id: one }));
+        moved(
+            &mut state,
+            one,
+            crate::event::Filed {
+                folder: Some(Some(home)),
+                page_of: None,
+                order: None,
+            },
+        );
+        assert_eq!(state.docs[&one].folder, Some(home));
+        assert_eq!(state.docs[&one].folder_was, None);
+    }
+
+    #[test]
+    fn a_document_out_of_the_archive_when_its_folder_went_keeps_no_trace() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let one = doc(&mut state, "a3f1-0001", Some(work));
+
+        state.apply(&ev(2, "a", Op::FolderDelete { id: work }));
+
+        assert_eq!(state.docs[&one].folder, None);
+        assert_eq!(
+            state.docs[&one].folder_was, None,
+            "it is out in the open, where the tree already says it has no folder"
+        );
     }
 
     #[test]

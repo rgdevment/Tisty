@@ -766,6 +766,12 @@ export interface Folded {
 
 export type Paper = "a4" | "letter" | "tabloid";
 
+export interface Marked {
+  at: string;
+  said: string;
+  via?: string | null;
+}
+
 export interface Filed {
   id: string;
   file: string;
@@ -783,6 +789,8 @@ export interface Filed {
   gone?: boolean;
   guest?: string | null;
   tags?: string[];
+  flagged?: Marked | null;
+  folderWas?: string | null;
 }
 
 export interface Papers {
@@ -822,7 +830,7 @@ export const folderAdd = (
   parent?: string,
   icon?: string,
   color?: string,
-): Promise<void> => invoke("folder_add", { name, parent, icon, color });
+): Promise<string> => invoke("folder_add", { name, parent, icon, color });
 export const folderRename = (id: string, name: string): Promise<void> =>
   invoke("folder_rename", { id, name });
 export const folderLook = (id: string, icon?: string, color?: string): Promise<void> =>
@@ -848,6 +856,7 @@ export const folderAway = (id: string, away: boolean): Promise<void> =>
   invoke("folder_away", { id, away });
 export const docLock = (id: string, shut: boolean): Promise<void> =>
   invoke("doc_lock", { id, shut });
+export const docUnflag = (id: string): Promise<void> => invoke("doc_unflag", { id });
 
 export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 

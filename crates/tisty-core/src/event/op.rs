@@ -67,6 +67,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.delete",
     "doc.archive",
     "doc.unarchive",
+    "doc.flag",
+    "doc.unflag",
     "doc.lock",
     "doc.unlock",
     "doc.signed",
@@ -169,6 +171,10 @@ pub enum Op {
     DocArchive { id: DocId },
     #[serde(rename = "doc.unarchive")]
     DocUnarchive { id: DocId },
+    #[serde(rename = "doc.flag")]
+    DocFlag { id: DocId, d: Flag },
+    #[serde(rename = "doc.unflag")]
+    DocUnflag { id: DocId },
     #[serde(rename = "doc.lock")]
     DocLock { id: DocId },
     #[serde(rename = "doc.unlock")]
@@ -233,6 +239,8 @@ impl Op {
         matches!(
             self,
             Op::DocSaid { .. }
+                | Op::DocFlag { .. }
+                | Op::DocUnflag { .. }
                 | Op::Signed { .. }
                 | Op::DocSigned { .. }
                 | Op::DeviceHost { .. }
@@ -250,7 +258,11 @@ impl Op {
     pub fn is_optional(&self) -> bool {
         matches!(
             self,
-            Op::DocSaid { .. } | Op::Signed { .. } | Op::DeviceHost { .. }
+            Op::DocSaid { .. }
+                | Op::Signed { .. }
+                | Op::DeviceHost { .. }
+                | Op::DocFlag { .. }
+                | Op::DocUnflag { .. }
         )
     }
 
@@ -295,6 +307,8 @@ impl Op {
             Op::DocSigned { d, .. } => Op::DocSigned { id, d },
             Op::DocDelete { .. } => Op::DocDelete { id },
             Op::DocArchive { .. } => Op::DocArchive { id },
+            Op::DocFlag { d, .. } => Op::DocFlag { id, d },
+            Op::DocUnflag { .. } => Op::DocUnflag { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },
             Op::DocUnlock { .. } => Op::DocUnlock { id },
@@ -332,6 +346,10 @@ impl Op {
             Op::TaskLogEdit { id, mut d } => {
                 d.body = one(d.body);
                 Op::TaskLogEdit { id, d }
+            }
+            Op::DocFlag { id, mut d } => {
+                d.body = one(d.body);
+                Op::DocFlag { id, d }
             }
             Op::StepAdd { id, mut d } => {
                 d.text = one(d.text);
@@ -421,6 +439,8 @@ impl Op {
             | Op::DocDelete { id }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id }
+            | Op::DocFlag { id, .. }
+            | Op::DocUnflag { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
@@ -576,6 +596,39 @@ impl Resolve {
     pub fn new(entry: LogId) -> Self {
         Self {
             entry,
+            at: None,
+            by: None,
+            via: None,
+        }
+    }
+
+    pub fn said_by(mut self, at: jiff::Timestamp, by: DeviceId) -> Self {
+        self.at = Some(at);
+        self.by = Some(by);
+        self
+    }
+
+    pub fn through(mut self, via: Option<String>) -> Self {
+        self.via = via;
+        self
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Flag {
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
+}
+
+impl Flag {
+    pub fn new(body: impl Into<String>) -> Self {
+        Self {
+            body: body.into(),
             at: None,
             by: None,
             via: None,

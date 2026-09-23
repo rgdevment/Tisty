@@ -286,6 +286,24 @@ fn where_an_agent_lives_is_a_line_an_older_build_and_undo_both_walk_past() {
 }
 
 #[test]
+fn what_an_assistant_says_about_a_document_is_a_line_an_older_build_walks_past() {
+    let marked = tisty_core::Op::DocFlag {
+        id: ulid::Ulid::generate(),
+        d: tisty_core::event::Flag::new("it has had its day"),
+    };
+    let taken_off = tisty_core::Op::DocUnflag {
+        id: ulid::Ulid::generate(),
+    };
+
+    assert!(marked.is_optional(), "an older build would choke on it");
+    assert!(taken_off.is_optional(), "an older build would choke on it");
+    assert!(
+        marked.settles() && taken_off.settles(),
+        "without this, undo stops at a mark that changes nothing"
+    );
+}
+
+#[test]
 fn neither_word_about_a_task_being_done_settles_by_itself() {
     let said = tisty_core::Op::TaskResolve {
         id: ulid::Ulid::generate(),

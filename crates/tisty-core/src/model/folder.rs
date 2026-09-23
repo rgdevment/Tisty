@@ -41,6 +41,15 @@ impl Folder {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Flagged {
+    pub at: jiff::Timestamp,
+    pub by: crate::event::DeviceId,
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Kept {
     pub id: DocId,
     pub file: String,
@@ -75,6 +84,10 @@ pub struct Kept {
     pub locked: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<crate::model::Tag>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flagged: Option<Flagged>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder_was: Option<String>,
 }
 
 #[cfg(test)]
@@ -110,6 +123,8 @@ mod tests {
             archived: false,
             locked: false,
             edited_by: None,
+            flagged: None,
+            folder_was: None,
         };
         let json = serde_json::to_string(&kept).unwrap();
 

@@ -3088,6 +3088,19 @@ struct Filed {
     #[serde(skip_serializing_if = "Option::is_none")]
     guest: Option<String>,
     page_of: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    flagged: Option<Marked>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    folder_was: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Marked {
+    at: String,
+    said: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    via: Option<String>,
 }
 
 const CATCHING_UP_AT_ONCE: usize = 500;
@@ -3188,6 +3201,12 @@ fn gathered(session: &Session) -> Vec<Filed> {
             guest: kept.guest.then(|| kept.by.clone().unwrap_or_default()),
             page_of: kept.page_of.map(|up| up.to_string()),
             tags: kept.tags.iter().map(|one| one.to_string()).collect(),
+            flagged: kept.flagged.as_ref().map(|mark| Marked {
+                at: mark.at.to_string(),
+                said: mark.body.clone(),
+                via: mark.via.clone(),
+            }),
+            folder_was: kept.folder_was.clone(),
         })
         .collect()
 }
@@ -3265,7 +3284,7 @@ fn folder_add(
     parent: Option<String>,
     icon: Option<String>,
     color: Option<String>,
-) -> Answer<()> {
+) -> Answer<String> {
     let name = named_folder(&name)?;
     let parent = parent
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
@@ -3296,8 +3315,9 @@ fn folder_add(
             .iter()
             .map(|one| one.order.as_str()),
     );
+    let id = ulid::Ulid::generate();
     session.commit(Op::FolderAdd {
-        id: ulid::Ulid::generate(),
+        id,
         d: tisty_core::event::FolderAdd {
             name,
             order,
@@ -3306,7 +3326,7 @@ fn folder_add(
             color: painted,
         },
     })?;
-    Ok(())
+    Ok(id.to_string())
 }
 
 #[tauri::command]
@@ -4280,6 +4300,19 @@ fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -
     } else {
         Op::DocUnarchive { id }
     })?;
+    Ok(())
+}
+
+#[tauri::command]
+fn doc_unflag(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let mut session = held(&session);
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if one.flagged.is_none() => return Ok(()),
+        Some(_) => {}
+    }
+    session.commit(Op::DocUnflag { id })?;
     Ok(())
 }
 
@@ -7354,6 +7387,7 @@ pub fn run() {
             doc_let_go,
             retire_attachments,
             doc_away,
+            doc_unflag,
             folder_away,
             doc_lock,
             parted,

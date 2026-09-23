@@ -1,9 +1,9 @@
 mod op;
 
 pub use op::{
-    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, FolderAdd, KNOWN_OPS, ListAdd, LogAdd, LogEdit,
-    Look, Name, Op, Resolve, Said, Signature, StepAdd, StepRef, StepReorder, StepText, Stitch,
-    TaskAdd, TaskMove, TaskPatch,
+    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, Flag, FolderAdd, KNOWN_OPS, ListAdd, LogAdd,
+    LogEdit, Look, Name, Op, Resolve, Said, Signature, StepAdd, StepRef, StepReorder, StepText,
+    Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -121,6 +121,8 @@ impl Event {
             | Op::DocSigned { id, .. }
             | Op::DocArchive { id }
             | Op::DocUnarchive { id }
+            | Op::DocFlag { id, .. }
+            | Op::DocUnflag { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }

@@ -250,6 +250,8 @@ mod tests {
             locked: false,
             tags: vec![Tag::new("legal").unwrap()],
             edited_by: None,
+            flagged: None,
+            folder_was: None,
         };
 
         let same = crate::event::Said {
