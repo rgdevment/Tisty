@@ -90,6 +90,21 @@ jobs:
             exit 1
           fi
 
+      # The suite runs once, in one locale, because no test reads the ambient one: every
+      # spawn of the binary pins it. A spawn that forgot would test the runner, not the code.
+      - name: A spawned binary is never left the runner's language
+        run: |
+          status=0
+          for at in $(grep -ral 'CARGO_BIN_EXE_tisty' crates/tisty-cli/tests); do
+            spawns=$(grep -ac 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at")
+            pinned=$(grep -aA9 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at"               | grep -cE 'env_clear\(\)|env_remove\("LC_ALL"\)')
+            if [ "$spawns" != "$pinned" ]; then
+              echo "::error::$at spawns the binary $spawns time(s) and pins the language $pinned"
+              status=1
+            fi
+          done
+          exit $status
+
       - name: Both languages carry the same documents
         run: |
           same() {
