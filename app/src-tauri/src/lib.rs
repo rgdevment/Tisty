@@ -2551,12 +2551,26 @@ async fn update_ready(
         if !asked && !update::due(last, now) {
             return Ok(last_said());
         }
-        let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window))
+        let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
             .await
             .unwrap_or(shop::Shelf::Silent);
         return match shelf {
             shop::Shelf::Waiting(version) => {
                 let seen = update::from_the_shop(&version, HERE);
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = seen.as_ref().map(|one| one.version.clone());
+                    c.found_in_the_shop = seen.as_ref().map(|_| true);
+                })?;
+                Ok(seen)
+            }
+            // Already down and waiting for this window to close: there is nothing to fetch, so
+            // it is announced without the button that would ask the Store for it again.
+            shop::Shelf::Landed(version) => {
+                let seen = update::from_the_shop(&version, HERE).map(|one| update::Ready {
+                    installs: false,
+                    ..one
+                });
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
                     c.found_version = seen.as_ref().map(|one| one.version.clone());

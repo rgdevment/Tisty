@@ -1101,6 +1101,7 @@ const en = {
   lookNow: "Check for updates",
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
+  updateLanded: "It is already on this machine and takes over when you close Tisty",
   lookNowNoneStore:
     "The Microsoft Store has nothing newer for this copy right now. It is asked again at every launch and every few hours, and brings the update here when it has it",
   agentsTitle: "Tisty has no AI inside it",
@@ -2425,6 +2426,7 @@ const es: Catalog = {
   lookNow: "Buscar actualizaciones",
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",
+  updateLanded: "Ya está en esta máquina y entra cuando cierres Tisty",
   lookNowNoneStore:
     "La Microsoft Store no tiene nada más nuevo para esta copia ahora mismo. Se le vuelve a preguntar en cada arranque y cada pocas horas, y trae la actualización aquí cuando la tiene",
   agentsTitle: "Tisty no lleva IA dentro",
