@@ -43,4 +43,5 @@ runs:
       with:
         name: cli-${{ inputs.name }}
         path: dist/*
+        if-no-files-found: error
         retention-days: 5

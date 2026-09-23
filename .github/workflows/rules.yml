@@ -25,11 +25,18 @@ jobs:
 
       # A workflow that will not parse fails in no time at all, with no job and no line number, and
       # the one that matters is the release: it is only ever run when a tag is already pushed.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+
       - name: The workflows parse
         run: |
           set -euo pipefail
           for one in .github/workflows/*.yml; do
-            if ! npx --yes js-yaml@4.1.0 "$one" > /dev/null; then
+            if ! npx --no-install js-yaml "$one" > /dev/null; then
               echo "::error::$one is not valid YAML, so whatever it runs will not run"
               exit 1
             fi
@@ -90,6 +97,21 @@ jobs:
             exit 1
           fi
 
+      # The suite runs once, in one locale, because no test reads the ambient one: every
+      # spawn of the binary pins it. A spawn that forgot would test the runner, not the code.
+      - name: A spawned binary is never left the runner's language
+        run: |
+          status=0
+          for at in $(grep -ral 'CARGO_BIN_EXE_tisty' crates/tisty-cli/tests); do
+            spawns=$(grep -ac 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at")
+            pinned=$(grep -aA9 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at"               | grep -cE 'env_clear\(\)|env_remove\("LC_ALL"\)')
+            if [ "$spawns" != "$pinned" ]; then
+              echo "::error::$at spawns the binary $spawns time(s) and pins the language $pinned"
+              status=1
+            fi
+          done
+          exit $status
+
       - name: Both languages carry the same documents
         run: |
           same() {
@@ -105,8 +127,8 @@ jobs:
           same README.md README.es.md
           same app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md
 
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: ${{ github.ref == 'refs/heads/main' }}

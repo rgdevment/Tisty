@@ -24,6 +24,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   BUILD_MACOS: "true"
+  PUBLISHER: v1.8.1
+  PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
   # The command line ships inside the app as the assistant's door; the loose binary and its
   # formula are built only when a release has a reason to (a fix for whoever installed
   # only that). Set the repository variable SHIP_CLI to "true" for that tag.
@@ -33,7 +35,7 @@ jobs:
   gate:
     name: Style and prose
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -45,6 +47,49 @@ jobs:
             app/package-lock.json
       - run: npm ci
       - run: npm run lint:md
+      # Nothing here runs the suite, and a tag can be put on any commit. The one that reached
+      # main was already tested there; a tag on anything else has no such claim behind it.
+      - name: This commit was tested when it landed
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for attempt in $(seq 1 40); do
+            said=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --event push \
+              --limit 1 --json status,conclusion \
+              --jq 'if length == 0 then "" else .[0] | "\(.status) \(.conclusion)" end'               2>/dev/null || echo "")
+            case "$said" in
+              "completed success")
+                echo "the commit this tag names passed CI on main"
+                exit 0
+                ;;
+              "completed "*)
+                echo "::error::CI on ${GITHUB_SHA:0:8} ended ${said#completed }, so this tag is \
+                  not a release"
+                exit 1
+                ;;
+              "")
+                echo "no CI run for ${GITHUB_SHA:0:8} yet (${attempt}/40)"
+                sleep 30
+                ;;
+              *)
+                echo "CI on ${GITHUB_SHA:0:8} is still running (${attempt}/40)"
+                sleep 30
+                ;;
+            esac
+          done
+          echo "::error::twenty minutes and CI on ${GITHUB_SHA:0:8} has not finished, or never \
+            ran: a tag belongs on a commit that reached main and was tested there"
+          exit 1
+
+      # The registry has rules of its own — a description over 100 characters is the one
+      # that bites — and finding out after the release is announced is too late.
+      - name: Would the registry take this listing
+        run: |
+          curl -sSL --fail -o publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum --check --strict
+          tar xzf publisher.tar.gz mcp-publisher
+          ./mcp-publisher validate
       - name: Frontend style
         working-directory: app
         run: |
@@ -59,10 +104,10 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: false
@@ -83,47 +128,71 @@ jobs:
       macos: ${{ steps.resolve.outputs.macos }}
       cli: ${{ steps.resolve.outputs.cli }}
     env:
-      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
-      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+      HAS_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      HAS_P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
+      HAS_APPLE_ID: ${{ secrets.APPLE_ID != '' }}
+      HAS_APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD != '' }}
+      HAS_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
+      HAS_APPLE_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+      HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+      HAS_UPDATER_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
+      HAS_PFX: ${{ secrets.PFX_BASE64 != '' }}
+      HAS_PFX_PASSWORD: ${{ secrets.PFX_PASSWORD != '' }}
     steps:
       - name: Signing secrets come in pairs
         run: |
           fail() { echo "::error::$1"; exit 1; }
 
-          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+          if [ "$HAS_P12" = "true" ] && [ "$HAS_P12_PASSWORD" != "true" ]; then
             fail "MACOS_CERTIFICATE_P12 is set but MACOS_CERTIFICATE_PASSWORD is empty"
           fi
-          if [ -n "$PFX_BASE64" ] && [ -z "$PFX_PASSWORD" ]; then
+          if [ "$HAS_PFX" = "true" ] && [ "$HAS_PFX_PASSWORD" != "true" ]; then
             fail "PFX_BASE64 is set but PFX_PASSWORD is empty"
           fi
-          if [ -n "$APPLE_ID" ] && { [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
+          if [ "$HAS_APPLE_ID" = "true" ] &&
+            { [ "$HAS_APPLE_APP_PASSWORD" != "true" ] || [ "$HAS_APPLE_TEAM_ID" != "true" ]; }; then
             fail "APPLE_ID is set but APPLE_APP_PASSWORD or APPLE_TEAM_ID is empty"
           fi
-          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+          if [ "$HAS_P12" = "true" ] && [ "$HAS_APPLE_IDENTITY" != "true" ]; then
             fail "MACOS_CERTIFICATE_P12 is set but APPLE_SIGNING_IDENTITY is empty: the app would be bundled unsigned"
           fi
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+          if [ "$HAS_UPDATER_KEY" = "true" ] && [ "$HAS_UPDATER_PASSWORD" != "true" ]; then
             fail "TAURI_SIGNING_PRIVATE_KEY is set but its password is empty"
           fi
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+          if [ "$HAS_UPDATER_KEY" != "true" ]; then
             echo "::warning::no updater key; this release cannot be installed by an existing copy"
           fi
+
+          # A dispatch may go unsigned, it publishes nothing. A tag is what people install, and
+          # an empty secret there ships a build nobody can install and nobody can check.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            missing=""
+            want() { [ "$2" = "true" ] || missing="$missing $1"; }
+            want TAURI_SIGNING_PRIVATE_KEY "$HAS_UPDATER_KEY"
+            want TAURI_SIGNING_PRIVATE_KEY_PASSWORD "$HAS_UPDATER_PASSWORD"
+            want PFX_BASE64 "$HAS_PFX"
+            want PFX_PASSWORD "$HAS_PFX_PASSWORD"
+            if [ "$BUILD_MACOS" = "true" ]; then
+              want MACOS_CERTIFICATE_P12 "$HAS_P12"
+              want MACOS_CERTIFICATE_PASSWORD "$HAS_P12_PASSWORD"
+              want APPLE_SIGNING_IDENTITY "$HAS_APPLE_IDENTITY"
+              want APPLE_ID "$HAS_APPLE_ID"
+              want APPLE_APP_PASSWORD "$HAS_APPLE_APP_PASSWORD"
+              want APPLE_TEAM_ID "$HAS_APPLE_TEAM_ID"
+            fi
+            [ -z "$missing" ] || fail "this tag would be released without:$missing"
+          fi
+
           echo "signing secrets are coherent"
 
       - id: resolve
+        env:
+          ASKED_FOR: ${{ inputs.version }}
         run: |
           if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
             version="${BASH_REMATCH[1]}"
           else
-            version="${{ inputs.version }}"
+            version="$ASKED_FOR"
           fi
 
           # Semver's own grammar, not an approximation of it: a version this lets through and
@@ -180,8 +249,8 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --release --bin tisty --target aarch64-apple-darwin
-          cargo build --release --bin tisty --target x86_64-apple-darwin
+          cargo build --release --locked --bin tisty --target aarch64-apple-darwin
+          cargo build --release --locked --bin tisty --target x86_64-apple-darwin
 
           mkdir -p "target/$TARGET/release"
           lipo -create -output "target/$TARGET/release/tisty" \
@@ -242,7 +311,12 @@ jobs:
           xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" --wait --timeout 600
-          spctl --assess --type exec -vv "$BIN" || true
+          # A bare executable cannot be stapled, so a refusal here is expected, not a break.
+          if spctl --assess --type exec -vv "$BIN" 2>&1; then
+            echo "Gatekeeper accepts it"
+          else
+            echo "::notice::Gatekeeper would not assess the loose binary: notarised but not stapled, which is what an executable that is not an app gets"
+          fi
 
       - name: Cleanup keychain
         if: always() && env.KEYCHAIN_PATH != ''
@@ -274,7 +348,7 @@ jobs:
 
       - name: Build
         shell: bash
-        run: cargo build --release --bin tisty --target "$TARGET"
+        run: cargo build --release --locked --bin tisty --target "$TARGET"
 
       - name: Sign executable
         if: env.PFX_BASE64 != ''
@@ -356,23 +430,55 @@ jobs:
       - name: The CLI rides along
         shell: bash
         run: |
-          cargo build --release --bin tisty
+          cargo build --release --locked --bin tisty
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
 
-      # A public key in the config makes the private one a build requirement, so a run without the
-      # secret has to say so rather than fail on a line about an environment variable.
+      # `tauri build` compiles and packs in one step, so what ends up inside the installer can
+      # only be signed by the bundler. The certificate goes to the store and the command picks it
+      # by thumbprint: no password on a command line. Merged in, never in the config file — a
+      # build without the certificate must not fail on a command it cannot run.
+      - name: Teach the bundler to sign what it packs
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "bundler.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
+          try {
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            $cert = @(Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said)[0]
+          } finally {
+            Remove-Item $pfx -ErrorAction SilentlyContinue
+          }
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+            -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -match "x64" } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+          @{ bundle = @{ windows = @{ signCommand = @{
+            cmd = $signtool.FullName
+            args = @("sign", "/sha1", $cert.Thumbprint, "/fd", "sha256",
+              "/tr", "http://timestamp.digicert.com", "/td", "sha256", "%1")
+          } } } } | ConvertTo-Json -Depth 8 | Set-Content -Path app/sign.json -Encoding utf8
+          Write-Host "the bundler signs with $($cert.Thumbprint)"
+
+      # A public key in the config makes the private one a build requirement, so a run without
+      # the secret has to say so rather than fail on a line about an environment variable.
       - name: Bundle
         working-directory: app
         shell: bash
         run: |
           sign=""
           if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
-          npm run tauri build -- --bundles nsis $sign
+          packs=""
+          if [ -f sign.json ]; then packs="--config sign.json"; fi
+          npm run tauri build -- --bundles nsis $sign $packs
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
-        id: stage
         shell: bash
         run: |
           mkdir -p stage/cli
@@ -381,6 +487,74 @@ jobs:
           if [ -d target/release/resources ]; then
             cp -R target/release/resources stage/resources
           fi
+
+      # Microsoft signs the package it ingests, not what is inside it: unsigned here is unsigned
+      # on the machine that installs it.
+      - name: Sign what the MSIX will carry
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
+          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          try {
+            $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+              -Recurse -Filter "signtool.exe" |
+              Where-Object { $_.FullName -like "*x64*" } |
+              Sort-Object FullName -Descending | Select-Object -First 1
+            if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+            & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+              /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+              stage/Tisty.exe stage/cli/tisty.exe
+            if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
+          } finally {
+            Remove-Item signingCert.pfx -ErrorAction SilentlyContinue
+          }
+
+      # The bundler is handed a signing command; whether it used it is only readable in the
+      # installer it produced, so the installer is opened and what it carries is checked.
+      - name: What the installer will put on disk is signed
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -Path "target/release/bundle/nsis" -Filter "*-setup.exe" |
+            Select-Object -First 1
+          if (-not $setup) { Write-Error "no installer to open"; exit 1 }
+
+          $seven = @(
+            "C:\Program Files\7-Zip\7z.exe",
+            "C:\Program Files (x86)\7-Zip\7z.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $seven) {
+            $seven = (Get-Command 7z, 7za -ErrorAction SilentlyContinue |
+              Select-Object -First 1).Source
+          }
+          if (-not $seven) { Write-Error "no 7-Zip to open the installer with"; exit 1 }
+
+          $peek = Join-Path $env:RUNNER_TEMP "peek"
+          & $seven x $setup.FullName "-o$peek" -y | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error "the installer could not be opened"; exit 1 }
+
+          $status = 0
+          foreach ($name in "Tisty.exe", "tisty.exe") {
+            $found = Get-ChildItem -Path $peek -Recurse -Filter $name -ErrorAction SilentlyContinue
+            if (-not $found) { Write-Error "$name is not in the installer"; $status = 1; continue }
+            foreach ($one in $found) {
+              $sig = Get-AuthenticodeSignature $one.FullName
+              if ($sig.SignerCertificate) {
+                Write-Host "$($one.Name) carries $($sig.SignerCertificate.Subject)"
+              } else {
+                Write-Error "$($one.FullName) goes out unsigned"
+                $status = 1
+              }
+            }
+          }
+          exit $status
+
+      - name: What the MSIX job must find unchanged
+        id: stage
+        shell: bash
+        run: |
           echo "sha=$(cat stage/Tisty.exe stage/cli/tisty.exe | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
@@ -659,7 +833,7 @@ jobs:
             = "${{ needs.bundle-windows.outputs.stage }}"
           test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
           mkdir -p msix/Assets
-          for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
+          for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo; do
             cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
           done
           cp app/src-tauri/icons/Square44x44Logo.targetsize-*_altform-unplated.png msix/Assets/
@@ -711,6 +885,7 @@ jobs:
     needs: [version, build-macos, build-windows]
     if: >-
       !cancelled() && needs.version.outputs.cli == 'true'
+      && needs.version.outputs.prerelease == 'false'
       && needs.build-macos.result == 'success' && needs.build-windows.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -736,14 +911,18 @@ jobs:
           VERSION: ${{ needs.version.outputs.version }}
           STAGED: staged
           DIST: dist
+          REPO: ${{ github.repository }}
         run: python3 scripts/mcpb.py
 
       - uses: actions/upload-artifact@v7
         with:
           name: cli-mcpb
           path: dist/*.mcpb
+          if-no-files-found: error
           retention-days: 5
 
+  # One group per tag, not one for all of them: a queued job is cancelled when a third
+  # arrives, and a release that silently never happened is worse than one that fails loudly.
   publish:
     name: GitHub Release
     needs:
@@ -769,7 +948,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     concurrency:
-      group: release-publish
+      group: release-publish-${{ github.ref }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -811,10 +990,16 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           status=0
           want="tisty-installer-$v-windows-x86_64.exe"
+          if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
+            want="$want tisty-$v-windows-x86_64.msix"
+          fi
           if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-windows-x86_64.zip"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then
             if [ "${SHIP_CLI}" = "true" ]; then
-              want="$want tisty-cli-$v-macos-universal.tar.gz tisty-mcp-$v.mcpb"
+              want="$want tisty-cli-$v-macos-universal.tar.gz"
+              if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
+                want="$want tisty-mcp-$v.mcpb"
+              fi
             fi
             for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
@@ -839,7 +1024,7 @@ jobs:
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
-          subject-path: dist/tisty-*
+          subject-path: dist/tisty-*,dist/SHA256SUMS
 
       - name: Notes from the tag
         id: notes
@@ -847,10 +1032,11 @@ jobs:
           body=$(git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${GITHUB_REF_NAME}" \
             | sed '/-----BEGIN SSH SIGNATURE-----/,$d' \
             | sed -e :a -e '/^\n*$/{$d;N;ba}')
+          edge="TISTY_EOF_$(openssl rand -hex 8)"
           {
-            echo "body<<TISTY_EOF"
+            echo "body<<$edge"
             echo "$body"
-            echo "TISTY_EOF"
+            echo "$edge"
           } >> "$GITHUB_OUTPUT"
 
       # Asked before anything is out. Found afterwards, the release would already be published
@@ -859,6 +1045,10 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           if ! git fetch origin manifest --depth 1 2>/dev/null; then
+            if git ls-remote --exit-code --heads origin manifest >/dev/null 2>&1; then
+              echo "::error::the feed exists and could not be read, so it cannot be checked"
+              exit 1
+            fi
             echo "no feed yet"
             exit 0
           fi
@@ -1000,14 +1190,27 @@ jobs:
           fi
 
           latest=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
+          ahead=$(jq -r '.latestPrerelease // ""' release-manifest.json 2>/dev/null || echo "")
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
             jq -n --arg l "${latest:-0.0.0}" --arg c "$v" \
               '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
             [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" candidate.json
           else
-            jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
+            # A candidate of a later series is not retired by a fix to an earlier one: whoever
+            # follows that channel chose it, and nothing here decided to take them off it.
+            keep=""
+            if [ -n "$ahead" ] \
+               && [ "$(printf '%s\n%s\n' "${ahead%%-*}" "$v" | sort -V | tail -1)" != "$v" ]; then
+              keep="$ahead"
+            fi
+            if [ -n "$keep" ]; then
+              jq -n --arg l "$v" --arg c "$keep" \
+                '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
+            else
+              jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
+              rm -f candidate.json
+            fi
             [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" latest.json
-            rm -f candidate.json
           fi
           cat release-manifest.json
 
@@ -1093,6 +1296,9 @@ jobs:
               fi
             elif [ "$v" != "$mine" ] && [ "$ahead" = "$theirs" ]; then
               overtaken=yes
+            elif [ "$v" != "$mine" ] && [ "$ahead" != "$theirs" ] \
+                 && [ "$(printf "%s\n%s\n" "$v" "$ahead" | sort -V | tail -1)" = "$ahead" ]; then
+              overtaken=yes
             fi
           fi
 
@@ -1122,16 +1328,17 @@ jobs:
 
   msstore:
     name: Microsoft Store
-    needs: [version, publish, bundle-msix]
+    needs: [version, publish, verify, bundle-msix]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.bundle-msix.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
     timeout-minutes: 20
     concurrency:
-      group: release-msstore
+      group: release-msstore-${{ github.ref }}
       cancel-in-progress: false
     env:
       STORE_PUBLISH: ${{ vars.STORE_PUBLISH }}
@@ -1204,10 +1411,11 @@ jobs:
 
   registry:
     name: MCP Registry
-    needs: [version, publish]
+    needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.version.outputs.cli == 'true'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
@@ -1216,7 +1424,7 @@ jobs:
       id-token: write
       contents: read
     concurrency:
-      group: release-registry
+      group: release-registry-${{ github.ref }}
       cancel-in-progress: false
     env:
       MCP_PUBLISH: ${{ vars.MCP_PUBLISH }}
@@ -1235,43 +1443,60 @@ jobs:
       - uses: actions/checkout@v7
         if: steps.gate.outputs.go == 'yes'
 
-      - name: Point the listing at what this tag published
+      # A version is immutable once listed, so republishing a tag is a permanent red job.
+      - name: Is this version already listed
+        id: listed
         if: steps.gate.outputs.go == 'yes'
         env:
           VERSION: ${{ needs.version.outputs.version }}
-          BUNDLE: bundle.mcpb
         run: |
-          curl -sSL --fail -o bundle.mcpb             "https://github.com/rgdevment/Tisty/releases/download/v$VERSION/tisty-mcp-$VERSION.mcpb"
-          python3 scripts/listing.py
+          at="https://registry.modelcontextprotocol.io/v0.1/servers/io.github.rgdevment%2Ftisty/versions/$VERSION"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$at")
+          if [ "$code" = "200" ]; then
+            echo "::notice::the registry already carries $VERSION; nothing to send"
+            echo "go=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Point the listing at what this tag published
+        if: steps.listed.outputs.go == 'yes'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "v$VERSION" --pattern "tisty-mcp-$VERSION.mcpb" --pattern SHA256SUMS
+          # A wrong hash publishes without complaint and leaves that version uninstallable
+          # for ever, because the registry never revisits a version it already took.
+          sha256sum --check --strict --ignore-missing SHA256SUMS
+          BUNDLE="tisty-mcp-$VERSION.mcpb" REPO="$GITHUB_REPOSITORY" python3 scripts/listing.py
 
       - name: Install mcp-publisher
-        if: steps.gate.outputs.go == 'yes'
+        if: steps.listed.outputs.go == 'yes'
         run: |
-          curl -sSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz"             | tar xz mcp-publisher
-
-      # The registry refuses on its own rules, and a refusal here is cheaper than one after
-      # the tag has been announced: description length is the one that bites.
-      - name: Would the registry take it
-        if: steps.gate.outputs.go == 'yes'
-        run: ./mcp-publisher validate
+          curl -sSL --fail -o publisher.tar.gz             "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum --check --strict
+          tar xzf publisher.tar.gz mcp-publisher
 
       - name: Publish
-        if: steps.gate.outputs.go == 'yes'
+        if: steps.listed.outputs.go == 'yes'
         run: |
+          ./mcp-publisher validate
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
 
   homebrew:
     name: Homebrew tap
-    needs: [version, publish]
+    needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: release-homebrew
+      group: release-homebrew-${{ github.ref }}
       cancel-in-progress: false
     env:
       GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
@@ -1326,7 +1551,9 @@ jobs:
             echo "::warning::a disk image is missing for ${VERSION}; leaving the cask as it is"
           fi
 
-          git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/homebrew-tap.git" /tmp/tap
+          git clone https://github.com/rgdevment/homebrew-tap.git /tmp/tap
+          git -C /tmp/tap config --local http.extraheader \
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GIST_TOKEN" | base64 -w0)"
           cd /tmp/tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -1350,6 +1577,11 @@ jobs:
 
           	  conflicts_with cask: "${CASK_OTHER}"
           	  depends_on macos: :ventura
+
+          	  caveats <<~TEXT
+          	    Tisty needs macOS 13.3 or newer. Homebrew can only check for 13,
+          	    so on 13.0 to 13.2 it installs and then will not open.
+          	  TEXT
 
           	  app "Tisty.app"
 
@@ -1397,6 +1629,23 @@ jobs:
             fi
           done
 
+          # The feed retires the candidate when a stable passes it; the tap has to agree, or a
+          # channel nobody maintains goes on offering a build from months ago.
+          if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
+            beta=$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' \
+              "Casks/${CASK_OTHER}.rb" 2>/dev/null | head -1)
+            if [ -n "$beta" ] \
+               && [ "$(printf '%s\n%s\n' "${beta%%-*}" "$VERSION" | sort -V | tail -1)" \
+                    = "$VERSION" ]; then
+              for gone in "Casks/${CASK_OTHER}.rb" "Formula/${FORMULA_OTHER}.rb"; do
+                if [ -f "$gone" ]; then
+                  git rm -q "$gone"
+                  echo "retired $gone: it still offered $beta, and $VERSION passes it"
+                fi
+              done
+            fi
+          fi
+
           git add Casks Formula
           if git diff --cached --quiet; then
             echo "tap already at ${VERSION}"
@@ -1417,15 +1666,16 @@ jobs:
 
   winget:
     name: Windows Package Manager
-    needs: [version, publish]
+    needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
-      group: release-winget
+      group: release-winget-${{ github.ref }}
       cancel-in-progress: false
     env:
       WINGET_PUBLISH: ${{ vars.WINGET_PUBLISH }}

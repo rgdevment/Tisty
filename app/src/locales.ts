@@ -605,6 +605,8 @@ const en = {
   betaWarns:
     "Candidates come out before a release is finished, so they are less tested and some break. Turning this off leaves any candidate already installed where it is: the next stable release replaces it.",
   updateFailed: "The update could not be installed — {name}",
+  updateUnanswered:
+    "The Microsoft Store did not answer, so nothing is known about updates right now. What it last said still stands.",
   aboutStore: "Store",
   aboutRepo: "Open the repository",
   aboutNotices: "Third-party notices",
@@ -1909,6 +1911,8 @@ const es: Catalog = {
   betaWarns:
     "Las candidatas salen antes de que una versión esté terminada, así que están menos probadas y algunas fallan. Desactivarlo no deshace la candidata que ya tengas: la reemplaza la siguiente versión estable.",
   updateFailed: "No se pudo instalar la actualización — {name}",
+  updateUnanswered:
+    "La Microsoft Store no respondió, así que ahora mismo no se sabe nada de actualizaciones. Sigue valiendo lo último que dijo.",
   aboutStore: "Almacén",
   aboutRepo: "Abrir el repositorio",
   aboutNotices: "Avisos de terceros",
