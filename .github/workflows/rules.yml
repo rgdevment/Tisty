@@ -25,11 +25,18 @@ jobs:
 
       # A workflow that will not parse fails in no time at all, with no job and no line number, and
       # the one that matters is the release: it is only ever run when a tag is already pushed.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+
       - name: The workflows parse
         run: |
           set -euo pipefail
           for one in .github/workflows/*.yml; do
-            if ! npx --yes js-yaml@4.1.0 "$one" > /dev/null; then
+            if ! npx --no-install js-yaml "$one" > /dev/null; then
               echo "::error::$one is not valid YAML, so whatever it runs will not run"
               exit 1
             fi

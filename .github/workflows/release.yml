@@ -700,7 +700,7 @@ jobs:
             = "${{ needs.bundle-windows.outputs.stage }}"
           test "$(./msix/cli/tisty.exe --version)" = "tisty $v"
           mkdir -p msix/Assets
-          for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo Square310x310Logo; do
+          for logo in StoreLogo Square44x44Logo Square71x71Logo Square150x150Logo; do
             cp "app/src-tauri/icons/$logo.png" "msix/Assets/$logo.png"
           done
           cp app/src-tauri/icons/Square44x44Logo.targetsize-*_altform-unplated.png msix/Assets/
@@ -897,10 +897,11 @@ jobs:
           body=$(git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${GITHUB_REF_NAME}" \
             | sed '/-----BEGIN SSH SIGNATURE-----/,$d' \
             | sed -e :a -e '/^\n*$/{$d;N;ba}')
+          edge="TISTY_EOF_$(openssl rand -hex 8)"
           {
-            echo "body<<TISTY_EOF"
+            echo "body<<$edge"
             echo "$body"
-            echo "TISTY_EOF"
+            echo "$edge"
           } >> "$GITHUB_OUTPUT"
 
       # Asked before anything is out. Found afterwards, the release would already be published
@@ -909,6 +910,10 @@ jobs:
         run: |
           v="${{ needs.version.outputs.version }}"
           if ! git fetch origin manifest --depth 1 2>/dev/null; then
+            if git ls-remote --exit-code --heads origin manifest >/dev/null 2>&1; then
+              echo "::error::the feed exists and could not be read, so it cannot be checked"
+              exit 1
+            fi
             echo "no feed yet"
             exit 0
           fi
@@ -1434,6 +1439,11 @@ jobs:
 
           	  conflicts_with cask: "${CASK_OTHER}"
           	  depends_on macos: :ventura
+
+          	  caveats <<~TEXT
+          	    Tisty needs macOS 13.3 or newer. Homebrew can only check for 13,
+          	    so on 13.0 to 13.2 it installs and then will not open.
+          	  TEXT
 
           	  app "Tisty.app"
 
