@@ -163,6 +163,27 @@ jobs:
           if [ "$HAS_UPDATER_KEY" != "true" ]; then
             echo "::warning::no updater key; this release cannot be installed by an existing copy"
           fi
+
+          # A dispatch may go unsigned, it publishes nothing. A tag is what people install, and
+          # an empty secret there ships a build nobody can install and nobody can check.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            missing=""
+            want() { [ "$2" = "true" ] || missing="$missing $1"; }
+            want TAURI_SIGNING_PRIVATE_KEY "$HAS_UPDATER_KEY"
+            want TAURI_SIGNING_PRIVATE_KEY_PASSWORD "$HAS_UPDATER_PASSWORD"
+            want PFX_BASE64 "$HAS_PFX"
+            want PFX_PASSWORD "$HAS_PFX_PASSWORD"
+            if [ "$BUILD_MACOS" = "true" ]; then
+              want MACOS_CERTIFICATE_P12 "$HAS_P12"
+              want MACOS_CERTIFICATE_PASSWORD "$HAS_P12_PASSWORD"
+              want APPLE_SIGNING_IDENTITY "$HAS_APPLE_IDENTITY"
+              want APPLE_ID "$HAS_APPLE_ID"
+              want APPLE_APP_PASSWORD "$HAS_APPLE_APP_PASSWORD"
+              want APPLE_TEAM_ID "$HAS_APPLE_TEAM_ID"
+            fi
+            [ -z "$missing" ] || fail "this tag would be released without:$missing"
+          fi
+
           echo "signing secrets are coherent"
 
       - id: resolve
@@ -291,7 +312,12 @@ jobs:
           xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" --wait --timeout 600
-          spctl --assess --type exec -vv "$BIN" || true
+          # A bare executable cannot be stapled, so a refusal here is expected, not a break.
+          if spctl --assess --type exec -vv "$BIN" 2>&1; then
+            echo "Gatekeeper accepts it"
+          else
+            echo "::notice::Gatekeeper would not assess the loose binary: notarised but not stapled, which is what an executable that is not an app gets"
+          fi
 
       - name: Cleanup keychain
         if: always() && env.KEYCHAIN_PATH != ''
@@ -1197,6 +1223,9 @@ jobs:
                 overtaken=yes
               fi
             elif [ "$v" != "$mine" ] && [ "$ahead" = "$theirs" ]; then
+              overtaken=yes
+            elif [ "$v" != "$mine" ] && [ "$ahead" != "$theirs" ] \
+                 && [ "$(printf "%s\n%s\n" "$v" "$ahead" | sort -V | tail -1)" = "$ahead" ]; then
               overtaken=yes
             fi
           fi
