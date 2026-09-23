@@ -2402,3 +2402,30 @@ fn a_parcel_at_either_end_of_the_work_it_may_ask_for_is_read_rather_than_refused
         );
     }
 }
+
+#[test]
+fn a_parcel_says_what_it_is_to_somebody_who_has_never_heard_of_tisty() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let box_at = filled(&mut here);
+
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let file = std::fs::File::open(&box_at).unwrap();
+    let mut zip = zip::ZipArchive::new(file).unwrap();
+    let mut said = String::new();
+    std::io::Read::read_to_string(&mut zip.by_name("README.txt").unwrap(), &mut said).unwrap();
+
+    assert!(said.contains("ordinary zip"), "{said}");
+    assert!(said.contains("docs/"), "{said}");
+    assert!(
+        said.contains("https://github.com/rgdevment/Tisty"),
+        "{said}"
+    );
+    assert!(said.contains("zip corriente"), "{said}");
+
+    let mut there = Room::new(room.path(), "theirs");
+    let landed = there.take_in(&box_at);
+    assert_eq!((landed.docs, landed.pages, landed.folders), (3, 1, 2));
+    assert_eq!(landed.missed, 0);
+}

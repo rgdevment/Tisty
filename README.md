@@ -453,7 +453,9 @@ export it.
 folder with its pages and attachments beside it, or is exported for Tisty into a
 `.tistyx` file that also carries what Markdown cannot say: folders with their order,
 icon and colour, which document each page hangs from, what is archived, and the
-alias it was signed with. Exporting all of them asks who they
+alias it was signed with. It carries a `README.txt` as well, so whoever you hand
+it to can read the documents without Tisty and knows where to find it if they
+want the rest. Exporting all of them asks who they
 are for: open, to hand to somebody, or locked with six digits for another
 machine of your own — which is what makes them arrive there as yours rather
 than as a stranger's. Either way, not one line of the history travels inside.
