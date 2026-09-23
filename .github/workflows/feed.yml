@@ -123,7 +123,7 @@ jobs:
           if [ -n "$ahead" ]; then
             echo "the candidates' channel, announcing $ahead:"
             takes candidate.json "$ahead"
-          elif curl -fsSL -o /dev/null "$feed/candidate.json" 2>/dev/null; then
+          elif curl -fsSL -H "Cache-Control: no-cache" -o /dev/null \n            "$feed/candidate.json" 2>/dev/null; then
             echo "::error::candidate.json is still being served and the feed announces no \
                   candidate. A copy that remembers one would be sent to a version nobody is \
                   publishing any more."

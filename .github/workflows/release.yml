@@ -855,6 +855,9 @@ jobs:
           v="${{ needs.version.outputs.version }}"
           status=0
           want="tisty-installer-$v-windows-x86_64.exe"
+          if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
+            want="$want tisty-$v-windows-x86_64.msix"
+          fi
           if [ "${SHIP_CLI}" = "true" ]; then want="$want tisty-cli-$v-windows-x86_64.zip"; fi
           if [ "${BUILD_MACOS}" = "true" ]; then
             if [ "${SHIP_CLI}" = "true" ]; then
