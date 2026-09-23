@@ -35,7 +35,7 @@ jobs:
   gate:
     name: Style and prose
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -54,7 +54,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 40); do
             said=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --event push \
               --limit 1 --json status,conclusion \
               --jq 'if length == 0 then "" else .[0] | "\(.status) \(.conclusion)" end'               2>/dev/null || echo "")
@@ -69,16 +69,16 @@ jobs:
                 exit 1
                 ;;
               "")
-                echo "no CI run for ${GITHUB_SHA:0:8} yet (${attempt}/30)"
+                echo "no CI run for ${GITHUB_SHA:0:8} yet (${attempt}/40)"
                 sleep 30
                 ;;
               *)
-                echo "CI on ${GITHUB_SHA:0:8} is still running (${attempt}/30)"
+                echo "CI on ${GITHUB_SHA:0:8} is still running (${attempt}/40)"
                 sleep 30
                 ;;
             esac
           done
-          echo "::error::fifteen minutes and CI on ${GITHUB_SHA:0:8} has not finished, or never \
+          echo "::error::twenty minutes and CI on ${GITHUB_SHA:0:8} has not finished, or never \
             ran: a tag belongs on a commit that reached main and was tested there"
           exit 1
 
