@@ -707,7 +707,7 @@ export default function Docs({
             <button
               type="button"
               onClick={() => {
-                if (own && onBack) return onBack(own);
+                if (own?.archived && onBack) return onBack(own);
                 docAway(own?.id ?? "", false)
                   .then(() => onKept({ id: open.id, title: open.title }))
                   .catch((e) => onError(saidPlainly(e)));
@@ -718,7 +718,7 @@ export default function Docs({
             </button>
           </div>
         )}
-        {own?.flagged && open && !shelved && (
+        {own?.flagged && open && !shelved && !own.pageOf && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"

@@ -87,7 +87,7 @@ pub struct Kept {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flagged: Option<Flagged>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub folder_was: Option<String>,
+    pub folder_was: Option<Vec<String>>,
 }
 
 #[cfg(test)]

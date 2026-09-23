@@ -3492,8 +3492,13 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             } else {
                 ""
             };
+            let marked = if one["flagged"] == json!(true) {
+                ", marked as one that has had its day"
+            } else {
+                ""
+            };
             format!(
-                "{} — {} ({where_at}{holds}{put_away}{shut})",
+                "{} — {} ({where_at}{holds}{put_away}{shut}{marked})",
                 said(one, "doc"),
                 said(one, "title")
             )
@@ -4146,7 +4151,8 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool(
-            "marking a document needs a `body`: what makes it old and how you know. Without it              the person has only your word and nothing to weigh it against."
+            "marking a document needs a `body`: what makes it old and how you know. Without it \
+             the person has only your word and nothing to weigh it against."
                 .into(),
         ));
     };
@@ -4176,7 +4182,8 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .unwrap_or_else(|| "an assistant".to_string()),
         };
         return Err(Refused::Tool(format!(
-            "{who} already marked {which} on {}, and the person has not looked yet. Marking it              again would only say the same thing twice.",
+            "{who} already marked {which} on {}, and the person has not looked yet. Marking \
+             it again would only say the same thing twice.",
             when(already.at)
         )));
     }
@@ -4193,7 +4200,9 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Marked {which} as one that has had its day. It is untouched and still reads the              same: the person sees the mark when they open it, and archiving it, deleting it or              taking the mark off are all theirs."
+            "Marked {which} as one that has had its day. It is untouched and still reads the \
+             same: the person sees the mark when they open it, and archiving it, deleting \
+             it or taking the mark off are all theirs."
         ),
         json!({ "doc": which, "flagged": true }),
     ))
@@ -5039,9 +5048,16 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
             }
-            let said = match away {
-                true => format!("(This document is put away — the person archived it.)\n\n{part}"),
-                false => part,
+            let said = match (away, kept.flagged.as_ref()) {
+                (true, _) => {
+                    format!("(This document is put away — the person archived it.)\n\n{part}")
+                }
+                (false, Some(mark)) => format!(
+                    "(An assistant marked this as one that has had its day on {}: {})\n\n{part}",
+                    when(mark.at),
+                    mark.body
+                ),
+                (false, None) => part,
             };
             Ok(told(said, Value::Object(kept_of)))
         }
@@ -5213,7 +5229,7 @@ fn papers_matching(
     scope: tisty_core::view::Scope,
     most: usize,
 ) -> Vec<Value> {
-    let here: std::collections::HashMap<String, (bool, Option<String>)> = state
+    let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .docs
         .values()
         .filter(|one| match scope {
@@ -5227,6 +5243,7 @@ fn papers_matching(
                 (
                     state.held_away(one),
                     one.page_of.and_then(|up| named_doc(state, up)),
+                    one.flagged.is_some(),
                 ),
             )
         })
@@ -5242,13 +5259,15 @@ fn papers_matching(
     })
     .into_iter()
     .map(|one| {
-        let (archived, page_of) = here.get(&one.id).cloned().unwrap_or((false, None));
+        let (archived, page_of, flagged) =
+            here.get(&one.id).cloned().unwrap_or((false, None, false));
         json!({
             "doc": one.id,
             "title": one.title,
             "line": one.line,
             "page_of": page_of,
             "archived": archived,
+            "flagged": flagged,
         })
     })
     .collect()

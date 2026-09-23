@@ -3091,7 +3091,7 @@ struct Filed {
     #[serde(skip_serializing_if = "Option::is_none")]
     flagged: Option<Marked>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    folder_was: Option<String>,
+    folder_was: Option<Vec<String>>,
 }
 
 #[derive(serde::Serialize)]

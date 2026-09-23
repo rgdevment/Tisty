@@ -373,8 +373,19 @@ export default function Tree({
 
   const folderNamed = (id: string) => papers.folders.find((one) => one.id === id);
 
-  const pathOf = (doc: Filed): string[] =>
-    doc.folder && folderNamed(doc.folder) ? lineTo(doc.folder) : [];
+  const namesOf = (id: string) => lineTo(id).map((at) => folderNamed(at)?.name ?? "");
+
+  const sameWay = (one: string[], two: string[]) =>
+    one.length === two.length && one.every((name, at) => name === two[at]);
+
+  const pathOf = (doc: Filed): string[] => {
+    if (doc.folder && folderNamed(doc.folder)) return lineTo(doc.folder);
+    const was = doc.folderWas ?? [];
+    const again = was.length
+      ? papers.folders.find((one) => !one.away && sameWay(namesOf(one.id), was))
+      : undefined;
+    return again ? lineTo(again.id) : [];
+  };
 
   const trace = (folder: Folded, depth: number, key: string) => (
     <li key={key} className="relative opacity-55">
@@ -400,7 +411,7 @@ export default function Tree({
 
   const lost = (name: string, depth: number, key: string) => (
     <li key={key} className="relative opacity-55">
-      <div className="flex items-center rounded-md" title={t("folderTraceGone")}>
+      <div className="group/row flex items-center rounded-md" title={t("folderTraceGone")}>
         <span
           aria-hidden="true"
           className="grid h-5 w-[18px] shrink-0 place-items-center text-faint"
@@ -408,21 +419,21 @@ export default function Tree({
         >
           <Glyph name="folder" className="h-[15px] w-[15px]" />
         </span>
-        <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-[13px] text-faint italic">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 pl-1.5 text-[13px] text-faint">
           <span className="truncate">{name}</span>
-          <span className="ml-auto shrink-0 pr-1 text-[10.5px] not-italic">
-            {t("folderTraceLost")}
+          <span className="ml-auto shrink-0 pr-1 text-[10.5px] opacity-0 transition-opacity group-hover/row:opacity-100 motion-reduce:transition-none">
+            {t("folderTrace")}
           </span>
         </span>
       </div>
     </li>
   );
 
-  const shelfOf = (doc: Filed) =>
-    pathOf(doc)
-      .map((id) => folderNamed(id)?.name ?? "")
-      .concat(doc.folderWas ? [doc.folderWas] : [])
-      .join("/");
+  const shelfOf = (doc: Filed) => {
+    const path = pathOf(doc);
+    const named = path.length ? namesOf(path[path.length - 1]) : (doc.folderWas ?? []);
+    return [...named, "\u0000", ...path].join("/");
+  };
 
   const pathed = () => {
     const rows: React.ReactNode[] = [];
@@ -437,14 +448,16 @@ export default function Tree({
         drawn.add(key);
         rows.push(trace(folder, at + 1, `trace-${key}`));
       });
-      if (!path.length && doc.folderWas) {
-        const key = `lost:${doc.folderWas}`;
-        if (!drawn.has(key)) {
+      const was = doc.folderWas ?? [];
+      if (!path.length && was.length) {
+        was.forEach((name, at) => {
+          const key = `lost:${was.slice(0, at + 1).join("/")}`;
+          if (drawn.has(key)) return;
           drawn.add(key);
-          rows.push(lost(doc.folderWas, 1, `trace-${key}`));
-        }
+          rows.push(lost(name, at + 1, `trace-${key}`));
+        });
       }
-      rows.push(paper(doc, (path.length || (doc.folderWas ? 1 : 0)) + 1));
+      rows.push(paper(doc, (path.length || was.length) + 1));
     }
     return rows;
   };
@@ -523,7 +536,13 @@ export default function Tree({
             onKeyDown={(e) => typed(e, { id: doc.id, kind: "doc", name })}
             aria-keyshortcuts={shortcuts(page ? "page" : "doc")}
             onClick={tapped(() => onOpen(doc))}
-            aria-label={lifted?.id === doc.id ? fill("liftedIs", name) : name}
+            aria-label={
+              lifted?.id === doc.id
+                ? fill("liftedIs", name)
+                : doc.flagged && !doc.away
+                  ? `${name} — ${t("docFlagged")}`
+                  : name
+            }
             aria-current={open === doc.file ? "true" : undefined}
             className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] ${
               lifted?.id === doc.id ? "ring-1 ring-accent " : ""
@@ -539,7 +558,7 @@ export default function Tree({
                 ⚠
               </span>
             )}
-            {doc.flagged && (
+            {doc.flagged && !doc.away && (
               <span
                 title={
                   clientNamed(doc.flagged.via)
@@ -764,7 +783,8 @@ export default function Tree({
         onClick={() => fold("away")}
         aria-expanded={opened.has("away")}
         aria-label={t("archived")}
-        className="sticky top-[29px] z-10 flex w-full items-center gap-1.5 bg-rail px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+        style={{ top: "var(--tisty-docs-head)" }}
+        className="pinned-head sticky z-10 flex w-full items-center gap-1.5 bg-rail px-2.5 py-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
       >
         <span
           aria-hidden

@@ -46,6 +46,7 @@
   --tisty-mark-doc: rgb(88 88 100 / 0.12);
   --tisty-mark-doc-lit: rgb(88 88 100 / 0.2);
   --tisty-veil: rgb(0 0 0 / 0.28);
+  --tisty-docs-head: 30px;
   --tisty-lift: 0 4px 14px rgb(0 0 0 / 0.1), 0 1px 3px rgb(0 0 0 / 0.06);
   --tisty-lift-tall: 0 16px 44px rgb(0 0 0 / 0.16), 0 2px 8px rgb(0 0 0 / 0.08);
 }
@@ -232,6 +233,14 @@ body {
 }
 .scroller:has(.carrying) {
   overscroll-behavior-y: contain;
+}
+
+.scroller:has(.carrying) .pinned-head {
+  pointer-events: none;
+}
+
+.scroller [data-row] {
+  scroll-margin-top: 56px;
 }
 .scroller:hover {
   scrollbar-color: var(--tisty-line) transparent;

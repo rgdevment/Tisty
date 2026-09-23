@@ -484,24 +484,42 @@ export default function App() {
     setBacking(doc);
   };
 
-  const backFrom = (doc: Filed): string | null =>
-    doc.folder && papers.folders.some((one) => one.id === doc.folder)
-      ? trail(doc.folder)
-      : (doc.folderWas ?? null);
+  const backHome = (doc: Filed): string | null => {
+    if (doc.folder && papers.folders.some((one) => one.id === doc.folder)) return doc.folder;
+    const was = (doc.folderWas ?? []).join(" / ");
+    const again = was
+      ? papers.folders.find((one) => !one.away && trail(one.id) === was)
+      : undefined;
+    return again?.id ?? null;
+  };
+
+  const backFrom = (doc: Filed): string | null => {
+    const home = backHome(doc);
+    if (home) return trail(home);
+    const was = doc.folderWas ?? [];
+    return was.length ? was.join(" / ") : null;
+  };
 
   const putBack = () => {
     const doc = backing;
     if (!doc) return;
     setBacking(null);
-    const home =
-      doc.folder && papers.folders.some((one) => one.id === doc.folder) ? doc.folder : null;
-    const made =
-      backTo === "same" && !home && doc.folderWas
-        ? folderAdd(doc.folderWas)
-        : Promise.resolve(backTo === "same" ? home : backTo === "none" ? null : backTo);
+    const home = backHome(doc);
+    const lands = (): Promise<string | null> =>
+      backTo === "none"
+        ? Promise.resolve(null)
+        : backTo !== "same"
+          ? Promise.resolve(backTo)
+          : home
+            ? Promise.resolve(home)
+            : doc.folderWas?.length
+              ? folderAdd(doc.folderWas[doc.folderWas.length - 1])
+              : Promise.resolve(null);
     docAway(doc.id, false)
-      .then(() => made)
-      .then((folder) => (folder === home ? undefined : docFile(doc.id, folder ?? undefined)))
+      .then(lands)
+      .then((folder) =>
+        folder === (doc.folder ?? null) ? undefined : docFile(doc.id, folder ?? undefined),
+      )
       .then(papersChanged)
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -1300,73 +1318,98 @@ export default function App() {
           title={fill("backWhere", backing.title || t("untitledDoc"))}
           onClose={() => setBacking(null)}
         >
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
+          <p id="back-why" className="mt-3 text-[12.5px] leading-relaxed text-soft">
             {backFrom(backing) === null
               ? t("backFromNowhere")
-              : fill(
-                  backing.folder && papers.folders.some((one) => one.id === backing.folder)
-                    ? "backFrom"
-                    : "backFromGone",
-                  backFrom(backing) as string,
-                )}
+              : fill(backHome(backing) ? "backFrom" : "backFromGone", backFrom(backing) as string)}
           </p>
-          <div className="scroller mt-4 flex max-h-[248px] flex-col gap-0.5">
-            <Where
-              name="where-back"
-              value="same"
-              chosen={backTo}
-              onPick={setBackTo}
-              label={
-                backFrom(backing) === null
-                  ? t("backToNone")
-                  : fill(
-                      backing.folder && papers.folders.some((one) => one.id === backing.folder)
-                        ? "backToSame"
-                        : "backToMade",
-                      backFrom(backing) as string,
-                    )
-              }
-              hint={backFrom(backing) === null ? t("backWasHere") : undefined}
-            />
-            {backFrom(backing) !== null && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              putBack();
+            }}
+          >
+            <fieldset
+              aria-describedby="back-why"
+              className="scroller mt-4 flex max-h-[248px] flex-col gap-0.5"
+            >
+              <legend className="sr-only">{t("backWhere").replace("{name}", "")}</legend>
               <Where
                 name="where-back"
-                value="none"
+                value="same"
                 chosen={backTo}
                 onPick={setBackTo}
-                label={t("backToNone")}
-                hint={t("backAtRoot")}
+                label={
+                  backFrom(backing) === null
+                    ? t("backToNone")
+                    : backHome(backing)
+                      ? fill("backToSame", backFrom(backing) as string)
+                      : fill("backToMade", (backing.folderWas ?? []).slice(-1)[0] ?? "")
+                }
+                hint={backFrom(backing) === null ? t("backWasHere") : undefined}
               />
-            )}
-            {papers.folders
-              .filter((one) => !one.away && one.id !== backing.folder)
-              .map((one) => (
+              {backFrom(backing) !== null && (
                 <Where
-                  key={one.id}
                   name="where-back"
-                  value={one.id}
+                  value="none"
                   chosen={backTo}
                   onPick={setBackTo}
-                  label={trail(one.id)}
+                  label={t("backToNone")}
+                  hint={t("backAtRoot")}
                 />
-              ))}
-          </div>
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => setBacking(null)}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={putBack}
-              className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
-            >
-              {t("bringBack")}
-            </button>
-          </div>
+              )}
+              {papers.folders.some((one) => !one.away && one.id !== backHome(backing)) && (
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
+                  <input
+                    type="radio"
+                    name="where-back"
+                    value="other"
+                    checked={backTo !== "same" && backTo !== "none"}
+                    onChange={() => {
+                      const first = papers.folders.find(
+                        (one) => !one.away && one.id !== backHome(backing),
+                      );
+                      if (first) setBackTo(first.id);
+                    }}
+                    className="accent-accent"
+                  />
+                  <span className="shrink-0">{t("backToOther")}</span>
+                  <select
+                    aria-label={t("backToOther")}
+                    value={backTo !== "same" && backTo !== "none" ? backTo : ""}
+                    onChange={(e) => setBackTo(e.target.value)}
+                    className="ml-auto min-w-0 max-w-[60%] truncate rounded-md border border-line bg-bg px-2 py-1 text-[12.5px] text-ink"
+                  >
+                    <option value="" disabled>
+                      {t("backToOther")}
+                    </option>
+                    {papers.folders
+                      .filter((one) => !one.away && one.id !== backHome(backing))
+                      .map((one) => (
+                        <option key={one.id} value={one.id}>
+                          {trail(one.id)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+            </fieldset>
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
+              <button
+                type="button"
+                onClick={() => setBacking(null)}
+                className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="submit"
+                className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
+              >
+                {t("bringBack")}
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
 

@@ -24,7 +24,7 @@ interface FakeDoc {
   archived: boolean;
   pageOf?: string;
   flagged?: { at: string; said: string; via?: string };
-  folderWas?: string;
+  folderWas?: string[];
 }
 
 const store = vi.hoisted(() => ({
@@ -222,7 +222,10 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     }
     case "doc_away": {
       const doc = store.docs.find((one) => one.id === args.id);
-      if (doc) doc.archived = Boolean(args.away);
+      if (doc) {
+        doc.archived = Boolean(args.away);
+        if (doc.archived) doc.flagged = undefined;
+      }
       return Promise.resolve(null);
     }
     case "doc_unflag": {
@@ -385,13 +388,13 @@ async function boot() {
   unfoldAll();
 }
 
-function menuFor(rowLabel: string): HTMLElement {
+function menuFor(rowLabel: string | RegExp): HTMLElement {
   return screen.getByRole("button", { name: rowLabel }).parentElement as HTMLElement;
 }
 
 const SETTLES_LONG_ENOUGH = 900;
 
-async function chooseFor(rowLabel: string, itemLabel: string) {
+async function chooseFor(rowLabel: string | RegExp, itemLabel: string) {
   fireEvent.contextMenu(menuFor(rowLabel), { clientX: 5, clientY: 5 });
   await userEvent.click(await screen.findByRole("menuitem", { name: itemLabel }));
 }
@@ -515,13 +518,43 @@ describe("archiving and bringing back a document", () => {
     expect(screen.getByRole("button", { name: "Work" })).toBeTruthy();
   });
 
+  it("hangs the document from the folder that was made again under the same name", async () => {
+    const folder = seedFolder({ name: "Packaging" });
+    const doc = seedDoc({ title: "Report", archived: true, folderWas: ["Packaging"] });
+    await boot();
+
+    await chooseFor("Report", t("bringBack"));
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
+    );
+
+    await waitFor(() =>
+      expect(store.docs.find((one) => one.id === doc.id)?.folder).toBe(folder.id),
+    );
+    expect(store.folders.filter((one) => one.name === "Packaging")).toHaveLength(1);
+  });
+
+  it("takes the agent's mark off a document the person puts away", async () => {
+    const doc = seedDoc({
+      title: "Handover",
+      flagged: { at: "2026-09-23T10:00:00Z", said: "The beta channel was retired." },
+    });
+    await boot();
+
+    await chooseFor(/^Handover/, t("putAway"));
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === doc.id)?.archived).toBe(true));
+    unfoldAll();
+    const shelf = within(screen.getByRole("list", { name: t("archived") }));
+    expect(shelf.queryByTitle(t("docFlagged"))).toBeNull();
+  });
+
   it("offers to make the folder again when it went while the document waited", async () => {
-    const doc = seedDoc({ title: "Report", archived: true, folderWas: "Packaging" });
+    const doc = seedDoc({ title: "Report", archived: true, folderWas: ["Packaging"] });
     await boot();
 
     const shelf = within(screen.getByRole("list", { name: t("archived") }));
     expect(shelf.getByText("Packaging")).toBeTruthy();
-    expect(shelf.getByText(t("folderTraceLost"))).toBeTruthy();
 
     await chooseFor("Report", t("bringBack"));
     await userEvent.click(
@@ -544,10 +577,10 @@ describe("what an agent says about a document", () => {
     });
     await boot();
 
-    const row = screen.getByRole("button", { name: "Handover" }).parentElement as HTMLElement;
+    const row = screen.getByRole("button", { name: /^Handover/ }).parentElement as HTMLElement;
     expect(within(row).getByTitle(t("docFlagged"))).toBeTruthy();
     const branch = screen.getByRole("button", { name: "Work" }).closest("li") as HTMLElement;
-    expect(within(branch).getByRole("button", { name: "Handover" })).toBeTruthy();
+    expect(within(branch).getByRole("button", { name: /^Handover/ })).toBeTruthy();
   });
 
   it("says what the agent said, and takes the mark off without touching the document", async () => {
@@ -557,7 +590,7 @@ describe("what an agent says about a document", () => {
     });
     await boot();
 
-    await userEvent.click(screen.getByRole("button", { name: "Handover" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Handover/ }));
     expect(await screen.findByText("The beta channel was retired.")).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: t("unflagIt") }));
@@ -575,7 +608,7 @@ describe("what an agent says about a document", () => {
     });
     await boot();
 
-    await userEvent.click(screen.getByRole("button", { name: "Handover" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Handover/ }));
     await screen.findByTestId("editor");
     await userEvent.click(
       within(screen.getByRole("main")).getByRole("button", { name: t("putAway") }),

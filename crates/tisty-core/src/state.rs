@@ -155,6 +155,20 @@ impl State {
         }
     }
 
+    fn named_trail(&self, at: FolderId) -> Option<Vec<String>> {
+        let mut names = Vec::new();
+        let mut up = Some(at);
+        while let Some(id) = up {
+            let folder = self.folders.get(&id)?;
+            names.insert(0, folder.name.clone());
+            up = folder.parent;
+            if names.len() > crate::model::DEEPEST {
+                break;
+            }
+        }
+        Some(names)
+    }
+
     fn shelve(&mut self, id: DocId, away: bool) {
         if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
             return;
@@ -168,6 +182,9 @@ impl State {
         for one in pages.into_iter().chain(std::iter::once(id)) {
             if let Some(doc) = self.docs.get_mut(&one) {
                 doc.archived = away;
+                if !away {
+                    doc.folder_was = None;
+                }
             }
         }
     }
@@ -401,7 +418,7 @@ impl State {
                 // would let all of it back out at once, so the mark is written down before the
                 // anchor goes — here, where a delete arriving from another machine lands too.
                 let away = self.folder_away(*id);
-                let gone = self.folders.get(id).map(|one| one.name.clone());
+                let gone = self.named_trail(*id);
                 self.folders.remove(id);
                 self.tombstones.insert(*id);
                 let orphaned: Vec<FolderId> = self
@@ -510,6 +527,8 @@ impl State {
                             if let Some((folder, archived)) = under {
                                 doc.folder = folder;
                                 doc.archived = archived;
+                                doc.folder_was = None;
+                                doc.flagged = None;
                                 doc.locked = false;
                                 doc.order = beside.unwrap_or_else(|| doc.order.clone());
                             }
@@ -534,6 +553,7 @@ impl State {
                     for one in self.docs.values_mut() {
                         if one.page_of == Some(parent) {
                             one.folder = folder;
+                            one.folder_was = None;
                         }
                     }
                 }
@@ -572,15 +592,15 @@ impl State {
             }
             Op::FolderArchive { id } => self.shelf(*id, true),
             Op::FolderUnarchive { id } => self.shelf(*id, false),
-            Op::DocArchive { id } => self.shelve(*id, true),
-            Op::DocLock { id } => self.bolt(*id, true),
-            Op::DocUnlock { id } => self.bolt(*id, false),
-            Op::DocUnarchive { id } => {
-                self.shelve(*id, false);
+            Op::DocArchive { id } => {
+                self.shelve(*id, true);
                 if let Some(doc) = self.docs.get_mut(id) {
-                    doc.folder_was = None;
+                    doc.flagged = None;
                 }
             }
+            Op::DocLock { id } => self.bolt(*id, true),
+            Op::DocUnlock { id } => self.bolt(*id, false),
+            Op::DocUnarchive { id } => self.shelve(*id, false),
             Op::DocFlag { id, d } => {
                 let said = crate::model::Flagged {
                     at: d.at.unwrap_or(event.timestamp),
@@ -5634,7 +5654,74 @@ mod tests {
         state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
 
         assert_eq!(state.docs[&one].folder, None);
-        assert_eq!(state.docs[&one].folder_was.as_deref(), Some("work"));
+        assert_eq!(
+            state.docs[&one].folder_was.as_deref(),
+            Some(["work".to_string()].as_slice())
+        );
+    }
+
+    #[test]
+    fn the_trace_of_a_deleted_folder_keeps_the_whole_way_down_to_it() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let under = folder(&mut state, "clients", Some(work));
+        let one = doc(&mut state, "a3f1-0001", Some(under));
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+
+        state.apply(&ev(3, "a", Op::FolderDelete { id: under }));
+
+        assert_eq!(
+            state.docs[&one].folder_was.as_deref(),
+            Some(["work".to_string(), "clients".to_string()].as_slice()),
+            "a leaf name alone would point at a folder that never held it"
+        );
+    }
+
+    #[test]
+    fn a_page_keeps_no_trace_of_a_folder_once_its_document_is_out_of_the_archive() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+        state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+        state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
+        assert!(state.docs[&march].folder_was.is_some());
+
+        state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
+
+        assert_eq!(state.docs[&march].folder_was, None);
+        assert_eq!(state.docs[&minutes].folder_was, None);
+    }
+
+    #[test]
+    fn hanging_a_marked_document_as_a_page_leaves_the_mark_behind() {
+        let mut state = State::default();
+        let diary = doc(&mut state, "a3f1-0001", None);
+        let one = doc(&mut state, "a3f1-0002", None);
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DocFlag {
+                id: one,
+                d: crate::event::Flag::new("it has had its day"),
+            },
+        ));
+
+        moved(
+            &mut state,
+            one,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(Some(diary)),
+                order: None,
+            },
+        );
+
+        assert_eq!(state.docs[&one].page_of, Some(diary));
+        assert!(
+            state.docs[&one].flagged.is_none(),
+            "a page is weighed with the document that holds it, so the mark cannot stay on it"
+        );
     }
 
     #[test]

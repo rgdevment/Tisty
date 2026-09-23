@@ -75,7 +75,7 @@ export default function Sidebar({
 
       <div className="scroller flex-1 px-2.5 pb-4">
         <div className="mx-1 mt-3 mb-1 h-px bg-hair" />
-        <div className="sticky top-0 z-20 flex items-center bg-rail pt-1 pb-1.5 shadow-[0_1px_0_var(--tisty-hair)]">
+        <div className="pinned-head sticky top-0 z-20 flex h-[var(--tisty-docs-head)] items-center bg-rail shadow-[0_1px_0_var(--tisty-hair)]">
           <button
             type="button"
             onClick={() => setOpenDocs((open) => !open)}

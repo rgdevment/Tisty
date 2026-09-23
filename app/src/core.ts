@@ -790,7 +790,7 @@ export interface Filed {
   guest?: string | null;
   tags?: string[];
   flagged?: Marked | null;
-  folderWas?: string | null;
+  folderWas?: string[] | null;
 }
 
 export interface Papers {
