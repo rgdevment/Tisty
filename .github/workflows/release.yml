@@ -551,18 +551,19 @@ jobs:
           & $seven x $setup.FullName "-o$peek" -y | Out-Null
           if ($LASTEXITCODE -ne 0) { Write-Error "the installer could not be opened"; exit 1 }
 
+          $mine = Get-ChildItem -Path $peek -Recurse -File |
+            Where-Object { $_.Extension -eq ".exe" -and $_.FullName -notmatch [regex]::Escape('$PLUGINSDIR') }
+          if (-not $mine) { Write-Error "the installer holds nothing to run"; exit 1 }
+
           $status = 0
-          foreach ($name in "Tisty.exe", "tisty.exe") {
-            $found = Get-ChildItem -Path $peek -Recurse -Filter $name -ErrorAction SilentlyContinue
-            if (-not $found) { Write-Error "$name is not in the installer"; $status = 1; continue }
-            foreach ($one in $found) {
-              $sig = Get-AuthenticodeSignature $one.FullName
-              if ($sig.SignerCertificate) {
-                Write-Host "$($one.Name) carries $($sig.SignerCertificate.Subject)"
-              } else {
-                Write-Error "$($one.FullName) goes out unsigned"
-                $status = 1
-              }
+          foreach ($one in $mine) {
+            $where = $one.FullName.Substring($peek.Length).TrimStart("\\")
+            $sig = Get-AuthenticodeSignature $one.FullName
+            if ($sig.SignerCertificate) {
+              Write-Host "$where <- $($sig.SignerCertificate.Subject)"
+            } else {
+              Write-Error "$where goes out unsigned"
+              $status = 1
             }
           }
           exit $status
