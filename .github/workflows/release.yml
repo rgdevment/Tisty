@@ -511,6 +511,36 @@ jobs:
             Remove-Item signingCert.pfx -ErrorAction SilentlyContinue
           }
 
+      # The bundler is handed a signing command; whether it used it is only readable in the
+      # installer it produced, so the installer is opened and what it carries is checked.
+      - name: What the installer will put on disk is signed
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem -Path "target/release/bundle/nsis" -Filter "*-setup.exe" |
+            Select-Object -First 1
+          if (-not $setup) { Write-Error "no installer to open"; exit 1 }
+
+          $peek = Join-Path $env:RUNNER_TEMP "peek"
+          & "C:\Program Files\7-Zip\7z.exe" x $setup.FullName "-o$peek" -y | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Error "the installer could not be opened"; exit 1 }
+
+          $status = 0
+          foreach ($name in "Tisty.exe", "tisty.exe") {
+            $found = Get-ChildItem -Path $peek -Recurse -Filter $name -ErrorAction SilentlyContinue
+            if (-not $found) { Write-Error "$name is not in the installer"; $status = 1; continue }
+            foreach ($one in $found) {
+              $sig = Get-AuthenticodeSignature $one.FullName
+              if ($sig.SignerCertificate) {
+                Write-Host "$($one.Name) carries $($sig.SignerCertificate.Subject)"
+              } else {
+                Write-Error "$($one.FullName) goes out unsigned"
+                $status = 1
+              }
+            }
+          }
+          exit $status
+
       - name: What the MSIX job must find unchanged
         id: stage
         shell: bash
