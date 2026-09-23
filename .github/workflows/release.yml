@@ -1658,8 +1658,11 @@ jobs:
           # The feed retires the candidate when a stable passes it; the tap has to agree, or a
           # channel nobody maintains goes on offering a build from months ago.
           if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
-            beta=$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' \
-              "Casks/${CASK_OTHER}.rb" 2>/dev/null | head -1)
+            beta=""
+            if [ -f "Casks/${CASK_OTHER}.rb" ]; then
+              beta=$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' \
+                "Casks/${CASK_OTHER}.rb" | head -1)
+            fi
             if [ -n "$beta" ] \
                && [ "$(printf '%s\n%s\n' "${beta%%-*}" "$VERSION" | sort -V | tail -1)" \
                     = "$VERSION" ]; then
