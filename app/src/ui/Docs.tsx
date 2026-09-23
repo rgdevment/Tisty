@@ -718,7 +718,7 @@ export default function Docs({
             </button>
           </div>
         )}
-        {own?.flagged && open && !shelved && !own.pageOf && (
+        {own?.flagged && open && !shelved && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
