@@ -437,13 +437,46 @@ jobs:
 
       # A public key in the config makes the private one a build requirement, so a run without the
       # secret has to say so rather than fail on a line about an environment variable.
+      # `tauri build` compiles and packs in one step, so what ends up inside the installer can
+      # only be signed by the bundler. The certificate goes to the store and the command picks it
+      # by thumbprint: no password on a command line. Merged in, never in the config file — a
+      # build without the certificate must not fail on a command it cannot run.
+      - name: Teach the bundler to sign what it packs
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "bundler.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
+          try {
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            $cert = @(Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said)[0]
+          } finally {
+            Remove-Item $pfx -ErrorAction SilentlyContinue
+          }
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+            -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -match "x64" } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+          @{ bundle = @{ windows = @{ signCommand = @{
+            cmd = $signtool.FullName
+            args = @("sign", "/sha1", $cert.Thumbprint, "/fd", "sha256",
+              "/tr", "http://timestamp.digicert.com", "/td", "sha256", "%1")
+          } } } } | ConvertTo-Json -Depth 8 | Set-Content -Path app/sign.json -Encoding utf8
+          Write-Host "the bundler signs with $($cert.Thumbprint)"
+
       - name: Bundle
         working-directory: app
         shell: bash
         run: |
           sign=""
           if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
-          npm run tauri build -- --bundles nsis $sign
+          packs=""
+          if [ -f sign.json ]; then packs="--config sign.json"; fi
+          npm run tauri build -- --bundles nsis $sign $packs
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
