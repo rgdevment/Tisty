@@ -236,6 +236,8 @@ export default function App() {
   const [whoFor, setWhoFor] = useState<string | null>(null);
   const [movingTo, setMovingTo] = useState<string | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
+  const [backing, setBacking] = useState<Filed | null>(null);
+  const [backTo, setBackTo] = useState<string>("same");
   const [number, setNumber] = useState("");
   const [wrong, setWrong] = useState(false);
   const [menu, setMenu] = useState<{
@@ -476,6 +478,62 @@ export default function App() {
         return docDrop(doc.id).then(papersChanged);
       })
       .catch((e) => setError(saidPlainly(e)));
+
+  const bringBack = (doc: Filed) => {
+    setBackTo("same");
+    setBacking(doc);
+  };
+
+  const backHome = (doc: Filed): string | null => {
+    if (doc.folder && papers.folders.some((one) => one.id === doc.folder)) return doc.folder;
+    const was = (doc.folderWas ?? []).join(" / ");
+    const again = was
+      ? papers.folders.find((one) => !one.away && trail(one.id) === was)
+      : undefined;
+    return again?.id ?? null;
+  };
+
+  const backFrom = (doc: Filed): string | null => {
+    const home = backHome(doc);
+    if (home) return trail(home);
+    const was = doc.folderWas ?? [];
+    return was.length ? was.join(" / ") : null;
+  };
+
+  const madeAgain = async (way: string[]): Promise<string | null> => {
+    let parent: string | null = null;
+    for (const name of way) {
+      const here = papers.folders.find(
+        (one) => !one.away && one.name === name && (one.parent ?? null) === parent,
+      );
+      parent = here ? here.id : await folderAdd(name, parent ?? undefined);
+    }
+    return parent;
+  };
+
+  const putBack = () => {
+    const doc = backing;
+    if (!doc) return;
+    setBacking(null);
+    const home = backHome(doc);
+    const lands = (): Promise<string | null> =>
+      backTo === "none"
+        ? Promise.resolve(null)
+        : backTo !== "same"
+          ? Promise.resolve(backTo)
+          : home
+            ? Promise.resolve(home)
+            : doc.folderWas?.length
+              ? madeAgain(doc.folderWas)
+              : Promise.resolve(null);
+    docAway(doc.id, false)
+      .then(lands)
+      .then((folder) =>
+        folder === (doc.folder ?? null) ? undefined : docFile(doc.id, folder ?? undefined),
+      )
+      .then(papersChanged)
+      .catch((e) => setError(saidPlainly(e)));
+  };
 
   const deep = (at: string | null | undefined): number => {
     let steps = 0;
@@ -1200,10 +1258,12 @@ export default function App() {
           label: doc.archived ? t("bringBack") : t("putAway"),
           off: !!doc.pageOf || byFolder(doc),
           apart: true,
-          onPick: () =>
-            docAway(doc.id, !doc.archived)
+          onPick: () => {
+            if (doc.archived) return bringBack(doc);
+            docAway(doc.id, true)
               .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
+              .catch((e) => setError(saidPlainly(e)));
+          },
         },
         {
           key: "drop",
@@ -1263,6 +1323,105 @@ export default function App() {
   return (
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
+
+      {backing !== null && (
+        <Modal
+          title={fill("backWhere", backing.title || t("untitledDoc"))}
+          onClose={() => setBacking(null)}
+        >
+          <p id="back-why" className="mt-3 text-[12.5px] leading-relaxed text-soft">
+            {backFrom(backing) === null
+              ? t("backFromNowhere")
+              : fill(backHome(backing) ? "backFrom" : "backFromGone", backFrom(backing) as string)}
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              putBack();
+            }}
+          >
+            <fieldset
+              aria-describedby="back-why"
+              className="scroller mt-4 flex max-h-[248px] flex-col gap-0.5"
+            >
+              <legend className="sr-only">{t("backWhere").replace("{name}", "")}</legend>
+              <Where
+                name="where-back"
+                value="same"
+                chosen={backTo}
+                onPick={setBackTo}
+                label={
+                  backFrom(backing) === null
+                    ? t("backToNone")
+                    : backHome(backing)
+                      ? fill("backToSame", backFrom(backing) as string)
+                      : fill("backToMade", (backing.folderWas ?? []).join(" / "))
+                }
+                hint={backFrom(backing) === null ? t("backWasHere") : undefined}
+              />
+              {backFrom(backing) !== null && (
+                <Where
+                  name="where-back"
+                  value="none"
+                  chosen={backTo}
+                  onPick={setBackTo}
+                  label={t("backToNone")}
+                  hint={t("backAtRoot")}
+                />
+              )}
+              {papers.folders.some((one) => !one.away && one.id !== backHome(backing)) && (
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
+                  <input
+                    type="radio"
+                    name="where-back"
+                    value="other"
+                    checked={backTo !== "same" && backTo !== "none"}
+                    onChange={() => {
+                      const first = papers.folders.find(
+                        (one) => !one.away && one.id !== backHome(backing),
+                      );
+                      if (first) setBackTo(first.id);
+                    }}
+                    className="accent-accent"
+                  />
+                  <span className="shrink-0">{t("backToOther")}</span>
+                  <select
+                    value={backTo !== "same" && backTo !== "none" ? backTo : ""}
+                    onChange={(e) => setBackTo(e.target.value)}
+                    className="ml-auto min-w-0 max-w-[60%] truncate rounded-md border border-line bg-bg px-2 py-1 text-[12.5px] text-ink"
+                  >
+                    <option value="" disabled>
+                      {t("backToOther")}
+                    </option>
+                    {papers.folders
+                      .filter((one) => !one.away && one.id !== backHome(backing))
+                      .map((one) => (
+                        <option key={one.id} value={one.id}>
+                          {trail(one.id)}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              )}
+            </fieldset>
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
+              <button
+                type="button"
+                onClick={() => setBacking(null)}
+                className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="submit"
+                className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
+              >
+                {t("bringBack")}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {whoFor !== null && (
         <Modal title={t("packWho")} onClose={() => setWhoFor(null)}>
@@ -1706,6 +1865,8 @@ export default function App() {
                     .then(papersChanged)
                     .catch((e) => setError(saidPlainly(e)))
                 }
+                onDrop={dropDoc}
+                onBack={bringBack}
                 fresh={carried}
               />
             ) : chosen.named === "lists" && !chosen.list ? (
@@ -2148,6 +2309,37 @@ export default function App() {
         )}
       </div>
     </div>
+  );
+}
+
+function Where({
+  name,
+  value,
+  chosen,
+  label,
+  hint,
+  onPick,
+}: {
+  name: string;
+  value: string;
+  chosen: string;
+  label: string;
+  hint?: string;
+  onPick: (value: string) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={chosen === value}
+        onChange={() => onPick(value)}
+        className="accent-accent"
+      />
+      <span className="min-w-0 truncate">{label}</span>
+      {hint && <span className="ml-auto shrink-0 text-[11.5px] text-faint">{hint}</span>}
+    </label>
   );
 }
 

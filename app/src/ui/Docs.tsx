@@ -12,6 +12,7 @@ import {
   docLock,
   docOrder,
   docRead,
+  docUnflag,
   docWrite,
   type Filed,
   type Folded,
@@ -27,6 +28,7 @@ import { filed, named, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
+import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import Modal from "./Modal";
@@ -87,6 +89,8 @@ interface Props {
   onTag?: (tag: string) => void;
   onOwned?: (id: string) => void;
   onShown?: (file: string | null) => void;
+  onDrop?: (doc: Filed) => void;
+  onBack?: (doc: Filed) => void;
   fresh?: number;
 }
 
@@ -105,6 +109,8 @@ export default function Docs({
   onTag,
   onOwned,
   onShown,
+  onDrop,
+  onBack,
   fresh = 0,
 }: Props) {
   const [open, setOpen] = useState<Filed | null>(null);
@@ -700,15 +706,62 @@ export default function Docs({
             <span className="text-soft">{t("docShelved")}</span>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
+                if (own?.archived && onBack) return onBack(own);
                 docAway(own?.id ?? "", false)
+                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .catch((e) => onError(saidPlainly(e)));
+              }}
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("bringBack")}
+            </button>
+          </div>
+        )}
+        {own?.flagged && open && !shelved && !own.pageOf && (
+          <div
+            style={wall}
+            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
+          >
+            <span className="font-medium text-hue-teal">
+              <span aria-hidden="true">◆ </span>
+              {clientNamed(own.flagged.via)
+                ? fill("docFlaggedBy", clientNamed(own.flagged.via) as string)
+                : t("docFlagged")}
+            </span>
+            <span className="text-faint">{stamped(own.flagged.at)}</span>
+            <button
+              type="button"
+              onClick={() =>
+                docAway(own.id, true)
                   .then(() => onKept({ id: open.id, title: open.title }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
             >
-              {t("bringBack")}
+              {t("putAway")}
             </button>
+            {onDrop && !own.locked && (
+              <button
+                type="button"
+                onClick={() => onDrop(own)}
+                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] text-urgent hover:bg-hover"
+              >
+                {t("deleteIt")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                docUnflag(own.id)
+                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .catch((e) => onError(saidPlainly(e)))
+              }
+              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+            >
+              {t("unflagIt")}
+            </button>
+            <span className="w-full text-soft">{own.flagged.said}</span>
           </div>
         )}
         {bolted && !shelved && open && (

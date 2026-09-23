@@ -121,6 +121,13 @@ to consult. Writing one creates no task: if something has to happen, propose it.
 what is written already and the folders it is kept in; you can make a folder and file documents \
 into it, but you can never delete or rename one.
 
+A document you find has had its day — a handover for a flow that was retired, notes for a \
+decision long taken — is one you can mark with `flag_doc`, saying what makes it old and how you \
+know. The mark changes nothing and hides nothing: the document stays where it is and reads the \
+same, and the person sees the mark when they open it. Archiving it, deleting it and taking the \
+mark off are all theirs, from the window, the way finishing a task is. `docs` and `read_doc` say \
+which documents carry one, so the same mark is never left twice.
+
 A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
 A whole folder can be in the archive too, and then everything under it is — every subfolder, every document, every page — without any of them being marked one by one. What the archive reaches that way is read, exported and packed as always, and written by nobody: no `write_doc`, no `append_doc`, no `edit_doc`, no `attach`, no `page_doc`, no `file_doc` in or out of it, and nothing new goes into that folder — `write_doc` with it as `folder`, `import_doc`, and `folder` naming it as `inside` are all refused, as is changing how it looks. A document in there has no door of its own: `archive_doc` will not hand it back, because only the folder can be brought back, and only by the person from the window. Its own mark is kept untouched while it waits, so a document somebody had archived by hand stays archived when the folder returns.
@@ -507,6 +514,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "outline_doc" => outline_doc(paths, &args),
         "docs" => papers(paths, &args),
         "archive_doc" => archive_doc(paths, &args),
+        "flag_doc" => flag_doc(paths, &args),
         "export_doc" => export_doc(paths, &args),
         "import_doc" => import_doc(paths, &args),
         "file_doc" => file_doc(paths, &args),
@@ -3416,6 +3424,9 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if state.shut(one.id) {
                 kept_of.insert("locked".into(), json!(true));
             }
+            if one.flagged.is_some() && !state.held_away(one) {
+                kept_of.insert("flagged".into(), json!(true));
+            }
             if let Some(card) = card {
                 kept_of.insert("words".into(), json!(card.words));
                 if !card.outline.is_empty() {
@@ -3481,8 +3492,13 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             } else {
                 ""
             };
+            let marked = if one["flagged"] == json!(true) {
+                ", marked as one that has had its day"
+            } else {
+                ""
+            };
             format!(
-                "{} — {} ({where_at}{holds}{put_away}{shut})",
+                "{} — {} ({where_at}{holds}{put_away}{shut}{marked})",
                 said(one, "doc"),
                 said(one, "title")
             )
@@ -4124,6 +4140,71 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "pages": pages,
             "pointed_at": pointing,
         }),
+    ))
+}
+
+fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(which) = text(args, "doc") else {
+        return Err(Refused::Tool(
+            "marking a document needs its `doc` name.".into(),
+        ));
+    };
+    let Some(body) = text(args, "body") else {
+        return Err(Refused::Tool(
+            "marking a document needs a `body`: what makes it old and how you know. Without it \
+             the person has only your word and nothing to weigh it against."
+                .into(),
+        ));
+    };
+    let (state, mut store) = opened(paths)?;
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+    if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
+        return Err(Refused::Tool(format!(
+            "{which} is a page of {up}, and a page is weighed with the document that holds \n             it. Mark {up} instead."
+        )));
+    }
+    if state.held_away(kept) {
+        return Err(Refused::Tool(format!(
+            "{which} is already in the archive, so it is out of the way. Nothing to mark."
+        )));
+    }
+    if let Some(already) = &kept.flagged {
+        let who = match already.by == *store.device() && already.via == speaking_through() {
+            true => "you".to_string(),
+            false => already
+                .via
+                .as_deref()
+                .map(tisty_core::agent::client_named)
+                .unwrap_or_else(|| "an assistant".to_string()),
+        };
+        return Err(Refused::Tool(format!(
+            "{who} already marked {which} on {}, and the person has not looked yet. Marking \
+             it again would only say the same thing twice.",
+            when(already.at)
+        )));
+    }
+    let id = kept.id;
+    let me = store.device().clone();
+    store
+        .append(Op::DocFlag {
+            id,
+            d: tisty_core::event::Flag::new(body)
+                .said_by(jiff::Timestamp::now(), me)
+                .through(speaking_through()),
+        })
+        .map_err(hitch)?;
+
+    Ok(told(
+        format!(
+            "Marked {which} as one that has had its day. It is untouched and still reads the \
+             same: the person sees the mark when they open it, and archiving it, deleting \
+             it or taking the mark off are all theirs."
+        ),
+        json!({ "doc": which, "flagged": true }),
     ))
 }
 
@@ -4930,6 +5011,12 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if state.shut(kept.id) {
         kept_of.insert("locked".into(), json!(true));
     }
+    if let Some(mark) = &kept.flagged {
+        kept_of.insert(
+            "flagged".into(),
+            json!({ "at": mark.at.to_string(), "said": mark.body }),
+        );
+    }
 
     match part_asked(&body, args)? {
         Part::Outline => {
@@ -4961,9 +5048,16 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
             }
-            let said = match away {
-                true => format!("(This document is put away — the person archived it.)\n\n{part}"),
-                false => part,
+            let said = match (away, kept.flagged.as_ref()) {
+                (true, _) => {
+                    format!("(This document is put away — the person archived it.)\n\n{part}")
+                }
+                (false, Some(mark)) => format!(
+                    "(An assistant marked this as one that has had its day on {}: {})\n\n{part}",
+                    when(mark.at),
+                    mark.body
+                ),
+                (false, None) => part,
             };
             Ok(told(said, Value::Object(kept_of)))
         }
@@ -5135,7 +5229,7 @@ fn papers_matching(
     scope: tisty_core::view::Scope,
     most: usize,
 ) -> Vec<Value> {
-    let here: std::collections::HashMap<String, (bool, Option<String>)> = state
+    let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .docs
         .values()
         .filter(|one| match scope {
@@ -5149,6 +5243,7 @@ fn papers_matching(
                 (
                     state.held_away(one),
                     one.page_of.and_then(|up| named_doc(state, up)),
+                    one.flagged.is_some() && !state.held_away(one),
                 ),
             )
         })
@@ -5164,13 +5259,15 @@ fn papers_matching(
     })
     .into_iter()
     .map(|one| {
-        let (archived, page_of) = here.get(&one.id).cloned().unwrap_or((false, None));
+        let (archived, page_of, flagged) =
+            here.get(&one.id).cloned().unwrap_or((false, None, false));
         json!({
             "doc": one.id,
             "title": one.title,
             "line": one.line,
             "page_of": page_of,
             "archived": archived,
+            "flagged": flagged,
         })
     })
     .collect()
@@ -5709,6 +5806,21 @@ fn tools() -> Value {
                     }
                 },
                 "required": ["doc"]
+            }))
+        },
+        {
+            "name": "flag_doc",
+            "title": "Say a document has had its day",
+            "description": "Mark a document you found is no longer worth keeping — a handover for a flow that was retired, notes for a decision already taken — and say in `body` what makes it old and how you know. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. What happens next is theirs alone: archive it, delete it, or take the mark off. There is no tool here for any of those, on purpose. One mark at a time — a document already marked is refused until the person has looked.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "doc": named_doc_field(),
+                    "body": {
+                        "type": "string",
+                        "description": "What makes it old and how you know, in the person's language: what it describes that no longer exists, and what replaced it"
+                    }
+                },
+                "required": ["doc", "body"]
             }))
         },
         {
