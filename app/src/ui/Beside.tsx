@@ -331,9 +331,17 @@ export default function Beside({
                   key={one.id}
                   type="button"
                   onClick={() => onPage?.(one)}
+                  aria-label={
+                    one.away
+                      ? `${one.title || t("untitledDoc")} — ${t("archived")}`
+                      : one.flagged
+                        ? `${one.title || t("untitledDoc")} — ${t("docFlagged")}`
+                        : undefined
+                  }
+                  aria-current={one.file === paper ? "true" : undefined}
                   className={`flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
-                    one.away ? "text-faint opacity-60" : "text-soft"
-                  }`}
+                    one.file === paper ? "bg-accent-soft text-accent" : ""
+                  } ${one.away ? "text-faint opacity-60" : "text-soft"}`}
                 >
                   <Glyph
                     name={one.away ? "archive" : "alignleft"}

@@ -480,6 +480,12 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
 
   const bringBack = (doc: Filed) => {
+    if (doc.pageOf) {
+      docAway(doc.id, false)
+        .then(papersChanged)
+        .catch((e) => setError(saidPlainly(e)));
+      return;
+    }
     setBackTo("same");
     setBacking(doc);
   };

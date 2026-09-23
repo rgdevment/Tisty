@@ -418,7 +418,7 @@ export default function Docs({
       import("./shaping"),
     ]);
     registered();
-    const pages = known.filter((one) => one.pageOf === open.id);
+    const pages = known.filter((one) => one.pageOf === open.id && !one.away);
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
     const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),

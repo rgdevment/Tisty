@@ -465,19 +465,19 @@ describe("archiving and bringing back a document", () => {
     await boot();
     expect(countBadge("Work")).toBe("1");
 
-    await chooseFor("Report", t("putAway"));
+    await chooseFor(/^Report/, t("putAway"));
 
     await waitFor(() =>
       expect(
         within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", {
-          name: "Report",
+          name: /^Report/,
         }),
       ).toBeNull(),
     );
     unfoldAll();
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
-        name: "Report",
+        name: /^Report/,
       }),
     ).toBeTruthy();
     expect(countBadge("Work")).toBe("");
@@ -489,12 +489,14 @@ describe("archiving and bringing back a document", () => {
     await boot();
     expect(countBadge("Work")).toBe("");
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await backHome();
 
     await waitFor(() => expect(countBadge("Work")).toBe("1"));
     expect(
-      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+        name: /^Report/,
+      }),
     ).toBeTruthy();
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
   });
@@ -504,7 +506,7 @@ describe("archiving and bringing back a document", () => {
     const doc = seedDoc({ title: "Report", folder: folder.id, archived: true });
     await boot();
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await userEvent.click(
       await screen.findByRole("radio", { name: new RegExp(`^${t("backToNone")}`) }),
     );
@@ -532,7 +534,7 @@ describe("archiving and bringing back a document", () => {
     const doc = seedDoc({ title: "Report", archived: true, folderWas: ["Packaging"] });
     await boot();
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
     );
@@ -565,7 +567,7 @@ describe("archiving and bringing back a document", () => {
     const shelf = within(screen.getByRole("list", { name: t("archived") }));
     expect(shelf.getByText("Packaging")).toBeTruthy();
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
     );
@@ -647,9 +649,9 @@ describe("putting a whole folder away", () => {
     );
     unfoldAll();
     const shelf = within(screen.getByRole("list", { name: t("archived") }));
-    expect(shelf.getByRole("button", { name: "Contracts" })).toBeTruthy();
-    expect(shelf.getByRole("button", { name: "Rollout" })).toBeTruthy();
-    expect(shelf.getByRole("button", { name: "BOB" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^Contracts/ })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^Rollout/ })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^BOB/ })).toBeTruthy();
   });
 
   it("offers to bring back the folder that was shelved, and nothing under it", async () => {
@@ -661,7 +663,7 @@ describe("putting a whole folder away", () => {
     unfoldAll();
 
     // The one that was shelved answers for itself; what it holds has no door of its own.
-    fireEvent.contextMenu(menuFor("Contracts"), { clientX: 5, clientY: 5 });
+    fireEvent.contextMenu(menuFor(/^Contracts/), { clientX: 5, clientY: 5 });
     const held = await screen.findByRole("menu");
     expect(within(held).queryByRole("menuitem", { name: t("bringBack") })).toBeNull();
     fireEvent.keyDown(document, { key: "Escape" });
@@ -737,7 +739,7 @@ describe("a page of its own", () => {
 
     await userEvent.click(
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
-        name: "Minutes",
+        name: /^Minutes/,
       }),
     );
     await screen.findByTestId("editor");
@@ -767,7 +769,7 @@ describe("a page of its own", () => {
 
     await userEvent.click(
       within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
-        name: "Minutes",
+        name: /^Minutes/,
       }),
     );
     await screen.findByTestId("editor");
@@ -782,7 +784,7 @@ describe("a page of its own", () => {
     const april = seedDoc({ title: "April", pageOf: book.id, archived: true });
     await boot();
 
-    await chooseFor("Minutes", t("putAway"));
+    await chooseFor(/^Minutes/, t("putAway"));
 
     await waitFor(() => expect(store.docs.find((one) => one.id === book.id)?.archived).toBe(true));
     expect(
@@ -791,7 +793,7 @@ describe("a page of its own", () => {
     ).toBe(3);
 
     unfoldAll();
-    await chooseFor("Minutes", t("bringBack"));
+    await chooseFor(/^Minutes/, t("bringBack"));
     await backHome();
 
     await waitFor(() => expect(store.docs.find((one) => one.id === book.id)?.archived).toBe(false));
@@ -991,7 +993,7 @@ describe("nothing filed yet", () => {
 
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
-        name: "Old",
+        name: /^Old/,
       }),
     ).toBeTruthy();
     expect(

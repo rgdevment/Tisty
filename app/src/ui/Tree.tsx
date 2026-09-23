@@ -539,9 +539,11 @@ export default function Tree({
             aria-label={
               lifted?.id === doc.id
                 ? fill("liftedIs", name)
-                : doc.flagged && !doc.away
-                  ? `${name} — ${t("docFlagged")}`
-                  : name
+                : doc.away
+                  ? `${name} — ${t("archived")}`
+                  : doc.flagged
+                    ? `${name} — ${t("docFlagged")}`
+                    : name
             }
             aria-current={open === doc.file ? "true" : undefined}
             className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] ${

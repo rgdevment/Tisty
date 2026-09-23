@@ -4140,7 +4140,11 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     // away by its folder would be swallowed and lost when the folder comes back.
     if !kept.archived && state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which} is in the archive with the folder that holds it, so it does not come back on its own. The person brings the folder back from the window."
+            "{which} is in the archive with the {}, so it does not come back on its own. The person brings it back from the window.",
+            match kept.page_of.and_then(|up| named_doc(&state, up)) {
+                Some(up) => format!("document that holds it, {up}"),
+                None => "folder that holds it".to_string(),
+            }
         )));
     }
     if kept.archived == away {
@@ -4152,9 +4156,12 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             json!({ "doc": which, "archived": away }),
         ));
     }
+    // Only the ones this call is moving: a page already apart on its own neither went with the
+    // document nor comes back with it, and saying it did is the one lie that matters.
     let pages: Vec<String> = state
         .pages_of(kept.id)
         .iter()
+        .filter(|one| one.archived != away)
         .map(|one| one.file.clone())
         .collect();
     let pointing = match away {
@@ -4179,7 +4186,10 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             },
             match pages.is_empty() {
                 true => String::new(),
-                false => format!(" Its pages went with it: {}.", pages.join(", ")),
+                false => match away {
+                    true => format!(" Its pages went with it: {}.", pages.join(", ")),
+                    false => format!(" Its pages came back with it: {}.", pages.join(", ")),
+                },
             }
         ) + &match pointing.is_empty() {
             true => String::new(),
@@ -4330,6 +4340,11 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "{which} is locked. Where a locked document sits is part of what the person shut \
              away, so it neither becomes a page nor leaves the one that holds it. Ask them to \
              unlock it first."
+        )));
+    }
+    if state.held_away(kept) {
+        return Err(Refused::Tool(format!(
+            "{which} is in the archive, and taking it out of the document that holds it would              take it out of the archive with no hand on it. The person brings it back from the              window first."
         )));
     }
     let page_of = match text(args, "page_of") {

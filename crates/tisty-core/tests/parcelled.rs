@@ -1120,7 +1120,9 @@ contratos",
             shelf.as_object_mut().unwrap().remove("archived");
         }
         for paper in manifest["docs"].as_array_mut().unwrap() {
-            paper.as_object_mut().unwrap().remove("by_folder");
+            let paper = paper.as_object_mut().unwrap();
+            paper.remove("by_folder");
+            paper.remove("away_alone");
         }
     });
 

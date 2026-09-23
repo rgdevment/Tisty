@@ -436,7 +436,7 @@ impl State {
                 for doc in self.docs.values_mut() {
                     if doc.folder == Some(*id) {
                         doc.folder = None;
-                        doc.archived = doc.archived || away;
+                        doc.archived = doc.archived || (away && doc.page_of.is_none());
                         // A page lands where its document lands, so it is never asked where to
                         // go back to and has no use for the way it came.
                         if doc.archived && doc.page_of.is_none() {
@@ -472,7 +472,7 @@ impl State {
                             None => d.folder,
                         },
                         page_of,
-                        archived: under.is_some_and(|one| one.archived),
+                        archived: page_of.is_none() && under.is_some_and(|one| one.archived),
                         locked: false,
                         tags: crate::tagging::worth_keeping(
                             &d.said
