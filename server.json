@@ -8,12 +8,12 @@
     "url": "https://github.com/rgdevment/Tisty",
     "source": "github"
   },
-  "version": "1.20.0",
+  "version": "0.0.0",
   "packages": [
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/rgdevment/Tisty/releases/download/v1.20.0/tisty-mcp-1.20.0.mcpb",
-      "fileSha256": "45243a87bd8b33073ce04381a73c6162bd4d456771d68b8a80022e9f041637ee",
+      "identifier": "https://github.com/rgdevment/Tisty/releases/download/v0.0.0/tisty-mcp-0.0.0.mcpb",
+      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "transport": { "type": "stdio" }
     }
   ]
