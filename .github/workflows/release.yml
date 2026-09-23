@@ -386,7 +386,6 @@ jobs:
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
-        id: stage
         shell: bash
         run: |
           mkdir -p stage/cli
@@ -395,6 +394,34 @@ jobs:
           if [ -d target/release/resources ]; then
             cp -R target/release/resources stage/resources
           fi
+
+      # Microsoft signs the package it ingests, not what is inside it: unsigned here is unsigned
+      # on the machine that installs it.
+      - name: Sign what the MSIX will carry
+        if: env.PFX_BASE64 != ''
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
+          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          try {
+            $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+              -Recurse -Filter "signtool.exe" |
+              Where-Object { $_.FullName -like "*x64*" } |
+              Sort-Object FullName -Descending | Select-Object -First 1
+            if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+            & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+              /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+              stage/Tisty.exe stage/cli/tisty.exe
+            if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
+          } finally {
+            Remove-Item signingCert.pfx -ErrorAction SilentlyContinue
+          }
+
+      - name: What the MSIX job must find unchanged
+        id: stage
+        shell: bash
+        run: |
           echo "sha=$(cat stage/Tisty.exe stage/cli/tisty.exe | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v7
@@ -1450,6 +1477,23 @@ jobs:
               echo "removed $stale, which the cask replaces"
             fi
           done
+
+          # The feed retires the candidate when a stable passes it; the tap has to agree, or a
+          # channel nobody maintains goes on offering a build from months ago.
+          if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
+            beta=$(sed -n 's/^[[:space:]]*version "\(.*\)"/\1/p' \
+              "Casks/${CASK_OTHER}.rb" 2>/dev/null | head -1)
+            if [ -n "$beta" ] \
+               && [ "$(printf '%s\n%s\n' "${beta%%-*}" "$VERSION" | sort -V | tail -1)" \
+                    = "$VERSION" ]; then
+              for gone in "Casks/${CASK_OTHER}.rb" "Formula/${FORMULA_OTHER}.rb"; do
+                if [ -f "$gone" ]; then
+                  git rm -q "$gone"
+                  echo "retired $gone: it still offered $beta, and $VERSION passes it"
+                fi
+              done
+            fi
+          fi
 
           git add Casks Formula
           if git diff --cached --quiet; then
