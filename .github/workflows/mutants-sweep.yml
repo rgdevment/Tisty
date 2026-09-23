@@ -22,8 +22,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: false
@@ -57,8 +57,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: false
@@ -96,8 +96,8 @@ jobs:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: false
@@ -135,8 +135,8 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: false
@@ -247,13 +247,14 @@ jobs:
       - name: The report where a survivor can be read one by one
         env:
           KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+          BRANCH: ${{ github.ref_name }}
         run: |
           if [ -z "$KEY" ]; then
             echo "::warning::no dashboard key: the report goes no further than the artifact"
             exit 0
           fi
           curl -sS --fail-with-body -X PUT \
-            "https://dashboard.stryker-mutator.io/api/reports/github.com/${{ github.repository }}/${{ github.ref_name }}" \
+            "https://dashboard.stryker-mutator.io/api/reports/github.com/$GITHUB_REPOSITORY/$BRANCH" \
             -H 'Content-Type: application/json' \
             -H "X-Api-Key: $KEY" \
             -d @window.json

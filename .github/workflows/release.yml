@@ -70,10 +70,10 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
           save-if: false
@@ -94,47 +94,50 @@ jobs:
       macos: ${{ steps.resolve.outputs.macos }}
       cli: ${{ steps.resolve.outputs.cli }}
     env:
-      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
-      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+      HAS_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      HAS_P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
+      HAS_APPLE_ID: ${{ secrets.APPLE_ID != '' }}
+      HAS_APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD != '' }}
+      HAS_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
+      HAS_APPLE_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY != '' }}
+      HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+      HAS_UPDATER_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
+      HAS_PFX: ${{ secrets.PFX_BASE64 != '' }}
+      HAS_PFX_PASSWORD: ${{ secrets.PFX_PASSWORD != '' }}
     steps:
       - name: Signing secrets come in pairs
         run: |
           fail() { echo "::error::$1"; exit 1; }
 
-          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+          if [ "$HAS_P12" = "true" ] && [ "$HAS_P12_PASSWORD" != "true" ]; then
             fail "MACOS_CERTIFICATE_P12 is set but MACOS_CERTIFICATE_PASSWORD is empty"
           fi
-          if [ -n "$PFX_BASE64" ] && [ -z "$PFX_PASSWORD" ]; then
+          if [ "$HAS_PFX" = "true" ] && [ "$HAS_PFX_PASSWORD" != "true" ]; then
             fail "PFX_BASE64 is set but PFX_PASSWORD is empty"
           fi
-          if [ -n "$APPLE_ID" ] && { [ -z "$APPLE_APP_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
+          if [ "$HAS_APPLE_ID" = "true" ] &&
+            { [ "$HAS_APPLE_APP_PASSWORD" != "true" ] || [ "$HAS_APPLE_TEAM_ID" != "true" ]; }; then
             fail "APPLE_ID is set but APPLE_APP_PASSWORD or APPLE_TEAM_ID is empty"
           fi
-          if [ -n "$MACOS_CERTIFICATE_P12" ] && [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+          if [ "$HAS_P12" = "true" ] && [ "$HAS_APPLE_IDENTITY" != "true" ]; then
             fail "MACOS_CERTIFICATE_P12 is set but APPLE_SIGNING_IDENTITY is empty: the app would be bundled unsigned"
           fi
-          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] && [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+          if [ "$HAS_UPDATER_KEY" = "true" ] && [ "$HAS_UPDATER_PASSWORD" != "true" ]; then
             fail "TAURI_SIGNING_PRIVATE_KEY is set but its password is empty"
           fi
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+          if [ "$HAS_UPDATER_KEY" != "true" ]; then
             echo "::warning::no updater key; this release cannot be installed by an existing copy"
           fi
           echo "signing secrets are coherent"
 
       - id: resolve
+        env:
+          ASKED_FOR: ${{ inputs.version }}
         run: |
           if [[ "$GITHUB_REF" =~ ^refs/tags/v(.+)$ ]]; then
             version="${BASH_REMATCH[1]}"
           else
-            version="${{ inputs.version }}"
+            version="$ASKED_FOR"
           fi
 
           # Semver's own grammar, not an approximation of it: a version this lets through and
@@ -191,8 +194,8 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --release --bin tisty --target aarch64-apple-darwin
-          cargo build --release --bin tisty --target x86_64-apple-darwin
+          cargo build --release --locked --bin tisty --target aarch64-apple-darwin
+          cargo build --release --locked --bin tisty --target x86_64-apple-darwin
 
           mkdir -p "target/$TARGET/release"
           lipo -create -output "target/$TARGET/release/tisty" \
@@ -285,7 +288,7 @@ jobs:
 
       - name: Build
         shell: bash
-        run: cargo build --release --bin tisty --target "$TARGET"
+        run: cargo build --release --locked --bin tisty --target "$TARGET"
 
       - name: Sign executable
         if: env.PFX_BASE64 != ''
@@ -367,7 +370,7 @@ jobs:
       - name: The CLI rides along
         shell: bash
         run: |
-          cargo build --release --bin tisty
+          cargo build --release --locked --bin tisty
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
 
@@ -856,7 +859,7 @@ jobs:
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
-          subject-path: dist/tisty-*
+          subject-path: dist/tisty-*,dist/SHA256SUMS
 
       - name: Notes from the tag
         id: notes
@@ -1017,14 +1020,27 @@ jobs:
           fi
 
           latest=$(jq -r '.latest // ""' release-manifest.json 2>/dev/null || echo "")
+          ahead=$(jq -r '.latestPrerelease // ""' release-manifest.json 2>/dev/null || echo "")
           if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then
             jq -n --arg l "${latest:-0.0.0}" --arg c "$v" \
               '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
             [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" candidate.json
           else
-            jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
+            # A candidate of a later series is not retired by a fix to an earlier one: whoever
+            # follows that channel chose it, and nothing here decided to take them off it.
+            keep=""
+            if [ -n "$ahead" ] \
+               && [ "$(printf '%s\n%s\n' "${ahead%%-*}" "$v" | sort -V | tail -1)" != "$v" ]; then
+              keep="$ahead"
+            fi
+            if [ -n "$keep" ]; then
+              jq -n --arg l "$v" --arg c "$keep" \
+                '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
+            else
+              jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
+              rm -f candidate.json
+            fi
             [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" latest.json
-            rm -f candidate.json
           fi
           cat release-manifest.json
 
@@ -1139,10 +1155,11 @@ jobs:
 
   msstore:
     name: Microsoft Store
-    needs: [version, publish, bundle-msix]
+    needs: [version, publish, verify, bundle-msix]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.bundle-msix.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
@@ -1221,10 +1238,11 @@ jobs:
 
   registry:
     name: MCP Registry
-    needs: [version, publish]
+    needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.version.outputs.cli == 'true'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
@@ -1296,10 +1314,11 @@ jobs:
 
   homebrew:
     name: Homebrew tap
-    needs: [version, publish]
+    needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1359,7 +1378,9 @@ jobs:
             echo "::warning::a disk image is missing for ${VERSION}; leaving the cask as it is"
           fi
 
-          git clone "https://x-access-token:${GIST_TOKEN}@github.com/rgdevment/homebrew-tap.git" /tmp/tap
+          git clone https://github.com/rgdevment/homebrew-tap.git /tmp/tap
+          git -C /tmp/tap config --local http.extraheader \
+            "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GIST_TOKEN" | base64 -w0)"
           cd /tmp/tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -1450,10 +1471,11 @@ jobs:
 
   winget:
     name: Windows Package Manager
-    needs: [version, publish]
+    needs: [version, publish, verify]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
