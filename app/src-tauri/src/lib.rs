@@ -5156,12 +5156,31 @@ pub fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let handle = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(1500));
-        handle.exit(0);
+        leave(&handle);
     });
+}
+
+/// The window answers in milliseconds and the timer above is only there for the window that
+/// never answers, so the second of the two reaches an event loop that is already gone — and
+/// tao panics rather than ignore it.
+fn leave<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    use tauri::Manager;
+
+    if app
+        .state::<Departed>()
+        .0
+        .swap(true, std::sync::atomic::Ordering::SeqCst)
+    {
+        return;
+    }
+    app.exit(0);
 }
 
 #[derive(Default)]
 struct Leaving(std::sync::atomic::AtomicBool);
+
+#[derive(Default)]
+struct Departed(std::sync::atomic::AtomicBool);
 
 #[tauri::command]
 fn sow(app: tauri::AppHandle, priority: Option<String>) {
@@ -5170,7 +5189,7 @@ fn sow(app: tauri::AppHandle, priority: Option<String>) {
 
 #[tauri::command]
 fn parted(app: tauri::AppHandle) {
-    app.exit(0);
+    leave(&app);
 }
 
 const NOTICES: &str = include_str!("../../../THIRD-PARTY-BUNDLED.md");
@@ -7204,6 +7223,7 @@ pub fn run() {
         .manage(Packing::default())
         .manage(Updating::default())
         .manage(Leaving::default())
+        .manage(Departed::default())
         .invoke_handler(tauri::generate_handler![
             snapshot,
             keepers,
