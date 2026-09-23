@@ -2173,10 +2173,14 @@ fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
     let outline = served.call("outline_doc", serde_json::json!({ "doc": &book }));
     let said = outline["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        said.contains("1 of them in the archive") && said.contains("1 an agent gave up for old"),
+        said.contains("1 of them put away on their own")
+            && said.contains("1 an agent gave up for old"),
         "the prose has to say what the rows say: {said}"
     );
-    assert!(said.contains("in the archive, read-only"), "{said}");
+    assert!(
+        said.contains("in the archive on its own, read-only"),
+        "{said}"
+    );
 }
 
 #[test]

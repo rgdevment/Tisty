@@ -341,7 +341,7 @@ export default function Beside({
                   aria-current={one.file === paper ? "true" : undefined}
                   className={`flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
                     one.file === paper ? "bg-accent-soft text-accent" : ""
-                  } ${one.away ? "text-faint opacity-60" : "text-soft"}`}
+                  } ${one.away ? "text-faint" : "text-soft"}`}
                 >
                   <Glyph
                     name={one.archived ? "archive" : "alignleft"}

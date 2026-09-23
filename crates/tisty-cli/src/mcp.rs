@@ -3545,7 +3545,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 }
                 let marked = pages
                     .iter()
-                    .filter(|page| page.flagged.is_some() && !page.archived)
+                    .filter(|page| page.flagged.is_some() && !state.held_away(page))
                     .count();
                 if marked > 0 {
                     kept_of.insert("pages_flagged".into(), json!(marked));
@@ -5127,6 +5127,9 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if state.held_away(one) {
                 row.insert("archived".into(), json!(true));
             }
+            if one.archived {
+                row.insert("apart".into(), json!(true));
+            }
             if one.flagged.is_some() && !state.held_away(one) {
                 row.insert("flagged".into(), json!(true));
             }
@@ -5191,7 +5194,7 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !rows.is_empty() {
         let away = rows
             .iter()
-            .filter(|row| row["archived"] == json!(true))
+            .filter(|row| row["apart"] == json!(true))
             .count();
         let marked = rows
             .iter()
@@ -5202,7 +5205,7 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             rows.len(),
             match away {
                 0 => String::new(),
-                _ => format!(", {away} of them in the archive"),
+                _ => format!(", {away} of them put away on their own"),
             },
             match marked {
                 0 => String::new(),
@@ -5217,11 +5220,13 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             };
             let state_of = match (
                 row["archived"] == json!(true),
+                row["apart"] == json!(true),
                 row["flagged"] == json!(true),
             ) {
-                (true, _) => " — in the archive, read-only",
-                (false, true) => " — an agent says it has had its day",
-                (false, false) => "",
+                (true, true, _) => " — in the archive on its own, read-only",
+                (true, false, _) => " — in the archive with the document, read-only",
+                (false, _, true) => " — an agent says it has had its day",
+                (false, _, false) => "",
             };
             shown.push_str(&format!(
                 "\n  {} — {}{holds}{state_of}",
@@ -5289,7 +5294,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
         let marked: Vec<String> = held
             .iter()
-            .filter(|one| one.flagged.is_some() && !one.archived)
+            .filter(|one| one.flagged.is_some() && !state.held_away(one))
             .map(|one| one.file.clone())
             .collect();
         if !marked.is_empty() {

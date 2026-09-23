@@ -152,6 +152,19 @@ pub fn doc(
                 .map(|body| tisty_core::docs::titled(&body))
                 .unwrap_or_default()
         };
+        let said = |one: &tisty_core::model::Kept| {
+            let mut marks = Vec::new();
+            if app.state.held_away(one) {
+                marks.push(crate::style::dim(lang.get("left-away")));
+            }
+            if one.flagged.is_some() && !app.state.held_away(one) {
+                marks.push(crate::style::dim(lang.get("doc-flagged")));
+            }
+            match marks.is_empty() {
+                true => String::new(),
+                false => format!("  {}", marks.join(" ")),
+            }
+        };
         let mut all: Vec<_> = app
             .state
             .docs
@@ -163,12 +176,18 @@ pub fn doc(
             println!("  {}", crate::style::dim(lang.get("no-docs")));
         }
         for one in all {
-            println!("  {}  {}", crate::style::dim(&one.file), titled(&one.file));
+            println!(
+                "  {}  {}{}",
+                crate::style::dim(&one.file),
+                titled(&one.file),
+                said(one)
+            );
             for page in app.state.pages_of(one.id) {
                 println!(
-                    "    {}  {}",
+                    "    {}  {}{}",
                     crate::style::dim(&page.file),
-                    titled(&page.file)
+                    titled(&page.file),
+                    said(page)
                 );
             }
         }
@@ -178,6 +197,15 @@ pub fn doc(
     let Some(held) = app.state.docs.values().find(|one| one.file == which) else {
         anyhow::bail!("{}", lang.fill("no-such-doc", &[("name", &which)]));
     };
+    if app.state.held_away(held) {
+        println!("  {}", crate::style::dim(lang.get("left-away")));
+    } else if let Some(said) = &held.flagged {
+        println!(
+            "  {} {}",
+            crate::style::dim(lang.get("doc-flagged")),
+            crate::style::dim(&said.body)
+        );
+    }
     print!("{}", tisty_core::docs::read(&app.paths.docs(), &held.file)?);
     Ok(ExitCode::SUCCESS)
 }

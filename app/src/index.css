@@ -545,8 +545,10 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--tisty-faint);
 }
-.leaf-away {
-  opacity: 0.55;
+.leaf-away .leaf-name,
+.leaf-away .leaf-num {
+  color: var(--tisty-faint);
+  font-weight: 500;
 }
 
 .leaf-mark {

@@ -388,7 +388,7 @@ export default function Tree({
   };
 
   const trace = (folder: Folded, depth: number, key: string) => (
-    <li key={key} className="relative opacity-55">
+    <li key={key} className="relative">
       <div className="group/row flex items-center rounded-md" title={t("folderTraceWhy")}>
         <span
           aria-hidden="true"
@@ -410,7 +410,7 @@ export default function Tree({
   );
 
   const lost = (name: string, depth: number, key: string) => (
-    <li key={key} className="relative opacity-55">
+    <li key={key} className="relative">
       <div className="group/row flex items-center rounded-md" title={t("folderTraceGone")}>
         <span
           aria-hidden="true"
@@ -548,7 +548,7 @@ export default function Tree({
             aria-current={open === doc.file ? "true" : undefined}
             className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1 pl-1.5 pr-2 text-left text-[13px] ${
               lifted?.id === doc.id ? "ring-1 ring-accent " : ""
-            }${carried?.id === doc.id ? "opacity-45 " : ""}${doc.away ? "opacity-55 " : ""}${
+            }${carried?.id === doc.id ? "opacity-45 " : ""}${doc.away ? "text-faint " : ""}${
               open === doc.file
                 ? "bg-active text-ink"
                 : `${page ? "text-faint" : "text-soft"} hover:bg-hover`
@@ -606,7 +606,7 @@ export default function Tree({
     const kids = under(folder.id);
     const papersIn = inside(folder.id);
     return (
-      <li key={folder.id} className={folder.away ? "relative opacity-55" : "relative"}>
+      <li key={folder.id} className={folder.away ? "relative text-faint" : "relative"}>
         <div
           data-drop={folder.away ? undefined : folder.id}
           data-drop-kind="folder"

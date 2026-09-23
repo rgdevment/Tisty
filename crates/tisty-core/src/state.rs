@@ -5740,6 +5740,39 @@ mod tests {
     }
 
     #[test]
+    fn taking_back_a_putting_away_puts_the_mark_back_with_it() {
+        let mut state = State::default();
+        state.assistants.insert(DeviceId("dev_agent".into()));
+        let one = doc(&mut state, "a3f1-0001", None);
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DocFlag {
+                id: one,
+                d: crate::event::Flag::new("it has had its day"),
+            },
+        ));
+        let before = state.clone();
+        let put = ev(3, "a", Op::DocArchive { id: one });
+        state.apply(&put);
+        assert!(state.docs[&one].flagged.is_none());
+
+        for op in crate::undo::inverse(&put, &before).expect("it can be taken back") {
+            state.apply(&ev(4, "a", op));
+        }
+
+        assert!(!state.docs[&one].archived);
+        assert_eq!(
+            state.docs[&one]
+                .flagged
+                .as_ref()
+                .map(|said| said.body.as_str()),
+            Some("it has had its day"),
+            "undoing an answer to the mark cannot swallow the mark"
+        );
+    }
+
+    #[test]
     fn a_page_put_away_by_an_assistant_keeps_the_mark_it_was_given() {
         let mut state = State::default();
         state.assistants.insert(DeviceId("dev_agent".into()));

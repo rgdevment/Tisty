@@ -213,6 +213,7 @@ attach-too-big     = "that file is over the {limit} MB this machine copies"
 attach-unreadable  = "{name} could not be read"
 
 no-docs            = "no documents yet"
+doc-flagged        = "(an agent says it has had its day)"
 no-such-doc        = "no document is called {name}"
 
 doc-eaten          = "the editor cannot keep {what}, and would destroy it when you open this. Use plain markdown"

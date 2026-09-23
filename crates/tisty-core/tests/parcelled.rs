@@ -2473,3 +2473,26 @@ fn a_parcel_from_before_pages_answered_for_themselves_lands_them_covered_and_not
         "bringing the document back has to wake what it covered"
     );
 }
+
+#[test]
+fn what_an_assistant_marked_travels_with_the_document_it_marked() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (doc, _) = here.doc("# Actas", None, None);
+    here.tell(Op::DocFlag {
+        id: doc,
+        d: tisty_core::event::Flag::new("it has had its day"),
+    });
+    let box_at = room.path().join("marcada.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let landed = there.titled("Actas");
+    assert_eq!(
+        landed.flagged.as_ref().map(|one| one.body.as_str()),
+        Some("it has had its day"),
+        "the person still has it to answer wherever the parcel lands"
+    );
+}

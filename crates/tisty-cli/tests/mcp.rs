@@ -5439,3 +5439,48 @@ fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
         "one call is one thing in the log, or half of it can be taken back: {batches:?}"
     );
 }
+
+#[test]
+fn the_terminal_says_which_documents_are_put_away_and_which_an_agent_gave_up_for_old() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let old = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let shelved = served.call("write_doc", serde_json::json!({ "body": "# Guardado" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &old, "body": "nobody opens it any more" }),
+    );
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &shelved, "archived": true }),
+    );
+
+    let listed = served.cli(&["doc"]);
+    let marked = listed
+        .lines()
+        .find(|line| line.contains("Viejo"))
+        .unwrap_or_default();
+    assert!(
+        marked.contains("an agent says it has had its day"),
+        "the mark is a question for the person, and the terminal is where some of them live: {listed}"
+    );
+    let away = listed
+        .lines()
+        .find(|line| line.contains("Guardado"))
+        .unwrap_or_default();
+    assert!(away.contains("(put away)"), "{listed}");
+
+    let read = served.cli(&["doc", &old]);
+    assert!(
+        read.contains("nobody opens it any more") && read.contains("# Viejo"),
+        "and reading it says what the agent said: {read}"
+    );
+}
