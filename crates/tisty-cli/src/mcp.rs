@@ -3424,7 +3424,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             if state.shut(one.id) {
                 kept_of.insert("locked".into(), json!(true));
             }
-            if one.flagged.is_some() {
+            if one.flagged.is_some() && !state.held_away(one) {
                 kept_of.insert("flagged".into(), json!(true));
             }
             if let Some(card) = card {
@@ -4164,7 +4164,7 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     if let Some(up) = kept.page_of.and_then(|up| named_doc(&state, up)) {
         return Err(Refused::Tool(format!(
-            "{which} is a page of {up}, and a page is weighed with the document that holds it.              Mark {up} instead."
+            "{which} is a page of {up}, and a page is weighed with the document that holds \n             it. Mark {up} instead."
         )));
     }
     if state.held_away(kept) {
@@ -5243,7 +5243,7 @@ fn papers_matching(
                 (
                     state.held_away(one),
                     one.page_of.and_then(|up| named_doc(state, up)),
-                    one.flagged.is_some(),
+                    one.flagged.is_some() && !state.held_away(one),
                 ),
             )
         })

@@ -500,6 +500,17 @@ export default function App() {
     return was.length ? was.join(" / ") : null;
   };
 
+  const madeAgain = async (way: string[]): Promise<string | null> => {
+    let parent: string | null = null;
+    for (const name of way) {
+      const here = papers.folders.find(
+        (one) => !one.away && one.name === name && (one.parent ?? null) === parent,
+      );
+      parent = here ? here.id : await folderAdd(name, parent ?? undefined);
+    }
+    return parent;
+  };
+
   const putBack = () => {
     const doc = backing;
     if (!doc) return;
@@ -513,7 +524,7 @@ export default function App() {
           : home
             ? Promise.resolve(home)
             : doc.folderWas?.length
-              ? folderAdd(doc.folderWas[doc.folderWas.length - 1])
+              ? madeAgain(doc.folderWas)
               : Promise.resolve(null);
     docAway(doc.id, false)
       .then(lands)
@@ -1344,7 +1355,7 @@ export default function App() {
                     ? t("backToNone")
                     : backHome(backing)
                       ? fill("backToSame", backFrom(backing) as string)
-                      : fill("backToMade", (backing.folderWas ?? []).slice(-1)[0] ?? "")
+                      : fill("backToMade", (backing.folderWas ?? []).join(" / "))
                 }
                 hint={backFrom(backing) === null ? t("backWasHere") : undefined}
               />
@@ -1375,7 +1386,6 @@ export default function App() {
                   />
                   <span className="shrink-0">{t("backToOther")}</span>
                   <select
-                    aria-label={t("backToOther")}
                     value={backTo !== "same" && backTo !== "none" ? backTo : ""}
                     onChange={(e) => setBackTo(e.target.value)}
                     className="ml-auto min-w-0 max-w-[60%] truncate rounded-md border border-line bg-bg px-2 py-1 text-[12.5px] text-ink"

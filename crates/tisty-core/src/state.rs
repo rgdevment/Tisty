@@ -158,18 +158,19 @@ impl State {
     fn named_trail(&self, at: FolderId) -> Option<Vec<String>> {
         let mut names = Vec::new();
         let mut up = Some(at);
-        while let Some(id) = up {
-            let folder = self.folders.get(&id)?;
+        // An ancestor can be missing when a delete from another machine lands before the add
+        // that named it, and a partial way down still says more than nothing.
+        while let Some(folder) = up.and_then(|id| self.folders.get(&id)) {
             names.insert(0, folder.name.clone());
             up = folder.parent;
             if names.len() > crate::model::DEEPEST {
                 break;
             }
         }
-        Some(names)
+        (!names.is_empty()).then_some(names)
     }
 
-    fn shelve(&mut self, id: DocId, away: bool) {
+    fn shelve(&mut self, id: DocId, away: bool, by_person: bool) {
         if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
             return;
         }
@@ -182,8 +183,10 @@ impl State {
         for one in pages.into_iter().chain(std::iter::once(id)) {
             if let Some(doc) = self.docs.get_mut(&one) {
                 doc.archived = away;
-                if !away {
-                    doc.folder_was = None;
+                // Putting it away is an answer to the mark, but only when the hand is the
+                // person's: an assistant archiving one of its own marks would bury it.
+                if away && by_person {
+                    doc.flagged = None;
                 }
             }
         }
@@ -593,14 +596,12 @@ impl State {
             Op::FolderArchive { id } => self.shelf(*id, true),
             Op::FolderUnarchive { id } => self.shelf(*id, false),
             Op::DocArchive { id } => {
-                self.shelve(*id, true);
-                if let Some(doc) = self.docs.get_mut(id) {
-                    doc.flagged = None;
-                }
+                let by_person = !self.assistants.contains(&event.device);
+                self.shelve(*id, true, by_person)
             }
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
-            Op::DocUnarchive { id } => self.shelve(*id, false),
+            Op::DocUnarchive { id } => self.shelve(*id, false, true),
             Op::DocFlag { id, d } => {
                 let said = crate::model::Flagged {
                     at: d.at.unwrap_or(event.timestamp),
@@ -5678,9 +5679,89 @@ mod tests {
     }
 
     #[test]
-    fn a_page_keeps_no_trace_of_a_folder_once_its_document_is_out_of_the_archive() {
+    fn a_way_down_with_a_missing_ancestor_keeps_what_is_left_of_it() {
+        let mut state = State::default();
+        let lost = Ulid::generate();
+        let under = Ulid::generate();
+        state.apply(&ev(
+            1,
+            "a",
+            Op::FolderAdd {
+                id: under,
+                d: crate::event::FolderAdd {
+                    name: "clients".into(),
+                    order: "a0".into(),
+                    parent: Some(lost),
+                    icon: None,
+                    color: None,
+                },
+            },
+        ));
+        let one = doc(&mut state, "a3f1-0001", Some(under));
+        state.apply(&ev(2, "a", Op::DocArchive { id: one }));
+
+        state.apply(&ev(3, "a", Op::FolderDelete { id: under }));
+
+        assert_eq!(
+            state.docs[&one].folder_was.as_deref(),
+            Some(["clients".to_string()].as_slice()),
+            "a delete that arrived before the add that named the parent must not wipe the way"
+        );
+    }
+
+    #[test]
+    fn archiving_a_document_takes_the_marks_of_its_pages_too() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        for one in [minutes, march] {
+            state.apply(&ev(
+                2,
+                "dev_agent",
+                Op::DocFlag {
+                    id: one,
+                    d: crate::event::Flag::new("it has had its day"),
+                },
+            ));
+        }
+
+        state.apply(&ev(3, "a", Op::DocArchive { id: minutes }));
+
+        assert!(state.docs[&minutes].flagged.is_none());
+        assert!(
+            state.docs[&march].flagged.is_none(),
+            "the page went into the archive with it, so its mark was answered too"
+        );
+    }
+
+    #[test]
+    fn archiving_aimed_at_a_page_leaves_the_page_exactly_as_it_was() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DocFlag {
+                id: march,
+                d: crate::event::Flag::new("it has had its day"),
+            },
+        ));
+
+        state.apply(&ev(3, "a", Op::DocArchive { id: march }));
+
+        assert!(!state.docs[&march].archived, "a page stays put");
+        assert!(
+            state.docs[&march].flagged.is_some(),
+            "nothing happened to it, so nothing answered its mark"
+        );
+    }
+
+    #[test]
+    fn a_page_keeps_no_trace_of_a_folder_once_its_document_lands_again() {
         let mut state = State::default();
         let work = folder(&mut state, "work", None);
+        let home = folder(&mut state, "home", None);
         let minutes = doc(&mut state, "a3f1-0001", Some(work));
         let march = page(&mut state, "a3f1-0002", minutes);
         state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
@@ -5688,9 +5769,42 @@ mod tests {
         assert!(state.docs[&march].folder_was.is_some());
 
         state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
+        moved(
+            &mut state,
+            minutes,
+            crate::event::Filed {
+                folder: Some(Some(home)),
+                page_of: None,
+                order: None,
+            },
+        );
 
         assert_eq!(state.docs[&march].folder_was, None);
         assert_eq!(state.docs[&minutes].folder_was, None);
+    }
+
+    #[test]
+    fn an_assistant_that_archives_a_marked_document_does_not_bury_the_mark() {
+        let mut state = State::default();
+        state.assistants.insert(DeviceId("dev_agent".into()));
+        let one = doc(&mut state, "a3f1-0001", None);
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DocFlag {
+                id: one,
+                d: crate::event::Flag::new("it has had its day"),
+            },
+        ));
+
+        state.apply(&ev(3, "dev_agent", Op::DocArchive { id: one }));
+        assert!(
+            state.docs[&one].flagged.is_some(),
+            "only the person answers a mark, and no person was here"
+        );
+
+        state.apply(&ev(4, "dev_laptop", Op::DocArchive { id: one }));
+        assert!(state.docs[&one].flagged.is_none());
     }
 
     #[test]
@@ -5734,9 +5848,12 @@ mod tests {
         let home = folder(&mut state, "home", None);
 
         state.apply(&ev(4, "a", Op::DocUnarchive { id: one }));
-        assert_eq!(state.docs[&one].folder_was, None);
+        assert!(
+            state.docs[&one].folder_was.is_some(),
+            "coming out of the archive is not landing: the offer to make the folder again \
+             has to survive a filing that fails"
+        );
 
-        state.apply(&ev(5, "a", Op::DocArchive { id: one }));
         moved(
             &mut state,
             one,

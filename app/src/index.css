@@ -239,8 +239,8 @@ body {
   pointer-events: none;
 }
 
-.scroller [data-row] {
-  scroll-margin-top: 56px;
+.scroller:has(.pinned-head) [data-row] {
+  scroll-margin-top: calc(var(--tisty-docs-head) + 22px);
 }
 .scroller:hover {
   scrollbar-color: var(--tisty-line) transparent;
