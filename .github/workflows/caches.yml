@@ -3,6 +3,10 @@ name: Caches
 on:
   pull_request_target:
     types: [closed]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   actions: write
@@ -10,6 +14,7 @@ permissions:
 jobs:
   sweep:
     name: a closed pull request takes its caches with it
+    if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -19,3 +24,21 @@ jobs:
           GH_REPO: ${{ github.repository }}
           REF: refs/pull/${{ github.event.pull_request.number }}/merge
         run: gh cache delete --all --ref "$REF" --succeed-on-no-caches
+
+  generations:
+    name: main keeps one generation of each cache
+    if: >-
+      github.event_name == 'workflow_run'
+      && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: cache-generations
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - name: What a newer lockfile left behind
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python3 scripts/generations.py
