@@ -116,12 +116,33 @@ mod there {
             .GetAppAndOptionalStorePackageUpdatesAsync()?
             .join()?;
         let ours = Package::Current()?.Id()?.FamilyName()?;
+        let mut offered: Vec<String> = Vec::new();
         for one in 0..updates.Size()? {
             let id = updates.GetAt(one)?.Package()?.Id()?;
-            if id.FamilyName()? == ours {
+            let name = id.FamilyName()?;
+            if name == ours {
                 return Ok(Some(numbered(&id.Version()?)));
             }
+            offered.push(name.to_string());
         }
+        // The Store answers from what it last knew unless it is due to ask again, so an empty
+        // answer here is either «nothing for you» or «I did not look», and they read the same.
+        witness::note(
+            channel::WINDOW,
+            "the Store was asked what it has and named nothing for this package",
+            &[
+                ("ours", Fact::Id(ours.to_string())),
+                ("offered", Fact::Count(offered.len())),
+                (
+                    "names",
+                    Fact::Why(if offered.is_empty() {
+                        "nothing at all".to_string()
+                    } else {
+                        offered.join(", ")
+                    }),
+                ),
+            ],
+        );
         Ok(None)
     }
 
