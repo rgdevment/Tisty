@@ -16,6 +16,29 @@ pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
 const VERSION: u32 = 1;
 const MANIFEST: &str = "tisty-docs.json";
+const READING: &str = "README.txt";
+const READ_ME: &str = "This is a Tisty parcel.
+
+It is an ordinary zip file: open it and the documents are inside `docs/`, as
+plain Markdown you can read in any editor. Nothing here needs Tisty to be read.
+
+Tisty opens it whole, with the folders, the titles and the attachments back in
+place: File > Open a parcel. It is free and open source, for Windows and macOS.
+
+  https://github.com/rgdevment/Tisty
+
+---
+
+Esto es un paquete de Tisty.
+
+Es un zip corriente: abrelo y los documentos estan en `docs/`, como Markdown
+que puedes leer en cualquier editor. Nada de aqui necesita Tisty para leerse.
+
+Tisty lo abre entero, con las carpetas, los titulos y los adjuntos en su sitio:
+Archivo > Abrir un paquete. Es gratis y de codigo abierto, para Windows y macOS.
+
+  https://github.com/rgdevment/Tisty
+";
 const CARRIED: [&str; 2] = ["docs", "attachments"];
 const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
@@ -532,6 +555,9 @@ fn filled(
         &mut zip,
         serde_json::to_string_pretty(&manifest)?.as_bytes(),
     )?;
+
+    zip.start_file(READING, plain).map_err(zipped)?;
+    std::io::Write::write_all(&mut zip, READ_ME.as_bytes())?;
 
     let whole = bodies.len() + beside.len();
     for (one, body) in &bodies {
