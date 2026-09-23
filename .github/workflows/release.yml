@@ -521,8 +521,18 @@ jobs:
             Select-Object -First 1
           if (-not $setup) { Write-Error "no installer to open"; exit 1 }
 
+          $seven = @(
+            "C:\Program Files\7-Zip\7z.exe",
+            "C:\Program Files (x86)\7-Zip\7z.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $seven) {
+            $seven = (Get-Command 7z, 7za -ErrorAction SilentlyContinue |
+              Select-Object -First 1).Source
+          }
+          if (-not $seven) { Write-Error "no 7-Zip to open the installer with"; exit 1 }
+
           $peek = Join-Path $env:RUNNER_TEMP "peek"
-          & "C:\Program Files\7-Zip\7z.exe" x $setup.FullName "-o$peek" -y | Out-Null
+          & $seven x $setup.FullName "-o$peek" -y | Out-Null
           if ($LASTEXITCODE -ne 0) { Write-Error "the installer could not be opened"; exit 1 }
 
           $status = 0
