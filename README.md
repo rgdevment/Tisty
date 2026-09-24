@@ -19,31 +19,6 @@
   </p>
 
   <p>
-    <a href="https://github.com/rgdevment/Tisty/actions/workflows/ci.yml">
-      <img
-        src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/ci.yml?style=flat-square&logo=github-actions&label=Build"
-        alt="Build status"/>
-    </a>
-    <a href="https://github.com/rgdevment/Tisty/actions/workflows/mutants.yml">
-      <img
-        src="https://img.shields.io/endpoint?style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2Frgdevment%2FTisty%2Fscore%2Fmutants.json"
-        alt="Mutation score"/>
-    </a>
-    <a href="https://dashboard.stryker-mutator.io/reports/github.com/rgdevment/Tisty/main">
-      <img
-        src="https://img.shields.io/endpoint?style=flat-square&label=window%20logic&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Frgdevment%2FTisty%2Fmain"
-        alt="Mutation score of the window logic"/>
-    </a>
-    <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
-      <img
-        src="https://img.shields.io/sonar/quality_gate/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Quality%20Gate"
-        alt="Quality gate"/>
-    </a>
-    <a href="https://sonarcloud.io/component_measures?id=rgdevment_Tisty&metric=coverage">
-      <img
-        src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
-        alt="Coverage"/>
-    </a>
     <a href="https://github.com/rgdevment/Tisty/releases">
       <img
         src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=6C5CE7"
@@ -62,6 +37,15 @@
         src="https://img.shields.io/github/license/rgdevment/Tisty?style=flat-square&color=lightgrey"
         alt="Licence AGPL-3.0"/>
     </a>
+  </p>
+
+  <p>
+    <img
+      src="assets/Social/tisty-social-en.png"
+      width="92%"
+      alt="Tisty: notes, documents and tasks that stay on your own disk. The
+      window shows today's tasks beside the tree of documents, with lists, tags,
+      priorities and the archive down the side"/>
   </p>
 
   <h4>Download Tisty</h4>
@@ -139,7 +123,7 @@ productivity tool** that lives on your machine and nowhere else.
 > **It is for one person, by design.** No assignees, no permissions, no boards.
 > If you need to run a team, Tisty will not carry that.
 
-![Read in three layers, with what each task left behind](assets/Store/jpg/en-07-archive.jpg)
+![The archive read in three layers: the tasks that taught something with their whole trail, the routines with their tallies and their streaks, and the rest as a trace](assets/Store/jpg/en-07-archive.jpg)
 
 ## Table of Contents
 
@@ -156,10 +140,15 @@ productivity tool** that lives on your machine and nowhere else.
 - [An Assistant, If You Use One](#an-assistant-if-you-use-one)
 - [Where It Stands](#where-it-stands)
 - [What It Will Never Do](#what-it-will-never-do)
+- [FAQ](#faq)
+- [Alternatives](#alternatives)
+- [Localization](#localization)
 - [Other Tools by the Same Author](#other-tools-by-the-same-author)
+- [Support the Project](#support-the-project)
 - [Standing On](#standing-on)
 - [Contributing](#contributing)
 - [Licence](#licence)
+- [Project health](#project-health)
 
 ## Why I Built This
 
@@ -344,7 +333,7 @@ window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![The date reads itself out of the sentence](assets/Store/jpg/en-01-record.jpg)
+![Tisty reads the date out of the sentence you typed and shows what it understood as chips you can correct, before anything is saved](assets/Store/jpg/en-01-record.jpg)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -378,7 +367,7 @@ quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
 
-![Urgent against important, and what to do with each](assets/Store/jpg/en-02-priorities.jpg)
+![The Eisenhower matrix in Tisty: urgent against important, and what to do with each — do, schedule, delegate, or leave in minor](assets/Store/jpg/en-02-priorities.jpg)
 
 **The spread deals your days, one row at a time.** Priorities sort what matters;
 the spread decides when. It runs as a river of days you scroll through rather
@@ -394,7 +383,7 @@ dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
 so a square with nothing written on it is only a square with nothing written on
 it — never a promise that the day is yours.
 
-![The days as rows, and what each one carries](assets/Store/jpg/en-03-spread.jpg)
+![The spread: the days as rows you deal work onto, each one growing with what it carries, and the undated waiting in a tray on the left](assets/Store/jpg/en-03-spread.jpg)
 
 **Documents** live beside the tasks, for reference material that has no date and
 never gets ticked. They are Markdown files you edit as documents — tables,
@@ -474,7 +463,7 @@ than as a stranger's. Either way, not one line of the history travels inside.
 Write an alias — optional, and yours to choose — and every document is signed
 with it, while whatever arrives from somebody else keeps theirs.
 
-![Documents in Markdown, with attachments](assets/Store/jpg/en-05-documents.jpg)
+![Documents in plain Markdown beside the tasks, with their folders, their attachments and a search that reads them too](assets/Store/jpg/en-05-documents.jpg)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
@@ -498,7 +487,7 @@ is only ever hidden.
 
 ## Your Data and Privacy
 
-![No account, no telemetry, no server](assets/Store/jpg/en-10-private.jpg)
+![Everything Tisty keeps lives in one folder on your own disk: no account, no telemetry, no server](assets/Store/jpg/en-10-private.jpg)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -691,6 +680,128 @@ section above, whatever your assistant reads travels wherever that assistant
 travels: Tisty still sends nothing, the assistant is the one carrying, and you
 are the one who let it in.
 
+## FAQ
+
+**Is Tisty free?**
+Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
+later version, no trial that runs out. [Commercial terms](docs/COMMERCIAL.md)
+exist only for organisations that cannot comply with the AGPL.
+
+**Does it need an account or a connection?**
+Neither. There is nothing to sign up for and no server to be away from. Tisty
+makes one network request you did not ask for — when it opens, and once a day
+after that — to see whether a newer version exists, and it sends nothing in
+order to ask. Take the machine off the network and everything else works the
+same.
+
+**Where is my data kept?**
+In one folder on your own disk: an append-only log of what happened, your
+documents as `.md` files, and your attachments as themselves. Settings › *Your
+data* prints the path and *Show the store* opens it. Nothing is obfuscated and
+nothing is in a format only Tisty can read.
+
+**What happens to my notes if Tisty disappears?**
+They stay where they are. Markdown and plain text, readable with `cat`,
+searchable with `grep`, openable in any editor you already have. That is what
+the format is for.
+
+**Does Tisty use AI?**
+No, and none is coming. The natural language that turns "call the bank at 3"
+into a task is rules running on your machine: no model, no request, no cloud.
+If you already use an assistant of your own, Tisty leaves an
+[MCP](https://modelcontextprotocol.io) door — you open it, you can close it
+again, and until you do everything it tries is refused.
+
+**Can I use it on two computers?**
+Yes, through a folder you already sync: Google Drive, OneDrive, iCloud,
+Dropbox, a NAS, a drive you plug in on Fridays. There is no server of mine in
+between, no account, and nothing that stops working the day a company changes
+its mind.
+
+**Is there a mobile app?**
+No. Tisty is a desktop program for Windows and macOS. Your documents are
+Markdown in a folder, so a phone that reaches that folder reads and edits them
+with whatever app you like — but the window, the spread and the archive are the
+desktop's.
+
+**Does it run on Linux?**
+There is no Linux build today. The core is Rust and the window is Tauri, so
+nothing in the design stands in the way; what is missing is the packaging and
+somebody to keep it working on the distributions people actually run.
+
+**Is my data encrypted?**
+No, and that is a decision rather than an oversight: your operating system's
+permissions are the protection, and the files stay readable with tools you
+already have. [PRIVACY.md](PRIVACY.md) writes it out, including the parts that
+are not reassuring.
+
+**Can I use it with my team?**
+No. Tisty is for one person by design — no assignees, no permissions, no
+boards — and you deserve to know that before you install it rather than after.
+
+**Can I bring my notes over from another app?**
+Documents, yes: *Import a document* in the tree takes a `.md`, `.markdown` or
+`.txt` file and brings it in one at a time, and a `.tistyx` from another Tisty
+machine unpacks whole. Tasks have to be typed. There is no importer for another
+program's task list, and one that guessed would cost you more than the typing.
+
+**How is it different from Obsidian, Notion or Todoist?**
+Tisty keeps tasks and documents in one store and one search, and finishing a
+task keeps everything it gathered instead of hiding it. The table below says
+where each of those is stronger.
+
+## Alternatives
+
+Other places to keep notes and tasks, so you can pick the one that fits.
+Platform, storage and licence checked against each project in September 2026;
+everything else changes, so go and look.
+
+| Project | Platform | Where your data lives | Licence |
+| :-- | :-- | :-- | :-- |
+| **Tisty** | Windows, macOS | Your disk, no account | AGPL-3.0 |
+| [Obsidian](https://obsidian.md) | Windows, macOS, Linux, iOS, Android | Your disk; syncing is a paid extra | Closed source, free for personal use |
+| [Logseq](https://github.com/logseq/logseq) | Windows, macOS, Linux, iOS | Your disk | AGPL-3.0 |
+| [Joplin](https://github.com/laurent22/joplin) | Windows, macOS, Linux, Android, iOS | Your disk; syncing through a service you pick | AGPL-3.0 |
+| [AppFlowy](https://github.com/AppFlowy-IO/AppFlowy) | Windows, macOS, Linux, Android, iOS | Your disk, or a server you pick | AGPL-3.0 |
+| [Anytype](https://github.com/anyproto/anytype-ts) | Windows, macOS, Linux | Your disk, synced encrypted | Any Source Available 1.0 |
+| [SilverBullet](https://github.com/silverbulletmd/silverbullet) | Self-hosted, in a browser | A server you run | MIT |
+| [Super Productivity](https://github.com/johannesjo/super-productivity) | Windows, macOS, Linux, mobile | Your disk; syncing through a service you pick | MIT |
+| [Taskwarrior](https://github.com/GothenburgBitFactory/taskwarrior) | Command line | Your disk | MIT |
+| [Things 3](https://culturedcode.com/things/) | macOS, iOS | Your device; their cloud to sync | Paid, closed source |
+| [Craft](https://www.craft.do) | macOS, iOS, Windows, Android, web | Their cloud; a local folder gives up sharing | Freemium, closed source |
+| [Todoist](https://todoist.com) | Everywhere | Their servers, and an account | Freemium, closed source |
+| [Notion](https://www.notion.com) | Everywhere | Their servers, and an account | Freemium, closed source |
+
+What Tisty does that most of these do not: tasks and documents in one store and
+one search, an archive that keeps a finished task whole instead of hiding it,
+the Eisenhower matrix by its name rather than a number from one to four, and a
+door for the assistant you already use with no AI inside the program itself.
+
+Each of them is better than Tisty at something. Obsidian and Logseq are
+notebooks with a decade of plugins, and tasks are one of those plugins' job.
+Craft makes the handsomest document of the lot, and asks you to keep it in its
+cloud for the sharing to work. Notion models anything you can describe, once
+you and your data have an account there. Todoist and Things are quicker at
+catching a task than anything here — and when that task is done, what you
+worked out on the way has nowhere to stay. Joplin and AppFlowy are the closest
+in spirit to this one, and either is worth your time if a phone matters to you
+more than an archive.
+
+## Localization
+
+The window, the guide, the welcome and the natural language all speak the
+language you chose the first time Tisty opened, and Settings changes it
+whenever you like.
+
+| Language | Tag | Status |
+| :-- | :-: | :-: |
+| English | en | Complete |
+| Spanish | es | Complete |
+
+Want yours in there? [Open an issue](https://github.com/rgdevment/Tisty/issues)
+and say so — the window's strings live in one file, `app/src/locales.ts`, and
+the rest follows from it.
+
 ## Other Tools by the Same Author
 
 Same idea, same terms: free, open source, no ads, no telemetry, everything
@@ -701,6 +812,28 @@ local.
 - **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — a browser
   selector for Windows and macOS: it asks which browser should open a link
   instead of assuming.
+
+## Support the Project
+
+Tisty is free and will stay free: no ads, no premium tier, no paywall. If it
+saves you time and you would like it to keep being maintained:
+
+<p>
+  <a href="https://github.com/sponsors/rgdevment">
+    <img
+      src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white"
+      alt="Sponsor Tisty on GitHub"/>
+  </a>
+  <a href="https://buymeacoffee.com/rgdevment">
+    <img
+      src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black"
+      alt="Buy me a coffee"/>
+  </a>
+</p>
+
+And if you would rather not pay for anything, that is entirely fine. Star the
+repository so somebody else finds it, tell one person it exists, or open an
+issue when something is wrong. That is worth as much.
 
 ## Standing On
 
@@ -751,3 +884,33 @@ with it.
 The signed builds in the app stores carry their own terms, because the stores'
 do not accept the AGPL — [DISTRIBUTION.md](docs/DISTRIBUTION.md) says which
 applies to what you have, and why. Nothing is withheld from the source either way.
+
+## Project health
+
+<p>
+  <a href="https://github.com/rgdevment/Tisty/actions/workflows/ci.yml">
+    <img
+      src="https://img.shields.io/github/actions/workflow/status/rgdevment/Tisty/ci.yml?style=flat-square&logo=github-actions&label=Build"
+      alt="Build status"/>
+  </a>
+  <a href="https://github.com/rgdevment/Tisty/actions/workflows/mutants.yml">
+    <img
+      src="https://img.shields.io/endpoint?style=flat-square&url=https%3A%2F%2Fraw.githubusercontent.com%2Frgdevment%2FTisty%2Fscore%2Fmutants.json"
+      alt="Mutation score"/>
+  </a>
+  <a href="https://dashboard.stryker-mutator.io/reports/github.com/rgdevment/Tisty/main">
+    <img
+      src="https://img.shields.io/endpoint?style=flat-square&label=window%20logic&url=https%3A%2F%2Fbadge-api.stryker-mutator.io%2Fgithub.com%2Frgdevment%2FTisty%2Fmain"
+      alt="Mutation score of the window logic"/>
+  </a>
+  <a href="https://sonarcloud.io/summary/overall?id=rgdevment_Tisty">
+    <img
+      src="https://img.shields.io/sonar/quality_gate/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Quality%20Gate"
+      alt="Quality gate"/>
+  </a>
+  <a href="https://sonarcloud.io/component_measures?id=rgdevment_Tisty&metric=coverage">
+    <img
+      src="https://img.shields.io/sonar/coverage/rgdevment_Tisty?server=https%3A%2F%2Fsonarcloud.io&style=flat-square&logo=sonarcloud&label=Coverage"
+      alt="Coverage"/>
+  </a>
+</p>
