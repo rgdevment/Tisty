@@ -161,7 +161,7 @@ A document can hold pages, and that is the only level there is: `write_doc` with
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` writes the line that names the page, at the end of the document it is hung from, so a page has a place from the moment it has a document. `after`, `before` and `at` say where that line goes instead of the end; the page you name as `after` or `before` has to have a line of its own for this one to sit beside it, and `at` takes \"first\" or \"last\", which needs no page to lean on. That is how a page is moved without touching markdown. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` writes the line that names the page, at the end of the document it is hung from, so a page has a place from the moment it has a document. `after`, `before` and `at` say where that line goes instead of the end; the page you name as `after` or `before` has to have a line of its own for this one to sit beside it, and `at` takes \"first\" or \"last\", which needs no page to lean on. That is how a page is moved without touching markdown. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. It goes on its own — two ids at least, and no `doc`, `after`, `before` or `at` beside it, because one call says an order and another puts one page somewhere. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
@@ -5099,7 +5099,7 @@ fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut seen = std::collections::BTreeSet::new();
     if let Some(twice) = order.iter().find(|one| !seen.insert((*one).clone())) {
         return Err(Refused::Tool(format!(
-            "`order` names {twice:?} twice, and a page is read in one place."
+            "`order` names {twice:?} twice, and a page is read in one place. Send it once."
         )));
     }
     let Some(said) = text(args, "page_of") else {
@@ -5122,7 +5122,8 @@ fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     if state.held_away(up) {
         return Err(Refused::Tool(format!(
-            "{} is put away, so it is not written in any more.",
+            "{} is put away, so it is not written in any more. Bring it back with \
+             `archive_doc` first if its order truly has to change.",
             doc_named(&state, &said)
         )));
     }
@@ -5221,7 +5222,8 @@ fn ordered(
         };
         if page.page_of != Some(up) {
             return Err(Refused::Tool(format!(
-                "{} is not a page of {}, so it has no place in its order.",
+                "{} is not a page of {}, so it has no place in its order. Hang it there \
+                 first with `page_of`, then say the order.",
                 doc_named(state, id),
                 doc_named(state, &parent.file)
             )));
@@ -5241,7 +5243,9 @@ fn ordered(
     let print = tisty_core::attach::printed(body.as_bytes());
     let Some(whole) = cards_ordered(&body, order) else {
         return Err(Refused::Tool(
-            "the lines naming those pages are not all there to move between.".to_string(),
+            "the lines naming those pages are not all there to move between. Ask \
+             `outline_doc` which pages this document names, and order those."
+                .to_string(),
         ));
     };
     if renamed(&body, &whole) {
@@ -7404,7 +7408,7 @@ fn tools() -> Value {
         },
         {
             "name": "page_doc",
-            "title": "Make one document, or several, into pages — or take them back out",
+            "title": "Make one document, or several, into pages, put their pages in order, or take them back out",
             "description": "Hang a document from another as one of its pages, or take a page out \
                             by leaving `page_of` out, which makes it a document of its own again, \
                             back in the folder it came from. A page goes with its document \
@@ -7413,8 +7417,12 @@ fn tools() -> Value {
                             document, the same line `write_doc` with `page_of` writes; `after`, \
                             `before` and `at` say where that line goes instead. Taking a page \
                             out writes nothing: the line stays where it was, now pointing at a \
-                            document of its own, and taking it out of the text is yours to do. The order pages are read in is the order their lines sit in \
-                            the document, and nothing else.",
+                            document of its own, and taking it out of the text is yours to do. \
+                            `order` is the third thing this does: it takes the pages of one \
+                            document and deals the lines they already have back out in the order \
+                            you name, which is how several are put in order in one call. The \
+                            order pages are read in is the order their lines sit in the \
+                            document, and nothing else.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": many_docs_field("to hang or to take out"),
@@ -7440,7 +7448,7 @@ fn tools() -> Value {
                     "order": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "The pages of one document, by their ids, in the order they are to be read. Their lines are moved into each other s places and nothing else in the text moves, so pages you leave out stay where they are. Needs `page_of`, and takes no `doc`: every page it names has to have a line of its own already"
+                        "description": "The pages of one document, by their ids, in the order they are to be read. Their lines are moved into each other's places and nothing else in the text moves, so pages you leave out stay where they are. Two or more ids, each named once. Needs `page_of`, and goes on its own: no `doc`, `after`, `before` or `at` — one call says an order, another puts one page somewhere. Every page it names has to have a line of its own already"
                     },
                     "at": {
                         "type": "string",

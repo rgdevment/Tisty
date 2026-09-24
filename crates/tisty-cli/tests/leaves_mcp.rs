@@ -3651,6 +3651,10 @@ fn an_order_for_a_book_put_away_says_it_is_not_written_in_any_more() {
     );
 
     assert!(why.contains("put away"), "{why}");
+    assert!(
+        why.contains("`archive_doc`"),
+        "a refusal says what to send instead: {why}"
+    );
 }
 
 #[test]
@@ -3667,6 +3671,10 @@ fn an_order_naming_a_document_that_is_no_page_of_it_says_it_has_no_place_there()
     );
 
     assert!(why.contains("no place in its order"), "{why}");
+    assert!(
+        why.contains("Hang it there first with `page_of`"),
+        "a refusal says what to send instead: {why}"
+    );
 }
 
 #[test]
@@ -3830,4 +3838,30 @@ z.", "page_of": &book }),
     assert!(told.contains("no line naming it was written"), "{told}");
     assert!(told.contains("ends inside a fence"), "{told}");
     assert_eq!(served.body_of(&book), was, "a line in code is not a way in");
+}
+
+#[test]
+fn every_refusal_the_order_of_pages_hands_back_says_what_to_send_instead() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+
+    for (args, remedy) in [
+        (
+            serde_json::json!({ "page_of": &book, "order": [&one, &one] }),
+            "Send it once",
+        ),
+        (
+            serde_json::json!({ "page_of": &book, "order": [&two, &one], "after": &one }),
+            "Send them apart",
+        ),
+        (
+            serde_json::json!({ "page_of": &book, "order": [&one] }),
+            "Two or more, or nothing to do",
+        ),
+    ] {
+        let why = served.refused("page_doc", args);
+        assert!(why.contains(remedy), "no remedy in: {why}");
+    }
 }
