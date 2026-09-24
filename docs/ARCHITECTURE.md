@@ -1396,6 +1396,25 @@ document it had. A rejected move that emptied `page_of` would leave the person
 with a loose document nobody asked for, which is worse than the move not
 happening.
 
+**The schema is a fence, and it moved to 15.** Every event carries the version
+that wrote it, and a store refuses a log written above the one it knows rather
+than reading half of it. The version rises when the same event would project
+differently, which is what happened here: `doc.archive` used to write a mark on
+every page of the document and now covers them instead. Two machines must both
+update before they sync again; the one left behind says so, and says that what
+is written there stays there until it does. The parcel carries its own version,
+raised to 2, but only when what it holds needs it — a parcel with nothing new to
+say keeps the old shape, and an older Tisty still opens it.
+
+**A page answers for itself, and covering is not marking.** Archiving a document
+no longer writes a mark on each of its pages: `held_away` derives what the
+archive holds from the document's own mark, the document above a page and the
+folder above both, so bringing the document back wakes exactly what it covered
+and leaves apart whatever the person had already put apart. What a page carries
+in `archived` is a mark of its own, and nothing else may write one on its
+behalf: hanging a page under an archived document covers it, and taking one out
+from under a document leaves the archive around it rather than walking it out.
+
 **Cascades cost the read cache its shortcut.** The cache rewrites one row per
 event, and the operations that reach a document's pages — delete, archive,
 unarchive, and a move that changes the folder or the document a page belongs

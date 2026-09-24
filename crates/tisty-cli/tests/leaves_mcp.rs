@@ -353,6 +353,15 @@ impl Served {
         String::from_utf8_lossy(&out.stderr).into_owned()
     }
 
+    fn said(&self, name: &str, args: serde_json::Value) -> String {
+        let told = self.call(name, args);
+        assert!(told["result"]["isError"].as_bool() != Some(true), "{told}");
+        told["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    }
+
     fn refused(&self, name: &str, args: serde_json::Value) -> String {
         let said = self.call(name, args);
         assert_eq!(
@@ -536,14 +545,25 @@ fn a_document_put_away_by_an_agent_comes_back_the_same_way() {
 }
 
 #[test]
-fn a_page_is_not_put_away_on_its_own() {
+fn a_page_is_put_away_on_its_own_and_the_book_stays_open() {
     let served = Served::new();
     let book = served.wrote("# Curso", None);
     let page = served.wrote("# Clase uno", Some(&book));
+    let other = served.wrote("# Clase dos", Some(&book));
 
-    let why = served.refused("archive_doc", serde_json::json!({ "doc": &page }));
+    let said = served.call("archive_doc", serde_json::json!({ "doc": &page }));
+    assert!(said["result"]["isError"].is_null(), "{said}");
 
-    assert!(why.contains("page of"), "{why}");
+    let listed = served.call("docs", serde_json::json!({ "scope": "open" }));
+    let here: Vec<String> = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["doc"].as_str().unwrap_or_default().to_string())
+        .collect();
+    assert!(here.contains(&book), "the book stays open: {here:?}");
+    assert!(here.contains(&other), "so does the page nobody touched");
+    assert!(!here.contains(&page), "only the one named went away");
 }
 
 fn on_disk(named: &str, body: &str) -> (tempfile::TempDir, std::path::PathBuf) {
@@ -1995,4 +2015,426 @@ fn a_long_document_read_whole_comes_back_as_an_outline_that_weighs_each_part() {
         .map(|one| one.chars().count() + 1)
         .sum();
     assert_eq!(uno["chars"], held, "what reading section 1 would cost");
+}
+
+#[test]
+fn a_page_the_archive_holds_is_sent_back_to_its_document_and_not_to_a_folder() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nlas de este año.", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let why = served.refused(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": false }),
+    );
+
+    assert!(
+        why.contains("document that holds it") && why.contains(&book),
+        "a page hangs from a document, and sending the person to a folder sends them nowhere: {why}"
+    );
+    assert!(!why.contains("  "), "{why}");
+}
+
+#[test]
+fn what_a_document_takes_to_the_archive_is_what_it_brings_back() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    let two = served.wrote("# Abril", Some(&book));
+
+    let went = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+    assert!(
+        went.contains("Its pages went with it") && went.contains(&one) && went.contains(&two),
+        "{went}"
+    );
+
+    let back = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    assert!(
+        back.contains("Its pages came back with it"),
+        "coming back is not going away, and the answer has to read like what happened: {back}"
+    );
+
+    let again = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    assert!(
+        again.contains("already out of the archive") && !again.contains("pages"),
+        "asking twice changes nothing and takes no page anywhere: {again}"
+    );
+}
+
+#[test]
+fn a_page_in_the_archive_is_not_pulled_out_of_the_document_that_holds_it() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let why = served.refused("page_doc", serde_json::json!({ "doc": &page }));
+
+    assert!(
+        why.contains("in the archive"),
+        "taking it out would leave it awake outside the archive with nobody's hand on it: {why}"
+    );
+    assert!(!why.contains("  "), "{why}");
+    assert_eq!(served.pages_of(&book), vec![page]);
+}
+
+#[test]
+fn a_task_pointing_at_a_page_of_a_book_in_the_archive_says_it_is_put_away() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "propose",
+        serde_json::json!({
+            "title": "read what March says",
+            "description": format!("lo dejado en [Marzo](tisty:doc/{page})"),
+            "source": "test#1",
+        }),
+    );
+
+    let listed = served.cli(&["ls", "all"]);
+    let number = listed
+        .lines()
+        .find(|line| line.contains("read what March says"))
+        .and_then(|line| line.split_whitespace().next())
+        .expect("the task is listed")
+        .trim_end_matches('.')
+        .to_string();
+
+    let before = served.cli(&["story", &number]);
+    assert!(!before.contains("(put away)"), "{before}");
+
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let after = served.cli(&["story", &number]);
+    assert!(
+        after.contains("(put away)"),
+        "the page went to the archive inside its document, and the task has to say so: {after}"
+    );
+}
+
+#[test]
+fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let one = served.wrote("# Marzo", Some(&book));
+    served.wrote("# Abril", Some(&book));
+    let old = served.wrote("# Enero", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &old, "archived": true }),
+    );
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &one, "body": "it has had its day" }),
+    );
+
+    let listed = served.call("docs", serde_json::json!({ "folders": false }));
+    let row = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["doc"] == serde_json::json!(book))
+        .expect("the document that holds them is listed");
+    assert_eq!(row["pages"], 3);
+    assert_eq!(row["pages_archived"], 1, "three pages is not three to read");
+    assert_eq!(row["pages_flagged"], 1);
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": &book }));
+    assert_eq!(
+        read["result"]["structuredContent"]["pages_archived"],
+        serde_json::json!([old]),
+        "which one it is, not only how many"
+    );
+    assert_eq!(
+        read["result"]["structuredContent"]["pages_flagged"],
+        serde_json::json!([one])
+    );
+
+    let outline = served.call("outline_doc", serde_json::json!({ "doc": &book }));
+    let said = outline["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        said.contains("1 of them put away on their own")
+            && said.contains("1 an agent gave up for old"),
+        "the prose has to say what the rows say: {said}"
+    );
+    assert!(
+        said.contains("in the archive on its own, read-only"),
+        "{said}"
+    );
+}
+
+#[test]
+fn what_a_document_is_called_is_what_the_person_is_told() {
+    let served = Served::new();
+    let book = served.wrote("# Actas de enero\n\nlo que se dijo.", None);
+
+    let said = served.said(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    assert!(
+        said.contains("\"Actas de enero\""),
+        "an id is not a name they can look up in the window: {said}"
+    );
+    assert!(
+        said.contains(&book),
+        "and the id still has to be there for the next call: {said}"
+    );
+}
+
+#[test]
+fn a_page_the_document_covers_is_not_woken_behind_its_back() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": true }),
+    );
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let why = served.refused(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": false }),
+    );
+    assert!(
+        why.contains("document that holds it"),
+        "nothing here takes it out while the document holds it: {why}"
+    );
+
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": false }),
+    );
+    let read = served.call("read_doc", serde_json::json!({ "doc": &page }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "the page was apart before, and it stays apart: {read}"
+    );
+}
+
+#[test]
+fn a_page_put_away_on_its_own_can_still_become_a_document_of_its_own() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": true }),
+    );
+
+    let said = served.said("page_doc", serde_json::json!({ "doc": &page }));
+
+    assert!(said.contains("document of its own"), "{said}");
+    let read = served.call("read_doc", serde_json::json!({ "doc": &page }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "reorganising is not taking it out of the archive: {read}"
+    );
+    let up = served.call("read_doc", serde_json::json!({ "doc": &book }));
+    assert!(
+        up["result"]["structuredContent"]["pages"].is_null(),
+        "and the book no longer holds it: {up}"
+    );
+}
+
+#[test]
+fn a_listing_says_which_pages_answer_for_themselves_and_which_are_only_covered() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let apart = served.wrote("# Marzo", Some(&book));
+    served.wrote("# Abril", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &apart, "archived": true }),
+    );
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let listed = served.call("docs", serde_json::json!({ "page_of": &book }));
+    let rows = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    let mine = rows
+        .iter()
+        .find(|row| row["doc"] == serde_json::json!(apart))
+        .expect("the page is listed");
+    let other = rows
+        .iter()
+        .find(|row| row["doc"] != serde_json::json!(apart))
+        .unwrap();
+
+    assert_eq!(mine["archived"], true);
+    assert_eq!(
+        mine["apart"], true,
+        "an agent has to know which one archive_doc will refuse: {listed}"
+    );
+    assert_eq!(other["archived"], true);
+    assert!(other["apart"].is_null(), "{listed}");
+}
+
+#[test]
+fn asking_for_the_pages_of_nothing_is_not_asking_for_everything() {
+    let served = Served::new();
+    served.wrote("# Suelto", None);
+
+    let why = served.refused("docs", serde_json::json!({ "page_of": "" }));
+    assert!(why.contains("`page_of`"), "{why}");
+
+    let all = served.call(
+        "docs",
+        serde_json::json!({ "folder": serde_json::Value::Null }),
+    );
+    assert!(
+        all["result"]["isError"].as_bool() != Some(true),
+        "a client that sends an absent option as null is not naming a folder: {all}"
+    );
+}
+
+#[test]
+fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let loose: Vec<String> = (1..=3)
+        .map(|n| served.wrote(&format!("# Capitulo {n}"), None))
+        .collect();
+
+    let said = served.said(
+        "page_doc",
+        serde_json::json!({ "doc": loose.clone(), "page_of": &book }),
+    );
+
+    assert!(said.contains("are now pages of"), "{said}");
+    assert_eq!(
+        served.pages_of(&book),
+        loose,
+        "all three, in the order asked"
+    );
+
+    let out = served.said("page_doc", serde_json::json!({ "doc": loose.clone() }));
+    assert!(out.contains("documents of their own"), "{out}");
+    let up = served.call("read_doc", serde_json::json!({ "doc": &book }));
+    assert!(up["result"]["structuredContent"]["pages"].is_null(), "{up}");
+}
+
+#[test]
+fn a_list_that_one_name_spoils_moves_nobody() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Proyectos" }));
+    let one = served.wrote("# Uno", None);
+    let two = served.wrote("# Dos", None);
+
+    let why = served.refused(
+        "file_doc",
+        serde_json::json!({ "doc": [&one, "no-existe", &two], "folder": "Proyectos" }),
+    );
+
+    assert!(why.contains("no-existe"), "{why}");
+    for which in [&one, &two] {
+        let read = served.call("read_doc", serde_json::json!({ "doc": which }));
+        assert!(
+            read["result"]["structuredContent"]["folder"].is_null(),
+            "one intention is one move or none: {read}"
+        );
+    }
+}
+
+#[test]
+fn what_points_at_a_document_is_there_to_be_asked_before_putting_it_away() {
+    let served = Served::new();
+    let one = served.wrote("# Acta de enero", None);
+    let two = served.wrote(
+        &format!("# Resumen\n\nlo dejado en [enero](tisty:doc/{one})"),
+        None,
+    );
+
+    let said = served.said("outline_doc", serde_json::json!({ "doc": &one }));
+
+    assert!(
+        said.contains("Pointing at it") && said.contains(&two),
+        "asking before archiving is the only moment it helps: {said}"
+    );
+    let told = served.call("outline_doc", serde_json::json!({ "doc": &one }));
+    assert_eq!(
+        told["result"]["structuredContent"]["pointed_at"],
+        serde_json::json!([two])
+    );
+}
+
+#[test]
+fn pages_taken_out_together_land_one_after_another_and_not_all_at_once() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let pages: Vec<String> = (1..=3)
+        .map(|n| served.wrote(&format!("# Capitulo {n}"), Some(&book)))
+        .collect();
+
+    served.said("page_doc", serde_json::json!({ "doc": pages.clone() }));
+
+    let listed = served.call("docs", serde_json::json!({ "limit": 10 }));
+    let loose: Vec<String> = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["doc"] != serde_json::json!(book))
+        .map(|row| row["title"].as_str().unwrap_or_default().to_string())
+        .collect();
+
+    assert!(
+        loose.contains(&"Capitulo 1".to_string()) && loose.len() == 3,
+        "{listed}"
+    );
+    let apart: Vec<String> = pages
+        .iter()
+        .map(|which| {
+            served.call("read_doc", serde_json::json!({ "doc": which }))["result"]
+                ["structuredContent"]["page_of"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string()
+        })
+        .collect();
+    assert_eq!(
+        apart,
+        vec!["", "", ""],
+        "none of them hangs from anything now"
+    );
+
+    let again = served.said(
+        "page_doc",
+        serde_json::json!({ "doc": pages.clone(), "page_of": &book }),
+    );
+    assert!(again.contains("in that order"), "{again}");
+    assert_eq!(
+        served.pages_of(&book),
+        pages,
+        "and putting them back keeps the order they were named in"
+    );
 }

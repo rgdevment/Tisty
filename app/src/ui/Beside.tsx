@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Folded } from "../core";
+import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
@@ -68,6 +68,8 @@ interface Props {
   kept: number;
   blocks: Block[];
   heads: Head[];
+  pages: Filed[];
+  onPage?: (doc: Filed) => void;
   leaf: Paper;
   onLeaf: (leaf: Paper) => void;
   making: boolean;
@@ -88,6 +90,8 @@ export default function Beside({
   kept,
   blocks,
   heads,
+  pages,
+  onPage,
   leaf,
   onLeaf,
   making,
@@ -301,7 +305,7 @@ export default function Beside({
 
         <section className="flex flex-col gap-2">
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("outline")}</h3>
-          {heads.length === 0 ? (
+          {heads.length === 0 && pages.length === 0 ? (
             <p className="text-[12.5px] text-faint">{t("outlineNone")}</p>
           ) : (
             <nav className="flex flex-col gap-px">
@@ -315,6 +319,40 @@ export default function Beside({
                   }`}
                 >
                   {one.text}
+                </button>
+              ))}
+              {pages.length > 0 && (
+                <h4 className="mt-2.5 px-1.5 text-[10.5px] tracking-[0.05em] text-faint uppercase">
+                  {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}
+                </h4>
+              )}
+              {pages.map((one) => (
+                <button
+                  key={one.id}
+                  type="button"
+                  onClick={() => onPage?.(one)}
+                  aria-label={
+                    one.away
+                      ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
+                      : one.flagged
+                        ? `${one.title || t("untitledDoc")} — ${t("docFlagged")}`
+                        : undefined
+                  }
+                  aria-current={one.file === paper ? "true" : undefined}
+                  className={`flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
+                    one.file === paper ? "bg-accent-soft text-accent" : ""
+                  } ${one.away ? "text-faint" : "text-soft"}`}
+                >
+                  <Glyph
+                    name={one.archived ? "archive" : "alignleft"}
+                    className="h-[13px] w-[13px] shrink-0"
+                  />
+                  <span className="min-w-0 flex-1 truncate">{one.title || t("untitledDoc")}</span>
+                  {one.flagged && !one.away && (
+                    <span aria-hidden="true" className="shrink-0 text-[9px] text-hue-teal">
+                      ◆
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>

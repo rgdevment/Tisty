@@ -703,22 +703,30 @@ export default function Docs({
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
-            <span className="text-soft">{t("docShelved")}</span>
-            <button
-              type="button"
-              onClick={() => {
-                if (own?.archived && onBack) return onBack(own);
-                docAway(own?.id ?? "", false)
-                  .then(() => onKept({ id: open.id, title: open.title }))
-                  .catch((e) => onError(saidPlainly(e)));
-              }}
-              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-            >
-              {t("bringBack")}
-            </button>
+            <span className="text-soft">
+              {own?.archived ? t("docShelved") : own?.pageOf ? t("heldShelved") : t("heldByFolder")}
+            </span>
+            {(own?.archived || own?.pageOf) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const which = own.archived ? own.id : (own.pageOf as string);
+                  if (own.archived && !own.pageOf) {
+                    if (onBack) return onBack(own);
+                    return;
+                  }
+                  docAway(which, false)
+                    .then(() => onKept({ id: open.id, title: open.title }))
+                    .catch((e) => onError(saidPlainly(e)));
+                }}
+                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              >
+                {own.archived ? t("bringBack") : t("bringBackHolder")}
+              </button>
+            )}
           </div>
         )}
-        {own?.flagged && open && !shelved && !own.pageOf && (
+        {own?.flagged && open && !shelved && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
@@ -874,6 +882,8 @@ export default function Docs({
           kept={saved}
           blocks={blocks}
           heads={heads}
+          pages={above ? sisters : pages}
+          onPage={(one) => onDoc?.(one.file)}
           leaf={leaf}
           onLeaf={resize}
           making={making}

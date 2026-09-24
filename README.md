@@ -409,6 +409,13 @@ exactly as you left them, closed to writing and to anything new coming in. Bring
 it back and it returns the same — including whichever documents you had archived
 by hand in there, which stay archived because nobody said otherwise.
 
+**A page is put away on its own without leaving its document.** A long thing in
+parts — a year of minutes, a book by chapters — is one document holding pages,
+and a chapter that no longer applies goes to the archive where it lives: dimmed,
+with the icon of the archive, read but not written. Put the whole document away
+and every page goes with it; bring it back and each one returns as it was, the
+one you had set apart still apart.
+
 **A document takes tags the way a task does** — you write `#contract` in the
 middle of a sentence and the document is filed under it. The tag lives in the
 sentence rather than in a hidden header, so carrying the file to another editor

@@ -466,6 +466,7 @@ const en = {
   lockedStaysPut: "This document is locked, and where it sits is part of what you shut away",
   lockIsTheDocs: "A page is locked with the document that holds it. Lock that one instead",
   awayStaysAway: "A document put away has to come back before it can be a page",
+  folderNameSlash: "A folder is named, not pathed: leave the / out and nest it instead",
   folderNameTooLong: "A folder name fits 40 characters at most",
   documentBeingWritten: "Something else is writing this document. Try again in a moment",
   documentAway: "That one is in the archive. Bring it back to write in it",
@@ -473,6 +474,12 @@ const en = {
   folderAwayHolds: "That folder is in the archive. Nothing new goes into it",
   folderIsAway:
     "This one is in the archive with the folder that holds it. Bring the folder back to reach it",
+  pageIsAway:
+    "This page is in the archive with the document that holds it. Bring the document back to reach it",
+  isArchived: "in the archive",
+  heldShelved: "The document that holds this one is in the archive, and it is read here as it was",
+  heldByFolder: "The folder that holds this one is in the archive, and it is read here as it was",
+  bringBackHolder: "Bring the document back",
   documentLocked: "This document is locked. Unlock it before writing in it",
   documentMoved: "Something wrote in this document while you had it open here",
   docStirred: "Something wrote in this document, and what you are reading is what it left",
@@ -826,7 +833,7 @@ const en = {
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncNewer:
-    "Nothing was synced. «{name}» writes with a newer Tisty than this one. Update this machine so the two agree again, and try once more.",
+    "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this machine. Update it and try once more.",
   storeNewer:
     "A newer Tisty updated your data. Update this one so the two agree again — reading half of it would lose work.",
   someLockedAtOdds:
@@ -1788,6 +1795,7 @@ const es: Catalog = {
   lockedStaysPut: "Este documento está bloqueado, y dónde vive es parte de lo que protegiste",
   lockIsTheDocs: "Una página se bloquea con el documento que la contiene. Bloquea ese",
   awayStaysAway: "Un documento archivado tiene que volver antes de ser página",
+  folderNameSlash: "Una carpeta se nombra, no se rutea: quita la / y anídala en otra",
   folderNameTooLong: "El nombre de una carpeta admite 40 caracteres como máximo",
   documentBeingWritten:
     "Algo más está escribiendo este documento. Inténtalo de nuevo en un momento",
@@ -1796,6 +1804,12 @@ const es: Catalog = {
   folderAwayHolds: "Esa carpeta está en el archivo. Nada nuevo entra en ella",
   folderIsAway:
     "Este está en el archivo con la carpeta que lo guarda. Desarchiva la carpeta para llegar a él",
+  pageIsAway:
+    "Esta página está en el archivo con el documento que la guarda. Desarchiva el documento para llegar a ella",
+  isArchived: "en el archivo",
+  heldShelved: "El documento que la guarda está en el archivo, y aquí se lee tal como quedó",
+  heldByFolder: "La carpeta que lo guarda está en el archivo, y aquí se lee tal como quedó",
+  bringBackHolder: "Desarchivar el documento",
   documentLocked: "Este documento está bloqueado. Desbloquéalo antes de escribir en él",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
   docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
@@ -2152,7 +2166,7 @@ const es: Catalog = {
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncNewer:
-    "No se sincronizó nada. «{name}» escribe con un Tisty más nuevo que este. Actualiza este equipo para que los dos vuelvan a entenderse, y vuelve a intentarlo.",
+    "No se sincronizó nada, en ningún sentido. «{name}» escribe con un Tisty más nuevo que este, así que lo que escribas aquí se queda aquí hasta que actualices este equipo. Actualízalo y vuelve a intentarlo.",
   storeNewer:
     "Una versión más nueva de Tisty actualizó tus datos. Actualiza este Tisty para que los dos vuelvan a entenderse: leer la mitad perdería trabajo.",
   someLockedAtOdds:

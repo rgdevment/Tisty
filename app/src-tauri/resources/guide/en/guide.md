@@ -264,6 +264,12 @@ At the end of the document, on its own sheet, comes the index: the pages the tex
 
 In the tree, a document dropped on another becomes a page of it.
 
+**A page is put away on its own** with the right button, and it does not go down to the shelf: it
+stays where it lives, inside its document, with another icon and dimmed. There it reads and
+exports, but nothing writes in it. Put the whole document away and every page goes with it
+without being marked one by one; bring it back and each one returns as it was, and the one you
+had already set apart stays apart.
+
 This guide has one. It is named right here, and so here is where it goes:
 
 ![Rina](tisty:page)
@@ -280,7 +286,7 @@ Rather than open it and destroy those on your first keystroke, Tisty says so and
 
 ### 11. An assistant can write here
 
-If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
+If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote. It can also **mark** a document or a page that has had its day: you will see a diamond beside its name and, when you open it, what the assistant said. It is a proposal, not a deletion — deleting stays yours, and the diamond comes off with one click. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
 
 When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 

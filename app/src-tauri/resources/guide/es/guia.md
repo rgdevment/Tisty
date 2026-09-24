@@ -264,6 +264,11 @@ Al final del documento, en su propia hoja, va el índice: las páginas que el te
 
 En el árbol, un documento soltado encima de otro se vuelve página suya.
 
+**Una página se archiva sola** con el botón derecho, y no baja al estante: se queda donde vive,
+dentro de su documento, con otro icono y atenuada. Ahí se lee y se exporta, pero no se escribe.
+Archiva el documento entero y se guardan todas con él sin marcarlas una a una; cuando lo
+desarchivas, cada una vuelve como estaba, y la que ya habías apartado tú sigue apartada.
+
 Esta guía tiene una. Aquí debajo está nombrada, y por eso aquí es donde va:
 
 ![La Rina](tisty:page)
@@ -280,7 +285,7 @@ Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre 
 
 ### 11. Un asistente puede escribir aquí
 
-Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
+Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste. También puede **marcar** un documento o una página que ya cumplió su vida: verás un rombo junto a su nombre y, al abrirlo, lo que dijo. Es una propuesta, no un borrado — borrar sigue siendo tuyo, y el rombo se quita con un clic. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
 Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 

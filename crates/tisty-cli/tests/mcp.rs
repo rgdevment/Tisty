@@ -3479,6 +3479,39 @@ fn what_cannot_survive_the_editor_never_reaches_a_document_that_exists() {
 }
 
 #[test]
+fn a_name_that_is_not_here_hands_back_the_one_that_is() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    for (asked, expected) in [
+        ("delete_doc", "`flag_doc`"),
+        ("erase_doc", "`flag_doc`"),
+        ("unarchive_doc", "`archive_doc`"),
+        ("complete_task", "`say_done`"),
+        ("close_task", "`say_done`"),
+        ("delete_task", "`note`"),
+        ("archived_tasks", "`scope`"),
+        ("completed_tasks", "`scope`"),
+        ("list_docs", "`docs`"),
+    ] {
+        let said = served.call(asked, serde_json::json!({}));
+        let text = said["error"]["message"].as_str().unwrap_or_default();
+        assert_eq!(said["error"]["code"], -32602, "{asked}: {said}");
+        assert!(
+            text.contains(expected),
+            "{asked} was turned away without the way in: {text}"
+        );
+    }
+
+    let stranger = served.call("blorp", serde_json::json!({}));
+    assert_eq!(stranger["error"]["code"], -32602, "{stranger}");
+    assert_eq!(
+        stranger["error"]["message"], "unknown tool: blorp",
+        "a name nobody would mistake for ours gets no lecture"
+    );
+}
+
+#[test]
 fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
@@ -5080,4 +5113,404 @@ fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
         serde_json::json!({ "task": &bare, "body": "written" }),
     );
     assert!(done["result"]["isError"].is_null(), "{done}");
+}
+
+#[test]
+fn nothing_the_server_says_carries_a_gap_the_reader_can_see() {
+    fn gaps(said: &serde_json::Value, path: &str, found: &mut Vec<String>) {
+        match said {
+            serde_json::Value::String(text) => {
+                for line in text.lines() {
+                    if let Some(at) = line.find("  ")
+                        && line[..at].trim_end() == &line[..at]
+                        && !line[..at].is_empty()
+                    {
+                        found.push(format!("{path}: {}", &line[at.saturating_sub(40)..]));
+                    }
+                }
+            }
+            serde_json::Value::Object(one) => {
+                for (key, value) in one {
+                    gaps(value, &format!("{path}/{key}"), found);
+                }
+            }
+            serde_json::Value::Array(many) => {
+                for (at, value) in many.iter().enumerate() {
+                    gaps(value, &format!("{path}/{at}"), found);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let served = Served::new();
+    let told = served.talk(&[
+        &serde_json::json!({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": { "protocolVersion": "2025-06-18", "capabilities": {},
+                        "clientInfo": { "name": "test", "version": "1" } },
+        })
+        .to_string(),
+        &serde_json::json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {} })
+            .to_string(),
+    ]);
+
+    let mut found = Vec::new();
+    for one in &told {
+        gaps(one, "", &mut found);
+    }
+    for name in [
+        "list_docs",
+        "archived_tasks",
+        "delete_doc",
+        "unarchive_doc",
+        "complete_task",
+        "delete_task",
+    ] {
+        gaps(&served.call(name, serde_json::json!({})), name, &mut found);
+    }
+    assert!(
+        found.is_empty(),
+        "a line continued in the source loses its backslash and the gap reaches the agent: {found:#?}"
+    );
+}
+
+#[test]
+fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Proyectos", "inside": "Personal" }),
+    );
+
+    let made = served.call(
+        "folder",
+        serde_json::json!({ "name": "Personal / Proyectos / LinkUnbound" }),
+    );
+
+    assert_eq!(made["result"]["structuredContent"]["made"], true);
+    assert_eq!(
+        made["result"]["structuredContent"]["folder"], "LinkUnbound",
+        "a folder is named, not pathed: the rail would read the whole path as one name"
+    );
+    let folders = served.call("docs", serde_json::json!({ "folders": true }));
+    let hit = folders["result"]["structuredContent"]["folders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|one| one["folder"] == "LinkUnbound")
+        .expect("it is there under its own name");
+    assert_eq!(hit["path"], "Personal / Proyectos / LinkUnbound");
+}
+
+#[test]
+fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+
+    let said = served.call(
+        "folder",
+        serde_json::json!({ "name": "Personal / Proyectos / LinkUnbound" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let why = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(why.contains("`inside`"), "{why}");
+    assert_eq!(
+        served.call("docs", serde_json::json!({ "folders": true }))["result"]["structuredContent"]
+            ["folders"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1,
+        "nothing was made under a name that reads like a path"
+    );
+}
+
+#[test]
+fn a_folder_answers_to_its_whole_path_as_well_as_to_its_name() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Notas", "inside": "Personal" }),
+    );
+    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Notas", "inside": "Trabajo" }),
+    );
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Minuta", "folder": "Trabajo / Notas" }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(
+        said["result"]["structuredContent"]["folder"], "Trabajo / Notas",
+        "two folders share a name, and the path is what tells them apart"
+    );
+}
+
+#[test]
+fn listing_can_be_asked_for_one_folder_and_for_the_pages_of_one_document() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Actas" }));
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Libro", "folder": "Actas" }),
+    );
+    let book = served.call("write_doc", serde_json::json!({ "body": "# Suelto" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Marzo", "page_of": &book }),
+    );
+
+    let within = served.call("docs", serde_json::json!({ "folder": "Actas" }));
+    let rows = within["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    assert_eq!(rows.len(), 1, "{within}");
+    assert_eq!(rows[0]["title"], "Libro");
+
+    let under = served.call("docs", serde_json::json!({ "page_of": &book }));
+    let pages = under["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    assert_eq!(pages.len(), 1, "{under}");
+    assert_eq!(pages[0]["title"], "Marzo");
+}
+
+#[test]
+fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Proyectos" }));
+    let doc = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true }),
+    );
+
+    let said = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": &doc, "folder": "Proyectos" }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        told.contains("Viejo") && told.contains("archive holds stays there"),
+        "moving is not writing, and the answer has to say it is still put away: {told}"
+    );
+    let listed = served.call(
+        "docs",
+        serde_json::json!({ "folder": "Proyectos", "scope": "archive" }),
+    );
+    assert_eq!(
+        listed["result"]["structuredContent"]["docs"][0]["doc"], doc,
+        "{listed}"
+    );
+}
+
+#[test]
+fn a_document_is_put_away_and_filed_in_one_call() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Historico" }));
+    let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true, "folder": "Historico" }),
+    );
+
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(told.contains("Filed in Historico"), "{told}");
+    assert!(
+        told.contains("Cerrado"),
+        "the person looks for a title, not an id: {told}"
+    );
+    let listed = served.call(
+        "docs",
+        serde_json::json!({ "folder": "Historico", "scope": "archive" }),
+    );
+    assert_eq!(listed["result"]["structuredContent"]["docs"][0]["doc"], doc);
+}
+
+#[test]
+fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.call("folder", serde_json::json!({ "name": "Personal" }));
+    let doc = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Acta", "folder": "Trabajo" }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true }),
+    );
+    served.shelve_folder("Trabajo");
+
+    let out = served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": false }),
+    );
+    assert_eq!(out["result"]["isError"], true, "{out}");
+    let why = out["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        why.contains("folder that holds it"),
+        "what a shelved folder holds does not come back one document at a time: {why}"
+    );
+
+    let moved = served.call(
+        "file_doc",
+        serde_json::json!({ "doc": &doc, "folder": "Personal" }),
+    );
+    assert_eq!(moved["result"]["isError"], true, "{moved}");
+
+    let read = served.call("read_doc", serde_json::json!({ "doc": &doc }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "and its own mark is still there, waiting for the folder: {read}"
+    );
+}
+
+#[test]
+fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Historico" }));
+    let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &doc, "archived": true, "folder": "Historico" }),
+    );
+
+    let mut batches = Vec::new();
+    for at in std::fs::read_dir(served.home.path().join("data/store")).unwrap() {
+        let at = at.unwrap().path().join("active.tisty");
+        let Ok(said) = std::fs::read_to_string(&at) else {
+            continue;
+        };
+        for line in said.lines() {
+            let Ok(one) = serde_json::from_str::<serde_json::Value>(line) else {
+                continue;
+            };
+            let op = one["op"].as_str().unwrap_or_default().to_string();
+            if op == "doc.move" || op == "doc.archive" {
+                batches.push((op, one["tx"].clone()));
+            }
+        }
+    }
+
+    assert_eq!(batches.len(), 2, "both were written: {batches:?}");
+    assert!(!batches[0].1.is_null(), "{batches:?}");
+    assert_eq!(
+        batches[0].1, batches[1].1,
+        "one call is one thing in the log, or half of it can be taken back: {batches:?}"
+    );
+}
+
+#[test]
+fn the_terminal_says_which_documents_are_put_away_and_which_an_agent_gave_up_for_old() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let old = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let shelved = served.call("write_doc", serde_json::json!({ "body": "# Guardado" }))["result"]
+        ["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &old, "body": "nobody opens it any more" }),
+    );
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &shelved, "archived": true }),
+    );
+
+    let listed = served.cli(&["doc"]);
+    let marked = listed
+        .lines()
+        .find(|line| line.contains("Viejo"))
+        .unwrap_or_default();
+    assert!(
+        marked.contains("an agent says it has had its day"),
+        "the mark is a question for the person, and the terminal is where some of them live: {listed}"
+    );
+    let away = listed
+        .lines()
+        .find(|line| line.contains("Guardado"))
+        .unwrap_or_default();
+    assert!(away.contains("(put away)"), "{listed}");
+
+    let read = served.cli(&["doc", &old]);
+    assert!(
+        read.contains("nobody opens it any more") && read.contains("# Viejo"),
+        "and reading it says what the agent said: {read}"
+    );
+}
+
+#[test]
+fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
+    let said = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/mcp.rs")).unwrap();
+    let found: Vec<(usize, String)> = said
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| {
+            let trimmed = line.trim_start();
+            trimmed.starts_with('"')
+                || line.contains("format!(")
+                || line.contains("=> \"")
+                || line.contains(": &str = \"")
+        })
+        .filter(|(_, line)| {
+            let mut runs = line.split('"').skip(1).step_by(2);
+            runs.any(|held| {
+                held.split_whitespace().count() > 1
+                    && held.contains("   ")
+                    && !held.contains("{wide}")
+            })
+        })
+        .map(|(at, line)| (at + 1, line.trim().chars().take(90).collect()))
+        .collect();
+
+    assert!(
+        found.is_empty(),
+        "a line continued with a backslash loses it and the gap reaches the agent: {found:#?}"
+    );
 }
