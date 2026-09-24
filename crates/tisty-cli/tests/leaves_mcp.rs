@@ -777,6 +777,86 @@ fn a_page_moved_after_another_lands_on_the_far_side_of_it() {
 }
 
 #[test]
+fn a_book_whose_pages_no_line_names_is_put_in_order_a_page_at_a_time() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let loose: Vec<String> = (0..3)
+        .map(|n| {
+            let one = served.wrote(&format!("# Cap {n}\n\nx."), None);
+            served.call(
+                "page_doc",
+                serde_json::json!({ "doc": &one, "page_of": &book }),
+            );
+            one
+        })
+        .collect();
+    assert!(
+        !served.body_of(&book).contains("tisty:doc/"),
+        "no line names any of them to begin with"
+    );
+
+    for one in &loose {
+        let said = served.call(
+            "page_doc",
+            serde_json::json!({ "doc": one, "page_of": &book, "at": "last" }),
+        );
+        assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    }
+
+    assert_eq!(served.pages_of(&book), loose);
+    let body = served.body_of(&book);
+    for one in &loose {
+        assert_eq!(
+            body.matches(&format!("tisty:doc/{one}")).count(),
+            1,
+            "{body}"
+        );
+    }
+    assert!(
+        body.starts_with("# Libro"),
+        "the title was left alone: {body}"
+    );
+}
+
+#[test]
+fn a_page_sent_first_goes_before_every_page_the_document_names() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let three = served.wrote("# Tres", Some(&book));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &three, "page_of": &book, "at": "first" }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(served.pages_of(&book), vec![three, one, two]);
+}
+
+#[test]
+fn a_place_that_is_neither_first_nor_last_is_refused_and_so_are_two_at_once() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+
+    for args in [
+        serde_json::json!({ "doc": &two, "page_of": &book, "at": "middle" }),
+        serde_json::json!({ "doc": &two, "page_of": &book, "at": "last", "after": &one }),
+    ] {
+        let said = served.call("page_doc", args.clone());
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "this had to be refused: {args} gave {said}"
+        );
+    }
+    assert_eq!(served.pages_of(&book), vec![one, two]);
+}
+
+#[test]
 fn a_page_named_beside_nothing_is_refused_with_an_empty_name() {
     let served = Served::new();
     let book = served.wrote("# Libro\n\nintro", None);

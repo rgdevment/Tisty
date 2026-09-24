@@ -4806,7 +4806,63 @@ fn blank(lines: &[String], at: usize) -> bool {
     lines.get(at).is_none_or(|one| one.trim().is_empty())
 }
 
-fn card_moved(body: &str, which: &str, title: &str, anchor: &str, before: bool) -> Option<String> {
+enum Held {
+    After(String),
+    Before(String),
+    At(Spot<'static>),
+}
+
+impl Held {
+    fn spot(&self) -> Spot<'_> {
+        match self {
+            Held::After(one) => Spot::After(one),
+            Held::Before(one) => Spot::Before(one),
+            Held::At(one) => *one,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Spot<'a> {
+    After(&'a str),
+    Before(&'a str),
+    First,
+    Last,
+}
+
+impl Spot<'_> {
+    fn anchor(&self) -> Option<&str> {
+        match self {
+            Spot::After(one) | Spot::Before(one) => Some(one),
+            Spot::First | Spot::Last => None,
+        }
+    }
+
+    fn said(&self) -> &'static str {
+        match self {
+            Spot::After(_) => "after",
+            Spot::Before(_) => "before",
+            Spot::First => "first",
+            Spot::Last => "last",
+        }
+    }
+}
+
+fn cards_in(lines: &[String]) -> Vec<usize> {
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(_, one)| tisty_core::refs::papers(one).len() == 1 && card_any(one))
+        .map(|(at, _)| at)
+        .collect()
+}
+
+fn card_any(line: &str) -> bool {
+    let said = line.trim();
+    said.starts_with("![") && said.ends_with(')') && tisty_core::refs::extract(said).len() == 1
+}
+
+fn card_moved(body: &str, which: &str, title: &str, spot: Spot) -> Option<String> {
     let ending = match body.contains("\r\n") {
         true => "\r\n",
         false => "\n",
@@ -4818,10 +4874,19 @@ fn card_moved(body: &str, which: &str, title: &str, anchor: &str, before: bool) 
             lines.remove(at);
         }
     }
-    let found = line_of(&lines, anchor)?;
-    let at = match before {
-        true => found,
-        false => found + 1,
+    let at = match spot {
+        Spot::After(anchor) => line_of(&lines, anchor)? + 1,
+        Spot::Before(anchor) => line_of(&lines, anchor)?,
+        Spot::First => cards_in(&lines).first().copied().unwrap_or(lines.len()),
+        Spot::Last => match cards_in(&lines).last() {
+            Some(one) => one + 1,
+            None => {
+                while lines.last().is_some_and(|one| one.trim().is_empty()) {
+                    lines.pop();
+                }
+                lines.len()
+            }
+        },
     };
     lines.insert(at, tisty_core::refs::card(which, title));
     if !blank(&lines, at + 1) {
@@ -4837,29 +4902,56 @@ fn card_moved(body: &str, which: &str, title: &str, anchor: &str, before: bool) 
     Some(out)
 }
 
+fn where_said(state: &State, spot: Spot) -> String {
+    match spot.anchor() {
+        Some(one) => format!("{} {}", spot.said(), doc_named(state, one)),
+        None => spot.said().to_string(),
+    }
+}
+
 fn beside_ready(
     paths: &Paths,
     state: &State,
     up: tisty_core::model::DocId,
     which: &str,
-    anchor: &str,
-    before: bool,
+    spot: Spot,
 ) -> Result<(), Refused> {
     let Some(parent) = state.docs.get(&up) else {
         return Err(Refused::Tool(
             "the document that holds this page is not here any more.".into(),
         ));
     };
+    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    if let Some(at) = line_of(&held, which)
+        && !card_alone(&held[at], which)
+    {
+        return Err(carried_off(state, &parent.file, which, at, &held[at]));
+    }
+
+    let Some(anchor) = spot.anchor() else {
+        if matches!(spot, Spot::First) && cards_in(&held).first() == Some(&0) {
+            return Err(Refused::Tool(format!(
+                "the first line of {} already names a page, and a document takes its title from \
+                 its first line, so writing above it would rename the document. Send `at` as \
+                 \"last\", or name a page with `after`.",
+                doc_named(state, &parent.file)
+            )));
+        }
+        return Ok(());
+    };
+
     let Some(mark) = state.docs.values().find(|one| one.file == anchor) else {
         return Err(Refused::Tool(format!(
-            "no document here is called {anchor:?}. `docs` lists them all."
+            "{anchor:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a \
+             title is not one — `docs` prints the id beside the title of every document."
         )));
     };
     if mark.page_of != Some(up) {
         return Err(Refused::Tool(format!(
             "{} is not a page of {}, so it says nothing about where this one goes. \
-             `outline_doc` lists the pages in the order they are read, and says which of them no line \
-             names.",
+             `outline_doc` lists the pages in the order they are read, and says which of them \
+             no line names.",
             doc_named(state, anchor),
             doc_named(state, &parent.file)
         )));
@@ -4867,17 +4959,15 @@ fn beside_ready(
     if mark.file == which {
         return Err(Refused::Tool(
             "a page cannot be placed before or after itself. Name another page of the same \
-             document."
+             document, or send `at` as \"first\" or \"last\"."
                 .into(),
         ));
     }
-    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
-    let held: Vec<String> = body.lines().map(str::to_string).collect();
     let Some(sits) = line_of(&held, anchor) else {
         return Err(Refused::Tool(format!(
             "{} is a page of {}, but no line in it names {}, so there is nothing to place this \
-             one beside. Give that page a line of its own first — `edit_doc`, or `page_doc` \
-             beside a page that has one — and then come back to this one.",
+             one beside. Send `at` as \"first\" or \"last\" instead, and the line is written \
+             without an anchor.",
             doc_named(state, anchor),
             doc_named(state, &parent.file),
             doc_named(state, anchor)
@@ -4894,7 +4984,7 @@ fn beside_ready(
             held[sits].trim()
         )));
     }
-    if sits == 0 && before {
+    if sits == 0 && matches!(spot, Spot::Before(_)) {
         return Err(Refused::Tool(format!(
             "{} is named on the first line of {}, and a document takes its title from its first \
              line, so writing above it would rename the document. Place this page after that one \
@@ -4903,20 +4993,19 @@ fn beside_ready(
             doc_named(state, &parent.file)
         )));
     }
-    if let Some(at) = line_of(&held, which)
-        && !card_alone(&held[at], which)
-    {
-        return Err(Refused::Tool(format!(
-            "line {} of {} names {} and says other things besides, so moving that line would \
-             carry them off with it: {:?}. Nothing was moved. Put the line on its own with \
-             `edit_doc` first, or move it there yourself.",
-            at + 1,
-            doc_named(state, &parent.file),
-            doc_named(state, which),
-            held[at].trim()
-        )));
-    }
     Ok(())
+}
+
+fn carried_off(state: &State, parent: &str, which: &str, at: usize, line: &str) -> Refused {
+    Refused::Tool(format!(
+        "line {} of {} names {} and says other things besides, so moving that line would carry \
+         them off with it: {:?}. Nothing was moved. Put the line on its own with `edit_doc` \
+         first, or move it there yourself.",
+        at + 1,
+        doc_named(state, parent),
+        doc_named(state, which),
+        line.trim()
+    ))
 }
 
 fn placed(
@@ -4925,8 +5014,7 @@ fn placed(
     store: &mut Store,
     up: tisty_core::model::DocId,
     which: &str,
-    anchor: &str,
-    before: bool,
+    spot: Spot,
 ) -> Result<(), Refused> {
     let Some(parent) = state.docs.get(&up) else {
         return Err(Refused::Tool(
@@ -4938,11 +5026,11 @@ fn placed(
     let title = tisty_core::docs::read(&paths.docs(), which)
         .map(|one| tisty_core::docs::titled(&one))
         .unwrap_or_default();
-    let Some(whole) = card_moved(&body, which, &title, anchor, before) else {
+    let Some(whole) = card_moved(&body, which, &title, spot) else {
         return Err(Refused::Tool(format!(
             "no line of {} names {} any more, so there was nowhere to put this one.",
             doc_named(state, &parent.file),
-            doc_named(state, anchor)
+            doc_named(state, spot.anchor().unwrap_or_default())
         )));
     };
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
@@ -4964,24 +5052,45 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (many, listed) = many_docs(args, "hang or unhang")?;
     let (state, mut store) = opened(paths)?;
 
-    for side in ["after", "before"] {
+    for side in ["after", "before", "at"] {
         if args.get(side).is_some() && text(args, side).is_none() {
             return Err(Refused::Tool(format!(
-                "`{side}` came empty. A page goes beside another page named by its id, and an \
-                 empty name says nothing — leave it out to hang the page without writing its \
-                 line, or name the page it belongs next to."
+                "`{side}` came empty. A page goes where another page is named, or first or \
+                 last, and an empty name says neither — leave it out to hang the page without \
+                 writing its line."
             )));
         }
     }
-    let beside = match (text(args, "after"), text(args, "before")) {
-        (Some(_), Some(_)) => {
-            return Err(Refused::Tool(
-                "send `after` or `before`, not both: a page goes on one side of the other.".into(),
-            ));
+    let named: Vec<(&str, Option<String>)> = ["after", "before", "at"]
+        .into_iter()
+        .map(|key| (key, text(args, key)))
+        .filter(|(_, said)| said.is_some())
+        .collect();
+    if named.len() > 1 {
+        return Err(Refused::Tool(format!(
+            "send one of `after`, `before` and `at`, not {}: a page goes in one place.",
+            named
+                .iter()
+                .map(|(key, _)| format!("`{key}`"))
+                .collect::<Vec<_>>()
+                .join(" and ")
+        )));
+    }
+    let side = match text(args, "at").as_deref() {
+        None => None,
+        Some("first") => Some(Spot::First),
+        Some("last") => Some(Spot::Last),
+        Some(other) => {
+            return Err(Refused::Tool(format!(
+                "`at` is either \"first\" or \"last\", and {other:?} is neither. Name a page with \
+                 `after` or `before` to put it anywhere else."
+            )));
         }
-        (Some(one), None) => Some((one, false)),
-        (None, Some(one)) => Some((one, true)),
-        (None, None) => None,
+    };
+    let beside = match (text(args, "after"), text(args, "before")) {
+        (Some(one), None) => Some(Held::After(one)),
+        (None, Some(one)) => Some(Held::Before(one)),
+        _ => side.map(Held::At),
     };
     if beside.is_some() {
         if many.len() != 1 {
@@ -5031,8 +5140,8 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Some(up.id)
         }
     };
-    if let (Some((anchor, before)), Some(over)) = (&beside, up) {
-        beside_ready(paths, &state, over, &many[0], anchor, *before)?;
+    if let (Some(held), Some(over)) = (&beside, up) {
+        beside_ready(paths, &state, over, &many[0], held.spot())?;
     }
 
     let mut moving = Vec::new();
@@ -5084,17 +5193,13 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
 
     let under = up.and_then(|one| named_doc(&state, one));
-    if let (Some((anchor, before)), Some(over), true) = (&beside, up, moving.is_empty()) {
-        placed(paths, &state, &mut store, over, &many[0], anchor, *before)?;
+    if let (Some(held), Some(over), true) = (&beside, up, moving.is_empty()) {
+        placed(paths, &state, &mut store, over, &many[0], held.spot())?;
         return Ok(told(
             format!(
-                "Moved {} {} {}.",
+                "Moved {} {}.",
                 named_all(&state, &many),
-                match before {
-                    true => "before",
-                    false => "after",
-                },
-                doc_named(&state, anchor)
+                where_said(&state, held.spot())
             ),
             json!({ "doc": said_docs(&many, listed), "page_of": under, "left": already }),
         ));
@@ -5157,17 +5262,10 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     store.append_batch(doing).map_err(hitch)?;
     let mut put = String::new();
-    if let (Some((anchor, before)), Some(over)) = (&beside, up) {
+    if let (Some(held), Some(over)) = (&beside, up) {
         let (now, mut store) = opened(paths)?;
-        put = match placed(paths, &now, &mut store, over, &many[0], anchor, *before) {
-            Ok(()) => format!(
-                " Its line sits {} {}.",
-                match before {
-                    true => "before",
-                    false => "after",
-                },
-                doc_named(&state, anchor)
-            ),
+        put = match placed(paths, &now, &mut store, over, &many[0], held.spot()) {
+            Ok(()) => format!(" Its line sits {}.", where_said(&state, held.spot())),
             Err(Refused::Tool(why)) => {
                 format!(" It is a page now, but no line was written for it, so it is loose: {why}")
             }
@@ -6883,9 +6981,9 @@ fn tools() -> Value {
                             back in the folder it came from. A page goes with its document \
                             everywhere — folder, archive and deletion — and holds no pages of its \
                             own. On its own this writes no text, so a page hung this way is loose \
-                            until the document names it; `after` or `before` writes that line and \
-                            puts it where you say, and `write_doc` with `page_of` writes it at \
-                            the end. The order pages are read in is the order their lines sit in \
+                            until the document names it; `after`, `before` and `at` write that \
+                            line and put it where you say, and `write_doc` with `page_of` writes \
+                            it at the end. The order pages are read in is the order their lines sit in \
                             the document, and nothing else.",
             "inputSchema": shaped(json!({
                 "properties": {
@@ -6908,6 +7006,15 @@ fn tools() -> Value {
                         "type": "string",
                         "description": "The same, on the other side: the line goes straight \
                                         before the one naming this page"
+                    },
+                    "at": {
+                        "type": "string",
+                        "enum": ["first", "last"],
+                        "description": "Where to write the line when you are not naming a page \
+                                        to sit beside: \"first\" puts it before every page the \
+                                        document names, \"last\" after them all. It is what to \
+                                        send for a document whose pages no line names yet, \
+                                        since there is no page there to name"
                     }
                 },
                 "required": ["doc"]
@@ -7104,6 +7211,200 @@ fn tools() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn four_ids() -> Vec<String> {
+        (1..=4).map(|n| format!("wwwwwwww-000{n}")).collect()
+    }
+
+    fn a_shape() -> impl proptest::strategy::Strategy<Value = (Vec<usize>, Vec<String>)> {
+        (
+            proptest::sample::subsequence(vec![0usize, 1, 2, 3], 2..=4),
+            proptest::collection::vec("[a-z][a-z ]{0,18}", 0..5),
+        )
+    }
+
+    fn built(cards: &[usize], prose: &[String], ids: &[String]) -> String {
+        let mut out = String::from("# Titulo\n");
+        for (at, one) in cards.iter().enumerate() {
+            if let Some(said) = prose.get(at) {
+                out.push('\n');
+                out.push_str(said.trim());
+                out.push('\n');
+            }
+            out.push('\n');
+            out.push_str(&tisty_core::refs::card(&ids[*one], "Pagina"));
+            out.push('\n');
+        }
+        for said in prose.iter().skip(cards.len()) {
+            out.push('\n');
+            out.push_str(said.trim());
+            out.push('\n');
+        }
+        out
+    }
+
+    fn named_times(body: &str, id: &str) -> usize {
+        body.lines()
+            .filter(|one| tisty_core::refs::papers(one).iter().any(|said| said == id))
+            .count()
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn moving_a_page_keeps_every_word_that_was_not_its_line(
+            (cards, prose) in a_shape(),
+            pick in 0usize..4,
+            mover in 0usize..4,
+            before in proptest::bool::ANY,
+        ) {
+            let ids = four_ids();
+            let anchor = cards[pick % cards.len()];
+            proptest::prop_assume!(mover != anchor);
+            let body = built(&cards, &prose, &ids);
+
+            let lines: Vec<String> = body.lines().map(str::to_string).collect();
+            let sits = line_of(&lines, &ids[anchor]).unwrap();
+            let spot = match before && sits > 0 {
+                true => Spot::Before(&ids[anchor]),
+                false => Spot::After(&ids[anchor]),
+            };
+            let out = card_moved(&body, &ids[mover], "Pagina", spot).unwrap();
+
+            for one in body.lines() {
+                if tisty_core::refs::papers(one).is_empty() && !one.trim().is_empty() {
+                    proptest::prop_assert!(
+                        out.lines().any(|now| now == one),
+                        "a line of prose was lost: {one:?}\nfrom:\n{body}\nto:\n{out}"
+                    );
+                }
+            }
+            for (at, id) in ids.iter().enumerate() {
+                let want = match at == mover {
+                    true => 1,
+                    false => named_times(&body, id),
+                };
+                proptest::prop_assert_eq!(
+                    named_times(&out, id), want,
+                    "{} is named the wrong number of times\nfrom:\n{}\nto:\n{}",
+                    id, body, out
+                );
+            }
+        }
+
+        #[test]
+        fn a_move_never_turns_one_kind_of_line_ending_into_another(
+            (cards, prose) in a_shape(),
+            pick in 0usize..4,
+            mover in 0usize..4,
+        ) {
+            let ids = four_ids();
+            let anchor = cards[pick % cards.len()];
+            proptest::prop_assume!(mover != anchor);
+            let body = built(&cards, &prose, &ids).replace('\n', "\r\n");
+
+            let out = card_moved(&body, &ids[mover], "Pagina", Spot::After(&ids[anchor])).unwrap();
+
+            proptest::prop_assert!(
+                !out.lines().any(|one| one.ends_with('\r')),
+                "a stray carriage return was left inside a line: {out:?}"
+            );
+            proptest::prop_assert_eq!(
+                out.matches("\r\n").count(),
+                out.lines().count(),
+                "the file changed how its lines end:\n{:?}",
+                out
+            );
+        }
+    }
+
+    #[test]
+    fn a_line_that_says_anything_besides_one_page_is_not_a_card_on_its_own() {
+        let id = "wwwwwwww-0001";
+        let card = tisty_core::refs::card(id, "Uno");
+        assert!(card_alone(&card, id));
+        assert!(card_alone(&format!("  {card}  "), id));
+        assert!(!card_alone(&format!("La puerta esta en {card}"), id));
+        assert!(!card_alone(&format!("{card} y mas"), id));
+        assert!(!card_alone(
+            &format!("{card} {}", tisty_core::refs::card("wwwwwwww-0002", "Dos")),
+            id
+        ));
+        assert!(!card_alone(&format!("- {card}"), id));
+        assert!(!card_alone(&format!("| {card} | ok |"), id));
+        assert!(!card_alone(&card, "wwwwwwww-0002"));
+    }
+
+    #[test]
+    fn a_page_is_found_however_markdown_spells_the_link() {
+        let id = "wwwwwwww-0001";
+        for said in [
+            format!("![Uno](tisty:doc/{id})"),
+            format!("![Uno](<tisty:doc/{id}>)"),
+            format!("![Uno](tisty:doc/{id} \"Uno\")"),
+        ] {
+            let lines = vec![String::from("# T"), String::new(), said.clone()];
+            assert_eq!(line_of(&lines, id), Some(2), "not found: {said}");
+        }
+        let inside = vec![String::from("el id es `tisty:doc/wwwwwwww-0001)`")];
+        assert_eq!(
+            line_of(&inside, id),
+            None,
+            "a mention inside code is not a line"
+        );
+    }
+
+    #[test]
+    fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
+        let all = tools();
+        let all = all.as_array().expect("the tools come back as a list");
+        assert!(!all.is_empty());
+        for one in all {
+            let name = one["name"].as_str().expect("a tool has a name");
+            for key in ["title", "description"] {
+                let said = one[key].as_str().unwrap_or_default();
+                assert!(!said.trim().is_empty(), "{name} has no {key}");
+            }
+            let shape = &one["inputSchema"];
+            assert_eq!(shape["type"], json!("object"), "{name} takes an object");
+            let none = serde_json::Map::new();
+            let fields = shape["properties"].as_object().unwrap_or(&none);
+            for (field, said) in fields {
+                assert!(
+                    said["description"]
+                        .as_str()
+                        .is_some_and(|one| !one.trim().is_empty()),
+                    "{name}.{field} has no description"
+                );
+                if said.get("enum").is_some() {
+                    assert!(
+                        said.get("type").is_some(),
+                        "{name}.{field} lists what it takes but not its type"
+                    );
+                }
+            }
+            let asked: Vec<&Value> = shape
+                .get("required")
+                .into_iter()
+                .chain(
+                    shape
+                        .get("anyOf")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|one| one.get("required")),
+                )
+                .collect();
+            for group in asked {
+                for want in group.as_array().unwrap_or(&Vec::new()) {
+                    let want = want.as_str().unwrap_or_default();
+                    assert!(
+                        fields.contains_key(want),
+                        "{name} asks for `{want}`, which it does not take"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn an_assistant_is_let_in_only_by_somebody_at_a_terminal() {
