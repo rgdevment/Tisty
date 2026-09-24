@@ -34,14 +34,42 @@ pub fn papers(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// The line a page is named on, for the ones a body really names — read with the same walk that
+/// decides the reading order, so the two can never disagree about what is code and what is a way in.
+pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
+    let mut lines: Vec<usize> = vec![0];
+    for (at, one) in text.char_indices() {
+        if one == '\n' {
+            lines.push(at + 1);
+        }
+    }
+    let line_of = |at: usize| match lines.binary_search(&at) {
+        Ok(one) => one,
+        Err(one) => one - 1,
+    };
+    marked(text)
+        .into_iter()
+        .filter_map(|(at, one)| {
+            one.target
+                .strip_prefix(DOC)
+                .map(|file| (file.to_string(), line_of(at)))
+        })
+        .collect()
+}
+
 pub fn extract(text: &str) -> Vec<Ref> {
-    let mut found: Vec<Ref> = Vec::new();
+    marked(text).into_iter().map(|(_, one)| one).collect()
+}
+
+fn marked(text: &str) -> Vec<(usize, Ref)> {
+    let mut found: Vec<(usize, Ref)> = Vec::new();
+    let where_at = std::cell::Cell::new(0usize);
     let mut keep = |one: Ref| {
         if !found
             .iter()
-            .any(|held| held.target == one.target && held.kind == one.kind)
+            .any(|(_, held)| held.target == one.target && held.kind == one.kind)
         {
-            found.push(one);
+            found.push((where_at.get(), one));
         }
     };
 
@@ -49,6 +77,7 @@ pub fn extract(text: &str) -> Vec<Ref> {
     let mut at = 0;
     while at < bytes.len() {
         let rest = &text[at..];
+        where_at.set(at);
         at = match bytes[at] {
             b'`' => past_code(text, at),
             b'[' if rest.starts_with("[[") => named(rest, at, &mut keep),
@@ -242,6 +271,63 @@ pub fn alerted(said: &str) -> Option<&str> {
         .any(|one| kind.eq_ignore_ascii_case(one));
     let alone = after.is_empty() || after.starts_with(char::is_whitespace);
     (known && alone).then(|| after.trim_start())
+}
+
+#[cfg(test)]
+mod lines {
+    use super::{DOC, paper_lines, papers};
+
+    #[test]
+    fn the_line_a_page_is_named_on_is_the_line_the_order_is_read_from() {
+        let body = format!(
+            "# Libro
+
+intro
+
+![Uno]({DOC}a-0001)
+
+medio
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(
+            paper_lines(&body),
+            vec![("a-0001".to_string(), 4), ("a-0002".to_string(), 8)]
+        );
+    }
+
+    #[test]
+    fn a_page_named_only_inside_a_fence_is_named_on_no_line_at_all() {
+        for fence in ["```", "~~~"] {
+            let body = format!(
+                "# Libro
+
+{fence}md
+![Uno]({DOC}a-0001)
+{fence}
+
+![Dos]({DOC}a-0002)
+"
+            );
+            let told = papers(&body);
+            let placed: Vec<String> = paper_lines(&body).into_iter().map(|(one, _)| one).collect();
+            assert_eq!(placed, told, "{fence}: what is placed is what is read");
+        }
+    }
+
+    #[test]
+    fn a_page_named_twice_is_placed_where_it_is_named_first() {
+        let body = format!(
+            "![Uno]({DOC}a-0001)
+
+otra
+
+![Uno]({DOC}a-0001)
+"
+        );
+        assert_eq!(paper_lines(&body), vec![("a-0001".to_string(), 0)]);
+    }
 }
 
 #[cfg(test)]

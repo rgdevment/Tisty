@@ -2584,7 +2584,7 @@ fn over_again(
         .filter(|one| !named.contains(&one.file))
         .collect();
     let held: Vec<String> = body.lines().map(str::to_string).collect();
-    let walled_off = walled(&held).last().copied().unwrap_or(false);
+    let walled_off = open_at_end(&held);
     let adrift: Vec<String> = match walled_off {
         true => loose.iter().map(|one| one.file.clone()).collect(),
         false => Vec::new(),
@@ -3303,14 +3303,16 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })),
         tisty_core::docs::Change::Made { was, whole } => {
             let loose = left_loose(&state, &which, &was, &whole);
+            let twice = named_twice(&state, &which, &whole);
             let settled = retold(&state, &mut store, &which, &whole).is_ok();
             Ok(told(
                 format!(
                     "Changed that passage in {:?}, {}. What it was is kept beside the \
-                     documents.{}{}{}",
+                     documents.{}{}{}{}",
                     tisty_core::docs::titled(&whole),
                     by_how_much(&was, &whole),
                     loose_words(&state, &loose),
+                    twice_words(&state, &twice),
                     if settled { "" } else { UNSETTLED },
                     wrapped(new)
                 ),
@@ -3556,6 +3558,37 @@ fn left_loose(state: &State, which: &str, was: &str, whole: &str) -> Vec<String>
         .map(|one| one.file.clone())
         .filter(|file| before.contains(file) && !after.contains(file))
         .collect()
+}
+
+fn named_twice(state: &State, which: &str, whole: &str) -> Vec<String> {
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Vec::new();
+    };
+    let lines = tisty_core::refs::paper_lines(whole);
+    state
+        .pages_of(kept.id)
+        .into_iter()
+        .map(|one| one.file.clone())
+        .filter(|file| {
+            lines.iter().any(|(one, _)| one == file)
+                && whole.lines().filter(|line| line.contains(file)).count() > 1
+        })
+        .collect()
+}
+
+fn twice_words(state: &State, twice: &[String]) -> String {
+    if twice.is_empty() {
+        return String::new();
+    }
+    let (names, reads) = match twice.len() {
+        1 => ("the line naming", "it is read where it is named first"),
+        _ => ("the lines naming", "each is read where it is named first"),
+    };
+    format!(
+        " Now {names} {} stands in more than one place, and {reads}, so the later one draws a \
+         way in that leads nowhere new. Take it out with another `edit_doc`.",
+        named_all(state, twice)
+    )
 }
 
 fn loose_words(state: &State, loose: &[String]) -> String {
@@ -4875,8 +4908,7 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-fn walled(lines: &[String]) -> Vec<bool> {
-    let mut out = Vec::with_capacity(lines.len());
+fn open_at_end(lines: &[String]) -> bool {
     let mut open: Option<char> = None;
     for one in lines {
         let said = one.trim_start();
@@ -4886,25 +4918,19 @@ fn walled(lines: &[String]) -> Vec<bool> {
             .filter(|c| matches!(c, '`' | '~'))
             .filter(|c| said.starts_with(&c.to_string().repeat(3)));
         match (open, fence) {
-            (None, Some(c)) => {
-                open = Some(c);
-                out.push(true);
-            }
-            (Some(c), Some(f)) if f == c => {
-                open = None;
-                out.push(true);
-            }
-            _ => out.push(open.is_some()),
+            (None, Some(c)) => open = Some(c),
+            (Some(c), Some(f)) if f == c => open = None,
+            _ => {}
         }
     }
-    out
+    open.is_some()
 }
 
 fn line_of(lines: &[String], id: &str) -> Option<usize> {
-    let code = walled(lines);
-    lines.iter().enumerate().position(|(at, one)| {
-        !code[at] && tisty_core::refs::papers(one).iter().any(|said| said == id)
-    })
+    tisty_core::refs::paper_lines(&lines.join("\n"))
+        .into_iter()
+        .find(|(one, _)| one == id)
+        .map(|(_, at)| at)
 }
 
 fn card_alone(line: &str, id: &str) -> bool {
@@ -4962,13 +4988,14 @@ impl Spot<'_> {
 }
 
 fn cards_in(lines: &[String]) -> Vec<usize> {
-    let code = walled(lines);
-    lines
-        .iter()
-        .enumerate()
-        .filter(|(at, one)| !code[*at] && tisty_core::refs::papers(one).len() == 1 && card_any(one))
-        .map(|(at, _)| at)
-        .collect()
+    tisty_core::refs::paper_lines(&lines.join(
+        "
+",
+    ))
+    .into_iter()
+    .map(|(_, at)| at)
+    .filter(|at| card_any(&lines[*at]))
+    .collect()
 }
 
 fn card_any(line: &str) -> bool {
@@ -5042,15 +5069,24 @@ fn left_named(
         .collect()
 }
 
-fn in_this_order(paths: &Paths, args: &Value, all: &Value) -> Result<Value, Refused> {
+fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let order = strings(args, "order")?;
+    if let Some(also) = ["doc", "after", "before", "at"]
+        .into_iter()
+        .find(|key| args.get(*key).is_some_and(|one| !one.is_null()))
+    {
+        return Err(Refused::Tool(format!(
+            "`order` says where every page it names goes, so it takes no `{also}`: one call \
+             says an order, another puts one page somewhere. Send them apart."
+        )));
+    }
     if order.len() < 2 {
         return Err(Refused::Tool(format!(
-            "`order` is the pages in the order they are to be read, and {} names an order of \
-             one. Two or more, or nothing to do.",
-            match all.as_array().map(Vec::len) {
-                Some(0) => "an empty list".to_string(),
-                _ => "that".to_string(),
+            "`order` is the pages in the order they are to be read, and {} names no order at \
+             all. Two or more, or nothing to do.",
+            match order.len() {
+                0 => "an empty list",
+                _ => "one page",
             }
         )));
     }
@@ -5096,6 +5132,10 @@ fn in_this_order(paths: &Paths, args: &Value, all: &Value) -> Result<Value, Refu
     ))
 }
 
+fn renamed(was: &str, now: &str) -> bool {
+    tisty_core::docs::titled(was) != tisty_core::docs::titled(now)
+}
+
 fn cards_appended(body: &str, cards: &[String]) -> String {
     let ending = match body.contains("\r\n") {
         true => "\r\n",
@@ -5132,7 +5172,7 @@ fn named_at_end(
     };
     let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
     let held: Vec<String> = body.lines().map(str::to_string).collect();
-    if walled(&held).last().copied().unwrap_or(false) {
+    if open_at_end(&held) {
         return Ok((Vec::new(), true));
     }
     let mut cards = Vec::new();
@@ -5150,17 +5190,18 @@ fn named_at_end(
     if cards.is_empty() {
         return Ok((Vec::new(), false));
     }
-    let print = tisty_core::attach::printed(body.as_bytes());
     let whole = cards_appended(&body, &cards);
-    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
-        .map_err(hitch)?
-    {
-        tisty_core::docs::Rewrite::Moved => Ok((Vec::new(), false)),
-        tisty_core::docs::Rewrite::Made { whole, .. } => {
-            retold(state, store, &parent.file, &whole)?;
-            Ok((named, false))
-        }
+    if renamed(&body, &whole) {
+        return Err(Refused::Tool(format!(
+            "a line at the end of {} would become the first thing it says, and a document takes \
+             its title from that, so it would be renamed. Write something above it first.",
+            doc_named(state, &parent.file)
+        )));
     }
+    let added = cards_appended("", &cards);
+    let whole = tisty_core::docs::append(&paths.docs(), &parent.file, &added).map_err(hitch)?;
+    retold(state, store, &parent.file, &whole)?;
+    Ok((named, false))
 }
 
 fn cards_ordered(body: &str, order: &[String]) -> Option<String> {
@@ -5229,8 +5270,25 @@ fn ordered(
         if !card_alone(&held[at], id) {
             return Err(carried_off(state, &parent.file, id, at, &held[at]));
         }
+        if state.shut(page.id) {
+            return Err(Refused::Tool(format!(
+                "{} is locked, and where a locked page is read is part of what the person shut \
+                 away. Ask them to unlock it first.",
+                doc_named(state, id)
+            )));
+        }
     }
     let print = tisty_core::attach::printed(body.as_bytes());
+    if let Some(said) = cards_ordered(&body, order)
+        && renamed(&body, &said)
+    {
+        return Err(Refused::Tool(format!(
+            "that order would make another page's line the first thing {} says, and a document \
+             takes its title from that, so it would be renamed. Write something above them \
+             first.",
+            doc_named(state, &parent.file)
+        )));
+    }
     let Some(whole) = cards_ordered(&body, order) else {
         return Err(Refused::Tool(
             "the lines naming those pages are not all there to move between.".to_string(),
@@ -5393,8 +5451,8 @@ fn placed(
 }
 
 fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    if let Some(all) = args.get("order") {
-        return in_this_order(paths, args, all);
+    if args.get("order").is_some_and(|one| !one.is_null()) {
+        return in_this_order(paths, args);
     }
     let (many, listed) = many_docs(args, "hang or unhang")?;
     let (state, mut store) = opened(paths)?;
@@ -7422,7 +7480,7 @@ fn tools() -> Value {
                                         since there is no page there to name"
                     }
                 },
-                "required": ["doc"]
+                "anyOf": [{ "required": ["doc"] }, { "required": ["order", "page_of"] }]
             }))
         },
         {

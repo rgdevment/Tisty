@@ -399,6 +399,8 @@ const en = {
   someLoose: "In the order the text names them. The last ones it never names.",
   looseLeafIs: "Loose page",
   dragLeaves: "Drag one to move it: where its line sits is the order they are read in.",
+  leafStaysPut:
+    "That page's line sits inside something else — a quote, a list, a table — so dragging it would break what it is part of. Move it in the text instead.",
   putLeaf: "Put it in the text",
   whereThisSits: "Where this page sits",
   leafOfMany: "Page {name} of {other}",
@@ -1742,6 +1744,8 @@ const es: Catalog = {
   someLoose: "En el orden en que el texto las nombra. Las últimas no las nombra en ninguna parte.",
   looseLeafIs: "Página suelta",
   dragLeaves: "Arrastra una para moverla: donde va su línea es el orden en que se leen.",
+  leafStaysPut:
+    "La línea de esa página está dentro de otra cosa —una cita, una lista, una tabla—, así que arrastrarla rompería aquello de lo que forma parte. Muévela en el texto.",
   putLeaf: "Ponerla en el texto",
   whereThisSits: "Dónde va esta página",
   leafOfMany: "Página {name} de {other}",

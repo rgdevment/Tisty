@@ -143,7 +143,7 @@ export default function Docs({
   const [signing, setSigning] = useState(false);
   const giving = useRef<(() => unknown) | null>(null);
   const putting = useRef<((page: Filed) => void) | null>(null);
-  const ordering = useRef<((file: string, before: string | null) => void) | null>(null);
+  const ordering = useRef<((file: string, before: string | null) => boolean) | null>(null);
   const handed = useCallback((read: () => unknown) => {
     giving.current = read;
   }, []);
@@ -655,7 +655,11 @@ export default function Docs({
                           onMove={
                             reading || bolted
                               ? undefined
-                              : (page, before) => ordering.current?.(page.file, before)
+                              : (page, before) => {
+                                  if (ordering.current?.(page.file, before) === false) {
+                                    onError(t("leafStaysPut"));
+                                  }
+                                }
                           }
                         />
                       )

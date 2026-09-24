@@ -20,7 +20,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
-import { card, filed, paged, pagesOf, shifted } from "../paging";
+import { card, filed, paged, pagesOf } from "../paging";
 import { named, pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
@@ -236,7 +236,7 @@ interface Props {
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
   onInsert?: (put: (file: string, title: string) => void) => void;
-  onOrder?: (move: (file: string, before: string | null) => void) => void;
+  onOrder?: (move: (file: string, before: string | null) => boolean) => void;
   seek?: number;
   anchor?: string;
   onSeen?: (at: number) => void;
@@ -244,28 +244,31 @@ interface Props {
   below?: React.ReactNode;
 }
 
+/// A card inside a quote, a list or a cell is part of that block, and taking it out would leave
+/// the block to be filled in or torn, so it is left where the person put it.
 const cardAt = (editor: Writing, file: string): number => {
   let found = -1;
-  editor.state.doc.descendants((node, pos) => {
-    if (found >= 0) return false;
-    if (node.type.name === "image" && node.attrs.src === DOC + file) found = pos;
-    return true;
+  editor.state.doc.descendants((node, pos, parent) => {
+    if (found !== -1) return false;
+    if (node.type.name !== "image" || node.attrs.src !== DOC + file) return true;
+    found = parent === editor.state.doc ? pos : -2;
+    return false;
   });
   return found;
 };
 
-const cardMoved = (editor: Writing, file: string, before: string | null) => {
+const cardMoved = (editor: Writing, file: string, before: string | null): boolean => {
   const from = cardAt(editor, file);
-  if (from < 0) return;
-  const node = editor.state.doc.nodeAt(from);
-  if (!node) return;
-  const size = node.nodeSize;
   const wanted = before === null ? editor.state.doc.content.size : cardAt(editor, before);
-  if (wanted < 0 || wanted === from) return;
+  if (from < 0 || wanted < 0) return false;
+  const node = editor.state.doc.nodeAt(from);
+  if (!node) return false;
+  if (wanted === from) return true;
   const tr = editor.state.tr;
-  tr.delete(from, from + size);
-  tr.insert(shifted(from, size, wanted), node);
+  tr.delete(from, from + node.nodeSize);
+  tr.insert(tr.mapping.map(wanted), node);
   editor.view.dispatch(tr);
+  return true;
 };
 
 export default function Editor({

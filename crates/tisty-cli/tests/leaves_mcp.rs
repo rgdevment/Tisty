@@ -996,6 +996,97 @@ fn an_order_that_names_nothing_to_move_between_is_refused() {
 }
 
 #[test]
+fn a_document_that_ends_in_a_closed_fence_is_written_in_like_any_other() {
+    let served = Served::new();
+    let book = served.wrote("# Manual\n\nmira:\n\n```sh\nls\n```", None);
+    let page = served.wrote("# Cap\n\nx.", None);
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &book }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        served.body_of(&book).contains(&format!("tisty:doc/{page}")),
+        "a fence that closed is not a fence the body ends inside: {}",
+        served.body_of(&book)
+    );
+    assert_eq!(served.pages_of(&book), vec![page]);
+}
+
+#[test]
+fn an_edit_that_names_a_page_a_second_time_says_the_later_one_leads_nowhere() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nde este anio.", None);
+    let page = served.wrote("# Enero\n\nx.", None);
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &book }),
+    );
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": &book,
+            "old": "de este anio.",
+            "new": format!("de este anio.\n\n![Enero](tisty:doc/{page})"),
+        }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("stands in more than one place"),
+        "naming it twice has to be said, since only the first one is read: {said}"
+    );
+}
+
+#[test]
+fn an_order_takes_nothing_that_puts_one_page_somewhere() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+
+    for args in [
+        serde_json::json!({ "doc": &one, "page_of": &book, "order": [&two, &one] }),
+        serde_json::json!({ "page_of": &book, "order": [&two, &one], "after": &one }),
+        serde_json::json!({ "page_of": &book, "order": [] }),
+    ] {
+        let said = served.call("page_doc", args.clone());
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "this had to be refused: {args} gave {said}"
+        );
+    }
+    assert_eq!(served.pages_of(&book), vec![one, two]);
+}
+
+#[test]
+fn an_order_left_out_of_a_call_leaves_the_hanging_to_it() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let page = served.wrote("# Q\n\nq.", None);
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &book, "order": serde_json::Value::Null }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(
+        served.pages_of(&book),
+        vec![page.clone()],
+        "a null order is no order at all, so the hanging still happens: {said}"
+    );
+    assert!(served.body_of(&book).contains(&format!("tisty:doc/{page}")));
+}
+
+#[test]
 fn a_page_named_beside_nothing_is_refused_with_an_empty_name() {
     let served = Served::new();
     let book = served.wrote("# Libro\n\nintro", None);
