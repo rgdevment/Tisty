@@ -111,6 +111,7 @@ const KNOWN = [
   "lockedStaysPut",
   "lockIsTheDocs",
   "documentMoved",
+  "nothingKeptBeside",
   "comingDown",
   "docComing",
   "sharedAway",

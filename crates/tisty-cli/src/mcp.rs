@@ -50,7 +50,7 @@ one ended.
 A day you filed can be moved with `reschedule` when what you learn moves it — the meeting \
 slipped a week, the paper came early. It reaches only what an agent filed: a day the person \
 set is theirs, and naming one of their tasks is refused — one they opened to agents included. \
-Nothing else about a task is ever yours to change: not its title, its list, its day, its \
+Nothing else about a task is ever yours to change: not its title, not its list, not its \
 closing.
 
 Finishing is the person's, but saying so is yours. `say_done` marks a task an agent filed as \
@@ -159,9 +159,9 @@ A whole folder can be in the archive too, and then everything under it is — ev
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. It can also be put away on its own, and then it does not move: it stays under its document, read-only, and the document coming back does not wake it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
-A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
+A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` changes no text, so a document hung as a page that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. A body says nothing about the pages it does not name, and those are left where they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` on its own changes no text, so a document hung that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. Give it `after` or `before` and the line is written for you, straight beside the page you name — that is how a page is moved without touching markdown, and the page you name has to have a line of its own for it to sit beside. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
@@ -187,10 +187,11 @@ a fraction of what the bodies cost; `read_doc` then takes a `section`, a run of 
 budget of `chars` with a cursor to carry on from. A document longer than a few pages comes back \
 as its outline anyway, with `whole` set to false. `find` with a `doc` says which lines say the \
 words, and which section each line sits in. With the outline and the print you can change one \
-part of a document you never read, and nothing you write is ever handed back to you: a writing \
-tool answers with the title, the length and the new print.
+part of a document you never read, and nothing you write comes back unasked: a writing \
+tool answers with the title, the length and the new print, and `echo` adds the lines around \
+the change when you ask for them.
 
-To replace a body entirely, `write_doc` takes the document's name and the `print` `read_doc` \
+To replace a body entirely, `write_doc` takes the document's id and the `print` `read_doc` \
 handed you with its text. If anyone wrote in it between your reading and your writing the print \
 no longer matches, nothing is written, and you are told to read it again — the person may be \
 editing that same document in the window, and this is what keeps their words. Reach for it when \
@@ -598,6 +599,17 @@ fn pointed(name: &str) -> Option<&'static str> {
 }
 
 /// A misspelt argument would otherwise be dropped in silence, teaching the model nothing.
+fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> {
+    only_what_it_takes("propose", one)?;
+    short_and_plain(one)?;
+    if one.get("tasks").is_some() {
+        return Err(Refused::Tool(
+            "a task inside `tasks` cannot carry `tasks` of its own.".into(),
+        ));
+    }
+    proposed(paths, one)
+}
+
 fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
     let Some(said) = args.as_object() else {
         return Ok(());
@@ -618,7 +630,100 @@ fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
             known.join(", ")
         )));
     }
+    for (key, sent) in said {
+        if sent.is_null() {
+            continue;
+        }
+        let kinds = kinds_of(&taken[key]);
+        if kinds.is_empty() || kinds.iter().any(|one| holds(one, sent)) {
+            continue;
+        }
+        let says = taken[key]
+            .get("description")
+            .and_then(Value::as_str)
+            .map(|one| match one.trim_end().ends_with('.') {
+                true => format!(" It takes: {one}"),
+                false => format!(" It takes: {one}."),
+            })
+            .unwrap_or_default();
+        return Err(Refused::Tool(format!(
+            "`{key}` takes {}, and what came was {}. Nothing was read from it, because reading \
+             it another way would be a guess.{says}",
+            kinds
+                .iter()
+                .map(|one| shaped_as(one))
+                .collect::<Vec<_>>()
+                .join(" or "),
+            came_as(sent)
+        )));
+    }
     Ok(())
+}
+
+fn kinds_of(shape: &Value) -> Vec<String> {
+    let named = |one: &Value| match one {
+        Value::String(said) => vec![said.clone()],
+        Value::Array(all) => all
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect(),
+        _ => Vec::new(),
+    };
+    let mut out = shape.get("type").map(named).unwrap_or_default();
+    if let Some(all) = shape.get("oneOf").and_then(Value::as_array) {
+        for one in all {
+            out.extend(one.get("type").map(&named).unwrap_or_default());
+        }
+    }
+    out.retain(|one| one != "null");
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+fn holds(wants: &str, sent: &Value) -> bool {
+    match wants {
+        "string" => sent.is_string(),
+        "integer" => {
+            sent.is_i64() || sent.is_u64() || sent.as_f64().is_some_and(|one| one.fract() == 0.0)
+        }
+        "number" => sent.is_number(),
+        "boolean" => sent.is_boolean(),
+        "array" => sent.is_array(),
+        "object" => sent.is_object(),
+        _ => true,
+    }
+}
+
+fn shaped_as(wants: &str) -> &'static str {
+    match wants {
+        "integer" => "a whole number",
+        "number" => "a number",
+        "boolean" => "true or false",
+        "array" => "a list",
+        "object" => "a set of fields",
+        _ => "text",
+    }
+}
+
+fn came_as(sent: &Value) -> &'static str {
+    match sent {
+        Value::String(_) => "text",
+        Value::Number(_) => "a number",
+        Value::Bool(_) => "true or false",
+        Value::Array(_) => "a list",
+        Value::Object(_) => "a set of fields",
+        Value::Null => "nothing",
+    }
+}
+
+fn body_at_most() -> usize {
+    AT_MOST
+        .iter()
+        .find(|(key, _)| *key == "body")
+        .map(|(_, most)| *most)
+        .unwrap_or(64_000)
 }
 
 const AT_MOST: &[(&str, usize)] = &[
@@ -690,7 +795,7 @@ fn short_and_plain(args: &Value) -> Result<(), Refused> {
 
 /// Like `listed`, but a list that is not one of strings is refused rather than thinned.
 fn strings(args: &Value, key: &str) -> Result<Vec<String>, Refused> {
-    let Some(given) = args.get(key) else {
+    let Some(given) = args.get(key).filter(|one| !one.is_null()) else {
         return Ok(Vec::new());
     };
     let Some(all) = given.as_array() else {
@@ -712,6 +817,24 @@ fn text(args: &Value, key: &str) -> Option<String> {
         .map(str::trim)
         .filter(|said| !said.is_empty())
         .map(ToString::to_string)
+}
+
+fn in_order(on: Option<&DateSpec>, owed: Option<&DateSpec>) -> Result<(), Refused> {
+    let (Some(on), Some(owed)) = (on, owed) else {
+        return Ok(());
+    };
+    let today = jiff::Zoned::now().date();
+    if owed.date() < on.date() && owed.date() >= today {
+        return Err(Refused::Tool(format!(
+            "a deadline of {} falls before {}, the day it would be worked on, and neither day \
+             has gone by. Send both in one call with the days the right way round, or leave one \
+             out and only the other moves. A deadline already past is a different thing and is \
+             taken as it is.",
+            owed.date(),
+            on.date()
+        )));
+    }
+    Ok(())
 }
 
 fn day(args: &Value, key: &str) -> Result<Option<DateSpec>, Refused> {
@@ -743,7 +866,7 @@ fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused> {
     let zone = jiff::tz::TimeZone::system();
     let named = zone.iana_name().unwrap_or("UTC").to_string();
     let mut out: Vec<DateSpec> = Vec::new();
-    for said in listed(args, key) {
+    for said in strings(args, key)? {
         let at = said
             .contains('T')
             .then(|| said.parse::<jiff::civil::DateTime>().ok())
@@ -894,7 +1017,7 @@ fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut done: Vec<Value> = Vec::with_capacity(many.len());
     let (mut written, mut already, mut turned) = (0, 0, 0);
     for one in many {
-        match proposed(paths, one) {
+        match one_of_many(paths, one) {
             Ok(said) => {
                 let kept = said
                     .get("structuredContent")
@@ -994,8 +1117,12 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Ok(told(said, kept));
     }
 
+    let on = day(args, "date")?;
+    let owed = day(args, "deadline")?;
+    in_order(on.as_ref(), owed.as_ref())?;
+
     let mut tags: Vec<Tag> = Vec::new();
-    for one in listed(args, "tags")
+    for one in strings(args, "tags")?
         .iter()
         .filter_map(|said| Tag::written(said).ok())
     {
@@ -1011,8 +1138,8 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let draft = Draft {
         title: title.clone(),
-        date: day(args, "date")?,
-        deadline: day(args, "deadline")?,
+        date: on,
+        deadline: owed,
         priority: ranked(args)?,
         filing: text(args, "list").map(tisty_core::capture::Filing::Named),
         tags,
@@ -1041,7 +1168,7 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let mut step = order::first();
     let mut planned = 0;
-    for one in listed(args, "steps") {
+    for one in strings(args, "steps")? {
         planned += 1;
         ops.push(Op::StepAdd {
             id,
@@ -1144,7 +1271,6 @@ fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
-
     let mut all = task.reminders.clone();
     let mut added = 0;
     for one in bells {
@@ -1212,6 +1338,16 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
+    if let Some(why) = already_said_done(task, "moving its day") {
+        return Err(why);
+    }
+    let standing =
+        |given: &Option<DateSpec>, key: &str, held: &Option<DateSpec>| match (given, clears(key)) {
+            (Some(one), _) => Some(one.clone()),
+            (None, true) => None,
+            (None, false) => held.clone(),
+        };
+    in_order(on.as_ref(), owed.as_ref())?;
 
     let was = (
         task.date.as_ref().map(|one| one.date().to_string()),
@@ -1235,8 +1371,8 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .map_err(hitch)?;
 
     let now = (
-        on.map(|one| one.date().to_string()),
-        owed.map(|one| one.date().to_string()),
+        on.as_ref().map(|one| one.date().to_string()),
+        owed.as_ref().map(|one| one.date().to_string()),
     );
     let moved = |what: &str, was: &Option<String>, now: &Option<String>, cleared: bool| match (
         now, cleared,
@@ -1262,8 +1398,9 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         json!({
             "id": id.to_string(),
             "title": task.title,
-            "date": now.0,
-            "deadline": now.1,
+            "date": standing(&on, "date", &task.date).map(|one| one.date().to_string()),
+            "deadline": standing(&owed, "deadline", &task.deadline)
+                .map(|one| one.date().to_string()),
         }),
     ))
 }
@@ -1305,6 +1442,9 @@ fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
+    if let Some(why) = already_said_done(task, "writing a description") {
+        return Err(why);
+    }
     if task
         .description
         .as_deref()
@@ -1360,7 +1500,7 @@ fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "task") else {
         return Err(Refused::Tool("planning needs a `task` id.".into()));
     };
-    let steps = listed(args, "steps");
+    let steps = strings(args, "steps")?;
     if steps.is_empty() {
         return Err(Refused::Tool(
             "planning needs `steps`, the checklist to add, one string each.".into(),
@@ -1368,6 +1508,14 @@ fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
+    if task.resolved.is_some() {
+        return Err(Refused::Tool(format!(
+            "{:?} has already been said done, and a step added now would stand unticked under \
+             that mark — which is the very thing `say_done` refuses to do. Say what is still \
+             left with `note` and leave the task to the person.",
+            task.title
+        )));
+    }
     let mut ops = Vec::with_capacity(steps.len());
     let mut order = state.step_order_between(id, task.steps.last().map(|s| s.id), None);
     for one in &steps {
@@ -1386,7 +1534,7 @@ fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let held = State::replay(events);
             held.tasks
                 .get(&id)
-                .is_none_or(|now| !still_filling(&held, now))
+                .is_none_or(|now| !still_filling(&held, now) || now.resolved.is_some())
         })
         .map_err(hitch)?;
     if written.is_none() {
@@ -2261,6 +2409,17 @@ fn how_it_ended(task: &Task) -> String {
     said
 }
 
+fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
+    task.resolved.as_ref().map(|_| {
+        Refused::Tool(format!(
+            "{:?} has already been said done, so {doing} now would speak over a mark nobody has \
+             looked at yet. Say what you have learnt with `note` and leave the task to the \
+             person.",
+            task.title
+        ))
+    })
+}
+
 fn history(task: &Task) -> Refused {
     let ended = ended(task);
     let how = match task.status {
@@ -2303,7 +2462,7 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
 
-    let asked = listed(args, "fields");
+    let asked = strings(args, "fields")?;
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
 
     let mut whole = match asked.is_empty() {
@@ -2424,6 +2583,16 @@ fn over_again(
         .into_iter()
         .filter(|one| !named.contains(&one.file))
         .collect();
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    let walled_off = walled(&held).last().copied().unwrap_or(false);
+    let adrift: Vec<String> = match walled_off {
+        true => loose.iter().map(|one| one.file.clone()).collect(),
+        false => Vec::new(),
+    };
+    let loose: Vec<&tisty_core::model::Kept> = match walled_off {
+        true => Vec::new(),
+        false => loose,
+    };
     let body = &match loose.is_empty() {
         true => body.to_string(),
         false => {
@@ -2480,7 +2649,7 @@ print: {}",
             let settled = retold(state, store, which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Wrote {:?} again, whole. {}{}{}",
+                    "Wrote {:?} again, whole. {}{}{}{}",
                     tisty_core::docs::titled(&whole),
                     "What it said before is kept beside the documents.",
                     match kept_back.is_empty() {
@@ -2488,6 +2657,13 @@ print: {}",
                         false => format!(
                             " The body you sent named none of {}, which are pages of it, so their lines were put back at the end rather than left with nothing pointing at them. Move them with `edit_doc` if they belong somewhere else.",
                             kept_back.join(", ")
+                        ),
+                    },
+                    match walled_off {
+                        false => String::new(),
+                        true => format!(
+                            " It ends inside a fence, so a line naming a page would have been written as code rather than as a way in: {} are pages of it that nothing now names. Close the fence and write those lines where they belong.",
+                            adrift.join(", ")
                         ),
                     },
                     if settled { "" } else { UNSETTLED }
@@ -2780,8 +2956,9 @@ fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let Some(was) = tisty_core::docs::read_before(paths.data(), &which) else {
         return Err(Refused::Tool(format!(
-            "nothing is kept beside {which:?} to go back to. Only the last body a write replaced \
-             is held, and this document has not been written since it was made."
+            "nothing is kept beside {which:?} to go back to. Only a write that replaced a body \
+             is held, and adding to the end — `append_doc`, or a file kept with `attach` — \
+             replaces nothing."
         )));
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
@@ -3125,13 +3302,15 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             )
         })),
         tisty_core::docs::Change::Made { was, whole } => {
+            let loose = left_loose(&state, &which, &was, &whole);
             let settled = retold(&state, &mut store, &which, &whole).is_ok();
             Ok(told(
                 format!(
                     "Changed that passage in {:?}, {}. What it was is kept beside the \
-                     documents.{}{}",
+                     documents.{}{}{}",
                     tisty_core::docs::titled(&whole),
                     by_how_much(&was, &whole),
+                    loose_words(&state, &loose),
                     if settled { "" } else { UNSETTLED },
                     wrapped(new)
                 ),
@@ -3142,6 +3321,7 @@ fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                         "chars": whole.chars().count(),
                         "lines": whole.lines().count(),
                         "grew": grew(&was, &whole),
+                        "loose": loose,
                         "print": tisty_core::attach::printed(whole.as_bytes()),
                     }),
                     args,
@@ -3335,12 +3515,14 @@ fn in_its_place(
              passage sits now."
         ))),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
+            let loose = left_loose(state, which, &body, &whole);
             let settled = retold(state, store, which, &whole).is_ok();
             Ok(told(
                 format!(
                     "Changed lines {from} to {to} of {:?}. What it was is kept beside the \
-                     documents.{}",
+                     documents.{}{}",
                     tisty_core::docs::titled(&whole),
+                    loose_words(state, &loose),
                     if settled { "" } else { UNSETTLED }
                 ),
                 with_echo(
@@ -3350,6 +3532,7 @@ fn in_its_place(
                         "chars": whole.chars().count(),
                         "lines": whole.lines().count(),
                         "grew": grew(&body, &whole),
+                        "loose": loose,
                         "print": tisty_core::attach::printed(whole.as_bytes()),
                     }),
                     args,
@@ -3359,6 +3542,53 @@ fn in_its_place(
             ))
         }
     }
+}
+
+fn left_loose(state: &State, which: &str, was: &str, whole: &str) -> Vec<String> {
+    let before = tisty_core::refs::papers(was);
+    let after = tisty_core::refs::papers(whole);
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Vec::new();
+    };
+    state
+        .pages_of(kept.id)
+        .into_iter()
+        .map(|one| one.file.clone())
+        .filter(|file| before.contains(file) && !after.contains(file))
+        .collect()
+}
+
+fn loose_words(state: &State, loose: &[String]) -> String {
+    if loose.is_empty() {
+        return String::new();
+    }
+    let (took, still, put) = match loose.len() {
+        1 => (
+            "the line that named",
+            "it is still a page",
+            "its line where it belongs",
+        ),
+        _ => (
+            "the lines that named",
+            "they are still pages",
+            "their lines where they belong",
+        ),
+    };
+    format!(
+        " It also took out {took} {}: nothing in this document points there now, though {still} \
+         of it. If you are moving {}, write {put} with another `edit_doc`, or put {} in place \
+         with `page_doc` and `after`. If the cut was a mistake, `restore_doc` puts the passage \
+         back as it was.",
+        named_all(state, loose),
+        match loose.len() {
+            1 => "it",
+            _ => "them",
+        },
+        match loose.len() {
+            1 => "it",
+            _ => "each",
+        }
+    )
 }
 
 fn trail(state: &State, at: tisty_core::model::FolderId) -> String {
@@ -3717,6 +3947,7 @@ fn beside_the_file(paths: &Paths, from: &std::path::Path, body: &str) -> (String
         .parent()
         .unwrap_or(std::path::Path::new("."))
         .to_path_buf();
+    let here = here.canonicalize().unwrap_or(here);
     let mut kept: std::collections::BTreeMap<String, Option<String>> = Default::default();
 
     let out = retargeted(body, &mut |label: &str, target: &str, title: &str| {
@@ -3736,6 +3967,28 @@ fn beside_the_file(paths: &Paths, from: &std::path::Path, body: &str) -> (String
     (out, done)
 }
 
+const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
+takes only what is kept beside it. Put a copy in that folder and import again, or bring the file \
+in on its own afterwards with `attach`";
+
+fn stays_beside(plain: &str) -> bool {
+    let mut depth = 0i32;
+    for part in std::path::Path::new(plain).components() {
+        match part {
+            std::path::Component::CurDir => {}
+            std::path::Component::Normal(_) => depth += 1,
+            std::path::Component::ParentDir => {
+                depth -= 1;
+                if depth < 0 {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+    }
+    true
+}
+
 fn brought_in(
     paths: &Paths,
     here: &std::path::Path,
@@ -3747,9 +4000,18 @@ fn brought_in(
         || target.starts_with("https://")
         || target.starts_with("mailto:")
         || target.starts_with(tisty_core::refs::DOC)
-        || target.starts_with("attachments/")
     {
         return Some(target.to_string());
+    }
+    if let Some(kept) = target.strip_prefix("attachments/") {
+        if stays_beside(&unescaped(kept)) {
+            return Some(target.to_string());
+        }
+        done.missed.push(format!(
+            "{target} — it reads as a file Tisty already keeps, but it climbs out of the shelf \
+             those sit on, and nothing there can be named that way"
+        ));
+        return None;
     }
     if target.starts_with('/')
         || target.starts_with('\\')
@@ -3762,12 +4024,15 @@ fn brought_in(
         return None;
     }
     let plain = unescaped(target);
-    let at = here.join(&plain);
-    let there = at.exists();
     let mut cannot = |why: String| {
         done.missed.push(format!("{target} — {why}"));
         None::<String>
     };
+    if !stays_beside(&plain) {
+        return cannot(OUTSIDE.into());
+    }
+    let at = here.join(&plain);
+    let there = at.exists();
 
     let Ok(at) = tisty_core::agent::may_reach(&at, paths) else {
         return cannot(match there {
@@ -3775,6 +4040,9 @@ fn brought_in(
             false => "no file is there".into(),
         });
     };
+    if !at.starts_with(here) {
+        return cannot(OUTSIDE.into());
+    }
     if tisty_core::agent::fit_to_keep(&at).is_err() {
         return cannot(
             "its bytes are not the kind of file its name says it is, so what came out of Tisty later would not open"
@@ -3973,7 +4241,8 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let big = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
     if big > tisty_core::docs::BODY_AT_MOST {
         return Err(Refused::Tool(format!(
-            "{said:?} is {big} bytes, past the {} Tisty can open. Split it before bringing it in.",
+            "{said:?} is {big} bytes, past the {} a file may be to be read at all. Split it \
+             before bringing it in.",
             tisty_core::docs::BODY_AT_MOST
         )));
     }
@@ -4036,6 +4305,14 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         one.remove("path");
         one.remove("title");
         one.insert("body".into(), json!(body));
+    }
+    let long = body.chars().count();
+    if long > body_at_most() {
+        return Err(Refused::Tool(format!(
+            "{said:?} reads as {long} characters once it is tidied, and a document is kept up \
+             to {}. Split it before bringing it in.",
+            body_at_most()
+        )));
     }
     short_and_plain(&asked_again)?;
     let written = write_doc(paths, &asked_again)?;
@@ -4598,9 +4875,375 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn walled(lines: &[String]) -> Vec<bool> {
+    let mut out = Vec::with_capacity(lines.len());
+    let mut open: Option<char> = None;
+    for one in lines {
+        let said = one.trim_start();
+        let fence = said
+            .chars()
+            .next()
+            .filter(|c| matches!(c, '`' | '~'))
+            .filter(|c| said.starts_with(&c.to_string().repeat(3)));
+        match (open, fence) {
+            (None, Some(c)) => {
+                open = Some(c);
+                out.push(true);
+            }
+            (Some(c), Some(f)) if f == c => {
+                open = None;
+                out.push(true);
+            }
+            _ => out.push(open.is_some()),
+        }
+    }
+    out
+}
+
+fn line_of(lines: &[String], id: &str) -> Option<usize> {
+    let code = walled(lines);
+    lines.iter().enumerate().position(|(at, one)| {
+        !code[at] && tisty_core::refs::papers(one).iter().any(|said| said == id)
+    })
+}
+
+fn card_alone(line: &str, id: &str) -> bool {
+    let said = line.trim();
+    said.starts_with("![")
+        && said.ends_with(')')
+        && tisty_core::refs::extract(said).len() == 1
+        && tisty_core::refs::papers(said) == vec![id.to_string()]
+}
+
+fn blank(lines: &[String], at: usize) -> bool {
+    lines.get(at).is_none_or(|one| one.trim().is_empty())
+}
+
+enum Held {
+    After(String),
+    Before(String),
+    At(Spot<'static>),
+}
+
+impl Held {
+    fn spot(&self) -> Spot<'_> {
+        match self {
+            Held::After(one) => Spot::After(one),
+            Held::Before(one) => Spot::Before(one),
+            Held::At(one) => *one,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Spot<'a> {
+    After(&'a str),
+    Before(&'a str),
+    First,
+    Last,
+}
+
+impl Spot<'_> {
+    fn anchor(&self) -> Option<&str> {
+        match self {
+            Spot::After(one) | Spot::Before(one) => Some(one),
+            Spot::First | Spot::Last => None,
+        }
+    }
+
+    fn said(&self) -> &'static str {
+        match self {
+            Spot::After(_) => "after",
+            Spot::Before(_) => "before",
+            Spot::First => "first",
+            Spot::Last => "last",
+        }
+    }
+}
+
+fn cards_in(lines: &[String]) -> Vec<usize> {
+    let code = walled(lines);
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(at, one)| !code[*at] && tisty_core::refs::papers(one).len() == 1 && card_any(one))
+        .map(|(at, _)| at)
+        .collect()
+}
+
+fn card_any(line: &str) -> bool {
+    let said = line.trim();
+    said.starts_with("![") && said.ends_with(')') && tisty_core::refs::extract(said).len() == 1
+}
+
+fn card_moved(body: &str, which: &str, title: &str, spot: Spot) -> Option<String> {
+    let ending = match body.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
+    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
+    if let Some(at) = line_of(&lines, which) {
+        lines.remove(at);
+        if at > 0 && at < lines.len() && blank(&lines, at) && blank(&lines, at - 1) {
+            lines.remove(at);
+        }
+    }
+    let at = match spot {
+        Spot::After(anchor) => line_of(&lines, anchor)? + 1,
+        Spot::Before(anchor) => line_of(&lines, anchor)?,
+        Spot::First => cards_in(&lines).first().copied().unwrap_or(lines.len()),
+        Spot::Last => match cards_in(&lines).last() {
+            Some(one) => one + 1,
+            None => {
+                while lines.last().is_some_and(|one| one.trim().is_empty()) {
+                    lines.pop();
+                }
+                lines.len()
+            }
+        },
+    };
+    lines.insert(at, tisty_core::refs::card(which, title));
+    if !blank(&lines, at + 1) {
+        lines.insert(at + 1, String::new());
+    }
+    if at > 0 && !blank(&lines, at - 1) {
+        lines.insert(at, String::new());
+    }
+    let mut out = lines.join(ending);
+    if !out.ends_with('\n') {
+        out.push_str(ending);
+    }
+    Some(out)
+}
+
+fn left_named(
+    paths: &Paths,
+    state: &State,
+    moving: &[(String, tisty_core::model::DocId)],
+    up: Option<tisty_core::model::DocId>,
+) -> Vec<(String, String)> {
+    let up = match up {
+        Some(one) => one,
+        None => return Vec::new(),
+    };
+    moving
+        .iter()
+        .filter_map(|(which, id)| {
+            let was = state.docs.get(id)?.page_of?;
+            if was == up {
+                return None;
+            }
+            let parent = state.docs.get(&was)?;
+            let body = tisty_core::docs::read(&paths.docs(), &parent.file).ok()?;
+            tisty_core::refs::papers(&body)
+                .contains(which)
+                .then(|| (parent.file.clone(), which.clone()))
+        })
+        .collect()
+}
+
+fn where_said(state: &State, spot: Spot) -> String {
+    match spot.anchor() {
+        Some(one) => format!("{} {}", spot.said(), doc_named(state, one)),
+        None => spot.said().to_string(),
+    }
+}
+
+fn beside_ready(
+    paths: &Paths,
+    state: &State,
+    up: tisty_core::model::DocId,
+    which: &str,
+    spot: Spot,
+) -> Result<(), Refused> {
+    let Some(parent) = state.docs.get(&up) else {
+        return Err(Refused::Tool(
+            "the document that holds this page is not here any more.".into(),
+        ));
+    };
+    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    if let Some(at) = line_of(&held, which)
+        && !card_alone(&held[at], which)
+    {
+        return Err(carried_off(state, &parent.file, which, at, &held[at]));
+    }
+
+    let Some(anchor) = spot.anchor() else {
+        return Ok(());
+    };
+
+    let Some(mark) = state.docs.values().find(|one| one.file == anchor) else {
+        return Err(Refused::Tool(format!(
+            "{anchor:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a \
+             title is not one — `docs` prints the id beside the title of every document."
+        )));
+    };
+    if mark.page_of != Some(up) {
+        return Err(Refused::Tool(format!(
+            "{} is not a page of {}, so it says nothing about where this one goes. \
+             `outline_doc` lists the pages in the order they are read, and says which of them \
+             no line names.",
+            doc_named(state, anchor),
+            doc_named(state, &parent.file)
+        )));
+    }
+    if mark.file == which {
+        return Err(Refused::Tool(
+            "a page cannot be placed before or after itself. Name another page of the same \
+             document, or send `at` as \"first\" or \"last\"."
+                .into(),
+        ));
+    }
+    let Some(sits) = line_of(&held, anchor) else {
+        return Err(Refused::Tool(format!(
+            "{} is a page of {}, but no line in it names {}, so there is nothing to place this \
+             one beside. Send `at` as \"first\" or \"last\" instead, and the line is written \
+             without an anchor.",
+            doc_named(state, anchor),
+            doc_named(state, &parent.file),
+            doc_named(state, anchor)
+        )));
+    };
+    if !card_alone(&held[sits], anchor) {
+        return Err(Refused::Tool(format!(
+            "line {} of {} names {} in the middle of something else: {:?}. A page is placed \
+             beside a line that names one page and nothing more, so that writing beside it \
+             cannot break what that line is part of. Name a page whose line stands on its own.",
+            sits + 1,
+            doc_named(state, &parent.file),
+            doc_named(state, anchor),
+            held[sits].trim()
+        )));
+    }
+    let _ = sits;
+    Ok(())
+}
+
+fn carried_off(state: &State, parent: &str, which: &str, at: usize, line: &str) -> Refused {
+    Refused::Tool(format!(
+        "line {} of {} names {} and says other things besides, so moving that line would carry \
+         them off with it: {:?}. Nothing was moved. Put the line on its own with `edit_doc` \
+         first, or move it there yourself.",
+        at + 1,
+        doc_named(state, parent),
+        doc_named(state, which),
+        line.trim()
+    ))
+}
+
+fn placed(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    up: tisty_core::model::DocId,
+    which: &str,
+    spot: Spot,
+) -> Result<(), Refused> {
+    let Some(parent) = state.docs.get(&up) else {
+        return Err(Refused::Tool(
+            "the document that holds this page is not here any more.".into(),
+        ));
+    };
+    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
+    let print = tisty_core::attach::printed(body.as_bytes());
+    let title = tisty_core::docs::read(&paths.docs(), which)
+        .map(|one| tisty_core::docs::titled(&one))
+        .unwrap_or_default();
+    if let Some(said) = card_moved(&body, which, &title, spot)
+        && tisty_core::docs::titled(&said) != tisty_core::docs::titled(&body)
+    {
+        return Err(Refused::Tool(format!(
+            "putting it there would make its line the first thing {} says, and a document takes \
+             its title from what it says first, so {} would be renamed. Put this page after \
+             another one instead.",
+            doc_named(state, &parent.file),
+            doc_named(state, &parent.file)
+        )));
+    }
+    let Some(whole) = card_moved(&body, which, &title, spot) else {
+        return Err(Refused::Tool(format!(
+            "no line of {} names {} any more, so there was nowhere to put this one.",
+            doc_named(state, &parent.file),
+            doc_named(state, spot.anchor().unwrap_or_default())
+        )));
+    };
+    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
+        .map_err(hitch)?
+    {
+        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
+            "{} was written by somebody else in the same moment, so its line was left where it \
+             was. Read it again and say where the page goes.",
+            doc_named(state, &parent.file)
+        ))),
+        tisty_core::docs::Rewrite::Made { whole, .. } => {
+            retold(state, store, &parent.file, &whole)?;
+            Ok(())
+        }
+    }
+}
+
 fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (many, listed) = many_docs(args, "hang or unhang")?;
     let (state, mut store) = opened(paths)?;
+
+    for side in ["after", "before", "at"] {
+        if args.get(side).is_some() && text(args, side).is_none() {
+            return Err(Refused::Tool(format!(
+                "`{side}` came empty. A page goes where another page is named, or first or \
+                 last, and an empty name says neither — leave it out to hang the page without \
+                 writing its line."
+            )));
+        }
+    }
+    let named: Vec<(&str, Option<String>)> = ["after", "before", "at"]
+        .into_iter()
+        .map(|key| (key, text(args, key)))
+        .filter(|(_, said)| said.is_some())
+        .collect();
+    if named.len() > 1 {
+        return Err(Refused::Tool(format!(
+            "send one of `after`, `before` and `at`, not {}: a page goes in one place.",
+            named
+                .iter()
+                .map(|(key, _)| format!("`{key}`"))
+                .collect::<Vec<_>>()
+                .join(" and ")
+        )));
+    }
+    let side = match text(args, "at").as_deref() {
+        None => None,
+        Some("first") => Some(Spot::First),
+        Some("last") => Some(Spot::Last),
+        Some(other) => {
+            return Err(Refused::Tool(format!(
+                "`at` is either \"first\" or \"last\", and {other:?} is neither. Name a page with \
+                 `after` or `before` to put it anywhere else."
+            )));
+        }
+    };
+    let beside = match (text(args, "after"), text(args, "before")) {
+        (Some(one), None) => Some(Held::After(one)),
+        (None, Some(one)) => Some(Held::Before(one)),
+        _ => side.map(Held::At),
+    };
+    if beside.is_some() {
+        if many.len() != 1 {
+            return Err(Refused::Tool(
+                "`after`, `before` and `at` place one page, so `doc` takes a single name \
+                 here. Hang them together first, then place them one at a time."
+                    .into(),
+            ));
+        }
+        if text(args, "page_of").is_none() {
+            return Err(Refused::Tool(
+                "`after`, `before` and `at` say where a page sits inside the document that \
+                 holds it, so they need `page_of`. Left out, the page leaves that document \
+                 altogether and there is no order to give it."
+                    .into(),
+            ));
+        }
+    }
 
     let up = match text(args, "page_of") {
         None => None,
@@ -4632,6 +5275,9 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Some(up.id)
         }
     };
+    if let (Some(held), Some(over)) = (&beside, up) {
+        beside_ready(paths, &state, over, &many[0], held.spot())?;
+    }
 
     let mut moving = Vec::new();
     let mut already = Vec::new();
@@ -4682,6 +5328,17 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
 
     let under = up.and_then(|one| named_doc(&state, one));
+    if let (Some(held), Some(over), true) = (&beside, up, moving.is_empty()) {
+        placed(paths, &state, &mut store, over, &many[0], held.spot())?;
+        return Ok(told(
+            format!(
+                "Moved {} {}.",
+                named_all(&state, &many),
+                where_said(&state, held.spot())
+            ),
+            json!({ "doc": said_docs(&many, listed), "page_of": under, "left": already }),
+        ));
+    }
     if moving.is_empty() {
         return Ok(told(
             match (up.and_then(|one| up_named(&state, one)), already.len() == 1) {
@@ -4738,7 +5395,39 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             },
         })
         .collect();
+    let stayed = left_named(paths, &state, &moving, up);
     store.append_batch(doing).map_err(hitch)?;
+    let mut put = String::new();
+    if let (Some(held), Some(over)) = (&beside, up) {
+        let (now, mut store) = opened(paths)?;
+        put = match placed(paths, &now, &mut store, over, &many[0], held.spot()) {
+            Ok(()) => format!(" Its line sits {}.", where_said(&state, held.spot())),
+            Err(Refused::Tool(why)) => {
+                format!(" It is a page now, but no line was written for it, so it is loose: {why}")
+            }
+            Err(other) => return Err(other),
+        };
+    }
+
+    let over = match stayed.is_empty() {
+        true => String::new(),
+        false => format!(
+            " The line naming {} is still written in {}, which no longer holds it: take it out \
+             with `edit_doc` when you are done.",
+            named_all(
+                &state,
+                &stayed
+                    .iter()
+                    .map(|(_, one)| one.clone())
+                    .collect::<Vec<_>>()
+            ),
+            named_all(
+                &state,
+                &stayed.iter().map(|(up, _)| up.clone()).collect::<Vec<_>>()
+            )
+        ),
+    };
+    let put = format!("{put}{over}");
 
     let names: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
     let one_of_them = names.len() == 1;
@@ -4762,7 +5451,7 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     Ok(told(
         match (up.and_then(|one| up_named(&state, one)), one_of_them) {
             (Some(named), true) => format!(
-                "{} is now a page of {named}.{over}",
+                "{} is now a page of {named}.{over}{put}",
                 named_all(&state, &names)
             ),
             (Some(named), false) => format!(
@@ -5066,7 +5755,7 @@ fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             }
             format!(
                 "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s). Send the \
-                 `cursor` back next time and only what moved since comes with it.",
+                 `cursor` back next time and what moved since comes with it as well.",
                 named.len(),
                 folders.len(),
                 tags.len(),
@@ -5350,6 +6039,9 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     let pages = state.pages_of(kept.id);
+    let told_of = tisty_core::refs::papers(
+        &tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default(),
+    );
     let names: Vec<String> = pages.iter().map(|one| one.file.clone()).collect();
     let cards = tisty_core::docs::cards_of(&paths.docs(), held.as_ref(), &names);
     let rows: Vec<Value> = pages
@@ -5378,6 +6070,9 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             }
             if one.flagged.is_some() && !state.held_away(one) {
                 row.insert("flagged".into(), json!(true));
+            }
+            if !told_of.contains(&one.file) {
+                row.insert("loose".into(), json!(true));
             }
             Value::Object(row)
         })
@@ -5450,8 +6145,12 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .iter()
             .filter(|row| row["flagged"] == json!(true))
             .count();
+        let adrift = rows
+            .iter()
+            .filter(|row| row["loose"] == json!(true))
+            .count();
         shown.push_str(&format!(
-            "\n\nPages, in the order they are read ({}{}{}):",
+            "\n\nPages, in the order they are read ({}{}{}{}):",
             rows.len(),
             match away {
                 0 => String::new(),
@@ -5460,6 +6159,10 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             match marked {
                 0 => String::new(),
                 _ => format!(", {marked} an agent gave up for old"),
+            },
+            match adrift {
+                0 => String::new(),
+                _ => format!(", {adrift} no line in the document names"),
             }
         ));
         for row in &rows {
@@ -5478,8 +6181,12 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 (false, _, true) => " — an agent says it has had its day",
                 (false, _, false) => "",
             };
+            let adrift = match row["loose"] == json!(true) {
+                true => " — loose: no line names it, so the window gives it no place",
+                false => "",
+            };
             shown.push_str(&format!(
-                "\n  {} — {}{holds}{state_of}",
+                "\n  {} — {}{holds}{state_of}{adrift}",
                 said(row, "doc"),
                 said(row, "title")
             ));
@@ -5545,6 +6252,15 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !pages.is_empty() {
         kept_of.insert("pages".into(), json!(pages));
         let held = state.pages_of(kept.id);
+        let told_of = tisty_core::refs::papers(&body);
+        let adrift: Vec<String> = held
+            .iter()
+            .filter(|one| !told_of.contains(&one.file))
+            .map(|one| one.file.clone())
+            .collect();
+        if !adrift.is_empty() {
+            kept_of.insert("pages_loose".into(), json!(adrift));
+        }
         let shelved: Vec<String> = held
             .iter()
             .filter(|one| one.archived)
@@ -6080,7 +6796,7 @@ fn tools() -> Value {
                         "description": "Only when the person wants done again what was already proposed from this source and closed since: files a new task despite the source being known. Say in the description how the last one ended. Never for a source whose task is still open"
                     }
                 },
-                "required": ["title"]
+                "anyOf": [{ "required": ["title"] }, { "required": ["tasks"] }]
             }))
         },
         {
@@ -6147,7 +6863,7 @@ fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps you did, each by its text exactly as `read` shows it" },
+                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps you did, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call" },
                     "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
                 },
                 "required": ["task"]
@@ -6197,16 +6913,16 @@ fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown: what the editor could not keep is refused on the way in, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — which is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about and no more than six of them; `tags` says which are already in use.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown: what the editor could not keep is refused on the way in, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — save for the pages your body does not name, whose lines are put back at the end rather than left pointing at nothing. That is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about — six is already a lot, and past 64 the rest are dropped without a word; `tags` says which are already in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
                         "type": "string",
-                        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: the editor turns a wrapped line into a hard break, so markdown wrapped at 80 columns comes back full of backslashes"
+                        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: the editor turns a wrapped line into a hard break, so markdown wrapped at 80 columns comes back full of backslashes. Nothing checks this on the way in"
                     },
                     "doc": {
                         "type": "string",
-                        "description": "A document to write again, by name, replacing its body entirely. Needs `print`. Left out, a new document is written instead"
+                        "description": "The id of a document to write again — an opaque name like `q7ntmzbm-0001`, not its title — replacing its body. Needs `print`. Left out, a new document is written instead"
                     },
                     "print": {
                         "type": "string",
@@ -6214,13 +6930,15 @@ fn tools() -> Value {
                     },
                     "folder": {
                         "type": "string",
-                        "description": "A folder to keep it in, by its name, its whole path or its id. `docs` says which exist, and `folder` makes one. Left out, it sits outside them all. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here"
+                        "description": "A folder that already exists to keep it in, by its name, its whole path or its id. `docs` says which exist; the `folder` tool is what makes a new one, and a name no folder has is refused here. Left out, it sits outside them all. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here"
                     },
                     "page_of": {
                         "type": "string",
-                        "description": "A document this one is a page of, by name. The page is \
-                                        named at the end of that document, and where it is named \
-                                        is where it sits. A page follows that document everywhere \
+                        "description": "The id of the document this one is a page of — an \
+                                        opaque name like `q7ntmzbm-0001`, not its title. The page \
+                                        is named at the end of that document, and where it is \
+                                        named is where it sits; `page_doc` with `after` puts that \
+                                        line somewhere else. A page follows that document everywhere \
                                         and takes its folder, so `folder` is ignored, and it holds \
                                         no pages of its own"
                     }
@@ -6283,11 +7001,11 @@ fn tools() -> Value {
                     },
                     "section": {
                         "type": "integer",
-                        "description": "One heading and everything under it, numbered as `outline_doc` numbers them. Needs `print`"
+                        "description": "One heading and everything under it, named by its number and not by its words: the `at` of a heading in the `outline` `outline_doc` hands back, counting from 0. Needs `print`"
                     },
                     "from": { "type": "integer", "description": "First line to replace, counting from 1. Needs `print`" },
-                    "to": { "type": "integer", "description": "Last line to replace. Left out, it runs to the end" },
-                    "print": { "type": "string", "description": "The print the document read at, from `read_doc` or `outline_doc`. Needed when naming a place rather than a passage. It says which version you are editing: if anyone wrote since you read it, nothing is changed and the answer hands you what it says now, with its new print" },
+                    "to": { "type": "integer", "description": "Last line to replace. Left out, it runs to the end. It goes with `from`: on its own it names no place and the edit is refused" },
+                    "print": { "type": "string", "description": "The print the document read at, from `read_doc` or `outline_doc`. It goes with `section` or a line range and nothing else uses it: an edit named by `old` is matched against the text itself. If anyone wrote since you took it, nothing is changed and you are told to ask `outline_doc` where the passage sits now" },
                     "echo": { "type": "boolean", "description": "Hand back the lines around the change as well, instead of reading the document again to see it" }
                 },
                 "required": ["doc", "new"]
@@ -6325,7 +7043,7 @@ fn tools() -> Value {
                     },
                     "page_of": {
                         "type": "string",
-                        "description": "Only the pages of this one document, in reading order"
+                        "description": "Only the pages of this one document, by its id, in reading order"
                     }
                 }
             }))
@@ -6365,7 +7083,9 @@ fn tools() -> Value {
                     "doc": named_doc_field(),
                     "into": {
                         "type": "string",
-                        "description": "A folder that exists on this machine, under Downloads, Documents, Pictures, Desktop or the temporary folder"
+                        "description": "A folder that exists on this machine, which an \
+                                        export of this document has not been taken to already: \
+                                        one is made inside it, named after the title, under Downloads, Documents, Pictures, Desktop or the temporary folder"
                     }
                 },
                 "required": ["doc", "into"]
@@ -6424,18 +7144,44 @@ fn tools() -> Value {
             "name": "page_doc",
             "title": "Make one document, or several, into pages — or take them back out",
             "description": "Hang a document from another as one of its pages, or take a page out \
-                            by leaving `page_of` out, which makes it a document of its own where \
-                            it stands. A page goes with its document everywhere — folder, archive \
-                            and deletion — and holds no pages of its own. Nothing is deleted and \
-                            no text changes, so a page hung this way is loose until the document \
-                            names it. `write_doc` with `page_of` names it for you.",
+                            by leaving `page_of` out, which makes it a document of its own again, \
+                            back in the folder it came from. A page goes with its document \
+                            everywhere — folder, archive and deletion — and holds no pages of its \
+                            own. On its own this writes no text, so a page hung this way is loose \
+                            until the document names it; `after`, `before` and `at` write that \
+                            line and put it where you say, and `write_doc` with `page_of` writes \
+                            it at the end. The order pages are read in is the order their lines sit in \
+                            the document, and nothing else.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": many_docs_field("to hang or to take out"),
                     "page_of": {
                         "type": "string",
-                        "description": "The document it becomes a page of, by name. Leave it out \
-                                        to make it a document of its own"
+                        "description": "The id of the document it becomes a page of — an opaque \
+                                        name like `q7ntmzbm-0001`, not its title. Leave it out to \
+                                        make it a document of its own"
+                    },
+                    "after": {
+                        "type": "string",
+                        "description": "The id of another page of that same document. The line \
+                                        naming this page is written straight after the line \
+                                        naming that one, which is what puts it next in reading \
+                                        order. Needs `page_of`, takes one `doc`, and the page you \
+                                        name has to have a line already"
+                    },
+                    "before": {
+                        "type": "string",
+                        "description": "The same, on the other side: the line goes straight \
+                                        before the one naming this page"
+                    },
+                    "at": {
+                        "type": "string",
+                        "enum": ["first", "last"],
+                        "description": "Where to write the line when you are not naming a page \
+                                        to sit beside: \"first\" puts it before every page the \
+                                        document names, \"last\" after them all. It is what to \
+                                        send for a document whose pages no line names yet, \
+                                        since there is no page there to name"
                     }
                 },
                 "required": ["doc"]
@@ -6444,7 +7190,7 @@ fn tools() -> Value {
         {
             "name": "folder",
             "title": "Make a folder",
-            "description": "Make a folder for documents, and give it an icon and a colour if they fit. If a folder by that name is already there it is used as it is, and an icon or colour you send changes how it looks — nothing is renamed, moved or deleted. Folders hold documents, not tasks; tasks go in lists.",
+            "description": "Make a folder for documents, and give it an icon and a colour if they fit. If a folder by that name is already there it is used as it is — and without `inside`, one by that name is found however deep it sits, so a name you mean as a new top-level folder may hand you one inside another. An icon or colour you send changes how it looks; nothing is renamed, moved or deleted. Folders hold documents, not tasks; tasks go in lists.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "name": {
@@ -6479,7 +7225,7 @@ fn tools() -> Value {
                     "from": { "type": "integer", "description": "First line, counting from 1" },
                     "to": { "type": "integer", "description": "Last line. Left out, it reads to the end" },
                     "chars": { "type": "integer", "description": "About how many characters to bring. The answer says `next` when there is more" },
-                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, to carry on from there" }
+                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, to carry on from there. It goes with `chars`; on its own it is ignored and the reading starts again from the top" }
                 },
                 "required": ["doc"]
             }))
@@ -6487,12 +7233,12 @@ fn tools() -> Value {
         {
             "name": "catch_up",
             "title": "Where things stand, and what has moved",
-            "description": "One call to start on: the lists, the folders, the tags already in use, how much there is, the documents written most recently, and a `cursor`. Send that cursor back as `since` next time and only what moved since comes with it — the tasks touched and the documents written, whoever did it. It is meant to be the first thing you ask and the thing you ask again when you come back, in place of `lists` and `tags` and a blind `docs`.",
+            "description": "One call to start on: the lists, the folders, the tags already in use, how much there is, the documents written most recently, and a `cursor`. Send that cursor back as `since` next time and what moved comes with it — the tasks touched and the documents written, whoever did it — beside the lists, the folders and the tags, which come every time. It is meant to be the first thing you ask and the thing you ask again when you come back, in place of `lists` and `tags` and a blind `docs`.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "since": {
                         "type": "string",
-                        "description": "A `cursor` a previous `catch_up` handed back. Left out, it describes where things stand rather than what moved"
+                        "description": "A `cursor` a previous `catch_up` handed back. It adds what moved since to the answer; where things stand comes either way"
                     }
                 }
             }))
@@ -6590,7 +7336,7 @@ fn tools() -> Value {
                         "type": "string",
                         "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them, and the section each sits in"
                     },
-                    "tag": { "type": "string", "description": "Carrying this tag, with or without the #" },
+                    "tag": { "type": "string", "description": "Carrying this tag, with or without the #. It sifts the tasks only: any sifting field leaves the documents out of the answer altogether, so a tag on its own says nothing about them" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
                     "said_done": { "type": "boolean", "description": "True for what an agent said is done and the person has not finished yet; false for what nobody spoke for" },
@@ -6632,6 +7378,200 @@ fn tools() -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn four_ids() -> Vec<String> {
+        (1..=4).map(|n| format!("wwwwwwww-000{n}")).collect()
+    }
+
+    fn a_shape() -> impl proptest::strategy::Strategy<Value = (Vec<usize>, Vec<String>)> {
+        (
+            proptest::sample::subsequence(vec![0usize, 1, 2, 3], 2..=4),
+            proptest::collection::vec("[a-z][a-z ]{0,18}", 0..5),
+        )
+    }
+
+    fn built(cards: &[usize], prose: &[String], ids: &[String]) -> String {
+        let mut out = String::from("# Titulo\n");
+        for (at, one) in cards.iter().enumerate() {
+            if let Some(said) = prose.get(at) {
+                out.push('\n');
+                out.push_str(said.trim());
+                out.push('\n');
+            }
+            out.push('\n');
+            out.push_str(&tisty_core::refs::card(&ids[*one], "Pagina"));
+            out.push('\n');
+        }
+        for said in prose.iter().skip(cards.len()) {
+            out.push('\n');
+            out.push_str(said.trim());
+            out.push('\n');
+        }
+        out
+    }
+
+    fn named_times(body: &str, id: &str) -> usize {
+        body.lines()
+            .filter(|one| tisty_core::refs::papers(one).iter().any(|said| said == id))
+            .count()
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn moving_a_page_keeps_every_word_that_was_not_its_line(
+            (cards, prose) in a_shape(),
+            pick in 0usize..4,
+            mover in 0usize..4,
+            before in proptest::bool::ANY,
+        ) {
+            let ids = four_ids();
+            let anchor = cards[pick % cards.len()];
+            proptest::prop_assume!(mover != anchor);
+            let body = built(&cards, &prose, &ids);
+
+            let lines: Vec<String> = body.lines().map(str::to_string).collect();
+            let sits = line_of(&lines, &ids[anchor]).unwrap();
+            let spot = match before && sits > 0 {
+                true => Spot::Before(&ids[anchor]),
+                false => Spot::After(&ids[anchor]),
+            };
+            let out = card_moved(&body, &ids[mover], "Pagina", spot).unwrap();
+
+            for one in body.lines() {
+                if tisty_core::refs::papers(one).is_empty() && !one.trim().is_empty() {
+                    proptest::prop_assert!(
+                        out.lines().any(|now| now == one),
+                        "a line of prose was lost: {one:?}\nfrom:\n{body}\nto:\n{out}"
+                    );
+                }
+            }
+            for (at, id) in ids.iter().enumerate() {
+                let want = match at == mover {
+                    true => 1,
+                    false => named_times(&body, id),
+                };
+                proptest::prop_assert_eq!(
+                    named_times(&out, id), want,
+                    "{} is named the wrong number of times\nfrom:\n{}\nto:\n{}",
+                    id, body, out
+                );
+            }
+        }
+
+        #[test]
+        fn a_move_never_turns_one_kind_of_line_ending_into_another(
+            (cards, prose) in a_shape(),
+            pick in 0usize..4,
+            mover in 0usize..4,
+        ) {
+            let ids = four_ids();
+            let anchor = cards[pick % cards.len()];
+            proptest::prop_assume!(mover != anchor);
+            let body = built(&cards, &prose, &ids).replace('\n', "\r\n");
+
+            let out = card_moved(&body, &ids[mover], "Pagina", Spot::After(&ids[anchor])).unwrap();
+
+            proptest::prop_assert!(
+                !out.lines().any(|one| one.ends_with('\r')),
+                "a stray carriage return was left inside a line: {out:?}"
+            );
+            proptest::prop_assert_eq!(
+                out.matches("\r\n").count(),
+                out.lines().count(),
+                "the file changed how its lines end:\n{:?}",
+                out
+            );
+        }
+    }
+
+    #[test]
+    fn a_line_that_says_anything_besides_one_page_is_not_a_card_on_its_own() {
+        let id = "wwwwwwww-0001";
+        let card = tisty_core::refs::card(id, "Uno");
+        assert!(card_alone(&card, id));
+        assert!(card_alone(&format!("  {card}  "), id));
+        assert!(!card_alone(&format!("La puerta esta en {card}"), id));
+        assert!(!card_alone(&format!("{card} y mas"), id));
+        assert!(!card_alone(
+            &format!("{card} {}", tisty_core::refs::card("wwwwwwww-0002", "Dos")),
+            id
+        ));
+        assert!(!card_alone(&format!("- {card}"), id));
+        assert!(!card_alone(&format!("| {card} | ok |"), id));
+        assert!(!card_alone(&card, "wwwwwwww-0002"));
+    }
+
+    #[test]
+    fn a_page_is_found_however_markdown_spells_the_link() {
+        let id = "wwwwwwww-0001";
+        for said in [
+            format!("![Uno](tisty:doc/{id})"),
+            format!("![Uno](<tisty:doc/{id}>)"),
+            format!("![Uno](tisty:doc/{id} \"Uno\")"),
+        ] {
+            let lines = vec![String::from("# T"), String::new(), said.clone()];
+            assert_eq!(line_of(&lines, id), Some(2), "not found: {said}");
+        }
+        let inside = vec![String::from("el id es `tisty:doc/wwwwwwww-0001)`")];
+        assert_eq!(
+            line_of(&inside, id),
+            None,
+            "a mention inside code is not a line"
+        );
+    }
+
+    #[test]
+    fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
+        let all = tools();
+        let all = all.as_array().expect("the tools come back as a list");
+        assert!(!all.is_empty());
+        for one in all {
+            let name = one["name"].as_str().expect("a tool has a name");
+            for key in ["title", "description"] {
+                let said = one[key].as_str().unwrap_or_default();
+                assert!(!said.trim().is_empty(), "{name} has no {key}");
+            }
+            let shape = &one["inputSchema"];
+            assert_eq!(shape["type"], json!("object"), "{name} takes an object");
+            let none = serde_json::Map::new();
+            let fields = shape["properties"].as_object().unwrap_or(&none);
+            for (field, said) in fields {
+                assert!(
+                    said["description"]
+                        .as_str()
+                        .is_some_and(|one| !one.trim().is_empty()),
+                    "{name}.{field} has no description"
+                );
+                if said.get("enum").is_some() {
+                    assert!(
+                        said.get("type").is_some(),
+                        "{name}.{field} lists what it takes but not its type"
+                    );
+                }
+            }
+            let asked: Vec<&Value> = shape
+                .get("required")
+                .into_iter()
+                .chain(
+                    shape
+                        .get("anyOf")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|one| one.get("required")),
+                )
+                .collect();
+            for group in asked {
+                for want in group.as_array().unwrap_or(&Vec::new()) {
+                    let want = want.as_str().unwrap_or_default();
+                    assert!(
+                        fields.contains_key(want),
+                        "{name} asks for `{want}`, which it does not take"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn an_assistant_is_let_in_only_by_somebody_at_a_terminal() {

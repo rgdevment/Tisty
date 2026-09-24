@@ -497,6 +497,407 @@ fn rewriting_a_document_leaves_none_of_its_pages_with_nothing_pointing_at_it() {
 }
 
 #[test]
+fn an_edit_that_takes_out_the_line_naming_a_page_says_which_page_it_left_loose() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\n## Notas\n\nlo que hay", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+    let print = served.call("outline_doc", serde_json::json!({ "doc": &book }))["result"]
+        ["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &book, "section": 1, "new": "## Notas\n\notra cosa\n", "print": print }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        told.contains("Clase uno") && told.contains("nothing in this document points there now"),
+        "an edit that leaves a page unnamed has to say so: {told}"
+    );
+    assert_eq!(
+        said["result"]["structuredContent"]["loose"],
+        serde_json::json!([page]),
+        "{said}"
+    );
+    assert_eq!(
+        served.pages_of(&book),
+        vec![page],
+        "the page itself is not lost, only the line naming it"
+    );
+}
+
+#[test]
+fn an_edit_that_moves_the_line_naming_a_page_leaves_nothing_loose() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nuno\n\ndos", None);
+    let page = served.wrote("# Clase uno", Some(&book));
+    let card = format!("![Clase uno](tisty:doc/{page})");
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": &book,
+            "old": format!("uno\n\ndos\n\n{card}"),
+            "new": format!("uno\n\n{card}\n\ndos"),
+        }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        !told.contains("points there now"),
+        "moving the line is not leaving it loose: {told}"
+    );
+    assert_eq!(
+        said["result"]["structuredContent"]["loose"],
+        serde_json::json!([]),
+        "{said}"
+    );
+}
+
+#[test]
+fn a_page_is_moved_before_another_in_one_call_and_the_reading_order_follows() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    let one = served.wrote("# Clase uno", Some(&book));
+    let two = served.wrote("# Clase dos", Some(&book));
+    let three = served.wrote("# Clase tres", Some(&book));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &three, "page_of": &book, "before": &one }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(
+        served.pages_of(&book),
+        vec![three.clone(), one.clone(), two.clone()],
+        "the page did not move"
+    );
+    let body = served.body_of(&book);
+    let at = |id: &str| body.find(&format!("tisty:doc/{id}")).unwrap();
+    assert!(at(&three) < at(&one) && at(&one) < at(&two), "{body}");
+    assert_eq!(
+        body.matches(&format!("tisty:doc/{three}")).count(),
+        1,
+        "the line was copied rather than moved: {body}"
+    );
+}
+
+#[test]
+fn a_page_hung_and_placed_in_one_call_is_named_where_it_was_asked_for() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    let one = served.wrote("# Clase uno", Some(&book));
+    let loose = served.wrote("# Clase suelta", None);
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &loose, "page_of": &book, "before": &one }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(served.pages_of(&book), vec![loose.clone(), one.clone()]);
+    assert!(
+        served
+            .body_of(&book)
+            .contains(&format!("tisty:doc/{loose}")),
+        "a page hung with `before` is named in the body"
+    );
+}
+
+#[test]
+fn a_page_whose_line_carries_words_of_their_own_is_not_moved_over_them() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    let one = served.wrote("# Clase uno", Some(&book));
+    let two = served.wrote("# Clase dos", Some(&book));
+    let print =
+        served.call("read_doc", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+            ["print"]
+            .as_str()
+            .unwrap()
+            .to_string();
+    let mine = format!(
+        "# Curso\n\n![Clase uno](tisty:doc/{one})\n\nLa puerta se ve en ![Clase dos](tisty:doc/{two}) y ahi se explica.\n"
+    );
+    served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+    );
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &two, "page_of": &book, "before": &one }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let body = served.body_of(&book);
+    assert!(
+        body.contains("La puerta se ve en") && body.contains("y ahi se explica"),
+        "the words around the line were carried off with it: {body}"
+    );
+}
+
+fn shaped(served: &Served, body: &str) -> (String, Vec<String>) {
+    let book = served.wrote("# Libro\n\nintro", None);
+    let pages: Vec<String> = (0..3)
+        .map(|n| served.wrote(&format!("# Cap {n}\n\nx."), Some(&book)))
+        .collect();
+    let print =
+        served.call("read_doc", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+            ["print"]
+            .as_str()
+            .unwrap()
+            .to_string();
+    let mine = body
+        .replace("{0}", &pages[0])
+        .replace("{1}", &pages[1])
+        .replace("{2}", &pages[2]);
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": mine }),
+    );
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    (book, pages)
+}
+
+#[test]
+fn a_line_naming_two_pages_is_not_pulled_apart_to_move_one_of_them() {
+    let served = Served::new();
+    let (book, pages) = shaped(
+        &served,
+        "# Libro\n\nintro\n\n![A](tisty:doc/{0}) y ![B](tisty:doc/{1})\n\n![C](tisty:doc/{2})\n",
+    );
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &pages[1], "page_of": &book, "after": &pages[2] }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let body = served.body_of(&book);
+    assert!(
+        body.contains(&format!("tisty:doc/{}", pages[0])) && body.contains(" y "),
+        "the other page on that line went with it: {body}"
+    );
+}
+
+#[test]
+fn a_page_named_inside_a_table_is_not_a_place_to_write_beside() {
+    let served = Served::new();
+    let (book, pages) = shaped(
+        &served,
+        "# Libro\n\n| uno | dos |\n| --- | --- |\n| ![A](tisty:doc/{0}) | ok |\n| otra | ya |\n\n![B](tisty:doc/{1})\n\n![C](tisty:doc/{2})\n",
+    );
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &pages[1], "page_of": &book, "after": &pages[0] }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        served.body_of(&book).contains("| otra | ya |"),
+        "the table was broken in two: {}",
+        served.body_of(&book)
+    );
+}
+
+#[test]
+fn a_page_named_the_other_ways_markdown_allows_is_moved_and_not_copied() {
+    for body in [
+        "# Libro\n\nintro\n\n![A](<tisty:doc/{0}>)\n\n![B](tisty:doc/{1})\n\n![C](tisty:doc/{2})\n",
+        "# Libro\n\nintro\n\n![A](tisty:doc/{0} \"la clase\")\n\n![B](tisty:doc/{1})\n\n![C](tisty:doc/{2})\n",
+    ] {
+        let served = Served::new();
+        let (book, pages) = shaped(&served, body);
+
+        let said = served.call(
+            "page_doc",
+            serde_json::json!({ "doc": &pages[0], "page_of": &book, "after": &pages[2] }),
+        );
+
+        assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+        let now = served.body_of(&book);
+        assert_eq!(
+            now.matches(&format!("tisty:doc/{}", pages[0])).count(),
+            1,
+            "the line was copied rather than moved: {now}"
+        );
+        assert_eq!(
+            served.pages_of(&book),
+            vec![pages[1].clone(), pages[2].clone(), pages[0].clone()],
+            "{now}"
+        );
+    }
+}
+
+#[test]
+fn a_page_named_on_the_first_line_is_not_written_above() {
+    let served = Served::new();
+    let (book, pages) = shaped(
+        &served,
+        "![A](tisty:doc/{0})\n\n![B](tisty:doc/{1})\n\n![C](tisty:doc/{2})\n",
+    );
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &pages[1], "page_of": &book, "before": &pages[0] }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        served
+            .body_of(&book)
+            .starts_with(&format!("![A](tisty:doc/{}", pages[0])),
+        "the document would have been given a new title"
+    );
+}
+
+#[test]
+fn a_page_moved_after_another_lands_on_the_far_side_of_it() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let three = served.wrote("# Tres", Some(&book));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &one, "page_of": &book, "after": &three }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(served.pages_of(&book), vec![two, three, one]);
+}
+
+#[test]
+fn a_book_whose_pages_no_line_names_is_put_in_order_a_page_at_a_time() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let loose: Vec<String> = (0..3)
+        .map(|n| {
+            let one = served.wrote(&format!("# Cap {n}\n\nx."), None);
+            served.call(
+                "page_doc",
+                serde_json::json!({ "doc": &one, "page_of": &book }),
+            );
+            one
+        })
+        .collect();
+    assert!(
+        !served.body_of(&book).contains("tisty:doc/"),
+        "no line names any of them to begin with"
+    );
+
+    for one in &loose {
+        let said = served.call(
+            "page_doc",
+            serde_json::json!({ "doc": one, "page_of": &book, "at": "last" }),
+        );
+        assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    }
+
+    assert_eq!(served.pages_of(&book), loose);
+    let body = served.body_of(&book);
+    for one in &loose {
+        assert_eq!(
+            body.matches(&format!("tisty:doc/{one}")).count(),
+            1,
+            "{body}"
+        );
+    }
+    assert!(
+        body.starts_with("# Libro"),
+        "the title was left alone: {body}"
+    );
+}
+
+#[test]
+fn a_page_sent_first_goes_before_every_page_the_document_names() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let three = served.wrote("# Tres", Some(&book));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &three, "page_of": &book, "at": "first" }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(served.pages_of(&book), vec![three, one, two]);
+}
+
+#[test]
+fn a_place_that_is_neither_first_nor_last_is_refused_and_so_are_two_at_once() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+
+    for args in [
+        serde_json::json!({ "doc": &two, "page_of": &book, "at": "middle" }),
+        serde_json::json!({ "doc": &two, "page_of": &book, "at": "last", "after": &one }),
+    ] {
+        let said = served.call("page_doc", args.clone());
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "this had to be refused: {args} gave {said}"
+        );
+    }
+    assert_eq!(served.pages_of(&book), vec![one, two]);
+}
+
+#[test]
+fn a_page_named_beside_nothing_is_refused_with_an_empty_name() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &one, "page_of": &book, "before": "" }),
+    );
+
+    assert_eq!(
+        said["result"]["isError"].as_bool(),
+        Some(true),
+        "an empty name is a name that was sent: {said}"
+    );
+}
+
+#[test]
+fn placing_a_page_beside_one_that_is_not_a_page_of_the_same_document_is_refused() {
+    let served = Served::new();
+    let book = served.wrote("# Curso", None);
+    let other = served.wrote("# Otro", None);
+    let one = served.wrote("# Clase uno", Some(&book));
+
+    for args in [
+        serde_json::json!({ "doc": &one, "page_of": &book, "after": &other }),
+        serde_json::json!({ "doc": &one, "page_of": &book, "after": &one }),
+        serde_json::json!({ "doc": &one, "after": &one }),
+        serde_json::json!({ "doc": [&one, &book], "page_of": &book, "after": &one }),
+    ] {
+        let said = served.call("page_doc", args.clone());
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "this had to be refused: {args} gave {said}"
+        );
+    }
+    assert_eq!(served.pages_of(&book), vec![one]);
+}
+
+#[test]
 fn a_body_that_names_its_pages_itself_is_written_exactly_as_it_was_sent() {
     let served = Served::new();
     let book = served.wrote("# Curso", None);
@@ -747,7 +1148,7 @@ fn a_file_past_what_tisty_opens_is_turned_away_before_it_is_read() {
         serde_json::json!({ "path": at.to_str().unwrap() }),
     );
 
-    assert!(why.contains("past the"), "{why}");
+    assert!(why.contains("past the 512000 a file may be"), "{why}");
 }
 
 #[test]
@@ -853,6 +1254,162 @@ fn a_picture_beside_the_file_comes_in_with_it() {
     assert_eq!(
         said["result"]["structuredContent"]["files"].as_u64(),
         Some(1)
+    );
+}
+
+#[test]
+fn a_page_that_leaves_for_another_document_says_the_old_line_is_still_there() {
+    let served = Served::new();
+    let one = served.wrote("# Libro uno\n\nintro", None);
+    let two = served.wrote("# Libro dos\n\nintro", None);
+    let page = served.wrote("# Capitulo", Some(&one));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &two }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("is still written in"),
+        "the book it left still names it and nothing said so: {said}"
+    );
+    assert!(
+        served.body_of(&one).contains(&format!("tisty:doc/{page}")),
+        "the old body is not rewritten by a call that did not name it"
+    );
+}
+
+#[test]
+fn a_document_taken_out_twice_to_the_same_place_says_what_is_already_there() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nlo que hay", None);
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let into = dir.path().to_str().unwrap();
+
+    let first = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &doc, "into": into }),
+    );
+    assert_ne!(first["result"]["isError"].as_bool(), Some(true), "{first}");
+
+    let why = served.refused(
+        "export_doc",
+        serde_json::json!({ "doc": &doc, "into": into }),
+    );
+    assert!(
+        why.contains("is already there, and an export writes a new one"),
+        "the second one has to say what is in the way, not an error number: {why}"
+    );
+}
+
+#[test]
+fn reading_a_document_says_which_of_its_pages_no_line_names() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let named = served.wrote("# Uno", Some(&book));
+    let loose = served.wrote("# Dos", None);
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &loose, "page_of": &book }),
+    );
+
+    let said = served.call("read_doc", serde_json::json!({ "doc": &book }));
+
+    assert_eq!(
+        said["result"]["structuredContent"]["pages_loose"],
+        serde_json::json!([loose]),
+        "{said}"
+    );
+    assert!(
+        served
+            .body_of(&book)
+            .contains(&format!("tisty:doc/{named}")),
+        "the one the body names is not loose"
+    );
+}
+
+#[test]
+fn a_file_the_document_does_not_keep_beside_it_is_left_where_it_is() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "elsewhere/private.png", A_PNG);
+    beside(dir.path(), "notes/pictures/ours.png", A_PNG);
+    let at = dir.path().join("notes/Notes.md");
+    std::fs::write(
+        &at,
+        "# Notes\n\n![ours](pictures/ours.png)\n\n![theirs](../elsewhere/private.png)\n\n![theirs again](%2e%2e/elsewhere/private.png)\n",
+    )
+    .unwrap();
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(
+        said["result"]["structuredContent"]["files"].as_u64(),
+        Some(1),
+        "only what the document keeps beside it may come in: {said}"
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(
+        !body.contains("elsewhere"),
+        "a file from another folder came in: {body}"
+    );
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("sits outside the folder the document came from"),
+        "it did not say why the file was left behind: {said}"
+    );
+}
+
+#[test]
+fn a_file_outside_the_folder_reads_the_same_whether_it_is_there_or_not() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "elsewhere/here.png", A_PNG);
+    let said = |named: &str| {
+        let at = dir.path().join("notes/Notes.md");
+        std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+        std::fs::write(&at, format!("# Notes\n\n![one](../elsewhere/{named})\n")).unwrap();
+        let out = served.call(
+            "import_doc",
+            serde_json::json!({ "path": at.to_str().unwrap() }),
+        );
+        out["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .replace(named, "<named>")
+    };
+
+    let there = said("here.png");
+    let gone = said("nowhere.png");
+
+    assert!(
+        there.contains("sits outside the folder"),
+        "a file that is there must not be taken: {there}"
+    );
+    assert_eq!(
+        there
+            .split("the words that named them are still in the text")
+            .nth(1),
+        gone.split("the words that named them are still in the text")
+            .nth(1),
+        "what it says tells whether the file exists, which is a way to read the disk"
     );
 }
 
