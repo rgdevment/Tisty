@@ -1388,7 +1388,14 @@ before any of this survive: such a book names none of its pages, and a rule that
 sent the unnamed ones to the end would turn it inside out the first time a single
 page ever named itself — the newest chapter would become the first. Instead the
 document lists them as loose, with the one action that puts one in the text, and
-the book turns into a named one at whatever pace its owner chooses.
+the book turns into a named one at whatever pace its owner chooses. The agent's
+door has two moves of its own: `page_doc` naming where a line goes, and `order`
+dealing the lines a set of pages already have back out in the order asked for.
+The window's own hang writes nothing — a document dropped on another in the tree
+lands loose, and its line is the person's to put there. So the two doors differ
+in what they write and agree on what it means: neither carries an order the text
+does not say, which is why dragging a row of the index moves the card in the
+editor and nothing has to know the difference.
 
 That leaves one source of truth for where a chapter belongs, which is where the
 person put it in the text. Cutting the reference and pasting it higher up moves
@@ -1477,11 +1484,12 @@ where a file was expected — leaves the log ahead of the file. Both cases end t
 same way as before, when the document is next opened or saved.
 
 **Settling re-keys the whole run, not the part the text names.** A body may name
-only some of a book's pages — hanging a document under another writes no card
-unless the call says where the card goes, so a book can still hold pages the text
-never mentions. Those pages keep the *places* they
-held, but the keys are dealt across every page at once. Re-keying only the named
-ones would hand out a key an unnamed sibling already holds, and a duplicate key
+only some of a book's pages — hanging one writes its card, but a person editing
+the text can take a card out, and a book written before any of this names none
+of them, so a book can still hold pages the text never mentions. Those pages keep
+the *places* they held, but the keys are dealt across every page at once.
+Re-keying only the named ones would hand out a key an unnamed sibling already
+holds, and a duplicate key
 is decided by whichever id sorts first — a place nobody chose, and no later
 settle repairs it, because the text never names that page again.
 
