@@ -4197,17 +4197,22 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
     assert_eq!(said["result"]["isError"], true, "{said}");
 
     let task = filed(&served, "paint the door");
-    served.call(
-        "reschedule",
-        serde_json::json!({ "task": &task, "date": "2026-10-10" }),
-    );
     let moved = served.call(
         "reschedule",
-        serde_json::json!({ "task": &task, "deadline": "2026-10-01" }),
+        serde_json::json!({ "task": &task, "date": "2026-10-10", "deadline": "2026-10-01" }),
     );
     assert_eq!(
         moved["result"]["isError"], true,
-        "a deadline is judged against the day already set: {moved}"
+        "two days sent together are judged against each other: {moved}"
+    );
+    let one = served.call(
+        "reschedule",
+        serde_json::json!({ "task": &task, "deadline": "2026-10-01" }),
+    );
+    assert_ne!(
+        one["result"]["isError"].as_bool(),
+        Some(true),
+        "a day the call does not send is not a day the call has to put right: {one}"
     );
 }
 
@@ -4256,7 +4261,7 @@ fn a_step_or_a_tag_that_is_not_text_is_refused_rather_than_dropped() {
 }
 
 #[test]
-fn a_day_and_a_bell_are_not_written_over_a_task_already_said_done() {
+fn what_would_speak_over_a_mark_is_refused_and_a_bell_still_rings() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let task = filed(&served, "regar las plantas");
@@ -4271,8 +4276,12 @@ fn a_day_and_a_bell_are_not_written_over_a_task_already_said_done() {
             serde_json::json!({ "task": &task, "date": "2026-12-01" }),
         ),
         (
-            "remind",
-            serde_json::json!({ "task": &task, "at": ["2026-12-01T09:00"] }),
+            "describe",
+            serde_json::json!({ "task": &task, "body": "otra cosa" }),
+        ),
+        (
+            "plan",
+            serde_json::json!({ "task": &task, "steps": ["uno mas"] }),
         ),
     ] {
         let said = served.call(name, args);
@@ -4282,6 +4291,16 @@ fn a_day_and_a_bell_are_not_written_over_a_task_already_said_done() {
             "{name} spoke over a mark nobody has looked at: {said}"
         );
     }
+
+    let rang = served.call(
+        "remind",
+        serde_json::json!({ "task": &task, "at": ["2026-12-01T09:00"] }),
+    );
+    assert_ne!(
+        rang["result"]["isError"].as_bool(),
+        Some(true),
+        "a bell only ever adds, and it is how the person comes to look at the mark: {rang}"
+    );
 }
 
 #[test]

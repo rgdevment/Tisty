@@ -1148,10 +1148,7 @@ fn a_file_past_what_tisty_opens_is_turned_away_before_it_is_read() {
         serde_json::json!({ "path": at.to_str().unwrap() }),
     );
 
-    assert!(
-        why.contains("a document is kept up to 64000 characters"),
-        "{why}"
-    );
+    assert!(why.contains("past the 512000 a file may be"), "{why}");
 }
 
 #[test]
@@ -1306,7 +1303,7 @@ fn a_document_taken_out_twice_to_the_same_place_says_what_is_already_there() {
         serde_json::json!({ "doc": &doc, "into": into }),
     );
     assert!(
-        why.contains("already holds an export of this document"),
+        why.contains("is already there, and an export writes a new one"),
         "the second one has to say what is in the way, not an error number: {why}"
     );
 }

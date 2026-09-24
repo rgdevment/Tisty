@@ -4370,44 +4370,69 @@ fn stale(mine: Option<&str>, now: Option<&str>) -> bool {
     matches!((mine, now), (Some(mine), Some(now)) if mine != now)
 }
 
-#[tauri::command(async)]
-fn doc_back(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    anyway: Option<bool>,
-) -> Answer<String> {
-    let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
+fn one_step_back(session: &Session, id: &str) -> Option<String> {
+    let was = tisty_core::docs::read_before(session.paths.data(), id)?;
+    let now = tisty_core::docs::read(&session.paths.docs(), id).ok()?;
+    if tisty_core::docs::unchanged(&now, &was) {
+        return None;
+    }
+    let print = tisty_core::attach::printed(now.as_bytes());
+    match tisty_core::docs::before_left_at(session.paths.data(), id).as_deref() == Some(&print) {
+        true => Some(was),
+        false => None,
+    }
+}
+
+fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {
+    if session.state.bolted(id) {
+        return Err(Refusal::of(match session.state.away(id) {
             true => "documentAway",
             false => "documentLocked",
         }));
     }
-    let root = session.paths.docs();
-    let Some(was) = tisty_core::docs::read_before(session.paths.data(), &id) else {
+    let Some(was) = one_step_back(session, id) else {
         return Err(Refusal::of("nothingKeptBeside"));
     };
-    let now = tisty_core::docs::read(&root, &id)
+    let root = session.paths.docs();
+    let now = tisty_core::docs::read(&root, id)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
-    if tisty_core::docs::unchanged(&now, &was) {
-        return Err(Refusal::of("nothingToGoBackTo"));
-    }
     let print = tisty_core::attach::printed(now.as_bytes());
-    let left = tisty_core::docs::before_left_at(session.paths.data(), &id);
-    if left.as_deref() != Some(print.as_str()) && !anyway.unwrap_or(false) {
-        return Err(Refusal::of("writtenSinceItWasKept"));
-    }
-    tisty_core::docs::kept_before(session.paths.data(), &id, &now, &was)
+    tisty_core::docs::kept_before(session.paths.data(), id, &now, &was)
         .map_err(|e| blamed(channel::WINDOW, "what a document said could not be kept", e))?;
-    tisty_core::docs::write(&root, &id, &was).map_err(|e| match e {
-        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-        _ => blamed(channel::WINDOW, "a document could not be written", e),
-    })?;
-    session.mind_body(&id, &tisty_core::docs::settled(&was));
-    session.corpus.forget(&id);
+    let made =
+        tisty_core::docs::rewrite(&root, session.paths.data(), id, &was, &print).map_err(|e| {
+            match e {
+                tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+                _ => blamed(channel::WINDOW, "a document could not be written", e),
+            }
+        })?;
+    let whole = match made {
+        tisty_core::docs::Rewrite::Moved => return Err(Refusal::about("documentMoved", id)),
+        tisty_core::docs::Rewrite::Made { whole, .. } => whole,
+    };
+    session.mind_body(id, &tisty_core::docs::settled(&whole));
+    session.corpus.forget(id);
     let hand = signing(&session.state);
-    session.retell(&id, &was, hand);
-    Ok(was)
+    session.retell(id, &whole, hand);
+    Ok(tisty_core::docs::Doc {
+        title: tisty_core::docs::titled(&whole),
+        id: id.to_string(),
+    })
+}
+
+#[tauri::command(async)]
+fn doc_back(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<tisty_core::docs::Doc> {
+    let mut session = held(&session);
+    went_back(&mut session, &id)
+}
+
+#[tauri::command(async)]
+fn doc_backable(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
+    let session = held(&session);
+    Ok(!session.state.bolted(&id) && one_step_back(&session, &id).is_some())
 }
 
 #[tauri::command(async)]
@@ -7472,6 +7497,7 @@ pub fn run() {
             doc_facts,
             keep_pdf,
             doc_back,
+            doc_backable,
             doc_write,
             doc_order,
             doc_new,
@@ -7646,6 +7672,139 @@ mod copying {
             !page.archived && session.state.held_away(page),
             "the page is covered by the copy, not marked on its own"
         );
+    }
+}
+
+#[cfg(test)]
+mod going_back {
+    use super::{Session, one_step_back, went_back};
+    use tisty_core::{Op, Paths};
+
+    struct Desk {
+        _tmp: tempfile::TempDir,
+        paths: Paths,
+    }
+
+    fn desk() -> Desk {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        std::fs::create_dir_all(paths.docs()).unwrap();
+        Desk { _tmp: tmp, paths }
+    }
+
+    fn wrote(session: &mut Session, body: &str) -> String {
+        let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
+            .unwrap();
+        session
+            .commit(Op::DocAdd {
+                id: ulid::Ulid::generate(),
+                d: tisty_core::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
+                    said: None,
+                    file: made.id.clone(),
+                    order: tisty_core::order::first(),
+                    folder: None,
+                    page_of: None,
+                },
+            })
+            .unwrap();
+        made.id
+    }
+
+    fn agent_wrote(session: &Session, id: &str, body: &str) {
+        let was = tisty_core::docs::read(&session.paths.docs(), id).unwrap();
+        let print = tisty_core::attach::printed(was.as_bytes());
+        tisty_core::docs::rewrite(
+            &session.paths.docs(),
+            session.paths.data(),
+            id,
+            body,
+            &print,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn a_document_nothing_wrote_over_has_nothing_to_go_back_to() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let doc = wrote(&mut session, "# Acta\n\nlo que hay\n");
+
+        assert!(one_step_back(&session, &doc).is_none());
+        let why = went_back(&mut session, &doc).unwrap_err();
+        assert_eq!(why.code, "nothingKeptBeside");
+    }
+
+    #[test]
+    fn going_back_puts_the_body_back_and_keeps_the_one_it_wrote_over() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let doc = wrote(&mut session, "# Acta\n\nlo que hay\n");
+        agent_wrote(&session, &doc, "# Acta\n\nlo que dejo el agente\n");
+
+        let said = went_back(&mut session, &doc).unwrap();
+
+        assert_eq!(said.title, "Acta");
+        let now = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
+        assert!(now.contains("lo que hay"), "{now}");
+        let kept = tisty_core::docs::read_before(session.paths.data(), &doc).unwrap();
+        assert!(kept.contains("lo que dejo el agente"), "{kept}");
+    }
+
+    #[test]
+    fn going_back_twice_leaves_the_document_where_it_started() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let doc = wrote(&mut session, "# Acta\n\nuno\n");
+        agent_wrote(&session, &doc, "# Acta\n\ndos\n");
+
+        went_back(&mut session, &doc).unwrap();
+        went_back(&mut session, &doc).unwrap();
+
+        let now = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
+        assert!(now.contains("dos"), "{now}");
+    }
+
+    #[test]
+    fn a_body_written_since_the_copy_was_set_aside_is_not_taken_with_it() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let doc = wrote(&mut session, "# Acta\n\nuno\n");
+        agent_wrote(&session, &doc, "# Acta\n\ndos\n");
+        tisty_core::docs::write(&session.paths.docs(), &doc, "# Acta\n\ntres\n").unwrap();
+
+        assert!(
+            one_step_back(&session, &doc).is_none(),
+            "what is kept is two writes back, so it is not one step"
+        );
+        let why = went_back(&mut session, &doc).unwrap_err();
+        assert_eq!(why.code, "nothingKeptBeside");
+        let now = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
+        assert!(now.contains("tres"), "nothing was written over: {now}");
+    }
+
+    #[test]
+    fn a_document_the_archive_holds_does_not_go_back() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let doc = wrote(&mut session, "# Acta\n\nuno\n");
+        agent_wrote(&session, &doc, "# Acta\n\ndos\n");
+        let id = session
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == doc)
+            .unwrap()
+            .id;
+        session.commit(Op::DocArchive { id }).unwrap();
+
+        let why = went_back(&mut session, &doc).unwrap_err();
+        assert_eq!(why.code, "documentAway");
+        let now = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
+        assert!(now.contains("dos"), "nothing was written: {now}");
     }
 }
 

@@ -218,7 +218,6 @@ const aimed = (editor: Writing) => {
 interface Props {
   value: string;
   reading?: boolean;
-  again?: number;
   folder?: string | null;
   paper?: string;
   onMade?: (id: string, name: string) => void;
@@ -247,7 +246,6 @@ interface Props {
 export default function Editor({
   value,
   reading,
-  again,
   folder,
   paper,
   onMade,
@@ -794,13 +792,21 @@ export default function Editor({
     },
   };
 
+  const seenAt = useRef(new Map<string, string>());
   useEffect(() => {
-    blurbs.current.clear();
-    for (const one of [...pending.current]) {
-      if (one.startsWith("blurb:")) pending.current.delete(one);
+    let moved = false;
+    for (const one of papers ?? []) {
+      const was = seenAt.current.get(one.file);
+      const now = `${one.title}\u0000${one.wrote ?? ""}`;
+      seenAt.current.set(one.file, now);
+      if (was !== undefined && was !== now) {
+        blurbs.current.delete(one.file);
+        pending.current.delete(`blurb:${one.file}`);
+        moved = true;
+      }
     }
-    nudge.current();
-  }, [again]);
+    if (moved) nudge.current();
+  }, [papers]);
 
   const opened = Boolean(asking) && shown.length > 0;
   const current = Math.min(active, shown.length - 1);

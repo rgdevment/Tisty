@@ -8,6 +8,7 @@ import {
   convertPaper,
   docAway,
   docBack,
+  docBackable,
   docExport,
   docFacts,
   docLock,
@@ -200,30 +201,46 @@ export default function Docs({
     keep(open.file, waiting?.id === open.file ? waiting.body : shaped.current, true);
   }, [keep, open]);
 
-  const wentBack = useCallback(
-    async (anyway?: boolean) => {
-      if (!open) return;
-      if (!(await ask(t(anyway ? "backMoreSure" : "backSure"), { kind: "warning" }))) return;
-      drop();
-      try {
-        const text = await docBack(open.file, anyway);
-        remembered(lastRead.current, open.file, text);
-        setBody(text);
-        setPacked(crowd(text));
-        const brittle = frail(text);
-        setWarned(brittle.length ? brittle : null);
-        setReading(brittle.length > 0);
-        setStirred(false);
-      } catch (e) {
-        if ((e as { code?: string } | null)?.code === "writtenSinceItWasKept" && !anyway) {
-          await wentBack(true);
-          return;
-        }
-        onError(saidPlainly(e));
-      }
-    },
-    [drop, onError, open],
-  );
+  const [backable, setBackable] = useState(false);
+
+  useEffect(() => {
+    if (!stirred || !open) {
+      setBackable(false);
+      return;
+    }
+    let mine = true;
+    docBackable(open.file)
+      .then((can) => {
+        if (mine) setBackable(can);
+      })
+      .catch(() => {
+        if (mine) setBackable(false);
+      });
+    return () => {
+      mine = false;
+    };
+  }, [open, stirred]);
+
+  const wentBack = useCallback(async () => {
+    if (!open) return;
+    if (!(await ask(t("backSure"), { kind: "warning" }))) return;
+    drop();
+    try {
+      const said = await docBack(open.file);
+      const text = await docRead(open.file);
+      remembered(lastRead.current, open.file, text);
+      setBody(text);
+      setPacked(crowd(text));
+      const brittle = frail(text);
+      setWarned(brittle.length ? brittle : null);
+      setReading(brittle.length > 0);
+      setStirred(false);
+      setBackable(false);
+      onKept(said);
+    } catch (e) {
+      onError(saidPlainly(e));
+    }
+  }, [drop, onError, onKept, open]);
 
   const theirsStands = useCallback(async () => {
     if (!open) return;
@@ -602,7 +619,6 @@ export default function Docs({
                   if (own?.file) stood.current.set(own.file, at);
                 }}
                 reading={reading || bolted}
-                again={fresh}
                 label={open.title || t("untitledDoc")}
                 papers={known}
                 folder={open.folder}
@@ -694,13 +710,15 @@ export default function Docs({
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
             <span className="text-soft">{t("docStirred")}</span>
-            <button
-              type="button"
-              onClick={() => wentBack()}
-              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-            >
-              {t("docStirredBack")}
-            </button>
+            {backable && (
+              <button
+                type="button"
+                onClick={() => wentBack()}
+                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              >
+                {t("docStirredBack")}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setStirred(false)}

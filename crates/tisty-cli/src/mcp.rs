@@ -685,7 +685,9 @@ fn kinds_of(shape: &Value) -> Vec<String> {
 fn holds(wants: &str, sent: &Value) -> bool {
     match wants {
         "string" => sent.is_string(),
-        "integer" => sent.is_i64() || sent.is_u64(),
+        "integer" => {
+            sent.is_i64() || sent.is_u64() || sent.as_f64().is_some_and(|one| one.fract() == 0.0)
+        }
         "number" => sent.is_number(),
         "boolean" => sent.is_boolean(),
         "array" => sent.is_array(),
@@ -793,7 +795,7 @@ fn short_and_plain(args: &Value) -> Result<(), Refused> {
 
 /// Like `listed`, but a list that is not one of strings is refused rather than thinned.
 fn strings(args: &Value, key: &str) -> Result<Vec<String>, Refused> {
-    let Some(given) = args.get(key) else {
+    let Some(given) = args.get(key).filter(|one| !one.is_null()) else {
         return Ok(Vec::new());
     };
     let Some(all) = given.as_array() else {
@@ -1269,10 +1271,6 @@ fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
-    if let Some(why) = already_said_done(task, "setting a bell") {
-        return Err(why);
-    }
-
     let mut all = task.reminders.clone();
     let mut added = 0;
     for one in bells {
@@ -1349,10 +1347,7 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             (None, true) => None,
             (None, false) => held.clone(),
         };
-    in_order(
-        standing(&on, "date", &task.date).as_ref(),
-        standing(&owed, "deadline", &task.deadline).as_ref(),
-    )?;
+    in_order(on.as_ref(), owed.as_ref())?;
 
     let was = (
         task.date.as_ref().map(|one| one.date().to_string()),
@@ -1447,6 +1442,9 @@ fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
+    if let Some(why) = already_said_done(task, "writing a description") {
+        return Err(why);
+    }
     if task
         .description
         .as_deref()
@@ -2585,6 +2583,16 @@ fn over_again(
         .into_iter()
         .filter(|one| !named.contains(&one.file))
         .collect();
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    let walled_off = walled(&held).last().copied().unwrap_or(false);
+    let adrift: Vec<String> = match walled_off {
+        true => loose.iter().map(|one| one.file.clone()).collect(),
+        false => Vec::new(),
+    };
+    let loose: Vec<&tisty_core::model::Kept> = match walled_off {
+        true => Vec::new(),
+        false => loose,
+    };
     let body = &match loose.is_empty() {
         true => body.to_string(),
         false => {
@@ -2641,7 +2649,7 @@ print: {}",
             let settled = retold(state, store, which, &whole).is_ok();
             Ok(told(
                 format!(
-                    "Wrote {:?} again, whole. {}{}{}",
+                    "Wrote {:?} again, whole. {}{}{}{}",
                     tisty_core::docs::titled(&whole),
                     "What it said before is kept beside the documents.",
                     match kept_back.is_empty() {
@@ -2649,6 +2657,13 @@ print: {}",
                         false => format!(
                             " The body you sent named none of {}, which are pages of it, so their lines were put back at the end rather than left with nothing pointing at them. Move them with `edit_doc` if they belong somewhere else.",
                             kept_back.join(", ")
+                        ),
+                    },
+                    match walled_off {
+                        false => String::new(),
+                        true => format!(
+                            " It ends inside a fence, so a line naming a page would have been written as code rather than as a way in: {} are pages of it that nothing now names. Close the fence and write those lines where they belong.",
+                            adrift.join(", ")
                         ),
                     },
                     if settled { "" } else { UNSETTLED }
@@ -4224,11 +4239,11 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
     let big = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
-    if big > body_at_most() as u64 {
+    if big > tisty_core::docs::BODY_AT_MOST {
         return Err(Refused::Tool(format!(
-            "{said:?} is {big} bytes, and a document is kept up to {} characters. Split it \
+            "{said:?} is {big} bytes, past the {} a file may be to be read at all. Split it \
              before bringing it in.",
-            body_at_most()
+            tisty_core::docs::BODY_AT_MOST
         )));
     }
     let raw = std::fs::read(&at)
@@ -4860,10 +4875,36 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn walled(lines: &[String]) -> Vec<bool> {
+    let mut out = Vec::with_capacity(lines.len());
+    let mut open: Option<char> = None;
+    for one in lines {
+        let said = one.trim_start();
+        let fence = said
+            .chars()
+            .next()
+            .filter(|c| matches!(c, '`' | '~'))
+            .filter(|c| said.starts_with(&c.to_string().repeat(3)));
+        match (open, fence) {
+            (None, Some(c)) => {
+                open = Some(c);
+                out.push(true);
+            }
+            (Some(c), Some(f)) if f == c => {
+                open = None;
+                out.push(true);
+            }
+            _ => out.push(open.is_some()),
+        }
+    }
+    out
+}
+
 fn line_of(lines: &[String], id: &str) -> Option<usize> {
-    lines
-        .iter()
-        .position(|one| tisty_core::refs::papers(one).iter().any(|said| said == id))
+    let code = walled(lines);
+    lines.iter().enumerate().position(|(at, one)| {
+        !code[at] && tisty_core::refs::papers(one).iter().any(|said| said == id)
+    })
 }
 
 fn card_alone(line: &str, id: &str) -> bool {
@@ -4921,10 +4962,11 @@ impl Spot<'_> {
 }
 
 fn cards_in(lines: &[String]) -> Vec<usize> {
+    let code = walled(lines);
     lines
         .iter()
         .enumerate()
-        .filter(|(_, one)| tisty_core::refs::papers(one).len() == 1 && card_any(one))
+        .filter(|(at, one)| !code[*at] && tisty_core::refs::papers(one).len() == 1 && card_any(one))
         .map(|(at, _)| at)
         .collect()
 }
@@ -5028,14 +5070,6 @@ fn beside_ready(
     }
 
     let Some(anchor) = spot.anchor() else {
-        if matches!(spot, Spot::First) && cards_in(&held).first() == Some(&0) {
-            return Err(Refused::Tool(format!(
-                "the first line of {} already names a page, and a document takes its title from \
-                 its first line, so writing above it would rename the document. Send `at` as \
-                 \"last\", or name a page with `after`.",
-                doc_named(state, &parent.file)
-            )));
-        }
         return Ok(());
     };
 
@@ -5082,15 +5116,7 @@ fn beside_ready(
             held[sits].trim()
         )));
     }
-    if sits == 0 && matches!(spot, Spot::Before(_)) {
-        return Err(Refused::Tool(format!(
-            "{} is named on the first line of {}, and a document takes its title from its first \
-             line, so writing above it would rename the document. Place this page after that one \
-             instead.",
-            doc_named(state, anchor),
-            doc_named(state, &parent.file)
-        )));
-    }
+    let _ = sits;
     Ok(())
 }
 
@@ -5124,6 +5150,17 @@ fn placed(
     let title = tisty_core::docs::read(&paths.docs(), which)
         .map(|one| tisty_core::docs::titled(&one))
         .unwrap_or_default();
+    if let Some(said) = card_moved(&body, which, &title, spot)
+        && tisty_core::docs::titled(&said) != tisty_core::docs::titled(&body)
+    {
+        return Err(Refused::Tool(format!(
+            "putting it there would make its line the first thing {} says, and a document takes \
+             its title from what it says first, so {} would be renamed. Put this page after \
+             another one instead.",
+            doc_named(state, &parent.file),
+            doc_named(state, &parent.file)
+        )));
+    }
     let Some(whole) = card_moved(&body, which, &title, spot) else {
         return Err(Refused::Tool(format!(
             "no line of {} names {} any more, so there was nowhere to put this one.",
@@ -5193,16 +5230,16 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if beside.is_some() {
         if many.len() != 1 {
             return Err(Refused::Tool(
-                "`after` and `before` place one page, so `doc` takes a single name here. Hang \
-                 them together first, then place them one at a time."
+                "`after`, `before` and `at` place one page, so `doc` takes a single name \
+                 here. Hang them together first, then place them one at a time."
                     .into(),
             ));
         }
         if text(args, "page_of").is_none() {
             return Err(Refused::Tool(
-                "`after` and `before` say where a page sits inside the document that holds it, \
-                 so they need `page_of`. Left out, the page leaves that document altogether and \
-                 there is no order to give it."
+                "`after`, `before` and `at` say where a page sits inside the document that \
+                 holds it, so they need `page_of`. Left out, the page leaves that document \
+                 altogether and there is no order to give it."
                     .into(),
             ));
         }

@@ -18,8 +18,7 @@ const store = vi.hoisted(() => ({
   agrees: true,
   locks: [] as { id: string; shut: boolean }[],
   before: {} as Record<string, string>,
-  backs: [] as { id: string; anyway: boolean }[],
-  more: false,
+  backs: [] as string[],
   coming: false,
   refuse: null as { code: string; name: string } | null,
 }));
@@ -47,17 +46,15 @@ vi.mock("@tauri-apps/api/core", () => ({
         store.bodies[id] = String(args?.body);
         return Promise.resolve(null);
       }
+      case "doc_backable":
+        return Promise.resolve(store.before[String(args?.id)] !== undefined);
       case "doc_back": {
         const id = String(args?.id);
-        const anyway = args?.anyway === true;
-        store.backs.push({ id, anyway });
-        if (store.more && !anyway) {
-          return Promise.reject({ code: "writtenSinceItWasKept" });
-        }
+        store.backs.push(id);
         const was = store.before[id];
         if (was === undefined) return Promise.reject({ code: "nothingKeptBeside" });
         store.bodies[id] = was;
-        return Promise.resolve(was);
+        return Promise.resolve({ id, title: "Compra" });
       }
       case "doc_write": {
         const id = String(args?.id);
@@ -183,7 +180,6 @@ describe("the document being written", () => {
     store.refuse = null;
     store.before = {};
     store.backs = [];
-    store.more = false;
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
@@ -718,7 +714,6 @@ describe("a document that moved on disk while it was open", () => {
     store.agrees = true;
     store.before = {};
     store.backs = [];
-    store.more = false;
   });
 
   it("reads it again when something wrote beside the window", async () => {
@@ -785,159 +780,32 @@ describe("a document that moved on disk while it was open", () => {
     );
     await screen.findByLabelText("editor");
     store.bodies["a3f1-0001"] = "# Compra\n\nlo que dejo el agente";
+    store.before["a3f1-0001"] = "# Compra\n\nlo que habia antes";
     rerender(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={1} />);
     await waitFor(() => screen.getByText(/Algo escribió en este|Something wrote in this/));
-    store.before["a3f1-0001"] = "# Compra\n\nlo que habia antes";
 
-    await userEvent.click(screen.getByText(/Volver a lo que decía|Put back what it said/));
+    await userEvent.click(await screen.findByText(/Volver a lo que decía|Put back what it said/));
 
     await waitFor(() =>
       expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain(
         "lo que habia antes",
       ),
     );
-    expect(store.backs).toEqual([{ id: "a3f1-0001", anyway: false }]);
+    expect(store.backs).toEqual(["a3f1-0001"]);
     expect(screen.queryByText(/Algo escribió en este|Something wrote in this/)).toBeNull();
   });
 
-  it("asks again when going back would undo writing done since", async () => {
+  it("does not offer to go back when what is kept is not one step behind", async () => {
     const { rerender } = render(
       <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={0} />,
     );
     await screen.findByLabelText("editor");
     store.bodies["a3f1-0001"] = "# Compra\n\notra cosa";
     rerender(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={1} />);
+
     await waitFor(() => screen.getByText(/Algo escribió en este|Something wrote in this/));
-    store.before["a3f1-0001"] = "# Compra\n\nlo de antes";
-    store.more = true;
 
-    await userEvent.click(screen.getByText(/Volver a lo que decía|Put back what it said/));
-
-    await waitFor(() => expect(store.backs.length).toBe(2));
-    expect(store.backs[0]?.anyway).toBe(false);
-    expect(store.backs[1]?.anyway).toBe(true);
-  });
-});
-
-describe("a document the person locked", () => {
-  const shut: Filed[] = [
-    {
-      id: "01F",
-      file: "a3f1-0001",
-      title: "Compras",
-      folder: null,
-      archived: false,
-      away: false,
-      locked: true,
-    },
-  ];
-
-  beforeEach(() => {
-    store.bodies = { "a3f1-0001": "# Compras\n\nleche" };
-    store.writes = [];
-  });
-
-  it("says who shut it, and that not even an assistant writes in it", async () => {
-    render(<Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} />);
-
-    await waitFor(() => screen.getByText(/Bloqueaste este documento|You locked this document/));
-  });
-
-  it("hands the editor nothing to write with", async () => {
-    render(<Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} />);
-
-    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
-    expect(screen.getByLabelText("editor")).toHaveProperty("readOnly", true);
-  });
-
-  it("unlocks it and asks the tree to look again", async () => {
-    const kept = vi.fn();
-    render(<Docs open="a3f1-0001" known={shut} onKept={kept} onError={vi.fn()} />);
-
-    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
-    await userEvent.click(screen.getByText(/Desbloquear|Unlock it/));
-
-    await waitFor(() => expect(kept).toHaveBeenCalled());
-    expect(store.locks).toEqual([{ id: "01F", shut: false }]);
-  });
-
-  it("offers no way of putting a loose page into a locked text", async () => {
-    const withPage: Filed[] = [
-      ...shut,
-      {
-        id: "01G",
-        file: "a3f1-0002",
-        title: "Verduras",
-        folder: null,
-        archived: false,
-        away: false,
-        locked: true,
-        pageOf: "01F",
-      },
-    ];
-    const putting = { name: /Ponerla en el texto|Put it in the text/ };
-    const open = withPage.map((one) => ({ ...one, locked: false }));
-    const loose = render(<Docs open="a3f1-0001" known={open} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByRole("button", putting);
-    loose.unmount();
-
-    render(<Docs open="a3f1-0001" known={withPage} onKept={vi.fn()} onError={vi.fn()} />);
-    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
-
-    expect(screen.queryByRole("button", putting)).toBe(null);
-  });
-
-  it("writes nothing while it stays shut", async () => {
-    render(<Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} />);
-
-    await waitFor(() => screen.getByText(/Bloqueaste|You locked/));
-    expect(store.writes).toEqual([]);
-  });
-});
-
-describe("where you were standing in a document", () => {
-  const two: Filed[] = [
-    { id: "01F", file: "a3f1-0001", title: "Curso", folder: null, archived: false, away: false },
-    {
-      id: "01G",
-      file: "a3f1-0002",
-      title: "Clase",
-      folder: null,
-      archived: false,
-      away: false,
-      pageOf: "01F",
-    },
-  ];
-
-  beforeEach(() => {
-    store.bodies = { "a3f1-0001": "# Curso\n\nlargo", "a3f1-0002": "# Clase\n\ntexto" };
-  });
-
-  it("is where you are put back when you come out of one of its pages", async () => {
-    const shown = render(<Docs open="a3f1-0001" known={two} onKept={vi.fn()} onError={vi.fn()} />);
-    const sheet = await screen.findByTestId("sheet");
-    expect(sheet.getAttribute("data-seek")).toBe("");
-
-    Object.defineProperty(sheet, "scrollTop", { value: 900, writable: true });
-    fireEvent.scroll(sheet);
-
-    shown.rerender(<Docs open="a3f1-0002" known={two} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByDisplayValue(/texto/);
-    shown.rerender(<Docs open="a3f1-0001" known={two} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByDisplayValue(/largo/);
-
-    expect(screen.getByTestId("sheet").getAttribute("data-seek")).toBe("900");
-  });
-
-  it("is not carried from one document to another", async () => {
-    const shown = render(<Docs open="a3f1-0001" known={two} onKept={vi.fn()} onError={vi.fn()} />);
-    const sheet = await screen.findByTestId("sheet");
-    Object.defineProperty(sheet, "scrollTop", { value: 700, writable: true });
-    fireEvent.scroll(sheet);
-
-    shown.rerender(<Docs open="a3f1-0002" known={two} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByDisplayValue(/texto/);
-
-    expect(screen.getByTestId("sheet").getAttribute("data-seek")).toBe("");
+    expect(screen.queryByText(/Volver a lo que decía|Put back what it said/)).toBeNull();
+    expect(store.backs).toEqual([]);
   });
 });

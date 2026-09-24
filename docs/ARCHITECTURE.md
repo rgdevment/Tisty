@@ -112,8 +112,9 @@ agent filed.
 It can propose a task, move the day of a task it filed itself, say that a task
 it filed is done, add to a journal, read one whole task or the fields of it that
 it names, search, attach a file to a task or into a document, write documents,
-add to them and change a passage of one, list what is written and file it into
-folders, and read the names of the lists. There is no tool for completing,
+add to them and change a passage of one, hang one off another as a page and
+write the line that names it where that page belongs, list what is written and
+file it into folders, and read the names of the lists. There is no tool for completing,
 dropping, deleting, undoing, editing a task the person wrote, or making a list.
 A new body whole it can hand over, but only against the print it read.
 
@@ -125,8 +126,10 @@ twice lands where it started.
 
 Not every write keeps one, though — adding to the end does not, and neither
 does the person saving from the window — so the body kept beside a document is
-not always one step back. What is kept alongside it is the print the document
-read at when that body was set aside, and going back is refused unless the
+not always one step back. The one window write that does keep one is putting a
+document back, which is what makes that reversible in turn. What is kept
+alongside it is the print the document read at when that body was set aside,
+and going back is refused unless the
 document still reads exactly that way. Without it the tool would have been at
 its most destructive in the case it exists for: an agent that wrote, watched
 the person work all afternoon, and then decided to undo itself.
@@ -139,7 +142,13 @@ is undone by the same call without the flag.
 
 `reschedule` writes over something already filed, and reaches only tasks whose
 `created_by` is a device the person turned on as an agent: a day the person set
-is refused with the reason, and so is a task they wrote. Everything else an
+is refused with the reason, so is a task they wrote, and so is one an agent has
+already said is done. The two days are checked against each other as well: a
+deadline that falls before the day the work is planned for, while neither has
+gone by, is a pair nobody meant, so the call is refused with both days named
+rather than written. A deadline already past is a different thing and is taken as
+it is, and the same check runs on `propose`, on one task and on every task of a
+batch alike. Everything else an
 agent knows it must add rather than change: a journal note, a new task, a new
 document.
 
@@ -196,11 +205,10 @@ else. It is refused while a step of the task is unticked, because a mark beside
 an unticked checklist reads as work nobody did: the agent ticks what it did,
 and a step that no longer applies goes in a note for the person to take off.
 The task stays open. Whether it closes is the person's, who may take the mark off
-instead — which is the one thing an agent cannot do twice over, because a second
-`say_done` on a mark nobody has looked at is refused rather than stacked. The
-mark survives a finish taken back: reopening clears the closing and nothing
-else, because a finish undone by mistake must not unsay the agent, and saying
-no to the mark is the person's own op, `TaskUnresolve`, not a side effect.
+instead. A second `say_done` on a mark nobody has looked at is refused rather
+than stacked, and so is everything else that would speak over it: no bell, no new
+day, no step added under a mark that says the work is over. What the agent has
+learnt since goes in a `note`, which is the one thing the mark leaves open.
 
 ### A door an agent can afford to walk through
 
@@ -469,8 +477,12 @@ It reaches a document that exists in two ways, and neither is a rewrite.
 as it is written, character for character, matching exactly one place — no
 match or two matches writes nothing and says which, because anything else is a
 guess, and a guess here writes over what somebody wrote. What an edit replaced
-is copied to `originals/` first; nothing in the window reads that directory
-back, so it is a copy on disk, not an undo.
+is copied to `originals/` first, and the window does read that directory back:
+the bar that says something wrote here offers to put the document back to what
+is kept beside it. The body it writes over is kept in turn, so going back twice
+lands where it started, and it asks once — twice when the document has been
+written in since that copy was set aside, because going back then takes that
+writing with it.
 
 Handing over the whole body is not shut, it is gated. The person may have the
 document open in the window while the agent writes, so a whole-body write is
@@ -1465,8 +1477,9 @@ where a file was expected — leaves the log ahead of the file. Both cases end t
 same way as before, when the document is next opened or saved.
 
 **Settling re-keys the whole run, not the part the text names.** A body may name
-only some of a book's pages — hanging a document under another writes no card, so
-a book can hold pages the text never mentions. Those pages keep the *places* they
+only some of a book's pages — hanging a document under another writes no card
+unless the call says where the card goes, so a book can still hold pages the text
+never mentions. Those pages keep the *places* they
 held, but the keys are dealt across every page at once. Re-keying only the named
 ones would hand out a key an unnamed sibling already holds, and a duplicate key
 is decided by whichever id sorts first — a place nobody chose, and no later

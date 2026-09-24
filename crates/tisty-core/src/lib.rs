@@ -64,7 +64,7 @@ pub enum Error {
     NoRoom { needs: u64, free: u64 },
     #[error("there is nothing here to carry out")]
     NothingToCarry,
-    #[error("{0} already holds an export of this document")]
+    #[error("a folder called {0} is already there, and an export writes a new one")]
     AlreadyTakenOut(String),
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },

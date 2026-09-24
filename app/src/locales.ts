@@ -489,13 +489,8 @@ const en = {
   docStirredGone: "Got it",
   docStirredBack: "Put back what it said before",
   nothingKeptBeside: "Nothing is kept beside this one to go back to",
-  nothingToGoBackTo: "This already says what is kept beside it",
-  writtenSinceItWasKept:
-    "It has been written in since what is kept beside it was set aside, so going back would take that writing too",
   backSure:
-    "Going back leaves this document as it read before the last write. What it says now is kept, so you can come back to it.",
-  backMoreSure:
-    "It has been written in since then, so going back undoes that writing as well. What it says now is kept either way.",
+    "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   attachmentTorn:
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
@@ -1837,13 +1832,8 @@ const es: Catalog = {
   docStirredGone: "Entendido",
   docStirredBack: "Volver a lo que decía antes",
   nothingKeptBeside: "No hay nada guardado al lado de este para volver atrás",
-  nothingToGoBackTo: "Este ya dice lo que está guardado a su lado",
-  writtenSinceItWasKept:
-    "Se ha escrito en él desde que se apartó lo que está guardado a su lado, así que volver atrás se llevaría también esa escritura",
   backSure:
-    "Volver atrás deja este documento como se leía antes de la última escritura. Lo que dice ahora queda guardado, así que puedes regresar a ello.",
-  backMoreSure:
-    "Se ha escrito en él desde entonces, así que volver atrás deshace también esa escritura. Lo que dice ahora queda guardado igual.",
+    "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   attachmentTorn:
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
