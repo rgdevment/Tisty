@@ -515,8 +515,14 @@ impl State {
                         let under = allowed
                             .and_then(|up| self.docs.get(&up))
                             .map(|one| one.folder);
+                        // Only the cover it is walking out of: a folder above it holds it
+                        // just the same once it is a document of its own.
                         let leaving = allowed.is_none()
-                            && self.docs.get(id).is_some_and(|one| self.held_away(one));
+                            && self.docs.get(id).is_some_and(|one| {
+                                !one.archived
+                                    && !one.folder.is_some_and(|at| self.folder_away(at))
+                                    && self.held_away(one)
+                            });
                         let beside = allowed.map(|up| {
                             crate::order::last_of(
                                 self.docs
@@ -5793,6 +5799,37 @@ mod tests {
         assert!(
             state.docs[&march].flagged.is_some(),
             "only the person answers a mark, and no person was here"
+        );
+    }
+
+    #[test]
+    fn a_page_taken_out_under_a_shelved_folder_waits_for_the_folder_and_not_for_a_mark() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+        state.apply(&ev(2, "a", Op::FolderArchive { id: work }));
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(None),
+                order: None,
+            },
+        );
+
+        assert!(state.held_away(&state.docs[&march]));
+        assert!(
+            !state.docs[&march].archived,
+            "the folder still holds it, so a mark of its own would outlive the folder"
+        );
+
+        state.apply(&ev(3, "a", Op::FolderUnarchive { id: work }));
+        assert!(
+            !state.held_away(&state.docs[&march]),
+            "and the folder coming back has to let it go"
         );
     }
 

@@ -2741,8 +2741,9 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let where_at = folder.map(|at| trail(&state, at));
     let under = page_of.and_then(|up| named_doc(&state, up));
+    let held_by = page_of.and_then(|up| up_named(&state, up));
     Ok(told(
-        match (&under, &where_at) {
+        match (&held_by, &where_at) {
             (Some(named), _) if named_there => format!(
                 "Wrote {:?} as {}, a page of {named}, and named it at the end of that document. \
                  Where a page is named is where it sits.",
@@ -3461,7 +3462,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let scope = scoped(args)?;
     let within = match text(args, "folder") {
         Some(said) => Some(folder_found(&state, &said)?),
-        None => match args.get("folder").is_some() {
+        None => match args.get("folder").is_some_and(|one| !one.is_null()) {
             true => {
                 return Err(Refused::Tool(
                     "`folder` names one folder to list. Leave it out to list them all.".into(),
@@ -3470,6 +3471,12 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             false => None,
         },
     };
+    if args.get("page_of").is_some() && text(args, "page_of").is_none() {
+        return Err(Refused::Tool(
+            "`page_of` names one document whose pages to list. Leave it out to list them all."
+                .into(),
+        ));
+    }
     let under = match text(args, "page_of") {
         Some(said) => Some(
             state
@@ -3560,6 +3567,9 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             }
             if state.held_away(one) {
                 kept_of.insert("archived".into(), json!(true));
+            }
+            if one.archived {
+                kept_of.insert("apart".into(), json!(true));
             }
             if state.shut(one.id) {
                 kept_of.insert("locked".into(), json!(true));
@@ -4149,7 +4159,8 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Took {which} out to {} — its cover, {} page(s) and {} file(s) beside them{}{}. Nothing here changed: an export is a copy.",
+            "Took {} out to {} — its cover, {} page(s) and {} file(s) beside them{}{}. Nothing here changed: an export is a copy.",
+            doc_named(&state, &which),
             into.display(),
             pages.len(),
             taken.files,
@@ -4217,9 +4228,12 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
     if state.held_by_another(kept) {
-        let holds = match kept.page_of.and_then(|up| up_named(&state, up)) {
-            Some(up) => format!("the document that holds it, {up}"),
-            None => "the folder that holds it".to_string(),
+        let holds = match kept.folder.is_some_and(|at| state.folder_away(at)) {
+            true => "the folder that holds it".to_string(),
+            false => match kept.page_of.and_then(|up| up_named(&state, up)) {
+                Some(up) => format!("the document that holds it, {up}"),
+                None => "the folder that holds it".to_string(),
+            },
         };
         return Err(Refused::Tool(match away {
             true => format!(
@@ -4271,7 +4285,13 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .collect(),
     };
     let pointing = match away {
-        true => pointed_at(paths, &state, &which),
+        true => {
+            let up = kept.page_of.and_then(|up| named_doc(&state, up));
+            pointed_at(paths, &state, &which)
+                .into_iter()
+                .filter(|one| Some(one) != up.as_ref())
+                .collect()
+        }
         false => Vec::new(),
     };
     let mut doing = Vec::new();
@@ -4307,8 +4327,16 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     doc_named(&state, &which)
                 ),
                 (false, false) => format!(
-                    "Brought {} back out of the archive.",
-                    doc_named(&state, &which)
+                    "Brought {} back out of the archive.{}",
+                    doc_named(&state, &which),
+                    match (
+                        kept.page_of.is_some(),
+                        kept.folder.map(|at| trail(&state, at))
+                    ) {
+                        (true, _) => String::new(),
+                        (false, Some(named)) => format!(" It sits in {named}."),
+                        (false, None) => " It sits in no folder.".to_string(),
+                    }
                 ),
             },
             match filing.map(|at| trail(&state, at)) {
@@ -4318,8 +4346,11 @@ fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             match pages.is_empty() {
                 true => String::new(),
                 false => match away {
-                    true => format!(" Its pages went with it: {}.", pages.join(", ")),
-                    false => format!(" Its pages came back with it: {}.", pages.join(", ")),
+                    true => format!(" Its pages went with it: {}.", named_all(&state, &pages)),
+                    false => format!(
+                        " Its pages came back with it: {}.",
+                        named_all(&state, &pages)
+                    ),
                 },
             }
         ) + &match pointing.is_empty() {
@@ -4486,11 +4517,11 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              unlock it first."
         )));
     }
-    if text(args, "page_of").is_none() && state.held_away(kept) {
+    if text(args, "page_of").is_none() && state.held_by_another(kept) {
         return Err(Refused::Tool(format!(
-            "{} is in the archive, and taking it out of the document that holds it would take \
-             it out of the archive with no hand on it. The person brings it back from the window \
-             first.",
+            "{} is in the archive with the folder that holds it, and taking it out of its \
+             document would leave it outside the archive with nobody's hand on it. The person \
+             brings the folder back from the window first.",
             doc_named(&state, &which)
         )));
     }
@@ -4564,9 +4595,12 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let under = page_of.and_then(|up| named_doc(&state, up));
     Ok(told(
-        match &under {
-            Some(named) => format!("{which} is now a page of {named}."),
-            None => format!("{which} is now a document of its own."),
+        match page_of.and_then(|up| up_named(&state, up)) {
+            Some(named) => format!("{} is now a page of {named}.", doc_named(&state, &which)),
+            None => format!(
+                "{} is now a document of its own.",
+                doc_named(&state, &which)
+            ),
         },
         json!({ "doc": which, "page_of": under }),
     ))
@@ -4574,6 +4608,28 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 fn named_doc(state: &State, id: tisty_core::model::DocId) -> Option<String> {
     state.docs.get(&id).map(|one| one.file.clone())
+}
+
+fn away_words(state: &State, kept: &tisty_core::model::Kept) -> String {
+    match (
+        kept.archived,
+        kept.page_of.and_then(|up| up_named(state, up)),
+    ) {
+        (true, Some(up)) => format!("This page is put away on its own, inside {up}"),
+        (true, None) => "This document is put away".to_string(),
+        (false, Some(up)) => format!("This page is in the archive with {up}, which holds it"),
+        (false, None) => {
+            "This document is in the archive with the folder that holds it".to_string()
+        }
+    }
+}
+
+fn named_all(state: &State, files: &[String]) -> String {
+    files
+        .iter()
+        .map(|one| doc_named(state, one))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn doc_named(state: &State, which: &str) -> String {
@@ -5359,9 +5415,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept_of.insert("whole".into(), json!(false));
             }
             let said = match (away, kept.flagged.as_ref()) {
-                (true, _) => {
-                    format!("(This document is put away — the person archived it.)\n\n{part}")
-                }
+                (true, _) => format!("({})\n\n{part}", away_words(&state, kept)),
                 (false, Some(mark)) => format!(
                     "(An assistant marked this as one that has had its day on {}: {})\n\n{part}",
                     when(mark.at),

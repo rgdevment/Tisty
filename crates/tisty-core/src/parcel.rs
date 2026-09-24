@@ -536,7 +536,7 @@ fn filled(
                 by: one.by.clone(),
                 archived: state.held_away(one),
                 by_folder: !one.archived && state.held_away(one),
-                away_alone: Some(one.archived),
+                away_alone: one.archived.then_some(true),
                 flagged: one.flagged.clone(),
                 locked: one.locked,
                 guest: one.guest,
@@ -544,6 +544,16 @@ fn filled(
             .collect(),
     };
 
+    // A parcel that says nothing new is one an older Tisty can still open, and its seal only
+    // adds up when the manifest is the same bytes on both sides.
+    manifest.version = match manifest
+        .docs
+        .iter()
+        .any(|one| one.away_alone.is_some() || one.flagged.is_some())
+    {
+        true => VERSION,
+        false => 1,
+    };
     manifest.seal =
         crate::store::secret(data.join("store")).and_then(|keep| sealed(&manifest, &keep));
 

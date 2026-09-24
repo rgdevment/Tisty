@@ -418,7 +418,7 @@ export default function Docs({
       import("./shaping"),
     ]);
     registered();
-    const pages = known.filter((one) => one.pageOf === open.id && !one.archived);
+    const pages = known.filter((one) => one.pageOf === open.id);
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
     const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),
@@ -704,23 +704,24 @@ export default function Docs({
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
             <span className="text-soft">
-              {own?.archived || !own?.pageOf ? t("docShelved") : t("heldShelved")}
+              {own?.archived ? t("docShelved") : own?.pageOf ? t("heldShelved") : t("heldByFolder")}
             </span>
-            {own?.archived && (
+            {(own?.archived || own?.pageOf) && (
               <button
                 type="button"
                 onClick={() => {
-                  if (own.pageOf) {
-                    docAway(own.id, false)
-                      .then(() => onKept({ id: open.id, title: open.title }))
-                      .catch((e) => onError(saidPlainly(e)));
+                  const which = own.archived ? own.id : (own.pageOf as string);
+                  if (own.archived && !own.pageOf) {
+                    if (onBack) return onBack(own);
                     return;
                   }
-                  if (onBack) return onBack(own);
+                  docAway(which, false)
+                    .then(() => onKept({ id: open.id, title: open.title }))
+                    .catch((e) => onError(saidPlainly(e)));
                 }}
                 className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
               >
-                {t("bringBack")}
+                {own.archived ? t("bringBack") : t("bringBackHolder")}
               </button>
             )}
           </div>

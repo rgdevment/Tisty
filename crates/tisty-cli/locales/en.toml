@@ -214,6 +214,7 @@ attach-unreadable  = "{name} could not be read"
 
 no-docs            = "no documents yet"
 doc-flagged        = "(an agent says it has had its day)"
+left-covered       = "(in the archive with what holds it)"
 no-such-doc        = "no document is called {name}"
 
 doc-eaten          = "the editor cannot keep {what}, and would destroy it when you open this. Use plain markdown"

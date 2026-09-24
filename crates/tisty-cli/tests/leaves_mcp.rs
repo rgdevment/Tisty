@@ -2236,3 +2236,83 @@ fn a_page_the_document_covers_is_not_woken_behind_its_back() {
         "the page was apart before, and it stays apart: {read}"
     );
 }
+
+#[test]
+fn a_page_put_away_on_its_own_can_still_become_a_document_of_its_own() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let page = served.wrote("# Marzo", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &page, "archived": true }),
+    );
+
+    let said = served.said("page_doc", serde_json::json!({ "doc": &page }));
+
+    assert!(said.contains("document of its own"), "{said}");
+    let read = served.call("read_doc", serde_json::json!({ "doc": &page }));
+    assert_eq!(
+        read["result"]["structuredContent"]["archived"], true,
+        "reorganising is not taking it out of the archive: {read}"
+    );
+    let up = served.call("read_doc", serde_json::json!({ "doc": &book }));
+    assert!(
+        up["result"]["structuredContent"]["pages"].is_null(),
+        "and the book no longer holds it: {up}"
+    );
+}
+
+#[test]
+fn a_listing_says_which_pages_answer_for_themselves_and_which_are_only_covered() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let apart = served.wrote("# Marzo", Some(&book));
+    served.wrote("# Abril", Some(&book));
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &apart, "archived": true }),
+    );
+    served.call(
+        "archive_doc",
+        serde_json::json!({ "doc": &book, "archived": true }),
+    );
+
+    let listed = served.call("docs", serde_json::json!({ "page_of": &book }));
+    let rows = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap();
+    let mine = rows
+        .iter()
+        .find(|row| row["doc"] == serde_json::json!(apart))
+        .expect("the page is listed");
+    let other = rows
+        .iter()
+        .find(|row| row["doc"] != serde_json::json!(apart))
+        .unwrap();
+
+    assert_eq!(mine["archived"], true);
+    assert_eq!(
+        mine["apart"], true,
+        "an agent has to know which one archive_doc will refuse: {listed}"
+    );
+    assert_eq!(other["archived"], true);
+    assert!(other["apart"].is_null(), "{listed}");
+}
+
+#[test]
+fn asking_for_the_pages_of_nothing_is_not_asking_for_everything() {
+    let served = Served::new();
+    served.wrote("# Suelto", None);
+
+    let why = served.refused("docs", serde_json::json!({ "page_of": "" }));
+    assert!(why.contains("`page_of`"), "{why}");
+
+    let all = served.call(
+        "docs",
+        serde_json::json!({ "folder": serde_json::Value::Null }),
+    );
+    assert!(
+        all["result"]["isError"].as_bool() != Some(true),
+        "a client that sends an absent option as null is not naming a folder: {all}"
+    );
+}

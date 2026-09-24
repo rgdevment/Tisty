@@ -1396,6 +1396,15 @@ document it had. A rejected move that emptied `page_of` would leave the person
 with a loose document nobody asked for, which is worse than the move not
 happening.
 
+**A page answers for itself, and covering is not marking.** Archiving a document
+no longer writes a mark on each of its pages: `held_away` derives what the
+archive holds from the document's own mark, the document above a page and the
+folder above both, so bringing the document back wakes exactly what it covered
+and leaves apart whatever the person had already put apart. What a page carries
+in `archived` is a mark of its own, and nothing else may write one on its
+behalf: hanging a page under an archived document covers it, and taking one out
+from under a document leaves the archive around it rather than walking it out.
+
 **Cascades cost the read cache its shortcut.** The cache rewrites one row per
 event, and the operations that reach a document's pages — delete, archive,
 unarchive, and a move that changes the folder or the document a page belongs

@@ -2474,6 +2474,61 @@ fn a_parcel_from_before_pages_answered_for_themselves_lands_them_covered_and_not
     );
 }
 
+fn manifest_in(at: &std::path::Path) -> serde_json::Value {
+    let held = std::fs::read(at).unwrap();
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(held)).unwrap();
+    let mut said = Vec::new();
+    let mut one = zip.by_name("tisty-docs.json").unwrap();
+    std::io::Read::read_to_end(&mut one, &mut said).unwrap();
+    serde_json::from_slice(&said).unwrap()
+}
+
+#[test]
+fn a_page_put_away_on_its_own_comes_out_of_the_parcel_the_same_way() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (book, _) = here.doc("# Actas", None, None);
+    let (march, _) = here.doc("# Marzo", None, Some(book));
+    here.doc("# Abril", None, Some(book));
+    here.tell(Op::DocArchive { id: march });
+    let box_at = room.path().join("mixta.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    assert_eq!(
+        manifest_in(&box_at)["version"],
+        serde_json::json!(2),
+        "a parcel that says something new says which Tisty wrote it"
+    );
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let landed = there.titled("Marzo");
+    assert!(landed.archived, "the page was apart, and it lands apart");
+    let other = there.titled("Abril");
+    assert!(
+        !other.archived && !there.state.held_away(other),
+        "and the one that was awake stays awake"
+    );
+    assert!(!there.titled("Actas").archived);
+}
+
+#[test]
+fn a_parcel_with_nothing_new_to_say_is_still_one_an_older_tisty_can_open() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (book, _) = here.doc("# Actas", None, None);
+    here.doc("# Marzo", None, Some(book));
+    let box_at = room.path().join("llana.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    assert_eq!(
+        manifest_in(&box_at)["version"],
+        serde_json::json!(1),
+        "nothing here needs a newer Tisty, so nothing here turns one away"
+    );
+}
+
 #[test]
 fn what_an_assistant_marked_travels_with_the_document_it_marked() {
     let room = tmp();

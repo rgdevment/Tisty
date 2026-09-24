@@ -59,7 +59,12 @@ export function Onward({ next, onOpen }: { next: Filed; onOpen: (doc: Filed) => 
   return (
     <button type="button" onClick={() => onOpen(next)} className="onward">
       <span className="onward-say">{t("leafNext")}</span>
-      <span className={next.away ? "onward-name text-faint" : "onward-name"}>{named(next)}</span>
+      <span
+        className={next.away ? "onward-name text-faint" : "onward-name"}
+        title={next.away ? named(next) : undefined}
+      >
+        {next.title || t("untitledDoc")}
+      </span>
       <span aria-hidden="true" className="onward-go">
         ›
       </span>

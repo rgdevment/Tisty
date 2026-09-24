@@ -27,6 +27,11 @@ export default function Contents({ pages, told, onOpen, onPut }: Props) {
         <span className="leaf-num">{at}</span>
         <span className="leaf-name">{page.title || t("untitledDoc")}</span>
         {page.archived && <Glyph name="archive" className="leaf-mark" />}
+        {page.flagged && !page.away && (
+          <span aria-hidden="true" className="leaf-flag">
+            ◆
+          </span>
+        )}
       </button>
       {onPut && !told.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">

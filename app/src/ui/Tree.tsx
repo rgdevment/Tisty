@@ -291,7 +291,7 @@ export default function Tree({
       (e.ctrlKey || e.metaKey) &&
       (e.key === "x" || e.key === "X") &&
       row.id !== "unfiled" &&
-      !papers.docs.some((one) => one.id === row.id && (one.pageOf || one.away))
+      !papers.docs.some((one) => one.id === row.id && (one.pageOf || (one.away && !one.archived)))
     ) {
       e.preventDefault();
       return setLifted(row);

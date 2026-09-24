@@ -155,7 +155,10 @@ pub fn doc(
         let said = |one: &tisty_core::model::Kept| {
             let mut marks = Vec::new();
             if app.state.held_away(one) {
-                marks.push(crate::style::dim(lang.get("left-away")));
+                marks.push(crate::style::dim(lang.get(match one.archived {
+                    true => "left-away",
+                    false => "left-covered",
+                })));
             }
             if one.flagged.is_some() && !app.state.held_away(one) {
                 marks.push(crate::style::dim(lang.get("doc-flagged")));

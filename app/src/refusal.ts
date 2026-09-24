@@ -98,6 +98,7 @@ const KNOWN = [
   "holdsPages",
   "pageOfAway",
   "awayStaysAway",
+  "folderNameSlash",
   "folderNameTooLong",
   "documentBeingWritten",
   "documentLocked",

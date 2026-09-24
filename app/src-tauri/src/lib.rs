@@ -567,8 +567,11 @@ impl Session {
             return Err(Refusal::of("documentLocked"));
         }
         // Deleting has no undo, and the archive is meant to keep what it holds.
-        if !kept.archived && self.state.held_away(kept) {
-            return Err(Refusal::of("folderIsAway"));
+        if self.state.held_by_another(kept) {
+            return Err(Refusal::of(match kept.page_of.is_some() {
+                true => "pageIsAway",
+                false => "folderIsAway",
+            }));
         }
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
@@ -3439,6 +3442,16 @@ fn named_folder(said: &str) -> Answer<String> {
     let name = tisty_core::text::plainly(said);
     if name.is_empty() {
         return Err(Refusal::of("untitled"));
+    }
+    // A name with a slash in it reads as a path everywhere else, and then it names two folders
+    // that are not the same one.
+    if name.contains('/') {
+        return Err(Refusal::of("folderNameSlash"));
+    }
+    // A name with a slash in it reads as a path everywhere else, and then it names two folders
+    // that are not the same one.
+    if name.contains('/') {
+        return Err(Refusal::of("folderNameSlash"));
     }
     if name.chars().count() > tisty_core::model::FOLDER_NAME_AT_MOST {
         return Err(Refusal::of("folderNameTooLong"));
@@ -7648,6 +7661,25 @@ mod deleting {
                 .of(&parent)
                 .is_none()
         );
+    }
+
+    #[test]
+    fn a_page_the_archive_holds_through_its_document_is_not_deleted() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let parent = a_page_under(&mut session, None);
+        let up = named(&session, &parent);
+        let page = a_page_under(&mut session, Some(up));
+        let leaf = named(&session, &page);
+        session.commit(Op::DocArchive { id: leaf }).unwrap();
+        session.commit(Op::DocArchive { id: up }).unwrap();
+        ledgered(&desk, &[&parent, &page]);
+
+        assert!(
+            session.drop_doc(&leaf.to_string()).is_err(),
+            "deleting has no undo, and the archive keeps what it holds"
+        );
+        assert!(there(&desk, &page), "and the file is still on the disk");
     }
 
     #[test]
