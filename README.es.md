@@ -70,18 +70,6 @@
     (.dmg, uno por chip)</sub>
   </p>
 
-  <p>
-    <a href="https://github.com/sponsors/rgdevment">
-      <img
-        src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
-        alt="Sponsor on GitHub"/>
-    </a>
-    <a href="https://buymeacoffee.com/rgdevment">
-      <img
-        src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
-        alt="Invítame un café"/>
-    </a>
-  </p>
 </div>
 
 ---
@@ -139,7 +127,6 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
 - [Una línea de comandos, si la quieres](#una-línea-de-comandos-si-la-quieres)
 - [Un asistente, si usas uno](#un-asistente-si-usas-uno)
-- [En qué punto está](#en-qué-punto-está)
 - [Qué nunca va a hacer](#qué-nunca-va-a-hacer)
 - [Preguntas frecuentes](#preguntas-frecuentes)
 - [Alternativas](#alternativas)
@@ -647,31 +634,6 @@ Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que e
 justamente por lo que esta es una puerta que abres, y no una que ya estaba
 abierta.
 
-## En qué punto está
-
-| | |
-|---|---|
-| ✅ | Tareas, listas, etiquetas, pasos, bitácora, adjuntos, búsqueda |
-| ✅ | Etiquetas también en los documentos, escritas en la frase y leídas de ella |
-| ✅ | Un archivo que se lee en tres capas, con lo que dejó cada tarea |
-| ✅ | Lenguaje natural para fechas, límites y repeticiones |
-| ✅ | La ventana, la bandeja, y captura rápida con un atajo global |
-| ✅ | Documentos: editor, carpetas, y transporte que junta bloque a bloque |
-| ✅ | Un asistente puede anotar por ti, por MCP, si lo dejas entrar |
-| ✅ | Recordatorios, respaldo, y sincronización por una carpeta compartida |
-| ✅ | Bienvenida guiada, una guía escrita en tu almacén, español e inglés |
-| ✅ | Carpetas y documentos reordenados a mano, llevados adonde quieras |
-| ✅ | Iconos: 1.381 dibujos y 1.609 emoji, buscables en tu idioma |
-| ✅ | macOS: firmado y notarizado. Windows: instalador firmado |
-
-Una cosa está asumida en vez de pendiente: nada se ha probado con un lector de
-pantalla real, aunque el camino por teclado sí.
-
-Reordenar a mano estuvo en esta lista, descartado por una buena razón: el arrastre
-de HTML no sobrevive al de archivos nativo que necesitan los adjuntos. Está aquí
-ahora porque el árbol dejó de preguntarle al navegador y sigue el puntero por su
-cuenta, lo que cuesta algo de código y conserva las dos cosas.
-
 ## Qué nunca va a hacer
 
 Tan importante como la lista de arriba. Fuera de alcance para siempre: trabajo
@@ -749,6 +711,18 @@ Los documentos sí: *Importar un documento* en el árbol toma un archivo `.md`,
 Tisty se desempaqueta entero. Las tareas hay que escribirlas. No hay
 importador para la lista de tareas de otro programa, y uno que adivinara te
 costaría más que teclearlas.
+
+**¿Las descargas están firmadas?**
+Sí. Las imágenes de disco de macOS van firmadas y notarizadas por Apple, y el
+instalador de Windows también va firmado — una copia de la Microsoft Store o de
+Homebrew ya lo trae. Tisty además se niega a instalar una actualización que no
+esté firmada con una clave compilada dentro de la copia que estás usando.
+
+**¿Funciona con un lector de pantalla?**
+Que se sepa, no, y vale decirlo claro: la ventana entera funciona con el teclado
+y ese camino está probado, pero nada se ha probado nunca con un lector de
+pantalla real. Si usas uno, una incidencia que diga dónde se rompe sería lo más
+útil que alguien pueda mandar.
 
 **¿En qué se diferencia de Obsidian, Notion o Todoist?**
 Tisty guarda tareas y documentos en un mismo almacén y una misma búsqueda, y

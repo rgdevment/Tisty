@@ -70,18 +70,6 @@
     (.dmg, one per chip)</sub>
   </p>
 
-  <p>
-    <a href="https://github.com/sponsors/rgdevment">
-      <img
-        src="https://img.shields.io/badge/GitHub-Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
-        alt="Sponsor on GitHub"/>
-    </a>
-    <a href="https://buymeacoffee.com/rgdevment">
-      <img
-        src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-%E2%98%95-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
-        alt="Buy me a coffee"/>
-    </a>
-  </p>
 </div>
 
 ---
@@ -138,7 +126,6 @@ productivity tool** that lives on your machine and nowhere else.
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
 - [A Command Line, If You Want One](#a-command-line-if-you-want-one)
 - [An Assistant, If You Use One](#an-assistant-if-you-use-one)
-- [Where It Stands](#where-it-stands)
 - [What It Will Never Do](#what-it-will-never-do)
 - [FAQ](#faq)
 - [Alternatives](#alternatives)
@@ -642,31 +629,6 @@ Whatever it reads travels wherever that assistant travels. That is between you
 and it — which is precisely why this is a door you open, and not one that was
 already open.
 
-## Where It Stands
-
-| | |
-|---|---|
-| ✅ | Tasks, lists, tags, steps, journal, attachments, search |
-| ✅ | Tags in documents too, written into the sentence and read from it |
-| ✅ | An archive read in three layers, with what each task left behind |
-| ✅ | Natural language for dates, deadlines and repeats |
-| ✅ | The window, the tray, and quick capture on a global shortcut |
-| ✅ | Documents: editor, folders, and sync that merges block by block |
-| ✅ | An assistant can file for you, over MCP, if you let it in |
-| ✅ | Reminders, backup, and sync through a folder both machines reach |
-| ✅ | A guided welcome, a guide written into your store, English and Spanish |
-| ✅ | Folders and documents reordered by hand, carried to where you want them |
-| ✅ | Icons: 1,381 drawings and 1,609 emoji, searchable in your own language |
-| ✅ | macOS: signed and notarised. Windows: signed installer |
-
-One thing is known and accepted rather than pending: nothing has been tested
-with a real screen reader, though the keyboard path has.
-
-Reordering by hand used to be on this list, refused for a good reason: HTML drag
-and drop does not survive the native file drop that attachments need. It is here
-now because the tree stopped asking the browser and follows the pointer itself,
-which costs a little code and keeps both.
-
 ## What It Will Never Do
 
 As important as the list above. Permanently out of scope: real-time
@@ -744,6 +706,18 @@ Documents, yes: *Import a document* in the tree takes a `.md`, `.markdown` or
 `.txt` file and brings it in one at a time, and a `.tistyx` from another Tisty
 machine unpacks whole. Tasks have to be typed. There is no importer for another
 program's task list, and one that guessed would cost you more than the typing.
+
+**Are the downloads signed?**
+Yes. The macOS disk images are signed and notarised by Apple, and the Windows
+installer is signed too — a copy from the Microsoft Store or from Homebrew
+carries that already. Tisty also refuses to install an update that is not
+signed with a key compiled into the copy you are running.
+
+**Does it work with a screen reader?**
+Not as far as anybody knows, and that is worth saying plainly: the whole window
+works from the keyboard and that path is tested, but nothing has ever been
+tried with a real screen reader. If you use one, an issue saying where it falls
+apart would be the most useful thing anyone could send.
 
 **How is it different from Obsidian, Notion or Todoist?**
 Tisty keeps tasks and documents in one store and one search, and finishing a
