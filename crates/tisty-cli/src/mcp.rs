@@ -161,7 +161,7 @@ A document can hold pages, and that is the only level there is: `write_doc` with
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` on its own changes no text, so a document hung that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. Give it `after` or `before` and the line is written for you, straight beside the page you name — that is how a page is moved without touching markdown, and the page you name has to have a line of its own for it to sit beside. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` on its own changes no text, so a document hung that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. Give it `after` or `before` and the line is written for you, straight beside the page you name — that is how a page is moved without touching markdown, and the page you name has to have a line of its own for it to sit beside. `at` takes \"first\" or \"last\" and leans on no page at all, which is what a book whose pages no line names yet needs. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
@@ -5042,6 +5042,148 @@ fn left_named(
         .collect()
 }
 
+fn in_this_order(paths: &Paths, args: &Value, all: &Value) -> Result<Value, Refused> {
+    let order = strings(args, "order")?;
+    if order.len() < 2 {
+        return Err(Refused::Tool(format!(
+            "`order` is the pages in the order they are to be read, and {} names an order of \
+             one. Two or more, or nothing to do.",
+            match all.as_array().map(Vec::len) {
+                Some(0) => "an empty list".to_string(),
+                _ => "that".to_string(),
+            }
+        )));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    if let Some(twice) = order.iter().find(|one| !seen.insert((*one).clone())) {
+        return Err(Refused::Tool(format!(
+            "`order` names {twice:?} twice, and a page is read in one place."
+        )));
+    }
+    let Some(said) = text(args, "page_of") else {
+        return Err(Refused::Tool(
+            "`order` says how the pages of one document are read, so it needs `page_of`.".into(),
+        ));
+    };
+    let (state, mut store) = opened(paths)?;
+    let Some(up) = state.docs.values().find(|one| one.file == said) else {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a title \
+             is not one — `docs` prints the id beside the title of every document."
+        )));
+    };
+    if state.shut(up.id) {
+        return Err(Refused::Tool(format!(
+            "{said} is locked, and ordering its pages writes in it. Ask the person to unlock it \
+             first."
+        )));
+    }
+    if state.held_away(up) {
+        return Err(Refused::Tool(format!(
+            "{} is put away, so it is not written in any more.",
+            doc_named(&state, &said)
+        )));
+    }
+    let over = up.id;
+    ordered(paths, &state, &mut store, over, &order)?;
+    Ok(told(
+        format!(
+            "Read in that order now, in {}: {}.",
+            doc_named(&state, &said),
+            named_all(&state, &order)
+        ),
+        json!({ "doc": order, "page_of": said }),
+    ))
+}
+
+fn cards_ordered(body: &str, order: &[String]) -> Option<String> {
+    let ending = match body.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
+    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
+    let mut slots: Vec<usize> = Vec::with_capacity(order.len());
+    for id in order {
+        let at = line_of(&lines, id)?;
+        if !card_alone(&lines[at], id) {
+            return None;
+        }
+        slots.push(at);
+    }
+    let held: Vec<String> = slots.iter().map(|at| lines[*at].clone()).collect();
+    let mut places = slots;
+    places.sort_unstable();
+    for (place, line) in places.iter().zip(&held) {
+        lines[*place] = line.clone();
+    }
+    let mut out = lines.join(ending);
+    if !out.ends_with('\n') {
+        out.push_str(ending);
+    }
+    Some(out)
+}
+
+fn ordered(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    up: tisty_core::model::DocId,
+    order: &[String],
+) -> Result<(), Refused> {
+    let Some(parent) = state.docs.get(&up) else {
+        return Err(Refused::Tool(
+            "the document that holds these pages is not here any more.".into(),
+        ));
+    };
+    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    for id in order {
+        let Some(page) = state.docs.values().find(|one| one.file == *id) else {
+            return Err(Refused::Tool(format!(
+                "{id:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a \
+                 title is not one — `docs` prints the id beside the title of every document."
+            )));
+        };
+        if page.page_of != Some(up) {
+            return Err(Refused::Tool(format!(
+                "{} is not a page of {}, so it has no place in its order.",
+                doc_named(state, id),
+                doc_named(state, &parent.file)
+            )));
+        }
+        let Some(at) = line_of(&held, id) else {
+            return Err(Refused::Tool(format!(
+                "no line of {} names {}, so there is no place of its own to move it between. \
+                 Give it one with `after`, `before` or `at`, and then order them.",
+                doc_named(state, &parent.file),
+                doc_named(state, id)
+            )));
+        };
+        if !card_alone(&held[at], id) {
+            return Err(carried_off(state, &parent.file, id, at, &held[at]));
+        }
+    }
+    let print = tisty_core::attach::printed(body.as_bytes());
+    let Some(whole) = cards_ordered(&body, order) else {
+        return Err(Refused::Tool(
+            "the lines naming those pages are not all there to move between.".to_string(),
+        ));
+    };
+    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
+        .map_err(hitch)?
+    {
+        tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
+            "{} was written by somebody else in the same moment, so nothing was reordered. Read \
+             it again and say the order.",
+            doc_named(state, &parent.file)
+        ))),
+        tisty_core::docs::Rewrite::Made { whole, .. } => {
+            retold(state, store, &parent.file, &whole)?;
+            Ok(())
+        }
+    }
+}
+
 fn where_said(state: &State, spot: Spot) -> String {
     match spot.anchor() {
         Some(one) => format!("{} {}", spot.said(), doc_named(state, one)),
@@ -5184,6 +5326,9 @@ fn placed(
 }
 
 fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    if let Some(all) = args.get("order") {
+        return in_this_order(paths, args, all);
+    }
     let (many, listed) = many_docs(args, "hang or unhang")?;
     let (state, mut store) = opened(paths)?;
 
@@ -7173,6 +7318,11 @@ fn tools() -> Value {
                         "type": "string",
                         "description": "The same, on the other side: the line goes straight \
                                         before the one naming this page"
+                    },
+                    "order": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "The pages of one document, by their ids, in the order they are to be read. Their lines are moved into each other s places and nothing else in the text moves, so pages you leave out stay where they are. Needs `page_of`, and takes no `doc`: every page it names has to have a line of its own already"
                     },
                     "at": {
                         "type": "string",

@@ -857,6 +857,107 @@ fn a_place_that_is_neither_first_nor_last_is_refused_and_so_are_two_at_once() {
 }
 
 #[test]
+fn pages_are_read_in_the_order_asked_for_and_the_words_between_them_do_not_move() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let all: Vec<String> = ["Uno", "Dos", "Tres"]
+        .iter()
+        .map(|one| served.wrote(&format!("# {one}"), Some(&book)))
+        .collect();
+    let print =
+        served.call("read_doc", serde_json::json!({ "doc": &book }))["result"]["structuredContent"]
+            ["print"]
+            .as_str()
+            .unwrap()
+            .to_string();
+    let mine = format!(
+        "# Libro\n\n![Uno](tisty:doc/{})\n\nuna frase\n\n![Dos](tisty:doc/{})\n\n![Tres](tisty:doc/{})\n",
+        all[0], all[1], all[2]
+    );
+    served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+    );
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&all[2], &all[1], &all[0]] }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(
+        served.pages_of(&book),
+        vec![all[2].clone(), all[1].clone(), all[0].clone()]
+    );
+    let body = served.body_of(&book);
+    assert!(
+        body.contains("una frase"),
+        "the words between moved: {body}"
+    );
+    for one in &all {
+        assert_eq!(
+            body.matches(&format!("tisty:doc/{one}")).count(),
+            1,
+            "a line was copied rather than moved: {body}"
+        );
+    }
+}
+
+#[test]
+fn ordering_some_of_the_pages_leaves_the_rest_where_they_were() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let all: Vec<String> = ["Uno", "Dos", "Tres"]
+        .iter()
+        .map(|one| served.wrote(&format!("# {one}"), Some(&book)))
+        .collect();
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&all[2], &all[0]] }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(
+        served.pages_of(&book),
+        vec![all[2].clone(), all[1].clone(), all[0].clone()],
+        "the one left out kept the place it had"
+    );
+}
+
+#[test]
+fn an_order_that_names_nothing_to_move_between_is_refused() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let loose = served.wrote("# Suelta", None);
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &loose, "page_of": &book }),
+    );
+
+    for args in [
+        serde_json::json!({ "page_of": &book, "order": [&one] }),
+        serde_json::json!({ "page_of": &book, "order": [&one, &one] }),
+        serde_json::json!({ "order": [&one, &two] }),
+        serde_json::json!({ "page_of": &book, "order": [&loose, &one] }),
+    ] {
+        let said = served.call("page_doc", args.clone());
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "this had to be refused: {args} gave {said}"
+        );
+    }
+    assert_eq!(
+        served.pages_of(&book),
+        vec![one, two, loose],
+        "nothing moved on a refusal"
+    );
+}
+
+#[test]
 fn a_page_named_beside_nothing_is_refused_with_an_empty_name() {
     let served = Served::new();
     let book = served.wrote("# Libro\n\nintro", None);
