@@ -20,7 +20,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
-import { card, filed, paged, pagesOf } from "../paging";
+import { card, filed, paged, pagesOf, shifted } from "../paging";
 import { named, pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
@@ -236,12 +236,37 @@ interface Props {
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
   onInsert?: (put: (file: string, title: string) => void) => void;
+  onOrder?: (move: (file: string, before: string | null) => void) => void;
   seek?: number;
   anchor?: string;
   onSeen?: (at: number) => void;
   above?: React.ReactNode;
   below?: React.ReactNode;
 }
+
+const cardAt = (editor: Writing, file: string): number => {
+  let found = -1;
+  editor.state.doc.descendants((node, pos) => {
+    if (found >= 0) return false;
+    if (node.type.name === "image" && node.attrs.src === DOC + file) found = pos;
+    return true;
+  });
+  return found;
+};
+
+const cardMoved = (editor: Writing, file: string, before: string | null) => {
+  const from = cardAt(editor, file);
+  if (from < 0) return;
+  const node = editor.state.doc.nodeAt(from);
+  if (!node) return;
+  const size = node.nodeSize;
+  const wanted = before === null ? editor.state.doc.content.size : cardAt(editor, before);
+  if (wanted < 0 || wanted === from) return;
+  const tr = editor.state.tr;
+  tr.delete(from, from + size);
+  tr.insert(shifted(from, size, wanted), node);
+  editor.view.dispatch(tr);
+};
 
 export default function Editor({
   value,
@@ -264,6 +289,7 @@ export default function Editor({
   onLaid,
   onReady,
   onInsert,
+  onOrder,
   seek,
   anchor,
   onSeen,
@@ -350,6 +376,7 @@ export default function Editor({
     onLaid,
     onReady,
     onInsert,
+    onOrder,
   });
   hands.current = {
     onWrite,
@@ -362,6 +389,7 @@ export default function Editor({
     onLaid,
     onReady,
     onInsert,
+    onOrder,
   };
   looked.current = look;
 
@@ -451,6 +479,7 @@ export default function Editor({
     hands.current.onInsert?.((file, title) =>
       editor.chain().focus("end").insertContent(card(file, title)).run(),
     );
+    hands.current.onOrder?.((file, before) => cardMoved(editor, file, before));
   }, []);
 
   const listed = useRef("");

@@ -9,6 +9,9 @@ export const named = (body: string): Set<string> => {
   return found;
 };
 
+/// Taking a node out shifts everything after it, so a destination past the hole moves back.
+export const shifted = (from: number, size: number, to: number) => (to > from ? to - size : to);
+
 export const card = (file: string, title: string) => ({
   type: "image" as const,
   attrs: { src: DOC + file, alt: title },

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Filed } from "../core";
 import { DOC, docCard } from "../markdown";
-import { card, filed, named, paged, pagesOf, under } from "../paging";
+import { card, filed, named, paged, pagesOf, shifted, under } from "../paging";
 
 const all: Filed[] = [
   {
@@ -88,5 +88,20 @@ describe("what a body names", () => {
   it("names what the block put in the text points at, so putting one in is found again", () => {
     expect(card("a3f1-0002", "El pod").attrs.src).toBe(`${DOC}a3f1-0002`);
     expect(named(`ya está: ${docCard("a3f1-0002", "El pod")}`).has("a3f1-0002")).toBe(true);
+  });
+});
+
+describe("where a card lands once it has been taken out", () => {
+  it("leaves a destination before the hole where it was", () => {
+    expect(shifted(10, 3, 4)).toBe(4);
+    expect(shifted(10, 3, 0)).toBe(0);
+  });
+
+  it("moves a destination after the hole back by what was taken", () => {
+    expect(shifted(4, 3, 10)).toBe(7);
+  });
+
+  it("does not move a destination that is the hole itself", () => {
+    expect(shifted(4, 3, 4)).toBe(4);
   });
 });

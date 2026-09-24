@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -30,6 +30,51 @@ describe("the index at the end of a document", () => {
     render(<Contents pages={pages} told={new Set(told)} onOpen={onOpen} onPut={onPut} />);
     return { onOpen, onPut };
   };
+
+  const dragged = (told: string[]) => {
+    const onMove = vi.fn();
+    render(
+      <Contents
+        pages={pages}
+        told={new Set(told)}
+        onOpen={vi.fn()}
+        onPut={vi.fn()}
+        onMove={onMove}
+      />,
+    );
+    return onMove;
+  };
+
+  it("asks for the page to go before the one it was dropped on", () => {
+    const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[2]);
+    fireEvent.dragOver(rows[0]);
+    fireEvent.drop(rows[0]);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0004");
+    expect(onMove.mock.calls[0][1]).toBe("a3f1-0002");
+  });
+
+  it("asks nothing when a page is dropped on itself", () => {
+    const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[1]);
+    fireEvent.drop(rows[1]);
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not let a page the text never names be dragged", () => {
+    dragged(["a3f1-0002", "a3f1-0003"]);
+    const rows = screen.getAllByRole("listitem");
+
+    expect(rows[0].getAttribute("draggable")).toBe("true");
+    expect(rows[2].getAttribute("draggable")).toBe("false");
+  });
 
   it("numbers the pages the text names and leaves the rest without a number", () => {
     show(["a3f1-0002", "a3f1-0003"]);
