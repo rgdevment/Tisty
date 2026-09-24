@@ -136,7 +136,7 @@ export default function About({
             <Pip />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-semibold">
-                {fill("updateThere", newer.version)}
+                {newer.coming ? t("updateComing") : fill("updateThere", newer.version)}
               </span>
               {step ? (
                 step.stage === "installing" ? (
@@ -160,6 +160,8 @@ export default function About({
                 <span className="mt-0.5 block text-[12.5px] text-soft">
                   {newer.installs ? (
                     t("updateAsk")
+                  ) : newer.coming ? (
+                    t("updateComingWhy")
                   ) : newer.route === "store" ? (
                     t("updateLanded")
                   ) : (

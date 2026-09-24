@@ -8,6 +8,9 @@ pub enum Shelf {
     /// Already on this machine, staged beside the copy in use, and it takes over when this one
     /// closes. Nothing left to download, so nothing to offer but the closing.
     Landed(String),
+    /// The Store has it in its own queue — getting it, paused, or waiting its turn. It says
+    /// nothing about updates then, because from where it stands there is nothing left to find.
+    Queued,
     Current,
     Silent,
 }
@@ -47,7 +50,7 @@ mod there {
     use tisty_core::witness::{self, Fact, channel};
     use windows::ApplicationModel::{Package, PackageSignatureKind, PackageVersion};
     use windows::Services::Store::{
-        StoreContext, StorePackageUpdateState, StorePackageUpdateStatus,
+        StoreContext, StorePackageUpdateState, StorePackageUpdateStatus, StoreQueueItemState,
     };
     use windows::Win32::Foundation::HWND;
     use windows::Win32::System::Com::CoIncrementMTAUsage;
@@ -101,7 +104,7 @@ mod there {
         match apart(PATIENCE, move || waiting(window)) {
             Some(Ok(Some(version))) => Shelf::Waiting(version),
             Some(Ok(None)) if forced => waited_out(window),
-            Some(Ok(None)) => Shelf::Current,
+            Some(Ok(None)) => in_its_queue(window),
             Some(Err(why)) => {
                 witness::warn(
                     channel::WINDOW,
@@ -147,7 +150,67 @@ mod there {
                 return Shelf::Waiting(version);
             }
         }
-        Shelf::Current
+        in_its_queue(window)
+    }
+
+    /// What the Store has taken on itself: bringing it down, paused, or waiting its turn. While
+    /// an errand of its own is in the queue, the update it is about is no longer an update it
+    /// offers — asking what it has is asking the one place that has stopped counting it.
+    fn in_its_queue(window: isize) -> Shelf {
+        let queued = apart(PATIENCE, move || queued(window));
+        match queued {
+            Some(Ok(true)) => {
+                witness::note(
+                    channel::WINDOW,
+                    "the Store names no update because it already has one in its own queue",
+                    &[],
+                );
+                Shelf::Queued
+            }
+            Some(Ok(false)) => Shelf::Current,
+            Some(Err(why)) => {
+                witness::warn(
+                    channel::WINDOW,
+                    "the Store was asked what it is already getting and refused",
+                    &[("why", Fact::Why(why.message()))],
+                );
+                Shelf::Current
+            }
+            None => {
+                witness::warn(
+                    channel::WINDOW,
+                    "the Store was asked what it is already getting and never answered",
+                    &[("waited", Fact::Count(PATIENCE.as_secs() as usize))],
+                );
+                Shelf::Current
+            }
+        }
+    }
+
+    /// Anything of ours in the Store's queue that has not finished: it will land on its own, and
+    /// what is left to say is that it is coming.
+    fn queued(window: isize) -> windows::core::Result<bool> {
+        let items = shop(window)?.GetAssociatedStoreQueueItemsAsync()?.join()?;
+        for one in 0..items.Size()? {
+            let item = items.GetAt(one)?;
+            let state = item.GetCurrentStatus()?.PackageInstallState()?;
+            let coming = matches!(
+                state,
+                StoreQueueItemState::Active | StoreQueueItemState::Paused
+            );
+            witness::note(
+                channel::WINDOW,
+                "the Store has something of ours in its queue",
+                &[
+                    ("id", Fact::Id(item.ProductId()?.to_string())),
+                    ("state", Fact::Count(state.0 as usize)),
+                ],
+            );
+            if coming {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     /// A newer package of our own family already registered for this user is one the Store has

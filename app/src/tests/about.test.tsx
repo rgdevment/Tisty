@@ -175,6 +175,30 @@ describe("a newer version the Store itself offers", () => {
 
   const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
 
+  // The Store says nothing about an update it is already fetching, so the only thing the person
+  // can be told is that one is on the way — with no number to put on it and nothing to press.
+  it("says the Store is bringing one when the Store is bringing one", async () => {
+    render(
+      <About
+        ready={{
+          version: "",
+          route: "store",
+          package: null,
+          installs: false,
+          coming: true,
+        }}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("The Store is bringing a new version")).toBeTruthy();
+    expect(screen.getByText(/in the Store.s own queue/i)).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /update/i }),
+      "there is nothing to press: the Store is already on it",
+    ).toBeNull();
+  });
+
   // A copy left closed for weeks remembers an offer the feed has moved past; the button must not
   // fail the same way for ever, but look again and offer what is out now.
   it("looks again when the offer it clicked is off the feed, and offers what is out now", async () => {

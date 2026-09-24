@@ -45,6 +45,21 @@ pub struct Ready {
     pub route: Route,
     pub package: Option<&'static str>,
     pub installs: bool,
+    /// The Store is bringing one down and will not say which: there is something to tell the
+    /// person, and no number to tell them with.
+    pub coming: bool,
+}
+
+/// What the Store has in its own queue, which it does not name. Nothing to press, nothing to
+/// number, and still the answer to «is there anything new».
+pub fn on_its_way() -> Ready {
+    Ready {
+        version: String::new(),
+        route: Route::Store,
+        package: None,
+        installs: false,
+        coming: true,
+    }
 }
 
 pub const fn self_installs(route: Route) -> bool {
@@ -130,6 +145,7 @@ fn offered(version: String, kept: Kept) -> Ready {
         route: kept.route,
         package: kept.package,
         installs: self_installs(kept.route) && !from_a_mount(),
+        coming: false,
     }
 }
 
@@ -144,6 +160,7 @@ pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
         route: Route::Store,
         package: None,
         installs: true,
+        coming: false,
     })
 }
 

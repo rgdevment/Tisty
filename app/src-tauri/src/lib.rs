@@ -2736,6 +2736,16 @@ async fn update_ready(
                 })?;
                 Ok(seen)
             }
+            // The Store is already bringing one down, so there is nothing to ask it for and
+            // nothing for the person to press: what is owed is knowing it is on the way.
+            shop::Shelf::Queued => {
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = None;
+                    c.found_in_the_shop = None;
+                })?;
+                Ok(Some(update::on_its_way()))
+            }
             shop::Shelf::Current => {
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
