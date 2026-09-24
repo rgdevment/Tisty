@@ -505,6 +505,69 @@ fn written(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, whole.as_bytes())
 }
 
+/// What happened when a book was asked to name pages at its end. One answer for every door, so
+/// the window and the assistant cannot come to differ about when a line is written.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Naming {
+    Wrote { named: Vec<String>, whole: String },
+    Fenced,
+    WouldRename,
+    Nothing,
+}
+
+pub fn name_at_end(root: &Path, parent: &str, which: &[&str]) -> Result<Naming> {
+    let body = read(root, parent)?;
+    let told: Vec<String> = crate::refs::paper_lines(&body)
+        .into_iter()
+        .map(|(one, _)| one)
+        .collect();
+    let mut cards: Vec<String> = Vec::new();
+    let mut named: Vec<String> = Vec::new();
+    for one in which {
+        if told.iter().any(|said| said == one) || named.iter().any(|said| said == one) {
+            continue;
+        }
+        let title = read(root, one)
+            .map(|said| titled(&said))
+            .unwrap_or_default();
+        cards.push(crate::refs::card(one, &title));
+        named.push((*one).to_string());
+    }
+    if cards.is_empty() {
+        return Ok(Naming::Nothing);
+    }
+    if ends_fenced(&body) {
+        return Ok(Naming::Fenced);
+    }
+    if titled(&body) != titled(&named_after(&body, &cards)) {
+        return Ok(Naming::WouldRename);
+    }
+    let whole = append(root, parent, &named_after("", &cards))?;
+    Ok(Naming::Wrote { named, whole })
+}
+
+fn named_after(body: &str, cards: &[String]) -> String {
+    let ending = match body.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
+    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
+    while lines.last().is_some_and(|one| one.trim().is_empty()) {
+        lines.pop();
+    }
+    for card in cards {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push(card.clone());
+    }
+    let mut out = lines.join(ending);
+    if !out.ends_with('\n') {
+        out.push_str(ending);
+    }
+    out
+}
+
 pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
     alone(root, || {
         let was = read(root, id)?;
@@ -1735,6 +1798,110 @@ fn opening(at: &Path) -> String {
     let mut head = Vec::new();
     let _ = file.take(TITLE_AT_MOST).read_to_end(&mut head);
     titled(&String::from_utf8_lossy(&head))
+}
+
+#[cfg(test)]
+mod naming {
+    use super::{Naming, name_at_end};
+
+    fn room() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    fn wrote(root: &std::path::Path, body: &str) -> String {
+        super::create(root, &crate::event::DeviceId("dev_a".to_string()), body)
+            .unwrap()
+            .id
+    }
+
+    #[test]
+    fn a_page_is_named_at_the_end_with_the_title_it_carries() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nintro\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        let said = name_at_end(at.path(), &book, &[page.as_str()]).unwrap();
+
+        let Naming::Wrote { named, whole } = said else {
+            panic!("it had a place to write: {said:?}");
+        };
+        assert_eq!(named, vec![page.clone()]);
+        assert!(
+            whole.ends_with(&format!("![Enero](tisty:doc/{page})\n")),
+            "{whole:?}"
+        );
+    }
+
+    #[test]
+    fn the_same_page_asked_for_twice_is_named_once() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nintro\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        let said = name_at_end(at.path(), &book, &[page.as_str(), page.as_str()]).unwrap();
+
+        let Naming::Wrote { named, whole } = said else {
+            panic!("{said:?}");
+        };
+        assert_eq!(named.len(), 1);
+        assert_eq!(whole.matches(&format!("tisty:doc/{page}")).count(), 1);
+    }
+
+    #[test]
+    fn a_book_ending_inside_a_fence_says_so_and_writes_nothing() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\n~~~sh\nabierta\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        assert_eq!(
+            name_at_end(at.path(), &book, &[page.as_str()]).unwrap(),
+            Naming::Fenced
+        );
+    }
+
+    #[test]
+    fn a_book_with_nothing_to_take_a_title_from_says_it_would_be_renamed() {
+        let at = room();
+        let book = wrote(at.path(), "\n\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        assert_eq!(
+            name_at_end(at.path(), &book, &[page.as_str()]).unwrap(),
+            Naming::WouldRename
+        );
+    }
+
+    #[test]
+    fn a_page_already_named_leaves_the_book_as_it_was() {
+        let at = room();
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        let book = wrote(
+            at.path(),
+            &format!("# Libro\n\n![Enero](tisty:doc/{page})\n"),
+        );
+
+        assert_eq!(
+            name_at_end(at.path(), &book, &[page.as_str()]).unwrap(),
+            Naming::Nothing
+        );
+    }
+
+    #[test]
+    fn a_page_named_only_inside_a_fence_is_named_for_real_as_well() {
+        let at = room();
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        let book = wrote(
+            at.path(),
+            &format!("# Libro\n\n~~~md\n![Enero](tisty:doc/{page})\n~~~\n"),
+        );
+
+        let said = name_at_end(at.path(), &book, &[page.as_str()]).unwrap();
+
+        let Naming::Wrote { whole, .. } = said else {
+            panic!("an example is not a way in: {said:?}");
+        };
+        assert_eq!(whole.matches(&format!("tisty:doc/{page}")).count(), 2);
+    }
 }
 
 #[cfg(test)]

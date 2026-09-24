@@ -262,7 +262,9 @@ Una página es un documento como cualquier otro —mismo archivo en el disco, mi
 
 Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su sitio en el texto. Dentro de una página verás arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
 
-En el árbol, un documento soltado encima de otro se vuelve página suya.
+En el árbol, un documento soltado encima de otro se vuelve página suya, y al final de aquel se
+escribe una línea que la nombra, que es donde se leerá. Desde ahí se mueve como cualquier otro
+capítulo.
 
 **Una página se archiva sola** con el botón derecho, y no baja al estante: se queda donde vive,
 dentro de su documento, con otro icono y atenuada. Ahí se lee y se exporta, pero no se escribe.

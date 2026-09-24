@@ -2898,37 +2898,49 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(hitch(e));
     }
 
-    let mut named_there = false;
+    let mut named_there = None;
     if let Some(up) = page_of
         .and_then(|up| state.docs.get(&up))
         .map(|up| up.file.clone())
-        && let Ok(whole) = tisty_core::docs::append(
-            &paths.docs(),
-            &up,
-            &format!("\n{}\n", tisty_core::refs::card(&made.id, &made.title)),
-        )
     {
-        named_there = true;
-        // The page and its card are already written; refusing now would have a retry write both
-        // a second time, and where they sit settles by itself on the next write or open.
-        if let Ok(events) = store.read_all() {
-            let _ = retold(&tisty_core::State::replay(&events), &mut store, &up, &whole);
+        let said = tisty_core::docs::name_at_end(&paths.docs(), &up, &[made.id.as_str()]);
+        if let Ok(tisty_core::docs::Naming::Wrote { whole, .. }) = &said {
+            // The page and its card are already written; refusing now would have a retry write
+            // both a second time, and where they sit settles by itself on the next write or open.
+            if let Ok(events) = store.read_all() {
+                let _ = retold(&tisty_core::State::replay(&events), &mut store, &up, whole);
+            }
         }
+        named_there = said.ok();
     }
+    let named_there = named_there.unwrap_or(tisty_core::docs::Naming::Nothing);
 
     let where_at = folder.map(|at| trail(&state, at));
     let under = page_of.and_then(|up| named_doc(&state, up));
     let held_by = page_of.and_then(|up| up_named(&state, up));
     Ok(told(
         match (&held_by, &where_at) {
-            (Some(named), _) if named_there => format!(
-                "Wrote {:?} as {}, a page of {named}, and named it at the end of that document. \
-                 Where a page is named is where it sits.",
-                made.title, made.id
-            ),
-            (Some(named), _) => {
-                format!("Wrote {:?} as {}, a page of {named}.", made.title, made.id)
+            (Some(named), _) if matches!(named_there, tisty_core::docs::Naming::Wrote { .. }) => {
+                format!(
+                    "Wrote {:?} as {}, a page of {named}, and named it at the end of that \
+                     document. Where a page is named is where it sits.",
+                    made.title, made.id
+                )
             }
+            (Some(named), _) => format!(
+                "Wrote {:?} as {}, a page of {named}, but no line naming it was written, so it \
+                 is loose: {}. Name it with `page_doc` once that is dealt with.",
+                made.title,
+                made.id,
+                match named_there {
+                    tisty_core::docs::Naming::Fenced =>
+                        "that document ends inside a fence, and a line in code is not a way in",
+                    tisty_core::docs::Naming::WouldRename =>
+                        "that document says nothing a title could come from yet, so the line \
+                         would have become its title",
+                    _ => "that document could not be read back",
+                }
+            ),
             (None, Some(named)) => format!("Wrote {:?} as {} in {named}.", made.title, made.id),
             (None, None) => format!(
                 "Wrote {:?} as {}, in no folder. `docs` says which folders exist.",
@@ -5131,28 +5143,6 @@ fn renamed(was: &str, now: &str) -> bool {
     tisty_core::docs::titled(was) != tisty_core::docs::titled(now)
 }
 
-fn cards_appended(body: &str, cards: &[String]) -> String {
-    let ending = match body.contains("\r\n") {
-        true => "\r\n",
-        false => "\n",
-    };
-    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
-    while lines.last().is_some_and(|one| one.trim().is_empty()) {
-        lines.pop();
-    }
-    for card in cards {
-        if !lines.is_empty() {
-            lines.push(String::new());
-        }
-        lines.push(card.clone());
-    }
-    let mut out = lines.join(ending);
-    if !out.ends_with('\n') {
-        out.push_str(ending);
-    }
-    out
-}
-
 /// Hanging says where a page belongs, and a page nothing names has no place to be read in, so the
 /// lines of the ones that have none are written together rather than one write each.
 fn named_at_end(
@@ -5165,38 +5155,20 @@ fn named_at_end(
     let Some(parent) = state.docs.get(&up) else {
         return Ok((Vec::new(), false));
     };
-    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
-    let held: Vec<String> = body.lines().map(str::to_string).collect();
-    let mut cards = Vec::new();
-    let mut named = Vec::new();
-    for one in which {
-        if line_of(&held, one).is_some() || named.contains(one) {
-            continue;
-        }
-        let title = tisty_core::docs::read(&paths.docs(), one)
-            .map(|said| tisty_core::docs::titled(&said))
-            .unwrap_or_default();
-        cards.push(tisty_core::refs::card(one, &title));
-        named.push(one.clone());
-    }
-    if cards.is_empty() {
-        return Ok((Vec::new(), false));
-    }
-    if tisty_core::docs::ends_fenced(&body) {
-        return Ok((Vec::new(), true));
-    }
-    let whole = cards_appended(&body, &cards);
-    if renamed(&body, &whole) {
-        return Err(Refused::Tool(format!(
+    let held: Vec<&str> = which.iter().map(String::as_str).collect();
+    match tisty_core::docs::name_at_end(&paths.docs(), &parent.file, &held).map_err(hitch)? {
+        tisty_core::docs::Naming::Nothing => Ok((Vec::new(), false)),
+        tisty_core::docs::Naming::Fenced => Ok((Vec::new(), true)),
+        tisty_core::docs::Naming::WouldRename => Err(Refused::Tool(format!(
             "a line at the end of {} would become the first thing it says, and a document takes \
              its title from that, so it would be renamed. Write something above it first.",
             doc_named(state, &parent.file)
-        )));
+        ))),
+        tisty_core::docs::Naming::Wrote { named, whole } => {
+            retold(state, store, &parent.file, &whole)?;
+            Ok((named, false))
+        }
     }
-    let added = cards_appended("", &cards);
-    let whole = tisty_core::docs::append(&paths.docs(), &parent.file, &added).map_err(hitch)?;
-    retold(state, store, &parent.file, &whole)?;
-    Ok((named, false))
 }
 
 fn cards_ordered(body: &str, order: &[String]) -> Option<String> {

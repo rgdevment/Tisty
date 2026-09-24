@@ -262,7 +262,9 @@ A page is a document like any other — same file on disk, same way out — with
 
 At the end of the document, on its own sheet, comes the index: the pages the text names, numbered, and after a rule the ones it does not, one click from a place in the text. Inside a page you see which document it belongs to and where it sits, arrows to its sisters, and the step to the next one at the foot.
 
-In the tree, a document dropped on another becomes a page of it.
+In the tree, a document dropped on another becomes a page of it, and a line naming it is
+written at the end of the one it was dropped on, which is where it will be read. Move it from
+there like any other chapter.
 
 **A page is put away on its own** with the right button, and it does not go down to the shelf: it
 stays where it lives, inside its document, with another icon and dimmed. There it reads and

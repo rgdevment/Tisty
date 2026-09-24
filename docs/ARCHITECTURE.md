@@ -1391,11 +1391,20 @@ document lists them as loose, with the one action that puts one in the text, and
 the book turns into a named one at whatever pace its owner chooses. The agent's
 door has two moves of its own: `page_doc` naming where a line goes, and `order`
 dealing the lines a set of pages already have back out in the order asked for.
-The window's own hang writes nothing — a document dropped on another in the tree
-lands loose, and its line is the person's to put there. So the two doors differ
-in what they write and agree on what it means: neither carries an order the text
-does not say, which is why dragging a row of the index moves the card in the
-editor and nothing has to know the difference.
+The window's own hang writes the same line through the same door: dropping a
+document on another in the tree, and making a new page, both end in
+`docs::name_at_end`, which is the one place that decides whether a line can go at
+the end of a book and writes it. Neither door carries an order the text does not
+say, which is why dragging a row of the index moves the card in the editor and
+nothing has to know the difference.
+
+**The window's door cannot refuse, and that is deliberate.** By the time the line
+is written the move is already kept, so a refusal would leave the person told it
+failed and the page hung anyway — the shape of bug the assistant's door had until
+it was made to report what is true. When a book ends inside a fence, or has
+nothing yet to take a title from, the window writes no line and says nothing: the
+page lands in the loose half of the index, which names that state and carries the
+one button that mends it.
 
 **What counts as code is decided once, for everybody.** A line naming a page
 inside a fenced block is not a way in, it is an example of one, and for a while

@@ -3794,3 +3794,40 @@ fn a_book_whose_pages_hang_from_nothing_reachable_is_said_plainly() {
         "a page with no line cannot be put in an order: {why}"
     );
 }
+
+#[test]
+fn write_doc_says_why_a_new_page_got_no_line_when_the_book_ends_in_code() {
+    let served = Served::new();
+    let book = served.wrote(
+        "# Guia
+
+mira:",
+        None,
+    );
+    let at = served.data().join("docs").join(format!("{book}.md"));
+    std::fs::write(
+        &at,
+        "# Guia
+
+mira:
+
+```sh
+abierta
+",
+    )
+    .unwrap();
+    let was = served.body_of(&book);
+
+    let said = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Anexo
+
+z.", "page_of": &book }),
+    );
+
+    let told = told_of(&said);
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{told}");
+    assert!(told.contains("no line naming it was written"), "{told}");
+    assert!(told.contains("ends inside a fence"), "{told}");
+    assert_eq!(served.body_of(&book), was, "a line in code is not a way in");
+}
