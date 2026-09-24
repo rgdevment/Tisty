@@ -1597,7 +1597,7 @@ jobs:
           	  url "${BASE}/tisty-installer-${VERSION}-macos-#{arch}.dmg"
           	  name "Tisty"
           	  desc "Notes, documents and tasks, all local, no subscription, no telemetry${SUFFIX}"
-          	  homepage "https://github.com/${{ github.repository }}"
+          	  homepage "https://rgdevment.com/tisty/"
 
           	  auto_updates true
 
@@ -1626,7 +1626,7 @@ jobs:
           cat > "Formula/${FORMULA}.rb" <<-FORMULA
           	class ${CLASS} < Formula
           	  desc "Command line for Tisty: maintenance, and the door for an assistant${SUFFIX}"
-          	  homepage "https://github.com/${{ github.repository }}"
+          	  homepage "https://rgdevment.com/tisty/"
           	  url "${BASE}/${CLI}"
           	  version "${VERSION}"
           	  sha256 "${CLI_SHA}"

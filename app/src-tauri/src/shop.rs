@@ -8,8 +8,6 @@ pub enum Shelf {
     /// Already on this machine, staged beside the copy in use, and it takes over when this one
     /// closes. Nothing left to download, so nothing to offer but the closing.
     Landed(String),
-    /// The Store has it in its own queue — getting it, paused, or waiting its turn. It says
-    /// nothing about updates then, because from where it stands there is nothing left to find.
     Queued,
     Current,
     Silent,
@@ -153,9 +151,6 @@ mod there {
         in_its_queue(window)
     }
 
-    /// What the Store has taken on itself: bringing it down, paused, or waiting its turn. While
-    /// an errand of its own is in the queue, the update it is about is no longer an update it
-    /// offers — asking what it has is asking the one place that has stopped counting it.
     fn in_its_queue(window: isize) -> Shelf {
         let queued = apart(PATIENCE, move || queued(window));
         match queued {
@@ -174,7 +169,7 @@ mod there {
                     "the Store was asked what it is already getting and refused",
                     &[("why", Fact::Why(why.message()))],
                 );
-                Shelf::Current
+                Shelf::Silent
             }
             None => {
                 witness::warn(
@@ -182,31 +177,38 @@ mod there {
                     "the Store was asked what it is already getting and never answered",
                     &[("waited", Fact::Count(PATIENCE.as_secs() as usize))],
                 );
-                Shelf::Current
+                Shelf::Silent
             }
         }
     }
 
-    /// Anything of ours in the Store's queue that has not finished: it will land on its own, and
-    /// what is left to say is that it is coming.
     fn queued(window: isize) -> windows::core::Result<bool> {
+        let ours = Package::Current()?.Id()?.FamilyName()?;
         let items = shop(window)?.GetAssociatedStoreQueueItemsAsync()?.join()?;
         for one in 0..items.Size()? {
             let item = items.GetAt(one)?;
-            let state = item.GetCurrentStatus()?.PackageInstallState()?;
-            let coming = matches!(
+            if item.PackageFamilyName().unwrap_or_default() != ours {
+                continue;
+            }
+            let status = item.GetCurrentStatus()?;
+            let state = status.PackageInstallState()?;
+            if matches!(
                 state,
                 StoreQueueItemState::Active | StoreQueueItemState::Paused
-            );
-            witness::note(
-                channel::WINDOW,
-                "the Store has something of ours in its queue",
-                &[
-                    ("id", Fact::Id(item.ProductId()?.to_string())),
-                    ("state", Fact::Count(state.0 as usize)),
-                ],
-            );
-            if coming {
+            ) {
+                witness::note(
+                    channel::WINDOW,
+                    "the Store has one of ours in its own queue",
+                    &[
+                        ("state", Fact::Count(state.0 as usize)),
+                        (
+                            "reason",
+                            Fact::Count(
+                                status.PackageInstallExtendedState().unwrap_or_default().0 as usize,
+                            ),
+                        ),
+                    ],
+                );
                 return Ok(true);
             }
         }
@@ -223,7 +225,11 @@ mod there {
         let shelf = windows::Management::Deployment::PackageManager::new().ok()?;
         let mut newest: Option<semver::Version> = None;
         let mine: semver::Version = here.parse().ok()?;
-        for one in shelf.FindPackagesByPackageFamilyName(&family).ok()? {
+        let mine_only = windows::core::HSTRING::new();
+        for one in shelf
+            .FindPackagesByUserSecurityIdPackageFamilyName(&mine_only, &family)
+            .ok()?
+        {
             let Ok(id) = one.Id() else { continue };
             let Ok(version) = id.Version() else { continue };
             let Ok(said) = numbered(&version).parse::<semver::Version>() else {

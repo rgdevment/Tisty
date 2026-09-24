@@ -787,9 +787,9 @@ sale de ahí.
 Misma idea, mismos términos: gratis, código abierto, sin anuncios, sin
 telemetría, todo local.
 
-- **[CopyPaste](https://github.com/rgdevment/CopyPaste)** — un gestor de
+- **[CopyPaste](https://rgdevment.com/copypaste/)** — un gestor de
   portapapeles para Windows y macOS.
-- **[LinkUnbound](https://github.com/rgdevment/LinkUnbound)** — un selector de
+- **[LinkUnbound](https://rgdevment.com/linkunbound/)** — un selector de
   navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de
   suponerlo.
 

@@ -1109,6 +1109,7 @@ const en = {
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
   updateComing: "The Store is bringing a new version",
+  updateOpenShop: "Open the Store",
   updateComingWhy:
     "It is in the Store's own queue — being fetched, or paused there. It installs itself once it lands and this window is closed.",
   updateLanded: "It is already on this machine and takes over when you close Tisty",
@@ -2444,6 +2445,7 @@ const es: Catalog = {
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",
   updateComing: "La Store está trayendo una versión nueva",
+  updateOpenShop: "Abrir la Store",
   updateComingWhy:
     "Está en la cola de la propia Store —descargándose, o en pausa ahí—. Se instala sola cuando llegue y esta ventana esté cerrada.",
   updateLanded: "Ya está en esta máquina y entra cuando cierres Tisty",

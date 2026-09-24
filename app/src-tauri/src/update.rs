@@ -45,21 +45,29 @@ pub struct Ready {
     pub route: Route,
     pub package: Option<&'static str>,
     pub installs: bool,
-    /// The Store is bringing one down and will not say which: there is something to tell the
-    /// person, and no number to tell them with.
     pub coming: bool,
 }
 
-/// What the Store has in its own queue, which it does not name. Nothing to press, nothing to
-/// number, and still the answer to «is there anything new».
-pub fn on_its_way() -> Ready {
+pub fn on_its_way(version: Option<&str>) -> Ready {
     Ready {
-        version: String::new(),
+        version: version.unwrap_or_default().to_string(),
         route: Route::Store,
         package: None,
         installs: false,
         coming: true,
     }
+}
+
+/// The number the manifest publishes, read by a copy the Store keeps. It says a newer one exists,
+/// which is a different question from whether the Store will hand it over today.
+pub fn published(now: &str, manifest: &str, wants: Option<bool>) -> Option<String> {
+    let here: semver::Version = now.parse().ok()?;
+    let read: Manifest = serde_json::from_str(manifest).ok()?;
+    let best: semver::Version = read.latest.parse().ok()?;
+    if !tracking(now, wants) && !best.pre.is_empty() {
+        return None;
+    }
+    (best > here).then(|| best.to_string())
 }
 
 pub const fn self_installs(route: Route) -> bool {

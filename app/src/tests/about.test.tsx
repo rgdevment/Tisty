@@ -70,8 +70,8 @@ describe("the other tools", () => {
     await userEvent.click(screen.getByRole("button", { name: /LinkUnbound/ }));
 
     expect(opened.urls).toEqual([
-      "https://github.com/rgdevment/CopyPaste",
-      "https://github.com/rgdevment/LinkUnbound",
+      "https://rgdevment.com/copypaste/",
+      "https://rgdevment.com/linkunbound/",
     ]);
   });
 
@@ -194,9 +194,29 @@ describe("a newer version the Store itself offers", () => {
     expect(await screen.findByText("The Store is bringing a new version")).toBeTruthy();
     expect(screen.getByText(/in the Store.s own queue/i)).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: /update/i }),
-      "there is nothing to press: the Store is already on it",
+      screen.queryByRole("button", { name: /^update it$/i }),
+      "there is nothing to press for: the Store is already on it",
     ).toBeNull();
+  });
+
+  it("names the version it is waiting for, and opens the Store for whoever will not wait", async () => {
+    render(
+      <About
+        ready={{
+          version: "1.22.1",
+          route: "store",
+          package: null,
+          installs: false,
+          coming: true,
+        }}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(/1\.22\.1/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Open the Store" }));
+
+    expect(opened.urls).toContain("ms-windows-store://downloadsandupdates");
   });
 
   // A copy left closed for weeks remembers an offer the feed has moved past; the button must not
