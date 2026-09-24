@@ -74,6 +74,40 @@ describe("the index at the end of a document", () => {
     expect(onMove.mock.calls[0][1]).toBeNull();
   });
 
+  it("stops marking a row once the page is carried off it", () => {
+    const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[2]);
+    fireEvent.dragOver(rows[0]);
+    expect(rows[0].className).toContain("leaf-over");
+
+    fireEvent.dragLeave(rows[0]);
+    expect(rows[0].className).not.toContain("leaf-over");
+
+    const end = container.querySelector(".leaf-end");
+    if (!end) throw new Error("the list ends with nowhere to drop");
+    fireEvent.dragOver(end);
+    expect(end.className).toContain("leaf-over");
+    fireEvent.dragLeave(end);
+    expect(end.className).not.toContain("leaf-over");
+  });
+
+  it("lets go of what it was carrying when the drag ends anywhere", () => {
+    const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[2]);
+    fireEvent.dragOver(rows[0]);
+    fireEvent.dragEnd(rows[2]);
+
+    expect(rows[0].className).not.toContain("leaf-over");
+    const end = container.querySelector(".leaf-end");
+    if (!end) throw new Error("the list ends with nowhere to drop");
+    fireEvent.dragOver(end);
+    expect(end.className).not.toContain("leaf-over");
+  });
+
   it("offers nowhere to drop past the last row when one page alone is named", () => {
     const { container } = carried(["a3f1-0002"]);
 

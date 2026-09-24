@@ -337,6 +337,22 @@ medio
     }
 
     #[test]
+    fn a_page_named_by_a_plain_link_opening_a_line_is_named_on_that_line() {
+        let body = format!(
+            "# Libro
+
+[Uno]({DOC}a-0001) abre la linea.
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(
+            paper_lines(&body),
+            vec![("a-0001".to_string(), 2), ("a-0002".to_string(), 4)]
+        );
+    }
+
+    #[test]
     fn a_fence_that_closes_wider_than_it_opened_holds_until_it_does() {
         let body = format!(
             "# Libro

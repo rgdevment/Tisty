@@ -3557,3 +3557,195 @@ fn verify_item2_a_closed_fence_does_not_strand_the_pages_of_a_rewrite() {
         served.body_of(&book)
     );
 }
+
+#[test]
+fn an_order_naming_something_that_is_not_a_document_says_what_an_id_looks_like() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    served.wrote("# Dos", Some(&book));
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&one, "Dos"] }),
+    );
+
+    assert!(why.contains("not a document id here"), "{why}");
+    assert!(
+        why.contains("opaque"),
+        "it has to say what an id looks like: {why}"
+    );
+}
+
+#[test]
+fn an_order_for_a_book_that_is_not_a_document_is_turned_away_the_same_way() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": "Libro", "order": [&two, &one] }),
+    );
+
+    assert!(why.contains("not a document id here"), "{why}");
+}
+
+#[test]
+fn an_order_for_a_book_put_away_says_it_is_not_written_in_any_more() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    served.call("archive_doc", serde_json::json!({ "doc": &book }));
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+    );
+
+    assert!(why.contains("put away"), "{why}");
+}
+
+#[test]
+fn an_order_naming_a_document_that_is_no_page_of_it_says_it_has_no_place_there() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    served.wrote("# Dos", Some(&book));
+    let apart = served.wrote("# Aparte", None);
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&apart, &one] }),
+    );
+
+    assert!(why.contains("no place in its order"), "{why}");
+}
+
+#[test]
+fn an_order_over_a_line_that_says_more_than_a_name_moves_nothing_and_says_which_line() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let print = served.print_of(&book);
+    let mine = format!(
+        "# Libro\n\nintro\n\n![Uno](tisty:doc/{one}) y algo mas\n\n![Dos](tisty:doc/{two})\n"
+    );
+    served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+    );
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+    );
+
+    assert!(why.contains("says other things besides"), "{why}");
+    assert!(why.contains("Nothing was moved"), "{why}");
+    assert_eq!(served.body_of(&book), mine, "and nothing was: {why}");
+}
+
+#[test]
+fn an_order_that_would_take_the_title_from_another_page_is_refused() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let print = served.print_of(&book);
+    let mine = format!("![Uno](tisty:doc/{one})\n\n![Dos](tisty:doc/{two})\n");
+    served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
+    );
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+    );
+
+    assert!(why.contains("would be renamed"), "{why}");
+    assert_eq!(served.body_of(&book), mine);
+}
+
+#[test]
+fn a_book_that_says_nothing_yet_keeps_the_page_and_says_no_line_was_written() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let page = served.wrote("# Enero\n\nx.", None);
+    let at = served.data().join("docs").join(format!("{book}.md"));
+    std::fs::write(&at, "\n\n").unwrap();
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &book }),
+    );
+
+    let told = told_of(&said);
+    assert_ne!(
+        said["result"]["isError"].as_bool(),
+        Some(true),
+        "the page is hung, so this cannot come back as a failure: {told}"
+    );
+    assert!(told.contains("No line was written"), "{told}");
+    assert!(told.contains("would be renamed"), "{told}");
+    assert_eq!(served.pages_of(&book), vec![page]);
+}
+
+#[test]
+fn two_pages_named_twice_over_are_said_in_the_plural() {
+    let served = Served::new();
+    let book = served.wrote("# Actas\n\nde este anio.", None);
+    let one = served.wrote("# Enero", None);
+    let two = served.wrote("# Febrero", None);
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": [&one, &two], "page_of": &book }),
+    );
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": &book,
+            "old": "de este anio.",
+            "new": format!(
+                "de este anio.\n\n![Enero](tisty:doc/{one})\n\n![Febrero](tisty:doc/{two})"
+            ),
+        }),
+    );
+
+    let told = told_of(&said);
+    assert!(told.contains("the lines naming"), "{told}");
+    assert!(
+        told.contains("each is read where it is named first"),
+        "{told}"
+    );
+}
+
+#[test]
+fn a_book_whose_pages_hang_from_nothing_reachable_is_said_plainly() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let print = served.print_of(&book);
+    served.call(
+        "write_doc",
+        serde_json::json!({ "doc": &book, "print": print, "body": "# Libro\n\nintro\n" }),
+    );
+    let at = served.data().join("docs").join(format!("{book}.md"));
+    std::fs::write(&at, "# Libro\n\nintro\n").unwrap();
+
+    let why = served.refused(
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&two, &one] }),
+    );
+
+    assert!(
+        why.contains("no line") || why.contains("not all there"),
+        "a page with no line cannot be put in an order: {why}"
+    );
+}

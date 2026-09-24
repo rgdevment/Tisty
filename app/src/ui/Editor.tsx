@@ -32,7 +32,7 @@ import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
 import Tabled from "./Tabled";
 import { tagging } from "./tagging";
-import { asMarkdown, type Head, headed, loosened, written } from "./writing";
+import { asMarkdown, cardMoved, type Head, headed, loosened, written } from "./writing";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -243,34 +243,6 @@ interface Props {
   above?: React.ReactNode;
   below?: React.ReactNode;
 }
-
-/// A card inside a quote, a list or a cell is part of that block, and taking it out would leave
-/// the block to be filled in or torn, so it is left where the person put it.
-const cardAt = (editor: Writing, file: string): number => {
-  let found = -1;
-  editor.state.doc.descendants((node, pos, parent) => {
-    if (found !== -1) return false;
-    if (node.type.name !== "image" || node.attrs.src !== DOC + file) return true;
-    found = parent === editor.state.doc ? pos : -2;
-    return false;
-  });
-  return found;
-};
-
-const cardMoved = (editor: Writing, file: string, before: string | null): Moved => {
-  const from = cardAt(editor, file);
-  const wanted = before === null ? editor.state.doc.content.size : cardAt(editor, before);
-  if (from === -2 || wanted === -2) return "held";
-  if (from === -1 || wanted === -1) return "unseen";
-  const node = editor.state.doc.nodeAt(from);
-  if (!node) return "unseen";
-  if (wanted === from) return "done";
-  const tr = editor.state.tr;
-  tr.delete(from, from + node.nodeSize);
-  tr.insert(tr.mapping.map(wanted), node);
-  editor.view.dispatch(tr);
-  return "done";
-};
 
 export default function Editor({
   value,

@@ -17,11 +17,39 @@ import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
 import { markup } from "../glyphs";
 import { t } from "../locales";
+import { DOC } from "../markdown";
 import { isMark } from "../marks";
+import type { Moved } from "../paging";
 import { spared } from "./Icons";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
 export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
+
+const cardAt = (editor: Writing, file: string): number => {
+  let found = -1;
+  editor.state.doc.descendants((node, pos, parent) => {
+    if (found !== -1) return false;
+    if (node.type.name !== "image" || node.attrs.src !== DOC + file) return true;
+    found = parent === editor.state.doc ? pos : -2;
+    return false;
+  });
+  return found;
+};
+
+export const cardMoved = (editor: Writing, file: string, before: string | null): Moved => {
+  const from = cardAt(editor, file);
+  const wanted = before === null ? editor.state.doc.content.size : cardAt(editor, before);
+  if (from === -2 || wanted === -2) return "held";
+  if (from === -1 || wanted === -1) return "unseen";
+  const node = editor.state.doc.nodeAt(from);
+  if (!node) return "unseen";
+  if (wanted === from) return "done";
+  const tr = editor.state.tr;
+  tr.delete(from, from + node.nodeSize);
+  tr.insert(tr.mapping.map(wanted), node);
+  editor.view.dispatch(tr);
+  return "done";
+};
 
 const inked = Symbol("ink");
 const peeked = Symbol("peek");
