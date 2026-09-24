@@ -159,9 +159,9 @@ A whole folder can be in the archive too, and then everything under it is — ev
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. It can also be put away on its own, and then it does not move: it stays under its document, read-only, and the document coming back does not wake it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
-A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
+A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` changes no text, so a document hung as a page that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. A body says nothing about the pages it does not name, and those are left where they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` on its own changes no text, so a document hung that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. Give it `after` or `before` and the line is written for you, straight beside the page you name — that is how a page is moved without touching markdown, and the page you name has to have a line of its own for it to sit beside. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
@@ -650,7 +650,10 @@ fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
             let says = taken[key]
                 .get("description")
                 .and_then(Value::as_str)
-                .map(|one| format!(" It takes: {one}."))
+                .map(|one| match one.trim_end().ends_with('.') {
+                    true => format!(" It takes: {one}"),
+                    false => format!(" It takes: {one}."),
+                })
                 .unwrap_or_default();
             return Err(Refused::Tool(format!(
                 "`{key}` takes {}, and what came was {}. Nothing was read from it, because \
@@ -782,10 +785,13 @@ fn in_order(on: Option<&DateSpec>, owed: Option<&DateSpec>) -> Result<(), Refuse
     let (Some(on), Some(owed)) = (on, owed) else {
         return Ok(());
     };
-    if owed.date() < on.date() {
+    let today = jiff::Zoned::now().date();
+    if owed.date() < on.date() && owed.date() >= today {
         return Err(Refused::Tool(format!(
-            "a deadline of {} falls before {}, the day it would be worked on. Nothing is owed \
-             before the day it starts: move one of the two.",
+            "a deadline of {} falls before {}, the day it would be worked on, and neither day \
+             has gone by. Send both in one call with the days the right way round, or leave one \
+             out and only the other moves. A deadline already past is a different thing and is \
+             taken as it is.",
             owed.date(),
             on.date()
         )));
@@ -1487,7 +1493,7 @@ fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let held = State::replay(events);
             held.tasks
                 .get(&id)
-                .is_none_or(|now| !still_filling(&held, now))
+                .is_none_or(|now| !still_filling(&held, now) || now.resolved.is_some())
         })
         .map_err(hitch)?;
     if written.is_none() {
@@ -3487,15 +3493,32 @@ fn loose_words(state: &State, loose: &[String]) -> String {
     if loose.is_empty() {
         return String::new();
     }
-    let (took, still) = match loose.len() {
-        1 => ("the line that named", "it is still a page"),
-        _ => ("the lines that named", "they are still pages"),
+    let (took, still, put) = match loose.len() {
+        1 => (
+            "the line that named",
+            "it is still a page",
+            "its line where it belongs",
+        ),
+        _ => (
+            "the lines that named",
+            "they are still pages",
+            "their lines where they belong",
+        ),
     };
     format!(
         " It also took out {took} {}: nothing in this document points there now, though {still} \
-         of it. Write the line where it belongs with another `edit_doc`, or `restore_doc` to put \
-         the passage back as it was.",
-        named_all(state, loose)
+         of it. If you are moving {}, write {put} with another `edit_doc`, or put {} in place \
+         with `page_doc` and `after`. If the cut was a mistake, `restore_doc` puts the passage \
+         back as it was.",
+        named_all(state, loose),
+        match loose.len() {
+            1 => "it",
+            _ => "them",
+        },
+        match loose.len() {
+            1 => "it",
+            _ => "each",
+        }
     )
 }
 
@@ -3876,7 +3899,8 @@ fn beside_the_file(paths: &Paths, from: &std::path::Path, body: &str) -> (String
 }
 
 const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
-takes only what is kept beside it";
+takes only what is kept beside it. Put a copy in that folder and import again, or bring the file \
+in on its own afterwards with `attach`";
 
 fn stays_beside(plain: &str) -> bool {
     let mut depth = 0i32;
@@ -4765,8 +4789,17 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 fn line_of(lines: &[String], id: &str) -> Option<usize> {
-    let mark = format!("{}{id})", tisty_core::refs::DOC);
-    lines.iter().position(|one| one.contains(&mark))
+    lines
+        .iter()
+        .position(|one| tisty_core::refs::papers(one).iter().any(|said| said == id))
+}
+
+fn card_alone(line: &str, id: &str) -> bool {
+    let said = line.trim();
+    said.starts_with("![")
+        && said.ends_with(')')
+        && tisty_core::refs::extract(said).len() == 1
+        && tisty_core::refs::papers(said) == vec![id.to_string()]
 }
 
 fn blank(lines: &[String], at: usize) -> bool {
@@ -4774,6 +4807,10 @@ fn blank(lines: &[String], at: usize) -> bool {
 }
 
 fn card_moved(body: &str, which: &str, title: &str, anchor: &str, before: bool) -> Option<String> {
+    let ending = match body.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
     let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
     if let Some(at) = line_of(&lines, which) {
         lines.remove(at);
@@ -4793,17 +4830,16 @@ fn card_moved(body: &str, which: &str, title: &str, anchor: &str, before: bool) 
     if at > 0 && !blank(&lines, at - 1) {
         lines.insert(at, String::new());
     }
-    let mut out = lines.join("\n");
+    let mut out = lines.join(ending);
     if !out.ends_with('\n') {
-        out.push('\n');
+        out.push_str(ending);
     }
     Some(out)
 }
 
-fn placed(
+fn beside_ready(
     paths: &Paths,
     state: &State,
-    store: &mut Store,
     up: tisty_core::model::DocId,
     which: &str,
     anchor: &str,
@@ -4830,9 +4866,73 @@ fn placed(
     }
     if mark.file == which {
         return Err(Refused::Tool(
-            "a page cannot be placed after itself.".into(),
+            "a page cannot be placed before or after itself. Name another page of the same \
+             document."
+                .into(),
         ));
     }
+    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    let Some(sits) = line_of(&held, anchor) else {
+        return Err(Refused::Tool(format!(
+            "{} is a page of {}, but no line in it names {}, so there is nothing to place this \
+             one beside. Give that page a line of its own first — `edit_doc`, or `page_doc` \
+             beside a page that has one — and then come back to this one.",
+            doc_named(state, anchor),
+            doc_named(state, &parent.file),
+            doc_named(state, anchor)
+        )));
+    };
+    if !card_alone(&held[sits], anchor) {
+        return Err(Refused::Tool(format!(
+            "line {} of {} names {} in the middle of something else: {:?}. A page is placed \
+             beside a line that names one page and nothing more, so that writing beside it \
+             cannot break what that line is part of. Name a page whose line stands on its own.",
+            sits + 1,
+            doc_named(state, &parent.file),
+            doc_named(state, anchor),
+            held[sits].trim()
+        )));
+    }
+    if sits == 0 && before {
+        return Err(Refused::Tool(format!(
+            "{} is named on the first line of {}, and a document takes its title from its first \
+             line, so writing above it would rename the document. Place this page after that one \
+             instead.",
+            doc_named(state, anchor),
+            doc_named(state, &parent.file)
+        )));
+    }
+    if let Some(at) = line_of(&held, which)
+        && !card_alone(&held[at], which)
+    {
+        return Err(Refused::Tool(format!(
+            "line {} of {} names {} and says other things besides, so moving that line would \
+             carry them off with it: {:?}. Nothing was moved. Put the line on its own with \
+             `edit_doc` first, or move it there yourself.",
+            at + 1,
+            doc_named(state, &parent.file),
+            doc_named(state, which),
+            held[at].trim()
+        )));
+    }
+    Ok(())
+}
+
+fn placed(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    up: tisty_core::model::DocId,
+    which: &str,
+    anchor: &str,
+    before: bool,
+) -> Result<(), Refused> {
+    let Some(parent) = state.docs.get(&up) else {
+        return Err(Refused::Tool(
+            "the document that holds this page is not here any more.".into(),
+        ));
+    };
     let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
     let print = tisty_core::attach::printed(body.as_bytes());
     let title = tisty_core::docs::read(&paths.docs(), which)
@@ -4840,9 +4940,7 @@ fn placed(
         .unwrap_or_default();
     let Some(whole) = card_moved(&body, which, &title, anchor, before) else {
         return Err(Refused::Tool(format!(
-            "{} is a page of {}, but no line in it names {}, so there is nothing to place this \
-             one beside. Write that line first with `edit_doc`.",
-            doc_named(state, anchor),
+            "no line of {} names {} any more, so there was nowhere to put this one.",
             doc_named(state, &parent.file),
             doc_named(state, anchor)
         )));
@@ -4851,8 +4949,8 @@ fn placed(
         .map_err(hitch)?
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
-            "{} was written while this call was being made, so nothing was moved. Read it again \
-             and say where the page goes.",
+            "{} was written by somebody else in the same moment, so its line was left where it \
+             was. Read it again and say where the page goes.",
             doc_named(state, &parent.file)
         ))),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
@@ -4866,6 +4964,15 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (many, listed) = many_docs(args, "hang or unhang")?;
     let (state, mut store) = opened(paths)?;
 
+    for side in ["after", "before"] {
+        if args.get(side).is_some() && text(args, side).is_none() {
+            return Err(Refused::Tool(format!(
+                "`{side}` came empty. A page goes beside another page named by its id, and an \
+                 empty name says nothing — leave it out to hang the page without writing its \
+                 line, or name the page it belongs next to."
+            )));
+        }
+    }
     let beside = match (text(args, "after"), text(args, "before")) {
         (Some(_), Some(_)) => {
             return Err(Refused::Tool(
@@ -4924,6 +5031,9 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Some(up.id)
         }
     };
+    if let (Some((anchor, before)), Some(over)) = (&beside, up) {
+        beside_ready(paths, &state, over, &many[0], anchor, *before)?;
+    }
 
     let mut moving = Vec::new();
     let mut already = Vec::new();
@@ -5049,15 +5159,20 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut put = String::new();
     if let (Some((anchor, before)), Some(over)) = (&beside, up) {
         let (now, mut store) = opened(paths)?;
-        placed(paths, &now, &mut store, over, &many[0], anchor, *before)?;
-        put = format!(
-            " Its line sits {} {}.",
-            match before {
-                true => "before",
-                false => "after",
-            },
-            doc_named(&state, anchor)
-        );
+        put = match placed(paths, &now, &mut store, over, &many[0], anchor, *before) {
+            Ok(()) => format!(
+                " Its line sits {} {}.",
+                match before {
+                    true => "before",
+                    false => "after",
+                },
+                doc_named(&state, anchor)
+            ),
+            Err(Refused::Tool(why)) => {
+                format!(" It is a page now, but no line was written for it, so it is loose: {why}")
+            }
+            Err(other) => return Err(other),
+        };
     }
 
     let names: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
@@ -6418,7 +6533,7 @@ fn tools() -> Value {
                         "description": "Only when the person wants done again what was already proposed from this source and closed since: files a new task despite the source being known. Say in the description how the last one ended. Never for a source whose task is still open"
                     }
                 },
-                "required": ["title"]
+                "anyOf": [{ "required": ["title"] }, { "required": ["tasks"] }]
             }))
         },
         {
