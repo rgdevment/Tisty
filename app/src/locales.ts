@@ -487,6 +487,15 @@ const en = {
   docShelved:
     "This one is in the archive. It reads, it does not write — bring it back to write in it again",
   docStirredGone: "Got it",
+  docStirredBack: "Put back what it said before",
+  nothingKeptBeside: "Nothing is kept beside this one to go back to",
+  nothingToGoBackTo: "This already says what is kept beside it",
+  writtenSinceItWasKept:
+    "It has been written in since what is kept beside it was set aside, so going back would take that writing too",
+  backSure:
+    "Going back leaves this document as it read before the last write. What it says now is kept, so you can come back to it.",
+  backMoreSure:
+    "It has been written in since then, so going back undoes that writing as well. What it says now is kept either way.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   attachmentTorn:
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
@@ -1126,6 +1135,7 @@ const en = {
   agentsOn: "An assistant can file work here",
   agentsSignsAs: "This machine's agent signs the log as «{name}»",
   assistantFiled: "{name} filed",
+  assistantWrote: "{name} writes in all",
   assistantLast: "the last {name}",
   assistantNothing: "nothing written yet",
   assistantUnnamed: "An assistant with no name",
@@ -1825,6 +1835,15 @@ const es: Catalog = {
   docShelved:
     "Este está en el archivo. Se lee, no se escribe — desarchívalo para volver a escribir en él",
   docStirredGone: "Entendido",
+  docStirredBack: "Volver a lo que decía antes",
+  nothingKeptBeside: "No hay nada guardado al lado de este para volver atrás",
+  nothingToGoBackTo: "Este ya dice lo que está guardado a su lado",
+  writtenSinceItWasKept:
+    "Se ha escrito en él desde que se apartó lo que está guardado a su lado, así que volver atrás se llevaría también esa escritura",
+  backSure:
+    "Volver atrás deja este documento como se leía antes de la última escritura. Lo que dice ahora queda guardado, así que puedes regresar a ello.",
+  backMoreSure:
+    "Se ha escrito en él desde entonces, así que volver atrás deshace también esa escritura. Lo que dice ahora queda guardado igual.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   attachmentTorn:
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
@@ -2466,6 +2485,7 @@ const es: Catalog = {
   agentsOn: "Un asistente puede anotar aquí",
   agentsSignsAs: "El agente de este equipo firma el registro como «{name}»",
   assistantFiled: "{name} anotadas",
+  assistantWrote: "{name} escrituras en total",
   assistantLast: "la última {name}",
   assistantNothing: "todavía no ha escrito nada",
   assistantUnnamed: "Un asistente sin nombre",

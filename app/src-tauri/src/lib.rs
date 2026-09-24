@@ -4371,6 +4371,46 @@ fn stale(mine: Option<&str>, now: Option<&str>) -> bool {
 }
 
 #[tauri::command(async)]
+fn doc_back(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    anyway: Option<bool>,
+) -> Answer<String> {
+    let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
+    }
+    let root = session.paths.docs();
+    let Some(was) = tisty_core::docs::read_before(session.paths.data(), &id) else {
+        return Err(Refusal::of("nothingKeptBeside"));
+    };
+    let now = tisty_core::docs::read(&root, &id)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
+    if tisty_core::docs::unchanged(&now, &was) {
+        return Err(Refusal::of("nothingToGoBackTo"));
+    }
+    let print = tisty_core::attach::printed(now.as_bytes());
+    let left = tisty_core::docs::before_left_at(session.paths.data(), &id);
+    if left.as_deref() != Some(print.as_str()) && !anyway.unwrap_or(false) {
+        return Err(Refusal::of("writtenSinceItWasKept"));
+    }
+    tisty_core::docs::kept_before(session.paths.data(), &id, &now, &was)
+        .map_err(|e| blamed(channel::WINDOW, "what a document said could not be kept", e))?;
+    tisty_core::docs::write(&root, &id, &was).map_err(|e| match e {
+        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+        _ => blamed(channel::WINDOW, "a document could not be written", e),
+    })?;
+    session.mind_body(&id, &tisty_core::docs::settled(&was));
+    session.corpus.forget(&id);
+    let hand = signing(&session.state);
+    session.retell(&id, &was, hand);
+    Ok(was)
+}
+
+#[tauri::command(async)]
 fn doc_write(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
@@ -7431,6 +7471,7 @@ pub fn run() {
             doc_read,
             doc_facts,
             keep_pdf,
+            doc_back,
             doc_write,
             doc_order,
             doc_new,

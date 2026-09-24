@@ -17,6 +17,9 @@ const store = vi.hoisted(() => ({
   shape: null as string | null,
   agrees: true,
   locks: [] as { id: string; shut: boolean }[],
+  before: {} as Record<string, string>,
+  backs: [] as { id: string; anyway: boolean }[],
+  more: false,
   coming: false,
   refuse: null as { code: string; name: string } | null,
 }));
@@ -43,6 +46,18 @@ vi.mock("@tauri-apps/api/core", () => ({
         store.converted.push({ id, was: store.bodies[id] });
         store.bodies[id] = String(args?.body);
         return Promise.resolve(null);
+      }
+      case "doc_back": {
+        const id = String(args?.id);
+        const anyway = args?.anyway === true;
+        store.backs.push({ id, anyway });
+        if (store.more && !anyway) {
+          return Promise.reject({ code: "writtenSinceItWasKept" });
+        }
+        const was = store.before[id];
+        if (was === undefined) return Promise.reject({ code: "nothingKeptBeside" });
+        store.bodies[id] = was;
+        return Promise.resolve(was);
       }
       case "doc_write": {
         const id = String(args?.id);
@@ -166,6 +181,9 @@ describe("the document being written", () => {
     store.agrees = true;
     store.coming = false;
     store.refuse = null;
+    store.before = {};
+    store.backs = [];
+    store.more = false;
   });
 
   const show = (open?: string, onKept = vi.fn()) =>
@@ -697,6 +715,10 @@ describe("a document that moved on disk while it was open", () => {
     store.delays = [];
     store.mute = false;
     store.shape = null;
+    store.agrees = true;
+    store.before = {};
+    store.backs = [];
+    store.more = false;
   });
 
   it("reads it again when something wrote beside the window", async () => {
@@ -755,6 +777,45 @@ describe("a document that moved on disk while it was open", () => {
     expect(store.writes[store.writes.length - 1]?.anyway).toBe(true);
     expect(store.bodies["a3f1-0001"]).toContain("y pan");
     expect(screen.queryByText(/mientras lo tenías abierto|while you had it open/)).toBeNull();
+  });
+
+  it("puts back what a document said before, when something else wrote in it", async () => {
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={0} />,
+    );
+    await screen.findByLabelText("editor");
+    store.bodies["a3f1-0001"] = "# Compra\n\nlo que dejo el agente";
+    rerender(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={1} />);
+    await waitFor(() => screen.getByText(/Algo escribió en este|Something wrote in this/));
+    store.before["a3f1-0001"] = "# Compra\n\nlo que habia antes";
+
+    await userEvent.click(screen.getByText(/Volver a lo que decía|Put back what it said/));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain(
+        "lo que habia antes",
+      ),
+    );
+    expect(store.backs).toEqual([{ id: "a3f1-0001", anyway: false }]);
+    expect(screen.queryByText(/Algo escribió en este|Something wrote in this/)).toBeNull();
+  });
+
+  it("asks again when going back would undo writing done since", async () => {
+    const { rerender } = render(
+      <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={0} />,
+    );
+    await screen.findByLabelText("editor");
+    store.bodies["a3f1-0001"] = "# Compra\n\notra cosa";
+    rerender(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} fresh={1} />);
+    await waitFor(() => screen.getByText(/Algo escribió en este|Something wrote in this/));
+    store.before["a3f1-0001"] = "# Compra\n\nlo de antes";
+    store.more = true;
+
+    await userEvent.click(screen.getByText(/Volver a lo que decía|Put back what it said/));
+
+    await waitFor(() => expect(store.backs.length).toBe(2));
+    expect(store.backs[0]?.anyway).toBe(false);
+    expect(store.backs[1]?.anyway).toBe(true);
   });
 });
 

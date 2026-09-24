@@ -218,6 +218,7 @@ const aimed = (editor: Writing) => {
 interface Props {
   value: string;
   reading?: boolean;
+  again?: number;
   folder?: string | null;
   paper?: string;
   onMade?: (id: string, name: string) => void;
@@ -246,6 +247,7 @@ interface Props {
 export default function Editor({
   value,
   reading,
+  again,
   folder,
   paper,
   onMade,
@@ -791,6 +793,14 @@ export default function Editor({
       return null;
     },
   };
+
+  useEffect(() => {
+    blurbs.current.clear();
+    for (const one of [...pending.current]) {
+      if (one.startsWith("blurb:")) pending.current.delete(one);
+    }
+    nudge.current();
+  }, [again]);
 
   const opened = Boolean(asking) && shown.length > 0;
   const current = Math.min(active, shown.length - 1);

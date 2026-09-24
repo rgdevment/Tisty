@@ -1830,8 +1830,10 @@ const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] 
 
 const wroteSaid = (hand: Assistant | undefined): string => {
   if (!hand || hand.wrote === 0) return t("assistantNothing");
-  const filed = fill("assistantFiled", String(hand.filed));
-  return hand.last ? `${filed} · ${fill("assistantLast", stamped(hand.last))}` : filed;
+  const said = [fill("assistantFiled", String(hand.filed))];
+  if (hand.wrote > hand.filed) said.push(fill("assistantWrote", String(hand.wrote)));
+  if (hand.last) said.push(fill("assistantLast", stamped(hand.last)));
+  return said.join(" · ");
 };
 
 const wiring = (at?: string) =>
