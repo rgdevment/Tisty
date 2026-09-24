@@ -137,7 +137,10 @@ Being explicit here matters more than sounding reassuring.
   an icon or a colour it does not recognise is dropped instead of stored. A
   parcel can say a folder was in the archive, and one it creates lands that way;
   what it cannot do is close a folder you already have, because joining by name
-  leaves the folder that was already here deciding for itself.
+  leaves the folder that was already here deciding for itself. The same holds for
+  a page put away on its own and for what an assistant marked: both travel, and
+  both land as what they are, but the mark arrives without the machine that wrote
+  it, because a parcel goes to other people.
 
   What a parcel cannot do is prove who wrote what: anyone can edit the manifest
   in a zip, and a name in a parcel is a claim, not a signature. What it can prove

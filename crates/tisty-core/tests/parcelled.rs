@@ -563,10 +563,9 @@ fn a_parcel_from_a_newer_tisty_is_turned_away_rather_than_half_understood() {
         let mut body = Vec::new();
         std::io::Read::read_to_end(&mut held, &mut body).unwrap();
         if named == "tisty-docs.json" {
-            let said = String::from_utf8(body)
-                .unwrap()
-                .replace("\"version\": 1", "\"version\": 99");
-            body = said.into_bytes();
+            let mut said: serde_json::Value = serde_json::from_slice(&body).unwrap();
+            said["version"] = serde_json::json!(99);
+            body = serde_json::to_vec(&said).unwrap();
         }
         out.start_file(named, zip::write::SimpleFileOptions::default())
             .unwrap();
@@ -1120,7 +1119,9 @@ contratos",
             shelf.as_object_mut().unwrap().remove("archived");
         }
         for paper in manifest["docs"].as_array_mut().unwrap() {
-            paper.as_object_mut().unwrap().remove("by_folder");
+            let paper = paper.as_object_mut().unwrap();
+            paper.remove("by_folder");
+            paper.remove("away_alone");
         }
     });
 
@@ -2428,4 +2429,130 @@ fn a_parcel_says_what_it_is_to_somebody_who_has_never_heard_of_tisty() {
     let landed = there.take_in(&box_at);
     assert_eq!((landed.docs, landed.pages, landed.folders), (3, 1, 2));
     assert_eq!(landed.missed, 0);
+}
+
+#[test]
+fn a_parcel_from_before_pages_answered_for_themselves_lands_them_covered_and_not_marked() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (book, _) = here.doc("# Actas", None, None);
+    here.doc("# Marzo", None, Some(book));
+    here.tell(Op::DocArchive { id: book });
+    let box_at = room.path().join("vieja.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let held = std::fs::read(&box_at).unwrap();
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(held)).unwrap();
+    let mut said = Vec::new();
+    {
+        let mut one = zip.by_name("tisty-docs.json").unwrap();
+        std::io::Read::read_to_end(&mut one, &mut said).unwrap();
+    }
+    let mut manifest: serde_json::Value = serde_json::from_slice(&said).unwrap();
+    for one in manifest["docs"].as_array_mut().unwrap() {
+        if one.get("page_of").is_some_and(|up| !up.is_null()) {
+            one.as_object_mut().unwrap().remove("away_alone");
+            one["archived"] = serde_json::json!(true);
+        }
+    }
+    let older = with_manifest(room.path(), &box_at, serde_json::to_vec(&manifest).unwrap());
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&older);
+
+    let landed = there.state.docs.values().find(|one| one.page_of.is_some());
+    let page = landed.expect("the page came in with its document").id;
+    assert!(
+        !there.state.docs[&page].archived,
+        "the old parcel said archived because the document was; a mark of its own outlives it"
+    );
+    let up = there.state.docs[&page].page_of.unwrap();
+    there.tell(Op::DocUnarchive { id: up });
+    assert!(
+        !there.state.held_away(&there.state.docs[&page]),
+        "bringing the document back has to wake what it covered"
+    );
+}
+
+fn manifest_in(at: &std::path::Path) -> serde_json::Value {
+    let held = std::fs::read(at).unwrap();
+    let mut zip = zip::ZipArchive::new(std::io::Cursor::new(held)).unwrap();
+    let mut said = Vec::new();
+    let mut one = zip.by_name("tisty-docs.json").unwrap();
+    std::io::Read::read_to_end(&mut one, &mut said).unwrap();
+    serde_json::from_slice(&said).unwrap()
+}
+
+#[test]
+fn a_page_put_away_on_its_own_comes_out_of_the_parcel_the_same_way() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (book, _) = here.doc("# Actas", None, None);
+    let (march, _) = here.doc("# Marzo", None, Some(book));
+    here.doc("# Abril", None, Some(book));
+    here.tell(Op::DocArchive { id: march });
+    let box_at = room.path().join("mixta.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    assert_eq!(
+        manifest_in(&box_at)["version"],
+        serde_json::json!(2),
+        "a parcel that says something new says which Tisty wrote it"
+    );
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let landed = there.titled("Marzo");
+    assert!(landed.archived, "the page was apart, and it lands apart");
+    let other = there.titled("Abril");
+    assert!(
+        !other.archived && !there.state.held_away(other),
+        "and the one that was awake stays awake"
+    );
+    assert!(!there.titled("Actas").archived);
+}
+
+#[test]
+fn a_parcel_with_nothing_new_to_say_is_still_one_an_older_tisty_can_open() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (book, _) = here.doc("# Actas", None, None);
+    here.doc("# Marzo", None, Some(book));
+    let box_at = room.path().join("llana.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    assert_eq!(
+        manifest_in(&box_at)["version"],
+        serde_json::json!(1),
+        "nothing here needs a newer Tisty, so nothing here turns one away"
+    );
+}
+
+#[test]
+fn what_an_assistant_marked_travels_with_the_document_it_marked() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let (doc, _) = here.doc("# Actas", None, None);
+    here.tell(Op::DocFlag {
+        id: doc,
+        d: tisty_core::event::Flag::new("it has had its day"),
+    });
+    let box_at = room.path().join("marcada.tistyx");
+    parcel::write(&here.data, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let landed = there.titled("Actas");
+    assert_eq!(
+        landed.flagged.as_ref().map(|one| one.body.as_str()),
+        Some("it has had its day"),
+        "the person still has it to answer wherever the parcel lands"
+    );
+    assert_ne!(
+        landed.flagged.as_ref().map(|one| one.by.clone()),
+        Some(here.dev.clone()),
+        "a parcel goes to other people, and the machine that wrote the mark is not theirs to keep"
+    );
 }

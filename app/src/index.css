@@ -545,6 +545,28 @@ body {
   font-variant-numeric: tabular-nums;
   color: var(--tisty-faint);
 }
+.leaf-away .leaf-name,
+.leaf-away .leaf-num {
+  color: var(--tisty-faint);
+  font-weight: 500;
+}
+
+.leaf-flag {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 10px;
+  font-size: 9px;
+  color: var(--tisty-hue-teal);
+}
+
+.leaf-mark {
+  width: 13px;
+  height: 13px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--tisty-faint);
+}
+
 .leaf-name {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -143,7 +143,11 @@ describe("a document the archive holds through its folder", () => {
   it("opens for reading, the same as one archived on its own", async () => {
     render(<Docs open="a3f1-0003" known={held} onKept={vi.fn()} onError={vi.fn()} />);
 
-    expect(await screen.findByText(t("docShelved"))).toBeTruthy();
+    expect(await screen.findByText(t("heldByFolder"))).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: t("bringBack") }),
+      "only the folder can be brought back, and not from here",
+    ).toBeNull();
     await waitFor(() => screen.getByLabelText("editor"));
     expect(screen.getByLabelText("editor")).toHaveProperty("readOnly", true);
   });

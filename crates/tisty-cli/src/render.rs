@@ -514,7 +514,7 @@ pub fn left(task: &Task, state: &State, lang: Lang) -> String {
                     .or_else(|| held.map(|doc| doc.file.clone()))
                     .unwrap_or_else(|| one.target.clone());
                 match held {
-                    Some(doc) if doc.archived => (
+                    Some(doc) if state.held_away(doc) => (
                         "\u{25a2}",
                         format!("{name} {}", style::dim(lang.get("left-away"))),
                     ),

@@ -14,7 +14,7 @@ use crate::{
 
 pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
-const VERSION: u32 = 1;
+const VERSION: u32 = 2;
 const MANIFEST: &str = "tisty-docs.json";
 const READING: &str = "README.txt";
 const READ_ME: &str = "This is a Tisty parcel.
@@ -127,6 +127,14 @@ pub struct Shelf {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Marked {
+    pub at: jiff::Timestamp,
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Paper {
     pub file: String,
     pub order: String,
@@ -148,6 +156,12 @@ pub struct Paper {
     /// Set when only the folder above put it away, so bringing that folder back opens it again.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub by_folder: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub away_alone: Option<bool>,
+    /// What an assistant said had had its day, so the person still has it to answer wherever the
+    /// parcel lands. Without the device that said it: a parcel goes to other people.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub flagged: Option<Marked>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub locked: bool,
     /// Somebody else's writing that this store is only holding: it stays theirs wherever it
@@ -530,12 +544,28 @@ fn filled(
                 by: one.by.clone(),
                 archived: state.held_away(one),
                 by_folder: !one.archived && state.held_away(one),
+                away_alone: one.archived.then_some(true),
+                flagged: one.flagged.as_ref().map(|said| Marked {
+                    at: said.at,
+                    body: said.body.clone(),
+                    via: said.via.clone(),
+                }),
                 locked: one.locked,
                 guest: one.guest,
             })
             .collect(),
     };
 
+    // A parcel that says nothing new is one an older Tisty can still open, and its seal only
+    // adds up when the manifest is the same bytes on both sides.
+    manifest.version = match manifest
+        .docs
+        .iter()
+        .any(|one| one.away_alone.is_some() || one.flagged.is_some())
+    {
+        true => VERSION,
+        false => 1,
+    };
     manifest.seal =
         crate::store::secret(data.join("store")).and_then(|keep| sealed(&manifest, &keep));
 
@@ -1020,8 +1050,16 @@ fn taken_in(
         // A folder that lands closed answers for what it holds; marking the document again would
         // outlive the folder and never come back with it.
         let by_folder = paper.by_folder && folder.is_some_and(|at| shut.contains(&at));
-        if paper.archived && !by_folder {
+        let alone = paper
+            .away_alone
+            .unwrap_or(paper.archived && paper.page_of.is_none());
+        if alone && !by_folder {
             ops.push(Op::DocArchive { id });
+        }
+        if let Some(said) = paper.flagged.clone() {
+            let mut mark = crate::event::Flag::new(said.body).through(said.via);
+            mark.at = Some(said.at);
+            ops.push(Op::DocFlag { id, d: mark });
         }
         if paper.locked {
             ops.push(Op::DocLock { id });

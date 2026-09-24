@@ -814,7 +814,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
 }
 
 #[test]
-fn archiving_and_unarchiving_the_document_reaches_its_pages_but_a_loose_page_ignores_archiving() {
+fn the_document_covers_its_pages_and_a_page_can_also_go_away_alone() {
     let world = World::new();
     let mut store = world.store("dev_a");
     let doc = doc_add(&mut store, "a3f1-0001", "a0", None, None);
@@ -823,20 +823,26 @@ fn archiving_and_unarchiving_the_document_reaches_its_pages_but_a_loose_page_ign
     store.append(Op::DocArchive { id: doc }).unwrap();
     let state = replayed(&world);
     assert!(state.docs[&doc].archived);
-    assert!(state.docs[&page].archived);
+    assert!(
+        state.held_away(&state.docs[&page]),
+        "the document covers the page it holds"
+    );
+    assert!(
+        !state.docs[&page].archived,
+        "covering it is not a mark of its own"
+    );
 
     store.append(Op::DocUnarchive { id: doc }).unwrap();
     let state = replayed(&world);
-    assert!(!state.docs[&doc].archived);
-    assert!(!state.docs[&page].archived);
+    assert!(!state.held_away(&state.docs[&page]));
 
     store.append(Op::DocArchive { id: page }).unwrap();
     let state = replayed(&world);
+    assert!(state.docs[&page].archived, "a page answers for itself");
     assert!(
-        !state.docs[&page].archived,
-        "a page cannot be archived on its own"
+        !state.held_away(&state.docs[&doc]),
+        "and the document it hangs from stays out"
     );
-    assert!(!state.docs[&doc].archived);
 }
 
 #[test]

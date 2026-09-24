@@ -401,6 +401,161 @@ impl Session {
         Ok(())
     }
 
+    fn copy_doc(&mut self, id: &str) -> Answer<tisty_core::docs::Doc> {
+        let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+        let kept = self
+            .state
+            .docs
+            .get(&id)
+            .cloned()
+            .ok_or_else(|| Refusal::of("noSuchDoc"))?;
+        if kept.page_of.is_some_and(|up| self.state.shut(up)) {
+            return Err(Refusal::of("pageOfLocked"));
+        }
+        if kept
+            .page_of
+            .and_then(|up| self.state.docs.get(&up))
+            .is_some_and(|up| self.state.held_away(up))
+        {
+            return Err(Refusal::of("pageOfAway"));
+        }
+        if let Some(at) = kept.folder {
+            folder_open(&self.state, at, true)?;
+        }
+
+        let root = self.paths.docs();
+        let body =
+            tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
+        let body = match body.split_once('\n') {
+            Some((first, rest)) if !first.trim().is_empty() => {
+                format!("{first}{}\n{rest}", worded(&self.locale, "copy"))
+            }
+            _ if !body.trim().is_empty() => format!("{body}{}", worded(&self.locale, "copy")),
+            _ => body,
+        };
+        let made = tisty_core::docs::create(&root, &self.config.device_id, &body)
+            .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;
+
+        let order = tisty_core::order::last_of(
+            self.state
+                .docs
+                .values()
+                .filter(|one| {
+                    one.page_of == kept.page_of
+                        && (kept.page_of.is_some() || one.folder == kept.folder)
+                })
+                .map(|one| one.order.as_str()),
+        );
+        let twin = ulid::Ulid::generate();
+        let signed_as = signing(&self.state);
+        self.commit(Op::DocAdd {
+            id: twin,
+            d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
+                by: signed_as.clone(),
+                file: made.id.clone(),
+                order,
+                said: Some(tisty_core::event::Said {
+                    title: made.title.clone(),
+                    bytes: None,
+                    tags: Some(kept.tags.clone()),
+                    by: None,
+                }),
+                folder: kept.folder,
+                page_of: kept.page_of,
+            },
+        })?;
+        if kept.archived {
+            self.commit(Op::DocArchive { id: twin })?;
+        }
+
+        let mut renamed: Vec<(String, String)> = Vec::new();
+        for (page, was_away) in self
+            .state
+            .pages_of(id)
+            .iter()
+            .map(|one| (one.file.clone(), one.archived))
+            .collect::<Vec<_>>()
+        {
+            let body = tisty_core::docs::read(&root, &page).unwrap_or_default();
+            let leaf = tisty_core::docs::create(&root, &self.config.device_id, &body)
+                .map_err(|e| blamed(channel::WINDOW, "a page could not be copied", e))?;
+            renamed.push((page.clone(), leaf.id.clone()));
+            let order = tisty_core::order::last_of(
+                self.state
+                    .docs
+                    .values()
+                    .filter(|one| one.page_of == Some(twin))
+                    .map(|one| one.order.as_str()),
+            );
+            let signed_as = signing(&self.state);
+            let leaf_id = ulid::Ulid::generate();
+            self.commit(Op::DocAdd {
+                id: leaf_id,
+                d: tisty_core::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: signed_as.clone(),
+                    file: leaf.id,
+                    order,
+                    said: Some(tisty_core::event::Said {
+                        title: leaf.title,
+                        bytes: None,
+                        tags: Some(Vec::new()),
+                        by: None,
+                    }),
+                    folder: kept.folder,
+                    page_of: Some(twin),
+                },
+            })?;
+            if was_away {
+                self.commit(Op::DocArchive { id: leaf_id })?;
+            }
+        }
+
+        if !renamed.is_empty() {
+            let mine = |text: String| {
+                renamed.iter().fold(text, |text, (was, now)| {
+                    text.replace(
+                        &format!("{}{was}", tisty_core::refs::DOC),
+                        &format!("{}{now}", tisty_core::refs::DOC),
+                    )
+                })
+            };
+            // A copy whose links were not rewritten points at what it was copied from, which reads
+            // as if the pages belonged to the other one.
+            let mut astray = Vec::new();
+            if let Err(why) = tisty_core::docs::write(&root, &made.id, &mine(body)) {
+                astray.push(why.to_string());
+            }
+            for (_, now) in &renamed {
+                let Ok(body) = tisty_core::docs::read(&root, now) else {
+                    continue;
+                };
+                let told = mine(body.clone());
+                if told != body
+                    && let Err(why) = tisty_core::docs::write(&root, now, &told)
+                {
+                    astray.push(why.to_string());
+                }
+            }
+            if !astray.is_empty() {
+                witness::warn(
+                    channel::WINDOW,
+                    "a copy was made but some of its links still point at the original",
+                    &[
+                        ("doc", Fact::Id(made.id.clone())),
+                        ("why", Fact::Why(astray.join("; "))),
+                    ],
+                );
+            }
+        }
+        Ok(made)
+    }
+
     fn drop_doc(&mut self, id: &str) -> Answer<()> {
         let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
         let kept = self
@@ -412,8 +567,11 @@ impl Session {
             return Err(Refusal::of("documentLocked"));
         }
         // Deleting has no undo, and the archive is meant to keep what it holds.
-        if !kept.archived && self.state.held_away(kept) {
-            return Err(Refusal::of("folderIsAway"));
+        if self.state.held_by_another(kept) {
+            return Err(Refusal::of(match kept.page_of.is_some() {
+                true => "pageIsAway",
+                false => "folderIsAway",
+            }));
         }
         let mut files = vec![kept.file.clone()];
         files.extend(self.state.pages_of(id).iter().map(|one| one.file.clone()));
@@ -3285,6 +3443,10 @@ fn named_folder(said: &str) -> Answer<String> {
     if name.is_empty() {
         return Err(Refusal::of("untitled"));
     }
+    // A slash reads as a path everywhere else, and then one name stands for two folders.
+    if name.contains('/') {
+        return Err(Refusal::of("folderNameSlash"));
+    }
     if name.chars().count() > tisty_core::model::FOLDER_NAME_AT_MOST {
         return Err(Refusal::of("folderNameTooLong"));
     }
@@ -3520,9 +3682,6 @@ fn doc_file(
         Some(_) => {}
     }
     doc_out(&session.state, id)?;
-    if session.state.stowed(id) {
-        return Err(Refusal::of("documentAway"));
-    }
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
@@ -4287,15 +4446,14 @@ fn folder_open(state: &State, at: tisty_core::model::FolderId, holds: bool) -> A
     }
 }
 
-/// A document the archive reaches through its folder has no door of its own.
 fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
-    let held_by_folder = state
-        .docs
-        .get(&id)
-        .is_some_and(|one| !one.archived && state.held_away(one));
-    match held_by_folder {
-        true => Err(Refusal::of("folderIsAway")),
-        false => Ok(()),
+    let Some(kept) = state.docs.get(&id) else {
+        return Ok(());
+    };
+    match (state.held_by_another(kept), kept.page_of.is_some()) {
+        (true, true) => Err(Refusal::of("pageIsAway")),
+        (true, false) => Err(Refusal::of("folderIsAway")),
+        (false, _) => Ok(()),
     }
 }
 
@@ -4303,10 +4461,8 @@ fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
 fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
     let mut session = held(&session);
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
-        Some(_) => {}
+    if !session.state.docs.contains_key(&id) {
+        return Err(Refusal::of("noSuchDoc"));
     }
     doc_out(&session.state, id)?;
     session.commit(if away {
@@ -4360,149 +4516,7 @@ fn doc_copy(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<tisty_core::docs::Doc> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
-    let kept = session
-        .state
-        .docs
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("noSuchDoc"))?;
-    if kept.page_of.is_some_and(|up| session.state.shut(up)) {
-        return Err(Refusal::of("pageOfLocked"));
-    }
-    if let Some(at) = kept.folder {
-        folder_open(&session.state, at, true)?;
-    }
-
-    let root = session.paths.docs();
-    let body = tisty_core::docs::read(&root, &kept.file).map_err(|_| Refusal::of("noSuchDoc"))?;
-    let body = match body.split_once('\n') {
-        Some((first, rest)) if !first.trim().is_empty() => {
-            format!("{first}{}\n{rest}", worded(&session.locale, "copy"))
-        }
-        _ if !body.trim().is_empty() => format!("{body}{}", worded(&session.locale, "copy")),
-        _ => body,
-    };
-    let made = tisty_core::docs::create(&root, &session.config.device_id, &body)
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be copied", e))?;
-
-    let order = tisty_core::order::last_of(
-        session
-            .state
-            .docs
-            .values()
-            .filter(|one| {
-                one.page_of == kept.page_of && (kept.page_of.is_some() || one.folder == kept.folder)
-            })
-            .map(|one| one.order.as_str()),
-    );
-    let twin = ulid::Ulid::generate();
-    let signed_as = signing(&session.state);
-    session.commit(Op::DocAdd {
-        id: twin,
-        d: tisty_core::event::DocAdd {
-            wrote: None,
-            guest: false,
-            made: None,
-            by: signed_as.clone(),
-            file: made.id.clone(),
-            order,
-            said: Some(tisty_core::event::Said {
-                title: made.title.clone(),
-                bytes: None,
-                tags: Some(kept.tags.clone()),
-                by: None,
-            }),
-            folder: kept.folder,
-            page_of: kept.page_of,
-        },
-    })?;
-    if kept.archived && kept.page_of.is_none() {
-        session.commit(Op::DocArchive { id: twin })?;
-    }
-
-    // A page is part of its document, so the copy is not the same document without them.
-    let mut renamed: Vec<(String, String)> = Vec::new();
-    for page in session
-        .state
-        .pages_of(id)
-        .iter()
-        .map(|one| one.file.clone())
-        .collect::<Vec<_>>()
-    {
-        let body = tisty_core::docs::read(&root, &page).unwrap_or_default();
-        let leaf = tisty_core::docs::create(&root, &session.config.device_id, &body)
-            .map_err(|e| blamed(channel::WINDOW, "a page could not be copied", e))?;
-        renamed.push((page.clone(), leaf.id.clone()));
-        let order = tisty_core::order::last_of(
-            session
-                .state
-                .docs
-                .values()
-                .filter(|one| one.page_of == Some(twin))
-                .map(|one| one.order.as_str()),
-        );
-        let signed_as = signing(&session.state);
-        session.commit(Op::DocAdd {
-            id: ulid::Ulid::generate(),
-            d: tisty_core::event::DocAdd {
-                wrote: None,
-                guest: false,
-                made: None,
-                by: signed_as.clone(),
-                file: leaf.id,
-                order,
-                said: Some(tisty_core::event::Said {
-                    title: leaf.title,
-                    bytes: None,
-                    tags: Some(Vec::new()),
-                    by: None,
-                }),
-                folder: kept.folder,
-                page_of: Some(twin),
-            },
-        })?;
-    }
-
-    if !renamed.is_empty() {
-        let mine = |text: String| {
-            renamed.iter().fold(text, |text, (was, now)| {
-                text.replace(
-                    &format!("{}{was}", tisty_core::refs::DOC),
-                    &format!("{}{now}", tisty_core::refs::DOC),
-                )
-            })
-        };
-        // A copy whose links were not rewritten points at what it was copied from, which reads
-        // as if the pages belonged to the other one.
-        let mut astray = Vec::new();
-        if let Err(why) = tisty_core::docs::write(&root, &made.id, &mine(body)) {
-            astray.push(why.to_string());
-        }
-        for (_, now) in &renamed {
-            let Ok(body) = tisty_core::docs::read(&root, now) else {
-                continue;
-            };
-            let told = mine(body.clone());
-            if told != body
-                && let Err(why) = tisty_core::docs::write(&root, now, &told)
-            {
-                astray.push(why.to_string());
-            }
-        }
-        if !astray.is_empty() {
-            witness::warn(
-                channel::WINDOW,
-                "a copy was made but some of its links still point at the original",
-                &[
-                    ("doc", Fact::Id(made.id.clone())),
-                    ("why", Fact::Why(astray.join("; "))),
-                ],
-            );
-        }
-    }
-    Ok(made)
+    held(&session).copy_doc(&id)
 }
 
 #[tauri::command(async)]
@@ -7419,6 +7433,147 @@ pub fn run() {
 }
 
 #[cfg(test)]
+mod copying {
+    use super::Session;
+    use tisty_core::model::DocId;
+    use tisty_core::{Op, Paths};
+
+    struct Desk {
+        _tmp: tempfile::TempDir,
+        paths: Paths,
+    }
+
+    fn desk() -> Desk {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        std::fs::create_dir_all(paths.docs()).unwrap();
+        Desk { _tmp: tmp, paths }
+    }
+
+    fn wrote(session: &mut Session, title: &str, up: Option<DocId>) -> DocId {
+        let made = tisty_core::docs::create(
+            &session.paths.docs(),
+            &session.config.device_id,
+            &format!("# {title}"),
+        )
+        .unwrap();
+        let id = ulid::Ulid::generate();
+        session
+            .commit(Op::DocAdd {
+                id,
+                d: tisty_core::event::DocAdd {
+                    wrote: None,
+                    guest: false,
+                    made: None,
+                    by: None,
+                    said: None,
+                    file: made.id,
+                    order: tisty_core::order::last_of(
+                        session
+                            .state
+                            .docs
+                            .values()
+                            .filter(|one| one.page_of == up)
+                            .map(|one| one.order.as_str()),
+                    ),
+                    folder: None,
+                    page_of: up,
+                },
+            })
+            .unwrap();
+        id
+    }
+
+    fn twin_of(session: &Session, made: &tisty_core::docs::Doc) -> DocId {
+        session
+            .state
+            .docs
+            .values()
+            .find(|one| one.file == made.id)
+            .unwrap()
+            .id
+    }
+
+    #[test]
+    fn a_copy_of_a_page_in_the_archive_is_in_the_archive_too() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let book = wrote(&mut session, "Book", None);
+        let page = wrote(&mut session, "Page", Some(book));
+        session.commit(Op::DocArchive { id: page }).unwrap();
+
+        let made = session.copy_doc(&page.to_string()).unwrap();
+        let twin = twin_of(&session, &made);
+
+        assert!(
+            session.state.docs[&twin].archived,
+            "a copy of what was put away comes back awake and loses what the person had decided"
+        );
+        assert_eq!(session.state.docs[&twin].page_of, Some(book));
+    }
+
+    #[test]
+    fn copying_a_book_keeps_each_page_where_the_person_left_it() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let book = wrote(&mut session, "Book", None);
+        let first = wrote(&mut session, "First", Some(book));
+        wrote(&mut session, "Second", Some(book));
+        session.commit(Op::DocArchive { id: first }).unwrap();
+
+        let made = session.copy_doc(&book.to_string()).unwrap();
+        let twin = twin_of(&session, &made);
+
+        assert!(!session.state.docs[&twin].archived);
+        let pages: Vec<bool> = session
+            .state
+            .pages_of(twin)
+            .iter()
+            .map(|one| one.archived)
+            .collect();
+        assert_eq!(
+            pages,
+            vec![true, false],
+            "the copy has to hold the same two pages, one of them put away"
+        );
+    }
+
+    #[test]
+    fn a_page_of_a_document_in_the_archive_is_not_copied_into_it() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let book = wrote(&mut session, "Book", None);
+        let page = wrote(&mut session, "Page", Some(book));
+        session.commit(Op::DocArchive { id: book }).unwrap();
+
+        assert!(
+            session.copy_doc(&page.to_string()).is_err(),
+            "a copy is a new page, and nothing new goes into the archive"
+        );
+        assert_eq!(session.state.pages_of(book).len(), 1);
+    }
+
+    #[test]
+    fn copying_a_document_in_the_archive_leaves_the_copy_there() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let book = wrote(&mut session, "Book", None);
+        wrote(&mut session, "Page", Some(book));
+        session.commit(Op::DocArchive { id: book }).unwrap();
+
+        let made = session.copy_doc(&book.to_string()).unwrap();
+        let twin = twin_of(&session, &made);
+
+        assert!(session.state.docs[&twin].archived);
+        let page = session.state.pages_of(twin)[0];
+        assert!(
+            !page.archived && session.state.held_away(page),
+            "the page is covered by the copy, not marked on its own"
+        );
+    }
+}
+
+#[cfg(test)]
 mod deleting {
     use super::Session;
     use tisty_core::{Op, Paths};
@@ -7500,6 +7655,25 @@ mod deleting {
                 .of(&parent)
                 .is_none()
         );
+    }
+
+    #[test]
+    fn a_page_the_archive_holds_through_its_document_is_not_deleted() {
+        let desk = desk();
+        let mut session = Session::at(desk.paths.clone()).unwrap();
+        let parent = a_page_under(&mut session, None);
+        let up = named(&session, &parent);
+        let page = a_page_under(&mut session, Some(up));
+        let leaf = named(&session, &page);
+        session.commit(Op::DocArchive { id: leaf }).unwrap();
+        session.commit(Op::DocArchive { id: up }).unwrap();
+        ledgered(&desk, &[&parent, &page]);
+
+        assert!(
+            session.drop_doc(&leaf.to_string()).is_err(),
+            "deleting has no undo, and the archive keeps what it holds"
+        );
+        assert!(there(&desk, &page), "and the file is still on the disk");
     }
 
     #[test]

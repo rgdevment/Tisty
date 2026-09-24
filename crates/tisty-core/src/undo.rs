@@ -14,6 +14,17 @@ pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
     {
         back.push(Op::TaskHide { id: *id });
     }
+    if let Op::DocArchive { id } = &event.op
+        && !before.assistants.contains(&event.device)
+        && let Some(said) = before.docs.get(id).and_then(|one| one.flagged.clone())
+    {
+        back.push(Op::DocFlag {
+            id: *id,
+            d: crate::event::Flag::new(said.body)
+                .said_by(said.at, said.by)
+                .through(said.via),
+        });
+    }
     Some(back)
 }
 

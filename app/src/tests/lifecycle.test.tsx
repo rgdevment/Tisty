@@ -115,19 +115,25 @@ vi.mock("../ui/Editor", () => ({
     label,
     onWrite,
     onShaped,
+    above,
+    below,
   }: {
     value: string;
     label: string;
     onWrite: (text: string) => void;
     onShaped?: (text: string) => void;
+    above?: React.ReactNode;
+    below?: React.ReactNode;
   }) => (
     <>
+      {above}
       <textarea
         aria-label={label}
         data-testid="editor"
         value={value}
         onChange={(e) => onWrite(e.target.value)}
       />
+      {below}
       <button
         type="button"
         data-testid="reshape"
@@ -172,7 +178,10 @@ function papersOut(): Papers {
     })),
     docs: store.docs.map((doc) => ({
       ...doc,
-      away: doc.archived || folderAway(doc.folder),
+      away:
+        doc.archived ||
+        folderAway(doc.folder) ||
+        store.docs.some((up) => up.id === doc.pageOf && (up.archived || folderAway(up.folder))),
     })),
   };
 }
@@ -456,19 +465,19 @@ describe("archiving and bringing back a document", () => {
     await boot();
     expect(countBadge("Work")).toBe("1");
 
-    await chooseFor("Report", t("putAway"));
+    await chooseFor(/^Report/, t("putAway"));
 
     await waitFor(() =>
       expect(
         within(screen.getByRole("list", { name: t("docs") })).queryByRole("button", {
-          name: "Report",
+          name: /^Report/,
         }),
       ).toBeNull(),
     );
     unfoldAll();
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
-        name: "Report",
+        name: /^Report/,
       }),
     ).toBeTruthy();
     expect(countBadge("Work")).toBe("");
@@ -480,12 +489,14 @@ describe("archiving and bringing back a document", () => {
     await boot();
     expect(countBadge("Work")).toBe("");
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await backHome();
 
     await waitFor(() => expect(countBadge("Work")).toBe("1"));
     expect(
-      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", { name: "Report" }),
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+        name: /^Report/,
+      }),
     ).toBeTruthy();
     expect(screen.queryByRole("list", { name: t("archived") })).toBeNull();
   });
@@ -495,7 +506,7 @@ describe("archiving and bringing back a document", () => {
     const doc = seedDoc({ title: "Report", folder: folder.id, archived: true });
     await boot();
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await userEvent.click(
       await screen.findByRole("radio", { name: new RegExp(`^${t("backToNone")}`) }),
     );
@@ -523,7 +534,7 @@ describe("archiving and bringing back a document", () => {
     const doc = seedDoc({ title: "Report", archived: true, folderWas: ["Packaging"] });
     await boot();
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
     );
@@ -556,7 +567,7 @@ describe("archiving and bringing back a document", () => {
     const shelf = within(screen.getByRole("list", { name: t("archived") }));
     expect(shelf.getByText("Packaging")).toBeTruthy();
 
-    await chooseFor("Report", t("bringBack"));
+    await chooseFor(/^Report/, t("bringBack"));
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: t("bringBack") }),
     );
@@ -638,9 +649,9 @@ describe("putting a whole folder away", () => {
     );
     unfoldAll();
     const shelf = within(screen.getByRole("list", { name: t("archived") }));
-    expect(shelf.getByRole("button", { name: "Contracts" })).toBeTruthy();
-    expect(shelf.getByRole("button", { name: "Rollout" })).toBeTruthy();
-    expect(shelf.getByRole("button", { name: "BOB" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^Contracts/ })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^Rollout/ })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^BOB/ })).toBeTruthy();
   });
 
   it("offers to bring back the folder that was shelved, and nothing under it", async () => {
@@ -652,7 +663,7 @@ describe("putting a whole folder away", () => {
     unfoldAll();
 
     // The one that was shelved answers for itself; what it holds has no door of its own.
-    fireEvent.contextMenu(menuFor("Contracts"), { clientX: 5, clientY: 5 });
+    fireEvent.contextMenu(menuFor(/^Contracts/), { clientX: 5, clientY: 5 });
     const held = await screen.findByRole("menu");
     expect(within(held).queryByRole("menuitem", { name: t("bringBack") })).toBeNull();
     fireEvent.keyDown(document, { key: "Escape" });
@@ -713,6 +724,112 @@ describe("coming back to the window", () => {
 
     await waitFor(() => expect(asked("docs")).toBeGreaterThan(before));
     seen.mockRestore();
+  });
+});
+
+describe("a page of its own", () => {
+  it("says what an agent said about the page, and puts that page away", async () => {
+    const book = seedDoc({ title: "Minutes" });
+    const page = seedDoc({
+      title: "April",
+      pageOf: book.id,
+      flagged: { at: "2026-09-23T10:00:00Z", said: "The quarter closed in another minute." },
+    });
+    await boot();
+
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+        name: /^Minutes/,
+      }),
+    );
+    await screen.findByTestId("editor");
+    await userEvent.click(
+      within(await screen.findByRole("region", { name: t("theseLeaves") })).getByRole("button", {
+        name: /April/,
+      }),
+    );
+    expect(await screen.findByText("The quarter closed in another minute.")).toBeTruthy();
+
+    await userEvent.click(
+      within(screen.getByRole("main")).getByRole("button", { name: t("putAway") }),
+    );
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === page.id)?.archived).toBe(true));
+    expect(
+      store.docs.find((one) => one.id === book.id)?.archived,
+      "the book it hangs from stays out",
+    ).toBe(false);
+  });
+
+  it("marks the page the document lists as the one that is put away", async () => {
+    const book = seedDoc({ title: "Minutes" });
+    seedDoc({ title: "March", pageOf: book.id });
+    seedDoc({ title: "April", pageOf: book.id, archived: true });
+    await boot();
+
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+        name: /^Minutes/,
+      }),
+    );
+    await screen.findByTestId("editor");
+
+    const pages = screen.getByRole("region", { name: t("theseLeaves") });
+    expect(within(pages).getByRole("button", { name: `April — ${t("isArchived")}` })).toBeTruthy();
+    expect(within(pages).queryByText(t("isArchived")), "the word itself is noise").toBeNull();
+  });
+
+  it("covers every page while the document is away, and wakes only what was awake", async () => {
+    const book = seedDoc({ title: "Minutes" });
+    const march = seedDoc({ title: "March", pageOf: book.id });
+    const april = seedDoc({ title: "April", pageOf: book.id, archived: true });
+    await boot();
+
+    await chooseFor(/^Minutes/, t("putAway"));
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === book.id)?.archived).toBe(true));
+    expect(
+      papersOut().docs.filter((one) => one.away).length,
+      "the document and both pages read as away",
+    ).toBe(3);
+
+    unfoldAll();
+    await chooseFor(/^Minutes/, t("bringBack"));
+    await backHome();
+
+    await waitFor(() => expect(store.docs.find((one) => one.id === book.id)?.archived).toBe(false));
+    const back = papersOut().docs;
+    expect(back.find((one) => one.id === march.id)?.away).toBe(false);
+    expect(back.find((one) => one.id === april.id)?.away, "it was apart before").toBe(true);
+  });
+
+  it("brings a page back where it lives without asking for a folder it does not have", async () => {
+    const book = seedDoc({ title: "Minutes" });
+    const march = seedDoc({ title: "March", pageOf: book.id, archived: true });
+    await boot();
+
+    await userEvent.click(
+      within(screen.getByRole("list", { name: t("docs") })).getByRole("button", {
+        name: /^Minutes/,
+      }),
+    );
+    await screen.findByTestId("editor");
+    await userEvent.click(
+      within(await screen.findByRole("region", { name: t("theseLeaves") })).getByRole("button", {
+        name: /March/,
+      }),
+    );
+    await userEvent.click(
+      within(screen.getByRole("main")).getByRole("button", { name: t("bringBack") }),
+    );
+
+    await waitFor(() =>
+      expect(store.docs.find((one) => one.id === march.id)?.archived).toBe(false),
+    );
+    expect(
+      screen.queryByRole("dialog"),
+      "a page lands under its document, so there is nothing to ask",
+    ).toBeNull();
   });
 });
 
@@ -906,7 +1023,7 @@ describe("nothing filed yet", () => {
 
     expect(
       within(screen.getByRole("list", { name: t("archived") })).getByRole("button", {
-        name: "Old",
+        name: /^Old/,
       }),
     ).toBeTruthy();
     expect(

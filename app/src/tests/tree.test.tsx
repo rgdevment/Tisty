@@ -141,7 +141,7 @@ describe("the document tree", () => {
 
     const shelf = within(screen.getByRole("list", { name: "Archived" }));
     expect(shelf.getByRole("button", { name: "Open linio" })).toBeTruthy();
-    expect(shelf.getByRole("button", { name: "Suelto viejo" })).toBeTruthy();
+    expect(shelf.getByRole("button", { name: /^Suelto viejo/ })).toBeTruthy();
     expect(shelf.queryByRole("button", { name: /vivo/ })).toBeNull();
 
     const tree = within(screen.getByRole("list", { name: "Documents" }));
@@ -506,11 +506,11 @@ describe("the document tree", () => {
     show();
 
     expect(screen.getByRole("button", { name: "trabajo" }).textContent).toContain("3");
-    expect(screen.getByRole("button", { name: "Viejo" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Viejo/ })).toBeTruthy();
     expect(
       screen
         .getByRole("list", { name: "Documents" })
-        .contains(screen.getByRole("button", { name: "Viejo" })),
+        .contains(screen.getByRole("button", { name: /^Viejo/ })),
     ).toBe(false);
   });
 
@@ -519,7 +519,7 @@ describe("the document tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Archived" }));
 
-    expect(screen.queryByRole("button", { name: "Viejo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Viejo/ })).toBeNull();
   });
 
   it("offers making something on the shelf itself, not only on a folder", () => {
@@ -791,7 +791,7 @@ describe("a document with pages", () => {
   it("keeps the archive within reach of the arrow keys", async () => {
     render(<Tree papers={papers} onOpen={vi.fn()} onFile={vi.fn()} onHere={vi.fn()} />);
     unfoldAll();
-    const away = screen.getByRole("button", { name: "Viejo" });
+    const away = screen.getByRole("button", { name: /^Viejo/ });
 
     away.focus();
     await userEvent.keyboard("{ArrowUp}");

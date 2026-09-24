@@ -117,7 +117,18 @@ impl State {
 
     /// What the archive holds: the document's own mark, or the folder it sits in.
     pub fn held_away(&self, kept: &Kept) -> bool {
-        kept.archived || kept.folder.is_some_and(|at| self.folder_away(at))
+        kept.archived || self.held_by_another(kept)
+    }
+
+    /// What holds it from above, its own mark left out: nothing it answers for by itself, and so
+    /// nothing `archive_doc` or a move can take back.
+    pub fn held_by_another(&self, kept: &Kept) -> bool {
+        kept.folder.is_some_and(|at| self.folder_away(at))
+            || kept.page_of.is_some_and(|up| {
+                self.docs.get(&up).is_some_and(|doc| {
+                    doc.archived || doc.folder.is_some_and(|at| self.folder_away(at))
+                })
+            })
     }
 
     pub fn stowed(&self, id: DocId) -> bool {
@@ -171,23 +182,10 @@ impl State {
     }
 
     fn shelve(&mut self, id: DocId, away: bool, by_person: bool) {
-        if self.docs.get(&id).is_some_and(|one| one.page_of.is_some()) {
-            return;
-        }
-        let pages: Vec<DocId> = self
-            .docs
-            .values()
-            .filter(|one| one.page_of == Some(id))
-            .map(|one| one.id)
-            .collect();
-        for one in pages.into_iter().chain(std::iter::once(id)) {
-            if let Some(doc) = self.docs.get_mut(&one) {
-                doc.archived = away;
-                // Putting it away is an answer to the mark, but only when the hand is the
-                // person's: an assistant archiving one of its own marks would bury it.
-                if away && by_person {
-                    doc.flagged = None;
-                }
+        if let Some(doc) = self.docs.get_mut(&id) {
+            doc.archived = away;
+            if away && by_person {
+                doc.flagged = None;
             }
         }
     }
@@ -439,8 +437,8 @@ impl State {
                 for doc in self.docs.values_mut() {
                     if doc.folder == Some(*id) {
                         doc.folder = None;
-                        doc.archived = doc.archived || away;
-                        if doc.archived {
+                        doc.archived = doc.archived || (away && doc.page_of.is_none());
+                        if doc.archived && doc.page_of.is_none() {
                             doc.folder_was = gone.clone();
                         }
                     }
@@ -473,7 +471,7 @@ impl State {
                             None => d.folder,
                         },
                         page_of,
-                        archived: under.is_some_and(|one| one.archived),
+                        archived: page_of.is_none() && under.is_some_and(|one| one.archived),
                         locked: false,
                         tags: crate::tagging::worth_keeping(
                             &d.said
@@ -516,7 +514,15 @@ impl State {
                     if allowed.is_some() || page_of.is_none() {
                         let under = allowed
                             .and_then(|up| self.docs.get(&up))
-                            .map(|one| (one.folder, one.archived));
+                            .map(|one| one.folder);
+                        // Only the cover it is walking out of: a folder above it holds it
+                        // just the same once it is a document of its own.
+                        let leaving = allowed.is_none()
+                            && self.docs.get(id).is_some_and(|one| {
+                                !one.archived
+                                    && !one.folder.is_some_and(|at| self.folder_away(at))
+                                    && self.held_away(one)
+                            });
                         let beside = allowed.map(|up| {
                             crate::order::last_of(
                                 self.docs
@@ -527,13 +533,16 @@ impl State {
                         });
                         if let Some(doc) = self.docs.get_mut(id) {
                             doc.page_of = allowed;
-                            if let Some((folder, archived)) = under {
+                            if let Some(folder) = under {
                                 doc.folder = folder;
-                                doc.archived = archived;
+                                doc.archived = false;
                                 doc.folder_was = None;
                                 doc.flagged = None;
                                 doc.locked = false;
                                 doc.order = beside.unwrap_or_else(|| doc.order.clone());
+                            }
+                            if leaving {
+                                doc.archived = true;
                             }
                         }
                     }
@@ -5710,7 +5719,7 @@ mod tests {
     }
 
     #[test]
-    fn archiving_a_document_takes_the_marks_of_its_pages_too() {
+    fn a_mark_on_a_page_is_answered_by_putting_that_page_away() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
@@ -5726,17 +5735,53 @@ mod tests {
         }
 
         state.apply(&ev(3, "a", Op::DocArchive { id: minutes }));
-
         assert!(state.docs[&minutes].flagged.is_none());
         assert!(
-            state.docs[&march].flagged.is_none(),
-            "the page went into the archive with it, so its mark was answered too"
+            state.docs[&march].flagged.is_some(),
+            "the document covered the page, which answers nothing about the page itself"
+        );
+
+        state.apply(&ev(4, "a", Op::DocArchive { id: march }));
+        assert!(state.docs[&march].flagged.is_none());
+    }
+
+    #[test]
+    fn taking_back_a_putting_away_puts_the_mark_back_with_it() {
+        let mut state = State::default();
+        state.assistants.insert(DeviceId("dev_agent".into()));
+        let one = doc(&mut state, "a3f1-0001", None);
+        state.apply(&ev(
+            2,
+            "dev_agent",
+            Op::DocFlag {
+                id: one,
+                d: crate::event::Flag::new("it has had its day"),
+            },
+        ));
+        let before = state.clone();
+        let put = ev(3, "a", Op::DocArchive { id: one });
+        state.apply(&put);
+        assert!(state.docs[&one].flagged.is_none());
+
+        for op in crate::undo::inverse(&put, &before).expect("it can be taken back") {
+            state.apply(&ev(4, "a", op));
+        }
+
+        assert!(!state.docs[&one].archived);
+        assert_eq!(
+            state.docs[&one]
+                .flagged
+                .as_ref()
+                .map(|said| said.body.as_str()),
+            Some("it has had its day"),
+            "undoing an answer to the mark cannot swallow the mark"
         );
     }
 
     #[test]
-    fn archiving_aimed_at_a_page_leaves_the_page_exactly_as_it_was() {
+    fn a_page_put_away_by_an_assistant_keeps_the_mark_it_was_given() {
         let mut state = State::default();
+        state.assistants.insert(DeviceId("dev_agent".into()));
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
         state.apply(&ev(
@@ -5748,25 +5793,61 @@ mod tests {
             },
         ));
 
-        state.apply(&ev(3, "a", Op::DocArchive { id: march }));
+        state.apply(&ev(3, "dev_agent", Op::DocArchive { id: march }));
 
-        assert!(!state.docs[&march].archived, "a page stays put");
+        assert!(state.docs[&march].archived, "a page answers for itself now");
         assert!(
             state.docs[&march].flagged.is_some(),
-            "nothing happened to it, so nothing answered its mark"
+            "only the person answers a mark, and no person was here"
         );
     }
 
     #[test]
-    fn a_page_keeps_no_trace_of_a_folder_once_its_document_lands_again() {
+    fn a_page_taken_out_under_a_shelved_folder_waits_for_the_folder_and_not_for_a_mark() {
+        let mut state = State::default();
+        let work = folder(&mut state, "work", None);
+        let minutes = doc(&mut state, "a3f1-0001", Some(work));
+        let march = page(&mut state, "a3f1-0002", minutes);
+        state.apply(&ev(2, "a", Op::FolderArchive { id: work }));
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(None),
+                order: None,
+            },
+        );
+
+        assert!(state.held_away(&state.docs[&march]));
+        assert!(
+            !state.docs[&march].archived,
+            "the folder still holds it, so a mark of its own would outlive the folder"
+        );
+
+        state.apply(&ev(3, "a", Op::FolderUnarchive { id: work }));
+        assert!(
+            !state.held_away(&state.docs[&march]),
+            "and the folder coming back has to let it go"
+        );
+    }
+
+    #[test]
+    fn a_page_carries_no_way_back_because_it_is_never_asked_for_one() {
         let mut state = State::default();
         let work = folder(&mut state, "work", None);
         let home = folder(&mut state, "home", None);
         let minutes = doc(&mut state, "a3f1-0001", Some(work));
         let march = page(&mut state, "a3f1-0002", minutes);
         state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+
         state.apply(&ev(3, "a", Op::FolderDelete { id: work }));
-        assert!(state.docs[&march].folder_was.is_some());
+        assert!(state.docs[&minutes].folder_was.is_some());
+        assert_eq!(
+            state.docs[&march].folder_was, None,
+            "it goes wherever its document goes, so nobody asks it where"
+        );
 
         state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
         moved(
@@ -5779,7 +5860,7 @@ mod tests {
             },
         );
 
-        assert_eq!(state.docs[&march].folder_was, None);
+        assert_eq!(state.docs[&march].folder, Some(home), "it followed");
         assert_eq!(state.docs[&minutes].folder_was, None);
     }
 
@@ -5883,16 +5964,33 @@ mod tests {
     }
 
     #[test]
-    fn archiving_a_document_puts_its_pages_away_and_brings_them_back() {
+    fn archiving_a_document_covers_its_pages_and_gives_each_one_back_as_it_was() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
+        let april = page(&mut state, "a3f1-0003", minutes);
+        state.apply(&ev(2, "a", Op::DocArchive { id: march }));
 
         state.apply(&ev(3, "a", Op::DocArchive { id: minutes }));
-        assert!(state.docs[&march].archived);
+        assert!(state.held_away(&state.docs[&march]));
+        assert!(
+            state.held_away(&state.docs[&april]),
+            "covered by the document"
+        );
+        assert!(
+            !state.docs[&april].archived,
+            "covering is not marking: the page itself was never put away"
+        );
 
         state.apply(&ev(4, "a", Op::DocUnarchive { id: minutes }));
-        assert!(!state.docs[&march].archived);
+        assert!(
+            state.held_away(&state.docs[&march]),
+            "it was apart before the document went, and stays apart"
+        );
+        assert!(
+            !state.held_away(&state.docs[&april]),
+            "it was awake, and wakes"
+        );
     }
 
     #[test]
@@ -5939,7 +6037,7 @@ mod tests {
     }
 
     #[test]
-    fn a_page_hung_under_a_document_that_is_away_is_away_too() {
+    fn a_page_hung_under_a_document_that_is_away_is_covered_and_not_marked() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let loose = doc(&mut state, "a3f1-0002", None);
@@ -5955,7 +6053,40 @@ mod tests {
             },
         );
 
-        assert!(state.docs[&loose].archived);
+        assert!(state.held_away(&state.docs[&loose]));
+        assert!(
+            !state.docs[&loose].archived,
+            "the document covers it; a mark of its own would outlive the cover"
+        );
+
+        state.apply(&ev(3, "a", Op::DocUnarchive { id: minutes }));
+        assert!(
+            !state.held_away(&state.docs[&loose]),
+            "and it wakes with the document that took it in"
+        );
+    }
+
+    #[test]
+    fn a_page_taken_out_of_a_document_in_the_archive_keeps_the_archive_around_it() {
+        let mut state = State::default();
+        let minutes = doc(&mut state, "a3f1-0001", None);
+        let march = page(&mut state, "a3f1-0002", minutes);
+        state.apply(&ev(2, "a", Op::DocArchive { id: minutes }));
+
+        moved(
+            &mut state,
+            march,
+            crate::event::Filed {
+                folder: None,
+                page_of: Some(None),
+                order: None,
+            },
+        );
+
+        assert!(
+            state.docs[&march].archived,
+            "what the archive held does not walk out of it by being unhung"
+        );
     }
 
     #[test]
@@ -5987,18 +6118,17 @@ mod tests {
     }
 
     #[test]
-    fn a_page_is_not_put_away_on_its_own() {
+    fn a_page_goes_away_on_its_own_and_leaves_its_document_alone() {
         let mut state = State::default();
         let minutes = doc(&mut state, "a3f1-0001", None);
         let march = page(&mut state, "a3f1-0002", minutes);
+        let april = page(&mut state, "a3f1-0003", minutes);
 
         state.apply(&ev(3, "a", Op::DocArchive { id: march }));
 
-        assert!(
-            !state.docs[&march].archived,
-            "it goes away with its document"
-        );
-        assert!(!state.docs[&minutes].archived);
+        assert!(state.held_away(&state.docs[&march]));
+        assert!(!state.held_away(&state.docs[&april]), "only the one named");
+        assert!(!state.held_away(&state.docs[&minutes]));
     }
 
     #[test]

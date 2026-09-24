@@ -75,9 +75,20 @@ only appends: nothing is overwritten or dropped. As soon as the folder starts
 moving again, both machines catch up on their own, even if both were working
 at once.
 
+## One of my machines stopped syncing after an update
+
+Tisty writes a version into every event, and a machine only reads what it
+understands. When one of them updates to a version that writes something new —
+a page that answers for itself, say — the other stops syncing **in both
+directions** until it updates too: nothing comes in, and what you write there
+stays there. Nothing is lost, and nothing lands half understood; update the
+machine that is behind and the two carry on where they left off. Update both
+before you rely on them syncing again.
+
 ## A document opened read-only and I did not ask for that
 
-Two different reasons, and the bar at the foot of the document tells you which.
+Three different reasons, and the bar at the foot of the document tells you
+which.
 
 **It is in the archive.** Archiving a document closes it to writing — from the
 window, from the terminal and from an assistant alike — because putting
@@ -87,7 +98,13 @@ A whole folder can be in the archive too, and then everything under it is:
 subfolders, documents and pages, without any of them being marked one by one.
 Only the folder comes back, and when it does each document gets its own state
 back — one you had archived by hand before stays archived. Nothing new goes into
-a folder that is away, and nothing in it moves out until it returns.
+a folder that is away, and it only moves inside the archive until it returns.
+
+**A page of it is in the archive, or the document that holds it is.** A page is
+put away on its own without leaving the document it belongs to: it stays in
+place, dimmed and with the icon of the archive, and it reads as it was left.
+Putting the whole document away covers every page it holds; bringing it back
+wakes each one as it was, and the page you had set apart stays apart.
 
 **Or the writing itself is at risk.** Tisty's editor writes Markdown back out,
 and a few shapes do not survive that
