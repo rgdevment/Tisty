@@ -75,6 +75,16 @@ only appends: nothing is overwritten or dropped. As soon as the folder starts
 moving again, both machines catch up on their own, even if both were working
 at once.
 
+## One of my machines stopped syncing after an update
+
+Tisty writes a version into every event, and a machine only reads what it
+understands. When one of them updates to a version that writes something new —
+a page that answers for itself, say — the other stops syncing **in both
+directions** until it updates too: nothing comes in, and what you write there
+stays there. Nothing is lost, and nothing lands half understood; update the
+machine that is behind and the two carry on where they left off. Update both
+before you rely on them syncing again.
+
 ## A document opened read-only and I did not ask for that
 
 Three different reasons, and the bar at the foot of the document tells you

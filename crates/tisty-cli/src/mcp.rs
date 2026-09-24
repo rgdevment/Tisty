@@ -4191,16 +4191,28 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 /// Nothing indexes which document points at which, so the only way to say is to look. Worth the
 /// reading: a link left hanging says nothing about being broken.
 fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<String> {
-    let mut found: Vec<String> = state
+    let named: Vec<String> = state
         .docs
         .values()
         .filter(|one| one.file != which)
+        .map(|one| one.file.clone())
+        .collect();
+    // Only a body with a link or a picture in it can be pointing anywhere, and the cards say
+    // which those are without reading one byte of the rest.
+    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
+    let cards = tisty_core::docs::cards_of(&paths.docs(), held.as_ref(), &named);
+    let mut found: Vec<String> = named
+        .into_iter()
         .filter(|one| {
-            tisty_core::docs::read(&paths.docs(), &one.file)
+            cards
+                .get(one)
+                .is_none_or(|card| card.links > 0 || card.pictures > 0)
+        })
+        .filter(|one| {
+            tisty_core::docs::read(&paths.docs(), one)
                 .map(|body| tisty_core::refs::papers(&body).iter().any(|at| at == which))
                 .unwrap_or(false)
         })
-        .map(|one| one.file.clone())
         .collect();
     found.sort();
     found

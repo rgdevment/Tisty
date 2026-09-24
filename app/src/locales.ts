@@ -833,7 +833,7 @@ const en = {
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncNewer:
-    "Nothing was synced. «{name}» writes with a newer Tisty than this one. Update this machine so the two agree again, and try once more.",
+    "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this machine. Update it and try once more.",
   storeNewer:
     "A newer Tisty updated your data. Update this one so the two agree again — reading half of it would lose work.",
   someLockedAtOdds:
@@ -2166,7 +2166,7 @@ const es: Catalog = {
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncNewer:
-    "No se sincronizó nada. «{name}» escribe con un Tisty más nuevo que este. Actualiza este equipo para que los dos vuelvan a entenderse, y vuelve a intentarlo.",
+    "No se sincronizó nada, en ningún sentido. «{name}» escribe con un Tisty más nuevo que este, así que lo que escribas aquí se queda aquí hasta que actualices este equipo. Actualízalo y vuelve a intentarlo.",
   storeNewer:
     "Una versión más nueva de Tisty actualizó tus datos. Actualiza este Tisty para que los dos vuelvan a entenderse: leer la mitad perdería trabajo.",
   someLockedAtOdds:
