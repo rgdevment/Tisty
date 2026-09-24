@@ -23,19 +23,20 @@ const SPONSOR = "https://github.com/sponsors/rgdevment";
 const STARS = "https://github.com/rgdevment/Tisty";
 const ALTERNATIVE = "https://alternativeto.net/software/tisty/about/";
 const RATING = "ms-windows-store://review/?ProductId=9PGVWXD8X93N";
+const SHELF = "ms-windows-store://downloadsandupdates";
 
 const TOOLS = [
   {
     icon: copypaste,
     name: "CopyPaste",
     said: "toolCopyPaste",
-    at: "https://github.com/rgdevment/CopyPaste",
+    at: "https://rgdevment.com/copypaste/",
   },
   {
     icon: linkunbound,
     name: "LinkUnbound",
     said: "toolLinkUnbound",
-    at: "https://github.com/rgdevment/LinkUnbound",
+    at: "https://rgdevment.com/linkunbound/",
   },
 ] as const;
 
@@ -136,7 +137,7 @@ export default function About({
             <Pip />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-semibold">
-                {fill("updateThere", newer.version)}
+                {newer.version ? fill("updateThere", newer.version) : t("updateComing")}
               </span>
               {step ? (
                 step.stage === "installing" ? (
@@ -160,6 +161,8 @@ export default function About({
                 <span className="mt-0.5 block text-[12.5px] text-soft">
                   {newer.installs ? (
                     t("updateAsk")
+                  ) : newer.coming ? (
+                    t("updateComingWhy")
                   ) : newer.route === "store" ? (
                     t("updateLanded")
                   ) : (
@@ -168,6 +171,11 @@ export default function About({
                 </span>
               )}
             </span>
+            {!step && newer.coming && (
+              <button type="button" onClick={() => openUrl(SHELF).catch(onError)} className={mild}>
+                {t("updateOpenShop")}
+              </button>
+            )}
             {!step && newer.installs && (
               <button
                 type="button"

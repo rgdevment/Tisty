@@ -70,8 +70,8 @@ describe("the other tools", () => {
     await userEvent.click(screen.getByRole("button", { name: /LinkUnbound/ }));
 
     expect(opened.urls).toEqual([
-      "https://github.com/rgdevment/CopyPaste",
-      "https://github.com/rgdevment/LinkUnbound",
+      "https://rgdevment.com/copypaste/",
+      "https://rgdevment.com/linkunbound/",
     ]);
   });
 
@@ -174,6 +174,50 @@ describe("a newer version the Store itself offers", () => {
   });
 
   const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
+
+  // The Store says nothing about an update it is already fetching, so the only thing the person
+  // can be told is that one is on the way — with no number to put on it and nothing to press.
+  it("says the Store is bringing one when the Store is bringing one", async () => {
+    render(
+      <About
+        ready={{
+          version: "",
+          route: "store",
+          package: null,
+          installs: false,
+          coming: true,
+        }}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("The Store is bringing a new version")).toBeTruthy();
+    expect(screen.getByText(/in the Store.s own queue/i)).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: /^update it$/i }),
+      "there is nothing to press for: the Store is already on it",
+    ).toBeNull();
+  });
+
+  it("names the version it is waiting for, and opens the Store for whoever will not wait", async () => {
+    render(
+      <About
+        ready={{
+          version: "1.22.1",
+          route: "store",
+          package: null,
+          installs: false,
+          coming: true,
+        }}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(/1\.22\.1/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Open the Store" }));
+
+    expect(opened.urls).toContain("ms-windows-store://downloadsandupdates");
+  });
 
   // A copy left closed for weeks remembers an offer the feed has moved past; the button must not
   // fail the same way for ever, but look again and offer what is out now.

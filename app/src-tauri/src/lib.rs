@@ -2686,7 +2686,7 @@ async fn update_ready(
         (
             held.config.checked_at,
             held.config.found_version.clone(),
-            held.config.found_in_the_shop.unwrap_or(false),
+            held.config.found_in_the_shop,
             held.config.candidates,
         )
     };
@@ -2697,11 +2697,12 @@ async fn update_ready(
     // certifying is out for everyone else, and being told of one this copy cannot take is a
     // button that does nothing. What the Store last said stands until it says otherwise.
     if kept.route == update::Route::Store {
-        let last_said = || {
-            the_shop_said
-                .then_some(found.as_deref())
-                .flatten()
-                .and_then(|version| update::from_the_shop(version, HERE))
+        let last_said = || match (the_shop_said, found.as_deref()) {
+            (Some(true), Some(version)) => update::from_the_shop(version, HERE),
+            (Some(false), Some(version)) => {
+                update::published(HERE, version, wants).map(|_| update::on_its_way(Some(version)))
+            }
+            _ => None,
         };
         let Some(window) = owner(&app) else {
             return Ok(last_said());
@@ -2712,6 +2713,24 @@ async fn update_ready(
         let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
             .await
             .unwrap_or(shop::Shelf::Silent);
+        let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
+            .await
+            .ok()
+            .flatten();
+        let out = manifest
+            .as_deref()
+            .and_then(|said| update::published(HERE, said, wants));
+        let waiting_for_it =
+            |session: &tauri::State<'_, Mutex<Session>>| -> Answer<Option<update::Ready>> {
+                held(session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = out.clone();
+                    c.found_in_the_shop = out.as_ref().map(|_| false);
+                })?;
+                Ok(out
+                    .as_deref()
+                    .map(|version| update::on_its_way(Some(version))))
+            };
         return match shelf {
             shop::Shelf::Waiting(version) => {
                 let seen = update::from_the_shop(&version, HERE);
@@ -2736,7 +2755,16 @@ async fn update_ready(
                 })?;
                 Ok(seen)
             }
-            shop::Shelf::Current => {
+            shop::Shelf::Queued => {
+                held(&session).keep(|c| {
+                    c.checked_at = Some(now);
+                    c.found_version = out.clone();
+                    c.found_in_the_shop = Some(false);
+                })?;
+                Ok(Some(update::on_its_way(out.as_deref())))
+            }
+            shop::Shelf::Current if out.is_some() => waiting_for_it(&session),
+            shop::Shelf::Current if manifest.is_some() => {
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
                     c.found_version = None;
@@ -2744,8 +2772,13 @@ async fn update_ready(
                 })?;
                 Ok(None)
             }
+            shop::Shelf::Current => {
+                held(&session).keep(|c| c.checked_at = Some(now))?;
+                Ok(last_said())
+            }
             // Asked and not answered is still asked: the next look waits its turn like any other,
             // and a copy the Store never signed is not asked again every few hours.
+            shop::Shelf::Silent if out.is_some() => waiting_for_it(&session),
             shop::Shelf::Silent => {
                 held(&session).keep(|c| c.checked_at = Some(now))?;
                 if asked {

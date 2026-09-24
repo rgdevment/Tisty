@@ -45,6 +45,29 @@ pub struct Ready {
     pub route: Route,
     pub package: Option<&'static str>,
     pub installs: bool,
+    pub coming: bool,
+}
+
+pub fn on_its_way(version: Option<&str>) -> Ready {
+    Ready {
+        version: version.unwrap_or_default().to_string(),
+        route: Route::Store,
+        package: None,
+        installs: false,
+        coming: true,
+    }
+}
+
+/// The number the manifest publishes, read by a copy the Store keeps. It says a newer one exists,
+/// which is a different question from whether the Store will hand it over today.
+pub fn published(now: &str, manifest: &str, wants: Option<bool>) -> Option<String> {
+    let here: semver::Version = now.parse().ok()?;
+    let read: Manifest = serde_json::from_str(manifest).ok()?;
+    let best: semver::Version = read.latest.parse().ok()?;
+    if !tracking(now, wants) && !best.pre.is_empty() {
+        return None;
+    }
+    (best > here).then(|| best.to_string())
 }
 
 pub const fn self_installs(route: Route) -> bool {
@@ -130,6 +153,7 @@ fn offered(version: String, kept: Kept) -> Ready {
         route: kept.route,
         package: kept.package,
         installs: self_installs(kept.route) && !from_a_mount(),
+        coming: false,
     }
 }
 
@@ -144,6 +168,7 @@ pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
         route: Route::Store,
         package: None,
         installs: true,
+        coming: false,
     })
 }
 

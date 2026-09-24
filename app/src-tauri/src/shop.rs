@@ -8,6 +8,7 @@ pub enum Shelf {
     /// Already on this machine, staged beside the copy in use, and it takes over when this one
     /// closes. Nothing left to download, so nothing to offer but the closing.
     Landed(String),
+    Queued,
     Current,
     Silent,
 }
@@ -47,7 +48,7 @@ mod there {
     use tisty_core::witness::{self, Fact, channel};
     use windows::ApplicationModel::{Package, PackageSignatureKind, PackageVersion};
     use windows::Services::Store::{
-        StoreContext, StorePackageUpdateState, StorePackageUpdateStatus,
+        StoreContext, StorePackageUpdateState, StorePackageUpdateStatus, StoreQueueItemState,
     };
     use windows::Win32::Foundation::HWND;
     use windows::Win32::System::Com::CoIncrementMTAUsage;
@@ -101,7 +102,7 @@ mod there {
         match apart(PATIENCE, move || waiting(window)) {
             Some(Ok(Some(version))) => Shelf::Waiting(version),
             Some(Ok(None)) if forced => waited_out(window),
-            Some(Ok(None)) => Shelf::Current,
+            Some(Ok(None)) => in_its_queue(window),
             Some(Err(why)) => {
                 witness::warn(
                     channel::WINDOW,
@@ -147,7 +148,71 @@ mod there {
                 return Shelf::Waiting(version);
             }
         }
-        Shelf::Current
+        in_its_queue(window)
+    }
+
+    fn in_its_queue(window: isize) -> Shelf {
+        let queued = apart(PATIENCE, move || queued(window));
+        match queued {
+            Some(Ok(true)) => {
+                witness::note(
+                    channel::WINDOW,
+                    "the Store names no update because it already has one in its own queue",
+                    &[],
+                );
+                Shelf::Queued
+            }
+            Some(Ok(false)) => Shelf::Current,
+            Some(Err(why)) => {
+                witness::warn(
+                    channel::WINDOW,
+                    "the Store was asked what it is already getting and refused",
+                    &[("why", Fact::Why(why.message()))],
+                );
+                Shelf::Silent
+            }
+            None => {
+                witness::warn(
+                    channel::WINDOW,
+                    "the Store was asked what it is already getting and never answered",
+                    &[("waited", Fact::Count(PATIENCE.as_secs() as usize))],
+                );
+                Shelf::Silent
+            }
+        }
+    }
+
+    fn queued(window: isize) -> windows::core::Result<bool> {
+        let ours = Package::Current()?.Id()?.FamilyName()?;
+        let items = shop(window)?.GetAssociatedStoreQueueItemsAsync()?.join()?;
+        for one in 0..items.Size()? {
+            let item = items.GetAt(one)?;
+            if item.PackageFamilyName().unwrap_or_default() != ours {
+                continue;
+            }
+            let status = item.GetCurrentStatus()?;
+            let state = status.PackageInstallState()?;
+            if matches!(
+                state,
+                StoreQueueItemState::Active | StoreQueueItemState::Paused
+            ) {
+                witness::note(
+                    channel::WINDOW,
+                    "the Store has one of ours in its own queue",
+                    &[
+                        ("state", Fact::Count(state.0 as usize)),
+                        (
+                            "reason",
+                            Fact::Count(
+                                status.PackageInstallExtendedState().unwrap_or_default().0 as usize,
+                            ),
+                        ),
+                    ],
+                );
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     /// A newer package of our own family already registered for this user is one the Store has
@@ -160,7 +225,11 @@ mod there {
         let shelf = windows::Management::Deployment::PackageManager::new().ok()?;
         let mut newest: Option<semver::Version> = None;
         let mine: semver::Version = here.parse().ok()?;
-        for one in shelf.FindPackagesByPackageFamilyName(&family).ok()? {
+        let mine_only = windows::core::HSTRING::new();
+        for one in shelf
+            .FindPackagesByUserSecurityIdPackageFamilyName(&mine_only, &family)
+            .ok()?
+        {
             let Ok(id) = one.Id() else { continue };
             let Ok(version) = id.Version() else { continue };
             let Ok(said) = numbered(&version).parse::<semver::Version>() else {
