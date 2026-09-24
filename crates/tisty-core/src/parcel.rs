@@ -127,6 +127,14 @@ pub struct Shelf {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Marked {
+    pub at: jiff::Timestamp,
+    pub body: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Paper {
     pub file: String,
     pub order: String,
@@ -151,9 +159,9 @@ pub struct Paper {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub away_alone: Option<bool>,
     /// What an assistant said had had its day, so the person still has it to answer wherever the
-    /// parcel lands.
+    /// parcel lands. Without the device that said it: a parcel goes to other people.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub flagged: Option<crate::model::Flagged>,
+    pub flagged: Option<Marked>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub locked: bool,
     /// Somebody else's writing that this store is only holding: it stays theirs wherever it
@@ -537,7 +545,11 @@ fn filled(
                 archived: state.held_away(one),
                 by_folder: !one.archived && state.held_away(one),
                 away_alone: one.archived.then_some(true),
-                flagged: one.flagged.clone(),
+                flagged: one.flagged.as_ref().map(|said| Marked {
+                    at: said.at,
+                    body: said.body.clone(),
+                    via: said.via.clone(),
+                }),
                 locked: one.locked,
                 guest: one.guest,
             })
@@ -1045,12 +1057,9 @@ fn taken_in(
             ops.push(Op::DocArchive { id });
         }
         if let Some(said) = paper.flagged.clone() {
-            ops.push(Op::DocFlag {
-                id,
-                d: crate::event::Flag::new(said.body)
-                    .said_by(said.at, said.by)
-                    .through(said.via),
-            });
+            let mut mark = crate::event::Flag::new(said.body).through(said.via);
+            mark.at = Some(said.at);
+            ops.push(Op::DocFlag { id, d: mark });
         }
         if paper.locked {
             ops.push(Op::DocLock { id });

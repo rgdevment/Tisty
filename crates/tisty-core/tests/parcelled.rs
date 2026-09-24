@@ -2550,4 +2550,9 @@ fn what_an_assistant_marked_travels_with_the_document_it_marked() {
         Some("it has had its day"),
         "the person still has it to answer wherever the parcel lands"
     );
+    assert_ne!(
+        landed.flagged.as_ref().map(|one| one.by.clone()),
+        Some(here.dev.clone()),
+        "a parcel goes to other people, and the machine that wrote the mark is not theirs to keep"
+    );
 }

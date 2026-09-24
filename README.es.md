@@ -412,6 +412,13 @@ páginas tal como las dejaste, cerrada a escribir y a que entre nada nuevo.
 Desarchívala y vuelve igual —incluidos los documentos que hubieras archivado a
 mano ahí dentro, que siguen archivados porque nadie dijo lo contrario.
 
+**Una página se archiva sola sin salir de su documento.** Algo largo por partes
+—un año de actas, un libro por capítulos— es un documento con páginas, y el
+capítulo que ya no aplica se va al archivo donde vive: atenuado, con el icono
+del archivo, se lee pero no se escribe. Archiva el documento entero y se guardan
+todas con él; desarchívalo y cada una vuelve como estaba, y la que habías
+apartado sigue apartada.
+
 **Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
 una frase y el documento queda archivado bajo ella. La etiqueta vive en la
 frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
