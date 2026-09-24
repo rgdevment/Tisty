@@ -26,7 +26,7 @@ import {
 import { stamped } from "../format";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
-import { filed, named, pagesOf, under } from "../paging";
+import { filed, type Moved, named, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
@@ -143,6 +143,7 @@ export default function Docs({
   const [signing, setSigning] = useState(false);
   const giving = useRef<(() => unknown) | null>(null);
   const putting = useRef<((page: Filed) => void) | null>(null);
+  const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
   const handed = useCallback((read: () => unknown) => {
     giving.current = read;
   }, []);
@@ -313,6 +314,7 @@ export default function Docs({
       }
     }
     putting.current = null;
+    ordering.current = null;
     flush();
     const mine = ++turn.current;
     const wrote_at = typed.current;
@@ -650,6 +652,15 @@ export default function Docs({
                           told={told}
                           onOpen={(page) => onDoc?.(page.file)}
                           onPut={reading || bolted ? undefined : (page) => putting.current?.(page)}
+                          onMove={
+                            reading || bolted
+                              ? undefined
+                              : (page, before) => {
+                                  const how = ordering.current?.(page.file, before);
+                                  if (how === "held") onError(t("leafStaysPut"));
+                                  if (how === "unseen") onError(t("leafInText"));
+                                }
+                          }
                         />
                       )
                 }
@@ -669,6 +680,9 @@ export default function Docs({
                 onReady={handed}
                 onInsert={(put) => {
                   putting.current = (page) => put(page.file, page.title);
+                }}
+                onOrder={(move) => {
+                  ordering.current = move;
                 }}
                 onShaped={(text) => {
                   shaped.current = text;

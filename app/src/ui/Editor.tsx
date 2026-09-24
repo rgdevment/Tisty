@@ -20,7 +20,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
-import { card, filed, paged, pagesOf } from "../paging";
+import { card, filed, type Moved, paged, pagesOf } from "../paging";
 import { named, pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
@@ -32,7 +32,7 @@ import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
 import Tabled from "./Tabled";
 import { tagging } from "./tagging";
-import { asMarkdown, type Head, headed, loosened, written } from "./writing";
+import { asMarkdown, cardMoved, type Head, headed, loosened, written } from "./writing";
 
 export const stripped = (html: string): string =>
   html.replace(/<img\b[^>]*>/gi, (tag) =>
@@ -236,6 +236,7 @@ interface Props {
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
   onInsert?: (put: (file: string, title: string) => void) => void;
+  onOrder?: (move: (file: string, before: string | null) => Moved) => void;
   seek?: number;
   anchor?: string;
   onSeen?: (at: number) => void;
@@ -264,6 +265,7 @@ export default function Editor({
   onLaid,
   onReady,
   onInsert,
+  onOrder,
   seek,
   anchor,
   onSeen,
@@ -350,6 +352,7 @@ export default function Editor({
     onLaid,
     onReady,
     onInsert,
+    onOrder,
   });
   hands.current = {
     onWrite,
@@ -362,6 +365,7 @@ export default function Editor({
     onLaid,
     onReady,
     onInsert,
+    onOrder,
   };
   looked.current = look;
 
@@ -451,6 +455,7 @@ export default function Editor({
     hands.current.onInsert?.((file, title) =>
       editor.chain().focus("end").insertContent(card(file, title)).run(),
     );
+    hands.current.onOrder?.((file, before) => cardMoved(editor, file, before));
   }, []);
 
   const listed = useRef("");

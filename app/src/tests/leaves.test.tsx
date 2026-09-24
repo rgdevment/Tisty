@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -30,6 +30,120 @@ describe("the index at the end of a document", () => {
     render(<Contents pages={pages} told={new Set(told)} onOpen={onOpen} onPut={onPut} />);
     return { onOpen, onPut };
   };
+
+  const dragged = (told: string[]) => {
+    const onMove = vi.fn();
+    render(
+      <Contents
+        pages={pages}
+        told={new Set(told)}
+        onOpen={vi.fn()}
+        onPut={vi.fn()}
+        onMove={onMove}
+      />,
+    );
+    return onMove;
+  };
+
+  const carried = (told: string[]) => {
+    const onMove = vi.fn();
+    const { container } = render(
+      <Contents
+        pages={pages}
+        told={new Set(told)}
+        onOpen={vi.fn()}
+        onPut={vi.fn()}
+        onMove={onMove}
+      />,
+    );
+    return { onMove, container };
+  };
+
+  it("asks for the page to go last when it is dropped past the last row", () => {
+    const { onMove, container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+    const end = container.querySelector(".leaf-end");
+    if (!end) throw new Error("the list ends with nowhere to drop");
+
+    fireEvent.dragStart(rows[0]);
+    fireEvent.dragOver(end);
+    fireEvent.drop(end);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+    expect(onMove.mock.calls[0][1]).toBeNull();
+  });
+
+  it("stops marking a row once the page is carried off it", () => {
+    const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[2]);
+    fireEvent.dragOver(rows[0]);
+    expect(rows[0].className).toContain("leaf-over");
+
+    fireEvent.dragLeave(rows[0]);
+    expect(rows[0].className).not.toContain("leaf-over");
+
+    const end = container.querySelector(".leaf-end");
+    if (!end) throw new Error("the list ends with nowhere to drop");
+    fireEvent.dragOver(end);
+    expect(end.className).toContain("leaf-over");
+    fireEvent.dragLeave(end);
+    expect(end.className).not.toContain("leaf-over");
+  });
+
+  it("lets go of what it was carrying when the drag ends anywhere", () => {
+    const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[2]);
+    fireEvent.dragOver(rows[0]);
+    fireEvent.dragEnd(rows[2]);
+
+    expect(rows[0].className).not.toContain("leaf-over");
+    const end = container.querySelector(".leaf-end");
+    if (!end) throw new Error("the list ends with nowhere to drop");
+    fireEvent.dragOver(end);
+    expect(end.className).not.toContain("leaf-over");
+  });
+
+  it("offers nowhere to drop past the last row when one page alone is named", () => {
+    const { container } = carried(["a3f1-0002"]);
+
+    expect(container.querySelector(".leaf-end")).toBeNull();
+  });
+
+  it("asks for the page to go before the one it was dropped on", () => {
+    const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[2]);
+    fireEvent.dragOver(rows[0]);
+    fireEvent.drop(rows[0]);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0004");
+    expect(onMove.mock.calls[0][1]).toBe("a3f1-0002");
+  });
+
+  it("asks nothing when a page is dropped on itself", () => {
+    const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[1]);
+    fireEvent.drop(rows[1]);
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("does not let a page the text never names be dragged", () => {
+    dragged(["a3f1-0002", "a3f1-0003"]);
+    const rows = screen.getAllByRole("listitem");
+
+    expect(rows[0].getAttribute("draggable")).toBe("true");
+    expect(rows[2].getAttribute("draggable")).toBe("false");
+  });
 
   it("numbers the pages the text names and leaves the rest without a number", () => {
     show(["a3f1-0002", "a3f1-0003"]);

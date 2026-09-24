@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -7,6 +7,7 @@ import Docs from "../ui/Docs";
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
   put: [] as { file: string; title: string }[],
+  moved: "done" as "done" | "held" | "unseen",
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -22,13 +23,16 @@ vi.mock("../ui/Editor", () => ({
     above,
     below,
     onInsert,
+    onOrder,
   }: {
     value: string;
     above?: React.ReactNode;
     below?: React.ReactNode;
     onInsert?: (put: (file: string, title: string) => void) => void;
+    onOrder?: (move: () => "done" | "held" | "unseen") => void;
   }) => {
     onInsert?.((file, title) => store.put.push({ file, title }));
+    onOrder?.(() => store.moved);
     return (
       <div>
         {above}
@@ -78,6 +82,7 @@ describe("a document that holds pages, open", () => {
       "a3f1-0004": "# Solo",
     };
     store.put = [];
+    store.moved = "done";
   });
 
   const show = (open: string, onDoc = vi.fn()) => {
@@ -154,5 +159,35 @@ describe("a page, open", () => {
 
     await waitFor(() => expect(screen.getByLabelText("editor")).toBeTruthy());
     expect(screen.queryByRole("listitem")).toBeNull();
+  });
+
+  it("says why a card that is part of a block stays where it is", async () => {
+    store.bodies["a3f1-0001"] =
+      "# Bases de datos\n\n![El pod](tisty:doc/a3f1-0002)\n\n![El túnel](tisty:doc/a3f1-0003)";
+    store.moved = "held";
+    const onError = vi.fn();
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={onError} />);
+    await waitFor(() => expect(screen.getByText("El túnel")).toBeTruthy());
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[1]);
+    fireEvent.drop(rows[0]);
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("inside something else"));
+  });
+
+  it("says why a page named by a link has no block to drag", async () => {
+    store.bodies["a3f1-0001"] =
+      "# Bases de datos\n\n![El pod](tisty:doc/a3f1-0002)\n\n![El túnel](tisty:doc/a3f1-0003)";
+    store.moved = "unseen";
+    const onError = vi.fn();
+    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={onError} />);
+    await waitFor(() => expect(screen.getByText("El túnel")).toBeTruthy());
+    const rows = screen.getAllByRole("listitem");
+
+    fireEvent.dragStart(rows[1]);
+    fireEvent.drop(rows[0]);
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("named by a link"));
   });
 });

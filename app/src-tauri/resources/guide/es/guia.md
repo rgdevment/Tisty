@@ -258,7 +258,7 @@ Una página es un documento como cualquier otro —mismo archivo en el disco, mi
 **Para añadirle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si el documento ya está escrito. Queda nombrada ahí mismo, dibujada como un hueco en la hoja con lo que esa página contiene debajo.
 
 > [!IMPORTANT]
-> El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Mover un capítulo es cortar y pegar su bloque.
+> El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Para mover un capítulo, arrastra su fila en el índice del final del documento — o corta y pega su bloque, que es el mismo movimiento hecho a mano.
 
 Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su sitio en el texto. Dentro de una página verás arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
 
