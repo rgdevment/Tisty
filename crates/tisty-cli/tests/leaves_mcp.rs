@@ -3559,6 +3559,51 @@ fn verify_item2_a_closed_fence_does_not_strand_the_pages_of_a_rewrite() {
 }
 
 #[test]
+fn the_same_page_named_twice_in_one_call_is_hung_once_and_written_once() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let page = served.wrote("# Uno\n\nx.", None);
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": [&page, &page], "page_of": &book }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let body = served.body_of(&book);
+    assert_eq!(
+        body.matches(&format!("tisty:doc/{page}")).count(),
+        1,
+        "one page is named on one line: {body:?}"
+    );
+    assert_eq!(served.pages_of(&book), vec![page]);
+}
+
+#[test]
+fn a_book_ending_in_an_open_fence_says_nothing_when_nothing_was_owed() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let page = served.wrote("# Uno\n\nx.", None);
+    let at = served.data().join("docs").join(format!("{book}.md"));
+    std::fs::write(
+        &at,
+        format!("# Libro\n\n![Uno](tisty:doc/{page})\n\nfinal:\n\n```sh\nabierta\n"),
+    )
+    .unwrap();
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &book }),
+    );
+
+    let told = told_of(&said);
+    assert!(
+        !told.contains("ends inside a fence"),
+        "it already had its line, so there was nothing to warn about: {told}"
+    );
+}
+
+#[test]
 fn an_order_naming_something_that_is_not_a_document_says_what_an_id_looks_like() {
     let served = Served::new();
     let book = served.wrote("# Libro\n\nintro", None);

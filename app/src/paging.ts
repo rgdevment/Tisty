@@ -1,12 +1,14 @@
 import type { Filed } from "./core";
 import { DOC } from "./markdown";
 
+const bare = (line: string): string => line.replace(/^\s*(?:>\s?)*/, "").replace(/^[-*+]\s+/, "");
+
 const unfenced = (body: string): string => {
   let open: { mark: string; wide: number } | null = null;
   return body
     .split("\n")
     .map((line) => {
-      const said = line.trimStart();
+      const said = bare(line);
       const mark = said[0] === "`" || said[0] === "~" ? said[0] : null;
       const wide = mark ? said.length - said.replace(new RegExp(`^\\${mark}+`), "").length : 0;
       if (open) {

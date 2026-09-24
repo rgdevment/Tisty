@@ -28,10 +28,13 @@ pub fn card(file: &str, title: &str) -> String {
 }
 
 pub fn papers(text: &str) -> Vec<String> {
-    extract(text)
-        .into_iter()
-        .filter_map(|one| one.target.strip_prefix(DOC).map(str::to_string))
-        .collect()
+    let mut found: Vec<String> = Vec::new();
+    for (_, one) in papered(text) {
+        if !found.contains(&one) {
+            found.push(one);
+        }
+    }
+    found
 }
 
 /// Every line a page is named on, read with the same walk that decides the reading order, so the
@@ -47,19 +50,29 @@ pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
         Ok(one) => one,
         Err(one) => one - 1,
     };
-    marked(text)
+    papered(text)
+        .into_iter()
+        .map(|(at, file)| (file, line_of(at)))
+        .collect()
+}
+
+/// A page named inside a fenced block is an example of a way in, not one, so the reading order
+/// steps over code. What keeps a file alive is deliberately more generous: see `extract`.
+fn papered(text: &str) -> Vec<(usize, String)> {
+    let code = crate::docs::fenced_spans(text);
+    marked_past(text, &code)
         .into_iter()
         .filter_map(|(at, one)| {
             one.target
                 .strip_prefix(DOC)
-                .map(|file| (file.to_string(), line_of(at)))
+                .map(|file| (at, file.to_string()))
         })
         .collect()
 }
 
 pub fn extract(text: &str) -> Vec<Ref> {
     let mut found: Vec<Ref> = Vec::new();
-    for (_, one) in marked(text) {
+    for (_, one) in marked_past(text, &[]) {
         if !found
             .iter()
             .any(|held| held.target == one.target && held.kind == one.kind)
@@ -70,12 +83,11 @@ pub fn extract(text: &str) -> Vec<Ref> {
     found
 }
 
-fn marked(text: &str) -> Vec<(usize, Ref)> {
+fn marked_past(text: &str, code: &[(usize, usize)]) -> Vec<(usize, Ref)> {
     let mut found: Vec<(usize, Ref)> = Vec::new();
     let where_at = std::cell::Cell::new(0usize);
     let mut keep = |one: Ref| found.push((where_at.get(), one));
 
-    let code = crate::docs::fenced_spans(text);
     let mut past = 0;
     let bytes = text.as_bytes();
     let mut at = 0;
@@ -334,6 +346,39 @@ medio
                 "{fence}: and it is named on no line at all"
             );
         }
+    }
+
+    #[test]
+    fn what_keeps_a_file_alive_is_read_more_widely_than_what_decides_the_order() {
+        let body = "# Libro
+
+~~~md
+![Plano](attachments/plano.png)
+~~~
+";
+        assert_eq!(
+            super::extract(body)
+                .into_iter()
+                .map(|one| one.target)
+                .collect::<Vec<_>>(),
+            vec!["attachments/plano.png".to_string()],
+            "a file named anywhere is a file somebody still means to keep"
+        );
+    }
+
+    #[test]
+    fn a_fence_written_inside_a_quote_is_still_code() {
+        let body = format!(
+            "# Libro
+
+> ```
+> ![Uno]({DOC}a-0001)
+> ```
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(papers(&body), vec!["a-0002".to_string()]);
     }
 
     #[test]

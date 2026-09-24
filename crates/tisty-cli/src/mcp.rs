@@ -161,7 +161,7 @@ A document can hold pages, and that is the only level there is: `write_doc` with
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` writes the line that names the page, at the end of the document it is hung from, so a page has a place from the moment it has a document. `after`, `before` and `at` say where that line goes instead of the end; the page you name as `after` or `before` has to have a line of its own for this one to sit beside it, and `at` takes \"first\" or \"last\", which needs no page to lean on. That is how a page is moved without touching markdown. Taking a page back out writes nothing. `at` takes \"first\" or \"last\" and leans on no page at all, which is what a book whose pages no line names yet needs. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` writes the line that names the page, at the end of the document it is hung from, so a page has a place from the moment it has a document. `after`, `before` and `at` say where that line goes instead of the end; the page you name as `after` or `before` has to have a line of its own for this one to sit beside it, and `at` takes \"first\" or \"last\", which needs no page to lean on. That is how a page is moved without touching markdown. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
@@ -3388,8 +3388,15 @@ fn under_a_heading(was: &str, under: &str, body: &str) -> Result<String, String>
                 .to_string(),
         );
     }
-    let body = body.trim_end_matches('\n');
-    Ok(format!("{held}\n{body}\n{rest}"))
+    let ending = match was.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
+    let body = body
+        .trim_end_matches('\n')
+        .replace("\r\n", "\n")
+        .replace('\n', ending);
+    Ok(format!("{held}{ending}{body}{ending}{rest}"))
 }
 
 /// The head and the tail of a splice are cut from the same document, so together they can never
@@ -4775,7 +4782,13 @@ fn many_docs(args: &Value, what: &str) -> Result<(Vec<String>, bool), Refused> {
                     }
                 }
             }
-            Ok((named, true))
+            let mut once: Vec<String> = Vec::with_capacity(named.len());
+            for one in named {
+                if !once.contains(&one) {
+                    once.push(one);
+                }
+            }
+            Ok((once, true))
         }
         _ => match text(args, "doc") {
             Some(one) => Ok((vec![one], false)),
@@ -5154,13 +5167,10 @@ fn named_at_end(
     };
     let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
     let held: Vec<String> = body.lines().map(str::to_string).collect();
-    if tisty_core::docs::ends_fenced(&body) {
-        return Ok((Vec::new(), true));
-    }
     let mut cards = Vec::new();
     let mut named = Vec::new();
     for one in which {
-        if line_of(&held, one).is_some() {
+        if line_of(&held, one).is_some() || named.contains(one) {
             continue;
         }
         let title = tisty_core::docs::read(&paths.docs(), one)
@@ -5171,6 +5181,9 @@ fn named_at_end(
     }
     if cards.is_empty() {
         return Ok((Vec::new(), false));
+    }
+    if tisty_core::docs::ends_fenced(&body) {
+        return Ok((Vec::new(), true));
     }
     let whole = cards_appended(&body, &cards);
     if renamed(&body, &whole) {
@@ -5254,9 +5267,12 @@ fn ordered(
         }
     }
     let print = tisty_core::attach::printed(body.as_bytes());
-    if let Some(said) = cards_ordered(&body, order)
-        && renamed(&body, &said)
-    {
+    let Some(whole) = cards_ordered(&body, order) else {
+        return Err(Refused::Tool(
+            "the lines naming those pages are not all there to move between.".to_string(),
+        ));
+    };
+    if renamed(&body, &whole) {
         return Err(Refused::Tool(format!(
             "that order would make another page's line the first thing {} says, and a document \
              takes its title from that, so it would be renamed. Write something above them \
@@ -5264,11 +5280,6 @@ fn ordered(
             doc_named(state, &parent.file)
         )));
     }
-    let Some(whole) = cards_ordered(&body, order) else {
-        return Err(Refused::Tool(
-            "the lines naming those pages are not all there to move between.".to_string(),
-        ));
-    };
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
         .map_err(hitch)?
     {

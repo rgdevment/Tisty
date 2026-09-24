@@ -1407,10 +1407,18 @@ something the person's own screen contradicted — a card shown inside a `~~~`
 example counted as a chapter, so putting the chapters in order rewrote the
 example. One tracker answers for all of them now: `docs::Fencing`, which opens on
 three or more of one marker and closes on the same, at least as long, and which
-already read the headings and the tags. `refs` walks past whatever it calls code,
-so the reading order, the line a page is placed on and what the editor draws
-cannot come apart; `paging.ts` does the same count for the index the window
-draws.
+already read the headings and the tags. The reading order walks past whatever it
+calls code, so the order, the line a page is placed on and what the editor draws
+cannot come apart; `paging.ts` follows the same rule — marker, width, and the
+quote or bullet that may sit in front of it — for the index the window draws.
+
+**What keeps a file alive is read more widely, and that asymmetry is the point.**
+`refs::extract` is what the sweep asks before deleting an attachment nothing
+names any more, and what the export asks before leaving one behind. It was left
+reading tilde fences, because the two mistakes are not the same size: counting a
+file named only in an example costs a stale file nobody looks at, and missing one
+costs the file. Only the reading order, which decides where a chapter sits and
+can be undone, is strict.
 
 **Putting pages in order keeps a copy beside the document, and says so.** It
 rewrites the body, which is the same thing `write_doc` and `edit_doc` do, and

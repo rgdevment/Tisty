@@ -62,6 +62,15 @@ describe("what a body names", () => {
     }
   });
 
+  it("reads a fence written inside a quote or a list item as code all the same", () => {
+    for (const body of [
+      "# Libro\n\n> ```\n> ![Uno](tisty:doc/a-0001)\n> ```\n\n![Dos](tisty:doc/a-0002)\n",
+      "# Libro\n\n- ```\n  ![Uno](tisty:doc/a-0001)\n  ```\n\n![Dos](tisty:doc/a-0002)\n",
+    ]) {
+      expect([...named(body)]).toEqual(["a-0002"]);
+    }
+  });
+
   it("holds a fence open until it closes at least as wide as it opened", () => {
     const body =
       "# Libro\n\n````md\n```\n![Uno](tisty:doc/a-0001)\n```\n````\n\n![Dos](tisty:doc/a-0002)\n";
