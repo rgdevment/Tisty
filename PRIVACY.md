@@ -262,7 +262,10 @@ happens on its own:
   document, write one again whole, keep a copy of a file you point it at, and
   read what is already there. It may not close or delete anything, say a task
   you wrote is done, reach a task you hid, or take files from outside the
-  folders where a download lands. To
+  folders where a download lands. Bringing a markdown file in copies what
+  that file's text points at, and only what sits in that file's own folder or
+  below it, so what leaves your disk is bounded by the file you named rather
+  than by what its text asks for. To
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.

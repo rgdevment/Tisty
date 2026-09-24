@@ -792,6 +792,22 @@ export default function Editor({
     },
   };
 
+  const seenAt = useRef(new Map<string, string>());
+  useEffect(() => {
+    let moved = false;
+    for (const one of papers ?? []) {
+      const was = seenAt.current.get(one.file);
+      const now = `${one.title}\u0000${one.wrote ?? ""}`;
+      seenAt.current.set(one.file, now);
+      if (was !== undefined && was !== now) {
+        blurbs.current.delete(one.file);
+        pending.current.delete(`blurb:${one.file}`);
+        moved = true;
+      }
+    }
+    if (moved) nudge.current();
+  }, [papers]);
+
   const opened = Boolean(asking) && shown.length > 0;
   const current = Math.min(active, shown.length - 1);
 

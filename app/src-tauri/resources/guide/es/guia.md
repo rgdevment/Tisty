@@ -291,7 +291,7 @@ Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora 
 
 Una tarea tuya se la puedes abrir: en su detalle, **Permitir agentes**. Desde ahí un asistente puede darla por hecha —para que la confirmes—, describirla si no tiene descripción, planear sus pasos y marcarlos a medida que avanza, que es lo único que hace sin preguntar. El día, el título, la lista y el cierre siguen siendo tuyos. **Sin agentes** cierra la puerta y conserva lo que alcanzó a completar.
 
-Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto.
+Para reescribir un documento entero se le entrega una huella del texto exacto que leyó, y tiene que devolverla al escribir. Si escribiste tú en medio, la huella ya no cuadra: no se escribe nada y se le dice que vuelva a leerlo. La ventana te avisa cuando algo ha escrito en el documento que tienes abierto, y cuando lo que esa escritura reemplazó sigue guardado, esa misma barra te ofrece volver a lo que el documento decía antes. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello. La oferta solo aparece cuando lo guardado es exactamente esa escritura hacia atrás: tras cualquier otra cosa se calla, en vez de dejarte donde no querías.
 
 ### 12. Tus copias
 

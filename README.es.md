@@ -586,7 +586,9 @@ fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó é
 mismo, dar por hecha una tarea que anotó él —que la marca para que la confirmes
 y no cierra nada—, agregar a la bitácora, escribir un documento, agregar a uno
 que ya está ahí —al final o bajo un título—, corregir un pasaje de uno, escribir
-uno entero de nuevo, ordenar documentos en carpetas, guardar una copia de un
+uno entero de nuevo, ordenar documentos en carpetas, volver un documento página
+de otro y ponerla en su sitio, lo que escribe en el texto de tu documento la
+línea que la nombra y nada más, guardar una copia de un
 archivo que le señales —en una tarea o dentro de un documento, que admite el
 archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerrar una
 tarea ni borrarla, dar por hecha una tarea que escribiste tú, mover un día que

@@ -1046,6 +1046,9 @@ pub fn laid_out_as(
     };
     let folder = into.join(&named);
     std::fs::create_dir_all(into)?;
+    if folder.exists() {
+        return Err(Error::AlreadyTakenOut(named.clone()));
+    }
     std::fs::create_dir(&folder)?;
 
     let wide = pages.len().to_string().len().max(2);

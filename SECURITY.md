@@ -227,6 +227,15 @@ Documents, Pictures, Desktop and the temporary folder are refused before
 anything is
 read, and the path is canonicalised first, so traversal does not reach past it.
 
+**And a file an assistant copies is one you pointed at, not one a document
+chose.** Bringing a markdown file in copies what its text points at beside it, so
+the document does not break the day it moves — and «beside it» is the rule rather
+than a turn of phrase: only what sits in that file's own folder, or below it, is
+followed. A link that climbs out with `..` is not fetched; its link is taken out,
+its words stay, and the answer names it. The five folders above are still the
+ceiling, but they are no longer the fence: the text of a markdown file somebody
+sent you cannot pick which of your own files are copied into a store that syncs.
+
 **What this does not protect against.** An assistant under prompt injection is
 still
 an assistant with your permission: it can file nonsense, write documents you did
