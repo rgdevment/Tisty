@@ -3443,13 +3443,7 @@ fn named_folder(said: &str) -> Answer<String> {
     if name.is_empty() {
         return Err(Refusal::of("untitled"));
     }
-    // A name with a slash in it reads as a path everywhere else, and then it names two folders
-    // that are not the same one.
-    if name.contains('/') {
-        return Err(Refusal::of("folderNameSlash"));
-    }
-    // A name with a slash in it reads as a path everywhere else, and then it names two folders
-    // that are not the same one.
+    // A slash reads as a path everywhere else, and then one name stands for two folders.
     if name.contains('/') {
         return Err(Refusal::of("folderNameSlash"));
     }

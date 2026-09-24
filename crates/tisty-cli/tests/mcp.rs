@@ -5494,7 +5494,6 @@ fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
         .filter(|(_, line)| {
             let trimmed = line.trim_start();
             trimmed.starts_with('"')
-                || trimmed.starts_with("\"")
                 || line.contains("format!(")
                 || line.contains("=> \"")
                 || line.contains(": &str = \"")

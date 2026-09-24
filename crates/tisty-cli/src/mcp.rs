@@ -4194,7 +4194,7 @@ fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<String> {
     let mut found: Vec<String> = state
         .docs
         .values()
-        .filter(|one| one.file != which && !state.held_away(one))
+        .filter(|one| one.file != which)
         .filter(|one| {
             tisty_core::docs::read(&paths.docs(), &one.file)
                 .map(|body| tisty_core::refs::papers(&body).iter().any(|at| at == which))
@@ -4432,31 +4432,45 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-fn many_docs(args: &Value, what: &str) -> Result<Vec<String>, Refused> {
+fn many_docs(args: &Value, what: &str) -> Result<(Vec<String>, bool), Refused> {
     match args.get("doc") {
         Some(Value::Array(many)) => {
-            let named: Vec<String> = many
-                .iter()
-                .filter_map(Value::as_str)
-                .map(|one| one.trim().to_string())
-                .filter(|one| !one.is_empty())
-                .collect();
-            match named.is_empty() {
-                true => Err(Refused::Tool(format!(
-                    "`doc` came as an empty list, so {what} nothing. Send the names, or one name."
-                ))),
-                false => Ok(named),
+            if many.is_empty() {
+                return Err(Refused::Tool(format!(
+                    "`doc` came as an empty list, so there is nothing to {what}. Send one name, or several."
+                )));
             }
+            let mut named = Vec::new();
+            for one in many {
+                match one.as_str().map(str::trim).filter(|said| !said.is_empty()) {
+                    Some(said) => named.push(said.to_string()),
+                    None => {
+                        return Err(Refused::Tool(format!(
+                            "{one} is not a document name, and a list is taken whole or not at all, so nothing moved. `docs` lists the names."
+                        )));
+                    }
+                }
+            }
+            Ok((named, true))
         }
         _ => match text(args, "doc") {
-            Some(one) => Ok(vec![one]),
-            None => Err(Refused::Tool(format!("{what} needs its `doc` name."))),
+            Some(one) => Ok((vec![one], false)),
+            None => Err(Refused::Tool(format!(
+                "to {what} a document, name it in `doc`."
+            ))),
         },
     }
 }
 
+fn said_docs(many: &[String], listed: bool) -> Value {
+    match listed {
+        true => json!(many),
+        false => json!(many.first().cloned().unwrap_or_default()),
+    }
+}
+
 fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let many = many_docs(args, "filing a document")?;
+    let (many, listed) = many_docs(args, "file")?;
     let (state, mut store) = opened(paths)?;
     let folder = match text(args, "folder") {
         Some(said) => Some(folder_named(&state, &said)?),
@@ -4494,12 +4508,33 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let where_at = folder.map(|at| trail(&state, at));
     if moving.is_empty() {
+        let away_now = already.iter().any(|one| {
+            state
+                .docs
+                .values()
+                .any(|kept| kept.file == *one && kept.archived)
+        });
         return Ok(told(
-            match &where_at {
-                Some(named) => format!("{} was already in {named}.", named_all(&state, &already)),
-                None => format!("{} was already in no folder.", named_all(&state, &already)),
+            match (&where_at, already.len() == 1) {
+                (Some(named), true) => {
+                    format!("{} was already in {named}.", named_all(&state, &already))
+                }
+                (Some(named), false) => {
+                    format!("{} were already in {named}.", named_all(&state, &already))
+                }
+                (None, true) => {
+                    format!("{} was already in no folder.", named_all(&state, &already))
+                }
+                (None, false) => {
+                    format!("{} were already in no folder.", named_all(&state, &already))
+                }
             },
-            json!({ "doc": many, "folder": where_at }),
+            json!({
+                "doc": said_docs(&many, listed),
+                "folder": where_at,
+                "archived": away_now,
+                "left": already,
+            }),
         ));
     }
 
@@ -4526,9 +4561,10 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
         false => "",
     };
-    let over = match already.is_empty() {
-        true => String::new(),
-        false => format!(" {} was already there.", named_all(&state, &already)),
+    let over = match (already.is_empty(), already.len() == 1) {
+        (true, _) => String::new(),
+        (false, true) => format!(" {} was already there.", named_all(&state, &already)),
+        (false, false) => format!(" {} were already there.", named_all(&state, &already)),
     };
     Ok(told(
         match &where_at {
@@ -4541,12 +4577,17 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 named_all(&state, &names)
             ),
         },
-        json!({ "doc": names, "folder": where_at, "left": already }),
+        json!({
+            "doc": said_docs(&names, listed),
+            "folder": where_at,
+            "archived": moving.iter().any(|(_, _, away)| *away),
+            "left": already,
+        }),
     ))
 }
 
 fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let many = many_docs(args, "making a page")?;
+    let (many, listed) = many_docs(args, "hang or unhang")?;
     let (state, mut store) = opened(paths)?;
 
     let up = match text(args, "page_of") {
@@ -4631,17 +4672,25 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let under = up.and_then(|one| named_doc(&state, one));
     if moving.is_empty() {
         return Ok(told(
-            match up.and_then(|one| up_named(&state, one)) {
-                Some(named) => format!(
+            match (up.and_then(|one| up_named(&state, one)), already.len() == 1) {
+                (Some(named), true) => format!(
                     "{} was already a page of {named}.",
                     named_all(&state, &already)
                 ),
-                None => format!(
+                (Some(named), false) => format!(
+                    "{} were already pages of {named}.",
+                    named_all(&state, &already)
+                ),
+                (None, true) => format!(
                     "{} was already a document of its own.",
                     named_all(&state, &already)
                 ),
+                (None, false) => format!(
+                    "{} were already documents of their own.",
+                    named_all(&state, &already)
+                ),
             },
-            json!({ "doc": many, "page_of": under }),
+            json!({ "doc": said_docs(&many, listed), "page_of": under, "left": already }),
         ));
     }
 
@@ -4649,6 +4698,8 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         Some(_) => Vec::new(),
         None => store.read_all().map_err(hitch)?,
     };
+    let mut last: std::collections::BTreeMap<Option<tisty_core::model::FolderId>, String> =
+        Default::default();
     let doing: Vec<Op> = moving
         .iter()
         .map(|(_, id)| Op::DocMove {
@@ -4659,29 +4710,63 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     page_of: Some(up),
                     order: None,
                 },
-                None => tisty_core::undo::unhung(&events, &state, *id),
+                None => {
+                    let mut out = tisty_core::undo::unhung(&events, &state, *id);
+                    let home = out.folder.unwrap_or_default();
+                    if let Some(order) = out.order.as_ref() {
+                        let order = match last.get(&home) {
+                            Some(before) if before >= order => tisty_core::order::after(before),
+                            _ => order.clone(),
+                        };
+                        last.insert(home, order.clone());
+                        out.order = Some(order);
+                    }
+                    out
+                }
             },
         })
         .collect();
     store.append_batch(doing).map_err(hitch)?;
 
     let names: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
-    let over = match already.is_empty() {
-        true => String::new(),
-        false => format!(" {} was already there.", named_all(&state, &already)),
+    let one_of_them = names.len() == 1;
+    let over = match (already.is_empty(), already.len() == 1, up.is_some()) {
+        (true, _, _) => String::new(),
+        (false, true, true) => format!(" {} was already one.", named_all(&state, &already)),
+        (false, false, true) => {
+            format!(" {} were already pages of it.", named_all(&state, &already))
+        }
+        (false, true, false) => {
+            format!(
+                " {} was already a document of its own.",
+                named_all(&state, &already)
+            )
+        }
+        (false, false, false) => format!(
+            " {} were already documents of their own.",
+            named_all(&state, &already)
+        ),
     };
     Ok(told(
-        match up.and_then(|one| up_named(&state, one)) {
-            Some(named) => format!(
+        match (up.and_then(|one| up_named(&state, one)), one_of_them) {
+            (Some(named), true) => format!(
                 "{} is now a page of {named}.{over}",
                 named_all(&state, &names)
             ),
-            None => format!(
+            (Some(named), false) => format!(
+                "{} are now pages of {named}, in that order.{over}",
+                named_all(&state, &names)
+            ),
+            (None, true) => format!(
                 "{} is now a document of its own.{over}",
                 named_all(&state, &names)
             ),
+            (None, false) => format!(
+                "{} are now documents of their own.{over}",
+                named_all(&state, &names)
+            ),
         },
-        json!({ "doc": names, "page_of": under, "left": already }),
+        json!({ "doc": said_docs(&names, listed), "page_of": under, "left": already }),
     ))
 }
 
@@ -5389,9 +5474,14 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
     }
     if !pointing.is_empty() {
+        let few: Vec<String> = pointing.iter().take(NEWEST_SHOWN).cloned().collect();
         shown.push_str(&format!(
-            "\n\nPointing at it: {}. Putting it away leaves those pointing into the archive.",
-            named_all(&state, &pointing)
+            "\n\nPointing at it: {}{}. Putting it away leaves those pointing into the archive.",
+            named_all(&state, &few),
+            match pointing.len() > few.len() {
+                true => format!(" and {} more", pointing.len() - few.len()),
+                false => String::new(),
+            }
         ));
     }
     Ok(told(shown, Value::Object(kept_of)))
@@ -5888,8 +5978,10 @@ fn named_doc_field() -> Value {
 
 fn many_docs_field(what: &str) -> Value {
     json!({
-        "type": ["string", "array"],
-        "items": { "type": "string" },
+        "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        ],
         "description": format!(
             "The id of the document {what}, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids does the same to all of them in one go, and if one of them cannot, none of them moves."
         )

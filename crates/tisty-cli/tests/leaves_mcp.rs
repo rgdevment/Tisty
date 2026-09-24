@@ -2330,7 +2330,7 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
         serde_json::json!({ "doc": loose.clone(), "page_of": &book }),
     );
 
-    assert!(said.contains("is now a page of"), "{said}");
+    assert!(said.contains("are now pages of"), "{said}");
     assert_eq!(
         served.pages_of(&book),
         loose,
@@ -2338,7 +2338,7 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
     );
 
     let out = served.said("page_doc", serde_json::json!({ "doc": loose.clone() }));
-    assert!(out.contains("document of its own"), "{out}");
+    assert!(out.contains("documents of their own"), "{out}");
     let up = served.call("read_doc", serde_json::json!({ "doc": &book }));
     assert!(up["result"]["structuredContent"]["pages"].is_null(), "{up}");
 }
@@ -2385,5 +2385,56 @@ fn what_points_at_a_document_is_there_to_be_asked_before_putting_it_away() {
     assert_eq!(
         told["result"]["structuredContent"]["pointed_at"],
         serde_json::json!([two])
+    );
+}
+
+#[test]
+fn pages_taken_out_together_land_one_after_another_and_not_all_at_once() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let pages: Vec<String> = (1..=3)
+        .map(|n| served.wrote(&format!("# Capitulo {n}"), Some(&book)))
+        .collect();
+
+    served.said("page_doc", serde_json::json!({ "doc": pages.clone() }));
+
+    let listed = served.call("docs", serde_json::json!({ "limit": 10 }));
+    let loose: Vec<String> = listed["result"]["structuredContent"]["docs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["doc"] != serde_json::json!(book))
+        .map(|row| row["title"].as_str().unwrap_or_default().to_string())
+        .collect();
+
+    assert!(
+        loose.contains(&"Capitulo 1".to_string()) && loose.len() == 3,
+        "{listed}"
+    );
+    let apart: Vec<String> = pages
+        .iter()
+        .map(|which| {
+            served.call("read_doc", serde_json::json!({ "doc": which }))["result"]
+                ["structuredContent"]["page_of"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string()
+        })
+        .collect();
+    assert_eq!(
+        apart,
+        vec!["", "", ""],
+        "none of them hangs from anything now"
+    );
+
+    let again = served.said(
+        "page_doc",
+        serde_json::json!({ "doc": pages.clone(), "page_of": &book }),
+    );
+    assert!(again.contains("in that order"), "{again}");
+    assert_eq!(
+        served.pages_of(&book),
+        pages,
+        "and putting them back keeps the order they were named in"
     );
 }
