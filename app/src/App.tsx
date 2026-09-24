@@ -1761,7 +1761,7 @@ export default function App() {
         papers={papers}
         counts={data.counts}
         chosen={chosen}
-        waiting={ready?.version}
+        waiting={ready ? ready.version || t("updateWaiting") : undefined}
         here={here}
         acting={menu?.on ?? null}
         onHere={(folder) => {

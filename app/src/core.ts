@@ -560,6 +560,7 @@ export interface Ready {
   route: Route;
   package: string | null;
   installs: boolean;
+  coming?: boolean;
 }
 
 export interface Underway {
