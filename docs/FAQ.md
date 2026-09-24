@@ -151,7 +151,11 @@ matches: nothing is written and the assistant is told to read it again. What it
 did replace is kept beside the documents either way.
 
 The window tells you when something wrote in the document you have open, and if
-you try to save over a change you had not seen, it asks which one stands.
+you try to save over a change you had not seen, it asks which one stands. That
+same bar offers the other way out: put the document back to what it said before,
+out of the copy kept beside the documents. What it says now is kept in its place,
+so the choice is not final. It is offered only when that copy is exactly one
+write back, which is the only time it can do what it says.
 
 ## An assistant says one of its tasks is done. Did it close it?
 
