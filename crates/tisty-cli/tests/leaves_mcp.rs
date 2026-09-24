@@ -2316,3 +2316,74 @@ fn asking_for_the_pages_of_nothing_is_not_asking_for_everything() {
         "a client that sends an absent option as null is not naming a folder: {all}"
     );
 }
+
+#[test]
+fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let loose: Vec<String> = (1..=3)
+        .map(|n| served.wrote(&format!("# Capitulo {n}"), None))
+        .collect();
+
+    let said = served.said(
+        "page_doc",
+        serde_json::json!({ "doc": loose.clone(), "page_of": &book }),
+    );
+
+    assert!(said.contains("is now a page of"), "{said}");
+    assert_eq!(
+        served.pages_of(&book),
+        loose,
+        "all three, in the order asked"
+    );
+
+    let out = served.said("page_doc", serde_json::json!({ "doc": loose.clone() }));
+    assert!(out.contains("document of its own"), "{out}");
+    let up = served.call("read_doc", serde_json::json!({ "doc": &book }));
+    assert!(up["result"]["structuredContent"]["pages"].is_null(), "{up}");
+}
+
+#[test]
+fn a_list_that_one_name_spoils_moves_nobody() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call("folder", serde_json::json!({ "name": "Proyectos" }));
+    let one = served.wrote("# Uno", None);
+    let two = served.wrote("# Dos", None);
+
+    let why = served.refused(
+        "file_doc",
+        serde_json::json!({ "doc": [&one, "no-existe", &two], "folder": "Proyectos" }),
+    );
+
+    assert!(why.contains("no-existe"), "{why}");
+    for which in [&one, &two] {
+        let read = served.call("read_doc", serde_json::json!({ "doc": which }));
+        assert!(
+            read["result"]["structuredContent"]["folder"].is_null(),
+            "one intention is one move or none: {read}"
+        );
+    }
+}
+
+#[test]
+fn what_points_at_a_document_is_there_to_be_asked_before_putting_it_away() {
+    let served = Served::new();
+    let one = served.wrote("# Acta de enero", None);
+    let two = served.wrote(
+        &format!("# Resumen\n\nlo dejado en [enero](tisty:doc/{one})"),
+        None,
+    );
+
+    let said = served.said("outline_doc", serde_json::json!({ "doc": &one }));
+
+    assert!(
+        said.contains("Pointing at it") && said.contains(&two),
+        "asking before archiving is the only moment it helps: {said}"
+    );
+    let told = served.call("outline_doc", serde_json::json!({ "doc": &one }));
+    assert_eq!(
+        told["result"]["structuredContent"]["pointed_at"],
+        serde_json::json!([two])
+    );
+}

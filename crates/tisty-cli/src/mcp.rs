@@ -4432,100 +4432,124 @@ fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
+fn many_docs(args: &Value, what: &str) -> Result<Vec<String>, Refused> {
+    match args.get("doc") {
+        Some(Value::Array(many)) => {
+            let named: Vec<String> = many
+                .iter()
+                .filter_map(Value::as_str)
+                .map(|one| one.trim().to_string())
+                .filter(|one| !one.is_empty())
+                .collect();
+            match named.is_empty() {
+                true => Err(Refused::Tool(format!(
+                    "`doc` came as an empty list, so {what} nothing. Send the names, or one name."
+                ))),
+                false => Ok(named),
+            }
+        }
+        _ => match text(args, "doc") {
+            Some(one) => Ok(vec![one]),
+            None => Err(Refused::Tool(format!("{what} needs its `doc` name."))),
+        },
+    }
+}
+
 fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool(
-            "filing a document needs its `doc` name.".into(),
-        ));
-    };
+    let many = many_docs(args, "filing a document")?;
     let (state, mut store) = opened(paths)?;
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
-    };
-    if let Some(up) = kept.page_of.and_then(|up| up_named(&state, up)) {
-        return Err(Refused::Tool(format!(
-            "{} is a page of {up}, and a page is kept where its document is. `page_doc` \
-             takes it out as a document of its own first.",
-            doc_named(&state, &which)
-        )));
-    }
-    if state.held_by_another(kept) {
-        return Err(Refused::Tool(format!(
-            "{} is in the archive with the folder that holds it, and moving it out from under \
-             that folder would take it out of the archive with nobody's hand on it. The person \
-             brings the folder back from the window first.",
-            doc_named(&state, &which)
-        )));
-    }
     let folder = match text(args, "folder") {
         Some(said) => Some(folder_named(&state, &said)?),
         None => None,
     };
-    if kept.folder == folder {
-        return Ok(told(
-            match folder.map(|at| trail(&state, at)) {
-                Some(named) => format!("{} was already in {named}.", doc_named(&state, &which)),
-                None => format!("{} was already in no folder.", doc_named(&state, &which)),
-            },
-            json!({ "doc": which, "folder": folder.map(|at| trail(&state, at)) }),
-        ));
+
+    let mut moving = Vec::new();
+    let mut already = Vec::new();
+    for which in &many {
+        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
+            return Err(Refused::Tool(format!(
+                "no document here is called {which:?}. `docs` lists them all."
+            )));
+        };
+        if let Some(up) = kept.page_of.and_then(|up| up_named(&state, up)) {
+            return Err(Refused::Tool(format!(
+                "{} is a page of {up}, and a page is kept where its document is. `page_doc` \
+                 takes it out as a document of its own first.",
+                doc_named(&state, which)
+            )));
+        }
+        if state.held_by_another(kept) {
+            return Err(Refused::Tool(format!(
+                "{} is in the archive with the folder that holds it, and moving it out from \
+                 under that folder would take it out of the archive with nobody's hand on it. \
+                 The person brings the folder back from the window first.",
+                doc_named(&state, which)
+            )));
+        }
+        match kept.folder == folder {
+            true => already.push(which.clone()),
+            false => moving.push((which.clone(), kept.id, kept.archived)),
+        }
     }
-    store
-        .append(Op::DocMove {
-            id: kept.id,
-            d: tisty_core::event::Filed {
-                page_of: None,
-                folder: Some(folder),
-                order: None,
-            },
-        })
-        .map_err(hitch)?;
 
     let where_at = folder.map(|at| trail(&state, at));
-    let still = match kept.archived {
-        true => " It stays in the archive: filing it says where it belongs, not that it is back.",
+    if moving.is_empty() {
+        return Ok(told(
+            match &where_at {
+                Some(named) => format!("{} was already in {named}.", named_all(&state, &already)),
+                None => format!("{} was already in no folder.", named_all(&state, &already)),
+            },
+            json!({ "doc": many, "folder": where_at }),
+        ));
+    }
+
+    store
+        .append_batch(
+            moving
+                .iter()
+                .map(|(_, id, _)| Op::DocMove {
+                    id: *id,
+                    d: tisty_core::event::Filed {
+                        page_of: None,
+                        folder: Some(folder),
+                        order: None,
+                    },
+                })
+                .collect(),
+        )
+        .map_err(hitch)?;
+
+    let names: Vec<String> = moving.iter().map(|(which, _, _)| which.clone()).collect();
+    let still = match moving.iter().any(|(_, _, away)| *away) {
+        true => {
+            " What the archive holds stays there: filing it says where it belongs, not that it is back."
+        }
         false => "",
+    };
+    let over = match already.is_empty() {
+        true => String::new(),
+        false => format!(" {} was already there.", named_all(&state, &already)),
     };
     Ok(told(
         match &where_at {
-            Some(named) => format!("Filed {} in {named}.{still}", doc_named(&state, &which)),
+            Some(named) => format!(
+                "Filed {} in {named}.{over}{still}",
+                named_all(&state, &names)
+            ),
             None => format!(
-                "Took {} out of every folder.{still}",
-                doc_named(&state, &which)
+                "Took {} out of every folder.{over}{still}",
+                named_all(&state, &names)
             ),
         },
-        json!({ "doc": which, "folder": where_at, "archived": kept.archived }),
+        json!({ "doc": names, "folder": where_at, "left": already }),
     ))
 }
 
 fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool("making a page needs its `doc` name.".into()));
-    };
+    let many = many_docs(args, "making a page")?;
     let (state, mut store) = opened(paths)?;
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
-    };
-    if state.shut(kept.id) {
-        return Err(Refused::Tool(format!(
-            "{which} is locked. Where a locked document sits is part of what the person shut \
-             away, so it neither becomes a page nor leaves the one that holds it. Ask them to \
-             unlock it first."
-        )));
-    }
-    if text(args, "page_of").is_none() && state.held_by_another(kept) {
-        return Err(Refused::Tool(format!(
-            "{} is in the archive with the folder that holds it, and taking it out of its \
-             document would leave it outside the archive with nobody's hand on it. The person \
-             brings the folder back from the window first.",
-            doc_named(&state, &which)
-        )));
-    }
-    let page_of = match text(args, "page_of") {
+
+    let up = match text(args, "page_of") {
         None => None,
         Some(said) => {
             let Some(up) = state.docs.values().find(|one| one.file == said) else {
@@ -4533,11 +4557,6 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     "no document here is called {said:?}. `docs` lists them all."
                 )));
             };
-            if up.id == kept.id {
-                return Err(Refused::Tool(format!(
-                    "{which} cannot be a page of itself."
-                )));
-            }
             if up.page_of.is_some() {
                 return Err(Refused::Tool(format!(
                     "{said} is a page itself, and a page holds no pages. Name the document it \
@@ -4548,13 +4567,46 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 return Err(Refused::Tool(format!(
                     "{} is put away, and a page of it is put away with it. Leave {} where it is.",
                     doc_named(&state, &said),
-                    doc_named(&state, &which)
+                    named_all(&state, &many)
                 )));
             }
             if state.shut(up.id) {
                 return Err(Refused::Tool(format!(
                     "{said} is locked, and hanging a page off it writes the line that names \
                      it. Ask the person to unlock it first."
+                )));
+            }
+            Some(up.id)
+        }
+    };
+
+    let mut moving = Vec::new();
+    let mut already = Vec::new();
+    for which in &many {
+        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
+            return Err(Refused::Tool(format!(
+                "no document here is called {which:?}. `docs` lists them all."
+            )));
+        };
+        if state.shut(kept.id) {
+            return Err(Refused::Tool(format!(
+                "{which} is locked. Where a locked document sits is part of what the person shut \
+                 away, so it neither becomes a page nor leaves the one that holds it. Ask them to \
+                 unlock it first."
+            )));
+        }
+        if up.is_none() && state.held_by_another(kept) {
+            return Err(Refused::Tool(format!(
+                "{} is in the archive with the folder that holds it, and taking it out of its \
+                 document would leave it outside the archive with nobody's hand on it. The person \
+                 brings the folder back from the window first.",
+                doc_named(&state, which)
+            )));
+        }
+        if let Some(over) = up {
+            if over == kept.id {
+                return Err(Refused::Tool(format!(
+                    "{which} cannot be a page of itself."
                 )));
             }
             if state.docs.values().any(|one| one.page_of == Some(kept.id)) {
@@ -4569,40 +4621,67 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                      the archive with no way of returning."
                 )));
             }
-            Some(up.id)
         }
-    };
-    if kept.page_of == page_of {
+        match kept.page_of == up {
+            true => already.push(which.clone()),
+            false => moving.push((which.clone(), kept.id)),
+        }
+    }
+
+    let under = up.and_then(|one| named_doc(&state, one));
+    if moving.is_empty() {
         return Ok(told(
-            match page_of.and_then(|up| named_doc(&state, up)) {
-                Some(named) => format!("{which} was already a page of {named}."),
-                None => format!("{which} was already a document of its own."),
+            match up.and_then(|one| up_named(&state, one)) {
+                Some(named) => format!(
+                    "{} was already a page of {named}.",
+                    named_all(&state, &already)
+                ),
+                None => format!(
+                    "{} was already a document of its own.",
+                    named_all(&state, &already)
+                ),
             },
-            json!({ "doc": which, "page_of": page_of.and_then(|up| named_doc(&state, up)) }),
+            json!({ "doc": many, "page_of": under }),
         ));
     }
-    let d = match page_of {
-        Some(_) => tisty_core::event::Filed {
-            folder: None,
-            page_of: Some(page_of),
-            order: None,
-        },
-        None => tisty_core::undo::unhung(&store.read_all().map_err(hitch)?, &state, kept.id),
-    };
-    store
-        .append(Op::DocMove { id: kept.id, d })
-        .map_err(hitch)?;
 
-    let under = page_of.and_then(|up| named_doc(&state, up));
+    let events = match up {
+        Some(_) => Vec::new(),
+        None => store.read_all().map_err(hitch)?,
+    };
+    let doing: Vec<Op> = moving
+        .iter()
+        .map(|(_, id)| Op::DocMove {
+            id: *id,
+            d: match up {
+                Some(_) => tisty_core::event::Filed {
+                    folder: None,
+                    page_of: Some(up),
+                    order: None,
+                },
+                None => tisty_core::undo::unhung(&events, &state, *id),
+            },
+        })
+        .collect();
+    store.append_batch(doing).map_err(hitch)?;
+
+    let names: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
+    let over = match already.is_empty() {
+        true => String::new(),
+        false => format!(" {} was already there.", named_all(&state, &already)),
+    };
     Ok(told(
-        match page_of.and_then(|up| up_named(&state, up)) {
-            Some(named) => format!("{} is now a page of {named}.", doc_named(&state, &which)),
+        match up.and_then(|one| up_named(&state, one)) {
+            Some(named) => format!(
+                "{} is now a page of {named}.{over}",
+                named_all(&state, &names)
+            ),
             None => format!(
-                "{} is now a document of its own.",
-                doc_named(&state, &which)
+                "{} is now a document of its own.{over}",
+                named_all(&state, &names)
             ),
         },
-        json!({ "doc": which, "page_of": under }),
+        json!({ "doc": names, "page_of": under, "left": already }),
     ))
 }
 
@@ -5207,6 +5286,7 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .collect();
 
+    let pointing = pointed_at(paths, &state, &which);
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
     kept_of.insert("title".into(), json!(card.title));
@@ -5215,6 +5295,9 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     kept_of.insert("words".into(), json!(card.words));
     kept_of.insert("print".into(), json!(card.print));
     kept_of.insert("outline".into(), json!(card.outline));
+    if !pointing.is_empty() {
+        kept_of.insert("pointed_at".into(), json!(pointing));
+    }
     if !card.keywords.is_empty() {
         kept_of.insert("about".into(), json!(card.keywords));
     }
@@ -5304,6 +5387,12 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 said(row, "title")
             ));
         }
+    }
+    if !pointing.is_empty() {
+        shown.push_str(&format!(
+            "\n\nPointing at it: {}. Putting it away leaves those pointing into the archive.",
+            named_all(&state, &pointing)
+        ));
     }
     Ok(told(shown, Value::Object(kept_of)))
 }
@@ -5797,6 +5886,16 @@ fn named_doc_field() -> Value {
     })
 }
 
+fn many_docs_field(what: &str) -> Value {
+    json!({
+        "type": ["string", "array"],
+        "items": { "type": "string" },
+        "description": format!(
+            "The id of the document {what}, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids does the same to all of them in one go, and if one of them cannot, none of them moves."
+        )
+    })
+}
+
 /// Every tool says its arguments the same way, and the three lines that say so were three lines
 /// in each of twenty-three places.
 fn shaped(what: Value) -> Value {
@@ -6204,11 +6303,11 @@ fn tools() -> Value {
         },
         {
             "name": "file_doc",
-            "title": "Put a document in a folder",
+            "title": "Put a document, or several, in a folder",
             "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes. Moving is not writing, so a document the archive holds by itself moves too and stays put away: that is how something already archived is filed where it belongs.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": named_doc_field(),
+                    "doc": many_docs_field("to file"),
                     "folder": {
                         "type": "string",
                         "description": "An existing folder, by its name, its whole path or its id. Leave it out to take the document out of every folder"
@@ -6219,7 +6318,7 @@ fn tools() -> Value {
         },
         {
             "name": "page_doc",
-            "title": "Make a document a page, or a page a document",
+            "title": "Make one document, or several, into pages — or take them back out",
             "description": "Hang a document from another as one of its pages, or take a page out \
                             by leaving `page_of` out, which makes it a document of its own where \
                             it stands. A page goes with its document everywhere — folder, archive \
@@ -6228,7 +6327,7 @@ fn tools() -> Value {
                             names it. `write_doc` with `page_of` names it for you.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": named_doc_field(),
+                    "doc": many_docs_field("to hang or to take out"),
                     "page_of": {
                         "type": "string",
                         "description": "The document it becomes a page of, by name. Leave it out \
@@ -6342,7 +6441,7 @@ fn tools() -> Value {
         {
             "name": "outline_doc",
             "title": "What is in a document",
-            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all.",
+            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field()

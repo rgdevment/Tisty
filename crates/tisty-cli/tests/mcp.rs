@@ -5314,7 +5314,7 @@ fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     let told = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        told.contains("Viejo") && told.contains("stays in the archive"),
+        told.contains("Viejo") && told.contains("archive holds stays there"),
         "moving is not writing, and the answer has to say it is still put away: {told}"
     );
     let listed = served.call(
@@ -5482,5 +5482,36 @@ fn the_terminal_says_which_documents_are_put_away_and_which_an_agent_gave_up_for
     assert!(
         read.contains("nobody opens it any more") && read.contains("# Viejo"),
         "and reading it says what the agent said: {read}"
+    );
+}
+
+#[test]
+fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
+    let said = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/mcp.rs")).unwrap();
+    let found: Vec<(usize, String)> = said
+        .lines()
+        .enumerate()
+        .filter(|(_, line)| {
+            let trimmed = line.trim_start();
+            trimmed.starts_with('"')
+                || trimmed.starts_with("\"")
+                || line.contains("format!(")
+                || line.contains("=> \"")
+                || line.contains(": &str = \"")
+        })
+        .filter(|(_, line)| {
+            let mut runs = line.split('"').skip(1).step_by(2);
+            runs.any(|held| {
+                held.split_whitespace().count() > 1
+                    && held.contains("   ")
+                    && !held.contains("{wide}")
+            })
+        })
+        .map(|(at, line)| (at + 1, line.trim().chars().take(90).collect()))
+        .collect();
+
+    assert!(
+        found.is_empty(),
+        "a line continued with a backslash loses it and the gap reaches the agent: {found:#?}"
     );
 }
