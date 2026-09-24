@@ -398,6 +398,11 @@ const en = {
   allInside: "In the order the text names them.",
   someLoose: "In the order the text names them. The last ones it never names.",
   looseLeafIs: "Loose page",
+  dragLeaves: "Drag one to move it: where its line sits is the order they are read in.",
+  leafStaysPut:
+    "That page's line sits inside something else — a quote, a list, a table — so dragging it would break what it is part of. Move it in the text instead.",
+  leafInText:
+    "That page is named by a link in the middle of your text, not by a card of its own, so there is no block to drag. Move the link to move it.",
   putLeaf: "Put it in the text",
   whereThisSits: "Where this page sits",
   leafOfMany: "Page {name} of {other}",
@@ -1740,6 +1745,11 @@ const es: Catalog = {
   allInside: "En el orden en que el texto las nombra.",
   someLoose: "En el orden en que el texto las nombra. Las últimas no las nombra en ninguna parte.",
   looseLeafIs: "Página suelta",
+  dragLeaves: "Arrastra una para moverla: donde va su línea es el orden en que se leen.",
+  leafStaysPut:
+    "La línea de esa página está dentro de otra cosa —una cita, una lista, una tabla—, así que arrastrarla rompería aquello de lo que forma parte. Muévela en el texto.",
+  leafInText:
+    "Esa página la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que arrastrar. Mueve el enlace para moverla.",
   putLeaf: "Ponerla en el texto",
   whereThisSits: "Dónde va esta página",
   leafOfMany: "Página {name} de {other}",

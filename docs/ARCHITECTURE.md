@@ -1388,7 +1388,44 @@ before any of this survive: such a book names none of its pages, and a rule that
 sent the unnamed ones to the end would turn it inside out the first time a single
 page ever named itself — the newest chapter would become the first. Instead the
 document lists them as loose, with the one action that puts one in the text, and
-the book turns into a named one at whatever pace its owner chooses.
+the book turns into a named one at whatever pace its owner chooses. The agent's
+door has two moves of its own: `page_doc` naming where a line goes, and `order`
+dealing the lines a set of pages already have back out in the order asked for.
+The window's own hang writes nothing — a document dropped on another in the tree
+lands loose, and its line is the person's to put there. So the two doors differ
+in what they write and agree on what it means: neither carries an order the text
+does not say, which is why dragging a row of the index moves the card in the
+editor and nothing has to know the difference.
+
+**What counts as code is decided once, for everybody.** A line naming a page
+inside a fenced block is not a way in, it is an example of one, and for a while
+the parts of Tisty disagreed about which fences existed: `refs` knew backticks
+only, the placing had its own count that knew tildes but not how wide a fence
+was, and the editor used a CommonMark parser that knew both. Making the reading
+and the placing agree was not enough on its own, because what they agreed on was
+something the person's own screen contradicted — a card shown inside a `~~~`
+example counted as a chapter, so putting the chapters in order rewrote the
+example. One tracker answers for all of them now: `docs::Fencing`, which opens on
+three or more of one marker and closes on the same, at least as long, and which
+already read the headings and the tags. The reading order walks past whatever it
+calls code, so the order, the line a page is placed on and what the editor draws
+cannot come apart; `paging.ts` follows the same rule — marker, width, and the
+quote or bullet that may sit in front of it — for the index the window draws.
+
+**What keeps a file alive is read more widely, and that asymmetry is the point.**
+`refs::extract` is what the sweep asks before deleting an attachment nothing
+names any more, and what the export asks before leaving one behind. It was left
+reading tilde fences, because the two mistakes are not the same size: counting a
+file named only in an example costs a stale file nobody looks at, and missing one
+costs the file. Only the reading order, which decides where a chapter sits and
+can be undone, is strict.
+
+**Putting pages in order keeps a copy beside the document, and says so.** It
+rewrites the body, which is the same thing `write_doc` and `edit_doc` do, and
+the person has one step back per document. Hanging a page does not: it appends,
+because the line it adds is not a change to anything they wrote, and spending
+their one undo to add it would be taking something of theirs to pay for
+something of ours.
 
 That leaves one source of truth for where a chapter belongs, which is where the
 person put it in the text. Cutting the reference and pasting it higher up moves
@@ -1477,11 +1514,12 @@ where a file was expected — leaves the log ahead of the file. Both cases end t
 same way as before, when the document is next opened or saved.
 
 **Settling re-keys the whole run, not the part the text names.** A body may name
-only some of a book's pages — hanging a document under another writes no card
-unless the call says where the card goes, so a book can still hold pages the text
-never mentions. Those pages keep the *places* they
-held, but the keys are dealt across every page at once. Re-keying only the named
-ones would hand out a key an unnamed sibling already holds, and a duplicate key
+only some of a book's pages — hanging one writes its card, but a person editing
+the text can take a card out, and a book written before any of this names none
+of them, so a book can still hold pages the text never mentions. Those pages keep
+the *places* they held, but the keys are dealt across every page at once.
+Re-keying only the named ones would hand out a key an unnamed sibling already
+holds, and a duplicate key
 is decided by whichever id sorts first — a place nobody chose, and no later
 settle repairs it, because the text never names that page again.
 

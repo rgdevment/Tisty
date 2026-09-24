@@ -165,9 +165,34 @@ pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Mov
 }
 
 /// Steps over fenced blocks line by line, for anything that reads a body and must not read code.
-pub(crate) fn fencing() -> impl FnMut(&str) -> bool {
+pub fn fencing() -> impl FnMut(&str) -> bool {
     let mut fence = Fencing::default();
     move |line| fence.inside(line)
+}
+
+pub fn ends_fenced(text: &str) -> bool {
+    let mut fence = Fencing::default();
+    for line in text.lines() {
+        fence.inside(line);
+    }
+    fence.open.is_some()
+}
+
+pub(crate) fn fenced_spans(text: &str) -> Vec<(usize, usize)> {
+    let mut fence = Fencing::default();
+    let mut out: Vec<(usize, usize)> = Vec::new();
+    let mut at = 0;
+    for line in text.split_inclusive('\n') {
+        let end = at + line.len();
+        if fence.inside(line.trim_end_matches(['\n', '\r'])) {
+            match out.last_mut() {
+                Some(last) if last.1 == at => last.1 = end,
+                _ => out.push((at, end)),
+            }
+        }
+        at = end;
+    }
+    out
 }
 
 /// A fence opens on three or more of one marker and closes on the same, at least as long.
@@ -483,10 +508,18 @@ fn written(root: &Path, id: &str, body: &str) -> Result<()> {
 pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
     alone(root, || {
         let was = read(root, id)?;
-        let added = settled(body.trim_start_matches(['\n', '\r']));
+        let ending = match was.contains("\r\n") {
+            true => "\r\n",
+            false => "\n",
+        };
+        let flat = settled(body.trim_start_matches(['\n', '\r'])).replace("\r\n", "\n");
+        let added = match ending {
+            "\r\n" => flat.replace('\n', "\r\n"),
+            _ => flat,
+        };
         let whole = match was.trim_end().is_empty() {
             true => added,
-            false => format!("{}\n\n{added}", was.trim_end()),
+            false => format!("{}{ending}{ending}{added}", was.trim_end()),
         };
         written(root, id, &whole)?;
         Ok(whole)

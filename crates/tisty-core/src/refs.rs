@@ -28,27 +28,81 @@ pub fn card(file: &str, title: &str) -> String {
 }
 
 pub fn papers(text: &str) -> Vec<String> {
-    extract(text)
+    let mut found: Vec<String> = Vec::new();
+    for (_, one) in papered(text) {
+        if !found.contains(&one) {
+            found.push(one);
+        }
+    }
+    found
+}
+
+/// Every line a page is named on, read with the same walk that decides the reading order, so the
+/// two can never disagree about what is code and what is a way in. A page named twice is here twice.
+pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
+    let mut lines: Vec<usize> = vec![0];
+    for (at, one) in text.char_indices() {
+        if one == '\n' {
+            lines.push(at + 1);
+        }
+    }
+    let line_of = |at: usize| match lines.binary_search(&at) {
+        Ok(one) => one,
+        Err(one) => one - 1,
+    };
+    papered(text)
         .into_iter()
-        .filter_map(|one| one.target.strip_prefix(DOC).map(str::to_string))
+        .map(|(at, file)| (file, line_of(at)))
+        .collect()
+}
+
+/// A page named inside a fenced block is an example of a way in, not one, so the reading order
+/// steps over code. What keeps a file alive is deliberately more generous: see `extract`.
+fn papered(text: &str) -> Vec<(usize, String)> {
+    let code = crate::docs::fenced_spans(text);
+    marked_past(text, &code)
+        .into_iter()
+        .filter_map(|(at, one)| {
+            one.target
+                .strip_prefix(DOC)
+                .map(|file| (at, file.to_string()))
+        })
         .collect()
 }
 
 pub fn extract(text: &str) -> Vec<Ref> {
     let mut found: Vec<Ref> = Vec::new();
-    let mut keep = |one: Ref| {
+    for (_, one) in marked_past(text, &[]) {
         if !found
             .iter()
             .any(|held| held.target == one.target && held.kind == one.kind)
         {
             found.push(one);
         }
-    };
+    }
+    found
+}
 
+fn marked_past(text: &str, code: &[(usize, usize)]) -> Vec<(usize, Ref)> {
+    let mut found: Vec<(usize, Ref)> = Vec::new();
+    let where_at = std::cell::Cell::new(0usize);
+    let mut keep = |one: Ref| found.push((where_at.get(), one));
+
+    let mut past = 0;
     let bytes = text.as_bytes();
     let mut at = 0;
     while at < bytes.len() {
+        while code.get(past).is_some_and(|(_, to)| *to <= at) {
+            past += 1;
+        }
+        if let Some((from, to)) = code.get(past)
+            && at >= *from
+        {
+            at = *to;
+            continue;
+        }
         let rest = &text[at..];
+        where_at.set(at);
         at = match bytes[at] {
             b'`' => past_code(text, at),
             b'[' if rest.starts_with("[[") => named(rest, at, &mut keep),
@@ -242,6 +296,140 @@ pub fn alerted(said: &str) -> Option<&str> {
         .any(|one| kind.eq_ignore_ascii_case(one));
     let alone = after.is_empty() || after.starts_with(char::is_whitespace);
     (known && alone).then(|| after.trim_start())
+}
+
+#[cfg(test)]
+mod lines {
+    use super::{DOC, paper_lines, papers};
+
+    #[test]
+    fn the_line_a_page_is_named_on_is_the_line_the_order_is_read_from() {
+        let body = format!(
+            "# Libro
+
+intro
+
+![Uno]({DOC}a-0001)
+
+medio
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(
+            paper_lines(&body),
+            vec![("a-0001".to_string(), 4), ("a-0002".to_string(), 8)]
+        );
+    }
+
+    #[test]
+    fn a_page_named_only_inside_a_fence_is_named_on_no_line_at_all() {
+        for fence in ["```", "~~~"] {
+            let body = format!(
+                "# Libro
+
+{fence}md
+![Uno]({DOC}a-0001)
+{fence}
+
+![Dos]({DOC}a-0002)
+"
+            );
+            assert_eq!(
+                papers(&body),
+                vec!["a-0002".to_string()],
+                "{fence}: a line in code is not a way in"
+            );
+            assert_eq!(
+                paper_lines(&body),
+                vec![("a-0002".to_string(), 6)],
+                "{fence}: and it is named on no line at all"
+            );
+        }
+    }
+
+    #[test]
+    fn what_keeps_a_file_alive_is_read_more_widely_than_what_decides_the_order() {
+        let body = "# Libro
+
+~~~md
+![Plano](attachments/plano.png)
+~~~
+";
+        assert_eq!(
+            super::extract(body)
+                .into_iter()
+                .map(|one| one.target)
+                .collect::<Vec<_>>(),
+            vec!["attachments/plano.png".to_string()],
+            "a file named anywhere is a file somebody still means to keep"
+        );
+    }
+
+    #[test]
+    fn a_fence_written_inside_a_quote_is_still_code() {
+        let body = format!(
+            "# Libro
+
+> ```
+> ![Uno]({DOC}a-0001)
+> ```
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(papers(&body), vec!["a-0002".to_string()]);
+    }
+
+    #[test]
+    fn a_page_named_by_a_plain_link_opening_a_line_is_named_on_that_line() {
+        let body = format!(
+            "# Libro
+
+[Uno]({DOC}a-0001) abre la linea.
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(
+            paper_lines(&body),
+            vec![("a-0001".to_string(), 2), ("a-0002".to_string(), 4)]
+        );
+    }
+
+    #[test]
+    fn a_fence_that_closes_wider_than_it_opened_holds_until_it_does() {
+        let body = format!(
+            "# Libro
+
+````md
+```
+![Uno]({DOC}a-0001)
+```
+````
+
+![Dos]({DOC}a-0002)
+"
+        );
+        assert_eq!(papers(&body), vec!["a-0002".to_string()]);
+    }
+
+    #[test]
+    fn a_page_named_twice_is_named_on_both_lines_and_read_from_the_first() {
+        let body = format!(
+            "![Uno]({DOC}a-0001)
+
+otra
+
+![Uno]({DOC}a-0001)
+"
+        );
+        assert_eq!(
+            paper_lines(&body),
+            vec![("a-0001".to_string(), 0), ("a-0001".to_string(), 4)]
+        );
+        assert_eq!(papers(&body), vec!["a-0001".to_string()]);
+    }
 }
 
 #[cfg(test)]

@@ -584,9 +584,10 @@ set an hour for it to ring at, move the day of a task it filed itself, say that
 a task it filed is done — which marks it for you to confirm and closes nothing —
 add to the journal, write a document, add to one that is already there — at the
 end or under a heading — correct a passage of one, write one again whole, file
-documents into folders, make one document a page of another and put that page
-where it belongs, which writes the line naming it into your document's text and
-nothing else, keep a copy of a file you point it at — on a task or
+documents into folders, make one document a page of another and say the order
+its pages are read in, which writes and moves the lines naming them in your
+document's text and nothing else, keep a copy of a file you point it at — on a
+task or
 inside a document, which takes the larger file of the two — and read what is
 already there. What it may not do: close a task or delete one, say a task you
 wrote is done, move a day you set, delete a document, rename or empty a folder,
