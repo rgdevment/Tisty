@@ -9,6 +9,11 @@ interface Props {
   onOpen: (doc: Filed) => void;
 }
 
+const named = (one: Filed) =>
+  one.away
+    ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
+    : one.title || t("untitledDoc");
+
 export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
   const read = told ? sisters.filter((one) => told.has(one.file)) : [];
   const at = told ? read.findIndex((one) => one.file === here) : -1;
@@ -31,7 +36,7 @@ export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
           type="button"
           disabled={!back}
           onClick={() => back && onOpen(back)}
-          title={back ? back.title || t("untitledDoc") : t("noLeafBack")}
+          title={back ? named(back) : t("noLeafBack")}
           aria-label={t("leafBack")}
         >
           <span aria-hidden="true">‹</span>
@@ -40,7 +45,7 @@ export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
           type="button"
           disabled={!on}
           onClick={() => on && onOpen(on)}
-          title={on ? on.title || t("untitledDoc") : t("noLeafOn")}
+          title={on ? named(on) : t("noLeafOn")}
           aria-label={t("leafOn")}
         >
           <span aria-hidden="true">›</span>
@@ -54,7 +59,7 @@ export function Onward({ next, onOpen }: { next: Filed; onOpen: (doc: Filed) => 
   return (
     <button type="button" onClick={() => onOpen(next)} className="onward">
       <span className="onward-say">{t("leafNext")}</span>
-      <span className="onward-name">{next.title || t("untitledDoc")}</span>
+      <span className={next.away ? "onward-name text-faint" : "onward-name"}>{named(next)}</span>
       <span aria-hidden="true" className="onward-go">
         ›
       </span>

@@ -97,6 +97,24 @@ describe("the head of a page", () => {
     expect(screen.getByText("Page 2 of 3")).toBeTruthy();
   });
 
+  it("says when the page it would open next is one the archive holds", () => {
+    const shelved: Filed[] = pages.map((one, at) =>
+      at === 2 ? { ...one, archived: true, away: true } : one,
+    );
+    render(
+      <Ribbon
+        of={of}
+        sisters={shelved}
+        told={new Set(shelved.map((one) => one.file))}
+        here={shelved[1].file}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    const on = screen.getAllByRole("button", { name: "Page after" }).slice(-1)[0];
+    expect(on.getAttribute("title")).toContain("in the archive");
+  });
+
   it("goes back to the document from its name", async () => {
     const { onOpen } = show("a3f1-0003");
     await userEvent.click(screen.getByText("Bases de datos"));

@@ -157,7 +157,7 @@ A document can be locked, and a locked one is refused every write: not `write_do
 
 A whole folder can be in the archive too, and then everything under it is — every subfolder, every document, every page — without any of them being marked one by one. What the archive reaches that way is read, exported and packed as always, and written by nobody: no `write_doc`, no `append_doc`, no `edit_doc`, no `attach`, no `page_doc`, no `file_doc` in or out of it, and nothing new goes into that folder — `write_doc` with it as `folder`, `import_doc`, and `folder` naming it as `inside` are all refused, as is changing how it looks. A document in there has no door of its own: `archive_doc` will not hand it back, because only the folder can be brought back, and only by the person from the window. Its own mark is kept untouched while it waits, so a document somebody had archived by hand stays archived when the folder returns.
 
-A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
+A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. It can also be put away on its own, and then it does not move: it stays under its document, read-only, and the document coming back does not wake it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `edit_doc` that line into the place it belongs — moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
@@ -3461,7 +3461,14 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let scope = scoped(args)?;
     let within = match text(args, "folder") {
         Some(said) => Some(folder_found(&state, &said)?),
-        None => None,
+        None => match args.get("folder").is_some() {
+            true => {
+                return Err(Refused::Tool(
+                    "`folder` names one folder to list. Leave it out to list them all.".into(),
+                ));
+            }
+            false => None,
+        },
     };
     let under = match text(args, "page_of") {
         Some(said) => Some(
@@ -4644,6 +4651,13 @@ fn folder(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
 
     let parent = match (text(args, "inside"), &under) {
+        (Some(inside), Some(path)) if as_path(&inside) != as_path(path) => {
+            return Err(Refused::Tool(format!(
+                "`name` reads as a path under {path:?} and `inside` says {inside:?}, which \
+                 are two different places. Send the name alone with `inside`, or the whole path \
+                 without it."
+            )));
+        }
         (Some(inside), _) => Some(folder_named(&state, &inside)?),
         (None, Some(path)) => Some(folder_named(&state, path).map_err(|why| match why {
             Refused::Tool(said) => Refused::Tool(format!(
