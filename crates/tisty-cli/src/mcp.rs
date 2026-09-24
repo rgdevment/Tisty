@@ -2583,8 +2583,7 @@ fn over_again(
         .into_iter()
         .filter(|one| !named.contains(&one.file))
         .collect();
-    let held: Vec<String> = body.lines().map(str::to_string).collect();
-    let walled_off = open_at_end(&held);
+    let walled_off = tisty_core::docs::ends_fenced(body);
     let adrift: Vec<String> = match walled_off {
         true => loose.iter().map(|one| one.file.clone()).collect(),
         false => Vec::new(),
@@ -2647,11 +2646,13 @@ print: {}",
         })),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
             let settled = retold(state, store, which, &whole).is_ok();
+            let twice = named_twice(state, which, &whole);
             Ok(told(
                 format!(
-                    "Wrote {:?} again, whole. {}{}{}{}",
+                    "Wrote {:?} again, whole. {}{}{}{}{}",
                     tisty_core::docs::titled(&whole),
                     "What it said before is kept beside the documents.",
+                    twice_words(state, &twice),
                     match kept_back.is_empty() {
                         true => String::new(),
                         false => format!(
@@ -3076,16 +3077,18 @@ fn append_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     // The text is already written: refusing here would have a dutiful retry add it twice.
     let settled = retold(&state, &mut store, &which, &whole).is_ok();
+    let twice = named_twice(&state, &which, &whole);
 
     Ok(told(
         format!(
-            "Added {} {:?}, {}. Nothing that was there changed.{}{}",
+            "Added {} {:?}, {}. Nothing that was there changed.{}{}{}",
             match &under {
                 Some(under) => format!("under {under:?} in"),
                 None => "to the end of".into(),
             },
             tisty_core::docs::titled(&whole),
             by_how_much(&before, &whole),
+            twice_words(&state, &twice),
             if settled { "" } else { UNSETTLED },
             wrapped(&body)
         ),
@@ -3518,13 +3521,15 @@ fn in_its_place(
         ))),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
             let loose = left_loose(state, which, &body, &whole);
+            let twice = named_twice(state, which, &whole);
             let settled = retold(state, store, which, &whole).is_ok();
             Ok(told(
                 format!(
                     "Changed lines {from} to {to} of {:?}. What it was is kept beside the \
-                     documents.{}{}",
+                     documents.{}{}{}",
                     tisty_core::docs::titled(&whole),
                     loose_words(state, &loose),
+                    twice_words(state, &twice),
                     if settled { "" } else { UNSETTLED }
                 ),
                 with_echo(
@@ -3569,10 +3574,7 @@ fn named_twice(state: &State, which: &str, whole: &str) -> Vec<String> {
         .pages_of(kept.id)
         .into_iter()
         .map(|one| one.file.clone())
-        .filter(|file| {
-            lines.iter().any(|(one, _)| one == file)
-                && whole.lines().filter(|line| line.contains(file)).count() > 1
-        })
+        .filter(|file| lines.iter().filter(|(one, _)| one == file).count() > 1)
         .collect()
 }
 
@@ -4908,24 +4910,6 @@ fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-fn open_at_end(lines: &[String]) -> bool {
-    let mut open: Option<char> = None;
-    for one in lines {
-        let said = one.trim_start();
-        let fence = said
-            .chars()
-            .next()
-            .filter(|c| matches!(c, '`' | '~'))
-            .filter(|c| said.starts_with(&c.to_string().repeat(3)));
-        match (open, fence) {
-            (None, Some(c)) => open = Some(c),
-            (Some(c), Some(f)) if f == c => open = None,
-            _ => {}
-        }
-    }
-    open.is_some()
-}
-
 fn line_of(lines: &[String], id: &str) -> Option<usize> {
     tisty_core::refs::paper_lines(&lines.join("\n"))
         .into_iter()
@@ -4934,11 +4918,7 @@ fn line_of(lines: &[String], id: &str) -> Option<usize> {
 }
 
 fn card_alone(line: &str, id: &str) -> bool {
-    let said = line.trim();
-    said.starts_with("![")
-        && said.ends_with(')')
-        && tisty_core::refs::extract(said).len() == 1
-        && tisty_core::refs::papers(said) == vec![id.to_string()]
+    card_any(line) && tisty_core::refs::papers(line.trim()) == vec![id.to_string()]
 }
 
 fn blank(lines: &[String], at: usize) -> bool {
@@ -4988,19 +4968,20 @@ impl Spot<'_> {
 }
 
 fn cards_in(lines: &[String]) -> Vec<usize> {
-    tisty_core::refs::paper_lines(&lines.join(
-        "
-",
-    ))
-    .into_iter()
-    .map(|(_, at)| at)
-    .filter(|at| card_any(&lines[*at]))
-    .collect()
+    let mut at: Vec<usize> = tisty_core::refs::paper_lines(&lines.join("\n"))
+        .into_iter()
+        .map(|(_, at)| at)
+        .collect();
+    at.dedup();
+    at
 }
 
 fn card_any(line: &str) -> bool {
     let said = line.trim();
-    said.starts_with("![") && said.ends_with(')') && tisty_core::refs::extract(said).len() == 1
+    (said.starts_with("![") || said.starts_with('['))
+        && said.ends_with(')')
+        && tisty_core::refs::extract(said).len() == 1
+        && tisty_core::refs::papers(said).len() == 1
 }
 
 fn card_moved(body: &str, which: &str, title: &str, spot: Spot) -> Option<String> {
@@ -5124,7 +5105,8 @@ fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ordered(paths, &state, &mut store, over, &order)?;
     Ok(told(
         format!(
-            "Read in that order now, in {}: {}.",
+            "Read in that order now, in {}: {}. What it said before is kept beside the \
+             documents.",
             doc_named(&state, &said),
             named_all(&state, &order)
         ),
@@ -5172,7 +5154,7 @@ fn named_at_end(
     };
     let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
     let held: Vec<String> = body.lines().map(str::to_string).collect();
-    if open_at_end(&held) {
+    if tisty_core::docs::ends_fenced(&body) {
         return Ok((Vec::new(), true));
     }
     let mut cards = Vec::new();
@@ -5269,13 +5251,6 @@ fn ordered(
         };
         if !card_alone(&held[at], id) {
             return Err(carried_off(state, &parent.file, id, at, &held[at]));
-        }
-        if state.shut(page.id) {
-            return Err(Refused::Tool(format!(
-                "{} is locked, and where a locked page is read is part of what the person shut \
-                 away. Ask them to unlock it first.",
-                doc_named(state, id)
-            )));
         }
     }
     let print = tisty_core::attach::printed(body.as_bytes());
@@ -5671,21 +5646,35 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let (None, Some(over)) = (&beside, up) {
         let (now, mut store) = opened(paths)?;
         let hung: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
-        let (given, walled_off) = named_at_end(paths, &now, &mut store, over, &hung)?;
-        put = match (given.is_empty(), walled_off) {
-            (false, _) => format!(
-                " {} its line at the end, which is where it is read.",
-                match given.len() {
-                    1 => "Wrote".to_string(),
-                    many => format!("Wrote each of the {many}"),
+        put = match named_at_end(paths, &now, &mut store, over, &hung) {
+            Ok((given, walled_off)) => match (given.is_empty(), walled_off) {
+                (false, _) => format!(
+                    " Wrote {} at the end, which is where it is read.",
+                    match given.len() {
+                        1 => "its line".to_string(),
+                        many => format!("the {many} lines naming them"),
+                    }
+                ),
+                (true, true) => format!(
+                    " {} ends inside a fence, so no line was written for it there: a line in \
+                     code is not a way in. Close the fence and name it with `after`, `before` or \
+                     `at`.",
+                    up_named(&state, over).unwrap_or_default()
+                ),
+                (true, false) => String::new(),
+            },
+            Err(Refused::Tool(why)) => format!(
+                " No line was written for {}, so {} loose: {why}",
+                match hung.len() {
+                    1 => "it",
+                    _ => "them",
+                },
+                match hung.len() {
+                    1 => "it is",
+                    _ => "they are",
                 }
             ),
-            (true, true) => format!(
-                " {} ends inside a fence, so no line was written for it there: a line in code is \
-                 not a way in. Close the fence and name it with `after`, `before` or `at`.",
-                up_named(&state, over).unwrap_or_default()
-            ),
-            (true, false) => String::new(),
+            Err(other) => return Err(other),
         };
     }
     if let (Some(held), Some(over)) = (&beside, up) {

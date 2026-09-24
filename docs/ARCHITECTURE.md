@@ -1397,6 +1397,28 @@ in what they write and agree on what it means: neither carries an order the text
 does not say, which is why dragging a row of the index moves the card in the
 editor and nothing has to know the difference.
 
+**What counts as code is decided once, for everybody.** A line naming a page
+inside a fenced block is not a way in, it is an example of one, and for a while
+the parts of Tisty disagreed about which fences existed: `refs` knew backticks
+only, the placing had its own count that knew tildes but not how wide a fence
+was, and the editor used a CommonMark parser that knew both. Making the reading
+and the placing agree was not enough on its own, because what they agreed on was
+something the person's own screen contradicted — a card shown inside a `~~~`
+example counted as a chapter, so putting the chapters in order rewrote the
+example. One tracker answers for all of them now: `docs::Fencing`, which opens on
+three or more of one marker and closes on the same, at least as long, and which
+already read the headings and the tags. `refs` walks past whatever it calls code,
+so the reading order, the line a page is placed on and what the editor draws
+cannot come apart; `paging.ts` does the same count for the index the window
+draws.
+
+**Putting pages in order keeps a copy beside the document, and says so.** It
+rewrites the body, which is the same thing `write_doc` and `edit_doc` do, and
+the person has one step back per document. Hanging a page does not: it appends,
+because the line it adds is not a change to anything they wrote, and spending
+their one undo to add it would be taking something of theirs to pay for
+something of ours.
+
 That leaves one source of truth for where a chapter belongs, which is where the
 person put it in the text. Cutting the reference and pasting it higher up moves
 the page, in the tree, in the export and in print, without a second panel that

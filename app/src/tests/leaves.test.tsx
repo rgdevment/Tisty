@@ -45,6 +45,41 @@ describe("the index at the end of a document", () => {
     return onMove;
   };
 
+  const carried = (told: string[]) => {
+    const onMove = vi.fn();
+    const { container } = render(
+      <Contents
+        pages={pages}
+        told={new Set(told)}
+        onOpen={vi.fn()}
+        onPut={vi.fn()}
+        onMove={onMove}
+      />,
+    );
+    return { onMove, container };
+  };
+
+  it("asks for the page to go last when it is dropped past the last row", () => {
+    const { onMove, container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
+    const rows = screen.getAllByRole("listitem");
+    const end = container.querySelector(".leaf-end");
+    if (!end) throw new Error("the list ends with nowhere to drop");
+
+    fireEvent.dragStart(rows[0]);
+    fireEvent.dragOver(end);
+    fireEvent.drop(end);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+    expect(onMove.mock.calls[0][1]).toBeNull();
+  });
+
+  it("offers nowhere to drop past the last row when one page alone is named", () => {
+    const { container } = carried(["a3f1-0002"]);
+
+    expect(container.querySelector(".leaf-end")).toBeNull();
+  });
+
   it("asks for the page to go before the one it was dropped on", () => {
     const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");

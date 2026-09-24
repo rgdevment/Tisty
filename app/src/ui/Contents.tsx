@@ -11,6 +11,8 @@ interface Props {
   onMove?: (page: Filed, before: string | null) => void;
 }
 
+const END = "\u0000end";
+
 export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) {
   const [carried, setCarried] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -19,12 +21,11 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
   const inside = pages.filter((one) => told.has(one.file));
   const loose = pages.filter((one) => !told.has(one.file));
 
-  const drops = (page: Filed) => {
-    if (!onMove || !carried || carried === page.file) return;
-    onMove(
-      inside.find((one) => one.file === carried) ?? page,
-      page.file === carried ? null : page.file,
-    );
+  const drops = (page: Filed | null) => {
+    if (!onMove || !carried || (page && carried === page.file)) return;
+    const held = inside.find((one) => one.file === carried);
+    if (!held) return;
+    onMove(held, page ? page.file : null);
   };
 
   const row = (page: Filed, at: string, movable: boolean) => (
@@ -90,6 +91,24 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
       {onMove && inside.length > 1 && <p className="leaves-why">{t("dragLeaves")}</p>}
       <ul className="leaves-list">
         {inside.map((one, at) => row(one, String(at + 1).padStart(2, "0"), Boolean(onMove)))}
+        {onMove && inside.length > 1 && (
+          <li
+            aria-hidden="true"
+            onDragOver={(e) => {
+              if (!carried) return;
+              e.preventDefault();
+              setOver(END);
+            }}
+            onDragLeave={() => setOver((one) => (one === END ? null : one))}
+            onDrop={(e) => {
+              e.preventDefault();
+              drops(null);
+              setCarried(null);
+              setOver(null);
+            }}
+            className={over === END && carried ? "leaf-end leaf-over" : "leaf-end"}
+          />
+        )}
       </ul>
       {loose.length > 0 && (
         <>

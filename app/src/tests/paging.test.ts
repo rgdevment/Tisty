@@ -54,6 +54,21 @@ describe("the pages of a document", () => {
 });
 
 describe("what a body names", () => {
+  it("does not count a card shown inside a fence, whichever marker wrote it", () => {
+    for (const fence of ["```", "~~~"]) {
+      const body = `# Libro\n\n${fence}md\n![Uno](tisty:doc/a-0001)\n${fence}\n\n![Dos](tisty:doc/a-0002)\n`;
+
+      expect([...named(body)]).toEqual(["a-0002"]);
+    }
+  });
+
+  it("holds a fence open until it closes at least as wide as it opened", () => {
+    const body =
+      "# Libro\n\n````md\n```\n![Uno](tisty:doc/a-0001)\n```\n````\n\n![Dos](tisty:doc/a-0002)\n";
+
+    expect([...named(body)]).toEqual(["a-0002"]);
+  });
+
   it("picks up every document it points at, as a card or as a link", () => {
     const body = "uno ![A](tisty:doc/a3f1-0002)\n\ndos [B](tisty:doc/a3f1-0003)";
 

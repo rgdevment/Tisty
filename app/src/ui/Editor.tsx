@@ -20,7 +20,7 @@ import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
-import { card, filed, paged, pagesOf } from "../paging";
+import { card, filed, type Moved, paged, pagesOf } from "../paging";
 import { named, pictured } from "../previews";
 import Asking from "./Asking";
 import Floats from "./Floats";
@@ -236,7 +236,7 @@ interface Props {
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
   onInsert?: (put: (file: string, title: string) => void) => void;
-  onOrder?: (move: (file: string, before: string | null) => boolean) => void;
+  onOrder?: (move: (file: string, before: string | null) => Moved) => void;
   seek?: number;
   anchor?: string;
   onSeen?: (at: number) => void;
@@ -257,18 +257,19 @@ const cardAt = (editor: Writing, file: string): number => {
   return found;
 };
 
-const cardMoved = (editor: Writing, file: string, before: string | null): boolean => {
+const cardMoved = (editor: Writing, file: string, before: string | null): Moved => {
   const from = cardAt(editor, file);
   const wanted = before === null ? editor.state.doc.content.size : cardAt(editor, before);
-  if (from < 0 || wanted < 0) return false;
+  if (from === -2 || wanted === -2) return "held";
+  if (from === -1 || wanted === -1) return "unseen";
   const node = editor.state.doc.nodeAt(from);
-  if (!node) return false;
-  if (wanted === from) return true;
+  if (!node) return "unseen";
+  if (wanted === from) return "done";
   const tr = editor.state.tr;
   tr.delete(from, from + node.nodeSize);
   tr.insert(tr.mapping.map(wanted), node);
   editor.view.dispatch(tr);
-  return true;
+  return "done";
 };
 
 export default function Editor({
