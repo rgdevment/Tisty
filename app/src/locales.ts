@@ -1108,6 +1108,10 @@ const en = {
   lookNow: "Check for updates",
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
+  windowFell: "This window stopped drawing",
+  windowFellWhy:
+    "Nothing you wrote is lost: it is kept as it was, and opening the window again picks it up where it stands. What went wrong is written in the log",
+  windowFellAgain: "Draw it again",
   updateComing: "The Store is bringing a new version",
   updateOpenShop: "Open the Store",
   updateComingWhy:
@@ -2444,6 +2448,10 @@ const es: Catalog = {
   lookNow: "Buscar actualizaciones",
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",
+  windowFell: "Esta ventana dejó de dibujarse",
+  windowFellWhy:
+    "No se perdió nada de lo que escribiste: queda tal como estaba, y al volver a abrir la ventana sigue donde lo dejaste. Lo que falló quedó escrito en el registro",
+  windowFellAgain: "Volver a dibujarla",
   updateComing: "La Store está trayendo una versión nueva",
   updateOpenShop: "Abrir la Store",
   updateComingWhy:
@@ -2678,7 +2686,9 @@ adopt();
 export const locale = (): string => code;
 export type Word = keyof Catalog;
 
-export const t = (key: Word): string => spoken[key];
+export const t = (key: Word): string => spoken[key] ?? en[key] ?? key;
 
 export const fill = (key: keyof Catalog, name: string, other?: string): string =>
-  spoken[key].replace("{name}", name).replace("{other}", other ?? "");
+  t(key)
+    .replace("{name}", name)
+    .replace("{other}", other ?? "");

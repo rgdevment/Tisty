@@ -2222,13 +2222,14 @@ fn still_open(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<T
 }
 
 #[tauri::command]
-fn note_break(kind: String, frames: String) {
+fn note_break(kind: String, said: Option<String>, frames: String) {
     let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
     witness::error(
         channel::WINDOW,
         "the window broke and stopped drawing",
         &[
             ("kind", Fact::Why(cut(kind, 40))),
+            ("said", Fact::Why(cut(said.unwrap_or_default(), 200))),
             ("frames", Fact::Why(cut(frames, 400))),
         ],
     );
@@ -6009,13 +6010,14 @@ async fn sync_now(
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
+    let carried = done.sent + done.brought + done.arrived.len() + done.joined.len();
     if unsettled > 0 {
         witness::warn(
             channel::SYNC,
             "a carry finished, and left work behind",
             &facts,
         );
-    } else {
+    } else if carried > 0 || moved {
         witness::note(channel::SYNC, "a carry finished", &facts);
     }
     for one in done.unreadable.iter().chain(done.astray.iter()) {
