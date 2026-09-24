@@ -4237,6 +4237,93 @@ fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
 }
 
 #[test]
+fn a_step_or_a_tag_that_is_not_text_is_refused_rather_than_dropped() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    for args in [
+        serde_json::json!({ "title": "pintar", "steps": ["lijar", 7] }),
+        serde_json::json!({ "title": "pintar", "tags": ["casa", 7] }),
+    ] {
+        let said = served.call("propose", args.clone());
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "{args} was let through: {said}"
+        );
+    }
+    assert!(!served.cli(&["ls", "all"]).contains("pintar"));
+}
+
+#[test]
+fn a_day_and_a_bell_are_not_written_over_a_task_already_said_done() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let task = filed(&served, "regar las plantas");
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &task, "body": "regadas" }),
+    );
+
+    for (name, args) in [
+        (
+            "reschedule",
+            serde_json::json!({ "task": &task, "date": "2026-12-01" }),
+        ),
+        (
+            "remind",
+            serde_json::json!({ "task": &task, "at": ["2026-12-01T09:00"] }),
+        ),
+    ] {
+        let said = served.call(name, args);
+        assert_eq!(
+            said["result"]["isError"].as_bool(),
+            Some(true),
+            "{name} spoke over a mark nobody has looked at: {said}"
+        );
+    }
+}
+
+#[test]
+fn moving_one_day_says_which_day_the_task_now_holds_and_not_only_what_was_sent() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let task = filed(&served, "pintar la puerta");
+    served.call(
+        "reschedule",
+        serde_json::json!({ "task": &task, "date": "2026-11-20" }),
+    );
+
+    let said = served.call(
+        "reschedule",
+        serde_json::json!({ "task": &task, "deadline": "2026-11-25" }),
+    );
+
+    assert_eq!(
+        said["result"]["structuredContent"]["date"],
+        serde_json::json!("2026-11-20"),
+        "the day it still holds has to come back, or a reader thinks it was taken off: {said}"
+    );
+}
+
+#[test]
+fn a_document_named_by_a_number_is_refused_wherever_a_list_would_also_do() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call("page_doc", serde_json::json!({ "doc": 7 }));
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("what came was a number"),
+        "a field that takes text or a list still says what shape it wanted: {said}"
+    );
+}
+
+#[test]
 fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);

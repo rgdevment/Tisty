@@ -634,36 +634,64 @@ fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
         if sent.is_null() {
             continue;
         }
-        let Some(wants) = taken[key].get("type").and_then(Value::as_str) else {
+        let kinds = kinds_of(&taken[key]);
+        if kinds.is_empty() || kinds.iter().any(|one| holds(one, sent)) {
             continue;
-        };
-        let fits = match wants {
-            "string" => sent.is_string(),
-            "integer" => sent.is_i64() || sent.is_u64(),
-            "number" => sent.is_number(),
-            "boolean" => sent.is_boolean(),
-            "array" => sent.is_array(),
-            "object" => sent.is_object(),
-            _ => true,
-        };
-        if !fits {
-            let says = taken[key]
-                .get("description")
-                .and_then(Value::as_str)
-                .map(|one| match one.trim_end().ends_with('.') {
-                    true => format!(" It takes: {one}"),
-                    false => format!(" It takes: {one}."),
-                })
-                .unwrap_or_default();
-            return Err(Refused::Tool(format!(
-                "`{key}` takes {}, and what came was {}. Nothing was read from it, because \
-                 reading it another way would be a guess.{says}",
-                shaped_as(wants),
-                came_as(sent)
-            )));
         }
+        let says = taken[key]
+            .get("description")
+            .and_then(Value::as_str)
+            .map(|one| match one.trim_end().ends_with('.') {
+                true => format!(" It takes: {one}"),
+                false => format!(" It takes: {one}."),
+            })
+            .unwrap_or_default();
+        return Err(Refused::Tool(format!(
+            "`{key}` takes {}, and what came was {}. Nothing was read from it, because reading \
+             it another way would be a guess.{says}",
+            kinds
+                .iter()
+                .map(|one| shaped_as(one))
+                .collect::<Vec<_>>()
+                .join(" or "),
+            came_as(sent)
+        )));
     }
     Ok(())
+}
+
+fn kinds_of(shape: &Value) -> Vec<String> {
+    let named = |one: &Value| match one {
+        Value::String(said) => vec![said.clone()],
+        Value::Array(all) => all
+            .iter()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect(),
+        _ => Vec::new(),
+    };
+    let mut out = shape.get("type").map(named).unwrap_or_default();
+    if let Some(all) = shape.get("oneOf").and_then(Value::as_array) {
+        for one in all {
+            out.extend(one.get("type").map(&named).unwrap_or_default());
+        }
+    }
+    out.retain(|one| one != "null");
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
+fn holds(wants: &str, sent: &Value) -> bool {
+    match wants {
+        "string" => sent.is_string(),
+        "integer" => sent.is_i64() || sent.is_u64(),
+        "number" => sent.is_number(),
+        "boolean" => sent.is_boolean(),
+        "array" => sent.is_array(),
+        "object" => sent.is_object(),
+        _ => true,
+    }
 }
 
 fn shaped_as(wants: &str) -> &'static str {
@@ -686,6 +714,14 @@ fn came_as(sent: &Value) -> &'static str {
         Value::Object(_) => "a set of fields",
         Value::Null => "nothing",
     }
+}
+
+fn body_at_most() -> usize {
+    AT_MOST
+        .iter()
+        .find(|(key, _)| *key == "body")
+        .map(|(_, most)| *most)
+        .unwrap_or(64_000)
 }
 
 const AT_MOST: &[(&str, usize)] = &[
@@ -828,7 +864,7 @@ fn moments(args: &Value, key: &str) -> Result<Vec<DateSpec>, Refused> {
     let zone = jiff::tz::TimeZone::system();
     let named = zone.iana_name().unwrap_or("UTC").to_string();
     let mut out: Vec<DateSpec> = Vec::new();
-    for said in listed(args, key) {
+    for said in strings(args, key)? {
         let at = said
             .contains('T')
             .then(|| said.parse::<jiff::civil::DateTime>().ok())
@@ -1084,7 +1120,7 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     in_order(on.as_ref(), owed.as_ref())?;
 
     let mut tags: Vec<Tag> = Vec::new();
-    for one in listed(args, "tags")
+    for one in strings(args, "tags")?
         .iter()
         .filter_map(|said| Tag::written(said).ok())
     {
@@ -1130,7 +1166,7 @@ fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let mut step = order::first();
     let mut planned = 0;
-    for one in listed(args, "steps") {
+    for one in strings(args, "steps")? {
         planned += 1;
         ops.push(Op::StepAdd {
             id,
@@ -1233,6 +1269,9 @@ fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
+    if let Some(why) = already_said_done(task, "setting a bell") {
+        return Err(why);
+    }
 
     let mut all = task.reminders.clone();
     let mut added = 0;
@@ -1301,6 +1340,9 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !task.is_open() {
         return Err(history(task));
     }
+    if let Some(why) = already_said_done(task, "moving its day") {
+        return Err(why);
+    }
     let standing =
         |given: &Option<DateSpec>, key: &str, held: &Option<DateSpec>| match (given, clears(key)) {
             (Some(one), _) => Some(one.clone()),
@@ -1334,8 +1376,8 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .map_err(hitch)?;
 
     let now = (
-        on.map(|one| one.date().to_string()),
-        owed.map(|one| one.date().to_string()),
+        on.as_ref().map(|one| one.date().to_string()),
+        owed.as_ref().map(|one| one.date().to_string()),
     );
     let moved = |what: &str, was: &Option<String>, now: &Option<String>, cleared: bool| match (
         now, cleared,
@@ -1361,8 +1403,9 @@ fn reschedule(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         json!({
             "id": id.to_string(),
             "title": task.title,
-            "date": now.0,
-            "deadline": now.1,
+            "date": standing(&on, "date", &task.date).map(|one| one.date().to_string()),
+            "deadline": standing(&owed, "deadline", &task.deadline)
+                .map(|one| one.date().to_string()),
         }),
     ))
 }
@@ -1459,7 +1502,7 @@ fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "task") else {
         return Err(Refused::Tool("planning needs a `task` id.".into()));
     };
-    let steps = listed(args, "steps");
+    let steps = strings(args, "steps")?;
     if steps.is_empty() {
         return Err(Refused::Tool(
             "planning needs `steps`, the checklist to add, one string each.".into(),
@@ -2368,6 +2411,17 @@ fn how_it_ended(task: &Task) -> String {
     said
 }
 
+fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
+    task.resolved.as_ref().map(|_| {
+        Refused::Tool(format!(
+            "{:?} has already been said done, so {doing} now would speak over a mark nobody has \
+             looked at yet. Say what you have learnt with `note` and leave the task to the \
+             person.",
+            task.title
+        ))
+    })
+}
+
 fn history(task: &Task) -> Refused {
     let ended = ended(task);
     let how = match task.status {
@@ -2410,7 +2464,7 @@ fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     };
 
-    let asked = listed(args, "fields");
+    let asked = strings(args, "fields")?;
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
 
     let mut whole = match asked.is_empty() {
@@ -3931,9 +3985,18 @@ fn brought_in(
         || target.starts_with("https://")
         || target.starts_with("mailto:")
         || target.starts_with(tisty_core::refs::DOC)
-        || target.starts_with("attachments/")
     {
         return Some(target.to_string());
+    }
+    if let Some(kept) = target.strip_prefix("attachments/") {
+        if stays_beside(&unescaped(kept)) {
+            return Some(target.to_string());
+        }
+        done.missed.push(format!(
+            "{target} — it reads as a file Tisty already keeps, but it climbs out of the shelf \
+             those sit on, and nothing there can be named that way"
+        ));
+        return None;
     }
     if target.starts_with('/')
         || target.starts_with('\\')
@@ -4161,10 +4224,11 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
     let big = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
-    if big > tisty_core::docs::BODY_AT_MOST {
+    if big > body_at_most() as u64 {
         return Err(Refused::Tool(format!(
-            "{said:?} is {big} bytes, past the {} Tisty can open. Split it before bringing it in.",
-            tisty_core::docs::BODY_AT_MOST
+            "{said:?} is {big} bytes, and a document is kept up to {} characters. Split it \
+             before bringing it in.",
+            body_at_most()
         )));
     }
     let raw = std::fs::read(&at)
@@ -4226,6 +4290,14 @@ fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         one.remove("path");
         one.remove("title");
         one.insert("body".into(), json!(body));
+    }
+    let long = body.chars().count();
+    if long > body_at_most() {
+        return Err(Refused::Tool(format!(
+            "{said:?} reads as {long} characters once it is tidied, and a document is kept up \
+             to {}. Split it before bringing it in.",
+            body_at_most()
+        )));
     }
     short_and_plain(&asked_again)?;
     let written = write_doc(paths, &asked_again)?;
@@ -4902,6 +4974,32 @@ fn card_moved(body: &str, which: &str, title: &str, spot: Spot) -> Option<String
     Some(out)
 }
 
+fn left_named(
+    paths: &Paths,
+    state: &State,
+    moving: &[(String, tisty_core::model::DocId)],
+    up: Option<tisty_core::model::DocId>,
+) -> Vec<(String, String)> {
+    let up = match up {
+        Some(one) => one,
+        None => return Vec::new(),
+    };
+    moving
+        .iter()
+        .filter_map(|(which, id)| {
+            let was = state.docs.get(id)?.page_of?;
+            if was == up {
+                return None;
+            }
+            let parent = state.docs.get(&was)?;
+            let body = tisty_core::docs::read(&paths.docs(), &parent.file).ok()?;
+            tisty_core::refs::papers(&body)
+                .contains(which)
+                .then(|| (parent.file.clone(), which.clone()))
+        })
+        .collect()
+}
+
 fn where_said(state: &State, spot: Spot) -> String {
     match spot.anchor() {
         Some(one) => format!("{} {}", spot.said(), doc_named(state, one)),
@@ -5260,6 +5358,7 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             },
         })
         .collect();
+    let stayed = left_named(paths, &state, &moving, up);
     store.append_batch(doing).map_err(hitch)?;
     let mut put = String::new();
     if let (Some(held), Some(over)) = (&beside, up) {
@@ -5272,6 +5371,26 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             Err(other) => return Err(other),
         };
     }
+
+    let over = match stayed.is_empty() {
+        true => String::new(),
+        false => format!(
+            " The line naming {} is still written in {}, which no longer holds it: take it out \
+             with `edit_doc` when you are done.",
+            named_all(
+                &state,
+                &stayed
+                    .iter()
+                    .map(|(_, one)| one.clone())
+                    .collect::<Vec<_>>()
+            ),
+            named_all(
+                &state,
+                &stayed.iter().map(|(up, _)| up.clone()).collect::<Vec<_>>()
+            )
+        ),
+    };
+    let put = format!("{put}{over}");
 
     let names: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
     let one_of_them = names.len() == 1;
@@ -6096,6 +6215,15 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !pages.is_empty() {
         kept_of.insert("pages".into(), json!(pages));
         let held = state.pages_of(kept.id);
+        let told_of = tisty_core::refs::papers(&body);
+        let adrift: Vec<String> = held
+            .iter()
+            .filter(|one| !told_of.contains(&one.file))
+            .map(|one| one.file.clone())
+            .collect();
+        if !adrift.is_empty() {
+            kept_of.insert("pages_loose".into(), json!(adrift));
+        }
         let shelved: Vec<String> = held
             .iter()
             .filter(|one| one.archived)
@@ -6918,7 +7046,9 @@ fn tools() -> Value {
                     "doc": named_doc_field(),
                     "into": {
                         "type": "string",
-                        "description": "A folder that exists on this machine, under Downloads, Documents, Pictures, Desktop or the temporary folder"
+                        "description": "A folder that exists on this machine, which an \
+                                        export of this document has not been taken to already: \
+                                        one is made inside it, named after the title, under Downloads, Documents, Pictures, Desktop or the temporary folder"
                     }
                 },
                 "required": ["doc", "into"]

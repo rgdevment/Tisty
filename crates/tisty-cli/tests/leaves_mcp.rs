@@ -1148,7 +1148,10 @@ fn a_file_past_what_tisty_opens_is_turned_away_before_it_is_read() {
         serde_json::json!({ "path": at.to_str().unwrap() }),
     );
 
-    assert!(why.contains("past the"), "{why}");
+    assert!(
+        why.contains("a document is kept up to 64000 characters"),
+        "{why}"
+    );
 }
 
 #[test]
@@ -1254,6 +1257,83 @@ fn a_picture_beside_the_file_comes_in_with_it() {
     assert_eq!(
         said["result"]["structuredContent"]["files"].as_u64(),
         Some(1)
+    );
+}
+
+#[test]
+fn a_page_that_leaves_for_another_document_says_the_old_line_is_still_there() {
+    let served = Served::new();
+    let one = served.wrote("# Libro uno\n\nintro", None);
+    let two = served.wrote("# Libro dos\n\nintro", None);
+    let page = served.wrote("# Capitulo", Some(&one));
+
+    let said = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &page, "page_of": &two }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("is still written in"),
+        "the book it left still names it and nothing said so: {said}"
+    );
+    assert!(
+        served.body_of(&one).contains(&format!("tisty:doc/{page}")),
+        "the old body is not rewritten by a call that did not name it"
+    );
+}
+
+#[test]
+fn a_document_taken_out_twice_to_the_same_place_says_what_is_already_there() {
+    let served = Served::new();
+    let doc = served.wrote("# Acta\n\nlo que hay", None);
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let into = dir.path().to_str().unwrap();
+
+    let first = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &doc, "into": into }),
+    );
+    assert_ne!(first["result"]["isError"].as_bool(), Some(true), "{first}");
+
+    let why = served.refused(
+        "export_doc",
+        serde_json::json!({ "doc": &doc, "into": into }),
+    );
+    assert!(
+        why.contains("already holds an export of this document"),
+        "the second one has to say what is in the way, not an error number: {why}"
+    );
+}
+
+#[test]
+fn reading_a_document_says_which_of_its_pages_no_line_names() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let named = served.wrote("# Uno", Some(&book));
+    let loose = served.wrote("# Dos", None);
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &loose, "page_of": &book }),
+    );
+
+    let said = served.call("read_doc", serde_json::json!({ "doc": &book }));
+
+    assert_eq!(
+        said["result"]["structuredContent"]["pages_loose"],
+        serde_json::json!([loose]),
+        "{said}"
+    );
+    assert!(
+        served
+            .body_of(&book)
+            .contains(&format!("tisty:doc/{named}")),
+        "the one the body names is not loose"
     );
 }
 

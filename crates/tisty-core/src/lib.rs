@@ -64,6 +64,8 @@ pub enum Error {
     NoRoom { needs: u64, free: u64 },
     #[error("there is nothing here to carry out")]
     NothingToCarry,
+    #[error("{0} already holds an export of this document")]
+    AlreadyTakenOut(String),
     #[error("that backup belongs to another store ({theirs})")]
     OtherStore { theirs: String },
 
@@ -124,6 +126,7 @@ impl Error {
             Error::ParcelTorn => "parcelTorn",
             Error::NoRoom { .. } => "noRoom",
             Error::NothingToCarry => "nothingToCarry",
+            Error::AlreadyTakenOut(_) => "alreadyTakenOut",
             Error::OtherStore { .. } => "otherStore",
             Error::TooBig => "tooBig",
             Error::AttachmentTooBig { .. } => "attachmentTooBig",
