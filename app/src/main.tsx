@@ -2,9 +2,10 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { noteBreak } from "./core";
+import { broke } from "./broke";
 import { locale } from "./locales";
 import Quick from "./Quick";
+import Standing from "./Standing";
 import "./index.css";
 
 document.addEventListener("contextmenu", (e) => {
@@ -22,32 +23,18 @@ document.documentElement.lang = locale();
   dark.addEventListener("change", paint);
 }
 
-export const framesOf = (stack?: string): string =>
-  (stack ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("at ") || /@.*:\d+/.test(line))
-    .slice(0, 4)
-    .join(" | ");
-
-const seen = new Set<string>();
-
-const broke = (kind: string, stack?: string) => {
-  const frames = framesOf(stack);
-  const once = `${kind} ${frames}`;
-  if (seen.has(once)) return;
-  seen.add(once);
-  void noteBreak(kind, frames).catch(() => {});
-};
-
-window.addEventListener("error", (e) => broke(e.error?.name ?? "Error", e.error?.stack));
+window.addEventListener("error", (e) =>
+  broke(e.error?.name ?? "Error", e.error?.message, e.error?.stack),
+);
 window.addEventListener("unhandledrejection", (e) =>
-  broke(e.reason?.name ?? "Rejection", e.reason?.stack),
+  broke(e.reason?.name ?? "Rejection", e.reason?.message, e.reason?.stack),
 );
 
 const quick = getCurrentWindow().label === "quick";
 if (quick) document.documentElement.classList.add("quick");
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>{quick ? <Quick /> : <App />}</React.StrictMode>,
+  <React.StrictMode>
+    <Standing>{quick ? <Quick /> : <App />}</Standing>
+  </React.StrictMode>,
 );
