@@ -161,7 +161,7 @@ A document can hold pages, and that is the only level there is: `write_doc` with
 
 A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
-`page_doc` on its own changes no text, so a document hung that way is loose: it belongs to the document and goes everywhere with it, but sits where it landed until the document names it. Give it `after` or `before` and the line is written for you, straight beside the page you name — that is how a page is moved without touching markdown, and the page you name has to have a line of its own for it to sit beside. `at` takes \"first\" or \"last\" and leans on no page at all, which is what a book whose pages no line names yet needs. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
+`page_doc` writes the line that names the page, at the end of the document it is hung from, so a page has a place from the moment it has a document. `after`, `before` and `at` say where that line goes instead of the end; the page you name as `after` or `before` has to have a line of its own for this one to sit beside it, and `at` takes \"first\" or \"last\", which needs no page to lean on. That is how a page is moved without touching markdown. Taking a page back out writes nothing. `at` takes \"first\" or \"last\" and leans on no page at all, which is what a book whose pages no line names yet needs. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
 `append_doc` adds to a document that exists, leaving every byte that was there — at the end, or \
 under a heading you name with `under`. `edit_doc` changes one passage of it, named either by what \
@@ -5096,6 +5096,73 @@ fn in_this_order(paths: &Paths, args: &Value, all: &Value) -> Result<Value, Refu
     ))
 }
 
+fn cards_appended(body: &str, cards: &[String]) -> String {
+    let ending = match body.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
+    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
+    while lines.last().is_some_and(|one| one.trim().is_empty()) {
+        lines.pop();
+    }
+    for card in cards {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push(card.clone());
+    }
+    let mut out = lines.join(ending);
+    if !out.ends_with('\n') {
+        out.push_str(ending);
+    }
+    out
+}
+
+/// Hanging says where a page belongs, and a page nothing names has no place to be read in, so the
+/// lines of the ones that have none are written together rather than one write each.
+fn named_at_end(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    up: tisty_core::model::DocId,
+    which: &[String],
+) -> Result<(Vec<String>, bool), Refused> {
+    let Some(parent) = state.docs.get(&up) else {
+        return Ok((Vec::new(), false));
+    };
+    let body = tisty_core::docs::read(&paths.docs(), &parent.file).map_err(hitch)?;
+    let held: Vec<String> = body.lines().map(str::to_string).collect();
+    if walled(&held).last().copied().unwrap_or(false) {
+        return Ok((Vec::new(), true));
+    }
+    let mut cards = Vec::new();
+    let mut named = Vec::new();
+    for one in which {
+        if line_of(&held, one).is_some() {
+            continue;
+        }
+        let title = tisty_core::docs::read(&paths.docs(), one)
+            .map(|said| tisty_core::docs::titled(&said))
+            .unwrap_or_default();
+        cards.push(tisty_core::refs::card(one, &title));
+        named.push(one.clone());
+    }
+    if cards.is_empty() {
+        return Ok((Vec::new(), false));
+    }
+    let print = tisty_core::attach::printed(body.as_bytes());
+    let whole = cards_appended(&body, &cards);
+    match tisty_core::docs::rewrite(&paths.docs(), paths.data(), &parent.file, &whole, &print)
+        .map_err(hitch)?
+    {
+        tisty_core::docs::Rewrite::Moved => Ok((Vec::new(), false)),
+        tisty_core::docs::Rewrite::Made { whole, .. } => {
+            retold(state, store, &parent.file, &whole)?;
+            Ok((named, false))
+        }
+    }
+}
+
 fn cards_ordered(body: &str, order: &[String]) -> Option<String> {
     let ending = match body.contains("\r\n") {
         true => "\r\n",
@@ -5543,6 +5610,26 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let stayed = left_named(paths, &state, &moving, up);
     store.append_batch(doing).map_err(hitch)?;
     let mut put = String::new();
+    if let (None, Some(over)) = (&beside, up) {
+        let (now, mut store) = opened(paths)?;
+        let hung: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
+        let (given, walled_off) = named_at_end(paths, &now, &mut store, over, &hung)?;
+        put = match (given.is_empty(), walled_off) {
+            (false, _) => format!(
+                " {} its line at the end, which is where it is read.",
+                match given.len() {
+                    1 => "Wrote".to_string(),
+                    many => format!("Wrote each of the {many}"),
+                }
+            ),
+            (true, true) => format!(
+                " {} ends inside a fence, so no line was written for it there: a line in code is \
+                 not a way in. Close the fence and name it with `after`, `before` or `at`.",
+                up_named(&state, over).unwrap_or_default()
+            ),
+            (true, false) => String::new(),
+        };
+    }
     if let (Some(held), Some(over)) = (&beside, up) {
         let (now, mut store) = opened(paths)?;
         put = match placed(paths, &now, &mut store, over, &many[0], held.spot()) {
@@ -5600,7 +5687,7 @@ fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 named_all(&state, &names)
             ),
             (Some(named), false) => format!(
-                "{} are now pages of {named}, in that order.{over}",
+                "{} are now pages of {named}, in that order.{over}{put}",
                 named_all(&state, &names)
             ),
             (None, true) => format!(
@@ -7292,10 +7379,11 @@ fn tools() -> Value {
                             by leaving `page_of` out, which makes it a document of its own again, \
                             back in the folder it came from. A page goes with its document \
                             everywhere — folder, archive and deletion — and holds no pages of its \
-                            own. On its own this writes no text, so a page hung this way is loose \
-                            until the document names it; `after`, `before` and `at` write that \
-                            line and put it where you say, and `write_doc` with `page_of` writes \
-                            it at the end. The order pages are read in is the order their lines sit in \
+                            own. Hanging one writes the line that names it at the end of that \
+                            document, the same line `write_doc` with `page_of` writes; `after`, \
+                            `before` and `at` say where that line goes instead. Taking a page \
+                            out writes nothing: the line stays where it was, now pointing at a \
+                            document of its own, and taking it out of the text is yours to do. The order pages are read in is the order their lines sit in \
                             the document, and nothing else.",
             "inputSchema": shaped(json!({
                 "properties": {

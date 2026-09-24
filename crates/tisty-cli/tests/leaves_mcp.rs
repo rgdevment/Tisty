@@ -195,8 +195,21 @@ fn moving_the_line_that_names_a_page_moves_the_page() {
     assert_eq!(served.pages_of(&book), vec![two, one]);
 }
 
+fn cut_loose(served: &Served, book: &str, page: &str) {
+    let body = served.body_of(book);
+    let line = body
+        .lines()
+        .find(|one| one.contains(&format!("tisty:doc/{page}")))
+        .expect("the page is named in the text")
+        .to_string();
+    served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": book, "old": format!("\n{line}\n"), "new": "" }),
+    );
+}
+
 #[test]
-fn hanging_a_document_as_a_page_with_page_doc_lands_it_last_until_the_text_names_it() {
+fn hanging_a_document_as_a_page_writes_the_line_that_names_it_at_the_end() {
     let served = Served::new();
     let book = served.wrote("# Actas\n\nde este año.", None);
     let one = served.wrote("# Marzo", Some(&book));
@@ -212,8 +225,27 @@ fn hanging_a_document_as_a_page_with_page_doc_lands_it_last_until_the_text_names
 
     let body = served.body_of(&book);
     assert!(
-        !body.contains(&loose),
-        "hanging it as a page does not by itself name it in the text: {body}"
+        body.contains(&format!("tisty:doc/{loose}")),
+        "hanging it names it in the text, so it has a place to be read in: {body}"
+    );
+    assert_eq!(
+        body.matches(&format!("tisty:doc/{loose}")).count(),
+        1,
+        "{body}"
+    );
+
+    let again = served.call(
+        "page_doc",
+        serde_json::json!({ "doc": loose, "page_of": book }),
+    );
+    assert!(
+        again["result"]["isError"].as_bool() != Some(true),
+        "{again}"
+    );
+    assert_eq!(
+        served.body_of(&book),
+        body,
+        "hanging what already hangs there writes nothing"
     );
 }
 
@@ -246,26 +278,34 @@ fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_i
 }
 
 #[test]
-fn append_doc_settles_the_order_of_two_pages_that_were_never_named_before() {
+fn pages_hung_together_are_named_in_one_write_and_ordered_afterwards() {
     let served = Served::new();
     let book = served.wrote("# Actas\n\nde este año.", None);
     let one = served.wrote("# Marzo", Some(&book));
     let a = served.wrote("# Suelto A\n\ncontenido.", None);
     let b = served.wrote("# Suelto B\n\ncontenido.", None);
-    served.call("page_doc", serde_json::json!({ "doc": a, "page_of": book }));
-    served.call("page_doc", serde_json::json!({ "doc": b, "page_of": book }));
+
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": [&a, &b], "page_of": book }),
+    );
 
     assert_eq!(
         served.pages_of(&book),
         vec![one.clone(), a.clone(), b.clone()]
     );
+    let body = served.body_of(&book);
+    for which in [&a, &b] {
+        assert_eq!(
+            body.matches(&format!("tisty:doc/{which}")).count(),
+            1,
+            "{body}"
+        );
+    }
 
     let said = served.call(
-        "append_doc",
-        serde_json::json!({
-            "doc": book,
-            "body": format!("![B](tisty:doc/{b})\n\n![A](tisty:doc/{a})\n"),
-        }),
+        "page_doc",
+        serde_json::json!({ "page_of": &book, "order": [&b, &a] }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
@@ -787,6 +827,7 @@ fn a_book_whose_pages_no_line_names_is_put_in_order_a_page_at_a_time() {
                 "page_doc",
                 serde_json::json!({ "doc": &one, "page_of": &book }),
             );
+            cut_loose(&served, &book, &one);
             one
         })
         .collect();
@@ -931,11 +972,8 @@ fn an_order_that_names_nothing_to_move_between_is_refused() {
     let book = served.wrote("# Libro\n\nintro", None);
     let one = served.wrote("# Uno", Some(&book));
     let two = served.wrote("# Dos", Some(&book));
-    let loose = served.wrote("# Suelta", None);
-    served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &loose, "page_of": &book }),
-    );
+    let loose = served.wrote("# Suelta", Some(&book));
+    cut_loose(&served, &book, &loose);
 
     for args in [
         serde_json::json!({ "page_of": &book, "order": [&one] }),
@@ -1414,11 +1452,8 @@ fn reading_a_document_says_which_of_its_pages_no_line_names() {
     let served = Served::new();
     let book = served.wrote("# Libro\n\nintro", None);
     let named = served.wrote("# Uno", Some(&book));
-    let loose = served.wrote("# Dos", None);
-    served.call(
-        "page_doc",
-        serde_json::json!({ "doc": &loose, "page_of": &book }),
-    );
+    let loose = served.wrote("# Dos", Some(&book));
+    cut_loose(&served, &book, &loose);
 
     let said = served.call("read_doc", serde_json::json!({ "doc": &book }));
 
