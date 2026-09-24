@@ -114,8 +114,8 @@ it filed is done, add to a journal, read one whole task or the fields of it that
 it names, search, attach a file to a task or into a document, write documents,
 add to them and change a passage of one, list what is written and file it into
 folders, and read the names of the lists. There is no tool for completing,
-dropping, deleting, undoing, editing a task the person wrote, making a list, or
-handing a document a new body whole.
+dropping, deleting, undoing, editing a task the person wrote, or making a list.
+A new body whole it can hand over, but only against the print it read.
 
 `restore_doc` is the one thing that goes backwards, and it reaches documents
 only. Changing a passage and replacing a body already keep what they replaced
@@ -472,13 +472,14 @@ guess, and a guess here writes over what somebody wrote. What an edit replaced
 is copied to `originals/` first; nothing in the window reads that directory
 back, so it is a copy on disk, not an undo.
 
-Handing over the whole body is what stays shut. The person may have the document
-open in the window while the agent writes, and the window saves the body entire:
-against a named passage a stale agent fails to match and stops, while against a
-whole-body write the last writer would simply win and the other's work would be
-gone. The window is held to the same rule as the agent — it is refused a save
-over a body it did not read — but the rule is enforceable there because a window
-has somebody to ask, and a tool call does not.
+Handing over the whole body is not shut, it is gated. The person may have the
+document open in the window while the agent writes, so a whole-body write is
+refused unless it carries the print the body was read at: against a named
+passage a stale agent fails to match and stops, and against a whole body a stale
+print stops it just the same. Without that gate the last writer would simply win
+and the other's work would be gone. The window is held to the same rule — it is
+refused a save over a body it did not read — and there the refusal can be put to
+somebody, which a tool call cannot.
 
 A body lives outside the log, so neither writes an event; the window's watch
 compares a print of the documents themselves and tells the window to read the
@@ -507,12 +508,15 @@ and if an agent wrote in the meantime the next round reads that as both sides
 moving and weaves. Refusing there would trade a settled disagreement for a
 stalled one.
 
-What this does not settle: a person typing in a document with **unsaved
+What this settles only halfway: a person typing in a document with **unsaved
 changes** while an agent edits it. The window does not pull the rug — it leaves
-the text being typed alone — and then saves the whole buffer over the edit. The
-copy in `originals/` is the only trace, and nothing reads that directory back.
-Closing it means the window reconciling on save rather than writing over, which
-is a change to the editor, not a lock.
+the text being typed alone, and holds back the redraw while they type — so they
+write on for a while against a body that is no longer on disk. The save is not
+lost work, though: it is refused with `documentMoved` and the person is asked
+which stands, theirs or what arrived. What stays open is narrower and is the
+choice itself — keeping theirs writes over the agent's body, and the copy in
+`originals/` holds what came before the agent, not what the agent wrote, so
+that one is the version nothing keeps.
 
 Across two machines it behaves like any other edit, and the weave was measured
 against it rather than assumed: if only one side grew, the round copies it and

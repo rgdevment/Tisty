@@ -4138,6 +4138,105 @@ fn a_list_of_moments_longer_than_the_door_allows_is_turned_away() {
 }
 
 #[test]
+fn an_argument_of_the_wrong_shape_is_refused_instead_of_read_another_way() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let doc = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Manual\n\n## Uno\n\nx" }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "section": "Uno", "new": "## Uno\n\ny" }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let told = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        told.contains("`section` takes a whole number, and what came was text"),
+        "the heading's words are not its number: {told}"
+    );
+}
+
+#[test]
+fn a_step_added_after_an_agent_said_a_task_was_done_is_refused() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let task = filed(&served, "water the plants");
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &task, "body": "watered them" }),
+    );
+
+    let said = served.call(
+        "plan",
+        serde_json::json!({ "task": &task, "steps": ["buy a can"] }),
+    );
+
+    assert_eq!(said["result"]["isError"], true, "{said}");
+    let read = served.call("read", serde_json::json!({ "task": &task }));
+    assert!(
+        !serde_json::to_string(&read).unwrap().contains("buy a can"),
+        "no step may stand unticked under a mark saying it is done: {read}"
+    );
+}
+
+#[test]
+fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "paint the door", "date": "2026-10-10", "deadline": "2026-10-01" }),
+    );
+    assert_eq!(said["result"]["isError"], true, "{said}");
+
+    let task = filed(&served, "paint the door");
+    served.call(
+        "reschedule",
+        serde_json::json!({ "task": &task, "date": "2026-10-10" }),
+    );
+    let moved = served.call(
+        "reschedule",
+        serde_json::json!({ "task": &task, "deadline": "2026-10-01" }),
+    );
+    assert_eq!(
+        moved["result"]["isError"], true,
+        "a deadline is judged against the day already set: {moved}"
+    );
+}
+
+#[test]
+fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "tasks": [
+            { "title": "a good one", "source": "b#1" },
+            { "title": "a stray", "nonsense": "x", "source": "b#2" },
+        ] }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert_eq!(
+        said["result"]["structuredContent"]["written"].as_u64(),
+        Some(1),
+        "{said}"
+    );
+    assert!(
+        !served.cli(&["ls", "all"]).contains("a stray"),
+        "a misspelt argument inside a list has to be refused as it is on its own"
+    );
+}
+
+#[test]
 fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
@@ -4152,7 +4251,7 @@ fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
         said["result"]["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("list of moments"),
+            .contains("takes a list, and what came was text"),
         "{said}"
     );
 }
