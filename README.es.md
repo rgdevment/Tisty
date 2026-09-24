@@ -37,6 +37,16 @@
         src="https://img.shields.io/github/license/rgdevment/Tisty?style=flat-square&color=lightgrey"
         alt="Licencia AGPL-3.0"/>
     </a>
+    <a href="https://github.com/sponsors/rgdevment">
+      <img
+        src="https://img.shields.io/badge/Sponsor-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white"
+        alt="Patrocina Tisty en GitHub"/>
+    </a>
+    <a href="https://buymeacoffee.com/rgdevment">
+      <img
+        src="https://img.shields.io/badge/Caf%C3%A9-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"
+        alt="Invítame un café"/>
+    </a>
   </p>
 
   <p>
