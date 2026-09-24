@@ -6010,13 +6010,14 @@ async fn sync_now(
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
+    let carried = done.sent + done.brought + done.arrived.len() + done.joined.len();
     if unsettled > 0 {
         witness::warn(
             channel::SYNC,
             "a carry finished, and left work behind",
             &facts,
         );
-    } else {
+    } else if carried > 0 || moved {
         witness::note(channel::SYNC, "a carry finished", &facts);
     }
     for one in done.unreadable.iter().chain(done.astray.iter()) {
