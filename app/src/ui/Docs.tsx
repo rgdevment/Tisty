@@ -26,7 +26,7 @@ import {
 import { stamped } from "../format";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
-import { filed, type Moved, named, pagesOf, under } from "../paging";
+import { filed, type Moved, named, namesIn, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
@@ -78,7 +78,7 @@ const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in
 
 const ASIDE = 344;
 
-const EMPTY: Set<string> = new Set();
+const NONE: string[] = [];
 
 interface Props {
   open?: string;
@@ -145,6 +145,8 @@ export default function Docs({
   const [signing, setSigning] = useState(false);
   const giving = useRef<(() => unknown) | null>(null);
   const putting = useRef<((page: Filed) => void) | null>(null);
+  const paged = useRef(onPaging);
+  paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
   const handed = useCallback((read: () => unknown) => {
     giving.current = read;
@@ -316,7 +318,7 @@ export default function Docs({
       }
     }
     putting.current = null;
-    onPaging?.(null);
+    paged.current?.(null);
     ordering.current = null;
     flush();
     const mine = ++turn.current;
@@ -421,7 +423,7 @@ export default function Docs({
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
-  const told = useMemo(() => (pages.length > 0 ? named(body) : EMPTY), [body, pages.length]);
+  const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
 
   const [aboveTold, setAboveTold] = useState<Set<string>>();
   const upstairs = above?.file;
@@ -684,7 +686,7 @@ export default function Docs({
                 onInsert={(put) => {
                   const named = (page: Filed) => put(page.file, page.title);
                   putting.current = named;
-                  onPaging?.(named);
+                  paged.current?.(named);
                 }}
                 onOrder={(move) => {
                   ordering.current = move;

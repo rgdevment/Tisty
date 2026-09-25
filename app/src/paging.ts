@@ -24,13 +24,17 @@ const unfenced = (body: string): string => {
     .join("\n");
 };
 
-export const named = (body: string): Set<string> => {
+/// The pages a body names, in the order it names them — which is the order they are read in, so
+/// the index can be drawn from the text itself rather than from what the log last settled.
+export const namesIn = (body: string): string[] => {
   const found = new Set<string>();
   const said = unfenced(body).replace(/(`+)[\s\S]*?\1/g, " ");
   const asks = /\[(?:\\[\s\S]|[^\\[\]\n])*\]\(\s*<?tisty:doc\/([^)>\s]+)/g;
   for (const [, id] of said.matchAll(asks)) found.add(id);
-  return found;
+  return [...found];
 };
+
+export const named = (body: string): Set<string> => new Set(namesIn(body));
 
 export type Moved = "done" | "held" | "unseen";
 
