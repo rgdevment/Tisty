@@ -124,6 +124,19 @@ describe("what a move must not do to the book", () => {
     open.shut();
   });
 
+  it("refuses to take the chapter that is at the front away from it, which renames it too", () => {
+    const open = opened(
+      `${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n\n${card("a-0003", "Tres")}\n`,
+    );
+    const was = open.markdown();
+
+    expect(cardMoved(open.editor, "a-0001", "a-0003")).toBe("titled");
+    expect(cardMoved(open.editor, "a-0001", null)).toBe("titled");
+
+    expect(open.markdown()).toBe(was);
+    open.shut();
+  });
+
   it("lets a chapter go first among the chapters when something is said above them", () => {
     const open = opened(`# Libro\n\n${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n`);
 

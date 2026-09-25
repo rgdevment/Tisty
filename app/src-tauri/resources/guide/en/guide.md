@@ -262,6 +262,8 @@ A page is a document like any other — same file on disk, same way out — with
 
 At the end of the document, on its own sheet, comes the index: the pages the text names, numbered, and after a rule the ones it does not, one click from a place in the text. Inside a page you see which document it belongs to and where it sits, arrows to its sisters, and the step to the next one at the foot.
 
+What names a page is its card, the block Tisty writes when you make one. Writing about a page in a sentence — a link to it in the middle of a paragraph — points at it without giving it a place, the way a footnote points at a chapter without being one; a page you have only written about that way sits under the rule until you put a card in.
+
 In the tree, a document dropped on another becomes a page of it. If you have that document
 open, the line naming the page goes at the end of what you are reading, which is where it will
 sit, and you move it from there like any other chapter; if you do not, the page waits in the

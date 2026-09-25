@@ -484,7 +484,7 @@ export default function Docs({
     const pages = inTextOrder(
       known.filter((one) => one.pageOf === open.id),
       told,
-    ).filter((one) => !one.archived);
+    );
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
     const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),

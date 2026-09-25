@@ -562,12 +562,21 @@ body {
   flex: none;
   gap: 2px;
   margin-right: 6px;
-  opacity: 0;
+  opacity: 0.35;
 }
 
 .leaf-row:hover .leaf-moves,
-.leaf-row:has(:focus-visible) .leaf-moves {
+.leaf-row:has(:focus-visible) .leaf-moves,
+.leaf-row:has(:focus-visible) .leaf-put {
   opacity: 1;
+}
+
+/* Nothing hovers on a screen you touch, so what only appears under a pointer never appears. */
+@media (hover: none) {
+  .leaf-moves,
+  .leaf-put {
+    opacity: 1;
+  }
 }
 
 .leaf-move {
