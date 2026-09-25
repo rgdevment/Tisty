@@ -47,8 +47,6 @@ impl Store {
             let _ = crate::paths::ours_alone(parent);
         }
 
-        // Its name from its first breath rather than once it syncs: without it a parcel
-        // leaves with no origin. What proves the name is kept apart, outside the store.
         if let Err(e) = identity(&root) {
             witness::warn(
                 channel::STORE,
@@ -310,8 +308,7 @@ impl Store {
 pub const MARKER: &str = ".store-id";
 /// The identity says which store a parcel came from, and travels inside every one of them.
 /// This says it is really that store: it never leaves the machine, and without it nobody
-/// can write a parcel that lands here as though it had been born here. It lives outside the
-/// store so that neither a transport nor a backup can carry it off by walking a directory.
+/// can write a parcel that lands here as though it had been born here.
 pub const KEEP: &str = ".store-key";
 
 pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
@@ -364,9 +361,6 @@ pub fn secret(private: impl AsRef<Path>) -> Option<[u8; 32]> {
     }
 }
 
-/// A store written before the key moved out still keeps it inside, where a backup would carry
-/// it off. Brought across once, and the one that was already inside wins: it is the one the
-/// parcels this store has handed out were sealed with.
 pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
     let was = store_root.as_ref().join(KEEP);
     let Ok(held) = std::fs::read(&was) else {
@@ -509,9 +503,6 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
     Ok(said)
 }
 
-/// The shape a device directory is allowed to have. Anywhere a name arrives from outside —
-/// another machine's folder, and one day a listing a server hands back — every rule that keys
-/// off the device would otherwise take that name at its word.
 pub fn is_device_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 48
@@ -1996,7 +1987,6 @@ mod tests {
         assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [3u8; 32]);
     }
 
-    /// Parcels already handed out were sealed with the one inside, so it is the one that counts.
     #[test]
     fn the_key_the_store_was_already_sealing_with_wins() {
         let tmp = tempfile::tempdir().unwrap();

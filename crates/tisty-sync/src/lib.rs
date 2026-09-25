@@ -4449,8 +4449,6 @@ lo mio"
         );
     }
 
-    /// It is kept outside the store now, but a round walks whatever it is pointed at, and one
-    /// day that is a listing somebody else wrote. Nothing of this shape may cross, ever.
     #[test]
     fn what_proves_a_store_is_its_own_never_reaches_the_meeting_place() {
         fn every_file(at: &Path, found: &mut Vec<PathBuf>) {

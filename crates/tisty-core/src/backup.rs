@@ -454,9 +454,6 @@ fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
     }
 }
 
-/// What a copy may hold, by the shape of the name alone. Saying what is allowed rather than
-/// what is not means whatever arrives next has to be let in on purpose — and the key that must
-/// never travel has no shape here at all.
 fn carried(at: &Path) -> bool {
     let Some(parts) = at
         .components()
@@ -857,8 +854,6 @@ mod tests {
         );
     }
 
-    /// A copy is the one thing that leaves this machine on purpose, and the key is the one
-    /// thing that must not. Nobody had written this down, and that is how it travelled.
     #[test]
     fn what_proves_the_store_is_its_own_never_enters_a_copy() {
         let (_src, data) = filled("lo de siempre");

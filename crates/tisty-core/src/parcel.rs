@@ -77,7 +77,6 @@ fn sealed(manifest: &Manifest, keep: &[u8]) -> Option<String> {
     )
 }
 
-/// Two bare paths side by side invite being handed over the wrong way round.
 struct Home<'a> {
     data: &'a Path,
     private: &'a Path,
