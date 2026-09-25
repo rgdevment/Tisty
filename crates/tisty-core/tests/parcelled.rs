@@ -2891,3 +2891,49 @@ fn what_an_assistant_marked_travels_with_the_document_it_marked() {
         "a parcel goes to other people, and the machine that wrote the mark is not theirs to keep"
     );
 }
+
+#[test]
+fn a_store_restored_elsewhere_no_longer_recognises_the_parcels_it_handed_out() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.tell(Op::Signed {
+        d: tisty_core::event::Signature {
+            alias: Some("rgdevment".into()),
+            ..Default::default()
+        },
+    });
+    here.doc("# Acta\n\nlo mio", None, None);
+    let box_at = room.path().join("lo-que-reparti.tistyx");
+    parcel::write(
+        &here.data,
+        Private(&here.private),
+        &here.state,
+        &[],
+        &box_at,
+        &Along::default(),
+    )
+    .unwrap();
+
+    let zip = room.path().join("respaldo.zip");
+    tisty_core::backup::write(&here.data, &zip, room.path()).unwrap();
+
+    let there = tmp();
+    let paths = tisty_core::Paths::new(there.path().join("data"), there.path().join("config"));
+    tisty_core::backup::read(&paths, &zip).unwrap();
+
+    let mut back = Room::new(there.path(), "back");
+    back.data = paths.data().to_path_buf();
+    back.private = paths.private();
+    back.take_in(&box_at);
+
+    let acta = back.titled("Acta");
+    assert_eq!(
+        back.state.author_of(acta),
+        Some("rgdevment"),
+        "the alias inside the parcel is still read"
+    );
+    assert!(
+        acta.guest,
+        "a copy carries the store's name and not what proves it, so its own parcels land as a stranger's"
+    );
+}
