@@ -4476,8 +4476,9 @@ fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )));
     }
 
+    let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
     let pages: Vec<String> = state
-        .pages_of(kept.id)
+        .pages_read(kept.id, &body)
         .iter()
         .map(|one| one.file.clone())
         .collect();
@@ -5011,7 +5012,7 @@ fn cards_in(lines: &[String]) -> Vec<usize> {
 
 fn card_any(line: &str) -> bool {
     let said = line.trim();
-    (said.starts_with("![") || said.starts_with('['))
+    said.starts_with("![")
         && said.ends_with(')')
         && tisty_core::refs::extract(said).len() == 1
         && tisty_core::refs::papers(said).len() == 1

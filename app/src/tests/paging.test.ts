@@ -135,16 +135,22 @@ describe("the order a book is read in", () => {
     expect(said.map((one) => one.file)).toEqual(["a-0004", "a-0002", "a-0003"]);
   });
 
-  it("leaves the ones it does not name after them, as they came", () => {
+  it("leaves the ones it does not name exactly where they were", () => {
     const said = inTextOrder(held, ["a-0004"]);
 
-    expect(said.map((one) => one.file)).toEqual(["a-0004", "a-0002", "a-0003"]);
+    expect(said.map((one) => one.file)).toEqual(["a-0002", "a-0003", "a-0004"]);
+  });
+
+  it("deals the named ones back out between their own places, moving no other", () => {
+    const said = inTextOrder(held, ["a-0004", "a-0002"]);
+
+    expect(said.map((one) => one.file)).toEqual(["a-0004", "a-0003", "a-0002"]);
   });
 
   it("says nothing about a name the document does not hold", () => {
     const said = inTextOrder(held, ["a-9999", "a-0003"]);
 
-    expect(said.map((one) => one.file)).toEqual(["a-0003", "a-0002", "a-0004"]);
+    expect(said.map((one) => one.file)).toEqual(["a-0002", "a-0003", "a-0004"]);
   });
 
   it("keeps the log's order when the text names none of them", () => {

@@ -5174,8 +5174,7 @@ fn doc_page(
     if let Some(up) = over
         && let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &up)
     {
-        let hand = signing(&session.state);
-        session.retell(&up, &body, hand);
+        session.retell(&up, &body, None);
     }
     Ok(())
 }

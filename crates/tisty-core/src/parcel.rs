@@ -666,8 +666,9 @@ pub fn plainly(
             shelves.insert(at.to_path_buf());
         }
 
+        let body = crate::docs::read(&data.join("docs"), &one.file).unwrap_or_default();
         let pages: Vec<String> = state
-            .pages_of(one.id)
+            .pages_read(one.id, &body)
             .iter()
             .map(|page| page.file.clone())
             .collect();

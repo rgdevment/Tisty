@@ -826,23 +826,25 @@ impl State {
         pages
     }
 
-    /// The pages of a document in the order it reads them: the ones its text names, where it names
-    /// them, and then the ones it does not, which keep the places the log gave them. The keys catch
-    /// up on the next settling, but a reader should not have to wait for that to agree with the
-    /// text in front of it.
+    /// The pages of a document in the order it reads them. A body says nothing about the pages it
+    /// does not name, so those keep their places and the named ones are dealt back out, in the
+    /// order the text names them, into the places named pages already held. That is the same run
+    /// `pages_told` writes to the log, so a reader never sees an order the next settling undoes.
     pub fn pages_read(&self, doc: DocId, body: &str) -> Vec<&Kept> {
         let held = self.pages_of(doc);
-        let named = crate::refs::papers(body);
-        let mut told: Vec<&Kept> = named
+        let mut takes = BTreeSet::new();
+        let wanted: Vec<&Kept> = crate::refs::papers(body)
             .iter()
             .filter_map(|file| held.iter().find(|one| &one.file == file).copied())
+            .filter(|one| takes.insert(one.id))
             .collect();
-        told.extend(
-            held.iter()
-                .filter(|one| !named.contains(&one.file))
-                .copied(),
-        );
-        told
+        let mut told = wanted.into_iter();
+        held.iter()
+            .map(|one| match takes.contains(&one.id) {
+                true => told.next().unwrap_or(one),
+                false => one,
+            })
+            .collect()
     }
 
     pub fn books_among(&self, files: &[String]) -> Vec<String> {

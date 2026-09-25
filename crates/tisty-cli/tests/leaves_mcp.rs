@@ -114,13 +114,26 @@ impl Served {
             .to_string()
     }
 
-    fn pages_of(&self, doc: &str) -> Vec<String> {
+    fn pages_read(&self, doc: &str) -> Vec<String> {
         let said = self.call("read_doc", serde_json::json!({ "doc": doc }));
         said["result"]["structuredContent"]["pages"]
             .as_array()
             .unwrap()
             .iter()
             .map(|one| one.as_str().unwrap().to_string())
+            .collect()
+    }
+
+    /// The order the log itself holds, read straight from the store. `pages_read` is derived from
+    /// the text, so only this can say whether a write settled the keys behind it.
+    fn pages_logged(&self, doc: &str) -> Vec<String> {
+        let events = tisty_core::store::read_all(self.data().join("store")).unwrap();
+        let state = tisty_core::State::replay(&events);
+        let kept = state.docs.values().find(|one| one.file == doc).unwrap();
+        state
+            .pages_of(kept.id)
+            .iter()
+            .map(|one| one.file.clone())
             .collect()
     }
 
@@ -167,7 +180,7 @@ fn a_page_titled_with_brackets_still_sits_where_its_document_names_it() {
     let two = served.wrote("# Capitulo 2", Some(&book));
 
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![one, two],
         "a title with brackets must not shove the page to the end"
     );
@@ -180,7 +193,7 @@ fn moving_the_line_that_names_a_page_moves_the_page() {
     let one = served.wrote("# Marzo", Some(&book));
     let two = served.wrote("# Abril", Some(&book));
 
-    assert_eq!(served.pages_of(&book), vec![one.clone(), two.clone()]);
+    assert_eq!(served.pages_read(&book), vec![one.clone(), two.clone()]);
 
     let said = served.call(
         "edit_doc",
@@ -192,7 +205,7 @@ fn moving_the_line_that_names_a_page_moves_the_page() {
     );
 
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
-    assert_eq!(served.pages_of(&book), vec![two, one]);
+    assert_eq!(served.pages_read(&book), vec![two, one]);
 }
 
 fn cut_loose(served: &Served, book: &str, page: &str) {
@@ -221,7 +234,7 @@ fn hanging_a_document_as_a_page_writes_the_line_that_names_it_at_the_end() {
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
-    assert_eq!(served.pages_of(&book), vec![one, loose.clone()]);
+    assert_eq!(served.pages_read(&book), vec![one, loose.clone()]);
 
     let body = served.body_of(&book);
     assert!(
@@ -262,7 +275,7 @@ fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_i
         serde_json::json!({ "doc": loose, "page_of": book }),
     );
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![one.clone(), two.clone(), loose.clone()]
     );
 
@@ -274,7 +287,7 @@ fn naming_a_hung_page_in_the_text_with_edit_doc_moves_it_from_the_end_to_where_i
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
-    assert_eq!(served.pages_of(&book), vec![loose, one, two]);
+    assert_eq!(served.pages_read(&book), vec![loose, one, two]);
 }
 
 #[test]
@@ -291,7 +304,7 @@ fn pages_hung_together_are_named_in_one_write_and_ordered_afterwards() {
     );
 
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![one.clone(), a.clone(), b.clone()]
     );
     let body = served.body_of(&book);
@@ -309,7 +322,7 @@ fn pages_hung_together_are_named_in_one_write_and_ordered_afterwards() {
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
 
-    assert_eq!(served.pages_of(&book), vec![one, b, a]);
+    assert_eq!(served.pages_read(&book), vec![one, b, a]);
 }
 
 #[test]
@@ -319,7 +332,7 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
     let book = here.wrote("# Actas\n\nde este ano.", None);
     let one = here.wrote("# Marzo", Some(&book));
     let two = here.wrote("# Abril", Some(&book));
-    assert_eq!(here.pages_of(&book), vec![one.clone(), two.clone()]);
+    assert_eq!(here.pages_read(&book), vec![one.clone(), two.clone()]);
 
     // A second machine pulls this store, then swaps the two pages on its own, offline.
     let there = Served::new();
@@ -332,7 +345,7 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
         serde_json::json!({ "doc": book, "old": old, "new": new }),
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
-    assert_eq!(there.pages_of(&book), vec![two.clone(), one.clone()]);
+    assert_eq!(there.pages_read(&book), vec![two.clone(), one.clone()]);
 
     // Pulling that swap back into the first machine's own store, without touching its own copy
     // of the document's text, leaves the tree and the visible text disagreeing about the order.
@@ -352,9 +365,14 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
         "this machine's own file on disk still reads the way it always did"
     );
     assert_eq!(
-        here.pages_of(&book),
+        here.pages_read(&book),
         vec![one.clone(), two.clone()],
         "and what it is read as follows that text, whatever order the log arrived carrying"
+    );
+    assert_eq!(
+        here.pages_logged(&book),
+        vec![two.clone(), one.clone()],
+        "while the log underneath is still carrying the order that arrived"
     );
 
     // The next write on this machine settles the order back to what its own text says.
@@ -364,10 +382,11 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
     );
     assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
     assert_eq!(
-        here.pages_of(&book),
-        vec![one, two],
-        "saving settles the order back to what the text in front of the person says"
+        here.pages_logged(&book),
+        vec![one.clone(), two.clone()],
+        "saving settles the log back to what the text in front of the person says"
     );
+    assert_eq!(here.pages_read(&book), vec![one, two]);
 }
 
 impl Served {
@@ -460,7 +479,7 @@ fn a_locked_book_gains_no_page_and_keeps_the_ones_it_has() {
 
     let why = served.refused("page_doc", serde_json::json!({ "doc": &page }));
     assert!(why.contains("locked"), "{why}");
-    assert_eq!(served.pages_of(&book), vec![page]);
+    assert_eq!(served.pages_read(&book), vec![page]);
 }
 
 #[test]
@@ -527,7 +546,7 @@ fn rewriting_a_document_leaves_none_of_its_pages_with_nothing_pointing_at_it() {
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
-    assert_eq!(served.pages_of(&book), vec![page.clone()]);
+    assert_eq!(served.pages_read(&book), vec![page.clone()]);
     let body = served.body_of(&book);
     assert!(
         body.contains(&format!("tisty:doc/{page}")),
@@ -564,7 +583,7 @@ fn an_edit_that_takes_out_the_line_naming_a_page_says_which_page_it_left_loose()
         "{said}"
     );
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![page],
         "the page itself is not lost, only the line naming it"
     );
@@ -614,7 +633,7 @@ fn a_page_is_moved_before_another_in_one_call_and_the_reading_order_follows() {
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![three.clone(), one.clone(), two.clone()],
         "the page did not move"
     );
@@ -641,7 +660,7 @@ fn a_page_hung_and_placed_in_one_call_is_named_where_it_was_asked_for() {
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
-    assert_eq!(served.pages_of(&book), vec![loose.clone(), one.clone()]);
+    assert_eq!(served.pages_read(&book), vec![loose.clone(), one.clone()]);
     assert!(
         served
             .body_of(&book)
@@ -770,7 +789,7 @@ fn a_page_named_the_other_ways_markdown_allows_is_moved_and_not_copied() {
             "the line was copied rather than moved: {now}"
         );
         assert_eq!(
-            served.pages_of(&book),
+            served.pages_read(&book),
             vec![pages[1].clone(), pages[2].clone(), pages[0].clone()],
             "{now}"
         );
@@ -813,7 +832,7 @@ fn a_page_moved_after_another_lands_on_the_far_side_of_it() {
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
-    assert_eq!(served.pages_of(&book), vec![two, three, one]);
+    assert_eq!(served.pages_read(&book), vec![two, three, one]);
 }
 
 #[test]
@@ -844,7 +863,7 @@ fn a_book_whose_pages_no_line_names_is_put_in_order_a_page_at_a_time() {
         assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     }
 
-    assert_eq!(served.pages_of(&book), loose);
+    assert_eq!(served.pages_read(&book), loose);
     let body = served.body_of(&book);
     for one in &loose {
         assert_eq!(
@@ -873,7 +892,7 @@ fn a_page_sent_first_goes_before_every_page_the_document_names() {
     );
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
-    assert_eq!(served.pages_of(&book), vec![three, one, two]);
+    assert_eq!(served.pages_read(&book), vec![three, one, two]);
 }
 
 #[test]
@@ -894,7 +913,7 @@ fn a_place_that_is_neither_first_nor_last_is_refused_and_so_are_two_at_once() {
             "this had to be refused: {args} gave {said}"
         );
     }
-    assert_eq!(served.pages_of(&book), vec![one, two]);
+    assert_eq!(served.pages_read(&book), vec![one, two]);
 }
 
 #[test]
@@ -927,7 +946,7 @@ fn pages_are_read_in_the_order_asked_for_and_the_words_between_them_do_not_move(
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![all[2].clone(), all[1].clone(), all[0].clone()]
     );
     let body = served.body_of(&book);
@@ -960,7 +979,7 @@ fn ordering_some_of_the_pages_leaves_the_rest_where_they_were() {
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![all[2].clone(), all[1].clone(), all[0].clone()],
         "the one left out kept the place it had"
     );
@@ -989,7 +1008,7 @@ fn an_order_that_names_nothing_to_move_between_is_refused() {
         );
     }
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![one, two, loose],
         "nothing moved on a refusal"
     );
@@ -1012,7 +1031,7 @@ fn a_document_that_ends_in_a_closed_fence_is_written_in_like_any_other() {
         "a fence that closed is not a fence the body ends inside: {}",
         served.body_of(&book)
     );
-    assert_eq!(served.pages_of(&book), vec![page]);
+    assert_eq!(served.pages_read(&book), vec![page]);
 }
 
 #[test]
@@ -1063,7 +1082,7 @@ fn an_order_takes_nothing_that_puts_one_page_somewhere() {
             "this had to be refused: {args} gave {said}"
         );
     }
-    assert_eq!(served.pages_of(&book), vec![one, two]);
+    assert_eq!(served.pages_read(&book), vec![one, two]);
 }
 
 #[test]
@@ -1079,7 +1098,7 @@ fn an_order_left_out_of_a_call_leaves_the_hanging_to_it() {
 
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![page.clone()],
         "a null order is no order at all, so the hanging still happens: {said}"
     );
@@ -1124,7 +1143,7 @@ fn placing_a_page_beside_one_that_is_not_a_page_of_the_same_document_is_refused(
             "this had to be refused: {args} gave {said}"
         );
     }
-    assert_eq!(served.pages_of(&book), vec![one]);
+    assert_eq!(served.pages_read(&book), vec![one]);
 }
 
 #[test]
@@ -1281,6 +1300,70 @@ fn a_file_outside_the_places_an_assistant_may_reach_stays_where_it_is() {
     );
 
     assert!(why.contains("may take files from"), "{why}");
+}
+
+#[test]
+fn a_book_goes_out_numbered_the_way_it_is_read_here() {
+    let served = Served::new();
+    let book = served.wrote("# Curso\n\nlo que hay", None);
+    let one = served.wrote("# Clase uno", Some(&book));
+    let loose = served.wrote("# Suelta", Some(&book));
+    let three = served.wrote("# Clase tres", Some(&book));
+    cut_loose(&served, &book, &loose);
+
+    // Swapped on disk, behind Tisty's back, the way an outside editor leaves a book: the text says
+    // one order and the log still carries another, and only a later write settles them.
+    let at = served.data().join("docs").join(format!("{book}.md"));
+    let body = std::fs::read_to_string(&at).unwrap();
+    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
+    let first = lines.iter().position(|l| l.contains(&one)).unwrap();
+    let last = lines.iter().position(|l| l.contains(&three)).unwrap();
+    lines.swap(first, last);
+    std::fs::write(&at, format!("{}\n", lines.join("\n"))).unwrap();
+
+    assert_eq!(
+        served.pages_logged(&book),
+        vec![one.clone(), loose.clone(), three.clone()],
+        "the log has not caught up with the swap"
+    );
+    let read = served.pages_read(&book);
+    assert_eq!(
+        read,
+        vec![three.clone(), loose.clone(), one.clone()],
+        "but the book is read the way its own text now says, the loose one keeping its place"
+    );
+
+    let out = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    let said = served.call(
+        "export_doc",
+        serde_json::json!({ "doc": &book, "into": out.path().to_str().unwrap() }),
+    );
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+
+    let mut found: Vec<String> = Vec::new();
+    let mut walk = vec![out.path().to_path_buf()];
+    while let Some(at) = walk.pop() {
+        for entry in std::fs::read_dir(&at).unwrap().flatten() {
+            let path = entry.path();
+            match path.is_dir() {
+                true => walk.push(path),
+                false => found.push(path.file_name().unwrap().to_string_lossy().to_string()),
+            }
+        }
+    }
+    found.retain(|one| one.starts_with(char::is_numeric));
+    found.sort();
+    let titles: Vec<&str> = found
+        .iter()
+        .map(|one| one.split_once(' ').unwrap().1)
+        .collect();
+    assert_eq!(
+        titles,
+        ["Clase-tres.md", "Suelta.md", "Clase-uno.md"],
+        "what an assistant takes out is numbered the way the book reads: {found:?}"
+    );
 }
 
 #[test]
@@ -2875,7 +2958,7 @@ fn a_page_in_the_archive_is_not_pulled_out_of_the_document_that_holds_it() {
         "taking it out would leave it awake outside the archive with nobody's hand on it: {why}"
     );
     assert!(!why.contains("  "), "{why}");
-    assert_eq!(served.pages_of(&book), vec![page]);
+    assert_eq!(served.pages_read(&book), vec![page]);
 }
 
 #[test]
@@ -3116,7 +3199,7 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
 
     assert!(said.contains("are now pages of"), "{said}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         loose,
         "all three, in the order asked"
     );
@@ -3217,7 +3300,7 @@ fn pages_taken_out_together_land_one_after_another_and_not_all_at_once() {
     );
     assert!(again.contains("in that order"), "{again}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         pages,
         "and putting them back keeps the order they were named in"
     );
@@ -3275,7 +3358,7 @@ fn verify_item1_at_first_really_is_first_in_the_reading_order() {
         serde_json::json!({ "doc": &book, "print": print, "body": &mine }),
     );
     assert_ne!(set["result"]["isError"].as_bool(), Some(true), "{set}");
-    assert_eq!(served.pages_of(&book), vec![a.clone(), b.clone()]);
+    assert_eq!(served.pages_read(&book), vec![a.clone(), b.clone()]);
 
     let said = served.call(
         "page_doc",
@@ -3286,7 +3369,7 @@ fn verify_item1_at_first_really_is_first_in_the_reading_order() {
     println!("BODY: {:?}", served.body_of(&book));
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![c, a, b],
         "it said the line sits first, so it has to be read first"
     );
@@ -3426,7 +3509,7 @@ fn a_lock_on_a_page_is_dropped_and_its_book_is_what_says_where_it_is_read() {
         Some(true),
         "a page carries no lock of its own, so nothing here refuses: {said}"
     );
-    assert_eq!(served.pages_of(&book), vec![two.clone(), one.clone()]);
+    assert_eq!(served.pages_read(&book), vec![two.clone(), one.clone()]);
 
     served.bolt(&book);
     let said = served.call(
@@ -3438,7 +3521,7 @@ fn a_lock_on_a_page_is_dropped_and_its_book_is_what_says_where_it_is_read() {
         Some(true),
         "the book's lock is what shuts its order: {said}"
     );
-    assert_eq!(served.pages_of(&book), vec![two, one]);
+    assert_eq!(served.pages_read(&book), vec![two, one]);
 }
 
 /// ITEM 3 — a document that reached the disk with crlf (imported, synced, or written by a
@@ -3524,7 +3607,7 @@ fn verify_item1_at_last_really_is_last_in_the_reading_order() {
     println!("SAID: {}", told_of(&said));
     println!("BODY: {:?}", served.body_of(&book));
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![a, b, c],
         "it said the line sits last, so it has to be read last"
     );
@@ -3576,7 +3659,7 @@ fn the_same_page_named_twice_in_one_call_is_hung_once_and_written_once() {
         1,
         "one page is named on one line: {body:?}"
     );
-    assert_eq!(served.pages_of(&book), vec![page]);
+    assert_eq!(served.pages_read(&book), vec![page]);
 }
 
 #[test]
@@ -3745,7 +3828,7 @@ fn a_book_that_says_nothing_yet_keeps_the_page_and_says_no_line_was_written() {
     );
     assert!(told.contains("No line was written"), "{told}");
     assert!(told.contains("would be renamed"), "{told}");
-    assert_eq!(served.pages_of(&book), vec![page]);
+    assert_eq!(served.pages_read(&book), vec![page]);
 }
 
 #[test]
@@ -3879,7 +3962,7 @@ fn a_page_taken_out_and_hung_again_is_read_where_the_text_still_names_it() {
             serde_json::json!({ "doc": page, "page_of": &book }),
         );
     }
-    let was = served.pages_of(&book);
+    let was = served.pages_read(&book);
     assert_eq!(was, vec![one.clone(), two.clone(), three.clone()]);
 
     served.call("page_doc", serde_json::json!({ "doc": &two }));
@@ -3895,7 +3978,7 @@ fn a_page_taken_out_and_hung_again_is_read_where_the_text_still_names_it() {
         "the book names them once each: {body:?}"
     );
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         was,
         "and is read in the order it names them"
     );
@@ -3913,7 +3996,7 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
             serde_json::json!({ "doc": page, "page_of": &book }),
         );
     }
-    assert_eq!(served.pages_of(&book), vec![one.clone(), two.clone()]);
+    assert_eq!(served.pages_read(&book), vec![one.clone(), two.clone()]);
 
     // Somebody swaps the two lines in the file itself, the way an editor outside Tisty would.
     let at = served.data().join("docs").join(format!("{book}.md"));
@@ -3926,7 +4009,7 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
     assert_ne!(said, std::fs::read_to_string(&at).unwrap());
 
     assert_eq!(
-        served.pages_of(&book),
+        served.pages_read(&book),
         vec![two.clone(), one.clone()],
         "the text says so, and nothing has settled the log yet"
     );

@@ -571,14 +571,6 @@ body {
   opacity: 1;
 }
 
-/* Nothing hovers on a screen you touch, so what only appears under a pointer never appears. */
-@media (hover: none) {
-  .leaf-moves,
-  .leaf-put {
-    opacity: 1;
-  }
-}
-
 .leaf-move {
   display: grid;
   place-items: center;
@@ -639,6 +631,15 @@ body {
 .leaf-row:hover .leaf-put,
 .leaf-put:focus-visible {
   opacity: 1;
+}
+
+/* Nothing hovers on a screen you touch, so what only appears under a pointer never appears. It
+   sits below both, because a media query adds no weight and the last rule of equal weight wins. */
+@media (hover: none) {
+  .leaf-moves,
+  .leaf-put {
+    opacity: 1;
+  }
 }
 
 .onward {

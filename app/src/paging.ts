@@ -38,15 +38,22 @@ export const named = (body: string): Set<string> => new Set(namesIn(body));
 
 export type Moved = "done" | "held" | "unseen" | "titled";
 
-/// The pages of a document in the order it reads them: the ones its text names, where it names
-/// them, and then the ones it does not, which keep the places they came in with. Whatever draws a
-/// book — the index, the print, the parcel — reads it the same way.
+/// The pages of a document in the order it reads them. A body says nothing about the pages it does
+/// not name, so those keep their places and the named ones are dealt back out, in the order the
+/// text names them, into the places named pages already held. Whatever draws a book — the index,
+/// the print, the parcel — reads it this way, and so does `State::pages_read`.
 export const inTextOrder = (pages: Filed[], told: string[]): Filed[] => {
-  const held = new Set(told);
-  const named = told
-    .map((file) => pages.find((one) => one.file === file))
-    .filter((one): one is Filed => Boolean(one));
-  return [...named, ...pages.filter((one) => !held.has(one.file))];
+  const takes = new Set<string>();
+  const wanted: Filed[] = [];
+  for (const file of told) {
+    const one = pages.find((page) => page.file === file);
+    if (one && !takes.has(one.file)) {
+      takes.add(one.file);
+      wanted.push(one);
+    }
+  }
+  let next = 0;
+  return pages.map((one) => (takes.has(one.file) ? (wanted[next++] ?? one) : one));
 };
 
 export const card = (file: string, title: string) => ({

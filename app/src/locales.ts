@@ -410,7 +410,7 @@ const en = {
   leafNeedsTitle:
     "This document says nothing yet, so a line naming the page would become its title. Write something in it first.",
   leafWouldName:
-    "«{name}» cannot go first: a document takes its title from the first thing it says, so the book would be renamed after the chapter. Write something above them first.",
+    "«{name}» cannot move there: this book opens straight into its chapters, so it takes its title from the first of them, and the move would rename it after a chapter. Write something above them first.",
   leafWaitsInIndex:
     "It is a page now, but nothing can be written into that document as it stands, so no line naming it was added. It waits in the index.",
   putLeaf: "Put it in the text",
@@ -1767,7 +1767,7 @@ const es: Catalog = {
   leafNeedsTitle:
     "Este documento todavía no dice nada, así que una línea que nombre la página se volvería su título. Escribe algo en él primero.",
   leafWouldName:
-    "«{name}» no puede ir primera: un documento toma su título de lo primero que dice, así que el libro pasaría a llamarse como el capítulo. Escribe algo encima de ellos primero.",
+    "«{name}» no puede moverse ahí: este libro empieza directamente por sus capítulos, así que toma su título del primero, y el movimiento lo renombraría como un capítulo. Escribe algo encima de ellos primero.",
   leafWaitsInIndex:
     "Ya es página, pero en ese documento no se puede escribir tal como está, así que no se añadió ninguna línea que la nombre. Espera en el índice.",
   putLeaf: "Ponerla en el texto",

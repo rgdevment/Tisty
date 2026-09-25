@@ -1388,7 +1388,12 @@ before any of this survive: such a book names none of its pages, and a rule that
 sent the unnamed ones to the end would turn it inside out the first time a single
 page ever named itself — the newest chapter would become the first. Instead the
 document lists them as loose, with the one action that puts one in the text, and
-the book turns into a named one at whatever pace its owner chooses. The agent's
+the book turns into a named one at whatever pace its owner chooses. Reading it
+follows that same rule and not a softer one: `State::pages_read` deals the named
+pages back out, in the order the text names them, into the places named pages
+already held — the very run `pages_told` is about to write — so what a reader is
+shown is never an order the next save undoes. Both doors read through it, and the
+window's `inTextOrder` is the same run in TypeScript. The agent's
 door has two moves of its own: `page_doc` naming where a line goes, and `order`
 dealing the lines a set of pages already have back out in the order asked for.
 The window's own hang writes the line too, and writes it where the window already
