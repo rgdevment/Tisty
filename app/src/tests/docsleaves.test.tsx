@@ -176,7 +176,9 @@ describe("a page, open", () => {
     fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[0]);
 
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("El túnel"));
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("inside something else"));
+    expect(onError).not.toHaveBeenCalledWith(expect.stringContaining("drag"));
   });
 
   it("says why a page named by a link has no block to drag", async () => {
@@ -191,6 +193,8 @@ describe("a page, open", () => {
     fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[0]);
 
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("El túnel"));
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("named by a link"));
+    expect(onError).not.toHaveBeenCalledWith(expect.stringContaining("drag"));
   });
 });

@@ -663,7 +663,7 @@ export default function App() {
   }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
-  const paging = useRef<((page: Filed) => void) | null>(null);
+  const paging = useRef<((page: Filed) => boolean) | null>(null);
   const wasAwry = useRef<string | null>(null);
 
   const papersChanged = useCallback(() => {
@@ -1115,7 +1115,9 @@ export default function App() {
       .then(() => {
         // The line goes in through the editor that holds the book, so its own save carries it and
         // nothing is written behind it. A book that is not open leaves the page in the loose half.
-        if (page && under && chosen.doc === under.file) paging.current?.(page);
+        if (page && under && chosen.doc === under.file && paging.current?.(page) === false) {
+          setError(t("leafNeedsTitle"));
+        }
       })
       .then(papersChanged)
       .catch((e) => setError(saidPlainly(e)));

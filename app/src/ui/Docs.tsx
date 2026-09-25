@@ -86,7 +86,7 @@ interface Props {
   folders?: Folded[];
   onFolder?: (id: string | null) => void;
   onKept: (doc: { id: string; title: string }) => void;
-  onPaging?: (put: ((page: Filed) => void) | null) => void;
+  onPaging?: (put: ((page: Filed) => boolean) | null) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onTag?: (tag: string) => void;
@@ -686,8 +686,9 @@ export default function Docs({
                               ? undefined
                               : (page, before) => {
                                   const how = ordering.current?.(page.file, before);
-                                  if (how === "held") onError(t("leafStaysPut"));
-                                  if (how === "unseen") onError(t("leafInText"));
+                                  const named = page.title || t("untitledDoc");
+                                  if (how === "held") onError(fill("leafStaysPut", named));
+                                  if (how === "unseen") onError(fill("leafInText", named));
                                 }
                           }
                         />

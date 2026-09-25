@@ -404,9 +404,9 @@ const en = {
   leafUp: "Move «{name}» up one place",
   leafDown: "Move «{name}» down one place",
   leafStaysPut:
-    "That page's line sits inside something else — a quote, a list, a table — so dragging it would break what it is part of. Move it in the text instead.",
+    "«{name}» cannot go there: one of the two lines sits inside something else — a quote, a list, a table — and moving it would break what it is part of. Move it in the text instead.",
   leafInText:
-    "That page is named by a link in the middle of your text, not by a card of its own, so there is no block to drag. Move the link to move it.",
+    "«{name}» is named by a link in the middle of your text, not by a card of its own, so there is no block to move. Move the link to move it.",
   leafNeedsTitle:
     "This document says nothing yet, so a line naming the page would become its title. Write something in it first.",
   putLeaf: "Put it in the text",
@@ -456,7 +456,7 @@ const en = {
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
   pageOfSure:
-    "Make «{name}» a page of «{other}»? If you have «{other}» open, a line naming it goes at the end of what you are reading, which is where it will sit; otherwise it waits in the index. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
+    "Make «{name}» a page of «{other}»? If that document is the one open in the editor, a line naming the page goes at the end of its text, which is where it will sit; if it is not, the page waits in the index until you put it in. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
   pageOf: "Make it a page of…",
   pageOfWhich: "A page of which one",
@@ -1757,9 +1757,9 @@ const es: Catalog = {
   leafUp: "Subir «{name}» un puesto",
   leafDown: "Bajar «{name}» un puesto",
   leafStaysPut:
-    "La línea de esa página está dentro de otra cosa —una cita, una lista, una tabla—, así que arrastrarla rompería aquello de lo que forma parte. Muévela en el texto.",
+    "«{name}» no puede ir ahí: una de las dos líneas está dentro de otra cosa —una cita, una lista, una tabla— y moverla rompería aquello de lo que forma parte. Muévela en el texto.",
   leafInText:
-    "Esa página la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que arrastrar. Mueve el enlace para moverla.",
+    "«{name}» la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que mover. Mueve el enlace para moverla.",
   leafNeedsTitle:
     "Este documento todavía no dice nada, así que una línea que nombre la página se volvería su título. Escribe algo en él primero.",
   putLeaf: "Ponerla en el texto",
@@ -1809,7 +1809,7 @@ const es: Catalog = {
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
   pageOfSure:
-    "¿Hacer que «{name}» sea página de «{other}»? Si tienes «{other}» abierto, al final de lo que estás leyendo va una línea que la nombra, que es donde quedará; si no, espera en el índice. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
+    "¿Hacer que «{name}» sea página de «{other}»? Si ese documento es el que tienes abierto en el editor, al final de su texto va una línea que la nombra, que es donde quedará; si no lo es, la página espera en el índice hasta que la pongas. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
   pageOf: "Convertir en página de…",
   pageOfWhich: "Página de cuál",
@@ -2722,5 +2722,5 @@ export const t = (key: Word): string => spoken[key] ?? en[key] ?? key;
 
 export const fill = (key: keyof Catalog, name: string, other?: string): string =>
   t(key)
-    .replace("{name}", name)
-    .replace("{other}", other ?? "");
+    .replace(/\{name\}/g, name)
+    .replace(/\{other\}/g, other ?? "");

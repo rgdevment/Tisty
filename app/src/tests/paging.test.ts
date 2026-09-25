@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Filed } from "../core";
+import { fill } from "../locales";
 import { DOC, docCard } from "../markdown";
 import { card, filed, inTextOrder, named, paged, pagesOf, under } from "../paging";
 
@@ -148,5 +149,15 @@ describe("the order a book is read in", () => {
 
   it("keeps the log's order when the text names none of them", () => {
     expect(inTextOrder(held, []).map((one) => one.file)).toEqual(["a-0002", "a-0003", "a-0004"]);
+  });
+});
+
+describe("a name a sentence says more than once", () => {
+  it("is written in every place the sentence says it", () => {
+    const said = fill("pageOfSure", "Notas", "Diario");
+
+    expect(said).not.toContain("{other}");
+    expect(said).not.toContain("{name}");
+    expect(said.split("Diario").length - 1).toBeGreaterThan(1);
   });
 });
