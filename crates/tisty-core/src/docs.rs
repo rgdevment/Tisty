@@ -528,8 +528,10 @@ pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Re
             if told.iter().any(|said| said == one) || named.iter().any(|said| said == one) {
                 continue;
             }
-            let title = read(root, one)
-                .map(|said| titled(&said))
+            // The lock is held over this and all that is wanted is a name: the opening few
+            // thousand bytes hold it, and a chapter can run to half a megabyte.
+            let title = resolve(root, one)
+                .map(|at| opening(&at))
                 .unwrap_or_default();
             cards.push(crate::refs::card(one, &title));
             named.push((*one).to_string());
