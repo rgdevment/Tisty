@@ -690,6 +690,7 @@ export default function Docs({
                                   if (how === "held") onError(fill("leafStaysPut", named));
                                   if (how === "unseen") onError(fill("leafInText", named));
                                   if (how === "titled") onError(fill("leafWouldName", named));
+                                  return how;
                                 }
                           }
                         />

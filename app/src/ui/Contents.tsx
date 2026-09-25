@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Filed } from "../core";
 import { fill, t } from "../locales";
+import type { Moved } from "../paging";
 import { inTextOrder } from "../paging";
 import Glyph from "./Glyph";
 
@@ -9,7 +10,7 @@ interface Props {
   told: string[];
   onOpen: (page: Filed) => void;
   onPut?: (page: Filed) => void;
-  onMove?: (page: Filed, before: string | null) => void;
+  onMove?: (page: Filed, before: string | null) => Moved | undefined;
 }
 
 export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) {
@@ -47,20 +48,30 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
   };
 
   /// A chapter moves one place at a time, so where it lands is the row it swaps with. Going down
-  /// means going before the one after that, and the last place means going before none.
+  /// means going before the one after that, and the last place means going before none. Nothing is
+  /// said and no focus is asked for until it has actually happened: a refused move that announced
+  /// itself would be a lie, and one that asked for focus would take it on the next keystroke.
   const moved = (at: number, by: -1 | 1) => {
     const page = inside[at];
     const to = at + by;
     if (!onMove || !page || to < 0 || to >= inside.length) return;
     const before = by < 0 ? inside[at - 1].file : (inside[at + 2]?.file ?? null);
+    if (onMove(page, before) !== "done") return;
     wanted.current = { file: page.file, by };
     setSaid(fill("leafMoved", named(page), String(to + 1)));
-    onMove(page, before);
   };
 
   const row = (page: Filed, at: number, movable: boolean) => (
     <li
       key={page.id}
+      // The keys are caught here so they answer from the arrows as well as from the name: after a
+      // move the focus is on an arrow, and a second press has to move the chapter again.
+      onKeyDown={(e) => {
+        if (!movable || !e.altKey) return;
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+        e.preventDefault();
+        moved(at, e.key === "ArrowUp" ? -1 : 1);
+      }}
       onDragOver={(e) => {
         if (!movable || !carried) return;
         e.preventDefault();
@@ -93,12 +104,6 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
           setAtEnd(false);
         }}
         onClick={() => onOpen(page)}
-        onKeyDown={(e) => {
-          if (!movable || !e.altKey) return;
-          if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
-          e.preventDefault();
-          moved(at, e.key === "ArrowUp" ? -1 : 1);
-        }}
         aria-keyshortcuts={movable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
         aria-label={page.away ? `${named(page)} — ${t("isArchived")}` : undefined}
         className="leaf-open"

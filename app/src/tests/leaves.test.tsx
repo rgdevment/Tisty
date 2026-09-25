@@ -32,13 +32,13 @@ describe("the index at the end of a document", () => {
   };
 
   const dragged = (told: string[]) => {
-    const onMove = vi.fn();
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "done" as const);
     render(<Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />);
     return onMove;
   };
 
   const carried = (told: string[]) => {
-    const onMove = vi.fn();
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "done" as const);
     const { container } = render(
       <Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
     );
@@ -279,7 +279,7 @@ describe("the step at the foot of a page", () => {
 
 describe("moving a chapter one place at a time", () => {
   const shown = (told: string[]) => {
-    const onMove = vi.fn();
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "done" as const);
     const { container } = render(
       <Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
     );
@@ -393,6 +393,58 @@ describe("moving a chapter one place at a time", () => {
     fireEvent.keyDown(rows()[0], { key: "ArrowDown" });
 
     expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("answers the keys from an arrow too, so a second press moves it again", () => {
+    const { onMove, arrow } = shown(all);
+    const down = arrow("a3f1-0002", 1);
+    if (!down) throw new Error("no way down");
+
+    fireEvent.keyDown(down, { key: "ArrowDown", altKey: true });
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+  });
+
+  it("says nothing when the move was refused", () => {
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "held" as const);
+    const { container } = render(
+      <Contents pages={pages} told={all} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
+    );
+    const down = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:1"]');
+    if (!down) throw new Error("no way down");
+
+    fireEvent.click(down);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
+  it("asks for no focus when the move was refused", () => {
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "titled" as const);
+    const { container, rerender } = render(
+      <Contents pages={pages} told={all} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
+    );
+    const down = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:1"]');
+    if (!down) throw new Error("no way down");
+    fireEvent.click(down);
+    const away = document.createElement("input");
+    document.body.append(away);
+    away.focus();
+
+    // What a later change to the text would do: the index draws again.
+    rerender(
+      <Contents
+        pages={pages}
+        told={[...all].reverse()}
+        onOpen={vi.fn()}
+        onPut={vi.fn()}
+        onMove={onMove}
+      />,
+    );
+
+    expect(document.activeElement).toBe(away);
+    away.remove();
   });
 
   it("offers no keys, and moves nothing, on a page the text never names", () => {
