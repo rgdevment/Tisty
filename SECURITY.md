@@ -161,6 +161,13 @@ Being explicit here matters more than sounding reassuring.
   backup made before this was so still has the secret inside it, in the clear:
   the copies you already have are worth protecting like the documents they hold.
 
+  A secret is never destroyed, only displaced. Starting over sets the old one
+  aside under the hour it was replaced, and so does a build that finds two, so
+  the safety copy written just before is not left unrecognisable by the machine
+  that wrote it. Those files sit in the private folder and nothing reads them on
+  its own; `tisty doctor` says how many there are, and putting one back is
+  renaming it. Leaving takes the diary and the settings, never these.
+
   The one parcel that carries proof is the one you lock. Exporting everything to
   another machine of your own seals it with a number: XChaCha20-Poly1305 over
   64 KiB blocks, under a key scrypt grinds out of that number, with each block's

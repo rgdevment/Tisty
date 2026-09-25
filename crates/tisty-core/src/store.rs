@@ -9,6 +9,7 @@ use crate::{
 };
 
 const ACTIVE: &str = "active.tisty";
+const DISPLACED: &str = ".store-key.was-";
 const LOCK: &str = ".lock";
 const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
@@ -337,18 +338,14 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct Private<'a>(pub &'a Path);
-
-/// Asks without minting one, for whoever only needs to know whether this store can still prove
-/// it is itself.
-pub fn secret_kept(private: Private) -> Option<[u8; 32]> {
-    let held = std::fs::read(private.0.join(KEEP)).ok()?;
+pub fn secret_kept(paths: &crate::Paths) -> Option<[u8; 32]> {
+    let held = std::fs::read(paths.private().join(KEEP)).ok()?;
     <[u8; 32]>::try_from(held.as_slice()).ok()
 }
 
-pub fn secret(private: Private) -> Option<[u8; 32]> {
-    let at = private.0.join(KEEP);
+pub fn secret(paths: &crate::Paths) -> Option<[u8; 32]> {
+    let private = paths.private();
+    let at = private.join(KEEP);
     if let Ok(held) = std::fs::read(&at)
         && let Ok(kept) = <[u8; 32]>::try_from(held.as_slice())
     {
@@ -356,7 +353,7 @@ pub fn secret(private: Private) -> Option<[u8; 32]> {
     }
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
-    std::fs::create_dir_all(private.0).ok()?;
+    std::fs::create_dir_all(&private).ok()?;
     match File::create_new(&at) {
         Ok(mut file) => {
             file.write_all(&fresh).ok()?;
@@ -371,8 +368,8 @@ pub fn secret(private: Private) -> Option<[u8; 32]> {
     }
 }
 
-pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
-    let was = store_root.as_ref().join(KEEP);
+pub fn brought_home(paths: &crate::Paths) {
+    let was = paths.store().join(KEEP);
     let Ok(held) = std::fs::read(&was) else {
         return;
     };
@@ -385,17 +382,17 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
         return;
     }
 
-    let now = private.0.join(KEEP);
+    let private = paths.private();
+    let now = private.join(KEEP);
     match std::fs::read(&now) {
         Ok(there) if <[u8; 32]>::try_from(there.as_slice()).is_err() => {
-            if !set_aside(private, &there, "what was kept as the key is not one") {
+            if !set_aside(paths, &there, "what was kept as the key is not one") {
                 return;
             }
         }
-        // One inside a store that already moved its key out was made by an older build.
         Ok(there) if there != held => {
             if set_aside(
-                private,
+                paths,
                 &held,
                 "an older build made a second key inside the store",
             ) {
@@ -421,7 +418,7 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
         }
     }
 
-    if std::fs::create_dir_all(private.0).is_err() || write_atomic(&now, &held).is_err() {
+    if std::fs::create_dir_all(&private).is_err() || write_atomic(&now, &held).is_err() {
         witness::warn(
             channel::STORE,
             "the key could not be moved out of the store, so it stays where a backup reaches it",
@@ -433,10 +430,52 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
     swept(&was);
 }
 
-/// Kept under the hour it was displaced, so a second one never writes over the first.
-fn set_aside(private: Private, held: &[u8], why: &str) -> bool {
+pub fn displaced(paths: &crate::Paths) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(paths.private()) else {
+        return Vec::new();
+    };
+    let mut found: Vec<PathBuf> = entries
+        .filter_map(|one| one.ok())
+        .filter(|one| one.file_name().to_string_lossy().starts_with(DISPLACED))
+        .map(|one| one.path())
+        .collect();
+    found.sort();
+    found
+}
+
+pub fn put_aside(paths: &crate::Paths, why: &str) -> bool {
+    let now = paths.private().join(KEEP);
+    let held = match std::fs::read(&now) {
+        Ok(held) => held,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return true,
+        Err(e) => {
+            witness::error(
+                channel::STORE,
+                "the key could not be read, so it was neither set aside nor removed",
+                &[("at", Fact::Path(now)), ("why", Fact::Why(e.to_string()))],
+            );
+            return false;
+        }
+    };
+    if !set_aside(paths, &held, why) {
+        return false;
+    }
+    if let Err(e) = std::fs::remove_file(&now)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        witness::error(
+            channel::STORE,
+            "the key was set aside and the one in use could not be removed, so there are two",
+            &[("at", Fact::Path(now)), ("why", Fact::Why(e.to_string()))],
+        );
+        return false;
+    }
+    true
+}
+
+fn set_aside(paths: &crate::Paths, held: &[u8], why: &str) -> bool {
     let stamp = jiff::Zoned::now().strftime("%Y%m%dT%H%M%S").to_string();
-    let aside = private.0.join(format!("{KEEP}.was-{stamp}"));
+    let aside = paths.private().join(format!("{DISPLACED}{stamp}"));
     if write_atomic(&aside, held).is_err() {
         witness::error(
             channel::STORE,
@@ -2019,29 +2058,31 @@ mod tests {
     #[test]
     fn a_key_kept_inside_the_store_moves_out_and_leaves_nothing_behind() {
         let tmp = tempfile::tempdir().unwrap();
-        let store = tmp.path().join("data/store");
-        let private = tmp.path().join("config/private");
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
         std::fs::create_dir_all(&store).unwrap();
         std::fs::write(store.join(KEEP), [7u8; 32]).unwrap();
 
-        brought_home(&store, Private(&private));
+        brought_home(&paths);
 
         assert!(
             !store.join(KEEP).exists(),
             "the key stayed where a backup reaches it"
         );
         assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [7u8; 32]);
-        assert_eq!(secret(Private(&private)).unwrap(), [7u8; 32]);
+        assert_eq!(secret(&paths).unwrap(), [7u8; 32]);
     }
 
     #[test]
     fn bringing_the_key_home_when_there_never_was_one_inside_makes_none() {
         let tmp = tempfile::tempdir().unwrap();
-        let store = tmp.path().join("data/store");
-        let private = tmp.path().join("config/private");
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
         std::fs::create_dir_all(&store).unwrap();
 
-        brought_home(&store, Private(&private));
+        brought_home(&paths);
 
         assert!(
             !private.join(KEEP).exists(),
@@ -2052,13 +2093,14 @@ mod tests {
     #[test]
     fn bringing_the_key_home_twice_changes_nothing() {
         let tmp = tempfile::tempdir().unwrap();
-        let store = tmp.path().join("data/store");
-        let private = tmp.path().join("config/private");
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
         std::fs::create_dir_all(&store).unwrap();
         std::fs::write(store.join(KEEP), [3u8; 32]).unwrap();
 
-        brought_home(&store, Private(&private));
-        brought_home(&store, Private(&private));
+        brought_home(&paths);
+        brought_home(&paths);
 
         assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [3u8; 32]);
     }
@@ -2066,14 +2108,15 @@ mod tests {
     #[test]
     fn a_key_that_turns_up_inside_an_already_moved_store_does_not_win() {
         let tmp = tempfile::tempdir().unwrap();
-        let store = tmp.path().join("data/store");
-        let private = tmp.path().join("config/private");
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
         std::fs::create_dir_all(&store).unwrap();
         std::fs::create_dir_all(&private).unwrap();
         std::fs::write(private.join(KEEP), [2u8; 32]).unwrap();
         std::fs::write(store.join(KEEP), [1u8; 32]).unwrap();
 
-        brought_home(&store, Private(&private));
+        brought_home(&paths);
 
         assert_eq!(
             std::fs::read(private.join(KEEP)).unwrap(),
@@ -2101,12 +2144,13 @@ mod tests {
     #[test]
     fn something_that_is_not_a_key_is_left_where_it_is() {
         let tmp = tempfile::tempdir().unwrap();
-        let store = tmp.path().join("data/store");
-        let private = tmp.path().join("config/private");
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
         std::fs::create_dir_all(&store).unwrap();
         std::fs::write(store.join(KEEP), b"not a key").unwrap();
 
-        brought_home(&store, Private(&private));
+        brought_home(&paths);
 
         assert!(
             store.join(KEEP).exists(),
@@ -2231,5 +2275,39 @@ mod tests {
 
         identity(&root).unwrap();
         assert_eq!(read_all(&root).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn what_is_set_aside_is_named_after_the_key_it_replaces() {
+        assert!(
+            DISPLACED.starts_with(KEEP),
+            "{DISPLACED} would not be found beside {KEEP}"
+        );
+    }
+
+    #[test]
+    fn a_key_put_aside_is_still_there_under_another_name() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        let private = paths.private();
+        std::fs::create_dir_all(&private).unwrap();
+        std::fs::write(private.join(KEEP), [7u8; 32]).unwrap();
+
+        assert!(put_aside(&paths, "the store was started over"));
+
+        assert!(!private.join(KEEP).exists());
+        let aside = displaced(&paths);
+        assert_eq!(aside.len(), 1, "{aside:?}");
+        assert_eq!(std::fs::read(&aside[0]).unwrap(), [7u8; 32]);
+    }
+
+    #[test]
+    fn putting_aside_where_there_is_no_key_leaves_nothing_behind() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        std::fs::create_dir_all(paths.private()).unwrap();
+
+        assert!(put_aside(&paths, "the store was started over"));
+        assert!(displaced(&paths).is_empty());
     }
 }

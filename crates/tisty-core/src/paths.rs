@@ -47,7 +47,9 @@ impl Paths {
     }
 
     pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
-        vec![self.config_file(), self.cache.clone()]
+        let mut swept = vec![self.config_file(), self.cache.clone()];
+        swept.extend(crate::witness::kept_files(self));
+        swept
     }
 
     pub fn shims() -> Vec<PathBuf> {
@@ -222,6 +224,20 @@ mod tests {
         assert!(swept.contains(&p.config_file()), "{swept:?}");
         assert!(
             !swept.iter().any(|at| p.private().starts_with(at)),
+            "leaving would take the key with it: {swept:?}"
+        );
+        assert!(
+            swept.contains(&crate::witness::file(&p)),
+            "leaving would keep the diary of a machine that left: {swept:?}"
+        );
+        assert!(
+            swept.iter().any(|at| at.ends_with("tisty.log.1")),
+            "leaving would keep the rolled-over diary: {swept:?}"
+        );
+        assert!(
+            !swept
+                .iter()
+                .any(|at| at.ends_with(crate::store::KEEP) || at == &p.private()),
             "leaving would take the key with it: {swept:?}"
         );
     }

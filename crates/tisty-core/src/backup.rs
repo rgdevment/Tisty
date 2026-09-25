@@ -20,7 +20,6 @@ pub struct Made {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Restored {
     pub files: usize,
-    pub left: usize,
     pub devices: usize,
 }
 
@@ -159,17 +158,29 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
 
     let staged = data.join(format!(".restoring-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&staged);
-    let done = unpack(&mut zip, &staged, at_most).and_then(|(files, left)| {
+    let done = unpack(&mut zip, &staged, at_most).and_then(|done| {
         store::read_all(staged.join("store"))?;
-        if files == 0 || !staged.join("store").is_dir() {
+        if done.files == 0 || !staged.join("store").is_dir() {
             return Err(Error::OtherStore {
                 theirs: from.display().to_string(),
             });
         }
-        Ok((files, left))
+        Ok(done)
     });
-    let (files, left) = match done {
-        Ok(both) => both,
+    let done = match done {
+        Ok(done) => {
+            if let Some(first) = &done.first {
+                witness::warn(
+                    channel::BACKUP,
+                    "a copy holds entries this version does not put back, so they were left out",
+                    &[
+                        ("count", Fact::Id(done.leftover.to_string())),
+                        ("first", Fact::Id(first.clone())),
+                    ],
+                );
+            }
+            done
+        }
         Err(e) => {
             let _ = std::fs::remove_dir_all(&staged);
             return Err(e);
@@ -196,7 +207,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let _ = std::fs::remove_dir_all(&staged);
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
-    if store::secret_kept(store::Private(&paths.private())).is_none() {
+    if store::secret_kept(paths).is_none() {
         witness::warn(
             channel::BACKUP,
             "a copy carries the store's name and not what proves it, so parcels this store handed out before will land as a stranger's",
@@ -206,8 +217,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     crate::docs::forget_what_was_carried(data);
 
     Ok(Restored {
-        files,
-        left,
+        files: done.files,
         devices: std::fs::read_dir(data.join("store"))
             .map(|entries| {
                 entries
@@ -302,15 +312,7 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
 
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
-    let _ = std::fs::remove_file(paths.private().join(store::KEEP));
-    if let Ok(entries) = std::fs::read_dir(paths.private()) {
-        let displaced = format!("{}.was-", store::KEEP);
-        for one in entries.filter_map(|one| one.ok()) {
-            if one.file_name().to_string_lossy().starts_with(&displaced) {
-                let _ = std::fs::remove_file(one.path());
-            }
-        }
-    }
+    store::put_aside(paths, "the store was started over");
     crate::docs::forget_what_was_carried(data);
     Ok(made)
 }
@@ -418,16 +420,23 @@ pub fn leftovers(data: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
+struct Unpacked {
+    files: usize,
+    leftover: usize,
+    first: Option<String>,
+}
+
 fn unpack<R: Read + Seek>(
     zip: &mut zip::ZipArchive<R>,
     into: &Path,
     at_most: u64,
-) -> Result<(usize, usize)> {
+) -> Result<Unpacked> {
     if zip.len() > AT_MOST_FILES {
         return Err(Error::TooBig);
     }
     let mut files = 0;
-    let mut left = 0;
+    let mut leftover = 0;
+    let mut first: Option<String> = None;
     let mut bytes = 0u64;
 
     for i in 0..zip.len() {
@@ -436,12 +445,8 @@ fn unpack<R: Read + Seek>(
             continue;
         }
         let Some(rest) = safe(held.name()) else {
-            left += 1;
-            witness::warn(
-                channel::BACKUP,
-                "a copy holds something this version does not put back, so it was left out",
-                &[("at", Fact::Id(held.name().to_string()))],
-            );
+            first.get_or_insert_with(|| held.name().to_string());
+            leftover += 1;
             continue;
         };
         if held.size() > at_most.saturating_sub(bytes) {
@@ -462,7 +467,11 @@ fn unpack<R: Read + Seek>(
         bytes = bytes.saturating_add(written);
         files += 1;
     }
-    Ok((files, left))
+    Ok(Unpacked {
+        files,
+        leftover,
+        first,
+    })
 }
 
 fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
@@ -497,8 +506,6 @@ fn kept_out(parts: &[&str]) -> bool {
         || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))
 }
 
-/// Whatever a copy carries has to be able to come back, or restoring loses it for good: the
-/// store is swapped out whether the zip held its replacement or not.
 fn carried(at: &Path) -> bool {
     let Some(parts) = named(at) else {
         return false;
@@ -764,6 +771,32 @@ mod tests {
         assert!(
             !paths.private().join(store::KEEP).exists(),
             "starting over kept the secret of the store it replaced"
+        );
+    }
+
+    #[test]
+    fn starting_over_keeps_what_the_zip_it_writes_cannot_carry() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = quarters(&dir);
+        std::fs::create_dir_all(paths.data()).unwrap();
+        Store::open(paths.store(), DeviceId("dev_a".into())).unwrap();
+        std::fs::create_dir_all(paths.private()).unwrap();
+        std::fs::write(paths.private().join(store::KEEP), [6u8; 32]).unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("before-joining.zip");
+        reset(&paths, &file, tmp().path()).unwrap();
+
+        let aside = store::displaced(&paths);
+        assert_eq!(
+            aside.len(),
+            1,
+            "the zip cannot carry the key, so starting over has to leave it on disk: {aside:?}"
+        );
+        assert_eq!(
+            std::fs::read(&aside[0]).unwrap(),
+            [6u8; 32],
+            "what was set aside is not the key that sealed the parcels in that zip"
         );
     }
 
@@ -1298,6 +1331,68 @@ mod tests {
 
         let found = leftovers(&data);
         assert_eq!(found.len(), 2, "{found:?}");
+    }
+
+    #[test]
+    fn a_zip_full_of_refused_entries_does_not_roll_the_diary_away() {
+        let _alone = crate::witness::ALONE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let good = out.path().join("tisty.zip");
+        write(&data, &good, tmp().path()).unwrap();
+
+        let hostile = out.path().join("hostile.zip");
+        {
+            let held = std::fs::File::open(&good).unwrap();
+            let mut from = zip::ZipArchive::new(held).unwrap();
+            let mut to = zip::ZipWriter::new(std::fs::File::create(&hostile).unwrap());
+            for i in 0..from.len() {
+                let mut one = from.by_index(i).unwrap();
+                let named = one.name().to_string();
+                let mut body = Vec::new();
+                one.read_to_end(&mut body).unwrap();
+                to.start_file(named, zip::write::SimpleFileOptions::default())
+                    .unwrap();
+                to.write_all(&body).unwrap();
+            }
+            for i in 0..3_000 {
+                to.start_file(
+                    format!("junk/{i:05}.bin"),
+                    zip::write::SimpleFileOptions::default(),
+                )
+                .unwrap();
+                to.write_all(b"x").unwrap();
+            }
+            to.finish().unwrap();
+        }
+
+        let fresh = tempfile::tempdir().unwrap();
+        let paths = quarters(&fresh);
+        crate::witness::keeps(crate::witness::file(&paths), false);
+        crate::witness::warn(channel::BACKUP, "the mark that has to survive", &[]);
+
+        read(&paths, &hostile).unwrap();
+
+        let diary = std::fs::read_to_string(crate::witness::file(&paths)).unwrap();
+        crate::witness::stops();
+
+        assert!(
+            diary.contains("the mark that has to survive"),
+            "restoring rolled the diary away and took the earlier diagnosis with it"
+        );
+        assert_eq!(
+            diary.matches("does not put back").count(),
+            1,
+            "3000 refused entries wrote more than the one line that says so"
+        );
+        assert!(
+            (diary.len() as u64) < crate::witness::ROLLS_AT,
+            "the diary is {} bytes after one restore",
+            diary.len()
+        );
     }
 
     #[test]

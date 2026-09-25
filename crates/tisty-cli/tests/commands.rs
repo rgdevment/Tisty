@@ -2477,8 +2477,6 @@ fn letting_an_agent_in_from_a_shell_with_no_terminal_is_refused_at_the_persons_s
     );
 }
 
-/// Every way in has to move it, not just the two that happened to be wired. The whole point of
-/// taking the key out of the store is lost on a machine where some entry point never does it.
 #[test]
 fn any_command_at_all_takes_the_key_out_of_the_store() {
     let cli = Cli::new();
@@ -2497,4 +2495,21 @@ fn any_command_at_all_takes_the_key_out_of_the_store() {
         std::fs::read(cli.home.path().join("config/private/.store-key")).unwrap(),
         [4u8; 32]
     );
+}
+
+#[test]
+fn doctor_names_the_keys_that_were_set_aside() {
+    let cli = Cli::new();
+    cli.run(&["add", "algo"]);
+
+    let private = cli.home.path().join("config/private");
+    std::fs::create_dir_all(&private).unwrap();
+    std::fs::write(private.join(".store-key.was-20260101T000000"), [9u8; 32]).unwrap();
+
+    let out = cli.ok(&["doctor"]);
+    assert!(
+        out.contains("keys set aside") || out.contains("llaves apartadas"),
+        "a displaced key sits on disk and nothing tells the owner it is there: {out}"
+    );
+    assert!(out.contains('1'), "{out}");
 }
