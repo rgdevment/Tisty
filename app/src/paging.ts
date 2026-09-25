@@ -36,7 +36,7 @@ export const namesIn = (body: string): string[] => {
 
 export const named = (body: string): Set<string> => new Set(namesIn(body));
 
-export type Moved = "done" | "held" | "unseen";
+export type Moved = "done" | "held" | "unseen" | "titled";
 
 /// The pages of a document in the order it reads them: the ones its text names, where it names
 /// them, and then the ones it does not, which keep the places they came in with. Whatever draws a

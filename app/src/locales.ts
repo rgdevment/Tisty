@@ -409,6 +409,8 @@ const en = {
     "«{name}» is named by a link in the middle of your text, not by a card of its own, so there is no block to move. Move the link to move it.",
   leafNeedsTitle:
     "This document says nothing yet, so a line naming the page would become its title. Write something in it first.",
+  leafWouldName:
+    "«{name}» cannot go first: a document takes its title from the first thing it says, so the book would be renamed after the chapter. Write something above them first.",
   putLeaf: "Put it in the text",
   whereThisSits: "Where this page sits",
   leafOfMany: "Page {name} of {other}",
@@ -1762,6 +1764,8 @@ const es: Catalog = {
     "«{name}» la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que mover. Mueve el enlace para moverla.",
   leafNeedsTitle:
     "Este documento todavía no dice nada, así que una línea que nombre la página se volvería su título. Escribe algo en él primero.",
+  leafWouldName:
+    "«{name}» no puede ir primera: un documento toma su título de lo primero que dice, así que el libro pasaría a llamarse como el capítulo. Escribe algo encima de ellos primero.",
   putLeaf: "Ponerla en el texto",
   whereThisSits: "Dónde va esta página",
   leafOfMany: "Página {name} de {other}",

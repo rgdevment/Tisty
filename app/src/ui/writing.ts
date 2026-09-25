@@ -44,6 +44,9 @@ export const cardMoved = (editor: Writing, file: string, before: string | null):
   const node = editor.state.doc.nodeAt(from);
   if (!node) return "unseen";
   if (wanted === from) return "done";
+  // A document takes its title from the first thing it says, so a chapter sent to the very front
+  // would become the book's name. The core refuses the same write for the same reason.
+  if (wanted === 0) return "titled";
   const tr = editor.state.tr;
   tr.delete(from, from + node.nodeSize);
   tr.insert(tr.mapping.map(wanted), node);

@@ -112,3 +112,26 @@ describe("putting a loose page into the text", () => {
     open.shut();
   });
 });
+
+describe("what a move must not do to the book", () => {
+  it("refuses to send a chapter to the very front, which would rename the book", () => {
+    const open = opened(`${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n`);
+    const was = open.markdown();
+
+    expect(cardMoved(open.editor, "a-0002", "a-0001")).toBe("titled");
+
+    expect(open.markdown()).toBe(was);
+    open.shut();
+  });
+
+  it("lets a chapter go first among the chapters when something is said above them", () => {
+    const open = opened(`# Libro\n\n${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n`);
+
+    expect(cardMoved(open.editor, "a-0002", "a-0001")).toBe("done");
+
+    const said = open.markdown();
+    expect(said.indexOf("Libro")).toBeLessThan(said.indexOf("a-0002"));
+    expect(said.indexOf("a-0002")).toBeLessThan(said.indexOf("a-0001"));
+    open.shut();
+  });
+});
