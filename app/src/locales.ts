@@ -398,11 +398,21 @@ const en = {
   allInside: "In the order the text names them.",
   someLoose: "In the order the text names them. The last ones it never names.",
   looseLeafIs: "Loose page",
-  dragLeaves: "Drag one to move it: where its line sits is the order they are read in.",
+  moveLeaves:
+    "To move one, use the arrows on its row. Where its line sits is the order they are read in.",
+  leafMoved: "«{name}» is now number {other}",
+  leafUp: "Move «{name}» up one place",
+  leafDown: "Move «{name}» down one place",
   leafStaysPut:
-    "That page's line sits inside something else — a quote, a list, a table — so dragging it would break what it is part of. Move it in the text instead.",
+    "«{name}» cannot go there: one of the two lines sits inside something else — a quote, a list, a table — and moving it would break what it is part of. Move it in the text instead.",
   leafInText:
-    "That page is named by a link in the middle of your text, not by a card of its own, so there is no block to drag. Move the link to move it.",
+    "«{name}» is named by a link in the middle of your text, not by a card of its own, so there is no block to move. Move the link to move it.",
+  leafNeedsTitle:
+    "This document says nothing yet, so a line naming the page would become its title. Write something in it first.",
+  leafWouldName:
+    "«{name}» cannot move there: this book opens straight into its chapters, so it takes its title from the first of them, and the move would rename it after a chapter. Write something above them first.",
+  leafWaitsInIndex:
+    "It is a page now, but nothing can be written into that document as it stands, so no line naming it was added. It waits in the index.",
   putLeaf: "Put it in the text",
   whereThisSits: "Where this page sits",
   leafOfMany: "Page {name} of {other}",
@@ -450,7 +460,7 @@ const en = {
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
   pageOfSure:
-    "Make «{name}» a page of «{other}»? It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
+    "Make «{name}» a page of «{other}»? If that document is the one open in the editor, a line naming the page goes at the end of its text, which is where it will sit; if it is not, the page waits in the index until you put it in. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
   pageOf: "Make it a page of…",
   pageOfWhich: "A page of which one",
@@ -1745,11 +1755,21 @@ const es: Catalog = {
   allInside: "En el orden en que el texto las nombra.",
   someLoose: "En el orden en que el texto las nombra. Las últimas no las nombra en ninguna parte.",
   looseLeafIs: "Página suelta",
-  dragLeaves: "Arrastra una para moverla: donde va su línea es el orden en que se leen.",
+  moveLeaves:
+    "Para mover una, usa las flechas de su fila. Donde va su línea es el orden en que se leen.",
+  leafMoved: "«{name}» ahora es la número {other}",
+  leafUp: "Subir «{name}» un puesto",
+  leafDown: "Bajar «{name}» un puesto",
   leafStaysPut:
-    "La línea de esa página está dentro de otra cosa —una cita, una lista, una tabla—, así que arrastrarla rompería aquello de lo que forma parte. Muévela en el texto.",
+    "«{name}» no puede ir ahí: una de las dos líneas está dentro de otra cosa —una cita, una lista, una tabla— y moverla rompería aquello de lo que forma parte. Muévela en el texto.",
   leafInText:
-    "Esa página la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que arrastrar. Mueve el enlace para moverla.",
+    "«{name}» la nombra un enlace en medio de tu texto, no una tarjeta suya, así que no hay bloque que mover. Mueve el enlace para moverla.",
+  leafNeedsTitle:
+    "Este documento todavía no dice nada, así que una línea que nombre la página se volvería su título. Escribe algo en él primero.",
+  leafWouldName:
+    "«{name}» no puede moverse ahí: este libro empieza directamente por sus capítulos, así que toma su título del primero, y el movimiento lo renombraría como un capítulo. Escribe algo encima de ellos primero.",
+  leafWaitsInIndex:
+    "Ya es página, pero en ese documento no se puede escribir tal como está, así que no se añadió ninguna línea que la nombre. Espera en el índice.",
   putLeaf: "Ponerla en el texto",
   whereThisSits: "Dónde va esta página",
   leafOfMany: "Página {name} de {other}",
@@ -1797,7 +1817,7 @@ const es: Catalog = {
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
   pageOfSure:
-    "¿Hacer que «{name}» sea página de «{other}»? Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
+    "¿Hacer que «{name}» sea página de «{other}»? Si ese documento es el que tienes abierto en el editor, al final de su texto va una línea que la nombra, que es donde quedará; si no lo es, la página espera en el índice hasta que la pongas. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
   pageOf: "Convertir en página de…",
   pageOfWhich: "Página de cuál",
@@ -2710,5 +2730,5 @@ export const t = (key: Word): string => spoken[key] ?? en[key] ?? key;
 
 export const fill = (key: keyof Catalog, name: string, other?: string): string =>
   t(key)
-    .replace("{name}", name)
-    .replace("{other}", other ?? "");
+    .replace(/\{name\}/g, name)
+    .replace(/\{other\}/g, other ?? "");

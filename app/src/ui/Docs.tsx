@@ -26,7 +26,7 @@ import {
 import { stamped } from "../format";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
-import { filed, type Moved, named, pagesOf, under } from "../paging";
+import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
@@ -78,7 +78,7 @@ const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in
 
 const ASIDE = 344;
 
-const EMPTY: Set<string> = new Set();
+const NONE: string[] = [];
 
 interface Props {
   open?: string;
@@ -86,6 +86,7 @@ interface Props {
   folders?: Folded[];
   onFolder?: (id: string | null) => void;
   onKept: (doc: { id: string; title: string }) => void;
+  onPaging?: (put: ((page: Filed) => boolean) | null) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onTag?: (tag: string) => void;
@@ -106,6 +107,7 @@ export default function Docs({
   folders = [],
   onFolder,
   onKept,
+  onPaging,
   onError,
   onDoc,
   onTag,
@@ -142,7 +144,9 @@ export default function Docs({
   const [pdfAsked, setPdfAsked] = useState(false);
   const [signing, setSigning] = useState(false);
   const giving = useRef<(() => unknown) | null>(null);
-  const putting = useRef<((page: Filed) => void) | null>(null);
+  const putting = useRef<((page: Filed) => boolean) | null>(null);
+  const paged = useRef(onPaging);
+  paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
   const handed = useCallback((read: () => unknown) => {
     giving.current = read;
@@ -313,8 +317,6 @@ export default function Docs({
         from.current = null;
       }
     }
-    putting.current = null;
-    ordering.current = null;
     flush();
     const mine = ++turn.current;
     const wrote_at = typed.current;
@@ -399,9 +401,20 @@ export default function Docs({
     if (!open || reading || bolted) return;
     typed.current = Date.now();
     setBody(text);
-    if (text === shaped.current) return;
     const last = lastRead.current.get(open.file);
-    if (last !== undefined && tailless(last) === tailless(text)) return;
+    const back =
+      text === shaped.current || (last !== undefined && tailless(last) === tailless(text));
+    if (back) {
+      // Coming back to what was read is not a change, and it undoes the one waiting: a chapter
+      // moved and moved back inside the beat would otherwise be written in the order it passed
+      // through, and the screen would show the other one.
+      if (held.current?.id === open.file) {
+        held.current = null;
+        if (settling.current) clearTimeout(settling.current);
+        settling.current = null;
+      }
+      return;
+    }
     held.current = { id: open.file, body: text };
     if (settling.current) clearTimeout(settling.current);
     settling.current = setTimeout(flush, SETTLES);
@@ -418,16 +431,16 @@ export default function Docs({
   const pages = pagesOf(known, open?.file);
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
-  const told = useMemo(() => (pages.length > 0 ? named(body) : EMPTY), [body, pages.length]);
+  const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
 
-  const [aboveTold, setAboveTold] = useState<Set<string>>();
+  const [aboveTold, setAboveTold] = useState<string[]>();
   const upstairs = above?.file;
   useEffect(() => {
     if (!upstairs) return setAboveTold(undefined);
     let gone = false;
     docRead(upstairs)
       .then((text) => {
-        if (!gone) setAboveTold(named(text));
+        if (!gone) setAboveTold(namesIn(text));
       })
       .catch(() => {});
     return () => {
@@ -435,7 +448,11 @@ export default function Docs({
     };
   }, [upstairs, fresh]);
 
-  const inOrder = aboveTold ? sisters.filter((one) => aboveTold.has(one.file)) : [];
+  const inOrder = aboveTold
+    ? aboveTold
+        .map((file) => sisters.find((one) => one.file === file))
+        .filter((one): one is Filed => Boolean(one))
+    : [];
   const at = inOrder.findIndex((one) => one.file === own?.file);
   const next = at < 0 ? undefined : inOrder[at + 1];
 
@@ -463,7 +480,11 @@ export default function Docs({
       import("./shaping"),
     ]);
     registered();
-    const pages = known.filter((one) => one.pageOf === open.id);
+    // What is printed is the book as it reads, not as the log last settled it.
+    const pages = inTextOrder(
+      known.filter((one) => one.pageOf === open.id),
+      told,
+    );
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
     const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),
@@ -651,14 +672,25 @@ export default function Docs({
                           pages={pages}
                           told={told}
                           onOpen={(page) => onDoc?.(page.file)}
-                          onPut={reading || bolted ? undefined : (page) => putting.current?.(page)}
+                          onPut={
+                            reading || bolted
+                              ? undefined
+                              : (page) => {
+                                  if (putting.current?.(page) === false) {
+                                    onError(t("leafNeedsTitle"));
+                                  }
+                                }
+                          }
                           onMove={
                             reading || bolted
                               ? undefined
                               : (page, before) => {
                                   const how = ordering.current?.(page.file, before);
-                                  if (how === "held") onError(t("leafStaysPut"));
-                                  if (how === "unseen") onError(t("leafInText"));
+                                  const named = page.title || t("untitledDoc");
+                                  if (how === "held") onError(fill("leafStaysPut", named));
+                                  if (how === "unseen") onError(fill("leafInText", named));
+                                  if (how === "titled") onError(fill("leafWouldName", named));
+                                  return how;
                                 }
                           }
                         />
@@ -679,7 +711,12 @@ export default function Docs({
                 onOutline={setHeads}
                 onReady={handed}
                 onInsert={(put) => {
-                  putting.current = (page) => put(page.file, page.title);
+                  // A document nothing can be written into takes no card either: it would sit in
+                  // the sheet, be saved by nobody, and be gone on the next read.
+                  const named =
+                    put && !reading && !bolted ? (page: Filed) => put(page.file, page.title) : null;
+                  putting.current = named;
+                  paged.current?.(named);
                 }}
                 onOrder={(move) => {
                   ordering.current = move;

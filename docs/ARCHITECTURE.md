@@ -1388,14 +1388,54 @@ before any of this survive: such a book names none of its pages, and a rule that
 sent the unnamed ones to the end would turn it inside out the first time a single
 page ever named itself — the newest chapter would become the first. Instead the
 document lists them as loose, with the one action that puts one in the text, and
-the book turns into a named one at whatever pace its owner chooses. The agent's
+the book turns into a named one at whatever pace its owner chooses. Reading it
+follows that same rule and not a softer one: `State::pages_read` deals the named
+pages back out, in the order the text names them, into the places named pages
+already held — the very run `pages_told` is about to write — so what a reader is
+shown is never an order the next save undoes. Both doors read through it, and the
+window's `inTextOrder` is the same run in TypeScript. The agent's
 door has two moves of its own: `page_doc` naming where a line goes, and `order`
 dealing the lines a set of pages already have back out in the order asked for.
-The window's own hang writes nothing — a document dropped on another in the tree
-lands loose, and its line is the person's to put there. So the two doors differ
-in what they write and agree on what it means: neither carries an order the text
-does not say, which is why dragging a row of the index moves the card in the
-editor and nothing has to know the difference.
+The window's own hang writes the line too, and writes it where the window already
+writes: into the editor that holds the book. Dropping a document on another in
+the tree puts the card at the end of what the person is reading, so their own
+save carries it, with the page's live title, and nothing is written behind the
+text they have open. A book that is not open gets nothing, and the page waits in
+the loose half of the index with the one button that puts it in.
+
+**That is the second thing this taught us, and it cost a rewrite.** The first
+attempt had the window append to the parent's *file* through the same core call
+the assistant uses. It looked like the symmetry the work was after and it was the
+wrong symmetry: the assistant writes to a document nobody is holding, while the
+window would have written underneath its own editor. The editor's next save then
+read the file as changed by somebody else and offered to overwrite it, so the
+person's own drag could silently take the line back out; the page the editor had
+just been given looked loose for the thirty seconds until the herald noticed; and
+the one entry point that makes a page from inside the editor named it twice, once
+on disk with no label and once in the buffer with the right one. None of that is
+reachable when the card goes in through the editor, because then there is one
+writer, not two.
+
+**A card is a place, a link is a mention, and they are not the same thing.** Both
+are references — `refs::extract` sees both, which is what keeps a file nothing
+else points at from being swept away — but only `![Title](tisty:doc/id)` gives a
+page its place in the book. It was not always so: for a while any reference to a
+page counted as naming it, and a sentence saying "as I wrote in [March]" made the
+chapter sit wherever that sentence fell. Three things went wrong with it at once,
+all found on a real store of three hundred documents. Taking a page out and
+putting it back reported an order the body did not have, because the card was
+already there and nothing rewrote the body, so nothing re-settled the log.
+Reordering a book whose prose mentioned one of its chapters moved that chapter's
+card past the sentence, after which every further call resolved the page to the
+sentence and refused, blaming a paragraph that had nothing to do with it — the
+book was stuck. And hanging a page a sentence already mentioned said it had
+written the line and wrote nothing.
+
+The rule that fixes all three is the one a person would guess: the card is the
+chapter, the link is a cross-reference. Which also means a question about
+references is asked of `extract` and never of `papers` — what points at a
+document before it is archived, and which ids a parcel must rewrite on the way
+in, both want every mention.
 
 **What counts as code is decided once, for everybody.** A line naming a page
 inside a fenced block is not a way in, it is an example of one, and for a while

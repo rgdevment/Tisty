@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DOC } from "../markdown";
+import { card as cardOf } from "../paging";
 import { cardMoved } from "../ui/writing";
 import { opened } from "./mounted";
 
@@ -81,6 +82,69 @@ ${card("a-0002", "Dos")}
     );
 
     expect(cardMoved(open.editor, "a-0001", "a-0002")).toBe("unseen");
+    open.shut();
+  });
+});
+
+describe("putting a loose page into the text", () => {
+  const put = (open: ReturnType<typeof opened>, file: string, title: string) => {
+    if (!open.editor.state.doc.textContent.trim()) return false;
+    return open.editor.chain().focus("end").insertContent(cardOf(file, title)).run();
+  };
+
+  it("refuses a document that says nothing yet, whose title the card would become", () => {
+    const open = opened("");
+
+    expect(put(open, "a-0001", "Enero")).toBe(false);
+
+    expect(open.markdown().trim()).toBe("");
+    open.shut();
+  });
+
+  it("puts the card at the end of a document that has something to be titled by", () => {
+    const open = opened("# Libro\n\nintro\n");
+
+    expect(put(open, "a-0001", "Enero")).toBe(true);
+
+    const said = open.markdown();
+    expect(said).toContain("![Enero](tisty:doc/a-0001)");
+    expect(said.indexOf("Libro")).toBeLessThan(said.indexOf("a-0001"));
+    open.shut();
+  });
+});
+
+describe("what a move must not do to the book", () => {
+  it("refuses to send a chapter to the very front, which would rename the book", () => {
+    const open = opened(`${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n`);
+    const was = open.markdown();
+
+    expect(cardMoved(open.editor, "a-0002", "a-0001")).toBe("titled");
+
+    expect(open.markdown()).toBe(was);
+    open.shut();
+  });
+
+  it("refuses to take the chapter that is at the front away from it, which renames it too", () => {
+    const open = opened(
+      `${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n\n${card("a-0003", "Tres")}\n`,
+    );
+    const was = open.markdown();
+
+    expect(cardMoved(open.editor, "a-0001", "a-0003")).toBe("titled");
+    expect(cardMoved(open.editor, "a-0001", null)).toBe("titled");
+
+    expect(open.markdown()).toBe(was);
+    open.shut();
+  });
+
+  it("lets a chapter go first among the chapters when something is said above them", () => {
+    const open = opened(`# Libro\n\n${card("a-0001", "Uno")}\n\n${card("a-0002", "Dos")}\n`);
+
+    expect(cardMoved(open.editor, "a-0002", "a-0001")).toBe("done");
+
+    const said = open.markdown();
+    expect(said.indexOf("Libro")).toBeLessThan(said.indexOf("a-0002"));
+    expect(said.indexOf("a-0002")).toBeLessThan(said.indexOf("a-0001"));
     open.shut();
   });
 });

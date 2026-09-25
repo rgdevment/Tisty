@@ -666,8 +666,9 @@ pub fn plainly(
             shelves.insert(at.to_path_buf());
         }
 
+        let body = crate::docs::read(&data.join("docs"), &one.file).unwrap_or_default();
         let pages: Vec<String> = state
-            .pages_of(one.id)
+            .pages_read(one.id, &body)
             .iter()
             .map(|page| page.file.clone())
             .collect();
@@ -1300,7 +1301,16 @@ fn brought(
 const MARK: char = '\u{0}';
 
 fn pointed(body: &str, named: &BTreeMap<String, (String, DocId)>) -> String {
-    let mut found: Vec<String> = crate::refs::papers(body);
+    // Every reference, card or mention alike: a name that moved has to move everywhere it is
+    // written, or what was a link becomes a dead one.
+    let mut found: Vec<String> = crate::refs::extract(body)
+        .into_iter()
+        .filter_map(|one| {
+            one.target
+                .strip_prefix(crate::refs::DOC)
+                .map(str::to_string)
+        })
+        .collect();
     // The long name first: one id can be a prefix of another, and a plain replace would rewrite
     // the middle of the longer one.
     found.sort_by_key(|one| std::cmp::Reverse(one.len()));
