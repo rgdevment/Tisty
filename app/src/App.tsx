@@ -1115,8 +1115,10 @@ export default function App() {
       .then(() => {
         // The line goes in through the editor that holds the book, so its own save carries it and
         // nothing is written behind it. A book that is not open leaves the page in the loose half.
-        if (page && under && chosen.doc === under.file && paging.current?.(page) === false) {
-          setError(t("leafNeedsTitle"));
+        if (page && under && chosen.doc === under.file) {
+          const put = paging.current;
+          if (!put) setError(t("leafWaitsInIndex"));
+          else if (put(page) === false) setError(t("leafNeedsTitle"));
         }
       })
       .then(papersChanged)

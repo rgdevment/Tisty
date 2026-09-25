@@ -197,4 +197,17 @@ describe("a page, open", () => {
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("named by a link"));
     expect(onError).not.toHaveBeenCalledWith(expect.stringContaining("drag"));
   });
+
+  it("hands up no way to put a page in a document nothing can be written into", async () => {
+    store.bodies["a3f1-0001"] =
+      "# Bases de datos\n\n![El pod](tisty:doc/a3f1-0002)\n\n![El túnel](tisty:doc/a3f1-0003)";
+    const shut = known.map((one) => (one.file === "a3f1-0001" ? { ...one, locked: true } : one));
+    const paging = vi.fn();
+    render(
+      <Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} onPaging={paging} />,
+    );
+
+    await waitFor(() => expect(paging).toHaveBeenCalled());
+    expect(paging.mock.calls[paging.mock.calls.length - 1][0]).toBeNull();
+  });
 });

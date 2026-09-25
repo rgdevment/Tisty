@@ -710,7 +710,10 @@ export default function Docs({
                 onOutline={setHeads}
                 onReady={handed}
                 onInsert={(put) => {
-                  const named = put && ((page: Filed) => put(page.file, page.title));
+                  // A document nothing can be written into takes no card either: it would sit in
+                  // the sheet, be saved by nobody, and be gone on the next read.
+                  const named =
+                    put && !reading && !bolted ? (page: Filed) => put(page.file, page.title) : null;
                   putting.current = named;
                   paged.current?.(named);
                 }}
