@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface Choice {
   key: string;
@@ -62,7 +63,7 @@ export default function Menu({ at, choices, label, up, onClose }: Props) {
     all[(now + by + all.length) % all.length]?.focus();
   };
 
-  return (
+  return createPortal(
     <div
       ref={card}
       role="menu"
@@ -127,6 +128,7 @@ export default function Menu({ at, choices, label, up, onClose }: Props) {
           </button>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }

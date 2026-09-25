@@ -10,6 +10,21 @@ const choices = (onPick = vi.fn()): Choice[] => [
   { key: "drop", label: "Borrar", danger: true, apart: true, onPick },
 ];
 
+describe("where the menu hangs", () => {
+  it("mounts on the body, out of reach of any ancestor that clips or contains", () => {
+    const { container } = render(
+      <div style={{ containerType: "inline-size", overflow: "hidden" }}>
+        <Menu at={{ x: 20, y: 30 }} choices={choices()} label="Opciones" onClose={vi.fn()} />
+      </div>,
+    );
+
+    const menu = screen.getByRole("menu");
+
+    expect(menu.parentElement).toBe(document.body);
+    expect(container.contains(menu)).toBe(false);
+  });
+});
+
 describe("the row menu", () => {
   const show = (onClose = vi.fn(), onPick = vi.fn()) => {
     render(
