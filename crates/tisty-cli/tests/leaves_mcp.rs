@@ -3615,7 +3615,7 @@ fn an_order_naming_something_that_is_not_a_document_says_what_an_id_looks_like()
         serde_json::json!({ "page_of": &book, "order": [&one, "Dos"] }),
     );
 
-    assert!(why.contains("not a document id here"), "{why}");
+    assert!(why.contains("no document here is called"), "{why}");
     assert!(
         why.contains("opaque"),
         "it has to say what an id looks like: {why}"
@@ -3634,7 +3634,7 @@ fn an_order_for_a_book_that_is_not_a_document_is_turned_away_the_same_way() {
         serde_json::json!({ "page_of": "Libro", "order": [&two, &one] }),
     );
 
-    assert!(why.contains("not a document id here"), "{why}");
+    assert!(why.contains("no document here is called"), "{why}");
 }
 
 #[test]

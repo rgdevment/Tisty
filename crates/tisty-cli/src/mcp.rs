@@ -5118,7 +5118,7 @@ fn in_this_order(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, mut store) = opened(paths)?;
     let Some(up) = state.docs.values().find(|one| one.file == said) else {
         return Err(Refused::Tool(format!(
-            "{said:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a title \
+            "no document here is called {said:?}. Ids are opaque, like q7ntmzbm-0001, and a title \
              is not one — `docs` prints the id beside the title of every document."
         )));
     };
@@ -5234,7 +5234,7 @@ fn ordered(
     for id in order {
         let Some(page) = state.docs.values().find(|one| one.file == *id) else {
             return Err(Refused::Tool(format!(
-                "{id:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a \
+                "no document here is called {id:?}. Ids are opaque, like q7ntmzbm-0001, and a \
                  title is not one — `docs` prints the id beside the title of every document."
             )));
         };
@@ -5322,7 +5322,7 @@ fn beside_ready(
 
     let Some(mark) = state.docs.values().find(|one| one.file == anchor) else {
         return Err(Refused::Tool(format!(
-            "{anchor:?} is not a document id here. Ids are opaque, like q7ntmzbm-0001, and a \
+            "no document here is called {anchor:?}. Ids are opaque, like q7ntmzbm-0001, and a \
              title is not one — `docs` prints the id beside the title of every document."
         )));
     };

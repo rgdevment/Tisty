@@ -534,11 +534,6 @@ body {
   min-height: 14px;
   list-style: none;
 }
-
-.leaf-end {
-  height: 12px;
-  list-style: none;
-}
 .leaf-open {
   display: flex;
   min-width: 0;
