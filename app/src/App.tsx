@@ -663,6 +663,7 @@ export default function App() {
   }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
   const carries = useRef<ReturnType<typeof carrying>>(null);
+  const paging = useRef<((page: Filed) => void) | null>(null);
   const wasAwry = useRef<string | null>(null);
 
   const papersChanged = useCallback(() => {
@@ -1108,7 +1109,14 @@ export default function App() {
     const named = (id: string) =>
       papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
     if (!(await ask(fill("pageOfSure", named(doc), named(pageOf)), { kind: "warning" }))) return;
+    const under = papers.docs.find((one) => one.id === pageOf);
+    const page = papers.docs.find((one) => one.id === doc);
     docPage(doc, pageOf)
+      .then(() => {
+        // The line goes in through the editor that holds the book, so its own save carries it and
+        // nothing is written behind it. A book that is not open leaves the page in the loose half.
+        if (page && under && chosen.doc === under.file) paging.current?.(page);
+      })
       .then(papersChanged)
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -1851,6 +1859,9 @@ export default function App() {
             ) : chosen.named === "docs" ? (
               <Docs
                 open={chosen.doc}
+                onPaging={(put) => {
+                  paging.current = put;
+                }}
                 known={papers.docs}
                 folders={papers.folders}
                 onFolder={(id) => {

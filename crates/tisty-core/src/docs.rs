@@ -515,35 +515,57 @@ pub enum Naming {
     Nothing,
 }
 
-pub fn name_at_end(root: &Path, parent: &str, which: &[&str]) -> Result<Naming> {
-    let body = read(root, parent)?;
-    let told: Vec<String> = crate::refs::paper_lines(&body)
-        .into_iter()
-        .map(|(one, _)| one)
-        .collect();
-    let mut cards: Vec<String> = Vec::new();
-    let mut named: Vec<String> = Vec::new();
-    for one in which {
-        if told.iter().any(|said| said == one) || named.iter().any(|said| said == one) {
-            continue;
+pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Result<Naming> {
+    alone(root, || {
+        let body = read(root, parent)?;
+        let told: Vec<String> = crate::refs::paper_lines(&body)
+            .into_iter()
+            .map(|(one, _)| one)
+            .collect();
+        let mut cards: Vec<String> = Vec::new();
+        let mut named: Vec<String> = Vec::new();
+        for one in which {
+            if told.iter().any(|said| said == one) || named.iter().any(|said| said == one) {
+                continue;
+            }
+            let title = read(root, one)
+                .map(|said| titled(&said))
+                .unwrap_or_default();
+            cards.push(crate::refs::card(one, &title));
+            named.push((*one).to_string());
         }
-        let title = read(root, one)
-            .map(|said| titled(&said))
-            .unwrap_or_default();
-        cards.push(crate::refs::card(one, &title));
-        named.push((*one).to_string());
+        if cards.is_empty() {
+            return Ok(Naming::Nothing);
+        }
+        if ends_fenced(&body) {
+            return Ok(Naming::Fenced);
+        }
+        let whole = named_after(&body, &cards);
+        if titled(&body) != titled(&whole) {
+            return Ok(Naming::WouldRename);
+        }
+        written(root, parent, &whole)?;
+        kept_still(data, parent, &whole)?;
+        Ok(Naming::Wrote {
+            named,
+            whole: settled(&whole),
+        })
+    })
+}
+
+/// A line naming a page is not the person's writing, so it does not take their one step back with
+/// it: the body kept beside the document stays, and only the print of what it stands against moves.
+fn kept_still(data: &Path, id: &str, left: &str) -> Result<()> {
+    let Ok(into) = resolve(&data.join("originals-at"), id) else {
+        return Ok(());
+    };
+    if !into.exists() {
+        return Ok(());
     }
-    if cards.is_empty() {
-        return Ok(Naming::Nothing);
-    }
-    if ends_fenced(&body) {
-        return Ok(Naming::Fenced);
-    }
-    if titled(&body) != titled(&named_after(&body, &cards)) {
-        return Ok(Naming::WouldRename);
-    }
-    let whole = append(root, parent, &named_after("", &cards))?;
-    Ok(Naming::Wrote { named, whole })
+    write_atomic(
+        &into,
+        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
+    )
 }
 
 fn named_after(body: &str, cards: &[String]) -> String {
@@ -1815,12 +1837,52 @@ mod naming {
     }
 
     #[test]
+    fn naming_a_page_leaves_the_step_back_the_person_had() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nlo que dije\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        super::edit(at.path(), at.path(), &book, "lo que dije", "otra cosa").unwrap();
+        let kept = super::read_before(at.path(), &book).unwrap();
+        let stood = super::before_left_at(at.path(), &book).unwrap();
+
+        name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        assert_eq!(
+            super::read_before(at.path(), &book).unwrap(),
+            kept,
+            "what the person said before is still there"
+        );
+        assert_ne!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            stood,
+            "and it stands against the body the line is now part of"
+        );
+        let now = super::read(at.path(), &book).unwrap();
+        assert_eq!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            crate::attach::printed(now.as_bytes()),
+            "so going back is still offered"
+        );
+    }
+
+    #[test]
+    fn a_book_with_no_step_back_gains_none_from_being_named_in() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nintro\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        assert!(super::before_left_at(at.path(), &book).is_none());
+    }
+
+    #[test]
     fn a_page_is_named_at_the_end_with_the_title_it_carries() {
         let at = room();
         let book = wrote(at.path(), "# Libro\n\nintro\n");
         let page = wrote(at.path(), "# Enero\n\nx.\n");
 
-        let said = name_at_end(at.path(), &book, &[page.as_str()]).unwrap();
+        let said = name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
 
         let Naming::Wrote { named, whole } = said else {
             panic!("it had a place to write: {said:?}");
@@ -1838,7 +1900,8 @@ mod naming {
         let book = wrote(at.path(), "# Libro\n\nintro\n");
         let page = wrote(at.path(), "# Enero\n\nx.\n");
 
-        let said = name_at_end(at.path(), &book, &[page.as_str(), page.as_str()]).unwrap();
+        let said =
+            name_at_end(at.path(), at.path(), &book, &[page.as_str(), page.as_str()]).unwrap();
 
         let Naming::Wrote { named, whole } = said else {
             panic!("{said:?}");
@@ -1854,7 +1917,7 @@ mod naming {
         let page = wrote(at.path(), "# Enero\n\nx.\n");
 
         assert_eq!(
-            name_at_end(at.path(), &book, &[page.as_str()]).unwrap(),
+            name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap(),
             Naming::Fenced
         );
     }
@@ -1866,7 +1929,7 @@ mod naming {
         let page = wrote(at.path(), "# Enero\n\nx.\n");
 
         assert_eq!(
-            name_at_end(at.path(), &book, &[page.as_str()]).unwrap(),
+            name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap(),
             Naming::WouldRename
         );
     }
@@ -1881,7 +1944,7 @@ mod naming {
         );
 
         assert_eq!(
-            name_at_end(at.path(), &book, &[page.as_str()]).unwrap(),
+            name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap(),
             Naming::Nothing
         );
     }
@@ -1895,7 +1958,7 @@ mod naming {
             &format!("# Libro\n\n~~~md\n![Enero](tisty:doc/{page})\n~~~\n"),
         );
 
-        let said = name_at_end(at.path(), &book, &[page.as_str()]).unwrap();
+        let said = name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
 
         let Naming::Wrote { whole, .. } = said else {
             panic!("an example is not a way in: {said:?}");

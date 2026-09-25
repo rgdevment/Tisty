@@ -1391,20 +1391,25 @@ document lists them as loose, with the one action that puts one in the text, and
 the book turns into a named one at whatever pace its owner chooses. The agent's
 door has two moves of its own: `page_doc` naming where a line goes, and `order`
 dealing the lines a set of pages already have back out in the order asked for.
-The window's own hang writes the same line through the same door: dropping a
-document on another in the tree, and making a new page, both end in
-`docs::name_at_end`, which is the one place that decides whether a line can go at
-the end of a book and writes it. Neither door carries an order the text does not
-say, which is why dragging a row of the index moves the card in the editor and
-nothing has to know the difference.
+The window's own hang writes the line too, and writes it where the window already
+writes: into the editor that holds the book. Dropping a document on another in
+the tree puts the card at the end of what the person is reading, so their own
+save carries it, with the page's live title, and nothing is written behind the
+text they have open. A book that is not open gets nothing, and the page waits in
+the loose half of the index with the one button that puts it in.
 
-**The window's door cannot refuse, and that is deliberate.** By the time the line
-is written the move is already kept, so a refusal would leave the person told it
-failed and the page hung anyway — the shape of bug the assistant's door had until
-it was made to report what is true. When a book ends inside a fence, or has
-nothing yet to take a title from, the window writes no line and says nothing: the
-page lands in the loose half of the index, which names that state and carries the
-one button that mends it.
+**That is the second thing this taught us, and it cost a rewrite.** The first
+attempt had the window append to the parent's *file* through the same core call
+the assistant uses. It looked like the symmetry the work was after and it was the
+wrong symmetry: the assistant writes to a document nobody is holding, while the
+window would have written underneath its own editor. The editor's next save then
+read the file as changed by somebody else and offered to overwrite it, so the
+person's own drag could silently take the line back out; the page the editor had
+just been given looked loose for the thirty seconds until the herald noticed; and
+the one entry point that makes a page from inside the editor named it twice, once
+on disk with no label and once in the buffer with the right one. None of that is
+reachable when the card goes in through the editor, because then there is one
+writer, not two.
 
 **What counts as code is decided once, for everybody.** A line naming a page
 inside a fenced block is not a way in, it is an example of one, and for a while

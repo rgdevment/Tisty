@@ -450,7 +450,7 @@ const en = {
   dropPagesSure:
     "Delete «{name}»? The document, its pages and what they hold go for good. This cannot be undone.",
   pageOfSure:
-    "Make «{name}» a page of «{other}»? A line naming it is written at the end of «{other}», which is where it will be read. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
+    "Make «{name}» a page of «{other}»? If you have «{other}» open, a line naming it goes at the end of what you are reading, which is where it will sit; otherwise it waits in the index. It leaves its folder and goes wherever «{other}» goes. Making it a document of its own again will not bring the folder back.",
   newPage: "New page",
   pageOf: "Make it a page of…",
   pageOfWhich: "A page of which one",
@@ -1797,7 +1797,7 @@ const es: Catalog = {
   dropPagesSure:
     "¿Borrar «{name}»? El documento, sus páginas y lo que guardan se van para siempre. Esto no se puede deshacer.",
   pageOfSure:
-    "¿Hacer que «{name}» sea página de «{other}»? Se escribe al final de «{other}» una línea que la nombra, que es donde se leerá. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
+    "¿Hacer que «{name}» sea página de «{other}»? Si tienes «{other}» abierto, al final de lo que estás leyendo va una línea que la nombra, que es donde quedará; si no, espera en el índice. Sale de su carpeta y va donde vaya «{other}». Volver a convertirla en documento propio no devuelve la carpeta.",
   newPage: "Nueva página",
   pageOf: "Convertir en página de…",
   pageOfWhich: "Página de cuál",

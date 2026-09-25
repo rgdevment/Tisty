@@ -2903,7 +2903,8 @@ fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .and_then(|up| state.docs.get(&up))
         .map(|up| up.file.clone())
     {
-        let said = tisty_core::docs::name_at_end(&paths.docs(), &up, &[made.id.as_str()]);
+        let said =
+            tisty_core::docs::name_at_end(&paths.docs(), paths.data(), &up, &[made.id.as_str()]);
         if let Ok(tisty_core::docs::Naming::Wrote { whole, .. }) = &said {
             // The page and its card are already written; refusing now would have a retry write
             // both a second time, and where they sit settles by itself on the next write or open.
@@ -5157,7 +5158,9 @@ fn named_at_end(
         return Ok((Vec::new(), false));
     };
     let held: Vec<&str> = which.iter().map(String::as_str).collect();
-    match tisty_core::docs::name_at_end(&paths.docs(), &parent.file, &held).map_err(hitch)? {
+    match tisty_core::docs::name_at_end(&paths.docs(), paths.data(), &parent.file, &held)
+        .map_err(hitch)?
+    {
         tisty_core::docs::Naming::Nothing => Ok((Vec::new(), false)),
         tisty_core::docs::Naming::Fenced => Ok((Vec::new(), true)),
         tisty_core::docs::Naming::WouldRename => Err(Refused::Tool(format!(

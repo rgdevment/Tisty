@@ -86,6 +86,7 @@ interface Props {
   folders?: Folded[];
   onFolder?: (id: string | null) => void;
   onKept: (doc: { id: string; title: string }) => void;
+  onPaging?: (put: ((page: Filed) => void) | null) => void;
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onTag?: (tag: string) => void;
@@ -106,6 +107,7 @@ export default function Docs({
   folders = [],
   onFolder,
   onKept,
+  onPaging,
   onError,
   onDoc,
   onTag,
@@ -314,6 +316,7 @@ export default function Docs({
       }
     }
     putting.current = null;
+    onPaging?.(null);
     ordering.current = null;
     flush();
     const mine = ++turn.current;
@@ -679,7 +682,9 @@ export default function Docs({
                 onOutline={setHeads}
                 onReady={handed}
                 onInsert={(put) => {
-                  putting.current = (page) => put(page.file, page.title);
+                  const named = (page: Filed) => put(page.file, page.title);
+                  putting.current = named;
+                  onPaging?.(named);
                 }}
                 onOrder={(move) => {
                   ordering.current = move;

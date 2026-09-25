@@ -5102,38 +5102,7 @@ fn doc_new(
             page_of,
         },
     })?;
-    if let Some(up) = page_of
-        .and_then(|up| session.state.docs.get(&up))
-        .map(|up| up.file.clone())
-    {
-        named_under(&mut session, &up, &made.id);
-    }
     Ok(made)
-}
-
-/// A page nothing names has no place to be read in, so the door the person uses writes the line
-/// the assistant's door writes. It cannot refuse: the move is already kept, and a page that ends
-/// up loose is a state the index shows and offers to mend.
-fn named_under(session: &mut Session, up: &str, which: &str) -> bool {
-    let hand = signing(&session.state);
-    match tisty_core::docs::name_at_end(&session.paths.docs(), up, &[which]) {
-        Ok(tisty_core::docs::Naming::Wrote { whole, .. }) => {
-            session.retell(up, &whole, hand);
-            true
-        }
-        Ok(_) => false,
-        Err(e) => {
-            witness::warn(
-                channel::WINDOW,
-                "a page was hung but the line naming it could not be written",
-                &[
-                    ("file", Fact::Id(which.to_string())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            false
-        }
-    }
 }
 
 #[tauri::command]
@@ -5195,15 +5164,7 @@ fn doc_page(
             .unhang(id)
             .map_err(|e| blamed(channel::WINDOW, "the log would not be read back", e))?,
     };
-    let naming = page_of.and_then(|up| {
-        let up = session.state.docs.get(&up)?.file.clone();
-        let mine = session.state.docs.get(&id)?.file.clone();
-        Some((up, mine))
-    });
     session.commit(Op::DocMove { id, d })?;
-    if let Some((up, mine)) = naming {
-        named_under(&mut session, &up, &mine);
-    }
     Ok(())
 }
 
@@ -7710,139 +7671,6 @@ mod copying {
         assert!(
             !page.archived && session.state.held_away(page),
             "the page is covered by the copy, not marked on its own"
-        );
-    }
-}
-
-#[cfg(test)]
-mod both_doors {
-    use super::{Session, named_under};
-    use tisty_core::{Op, Paths};
-
-    struct Desk {
-        _tmp: tempfile::TempDir,
-        paths: Paths,
-    }
-
-    fn desk() -> Desk {
-        let tmp = tempfile::tempdir().unwrap();
-        let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
-        std::fs::create_dir_all(paths.docs()).unwrap();
-        Desk { _tmp: tmp, paths }
-    }
-
-    fn wrote(
-        session: &mut Session,
-        body: &str,
-        page_of: Option<tisty_core::model::DocId>,
-    ) -> String {
-        let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
-            .unwrap();
-        session
-            .commit(Op::DocAdd {
-                id: ulid::Ulid::generate(),
-                d: tisty_core::event::DocAdd {
-                    wrote: None,
-                    guest: false,
-                    made: None,
-                    by: None,
-                    said: None,
-                    file: made.id.clone(),
-                    order: tisty_core::order::first(),
-                    folder: None,
-                    page_of,
-                },
-            })
-            .unwrap();
-        made.id
-    }
-
-    fn id_of(session: &Session, file: &str) -> tisty_core::model::DocId {
-        session
-            .state
-            .docs
-            .values()
-            .find(|one| one.file == file)
-            .unwrap()
-            .id
-    }
-
-    fn body_of(session: &Session, file: &str) -> String {
-        tisty_core::docs::read(&session.paths.docs(), file).unwrap()
-    }
-
-    #[test]
-    fn hanging_from_the_window_writes_the_line_that_names_the_page() {
-        let desk = desk();
-        let mut session = Session::at(desk.paths.clone()).unwrap();
-        let book = wrote(&mut session, "# Libro\n\nintro\n", None);
-        let up = id_of(&session, &book);
-        let page = wrote(&mut session, "# Enero\n\nx.\n", Some(up));
-
-        assert!(named_under(&mut session, &book, &page));
-
-        let body = body_of(&session, &book);
-        assert!(
-            body.contains(&format!("![Enero](tisty:doc/{page})")),
-            "the page has a place to be read in: {body:?}"
-        );
-        assert_eq!(
-            tisty_core::refs::papers(&body),
-            vec![page],
-            "and the reading order says so too"
-        );
-    }
-
-    #[test]
-    fn a_page_the_book_already_names_is_not_named_again() {
-        let desk = desk();
-        let mut session = Session::at(desk.paths.clone()).unwrap();
-        let page = wrote(&mut session, "# Enero\n\nx.\n", None);
-        let book = wrote(
-            &mut session,
-            &format!("# Libro\n\n![Enero](tisty:doc/{page})\n"),
-            None,
-        );
-
-        assert!(!named_under(&mut session, &book, &page));
-
-        let body = body_of(&session, &book);
-        assert_eq!(
-            body.matches(&format!("tisty:doc/{page}")).count(),
-            1,
-            "one page is named on one line: {body:?}"
-        );
-    }
-
-    #[test]
-    fn a_book_ending_inside_a_fence_keeps_the_page_and_writes_no_line() {
-        let desk = desk();
-        let mut session = Session::at(desk.paths.clone()).unwrap();
-        let book = wrote(&mut session, "# Libro\n\n```sh\nabierta\n", None);
-        let page = wrote(&mut session, "# Enero\n\nx.\n", None);
-        let was = body_of(&session, &book);
-
-        assert!(!named_under(&mut session, &book, &page));
-
-        assert_eq!(
-            body_of(&session, &book),
-            was,
-            "a line in code is not a way in"
-        );
-    }
-
-    #[test]
-    fn a_book_that_says_nothing_yet_is_not_renamed_by_the_line() {
-        let desk = desk();
-        let mut session = Session::at(desk.paths.clone()).unwrap();
-        let book = wrote(&mut session, "\n\n", None);
-        let page = wrote(&mut session, "# Enero\n\nx.\n", None);
-
-        assert!(!named_under(&mut session, &book, &page));
-
-        assert!(
-            !body_of(&session, &book).contains("tisty:doc/"),
-            "a page's name is not a book's title"
         );
     }
 }
