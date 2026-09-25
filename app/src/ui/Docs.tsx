@@ -26,7 +26,7 @@ import {
 import { stamped } from "../format";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
-import { filed, type Moved, namesIn, pagesOf, under } from "../paging";
+import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
@@ -480,7 +480,11 @@ export default function Docs({
       import("./shaping"),
     ]);
     registered();
-    const pages = known.filter((one) => one.pageOf === open.id);
+    // What is printed is the book as it reads, not as the log last settled it.
+    const pages = inTextOrder(
+      known.filter((one) => one.pageOf === open.id),
+      told,
+    ).filter((one) => !one.archived);
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
     const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
       import("@tiptap/core"),

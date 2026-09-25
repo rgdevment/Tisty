@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Filed } from "../core";
 import { fill, t } from "../locales";
+import { inTextOrder } from "../paging";
 import Glyph from "./Glyph";
 
 interface Props {
@@ -32,10 +33,9 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
 
   if (pages.length === 0) return null;
   const held = new Set(told);
-  const inside = told
-    .map((file) => pages.find((one) => one.file === file))
-    .filter((one): one is Filed => Boolean(one));
-  const loose = pages.filter((one) => !held.has(one.file));
+  const read = inTextOrder(pages, told);
+  const inside = read.filter((one) => held.has(one.file));
+  const loose = read.filter((one) => !held.has(one.file));
 
   const named = (page: Filed) => page.title || t("untitledDoc");
 

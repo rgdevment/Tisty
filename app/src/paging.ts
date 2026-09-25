@@ -38,6 +38,17 @@ export const named = (body: string): Set<string> => new Set(namesIn(body));
 
 export type Moved = "done" | "held" | "unseen";
 
+/// The pages of a document in the order it reads them: the ones its text names, where it names
+/// them, and then the ones it does not, which keep the places they came in with. Whatever draws a
+/// book — the index, the print, the parcel — reads it the same way.
+export const inTextOrder = (pages: Filed[], told: string[]): Filed[] => {
+  const held = new Set(told);
+  const named = told
+    .map((file) => pages.find((one) => one.file === file))
+    .filter((one): one is Filed => Boolean(one));
+  return [...named, ...pages.filter((one) => !held.has(one.file))];
+};
+
 export const card = (file: string, title: string) => ({
   type: "image" as const,
   attrs: { src: DOC + file, alt: title },
