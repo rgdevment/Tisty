@@ -5168,7 +5168,15 @@ fn named_at_end(
     match tisty_core::docs::name_at_end(&paths.docs(), paths.data(), &parent.file, &held)
         .map_err(hitch)?
     {
-        tisty_core::docs::Naming::Nothing => Ok((Vec::new(), false)),
+        // Hanging gives the page a key of its own, and where it is read comes from the text. A
+        // book that already names it has nothing written in it, so nothing would bring the two
+        // back together unless the settling runs anyway.
+        tisty_core::docs::Naming::Nothing => {
+            if let Ok(body) = tisty_core::docs::read(&paths.docs(), &parent.file) {
+                retold(state, store, &parent.file, &body)?;
+            }
+            Ok((Vec::new(), false))
+        }
         tisty_core::docs::Naming::Fenced => Ok((Vec::new(), true)),
         tisty_core::docs::Naming::WouldRename => Err(Refused::Tool(format!(
             "a line at the end of {} would become the first thing it says, and a document takes \

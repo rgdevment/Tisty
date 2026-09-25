@@ -3865,3 +3865,38 @@ fn every_refusal_the_order_of_pages_hands_back_says_what_to_send_instead() {
         assert!(why.contains(remedy), "no remedy in: {why}");
     }
 }
+
+#[test]
+fn a_page_taken_out_and_hung_again_is_read_where_the_text_still_names_it() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    let three = served.wrote("# Tres", Some(&book));
+    for page in [&one, &two, &three] {
+        served.call(
+            "page_doc",
+            serde_json::json!({ "doc": page, "page_of": &book }),
+        );
+    }
+    let was = served.pages_of(&book);
+    assert_eq!(was, vec![one.clone(), two.clone(), three.clone()]);
+
+    served.call("page_doc", serde_json::json!({ "doc": &two }));
+    served.call(
+        "page_doc",
+        serde_json::json!({ "doc": &two, "page_of": &book }),
+    );
+
+    let body = served.body_of(&book);
+    assert_eq!(
+        body.matches("tisty:doc/").count(),
+        3,
+        "the book names them once each: {body:?}"
+    );
+    assert_eq!(
+        served.pages_of(&book),
+        was,
+        "and is read in the order it names them"
+    );
+}
