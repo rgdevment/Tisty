@@ -1483,14 +1483,16 @@ fn well_formed(id: &str) -> bool {
     let Some((device, number)) = id.rsplit_once('-') else {
         return false;
     };
-    !device.is_empty()
-        && device.len() <= 48
-        && device
-            .chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    crate::store::is_device_name(device)
         && !number.is_empty()
         && number.len() <= 12
         && number.chars().all(|c| c.is_ascii_digit())
+}
+
+/// A leaf that is a document of this store, by its name alone.
+pub fn is_paper(leaf: &str) -> bool {
+    leaf.strip_suffix(&format!(".{EXTENSION}"))
+        .is_some_and(well_formed)
 }
 
 fn named(at: &Path) -> Option<String> {

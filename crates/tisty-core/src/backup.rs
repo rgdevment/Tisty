@@ -101,7 +101,12 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
             let Ok(rest) = at.strip_prefix(data) else {
                 continue;
             };
-            if rest.file_name().is_some_and(|n| n == ".lock") {
+            if !carried(rest) {
+                witness::warn(
+                    channel::BACKUP,
+                    "something in the store is not of a shape a copy carries, so it was left out",
+                    &[("at", Fact::Path(rest.to_path_buf()))],
+                );
                 continue;
             }
             let named = rest.to_string_lossy().replace('\\', "/");
@@ -449,16 +454,35 @@ fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
     }
 }
 
+/// What a copy may hold, by the shape of the name alone. Saying what is allowed rather than
+/// what is not means whatever arrives next has to be let in on purpose — and the key that must
+/// never travel has no shape here at all.
+fn carried(at: &Path) -> bool {
+    let Some(parts) = at
+        .components()
+        .map(|part| match part {
+            Component::Normal(one) => one.to_str(),
+            _ => None,
+        })
+        .collect::<Option<Vec<_>>>()
+    else {
+        return false;
+    };
+
+    match parts.as_slice() {
+        ["store", one] => *one == store::MARKER,
+        ["store", device, leaf] => {
+            store::is_device_name(device) && (store::is_segment(leaf) || store::is_count(leaf))
+        }
+        ["docs" | "originals", leaf] => crate::docs::is_paper(leaf),
+        ["attachments", shelf, leaf] => crate::attach::shelved(shelf, leaf),
+        _ => false,
+    }
+}
+
 fn safe(named: &str) -> Option<PathBuf> {
     let at = Path::new(named);
-    if !at
-        .components()
-        .all(|part| matches!(part, Component::Normal(_)))
-    {
-        return None;
-    }
-    let head = at.components().next()?.as_os_str().to_str()?;
-    CARRIED.contains(&head).then(|| at.to_path_buf())
+    carried(at).then(|| at.to_path_buf())
 }
 
 fn walk(root: &Path) -> Vec<PathBuf> {
@@ -526,7 +550,7 @@ mod tests {
 
         let shelf = data.join("attachments").join("ab");
         std::fs::create_dir_all(&shelf).unwrap();
-        std::fs::write(shelf.join("cd.png"), b"a picture").unwrap();
+        std::fs::write(shelf.join("foto-a1b2c3d4.png"), b"a picture").unwrap();
 
         let papers = data.join("docs");
         std::fs::create_dir_all(&papers).unwrap();
@@ -828,7 +852,7 @@ mod tests {
         assert!(
             quarters(&fresh)
                 .data()
-                .join("attachments/ab/cd.png")
+                .join("attachments/ab/foto-a1b2c3d4.png")
                 .exists()
         );
     }
@@ -954,7 +978,7 @@ mod tests {
             1,
             "the store was emptied by a zip full of photographs"
         );
-        assert!(data.join("attachments/ab/cd.png").exists());
+        assert!(data.join("attachments/ab/foto-a1b2c3d4.png").exists());
     }
 
     #[test]
@@ -1174,8 +1198,8 @@ mod tests {
             Some(PathBuf::from("store/dev_a/active.tisty"))
         );
         assert_eq!(
-            safe("attachments/ab/cd.png"),
-            Some(PathBuf::from("attachments/ab/cd.png"))
+            safe("attachments/ab/foto-a1b2c3d4.png"),
+            Some(PathBuf::from("attachments/ab/foto-a1b2c3d4.png"))
         );
 
         for climbing in [
@@ -1184,6 +1208,14 @@ mod tests {
             "/etc/passwd",
             "config/config.toml",
             "",
+            "store/.store-key",
+            "store/dev_a/.store-key",
+            "store/dev_a/notes.txt",
+            "store/Dev_A/active.tisty",
+            "attachments/ab/plain.png",
+            "attachments/zz/foto-a1b2c3d4.png",
+            "docs/not a document.md",
+            "originals/../../etc/passwd",
         ] {
             assert_eq!(safe(climbing), None, "«{climbing}» got out");
         }

@@ -364,6 +364,44 @@ pub fn secret(private: impl AsRef<Path>) -> Option<[u8; 32]> {
     }
 }
 
+/// A store written before the key moved out still keeps it inside, where a backup would carry
+/// it off. Brought across once, and the one that was already inside wins: it is the one the
+/// parcels this store has handed out were sealed with.
+pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
+    let was = store_root.as_ref().join(KEEP);
+    let Ok(held) = std::fs::read(&was) else {
+        return;
+    };
+    if <[u8; 32]>::try_from(held.as_slice()).is_err() {
+        witness::warn(
+            channel::STORE,
+            "what was kept where the key used to live is not a key, so it was left alone",
+            &[("at", Fact::Path(was.clone()))],
+        );
+        return;
+    }
+
+    let now = private.as_ref().join(KEEP);
+    if std::fs::read(&now).is_ok_and(|there| there != held) {
+        witness::warn(
+            channel::STORE,
+            "a newer key was set aside for the one this store was already sealing with",
+            &[("at", Fact::Path(now.clone()))],
+        );
+    }
+
+    if std::fs::create_dir_all(private.as_ref()).is_err() || write_atomic(&now, &held).is_err() {
+        witness::warn(
+            channel::STORE,
+            "the key could not be moved out of the store, so it stays where a backup reaches it",
+            &[("at", Fact::Path(was.clone()))],
+        );
+        return;
+    }
+    let _ = crate::paths::ours_alone(&now);
+    let _ = std::fs::remove_file(&was);
+}
+
 pub fn peek_identity(store_root: impl AsRef<Path>) -> Option<String> {
     let held = std::fs::read_to_string(store_root.as_ref().join(MARKER)).ok()?;
     let held = held.trim().to_string();
@@ -469,6 +507,23 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
         }
     }
     Ok(said)
+}
+
+/// The shape a device directory is allowed to have. Anywhere a name arrives from outside —
+/// another machine's folder, and one day a listing a server hands back — every rule that keys
+/// off the device would otherwise take that name at its word.
+pub fn is_device_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 48
+        && name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+}
+
+pub fn is_count(name: &str) -> bool {
+    name.strip_suffix(".count").is_some_and(|stem| {
+        (6..=10).contains(&stem.len()) && stem.bytes().all(|b| b.is_ascii_digit())
+    })
 }
 
 pub fn is_segment(name: &str) -> bool {
@@ -1892,6 +1947,87 @@ mod tests {
     fn an_empty_store_is_not_an_error() {
         let tmp = tempfile::tempdir().unwrap();
         assert!(read_all(tmp.path().join("missing")).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_key_kept_inside_the_store_moves_out_and_leaves_nothing_behind() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = tmp.path().join("data/store");
+        let private = tmp.path().join("config/private");
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::write(store.join(KEEP), [7u8; 32]).unwrap();
+
+        brought_home(&store, &private);
+
+        assert!(
+            !store.join(KEEP).exists(),
+            "the key stayed where a backup reaches it"
+        );
+        assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [7u8; 32]);
+        assert_eq!(secret(&private).unwrap(), [7u8; 32]);
+    }
+
+    #[test]
+    fn bringing_the_key_home_when_there_never_was_one_inside_makes_none() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = tmp.path().join("data/store");
+        let private = tmp.path().join("config/private");
+        std::fs::create_dir_all(&store).unwrap();
+
+        brought_home(&store, &private);
+
+        assert!(
+            !private.join(KEEP).exists(),
+            "a key was made out of nothing"
+        );
+    }
+
+    #[test]
+    fn bringing_the_key_home_twice_changes_nothing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = tmp.path().join("data/store");
+        let private = tmp.path().join("config/private");
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::write(store.join(KEEP), [3u8; 32]).unwrap();
+
+        brought_home(&store, &private);
+        brought_home(&store, &private);
+
+        assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [3u8; 32]);
+    }
+
+    /// Parcels already handed out were sealed with the one inside, so it is the one that counts.
+    #[test]
+    fn the_key_the_store_was_already_sealing_with_wins() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = tmp.path().join("data/store");
+        let private = tmp.path().join("config/private");
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::create_dir_all(&private).unwrap();
+        std::fs::write(store.join(KEEP), [1u8; 32]).unwrap();
+        std::fs::write(private.join(KEEP), [2u8; 32]).unwrap();
+
+        brought_home(&store, &private);
+
+        assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [1u8; 32]);
+        assert!(!store.join(KEEP).exists());
+    }
+
+    #[test]
+    fn something_that_is_not_a_key_is_left_where_it_is() {
+        let tmp = tempfile::tempdir().unwrap();
+        let store = tmp.path().join("data/store");
+        let private = tmp.path().join("config/private");
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::write(store.join(KEEP), b"not a key").unwrap();
+
+        brought_home(&store, &private);
+
+        assert!(
+            store.join(KEEP).exists(),
+            "it was taken for a key and moved"
+        );
+        assert!(!private.join(KEEP).exists());
     }
 
     #[test]

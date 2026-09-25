@@ -36,6 +36,7 @@ impl App {
     fn build(paths: Paths, load: Load) -> tisty_core::Result<Self> {
         let clean = !paths.config_file().exists();
         let config = Config::load_or_init(&paths)?;
+        tisty_core::store::brought_home(paths.store(), paths.private());
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = match load {
             Load::Full => tisty_core::cache::project(&paths.store(), paths.cache())?,

@@ -93,6 +93,7 @@ impl Session {
 
     fn at(paths: Paths) -> tisty_core::Result<Self> {
         let config = Config::load_or_init(&paths)?;
+        tisty_core::store::brought_home(paths.store(), paths.private());
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
