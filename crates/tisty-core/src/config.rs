@@ -183,6 +183,13 @@ impl Config {
             Ok(text) => {
                 let mut config: Self = toml::from_str(&text)?;
                 config.sown.get_or_insert(true);
+                if !store::is_device_name(&config.device_id.0) {
+                    witness::error(
+                        channel::CONFIG,
+                        "this machine is named in a way a device directory cannot be, so its history travels nowhere",
+                        &[("at", Fact::Id(config.device_id.0.clone()))],
+                    );
+                }
                 Ok(Some(config))
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),

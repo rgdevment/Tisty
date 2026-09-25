@@ -20,6 +20,7 @@ pub struct Made {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Restored {
     pub files: usize,
+    pub left: usize,
     pub devices: usize,
 }
 
@@ -101,12 +102,7 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
             let Ok(rest) = at.strip_prefix(data) else {
                 continue;
             };
-            if !carried(rest) {
-                witness::warn(
-                    channel::BACKUP,
-                    "something in the store is not of a shape a copy carries, so it was left out",
-                    &[("at", Fact::Path(rest.to_path_buf()))],
-                );
+            if kept_out(rest) {
                 continue;
             }
             let named = rest.to_string_lossy().replace('\\', "/");
@@ -160,17 +156,17 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
 
     let staged = data.join(format!(".restoring-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&staged);
-    let done = unpack(&mut zip, &staged, at_most).and_then(|files| {
+    let done = unpack(&mut zip, &staged, at_most).and_then(|(files, left)| {
         store::read_all(staged.join("store"))?;
         if files == 0 || !staged.join("store").is_dir() {
             return Err(Error::OtherStore {
                 theirs: from.display().to_string(),
             });
         }
-        Ok(files)
+        Ok((files, left))
     });
-    let files = match done {
-        Ok(files) => files,
+    let (files, left) = match done {
+        Ok(both) => both,
         Err(e) => {
             let _ = std::fs::remove_dir_all(&staged);
             return Err(e);
@@ -201,6 +197,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
 
     Ok(Restored {
         files,
+        left,
         devices: std::fs::read_dir(data.join("store"))
             .map(|entries| {
                 entries
@@ -406,11 +403,12 @@ fn unpack<R: Read + Seek>(
     zip: &mut zip::ZipArchive<R>,
     into: &Path,
     at_most: u64,
-) -> Result<usize> {
+) -> Result<(usize, usize)> {
     if zip.len() > AT_MOST_FILES {
         return Err(Error::TooBig);
     }
     let mut files = 0;
+    let mut left = 0;
     let mut bytes = 0u64;
 
     for i in 0..zip.len() {
@@ -419,6 +417,12 @@ fn unpack<R: Read + Seek>(
             continue;
         }
         let Some(rest) = safe(held.name()) else {
+            left += 1;
+            witness::warn(
+                channel::BACKUP,
+                "a copy holds something this version does not put back, so it was left out",
+                &[("at", Fact::Id(held.name().to_string()))],
+            );
             continue;
         };
         if held.size() > at_most.saturating_sub(bytes) {
@@ -439,7 +443,7 @@ fn unpack<R: Read + Seek>(
         bytes = bytes.saturating_add(written);
         files += 1;
     }
-    Ok(files)
+    Ok((files, left))
 }
 
 fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
@@ -452,6 +456,17 @@ fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
         }
         Err(_) => Ok(String::new()),
     }
+}
+
+fn kept_out(at: &Path) -> bool {
+    let Some(leaf) = at.file_name().and_then(|one| one.to_str()) else {
+        return true;
+    };
+    leaf == store::KEEP
+        || leaf == ".lock"
+        || leaf.ends_with(".part")
+        || leaf.ends_with(".tmp")
+        || crate::icloud::marker(leaf)
 }
 
 fn carried(at: &Path) -> bool {
@@ -863,14 +878,55 @@ mod tests {
         let file = out.path().join("tisty.zip");
         write(&data, &file, tmp().path()).unwrap();
 
+        let held = std::fs::read(&file).unwrap();
         let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
         let named: Vec<String> = (0..zip.len())
             .map(|n| zip.by_index(n).unwrap().name().to_string())
             .collect();
         assert!(
             !named.iter().any(|one| one.contains(store::KEEP)),
-            "the key went out in the copy: {named:?}"
+            "the key went out under its own name: {named:?}"
         );
+        assert!(
+            !held.windows(32).any(|run| run == [9u8; 32]),
+            "the key's bytes went out in the copy under some other name"
+        );
+    }
+
+    #[test]
+    fn a_copy_carries_everything_a_working_store_holds() {
+        let (_src, data) = filled("lo de siempre");
+        std::fs::write(data.join("store").join(store::KEEP), [9u8; 32]).unwrap();
+        std::fs::write(data.join("docs/.spent-dev_a"), b"7").unwrap();
+        std::fs::write(
+            data.join("store/dev_a/active (conflicted copy).tisty"),
+            b"{}
+",
+        )
+        .unwrap();
+        std::fs::write(data.join("store/dev_a/.lock"), b"").unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+        let named: Vec<String> = (0..zip.len())
+            .map(|n| zip.by_index(n).unwrap().name().to_string())
+            .collect();
+
+        for one in walk(&data) {
+            let rest = one.strip_prefix(&data).unwrap();
+            let named_as = rest.to_string_lossy().replace('\\', "/");
+            if kept_out(rest) {
+                assert!(!named.contains(&named_as), "{named_as} should never travel");
+                continue;
+            }
+            assert!(
+                named.contains(&named_as),
+                "{named_as} was left out of the copy"
+            );
+        }
     }
 
     #[test]
