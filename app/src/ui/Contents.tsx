@@ -17,14 +17,18 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
   const [over, setOver] = useState<string | null>(null);
   const [atEnd, setAtEnd] = useState(false);
   const [said, setSaid] = useState("");
-  const wanted = useRef<string | null>(null);
+  const wanted = useRef<{ file: string; by: -1 | 1 } | null>(null);
   const box = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const file = wanted.current;
-    if (!file) return;
+    const back = wanted.current;
+    if (!back) return;
     wanted.current = null;
-    box.current?.querySelector<HTMLElement>(`[data-leaf="${file}"]`)?.focus();
+    const at = box.current;
+    const same = at?.querySelector<HTMLButtonElement>(
+      `[data-move="${back.file}:${back.by}"]:not([disabled])`,
+    );
+    (same ?? at?.querySelector<HTMLElement>(`[data-leaf="${back.file}"]`))?.focus();
   }, [told]);
 
   if (pages.length === 0) return null;
@@ -51,7 +55,7 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
     const to = at + by;
     if (!onMove || !page || to < 0 || to >= inside.length) return;
     const before = by < 0 ? inside[at - 1].file : (inside[at + 2]?.file ?? null);
-    wanted.current = page.file;
+    wanted.current = { file: page.file, by };
     setSaid(fill("leafMoved", named(page), String(to + 1)));
     onMove(page, before);
   };
@@ -99,10 +103,7 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
         aria-label={page.away ? `${named(page)} — ${t("isArchived")}` : undefined}
         className="leaf-open"
       >
-        <span className="leaf-num">
-          <span className="leaf-count">{at >= 0 ? String(at + 1).padStart(2, "0") : "—"}</span>
-          {movable && <Glyph name="grip" className="leaf-grip" />}
-        </span>
+        <span className="leaf-num">{at >= 0 ? String(at + 1).padStart(2, "0") : "—"}</span>
         <span className="leaf-name">{named(page)}</span>
         {page.archived && <Glyph name="archive" className="leaf-mark" />}
         {page.flagged && !page.away && (
@@ -111,6 +112,32 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
           </span>
         )}
       </button>
+      {movable && at >= 0 && (
+        <span className="leaf-moves">
+          <button
+            type="button"
+            data-move={`${page.file}:-1`}
+            disabled={at === 0}
+            onClick={() => moved(at, -1)}
+            title={fill("leafUp", named(page))}
+            aria-label={fill("leafUp", named(page))}
+            className="leaf-move"
+          >
+            <span aria-hidden="true">↑</span>
+          </button>
+          <button
+            type="button"
+            data-move={`${page.file}:1`}
+            disabled={at === inside.length - 1}
+            onClick={() => moved(at, 1)}
+            title={fill("leafDown", named(page))}
+            aria-label={fill("leafDown", named(page))}
+            className="leaf-move"
+          >
+            <span aria-hidden="true">↓</span>
+          </button>
+        </span>
+      )}
       {onPut && !held.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">
           {t("putLeaf")}

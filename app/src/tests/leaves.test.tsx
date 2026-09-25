@@ -280,25 +280,57 @@ describe("the step at the foot of a page", () => {
 describe("moving a chapter one place at a time", () => {
   const shown = (told: string[]) => {
     const onMove = vi.fn();
-    render(<Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />);
-    return onMove;
+    const { container } = render(
+      <Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
+    );
+    const rows = () => [...container.querySelectorAll<HTMLElement>("[data-leaf]")];
+    const arrow = (file: string, by: -1 | 1) =>
+      container.querySelector<HTMLButtonElement>(`[data-move="${file}:${by}"]`);
+    return { onMove, rows, arrow, container };
   };
 
   const all = ["a3f1-0002", "a3f1-0003", "a3f1-0004"];
 
   it("tells every chapter which keys move it", () => {
-    shown(all);
+    const { rows } = shown(all);
 
-    for (const one of screen.getAllByRole("button")) {
+    for (const one of rows()) {
       expect(one.getAttribute("aria-keyshortcuts")).toBe("Alt+ArrowUp Alt+ArrowDown");
     }
   });
 
-  it("takes a chapter up one place, before the one above it", () => {
-    const onMove = shown(all);
-    const rows = screen.getAllByRole("button");
+  it("offers a button for each way a chapter can go, and none off the ends", () => {
+    const { arrow } = shown(all);
 
-    fireEvent.keyDown(rows[2], { key: "ArrowUp", altKey: true });
+    expect(arrow("a3f1-0002", -1)?.disabled).toBe(true);
+    expect(arrow("a3f1-0002", 1)?.disabled).toBe(false);
+    expect(arrow("a3f1-0004", -1)?.disabled).toBe(false);
+    expect(arrow("a3f1-0004", 1)?.disabled).toBe(true);
+  });
+
+  it("moves a chapter from the button, with no keyboard at all", () => {
+    const { onMove, arrow } = shown(all);
+    const down = arrow("a3f1-0002", 1);
+    if (!down) throw new Error("no way down");
+
+    fireEvent.click(down);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+    expect(onMove.mock.calls[0][1]).toBe("a3f1-0004");
+  });
+
+  it("names each button for what it does to which chapter", () => {
+    const { arrow } = shown(all);
+
+    expect(arrow("a3f1-0003", -1)?.getAttribute("aria-label")).toContain("El túnel");
+    expect(arrow("a3f1-0003", 1)?.getAttribute("aria-label")).toContain("El túnel");
+  });
+
+  it("takes a chapter up one place, before the one above it", () => {
+    const { onMove, rows } = shown(all);
+
+    fireEvent.keyDown(rows()[2], { key: "ArrowUp", altKey: true });
 
     expect(onMove).toHaveBeenCalledTimes(1);
     expect(onMove.mock.calls[0][0].file).toBe("a3f1-0004");
@@ -306,10 +338,9 @@ describe("moving a chapter one place at a time", () => {
   });
 
   it("takes a chapter down one place, before the one after the next", () => {
-    const onMove = shown(all);
-    const rows = screen.getAllByRole("button");
+    const { onMove, rows } = shown(all);
 
-    fireEvent.keyDown(rows[0], { key: "ArrowDown", altKey: true });
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true });
 
     expect(onMove).toHaveBeenCalledTimes(1);
     expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
@@ -317,46 +348,44 @@ describe("moving a chapter one place at a time", () => {
   });
 
   it("sends the last chapter down to nowhere in particular, which is where last is", () => {
-    const onMove = shown(all);
-    const rows = screen.getAllByRole("button");
+    const { onMove, rows } = shown(all);
 
-    fireEvent.keyDown(rows[1], { key: "ArrowDown", altKey: true });
+    fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true });
 
     expect(onMove.mock.calls[0][0].file).toBe("a3f1-0003");
     expect(onMove.mock.calls[0][1]).toBeNull();
   });
 
   it("moves nothing off either end", () => {
-    const onMove = shown(all);
-    const rows = screen.getAllByRole("button");
+    const { onMove, rows } = shown(all);
 
-    fireEvent.keyDown(rows[0], { key: "ArrowUp", altKey: true });
-    fireEvent.keyDown(rows[2], { key: "ArrowDown", altKey: true });
+    fireEvent.keyDown(rows()[0], { key: "ArrowUp", altKey: true });
+    fireEvent.keyDown(rows()[2], { key: "ArrowDown", altKey: true });
 
     expect(onMove).not.toHaveBeenCalled();
   });
 
   it("says where the chapter went, in a region that was there all along", () => {
-    shown(all);
+    const { rows } = shown(all);
     const aloud = screen.getByRole("status");
     expect(aloud.textContent).toBe("");
 
-    fireEvent.keyDown(screen.getAllByRole("button")[0], { key: "ArrowDown", altKey: true });
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true });
 
     expect(aloud.textContent).toContain("El pod");
     expect(aloud.textContent).toContain("2");
   });
 
   it("leaves the arrows alone when they come without Alt", () => {
-    const onMove = shown(all);
+    const { onMove, rows } = shown(all);
 
-    fireEvent.keyDown(screen.getAllByRole("button")[0], { key: "ArrowDown" });
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown" });
 
     expect(onMove).not.toHaveBeenCalled();
   });
 
   it("offers no keys, and moves nothing, on a page the text never names", () => {
-    const onMove = shown(["a3f1-0002"]);
+    const { onMove } = shown(["a3f1-0002"]);
     const rows = screen.getAllByRole("listitem");
     const loose = rows[1].querySelector("button");
     if (!loose) throw new Error("the loose row has no button");
@@ -372,7 +401,7 @@ describe("moving a chapter one place at a time", () => {
 
     expect(
       screen.getAllByRole("listitem").map((one) => one.textContent?.replace(/\s+/g, " ").trim()),
-    ).toEqual(["01 La VPN cae", "02 El pod", "03 El túnel"]);
+    ).toEqual(["01La VPN cae↑↓", "02El pod↑↓", "03El túnel↑↓"]);
   });
 
   it("says how to move one, both ways", () => {

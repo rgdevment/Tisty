@@ -401,6 +401,8 @@ const en = {
   moveLeaves:
     "To move one: drag it, or press {name}↑ or {other}↓ on it. Where its line sits is the order they are read in.",
   leafMoved: "«{name}» is now number {other}",
+  leafUp: "Move «{name}» up one place",
+  leafDown: "Move «{name}» down one place",
   leafStaysPut:
     "That page's line sits inside something else — a quote, a list, a table — so dragging it would break what it is part of. Move it in the text instead.",
   leafInText:
@@ -1752,6 +1754,8 @@ const es: Catalog = {
   moveLeaves:
     "Para mover una: arrástrala, o presiona {name}↑ o {other}↓ sobre ella. Donde va su línea es el orden en que se leen.",
   leafMoved: "«{name}» ahora es la número {other}",
+  leafUp: "Subir «{name}» un puesto",
+  leafDown: "Bajar «{name}» un puesto",
   leafStaysPut:
     "La línea de esa página está dentro de otra cosa —una cita, una lista, una tabla—, así que arrastrarla rompería aquello de lo que forma parte. Muévela en el texto.",
   leafInText:

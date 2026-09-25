@@ -96,7 +96,7 @@ describe("a document that holds pages, open", () => {
     await waitFor(() => expect(screen.getByText("El pod")).toBeTruthy());
     const rows = screen.getAllByRole("listitem");
     expect(rows.map((one) => one.textContent?.replace(/\s+/g, " ").trim())).toEqual([
-      "01 El pod",
+      "01El pod↑↓",
       "—El túnelPut it in the text",
     ]);
   });
