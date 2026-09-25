@@ -104,4 +104,45 @@ describe("moving a chapter from the index, through the real editor", () => {
       ]),
     );
   });
+
+  it("writes nothing when a chapter is moved and moved back inside the beat", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const container = await open();
+      const down = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:1"]');
+      if (!down) throw new Error("the first chapter offers no way down");
+
+      fireEvent.click(down);
+      await waitFor(() =>
+        expect(container.querySelector('[data-move="a3f1-0002:-1"]')).toBeTruthy(),
+      );
+      const up = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:-1"]');
+      if (!up) throw new Error("no way back up");
+      fireEvent.click(up);
+
+      await vi.advanceTimersByTimeAsync(2000);
+
+      expect(store.wrote).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("writes the order once when a chapter is left where it was put", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const container = await open();
+      const down = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:1"]');
+      if (!down) throw new Error("the first chapter offers no way down");
+
+      fireEvent.click(down);
+      await vi.advanceTimersByTimeAsync(2000);
+
+      expect(store.wrote).toHaveLength(1);
+      const said = store.wrote[0].body;
+      expect(said.indexOf("a3f1-0003")).toBeLessThan(said.indexOf("a3f1-0002"));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

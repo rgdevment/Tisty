@@ -401,9 +401,20 @@ export default function Docs({
     if (!open || reading || bolted) return;
     typed.current = Date.now();
     setBody(text);
-    if (text === shaped.current) return;
     const last = lastRead.current.get(open.file);
-    if (last !== undefined && tailless(last) === tailless(text)) return;
+    const back =
+      text === shaped.current || (last !== undefined && tailless(last) === tailless(text));
+    if (back) {
+      // Coming back to what was read is not a change, and it undoes the one waiting: a chapter
+      // moved and moved back inside the beat would otherwise be written in the order it passed
+      // through, and the screen would show the other one.
+      if (held.current?.id === open.file) {
+        held.current = null;
+        if (settling.current) clearTimeout(settling.current);
+        settling.current = null;
+      }
+      return;
+    }
     held.current = { id: open.file, body: text };
     if (settling.current) clearTimeout(settling.current);
     settling.current = setTimeout(flush, SETTLES);
