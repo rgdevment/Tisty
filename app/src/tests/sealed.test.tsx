@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
 import Detail from "../ui/Detail";
@@ -74,6 +75,16 @@ describe("a closed task is sealed", () => {
 
     expect(screen.getByRole("button", { name: /Reopen/i })).toBeTruthy();
     expect(screen.getByText(/not edited/i)).toBeTruthy();
+  });
+
+  it("opens the rest of its doings clear of the panel that would clip them", async () => {
+    shown(closed);
+
+    await userEvent.click(screen.getByRole("button", { name: "More" }));
+
+    const menu = screen.getByRole("menu");
+    expect(menu.closest("aside")).toBeNull();
+    expect(menu.parentElement).toBe(document.body);
   });
 
   it("keeps an open task editable, which is the whole point of the difference", () => {
