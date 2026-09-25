@@ -102,7 +102,10 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
             let Ok(rest) = at.strip_prefix(data) else {
                 continue;
             };
-            if kept_out(rest) {
+            let Some(parts) = named(rest) else {
+                continue;
+            };
+            if kept_out(&parts) {
                 continue;
             }
             let named = rest.to_string_lossy().replace('\\', "/");
@@ -193,11 +196,13 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let _ = std::fs::remove_dir_all(&staged);
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
-    witness::warn(
-        channel::BACKUP,
-        "a copy carries the store's name and not what proves it, so parcels this store handed out before will land as a stranger's",
-        &[],
-    );
+    if store::secret_kept(store::Private(&paths.private())).is_none() {
+        witness::warn(
+            channel::BACKUP,
+            "a copy carries the store's name and not what proves it, so parcels this store handed out before will land as a stranger's",
+            &[],
+        );
+    }
     crate::docs::forget_what_was_carried(data);
 
     Ok(Restored {
@@ -298,7 +303,14 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
     let _ = std::fs::remove_file(paths.private().join(store::KEEP));
-    let _ = std::fs::remove_file(paths.private().join(format!("{}.was", store::KEEP)));
+    if let Ok(entries) = std::fs::read_dir(paths.private()) {
+        let displaced = format!("{}.was-", store::KEEP);
+        for one in entries.filter_map(|one| one.ok()) {
+            if one.file_name().to_string_lossy().starts_with(&displaced) {
+                let _ = std::fs::remove_file(one.path());
+            }
+        }
+    }
     crate::docs::forget_what_was_carried(data);
     Ok(made)
 }
@@ -465,38 +477,36 @@ fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
     }
 }
 
-fn kept_out(at: &Path) -> bool {
-    let Some(leaf) = at.file_name().and_then(|one| one.to_str()) else {
-        return true;
-    };
-    leaf == store::KEEP
-        || leaf == ".lock"
-        || leaf.ends_with(".part")
-        || leaf.ends_with(".tmp")
-        || crate::icloud::marker(leaf)
-}
-
-fn carried(at: &Path) -> bool {
-    let Some(parts) = at
-        .components()
+fn named(at: &Path) -> Option<Vec<&str>> {
+    at.components()
         .map(|part| match part {
             Component::Normal(one) => one.to_str(),
             _ => None,
         })
-        .collect::<Option<Vec<_>>>()
-    else {
+        .collect()
+}
+
+fn kept_out(parts: &[&str]) -> bool {
+    let Some(leaf) = parts.last() else {
+        return true;
+    };
+    let under = parts.first().copied().unwrap_or_default();
+    *leaf == store::KEEP
+        || *leaf == ".lock"
+        || crate::icloud::marker(leaf)
+        || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))
+}
+
+/// Whatever a copy carries has to be able to come back, or restoring loses it for good: the
+/// store is swapped out whether the zip held its replacement or not.
+fn carried(at: &Path) -> bool {
+    let Some(parts) = named(at) else {
         return false;
     };
-
-    match parts.as_slice() {
-        ["store", one] => *one == store::MARKER,
-        ["store", device, leaf] => {
-            store::is_device_name(device) && (store::is_segment(leaf) || store::is_count(leaf))
-        }
-        ["docs" | "originals", leaf] => crate::docs::is_paper(leaf),
-        ["attachments", shelf, leaf] => crate::attach::shelved(shelf, leaf),
-        _ => false,
-    }
+    parts
+        .first()
+        .is_some_and(|under| CARRIED.contains(under) && parts.len() > 1)
+        && !kept_out(&parts)
 }
 
 fn safe(named: &str) -> Option<PathBuf> {
@@ -925,20 +935,27 @@ mod tests {
         write(&data, &file, tmp().path()).unwrap();
 
         let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
-        let named: Vec<String> = (0..zip.len())
+        let inside: Vec<String> = (0..zip.len())
             .map(|n| zip.by_index(n).unwrap().name().to_string())
             .collect();
 
         for one in walk(&data) {
             let rest = one.strip_prefix(&data).unwrap();
             let named_as = rest.to_string_lossy().replace('\\', "/");
-            if kept_out(rest) {
-                assert!(!named.contains(&named_as), "{named_as} should never travel");
+            if kept_out(&named(rest).unwrap()) {
+                assert!(
+                    !inside.contains(&named_as),
+                    "{named_as} should never travel"
+                );
                 continue;
             }
             assert!(
-                named.contains(&named_as),
+                inside.contains(&named_as),
                 "{named_as} was left out of the copy"
+            );
+            assert!(
+                carried(rest),
+                "{named_as} travels in a copy and could not come back from one"
             );
         }
     }
@@ -1300,16 +1317,27 @@ mod tests {
             "/etc/passwd",
             "config/config.toml",
             "",
+            "store",
             "store/.store-key",
             "store/dev_a/.store-key",
-            "store/dev_a/notes.txt",
-            "store/Dev_A/active.tisty",
-            "attachments/ab/plain.png",
-            "attachments/zz/foto-a1b2c3d4.png",
-            "docs/not a document.md",
+            "store/dev_a/.lock",
             "originals/../../etc/passwd",
         ] {
             assert_eq!(safe(climbing), None, "«{climbing}» got out");
+        }
+
+        for held in [
+            "store/Dev_A/active.tisty",
+            "store/dev_a657da33 2/000001.tisty",
+            "store/dev_a/notes.txt",
+            "store/dev_a/active.torn",
+            "docs/.spent-dev_a",
+            "attachments/ab/installer-a1b2c3d4.part",
+        ] {
+            assert!(
+                safe(held).is_some(),
+                "«{held}» goes into a copy and cannot come back from one"
+            );
         }
     }
 }

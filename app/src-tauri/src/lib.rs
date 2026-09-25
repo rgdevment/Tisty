@@ -7201,7 +7201,10 @@ pub fn unreach() -> std::io::Result<bool> {
     let reached = command::out_of_reach();
     if let Ok(paths) = tisty_core::Paths::resolve() {
         for at in paths.swept_on_leaving() {
-            let _ = std::fs::remove_dir_all(&at);
+            let _ = match at.is_dir() {
+                true => std::fs::remove_dir_all(&at),
+                false => std::fs::remove_file(&at),
+            };
         }
     }
     for at in tisty_core::Paths::shims() {

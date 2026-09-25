@@ -340,6 +340,13 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
 #[derive(Clone, Copy)]
 pub struct Private<'a>(pub &'a Path);
 
+/// Asks without minting one, for whoever only needs to know whether this store can still prove
+/// it is itself.
+pub fn secret_kept(private: Private) -> Option<[u8; 32]> {
+    let held = std::fs::read(private.0.join(KEEP)).ok()?;
+    <[u8; 32]>::try_from(held.as_slice()).ok()
+}
+
 pub fn secret(private: Private) -> Option<[u8; 32]> {
     let at = private.0.join(KEEP);
     if let Ok(held) = std::fs::read(&at)
@@ -380,31 +387,38 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
 
     let now = private.0.join(KEEP);
     match std::fs::read(&now) {
-        // One inside a store that already moved its key out was made by an older build opening
-        // it, so it is the newcomer and the one out here is what the parcels were sealed with.
-        Ok(there) if there != held => {
-            let aside = private.0.join(format!("{KEEP}.was"));
-            if write_atomic(&aside, &held).is_err() {
-                witness::error(
-                    channel::STORE,
-                    "a second key turned up inside the store and could not be set aside",
-                    &[("at", Fact::Path(was.clone()))],
-                );
+        Ok(there) if <[u8; 32]>::try_from(there.as_slice()).is_err() => {
+            if !set_aside(private, &there, "what was kept as the key is not one") {
                 return;
             }
-            witness::warn(
-                channel::STORE,
-                "an older build made a second key inside the store; it was set aside and the one this store seals with was kept",
-                &[("at", Fact::Path(aside))],
-            );
-            swept(&was);
+        }
+        // One inside a store that already moved its key out was made by an older build.
+        Ok(there) if there != held => {
+            if set_aside(
+                private,
+                &held,
+                "an older build made a second key inside the store",
+            ) {
+                swept(&was);
+            }
             return;
         }
         Ok(_) => {
             swept(&was);
             return;
         }
-        Err(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            witness::error(
+                channel::STORE,
+                "the key already kept apart could not be read, so nothing was moved over it",
+                &[
+                    ("at", Fact::Path(now.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            return;
+        }
     }
 
     if std::fs::create_dir_all(private.0).is_err() || write_atomic(&now, &held).is_err() {
@@ -417,6 +431,30 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
     }
     let _ = crate::paths::ours_alone(&now);
     swept(&was);
+}
+
+/// Kept under the hour it was displaced, so a second one never writes over the first.
+fn set_aside(private: Private, held: &[u8], why: &str) -> bool {
+    let stamp = jiff::Zoned::now().strftime("%Y%m%dT%H%M%S").to_string();
+    let aside = private.0.join(format!("{KEEP}.was-{stamp}"));
+    if write_atomic(&aside, held).is_err() {
+        witness::error(
+            channel::STORE,
+            "a key had to be set aside and could not be, so nothing was changed",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+        return false;
+    }
+    let _ = crate::paths::ours_alone(&aside);
+    witness::warn(
+        channel::STORE,
+        "a key was set aside",
+        &[
+            ("at", Fact::Path(aside)),
+            ("why", Fact::Why(why.to_string())),
+        ],
+    );
+    true
 }
 
 fn swept(at: &Path) {
@@ -2042,9 +2080,19 @@ mod tests {
             [2u8; 32],
             "the newcomer took over from what this store seals with"
         );
+        let kept: Vec<Vec<u8>> = std::fs::read_dir(&private)
+            .unwrap()
+            .filter_map(|one| one.ok())
+            .filter(|one| {
+                one.file_name()
+                    .to_string_lossy()
+                    .starts_with(&format!("{KEEP}.was-"))
+            })
+            .map(|one| std::fs::read(one.path()).unwrap())
+            .collect();
         assert_eq!(
-            std::fs::read(private.join(format!("{KEEP}.was"))).unwrap(),
-            [1u8; 32],
+            kept,
+            vec![vec![1u8; 32]],
             "the one it displaced was destroyed instead of set aside"
         );
         assert!(!store.join(KEEP).exists());
