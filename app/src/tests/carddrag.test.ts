@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DOC } from "../markdown";
+import { card as cardOf } from "../paging";
 import { cardMoved } from "../ui/writing";
 import { opened } from "./mounted";
 
@@ -81,6 +82,33 @@ ${card("a-0002", "Dos")}
     );
 
     expect(cardMoved(open.editor, "a-0001", "a-0002")).toBe("unseen");
+    open.shut();
+  });
+});
+
+describe("putting a loose page into the text", () => {
+  const put = (open: ReturnType<typeof opened>, file: string, title: string) => {
+    if (!open.editor.state.doc.textContent.trim()) return false;
+    return open.editor.chain().focus("end").insertContent(cardOf(file, title)).run();
+  };
+
+  it("refuses a document that says nothing yet, whose title the card would become", () => {
+    const open = opened("");
+
+    expect(put(open, "a-0001", "Enero")).toBe(false);
+
+    expect(open.markdown().trim()).toBe("");
+    open.shut();
+  });
+
+  it("puts the card at the end of a document that has something to be titled by", () => {
+    const open = opened("# Libro\n\nintro\n");
+
+    expect(put(open, "a-0001", "Enero")).toBe(true);
+
+    const said = open.markdown();
+    expect(said).toContain("![Enero](tisty:doc/a-0001)");
+    expect(said.indexOf("Libro")).toBeLessThan(said.indexOf("a-0001"));
     open.shut();
   });
 });

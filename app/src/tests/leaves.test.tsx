@@ -182,7 +182,7 @@ describe("the head of a page", () => {
     away: false,
   };
 
-  const told = new Set(pages.map((one) => one.file));
+  const told = pages.map((one) => one.file);
 
   const show = (here: string) => {
     const onOpen = vi.fn();
@@ -196,6 +196,20 @@ describe("the head of a page", () => {
     expect(screen.getByText("Bases de datos")).toBeTruthy();
     expect(screen.getByText("Page 2 of 3")).toBeTruthy();
   });
+  it("walks the sisters in the order the text names them, not the order they arrived", () => {
+    const onOpen = vi.fn();
+    render(
+      <Ribbon
+        of={of}
+        sisters={pages}
+        told={["a3f1-0004", "a3f1-0002", "a3f1-0003"]}
+        here="a3f1-0002"
+        onOpen={onOpen}
+      />,
+    );
+
+    expect(screen.getByText("Page 2 of 3")).toBeTruthy();
+  });
 
   it("says when the page it would open next is one the archive holds", () => {
     const shelved: Filed[] = pages.map((one, at) =>
@@ -205,7 +219,7 @@ describe("the head of a page", () => {
       <Ribbon
         of={of}
         sisters={shelved}
-        told={new Set(shelved.map((one) => one.file))}
+        told={shelved.map((one) => one.file)}
         here={shelved[1].file}
         onOpen={vi.fn()}
       />,
@@ -236,13 +250,7 @@ describe("the head of a page", () => {
 
   it("gives a page its document never names no number and nowhere to step", () => {
     render(
-      <Ribbon
-        of={of}
-        sisters={pages}
-        told={new Set(["a3f1-0002"])}
-        here="a3f1-0003"
-        onOpen={vi.fn()}
-      />,
+      <Ribbon of={of} sisters={pages} told={["a3f1-0002"]} here="a3f1-0003" onOpen={vi.fn()} />,
     );
 
     expect(screen.getByText("Loose page")).toBeTruthy();

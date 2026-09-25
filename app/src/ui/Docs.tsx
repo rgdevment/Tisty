@@ -26,7 +26,7 @@ import {
 import { stamped } from "../format";
 import { frail } from "../frail";
 import { fill, t } from "../locales";
-import { filed, type Moved, named, namesIn, pagesOf, under } from "../paging";
+import { filed, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
@@ -144,7 +144,7 @@ export default function Docs({
   const [pdfAsked, setPdfAsked] = useState(false);
   const [signing, setSigning] = useState(false);
   const giving = useRef<(() => unknown) | null>(null);
-  const putting = useRef<((page: Filed) => void) | null>(null);
+  const putting = useRef<((page: Filed) => boolean) | null>(null);
   const paged = useRef(onPaging);
   paged.current = onPaging;
   const ordering = useRef<((file: string, before: string | null) => Moved) | null>(null);
@@ -425,14 +425,14 @@ export default function Docs({
   const sisters = pagesOf(known, above?.file);
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
 
-  const [aboveTold, setAboveTold] = useState<Set<string>>();
+  const [aboveTold, setAboveTold] = useState<string[]>();
   const upstairs = above?.file;
   useEffect(() => {
     if (!upstairs) return setAboveTold(undefined);
     let gone = false;
     docRead(upstairs)
       .then((text) => {
-        if (!gone) setAboveTold(named(text));
+        if (!gone) setAboveTold(namesIn(text));
       })
       .catch(() => {});
     return () => {
@@ -440,7 +440,11 @@ export default function Docs({
     };
   }, [upstairs, fresh]);
 
-  const inOrder = aboveTold ? sisters.filter((one) => aboveTold.has(one.file)) : [];
+  const inOrder = aboveTold
+    ? aboveTold
+        .map((file) => sisters.find((one) => one.file === file))
+        .filter((one): one is Filed => Boolean(one))
+    : [];
   const at = inOrder.findIndex((one) => one.file === own?.file);
   const next = at < 0 ? undefined : inOrder[at + 1];
 
@@ -656,7 +660,15 @@ export default function Docs({
                           pages={pages}
                           told={told}
                           onOpen={(page) => onDoc?.(page.file)}
-                          onPut={reading || bolted ? undefined : (page) => putting.current?.(page)}
+                          onPut={
+                            reading || bolted
+                              ? undefined
+                              : (page) => {
+                                  if (putting.current?.(page) === false) {
+                                    onError(t("leafNeedsTitle"));
+                                  }
+                                }
+                          }
                           onMove={
                             reading || bolted
                               ? undefined

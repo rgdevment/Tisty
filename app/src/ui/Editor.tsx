@@ -235,7 +235,7 @@ interface Props {
   onOutline?: (heads: Head[]) => void;
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
-  onInsert?: (put: (file: string, title: string) => void) => void;
+  onInsert?: (put: (file: string, title: string) => boolean) => void;
   onOrder?: (move: (file: string, before: string | null) => Moved) => void;
   seek?: number;
   anchor?: string;
@@ -452,9 +452,12 @@ export default function Editor({
     outlined.current(editor);
     hands.current.onLaid?.(editor.view.dom as HTMLElement);
     hands.current.onReady?.(() => editor.getJSON());
-    hands.current.onInsert?.((file, title) =>
-      editor.chain().focus("end").insertContent(card(file, title)).run(),
-    );
+    hands.current.onInsert?.((file, title) => {
+      // A document takes its title from the first thing it says, so a card put into one that says
+      // nothing yet would become its name. The core refuses the same write for the same reason.
+      if (!editor.state.doc.textContent.trim()) return false;
+      return editor.chain().focus("end").insertContent(card(file, title)).run();
+    });
     hands.current.onOrder?.((file, before) => cardMoved(editor, file, before));
   }, []);
 
