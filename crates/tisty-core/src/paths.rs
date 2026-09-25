@@ -47,7 +47,7 @@ impl Paths {
     }
 
     pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
-        vec![self.config.clone(), self.cache.clone()]
+        vec![self.config_file(), self.cache.clone()]
     }
 
     pub fn shims() -> Vec<PathBuf> {
@@ -212,6 +212,18 @@ mod tests {
             assert!(!kept.starts_with(p.attachments()), "{kept:?}");
             assert!(!kept.starts_with(p.docs()), "{kept:?}");
         }
+    }
+
+    #[test]
+    fn leaving_takes_the_settings_and_not_what_proves_the_store_is_its_own() {
+        let p = paths();
+        let swept = p.swept_on_leaving();
+
+        assert!(swept.contains(&p.config_file()), "{swept:?}");
+        assert!(
+            !swept.iter().any(|at| p.private().starts_with(at)),
+            "leaving would take the key with it: {swept:?}"
+        );
     }
 
     #[test]

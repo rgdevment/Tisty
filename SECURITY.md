@@ -153,6 +153,14 @@ Being explicit here matters more than sounding reassuring.
   seal, and neither claiming your name nor stripping the seal off gets them any
   further.
 
+  Keeping it out of the copies has a price, and it is worth saying plainly. A
+  backup carries the store's name and not what proves it, so a store restored on
+  another machine cannot recognise the parcels it handed out before: they land as
+  a stranger's writing. The same happens if you take Tisty off a machine and
+  reinstall it. And a backup made before this was so still has the secret inside
+  it, in the clear: the copies you already have are worth protecting like the
+  documents they hold.
+
   The one parcel that carries proof is the one you lock. Exporting everything to
   another machine of your own seals it with a number: XChaCha20-Poly1305 over
   64 KiB blocks, under a key scrypt grinds out of that number, with each block's

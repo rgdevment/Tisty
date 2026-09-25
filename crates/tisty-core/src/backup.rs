@@ -193,6 +193,11 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let _ = std::fs::remove_dir_all(&staged);
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
+    witness::warn(
+        channel::BACKUP,
+        "a copy carries the store's name and not what proves it, so parcels this store handed out before will land as a stranger's",
+        &[],
+    );
     crate::docs::forget_what_was_carried(data);
 
     Ok(Restored {
@@ -292,6 +297,8 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
 
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
+    let _ = std::fs::remove_file(paths.private().join(store::KEEP));
+    let _ = std::fs::remove_file(paths.private().join(format!("{}.was", store::KEEP)));
     crate::docs::forget_what_was_carried(data);
     Ok(made)
 }
@@ -735,12 +742,19 @@ mod tests {
         std::fs::create_dir_all(paths.data().join("docs")).unwrap();
         std::fs::write(paths.data().join("docs/a3f1-0001.md"), b"# Minuta").unwrap();
 
+        std::fs::create_dir_all(paths.private()).unwrap();
+        std::fs::write(paths.private().join(store::KEEP), [6u8; 32]).unwrap();
+
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("before-joining.zip");
         reset(&paths, &file, tmp().path()).unwrap();
 
         assert!(store::read_all(paths.store()).unwrap().is_empty());
         assert!(!paths.data().join("docs/a3f1-0001.md").exists());
+        assert!(
+            !paths.private().join(store::KEEP).exists(),
+            "starting over kept the secret of the store it replaced"
+        );
     }
 
     #[test]
