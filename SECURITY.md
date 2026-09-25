@@ -144,12 +144,14 @@ Being explicit here matters more than sounding reassuring.
 
   What a parcel cannot do is prove who wrote what: anyone can edit the manifest
   in a zip, and a name in a parcel is a claim, not a signature. What it can prove
-  is which store wrote it. Every store keeps a secret alongside its name — the
-  name travels in every parcel, the secret never leaves the machine — and the
-  manifest carries an HMAC of itself under it. So a parcel that arrives wearing
-  your store's name, from somebody who read that name off a parcel you once
-  handed them, lands as a stranger's: they cannot forge the seal, and neither
-  claiming your name nor stripping the seal off gets them any further.
+  is which store wrote it. Every store keeps a secret apart from its name — the
+  name travels in every parcel, the secret never leaves the machine, and it is
+  kept outside the store so that nothing walking it, neither a sync nor a backup,
+  can carry it off — and the manifest carries an HMAC of itself under it. So a
+  parcel that arrives wearing your store's name, from somebody who read that name
+  off a parcel you once handed them, lands as a stranger's: they cannot forge the
+  seal, and neither claiming your name nor stripping the seal off gets them any
+  further.
 
   The one parcel that carries proof is the one you lock. Exporting everything to
   another machine of your own seals it with a number: XChaCha20-Poly1305 over

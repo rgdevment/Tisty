@@ -4449,6 +4449,39 @@ lo mio"
         );
     }
 
+    /// It is kept outside the store now, but a round walks whatever it is pointed at, and one
+    /// day that is a listing somebody else wrote. Nothing of this shape may cross, ever.
+    #[test]
+    fn what_proves_a_store_is_its_own_never_reaches_the_meeting_place() {
+        fn every_file(at: &Path, found: &mut Vec<PathBuf>) {
+            let Ok(entries) = std::fs::read_dir(at) else {
+                return;
+            };
+            for one in entries.filter_map(|e| e.ok()) {
+                let at = one.path();
+                match at.is_dir() {
+                    true => every_file(&at, found),
+                    false => found.push(at),
+                }
+            }
+        }
+
+        let one = machine("dev_a");
+        std::fs::write(one.store.join(tisty_core::store::KEEP), [5u8; 32]).unwrap();
+        let shared = tempfile::tempdir().unwrap();
+
+        for way in [Way::Push, Way::Pull, Way::Both, Way::Again] {
+            carry(&one.data, &one.device, shared.path(), way, &[]).unwrap();
+        }
+
+        let mut found = Vec::new();
+        every_file(shared.path(), &mut found);
+        assert!(
+            !found.iter().any(|at| at.ends_with(tisty_core::store::KEEP)),
+            "the key reached the meeting place: {found:?}"
+        );
+    }
+
     #[test]
     fn a_conflict_copy_is_not_a_segment() {
         let one = machine("dev_a");

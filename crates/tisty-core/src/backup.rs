@@ -857,6 +857,33 @@ mod tests {
         );
     }
 
+    /// A copy is the one thing that leaves this machine on purpose, and the key is the one
+    /// thing that must not. Nobody had written this down, and that is how it travelled.
+    #[test]
+    fn what_proves_the_store_is_its_own_never_enters_a_copy() {
+        let (_src, data) = filled("lo de siempre");
+        std::fs::write(data.join("store").join(store::KEEP), [9u8; 32]).unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+        let named: Vec<String> = (0..zip.len())
+            .map(|n| zip.by_index(n).unwrap().name().to_string())
+            .collect();
+        assert!(
+            !named.iter().any(|one| one.contains(store::KEEP)),
+            "the key went out in the copy: {named:?}"
+        );
+    }
+
+    #[test]
+    fn a_copy_that_carries_a_key_cannot_put_it_back() {
+        assert_eq!(safe(&format!("store/{}", store::KEEP)), None);
+        assert_eq!(safe(&format!("store/dev_a/{}", store::KEEP)), None);
+    }
+
     #[test]
     fn restoring_onto_an_empty_machine_keeps_the_old_devices_history() {
         let (_src, data) = filled("lo de antes");
