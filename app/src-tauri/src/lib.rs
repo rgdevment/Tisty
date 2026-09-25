@@ -4729,6 +4729,7 @@ fn standing(
     which: &[String],
 ) -> (
     std::path::PathBuf,
+    std::path::PathBuf,
     tisty_core::State,
     Option<std::path::PathBuf>,
 ) {
@@ -4740,6 +4741,7 @@ fn standing(
     }
     (
         session.paths.data().to_path_buf(),
+        session.paths.private(),
         session.state.clone(),
         session.dest(),
     )
@@ -4782,7 +4784,7 @@ async fn docs_pack(
     number: Option<String>,
 ) -> Answer<Packed> {
     let _done = alone.inner().taken()?;
-    let (data, state, beside) = standing(&session, &which);
+    let (data, private, state, beside) = standing(&session, &which);
     let asked = which.clone();
     let at = into.clone();
     let telling = along_the_way(&app, "packing");
@@ -4790,6 +4792,7 @@ async fn docs_pack(
     let sent = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::written(
             &data,
+            &private,
             &state,
             &asked,
             std::path::Path::new(&at),
@@ -4842,7 +4845,7 @@ async fn docs_take_out(
     into: String,
 ) -> Answer<Packed> {
     let _done = alone.inner().taken()?;
-    let (data, state, beside) = standing(&session, &which);
+    let (data, _, state, beside) = standing(&session, &which);
     let asked = which.clone();
     let at = into.clone();
     let telling = along_the_way(&app, "takingOut");
@@ -4899,10 +4902,11 @@ async fn docs_unpack(
     number: Option<String>,
 ) -> Answer<Unpacked> {
     let _done = alone.inner().taken()?;
-    let (data, state, device) = {
+    let (data, private, state, device) = {
         let session = held(&session);
         (
             session.paths.data().to_path_buf(),
+            session.paths.private(),
             session.state.clone(),
             session.config.device_id.clone(),
         )
@@ -4913,6 +4917,7 @@ async fn docs_unpack(
     let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::taken(
             &data,
+            &private,
             &state,
             &device,
             std::path::Path::new(&at),
