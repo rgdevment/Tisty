@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import type { Filed } from "../core";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
-import { onMac } from "./WindowChrome";
 
 interface Props {
   pages: Filed[];
@@ -37,7 +36,6 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
     .map((file) => pages.find((one) => one.file === file))
     .filter((one): one is Filed => Boolean(one));
   const loose = pages.filter((one) => !held.has(one.file));
-  const mod = onMac ? "⌥" : "Alt+";
 
   const named = (page: Filed) => page.title || t("untitledDoc");
 
@@ -63,13 +61,6 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
   const row = (page: Filed, at: number, movable: boolean) => (
     <li
       key={page.id}
-      draggable={movable}
-      onDragStart={() => setCarried(page.file)}
-      onDragEnd={() => {
-        setCarried(null);
-        setOver(null);
-        setAtEnd(false);
-      }}
       onDragOver={(e) => {
         if (!movable || !carried) return;
         e.preventDefault();
@@ -92,6 +83,15 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
       <button
         type="button"
         data-leaf={page.file}
+        // Only the name drags. A button inside a draggable element never gets its click: the
+        // press starts a drag instead, which is what the tree learned the hard way.
+        draggable={movable}
+        onDragStart={() => setCarried(page.file)}
+        onDragEnd={() => {
+          setCarried(null);
+          setOver(null);
+          setAtEnd(false);
+        }}
         onClick={() => onOpen(page)}
         onKeyDown={(e) => {
           if (!movable || !e.altKey) return;
@@ -153,7 +153,7 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
         <span className="leaves-many">{pages.length}</span>
       </h2>
       <p className="leaves-why">{loose.length > 0 ? t("someLoose") : t("allInside")}</p>
-      {onMove && inside.length > 1 && <p className="leaves-why">{fill("moveLeaves", mod, mod)}</p>}
+      {onMove && inside.length > 1 && <p className="leaves-why">{t("moveLeaves")}</p>}
       <p role="status" aria-live="polite" className="sr-only">
         {said}
       </p>

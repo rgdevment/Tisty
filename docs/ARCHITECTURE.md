@@ -1411,6 +1411,27 @@ on disk with no label and once in the buffer with the right one. None of that is
 reachable when the card goes in through the editor, because then there is one
 writer, not two.
 
+**A card is a place, a link is a mention, and they are not the same thing.** Both
+are references — `refs::extract` sees both, which is what keeps a file nothing
+else points at from being swept away — but only `![Title](tisty:doc/id)` gives a
+page its place in the book. It was not always so: for a while any reference to a
+page counted as naming it, and a sentence saying "as I wrote in [March]" made the
+chapter sit wherever that sentence fell. Three things went wrong with it at once,
+all found on a real store of three hundred documents. Taking a page out and
+putting it back reported an order the body did not have, because the card was
+already there and nothing rewrote the body, so nothing re-settled the log.
+Reordering a book whose prose mentioned one of its chapters moved that chapter's
+card past the sentence, after which every further call resolved the page to the
+sentence and refused, blaming a paragraph that had nothing to do with it — the
+book was stuck. And hanging a page a sentence already mentioned said it had
+written the line and wrote nothing.
+
+The rule that fixes all three is the one a person would guess: the card is the
+chapter, the link is a cross-reference. Which also means a question about
+references is asked of `extract` and never of `papers` — what points at a
+document before it is archived, and which ids a parcel must rewrite on the way
+in, both want every mention.
+
 **What counts as code is decided once, for everybody.** A line naming a page
 inside a fenced block is not a way in, it is an example of one, and for a while
 the parts of Tisty disagreed about which fences existed: `refs` knew backticks

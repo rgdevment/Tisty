@@ -78,10 +78,10 @@ describe("what a body names", () => {
     expect([...named(body)]).toEqual(["a-0002"]);
   });
 
-  it("picks up every document it points at, as a card or as a link", () => {
-    const body = "uno ![A](tisty:doc/a3f1-0002)\n\ndos [B](tisty:doc/a3f1-0003)";
+  it("counts the cards, and leaves a page merely mentioned in a sentence alone", () => {
+    const body = "uno ![A](tisty:doc/a3f1-0002)\n\ncomo conté en [B](tisty:doc/a3f1-0003), ya está";
 
-    expect([...named(body)]).toEqual(["a3f1-0002", "a3f1-0003"]);
+    expect([...named(body)]).toEqual(["a3f1-0002"]);
   });
 
   it("does not mistake an ordinary link or an attachment for a document", () => {

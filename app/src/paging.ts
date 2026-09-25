@@ -29,7 +29,7 @@ const unfenced = (body: string): string => {
 export const namesIn = (body: string): string[] => {
   const found = new Set<string>();
   const said = unfenced(body).replace(/(`+)[\s\S]*?\1/g, " ");
-  const asks = /\[(?:\\[\s\S]|[^\\[\]\n])*\]\(\s*<?tisty:doc\/([^)>\s]+)/g;
+  const asks = /!\[(?:\\[\s\S]|[^\\[\]\n])*\]\(\s*<?tisty:doc\/([^)>\s]+)/g;
   for (const [, id] of said.matchAll(asks)) found.add(id);
   return [...found];
 };

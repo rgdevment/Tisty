@@ -51,7 +51,7 @@ describe("the index at the end of a document", () => {
     const end = container.querySelector(".leaf-end");
     if (!end) throw new Error("the list ends with nowhere to drop");
 
-    fireEvent.dragStart(rows[0]);
+    fireEvent.dragStart(rows[0].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(end);
     fireEvent.drop(end);
 
@@ -64,7 +64,7 @@ describe("the index at the end of a document", () => {
     const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[2]);
+    fireEvent.dragStart(rows[2].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(rows[0]);
     expect(rows[0].className).toContain("leaf-over");
 
@@ -83,9 +83,9 @@ describe("the index at the end of a document", () => {
     const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[2]);
+    fireEvent.dragStart(rows[2].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(rows[0]);
-    fireEvent.dragEnd(rows[2]);
+    fireEvent.dragEnd(rows[2].querySelector("[data-leaf]") as HTMLElement);
 
     expect(rows[0].className).not.toContain("leaf-over");
     const end = container.querySelector(".leaf-end");
@@ -104,7 +104,7 @@ describe("the index at the end of a document", () => {
     const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[2]);
+    fireEvent.dragStart(rows[2].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(rows[0]);
     fireEvent.drop(rows[0]);
 
@@ -117,7 +117,7 @@ describe("the index at the end of a document", () => {
     const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[1]);
+    fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[1]);
 
     expect(onMove).not.toHaveBeenCalled();
@@ -127,8 +127,8 @@ describe("the index at the end of a document", () => {
     dragged(["a3f1-0002", "a3f1-0003"]);
     const rows = screen.getAllByRole("listitem");
 
-    expect(rows[0].getAttribute("draggable")).toBe("true");
-    expect(rows[2].getAttribute("draggable")).toBe("false");
+    expect(rows[0].querySelector("[data-leaf]")?.getAttribute("draggable")).toBe("true");
+    expect(rows[2].querySelector("[data-leaf]")?.getAttribute("draggable")).toBe("false");
   });
 
   it("numbers the pages the text names and leaves the rest without a number", () => {
@@ -299,6 +299,17 @@ describe("moving a chapter one place at a time", () => {
     }
   });
 
+  it("keeps the buttons outside the part that drags, so a press on one is a press", () => {
+    const { arrow, container } = shown(all);
+    const down = arrow("a3f1-0002", 1);
+    if (!down) throw new Error("no way down");
+
+    expect(down.closest('[draggable="true"]')).toBeNull();
+    expect(container.querySelector('[data-leaf="a3f1-0002"]')?.getAttribute("draggable")).toBe(
+      "true",
+    );
+  });
+
   it("offers a button for each way a chapter can go, and none off the ends", () => {
     const { arrow } = shown(all);
 
@@ -404,9 +415,11 @@ describe("moving a chapter one place at a time", () => {
     ).toEqual(["01La VPN cae↑↓", "02El pod↑↓", "03El túnel↑↓"]);
   });
 
-  it("says how to move one, both ways", () => {
+  it("promises only what is on the row, and names no key it cannot offer", () => {
     shown(all);
 
-    expect(screen.getByText(/Alt\+/)).toBeTruthy();
+    const said = screen.getByText(/To move one/).textContent ?? "";
+    expect(said).toContain("arrows on its row");
+    expect(said).not.toMatch(/Alt|drag/);
   });
 });

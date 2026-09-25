@@ -317,9 +317,6 @@ export default function Docs({
         from.current = null;
       }
     }
-    putting.current = null;
-    paged.current?.(null);
-    ordering.current = null;
     flush();
     const mine = ++turn.current;
     const wrote_at = typed.current;
@@ -696,7 +693,7 @@ export default function Docs({
                 onOutline={setHeads}
                 onReady={handed}
                 onInsert={(put) => {
-                  const named = (page: Filed) => put(page.file, page.title);
+                  const named = put && ((page: Filed) => put(page.file, page.title));
                   putting.current = named;
                   paged.current?.(named);
                 }}

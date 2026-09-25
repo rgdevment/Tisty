@@ -173,7 +173,7 @@ describe("a page, open", () => {
     await waitFor(() => expect(screen.getByText("El túnel")).toBeTruthy());
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[1]);
+    fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[0]);
 
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("inside something else"));
@@ -188,7 +188,7 @@ describe("a page, open", () => {
     await waitFor(() => expect(screen.getByText("El túnel")).toBeTruthy());
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[1]);
+    fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[0]);
 
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("named by a link"));

@@ -258,7 +258,7 @@ A page is a document like any other — same file on disk, same way out — with
 **For adding one**, type `/` where that chapter should start and pick **A new page**, or **A page that already exists** if the document is already written. It stays named right there, drawn as a gap in the sheet with the leaves of that page under it.
 
 > [!IMPORTANT]
-> The order they are named in is the order the pages sit in: in the tree, in the export and in print. To move a chapter, drag its row in the index at the end of the document — or cut and paste its block, which is the same move written by hand.
+> The order they are named in is the order the pages sit in: in the tree, in the export and in print. To move a chapter, use the arrows on its row in the index at the end of the document — or cut and paste its block, which is the same move written by hand.
 
 At the end of the document, on its own sheet, comes the index: the pages the text names, numbered, and after a rule the ones it does not, one click from a place in the text. Inside a page you see which document it belongs to and where it sits, arrows to its sisters, and the step to the next one at the foot.
 

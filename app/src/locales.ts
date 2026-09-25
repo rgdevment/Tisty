@@ -399,7 +399,7 @@ const en = {
   someLoose: "In the order the text names them. The last ones it never names.",
   looseLeafIs: "Loose page",
   moveLeaves:
-    "To move one: drag it, or press {name}↑ or {other}↓ on it. Where its line sits is the order they are read in.",
+    "To move one, use the arrows on its row. Where its line sits is the order they are read in.",
   leafMoved: "«{name}» is now number {other}",
   leafUp: "Move «{name}» up one place",
   leafDown: "Move «{name}» down one place",
@@ -1752,7 +1752,7 @@ const es: Catalog = {
   someLoose: "En el orden en que el texto las nombra. Las últimas no las nombra en ninguna parte.",
   looseLeafIs: "Página suelta",
   moveLeaves:
-    "Para mover una: arrástrala, o presiona {name}↑ o {other}↓ sobre ella. Donde va su línea es el orden en que se leen.",
+    "Para mover una, usa las flechas de su fila. Donde va su línea es el orden en que se leen.",
   leafMoved: "«{name}» ahora es la número {other}",
   leafUp: "Subir «{name}» un puesto",
   leafDown: "Bajar «{name}» un puesto",

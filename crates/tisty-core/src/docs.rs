@@ -545,7 +545,7 @@ pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Re
             return Ok(Naming::WouldRename);
         }
         written(root, parent, &whole)?;
-        kept_still(data, parent, &whole)?;
+        kept_still(data, parent, &body, &whole)?;
         Ok(Naming::Wrote {
             named,
             whole: settled(&whole),
@@ -555,13 +555,16 @@ pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Re
 
 /// A line naming a page is not the person's writing, so it does not take their one step back with
 /// it: the body kept beside the document stays, and only the print of what it stands against moves.
-fn kept_still(data: &Path, id: &str, left: &str) -> Result<()> {
+/// A step back already spent stays spent — carrying that one forward would offer to undo whatever
+/// spent it, which is somebody's writing.
+fn kept_still(data: &Path, id: &str, was: &str, left: &str) -> Result<()> {
+    let stood = crate::attach::printed(settled(was).as_bytes());
+    if before_left_at(data, id).as_deref() != Some(stood.as_str()) {
+        return Ok(());
+    }
     let Ok(into) = resolve(&data.join("originals-at"), id) else {
         return Ok(());
     };
-    if !into.exists() {
-        return Ok(());
-    }
     write_atomic(
         &into,
         crate::attach::printed(settled(left).as_bytes()).as_bytes(),
@@ -1862,6 +1865,31 @@ mod naming {
             super::before_left_at(at.path(), &book).unwrap(),
             crate::attach::printed(now.as_bytes()),
             "so going back is still offered"
+        );
+    }
+
+    #[test]
+    fn a_step_back_already_spent_is_not_brought_back_by_naming_a_page() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nlo que dije\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        super::edit(at.path(), at.path(), &book, "lo que dije", "otra cosa").unwrap();
+        // What the window's own save does: it writes, and keeps nothing beside the document.
+        super::written(at.path(), &book, "# Libro\n\notra cosa\n\ny algo mio\n").unwrap();
+        let spent = super::before_left_at(at.path(), &book).unwrap();
+
+        name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        assert_eq!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            spent,
+            "a step back nobody could take is not offered again"
+        );
+        let now = super::read(at.path(), &book).unwrap();
+        assert_ne!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            crate::attach::printed(now.as_bytes()),
+            "so going back still refuses, and nothing of theirs is thrown away"
         );
     }
 

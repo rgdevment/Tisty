@@ -159,7 +159,7 @@ A whole folder can be in the archive too, and then everything under it is — ev
 
 A document can hold pages, and that is the only level there is: `write_doc` with `page_of` writes one under the document you name, and `page_doc` makes a document a page of another or takes it back out as a document of its own. A page belongs to one document and holds no pages itself, so naming a page as `page_of` is refused. It goes with its document into a folder, into the archive and out of existence — a page is part of what it belongs to, not a document filed beside it. It can also be put away on its own, and then it does not move: it stays under its document, read-only, and the document coming back does not wake it. Pages suit one long thing in parts: a book by chapters, a year of minutes.
 
-A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, a square bracket in the title has to go in with a backslash before it, or the line names nothing.
+A page sits where its document names it. Writing one adds the line `![Its title](tisty:doc/its-name)` at the end of that document, which is what the window draws as the way into the page; the order those lines are written in is the order the pages are read, printed and listed in, and `read_doc` on the document hands them back in that order. To open a subject in the middle of a text rather than at its end, `page_doc` with `after` or `before` writes that line where it belongs, and `edit_doc` moves it by hand — either way, moving the line moves the page. Writing the line yourself, it has to be that shape, opening bang and all: a plain `[Its title](tisty:doc/its-name)` is a mention of the page in the middle of a sentence, and a sentence is not a chapter, so it gives the page no place and does not move one. A square bracket in the title has to go in with a backslash before it, or the line names nothing.
 
 `page_doc` writes the line that names the page, at the end of the document it is hung from, so a page has a place from the moment it has a document. `after`, `before` and `at` say where that line goes instead of the end; the page you name as `after` or `before` has to have a line of its own for this one to sit beside it, and `at` takes \"first\" or \"last\", which needs no page to lean on. That is how a page is moved without touching markdown. And `order` names several of them in the order they are to be read: their lines swap places with each other in one write, the words between them stay where they are, and a page left out of the list keeps the place it had. It goes on its own — two ids at least, and no `doc`, `after`, `before` or `at` beside it, because one call says an order and another puts one page somewhere. A body says nothing about the pages it does not name, and those are left where they are; `outline_doc` says which they are. Taking a page back out leaves whatever named it pointing at a document that now stands on its own, which is what it is.
 
@@ -4541,8 +4541,15 @@ fn pointed_at(paths: &Paths, state: &State, which: &str) -> Vec<String> {
                 .is_none_or(|card| card.links > 0 || card.pictures > 0)
         })
         .filter(|one| {
+            // Pointing at a document is any reference to it, card or mention alike: this answers
+            // what would be left hanging, not what reads it as a chapter.
             tisty_core::docs::read(&paths.docs(), one)
-                .map(|body| tisty_core::refs::papers(&body).iter().any(|at| at == which))
+                .map(|body| {
+                    tisty_core::refs::extract(&body)
+                        .iter()
+                        .filter_map(|one| one.target.strip_prefix(tisty_core::refs::DOC))
+                        .any(|at| at == which)
+                })
                 .unwrap_or(false)
         })
         .collect();

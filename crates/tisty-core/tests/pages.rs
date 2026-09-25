@@ -1413,7 +1413,7 @@ fn a_page_named_with_the_angle_bracket_destination_form_is_still_recognised() {
     let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
     let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
 
-    let body = "[Dos](<tisty:doc/a3f1-0003>)\n\n[Uno](<tisty:doc/a3f1-0002>)\n\n";
+    let body = "![Dos](<tisty:doc/a3f1-0003>)\n\n![Uno](<tisty:doc/a3f1-0002>)\n\n";
 
     let mut state = replayed(&world);
     for (id, order) in state.pages_told(book, body) {
@@ -1471,7 +1471,7 @@ fn a_page_removed_from_the_text_and_later_put_back_returns_to_where_it_is_named(
 }
 
 #[test]
-fn a_page_named_by_a_plain_inline_link_rather_than_a_card_is_still_ordered() {
+fn a_page_only_mentioned_by_a_plain_inline_link_is_not_given_a_place_by_it() {
     let world = World::new();
     let mut store = world.store("dev_a");
     let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
@@ -1481,19 +1481,20 @@ fn a_page_named_by_a_plain_inline_link_rather_than_a_card_is_still_ordered() {
     let body =
         "visto en [la segunda](tisty:doc/a3f1-0003) antes que [la primera](tisty:doc/a3f1-0002)\n";
 
-    let mut state = replayed(&world);
-    for (id, order) in state.pages_told(book, body) {
-        moved(&mut store, id, &order);
-    }
-    state = replayed(&world);
+    let state = replayed(&world);
 
+    assert!(
+        state.pages_told(book, body).is_empty(),
+        "a sentence that points at both is no order for either"
+    );
     assert_eq!(
         state
             .pages_of(book)
             .iter()
             .map(|k| k.id)
             .collect::<Vec<_>>(),
-        vec![two, one]
+        vec![one, two],
+        "so they keep the places they had"
     );
 }
 
