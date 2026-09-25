@@ -826,6 +826,25 @@ impl State {
         pages
     }
 
+    /// The pages of a document in the order it reads them: the ones its text names, where it names
+    /// them, and then the ones it does not, which keep the places the log gave them. The keys catch
+    /// up on the next settling, but a reader should not have to wait for that to agree with the
+    /// text in front of it.
+    pub fn pages_read(&self, doc: DocId, body: &str) -> Vec<&Kept> {
+        let held = self.pages_of(doc);
+        let named = crate::refs::papers(body);
+        let mut told: Vec<&Kept> = named
+            .iter()
+            .filter_map(|file| held.iter().find(|one| &one.file == file).copied())
+            .collect();
+        told.extend(
+            held.iter()
+                .filter(|one| !named.contains(&one.file))
+                .copied(),
+        );
+        told
+    }
+
     pub fn books_among(&self, files: &[String]) -> Vec<String> {
         let came: BTreeSet<&str> = files.iter().map(String::as_str).collect();
         let mut held: BTreeMap<DocId, usize> = BTreeMap::new();

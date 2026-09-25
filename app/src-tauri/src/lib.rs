@@ -4628,6 +4628,7 @@ fn doc_export(
     if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &id) {
         let _ = session.retell(&id, &body, None);
     }
+    let said = tisty_core::docs::read(&session.paths.docs(), &id).unwrap_or_default();
     let pages: Vec<String> = session
         .state
         .docs
@@ -4636,7 +4637,7 @@ fn doc_export(
         .map(|one| {
             session
                 .state
-                .pages_of(one.id)
+                .pages_read(one.id, &said)
                 .iter()
                 .map(|page| page.file.clone())
                 .collect()

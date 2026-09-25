@@ -6322,10 +6322,9 @@ fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
              be arriving from another one."
         )));
     };
-    let pages = state.pages_of(kept.id);
-    let told_of = tisty_core::refs::papers(
-        &tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default(),
-    );
+    let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    let pages = state.pages_read(kept.id, &whole);
+    let told_of = tisty_core::refs::papers(&whole);
     let names: Vec<String> = pages.iter().map(|one| one.file.clone()).collect();
     let cards = tisty_core::docs::cards_of(&paths.docs(), held.as_ref(), &names);
     let rows: Vec<Value> = pages
@@ -6512,7 +6511,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     let pages: Vec<String> = state
-        .pages_of(kept.id)
+        .pages_read(kept.id, &body)
         .iter()
         .map(|one| one.file.clone())
         .collect();
@@ -6535,7 +6534,7 @@ fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     if !pages.is_empty() {
         kept_of.insert("pages".into(), json!(pages));
-        let held = state.pages_of(kept.id);
+        let held = state.pages_read(kept.id, &body);
         let told_of = tisty_core::refs::papers(&body);
         let adrift: Vec<String> = held
             .iter()

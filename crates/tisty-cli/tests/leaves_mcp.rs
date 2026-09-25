@@ -347,14 +347,14 @@ fn a_page_order_pulled_in_from_another_machine_settles_to_match_this_machines_ow
         );
     }
     assert_eq!(
-        here.pages_of(&book),
-        vec![two.clone(), one.clone()],
-        "the log now carries the other machine's move"
-    );
-    assert_eq!(
         here.body_of(&book),
         format!("# Actas\n\nde este ano.\n\n{old}\n"),
-        "but this machine's own file on disk still reads the way it always did"
+        "this machine's own file on disk still reads the way it always did"
+    );
+    assert_eq!(
+        here.pages_of(&book),
+        vec![one.clone(), two.clone()],
+        "and what it is read as follows that text, whatever order the log arrived carrying"
     );
 
     // The next write on this machine settles the order back to what its own text says.
@@ -3898,5 +3898,42 @@ fn a_page_taken_out_and_hung_again_is_read_where_the_text_still_names_it() {
         served.pages_of(&book),
         was,
         "and is read in the order it names them"
+    );
+}
+
+#[test]
+fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro", None);
+    let one = served.wrote("# Uno", Some(&book));
+    let two = served.wrote("# Dos", Some(&book));
+    for page in [&one, &two] {
+        served.call(
+            "page_doc",
+            serde_json::json!({ "doc": page, "page_of": &book }),
+        );
+    }
+    assert_eq!(served.pages_of(&book), vec![one.clone(), two.clone()]);
+
+    // Somebody swaps the two lines in the file itself, the way an editor outside Tisty would.
+    let at = served.data().join("docs").join(format!("{book}.md"));
+    let said = std::fs::read_to_string(&at).unwrap();
+    std::fs::write(
+        &at,
+        format!("# Libro\n\nintro\n\n![Dos](tisty:doc/{two})\n\n![Uno](tisty:doc/{one})\n"),
+    )
+    .unwrap();
+    assert_ne!(said, std::fs::read_to_string(&at).unwrap());
+
+    assert_eq!(
+        served.pages_of(&book),
+        vec![two.clone(), one.clone()],
+        "the text says so, and nothing has settled the log yet"
+    );
+
+    let told = told_of(&served.call("outline_doc", serde_json::json!({ "doc": &book })));
+    assert!(
+        told.find(&two).unwrap() < told.find(&one).unwrap(),
+        "and the outline says the same: {told}"
     );
 }
