@@ -10,6 +10,7 @@ use crate::{
     event::{DeviceId, DocAdd, FolderAdd, Op, Said},
     model::{DEEPEST, DocId, FolderId, Kept},
     state::State,
+    store::Private,
 };
 
 pub const EXTENSION: &str = "tistyx";
@@ -77,20 +78,15 @@ fn sealed(manifest: &Manifest, keep: &[u8]) -> Option<String> {
     )
 }
 
-struct Home<'a> {
-    data: &'a Path,
-    private: &'a Path,
-}
-
 /// Written here, or only claiming to be. A parcel with no seal at all is somebody else's by
 /// definition: every Tisty that writes one seals it.
-fn ours(manifest: &Manifest, home: &Home) -> bool {
-    let mine = crate::store::peek_identity(home.data.join("store"));
+fn ours(manifest: &Manifest, data: &Path, private: Private) -> bool {
+    let mine = crate::store::peek_identity(data.join("store"));
     let said = manifest.from.trim();
     if said.is_empty() || mine.as_deref() != Some(said) {
         return false;
     }
-    let Some(keep) = crate::store::secret(home.private) else {
+    let Some(keep) = crate::store::secret(private) else {
         return false;
     };
     match (&manifest.seal, sealed(manifest, &keep)) {
@@ -407,7 +403,7 @@ fn opened(from: &Path, into: &Path, number: Option<&str>, along: &Along) -> Resu
 
 pub fn write(
     data: &Path,
-    private: &Path,
+    private: Private,
     state: &State,
     which: &[String],
     into: &Path,
@@ -420,7 +416,7 @@ pub fn write(
 /// own writing rather than as a guest's.
 pub fn written(
     data: &Path,
-    private: &Path,
+    private: Private,
     state: &State,
     which: &[String],
     into: &Path,
@@ -451,7 +447,7 @@ pub fn written(
         std::fs::create_dir_all(data)?;
     }
 
-    let made = filled(&Home { data, private }, state, &papers, &aside.0, along);
+    let made = filled(data, private, state, &papers, &aside.0, along);
     match (made, number) {
         (Ok(sent), None) => std::fs::rename(&aside.0, into)
             .map(|()| sent)
@@ -478,13 +474,13 @@ impl Drop for Aside {
 }
 
 fn filled(
-    home: &Home,
+    data: &Path,
+    private: Private,
     state: &State,
     papers: &[&Kept],
     into: &Path,
     along: &Along,
 ) -> Result<Sent> {
-    let data = home.data;
     let root = data.join("docs");
     let mut sent = Sent::default();
     let mut bodies: Vec<(&Kept, String)> = Vec::new();
@@ -574,7 +570,7 @@ fn filled(
         true => VERSION,
         false => 1,
     };
-    manifest.seal = crate::store::secret(home.private).and_then(|keep| sealed(&manifest, &keep));
+    manifest.seal = crate::store::secret(private).and_then(|keep| sealed(&manifest, &keep));
 
     let weighs = serde_json::to_string(&manifest)?.len() as u64;
     if weighs > MANIFEST_AT_MOST || manifest.docs.len() > PAPERS_AT_MOST {
@@ -813,7 +809,7 @@ fn shelves(state: &State, bodies: &[(&Kept, String)]) -> Vec<Shelf> {
 
 pub fn read(
     data: &Path,
-    private: &Path,
+    private: Private,
     state: &State,
     device: &DeviceId,
     from: &Path,
@@ -826,7 +822,7 @@ pub fn read(
 /// theirs: only writing that was already a guest where it came from stays one.
 pub fn taken(
     data: &Path,
-    private: &Path,
+    private: Private,
     state: &State,
     device: &DeviceId,
     from: &Path,
@@ -864,14 +860,15 @@ pub fn taken(
         false => from,
     };
 
-    let home = Home { data, private };
-    let done = carried(&home, state, device, at, along, &staged, shut);
+    let done = carried(data, private, state, device, at, along, &staged, shut);
     let _ = std::fs::remove_dir_all(&staged);
     done
 }
 
+#[allow(clippy::too_many_arguments)]
 fn carried(
-    home: &Home,
+    data: &Path,
+    private: Private,
     state: &State,
     device: &DeviceId,
     from: &Path,
@@ -879,7 +876,6 @@ fn carried(
     staged: &Path,
     unlocked: bool,
 ) -> Result<(Landed, Vec<Op>)> {
-    let data = home.data;
     let file = std::fs::File::open(from)?;
     // Something that is not an archive at all is not a parcel either, and saying so beats
     // handing back whatever the zip reader made of it.
@@ -887,7 +883,7 @@ fn carried(
         zip::ZipArchive::new(file).map_err(|_| Error::NotAParcel(from.display().to_string()))?;
     let manifest = manifest_in(&mut zip, from)?;
 
-    let elsewhere = !unlocked && !ours(&manifest, home);
+    let elsewhere = !unlocked && !ours(&manifest, data, private);
     let whole = zip.len() + manifest.docs.len();
     unpack(&mut zip, staged, along, whole).and_then(|_| {
         taken_in(

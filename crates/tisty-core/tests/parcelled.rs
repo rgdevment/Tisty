@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use tisty_core::event::{DocAdd, FolderAdd, Said};
 use tisty_core::model::{DocId, FolderId};
 use tisty_core::parcel::Along;
+use tisty_core::store::Private;
 use tisty_core::{DeviceId, Event, Op, State, attach, docs, order, parcel};
 use ulid::Ulid;
 
@@ -137,7 +138,7 @@ impl Room {
     fn take_in(&mut self, from: &Path) -> parcel::Landed {
         let (landed, ops) = parcel::read(
             &self.data,
-            &self.private,
+            Private(&self.private),
             &self.state,
             &self.dev.clone(),
             from,
@@ -208,7 +209,7 @@ fn everything_written_travels_to_another_tisty_and_lands_as_its_own() {
 
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -247,7 +248,7 @@ fn what_a_document_points_at_still_points_at_it_under_its_new_name() {
     let box_at = filled(&mut here);
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -286,7 +287,7 @@ fn a_parcel_carries_the_writing_and_not_one_line_of_the_log() {
     let box_at = filled(&mut here);
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -315,7 +316,7 @@ fn a_folder_that_is_already_there_takes_the_documents_in_rather_than_standing_be
     let box_at = filled(&mut here);
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -354,7 +355,7 @@ fn one_document_can_travel_alone_and_its_pages_go_with_it() {
 
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[obra],
         &box_at,
@@ -382,7 +383,7 @@ fn a_file_that_is_not_in_the_store_is_named_rather_than_carried_in_silence() {
     let box_at = room.path().join("una.tistyx");
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -467,7 +468,7 @@ fn what_is_too_heavy_to_keep_here_is_carried_from_the_folder_everyone_shares() {
     let box_at = room.path().join("con-video.tistyx");
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -505,7 +506,7 @@ fn a_long_carry_says_how_far_along_it_is_rather_than_going_quiet() {
     let steps = std::cell::RefCell::new(Vec::new());
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -531,7 +532,7 @@ fn a_parcel_is_never_written_into_the_store_it_came_from() {
     assert!(
         parcel::write(
             &here.data,
-            &here.private,
+            Private(&here.private),
             &here.state,
             &[],
             &here.data.join("una.tistyx"),
@@ -552,7 +553,7 @@ fn what_is_not_a_parcel_is_turned_away_rather_than_half_read() {
     assert!(
         parcel::read(
             &here.data,
-            &here.private,
+            Private(&here.private),
             &here.state,
             &here.dev.clone(),
             &stray,
@@ -608,7 +609,7 @@ fn a_parcel_from_a_newer_tisty_is_turned_away_rather_than_half_understood() {
     let box_at = room.path().join("nueva.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -639,7 +640,7 @@ fn a_parcel_from_a_newer_tisty_is_turned_away_rather_than_half_understood() {
     let mut there = Room::new(room.path(), "theirs");
     let refused = parcel::read(
         &there.data,
-        &there.private,
+        Private(&there.private),
         &there.state,
         &there.dev.clone(),
         &ahead,
@@ -657,7 +658,7 @@ fn a_landing_that_never_finished_is_swept_by_the_next_one() {
     let box_at = filled(&mut here);
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -703,7 +704,7 @@ fn a_page_whose_document_never_arrived_is_counted_rather_than_hung_from_nothing(
         .clone();
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[page],
         &box_at,
@@ -774,7 +775,7 @@ fn what_somebody_else_wrote_keeps_their_name_on_it_after_it_lands() {
     let box_at = room.path().join("firmado.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -872,7 +873,7 @@ lo suyo",
     let box_at = room.path().join("suyo.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -928,7 +929,7 @@ fn taking_in_and_then_writing_says_who_wrote_last_without_taking_the_name_away()
     let box_at = room.path().join("firmado.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -986,7 +987,7 @@ lo mio",
     let box_at = room.path().join("mudanza.tistyx");
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1002,7 +1003,7 @@ lo mio",
         matches!(
             parcel::read(
                 &fresh.data,
-                &fresh.private,
+                Private(&fresh.private),
                 &fresh.state,
                 &fresh.dev.clone(),
                 &box_at,
@@ -1016,7 +1017,7 @@ lo mio",
         matches!(
             parcel::taken(
                 &fresh.data,
-                &fresh.private,
+                Private(&fresh.private),
                 &fresh.state,
                 &fresh.dev.clone(),
                 &box_at,
@@ -1030,7 +1031,7 @@ lo mio",
 
     let (landed, ops) = parcel::taken(
         &fresh.data,
-        &fresh.private,
+        Private(&fresh.private),
         &fresh.state,
         &fresh.dev.clone(),
         &box_at,
@@ -1068,7 +1069,7 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
     let box_at = room.path().join("largo.tistyx");
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1083,7 +1084,7 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
     let fresh = Room::new(room.path(), "fresh");
     let (landed, _) = parcel::taken(
         &fresh.data,
-        &fresh.private,
+        Private(&fresh.private),
         &fresh.state,
         &fresh.dev.clone(),
         &box_at,
@@ -1098,7 +1099,7 @@ fn a_locked_parcel_cut_short_does_not_open_as_a_whole_one() {
     assert!(
         parcel::taken(
             &cut.data,
-            &cut.private,
+            Private(&cut.private),
             &cut.state,
             &cut.dev.clone(),
             &box_at,
@@ -1174,7 +1175,7 @@ lo de bob",
     let box_at = room.path().join("linio.tistybox");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1231,7 +1232,7 @@ contratos",
     let box_at = room.path().join("linio.tistybox");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1324,7 +1325,7 @@ lo mio",
     let box_at = room.path().join("mio.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1344,7 +1345,7 @@ lo suyo",
     let forged = room.path().join("forjado.tistyx");
     parcel::write(
         &there.data,
-        &there.private,
+        Private(&there.private),
         &there.state,
         &[],
         &forged,
@@ -1387,7 +1388,7 @@ lo mio",
     let box_at = room.path().join("hostil.tistyx");
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1406,7 +1407,7 @@ lo mio",
         matches!(
             parcel::taken(
                 &fresh.data,
-                &fresh.private,
+                Private(&fresh.private),
                 &fresh.state,
                 &fresh.dev.clone(),
                 &box_at,
@@ -1441,7 +1442,7 @@ fn a_body_that_fills_its_blocks_exactly_comes_back_whole() {
     let box_at = room.path().join("justo.tistyx");
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1453,7 +1454,7 @@ fn a_body_that_fills_its_blocks_exactly_comes_back_whole() {
     let fresh = Room::new(room.path(), "fresh");
     let (landed, _) = parcel::taken(
         &fresh.data,
-        &fresh.private,
+        Private(&fresh.private),
         &fresh.state,
         &fresh.dev.clone(),
         &box_at,
@@ -1482,7 +1483,7 @@ lo mio",
         matches!(
             parcel::written(
                 &here.data,
-                &here.private,
+                Private(&here.private),
                 &here.state,
                 &[],
                 &box_at,
@@ -1512,7 +1513,7 @@ lo mio",
 
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &out.join("mudanza.tistyx"),
@@ -1560,7 +1561,7 @@ fn a_parcel_that_opens_and_then_comes_apart_is_not_a_wrong_number() {
     let box_at = room.path().join("largo.tistyx");
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1579,7 +1580,7 @@ fn a_parcel_that_opens_and_then_comes_apart_is_not_a_wrong_number() {
         matches!(
             parcel::taken(
                 &fresh.data,
-                &fresh.private,
+                Private(&fresh.private),
                 &fresh.state,
                 &fresh.dev.clone(),
                 &box_at,
@@ -1612,7 +1613,7 @@ lo suyo",
     let handed = room.path().join("suyo.tistyx");
     parcel::write(
         &theirs.data,
-        &theirs.private,
+        Private(&theirs.private),
         &theirs.state,
         &[],
         &handed,
@@ -1639,7 +1640,7 @@ lo mio",
     let moving = room.path().join("mudanza.tistyx");
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &moving,
@@ -1651,7 +1652,7 @@ lo mio",
     let mut fresh = Room::new(room.path(), "fresh");
     let (_, ops) = parcel::taken(
         &fresh.data,
-        &fresh.private,
+        Private(&fresh.private),
         &fresh.state,
         &fresh.dev.clone(),
         &moving,
@@ -1697,7 +1698,7 @@ lo suyo",
     let theirs = room.path().join("suyo.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &theirs,
@@ -1724,7 +1725,7 @@ lo suyo",
     let round = room.path().join("vuelta.tistyx");
     parcel::write(
         &mine.data,
-        &mine.private,
+        Private(&mine.private),
         &mine.state,
         &[],
         &round,
@@ -1766,7 +1767,7 @@ sin firmar",
     let box_at = room.path().join("sin-firma.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1885,7 +1886,7 @@ fn the_aliases_this_store_signed_with_are_kept_apart_from_the_ones_that_arrived(
     let box_at = room.path().join("suyo.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -1930,7 +1931,7 @@ fn signing_with_the_same_name_as_a_guest_never_makes_their_writing_yours() {
     let box_at = room.path().join("suyo.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2010,7 +2011,7 @@ fn coming_home_under_the_same_name_leaves_no_mark_however_it_was_typed() {
     let box_at = room.path().join("mio.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2090,7 +2091,7 @@ fn what_you_wrote_yourself_comes_home_as_yours_and_not_as_a_guest() {
     let box_at = room.path().join("respaldo.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2124,7 +2125,7 @@ fn a_parcel_from_a_store_that_never_signed_is_not_yours_to_claim() {
     let box_at = room.path().join("sin-firma.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2192,7 +2193,7 @@ se va",
     assert!(
         parcel::write(
             &here.data,
-            &here.private,
+            Private(&here.private),
             &here.state,
             &[],
             &box_at,
@@ -2228,7 +2229,7 @@ lo suyo",
     let box_at = room.path().join("suyo.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2263,7 +2264,7 @@ fn a_body_that_cannot_be_read_is_counted_rather_than_dropped_from_the_parcel() {
     let box_at = room.path().join("corto.tistyx");
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2350,7 +2351,7 @@ soy el largo",
     let box_at = room.path().join("prefijos.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2424,7 +2425,7 @@ fn an_attachment_named_with_an_anchor_still_lands() {
     let box_at = room.path().join("ancla.tistyx");
     let sent = parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2474,7 +2475,7 @@ fn a_manifest_past_the_size_a_parcel_may_carry_is_weighed_before_it_is_parsed() 
     let box_at = room.path().join("una.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2486,7 +2487,7 @@ fn a_manifest_past_the_size_a_parcel_may_carry_is_weighed_before_it_is_parsed() 
     let mut there = Room::new(room.path(), "theirs");
     let refused = parcel::read(
         &there.data,
-        &there.private,
+        Private(&there.private),
         &there.state,
         &there.dev.clone(),
         &heavy,
@@ -2511,7 +2512,7 @@ fn a_manifest_that_just_fits_is_read_rather_than_turned_away_for_its_weight() {
     let box_at = room.path().join("una.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2523,7 +2524,7 @@ fn a_manifest_that_just_fits_is_read_rather_than_turned_away_for_its_weight() {
     let mut there = Room::new(room.path(), "theirs");
     let refused = parcel::read(
         &there.data,
-        &there.private,
+        Private(&there.private),
         &there.state,
         &there.dev.clone(),
         &brim,
@@ -2563,7 +2564,7 @@ fn turned_away(room: &tempfile::TempDir, said: Vec<u8>) -> Result<(), tisty_core
     let box_at = room.path().join("una.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2575,7 +2576,7 @@ fn turned_away(room: &tempfile::TempDir, said: Vec<u8>) -> Result<(), tisty_core
     let mut there = Room::new(room.path(), "theirs");
     let out = parcel::read(
         &there.data,
-        &there.private,
+        Private(&there.private),
         &there.state,
         &there.dev.clone(),
         &swapped,
@@ -2638,7 +2639,7 @@ fn locked_with_work(room: &std::path::Path, work: u8) -> std::path::PathBuf {
     let box_at = room.join(format!("work-{work}.tistyx"));
     parcel::written(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2657,7 +2658,7 @@ fn opened_with(room: &std::path::Path, at: &std::path::Path) -> Result<(), tisty
     let mut fresh = Room::new(room, "fresh");
     let out = parcel::taken(
         &fresh.data,
-        &fresh.private,
+        Private(&fresh.private),
         &fresh.state,
         &fresh.dev.clone(),
         at,
@@ -2706,7 +2707,7 @@ fn a_parcel_says_what_it_is_to_somebody_who_has_never_heard_of_tisty() {
 
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2743,7 +2744,7 @@ fn a_parcel_from_before_pages_answered_for_themselves_lands_them_covered_and_not
     let box_at = room.path().join("vieja.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2804,7 +2805,7 @@ fn a_page_put_away_on_its_own_comes_out_of_the_parcel_the_same_way() {
     let box_at = room.path().join("mixta.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2840,7 +2841,7 @@ fn a_parcel_with_nothing_new_to_say_is_still_one_an_older_tisty_can_open() {
     let box_at = room.path().join("llana.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,
@@ -2867,7 +2868,7 @@ fn what_an_assistant_marked_travels_with_the_document_it_marked() {
     let box_at = room.path().join("marcada.tistyx");
     parcel::write(
         &here.data,
-        &here.private,
+        Private(&here.private),
         &here.state,
         &[],
         &box_at,

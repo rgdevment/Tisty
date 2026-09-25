@@ -93,7 +93,10 @@ impl Session {
 
     fn at(paths: Paths) -> tisty_core::Result<Self> {
         let config = Config::load_or_init(&paths)?;
-        tisty_core::store::brought_home(paths.store(), paths.private());
+        tisty_core::store::brought_home(
+            paths.store(),
+            tisty_core::store::Private(&paths.private()),
+        );
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
@@ -4793,7 +4796,7 @@ async fn docs_pack(
     let sent = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::written(
             &data,
-            &private,
+            tisty_core::store::Private(&private),
             &state,
             &asked,
             std::path::Path::new(&at),
@@ -4918,7 +4921,7 @@ async fn docs_unpack(
     let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::taken(
             &data,
-            &private,
+            tisty_core::store::Private(&private),
             &state,
             &device,
             std::path::Path::new(&at),

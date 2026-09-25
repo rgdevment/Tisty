@@ -403,7 +403,7 @@ fn run() -> anyhow::Result<ExitCode> {
         tisty_core::witness::wants_all(),
     );
     tisty_core::witness::catches(tisty_core::witness::channel::TERMINAL);
-    tisty_core::store::brought_home(paths.store(), paths.private());
+    tisty_core::store::brought_home(paths.store(), tisty_core::store::Private(&paths.private()));
     tisty_core::witness::note(
         tisty_core::witness::channel::TERMINAL,
         "a command ran",

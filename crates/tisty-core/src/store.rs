@@ -337,8 +337,11 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     }
 }
 
-pub fn secret(private: impl AsRef<Path>) -> Option<[u8; 32]> {
-    let at = private.as_ref().join(KEEP);
+#[derive(Clone, Copy)]
+pub struct Private<'a>(pub &'a Path);
+
+pub fn secret(private: Private) -> Option<[u8; 32]> {
+    let at = private.0.join(KEEP);
     if let Ok(held) = std::fs::read(&at)
         && let Ok(kept) = <[u8; 32]>::try_from(held.as_slice())
     {
@@ -346,7 +349,7 @@ pub fn secret(private: impl AsRef<Path>) -> Option<[u8; 32]> {
     }
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
-    std::fs::create_dir_all(private.as_ref()).ok()?;
+    std::fs::create_dir_all(private.0).ok()?;
     match File::create_new(&at) {
         Ok(mut file) => {
             file.write_all(&fresh).ok()?;
@@ -361,7 +364,7 @@ pub fn secret(private: impl AsRef<Path>) -> Option<[u8; 32]> {
     }
 }
 
-pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
+pub fn brought_home(store_root: impl AsRef<Path>, private: Private) {
     let was = store_root.as_ref().join(KEEP);
     let Ok(held) = std::fs::read(&was) else {
         return;
@@ -375,12 +378,12 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
         return;
     }
 
-    let now = private.as_ref().join(KEEP);
+    let now = private.0.join(KEEP);
     match std::fs::read(&now) {
         // One inside a store that already moved its key out was made by an older build opening
         // it, so it is the newcomer and the one out here is what the parcels were sealed with.
         Ok(there) if there != held => {
-            let aside = private.as_ref().join(format!("{KEEP}.was"));
+            let aside = private.0.join(format!("{KEEP}.was"));
             if write_atomic(&aside, &held).is_err() {
                 witness::error(
                     channel::STORE,
@@ -404,7 +407,7 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
         Err(_) => {}
     }
 
-    if std::fs::create_dir_all(private.as_ref()).is_err() || write_atomic(&now, &held).is_err() {
+    if std::fs::create_dir_all(private.0).is_err() || write_atomic(&now, &held).is_err() {
         witness::warn(
             channel::STORE,
             "the key could not be moved out of the store, so it stays where a backup reaches it",
@@ -1983,14 +1986,14 @@ mod tests {
         std::fs::create_dir_all(&store).unwrap();
         std::fs::write(store.join(KEEP), [7u8; 32]).unwrap();
 
-        brought_home(&store, &private);
+        brought_home(&store, Private(&private));
 
         assert!(
             !store.join(KEEP).exists(),
             "the key stayed where a backup reaches it"
         );
         assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [7u8; 32]);
-        assert_eq!(secret(&private).unwrap(), [7u8; 32]);
+        assert_eq!(secret(Private(&private)).unwrap(), [7u8; 32]);
     }
 
     #[test]
@@ -2000,7 +2003,7 @@ mod tests {
         let private = tmp.path().join("config/private");
         std::fs::create_dir_all(&store).unwrap();
 
-        brought_home(&store, &private);
+        brought_home(&store, Private(&private));
 
         assert!(
             !private.join(KEEP).exists(),
@@ -2016,8 +2019,8 @@ mod tests {
         std::fs::create_dir_all(&store).unwrap();
         std::fs::write(store.join(KEEP), [3u8; 32]).unwrap();
 
-        brought_home(&store, &private);
-        brought_home(&store, &private);
+        brought_home(&store, Private(&private));
+        brought_home(&store, Private(&private));
 
         assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [3u8; 32]);
     }
@@ -2032,7 +2035,7 @@ mod tests {
         std::fs::write(private.join(KEEP), [2u8; 32]).unwrap();
         std::fs::write(store.join(KEEP), [1u8; 32]).unwrap();
 
-        brought_home(&store, &private);
+        brought_home(&store, Private(&private));
 
         assert_eq!(
             std::fs::read(private.join(KEEP)).unwrap(),
@@ -2055,7 +2058,7 @@ mod tests {
         std::fs::create_dir_all(&store).unwrap();
         std::fs::write(store.join(KEEP), b"not a key").unwrap();
 
-        brought_home(&store, &private);
+        brought_home(&store, Private(&private));
 
         assert!(
             store.join(KEEP).exists(),
