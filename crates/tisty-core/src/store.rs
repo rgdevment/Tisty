@@ -376,12 +376,32 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
     }
 
     let now = private.as_ref().join(KEEP);
-    if std::fs::read(&now).is_ok_and(|there| there != held) {
-        witness::warn(
-            channel::STORE,
-            "a newer key was set aside for the one this store was already sealing with",
-            &[("at", Fact::Path(now.clone()))],
-        );
+    match std::fs::read(&now) {
+        // One inside a store that already moved its key out was made by an older build opening
+        // it, so it is the newcomer and the one out here is what the parcels were sealed with.
+        Ok(there) if there != held => {
+            let aside = private.as_ref().join(format!("{KEEP}.was"));
+            if write_atomic(&aside, &held).is_err() {
+                witness::error(
+                    channel::STORE,
+                    "a second key turned up inside the store and could not be set aside",
+                    &[("at", Fact::Path(was.clone()))],
+                );
+                return;
+            }
+            witness::warn(
+                channel::STORE,
+                "an older build made a second key inside the store; it was set aside and the one this store seals with was kept",
+                &[("at", Fact::Path(aside))],
+            );
+            swept(&was);
+            return;
+        }
+        Ok(_) => {
+            swept(&was);
+            return;
+        }
+        Err(_) => {}
     }
 
     if std::fs::create_dir_all(private.as_ref()).is_err() || write_atomic(&now, &held).is_err() {
@@ -393,7 +413,22 @@ pub fn brought_home(store_root: impl AsRef<Path>, private: impl AsRef<Path>) {
         return;
     }
     let _ = crate::paths::ours_alone(&now);
-    let _ = std::fs::remove_file(&was);
+    swept(&was);
+}
+
+fn swept(at: &Path) {
+    if let Err(e) = std::fs::remove_file(at)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        witness::error(
+            channel::STORE,
+            "the key is still inside the store, where a backup reaches it",
+            &[
+                ("at", Fact::Path(at.to_path_buf())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
 }
 
 pub fn peek_identity(store_root: impl AsRef<Path>) -> Option<String> {
@@ -1988,18 +2023,27 @@ mod tests {
     }
 
     #[test]
-    fn the_key_the_store_was_already_sealing_with_wins() {
+    fn a_key_that_turns_up_inside_an_already_moved_store_does_not_win() {
         let tmp = tempfile::tempdir().unwrap();
         let store = tmp.path().join("data/store");
         let private = tmp.path().join("config/private");
         std::fs::create_dir_all(&store).unwrap();
         std::fs::create_dir_all(&private).unwrap();
-        std::fs::write(store.join(KEEP), [1u8; 32]).unwrap();
         std::fs::write(private.join(KEEP), [2u8; 32]).unwrap();
+        std::fs::write(store.join(KEEP), [1u8; 32]).unwrap();
 
         brought_home(&store, &private);
 
-        assert_eq!(std::fs::read(private.join(KEEP)).unwrap(), [1u8; 32]);
+        assert_eq!(
+            std::fs::read(private.join(KEEP)).unwrap(),
+            [2u8; 32],
+            "the newcomer took over from what this store seals with"
+        );
+        assert_eq!(
+            std::fs::read(private.join(format!("{KEEP}.was"))).unwrap(),
+            [1u8; 32],
+            "the one it displaced was destroyed instead of set aside"
+        );
         assert!(!store.join(KEEP).exists());
     }
 

@@ -2476,3 +2476,25 @@ fn letting_an_agent_in_from_a_shell_with_no_terminal_is_refused_at_the_persons_s
         "no agent was minted: {config}"
     );
 }
+
+/// Every way in has to move it, not just the two that happened to be wired. The whole point of
+/// taking the key out of the store is lost on a machine where some entry point never does it.
+#[test]
+fn any_command_at_all_takes_the_key_out_of_the_store() {
+    let cli = Cli::new();
+    cli.run(&["add", "algo"]);
+
+    let inside = cli.home.path().join("data/store/.store-key");
+    std::fs::write(&inside, [4u8; 32]).unwrap();
+
+    cli.run(&["ls"]);
+
+    assert!(
+        !inside.exists(),
+        "a command ran and left the key where a backup reaches it"
+    );
+    assert_eq!(
+        std::fs::read(cli.home.path().join("config/private/.store-key")).unwrap(),
+        [4u8; 32]
+    );
+}
