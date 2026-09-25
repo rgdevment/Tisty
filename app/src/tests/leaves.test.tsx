@@ -27,34 +27,20 @@ describe("the index at the end of a document", () => {
   const show = (told: string[]) => {
     const onOpen = vi.fn();
     const onPut = vi.fn();
-    render(<Contents pages={pages} told={new Set(told)} onOpen={onOpen} onPut={onPut} />);
+    render(<Contents pages={pages} told={told} onOpen={onOpen} onPut={onPut} />);
     return { onOpen, onPut };
   };
 
   const dragged = (told: string[]) => {
-    const onMove = vi.fn();
-    render(
-      <Contents
-        pages={pages}
-        told={new Set(told)}
-        onOpen={vi.fn()}
-        onPut={vi.fn()}
-        onMove={onMove}
-      />,
-    );
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "done" as const);
+    render(<Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />);
     return onMove;
   };
 
   const carried = (told: string[]) => {
-    const onMove = vi.fn();
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "done" as const);
     const { container } = render(
-      <Contents
-        pages={pages}
-        told={new Set(told)}
-        onOpen={vi.fn()}
-        onPut={vi.fn()}
-        onMove={onMove}
-      />,
+      <Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
     );
     return { onMove, container };
   };
@@ -65,7 +51,7 @@ describe("the index at the end of a document", () => {
     const end = container.querySelector(".leaf-end");
     if (!end) throw new Error("the list ends with nowhere to drop");
 
-    fireEvent.dragStart(rows[0]);
+    fireEvent.dragStart(rows[0].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(end);
     fireEvent.drop(end);
 
@@ -78,7 +64,7 @@ describe("the index at the end of a document", () => {
     const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[2]);
+    fireEvent.dragStart(rows[2].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(rows[0]);
     expect(rows[0].className).toContain("leaf-over");
 
@@ -97,9 +83,9 @@ describe("the index at the end of a document", () => {
     const { container } = carried(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[2]);
+    fireEvent.dragStart(rows[2].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(rows[0]);
-    fireEvent.dragEnd(rows[2]);
+    fireEvent.dragEnd(rows[2].querySelector("[data-leaf]") as HTMLElement);
 
     expect(rows[0].className).not.toContain("leaf-over");
     const end = container.querySelector(".leaf-end");
@@ -118,7 +104,7 @@ describe("the index at the end of a document", () => {
     const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[2]);
+    fireEvent.dragStart(rows[2].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.dragOver(rows[0]);
     fireEvent.drop(rows[0]);
 
@@ -131,7 +117,7 @@ describe("the index at the end of a document", () => {
     const onMove = dragged(["a3f1-0002", "a3f1-0003", "a3f1-0004"]);
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[1]);
+    fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[1]);
 
     expect(onMove).not.toHaveBeenCalled();
@@ -141,8 +127,8 @@ describe("the index at the end of a document", () => {
     dragged(["a3f1-0002", "a3f1-0003"]);
     const rows = screen.getAllByRole("listitem");
 
-    expect(rows[0].getAttribute("draggable")).toBe("true");
-    expect(rows[2].getAttribute("draggable")).toBe("false");
+    expect(rows[0].querySelector("[data-leaf]")?.getAttribute("draggable")).toBe("true");
+    expect(rows[2].querySelector("[data-leaf]")?.getAttribute("draggable")).toBe("false");
   });
 
   it("numbers the pages the text names and leaves the rest without a number", () => {
@@ -179,7 +165,7 @@ describe("the index at the end of a document", () => {
 
   it("says nothing at all when the document holds no pages", () => {
     const { container } = render(
-      <Contents pages={[]} told={new Set()} onOpen={vi.fn()} onPut={vi.fn()} />,
+      <Contents pages={[]} told={[]} onOpen={vi.fn()} onPut={vi.fn()} />,
     );
 
     expect(container.innerHTML).toBe("");
@@ -196,7 +182,7 @@ describe("the head of a page", () => {
     away: false,
   };
 
-  const told = new Set(pages.map((one) => one.file));
+  const told = pages.map((one) => one.file);
 
   const show = (here: string) => {
     const onOpen = vi.fn();
@@ -210,6 +196,20 @@ describe("the head of a page", () => {
     expect(screen.getByText("Bases de datos")).toBeTruthy();
     expect(screen.getByText("Page 2 of 3")).toBeTruthy();
   });
+  it("walks the sisters in the order the text names them, not the order they arrived", () => {
+    const onOpen = vi.fn();
+    render(
+      <Ribbon
+        of={of}
+        sisters={pages}
+        told={["a3f1-0004", "a3f1-0002", "a3f1-0003"]}
+        here="a3f1-0002"
+        onOpen={onOpen}
+      />,
+    );
+
+    expect(screen.getByText("Page 2 of 3")).toBeTruthy();
+  });
 
   it("says when the page it would open next is one the archive holds", () => {
     const shelved: Filed[] = pages.map((one, at) =>
@@ -219,7 +219,7 @@ describe("the head of a page", () => {
       <Ribbon
         of={of}
         sisters={shelved}
-        told={new Set(shelved.map((one) => one.file))}
+        told={shelved.map((one) => one.file)}
         here={shelved[1].file}
         onOpen={vi.fn()}
       />,
@@ -250,13 +250,7 @@ describe("the head of a page", () => {
 
   it("gives a page its document never names no number and nowhere to step", () => {
     render(
-      <Ribbon
-        of={of}
-        sisters={pages}
-        told={new Set(["a3f1-0002"])}
-        here="a3f1-0003"
-        onOpen={vi.fn()}
-      />,
+      <Ribbon of={of} sisters={pages} told={["a3f1-0002"]} here="a3f1-0003" onOpen={vi.fn()} />,
     );
 
     expect(screen.getByText("Loose page")).toBeTruthy();
@@ -280,5 +274,204 @@ describe("the step at the foot of a page", () => {
     await userEvent.click(screen.getByText("El túnel"));
 
     expect(onOpen).toHaveBeenCalledWith(pages[1]);
+  });
+});
+
+describe("moving a chapter one place at a time", () => {
+  const shown = (told: string[]) => {
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "done" as const);
+    const { container } = render(
+      <Contents pages={pages} told={told} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
+    );
+    const rows = () => [...container.querySelectorAll<HTMLElement>("[data-leaf]")];
+    const arrow = (file: string, by: -1 | 1) =>
+      container.querySelector<HTMLButtonElement>(`[data-move="${file}:${by}"]`);
+    return { onMove, rows, arrow, container };
+  };
+
+  const all = ["a3f1-0002", "a3f1-0003", "a3f1-0004"];
+
+  it("tells every chapter which keys move it", () => {
+    const { rows } = shown(all);
+
+    for (const one of rows()) {
+      expect(one.getAttribute("aria-keyshortcuts")).toBe("Alt+ArrowUp Alt+ArrowDown");
+    }
+  });
+
+  it("keeps the buttons outside the part that drags, so a press on one is a press", () => {
+    const { arrow, container } = shown(all);
+    const down = arrow("a3f1-0002", 1);
+    if (!down) throw new Error("no way down");
+
+    expect(down.closest('[draggable="true"]')).toBeNull();
+    expect(container.querySelector('[data-leaf="a3f1-0002"]')?.getAttribute("draggable")).toBe(
+      "true",
+    );
+  });
+
+  it("offers a button for each way a chapter can go, and none off the ends", () => {
+    const { arrow } = shown(all);
+
+    expect(arrow("a3f1-0002", -1)?.disabled).toBe(true);
+    expect(arrow("a3f1-0002", 1)?.disabled).toBe(false);
+    expect(arrow("a3f1-0004", -1)?.disabled).toBe(false);
+    expect(arrow("a3f1-0004", 1)?.disabled).toBe(true);
+  });
+
+  it("moves a chapter from the button, with no keyboard at all", () => {
+    const { onMove, arrow } = shown(all);
+    const down = arrow("a3f1-0002", 1);
+    if (!down) throw new Error("no way down");
+
+    fireEvent.click(down);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+    expect(onMove.mock.calls[0][1]).toBe("a3f1-0004");
+  });
+
+  it("names each button for what it does to which chapter", () => {
+    const { arrow } = shown(all);
+
+    expect(arrow("a3f1-0003", -1)?.getAttribute("aria-label")).toContain("El túnel");
+    expect(arrow("a3f1-0003", 1)?.getAttribute("aria-label")).toContain("El túnel");
+  });
+
+  it("takes a chapter up one place, before the one above it", () => {
+    const { onMove, rows } = shown(all);
+
+    fireEvent.keyDown(rows()[2], { key: "ArrowUp", altKey: true });
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0004");
+    expect(onMove.mock.calls[0][1]).toBe("a3f1-0003");
+  });
+
+  it("takes a chapter down one place, before the one after the next", () => {
+    const { onMove, rows } = shown(all);
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true });
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+    expect(onMove.mock.calls[0][1]).toBe("a3f1-0004");
+  });
+
+  it("sends the last chapter down to nowhere in particular, which is where last is", () => {
+    const { onMove, rows } = shown(all);
+
+    fireEvent.keyDown(rows()[1], { key: "ArrowDown", altKey: true });
+
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0003");
+    expect(onMove.mock.calls[0][1]).toBeNull();
+  });
+
+  it("moves nothing off either end", () => {
+    const { onMove, rows } = shown(all);
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowUp", altKey: true });
+    fireEvent.keyDown(rows()[2], { key: "ArrowDown", altKey: true });
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("says where the chapter went, in a region that was there all along", () => {
+    const { rows } = shown(all);
+    const aloud = screen.getByRole("status");
+    expect(aloud.textContent).toBe("");
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown", altKey: true });
+
+    expect(aloud.textContent).toContain("El pod");
+    expect(aloud.textContent).toContain("2");
+  });
+
+  it("leaves the arrows alone when they come without Alt", () => {
+    const { onMove, rows } = shown(all);
+
+    fireEvent.keyDown(rows()[0], { key: "ArrowDown" });
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("answers the keys from an arrow too, so a second press moves it again", () => {
+    const { onMove, arrow } = shown(all);
+    const down = arrow("a3f1-0002", 1);
+    if (!down) throw new Error("no way down");
+
+    fireEvent.keyDown(down, { key: "ArrowDown", altKey: true });
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0][0].file).toBe("a3f1-0002");
+  });
+
+  it("says nothing when the move was refused", () => {
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "held" as const);
+    const { container } = render(
+      <Contents pages={pages} told={all} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
+    );
+    const down = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:1"]');
+    if (!down) throw new Error("no way down");
+
+    fireEvent.click(down);
+
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
+  it("asks for no focus when the move was refused", () => {
+    const onMove = vi.fn((_page: Filed, _before: string | null) => "titled" as const);
+    const { container, rerender } = render(
+      <Contents pages={pages} told={all} onOpen={vi.fn()} onPut={vi.fn()} onMove={onMove} />,
+    );
+    const down = container.querySelector<HTMLButtonElement>('[data-move="a3f1-0002:1"]');
+    if (!down) throw new Error("no way down");
+    fireEvent.click(down);
+    const away = document.createElement("input");
+    document.body.append(away);
+    away.focus();
+
+    // What a later change to the text would do: the index draws again.
+    rerender(
+      <Contents
+        pages={pages}
+        told={[...all].reverse()}
+        onOpen={vi.fn()}
+        onPut={vi.fn()}
+        onMove={onMove}
+      />,
+    );
+
+    expect(document.activeElement).toBe(away);
+    away.remove();
+  });
+
+  it("offers no keys, and moves nothing, on a page the text never names", () => {
+    const { onMove } = shown(["a3f1-0002"]);
+    const rows = screen.getAllByRole("listitem");
+    const loose = rows[1].querySelector("button");
+    if (!loose) throw new Error("the loose row has no button");
+
+    expect(loose.getAttribute("aria-keyshortcuts")).toBeNull();
+    fireEvent.keyDown(loose, { key: "ArrowUp", altKey: true });
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("numbers the chapters in the order the text names them, not the order they arrived", () => {
+    shown(["a3f1-0004", "a3f1-0002", "a3f1-0003"]);
+
+    expect(
+      screen.getAllByRole("listitem").map((one) => one.textContent?.replace(/\s+/g, " ").trim()),
+    ).toEqual(["01La VPN cae↑↓", "02El pod↑↓", "03El túnel↑↓"]);
+  });
+
+  it("promises only what is on the row, and names no key it cannot offer", () => {
+    shown(all);
+
+    const said = screen.getByText(/To move one/).textContent ?? "";
+    expect(said).toContain("arrows on its row");
+    expect(said).not.toMatch(/Alt|drag/);
   });
 });

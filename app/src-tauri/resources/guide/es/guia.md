@@ -258,11 +258,16 @@ Una página es un documento como cualquier otro —mismo archivo en el disco, mi
 **Para añadirle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si el documento ya está escrito. Queda nombrada ahí mismo, dibujada como un hueco en la hoja con lo que esa página contiene debajo.
 
 > [!IMPORTANT]
-> El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Para mover un capítulo, arrastra su fila en el índice del final del documento — o corta y pega su bloque, que es el mismo movimiento hecho a mano.
+> El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Para mover un capítulo, usa las flechas de su fila en el índice del final del documento, o Alt y una tecla de flecha sobre la fila — o corta y pega su bloque, que es el mismo movimiento hecho a mano.
 
 Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su sitio en el texto. Dentro de una página verás arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
 
-En el árbol, un documento soltado encima de otro se vuelve página suya.
+Lo que nombra una página es su tarjeta, el bloque que Tisty escribe al crearla. Hablar de una página en una frase —un enlace a ella en medio de un párrafo— la señala sin darle sitio, como una nota al pie señala un capítulo sin serlo; una página de la que solo has hablado así se queda bajo la raya hasta que le pongas una tarjeta.
+
+En el árbol, un documento soltado encima de otro se vuelve página suya. Si tienes ese documento
+abierto, la línea que la nombra va al final de lo que estás leyendo, que es donde quedará, y
+desde ahí la mueves como cualquier otro capítulo; si no, la página espera en el índice, a un clic
+de tener su sitio en el texto.
 
 **Una página se archiva sola** con el botón derecho, y no baja al estante: se queda donde vive,
 dentro de su documento, con otro icono y atenuada. Ahí se lee y se exporta, pero no se escribe.

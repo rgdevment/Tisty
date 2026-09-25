@@ -95,7 +95,10 @@ describe("a document that holds pages, open", () => {
 
     await waitFor(() => expect(screen.getByText("El pod")).toBeTruthy());
     const rows = screen.getAllByRole("listitem");
-    expect(rows.map((one) => one.textContent)).toEqual(["01El pod", "—El túnelPut it in the text"]);
+    expect(rows.map((one) => one.textContent?.replace(/\s+/g, " ").trim())).toEqual([
+      "01El pod↑↓",
+      "—El túnelPut it in the text",
+    ]);
   });
 
   it("opens a page from the index", async () => {
@@ -170,10 +173,12 @@ describe("a page, open", () => {
     await waitFor(() => expect(screen.getByText("El túnel")).toBeTruthy());
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[1]);
+    fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[0]);
 
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("El túnel"));
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("inside something else"));
+    expect(onError).not.toHaveBeenCalledWith(expect.stringContaining("drag"));
   });
 
   it("says why a page named by a link has no block to drag", async () => {
@@ -185,9 +190,24 @@ describe("a page, open", () => {
     await waitFor(() => expect(screen.getByText("El túnel")).toBeTruthy());
     const rows = screen.getAllByRole("listitem");
 
-    fireEvent.dragStart(rows[1]);
+    fireEvent.dragStart(rows[1].querySelector("[data-leaf]") as HTMLElement);
     fireEvent.drop(rows[0]);
 
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("El túnel"));
     expect(onError).toHaveBeenCalledWith(expect.stringContaining("named by a link"));
+    expect(onError).not.toHaveBeenCalledWith(expect.stringContaining("drag"));
+  });
+
+  it("hands up no way to put a page in a document nothing can be written into", async () => {
+    store.bodies["a3f1-0001"] =
+      "# Bases de datos\n\n![El pod](tisty:doc/a3f1-0002)\n\n![El túnel](tisty:doc/a3f1-0003)";
+    const shut = known.map((one) => (one.file === "a3f1-0001" ? { ...one, locked: true } : one));
+    const paging = vi.fn();
+    render(
+      <Docs open="a3f1-0001" known={shut} onKept={vi.fn()} onError={vi.fn()} onPaging={paging} />,
+    );
+
+    await waitFor(() => expect(paging).toHaveBeenCalled());
+    expect(paging.mock.calls[paging.mock.calls.length - 1][0]).toBeNull();
   });
 });

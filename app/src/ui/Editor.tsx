@@ -235,8 +235,8 @@ interface Props {
   onOutline?: (heads: Head[]) => void;
   onLaid?: (root: HTMLElement) => void;
   onReady?: (read: () => unknown) => void;
-  onInsert?: (put: (file: string, title: string) => void) => void;
-  onOrder?: (move: (file: string, before: string | null) => Moved) => void;
+  onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
+  onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   seek?: number;
   anchor?: string;
   onSeen?: (at: number) => void;
@@ -451,11 +451,6 @@ export default function Editor({
     if (text !== null) hands.current.onShaped?.(text);
     outlined.current(editor);
     hands.current.onLaid?.(editor.view.dom as HTMLElement);
-    hands.current.onReady?.(() => editor.getJSON());
-    hands.current.onInsert?.((file, title) =>
-      editor.chain().focus("end").insertContent(card(file, title)).run(),
-    );
-    hands.current.onOrder?.((file, before) => cardMoved(editor, file, before));
   }, []);
 
   const listed = useRef("");
@@ -477,6 +472,25 @@ export default function Editor({
     onSelectionUpdate: moved,
     onCreate: shaped,
   });
+
+  /// What reaches out of the editor is published from a committed effect, never from `onCreate`:
+  /// a render React throws away still builds an editor and still fires it, and whoever holds the
+  /// last one would be holding a ghost that answers about a document nobody is looking at.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    hands.current.onReady?.(() => editor.getJSON());
+    hands.current.onInsert?.((file, title) => {
+      // A document takes its title from the first thing it says, so a card put into one that says
+      // nothing yet would become its name. The core refuses the same write for the same reason.
+      if (!editor.state.doc.textContent.trim()) return false;
+      return editor.chain().focus("end").insertContent(card(file, title)).run();
+    });
+    hands.current.onOrder?.((file, before) => cardMoved(editor, file, before));
+    return () => {
+      hands.current.onInsert?.(null);
+      hands.current.onOrder?.(null);
+    };
+  }, [editor]);
 
   const blocks: Block[] = editor
     ? [

@@ -4,7 +4,7 @@ import { fill, t } from "../locales";
 interface Props {
   of: Filed;
   sisters: Filed[];
-  told?: Set<string>;
+  told?: string[];
   here: string;
   onOpen: (doc: Filed) => void;
 }
@@ -15,7 +15,11 @@ const named = (one: Filed) =>
     : one.title || t("untitledDoc");
 
 export default function Ribbon({ of, sisters, told, here, onOpen }: Props) {
-  const read = told ? sisters.filter((one) => told.has(one.file)) : [];
+  const read = told
+    ? told
+        .map((file) => sisters.find((one) => one.file === file))
+        .filter((one): one is Filed => Boolean(one))
+    : [];
   const at = told ? read.findIndex((one) => one.file === here) : -1;
   const back = at > 0 ? read[at - 1] : undefined;
   const on = at >= 0 && at + 1 < read.length ? read[at + 1] : undefined;

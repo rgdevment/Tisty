@@ -1,41 +1,76 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Filed } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
+import type { Moved } from "../paging";
+import { inTextOrder } from "../paging";
 import Glyph from "./Glyph";
 
 interface Props {
   pages: Filed[];
-  told: Set<string>;
+  told: string[];
   onOpen: (page: Filed) => void;
   onPut?: (page: Filed) => void;
-  onMove?: (page: Filed, before: string | null) => void;
+  onMove?: (page: Filed, before: string | null) => Moved | undefined;
 }
-
-const END = "\u0000end";
 
 export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) {
   const [carried, setCarried] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  const [atEnd, setAtEnd] = useState(false);
+  const [said, setSaid] = useState("");
+  const wanted = useRef<{ file: string; by: -1 | 1 } | null>(null);
+  const box = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const back = wanted.current;
+    if (!back) return;
+    wanted.current = null;
+    const at = box.current;
+    const same = at?.querySelector<HTMLButtonElement>(
+      `[data-move="${back.file}:${back.by}"]:not([disabled])`,
+    );
+    (same ?? at?.querySelector<HTMLElement>(`[data-leaf="${back.file}"]`))?.focus();
+  }, [told]);
 
   if (pages.length === 0) return null;
-  const inside = pages.filter((one) => told.has(one.file));
-  const loose = pages.filter((one) => !told.has(one.file));
+  const held = new Set(told);
+  const read = inTextOrder(pages, told);
+  const inside = read.filter((one) => held.has(one.file));
+  const loose = read.filter((one) => !held.has(one.file));
+
+  const named = (page: Filed) => page.title || t("untitledDoc");
 
   const drops = (page: Filed | null) => {
     if (!onMove || !carried || (page && carried === page.file)) return;
-    const held = inside.find((one) => one.file === carried);
-    if (!held) return;
-    onMove(held, page ? page.file : null);
+    const took = inside.find((one) => one.file === carried);
+    if (!took) return;
+    onMove(took, page ? page.file : null);
   };
 
-  const row = (page: Filed, at: string, movable: boolean) => (
+  /// A chapter moves one place at a time, so where it lands is the row it swaps with. Going down
+  /// means going before the one after that, and the last place means going before none. Nothing is
+  /// said and no focus is asked for until it has actually happened: a refused move that announced
+  /// itself would be a lie, and one that asked for focus would take it on the next keystroke.
+  const moved = (at: number, by: -1 | 1) => {
+    const page = inside[at];
+    const to = at + by;
+    if (!onMove || !page || to < 0 || to >= inside.length) return;
+    const before = by < 0 ? inside[at - 1].file : (inside[at + 2]?.file ?? null);
+    if (onMove(page, before) !== "done") return;
+    wanted.current = { file: page.file, by };
+    setSaid(fill("leafMoved", named(page), String(to + 1)));
+  };
+
+  const row = (page: Filed, at: number, movable: boolean) => (
     <li
       key={page.id}
-      draggable={movable}
-      onDragStart={() => setCarried(page.file)}
-      onDragEnd={() => {
-        setCarried(null);
-        setOver(null);
+      // The keys are caught here so they answer from the arrows as well as from the name: after a
+      // move the focus is on an arrow, and a second press has to move the chapter again.
+      onKeyDown={(e) => {
+        if (!movable || !e.altKey) return;
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+        e.preventDefault();
+        moved(at, e.key === "ArrowUp" ? -1 : 1);
       }}
       onDragOver={(e) => {
         if (!movable || !carried) return;
@@ -58,14 +93,23 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
     >
       <button
         type="button"
+        data-leaf={page.file}
+        // Only the name drags. A button inside a draggable element never gets its click: the
+        // press starts a drag instead, which is what the tree learned the hard way.
+        draggable={movable}
+        onDragStart={() => setCarried(page.file)}
+        onDragEnd={() => {
+          setCarried(null);
+          setOver(null);
+          setAtEnd(false);
+        }}
         onClick={() => onOpen(page)}
-        aria-label={
-          page.away ? `${page.title || t("untitledDoc")} — ${t("isArchived")}` : undefined
-        }
+        aria-keyshortcuts={movable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
+        aria-label={page.away ? `${named(page)} — ${t("isArchived")}` : undefined}
         className="leaf-open"
       >
-        <span className="leaf-num">{at}</span>
-        <span className="leaf-name">{page.title || t("untitledDoc")}</span>
+        <span className="leaf-num">{at >= 0 ? String(at + 1).padStart(2, "0") : "—"}</span>
+        <span className="leaf-name">{named(page)}</span>
         {page.archived && <Glyph name="archive" className="leaf-mark" />}
         {page.flagged && !page.away && (
           <span aria-hidden="true" className="leaf-flag">
@@ -73,7 +117,33 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
           </span>
         )}
       </button>
-      {onPut && !told.has(page.file) && (
+      {movable && at >= 0 && (
+        <span className="leaf-moves">
+          <button
+            type="button"
+            data-move={`${page.file}:-1`}
+            disabled={at === 0}
+            onClick={() => moved(at, -1)}
+            title={fill("leafUp", named(page))}
+            aria-label={fill("leafUp", named(page))}
+            className="leaf-move"
+          >
+            <span aria-hidden="true">↑</span>
+          </button>
+          <button
+            type="button"
+            data-move={`${page.file}:1`}
+            disabled={at === inside.length - 1}
+            onClick={() => moved(at, 1)}
+            title={fill("leafDown", named(page))}
+            aria-label={fill("leafDown", named(page))}
+            className="leaf-move"
+          >
+            <span aria-hidden="true">↓</span>
+          </button>
+        </span>
+      )}
+      {onPut && !held.has(page.file) && (
         <button type="button" onClick={() => onPut(page)} className="leaf-put">
           {t("putLeaf")}
         </button>
@@ -82,38 +152,42 @@ export default function Contents({ pages, told, onOpen, onPut, onMove }: Props) 
   );
 
   return (
-    <section aria-label={t("theseLeaves")} className="leaves">
+    <section ref={box} aria-label={t("theseLeaves")} className="leaves">
       <h2 className="leaves-head">
         {t("theseLeaves")}
         <span className="leaves-many">{pages.length}</span>
       </h2>
       <p className="leaves-why">{loose.length > 0 ? t("someLoose") : t("allInside")}</p>
-      {onMove && inside.length > 1 && <p className="leaves-why">{t("dragLeaves")}</p>}
+      {onMove && inside.length > 1 && <p className="leaves-why">{t("moveLeaves")}</p>}
+      <p role="status" aria-live="polite" className="sr-only">
+        {said}
+      </p>
       <ul className="leaves-list">
-        {inside.map((one, at) => row(one, String(at + 1).padStart(2, "0"), Boolean(onMove)))}
+        {inside.map((one, at) => row(one, at, Boolean(onMove)))}
         {onMove && inside.length > 1 && (
           <li
             aria-hidden="true"
             onDragOver={(e) => {
               if (!carried) return;
               e.preventDefault();
-              setOver(END);
+              setAtEnd(true);
             }}
-            onDragLeave={() => setOver((one) => (one === END ? null : one))}
+            onDragLeave={() => setAtEnd(false)}
             onDrop={(e) => {
               e.preventDefault();
               drops(null);
               setCarried(null);
               setOver(null);
+              setAtEnd(false);
             }}
-            className={over === END && carried ? "leaf-end leaf-over" : "leaf-end"}
+            className={atEnd && carried ? "leaf-end leaf-over" : "leaf-end"}
           />
         )}
       </ul>
       {loose.length > 0 && (
         <>
           <div aria-hidden="true" className="leaves-split" />
-          <ul className="leaves-list">{loose.map((one) => row(one, "—", false))}</ul>
+          <ul className="leaves-list">{loose.map((one) => row(one, -1, false))}</ul>
         </>
       )}
     </section>

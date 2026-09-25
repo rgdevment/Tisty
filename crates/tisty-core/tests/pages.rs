@@ -1060,6 +1060,75 @@ fn a_body_that_names_its_pages_in_order_moves_nothing() {
 }
 
 #[test]
+fn a_book_is_read_in_the_order_its_own_log_is_about_to_settle_to() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
+    doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
+    doc_add(&mut store, "a3f1-0004", "a2", None, Some(book));
+    doc_add(&mut store, "a3f1-0005", "a3", None, Some(book));
+
+    let body = named_in(&["a3f1-0004", "a3f1-0002"]);
+    let mut state = replayed(&world);
+    let read: Vec<String> = state
+        .pages_read(book, &body)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    assert_eq!(
+        read,
+        ["a3f1-0004", "a3f1-0003", "a3f1-0002", "a3f1-0005"],
+        "the two it names swap between themselves; the two it says nothing about do not move"
+    );
+
+    for (id, order) in state.pages_told(book, &body) {
+        moved(&mut store, id, &order);
+    }
+    state = replayed(&world);
+    let settled: Vec<String> = state
+        .pages_of(book)
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    assert_eq!(
+        settled, read,
+        "a reader must never be shown an order the next save undoes"
+    );
+    assert_eq!(
+        state
+            .pages_read(book, &body)
+            .iter()
+            .map(|one| one.file.clone())
+            .collect::<Vec<String>>(),
+        read,
+        "and reading a settled book must be the same as reading an unsettled one"
+    );
+}
+
+#[test]
+fn a_book_that_names_only_its_newest_page_does_not_turn_inside_out() {
+    let world = World::new();
+    let mut store = world.store("dev_a");
+    let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
+    for (at, file) in ["a3f1-0002", "a3f1-0003", "a3f1-0004"].iter().enumerate() {
+        doc_add(&mut store, file, &format!("a{at}"), None, Some(book));
+    }
+
+    let state = replayed(&world);
+    let read: Vec<String> = state
+        .pages_read(book, &named_in(&["a3f1-0004"]))
+        .iter()
+        .map(|one| one.file.clone())
+        .collect();
+    assert_eq!(
+        read,
+        ["a3f1-0002", "a3f1-0003", "a3f1-0004"],
+        "the one page a legacy book learns to name must not become its first chapter"
+    );
+}
+
+#[test]
 fn a_page_the_body_never_names_keeps_the_place_it_had() {
     let world = World::new();
     let mut store = world.store("dev_a");
@@ -1413,7 +1482,7 @@ fn a_page_named_with_the_angle_bracket_destination_form_is_still_recognised() {
     let one = doc_add(&mut store, "a3f1-0002", "a0", None, Some(book));
     let two = doc_add(&mut store, "a3f1-0003", "a1", None, Some(book));
 
-    let body = "[Dos](<tisty:doc/a3f1-0003>)\n\n[Uno](<tisty:doc/a3f1-0002>)\n\n";
+    let body = "![Dos](<tisty:doc/a3f1-0003>)\n\n![Uno](<tisty:doc/a3f1-0002>)\n\n";
 
     let mut state = replayed(&world);
     for (id, order) in state.pages_told(book, body) {
@@ -1471,7 +1540,7 @@ fn a_page_removed_from_the_text_and_later_put_back_returns_to_where_it_is_named(
 }
 
 #[test]
-fn a_page_named_by_a_plain_inline_link_rather_than_a_card_is_still_ordered() {
+fn a_page_only_mentioned_by_a_plain_inline_link_is_not_given_a_place_by_it() {
     let world = World::new();
     let mut store = world.store("dev_a");
     let book = doc_add(&mut store, "a3f1-0001", "a0", None, None);
@@ -1481,19 +1550,20 @@ fn a_page_named_by_a_plain_inline_link_rather_than_a_card_is_still_ordered() {
     let body =
         "visto en [la segunda](tisty:doc/a3f1-0003) antes que [la primera](tisty:doc/a3f1-0002)\n";
 
-    let mut state = replayed(&world);
-    for (id, order) in state.pages_told(book, body) {
-        moved(&mut store, id, &order);
-    }
-    state = replayed(&world);
+    let state = replayed(&world);
 
+    assert!(
+        state.pages_told(book, body).is_empty(),
+        "a sentence that points at both is no order for either"
+    );
     assert_eq!(
         state
             .pages_of(book)
             .iter()
             .map(|k| k.id)
             .collect::<Vec<_>>(),
-        vec![two, one]
+        vec![one, two],
+        "so they keep the places they had"
     );
 }
 

@@ -227,19 +227,23 @@ fn a_run_of_code_left_open_is_shut_rather_than_read_as_html() {
 }
 
 #[test]
-fn a_page_named_the_old_way_is_still_found() {
-    let one = "[Marzo](tisty:doc/ab12-0002)";
-    let old = "![Marzo](tisty:doc/ab12-0002)";
+fn a_card_is_what_names_a_page_and_a_link_to_it_is_a_mention() {
+    let said = "[Marzo](tisty:doc/ab12-0002)";
+    let card = "![Marzo](tisty:doc/ab12-0002)";
 
-    assert_eq!(
-        tisty_core::refs::papers(one),
-        vec!["ab12-0002".to_string()],
-        "a card written by hand, which the window reads too"
+    assert!(
+        tisty_core::refs::papers(said).is_empty(),
+        "a sentence that points at a page is not the page's place in the book"
     );
     assert_eq!(
-        tisty_core::refs::papers(old),
+        tisty_core::refs::papers(card),
         vec!["ab12-0002".to_string()],
-        "and the shape Tisty writes, which the window draws as a card"
+        "the shape Tisty writes, which the window draws as a card"
+    );
+    assert_eq!(
+        tisty_core::refs::extract(said).len(),
+        1,
+        "the mention is still a reference, and still keeps what it points at"
     );
 }
 

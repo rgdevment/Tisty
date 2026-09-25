@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Filed } from "../core";
+import { fill } from "../locales";
 import { DOC, docCard } from "../markdown";
-import { card, filed, named, paged, pagesOf, under } from "../paging";
+import { card, filed, inTextOrder, named, paged, pagesOf, under } from "../paging";
 
 const all: Filed[] = [
   {
@@ -78,10 +79,10 @@ describe("what a body names", () => {
     expect([...named(body)]).toEqual(["a-0002"]);
   });
 
-  it("picks up every document it points at, as a card or as a link", () => {
-    const body = "uno ![A](tisty:doc/a3f1-0002)\n\ndos [B](tisty:doc/a3f1-0003)";
+  it("counts the cards, and leaves a page merely mentioned in a sentence alone", () => {
+    const body = "uno ![A](tisty:doc/a3f1-0002)\n\ncomo conté en [B](tisty:doc/a3f1-0003), ya está";
 
-    expect([...named(body)]).toEqual(["a3f1-0002", "a3f1-0003"]);
+    expect([...named(body)]).toEqual(["a3f1-0002"]);
   });
 
   it("does not mistake an ordinary link or an attachment for a document", () => {
@@ -112,5 +113,57 @@ describe("what a body names", () => {
   it("names what the block put in the text points at, so putting one in is found again", () => {
     expect(card("a3f1-0002", "El pod").attrs.src).toBe(`${DOC}a3f1-0002`);
     expect(named(`ya está: ${docCard("a3f1-0002", "El pod")}`).has("a3f1-0002")).toBe(true);
+  });
+});
+
+describe("the order a book is read in", () => {
+  const page = (file: string, title: string): Filed => ({
+    id: file,
+    file,
+    title,
+    folder: null,
+    archived: false,
+    away: false,
+    pageOf: "01A",
+  });
+
+  const held = [page("a-0002", "Uno"), page("a-0003", "Dos"), page("a-0004", "Tres")];
+
+  it("takes the pages the text names, where it names them", () => {
+    const said = inTextOrder(held, ["a-0004", "a-0002", "a-0003"]);
+
+    expect(said.map((one) => one.file)).toEqual(["a-0004", "a-0002", "a-0003"]);
+  });
+
+  it("leaves the ones it does not name exactly where they were", () => {
+    const said = inTextOrder(held, ["a-0004"]);
+
+    expect(said.map((one) => one.file)).toEqual(["a-0002", "a-0003", "a-0004"]);
+  });
+
+  it("deals the named ones back out between their own places, moving no other", () => {
+    const said = inTextOrder(held, ["a-0004", "a-0002"]);
+
+    expect(said.map((one) => one.file)).toEqual(["a-0004", "a-0003", "a-0002"]);
+  });
+
+  it("says nothing about a name the document does not hold", () => {
+    const said = inTextOrder(held, ["a-9999", "a-0003"]);
+
+    expect(said.map((one) => one.file)).toEqual(["a-0002", "a-0003", "a-0004"]);
+  });
+
+  it("keeps the log's order when the text names none of them", () => {
+    expect(inTextOrder(held, []).map((one) => one.file)).toEqual(["a-0002", "a-0003", "a-0004"]);
+  });
+});
+
+describe("a name a sentence says more than once", () => {
+  it("is written in every place the sentence says it", () => {
+    const said = fill("pageOfSure", "Notas", "Diario");
+
+    expect(said).not.toContain("{other}");
+    expect(said).not.toContain("{name}");
+    expect(said.split("Diario").length - 1).toBeGreaterThan(1);
   });
 });

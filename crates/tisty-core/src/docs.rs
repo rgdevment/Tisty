@@ -505,6 +505,96 @@ fn written(root: &Path, id: &str, body: &str) -> Result<()> {
     write_atomic(&at, whole.as_bytes())
 }
 
+/// What happened when a book was asked to name pages at its end. One answer for every door, so
+/// the window and the assistant cannot come to differ about when a line is written.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Naming {
+    Wrote { named: Vec<String>, whole: String },
+    Fenced,
+    WouldRename,
+    Nothing,
+}
+
+pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Result<Naming> {
+    alone(root, || {
+        let body = read(root, parent)?;
+        let told: Vec<String> = crate::refs::paper_lines(&body)
+            .into_iter()
+            .map(|(one, _)| one)
+            .collect();
+        let mut cards: Vec<String> = Vec::new();
+        let mut named: Vec<String> = Vec::new();
+        for one in which {
+            if told.iter().any(|said| said == one) || named.iter().any(|said| said == one) {
+                continue;
+            }
+            // The lock is held over this and all that is wanted is a name: the opening few
+            // thousand bytes hold it, and a chapter can run to half a megabyte.
+            let title = resolve(root, one)
+                .map(|at| opening(&at))
+                .unwrap_or_default();
+            cards.push(crate::refs::card(one, &title));
+            named.push((*one).to_string());
+        }
+        if cards.is_empty() {
+            return Ok(Naming::Nothing);
+        }
+        if ends_fenced(&body) {
+            return Ok(Naming::Fenced);
+        }
+        let whole = named_after(&body, &cards);
+        if titled(&body) != titled(&whole) {
+            return Ok(Naming::WouldRename);
+        }
+        written(root, parent, &whole)?;
+        kept_still(data, parent, &body, &whole)?;
+        Ok(Naming::Wrote {
+            named,
+            whole: settled(&whole),
+        })
+    })
+}
+
+/// A line naming a page is not the person's writing, so it does not take their one step back with
+/// it: the body kept beside the document stays, and only the print of what it stands against moves.
+/// A step back already spent stays spent — carrying that one forward would offer to undo whatever
+/// spent it, which is somebody's writing.
+fn kept_still(data: &Path, id: &str, was: &str, left: &str) -> Result<()> {
+    let stood = crate::attach::printed(settled(was).as_bytes());
+    if before_left_at(data, id).as_deref() != Some(stood.as_str()) {
+        return Ok(());
+    }
+    let Ok(into) = resolve(&data.join("originals-at"), id) else {
+        return Ok(());
+    };
+    write_atomic(
+        &into,
+        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
+    )
+}
+
+fn named_after(body: &str, cards: &[String]) -> String {
+    let ending = match body.contains("\r\n") {
+        true => "\r\n",
+        false => "\n",
+    };
+    let mut lines: Vec<String> = body.lines().map(str::to_string).collect();
+    while lines.last().is_some_and(|one| one.trim().is_empty()) {
+        lines.pop();
+    }
+    for card in cards {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.push(card.clone());
+    }
+    let mut out = lines.join(ending);
+    if !out.ends_with('\n') {
+        out.push_str(ending);
+    }
+    out
+}
+
 pub fn append(root: &Path, id: &str, body: &str) -> Result<String> {
     alone(root, || {
         let was = read(root, id)?;
@@ -1735,6 +1825,176 @@ fn opening(at: &Path) -> String {
     let mut head = Vec::new();
     let _ = file.take(TITLE_AT_MOST).read_to_end(&mut head);
     titled(&String::from_utf8_lossy(&head))
+}
+
+#[cfg(test)]
+mod naming {
+    use super::{Naming, name_at_end};
+
+    fn room() -> tempfile::TempDir {
+        tempfile::tempdir().unwrap()
+    }
+
+    fn wrote(root: &std::path::Path, body: &str) -> String {
+        super::create(root, &crate::event::DeviceId("dev_a".to_string()), body)
+            .unwrap()
+            .id
+    }
+
+    #[test]
+    fn naming_a_page_leaves_the_step_back_the_person_had() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nlo que dije\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        super::edit(at.path(), at.path(), &book, "lo que dije", "otra cosa").unwrap();
+        let kept = super::read_before(at.path(), &book).unwrap();
+        let stood = super::before_left_at(at.path(), &book).unwrap();
+
+        name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        assert_eq!(
+            super::read_before(at.path(), &book).unwrap(),
+            kept,
+            "what the person said before is still there"
+        );
+        assert_ne!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            stood,
+            "and it stands against the body the line is now part of"
+        );
+        let now = super::read(at.path(), &book).unwrap();
+        assert_eq!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            crate::attach::printed(now.as_bytes()),
+            "so going back is still offered"
+        );
+    }
+
+    #[test]
+    fn a_step_back_already_spent_is_not_brought_back_by_naming_a_page() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nlo que dije\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        super::edit(at.path(), at.path(), &book, "lo que dije", "otra cosa").unwrap();
+        // What the window's own save does: it writes, and keeps nothing beside the document.
+        super::written(at.path(), &book, "# Libro\n\notra cosa\n\ny algo mio\n").unwrap();
+        let spent = super::before_left_at(at.path(), &book).unwrap();
+
+        name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        assert_eq!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            spent,
+            "a step back nobody could take is not offered again"
+        );
+        let now = super::read(at.path(), &book).unwrap();
+        assert_ne!(
+            super::before_left_at(at.path(), &book).unwrap(),
+            crate::attach::printed(now.as_bytes()),
+            "so going back still refuses, and nothing of theirs is thrown away"
+        );
+    }
+
+    #[test]
+    fn a_book_with_no_step_back_gains_none_from_being_named_in() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nintro\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        assert!(super::before_left_at(at.path(), &book).is_none());
+    }
+
+    #[test]
+    fn a_page_is_named_at_the_end_with_the_title_it_carries() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nintro\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        let said = name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        let Naming::Wrote { named, whole } = said else {
+            panic!("it had a place to write: {said:?}");
+        };
+        assert_eq!(named, vec![page.clone()]);
+        assert!(
+            whole.ends_with(&format!("![Enero](tisty:doc/{page})\n")),
+            "{whole:?}"
+        );
+    }
+
+    #[test]
+    fn the_same_page_asked_for_twice_is_named_once() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\nintro\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        let said =
+            name_at_end(at.path(), at.path(), &book, &[page.as_str(), page.as_str()]).unwrap();
+
+        let Naming::Wrote { named, whole } = said else {
+            panic!("{said:?}");
+        };
+        assert_eq!(named.len(), 1);
+        assert_eq!(whole.matches(&format!("tisty:doc/{page}")).count(), 1);
+    }
+
+    #[test]
+    fn a_book_ending_inside_a_fence_says_so_and_writes_nothing() {
+        let at = room();
+        let book = wrote(at.path(), "# Libro\n\n~~~sh\nabierta\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        assert_eq!(
+            name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap(),
+            Naming::Fenced
+        );
+    }
+
+    #[test]
+    fn a_book_with_nothing_to_take_a_title_from_says_it_would_be_renamed() {
+        let at = room();
+        let book = wrote(at.path(), "\n\n");
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+
+        assert_eq!(
+            name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap(),
+            Naming::WouldRename
+        );
+    }
+
+    #[test]
+    fn a_page_already_named_leaves_the_book_as_it_was() {
+        let at = room();
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        let book = wrote(
+            at.path(),
+            &format!("# Libro\n\n![Enero](tisty:doc/{page})\n"),
+        );
+
+        assert_eq!(
+            name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap(),
+            Naming::Nothing
+        );
+    }
+
+    #[test]
+    fn a_page_named_only_inside_a_fence_is_named_for_real_as_well() {
+        let at = room();
+        let page = wrote(at.path(), "# Enero\n\nx.\n");
+        let book = wrote(
+            at.path(),
+            &format!("# Libro\n\n~~~md\n![Enero](tisty:doc/{page})\n~~~\n"),
+        );
+
+        let said = name_at_end(at.path(), at.path(), &book, &[page.as_str()]).unwrap();
+
+        let Naming::Wrote { whole, .. } = said else {
+            panic!("an example is not a way in: {said:?}");
+        };
+        assert_eq!(whole.matches(&format!("tisty:doc/{page}")).count(), 2);
+    }
 }
 
 #[cfg(test)]

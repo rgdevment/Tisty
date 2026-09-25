@@ -56,12 +56,17 @@ pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
         .collect()
 }
 
-/// A page named inside a fenced block is an example of a way in, not one, so the reading order
-/// steps over code. What keeps a file alive is deliberately more generous: see `extract`.
+/// Where a page is read from is the card that stands for it, `![Title](tisty:doc/id)`, and only
+/// that: a plain link to the same page is a mention in the middle of a sentence, and a sentence is
+/// not a chapter. A page named inside a fenced block is an example of a way in, not one, so the
+/// reading order steps over code too. What keeps a file alive is deliberately more generous than
+/// either — see `extract`.
 fn papered(text: &str) -> Vec<(usize, String)> {
     let code = crate::docs::fenced_spans(text);
+    let bytes = text.as_bytes();
     marked_past(text, &code)
         .into_iter()
+        .filter(|(at, _)| *at > 0 && bytes[at - 1] == b'!')
         .filter_map(|(at, one)| {
             one.target
                 .strip_prefix(DOC)
@@ -382,18 +387,21 @@ medio
     }
 
     #[test]
-    fn a_page_named_by_a_plain_link_opening_a_line_is_named_on_that_line() {
+    fn a_plain_link_to_a_page_is_a_mention_of_it_not_a_place_for_it() {
         let body = format!(
             "# Libro
 
-[Uno]({DOC}a-0001) abre la linea.
+Como conte en [Uno]({DOC}a-0001), ya esta.
 
 ![Dos]({DOC}a-0002)
 "
         );
+        assert_eq!(paper_lines(&body), vec![("a-0002".to_string(), 4)]);
+        assert_eq!(papers(&body), vec!["a-0002".to_string()]);
         assert_eq!(
-            paper_lines(&body),
-            vec![("a-0001".to_string(), 2), ("a-0002".to_string(), 4)]
+            super::extract(&body).len(),
+            2,
+            "both are still references, which is what keeps what they point at alive"
         );
     }
 
@@ -560,7 +568,7 @@ mod tests {
     fn the_documents_a_text_names_come_out_in_the_order_it_names_them() {
         assert_eq!(
             papers(
-                "primero ![Uno](tisty:doc/mac0-0002)\n\nluego [Dos](tisty:doc/mac0-0001)\n\ny https://x.example/"
+                "primero ![Uno](tisty:doc/mac0-0002)\n\nluego ![Dos](tisty:doc/mac0-0001)\n\ny https://x.example/"
             ),
             ["mac0-0002", "mac0-0001"]
         );
@@ -595,10 +603,20 @@ mod tests {
     }
 
     #[test]
-    fn a_page_named_from_an_aligned_paragraph_is_named_all_the_same() {
+    fn a_page_linked_from_an_aligned_paragraph_is_reached_but_is_no_chapter() {
         let said = "<p style=\"text-align: center\"><a href=\"tisty:doc/mac0-0010\">Uno</a></p>";
 
-        assert_eq!(papers(said), ["mac0-0010"]);
+        assert!(
+            papers(said).is_empty(),
+            "a link is not a card, however it is written"
+        );
+        assert_eq!(
+            extract(said)
+                .into_iter()
+                .map(|one| one.target)
+                .collect::<Vec<_>>(),
+            ["tisty:doc/mac0-0010"]
+        );
     }
 
     #[test]

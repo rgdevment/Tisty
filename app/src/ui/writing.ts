@@ -44,6 +44,10 @@ export const cardMoved = (editor: Writing, file: string, before: string | null):
   const node = editor.state.doc.nodeAt(from);
   if (!node) return "unseen";
   if (wanted === from) return "done";
+  // A document takes its title from the first thing it says, so a book whose first thing is a
+  // chapter is renamed either by sending one to the front or by taking the one that is there
+  // away. The core refuses both for the same reason: it compares the title on each side.
+  if (wanted === 0 || from === 0) return "titled";
   const tr = editor.state.tr;
   tr.delete(from, from + node.nodeSize);
   tr.insert(tr.mapping.map(wanted), node);

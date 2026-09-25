@@ -24,15 +24,37 @@ const unfenced = (body: string): string => {
     .join("\n");
 };
 
-export const named = (body: string): Set<string> => {
+/// The pages a body names, in the order it names them — which is the order they are read in, so
+/// the index can be drawn from the text itself rather than from what the log last settled.
+export const namesIn = (body: string): string[] => {
   const found = new Set<string>();
   const said = unfenced(body).replace(/(`+)[\s\S]*?\1/g, " ");
-  const asks = /\[(?:\\[\s\S]|[^\\[\]\n])*\]\(\s*<?tisty:doc\/([^)>\s]+)/g;
+  const asks = /!\[(?:\\[\s\S]|[^\\[\]\n])*\]\(\s*<?tisty:doc\/([^)>\s]+)/g;
   for (const [, id] of said.matchAll(asks)) found.add(id);
-  return found;
+  return [...found];
 };
 
-export type Moved = "done" | "held" | "unseen";
+export const named = (body: string): Set<string> => new Set(namesIn(body));
+
+export type Moved = "done" | "held" | "unseen" | "titled";
+
+/// The pages of a document in the order it reads them. A body says nothing about the pages it does
+/// not name, so those keep their places and the named ones are dealt back out, in the order the
+/// text names them, into the places named pages already held. Whatever draws a book — the index,
+/// the print, the parcel — reads it this way, and so does `State::pages_read`.
+export const inTextOrder = (pages: Filed[], told: string[]): Filed[] => {
+  const takes = new Set<string>();
+  const wanted: Filed[] = [];
+  for (const file of told) {
+    const one = pages.find((page) => page.file === file);
+    if (one && !takes.has(one.file)) {
+      takes.add(one.file);
+      wanted.push(one);
+    }
+  }
+  let next = 0;
+  return pages.map((one) => (takes.has(one.file) ? (wanted[next++] ?? one) : one));
+};
 
 export const card = (file: string, title: string) => ({
   type: "image" as const,
