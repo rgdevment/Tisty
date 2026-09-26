@@ -12,6 +12,7 @@ pub struct Paths {
     data: PathBuf,
     config: PathBuf,
     cache: PathBuf,
+    paired: bool,
 }
 
 impl Paths {
@@ -19,6 +20,7 @@ impl Paths {
         let dirs = directories::ProjectDirs::from("", "", "tisty").ok_or(Error::NoHomeDirectory)?;
         let under = profile();
 
+        let told = |key| env_path(key).is_some();
         Ok(Self {
             data: aside(
                 env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
@@ -32,6 +34,7 @@ impl Paths {
                 env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
                 under.as_deref(),
             ),
+            paired: !told(DATA_ENV) || told(CONFIG_ENV),
         })
     }
 
@@ -47,7 +50,9 @@ impl Paths {
     }
 
     pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
-        vec![self.config.clone(), self.cache.clone()]
+        let mut swept = vec![self.config_file(), self.cache.clone()];
+        swept.extend(crate::witness::kept_files(self));
+        swept
     }
 
     pub fn shims() -> Vec<PathBuf> {
@@ -68,7 +73,17 @@ impl Paths {
             data: data.into(),
             cache: config.join("cache"),
             config,
+            paired: true,
         }
+    }
+
+    pub fn of_one_install(&self) -> bool {
+        self.paired
+    }
+
+    #[cfg(test)]
+    pub(crate) fn unpaired_for_test(&mut self) {
+        self.paired = false;
     }
 
     pub fn data(&self) -> &Path {
@@ -212,6 +227,32 @@ mod tests {
             assert!(!kept.starts_with(p.attachments()), "{kept:?}");
             assert!(!kept.starts_with(p.docs()), "{kept:?}");
         }
+    }
+
+    #[test]
+    fn leaving_takes_the_settings_and_not_what_proves_the_store_is_its_own() {
+        let p = paths();
+        let swept = p.swept_on_leaving();
+
+        assert!(swept.contains(&p.config_file()), "{swept:?}");
+        assert!(
+            !swept.iter().any(|at| p.private().starts_with(at)),
+            "leaving would take the key with it: {swept:?}"
+        );
+        assert!(
+            swept.contains(&crate::witness::file(&p)),
+            "leaving would keep the diary of a machine that left: {swept:?}"
+        );
+        assert!(
+            swept.iter().any(|at| at.ends_with("tisty.log.1")),
+            "leaving would keep the rolled-over diary: {swept:?}"
+        );
+        assert!(
+            !swept
+                .iter()
+                .any(|at| at.ends_with(crate::store::KEEP) || at == &p.private()),
+            "leaving would take the key with it: {swept:?}"
+        );
     }
 
     #[test]

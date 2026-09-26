@@ -58,6 +58,21 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
         }
     }
 
+    let private = app.paths.private();
+    let aside = tisty_core::store::displaced(&app.paths);
+    if !aside.is_empty() {
+        line(
+            lang.get("keys-aside"),
+            &style::dim(&lang.fill(
+                "keys-aside-are",
+                &[
+                    ("count", &aside.len().to_string()),
+                    ("at", &private.display().to_string()),
+                ],
+            )),
+        );
+    }
+
     let verdict = match &audit {
         Audit::Unavailable => {
             line(lang.get("cache"), &style::dim(lang.get("no-cache")));

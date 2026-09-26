@@ -9,6 +9,7 @@ use crate::{
 };
 
 const ACTIVE: &str = "active.tisty";
+const DISPLACED: &str = ".store-key.was-";
 const LOCK: &str = ".lock";
 const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
@@ -47,10 +48,6 @@ impl Store {
             let _ = crate::paths::ours_alone(parent);
         }
 
-        // Its name and what proves the name is its own, from its first breath rather than
-        // once it syncs: without them a parcel leaves with no origin, and the store that
-        // wrote it cannot tell its own writing from a stranger's when it comes back.
-        let _ = secret(&root);
         if let Err(e) = identity(&root) {
             witness::warn(
                 channel::STORE,
@@ -341,16 +338,54 @@ pub fn identity(store_root: impl AsRef<Path>) -> Result<String> {
     }
 }
 
-pub fn secret(store_root: impl AsRef<Path>) -> Option<[u8; 32]> {
-    let at = store_root.as_ref().join(KEEP);
-    if let Ok(held) = std::fs::read(&at)
-        && let Ok(kept) = <[u8; 32]>::try_from(held.as_slice())
+pub fn kept_at(paths: &crate::Paths, named: &str) -> Option<PathBuf> {
+    is_store_name(named).then(|| paths.private().join(format!("{named}{KEEP}")))
+}
+
+pub fn secret_kept(paths: &crate::Paths) -> Option<[u8; 32]> {
+    let named = peek_identity(paths.store())?;
+    let held = std::fs::read(kept_at(paths, &named)?).ok()?;
+    <[u8; 32]>::try_from(held.as_slice()).ok()
+}
+
+pub fn secret(paths: &crate::Paths) -> Option<[u8; 32]> {
+    let named = identity(paths.store()).ok()?;
+    let at = kept_at(paths, &named)?;
+    match std::fs::read(&at) {
+        Ok(held) => match <[u8; 32]>::try_from(held.as_slice()) {
+            Ok(kept) => return Some(kept),
+            Err(_) => {
+                if !set_aside(paths, &at, &held, "what was kept as the key is not one")
+                    || std::fs::remove_file(&at).is_err()
+                {
+                    return None;
+                }
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            witness::error(
+                channel::STORE,
+                "the key could not be read, so this store cannot prove its own writing",
+                &[
+                    ("at", Fact::Path(at.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            return None;
+        }
+    }
+
+    if let Ok(inside) = std::fs::read(paths.store().join(KEEP))
+        && let Ok(kept) = <[u8; 32]>::try_from(inside.as_slice())
     {
         return Some(kept);
     }
+
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
-    std::fs::create_dir_all(store_root.as_ref()).ok()?;
+    std::fs::create_dir_all(paths.private()).ok()?;
+    let _ = crate::paths::ours_alone(&paths.private());
     match File::create_new(&at) {
         Ok(mut file) => {
             file.write_all(&fresh).ok()?;
@@ -358,17 +393,188 @@ pub fn secret(store_root: impl AsRef<Path>) -> Option<[u8; 32]> {
             let _ = crate::paths::ours_alone(&at);
             Some(fresh)
         }
-        // Somebody else got there first, and theirs is the one that counts.
         Err(_) => std::fs::read(&at)
             .ok()
             .and_then(|held| <[u8; 32]>::try_from(held.as_slice()).ok()),
     }
 }
 
+pub fn kept_before_the_store_goes(paths: &crate::Paths) {
+    let was = paths.store().join(KEEP);
+    let Ok(held) = std::fs::read(&was) else {
+        return;
+    };
+    if <[u8; 32]>::try_from(held.as_slice()).is_err() {
+        return;
+    }
+    let named = peek_identity(paths.store()).unwrap_or_default();
+    let at = kept_at(paths, &named).unwrap_or_else(|| paths.private().join(KEEP));
+    let _ = std::fs::create_dir_all(paths.private());
+    let _ = crate::paths::ours_alone(&paths.private());
+    set_aside(
+        paths,
+        &at,
+        &held,
+        "the store it was kept in was about to be replaced",
+    );
+}
+
+pub fn brought_home(paths: &crate::Paths) {
+    let was = paths.store().join(KEEP);
+    let Ok(held) = std::fs::read(&was) else {
+        return;
+    };
+    if <[u8; 32]>::try_from(held.as_slice()).is_err() {
+        witness::trace(
+            channel::STORE,
+            "what was kept where the key used to live is not a key, so it was left alone",
+            &[("at", Fact::Path(was.clone()))],
+        );
+        return;
+    }
+    if !paths.of_one_install() {
+        witness::trace(
+            channel::STORE,
+            "this store was named on its own, so its key was left where it is",
+            &[("at", Fact::Path(was.clone()))],
+        );
+        return;
+    }
+    let Ok(named) = identity(paths.store()) else {
+        witness::warn(
+            channel::STORE,
+            "a key sits in a store that cannot be named, so it was left where it is",
+            &[("at", Fact::Path(was.clone()))],
+        );
+        return;
+    };
+
+    let Some(now) = kept_at(paths, &named) else {
+        return;
+    };
+    match std::fs::read(&now) {
+        Ok(there) if <[u8; 32]>::try_from(there.as_slice()).is_err() => {
+            if !set_aside(paths, &now, &there, "what was kept as the key is not one") {
+                return;
+            }
+        }
+        Ok(there) if there != held => {
+            if set_aside(
+                paths,
+                &now,
+                &held,
+                "an older build made a second key inside the store",
+            ) {
+                swept(&was);
+            }
+            return;
+        }
+        Ok(_) => {
+            swept(&was);
+            return;
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => {
+            witness::error(
+                channel::STORE,
+                "the key already kept apart could not be read, so nothing was moved over it",
+                &[
+                    ("at", Fact::Path(now.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            return;
+        }
+    }
+
+    let _ = std::fs::create_dir_all(paths.private());
+    let _ = crate::paths::ours_alone(&paths.private());
+    if write_atomic(&now, &held).is_err() {
+        witness::warn(
+            channel::STORE,
+            "the key could not be moved out of the store, so it stays where a backup reaches it",
+            &[("at", Fact::Path(was.clone()))],
+        );
+        return;
+    }
+    let _ = crate::paths::ours_alone(&now);
+    swept(&was);
+}
+
+pub fn displaced(paths: &crate::Paths) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(paths.private()) else {
+        return Vec::new();
+    };
+    let mut found: Vec<PathBuf> = entries
+        .filter_map(|one| one.ok())
+        .filter(|one| one.file_name().to_string_lossy().contains(DISPLACED))
+        .map(|one| one.path())
+        .collect();
+    found.sort();
+    found
+}
+
+fn set_aside(paths: &crate::Paths, at: &Path, held: &[u8], why: &str) -> bool {
+    if displaced(paths)
+        .iter()
+        .any(|one| std::fs::read(one).is_ok_and(|kept| kept == held))
+    {
+        return true;
+    }
+    let stamp = jiff::Zoned::now().strftime("%Y%m%dT%H%M%S").to_string();
+    let named = at.file_name().unwrap_or_default().to_string_lossy();
+    let mut aside = paths.private().join(format!("{named}.was-{stamp}"));
+    for again in 1..100 {
+        match File::create_new(&aside) {
+            Ok(mut file) => {
+                if file.write_all(held).and_then(|()| file.sync_all()).is_err() {
+                    let _ = std::fs::remove_file(&aside);
+                    break;
+                }
+                let _ = crate::paths::ours_alone(&aside);
+                witness::warn(
+                    channel::STORE,
+                    "a key was set aside",
+                    &[
+                        ("at", Fact::Path(aside)),
+                        ("why", Fact::Why(why.to_string())),
+                    ],
+                );
+                return true;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                aside = paths.private().join(format!("{named}.was-{stamp}-{again}"));
+            }
+            Err(_) => break,
+        }
+    }
+    witness::error(
+        channel::STORE,
+        "a key had to be set aside and could not be, so nothing was changed",
+        &[("why", Fact::Why(why.to_string()))],
+    );
+    false
+}
+
+fn swept(at: &Path) {
+    if let Err(e) = std::fs::remove_file(at)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        witness::error(
+            channel::STORE,
+            "the key is still inside the store, where a backup reaches it",
+            &[
+                ("at", Fact::Path(at.to_path_buf())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
+}
+
 pub fn peek_identity(store_root: impl AsRef<Path>) -> Option<String> {
     let held = std::fs::read_to_string(store_root.as_ref().join(MARKER)).ok()?;
     let held = held.trim().to_string();
-    (!held.is_empty()).then_some(held)
+    is_store_name(&held).then_some(held)
 }
 
 pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
@@ -470,6 +676,21 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
         }
     }
     Ok(said)
+}
+
+pub fn is_store_name(name: &str) -> bool {
+    name.len() == 26
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+}
+
+pub fn is_device_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 48
+        && name
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
 pub fn is_segment(name: &str) -> bool {
@@ -1896,6 +2117,110 @@ mod tests {
     }
 
     #[test]
+    fn a_key_kept_inside_the_store_moves_out_and_leaves_nothing_behind() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::write(store.join(KEEP), [7u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        assert!(
+            !store.join(KEEP).exists(),
+            "the key stayed where a backup reaches it"
+        );
+        let named = peek_identity(&store).unwrap();
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named).unwrap()).unwrap(),
+            [7u8; 32]
+        );
+        assert_eq!(secret(&paths).unwrap(), [7u8; 32]);
+    }
+
+    #[test]
+    fn bringing_the_key_home_when_there_never_was_one_inside_makes_none() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
+        std::fs::create_dir_all(&store).unwrap();
+
+        brought_home(&paths);
+
+        assert!(
+            !private.join(KEEP).exists(),
+            "a key was made out of nothing"
+        );
+    }
+
+    #[test]
+    fn bringing_the_key_home_twice_changes_nothing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::write(store.join(KEEP), [3u8; 32]).unwrap();
+
+        brought_home(&paths);
+        brought_home(&paths);
+
+        let named = peek_identity(&store).unwrap();
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named).unwrap()).unwrap(),
+            [3u8; 32]
+        );
+        assert_eq!(displaced(&paths).len(), 0, "the second pass set one aside");
+    }
+
+    #[test]
+    fn a_key_that_turns_up_inside_an_already_moved_store_does_not_win() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        std::fs::create_dir_all(paths.private()).unwrap();
+        let named = identity(&store).unwrap();
+        std::fs::write(kept_at(&paths, &named).unwrap(), [2u8; 32]).unwrap();
+        std::fs::write(store.join(KEEP), [1u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named).unwrap()).unwrap(),
+            [2u8; 32],
+            "the newcomer took over from what this store seals with"
+        );
+        let kept: Vec<Vec<u8>> = displaced(&paths)
+            .iter()
+            .map(|one| std::fs::read(one).unwrap())
+            .collect();
+        assert_eq!(
+            kept,
+            vec![vec![1u8; 32]],
+            "the one it displaced was destroyed instead of set aside"
+        );
+        assert!(!store.join(KEEP).exists());
+    }
+
+    #[test]
+    fn something_that_is_not_a_key_is_left_where_it_is() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+        let store = paths.store();
+        let private = paths.private();
+        std::fs::create_dir_all(&store).unwrap();
+        std::fs::write(store.join(KEEP), b"not a key").unwrap();
+
+        brought_home(&paths);
+
+        assert!(
+            store.join(KEEP).exists(),
+            "it was taken for a key and moved"
+        );
+        assert!(!private.join(KEEP).exists());
+    }
+
+    #[test]
     fn write_atomic_leaves_no_temporary_behind() {
         let tmp = tempfile::tempdir().unwrap();
         let target = tmp.path().join("config.toml");
@@ -2011,5 +2336,210 @@ mod tests {
 
         identity(&root).unwrap();
         assert_eq!(read_all(&root).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn what_is_set_aside_is_named_after_the_key_it_replaces() {
+        assert!(
+            DISPLACED.starts_with(KEEP),
+            "{DISPLACED} would not be found beside {KEEP}"
+        );
+    }
+
+    #[test]
+    fn the_key_is_named_after_the_store_it_proves() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        let named = identity(paths.store()).unwrap();
+
+        let kept = secret(&paths).unwrap();
+
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named).unwrap()).unwrap(),
+            kept,
+            "a second store on this machine would write over the first one's key"
+        );
+    }
+
+    #[test]
+    fn two_stores_on_one_machine_do_not_share_a_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = dir.path().join("config");
+        let one = crate::Paths::new(dir.path().join("one"), &config);
+        let two = crate::Paths::new(dir.path().join("two"), &config);
+        identity(one.store()).unwrap();
+        identity(two.store()).unwrap();
+
+        let first = secret(&one).unwrap();
+        let second = secret(&two).unwrap();
+
+        assert_ne!(first, second, "the second store took over the first's seal");
+        assert_eq!(secret(&one).unwrap(), first, "the first store lost its key");
+    }
+
+    #[test]
+    fn a_key_set_aside_twice_in_the_same_second_keeps_both() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        std::fs::create_dir_all(paths.private()).unwrap();
+        let at = kept_at(&paths, "01ABCDEFGHJKMNPQRSTVWXYZ00").unwrap();
+
+        assert!(set_aside(&paths, &at, &[1u8; 32], "the first"));
+        assert!(set_aside(&paths, &at, &[2u8; 32], "the second"));
+
+        let aside = displaced(&paths);
+        assert_eq!(
+            aside.len(),
+            2,
+            "the second write destroyed the first: {aside:?}"
+        );
+        let held: Vec<Vec<u8>> = aside
+            .iter()
+            .map(|one| std::fs::read(one).unwrap())
+            .collect();
+        assert!(held.contains(&vec![1u8; 32]), "the first key is gone");
+        assert!(held.contains(&vec![2u8; 32]), "the second key is gone");
+    }
+
+    #[test]
+    fn a_key_that_is_not_one_is_set_aside_and_a_fresh_one_minted() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        let named = identity(paths.store()).unwrap();
+        std::fs::create_dir_all(paths.private()).unwrap();
+        std::fs::write(kept_at(&paths, &named).unwrap(), b"").unwrap();
+
+        let kept = secret(&paths).expect("a store with a broken key can never seal anything again");
+
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named).unwrap()).unwrap(),
+            kept
+        );
+        assert_eq!(
+            displaced(&paths).len(),
+            1,
+            "what could not be read was destroyed"
+        );
+    }
+
+    #[test]
+    fn a_store_cannot_name_itself_out_of_the_private_folder() {
+        for climbing in [
+            "../../evil",
+            "..\\..\\evil",
+            "a/b",
+            "",
+            "   ",
+            "01ABCDEFGHJKMNPQRSTVWXYZ0",
+            "01abcdefghjkmnpqrstvwxyz00",
+            "01ABCDEFGHJKMNPQRSTVWXYZ000",
+            "01ABCDEFGHJKMNPQRSTVWXY:00",
+        ] {
+            assert!(!is_store_name(climbing), "«{climbing}» would become a path");
+        }
+        assert!(is_store_name("01ABCDEFGHJKMNPQRSTVWXYZ00"));
+        assert!(is_store_name(&ulid::Ulid::generate().to_string()));
+    }
+
+    #[test]
+    fn a_name_a_shared_folder_made_up_never_reaches_the_private_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(MARKER), "../../../taken").unwrap();
+        std::fs::write(paths.store().join(KEEP), [1u8; 32]).unwrap();
+
+        assert_eq!(
+            peek_identity(paths.store()),
+            None,
+            "a name another machine wrote is trusted as a file name"
+        );
+        assert_eq!(kept_at(&paths, "../../../taken"), None);
+
+        brought_home(&paths);
+        secret(&paths);
+
+        assert!(
+            !dir.path().join("taken.store-key").exists()
+                && !dir
+                    .path()
+                    .parent()
+                    .unwrap()
+                    .join("taken.store-key")
+                    .exists(),
+            "a key was written outside the private folder"
+        );
+    }
+
+    #[test]
+    fn a_key_the_migration_left_alone_is_still_what_the_store_seals_with() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        paths.unpaired_for_test();
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(KEEP), [5u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        assert_eq!(
+            secret(&paths),
+            Some([5u8; 32]),
+            "the key was left in the store and a brand new one was minted beside it, so every parcel this store handed out is now a stranger's"
+        );
+    }
+
+    #[test]
+    fn settings_kept_somewhere_else_are_still_this_installs_own() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("elsewhere"));
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(KEEP), [8u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        let named = peek_identity(paths.store()).unwrap();
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named).unwrap()).unwrap(),
+            [8u8; 32],
+            "naming the settings directory made this install look like somebody else's"
+        );
+    }
+
+    #[test]
+    fn a_key_that_cannot_be_removed_is_not_set_aside_again_and_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        std::fs::create_dir_all(paths.private()).unwrap();
+        let at = kept_at(&paths, "01ABCDEFGHJKMNPQRSTVWXYZ00").unwrap();
+
+        for _ in 0..5 {
+            assert!(set_aside(&paths, &at, &[4u8; 32], "the same one again"));
+        }
+
+        assert_eq!(
+            displaced(&paths).len(),
+            1,
+            "one stuck key grew the private folder on every command"
+        );
+    }
+
+    #[test]
+    fn a_store_opened_with_another_installs_settings_keeps_its_key_where_it_is() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        paths.unpaired_for_test();
+        let named = identity(paths.store()).unwrap();
+        std::fs::write(paths.store().join(KEEP), [3u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        assert!(
+            paths.store().join(KEEP).exists(),
+            "somebody else's key was taken off their store"
+        );
+        assert!(
+            !kept_at(&paths, &named).unwrap().exists(),
+            "somebody else's key was installed on this machine"
+        );
     }
 }

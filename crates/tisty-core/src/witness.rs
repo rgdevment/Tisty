@@ -81,6 +81,9 @@ fn held() -> &'static Mutex<Option<Kept>> {
 
 pub const ROLLS_AT: u64 = 256 * 1024;
 
+#[cfg(test)]
+pub(crate) static ALONE: Mutex<()> = Mutex::new(());
+
 pub fn file(paths: &crate::paths::Paths) -> PathBuf {
     paths.private().join("tisty.log")
 }
@@ -89,8 +92,13 @@ fn rolled(at: &Path) -> PathBuf {
     at.with_extension("log.1")
 }
 
+pub fn kept_files(paths: &crate::paths::Paths) -> Vec<PathBuf> {
+    let at = file(paths);
+    vec![rolled(&at), at]
+}
+
 #[cfg(test)]
-fn stops() {
+pub(crate) fn stops() {
     *held().lock().unwrap_or_else(|e| e.into_inner()) = None;
     ALL.store(false, Ordering::Relaxed);
 }
@@ -468,7 +476,7 @@ mod tests {
 
     #[test]
     fn notes_go_nowhere_until_somewhere_is_named() {
-        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
         warn(channel::STORE, "nobody is listening", &[]);
     }
 
@@ -488,11 +496,9 @@ mod tests {
         );
     }
 
-    static ALONE: Mutex<()> = Mutex::new(());
-
     #[test]
     fn what_is_written_can_be_read_back_newest_last() {
-        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
         keeps(file(&paths), false);
@@ -521,7 +527,7 @@ mod tests {
 
     #[test]
     fn the_finest_trail_is_kept_only_when_it_is_asked_for() {
-        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
 
@@ -545,7 +551,7 @@ mod tests {
 
     #[test]
     fn a_panic_leaves_a_line_behind() {
-        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
         keeps(file(&paths), false);
@@ -600,7 +606,7 @@ mod tests {
 
     #[test]
     fn a_torn_character_does_not_blank_the_whole_file() {
-        let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+        let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
         let tmp = tempfile::tempdir().unwrap();
         let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
         keeps(file(&paths), false);

@@ -93,6 +93,7 @@ impl Session {
 
     fn at(paths: Paths) -> tisty_core::Result<Self> {
         let config = Config::load_or_init(&paths)?;
+        tisty_core::store::brought_home(&paths);
         let store = Store::open(paths.store(), config.device_id.clone())?;
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
@@ -4727,22 +4728,14 @@ fn along_the_way(
 fn standing(
     session: &tauri::State<'_, Mutex<Session>>,
     which: &[String],
-) -> (
-    std::path::PathBuf,
-    tisty_core::State,
-    Option<std::path::PathBuf>,
-) {
+) -> (Paths, tisty_core::State, Option<std::path::PathBuf>) {
     let mut session = held(session);
     for one in which {
         if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), one) {
             let _ = session.retell(one, &body, None);
         }
     }
-    (
-        session.paths.data().to_path_buf(),
-        session.state.clone(),
-        session.dest(),
-    )
+    (session.paths.clone(), session.state.clone(), session.dest())
 }
 
 #[derive(serde::Serialize)]
@@ -4782,14 +4775,14 @@ async fn docs_pack(
     number: Option<String>,
 ) -> Answer<Packed> {
     let _done = alone.inner().taken()?;
-    let (data, state, beside) = standing(&session, &which);
+    let (paths, state, beside) = standing(&session, &which);
     let asked = which.clone();
     let at = into.clone();
     let telling = along_the_way(&app, "packing");
     let locking = along_the_way(&app, "locking");
     let sent = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::written(
-            &data,
+            &paths,
             &state,
             &asked,
             std::path::Path::new(&at),
@@ -4842,13 +4835,13 @@ async fn docs_take_out(
     into: String,
 ) -> Answer<Packed> {
     let _done = alone.inner().taken()?;
-    let (data, state, beside) = standing(&session, &which);
+    let (paths, state, beside) = standing(&session, &which);
     let asked = which.clone();
     let at = into.clone();
     let telling = along_the_way(&app, "takingOut");
     let sent = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::plainly(
-            &data,
+            paths.data(),
             &state,
             &asked,
             std::path::Path::new(&at),
@@ -4899,10 +4892,10 @@ async fn docs_unpack(
     number: Option<String>,
 ) -> Answer<Unpacked> {
     let _done = alone.inner().taken()?;
-    let (data, state, device) = {
+    let (paths, state, device) = {
         let session = held(&session);
         (
-            session.paths.data().to_path_buf(),
+            session.paths.clone(),
             session.state.clone(),
             session.config.device_id.clone(),
         )
@@ -4912,7 +4905,7 @@ async fn docs_unpack(
     let opening = along_the_way(&app, "opening");
     let (landed, ops) = tauri::async_runtime::spawn_blocking(move || {
         tisty_core::parcel::taken(
-            &data,
+            &paths,
             &state,
             &device,
             std::path::Path::new(&at),
@@ -7192,7 +7185,10 @@ pub fn unreach() -> std::io::Result<bool> {
     let reached = command::out_of_reach();
     if let Ok(paths) = tisty_core::Paths::resolve() {
         for at in paths.swept_on_leaving() {
-            let _ = std::fs::remove_dir_all(&at);
+            let _ = match at.is_dir() {
+                true => std::fs::remove_dir_all(&at),
+                false => std::fs::remove_file(&at),
+            };
         }
     }
     for at in tisty_core::Paths::shims() {

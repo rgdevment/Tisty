@@ -2476,3 +2476,50 @@ fn letting_an_agent_in_from_a_shell_with_no_terminal_is_refused_at_the_persons_s
         "no agent was minted: {config}"
     );
 }
+
+#[test]
+fn any_command_at_all_takes_the_key_out_of_the_store() {
+    let cli = Cli::new();
+    cli.run(&["add", "algo"]);
+
+    let inside = cli.home.path().join("data/store/.store-key");
+    std::fs::write(&inside, [4u8; 32]).unwrap();
+
+    cli.run(&["ls"]);
+
+    assert!(
+        !inside.exists(),
+        "a command ran and left the key where a backup reaches it"
+    );
+    let named = std::fs::read_to_string(cli.home.path().join("data/store/.store-id"))
+        .unwrap()
+        .trim()
+        .to_string();
+    assert_eq!(
+        std::fs::read(
+            cli.home
+                .path()
+                .join(format!("config/private/{named}.store-key"))
+        )
+        .unwrap(),
+        [4u8; 32],
+        "the key did not come home under the name of the store it proves"
+    );
+}
+
+#[test]
+fn doctor_names_the_keys_that_were_set_aside() {
+    let cli = Cli::new();
+    cli.run(&["add", "algo"]);
+
+    let private = cli.home.path().join("config/private");
+    std::fs::create_dir_all(&private).unwrap();
+    std::fs::write(private.join(".store-key.was-20260101T000000"), [9u8; 32]).unwrap();
+
+    let out = cli.ok(&["doctor"]);
+    assert!(
+        out.contains("keys set aside") || out.contains("llaves apartadas"),
+        "a displaced key sits on disk and nothing tells the owner it is there: {out}"
+    );
+    assert!(out.contains('1'), "{out}");
+}
