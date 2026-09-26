@@ -312,7 +312,6 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
 
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
-    store::put_aside(paths, "the store was started over");
     crate::docs::forget_what_was_carried(data);
     Ok(made)
 }
@@ -756,11 +755,12 @@ mod tests {
                 d: TaskAdd::new("comprar pan", "a0"),
             })
             .unwrap();
+        let was = store::identity(paths.store()).unwrap();
         std::fs::create_dir_all(paths.data().join("docs")).unwrap();
         std::fs::write(paths.data().join("docs/a3f1-0001.md"), b"# Minuta").unwrap();
 
         std::fs::create_dir_all(paths.private()).unwrap();
-        std::fs::write(paths.private().join(store::KEEP), [6u8; 32]).unwrap();
+        std::fs::write(store::kept_at(&paths, &was), [6u8; 32]).unwrap();
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("before-joining.zip");
@@ -769,7 +769,7 @@ mod tests {
         assert!(store::read_all(paths.store()).unwrap().is_empty());
         assert!(!paths.data().join("docs/a3f1-0001.md").exists());
         assert!(
-            !paths.private().join(store::KEEP).exists(),
+            store::secret_kept(&paths).is_none(),
             "starting over kept the secret of the store it replaced"
         );
     }
@@ -780,23 +780,27 @@ mod tests {
         let paths = quarters(&dir);
         std::fs::create_dir_all(paths.data()).unwrap();
         Store::open(paths.store(), DeviceId("dev_a".into())).unwrap();
+        let was = store::identity(paths.store()).unwrap();
         std::fs::create_dir_all(paths.private()).unwrap();
-        std::fs::write(paths.private().join(store::KEEP), [6u8; 32]).unwrap();
+        std::fs::write(store::kept_at(&paths, &was), [6u8; 32]).unwrap();
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("before-joining.zip");
         reset(&paths, &file, tmp().path()).unwrap();
 
-        let aside = store::displaced(&paths);
-        assert_eq!(
-            aside.len(),
-            1,
-            "the zip cannot carry the key, so starting over has to leave it on disk: {aside:?}"
+        assert_ne!(
+            store::identity(paths.store()).unwrap(),
+            was,
+            "starting over kept the name of the store it replaced"
         );
         assert_eq!(
-            std::fs::read(&aside[0]).unwrap(),
+            std::fs::read(store::kept_at(&paths, &was)).unwrap(),
             [6u8; 32],
-            "what was set aside is not the key that sealed the parcels in that zip"
+            "the zip cannot carry the key, so starting over has to leave it under its own name"
+        );
+        assert!(
+            store::secret_kept(&paths).is_none(),
+            "the store that starts over inherited the seal of the one it replaced"
         );
     }
 

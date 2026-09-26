@@ -12,6 +12,7 @@ pub struct Paths {
     data: PathBuf,
     config: PathBuf,
     cache: PathBuf,
+    paired: bool,
 }
 
 impl Paths {
@@ -19,6 +20,7 @@ impl Paths {
         let dirs = directories::ProjectDirs::from("", "", "tisty").ok_or(Error::NoHomeDirectory)?;
         let under = profile();
 
+        let told = |key| env_path(key).is_some();
         Ok(Self {
             data: aside(
                 env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
@@ -32,6 +34,7 @@ impl Paths {
                 env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
                 under.as_deref(),
             ),
+            paired: told(DATA_ENV) == told(CONFIG_ENV),
         })
     }
 
@@ -70,7 +73,17 @@ impl Paths {
             data: data.into(),
             cache: config.join("cache"),
             config,
+            paired: true,
         }
+    }
+
+    pub fn of_one_install(&self) -> bool {
+        self.paired
+    }
+
+    #[cfg(test)]
+    pub(crate) fn unpaired_for_test(&mut self) {
+        self.paired = false;
     }
 
     pub fn data(&self) -> &Path {

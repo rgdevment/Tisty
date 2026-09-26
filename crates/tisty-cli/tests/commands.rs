@@ -2491,9 +2491,19 @@ fn any_command_at_all_takes_the_key_out_of_the_store() {
         !inside.exists(),
         "a command ran and left the key where a backup reaches it"
     );
+    let named = std::fs::read_to_string(cli.home.path().join("data/store/.store-id"))
+        .unwrap()
+        .trim()
+        .to_string();
     assert_eq!(
-        std::fs::read(cli.home.path().join("config/private/.store-key")).unwrap(),
-        [4u8; 32]
+        std::fs::read(
+            cli.home
+                .path()
+                .join(format!("config/private/{named}.store-key"))
+        )
+        .unwrap(),
+        [4u8; 32],
+        "the key did not come home under the name of the store it proves"
     );
 }
 

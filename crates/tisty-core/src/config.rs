@@ -146,6 +146,13 @@ pub struct Config {
 impl Config {
     pub fn load_or_init(paths: &Paths) -> Result<Self> {
         if let Some(existing) = Self::load(&paths.config_file())? {
+            if !store::is_device_name(&existing.device_id.0) {
+                witness::error(
+                    channel::CONFIG,
+                    "this machine is named in a way a device directory cannot be, so its history travels nowhere",
+                    &[("at", Fact::Id(existing.device_id.0.clone()))],
+                );
+            }
             return Ok(existing);
         }
 
@@ -183,13 +190,6 @@ impl Config {
             Ok(text) => {
                 let mut config: Self = toml::from_str(&text)?;
                 config.sown.get_or_insert(true);
-                if !store::is_device_name(&config.device_id.0) {
-                    witness::error(
-                        channel::CONFIG,
-                        "this machine is named in a way a device directory cannot be, so its history travels nowhere",
-                        &[("at", Fact::Id(config.device_id.0.clone()))],
-                    );
-                }
                 Ok(Some(config))
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
@@ -404,6 +404,43 @@ mod tests {
         let kept = Config::load(&p.config_file()).unwrap().unwrap();
 
         assert_eq!(kept.guide, None);
+    }
+
+    #[test]
+    fn a_machine_named_where_no_directory_can_be_is_said_once_a_session() {
+        let _alone = crate::witness::ALONE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let tmp = tempfile::tempdir().unwrap();
+        let p = paths(&tmp);
+        std::fs::create_dir_all(p.config()).unwrap();
+        std::fs::write(
+            p.config_file(),
+            "device_id = \"Dev A\"
+",
+        )
+        .unwrap();
+        crate::witness::keeps(crate::witness::file(&p), false);
+
+        for _ in 0..5 {
+            Config::load(&p.config_file()).unwrap().unwrap();
+        }
+        let after_reads = std::fs::read_to_string(crate::witness::file(&p)).unwrap_or_default();
+
+        Config::load_or_init(&p).unwrap();
+        let after_opening = std::fs::read_to_string(crate::witness::file(&p)).unwrap();
+        crate::witness::stops();
+
+        assert_eq!(
+            after_reads.matches("travels nowhere").count(),
+            0,
+            "reading the settings is what a window refresh does, and it wrote a line each time"
+        );
+        assert_eq!(
+            after_opening.matches("travels nowhere").count(),
+            1,
+            "opening the settings has to say it, and say it once"
+        );
     }
 
     #[test]

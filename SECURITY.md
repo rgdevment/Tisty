@@ -161,12 +161,20 @@ Being explicit here matters more than sounding reassuring.
   backup made before this was so still has the secret inside it, in the clear:
   the copies you already have are worth protecting like the documents they hold.
 
-  A secret is never destroyed, only displaced. Starting over sets the old one
-  aside under the hour it was replaced, and so does a build that finds two, so
-  the safety copy written just before is not left unrecognisable by the machine
-  that wrote it. Those files sit in the private folder and nothing reads them on
-  its own; `tisty doctor` says how many there are, and putting one back is
-  renaming it. Leaving takes the diary and the settings, never these.
+  The secret belongs to the store, not to the machine, and it is named after it:
+  a machine that holds two stores holds two secrets, and neither can write over
+  the other. That is also what makes starting over reversible — it mints a new
+  name for the store, so the old secret simply stays under the old one, and the
+  safety copy written moments before can be put back and recognised with nothing
+  done by hand. A secret is never destroyed, only displaced: what a build has to
+  move out of the way is kept under the hour it was replaced. `tisty doctor` says
+  how many of those there are, and putting one back is renaming it. Leaving takes
+  the diary and the settings, never any of this.
+
+  The other side of that: a store opened with somebody else's settings — a data
+  directory named on its own, without the configuration that goes with it — has
+  its secret left exactly where it is. Nothing is moved out of a store that this
+  install cannot account for.
 
   The one parcel that carries proof is the one you lock. Exporting everything to
   another machine of your own seals it with a number: XChaCha20-Poly1305 over

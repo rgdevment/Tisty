@@ -2641,7 +2641,7 @@ lo mio",
 }
 
 #[test]
-fn a_store_started_over_can_still_be_put_back_with_what_was_set_aside() {
+fn a_store_started_over_can_still_be_put_back_from_the_zip_alone() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
     let named = tisty_core::store::identity(here.paths.store()).unwrap();
@@ -2658,17 +2658,18 @@ lo mio",
 
     let zip = room.path().join("before-joining.zip");
     tisty_core::backup::reset(&here.paths, &zip, room.path()).unwrap();
-
-    let aside = tisty_core::store::displaced(&here.paths);
-    assert_eq!(aside.len(), 1, "starting over destroyed the key: {aside:?}");
+    assert_eq!(
+        tisty_core::store::peek_identity(here.paths.store()),
+        None,
+        "starting over kept the name of the store it replaced"
+    );
 
     tisty_core::backup::read(&here.paths, &zip).unwrap();
     assert_eq!(
         tisty_core::store::peek_identity(here.paths.store()).as_deref(),
         Some(named.as_str()),
-        "the copy did not bring the name of the store back"
+        "the zip did not bring the name of the store back"
     );
-    std::fs::copy(&aside[0], here.paths.private().join(".store-key")).unwrap();
 
     let mut back = Room::at(here.paths.clone(), "back");
     back.take_in(&box_at);
@@ -2676,6 +2677,6 @@ lo mio",
     let acta = back.titled("Acta");
     assert!(
         !acta.guest,
-        "the zip and what was set aside together are the whole store, and its own parcel still landed as a stranger's"
+        "the key is named after the store, so putting the store back is enough: nothing was set aside by hand and its own parcel still landed as a stranger's"
     );
 }

@@ -1489,11 +1489,6 @@ fn well_formed(id: &str) -> bool {
         && number.chars().all(|c| c.is_ascii_digit())
 }
 
-pub fn is_paper(leaf: &str) -> bool {
-    leaf.strip_suffix(&format!(".{EXTENSION}"))
-        .is_some_and(well_formed)
-}
-
 fn named(at: &Path) -> Option<String> {
     if at.extension()? != EXTENSION {
         return None;
