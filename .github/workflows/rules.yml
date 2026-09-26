@@ -92,7 +92,7 @@ jobs:
           measured=$(mktemp)
           tables_not_code='locales\.ts|glyphs\.ts|marks\.ts'
           find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
-            | grep -vE "node_modules|/tests/|\.test\.|$tables_not_code" \
+            | grep -vE "node_modules|/tests/|_test\.rs|\.test\.|$tables_not_code" \
             | sort | while read -r one; do
               printf '%s %s\n' "$(code "$one")" "$one"
             done > "$measured"
