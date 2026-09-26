@@ -4,7 +4,7 @@
 1126 app/src/ui/Editor.tsx
 2020 app/src/ui/Keeping.tsx
 1449 app/src/ui/writing.ts
-7543 app/src-tauri/src/lib.rs
+3731 app/src-tauri/src/lib.rs
 7671 crates/tisty-cli/src/mcp.rs
 1825 crates/tisty-core/src/docs.rs
 1623 crates/tisty-core/src/model/mark.rs

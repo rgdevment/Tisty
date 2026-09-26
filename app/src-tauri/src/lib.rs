@@ -1,12 +1,15 @@
 use std::sync::Mutex;
 
+mod answers;
 mod command;
+mod finding;
 mod glimpse;
 mod herald;
 mod report;
 mod shop;
 mod tray;
 mod update;
+mod vouching;
 mod waking;
 mod wiring;
 
@@ -14,7 +17,7 @@ use tauri::{Emitter, Manager};
 
 use tisty_core::{
     Config, Event, List, Op, Paths, Reading, State, Store, Tag, Task,
-    event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch},
+    event::TaskPatch,
     view::{Filter, Scope, Window},
     witness::{self, Fact, channel},
 };
@@ -71,7 +74,7 @@ impl Session {
         if log::set_logger(&RELAY).is_ok() {
             log::set_max_level(log::LevelFilter::Warn);
         }
-        vouching_kept_at(paths.cache().join("vouched.json"));
+        crate::vouching::vouching_kept_at(paths.cache().join("vouched.json"));
         tisty_core::witness::catches(tisty_core::witness::channel::WINDOW);
         witness::note(
             channel::WINDOW,
@@ -1202,369 +1205,7 @@ struct Left {
     bytes: Option<u64>,
 }
 
-#[tauri::command]
-fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Left>> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    session.reload()?;
-    let Some(task) = session.state.tasks.get(&id) else {
-        return Err(Refusal::of("notATaskId"));
-    };
-
-    let root = session.paths.data().to_path_buf();
-    let shared = session.shared_now();
-    let on_disk = tisty_core::docs::all(&session.paths.docs());
-    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
-        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
-
-    let left = task
-        .references()
-        .into_iter()
-        .map(|one| match one.kind {
-            // The window writes a document as `[title](tisty:doc/ID)`, which parses as a link.
-            _ if one.target.starts_with("tisty:doc/") => {
-                // A reference names the document by its file or by its id, depending on who wrote it.
-                let held = one.target.strip_prefix("tisty:doc/").and_then(|raw| {
-                    raw.parse()
-                        .ok()
-                        .and_then(|id| session.state.docs.get(&id))
-                        .or_else(|| session.state.docs.values().find(|doc| doc.file == raw))
-                });
-                let on_paper = held.and_then(|doc| named.get(doc.file.as_str()));
-                Left {
-                    kind: "doc",
-                    label: on_paper
-                        .map(|doc| doc.title.clone())
-                        .filter(|title| !title.is_empty())
-                        .or_else(|| one.label.clone()),
-                    away: held.is_some_and(|doc| session.state.held_away(doc)),
-                    gone: held.is_none() || on_paper.is_none(),
-                    target: one.target,
-                    bytes: None,
-                }
-            }
-            tisty_core::refs::Kind::Doc => Left {
-                kind: "named",
-                label: one.label.clone(),
-                away: false,
-                gone: false,
-                target: one.target,
-                bytes: None,
-            },
-            tisty_core::refs::Kind::Link
-                if tisty_core::attach::names_an_attachment(&one.target) =>
-            {
-                let bytes = where_it_lies(&one.target, &root, shared.as_deref())
-                    .and_then(|at| std::fs::metadata(at).ok())
-                    .filter(|told| told.is_file())
-                    .map(|told| told.len());
-                Left {
-                    kind: "file",
-                    label: one.label.clone(),
-                    away: false,
-                    gone: bytes.is_none(),
-                    target: one.target,
-                    bytes,
-                }
-            }
-            tisty_core::refs::Kind::Link => Left {
-                kind: if one.target.starts_with("http") {
-                    "link"
-                } else {
-                    "named"
-                },
-                label: one.label.clone(),
-                away: false,
-                gone: false,
-                target: one.target,
-                bytes: None,
-            },
-        })
-        .collect();
-    Ok(left)
-}
-
-#[tauri::command]
-fn task_story(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-) -> Answer<tisty_core::story::Story> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    session.reload()?;
-    let told = tisty_core::story::story(session.log()?, id);
-    Ok(told)
-}
-
-#[tauri::command]
-fn task_series(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-) -> Answer<Option<tisty_core::series::Series>> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    session.reload()?;
-    Ok(tisty_core::series::series(&session.state, id))
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Agent {
-    on: bool,
-    called: Option<String>,
-}
-
-/// One assistant as the person meets it: a client Tisty can wire, and what a hand of that name
-/// has written in the whole log — on this machine and on the others.
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Assistant {
-    /// The id the client is wired under when Tisty knows it, else what it called itself,
-    /// lower-case; `None` for what was written before clients were named.
-    via: Option<String>,
-    named: String,
-    wired: Option<bool>,
-    filed: usize,
-    wrote: usize,
-    last: Option<String>,
-}
-
-#[tauri::command]
-fn assistants(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Assistant>> {
-    let mut session = held(&session);
-    session.reload()?;
-    let assistants = session.state.assistants.clone();
-    let events = session.log()?;
-    Ok(hands(events, &assistants, &wiring::seen()))
-}
-
-/// One row per hand, keyed by the id a known client is wired under so what `codex-mcp-client`
-/// wrote sits on the Codex row; only what reached the list counts, never a join or a host.
-fn hands(
-    events: &[Event],
-    assistants: &std::collections::BTreeSet<tisty_core::DeviceId>,
-    seen: &[wiring::Seen],
-) -> Vec<Assistant> {
-    let mut tally: std::collections::BTreeMap<
-        Option<String>,
-        (usize, usize, Option<jiff::Timestamp>),
-    > = Default::default();
-    for event in events
-        .iter()
-        .filter(|one| assistants.contains(&one.device) && one.entity_id().is_some())
-    {
-        let key = event.via.as_deref().map(|via| {
-            tisty_core::agent::client_id(via).map_or_else(|| via.to_lowercase(), str::to_string)
-        });
-        let told = tally.entry(key).or_default();
-        if matches!(event.op, Op::TaskAdd { .. } | Op::DocAdd { .. }) {
-            told.0 += 1;
-        }
-        told.1 += 1;
-        told.2 = Some(
-            told.2
-                .map_or(event.timestamp, |had| had.max(event.timestamp)),
-        );
-    }
-    let wired: std::collections::BTreeMap<String, bool> = seen
-        .iter()
-        .map(|one| (one.id.to_string(), one.wired))
-        .collect();
-    let mut all: Vec<Assistant> = wired
-        .keys()
-        .map(|id| Some(id.clone()))
-        .chain(tally.keys().cloned())
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
-        .map(|via| {
-            let (filed, wrote, last) = tally.get(&via).cloned().unwrap_or_default();
-            Assistant {
-                named: via
-                    .as_deref()
-                    .map(tisty_core::agent::client_named)
-                    .unwrap_or_default(),
-                wired: via.as_deref().and_then(|id| wired.get(id).copied()),
-                filed,
-                wrote,
-                last: last.map(|at| at.to_string()),
-                via,
-            }
-        })
-        .collect();
-    all.sort_by(|a, b| {
-        b.wired
-            .is_some()
-            .cmp(&a.wired.is_some())
-            .then(b.wrote.cmp(&a.wrote))
-            .then(a.named.cmp(&b.named))
-    });
-    all
-}
-
-#[tauri::command]
-fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
-    let mut session = held(&session);
-    session.reload()?;
-    let who = session.config.agent_id.clone();
-    Ok(Agent {
-        on: who.is_some(),
-        called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
-    })
-}
-
-/// Registering is the person's act. Nothing an assistant can say over the wire reaches here,
-/// which is what stops one granting itself a voice by connecting.
-#[tauri::command]
-fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
-    {
-        let mut session = held(&session);
-        session.reload()?;
-        let paths = session.paths.clone();
-        if on {
-            tisty_core::agent::register(&paths)
-                .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
-        } else {
-            tisty_core::agent::retire(&paths)
-                .map_err(|e| blamed(channel::STORE, "the agent could not be retired", e))?;
-        }
-        session.config = Config::load(&session.paths.config_file())
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| session.config.clone());
-        session.reproject()?;
-    }
-    agent(session)
-}
-
-#[tauri::command]
-fn routines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<tisty_core::series::Series>> {
-    let mut session = held(&session);
-    session.reload()?;
-    Ok(tisty_core::series::routines(&session.state))
-}
-
-#[tauri::command]
-fn archive_shape(session: tauri::State<'_, Mutex<Session>>) -> Answer<tisty_core::shape::Shape> {
-    let mut session = held(&session);
-    session.reload()?;
-    let now = jiff::Zoned::now();
-    Ok(tisty_core::shape::shape(
-        &session.state,
-        18,
-        &now.time_zone().clone(),
-        now.date(),
-    ))
-}
-
-#[tauri::command]
-fn snapshot(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    view: Option<View>,
-) -> Answer<Snapshot> {
-    let mut session = held(&session);
-    session.reload()?;
-    let spoken = Config::load(&session.paths.config_file())
-        .ok()
-        .flatten()
-        .and_then(|c| c.locale);
-    if spoken != session.locale {
-        session.locale = spoken.clone();
-        language(&app, &spoken);
-    }
-
-    let filter = match view {
-        Some(view) => view.resolve()?,
-        None => Filter::default(),
-    };
-
-    Ok(Snapshot {
-        tasks: session
-            .state
-            .matching(&filter, today())
-            .into_iter()
-            .cloned()
-            .collect(),
-        ahead: coming(&session.state, today()),
-        routines: recurring(&session.state, today()),
-        lists: session.state.ordered_lists().into_iter().cloned().collect(),
-        tags: tags_in_use(&session.state),
-        refs: session.state.references(),
-        counts: tally(&session.state),
-        locale: session.locale.clone(),
-        agents: named_agents(&session.state),
-        agent_tag: tisty_core::model::AGENT_TAG,
-        hosts: session
-            .state
-            .hosts
-            .iter()
-            .map(|(agent, machine)| (agent.0.clone(), machine.0.clone()))
-            .collect(),
-        machines: session
-            .state
-            .devices
-            .iter()
-            .filter(|one| !session.state.assistants.contains(one))
-            .map(|one| (one.0.clone(), tisty_core::config::nicknamed(&one.0)))
-            .collect(),
-        machine_here: session.config.device_id.0.clone(),
-        clients: named_clients(&session.state),
-    })
-}
-
-fn named_clients(state: &tisty_core::State) -> std::collections::BTreeMap<String, String> {
-    state
-        .tasks
-        .values()
-        .flat_map(|task| {
-            task.created_via
-                .iter()
-                .chain(task.resolved.iter().filter_map(|one| one.via.as_ref()))
-                .chain(task.log.iter().filter_map(|entry| entry.via.as_ref()))
-        })
-        .map(|via| (via.clone(), tisty_core::agent::client_named(via)))
-        .collect()
-}
-
-fn named_agents(state: &tisty_core::State) -> std::collections::BTreeMap<String, String> {
-    state
-        .agents
-        .iter()
-        .chain(state.assistants.iter())
-        .map(|one| (one.0.clone(), tisty_core::config::nicknamed(&one.0)))
-        .collect()
-}
-
-#[derive(serde::Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-struct Edits {
-    #[serde(default)]
-    no_date: bool,
-    #[serde(default)]
-    no_deadline: bool,
-    #[serde(default)]
-    no_list: bool,
-    #[serde(default)]
-    no_priority: bool,
-    #[serde(default)]
-    no_repeat: bool,
-    #[serde(default)]
-    no_tags: Vec<String>,
-    #[serde(default)]
-    date: Option<String>,
-    #[serde(default)]
-    deadline: Option<String>,
-    #[serde(default)]
-    priority: Option<String>,
-    #[serde(default)]
-    take_offer: bool,
-}
-
-fn named_priority(raw: &str) -> Answer<tisty_core::Priority> {
-    raw.parse().map_err(|_| Refusal::of("notAPriority"))
-}
-
-impl Edits {
+impl answers::tasks::Edits {
     fn apply(
         &self,
         draft: &mut tisty_core::capture::Draft,
@@ -1592,13 +1233,13 @@ impl Edits {
             }
         }
         if let Some(raw) = &self.date {
-            draft.date = Some(dated(raw, now, spoken)?);
+            draft.date = Some(answers::tasks::dated(raw, now, spoken)?);
         }
         if let Some(raw) = &self.deadline {
-            draft.deadline = Some(dated(raw, now, spoken)?);
+            draft.deadline = Some(answers::tasks::dated(raw, now, spoken)?);
         }
         if let Some(name) = &self.priority {
-            draft.priority = Some(named_priority(name)?);
+            draft.priority = Some(answers::tasks::named_priority(name)?);
         }
         Ok(())
     }
@@ -1649,16 +1290,6 @@ impl Edits {
     }
 }
 
-fn dated(raw: &str, now: &jiff::Zoned, spoken: &str) -> Result<tisty_core::DateSpec, Refusal> {
-    if let Ok(day) = raw.parse::<jiff::civil::Date>() {
-        return Ok(tisty_core::DateSpec::all_day(day, zone()));
-    }
-    if let Ok(when) = raw.parse::<jiff::civil::DateTime>() {
-        return Ok(tisty_core::DateSpec::floating(when, zone()));
-    }
-    tisty_nl::parse_date(raw, now, spoken).ok_or_else(|| Refusal::about("notADate", raw))
-}
-
 fn ahead(
     spec: &tisty_core::DateSpec,
     now: &jiff::Zoned,
@@ -1673,77 +1304,6 @@ fn ahead(
         return Err(Refusal::of(code));
     }
     Ok(())
-}
-
-#[tauri::command]
-fn capture(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    text: String,
-    locale: String,
-    view: Option<View>,
-    edits: Option<Edits>,
-) -> Answer<Task> {
-    let mut session = held(&session);
-    let spoken = session.locale.clone().unwrap_or(locale);
-    let now = jiff::Zoned::now();
-    let read = tisty_nl::parse(&text, &now, &spoken);
-    let mut draft: tisty_core::capture::Draft = read.clone().into();
-
-    if let Some(view) = view {
-        if draft.filing.is_none()
-            && let Some(list) = &view.list
-        {
-            let id = list.parse().map_err(|_| Refusal::of("notAListId"))?;
-            draft.filing = Some(tisty_core::capture::Filing::Kept(id));
-        }
-        for name in &view.tags {
-            if let Ok(tag) = Tag::written(name)
-                && !draft.tags.contains(&tag)
-            {
-                draft.tags.push(tag);
-            }
-        }
-        if draft.date.is_none() && view.window.as_deref() == Some("today") {
-            draft.date = Some(tisty_core::DateSpec::all_day(today(), zone()));
-        }
-    }
-
-    let edits = edits.unwrap_or_default();
-    edits.apply(&mut draft, &now, &spoken)?;
-    if let Some(spec) = &draft.deadline {
-        ahead(spec, &now, "pastDeadline")?;
-    }
-    if let Some(title) = edits.retitled(&text, &read, &spoken) {
-        draft.title = title;
-    }
-
-    let plan = tisty_core::capture::plan(&session.state, draft)?;
-    session.commit_all(plan.ops)?;
-    let task = session
-        .state
-        .tasks
-        .get(&plan.task)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))?;
-    drop(session);
-    let _ = herald::told(
-        &app,
-        tisty_core::herald::Happening::Filed {
-            title: task.title.clone(),
-        },
-    );
-    Ok(task)
-}
-
-#[tauri::command]
-fn read(
-    session: tauri::State<'_, Mutex<Session>>,
-    text: String,
-    locale: String,
-) -> Answer<tisty_nl::Parsed> {
-    let spoken = held(&session).locale.clone().unwrap_or(locale);
-    Ok(tisty_nl::parse(&text, &jiff::Zoned::now(), &spoken))
 }
 
 #[derive(serde::Deserialize, Default)]
@@ -1781,117 +1341,6 @@ struct Change {
     repeat: Option<tisty_core::model::Repeat>,
     #[serde(default)]
     no_repeat: bool,
-}
-
-#[tauri::command]
-fn patch(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    change: Change,
-    locale: String,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    let spoken = session.locale.clone().unwrap_or(locale);
-    let now = jiff::Zoned::now();
-    let task = session
-        .state
-        .tasks
-        .get(&id)
-        .ok_or_else(|| Refusal::of("notATaskId"))?
-        .clone();
-
-    let d = TaskPatch {
-        title: change
-            .title
-            .as_deref()
-            .map(|t| t.trim().to_string())
-            .filter(|t| !t.is_empty()),
-        date: dated_field(change.date.as_deref(), change.no_date, &now, &spoken)?,
-        deadline: {
-            let field = dated_field(
-                change.deadline.as_deref(),
-                change.no_deadline,
-                &now,
-                &spoken,
-            )?;
-            if let Some(Some(spec)) = &field {
-                ahead(spec, &now, "pastDeadline")?;
-            }
-            field
-        },
-        priority: change.priority.as_deref().map(named_priority).transpose()?,
-        tags: tagged(&task, &change)?,
-        reminders: recalled(&task, &change, &now)?,
-        repeat: repeated(&change, &now)?,
-        // Converting and opening to agents are verbs of their own, never part of an edit.
-        ..Default::default()
-    };
-
-    let mut ops = Vec::new();
-    let named = match change.list_named.as_deref().map(str::trim) {
-        Some(name) if !name.is_empty() => Some(match session.state.list_called(name).as_slice() {
-            [one] => one.id,
-            [_, _, ..] => return Err(Refusal::about("manyLists", name)),
-            [] => {
-                let made = ulid::Ulid::generate();
-                ops.push(Op::ListAdd {
-                    id: made,
-                    d: tisty_core::event::ListAdd {
-                        name: name.to_string(),
-                        order: session.state.next_list_order(),
-                        color: None,
-                    },
-                });
-                made
-            }
-        }),
-        _ => None,
-    };
-
-    let filed = match (named, &change.list, change.inbox) {
-        (Some(id), _, _) => Some(Some(id)),
-        (None, Some(raw), _) => Some(Some(raw.parse().map_err(|_| Refusal::of("notAListId"))?)),
-        (None, None, true) => Some(None),
-        _ => None,
-    };
-
-    if d != TaskPatch::default() {
-        ops.push(Op::TaskUpdate { id, d });
-    }
-    if let Some(body) = &change.description {
-        let kept = body.trim().to_string();
-        tisty_core::state::short_enough(&kept).map_err(|e| match e {
-            tisty_core::Error::TextTooLong { limit, .. } => {
-                Refusal::about("textTooLong", weighed(limit))
-            }
-            _ => Refusal::of("internal"),
-        })?;
-        ops.push(Op::TaskDescribe {
-            id,
-            d: tisty_core::event::Body {
-                body: (!kept.is_empty()).then_some(kept),
-            },
-        });
-    }
-    if let Some(list) = filed {
-        ops.push(Op::TaskMove {
-            id,
-            d: tisty_core::event::TaskMove {
-                list: Some(list),
-                order: None,
-            },
-        });
-    }
-    if !ops.is_empty() {
-        session.commit_all(ops)?;
-    }
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 fn tagged(task: &Task, change: &Change) -> Result<Option<Vec<Tag>>, Refusal> {
@@ -1969,141 +1418,10 @@ fn dated_field(
     spoken: &str,
 ) -> Result<Option<Option<tisty_core::DateSpec>>, Refusal> {
     match (raw, cleared) {
-        (Some(raw), _) => Ok(Some(Some(dated(raw, now, spoken)?))),
+        (Some(raw), _) => Ok(Some(Some(answers::tasks::dated(raw, now, spoken)?))),
         (None, true) => Ok(Some(None)),
         _ => Ok(None),
     }
-}
-
-#[tauri::command]
-fn write_step(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: Option<String>,
-    text: String,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let text = text.trim().to_string();
-    if text.is_empty() {
-        return Err(Refusal::of("emptyStep"));
-    }
-    let mut session = held(&session);
-
-    let op = match step {
-        Some(raw) => Op::StepText {
-            id,
-            d: StepText {
-                step: raw.parse().map_err(|_| Refusal::of("notAStepId"))?,
-                text,
-            },
-        },
-        None => Op::StepAdd {
-            id,
-            d: StepAdd {
-                step: ulid::Ulid::generate(),
-                text,
-                order: tisty_core::order::last_of(
-                    session
-                        .state
-                        .tasks
-                        .get(&id)
-                        .ok_or_else(|| Refusal::of("notATaskId"))?
-                        .steps
-                        .iter()
-                        .map(|s| s.order.as_str()),
-                ),
-            },
-        },
-    };
-    session.commit(op)?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn mark_step(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: String,
-    done: bool,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let d = StepRef {
-        step: step.parse().map_err(|_| Refusal::of("notAStepId"))?,
-    };
-    let mut session = held(&session);
-    session.commit(if done {
-        Op::StepDone { id, d }
-    } else {
-        Op::StepUndone { id, d }
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn drop_step(session: tauri::State<'_, Mutex<Session>>, id: String, step: String) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let d = StepRef {
-        step: step.parse().map_err(|_| Refusal::of("notAStepId"))?,
-    };
-    let mut session = held(&session);
-    session.commit(Op::StepRemove { id, d })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn write_log(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    entry: Option<String>,
-    body: String,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let body = body.trim().to_string();
-    if body.is_empty() {
-        return Err(Refusal::of("emptyEntry"));
-    }
-    tisty_core::state::short_enough(&body).map_err(|e| match e {
-        tisty_core::Error::TextTooLong { limit, .. } => {
-            Refusal::about("textTooLong", weighed(limit))
-        }
-        _ => Refusal::of("internal"),
-    })?;
-    let mut session = held(&session);
-
-    session.commit(match entry {
-        Some(raw) => Op::TaskLogEdit {
-            id,
-            d: LogEdit {
-                entry: raw.parse().map_err(|_| Refusal::of("notAnEntry"))?,
-                body,
-            },
-        },
-        None => Op::TaskLog {
-            id,
-            d: LogAdd::new(ulid::Ulid::generate(), body).in_zone(Some(zone())),
-        },
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
 #[tauri::command(async)]
@@ -2168,72 +1486,6 @@ struct Found {
     tasks: Vec<Task>,
     papers: Vec<Paper>,
     total: usize,
-}
-
-#[tauri::command]
-fn discard(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    session.commit(Op::TaskDrop { id })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    session.commit(if away {
-        Op::TaskHide { id }
-    } else {
-        Op::TaskShow { id }
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn still_open(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    let marked = session
-        .state
-        .tasks
-        .get(&id)
-        .ok_or_else(|| Refusal::of("notATaskId"))?
-        .resolved
-        .is_some();
-    if marked {
-        session.commit(Op::TaskUnresolve { id })?;
-    }
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn note_break(kind: String, said: Option<String>, frames: String) {
-    let cut = |text: String, most: usize| text.chars().take(most).collect::<String>();
-    witness::error(
-        channel::WINDOW,
-        "the window broke and stopped drawing",
-        &[
-            ("kind", Fact::Why(cut(kind, 40))),
-            ("said", Fact::Why(cut(said.unwrap_or_default(), 200))),
-            ("frames", Fact::Why(cut(frames, 400))),
-        ],
-    );
 }
 
 #[derive(serde::Serialize)]
@@ -2576,38 +1828,12 @@ fn refusal_code(said: &str) -> Option<&'static str> {
     REFUSALS.iter().copied().find(|one| *one == said)
 }
 
-#[tauri::command]
-fn note_trouble(code: String, name: Option<String>) {
-    let Some(code) = refusal_code(&code) else {
-        return;
-    };
-    let mut facts = vec![("code", Fact::Code(code))];
-    if let Some(name) = name.filter(|one| !one.is_empty()) {
-        facts.push(("at", Fact::Path(std::path::PathBuf::from(name))));
-    }
-    witness::warn(channel::WINDOW, "the window showed a refusal", &facts);
-}
-
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Logs {
     at: String,
     bytes: u64,
     lines: Vec<String>,
-}
-
-#[tauri::command(async)]
-fn logs(session: tauri::State<'_, Mutex<Session>>, most: usize) -> Answer<Logs> {
-    let session = held(&session);
-    Ok(Logs {
-        at: witness::file(&session.paths).display().to_string(),
-        bytes: witness::weighs(&session.paths),
-        lines: if most == 0 {
-            Vec::new()
-        } else {
-            witness::recent(&session.paths, most)
-        },
-    })
 }
 
 fn language<R: tauri::Runtime>(app: &tauri::AppHandle<R>, locale: &Option<String>) {
@@ -2631,361 +1857,11 @@ struct Settling {
     stuck: Option<Refusal>,
 }
 
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct About {
-    version: String,
-    sandbox: Option<String>,
-    repository: &'static str,
-    license: &'static str,
-    store: String,
-    candidates: bool,
-    candidates_apply: bool,
-    /// Kept by the Microsoft Store: updates come from it alone, and «none» means it has none yet.
-    kept_by_the_store: bool,
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Settings {
-    quiet: Vec<String>,
-    attach_up_to: u64,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    locale: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    theme: Option<tisty_core::config::Theme>,
-    holds: tisty_core::config::Holds,
-    /// Whether the choice means anything here: without a shared folder there is nowhere else.
-    shares: bool,
-    only_shared_above: u64,
-}
-
 const HERE: &str = env!("CARGO_PKG_VERSION");
-
-/// Which window owns the dialogs the Store raises on its own.
-#[cfg(windows)]
-fn owner(app: &tauri::AppHandle) -> Option<isize> {
-    app.get_webview_window("main")
-        .or_else(|| app.webview_windows().into_values().next())
-        .and_then(|window| window.hwnd().ok())
-        .map(|window| window.0 as isize)
-}
 
 #[cfg(not(windows))]
 fn owner(_app: &tauri::AppHandle) -> Option<isize> {
     None
-}
-
-#[tauri::command]
-async fn update_ready(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    now_please: Option<bool>,
-) -> Answer<Option<update::Ready>> {
-    let kept = update::route();
-    let (last, found, the_shop_said, wants) = {
-        let held = held(&session);
-        (
-            held.config.checked_at,
-            held.config.found_version.clone(),
-            held.config.found_in_the_shop,
-            held.config.candidates,
-        )
-    };
-    let now = jiff::Timestamp::now();
-    let asked = now_please.unwrap_or(false);
-
-    // A copy kept by the Store asks the Store and nobody else: a release the Store is still
-    // certifying is out for everyone else, and being told of one this copy cannot take is a
-    // button that does nothing. What the Store last said stands until it says otherwise.
-    if kept.route == update::Route::Store {
-        let last_said = || match (the_shop_said, found.as_deref()) {
-            (Some(true), Some(version)) => update::from_the_shop(version, HERE),
-            (Some(false), Some(version)) => {
-                update::published(HERE, version, wants).map(|_| update::on_its_way(Some(version)))
-            }
-            _ => None,
-        };
-        let Some(window) = owner(&app) else {
-            return Ok(last_said());
-        };
-        if !asked && !update::due(last, now) {
-            return Ok(last_said());
-        }
-        let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
-            .await
-            .unwrap_or(shop::Shelf::Silent);
-        let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
-            .await
-            .ok()
-            .flatten();
-        let out = manifest
-            .as_deref()
-            .and_then(|said| update::published(HERE, said, wants));
-        let waiting_for_it =
-            |session: &tauri::State<'_, Mutex<Session>>| -> Answer<Option<update::Ready>> {
-                held(session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = out.clone();
-                    c.found_in_the_shop = out.as_ref().map(|_| false);
-                })?;
-                Ok(out
-                    .as_deref()
-                    .map(|version| update::on_its_way(Some(version))))
-            };
-        return match shelf {
-            shop::Shelf::Waiting(version) => {
-                let seen = update::from_the_shop(&version, HERE);
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = seen.as_ref().map(|one| one.version.clone());
-                    c.found_in_the_shop = seen.as_ref().map(|_| true);
-                })?;
-                Ok(seen)
-            }
-            // Already down and waiting for this window to close: there is nothing to fetch, so
-            // it is announced without the button that would ask the Store for it again.
-            shop::Shelf::Landed(version) => {
-                let seen = update::from_the_shop(&version, HERE).map(|one| update::Ready {
-                    installs: false,
-                    ..one
-                });
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = seen.as_ref().map(|one| one.version.clone());
-                    c.found_in_the_shop = seen.as_ref().map(|_| true);
-                })?;
-                Ok(seen)
-            }
-            shop::Shelf::Queued => {
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = out.clone();
-                    c.found_in_the_shop = Some(false);
-                })?;
-                Ok(Some(update::on_its_way(out.as_deref())))
-            }
-            shop::Shelf::Current if out.is_some() => waiting_for_it(&session),
-            shop::Shelf::Current if manifest.is_some() => {
-                held(&session).keep(|c| {
-                    c.checked_at = Some(now);
-                    c.found_version = None;
-                    c.found_in_the_shop = None;
-                })?;
-                Ok(None)
-            }
-            shop::Shelf::Current => {
-                held(&session).keep(|c| c.checked_at = Some(now))?;
-                Ok(last_said())
-            }
-            // Asked and not answered is still asked: the next look waits its turn like any other,
-            // and a copy the Store never signed is not asked again every few hours.
-            shop::Shelf::Silent if out.is_some() => waiting_for_it(&session),
-            shop::Shelf::Silent => {
-                held(&session).keep(|c| c.checked_at = Some(now))?;
-                if asked {
-                    return Err(Refusal::of("updateUnanswered"));
-                }
-                Ok(last_said())
-            }
-        };
-    }
-
-    if !asked && !update::due(last, now) {
-        return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
-    }
-
-    let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
-        .await
-        .map_err(|_| Refusal::of("internal"))?;
-
-    // A look that never answered says nothing about whether an update is owed, so what was found
-    // before stays where it is.
-    let Some(manifest) = manifest else {
-        return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
-    };
-
-    let seen = update::newer(HERE, &manifest, kept, wants);
-    let version = seen.as_ref().map(|one| one.version.clone());
-    held(&session).keep(|c| {
-        c.checked_at = Some(now);
-        c.found_version = version;
-        c.found_in_the_shop = None;
-    })?;
-    Ok(seen)
-}
-
-#[derive(Clone, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Underway {
-    stage: &'static str,
-    far: u64,
-}
-
-#[tauri::command]
-async fn update_install(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, Updating>,
-) -> Answer<()> {
-    use tauri_plugin_updater::UpdaterExt;
-
-    let _busy = alone
-        .inner()
-        .0
-        .claim()
-        .ok_or_else(|| Refusal::of("updateBusy"))?;
-
-    let kept = update::route();
-    if kept.route == update::Route::Store {
-        return take_from_the_shop(app).await;
-    }
-    if !update::self_installs(kept.route) || update::from_a_mount() {
-        return Err(Refusal::of("updateNotHere"));
-    }
-
-    let (found, wants) = {
-        let held = held(&session);
-        (held.config.found_version.clone(), held.config.candidates)
-    };
-    let Some(want) = update::remembered(HERE, found.as_deref(), kept, wants).map(|one| one.version)
-    else {
-        return Err(moved_on(&session, kept, wants).await);
-    };
-
-    let asked = want.clone();
-    let mut building = app.updater_builder();
-    if let Some(platform) = update::platform(translated()) {
-        building = building.target(platform);
-    }
-    let update = building
-        .endpoints(
-            update::feeds_for(&want)
-                .into_iter()
-                .map(|one| one.parse())
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|_| Refusal::of("internal"))?,
-        )
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
-        // Pinned to what the person was shown, so a feed that moves in between cannot quietly
-        // hand them a different version than the one they agreed to.
-        .version_comparator(move |_, release| release.version.to_string() == asked)
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?
-        .check()
-        .await
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
-
-    let Some(mut update) = update else {
-        return Err(moved_on(&session, kept, wants).await);
-    };
-
-    // The feed names the address the installer comes from, so it is checked against where our
-    // releases actually live before a single byte is asked for.
-    if !update::ours(update.download_url.as_str()) {
-        return Err(Refusal::of("updateElsewhere"));
-    }
-    // The plugin builds the download with no deadline of its own, and a server that dribbles
-    // bytes forever would otherwise be waited on forever.
-    update.timeout = Some(std::time::Duration::from_secs(600));
-
-    let telling = app.clone();
-    let done = app.clone();
-    let mut carried: u64 = 0;
-    let mut said = 0;
-    update
-        .download_and_install(
-            move |chunk, whole| {
-                // The callback hands over the length of one chunk, not how much has arrived.
-                carried += chunk as u64;
-                let far = whole.map_or(0, |all| carried * 100 / all.max(1));
-                if far != said {
-                    said = far;
-                    let _ = telling.emit(
-                        "updating",
-                        Underway {
-                            stage: "getting",
-                            far,
-                        },
-                    );
-                }
-            },
-            // The last thing anyone sees on Windows: the installer takes the process with it and
-            // nothing after the await ever runs.
-            move || {
-                let _ = done.emit(
-                    "updating",
-                    Underway {
-                        stage: "installing",
-                        far: 100,
-                    },
-                );
-            },
-        )
-        .await
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
-
-    // Only macOS gets this far, and restarting has to happen where the app loop lives.
-    let handle = app.clone();
-    app.run_on_main_thread(move || handle.restart())
-        .map_err(|why| Refusal::about("updateFailed", why.to_string()))?;
-    Ok(())
-}
-
-/// The version the person was shown is not on the feed any more — a copy left closed for weeks
-/// remembers an offer the feed has moved past. Looking again on the spot keeps what is offered
-/// now and says so, rather than leaving them with a button that only ever fails.
-async fn moved_on(
-    session: &tauri::State<'_, Mutex<Session>>,
-    kept: update::Kept,
-    wants: Option<bool>,
-) -> Refusal {
-    let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
-        .await
-        .ok()
-        .flatten();
-    let seen = manifest.and_then(|manifest| update::newer(HERE, &manifest, kept, wants));
-    let version = seen.map(|one| one.version);
-    let _ = held(session).keep(|c| {
-        c.found_version = version.clone();
-        c.found_in_the_shop = None;
-    });
-    match version {
-        Some(version) => Refusal::about("updateMoved", version),
-        None => Refusal::of("updateGone"),
-    }
-}
-
-/// Windows ends the process to put the new package in place, so the progress left behind is the
-/// last thing anyone sees.
-async fn take_from_the_shop(app: tauri::AppHandle) -> Answer<()> {
-    let window = owner(&app).ok_or_else(|| Refusal::of("updateNotHere"))?;
-    let telling = app.clone();
-    let taken = tauri::async_runtime::spawn_blocking(move || {
-        let mut said: (&'static str, u64) = ("", 0);
-        shop::take(window, move |stage, far| {
-            if said != (stage, far) {
-                said = (stage, far);
-                let _ = telling.emit("updating", Underway { stage, far });
-            }
-        })
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?;
-
-    match taken {
-        Ok(()) => Ok(()),
-        Err(shop::Trouble::Gone) => Err(Refusal::of("updateGone")),
-        Err(shop::Trouble::Stopped) => Err(Refusal::of("updateStopped")),
-        Err(shop::Trouble::Failed(why)) => Err(Refusal::about("updateFailed", why)),
-    }
-}
-
-#[tauri::command]
-fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
-    let session = held(&session);
-    Ok(as_settings(&session))
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -3069,188 +1945,6 @@ async fn free_up(
 #[tauri::command]
 fn stop_freeing(stopping: tauri::State<'_, Stopping>) {
     stopping.0.store(true, std::sync::atomic::Ordering::Relaxed);
-}
-
-fn as_settings(session: &Session) -> Settings {
-    Settings {
-        quiet: session.config.muted().to_vec(),
-        attach_up_to: session.config.copies_up_to(),
-        locale: session.config.locale.clone(),
-        theme: session.config.theme,
-        holds: session.config.holds.unwrap_or_default(),
-        shares: !session.config.backs_up(),
-        only_shared_above: session.config.only_shared_above(),
-    }
-}
-
-#[tauri::command]
-fn keep_settings(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    settings: Settings,
-) -> Answer<Settings> {
-    let mut session = held(&session);
-    let quiet = settings.quiet.clone();
-    let up_to = settings.attach_up_to.clamp(
-        tisty_core::attach::COPIED_LEAST,
-        tisty_core::attach::COPIED_MOST,
-    );
-    let holds = settings.holds;
-    session.keep(|config| {
-        config.quiet = (!quiet.is_empty()).then_some(quiet);
-        config.attach_up_to = Some(up_to);
-        config.holds = Some(holds);
-    })?;
-    let now = as_settings(&session);
-    drop(session);
-    herald::respeak(&app, &now.quiet);
-    Ok(now)
-}
-
-#[tauri::command]
-fn icons() -> Vec<&'static str> {
-    let mut all = tisty_core::model::mark::MARKS.to_vec();
-    all.extend_from_slice(tisty_core::model::icon::ICONS);
-    all
-}
-
-#[tauri::command]
-fn families() -> Vec<(&'static str, usize)> {
-    let mut all = tisty_core::model::mark::MARK_FAMILIES.to_vec();
-    all.extend_from_slice(tisty_core::model::icon::FAMILIES);
-    all
-}
-
-#[tauri::command]
-fn list_add(
-    session: tauri::State<'_, Mutex<Session>>,
-    name: String,
-    icon: Option<String>,
-    color: Option<String>,
-) -> Answer<List> {
-    let name = name.trim().to_string();
-    if name.is_empty() {
-        return Err(Refusal::of("untitled"));
-    }
-    let mut session = held(&session);
-    if !session.state.list_called(&name).is_empty() {
-        return Err(Refusal::about("manyLists", name));
-    }
-
-    let id = ulid::Ulid::generate();
-    let order = session.state.next_list_order();
-    session.commit(Op::ListAdd {
-        id,
-        d: tisty_core::event::ListAdd {
-            name,
-            order,
-            color: None,
-        },
-    })?;
-    let painted = color.filter(|key| tisty_core::model::hue::kept(key).is_some());
-    let drawn = icon.filter(|key| tisty_core::model::icon::known(key));
-    if drawn.is_some() || painted.is_some() {
-        session.commit(Op::ListLook {
-            id,
-            d: tisty_core::event::Look {
-                icon: Some(drawn),
-                color: Some(painted),
-            },
-        })?;
-    }
-    session
-        .state
-        .lists
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notAListId"))
-}
-
-#[tauri::command]
-fn list_look(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    icon: Option<String>,
-    color: Option<String>,
-) -> Answer<List> {
-    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
-    let kept = match icon {
-        Some(key) => Some(
-            tisty_core::model::icon::kept(&key).ok_or_else(|| Refusal::about("noSuchIcon", key))?,
-        ),
-        None => None,
-    };
-    let painted = match color {
-        Some(key) => Some(
-            tisty_core::model::hue::kept(&key)
-                .map(str::to_string)
-                .ok_or_else(|| Refusal::about("noSuchColour", key))?,
-        ),
-        None => None,
-    };
-
-    let mut session = held(&session);
-    session.commit(Op::ListLook {
-        id,
-        d: tisty_core::event::Look {
-            icon: Some(kept),
-            color: Some(painted),
-        },
-    })?;
-    session
-        .state
-        .lists
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notAListId"))
-}
-
-#[tauri::command]
-fn list_rename(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    name: String,
-) -> Answer<List> {
-    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
-    let name = tisty_core::text::plainly(&name);
-    if name.is_empty() {
-        return Err(Refusal::of("untitled"));
-    }
-
-    let mut session = held(&session);
-    if !session.state.lists.contains_key(&id) {
-        return Err(Refusal::of("notAListId"));
-    }
-    if session
-        .state
-        .list_called(&name)
-        .iter()
-        .any(|one| one.id != id)
-    {
-        return Err(Refusal::about("manyLists", name));
-    }
-
-    session.commit(Op::ListRename {
-        id,
-        d: tisty_core::event::Name { name },
-    })?;
-    session
-        .state
-        .lists
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notAListId"))
-}
-
-#[tauri::command]
-fn list_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
-    let mut session = held(&session);
-    if !session.state.lists.contains_key(&id) {
-        return Err(Refusal::of("notAListId"));
-    }
-    session.commit(Op::ListDelete { id })?;
-    Ok(())
 }
 
 #[derive(serde::Serialize)]
@@ -3473,900 +2167,15 @@ fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Fo
         .collect()
 }
 
-fn named_folder(said: &str) -> Answer<String> {
-    let name = tisty_core::text::plainly(said);
-    if name.is_empty() {
-        return Err(Refusal::of("untitled"));
-    }
-    // A slash reads as a path everywhere else, and then one name stands for two folders.
-    if name.contains('/') {
-        return Err(Refusal::of("folderNameSlash"));
-    }
-    if name.chars().count() > tisty_core::model::FOLDER_NAME_AT_MOST {
-        return Err(Refusal::of("folderNameTooLong"));
-    }
-    Ok(name)
-}
-
-#[tauri::command]
-fn folder_add(
-    session: tauri::State<'_, Mutex<Session>>,
-    name: String,
-    parent: Option<String>,
-    icon: Option<String>,
-    color: Option<String>,
-) -> Answer<String> {
-    let name = named_folder(&name)?;
-    let parent = parent
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
-        .transpose()?;
-    let painted = match color {
-        Some(key) => Some(
-            tisty_core::model::hue::kept(&key)
-                .map(str::to_string)
-                .ok_or_else(|| Refusal::about("noSuchColour", key))?,
-        ),
-        None => None,
-    };
-
-    let mut session = held(&session);
-    if let Some(at) = parent {
-        if !session.state.folders.contains_key(&at) {
-            return Err(Refusal::of("noSuchFolder"));
-        }
-        folder_open(&session.state, at, true)?;
-        if session.state.depth(Some(at)) >= tisty_core::model::DEEPEST {
-            return Err(Refusal::of("tooDeep"));
-        }
-    }
-    let order = tisty_core::order::last_of(
-        session
-            .state
-            .under(parent)
-            .iter()
-            .map(|one| one.order.as_str()),
-    );
-    let id = ulid::Ulid::generate();
-    session.commit(Op::FolderAdd {
-        id,
-        d: tisty_core::event::FolderAdd {
-            name,
-            order,
-            parent,
-            icon: icon.filter(|key| tisty_core::model::icon::known(key)),
-            color: painted,
-        },
-    })?;
-    Ok(id.to_string())
-}
-
-#[tauri::command]
-fn folder_rename(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    name: String,
-) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let name = named_folder(&name)?;
-    let mut session = held(&session);
-    if !session.state.folders.contains_key(&id) {
-        return Err(Refusal::of("noSuchFolder"));
-    }
-    folder_open(&session.state, id, false)?;
-    session.commit(Op::FolderRename {
-        id,
-        d: tisty_core::event::Name { name },
-    })?;
-    Ok(())
-}
-
-#[tauri::command]
-fn folder_look(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    icon: Option<String>,
-    color: Option<String>,
-) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let kept = match icon {
-        Some(key) => Some(
-            tisty_core::model::icon::kept(&key).ok_or_else(|| Refusal::about("noSuchIcon", key))?,
-        ),
-        None => None,
-    };
-    let painted = match color {
-        Some(key) => Some(
-            tisty_core::model::hue::kept(&key)
-                .map(str::to_string)
-                .ok_or_else(|| Refusal::about("noSuchColour", key))?,
-        ),
-        None => None,
-    };
-    let mut session = held(&session);
-    if !session.state.folders.contains_key(&id) {
-        return Err(Refusal::of("noSuchFolder"));
-    }
-    folder_open(&session.state, id, false)?;
-    session.commit(Op::FolderLook {
-        id,
-        d: tisty_core::event::Look {
-            icon: Some(kept),
-            color: Some(painted),
-        },
-    })?;
-    Ok(())
-}
-
-#[tauri::command]
-fn folder_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let mut session = held(&session);
-    if !session.state.folders.contains_key(&id) {
-        return Err(Refusal::of("noSuchFolder"));
-    }
-    folder_open(&session.state, id, false)?;
-    session.commit(Op::FolderDelete { id })?;
-    Ok(())
-}
-
-#[tauri::command]
-fn folder_file(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    parent: Option<String>,
-    before: Option<String>,
-) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let parent = parent
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
-        .transpose()?;
-    let before: Option<tisty_core::model::FolderId> = before
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
-        .transpose()?;
-
-    let mut session = held(&session);
-    if !session.state.folders.contains_key(&id) {
-        return Err(Refusal::of("noSuchFolder"));
-    }
-    folder_open(&session.state, id, false)?;
-    if let Some(at) = parent {
-        if !session.state.folders.contains_key(&at) {
-            return Err(Refusal::of("noSuchFolder"));
-        }
-        folder_open(&session.state, at, true)?;
-        if session.state.would_swallow(id, at) {
-            return Err(Refusal::of("intoItself"));
-        }
-        if session.state.depth(Some(at)) + session.state.tall_under(id) > tisty_core::model::DEEPEST
-        {
-            return Err(Refusal::of("tooDeep"));
-        }
-    }
-    if before.is_some_and(|at| at == id) {
-        return Err(Refusal::of("intoItself"));
-    }
-    let ops = beside_folders(&session.state, id, parent, before);
-    session.commit_all(ops)?;
-    Ok(())
-}
-
-fn beside_folders(
-    state: &State,
-    id: tisty_core::model::FolderId,
-    parent: Option<tisty_core::model::FolderId>,
-    before: Option<tisty_core::model::FolderId>,
-) -> Vec<Op> {
-    let sitting: Vec<&tisty_core::model::Folder> = state
-        .under(parent)
-        .into_iter()
-        .filter(|one| one.id != id)
-        .collect();
-    let keys: Vec<&str> = sitting.iter().map(|one| one.order.as_str()).collect();
-    let (mine, fresh) = tisty_core::order::dealt(
-        &keys,
-        stop(before.map(|at| sitting.iter().position(|one| one.id == at))),
-    );
-    let mut ops: Vec<Op> = sitting
-        .iter()
-        .zip(fresh)
-        .filter_map(|(one, order)| {
-            order.map(|order| Op::FolderMove {
-                id: one.id,
-                d: tisty_core::event::Filed {
-                    folder: None,
-                    page_of: None,
-                    order: Some(order),
-                },
-            })
-        })
-        .collect();
-    ops.push(Op::FolderMove {
-        id,
-        d: tisty_core::event::Filed {
-            folder: Some(parent),
-            page_of: None,
-            order: Some(mine),
-        },
-    });
-    ops
-}
-
 fn stop(found: Option<Option<usize>>) -> Option<usize> {
     found.flatten()
-}
-
-#[tauri::command]
-fn doc_file(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    folder: Option<String>,
-    before: Option<String>,
-) -> Answer<()> {
-    let folder = folder
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
-        .transpose()?;
-    let mut session = held(&session);
-
-    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let before: Option<tisty_core::model::DocId> = before
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchDoc")))
-        .transpose()?;
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageStaysPut")),
-        Some(_) => {}
-    }
-    doc_out(&session.state, id)?;
-    if let Some(at) = folder {
-        if !session.state.folders.contains_key(&at) {
-            return Err(Refusal::of("noSuchFolder"));
-        }
-        folder_open(&session.state, at, true)?;
-    }
-
-    if before.is_some_and(|at| at == id) {
-        return Err(Refusal::of("intoItself"));
-    }
-    let ops = beside_docs(&session.state, id, folder, before);
-    session.commit_all(ops)?;
-    Ok(())
-}
-
-fn beside_docs(
-    state: &State,
-    id: tisty_core::model::DocId,
-    folder: Option<tisty_core::model::FolderId>,
-    before: Option<tisty_core::model::DocId>,
-) -> Vec<Op> {
-    let mut sitting: Vec<&tisty_core::model::Kept> = state
-        .docs
-        .values()
-        .filter(|one| {
-            one.page_of.is_none() && !state.held_away(one) && one.folder == folder && one.id != id
-        })
-        .collect();
-    sitting.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
-    let keys: Vec<&str> = sitting.iter().map(|one| one.order.as_str()).collect();
-    let (mine, fresh) = tisty_core::order::dealt(
-        &keys,
-        stop(before.map(|at| sitting.iter().position(|one| one.id == at))),
-    );
-    let mut ops: Vec<Op> = sitting
-        .iter()
-        .zip(fresh)
-        .filter_map(|(one, order)| {
-            order.map(|order| Op::DocMove {
-                id: one.id,
-                d: tisty_core::event::Filed {
-                    folder: None,
-                    page_of: None,
-                    order: Some(order),
-                },
-            })
-        })
-        .collect();
-    ops.push(Op::DocMove {
-        id,
-        d: tisty_core::event::Filed {
-            folder: Some(folder),
-            page_of: None,
-            order: Some(mine),
-        },
-    });
-    ops
-}
-
-#[tauri::command(async)]
-fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
-    let root = held(&session).paths.docs();
-    let read = tisty_core::docs::read(&root, &id);
-    if let Ok(body) = &read {
-        let mut session = held(&session);
-        session.mind_body(&id, body);
-        noted(&mut session, &id, body);
-    }
-    read.map_err(|e| match e {
-        tisty_core::Error::DocumentTooBig { bytes, limit } => {
-            witness::warn(
-                channel::WINDOW,
-                "a document too big to hold was not opened",
-                &[
-                    ("id", witness::Fact::Id(id)),
-                    ("bytes", witness::Fact::Bytes(bytes)),
-                ],
-            );
-            Refusal::about("documentTooBig", weighed(limit))
-        }
-        _ if !root.join(format!("{id}.md")).exists() && still_coming(&session, &id) => {
-            Refusal::about("docComing", id)
-        }
-        _ => Refusal::about("noSuchDoc", id),
-    })
-}
-
-fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
-    let dest = match &held(session).config.sync {
-        Some(tisty_core::config::Sync::Folder(dest)) => dest.clone(),
-        _ => return false,
-    };
-    tisty_sync::paper_waiting(&dest, id)
-}
-
-/// Long enough for a file already on its way, short enough that nobody thinks the app hung.
-const COMES_WITHIN: std::time::Duration = std::time::Duration::from_millis(1_500);
-
-fn unreachable(found: Sought, reference: String) -> Refusal {
-    match found {
-        Sought::Coming => Refusal::about("comingDown", reference),
-        Sought::Away => Refusal::of("sharedAway"),
-        Sought::Torn => Refusal::about("attachmentTorn", reference),
-        _ => Refusal::about("cannotRead", reference),
-    }
-}
-
-enum Sought {
-    At(std::path::PathBuf),
-    Coming,
-    Away,
-    /// It is there, and it is not what its name says it is.
-    Torn,
-    No,
-}
-
-/// A link or a junction under somebody else's folder can point anywhere; the store's tree is ours.
-fn under_root(at: &std::path::Path, root: &std::path::Path) -> bool {
-    match (at.canonicalize(), root.canonicalize()) {
-        (Ok(at), Ok(root)) => at.starts_with(root),
-        _ => false,
-    }
-}
-
-/// The sync has always made that folder answer for its bytes; opening one asks the same, once per
-/// file and again only when it changes size or date.
-type Vouched = std::collections::HashMap<String, bool>;
-
-/// Enough for every heavy file a shared folder holds, and a ceiling so a store that churns
-/// through them cannot grow this without end.
-const VOUCHED_AT_MOST: usize = 4096;
-
-#[derive(Default)]
-struct Vouching {
-    at: Option<std::path::PathBuf>,
-    seen: Vouched,
-    read: bool,
-}
-
-static VOUCHING: std::sync::OnceLock<Mutex<Vouching>> = std::sync::OnceLock::new();
-
-fn vouching() -> &'static Mutex<Vouching> {
-    VOUCHING.get_or_init(Default::default)
-}
-
-/// Reading half a gigabyte to answer for its name is worth doing once, not once per launch: the
-/// answers are kept beside the cache, where losing them costs a re-read and nothing else.
-fn vouching_kept_at(at: std::path::PathBuf) {
-    if let Ok(mut one) = vouching().lock() {
-        one.at = Some(at);
-        one.seen.clear();
-        one.read = false;
-    }
-}
-
-/// What was written down last time, read from disk once and then held.
-fn vouched_before(asked: &str) -> Option<bool> {
-    let mut one = vouching().lock().ok()?;
-    if !one.read {
-        one.read = true;
-        if let Some(said) = one
-            .at
-            .as_ref()
-            .and_then(|at| std::fs::read_to_string(at).ok())
-            .and_then(|said| serde_json::from_str::<Vouched>(&said).ok())
-        {
-            one.seen = said;
-        }
-    }
-    one.seen.get(asked).copied()
-}
-
-fn vouching_kept(asked: String, said: bool) {
-    let Ok(mut one) = vouching().lock() else {
-        return;
-    };
-    // A file that changed keeps its path with a new size or date, so the old row is dead weight;
-    // dropping the lot is simpler than tracking which, and costs one re-read each.
-    if one.seen.len() >= VOUCHED_AT_MOST {
-        one.seen.clear();
-    }
-    one.seen.insert(asked, said);
-    let Some(at) = one.at.clone() else {
-        return;
-    };
-    let Ok(body) = serde_json::to_vec(&one.seen) else {
-        return;
-    };
-    drop(one);
-    if let Some(parent) = at.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    if let Err(e) = tisty_core::store::write_atomic(&at, &body) {
-        witness::warn(
-            channel::ATTACH,
-            "what answered for its name could not be written down",
-            &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
-        );
-    }
-}
-
-fn vouches(at: &std::path::Path, reference: &str) -> bool {
-    let mut parts = reference.rsplit('/');
-    let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
-        return false;
-    };
-    let Ok(told) = std::fs::metadata(at) else {
-        return false;
-    };
-    let when = told
-        .modified()
-        .ok()
-        .and_then(|one| one.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|one| one.as_secs())
-        .unwrap_or(0);
-    let asked = format!("{}|{}|{when}", at.display(), told.len());
-
-    if let Some(held) = vouched_before(&asked) {
-        return held;
-    }
-    // Not while the lock is held: reading the file takes seconds, and every other window
-    // command that touches an attachment would wait behind it.
-    let said = tisty_core::attach::hashed(at)
-        .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(shelf, leaf, &sha256));
-    vouching_kept(asked, said);
-    said
-}
-
-/// Where to look, taken and let go of at once: what follows can wait on iCloud, and holding the
-/// session while it does would freeze the window.
-fn where_to(
-    session: &tauri::State<'_, Mutex<Session>>,
-) -> (std::path::PathBuf, Option<std::path::PathBuf>) {
-    let session = held(session);
-    (session.paths.data().to_path_buf(), session.shared_now())
-}
-
-/// The store first, then the shared folder, which is where a machine that let go of it kept it.
-/// For a size or a count, where reading the whole of it to check would fetch what nobody asked to
-/// open — and on a cloud folder, fetching is the one thing this setting exists to avoid.
-fn where_it_lies(
-    reference: &str,
-    data: &std::path::Path,
-    shared: Option<&std::path::Path>,
-) -> Option<std::path::PathBuf> {
-    for root in [Some(data), shared].into_iter().flatten() {
-        let Ok(at) = tisty_core::attach::resolve(reference, root) else {
-            continue;
-        };
-        if at.is_file() && (root == data || under_root(&at, root)) {
-            return Some(at);
-        }
-    }
-    None
-}
-
-fn found_in(reference: &str, data: &std::path::Path, shared: Option<&std::path::Path>) -> Sought {
-    for root in [Some(data), shared].into_iter().flatten() {
-        let Ok(at) = tisty_core::attach::resolve(reference, root) else {
-            continue;
-        };
-        let ours = root == data;
-        if at.is_file() {
-            if !ours && !under_root(&at, root) {
-                return Sought::No;
-            }
-            if !ours && !vouches(&at, reference) {
-                return Sought::Torn;
-            }
-            return Sought::At(at);
-        }
-        if tisty_core::icloud::shed(&at).is_some() {
-            if !tisty_core::icloud::can_ask() {
-                return Sought::Away;
-            }
-            if !tisty_core::icloud::waited_for(&at, COMES_WITHIN) {
-                return Sought::Coming;
-            }
-            // What comes back from a cloud answers for its name like anything else that lives there.
-            return match ours || (under_root(&at, root) && vouches(&at, reference)) {
-                true => Sought::At(at),
-                false => Sought::Torn,
-            };
-        }
-    }
-    match shared {
-        Some(dest) if !dest.is_dir() => Sought::Away,
-        _ => Sought::No,
-    }
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Facts {
-    made: Option<i64>,
-    wrote: Option<i64>,
-    bytes: u64,
-    pages: usize,
-    author: Option<String>,
-    editor: Option<String>,
-    born: Option<String>,
-}
-
-fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
-    at.ok()?
-        .duration_since(std::time::UNIX_EPOCH)
-        .ok()
-        .map(|gone| gone.as_secs() as i64)
-}
-
-#[tauri::command(async)]
-fn keep_pdf(at: String, bytes: Vec<u8>) -> Answer<()> {
-    std::fs::write(&at, bytes).map_err(|e| {
-        blamed(
-            channel::WINDOW,
-            "a pdf could not be written",
-            tisty_core::Error::Io(e),
-        )
-    })
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Signed {
-    alias: Option<String>,
-    before: Vec<String>,
-    mine: usize,
-}
-
-#[tauri::command]
-fn signed(session: tauri::State<'_, Mutex<Session>>) -> Answer<Signed> {
-    let session = held(&session);
-    Ok(as_signed(&session))
 }
 
 fn signing(state: &tisty_core::State) -> Option<String> {
     state.signed.alias.clone()
 }
 
-fn as_signed(session: &Session) -> Signed {
-    Signed {
-        alias: session.state.signed.alias.clone(),
-        before: {
-            let mut seen: Vec<String> = Vec::new();
-            for was in session.state.signed_before.iter().rev() {
-                if !seen
-                    .iter()
-                    .any(|one| tisty_core::state::same_name(one, was))
-                {
-                    seen.push(was.clone());
-                }
-            }
-            seen
-        },
-        mine: match session.state.signed.alias.is_some() {
-            true => session.state.mine_to_sign().len(),
-            false => 0,
-        },
-    }
-}
-
-#[tauri::command]
-fn sign_the_rest(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let mut session = held(&session);
-    let Some(alias) = session.state.signed.alias.clone() else {
-        return Ok(0);
-    };
-    let ops: Vec<Op> = session
-        .state
-        .mine_to_sign()
-        .into_iter()
-        .map(|id| Op::DocSigned {
-            id,
-            d: alias.clone(),
-        })
-        .collect();
-    let many = ops.len();
-    if many > 0 {
-        session
-            .commit_all(ops)
-            .map_err(|e| blamed(channel::WINDOW, "the documents could not be signed", e))?;
-    }
-    Ok(many)
-}
-
-#[tauri::command]
-fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) -> Answer<Signed> {
-    let said = alias
-        .map(|one| tisty_core::text::plainly(&one).trim().to_string())
-        .filter(|one| !one.is_empty());
-    if said
-        .as_ref()
-        .is_some_and(|one| one.chars().count() > tisty_core::event::ALIAS_AT_MOST)
-    {
-        return Err(Refusal::about(
-            "aliasTooLong",
-            tisty_core::event::ALIAS_AT_MOST.to_string(),
-        ));
-    }
-
-    let mut session = held(&session);
-    let same = match (said.as_deref(), session.state.signed.alias.as_deref()) {
-        (Some(one), Some(was)) => tisty_core::state::same_name(one, was),
-        (one, was) => one == was,
-    };
-    if same {
-        return Ok(as_signed(&session));
-    }
-    let mut signature = session.state.signed.clone();
-    signature.alias = said;
-    session
-        .commit(Op::Signed {
-            d: signature.clone(),
-        })
-        .map_err(|e| blamed(channel::WINDOW, "the signature could not be written", e))?;
-    Ok(as_signed(&session))
-}
-
-#[tauri::command]
-fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
-    let session = held(&session);
-    let root = session.paths.docs();
-    let kept = session.state.docs.values().find(|one| one.file == id);
-    let made = kept.map(|one| match one.made {
-        Some(at) => at.as_second(),
-        None => (one.id.timestamp_ms() / 1000) as i64,
-    });
-    let pages = kept.map_or(0, |one| session.state.pages_of(one.id).len());
-    let author = kept
-        .and_then(|one| session.state.author_of(one))
-        .map(str::to_string);
-    let editor = kept
-        .and_then(|one| session.state.editor_of(one))
-        .map(str::to_string);
-    let born = kept
-        .and_then(|one| session.state.born_of(one))
-        .map(str::to_string);
-    let at = tisty_core::docs::resolve(&root, &id)
-        .map_err(|_| Refusal::about("noSuchDoc", id.clone()))?;
-    let about = std::fs::metadata(&at).map_err(|_| Refusal::about("noSuchDoc", id))?;
-    let wrote = kept
-        .and_then(|one| one.wrote)
-        .map(|at| at.as_second())
-        .or_else(|| seconds(about.modified()));
-    Ok(Facts {
-        made,
-        wrote,
-        bytes: about.len(),
-        pages,
-        author,
-        editor,
-        born,
-    })
-}
-
-const WRITTEN_BY: &str = "Tisty";
-
-const PICTURES: &[&str] = &[
-    "captura.png",
-    "prioridades.png",
-    "capture.png",
-    "priorities.png",
-    "rina.jpg",
-];
-
-const GUIDE_PAGES_ES: &[(&str, &str)] = &[
-    (
-        "tisty:code",
-        include_str!("../resources/guide/es/codigo.md"),
-    ),
-    (
-        "tisty:page",
-        include_str!("../resources/guide/es/pagina.md"),
-    ),
-];
-const GUIDE_PAGES_EN: &[(&str, &str)] = &[
-    ("tisty:code", include_str!("../resources/guide/en/code.md")),
-    ("tisty:page", include_str!("../resources/guide/en/page.md")),
-];
-
 // The MSIX package ships the executable alone, so the guide travels inside the binary.
-const GUIDE_ES: &str = include_str!("../resources/guide/es/guia.md");
-const GUIDE_EN: &str = include_str!("../resources/guide/en/guide.md");
-
-#[tauri::command]
-fn guide(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-) -> Answer<tisty_core::docs::Doc> {
-    let tongue = {
-        let session = held(&session);
-        let code = tisty_core::model::spoken(session.locale.as_deref());
-        if code.starts_with("es") { "es" } else { "en" }
-    };
-    let called = if tongue == "es" { "Guía" } else { "Guide" };
-    let told = if tongue == "es" { GUIDE_ES } else { GUIDE_EN };
-    let leaves = if tongue == "es" {
-        GUIDE_PAGES_ES
-    } else {
-        GUIDE_PAGES_EN
-    };
-
-    let from = app
-        .path()
-        .resolve(
-            format!("resources/guide/{tongue}"),
-            tauri::path::BaseDirectory::Resource,
-        )
-        .ok();
-
-    let mut session = held(&session);
-
-    if let Some(kept) = session.config.guide.clone() {
-        let root = session.paths.docs();
-        let standing = session.state.docs.values().any(|one| one.file == kept);
-        if standing && let Ok(body) = tisty_core::docs::read(&root, &kept) {
-            return Ok(tisty_core::docs::Doc {
-                id: kept,
-                title: tisty_core::docs::titled(&body),
-            });
-        }
-    }
-
-    if let Some((file, title)) = guide_already_here(&session) {
-        let taken = file.clone();
-        session.keep(|config| config.guide = Some(taken))?;
-        return Ok(tisty_core::docs::Doc { id: file, title });
-    }
-
-    let data = session.paths.data().to_path_buf();
-
-    let mut body = told.to_string();
-    let mut pages: Vec<(&str, String)> = leaves
-        .iter()
-        .map(|(named, one)| (*named, one.to_string()))
-        .collect();
-    for shot in PICTURES {
-        let Some(at) = from
-            .as_ref()
-            .map(|dir| dir.join(shot))
-            .filter(|at| at.is_file())
-        else {
-            continue;
-        };
-        let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
-            .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        let named = format!("](<{}>)", kept.at);
-        body = body.replace(&format!("]({shot})"), &named);
-        for (_, one) in pages.iter_mut() {
-            *one = one.replace(&format!("]({shot})"), &named);
-        }
-    }
-
-    let folder = ulid::Ulid::generate();
-    let order = tisty_core::order::last_of(
-        session
-            .state
-            .under(None)
-            .iter()
-            .map(|one| one.order.as_str()),
-    );
-    session.commit(Op::FolderAdd {
-        id: folder,
-        d: tisty_core::event::FolderAdd {
-            name: called.to_string(),
-            order,
-            parent: None,
-            icon: None,
-            color: None,
-        },
-    })?;
-
-    let root = session.paths.docs();
-    let device = session.store.device().clone();
-    let mut leafed = Vec::new();
-    for (marker, one) in &pages {
-        let made = tisty_core::docs::create(&root, &device, one)
-            .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-        body = body.replace(
-            &format!("]({marker})"),
-            &format!("]({}{})", tisty_core::refs::DOC, made.id),
-        );
-        leafed.push(made.id);
-    }
-    let made = tisty_core::docs::create(&root, &device, &body)
-        .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-
-    let sorted = tisty_core::order::last_of(
-        session
-            .state
-            .docs
-            .values()
-            .filter(|one| one.folder == Some(folder))
-            .map(|one| one.order.as_str()),
-    );
-    session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
-        d: tisty_core::event::DocAdd {
-            wrote: None,
-            guest: true,
-            made: None,
-            by: Some(WRITTEN_BY.into()),
-            file: made.id.clone(),
-            order: sorted,
-            said: Some(tisty_core::event::Said {
-                title: made.title.clone(),
-                bytes: None,
-                tags: Some(Vec::new()),
-                by: None,
-            }),
-            folder: Some(folder),
-            page_of: None,
-        },
-    })?;
-    let held = session
-        .state
-        .docs
-        .values()
-        .find(|one| one.file == made.id)
-        .map(|one| one.id);
-    if let Some(up) = held {
-        let mut order = tisty_core::order::first();
-        let shelf = session.paths.docs();
-        for file in &leafed {
-            let said = tisty_core::docs::read(&shelf, file)
-                .ok()
-                .map(|body| tisty_core::event::Said::of(&body));
-            session.commit(Op::DocAdd {
-                id: ulid::Ulid::generate(),
-                d: tisty_core::event::DocAdd {
-                    wrote: None,
-                    guest: true,
-                    made: None,
-                    by: Some(WRITTEN_BY.into()),
-                    file: file.clone(),
-                    order: order.clone(),
-                    said,
-                    folder: Some(folder),
-                    page_of: Some(up),
-                },
-            })?;
-            order = tisty_core::order::after(&order);
-        }
-    }
-    let written = made.id.clone();
-    session.keep(|c| c.guide = Some(written))?;
-
-    Ok(made)
-}
-
 fn stale(mine: Option<&str>, now: Option<&str>) -> bool {
     matches!((mine, now), (Some(mine), Some(now)) if mine != now)
 }
@@ -4517,26 +2326,12 @@ fn doc_order(session: tauri::State<'_, Mutex<Session>>, id: String, body: String
     Ok(held(&session).retell(&id, &body, None))
 }
 
-#[tauri::command]
-fn doc_lock(session: tauri::State<'_, Mutex<Session>>, id: String, shut: bool) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if shut && one.page_of.is_some() => return Err(Refusal::of("lockIsTheDocs")),
-        Some(_) => {}
-    }
-    doc_out(&session.state, id)?;
-    session.commit(if shut {
-        Op::DocLock { id }
-    } else {
-        Op::DocUnlock { id }
-    })?;
-    Ok(())
-}
-
 /// Changing a folder the archive holds, or filing anything into it, is refused everywhere.
-fn folder_open(state: &State, at: tisty_core::model::FolderId, holds: bool) -> Answer<()> {
+pub(crate) fn folder_open(
+    state: &State,
+    at: tisty_core::model::FolderId,
+    holds: bool,
+) -> Answer<()> {
     match state.folder_away(at) {
         true => Err(Refusal::of(match holds {
             true => "folderAwayHolds",
@@ -4555,60 +2350,6 @@ fn doc_out(state: &State, id: tisty_core::model::DocId) -> Answer<()> {
         (true, false) => Err(Refusal::of("folderIsAway")),
         (false, _) => Ok(()),
     }
-}
-
-#[tauri::command]
-fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
-    if !session.state.docs.contains_key(&id) {
-        return Err(Refusal::of("noSuchDoc"));
-    }
-    doc_out(&session.state, id)?;
-    session.commit(if away {
-        Op::DocArchive { id }
-    } else {
-        Op::DocUnarchive { id }
-    })?;
-    Ok(())
-}
-
-#[tauri::command]
-fn doc_unflag(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.flagged.is_none() => return Ok(()),
-        Some(_) => {}
-    }
-    session.commit(Op::DocUnflag { id })?;
-    Ok(())
-}
-
-#[tauri::command]
-fn folder_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchFolder"))?;
-    let mut session = held(&session);
-    let Some(folder) = session.state.folders.get(&id) else {
-        return Err(Refusal::of("noSuchFolder"));
-    };
-    // A folder inside one the archive already holds has no say of its own, either way.
-    if folder
-        .parent
-        .is_some_and(|up| session.state.folder_away(up))
-    {
-        return Err(Refusal::of("folderAway"));
-    }
-    if folder.archived == away {
-        return Ok(());
-    }
-    session.commit(if away {
-        Op::FolderArchive { id }
-    } else {
-        Op::FolderUnarchive { id }
-    })?;
-    Ok(())
 }
 
 #[tauri::command(async)]
@@ -4758,11 +2499,6 @@ struct Unpacked {
     joined: usize,
     files: usize,
     missed: usize,
-}
-
-#[tauri::command]
-fn spelled(said: String) -> String {
-    tisty_core::docs::spelled(&said)
 }
 
 #[tauri::command(async)]
@@ -5020,163 +2756,6 @@ fn doc_import(
     Ok(made)
 }
 
-#[tauri::command]
-fn doc_adopt(
-    session: tauri::State<'_, Mutex<Session>>,
-    file: String,
-) -> Answer<tisty_core::docs::Doc> {
-    held(&session).take_in(&file)
-}
-
-#[tauri::command]
-fn doc_let_go(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<()> {
-    held(&session).let_go_of(&file)
-}
-
-#[tauri::command]
-fn doc_new(
-    session: tauri::State<'_, Mutex<Session>>,
-    folder: Option<String>,
-    page_of: Option<String>,
-) -> Answer<tisty_core::docs::Doc> {
-    let folder = folder
-        .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
-        .transpose()?;
-    let page_of = page_of
-        .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
-        .transpose()?;
-    let mut session = held(&session);
-    if let Some(at) = folder {
-        if !session.state.folders.contains_key(&at) {
-            return Err(Refusal::of("noSuchFolder"));
-        }
-        folder_open(&session.state, at, true)?;
-    }
-    let under = match page_of {
-        Some(up) => match session.state.docs.get(&up) {
-            None => return Err(Refusal::of("noSuchDoc")),
-            Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
-            Some(one) if session.state.held_away(one) => {
-                return Err(Refusal::of("pageOfAway"));
-            }
-            Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
-            Some(one) => Some(one.folder),
-        },
-        None => None,
-    };
-    let folder = under.unwrap_or(folder);
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "")
-        .map_err(|e| blamed(channel::WINDOW, "a document could not be made", e))?;
-
-    let order = tisty_core::order::last_of(
-        session
-            .state
-            .docs
-            .values()
-            .filter(|one| one.page_of == page_of && (page_of.is_some() || one.folder == folder))
-            .map(|one| one.order.as_str()),
-    );
-    let signed_as = signing(&session.state);
-    session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
-        d: tisty_core::event::DocAdd {
-            wrote: None,
-            guest: false,
-            made: None,
-            by: signed_as.clone(),
-            file: made.id.clone(),
-            order,
-            said: Some(tisty_core::event::Said {
-                title: made.title.clone(),
-                bytes: None,
-                tags: Some(Vec::new()),
-                by: None,
-            }),
-            folder,
-            page_of,
-        },
-    })?;
-    Ok(made)
-}
-
-#[tauri::command]
-fn doc_page(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    page_of: Option<String>,
-) -> Answer<()> {
-    let id: tisty_core::model::DocId = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let page_of = page_of
-        .map(|up| up.parse().map_err(|_| Refusal::of("noSuchDoc")))
-        .transpose()?;
-    let mut session = held(&session);
-
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.page_of == page_of => return Ok(()),
-        Some(_) => {}
-    }
-    if session.state.shut(id) {
-        return Err(Refusal::of("lockedStaysPut"));
-    }
-    doc_out(&session.state, id)?;
-    if let Some(up) = page_of {
-        if up == id {
-            return Err(Refusal::of("pageOfPage"));
-        }
-        doc_out(&session.state, up)?;
-        match session.state.docs.get(&up) {
-            None => return Err(Refusal::of("noSuchDoc")),
-            Some(one) if one.page_of.is_some() => return Err(Refusal::of("pageOfPage")),
-            Some(one) if session.state.held_away(one) => {
-                return Err(Refusal::of("pageOfAway"));
-            }
-            Some(one) if one.locked => return Err(Refusal::of("pageOfLocked")),
-            Some(_) => {}
-        }
-        // Hanging carries the parent's archived state over, and the inverse cannot carry it back.
-        if session.state.docs.get(&id).is_some_and(|one| one.archived) {
-            return Err(Refusal::of("awayStaysAway"));
-        }
-        if session
-            .state
-            .docs
-            .values()
-            .any(|one| one.page_of == Some(id))
-        {
-            return Err(Refusal::of("holdsPages"));
-        }
-    }
-
-    let d = match page_of {
-        Some(_) => tisty_core::event::Filed {
-            folder: None,
-            page_of: Some(page_of),
-            order: None,
-        },
-        None => session
-            .unhang(id)
-            .map_err(|e| blamed(channel::WINDOW, "the log would not be read back", e))?,
-    };
-    let over = page_of
-        .and_then(|up| session.state.docs.get(&up))
-        .map(|up| up.file.clone());
-    session.commit(Op::DocMove { id, d })?;
-    // The page takes a key of its own on the way in, and where it is read comes from the text, so
-    // a book that already names it has to be settled from what it says or the two drift apart.
-    if let Some(up) = over
-        && let Ok(body) = tisty_core::docs::read(&session.paths.docs(), &up)
-    {
-        session.retell(&up, &body, None);
-    }
-    Ok(())
-}
-
-#[tauri::command]
-fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    held(&session).drop_doc(&id)
-}
-
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 fn proofread(window: &tauri::WebviewWindow) {
@@ -5346,40 +2925,6 @@ struct Leaving(std::sync::atomic::AtomicBool);
 #[derive(Default)]
 struct Departed(std::sync::atomic::AtomicBool);
 
-#[tauri::command]
-fn sow(app: tauri::AppHandle, priority: Option<String>) {
-    tray::sow(&app, priority);
-}
-
-#[tauri::command]
-fn parted(app: tauri::AppHandle) {
-    leave(&app);
-}
-
-const NOTICES: &str = include_str!("../../../THIRD-PARTY-BUNDLED.md");
-
-#[tauri::command]
-fn notices() -> &'static str {
-    NOTICES
-}
-
-#[tauri::command]
-fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
-    let session = held(&session);
-    Ok(About {
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        sandbox: tisty_core::paths::profile(),
-        repository: "https://github.com/rgdevment/Tisty",
-        license: "AGPL-3.0-only",
-        store: session.paths.store().display().to_string(),
-        candidates: update::tracking(HERE, session.config.candidates),
-        // The Store keeps its own tracks, and offers no candidates at all: a box here would be a
-        // switch wired to nothing.
-        candidates_apply: update::takes_candidates(update::route().route),
-        kept_by_the_store: update::route().route == update::Route::Store,
-    })
-}
-
 const SETTLED_IN: jiff::SignedDuration = jiff::SignedDuration::from_hours(24 * 14);
 const CLOSED_ENOUGH: usize = 10;
 const PAPERS_ENOUGH: usize = 10;
@@ -5416,197 +2961,8 @@ fn asking(
     Asking::Now
 }
 
-#[tauri::command]
-fn star_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
-    let mut session = held(&session);
-    let now = jiff::Timestamp::now();
-    let asked = session.config.asked_for_a_star;
-    let since = session.config.here_since;
-    let papers = session
-        .state
-        .docs
-        .values()
-        .filter(|one| one.page_of.is_none())
-        .count();
-    let counted = || {
-        let filter = Filter {
-            scope: Scope::Archived,
-            ..Default::default()
-        };
-        let today = today();
-        session
-            .state
-            .archived_tasks()
-            .filter(|task| filter.matches(task, today))
-            .count()
-    };
-    let decided = asking(asked, since, now, papers, counted);
-    match decided {
-        Asking::Start => {
-            session.keep(|c| c.here_since = Some(now))?;
-            Ok(false)
-        }
-        Asking::Wait => Ok(false),
-        Asking::Now => Ok(true),
-    }
-}
-
-#[tauri::command]
-fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    held(&session).keep(|c| c.asked_for_a_star = Some(true))
-}
-
 fn offering(seen: usize, wired: usize) -> bool {
     seen > 0 && wired == 0
-}
-
-#[tauri::command]
-fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
-    if held(&session).config.asked_to_wire.unwrap_or(false) {
-        return Ok(false);
-    }
-    let seen = wiring::seen();
-    Ok(offering(
-        seen.len(),
-        seen.iter().filter(|one| one.wired).count(),
-    ))
-}
-
-#[tauri::command]
-fn door_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    held(&session).keep(|c| c.asked_to_wire = Some(true))
-}
-
-/// A copy only ever reaches the candidates' track from here. Turning it off does not walk it back:
-/// a candidate already installed stays one until a stable release passes it.
-#[tauri::command]
-fn update_candidates(session: tauri::State<'_, Mutex<Session>>, wants: bool) -> Answer<()> {
-    held(&session).keep(|c| {
-        c.candidates = Some(wants);
-        // What was found under the old answer says nothing about the new one.
-        c.checked_at = None;
-        c.found_version = None;
-        c.found_in_the_shop = None;
-    })?;
-    Ok(())
-}
-
-#[tauri::command]
-async fn settle_in(
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-) -> Answer<Settling> {
-    let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, data, store, aside, device, alive, holds) = {
-        let session = held(&session);
-        let was = session.config.opened_by.clone();
-        if was.as_deref() == Some(here) {
-            return Ok(Settling {
-                ran: false,
-                brought: false,
-                agrees: true,
-                was,
-                stuck: None,
-            });
-        }
-        let dest = match &session.config.sync {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-            _ => None,
-        };
-        (
-            was,
-            dest,
-            session.paths.data().to_path_buf(),
-            session.paths.store(),
-            session.paths.cache().to_path_buf(),
-            session.config.device_id.0.clone(),
-            session.alive(),
-            session.config.holds(),
-        )
-    };
-
-    let mut brought = false;
-    let mut stuck = None;
-    let mut arrived = Vec::new();
-    let mut carried = dest.is_none();
-    if let Some(dest) = dest
-        && let Some(_done) = alone.inner().claim()
-    {
-        carried = true;
-        let before = tisty_core::cache::fingerprint(&store);
-        let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry_holding(
-                &data,
-                Some(&aside),
-                &device,
-                &dest,
-                tisty_sync::Way::Both,
-                &alive,
-                holds,
-            )
-        })
-        .await;
-        match carried {
-            Ok(Err(why)) => {
-                let refusal = said(why);
-                witness::warn(
-                    channel::SYNC,
-                    "the carry on opening did not finish",
-                    &[("code", Fact::Code(refusal.code))],
-                );
-                stuck = Some(refusal);
-            }
-            Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
-            Ok(Ok(done)) => arrived = done.arrived,
-        }
-        brought = tisty_core::cache::fingerprint(&store) != before;
-    }
-
-    let mut session = held(&session);
-    if brought {
-        session.reproject().map_err(|e| {
-            blamed(
-                channel::SYNC,
-                "the store would not project after carrying",
-                e,
-            )
-        })?;
-    }
-    session.settle_what_arrived(&arrived);
-    let audit =
-        tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
-            witness::error(
-                channel::CACHE,
-                "the cache could not be audited on settling in",
-                &[("why", Fact::Why(e.to_string()))],
-            );
-            match e {
-                tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
-                _ => Refusal::of("internal"),
-            }
-        })?;
-    let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
-    if !agrees {
-        let _ = std::fs::remove_dir_all(session.paths.cache());
-        session.reproject().map_err(|e| {
-            blamed(
-                channel::CACHE,
-                "the store would not project without a cache",
-                e,
-            )
-        })?;
-    }
-
-    if carried {
-        session.keep(|c| c.opened_by = Some(here.to_string()))?;
-    }
-    Ok(Settling {
-        ran: true,
-        brought,
-        agrees,
-        was,
-        stuck,
-    })
 }
 
 #[tauri::command]
@@ -5620,216 +2976,6 @@ fn take_out_of_reach() -> Answer<command::Reach> {
     Ok(command::reach())
 }
 
-#[tauri::command]
-fn wiring() -> Vec<wiring::Seen> {
-    wiring::seen()
-}
-
-#[tauri::command]
-fn wire(id: String) -> Answer<Vec<wiring::Seen>> {
-    wiring::wire(&id).map_err(stuck)
-}
-
-#[tauri::command]
-fn unwire(id: String) -> Answer<Vec<wiring::Seen>> {
-    wiring::unwire(&id).map_err(stuck)
-}
-
-fn stuck(why: wiring::Stuck) -> Refusal {
-    match why {
-        wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
-        wiring::Stuck::Puzzling(at) => Refusal::about("settingsPuzzling", at),
-        wiring::Stuck::Cannot(why) => Refusal::about("cannotWrite", why),
-    }
-}
-
-#[tauri::command]
-fn waking() -> waking::Waking {
-    waking::waking()
-}
-
-#[tauri::command]
-fn wake_for(wanted: bool) -> Answer<waking::Waking> {
-    waking::wake(wanted).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
-}
-
-#[tauri::command]
-fn keep_locale(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    locale: Option<String>,
-) -> Answer<Option<String>> {
-    let mut session = held(&session);
-    let wanted = locale.filter(|one| !one.trim().is_empty());
-    session.keep(|config| config.locale = wanted.clone())?;
-    session.locale = wanted.clone();
-    language(&app, &wanted);
-    Ok(wanted)
-}
-
-#[tauri::command]
-fn keep_theme(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    theme: Option<String>,
-) -> Answer<Option<tisty_core::config::Theme>> {
-    let wanted = match theme
-        .as_deref()
-        .map(str::trim)
-        .filter(|one| !one.is_empty())
-    {
-        None => None,
-        Some(said) => Some(
-            said.parse::<tisty_core::config::Theme>()
-                .map_err(|_| Refusal::of("notATheme"))?,
-        ),
-    };
-    held(&session).keep(|config| config.theme = wanted)?;
-    appearance(&app, wanted);
-    Ok(wanted)
-}
-
-/// The window's own theme is what the webview reads `prefers-color-scheme` from, so the
-/// page repaints by itself; absent, the window goes back to following the computer.
-fn appearance<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-    theme: Option<tisty_core::config::Theme>,
-) {
-    let wanted = theme.map(|one| match one {
-        tisty_core::config::Theme::Light => tauri::Theme::Light,
-        tisty_core::config::Theme::Dark => tauri::Theme::Dark,
-    });
-    for window in app.webview_windows().values() {
-        if let Err(why) = window.set_theme(wanted) {
-            witness::warn(
-                channel::WINDOW,
-                "the window would not take the theme",
-                &[("why", Fact::Why(why.to_string()))],
-            );
-        }
-    }
-}
-
-#[tauri::command]
-fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> Answer<()> {
-    let how = match how.as_str() {
-        "hide" => tisty_core::config::Closing::Hide,
-        "quit" => tisty_core::config::Closing::Quit,
-        _ => return Err(Refusal::of("notAClosing")),
-    };
-    held(&session).keep(|config| config.on_close = Some(how))?;
-    Ok(())
-}
-
-#[tauri::command]
-fn shortcut(bound: tauri::State<'_, Bound>) -> Option<String> {
-    bound.0.clone()
-}
-
-#[tauri::command]
-fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
-    let session = held(&session);
-    let config = &session.config;
-
-    let mut held: Vec<String> = session
-        .state
-        .tasks
-        .values()
-        .flat_map(|task| task.references())
-        .map(|one| one.target)
-        .collect();
-    held.extend(tisty_core::docs::referenced(&session.paths.docs()));
-
-    let held_at = match &config.sync {
-        Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-        _ => None,
-    };
-    let said = held_at.as_deref().map(told);
-
-    Ok(Carrying {
-        chosen: held_at.as_deref().map(|at| at.display().to_string()),
-        keeper: said.as_ref().map(|one| one.keeper.clone()),
-        kept_by: said.and_then(|one| one.named),
-        asked: config.sync.is_some(),
-        backs_up: config.backs_up(),
-        last: config.synced_at.map(|at| at.to_string()),
-        heard: config.heard_at.map(|at| at.to_string()),
-        loose: tisty_core::attach::loose(session.paths.data(), &held).files(),
-        open: session.state.matching(&Filter::default(), today()).len(),
-        archived: session
-            .state
-            .matching(
-                &Filter {
-                    scope: Scope::Archived,
-                    ..Default::default()
-                },
-                today(),
-            )
-            .len(),
-        lists: session.state.lists.len(),
-        attachments: report::attachments(session.paths.data()).files,
-        weight: report::weighed(session.paths.data()),
-        backed_up_at: config.backed_up_at.map(|at| at.to_string()),
-    })
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Offering {
-    key: String,
-    named: String,
-    at: Option<String>,
-    into: Option<String>,
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Told {
-    keeper: String,
-    named: Option<String>,
-    into: String,
-}
-
-#[tauri::command]
-fn keepers() -> Vec<Offering> {
-    tisty_core::keepers::offers()
-        .into_iter()
-        .map(|one| Offering {
-            key: one.key.to_string(),
-            named: one.named.to_string(),
-            into: one.at.as_deref().map(|at| room(at).display().to_string()),
-            at: one.at.map(|at| at.display().to_string()),
-        })
-        .collect()
-}
-
-#[tauri::command]
-fn keeper_of(at: String) -> Told {
-    told(&std::path::PathBuf::from(at))
-}
-
-#[tauri::command(async)]
-fn strays_at(at: String) -> Strays {
-    match tisty_sync::unclaimed(&std::path::PathBuf::from(at)) {
-        tisty_sync::Holding::Whole => Strays::default(),
-        tisty_sync::Holding::Strays(adrift) => Strays {
-            adrift,
-            unreadable: false,
-        },
-        tisty_sync::Holding::Unreadable => Strays {
-            adrift: 0,
-            unreadable: true,
-        },
-    }
-}
-
-#[derive(Default, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Strays {
-    adrift: usize,
-    unreadable: bool,
-}
-
 /// A folder that already holds a store is the meeting place itself; anywhere else we hang ours
 /// inside, so pointing at Documents does not scatter the store through it.
 fn room(at: &std::path::Path) -> std::path::PathBuf {
@@ -5839,800 +2985,12 @@ fn room(at: &std::path::Path) -> std::path::PathBuf {
     tisty_core::keepers::suggested(at)
 }
 
-/// The guide another machine planted arrives through the shared folder like any other document,
-/// and planting a second one would leave a copy per machine.
-fn guide_already_here(session: &Session) -> Option<(String, String)> {
-    let named: Vec<String> = [GUIDE_ES, GUIDE_EN]
-        .iter()
-        .map(|one| tisty_core::docs::titled(one))
-        .collect();
-    session
-        .state
-        .docs
-        .values()
-        .filter(|one| one.page_of.is_none())
-        .find(|one| {
-            one.title
-                .as_ref()
-                .is_some_and(|title| named.iter().any(|one| one == title))
-        })
-        .map(|one| (one.file.clone(), one.title.clone().unwrap_or_default()))
-}
-
-#[tauri::command]
-fn sow_lists(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    held(&session).sow_if_due();
-    Ok(())
-}
-
-#[tauri::command]
-fn glimpse_kept(session: tauri::State<'_, Mutex<Session>>, at: String) -> Option<glimpse::Glimpse> {
-    let cache = held(&session).paths.cache().to_path_buf();
-    glimpse::kept(&cache, &at)
-}
-
-/// Only ever from a press of somebody's: the card draws itself out of the address until then.
-#[tauri::command(async)]
-async fn glimpse_fetch(
-    session: tauri::State<'_, Mutex<Session>>,
-    at: String,
-) -> Answer<Option<glimpse::Glimpse>> {
-    let cache = held(&session).paths.cache().to_path_buf();
-    let asked = at.clone();
-    let found = tauri::async_runtime::spawn_blocking(move || glimpse::fetch(&asked))
-        .await
-        .map_err(|_| Refusal::of("internal"))?;
-    if let Some(one) = &found {
-        glimpse::keep(&cache, &at, one);
-    }
-    Ok(found)
-}
-
-#[tauri::command]
-fn make_room(at: String) -> Answer<()> {
-    std::fs::create_dir_all(&at).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
-}
-
-fn told(at: &std::path::Path) -> Told {
-    let into = room(at).display().to_string();
-    match tisty_core::keepers::keeper(at) {
-        tisty_core::keepers::Keeper::Cloud(key) => Told {
-            keeper: "cloud".into(),
-            named: tisty_core::keepers::offers()
-                .into_iter()
-                .find(|one| one.key == key)
-                .map(|one| one.named.to_string()),
-            into,
-        },
-        tisty_core::keepers::Keeper::Away => Told {
-            keeper: "away".into(),
-            named: None,
-            into,
-        },
-        tisty_core::keepers::Keeper::Plain => Told {
-            keeper: "plain".into(),
-            named: None,
-            into,
-        },
-    }
-}
-
-#[tauri::command]
-fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) -> Answer<()> {
-    let mut session = held(&session);
-    let chosen = match dest
-        .map(|one| one.trim().to_string())
-        .filter(|one| !one.is_empty())
-    {
-        Some(dest) => {
-            let at = std::path::PathBuf::from(&dest);
-            let data = session.paths.data();
-            let tangled = at.starts_with(data)
-                || data.starts_with(&at)
-                || at
-                    .canonicalize()
-                    .ok()
-                    .zip(data.canonicalize().ok())
-                    .is_some_and(|(a, b)| a.starts_with(&b) || b.starts_with(&a));
-            if tangled {
-                return Err(Refusal::about("remoteInsideStore", dest));
-            }
-            tisty_core::config::Sync::Folder(at)
-        }
-        None => tisty_core::config::Sync::Local,
-    };
-    // Leaving a folder that holds what this machine let go of takes them with it — but only while
-    // it is there to bring them back from. Gone, refusing would trap somebody with nowhere to go.
-    if session.config.holds() != tisty_core::config::Holds::Everywhere
-        && session.config.sync != Some(chosen.clone())
-        && let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone()
-        && old.is_dir()
-    {
-        return Err(Refusal::about(
-            "sharedAwayToLeave",
-            old.display().to_string(),
-        ));
-    }
-    session.keep(|c| c.sync = Some(chosen))
-}
-
-#[tauri::command]
-fn close_window(
-    window: tauri::Window,
-    session: tauri::State<'_, Mutex<Session>>,
-    how: Option<String>,
-    remember: Option<bool>,
-) -> Answer<()> {
-    let how = match how.as_deref() {
-        Some("hide") => tisty_core::config::Closing::Hide,
-        Some("quit") => tisty_core::config::Closing::Quit,
-        _ => return Ok(()),
-    };
-
-    if remember == Some(true) {
-        held(&session).keep(|c| c.on_close = Some(how))?;
-    }
-    match how {
-        tisty_core::config::Closing::Hide => {
-            let _ = window.emit("withdrawn", ());
-            let _ = window.hide();
-        }
-        tisty_core::config::Closing::Quit => parting(window.app_handle()),
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn sync_now(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-    way: Option<String>,
-) -> Answer<Settled> {
-    let Some(_done) = alone.inner().claim() else {
-        return Ok(Settled {
-            carried: "busy",
-            undecided: Vec::new(),
-            unreadable: Vec::new(),
-            astray: Vec::new(),
-            joined: Vec::new(),
-        });
-    };
-
-    let (dest, data, store, aside, device, alive, holds) = {
-        let session = held(&session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-            return Err(Refusal::of("noRemote"));
-        };
-        (
-            dest,
-            session.paths.data().to_path_buf(),
-            session.paths.store(),
-            session.paths.cache().to_path_buf(),
-            session.config.device_id.0.clone(),
-            session.alive(),
-            session.config.holds(),
-        )
-    };
-
-    let before = tisty_core::cache::fingerprint(&store);
-    let way = match way.as_deref() {
-        Some("push") => tisty_sync::Way::Push,
-        Some("pull") => tisty_sync::Way::Pull,
-        Some("again") => tisty_sync::Way::Again,
-        _ => tisty_sync::Way::Both,
-    };
-
-    let telling = app.clone();
-    let done = tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry_telling(
-            &data,
-            Some(&aside),
-            &device,
-            &dest,
-            way,
-            &alive,
-            holds,
-            &mut |far| {
-                let _ = telling.emit(
-                    "carried",
-                    match far {
-                        tisty_sync::Reached::Log => "log",
-                        tisty_sync::Reached::Papers => "papers",
-                    },
-                );
-            },
-        )
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(said)?;
-
-    let mut session = held(&session);
-    let moved = tisty_core::cache::fingerprint(&store) != before;
-    if moved {
-        session.reproject().map_err(|e| {
-            blamed(
-                channel::SYNC,
-                "the store would not project after syncing",
-                e,
-            )
-        })?;
-    }
-    session.settle_what_arrived(&done.arrived);
-    session.tidy_up(false);
-    if let Err(e) = session.take_a_seat() {
-        witness::warn(
-            channel::SYNC,
-            "this machine could not put itself on the list",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-    }
-    let unsettled = done.undecided.len() + done.unreadable.len() + done.astray.len();
-    let facts = [
-        ("moved", Fact::Word(if moved { "yes" } else { "no" })),
-        ("sent", Fact::Count(done.sent)),
-        ("brought", Fact::Count(done.brought)),
-        ("arrived", Fact::Count(done.arrived.len())),
-        ("undecided", Fact::Count(done.undecided.len())),
-        ("unreadable", Fact::Count(done.unreadable.len())),
-        ("astray", Fact::Count(done.astray.len())),
-        ("joined", Fact::Count(done.joined.len())),
-    ];
-    let carried = done.sent + done.brought + done.arrived.len() + done.joined.len();
-    if unsettled > 0 {
-        witness::warn(
-            channel::SYNC,
-            "a carry finished, and left work behind",
-            &facts,
-        );
-    } else if carried > 0 || moved {
-        witness::note(channel::SYNC, "a carry finished", &facts);
-    }
-    for one in done.unreadable.iter().chain(done.astray.iter()) {
-        witness::warn(
-            channel::SYNC,
-            "a carry could not settle a document",
-            &[("at", Fact::Id(one.clone()))],
-        );
-    }
-    let heard = done.brought > 0;
-    session.keep(|c| {
-        c.synced_at = Some(jiff::Timestamp::now());
-        if heard {
-            c.heard_at = c.synced_at;
-        }
-    })?;
-    Ok(Settled {
-        carried: match (done.sent > 0, moved || done.brought > 0) {
-            (true, true) => "both",
-            (true, false) => "sent",
-            (false, true) => "came",
-            (false, false) => "same",
-        },
-        undecided: done.undecided.into_iter().map(|one| one.id).collect(),
-        unreadable: done.unreadable,
-        astray: done.astray,
-        joined: done.joined,
-    })
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Settled {
-    carried: &'static str,
-    undecided: Vec<String>,
-    unreadable: Vec<String>,
-    astray: Vec<String>,
-    joined: Vec<String>,
-}
-
-#[tauri::command]
-async fn back_up(
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-    into: String,
-) -> Answer<u64> {
-    let _done = alone.inner().taken()?;
-    let (data, aside) = {
-        let session = held(&session);
-        if !session.config.backs_up() {
-            return Err(Refusal::of("sharedIsTheBackup"));
-        }
-        (
-            session.paths.data().to_path_buf(),
-            session.paths.cache().to_path_buf(),
-        )
-    };
-
-    let at = std::path::PathBuf::from(&into);
-    let made =
-        tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at, &aside))
-            .await
-            .map_err(|_| Refusal::of("internal"))?
-            .map_err(|e| {
-                witness::error(
-                    channel::BACKUP,
-                    "the backup could not be written",
-                    &[("why", Fact::Why(e.to_string()))],
-                );
-                match e {
-                    tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
-                    _ => Refusal::about("cannotWrite", into),
-                }
-            })?;
-
-    let now = jiff::Timestamp::now();
-    held(&session).keep(|config| config.backed_up_at = Some(now))?;
-    Ok(made.bytes)
-}
-
-#[tauri::command]
-fn convert_paper(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    body: String,
-) -> Answer<()> {
-    let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
-    }
-    let papers = session.paths.docs();
-    let was = tisty_core::docs::read(&papers, &id)
-        .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
-
-    tisty_core::docs::kept_before(session.paths.data(), &id, &was, &body)
-        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &body).map_err(|e| match e {
-        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-        e => blamed(
-            channel::SYNC,
-            "the converted document could not be written",
-            e,
-        ),
-    })?;
-    session.mind(&id);
-    Ok(())
-}
-
 type Placing = (Option<ulid::Ulid>, Option<ulid::Ulid>, String);
 
 fn placed(beside: Option<Placing>, fresh: &str) -> Placing {
     match beside {
         Some((folder, page_of, order)) => (folder, page_of, tisty_core::order::after(&order)),
         None => (None, None, fresh.to_string()),
-    }
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Torn {
-    rifts: Vec<tisty_core::merge::Rift>,
-    print: String,
-}
-
-fn three_bodies(session: &Session, id: &str) -> Answer<Option<(String, String, String)>> {
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
-    let Some(base) = tisty_core::docs::read_carried(session.paths.data(), id) else {
-        return Ok(None);
-    };
-    match tisty_sync::both_papers(session.paths.data(), &dest, id) {
-        Ok((mine, theirs)) => Ok(Some((base, mine, theirs))),
-        Err(_) => Ok(None),
-    }
-}
-
-fn print_of_three(base: &str, mine: &str, theirs: &str) -> String {
-    tisty_core::attach::printed(format!("{base}\u{0}{mine}\u{0}{theirs}").as_bytes())
-}
-
-#[tauri::command(async)]
-fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Torn> {
-    let session = held(&session);
-    if session.state.shut_tight(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
-    }
-    let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
-        return Ok(Torn {
-            rifts: Vec::new(),
-            print: String::new(),
-        });
-    };
-    Ok(Torn {
-        print: print_of_three(&base, &mine, &theirs),
-        rifts: tisty_core::merge::rifts(&base, &mine, &theirs),
-    })
-}
-
-#[tauri::command(async)]
-fn weave_paper(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    picks: Vec<String>,
-    print: String,
-) -> Answer<()> {
-    let mut session = held(&session);
-    // Settling what two machines already wrote is not writing into it, so being archived is no
-    // reason to leave the rift with no way out. Only a lock guards the text itself.
-    if session.state.shut_tight(&id) {
-        return Err(Refusal::of("documentLocked"));
-    }
-    let Some((base, mine, theirs)) = three_bodies(&session, &id)? else {
-        return Err(Refusal::of("noBase"));
-    };
-    if print_of_three(&base, &mine, &theirs) != print {
-        return Err(Refusal::of("movedUnderfoot"));
-    }
-    let picked: Vec<tisty_core::merge::Pick> = picks
-        .iter()
-        .map(|one| match one.as_str() {
-            "mine" => tisty_core::merge::Pick::Mine,
-            "theirs" => tisty_core::merge::Pick::Theirs,
-            _ => tisty_core::merge::Pick::Both,
-        })
-        .collect();
-    let whole = tisty_core::merge::woven_with(&base, &mine, &theirs, &picked)
-        .ok_or_else(|| Refusal::of("cannotWeave"))?;
-
-    let papers = session.paths.docs();
-    tisty_core::docs::kept_before(session.paths.data(), &id, &mine, &whole)
-        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &whole).map_err(|e| match e {
-        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-        e => blamed(channel::SYNC, "the woven body could not be written", e),
-    })?;
-    session.mind(&id);
-    Ok(())
-}
-
-#[tauri::command]
-fn settle_paper(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    keep: String,
-    marked: Option<String>,
-) -> Answer<Option<String>> {
-    let mut session = held(&session);
-    // Settling what two machines already wrote is not writing into it, so being archived is no
-    // reason to leave the rift with no way out. Only a lock guards the text itself.
-    if session.state.shut_tight(&id) {
-        return Err(Refusal::of("documentLocked"));
-    }
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
-    let keep = match keep.as_str() {
-        "mine" => tisty_sync::Keep::Mine,
-        "theirs" => tisty_sync::Keep::Theirs,
-        _ => tisty_sync::Keep::Both,
-    };
-
-    let data = session.paths.data().to_path_buf();
-    let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
-    session.mind(&id);
-
-    let Some(body) = brought else { return Ok(None) };
-    let beside = session
-        .state
-        .docs
-        .values()
-        .find(|one| one.file == id)
-        .map(|one| (one.folder, one.page_of, one.order.clone()));
-    let body = match &marked {
-        Some(said) => tisty_core::docs::marked(&body, said),
-        None => body,
-    };
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
-        .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
-    let file = made.id.clone();
-    let (folder, page_of, order) = placed(beside, &made.id);
-    let signed_as = signing(&session.state);
-    session
-        .commit(Op::DocAdd {
-            id: ulid::Ulid::generate(),
-            d: tisty_core::event::DocAdd {
-                wrote: None,
-                guest: false,
-                made: None,
-                by: signed_as.clone(),
-                file: file.clone(),
-                folder,
-                order,
-                said: Some(tisty_core::event::Said {
-                    title: made.title.clone(),
-                    bytes: None,
-                    tags: Some(Vec::new()),
-                    by: None,
-                }),
-                page_of,
-            },
-        })
-        .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
-
-    tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
-    session.mind(&id);
-    Ok(Some(file))
-}
-
-#[tauri::command(async)]
-fn retire_attachment(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<()> {
-    held(&session).retire(&[reference]).map(|_| ())
-}
-
-#[tauri::command(async)]
-fn retire_attachments(
-    session: tauri::State<'_, Mutex<Session>>,
-    references: Vec<String>,
-) -> Answer<usize> {
-    held(&session).retire(&references)
-}
-
-#[tauri::command]
-fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let mut session = held(&session);
-    let who = tisty_core::event::DeviceId(id.clone());
-    if who == session.config.device_id {
-        return Err(Refusal::of("notThisMachine"));
-    }
-
-    session
-        .commit(Op::DeviceRemove { d: who })
-        .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;
-    session.reproject().map_err(|e| {
-        blamed(
-            channel::CACHE,
-            "the store would not project after removing",
-            e,
-        )
-    })?;
-
-    witness::note(
-        channel::SYNC,
-        "a machine was removed and what it wrote was left where everyone can still read it",
-        &[("at", Fact::Id(id))],
-    );
-    Ok(())
-}
-
-#[tauri::command]
-async fn join_them(
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-    into: String,
-) -> Answer<u64> {
-    let _done = alone.inner().taken()?;
-    if tisty_core::paths::profile().is_some() {
-        return Err(Refusal::of("sandboxCannotJoin"));
-    }
-    let (paths, aside) = {
-        let session = held(&session);
-        (session.paths.clone(), session.paths.cache().to_path_buf())
-    };
-
-    let at = std::path::PathBuf::from(&into);
-    let made = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::backup::reset(&paths, &at, &aside)
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(|e| {
-        witness::error(
-            channel::BACKUP,
-            "nothing was reset because the backup did not land",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-        Refusal::about("cannotWrite", into)
-    })?;
-
-    *held(&session) = Session::open().map_err(|e| {
-        blamed(
-            channel::BACKUP,
-            "the session would not reopen after being reset",
-            e,
-        )
-    })?;
-    Ok(made.bytes)
-}
-
-#[tauri::command]
-async fn take_over(
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-    into: String,
-) -> Answer<u64> {
-    let _done = alone.inner().taken()?;
-    if tisty_core::paths::profile().is_some() {
-        return Err(Refusal::of("sandboxCannotJoin"));
-    }
-    let (dest, aside, ours) = {
-        let session = held(&session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-            return Err(Refusal::of("noRemote"));
-        };
-        let ours = tisty_core::store::identity(session.paths.store())
-            .map_err(|e| blamed(channel::SYNC, "this machine has no name of its own", e))?;
-        (dest, session.paths.cache().to_path_buf(), ours)
-    };
-
-    let at = std::path::PathBuf::from(&into);
-    let made = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::backup::take_over(&dest, &ours, &at, &aside)
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(|e| {
-        witness::error(
-            channel::BACKUP,
-            "the folder was left alone because its backup did not land",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-        Refusal::about("cannotWrite", into)
-    })?;
-
-    Ok(made.bytes)
-}
-
-fn kinned(store: &std::path::Path, dest: &std::path::Path) -> &'static str {
-    match tisty_sync::kinship(store, dest) {
-        tisty_sync::Kin::SameLineage => "sameLineage",
-        tisty_sync::Kin::Clash(_) => "clash",
-        tisty_sync::Kin::Unsure(_) => "unsure",
-        tisty_sync::Kin::Strangers => "strangers",
-    }
-}
-
-/// The folder is walked with the session let go of: a cloud folder can take its time, and every
-/// other command waits behind whoever holds it.
-#[tauri::command(async)]
-fn folder_astir(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
-    let dest = {
-        let session = held(&session);
-        match session.config.sync.clone() {
-            Some(tisty_core::config::Sync::Folder(dest)) => dest,
-            _ => return Err(Refusal::of("noRemote")),
-        }
-    };
-    Ok(tisty_sync::stirring(&dest).to_string())
-}
-
-#[tauri::command(async)]
-fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
-    let session = held(&session);
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
-    Ok(kinned(&session.paths.store(), &dest))
-}
-
-#[derive(serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Joining {
-    kin: &'static str,
-    fresh: bool,
-    holds: bool,
-    alias: Option<String>,
-}
-
-#[tauri::command(async)]
-fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
-    let session = held(&session);
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
-    let store = session.paths.store();
-    Ok(Joining {
-        kin: kinned(&store, &dest),
-        fresh: !tisty_core::store::inhabited(&store),
-        holds: tisty_core::store::inhabited(dest.join(tisty_sync::STORE)),
-        alias: tisty_sync::signed_at(&dest),
-    })
-}
-
-#[tauri::command]
-async fn merge_stores(
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-    into: String,
-) -> Answer<bool> {
-    let _done = alone.inner().taken()?;
-    if tisty_core::paths::profile().is_some() {
-        return Err(Refusal::of("sandboxCannotJoin"));
-    }
-    let (data, dest, aside, device) = {
-        let session = held(&session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-            return Err(Refusal::of("noRemote"));
-        };
-        (
-            session.paths.data().to_path_buf(),
-            dest,
-            session.paths.cache().to_path_buf(),
-            session.config.device_id.0.clone(),
-        )
-    };
-
-    let at = std::path::PathBuf::from(&into);
-    let seam = tauri::async_runtime::spawn_blocking(move || -> Answer<tisty_sync::Stitched> {
-        tisty_core::backup::write(&data, &at, &aside).map_err(|e| {
-            witness::error(
-                channel::BACKUP,
-                "nothing was joined because the backup did not land",
-                &[("why", Fact::Why(e.to_string()))],
-            );
-            Refusal::about("cannotWrite", into)
-        })?;
-        tisty_sync::stitch(&data, &device, &dest).map_err(|trouble| {
-            let refusal = said(trouble);
-            witness::warn(
-                channel::SYNC,
-                "the two histories were left apart",
-                &[("code", Fact::Code(refusal.code))],
-            );
-            refusal
-        })
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))??;
-
-    *held(&session) = Session::open().map_err(|e| {
-        blamed(
-            channel::BACKUP,
-            "the session would not reopen after joining",
-            e,
-        )
-    })?;
-    Ok(seam.stitch.is_some())
-}
-
-#[tauri::command]
-async fn restore(
-    session: tauri::State<'_, Mutex<Session>>,
-    alone: tauri::State<'_, OneAtATime>,
-    from: String,
-) -> Answer<usize> {
-    let _done = alone.inner().taken()?;
-    let paths = {
-        let session = held(&session);
-        if !session.config.backs_up() {
-            return Err(Refusal::of("sharedIsTheBackup"));
-        }
-        session.paths.clone()
-    };
-
-    let at = std::path::PathBuf::from(&from);
-    let done = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::read(&paths, &at))
-        .await
-        .map_err(|_| Refusal::of("internal"))?
-        .map_err(|e| match e {
-            tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
-            tisty_core::Error::Io(why) => Refusal::about("restoreFailed", why.to_string()),
-            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
-            _ => Refusal::about("cannotRead", from.clone()),
-        })?;
-
-    *held(&session) = Session::open().map_err(|e| {
-        blamed(
-            channel::BACKUP,
-            "the session would not reopen after a restore",
-            e,
-        )
-    })?;
-    Ok(done.files)
-}
-
-struct Releasing<'a>(&'a std::sync::atomic::AtomicBool);
-
-impl Drop for Releasing<'_> {
-    fn drop(&mut self) {
-        self.0.store(false, std::sync::atomic::Ordering::Release);
     }
 }
 
@@ -6655,20 +3013,20 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
 
 #[tauri::command(async)]
 fn attached(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<Vec<u8>> {
-    let (data, shared) = where_to(&session);
-    let at = match found_in(&reference, &data, shared.as_deref()) {
-        Sought::At(at) => at,
-        other => return Err(unreachable(other, reference)),
+    let (data, shared) = finding::where_to(&session);
+    let at = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
     };
     std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
 }
 
 #[tauri::command(async)]
 fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
-    let (data, shared) = where_to(&session);
-    let at = match found_in(&reference, &data, shared.as_deref()) {
-        Sought::At(at) => at,
-        other => return Err(unreachable(other, reference)),
+    let (data, shared) = finding::where_to(&session);
+    let at = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
     };
     Ok(at.to_string_lossy().into_owned())
 }
@@ -6679,10 +3037,10 @@ fn attach_export(
     reference: String,
     into: String,
 ) -> Answer<()> {
-    let (data, shared) = where_to(&session);
-    let from = match found_in(&reference, &data, shared.as_deref()) {
-        Sought::At(at) => at,
-        other => return Err(unreachable(other, reference)),
+    let (data, shared) = finding::where_to(&session);
+    let from = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
     };
     std::fs::copy(&from, &into).map_err(|e| {
         witness::warn(
@@ -6698,15 +3056,10 @@ fn attach_export(
     Ok(())
 }
 
-#[tauri::command]
-fn roomy() -> u64 {
-    tisty_core::docs::BODY_ROOMY
-}
-
 #[tauri::command(async)]
 fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
-    let (data, shared) = where_to(&session);
-    let at = where_it_lies(&reference, &data, shared.as_deref())
+    let (data, shared) = finding::where_to(&session);
+    let at = finding::where_it_lies(&reference, &data, shared.as_deref())
         .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
     Ok(told.len())
@@ -6718,10 +3071,10 @@ fn opened(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    let (data, shared) = where_to(&session);
-    let at = match found_in(&reference, &data, shared.as_deref()) {
-        Sought::At(at) => at,
-        other => return Err(unreachable(other, reference)),
+    let (data, shared) = finding::where_to(&session);
+    let at = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
     };
     if !safe_to_open(&at) {
         return show(&at, &reference);
@@ -6729,38 +3082,6 @@ fn opened(
     handed(&at).map_err(|_| Refusal::about("cannotOpen", reference))?;
     let _ = app;
     Ok(())
-}
-
-#[tauri::command]
-fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<()> {
-    let at = std::path::Path::new(&path);
-
-    let plain = at.components().next().is_none_or(|first| {
-        !matches!(first, std::path::Component::Prefix(at) if !matches!(at.kind(), std::path::Prefix::Disk(_)))
-    });
-    if !plain || !at.is_absolute() {
-        return Err(Refusal::about("cannotOpen", path));
-    }
-
-    let (data, config, shared) = {
-        let session = held(&session);
-        (
-            session.paths.data().to_path_buf(),
-            session.paths.config().to_path_buf(),
-            match &session.config.sync {
-                Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-                _ => None,
-            },
-        )
-    };
-    let ours: Vec<std::path::PathBuf> = [Some(data), Some(config), shared]
-        .into_iter()
-        .flatten()
-        .collect();
-    if !within(at, &ours) {
-        return Err(Refusal::about("cannotOpen", path));
-    }
-    show(at, &path)
 }
 
 fn within(at: &std::path::Path, ours: &[std::path::PathBuf]) -> bool {
@@ -6852,50 +3173,6 @@ fn safe_to_open(at: &std::path::Path) -> bool {
     )
 }
 
-#[tauri::command]
-fn attach(
-    session: tauri::State<'_, Mutex<Session>>,
-    path: String,
-    label: Option<String>,
-    roomy: Option<bool>,
-) -> Answer<String> {
-    let source = std::path::PathBuf::from(&path);
-    let name = label
-        .or_else(|| {
-            source
-                .file_name()
-                .and_then(|n| n.to_str())
-                .map(str::to_string)
-        })
-        .unwrap_or_default();
-
-    let (root, ceiling) = {
-        let session = held(&session);
-        let ceiling = if roomy.unwrap_or(false) {
-            tisty_core::attach::COPIED_IN_DOC
-        } else {
-            session.config.copies_up_to()
-        };
-        (session.paths.data().to_path_buf(), ceiling)
-    };
-    let kept = tisty_core::attach::keep(&source, &root, ceiling).map_err(|e| {
-        witness::warn(channel::ATTACH, "the file could not be kept", &e.told());
-        match e {
-            tisty_core::Error::AttachmentTooBig { limit, .. } => Refusal::about(
-                if roomy.unwrap_or(false) {
-                    "attachmentTooBigHere"
-                } else {
-                    "attachmentTooBig"
-                },
-                weighed(limit),
-            ),
-            _ => Refusal::about("cannotRead", name.clone()),
-        }
-    })?;
-
-    Ok(kept.written(&name))
-}
-
 fn weighed(bytes: u64) -> String {
     let units = ["B", "kB", "MB", "GB"];
     let mut step = 0;
@@ -6909,66 +3186,6 @@ fn weighed(bytes: u64) -> String {
     } else {
         format!("{left:.1} {}", units[step])
     }
-}
-
-#[tauri::command]
-fn owed(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<String>> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let session = held(&session);
-    let today = jiff::Zoned::now().date();
-    Ok(session
-        .state
-        .owed_since(id, today)
-        .iter()
-        .map(ToString::to_string)
-        .collect())
-}
-
-#[tauri::command]
-fn complete(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    also: Option<Vec<String>>,
-) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let also = also
-        .unwrap_or_default()
-        .iter()
-        .map(|day| {
-            day.parse::<jiff::civil::Date>()
-                .map_err(|_| Refusal::about("notADate", day))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut session = held(&session);
-    let ops = if also.is_empty() {
-        session.state.completing(id, jiff::Zoned::now())
-    } else {
-        session.state.covering(id, jiff::Zoned::now(), &also)
-    };
-    session.commit_all(ops)?;
-    let task = session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))?;
-    drop(session);
-    if task.status == tisty_core::Status::Done {
-        let _ = herald::told(
-            &app,
-            tisty_core::herald::Happening::Done {
-                title: task.title.clone(),
-            },
-        );
-    }
-    Ok(task)
-}
-
-#[tauri::command]
-fn erase(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    erasing(&mut held(&session), id)
 }
 
 // Erasing has no undo, so it is judged against the store as it is now — an agent or the
@@ -6986,29 +3203,6 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
     }
     session.commit(Op::TaskDelete { id })?;
     Ok(())
-}
-
-/// The person's reading of a closed task, story or trace; a routine reads as a routine and
-/// an open task is not read yet.
-#[tauri::command]
-fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: String) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let how = match how.as_str() {
-        "story" => Reading::Story,
-        "trace" => Reading::Trace,
-        _ => return Err(Refusal::of("notAReading")),
-    };
-    reading_as(&mut held(&session), id, how)
-}
-
-#[tauri::command]
-fn open_to_agents(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    open: bool,
-) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    opening_to_agents(&mut held(&session), id, open)
 }
 
 /// Only an open task the person wrote takes the permission: a closed one is history to an
@@ -7061,20 +3255,6 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> An
             ..Default::default()
         },
     })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
-    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    let ops = session.state.reopening(id);
-    session.commit_all(ops)?;
     session
         .state
         .tasks
@@ -7160,6 +3340,14 @@ struct Packing(OneAtATime);
 impl Packing {
     fn taken(&self) -> Answer<Releasing<'_>> {
         self.0.claim().ok_or_else(|| Refusal::of("stillPacking"))
+    }
+}
+
+struct Releasing<'a>(&'a std::sync::atomic::AtomicBool);
+
+impl Drop for Releasing<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, std::sync::atomic::Ordering::Release);
     }
 }
 
@@ -7288,7 +3476,7 @@ pub fn run() {
             // with the session comes back hidden — looking, to whoever pressed the button, like it
             // never came back at all.
             let came_back = session.config.found_version.as_deref() == Some(HERE);
-            appearance(app.handle(), session.config.theme);
+            answers::settings::appearance(app.handle(), session.config.theme);
             app.manage(Mutex::new(session));
             app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
             herald::watch(app.handle().clone(), watched);
@@ -7393,143 +3581,143 @@ pub fn run() {
         .manage(Leaving::default())
         .manage(Departed::default())
         .invoke_handler(tauri::generate_handler![
-            snapshot,
-            keepers,
-            keeper_of,
-            strays_at,
-            make_room,
-            glimpse_kept,
-            glimpse_fetch,
-            sow_lists,
-            task_story,
-            task_series,
-            task_left,
-            routines,
-            agent,
-            agent_turn,
-            archive_shape,
-            close_window,
-            shortcut,
-            settle_in,
+            answers::tasks::snapshot,
+            answers::storing::keepers,
+            answers::storing::keeper_of,
+            answers::storing::strays_at,
+            answers::storing::make_room,
+            answers::storing::glimpse_kept,
+            answers::storing::glimpse_fetch,
+            answers::shelves::sow_lists,
+            answers::tasks::task_story,
+            answers::tasks::task_series,
+            answers::tasks::task_left,
+            answers::tasks::routines,
+            answers::agents::agent,
+            answers::agents::agent_turn,
+            answers::tasks::archive_shape,
+            answers::settings::close_window,
+            answers::settings::shortcut,
+            answers::storing::settle_in,
             reachable,
             take_out_of_reach,
             free_up,
             stop_freeing,
-            wiring,
-            assistants,
-            wire,
-            unwire,
-            waking,
-            wake_for,
-            keep_locale,
-            keep_closing,
-            keep_theme,
-            erase,
-            read_as,
-            open_to_agents,
-            guide,
-            capture,
-            read,
+            answers::wired::wiring,
+            answers::agents::assistants,
+            answers::wired::wire,
+            answers::wired::unwire,
+            answers::wired::waking,
+            answers::wired::wake_for,
+            answers::settings::keep_locale,
+            answers::settings::keep_closing,
+            answers::settings::keep_theme,
+            answers::tasks::erase,
+            answers::papers::read_as,
+            answers::tasks::open_to_agents,
+            answers::settings::guide,
+            answers::tasks::capture,
+            answers::tasks::read,
             search,
-            complete,
-            owed,
-            reopen,
-            patch,
-            write_step,
-            mark_step,
-            drop_step,
-            write_log,
-            fold,
-            still_open,
-            discard,
-            attach,
+            answers::attaching::complete,
+            answers::attaching::owed,
+            answers::tasks::reopen,
+            answers::tasks::patch,
+            answers::tasks::write_step,
+            answers::tasks::mark_step,
+            answers::tasks::drop_step,
+            answers::tasks::write_log,
+            answers::tasks::fold,
+            answers::tasks::still_open,
+            answers::tasks::discard,
+            answers::attaching::attach,
             served,
             attached,
             attach_export,
             weighs,
-            roomy,
+            answers::storing::roomy,
             opened,
-            revealed,
-            sync_state,
-            choose_sync,
-            sync_now,
-            back_up,
-            restore,
-            join_them,
-            take_over,
-            merge_stores,
-            sync_kin,
-            joining,
-            folder_astir,
-            remove_machine,
-            retire_attachment,
-            settle_paper,
-            paper_rifts,
-            weave_paper,
-            convert_paper,
+            answers::storing::revealed,
+            answers::storing::sync_state,
+            answers::storing::choose_sync,
+            answers::storing::sync_now,
+            answers::storing::back_up,
+            answers::storing::restore,
+            answers::storing::join_them,
+            answers::storing::take_over,
+            answers::storing::merge_stores,
+            answers::storing::sync_kin,
+            answers::storing::joining,
+            answers::storing::folder_astir,
+            answers::storing::remove_machine,
+            answers::storing::retire_attachment,
+            answers::papers::settle_paper,
+            answers::storing::paper_rifts,
+            answers::storing::weave_paper,
+            answers::papers::convert_paper,
             checked,
             twinned,
             rebuild,
-            about,
-            notices,
-            settings,
-            keep_settings,
+            answers::settings::about,
+            answers::settings::notices,
+            answers::settings::settings,
+            answers::settings::keep_settings,
             facts,
             keep_report,
-            note_trouble,
-            note_break,
-            update_ready,
-            update_install,
-            update_candidates,
-            star_due,
-            star_done,
-            door_due,
-            door_done,
-            logs,
-            icons,
-            families,
-            list_add,
-            list_look,
-            list_rename,
-            list_drop,
+            answers::tasks::note_trouble,
+            answers::tasks::note_break,
+            answers::updating::update_ready,
+            answers::updating::update_install,
+            answers::updating::update_candidates,
+            answers::tasks::star_due,
+            answers::tasks::star_done,
+            answers::tasks::door_due,
+            answers::tasks::door_done,
+            answers::tasks::logs,
+            answers::settings::icons,
+            answers::settings::families,
+            answers::shelves::list_add,
+            answers::shelves::list_look,
+            answers::shelves::list_rename,
+            answers::shelves::list_drop,
             docs,
             docs_catch_up,
             read_tags,
-            folder_add,
-            folder_rename,
-            folder_look,
-            folder_drop,
-            doc_file,
-            doc_read,
-            doc_facts,
-            keep_pdf,
+            answers::shelves::folder_add,
+            answers::shelves::folder_rename,
+            answers::shelves::folder_look,
+            answers::shelves::folder_drop,
+            answers::papers::doc_file,
+            answers::papers::doc_read,
+            answers::papers::doc_facts,
+            answers::papers::keep_pdf,
             doc_back,
             doc_backable,
             doc_write,
             doc_order,
-            doc_new,
-            doc_page,
-            doc_drop,
+            answers::papers::doc_new,
+            answers::papers::doc_page,
+            answers::papers::doc_drop,
             doc_import,
             doc_export,
-            signed,
-            sign,
-            sign_the_rest,
-            spelled,
+            answers::papers::signed,
+            answers::papers::sign,
+            answers::papers::sign_the_rest,
+            answers::papers::spelled,
             docs_pack,
             docs_take_out,
             docs_unpack,
             doc_copy,
-            doc_adopt,
-            doc_let_go,
-            retire_attachments,
-            doc_away,
-            doc_unflag,
-            folder_away,
-            doc_lock,
-            parted,
-            sow,
-            folder_file
+            answers::papers::doc_adopt,
+            answers::papers::doc_let_go,
+            answers::storing::retire_attachments,
+            answers::papers::doc_away,
+            answers::papers::doc_unflag,
+            answers::shelves::folder_away,
+            answers::papers::doc_lock,
+            answers::papers::parted,
+            answers::shelves::sow,
+            answers::shelves::folder_file
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
@@ -8150,13 +4338,11 @@ mod tests {
 
     #[test]
     fn what_answered_for_its_name_is_remembered_past_this_launch() {
-        use super::{vouches, vouching_kept_at};
-
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
 
         let room = tempfile::tempdir().unwrap();
         let kept = room.path().join("cache").join("vouched.json");
-        vouching_kept_at(kept.clone());
+        crate::vouching::vouching_kept_at(kept.clone());
 
         // The name has to answer for the bytes, or nothing is written down to remember.
         let loose = room.path().join("loose.mp4");
@@ -8171,7 +4357,7 @@ mod tests {
         let reference = format!("attachments/{shelf}/{leaf}");
 
         assert!(
-            vouches(&file, &reference),
+            vouching::vouches(&file, &reference),
             "the name does not answer for it"
         );
         assert!(kept.is_file(), "the answer was not written down");
@@ -8188,8 +4374,6 @@ mod tests {
 
     #[test]
     fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
-        use super::{Sought, found_in};
-
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
 
         let here = tempfile::tempdir().unwrap();
@@ -8200,25 +4384,29 @@ mod tests {
         std::fs::write(shelf.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
 
         // Off a Mac nothing can be asked back, but it is still told apart from what is gone.
-        let told = found_in(reference, here.path(), Some(shared.path()));
+        let told = finding::found_in(reference, here.path(), Some(shared.path()));
         match cfg!(target_os = "macos") {
-            true => assert!(matches!(told, Sought::Coming | Sought::At(_))),
-            false => assert!(matches!(told, Sought::Away), "nobody here to ask iCloud"),
+            true => assert!(matches!(
+                told,
+                finding::Sought::Coming | finding::Sought::At(_)
+            )),
+            false => assert!(
+                matches!(told, finding::Sought::Away),
+                "nobody here to ask iCloud"
+            ),
         }
         assert!(matches!(
-            found_in(
+            finding::found_in(
                 "attachments/ab/nope-00000000.txt",
                 here.path(),
                 Some(shared.path())
             ),
-            Sought::No
+            finding::Sought::No
         ));
     }
 
     #[test]
     fn an_attachment_is_looked_for_here_first_and_then_where_it_is_shared() {
-        use super::{Sought, found_in};
-
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
         let here = tempfile::tempdir().unwrap();
         let shared = tempfile::tempdir().unwrap();
@@ -8236,37 +4424,40 @@ mod tests {
         let theirs = theirs.as_str();
 
         assert!(matches!(
-            found_in(mine, here.path(), Some(shared.path())),
-            Sought::At(_)
+            finding::found_in(mine, here.path(), Some(shared.path())),
+            finding::Sought::At(_)
         ));
         assert!(
             matches!(
-                found_in(theirs, here.path(), Some(shared.path())),
-                Sought::At(_)
+                finding::found_in(theirs, here.path(), Some(shared.path())),
+                finding::Sought::At(_)
             ),
             "what only the shared folder holds is still reachable"
         );
         assert!(
-            matches!(found_in(theirs, here.path(), None), Sought::No),
+            matches!(
+                finding::found_in(theirs, here.path(), None),
+                finding::Sought::No
+            ),
             "without a shared folder there is nowhere else to look"
         );
         assert!(matches!(
-            found_in("attachments/ab/nope-00000000.txt", here.path(), None),
-            Sought::No
+            finding::found_in("attachments/ab/nope-00000000.txt", here.path(), None),
+            finding::Sought::No
         ));
         let lying = shared.path().join(theirs);
         std::fs::write(&lying, b"other bytes entirely").unwrap();
         assert!(
             matches!(
-                found_in(theirs, here.path(), Some(shared.path())),
-                Sought::Torn
+                finding::found_in(theirs, here.path(), Some(shared.path())),
+                finding::Sought::Torn
             ),
             "what does not answer for its own name is not handed over"
         );
         assert!(
             matches!(
-                found_in("../outside.txt", here.path(), Some(shared.path())),
-                Sought::No
+                finding::found_in("../outside.txt", here.path(), Some(shared.path())),
+                finding::Sought::No
             ),
             "the way out is still shut"
         );
@@ -8284,7 +4475,7 @@ mod tests {
 
     #[test]
     fn a_folder_name_stops_where_the_agent_and_the_core_stop() {
-        use super::named_folder;
+        use crate::answers::shelves::named_folder;
         let most = tisty_core::model::FOLDER_NAME_AT_MOST;
 
         assert_eq!(named_folder("  Condominio  ").unwrap(), "Condominio");
@@ -8995,7 +5186,7 @@ mod tests {
         let mut draft: tisty_core::capture::Draft = read.clone().into();
         assert!(draft.date.is_none());
 
-        let edits = Edits {
+        let edits = answers::tasks::Edits {
             date: Some(offer.date.date().to_string()),
             take_offer: true,
             ..Default::default()
@@ -9013,7 +5204,7 @@ mod tests {
             tisty_nl::parse("comprar pan mañana #casa !hacer", &now(), "es").into();
         assert!(draft.date.is_some());
 
-        Edits {
+        answers::tasks::Edits {
             no_date: true,
             no_priority: true,
             no_tags: vec!["casa".to_string()],
@@ -9033,7 +5224,7 @@ mod tests {
         let read = tisty_nl::parse(text, &now(), "es");
         assert_eq!(read.title, "comprar pan");
 
-        let edits = Edits {
+        let edits = answers::tasks::Edits {
             no_tags: vec!["casa".to_string()],
             ..Default::default()
         };
@@ -9045,7 +5236,7 @@ mod tests {
 
     #[test]
     fn a_refusal_the_window_showed_says_what_it_was_about() {
-        use super::note_trouble;
+        use crate::answers::tasks::note_trouble;
 
         let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
 
@@ -9083,7 +5274,7 @@ mod tests {
     fn choosing_a_different_date_leaves_the_title_alone() {
         let text = "comprar pan mañana";
         let read = tisty_nl::parse(text, &now(), "es");
-        let edits = Edits {
+        let edits = answers::tasks::Edits {
             date: Some("2026-08-20".to_string()),
             ..Default::default()
         };
@@ -9168,15 +5359,29 @@ version 0.1.0
 
     #[test]
     fn the_guide_travels_inside_the_binary_rather_than_beside_it() {
-        assert!(GUIDE_ES.starts_with("# "), "la guia en espanol no viaja");
-        assert!(GUIDE_EN.starts_with("# "), "la guia en ingles no viaja");
+        assert!(
+            answers::settings::GUIDE_ES.starts_with("# "),
+            "la guia en espanol no viaja"
+        );
+        assert!(
+            answers::settings::GUIDE_EN.starts_with("# "),
+            "la guia en ingles no viaja"
+        );
     }
 
     #[test]
     fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
         for (told, leaves, tongue) in [
-            (GUIDE_ES, GUIDE_PAGES_ES, "es"),
-            (GUIDE_EN, GUIDE_PAGES_EN, "en"),
+            (
+                answers::settings::GUIDE_ES,
+                answers::settings::GUIDE_PAGES_ES,
+                "es",
+            ),
+            (
+                answers::settings::GUIDE_EN,
+                answers::settings::GUIDE_PAGES_EN,
+                "en",
+            ),
         ] {
             assert_eq!(leaves.len(), 2, "the {tongue} guide lost a page");
             for (marker, leaf) in leaves {
@@ -9208,8 +5413,11 @@ version 0.1.0
     #[test]
     fn every_picture_the_guide_names_is_where_the_bundler_looks() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/guide");
-        for (told, tongue) in [(GUIDE_ES, "es"), (GUIDE_EN, "en")] {
-            for shot in PICTURES {
+        for (told, tongue) in [
+            (answers::settings::GUIDE_ES, "es"),
+            (answers::settings::GUIDE_EN, "en"),
+        ] {
+            for shot in answers::settings::PICTURES {
                 if !told.contains(&format!("]({shot})")) {
                     continue;
                 }
@@ -9247,7 +5455,7 @@ mod behind_tests {
 
 #[cfg(test)]
 mod hands_of {
-    use super::hands;
+    use crate::answers::agents::hands;
     use tisty_core::{DeviceId, Event, Op};
 
     fn wrote(device: &str, via: Option<&str>, at: i64, op: Op) -> Event {
@@ -9700,7 +5908,9 @@ mod letting_go {
 
 #[cfg(test)]
 mod ordering {
-    use super::{Session, beside_docs, beside_folders};
+    use super::Session;
+    use crate::answers::papers::beside_docs;
+    use crate::answers::shelves::beside_folders;
     use tisty_core::{Op, Paths};
 
     struct Desk {
@@ -9803,7 +6013,7 @@ mod ordering {
                     file: file.clone(),
                     order: "a1".into(),
                     said: Some(tisty_core::event::Said {
-                        title: tisty_core::docs::titled(super::GUIDE_ES),
+                        title: tisty_core::docs::titled(crate::answers::settings::GUIDE_ES),
                         bytes: None,
                         tags: Some(Vec::new()),
                         by: None,
@@ -9815,7 +6025,7 @@ mod ordering {
             .unwrap();
 
         assert_eq!(
-            super::guide_already_here(&session).map(|one| one.0),
+            crate::answers::settings::guide_already_here(&session).map(|one| one.0),
             Some(file)
         );
     }
@@ -9846,7 +6056,7 @@ mod ordering {
             })
             .unwrap();
 
-        assert_eq!(super::guide_already_here(&session), None);
+        assert_eq!(crate::answers::settings::guide_already_here(&session), None);
     }
 
     #[test]
