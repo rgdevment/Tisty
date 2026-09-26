@@ -5,6 +5,11 @@ use tauri::{Emitter, Manager};
 use crate::{Answer, HERE, Refusal, Session, Updating, held, shop, translated, update};
 
 /// Which window owns the dialogs the Store raises on its own.
+#[cfg(not(windows))]
+fn owner(_app: &tauri::AppHandle) -> Option<isize> {
+    None
+}
+
 #[cfg(windows)]
 fn owner(app: &tauri::AppHandle) -> Option<isize> {
     app.get_webview_window("main")

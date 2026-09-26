@@ -1859,11 +1859,6 @@ struct Settling {
 
 const HERE: &str = env!("CARGO_PKG_VERSION");
 
-#[cfg(not(windows))]
-fn owner(_app: &tauri::AppHandle) -> Option<isize> {
-    None
-}
-
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Freeing {
