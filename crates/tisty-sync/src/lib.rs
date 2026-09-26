@@ -4247,17 +4247,21 @@ lo mio"
     #[test]
     fn a_folder_of_another_store_is_refused_before_anything_moves() {
         let one = machine("dev_a");
-        std::fs::write(one.store.join(MARKER), b"01OURS").unwrap();
+        std::fs::write(one.store.join(MARKER), b"01OURS00000000000000000000").unwrap();
         let shared = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(shared.path().join("store")).unwrap();
-        std::fs::write(shared.path().join("store").join(MARKER), b"01THEIRS").unwrap();
+        std::fs::write(
+            shared.path().join("store").join(MARKER),
+            b"01THEIRS000000000000000000",
+        )
+        .unwrap();
 
         let Err(Trouble::OtherStore { theirs }) =
             carry(&one.data, &one.device, shared.path(), Way::Both, &[])
         else {
             panic!("two histories were about to be merged");
         };
-        assert_eq!(theirs, "01THEIRS");
+        assert_eq!(theirs, "01THEIRS000000000000000000");
         assert!(
             !shared.path().join("store/dev_a").exists(),
             "something moved"
@@ -4388,7 +4392,11 @@ lo mio"
         let theirs = shared.path().join("store/dev_b");
         std::fs::create_dir_all(&theirs).unwrap();
         std::fs::write(theirs.join("000002.tisty"), b"").unwrap();
-        std::fs::write(shared.path().join("store").join(MARKER), b"01M0THEIRSTORE").unwrap();
+        std::fs::write(
+            shared.path().join("store").join(MARKER),
+            b"01M0THEIRSTORE000000000000",
+        )
+        .unwrap();
 
         let moved = carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
 

@@ -102,13 +102,18 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
                 continue;
             };
             let Some(parts) = named(rest) else {
-                witness::warn(
-                    channel::BACKUP,
-                    "a name this copy cannot write was left out of it",
-                    &[("at", Fact::Path(at.clone()))],
-                );
                 continue;
             };
+            if parts
+                .iter()
+                .any(|one| matches!(one, std::borrow::Cow::Owned(_)))
+            {
+                witness::warn(
+                    channel::BACKUP,
+                    "a name this copy cannot spell went in spelled as close as it can be",
+                    &[("at", Fact::Path(at.clone()))],
+                );
+            }
             if kept_out(&parts) {
                 continue;
             }
@@ -198,6 +203,8 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
+
+    store::kept_before_the_store_goes(paths);
 
     let old = data.join(format!(".replaced-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&old);
@@ -296,6 +303,8 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
+
+    store::kept_before_the_store_goes(paths);
 
     let old = data.join(format!(".resetting-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&old);
@@ -490,22 +499,22 @@ fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
     }
 }
 
-fn named(at: &Path) -> Option<Vec<&str>> {
+fn named(at: &Path) -> Option<Vec<std::borrow::Cow<'_, str>>> {
     at.components()
         .map(|part| match part {
-            Component::Normal(one) => one.to_str(),
+            Component::Normal(one) => Some(one.to_string_lossy()),
             _ => None,
         })
         .collect()
 }
 
-fn kept_out(parts: &[&str]) -> bool {
-    let Some(leaf) = parts.last() else {
+fn kept_out(parts: &[std::borrow::Cow<'_, str>]) -> bool {
+    let Some(leaf) = parts.last().map(|one| one.as_ref()) else {
         return true;
     };
-    let under = parts.first().copied().unwrap_or_default();
-    *leaf == store::KEEP
-        || *leaf == ".lock"
+    let under = parts.first().map(|one| one.as_ref()).unwrap_or_default();
+    leaf == store::KEEP
+        || leaf == ".lock"
         || crate::icloud::marker(leaf)
         || (under == "attachments" && leaf.starts_with('.') && leaf.ends_with(".part"))
         || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))
@@ -517,7 +526,7 @@ fn carried(at: &Path) -> bool {
     };
     parts
         .first()
-        .is_some_and(|under| CARRIED.contains(under) && parts.len() > 1)
+        .is_some_and(|under| CARRIED.contains(&under.as_ref()) && parts.len() > 1)
         && !kept_out(&parts)
 }
 
@@ -609,7 +618,7 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("carpeta.zip");
 
-        let made = take_over(&folder, "01KEPT", &file, tmp().path()).unwrap();
+        let made = take_over(&folder, "01KEPT00000000000000000000", &file, tmp().path()).unwrap();
 
         assert!(file.exists());
         assert!(made.files >= 2, "{made:?}");
@@ -636,7 +645,7 @@ mod tests {
         let taken = out.path().join("carpeta.zip");
         std::fs::create_dir_all(&taken).unwrap();
 
-        let outcome = take_over(&folder, "01KEPT", &taken, tmp().path());
+        let outcome = take_over(&folder, "01KEPT00000000000000000000", &taken, tmp().path());
 
         assert!(outcome.is_err(), "dijo que si con el destino ocupado");
         assert!(
@@ -654,7 +663,7 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("carpeta.zip");
 
-        let made = take_over(&folder, "01KEPT", &file, tmp().path()).unwrap();
+        let made = take_over(&folder, "01KEPT00000000000000000000", &file, tmp().path()).unwrap();
 
         assert_eq!(made.store_id, was);
     }
@@ -666,7 +675,7 @@ mod tests {
 
         take_over(
             &folder,
-            "01KEPT",
+            "01KEPT00000000000000000000",
             &out.path().join("carpeta.zip"),
             tmp().path(),
         )
@@ -674,7 +683,7 @@ mod tests {
 
         assert_eq!(
             crate::store::peek_identity(folder.join("store")).as_deref(),
-            Some("01KEPT"),
+            Some("01KEPT00000000000000000000"),
             "la carpeta quedo sin dueno y cualquiera la reclama"
         );
         assert!(!crate::store::inhabited(folder.join("store")));
@@ -766,7 +775,7 @@ mod tests {
         std::fs::write(paths.data().join("docs/a3f1-0001.md"), b"# Minuta").unwrap();
 
         std::fs::create_dir_all(paths.private()).unwrap();
-        std::fs::write(store::kept_at(&paths, &was), [6u8; 32]).unwrap();
+        std::fs::write(store::kept_at(&paths, &was).unwrap(), [6u8; 32]).unwrap();
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("before-joining.zip");
@@ -781,6 +790,32 @@ mod tests {
     }
 
     #[test]
+    fn a_key_left_inside_a_store_is_not_lost_when_the_store_is_replaced() {
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let dir = tempfile::tempdir().unwrap();
+        let mut paths = quarters(&dir);
+        paths.unpaired_for_test();
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(store::KEEP), [6u8; 32]).unwrap();
+
+        read(&paths, &file).unwrap();
+
+        let kept: Vec<Vec<u8>> = store::displaced(&paths)
+            .iter()
+            .map(|one| std::fs::read(one).unwrap())
+            .collect();
+        assert_eq!(
+            kept,
+            vec![vec![6u8; 32]],
+            "restoring wiped the store and the only copy of its key with it"
+        );
+    }
+
+    #[test]
     fn starting_over_keeps_what_the_zip_it_writes_cannot_carry() {
         let dir = tempfile::tempdir().unwrap();
         let paths = quarters(&dir);
@@ -788,7 +823,7 @@ mod tests {
         Store::open(paths.store(), DeviceId("dev_a".into())).unwrap();
         let was = store::identity(paths.store()).unwrap();
         std::fs::create_dir_all(paths.private()).unwrap();
-        std::fs::write(store::kept_at(&paths, &was), [6u8; 32]).unwrap();
+        std::fs::write(store::kept_at(&paths, &was).unwrap(), [6u8; 32]).unwrap();
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("before-joining.zip");
@@ -800,7 +835,7 @@ mod tests {
             "starting over kept the name of the store it replaced"
         );
         assert_eq!(
-            std::fs::read(store::kept_at(&paths, &was)).unwrap(),
+            std::fs::read(store::kept_at(&paths, &was).unwrap()).unwrap(),
             [6u8; 32],
             "the zip cannot carry the key, so starting over has to leave it under its own name"
         );

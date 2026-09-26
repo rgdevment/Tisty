@@ -18,6 +18,14 @@ pub enum Sync {
     Folder(std::path::PathBuf),
 }
 
+fn said_once(named: &str) -> bool {
+    static SAID: std::sync::Mutex<Option<std::collections::BTreeSet<String>>> =
+        std::sync::Mutex::new(None);
+    let mut held = SAID.lock().unwrap_or_else(|e| e.into_inner());
+    held.get_or_insert_with(Default::default)
+        .insert(named.to_string())
+}
+
 impl Config {
     pub fn muted(&self) -> &[String] {
         self.quiet.as_deref().unwrap_or_default()
@@ -146,7 +154,7 @@ pub struct Config {
 impl Config {
     pub fn load_or_init(paths: &Paths) -> Result<Self> {
         if let Some(existing) = Self::load(&paths.config_file())? {
-            if !store::is_device_name(&existing.device_id.0) {
+            if !store::is_device_name(&existing.device_id.0) && said_once(&existing.device_id.0) {
                 witness::error(
                     channel::CONFIG,
                     "this machine is named in a way a device directory cannot be, so its history travels nowhere",
@@ -427,7 +435,9 @@ mod tests {
         }
         let after_reads = std::fs::read_to_string(crate::witness::file(&p)).unwrap_or_default();
 
-        Config::load_or_init(&p).unwrap();
+        for _ in 0..5 {
+            Config::load_or_init(&p).unwrap();
+        }
         let after_opening = std::fs::read_to_string(crate::witness::file(&p)).unwrap();
         crate::witness::stops();
 
@@ -439,7 +449,7 @@ mod tests {
         assert_eq!(
             after_opening.matches("travels nowhere").count(),
             1,
-            "opening the settings has to say it, and say it once"
+            "the MCP server opens the settings once per request, and it said so each time"
         );
     }
 
