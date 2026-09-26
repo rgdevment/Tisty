@@ -1,0 +1,12 @@
+2374 app/src/App.tsx
+1024 app/src/ui/Docs.tsx
+1126 app/src/ui/Editor.tsx
+2020 app/src/ui/Keeping.tsx
+1449 app/src/ui/writing.ts
+3726 app/src-tauri/src/lib.rs
+3504 crates/tisty-cli/src/mcp.rs
+1825 crates/tisty-core/src/docs.rs
+1623 crates/tisty-core/src/model/mark.rs
+1392 crates/tisty-core/src/parcel.rs
+1400 crates/tisty-core/src/state.rs
+1629 crates/tisty-sync/src/lib.rs

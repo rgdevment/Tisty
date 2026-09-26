@@ -79,6 +79,50 @@ jobs:
             exit 1
           fi
 
+      - name: No file grows past what a person can hold
+        run: |
+          set -euo pipefail
+          code() {
+            case "$1" in
+              *.rs) awk '/^#\[cfg\(test\)\]/ { exit } { n++ } END { print n+0 }' "$1" ;;
+              *)    wc -l < "$1" | tr -d ' ' ;;
+            esac
+          }
+          status=0
+          measured=$(mktemp)
+          tables_not_code='locales\.ts|glyphs\.ts|marks\.ts'
+          test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src app/src-tauri/src --include='*.rs' \
+            | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
+          find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
+            | grep -vE "node_modules|/tests/|\.test\.|$tables_not_code|$test_modules" \
+            | sort | while read -r one; do
+              printf '%s %s\n' "$(code "$one")" "$one"
+            done > "$measured"
+
+          while read -r now at; do
+            was=$(tr -d '\015' < .github/oversized.txt | awk -v at="$at" '$2 == at { print $1 }')
+            if [ -z "$was" ]; then
+              if [ "$now" -gt 1000 ]; then
+                echo "::error file=$at::$at is $now lines of code; 1000 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
+                status=1
+              fi
+            elif [ "$now" -gt "$was" ]; then
+              echo "::error file=$at::$at was already over the ceiling at $was lines and grew to $now. What is above it only shrinks"
+              status=1
+            elif [ "$now" -lt "$was" ]; then
+              echo "::error file=$at::$at is down to $now lines from $was. Write that into .github/oversized.txt so it cannot grow back"
+              status=1
+            fi
+          done < "$measured"
+
+          while read -r _ at; do
+            if [ ! -f "$at" ]; then
+              echo "::error::$at is in .github/oversized.txt and no longer exists; take the line out"
+              status=1
+            fi
+          done < <(tr -d '\015' < .github/oversized.txt)
+          exit $status
+
       - name: No voseo in the Spanish anywhere
         run: |
           if grep -rniE '\b(vos|tenés|querés|podés|andá|mirá|hacé|che)\b' \
