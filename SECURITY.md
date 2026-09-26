@@ -144,12 +144,37 @@ Being explicit here matters more than sounding reassuring.
 
   What a parcel cannot do is prove who wrote what: anyone can edit the manifest
   in a zip, and a name in a parcel is a claim, not a signature. What it can prove
-  is which store wrote it. Every store keeps a secret alongside its name — the
-  name travels in every parcel, the secret never leaves the machine — and the
-  manifest carries an HMAC of itself under it. So a parcel that arrives wearing
-  your store's name, from somebody who read that name off a parcel you once
-  handed them, lands as a stranger's: they cannot forge the seal, and neither
-  claiming your name nor stripping the seal off gets them any further.
+  is which store wrote it. Every store keeps a secret apart from its name — the
+  name travels in every parcel, the secret never leaves the machine, and it is
+  kept outside the store so that nothing walking it, neither a sync nor a backup,
+  can carry it off — and the manifest carries an HMAC of itself under it. So a
+  parcel that arrives wearing your store's name, from somebody who read that name
+  off a parcel you once handed them, lands as a stranger's: they cannot forge the
+  seal, and neither claiming your name nor stripping the seal off gets them any
+  further.
+
+  Keeping it out of the copies has a price, and it is worth saying plainly. A
+  backup carries the store's name and not what proves it, so a store restored on
+  another machine cannot recognise the parcels it handed out before: they land as
+  a stranger's writing. Taking Tisty off this machine leaves the secret where it
+  is, beside your documents, so reinstalling here keeps that recognition. And a
+  backup made before this was so still has the secret inside it, in the clear:
+  the copies you already have are worth protecting like the documents they hold.
+
+  The secret belongs to the store, not to the machine, and it is named after it:
+  a machine that holds two stores holds two secrets, and neither can write over
+  the other. That is also what makes starting over reversible — it mints a new
+  name for the store, so the old secret simply stays under the old one, and the
+  safety copy written moments before can be put back and recognised with nothing
+  done by hand. A secret is never destroyed, only displaced: what a build has to
+  move out of the way is kept under the hour it was replaced. `tisty doctor` says
+  how many of those there are, and putting one back is renaming it. Leaving takes
+  the diary and the settings, never any of this.
+
+  The other side of that: a store opened with somebody else's settings — a data
+  directory named on its own, without the configuration that goes with it — has
+  its secret left exactly where it is. Nothing is moved out of a store that this
+  install cannot account for.
 
   The one parcel that carries proof is the one you lock. Exporting everything to
   another machine of your own seals it with a number: XChaCha20-Poly1305 over

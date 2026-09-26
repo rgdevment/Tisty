@@ -101,7 +101,20 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
             let Ok(rest) = at.strip_prefix(data) else {
                 continue;
             };
-            if rest.file_name().is_some_and(|n| n == ".lock") {
+            let Some(parts) = named(rest) else {
+                continue;
+            };
+            if parts
+                .iter()
+                .any(|one| matches!(one, std::borrow::Cow::Owned(_)))
+            {
+                witness::warn(
+                    channel::BACKUP,
+                    "a name this copy cannot spell went in spelled as close as it can be",
+                    &[("at", Fact::Path(at.clone()))],
+                );
+            }
+            if kept_out(&parts) {
                 continue;
             }
             let named = rest.to_string_lossy().replace('\\', "/");
@@ -155,17 +168,29 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
 
     let staged = data.join(format!(".restoring-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&staged);
-    let done = unpack(&mut zip, &staged, at_most).and_then(|files| {
+    let done = unpack(&mut zip, &staged, at_most).and_then(|done| {
         store::read_all(staged.join("store"))?;
-        if files == 0 || !staged.join("store").is_dir() {
+        if done.files == 0 || !staged.join("store").is_dir() {
             return Err(Error::OtherStore {
                 theirs: from.display().to_string(),
             });
         }
-        Ok(files)
+        Ok(done)
     });
-    let files = match done {
-        Ok(files) => files,
+    let done = match done {
+        Ok(done) => {
+            if let Some(first) = &done.first {
+                witness::warn(
+                    channel::BACKUP,
+                    "a copy holds entries this version does not put back, so they were left out",
+                    &[
+                        ("count", Fact::Id(done.leftover.to_string())),
+                        ("first", Fact::Id(first.clone())),
+                    ],
+                );
+            }
+            done
+        }
         Err(e) => {
             let _ = std::fs::remove_dir_all(&staged);
             return Err(e);
@@ -178,6 +203,8 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
+
+    store::kept_before_the_store_goes(paths);
 
     let old = data.join(format!(".replaced-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&old);
@@ -192,10 +219,17 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     let _ = std::fs::remove_dir_all(&staged);
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
+    if store::secret_kept(paths).is_none() {
+        witness::warn(
+            channel::BACKUP,
+            "a copy carries the store's name and not what proves it, so parcels this store handed out before will land as a stranger's",
+            &[],
+        );
+    }
     crate::docs::forget_what_was_carried(data);
 
     Ok(Restored {
-        files,
+        files: done.files,
         devices: std::fs::read_dir(data.join("store"))
             .map(|entries| {
                 entries
@@ -269,6 +303,8 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
+
+    store::kept_before_the_store_goes(paths);
 
     let old = data.join(format!(".resetting-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&old);
@@ -397,15 +433,23 @@ pub fn leftovers(data: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
+struct Unpacked {
+    files: usize,
+    leftover: usize,
+    first: Option<String>,
+}
+
 fn unpack<R: Read + Seek>(
     zip: &mut zip::ZipArchive<R>,
     into: &Path,
     at_most: u64,
-) -> Result<usize> {
+) -> Result<Unpacked> {
     if zip.len() > AT_MOST_FILES {
         return Err(Error::TooBig);
     }
     let mut files = 0;
+    let mut leftover = 0;
+    let mut first: Option<String> = None;
     let mut bytes = 0u64;
 
     for i in 0..zip.len() {
@@ -414,6 +458,8 @@ fn unpack<R: Read + Seek>(
             continue;
         }
         let Some(rest) = safe(held.name()) else {
+            first.get_or_insert_with(|| held.name().to_string());
+            leftover += 1;
             continue;
         };
         if held.size() > at_most.saturating_sub(bytes) {
@@ -434,7 +480,11 @@ fn unpack<R: Read + Seek>(
         bytes = bytes.saturating_add(written);
         files += 1;
     }
-    Ok(files)
+    Ok(Unpacked {
+        files,
+        leftover,
+        first,
+    })
 }
 
 fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
@@ -449,16 +499,40 @@ fn named_in<R: Read + Seek>(zip: &mut zip::ZipArchive<R>) -> Result<String> {
     }
 }
 
+fn named(at: &Path) -> Option<Vec<std::borrow::Cow<'_, str>>> {
+    at.components()
+        .map(|part| match part {
+            Component::Normal(one) => Some(one.to_string_lossy()),
+            _ => None,
+        })
+        .collect()
+}
+
+fn kept_out(parts: &[std::borrow::Cow<'_, str>]) -> bool {
+    let Some(leaf) = parts.last().map(|one| one.as_ref()) else {
+        return true;
+    };
+    let under = parts.first().map(|one| one.as_ref()).unwrap_or_default();
+    leaf == store::KEEP
+        || leaf == ".lock"
+        || crate::icloud::marker(leaf)
+        || (under == "attachments" && leaf.starts_with('.') && leaf.ends_with(".part"))
+        || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))
+}
+
+fn carried(at: &Path) -> bool {
+    let Some(parts) = named(at) else {
+        return false;
+    };
+    parts
+        .first()
+        .is_some_and(|under| CARRIED.contains(&under.as_ref()) && parts.len() > 1)
+        && !kept_out(&parts)
+}
+
 fn safe(named: &str) -> Option<PathBuf> {
     let at = Path::new(named);
-    if !at
-        .components()
-        .all(|part| matches!(part, Component::Normal(_)))
-    {
-        return None;
-    }
-    let head = at.components().next()?.as_os_str().to_str()?;
-    CARRIED.contains(&head).then(|| at.to_path_buf())
+    carried(at).then(|| at.to_path_buf())
 }
 
 fn walk(root: &Path) -> Vec<PathBuf> {
@@ -526,7 +600,7 @@ mod tests {
 
         let shelf = data.join("attachments").join("ab");
         std::fs::create_dir_all(&shelf).unwrap();
-        std::fs::write(shelf.join("cd.png"), b"a picture").unwrap();
+        std::fs::write(shelf.join("foto-a1b2c3d4.png"), b"a picture").unwrap();
 
         let papers = data.join("docs");
         std::fs::create_dir_all(&papers).unwrap();
@@ -544,7 +618,7 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("carpeta.zip");
 
-        let made = take_over(&folder, "01KEPT", &file, tmp().path()).unwrap();
+        let made = take_over(&folder, "01KEPT00000000000000000000", &file, tmp().path()).unwrap();
 
         assert!(file.exists());
         assert!(made.files >= 2, "{made:?}");
@@ -571,7 +645,7 @@ mod tests {
         let taken = out.path().join("carpeta.zip");
         std::fs::create_dir_all(&taken).unwrap();
 
-        let outcome = take_over(&folder, "01KEPT", &taken, tmp().path());
+        let outcome = take_over(&folder, "01KEPT00000000000000000000", &taken, tmp().path());
 
         assert!(outcome.is_err(), "dijo que si con el destino ocupado");
         assert!(
@@ -589,7 +663,7 @@ mod tests {
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("carpeta.zip");
 
-        let made = take_over(&folder, "01KEPT", &file, tmp().path()).unwrap();
+        let made = take_over(&folder, "01KEPT00000000000000000000", &file, tmp().path()).unwrap();
 
         assert_eq!(made.store_id, was);
     }
@@ -601,7 +675,7 @@ mod tests {
 
         take_over(
             &folder,
-            "01KEPT",
+            "01KEPT00000000000000000000",
             &out.path().join("carpeta.zip"),
             tmp().path(),
         )
@@ -609,7 +683,7 @@ mod tests {
 
         assert_eq!(
             crate::store::peek_identity(folder.join("store")).as_deref(),
-            Some("01KEPT"),
+            Some("01KEPT00000000000000000000"),
             "la carpeta quedo sin dueno y cualquiera la reclama"
         );
         assert!(!crate::store::inhabited(folder.join("store")));
@@ -696,8 +770,12 @@ mod tests {
                 d: TaskAdd::new("comprar pan", "a0"),
             })
             .unwrap();
+        let was = store::identity(paths.store()).unwrap();
         std::fs::create_dir_all(paths.data().join("docs")).unwrap();
         std::fs::write(paths.data().join("docs/a3f1-0001.md"), b"# Minuta").unwrap();
+
+        std::fs::create_dir_all(paths.private()).unwrap();
+        std::fs::write(store::kept_at(&paths, &was).unwrap(), [6u8; 32]).unwrap();
 
         let out = tempfile::tempdir().unwrap();
         let file = out.path().join("before-joining.zip");
@@ -705,6 +783,66 @@ mod tests {
 
         assert!(store::read_all(paths.store()).unwrap().is_empty());
         assert!(!paths.data().join("docs/a3f1-0001.md").exists());
+        assert!(
+            store::secret_kept(&paths).is_none(),
+            "starting over kept the secret of the store it replaced"
+        );
+    }
+
+    #[test]
+    fn a_key_left_inside_a_store_is_not_lost_when_the_store_is_replaced() {
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let dir = tempfile::tempdir().unwrap();
+        let mut paths = quarters(&dir);
+        paths.unpaired_for_test();
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(store::KEEP), [6u8; 32]).unwrap();
+
+        read(&paths, &file).unwrap();
+
+        let kept: Vec<Vec<u8>> = store::displaced(&paths)
+            .iter()
+            .map(|one| std::fs::read(one).unwrap())
+            .collect();
+        assert_eq!(
+            kept,
+            vec![vec![6u8; 32]],
+            "restoring wiped the store and the only copy of its key with it"
+        );
+    }
+
+    #[test]
+    fn starting_over_keeps_what_the_zip_it_writes_cannot_carry() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = quarters(&dir);
+        std::fs::create_dir_all(paths.data()).unwrap();
+        Store::open(paths.store(), DeviceId("dev_a".into())).unwrap();
+        let was = store::identity(paths.store()).unwrap();
+        std::fs::create_dir_all(paths.private()).unwrap();
+        std::fs::write(store::kept_at(&paths, &was).unwrap(), [6u8; 32]).unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("before-joining.zip");
+        reset(&paths, &file, tmp().path()).unwrap();
+
+        assert_ne!(
+            store::identity(paths.store()).unwrap(),
+            was,
+            "starting over kept the name of the store it replaced"
+        );
+        assert_eq!(
+            std::fs::read(store::kept_at(&paths, &was).unwrap()).unwrap(),
+            [6u8; 32],
+            "the zip cannot carry the key, so starting over has to leave it under its own name"
+        );
+        assert!(
+            store::secret_kept(&paths).is_none(),
+            "the store that starts over inherited the seal of the one it replaced"
+        );
     }
 
     #[test]
@@ -828,9 +966,82 @@ mod tests {
         assert!(
             quarters(&fresh)
                 .data()
-                .join("attachments/ab/cd.png")
+                .join("attachments/ab/foto-a1b2c3d4.png")
                 .exists()
         );
+    }
+
+    #[test]
+    fn what_proves_the_store_is_its_own_never_enters_a_copy() {
+        let (_src, data) = filled("lo de siempre");
+        std::fs::write(data.join("store").join(store::KEEP), [9u8; 32]).unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let held = std::fs::read(&file).unwrap();
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+        let named: Vec<String> = (0..zip.len())
+            .map(|n| zip.by_index(n).unwrap().name().to_string())
+            .collect();
+        assert!(
+            !named.iter().any(|one| one.contains(store::KEEP)),
+            "the key went out under its own name: {named:?}"
+        );
+        assert!(
+            !held.windows(32).any(|run| run == [9u8; 32]),
+            "the key's bytes went out in the copy under some other name"
+        );
+    }
+
+    #[test]
+    fn a_copy_carries_everything_a_working_store_holds() {
+        let (_src, data) = filled("lo de siempre");
+        std::fs::write(data.join("store").join(store::KEEP), [9u8; 32]).unwrap();
+        std::fs::write(data.join("docs/.spent-dev_a"), b"7").unwrap();
+        std::fs::write(
+            data.join("store/dev_a/active (conflicted copy).tisty"),
+            b"{}
+",
+        )
+        .unwrap();
+        std::fs::write(data.join("store/dev_a/.lock"), b"").unwrap();
+
+        let out = tempfile::tempdir().unwrap();
+        let file = out.path().join("tisty.zip");
+        write(&data, &file, tmp().path()).unwrap();
+
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+        let inside: Vec<String> = (0..zip.len())
+            .map(|n| zip.by_index(n).unwrap().name().to_string())
+            .collect();
+
+        for one in walk(&data) {
+            let rest = one.strip_prefix(&data).unwrap();
+            let named_as = rest.to_string_lossy().replace('\\', "/");
+            if kept_out(&named(rest).unwrap()) {
+                assert!(
+                    !inside.contains(&named_as),
+                    "{named_as} should never travel"
+                );
+                continue;
+            }
+            assert!(
+                inside.contains(&named_as),
+                "{named_as} was left out of the copy"
+            );
+            assert!(
+                carried(rest),
+                "{named_as} travels in a copy and could not come back from one"
+            );
+        }
+    }
+
+    #[test]
+    fn a_copy_that_carries_a_key_cannot_put_it_back() {
+        assert_eq!(safe(&format!("store/{}", store::KEEP)), None);
+        assert_eq!(safe(&format!("store/dev_a/{}", store::KEEP)), None);
     }
 
     #[test]
@@ -954,7 +1165,7 @@ mod tests {
             1,
             "the store was emptied by a zip full of photographs"
         );
-        assert!(data.join("attachments/ab/cd.png").exists());
+        assert!(data.join("attachments/ab/foto-a1b2c3d4.png").exists());
     }
 
     #[test]
@@ -1168,14 +1379,76 @@ mod tests {
     }
 
     #[test]
+    fn a_zip_full_of_refused_entries_does_not_roll_the_diary_away() {
+        let _alone = crate::witness::ALONE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
+        let (_src, data) = filled("comprar pan");
+        let out = tempfile::tempdir().unwrap();
+        let good = out.path().join("tisty.zip");
+        write(&data, &good, tmp().path()).unwrap();
+
+        let hostile = out.path().join("hostile.zip");
+        {
+            let held = std::fs::File::open(&good).unwrap();
+            let mut from = zip::ZipArchive::new(held).unwrap();
+            let mut to = zip::ZipWriter::new(std::fs::File::create(&hostile).unwrap());
+            for i in 0..from.len() {
+                let mut one = from.by_index(i).unwrap();
+                let named = one.name().to_string();
+                let mut body = Vec::new();
+                one.read_to_end(&mut body).unwrap();
+                to.start_file(named, zip::write::SimpleFileOptions::default())
+                    .unwrap();
+                to.write_all(&body).unwrap();
+            }
+            for i in 0..3_000 {
+                to.start_file(
+                    format!("junk/{i:05}.bin"),
+                    zip::write::SimpleFileOptions::default(),
+                )
+                .unwrap();
+                to.write_all(b"x").unwrap();
+            }
+            to.finish().unwrap();
+        }
+
+        let fresh = tempfile::tempdir().unwrap();
+        let paths = quarters(&fresh);
+        crate::witness::keeps(crate::witness::file(&paths), false);
+        crate::witness::warn(channel::BACKUP, "the mark that has to survive", &[]);
+
+        read(&paths, &hostile).unwrap();
+
+        let diary = std::fs::read_to_string(crate::witness::file(&paths)).unwrap();
+        crate::witness::stops();
+
+        assert!(
+            diary.contains("the mark that has to survive"),
+            "restoring rolled the diary away and took the earlier diagnosis with it"
+        );
+        assert_eq!(
+            diary.matches("does not put back").count(),
+            1,
+            "3000 refused entries wrote more than the one line that says so"
+        );
+        assert!(
+            (diary.len() as u64) < crate::witness::ROLLS_AT,
+            "the diary is {} bytes after one restore",
+            diary.len()
+        );
+    }
+
+    #[test]
     fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
         assert_eq!(
             safe("store/dev_a/active.tisty"),
             Some(PathBuf::from("store/dev_a/active.tisty"))
         );
         assert_eq!(
-            safe("attachments/ab/cd.png"),
-            Some(PathBuf::from("attachments/ab/cd.png"))
+            safe("attachments/ab/foto-a1b2c3d4.png"),
+            Some(PathBuf::from("attachments/ab/foto-a1b2c3d4.png"))
         );
 
         for climbing in [
@@ -1184,8 +1457,28 @@ mod tests {
             "/etc/passwd",
             "config/config.toml",
             "",
+            "store",
+            "store/.store-key",
+            "store/dev_a/.store-key",
+            "store/dev_a/.lock",
+            "attachments/ab/.4812.7.part",
+            "originals/../../etc/passwd",
         ] {
             assert_eq!(safe(climbing), None, "«{climbing}» got out");
+        }
+
+        for held in [
+            "store/Dev_A/active.tisty",
+            "store/dev_a657da33 2/000001.tisty",
+            "store/dev_a/notes.txt",
+            "store/dev_a/active.torn",
+            "docs/.spent-dev_a",
+            "attachments/ab/installer-a1b2c3d4.part",
+        ] {
+            assert!(
+                safe(held).is_some(),
+                "«{held}» goes into a copy and cannot come back from one"
+            );
         }
     }
 }
