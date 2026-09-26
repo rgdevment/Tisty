@@ -53,8 +53,11 @@ export default function Menu({ at, choices, label, up, onClose }: Props) {
     const away = (e: MouseEvent) => {
       if (!card.current?.contains(e.target as Node)) onClose();
     };
-    document.addEventListener("mousedown", away);
-    return () => document.removeEventListener("mousedown", away);
+    const listen = setTimeout(() => document.addEventListener("mousedown", away));
+    return () => {
+      clearTimeout(listen);
+      document.removeEventListener("mousedown", away);
+    };
   }, [onClose]);
 
   const walk = (from: HTMLElement, by: number) => {

@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu, { type Choice } from "../ui/Menu";
 
 const choices = (onPick = vi.fn()): Choice[] => [
@@ -22,6 +22,25 @@ describe("where the menu hangs", () => {
 
     expect(menu.parentElement).toBe(document.body);
     expect(container.contains(menu)).toBe(false);
+  });
+});
+
+describe("the press that opened it", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("never reaches the watch for a press outside, only the one after does", () => {
+    const onClose = vi.fn();
+    render(<Menu at={{ x: 20, y: 30 }} choices={choices()} label="Opciones" onClose={onClose} />);
+
+    document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.runAllTimers();
+    });
+    document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(onClose).toHaveBeenCalled();
   });
 });
 
