@@ -36,10 +36,10 @@ pub struct State {
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
     pub(crate) fill: Fill,
-    tombstones: BTreeSet<Ulid>,
+    pub(crate) tombstones: BTreeSet<Ulid>,
 }
 
-fn here(d: &crate::event::DocAdd, signed: &crate::event::Signature) -> Option<String> {
+pub(crate) fn here(d: &crate::event::DocAdd, signed: &crate::event::Signature) -> Option<String> {
     match d.guest {
         true => None,
         false => signed.alias.clone(),
@@ -166,7 +166,7 @@ impl State {
         }
     }
 
-    fn named_trail(&self, at: FolderId) -> Option<Vec<String>> {
+    pub(crate) fn named_trail(&self, at: FolderId) -> Option<Vec<String>> {
         let mut names = Vec::new();
         let mut up = Some(at);
         // An ancestor can be missing when a delete from another machine lands before the add
@@ -290,25 +290,7 @@ impl State {
             // The word the person gave a task outlives a delete written elsewhere while it still
             // read as a trace: the same stamp order everywhere, so every machine keeps it. And
             // what it was written from stays known, so an assistant does not file it again.
-            Op::TaskDelete { id } => {
-                if self
-                    .tasks
-                    .get(id)
-                    .is_some_and(|task| task.read_as == Some(Reading::Story))
-                {
-                    crate::witness::warn(
-                        crate::witness::channel::STORE,
-                        "a delete reached a task kept as a story, and was let go",
-                        &[
-                            ("at", crate::witness::Fact::Id(id.to_string())),
-                            ("by", crate::witness::Fact::Id(event.device.0.clone())),
-                        ],
-                    );
-                    return;
-                }
-                self.tasks.remove(id);
-                self.tombstones.insert(*id);
-            }
+            Op::TaskDelete { id } => self.task_deleted(event, id),
             Op::TaskMove { id, d } => self.with_task(*id, |t| move_task(t, d)),
 
             Op::TaskDescribe { id, d } => self.with_task(*id, |t| t.description = d.body.clone()),
@@ -319,19 +301,7 @@ impl State {
                 self.with_task(*id, |t| add_log_entry(t, d, at, &by, via));
             }
             Op::TaskLogEdit { id, d } => self.with_task(*id, |t| edit_log_entry(t, d)),
-            Op::TaskResolve { id, d } => {
-                let said = crate::model::Resolved {
-                    at: d.at.unwrap_or(event.timestamp),
-                    by: d.by.clone().unwrap_or_else(|| event.device.clone()),
-                    entry: d.entry,
-                    via: d.via.clone().or_else(|| event.via.clone()),
-                };
-                self.with_task(*id, |t| {
-                    if t.is_open() {
-                        t.resolved = Some(said);
-                    }
-                });
-            }
+            Op::TaskResolve { id, d } => self.task_resolved(event, id, d),
             Op::TaskUnresolve { id } => self.with_task(*id, |t| t.resolved = None),
 
             Op::StepAdd { id, d } => self.with_task(*id, |t| add_step(t, d)),
@@ -357,25 +327,7 @@ impl State {
                     list.name = crate::text::plainly(&d.name);
                 }
             }
-            Op::FolderAdd { id, d } => {
-                // Naming a folder that is already here does not bring it out of the archive.
-                let away = self.folders.get(id).is_some_and(|one| one.archived);
-                self.folders.insert(
-                    *id,
-                    Folder {
-                        id: *id,
-                        name: crate::text::plainly(&d.name),
-                        order: d.order.clone(),
-                        parent: d.parent.filter(|at| at != id),
-                        icon: d.icon.clone().filter(|key| crate::model::icon::known(key)),
-                        color: d
-                            .color
-                            .clone()
-                            .filter(|key| crate::model::hue::kept(key).is_some()),
-                        archived: away,
-                    },
-                );
-            }
+            Op::FolderAdd { id, d } => self.folder_added(id, d),
             Op::FolderRename { id, d } => {
                 if let Some(folder) = self.folders.get_mut(id) {
                     folder.name = crate::text::plainly(&d.name);
@@ -393,215 +345,13 @@ impl State {
                     }
                 }
             }
-            Op::FolderMove { id, d } => {
-                let landed = match d.folder {
-                    None => true,
-                    Some(parent) => {
-                        let room = parent.is_none_or(|at| self.has_room_under(at))
-                            && !self.would_loop(*id, parent)
-                            && self.depth(parent) + self.tallest_under(*id)
-                                <= crate::model::DEEPEST;
-                        if room && let Some(folder) = self.folders.get_mut(id) {
-                            folder.parent = parent;
-                        }
-                        room
-                    }
-                };
-                if landed
-                    && let Some(order) = d.order.clone()
-                    && let Some(folder) = self.folders.get_mut(id)
-                {
-                    folder.order = order;
-                }
-            }
-            Op::FolderDelete { id } => {
-                // What the folder held is only away because the folder said so. Losing the folder
-                // would let all of it back out at once, so the mark is written down before the
-                // anchor goes — here, where a delete arriving from another machine lands too.
-                let away = self.folder_away(*id);
-                let gone = self.named_trail(*id);
-                self.folders.remove(id);
-                self.tombstones.insert(*id);
-                let orphaned: Vec<FolderId> = self
-                    .folders
-                    .values()
-                    .filter(|one| one.parent == Some(*id))
-                    .map(|one| one.id)
-                    .collect();
-                for child in orphaned {
-                    if let Some(folder) = self.folders.get_mut(&child) {
-                        folder.parent = None;
-                        folder.archived = folder.archived || away;
-                    }
-                }
-                for doc in self.docs.values_mut() {
-                    if doc.folder == Some(*id) {
-                        doc.folder = None;
-                        doc.archived = doc.archived || (away && doc.page_of.is_none());
-                        if doc.archived && doc.page_of.is_none() {
-                            doc.folder_was = gone.clone();
-                        }
-                    }
-                }
-            }
-            Op::DocAdd { id, d } => {
-                // A page of a page is not a thing; the deeper one is kept as a document.
-                let page_of = d
-                    .page_of
-                    .filter(|up| self.docs.get(up).is_some_and(|one| one.page_of.is_none()));
-                let under = page_of.and_then(|up| self.docs.get(&up));
-                self.docs.insert(
-                    *id,
-                    Kept {
-                        id: *id,
-                        file: d.file.clone(),
-                        order: d.order.clone(),
-                        title: d.said.as_ref().map(|one| one.title.clone()),
-                        bytes: d.said.as_ref().and_then(|one| one.bytes),
-                        wrote: Some(d.wrote.or(d.made).unwrap_or(event.timestamp)),
-                        made: Some(d.made.unwrap_or(event.timestamp)),
-                        made_by: Some(event.device.clone()),
-                        wrote_by: Some(event.device.clone()),
-                        by: d.by.clone().or_else(|| here(d, &self.signed)),
-                        born_by: d.by.clone().or_else(|| here(d, &self.signed)),
-                        edited_by: d.said.as_ref().and_then(|one| one.by.clone()),
-                        guest: d.guest,
-                        folder: match under {
-                            Some(one) => one.folder,
-                            None => d.folder,
-                        },
-                        page_of,
-                        archived: page_of.is_none() && under.is_some_and(|one| one.archived),
-                        locked: false,
-                        tags: crate::tagging::worth_keeping(
-                            &d.said
-                                .as_ref()
-                                .and_then(|one| one.tags.clone())
-                                .unwrap_or_default(),
-                        ),
-                        flagged: None,
-                        folder_was: None,
-                    },
-                );
-            }
-            Op::DocSaid { id, d } => {
-                if let Some(kept) = self.docs.get_mut(id) {
-                    kept.title = Some(d.title.clone());
-                    kept.bytes = d.bytes;
-                    // A note from a build that never read tags says nothing about them.
-                    if let Some(tags) = &d.tags {
-                        kept.tags = crate::tagging::worth_keeping(tags);
-                    }
-                    kept.wrote = Some(event.timestamp);
-                    kept.wrote_by = Some(event.device.clone());
-                    // A note with no hand on it says nothing about whose it was, which is not
-                    // the same as saying nobody's: settling a body read from disk must not wipe
-                    // the name the machine that wrote it put there.
-                    if let Some(by) = &d.by {
-                        kept.edited_by = Some(by.clone());
-                    }
-                }
-            }
-            Op::DocMove { id, d } => {
-                if let Some(page_of) = d.page_of {
-                    let holds_pages = self.docs.values().any(|one| one.page_of == Some(*id));
-                    let allowed = page_of.filter(|up| {
-                        up != id
-                            && !holds_pages
-                            && self.docs.get(up).is_some_and(|one| one.page_of.is_none())
-                    });
-                    // Refusing to hang it somewhere is not a reason to unhang it from where it is.
-                    if allowed.is_some() || page_of.is_none() {
-                        let under = allowed
-                            .and_then(|up| self.docs.get(&up))
-                            .map(|one| one.folder);
-                        // Only the cover it is walking out of: a folder above it holds it
-                        // just the same once it is a document of its own.
-                        let leaving = allowed.is_none()
-                            && self.docs.get(id).is_some_and(|one| {
-                                !one.archived
-                                    && !one.folder.is_some_and(|at| self.folder_away(at))
-                                    && self.held_away(one)
-                            });
-                        let beside = allowed.map(|up| {
-                            crate::order::last_of(
-                                self.docs
-                                    .values()
-                                    .filter(|one| one.page_of == Some(up))
-                                    .map(|one| one.order.as_str()),
-                            )
-                        });
-                        if let Some(doc) = self.docs.get_mut(id) {
-                            doc.page_of = allowed;
-                            if let Some(folder) = under {
-                                doc.folder = folder;
-                                doc.archived = false;
-                                doc.folder_was = None;
-                                doc.flagged = None;
-                                doc.locked = false;
-                                doc.order = beside.unwrap_or_else(|| doc.order.clone());
-                            }
-                            if leaving {
-                                doc.archived = true;
-                            }
-                        }
-                    }
-                }
-                if let Some(order) = d.order.clone()
-                    && let Some(doc) = self.docs.get_mut(id)
-                {
-                    doc.order = order;
-                }
-                if let Some(folder) = d.folder
-                    && let Some(doc) = self.docs.get_mut(id)
-                    && doc.page_of.is_none()
-                {
-                    doc.folder = folder;
-                    doc.folder_was = None;
-                }
-                // Pages live where their document lives, and follow it without being told.
-                if let Some(under) = self.docs.get(id).filter(|one| one.page_of.is_none()) {
-                    let (parent, folder) = (under.id, under.folder);
-                    for one in self.docs.values_mut() {
-                        if one.page_of == Some(parent) {
-                            one.folder = folder;
-                            one.folder_was = None;
-                        }
-                    }
-                }
-            }
-            Op::DocDelete { id } => {
-                // A page is part of its document, so it goes where the document goes.
-                let pages: Vec<DocId> = self
-                    .docs
-                    .values()
-                    .filter(|one| one.page_of == Some(*id))
-                    .map(|one| one.id)
-                    .collect();
-                for one in pages.into_iter().chain(std::iter::once(*id)) {
-                    if let Some(gone) = self.docs.remove(&one) {
-                        self.shed.insert(gone.file);
-                    }
-                    self.tombstones.insert(one);
-                }
-            }
-            Op::DocSigned { id, d } => {
-                if let Some(kept) = self.docs.get_mut(id) {
-                    // Held here and not only where the event is written, so a build that read
-                    // the rule differently cannot sign over somebody else's writing. What
-                    // nobody signed is another matter: signing it is owning it.
-                    if kept.guest && kept.by.is_some() {
-                        return;
-                    }
-                    let said = d.trim();
-                    let now = (!said.is_empty()).then(|| said.to_string());
-                    if kept.born_by.is_none() {
-                        kept.born_by.clone_from(&now);
-                    }
-                    kept.guest = false;
-                    kept.by = now;
-                }
-            }
+            Op::FolderMove { id, d } => self.folder_moved(id, d),
+            Op::FolderDelete { id } => self.folder_deleted(id),
+            Op::DocAdd { id, d } => self.doc_added(event, id, d),
+            Op::DocSaid { id, d } => self.doc_said(event, id, d),
+            Op::DocMove { id, d } => self.doc_moved(id, d),
+            Op::DocDelete { id } => self.doc_deleted(id),
+            Op::DocSigned { id, d } => self.doc_signed(id, d),
             Op::FolderArchive { id } => self.shelf(*id, true),
             Op::FolderUnarchive { id } => self.shelf(*id, false),
             Op::DocArchive { id } => {
@@ -627,20 +377,7 @@ impl State {
                     doc.flagged = None;
                 }
             }
-            Op::DeviceJoin { d, k } => {
-                self.dropped.remove(d);
-                self.devices.insert(d.clone());
-                match k.filter(|_| d == &event.device) {
-                    Some(crate::event::DeviceKind::Agent) => {
-                        self.agents.insert(d.clone());
-                        self.assistants.insert(d.clone());
-                    }
-                    Some(crate::event::DeviceKind::Machine) => {
-                        self.agents.remove(d);
-                    }
-                    None => {}
-                }
-            }
+            Op::DeviceJoin { d, k } => self.device_joined(event, d, k),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of } => {
                 if (event.device == *d || event.device == *of)
@@ -650,35 +387,8 @@ impl State {
                     self.hosts.insert(d.clone(), of.clone());
                 }
             }
-            Op::Signed { d } => {
-                let said = |one: &Option<String>| {
-                    one.as_deref()
-                        .map(str::trim)
-                        .filter(|one| !one.is_empty())
-                        .map(str::to_string)
-                };
-                self.signed = crate::event::Signature {
-                    alias: said(&d.alias),
-                    name: said(&d.name),
-                    email: said(&d.email),
-                };
-                // Kept in the order they were signed, and never thinned: going back to a
-                // name years later must not move it ahead of whoever was first.
-                if let Some(one) = &self.signed.alias
-                    && !self
-                        .signed_before
-                        .last()
-                        .is_some_and(|was| same_name(was, one))
-                {
-                    self.signed_before.push(one.clone());
-                }
-            }
-            Op::DeviceRemove { d } => {
-                self.devices.remove(d);
-                self.agents.remove(d);
-                self.hosts.remove(d);
-                self.dropped.insert(d.clone());
-            }
+            Op::Signed { d } => self.store_signed(d),
+            Op::DeviceRemove { d } => self.device_removed(d),
             Op::AttachRetire { d } => {
                 if crate::attach::names_an_attachment(d) {
                     self.retired.insert(d.clone());
@@ -726,7 +436,7 @@ impl State {
         self.fill == Fill::Whole
     }
 
-    fn with_task(&mut self, id: TaskId, f: impl FnOnce(&mut Task)) {
+    pub(crate) fn with_task(&mut self, id: TaskId, f: impl FnOnce(&mut Task)) {
         let whole = self.has_bodies();
         if let Some(task) = self.tasks.get_mut(&id) {
             f(task);
@@ -967,7 +677,7 @@ impl State {
                 .sum::<usize>()
     }
 
-    fn has_room_under(&self, at: FolderId) -> bool {
+    pub(crate) fn has_room_under(&self, at: FolderId) -> bool {
         self.folders.contains_key(&at) && self.depth(Some(at)) < crate::model::DEEPEST
     }
 
@@ -992,7 +702,7 @@ impl State {
         self.would_loop(moving, Some(under))
     }
 
-    fn tallest_under(&self, at: FolderId) -> usize {
+    pub(crate) fn tallest_under(&self, at: FolderId) -> usize {
         self.tallest(at, &mut std::collections::BTreeSet::new())
     }
 
@@ -1008,7 +718,7 @@ impl State {
             .unwrap_or(0)
     }
 
-    fn would_loop(&self, moving: FolderId, under: Option<FolderId>) -> bool {
+    pub(crate) fn would_loop(&self, moving: FolderId, under: Option<FolderId>) -> bool {
         let mut at = under;
         let mut seen = std::collections::BTreeSet::new();
         while let Some(one) = at {

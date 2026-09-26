@@ -1,4 +1,6 @@
 use serde_json::{Value, json};
+use tisty_core::State;
+use tisty_core::model::DocId;
 
 use super::reading::{beside_ready, in_this_order, left_named, named_at_end, placed, where_said};
 
@@ -108,53 +110,7 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         beside_ready(paths, &state, over, &many[0], held.spot())?;
     }
 
-    let mut moving = Vec::new();
-    let mut already = Vec::new();
-    for which in &many {
-        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
-            return Err(Refused::Tool(format!(
-                "no document here is called {which:?}. `docs` lists them all."
-            )));
-        };
-        if state.shut(kept.id) {
-            return Err(Refused::Tool(format!(
-                "{which} is locked. Where a locked document sits is part of what the person shut \
-                 away, so it neither becomes a page nor leaves the one that holds it. Ask them to \
-                 unlock it first."
-            )));
-        }
-        if up.is_none() && state.held_by_another(kept) {
-            return Err(Refused::Tool(format!(
-                "{} is in the archive with the folder that holds it, and taking it out of its \
-                 document would leave it outside the archive with nobody's hand on it. The person \
-                 brings the folder back from the window first.",
-                doc_named(&state, which)
-            )));
-        }
-        if let Some(over) = up {
-            if over == kept.id {
-                return Err(Refused::Tool(format!(
-                    "{which} cannot be a page of itself."
-                )));
-            }
-            if state.docs.values().any(|one| one.page_of == Some(kept.id)) {
-                return Err(Refused::Tool(format!(
-                    "{which} has pages of its own, so it cannot become a page. Move its pages \
-                     first."
-                )));
-            }
-            if state.held_away(kept) {
-                return Err(Refused::Tool(format!(
-                    "{which} is put away. Bring it back before making it a page, or it leaves \
-                     the archive with no way of returning."
-                )));
-            }
-        }
-        match kept.page_of == up {
-            true => already.push(which.clone()),
-            false => moving.push((which.clone(), kept.id)),
-        }
-    }
+    let (moving, already) = which_ones_move(&state, &many, up)?;
 
     let under = up.and_then(|one| named_doc(&state, one));
     if let (Some(held), Some(over), true) = (&beside, up, moving.is_empty()) {
@@ -226,51 +182,7 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         .collect();
     let stayed = left_named(paths, &state, &moving, up);
     store.append_batch(doing).map_err(hitch)?;
-    let mut put = String::new();
-    if let (None, Some(over)) = (&beside, up) {
-        let (now, mut store) = opened(paths)?;
-        let hung: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
-        put = match named_at_end(paths, &now, &mut store, over, &hung) {
-            Ok((given, walled_off)) => match (given.is_empty(), walled_off) {
-                (false, _) => format!(
-                    " Wrote {} at the end, which is where it is read.",
-                    match given.len() {
-                        1 => "its line".to_string(),
-                        many => format!("the {many} lines naming them"),
-                    }
-                ),
-                (true, true) => format!(
-                    " {} ends inside a fence, so no line was written for it there: a line in \
-                     code is not a way in. Close the fence and name it with `after`, `before` or \
-                     `at`.",
-                    up_named(&state, over).unwrap_or_default()
-                ),
-                (true, false) => String::new(),
-            },
-            Err(Refused::Tool(why)) => format!(
-                " No line was written for {}, so {} loose: {why}",
-                match hung.len() {
-                    1 => "it",
-                    _ => "them",
-                },
-                match hung.len() {
-                    1 => "it is",
-                    _ => "they are",
-                }
-            ),
-            Err(other) => return Err(other),
-        };
-    }
-    if let (Some(held), Some(over)) = (&beside, up) {
-        let (now, mut store) = opened(paths)?;
-        put = match placed(paths, &now, &mut store, over, &many[0], held.spot()) {
-            Ok(()) => format!(" Its line sits {}.", where_said(&state, held.spot())),
-            Err(Refused::Tool(why)) => {
-                format!(" It is a page now, but no line was written for it, so it is loose: {why}")
-            }
-            Err(other) => return Err(other),
-        };
-    }
+    let put = what_was_put(paths, &state, &beside, up, &many, &moving)?;
 
     let over = match stayed.is_empty() {
         true => String::new(),
@@ -332,4 +244,113 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         },
         json!({ "doc": said_docs(&names, listed), "page_of": under, "left": already }),
     ))
+}
+
+fn what_was_put(
+    paths: &Paths,
+    state: &State,
+    beside: &Option<Held>,
+    up: Option<DocId>,
+    many: &[String],
+    moving: &[(String, DocId)],
+) -> Result<String, Refused> {
+    let mut put = String::new();
+    if let (None, Some(over)) = (&beside, up) {
+        let (now, mut store) = opened(paths)?;
+        let hung: Vec<String> = moving.iter().map(|(which, _)| which.clone()).collect();
+        put = match named_at_end(paths, &now, &mut store, over, &hung) {
+            Ok((given, walled_off)) => match (given.is_empty(), walled_off) {
+                (false, _) => format!(
+                    " Wrote {} at the end, which is where it is read.",
+                    match given.len() {
+                        1 => "its line".to_string(),
+                        many => format!("the {many} lines naming them"),
+                    }
+                ),
+                (true, true) => format!(
+                    " {} ends inside a fence, so no line was written for it there: a line in \
+                     code is not a way in. Close the fence and name it with `after`, `before` or \
+                     `at`.",
+                    up_named(state, over).unwrap_or_default()
+                ),
+                (true, false) => String::new(),
+            },
+            Err(Refused::Tool(why)) => format!(
+                " No line was written for {}, so {} loose: {why}",
+                match hung.len() {
+                    1 => "it",
+                    _ => "them",
+                },
+                match hung.len() {
+                    1 => "it is",
+                    _ => "they are",
+                }
+            ),
+            Err(other) => return Err(other),
+        };
+    }
+    if let (Some(held), Some(over)) = (&beside, up) {
+        let (now, mut store) = opened(paths)?;
+        put = match placed(paths, &now, &mut store, over, &many[0], held.spot()) {
+            Ok(()) => format!(" Its line sits {}.", where_said(state, held.spot())),
+            Err(Refused::Tool(why)) => {
+                format!(" It is a page now, but no line was written for it, so it is loose: {why}")
+            }
+            Err(other) => return Err(other),
+        };
+    }
+    Ok(put)
+}
+
+type Moving = (Vec<(String, DocId)>, Vec<String>);
+
+fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<Moving, Refused> {
+    let mut moving = Vec::new();
+    let mut already = Vec::new();
+    for which in many {
+        let Some(kept) = state.docs.values().find(|one| one.file == *which) else {
+            return Err(Refused::Tool(format!(
+                "no document here is called {which:?}. `docs` lists them all."
+            )));
+        };
+        if state.shut(kept.id) {
+            return Err(Refused::Tool(format!(
+                "{which} is locked. Where a locked document sits is part of what the person shut \
+                 away, so it neither becomes a page nor leaves the one that holds it. Ask them to \
+                 unlock it first."
+            )));
+        }
+        if up.is_none() && state.held_by_another(kept) {
+            return Err(Refused::Tool(format!(
+                "{} is in the archive with the folder that holds it, and taking it out of its \
+                 document would leave it outside the archive with nobody's hand on it. The person \
+                 brings the folder back from the window first.",
+                doc_named(state, which)
+            )));
+        }
+        if let Some(over) = up {
+            if over == kept.id {
+                return Err(Refused::Tool(format!(
+                    "{which} cannot be a page of itself."
+                )));
+            }
+            if state.docs.values().any(|one| one.page_of == Some(kept.id)) {
+                return Err(Refused::Tool(format!(
+                    "{which} has pages of its own, so it cannot become a page. Move its pages \
+                     first."
+                )));
+            }
+            if state.held_away(kept) {
+                return Err(Refused::Tool(format!(
+                    "{which} is put away. Bring it back before making it a page, or it leaves \
+                     the archive with no way of returning."
+                )));
+            }
+        }
+        match kept.page_of == up {
+            true => already.push(which.clone()),
+            false => moving.push((which.clone(), kept.id)),
+        }
+    }
+    Ok((moving, already))
 }

@@ -225,6 +225,7 @@ pub(super) fn shaped(what: Value) -> Value {
     Value::Object(kept)
 }
 
+#[allow(clippy::too_many_lines)]
 pub(super) fn tools() -> Value {
     json!([
         {

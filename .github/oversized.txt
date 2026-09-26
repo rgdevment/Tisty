@@ -8,5 +8,5 @@
 1825 crates/tisty-core/src/docs.rs
 1623 crates/tisty-core/src/model/mark.rs
 1392 crates/tisty-core/src/parcel.rs
-1690 crates/tisty-core/src/state.rs
+1400 crates/tisty-core/src/state.rs
 1629 crates/tisty-sync/src/lib.rs
