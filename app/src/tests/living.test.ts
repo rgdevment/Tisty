@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { frail } from "../frail";
 import { SHAPES } from "../ui/Beside";
 import { DRAWN, KINDS, loosened } from "../ui/writing";
@@ -17,6 +17,10 @@ vi.mock("mermaid", () => ({
 }));
 
 describe("what only a mounted editor can be asked", () => {
+  beforeAll(async () => {
+    await import("katex");
+  });
+
   it("draws the code block's own frame, which no unmounted editor builds", () => {
     const one = opened("```rust\nfn main() {}\n```");
     expect(one.dom.querySelector(".lit")).toBeTruthy();
