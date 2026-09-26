@@ -376,9 +376,16 @@ pub fn secret(paths: &crate::Paths) -> Option<[u8; 32]> {
         }
     }
 
+    if let Ok(inside) = std::fs::read(paths.store().join(KEEP))
+        && let Ok(kept) = <[u8; 32]>::try_from(inside.as_slice())
+    {
+        return Some(kept);
+    }
+
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
     std::fs::create_dir_all(paths.private()).ok()?;
+    let _ = crate::paths::ours_alone(&paths.private());
     match File::create_new(&at) {
         Ok(mut file) => {
             file.write_all(&fresh).ok()?;
@@ -398,7 +405,7 @@ pub fn brought_home(paths: &crate::Paths) {
         return;
     };
     if <[u8; 32]>::try_from(held.as_slice()).is_err() {
-        witness::warn(
+        witness::trace(
             channel::STORE,
             "what was kept where the key used to live is not a key, so it was left alone",
             &[("at", Fact::Path(was.clone()))],
@@ -406,9 +413,9 @@ pub fn brought_home(paths: &crate::Paths) {
         return;
     }
     if !paths.of_one_install() {
-        witness::warn(
+        witness::trace(
             channel::STORE,
-            "this store was opened with somebody else's settings, so its key was left where it is",
+            "this store was named on its own, so its key was left where it is",
             &[("at", Fact::Path(was.clone()))],
         );
         return;
@@ -458,7 +465,9 @@ pub fn brought_home(paths: &crate::Paths) {
         }
     }
 
-    if std::fs::create_dir_all(paths.private()).is_err() || write_atomic(&now, &held).is_err() {
+    let _ = std::fs::create_dir_all(paths.private());
+    let _ = crate::paths::ours_alone(&paths.private());
+    if write_atomic(&now, &held).is_err() {
         witness::warn(
             channel::STORE,
             "the key could not be moved out of the store, so it stays where a backup reaches it",
@@ -484,6 +493,12 @@ pub fn displaced(paths: &crate::Paths) -> Vec<PathBuf> {
 }
 
 fn set_aside(paths: &crate::Paths, at: &Path, held: &[u8], why: &str) -> bool {
+    if displaced(paths)
+        .iter()
+        .any(|one| std::fs::read(one).is_ok_and(|kept| kept == held))
+    {
+        return true;
+    }
     let stamp = jiff::Zoned::now().strftime("%Y%m%dT%H%M%S").to_string();
     let named = at.file_name().unwrap_or_default().to_string_lossy();
     let mut aside = paths.private().join(format!("{named}.was-{stamp}"));
@@ -2366,6 +2381,58 @@ mod tests {
             displaced(&paths).len(),
             1,
             "what could not be read was destroyed"
+        );
+    }
+
+    #[test]
+    fn a_key_the_migration_left_alone_is_still_what_the_store_seals_with() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        paths.unpaired_for_test();
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(KEEP), [5u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        assert_eq!(
+            secret(&paths),
+            Some([5u8; 32]),
+            "the key was left in the store and a brand new one was minted beside it, so every parcel this store handed out is now a stranger's"
+        );
+    }
+
+    #[test]
+    fn settings_kept_somewhere_else_are_still_this_installs_own() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("elsewhere"));
+        std::fs::create_dir_all(paths.store()).unwrap();
+        std::fs::write(paths.store().join(KEEP), [8u8; 32]).unwrap();
+
+        brought_home(&paths);
+
+        let named = peek_identity(paths.store()).unwrap();
+        assert_eq!(
+            std::fs::read(kept_at(&paths, &named)).unwrap(),
+            [8u8; 32],
+            "naming the settings directory made this install look like somebody else's"
+        );
+    }
+
+    #[test]
+    fn a_key_that_cannot_be_removed_is_not_set_aside_again_and_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+        std::fs::create_dir_all(paths.private()).unwrap();
+        let at = kept_at(&paths, "01ABC");
+
+        for _ in 0..5 {
+            assert!(set_aside(&paths, &at, &[4u8; 32], "the same one again"));
+        }
+
+        assert_eq!(
+            displaced(&paths).len(),
+            1,
+            "one stuck key grew the private folder on every command"
         );
     }
 

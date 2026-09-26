@@ -102,6 +102,11 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
                 continue;
             };
             let Some(parts) = named(rest) else {
+                witness::warn(
+                    channel::BACKUP,
+                    "a name this copy cannot write was left out of it",
+                    &[("at", Fact::Path(at.clone()))],
+                );
                 continue;
             };
             if kept_out(&parts) {
@@ -502,6 +507,7 @@ fn kept_out(parts: &[&str]) -> bool {
     *leaf == store::KEEP
         || *leaf == ".lock"
         || crate::icloud::marker(leaf)
+        || (under == "attachments" && leaf.starts_with('.') && leaf.ends_with(".part"))
         || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))
 }
 
@@ -1420,6 +1426,7 @@ mod tests {
             "store/.store-key",
             "store/dev_a/.store-key",
             "store/dev_a/.lock",
+            "attachments/ab/.4812.7.part",
             "originals/../../etc/passwd",
         ] {
             assert_eq!(safe(climbing), None, "«{climbing}» got out");

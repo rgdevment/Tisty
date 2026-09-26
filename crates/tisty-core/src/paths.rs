@@ -34,7 +34,7 @@ impl Paths {
                 env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
                 under.as_deref(),
             ),
-            paired: told(DATA_ENV) == told(CONFIG_ENV),
+            paired: !told(DATA_ENV) || told(CONFIG_ENV),
         })
     }
 
