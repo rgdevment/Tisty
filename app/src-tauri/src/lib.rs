@@ -3381,6 +3381,142 @@ pub fn unreach() -> std::io::Result<bool> {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let session = match Session::open() {
+        Ok(session) => session,
+        Err(why) => {
+            use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+            witness::error(channel::WINDOW, "the session would not open", &why.told());
+            for window in app.webview_windows().values() {
+                let _ = window.close();
+            }
+            let behind = matches!(why, tisty_core::Error::UnsupportedVersion(_));
+            let said = app
+                .dialog()
+                .message(if behind {
+                    behind_said()
+                } else {
+                    why.to_string()
+                })
+                .kind(MessageDialogKind::Error)
+                .title("Tisty");
+            if behind {
+                let (yes, no) = behind_buttons();
+                if said
+                    .buttons(MessageDialogButtons::OkCancelCustom(yes.into(), no.into()))
+                    .blocking_show()
+                {
+                    let _ = tauri_plugin_opener::open_url(where_it_comes_from(), None::<&str>);
+                }
+            } else {
+                said.blocking_show();
+            }
+            std::process::exit(1);
+        }
+    };
+
+    for at in tisty_core::backup::leftovers(session.paths.data()) {
+        if let Err(why) = std::fs::remove_dir_all(&at) {
+            witness::warn(
+                channel::BACKUP,
+                "what a restore left behind could not be swept up",
+                &[("at", Fact::Path(at)), ("why", Fact::Why(why.to_string()))],
+            );
+        }
+    }
+
+    let attachments = session.paths.attachments();
+    if let Err(why) = std::fs::create_dir_all(&attachments) {
+        witness::error(
+            channel::ATTACH,
+            "the attachments folder could not be made",
+            &[
+                ("at", Fact::Path(attachments.clone())),
+                ("why", Fact::Why(why.to_string())),
+            ],
+        );
+    }
+    app.handle()
+        .asset_protocol_scope()
+        .allow_directory(&attachments, true)?;
+    let words = tray::Words {
+        show: worded(&session.locale, "show"),
+        capture: worded(&session.locale, "capture"),
+        quit: worded(&session.locale, "quit"),
+    };
+    let telling = herald::Words {
+        due: worded(&session.locale, "due"),
+        missed: worded(&session.locale, "missed"),
+    };
+    let watched = session.paths.clone();
+    let quiet = session.config.muted().to_vec();
+    // An update relaunches with the arguments it was started with, so a copy that opened
+    // with the session comes back hidden — looking, to whoever pressed the button, like it
+    // never came back at all.
+    let came_back = session.config.found_version.as_deref() == Some(HERE);
+    answers::settings::appearance(app.handle(), session.config.theme);
+    app.manage(Mutex::new(session));
+    app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
+    herald::watch(app.handle().clone(), watched);
+
+    app.manage(Stopping::default());
+    let perched = tray::raise(app.handle(), &words).is_some();
+    app.manage(Perched(perched));
+    app.manage(Bound(listen_for(app.handle())));
+
+    {
+        let held = app.state::<Mutex<Session>>();
+        let held = crate::held(&held);
+        let seen = app.asset_protocol_scope();
+        // Its attachments and no more of it: the rest of that folder is not ours to read.
+        let shared = match &held.config.sync {
+            Some(tisty_core::config::Sync::Folder(dest)) => vec![dest.join("attachments")],
+            _ => Vec::new(),
+        };
+        for at in [held.paths.attachments(), held.paths.docs()]
+            .into_iter()
+            .chain(shared)
+        {
+            if let Err(e) = seen.allow_directory(&at, true) {
+                witness::warn(
+                    channel::WINDOW,
+                    "attachments will not show",
+                    &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
+                );
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let locale = held(&app.state::<Mutex<Session>>()).locale.clone();
+        match menued(app.handle(), &locale) {
+            Ok(menu) => {
+                let _ = app.set_menu(menu);
+                app.on_menu_event(|app, event| {
+                    if event.id() == "leave" {
+                        parting(app);
+                    }
+                });
+            }
+            Err(e) => witness::warn(
+                channel::WINDOW,
+                "the menu would not build",
+                &[("why", Fact::Why(e.to_string()))],
+            ),
+        }
+    }
+
+    if let Some(window) = app.get_webview_window("main") {
+        proofread(&window);
+        if came_back || !waking::hushed() {
+            fitted(&window);
+            let _ = window.show();
+        }
+    }
+    Ok(())
+}
+
 pub fn run() {
     let mut building = tauri::Builder::default();
 
@@ -3397,142 +3533,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .setup(move |app| {
-            let session = match Session::open() {
-                Ok(session) => session,
-                Err(why) => {
-                    use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
-                    witness::error(channel::WINDOW, "the session would not open", &why.told());
-                    for window in app.webview_windows().values() {
-                        let _ = window.close();
-                    }
-                    let behind = matches!(why, tisty_core::Error::UnsupportedVersion(_));
-                    let said = app
-                        .dialog()
-                        .message(if behind {
-                            behind_said()
-                        } else {
-                            why.to_string()
-                        })
-                        .kind(MessageDialogKind::Error)
-                        .title("Tisty");
-                    if behind {
-                        let (yes, no) = behind_buttons();
-                        if said
-                            .buttons(MessageDialogButtons::OkCancelCustom(yes.into(), no.into()))
-                            .blocking_show()
-                        {
-                            let _ =
-                                tauri_plugin_opener::open_url(where_it_comes_from(), None::<&str>);
-                        }
-                    } else {
-                        said.blocking_show();
-                    }
-                    std::process::exit(1);
-                }
-            };
-
-            for at in tisty_core::backup::leftovers(session.paths.data()) {
-                if let Err(why) = std::fs::remove_dir_all(&at) {
-                    witness::warn(
-                        channel::BACKUP,
-                        "what a restore left behind could not be swept up",
-                        &[("at", Fact::Path(at)), ("why", Fact::Why(why.to_string()))],
-                    );
-                }
-            }
-
-            let attachments = session.paths.attachments();
-            if let Err(why) = std::fs::create_dir_all(&attachments) {
-                witness::error(
-                    channel::ATTACH,
-                    "the attachments folder could not be made",
-                    &[
-                        ("at", Fact::Path(attachments.clone())),
-                        ("why", Fact::Why(why.to_string())),
-                    ],
-                );
-            }
-            app.handle()
-                .asset_protocol_scope()
-                .allow_directory(&attachments, true)?;
-            let words = tray::Words {
-                show: worded(&session.locale, "show"),
-                capture: worded(&session.locale, "capture"),
-                quit: worded(&session.locale, "quit"),
-            };
-            let telling = herald::Words {
-                due: worded(&session.locale, "due"),
-                missed: worded(&session.locale, "missed"),
-            };
-            let watched = session.paths.clone();
-            let quiet = session.config.muted().to_vec();
-            // An update relaunches with the arguments it was started with, so a copy that opened
-            // with the session comes back hidden — looking, to whoever pressed the button, like it
-            // never came back at all.
-            let came_back = session.config.found_version.as_deref() == Some(HERE);
-            answers::settings::appearance(app.handle(), session.config.theme);
-            app.manage(Mutex::new(session));
-            app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
-            herald::watch(app.handle().clone(), watched);
-
-            app.manage(Stopping::default());
-            let perched = tray::raise(app.handle(), &words).is_some();
-            app.manage(Perched(perched));
-            app.manage(Bound(listen_for(app.handle())));
-
-            {
-                let held = app.state::<Mutex<Session>>();
-                let held = crate::held(&held);
-                let seen = app.asset_protocol_scope();
-                // Its attachments and no more of it: the rest of that folder is not ours to read.
-                let shared = match &held.config.sync {
-                    Some(tisty_core::config::Sync::Folder(dest)) => vec![dest.join("attachments")],
-                    _ => Vec::new(),
-                };
-                for at in [held.paths.attachments(), held.paths.docs()]
-                    .into_iter()
-                    .chain(shared)
-                {
-                    if let Err(e) = seen.allow_directory(&at, true) {
-                        witness::warn(
-                            channel::WINDOW,
-                            "attachments will not show",
-                            &[("at", Fact::Path(at)), ("why", Fact::Why(e.to_string()))],
-                        );
-                    }
-                }
-            }
-
-            #[cfg(target_os = "macos")]
-            {
-                let locale = held(&app.state::<Mutex<Session>>()).locale.clone();
-                match menued(app.handle(), &locale) {
-                    Ok(menu) => {
-                        let _ = app.set_menu(menu);
-                        app.on_menu_event(|app, event| {
-                            if event.id() == "leave" {
-                                parting(app);
-                            }
-                        });
-                    }
-                    Err(e) => witness::warn(
-                        channel::WINDOW,
-                        "the menu would not build",
-                        &[("why", Fact::Why(e.to_string()))],
-                    ),
-                }
-            }
-
-            if let Some(window) = app.get_webview_window("main") {
-                proofread(&window);
-                if came_back || !waking::hushed() {
-                    fitted(&window);
-                    let _ = window.show();
-                }
-            }
-            Ok(())
-        })
+        .setup(settled)
         .on_window_event(|window, event| {
             if window.label() != "main" {
                 return;

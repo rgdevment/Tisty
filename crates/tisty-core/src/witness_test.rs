@@ -219,7 +219,7 @@ fn a_panic_leaves_a_line_behind() {
         .expect("a line");
     assert!(said.contains("FATAL"), "{said}");
     assert!(said.contains("panicked"), "{said}");
-    assert!(said.contains("witness"), "{said}");
+    assert!(said.contains("witness_test.rs:"), "{said}");
     assert!(!said.contains("the sky fell"), "{said}");
     stops();
 }

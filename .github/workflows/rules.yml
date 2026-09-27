@@ -82,12 +82,6 @@ jobs:
       - name: No file grows past what a person can hold
         run: |
           set -euo pipefail
-          code() {
-            case "$1" in
-              *.rs) awk '/^#\[cfg\(test\)\]/ { exit } { n++ } END { print n+0 }' "$1" ;;
-              *)    wc -l < "$1" | tr -d ' ' ;;
-            esac
-          }
           status=0
           measured=$(mktemp)
           tables_not_code='locales\.ts|glyphs\.ts|marks\.ts'
@@ -96,7 +90,7 @@ jobs:
           find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
             | grep -vE "node_modules|/tests/|\.test\.|$tables_not_code|$test_modules" \
             | sort | while read -r one; do
-              printf '%s %s\n' "$(code "$one")" "$one"
+              printf '%s %s\n' "$(wc -l < "$one" | tr -d ' ')" "$one"
             done > "$measured"
 
           while read -r now at; do

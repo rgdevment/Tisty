@@ -504,8 +504,8 @@ fn a_cache_from_an_older_schema_is_rebuilt_rather_than_left_dead() {
     let db = Connection::open(f.cache_dir.join("read.db")).unwrap();
     db.execute_batch(
         "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-         CREATE TABLE tombstone(id TEXT PRIMARY KEY);
-         INSERT INTO meta VALUES ('schema', '1');",
+             CREATE TABLE tombstone(id TEXT PRIMARY KEY);
+             INSERT INTO meta VALUES ('schema', '1');",
     )
     .unwrap();
     drop(db);

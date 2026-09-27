@@ -365,11 +365,7 @@ fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
                     continue;
                 }
                 rust(&path, found);
-            } else if path.extension().is_some_and(|e| e == "rs")
-                && !path
-                    .file_stem()
-                    .is_some_and(|n| n.to_string_lossy().ends_with("_test"))
-            {
+            } else if path.extension().is_some_and(|e| e == "rs") {
                 found.push(path);
             }
         }
@@ -387,7 +383,10 @@ fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
         .iter()
         .filter(|at| {
             std::fs::read_to_string(at)
-                .map(|body| body.contains("allow(unsafe_code)"))
+                .map(|body| {
+                    body.lines()
+                        .any(|one| one.trim_start().starts_with("#[allow(unsafe_code)]"))
+                })
                 .unwrap_or(false)
         })
         .map(|at| at.display().to_string())
