@@ -1,6 +1,8 @@
 use std::sync::Mutex;
 
-use tauri::{Emitter, Manager};
+use tauri::Emitter;
+#[cfg(windows)]
+use tauri::Manager;
 
 use crate::{Answer, HERE, Refusal, Session, Updating, held, shop, translated, update};
 
