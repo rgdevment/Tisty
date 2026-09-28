@@ -77,6 +77,7 @@ import { written } from "../report";
 import { type Brittle, scanned } from "../scanning";
 import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
+import Backup from "./Backup";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
 
@@ -110,7 +111,7 @@ type Which =
   | "parcel"
   | "tongue"
   | "look";
-type Word = { card: Which; text: string };
+export type Word = { card: Which; text: string };
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
@@ -890,7 +891,11 @@ export default function Keeping({
             <Band label={t("syncing")} />
             <section className="rounded-[10px] border border-hair px-4 py-3.5">
               <p className="text-[12.5px] leading-relaxed text-soft">
-                {state.chosen ? fill("syncOn", state.chosen) : t("syncOff")}
+                {state.chosen
+                  ? fill("syncOn", state.chosen)
+                  : state.sharedWas
+                    ? fill("syncOffRestored", state.sharedWas)
+                    : t("syncOff")}
               </p>
               {state.chosen && state.keeper && (
                 <Warned keeper={state.keeper} named={state.keptBy} />
@@ -1100,43 +1105,15 @@ export default function Keeping({
               </Line>
             </div>
 
-            <Band label={t("backup")} />
-            <div className="border-t border-hair">
-              <Line
-                title={t("backupSave")}
-                why={
-                  <>
-                    <span className="block">{t("backupWhat")}</span>
-                    <span className="mt-0.5 block tabular-nums">
-                      {[
-                        holds,
-                        fill("backupAbout", weigh(state.weight)),
-                        state.backedUpAt ? stamped(state.backedUpAt) : t("backupNever"),
-                      ].join(" · ")}
-                    </span>
-                  </>
-                }
-                which="backup"
-                said={said}
-                trouble={trouble}
-              >
-                <button type="button" disabled={held} onClick={makeBackup} className={mild}>
-                  {t("backupMake")}
-                </button>
-              </Line>
-
-              <Line
-                title={t("restoreTitle")}
-                why={t("restoreWhat")}
-                which="restore"
-                said={said}
-                trouble={trouble}
-              >
-                <button type="button" disabled={held} onClick={takeBackup} className={risky}>
-                  {t("restoreFrom")}
-                </button>
-              </Line>
-            </div>
+            <Backup
+              state={state}
+              holds={holds}
+              held={held}
+              said={said}
+              trouble={trouble}
+              onMake={makeBackup}
+              onTake={takeBackup}
+            />
 
             <Band label={t("whereItLives")} />
             <div className="border-t border-hair">
@@ -1820,9 +1797,9 @@ const dated = (when: number): string => {
 };
 
 const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
-const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
+export const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
 const strong = `rounded-[10px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
-const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
+export const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
 
 const wroteSaid = (hand: Assistant | undefined): string => {
   if (!hand || hand.wrote === 0) return t("assistantNothing");
@@ -1842,7 +1819,7 @@ const wiring = (at?: string) =>
 const oneLine = (at?: string, agent = "agent") =>
   `${agent} mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
 
-function Band({ label }: { label: string }) {
+export function Band({ label }: { label: string }) {
   return (
     <div className="mt-5 mb-1.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
       {label}
@@ -1870,7 +1847,7 @@ function Ask({ said }: { said: string }) {
   );
 }
 
-function Line({
+export function Line({
   title,
   why,
   which,

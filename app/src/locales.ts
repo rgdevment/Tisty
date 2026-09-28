@@ -963,6 +963,8 @@ const en = {
   keeping: "Settings",
   syncing: "Syncing",
   syncOff: "Off. Your tasks live only on this machine.",
+  syncOffRestored:
+    "Not sharing since you restored. It was «{name}»; choosing it again asks you which side wins.",
   syncOn: "Leaving copies in {name}",
   turnSyncOn: "Turn on…",
   changeFolder: "Change folder",
@@ -1193,6 +1195,7 @@ const en = {
   backupSave: "Save a copy",
   backupNever: "none yet",
   backupAbout: "about {name}",
+  backupPastIt: "{name}, past the {other} one file can hold",
   openTasks: "{name} open",
   archivedTasks: "{name} archived",
   someAttachments: "{name} attachments",
@@ -2326,6 +2329,8 @@ const es: Catalog = {
   keeping: "Configuración",
   syncing: "Sincronizar",
   syncOff: "Desactivada. Tus tareas viven solo en este equipo.",
+  syncOffRestored:
+    "Sin compartir desde que restauraste. Compartías con «{name}»; al volver a elegirla te preguntará qué lado manda.",
   syncOn: "Dejando copias en {name}",
   turnSyncOn: "Activar…",
   changeFolder: "Cambiar carpeta",
@@ -2556,6 +2561,7 @@ const es: Catalog = {
   backupSave: "Guardar una copia",
   backupNever: "ninguna todavía",
   backupAbout: "unos {name}",
+  backupPastIt: "{name}, más de los {other} que cabe en un archivo",
   openTasks: "{name} abiertas",
   archivedTasks: "{name} archivadas",
   someAttachments: "{name} adjuntos",

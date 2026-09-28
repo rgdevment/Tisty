@@ -423,6 +423,8 @@ export interface Carrying {
   lists: number;
   attachments: number;
   weight: number;
+  carries: number;
+  sharedWas?: string;
   backedUpAt?: string;
 }
 
