@@ -190,7 +190,8 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             .len(),
         lists: session.state.lists.len(),
         attachments: report::attachments(session.paths.data()).files,
-        weight: report::weighed(session.paths.data()),
+        weight: report::weighed(session.paths.data())
+            + report::also_weighed(session.paths.data(), session.dest().as_deref()),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
 }
@@ -521,6 +522,7 @@ pub async fn back_up(
         );
         match e {
             tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+            tisty_core::Error::TooBig => Refusal::of("tooBig"),
             _ => Refusal::about("cannotWrite", into),
         }
     })?;
@@ -829,7 +831,10 @@ pub async fn merge_stores(
                 "nothing was joined because the backup did not land",
                 &[("why", Fact::Why(e.to_string()))],
             );
-            Refusal::about("cannotWrite", into)
+            match e {
+                tisty_core::Error::TooBig => Refusal::of("tooBig"),
+                _ => Refusal::about("cannotWrite", into),
+            }
         })?;
         tisty_sync::stitch(&data, &device, &dest).map_err(|trouble| {
             let refusal = said(trouble);

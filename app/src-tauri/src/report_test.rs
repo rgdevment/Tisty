@@ -139,3 +139,27 @@ fn an_assistant_is_not_a_machine_anyone_can_be_asked_to_open() {
     assert_eq!(all.len(), 1, "only the machine is listed");
     assert_eq!(all[0].id, "mac0");
 }
+
+#[test]
+fn what_the_folder_holds_and_this_machine_let_go_of_is_counted_once() {
+    let tmp = tempfile::tempdir().unwrap();
+    let data = tmp.path().join("data");
+    let shared = tmp.path().join("shared");
+
+    let here = data.join("attachments").join("ab");
+    std::fs::create_dir_all(&here).unwrap();
+    std::fs::write(here.join("foto.png"), vec![0u8; 100]).unwrap();
+
+    let theirs = shared.join("attachments");
+    std::fs::create_dir_all(theirs.join("ab")).unwrap();
+    std::fs::create_dir_all(theirs.join("cd")).unwrap();
+    std::fs::write(theirs.join("ab").join("foto.png"), vec![0u8; 100]).unwrap();
+    std::fs::write(theirs.join("cd").join("video.mp4"), vec![0u8; 900]).unwrap();
+
+    assert_eq!(also_weighed(&data, None), 0, "nothing is shared");
+    assert_eq!(
+        also_weighed(&data, Some(&shared)),
+        900,
+        "the one that is in both places is already weighed at home"
+    );
+}
