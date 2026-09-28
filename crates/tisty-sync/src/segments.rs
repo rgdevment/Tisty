@@ -2,9 +2,15 @@ use std::path::Path;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Grew, STORE, Trouble, copy_onto, io, one_grew_from_the_other, plainly};
+use crate::{STORE, Trouble, copy_onto, io, plainly};
 
 pub(crate) type Named = std::collections::BTreeSet<std::ffi::OsString>;
+
+#[derive(Clone, Copy)]
+pub(crate) enum Toward {
+    Folder,
+    Home,
+}
 
 #[derive(Default)]
 pub(crate) struct Alike(std::collections::BTreeMap<String, Named>);
@@ -16,8 +22,33 @@ impl Alike {
             .or_insert_with(|| alike_in(theirs, mine))
     }
 
-    pub(crate) fn again(&mut self, who: &str) {
-        self.0.remove(who);
+    pub(crate) fn settled(&mut self, who: &str, theirs: &Path, mine: &Path, way: Toward) -> bool {
+        let from = from_to(theirs, mine, way).0.to_path_buf();
+        all_of(&from, self.of(who, theirs, mine))
+    }
+
+    pub(crate) fn carried(
+        &mut self,
+        who: &str,
+        theirs: &Path,
+        mine: &Path,
+        way: Toward,
+        again: bool,
+    ) -> Result<usize, Trouble> {
+        let (from, into) = from_to(theirs, mine, way);
+        let (from, into) = (from.to_path_buf(), into.to_path_buf());
+        let done = copy_segments(&from, &into, again, self.of(who, theirs, mine))?;
+        if done > 0 {
+            self.0.remove(who);
+        }
+        Ok(done)
+    }
+}
+
+fn from_to<'a>(theirs: &'a Path, mine: &'a Path, way: Toward) -> (&'a Path, &'a Path) {
+    match way {
+        Toward::Folder => (mine, theirs),
+        Toward::Home => (theirs, mine),
     }
 }
 
@@ -35,7 +66,7 @@ fn alike_in(theirs: &Path, mine: &Path) -> Named {
         .collect()
 }
 
-pub(crate) fn all_of(dir: &Path, known: &Named) -> bool {
+fn all_of(dir: &Path, known: &Named) -> bool {
     tisty_core::store::segments_in(dir)
         .map(|held| {
             !held.is_empty()
@@ -154,6 +185,51 @@ pub(crate) fn same(from: &Path, to: &Path) -> bool {
     }
 }
 
+pub(crate) enum Grew {
+    Yes,
+    No,
+    Cannot,
+    Unread,
+}
+
+enum Whole {
+    Said(Vec<u8>),
+    Empty,
+    Unread,
+}
+
+fn whole_of(device_dir: &Path) -> Whole {
+    let Ok(segments) = tisty_core::store::segments_in(device_dir) else {
+        return Whole::Unread;
+    };
+    let mut said = Vec::new();
+    for at in segments {
+        let Ok(more) = std::fs::read(at) else {
+            return Whole::Unread;
+        };
+        said.extend(more);
+    }
+    if said.is_empty() {
+        Whole::Empty
+    } else {
+        Whole::Said(said)
+    }
+}
+
+pub(crate) fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
+    let (ours, theirs) = match (whole_of(here), whole_of(there)) {
+        (Whole::Said(ours), Whole::Said(theirs)) => (ours, theirs),
+        (Whole::Unread, _) | (_, Whole::Unread) => return Grew::Unread,
+        _ => return Grew::Cannot,
+    };
+    let grew = if ours.len() <= theirs.len() {
+        theirs.starts_with(&ours)
+    } else {
+        ours.starts_with(&theirs)
+    };
+    if grew { Grew::Yes } else { Grew::No }
+}
+
 pub(crate) fn hand_on(
     store: &Path,
     device: &str,
@@ -175,15 +251,13 @@ pub(crate) fn hand_on(
             continue;
         }
         let theirs = there.join(named);
-        let known = alike.of(named, &theirs, &entry.path()).clone();
-        if all_of(&entry.path(), &known) || !ours_reaches_further(&entry.path(), &theirs) {
+        if alike.settled(named, &theirs, &entry.path(), Toward::Folder)
+            || !ours_reaches_further(&entry.path(), &theirs)
+        {
             continue;
         }
         plainly(&theirs)?;
-        let done = copy_segments(&entry.path(), &theirs, again, &known)?;
-        if done > 0 {
-            alike.again(named);
-        }
+        let done = alike.carried(named, &theirs, &entry.path(), Toward::Folder, again)?;
         if done > 0 {
             witness::note(
                 channel::SYNC,

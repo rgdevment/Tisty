@@ -1,3 +1,3 @@
 2374 app/src/App.tsx
 1993 app/src/ui/Keeping.tsx
-1256 crates/tisty-sync/src/lib.rs
+1212 crates/tisty-sync/src/lib.rs

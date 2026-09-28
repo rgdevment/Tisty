@@ -4,7 +4,7 @@ mod segments;
 
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
-use segments::{Alike, Named, all_of, copy_segments, hand_on, ours_went_missing, sweep};
+use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -145,9 +145,9 @@ pub fn carry_telling(
         if std::fs::read_to_string(&marker).ok().as_deref() != Some(ours.as_str()) {
             write(&marker, ours.as_bytes())?;
         }
-        let mine = dest.join(STORE).join(device);
-        plainly(&mine)?;
-        moved.sent = copy_segments(&store.join(device), &mine, again, &Named::default())?;
+        let there = dest.join(STORE).join(device);
+        plainly(&there)?;
+        moved.sent = alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
         moved.sent += hand_on(&store, device, dest, again, &mut alike)?;
     }
     let alive: Vec<String> = match &said {
@@ -377,51 +377,6 @@ pub enum Kin {
     Unsure(String),
 }
 
-enum Grew {
-    Yes,
-    No,
-    Cannot,
-    Unread,
-}
-
-enum Whole {
-    Said(Vec<u8>),
-    Empty,
-    Unread,
-}
-
-fn whole_of(device_dir: &Path) -> Whole {
-    let Ok(segments) = tisty_core::store::segments_in(device_dir) else {
-        return Whole::Unread;
-    };
-    let mut said = Vec::new();
-    for at in segments {
-        let Ok(more) = std::fs::read(at) else {
-            return Whole::Unread;
-        };
-        said.extend(more);
-    }
-    if said.is_empty() {
-        Whole::Empty
-    } else {
-        Whole::Said(said)
-    }
-}
-
-pub(crate) fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
-    let (ours, theirs) = match (whole_of(here), whole_of(there)) {
-        (Whole::Said(ours), Whole::Said(theirs)) => (ours, theirs),
-        (Whole::Unread, _) | (_, Whole::Unread) => return Grew::Unread,
-        _ => return Grew::Cannot,
-    };
-    let grew = if ours.len() <= theirs.len() {
-        theirs.starts_with(&ours)
-    } else {
-        ours.starts_with(&theirs)
-    };
-    if grew { Grew::Yes } else { Grew::No }
-}
-
 pub fn kinship(store: &Path, dest: &Path) -> Kin {
     let there = dest.join(STORE);
     let mut shared = false;
@@ -598,8 +553,9 @@ fn bring(
         }
         let mine = store.join(named);
         if named.eq_ignore_ascii_case(device) {
-            let known = alike.of(named, &entry.path(), &mine).clone();
-            if !all_of(&entry.path(), &known) && ours_went_missing(&mine, &entry.path()) {
+            if !alike.settled(named, &entry.path(), &mine, Toward::Home)
+                && ours_went_missing(&mine, &entry.path())
+            {
                 match tisty_core::store::alone(&mine) {
                     Some(_held) if ours_went_missing(&mine, &entry.path()) => {
                         witness::warn(
@@ -608,7 +564,8 @@ fn bring(
                             &[("at", Fact::Id(named.to_string()))],
                         );
                         plainly(&mine)?;
-                        brought += copy_segments(&entry.path(), &mine, false, &known)?;
+                        brought +=
+                            alike.carried(named, &entry.path(), &mine, Toward::Home, false)?;
                     }
                     Some(_) => {}
                     None => witness::warn(
@@ -621,8 +578,7 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        let known = alike.of(named, &entry.path(), &mine).clone();
-        if !all_of(&entry.path(), &known) {
+        if !alike.settled(named, &entry.path(), &mine, Toward::Home) {
             let coming = match tisty_core::store::check_device(&entry.path())
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
             {
@@ -678,7 +634,7 @@ fn bring(
                 continue;
             }
         }
-        brought += copy_segments(&entry.path(), &mine, false, &known)?;
+        brought += alike.carried(named, &entry.path(), &mine, Toward::Home, false)?;
     }
 
     if brought > 0 {
