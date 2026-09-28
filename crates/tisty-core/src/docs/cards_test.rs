@@ -1,3 +1,4 @@
+use super::super::text::section_lines;
 use super::*;
 
 #[test]

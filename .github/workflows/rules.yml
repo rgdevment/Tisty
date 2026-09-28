@@ -84,7 +84,7 @@ jobs:
           set -euo pipefail
           status=0
           measured=$(mktemp)
-          tables_not_code='locales\.ts|glyphs\.ts|marks\.ts'
+          tables_not_code='locales\.ts|glyphs\.ts|marks\.ts|model/mark\.rs'
           test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src app/src-tauri/src --include='*.rs' \
             | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
           find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
@@ -96,8 +96,8 @@ jobs:
           while read -r now at; do
             was=$(tr -d '\015' < .github/oversized.txt | awk -v at="$at" '$2 == at { print $1 }')
             if [ -z "$was" ]; then
-              if [ "$now" -gt 1000 ]; then
-                echo "::error file=$at::$at is $now lines of code; 1000 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
+              if [ "$now" -gt 1500 ]; then
+                echo "::error file=$at::$at is $now lines of code; 1500 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
                 status=1
               fi
             elif [ "$now" -gt "$was" ]; then

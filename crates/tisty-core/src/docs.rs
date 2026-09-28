@@ -2,9 +2,25 @@ use std::path::{Path, PathBuf};
 
 use std::io::Read;
 
-use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result, event::DeviceId, store::write_atomic};
+
+mod cards;
+mod carried;
+mod text;
+
+pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
+use carried::kept_still;
+pub use carried::{
+    Carried, before_left_at, carried_print, forget_carried, forget_what_was_carried, keep_carried,
+    kept_before, print_of, read_before, read_carried,
+};
+use text::{Fencing, as_written, bullet, quoted, quoteless, unpictured, unspanned, wordless};
+pub use text::{
+    Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,
+    settled, spelled, titled,
+};
+pub(crate) use text::{fenced_spans, nameless};
 
 const EXTENSION: &str = "md";
 const DIGITS: usize = 4;
@@ -19,127 +35,8 @@ pub struct Doc {
     pub title: String,
 }
 
-/// The body a write replaced, kept with the print of the body that write left behind. Not every
-/// way of writing a document keeps one — the window's own save does not, nor does adding to the
-/// end — so the print is what says whether this is still the step back it looks like.
-pub fn kept_before(data: &Path, id: &str, body: &str, left: &str) -> Result<()> {
-    let at = data.join("originals");
-    std::fs::create_dir_all(&at)?;
-    let _ = crate::paths::ours_alone(&at);
-    let into = resolve(&at, id)?;
-    write_atomic(&into, body.as_bytes())?;
-    let _ = crate::paths::ours_alone(&into);
-
-    let marked = data.join("originals-at");
-    std::fs::create_dir_all(&marked)?;
-    let _ = crate::paths::ours_alone(&marked);
-    let into = resolve(&marked, id)?;
-    // What reaches the disk is the settled body, so hashing what was handed in would leave the
-    // print of a text that was never written and go back on nothing.
-    write_atomic(
-        &into,
-        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
-    )?;
-    let _ = crate::paths::ours_alone(&into);
-    Ok(())
-}
-
-/// What the document read at when what is kept beside it was set aside.
-pub fn before_left_at(data: &Path, id: &str) -> Option<String> {
-    let at = resolve(&data.join("originals-at"), id).ok()?;
-    std::fs::read_to_string(at).ok()
-}
-
 fn base(data: &Path) -> PathBuf {
     data.join("carried")
-}
-
-pub fn keep_carried(data: &Path, id: &str, body: &str) -> Result<()> {
-    let at = base(data);
-    std::fs::create_dir_all(&at)?;
-    let _ = crate::paths::ours_alone(&at);
-    let into = resolve(&at, id)?;
-    write_atomic(&into, body.as_bytes())?;
-    let _ = crate::paths::ours_alone(&into);
-    Ok(())
-}
-
-pub fn carried_print(data: &Path, id: &str) -> Option<String> {
-    resolve(&base(data), id)
-        .ok()
-        .and_then(|at| print_of(&at).ok()?)
-}
-
-pub fn read_carried(data: &Path, id: &str) -> Option<String> {
-    let at = resolve(&base(data), id).ok()?;
-    std::fs::read_to_string(at).ok()
-}
-
-pub fn forget_carried(data: &Path, id: &str) {
-    if let Ok(at) = resolve(&base(data), id) {
-        let _ = std::fs::remove_file(at);
-    }
-}
-
-pub fn read_before(data: &Path, id: &str) -> Option<String> {
-    let at = resolve(&data.join("originals"), id).ok()?;
-    std::fs::read_to_string(at).ok()
-}
-
-pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
-    match std::fs::metadata(at) {
-        Ok(one) if one.len() > BODY_AT_MOST => {
-            return Err(std::io::Error::other("a body past the ceiling"));
-        }
-        Ok(_) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(e),
-    }
-    match std::fs::read(at) {
-        Ok(bytes) => Ok(Some(crate::attach::printed(&bytes))),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(e),
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct Carried(std::collections::BTreeMap<String, String>);
-
-impl Carried {
-    pub fn read(data: &Path) -> Self {
-        std::fs::read_to_string(ledger(data))
-            .ok()
-            .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_default()
-    }
-
-    pub fn save(&self, data: &Path) -> Result<()> {
-        let said = serde_json::to_string(self).map_err(|e| Error::Io(std::io::Error::other(e)))?;
-        write_atomic(&ledger(data), said.as_bytes())?;
-        let _ = crate::paths::ours_alone(&ledger(data));
-        Ok(())
-    }
-
-    pub fn of(&self, id: &str) -> Option<&str> {
-        self.0.get(id).map(String::as_str)
-    }
-
-    pub fn keep(&mut self, id: &str, print: &str) {
-        self.0.insert(id.to_string(), print.to_string());
-    }
-
-    pub fn forget(&mut self, id: &str) {
-        self.0.remove(id);
-    }
-}
-
-fn ledger(data: &Path) -> PathBuf {
-    data.join("carried.json")
-}
-
-pub fn forget_what_was_carried(data: &Path) {
-    let _ = std::fs::remove_file(ledger(data));
-    let _ = std::fs::remove_dir_all(base(data));
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,276 +59,6 @@ pub fn moved(base: Option<&str>, here: Option<&str>, there: Option<&str>) -> Mov
             _ => Move::TheyDecide,
         },
     }
-}
-
-/// Steps over fenced blocks line by line, for anything that reads a body and must not read code.
-pub fn fencing() -> impl FnMut(&str) -> bool {
-    let mut fence = Fencing::default();
-    move |line| fence.inside(line)
-}
-
-pub fn ends_fenced(text: &str) -> bool {
-    let mut fence = Fencing::default();
-    for line in text.lines() {
-        fence.inside(line);
-    }
-    fence.open.is_some()
-}
-
-pub(crate) fn fenced_spans(text: &str) -> Vec<(usize, usize)> {
-    let mut fence = Fencing::default();
-    let mut out: Vec<(usize, usize)> = Vec::new();
-    let mut at = 0;
-    for line in text.split_inclusive('\n') {
-        let end = at + line.len();
-        if fence.inside(line.trim_end_matches(['\n', '\r'])) {
-            match out.last_mut() {
-                Some(last) if last.1 == at => last.1 = end,
-                _ => out.push((at, end)),
-            }
-        }
-        at = end;
-    }
-    out
-}
-
-/// A fence opens on three or more of one marker and closes on the same, at least as long.
-/// The quote prefix comes off first, or a fence written inside a quote is never seen.
-#[derive(Default)]
-struct Fencing {
-    open: Option<(char, usize, usize, usize)>,
-    base: usize,
-    told: bool,
-}
-
-impl Fencing {
-    fn inside(&mut self, line: &str) -> bool {
-        let (deep, wide, said) = quoted(line);
-        if self.open.is_none() {
-            self.base = listed(self.base, wide, said);
-        }
-        let (wide, said) = match bullet(said) {
-            Some(after) => (wide + after, &said[after..]),
-            None => (wide, said),
-        };
-        self.told = false;
-        let mut marker = None;
-        for mark in ['`', '~'] {
-            let many = said.chars().take_while(|c| *c == mark).count();
-            if many < 3 || wide >= self.base + 4 {
-                continue;
-            }
-            let after = &said[many.min(said.len())..];
-            if mark == '`' && after.contains('`') {
-                self.told = self.open.is_none();
-                continue;
-            }
-            marker = Some((mark, many));
-            break;
-        }
-
-        if let Some((open, was, held, room)) = self.open {
-            if said.is_empty() {
-                return true;
-            }
-            if deep >= held && wide >= room {
-                if let Some((mark, many)) = marker
-                    && mark == open
-                    && many >= was
-                    && deep == held
-                {
-                    self.open = None;
-                }
-                return true;
-            }
-            self.open = None;
-        }
-
-        match marker {
-            Some((mark, many)) => {
-                self.told = nameless(&said[many..]).split_whitespace().count() > 1;
-                self.open = Some((mark, many, deep, wide));
-                true
-            }
-            None => false,
-        }
-    }
-}
-
-fn bullet(said: &str) -> Option<usize> {
-    let bytes = said.as_bytes();
-    let mut at = 0;
-    if matches!(bytes.first(), Some(b'-' | b'*' | b'+')) {
-        at = 1;
-    } else {
-        while bytes.get(at).is_some_and(u8::is_ascii_digit) {
-            at += 1;
-        }
-        if at == 0 || at > 9 || !matches!(bytes.get(at), Some(b'.' | b')')) {
-            return None;
-        }
-        at += 1;
-    }
-    let gap = said[at..]
-        .chars()
-        .take_while(|c| matches!(c, ' ' | '\t'))
-        .count();
-    (gap > 0).then_some(at + gap)
-}
-
-fn listed(base: usize, wide: usize, said: &str) -> usize {
-    if said.is_empty() {
-        return base;
-    }
-    match bullet(said) {
-        Some(after) if wide <= base => wide + after,
-        _ if wide < base => 0,
-        _ => base,
-    }
-}
-
-pub(crate) fn nameless(said: &str) -> String {
-    let mut from = 0;
-    while let Some(found) = said[from..].find("title=\"") {
-        let at = from + found;
-        from = at + 7;
-        if said[..at]
-            .chars()
-            .next_back()
-            .is_some_and(|one| one.is_alphanumeric() || one == '_')
-        {
-            continue;
-        }
-        let rest = &said[from..];
-        let bytes = rest.as_bytes();
-        let mut over = 0;
-        let end = loop {
-            match bytes.get(over) {
-                None => return said.to_string(),
-                Some(b'\\') => over += 2,
-                Some(b'"') => break over,
-                _ => over += 1,
-            }
-        };
-        return format!("{} {}", &said[..at], &rest[end + 1..]);
-    }
-    said.to_string()
-}
-
-fn spacing(said: &str) -> usize {
-    said.chars()
-        .take_while(|c| *c == ' ' || *c == '\t')
-        .map(|c| if c == '\t' { 4 } else { 1 })
-        .sum()
-}
-
-fn quoted(line: &str) -> (usize, usize, &str) {
-    let mut said = line;
-    let mut deep = 0;
-    let mut wide = spacing(said);
-
-    while wide < 4 {
-        let Some(rest) = said.trim_start().strip_prefix('>') else {
-            break;
-        };
-        said = rest.strip_prefix(' ').unwrap_or(rest);
-        deep += 1;
-        wide = spacing(said);
-    }
-    (deep, wide, said.trim())
-}
-
-fn quoteless(line: &str) -> &str {
-    quoted(line).2
-}
-
-pub fn titled(body: &str) -> String {
-    let body = body.trim_start_matches('\u{feff}');
-    let mut said: Vec<&str> = body.lines().collect();
-    if let Some(start) = said.iter().position(|one| !one.trim().is_empty())
-        && said[start].trim() == "---"
-        && let Some(shuts) = said
-            .iter()
-            .skip(start + 1)
-            .position(|one| one.trim() == "---")
-    {
-        said.drain(..start + shuts + 2);
-    }
-    let mut fence = Fencing::default();
-    let first = said
-        .iter()
-        .find_map(|one| {
-            if fence.inside(one) {
-                return None;
-            }
-            let flat = one.trim();
-            if flat.is_empty() {
-                return None;
-            }
-            let opened = quoteless(one).trim_start_matches('#').trim_start();
-            let said = match flat.starts_with('>') {
-                true => crate::refs::alerted(opened).unwrap_or(opened),
-                false => opened,
-            };
-            (!wordless(said)).then_some(said)
-        })
-        .unwrap_or_default();
-    crate::text::plainly(unspanned(first).trim())
-}
-
-pub fn marked(body: &str, said: &str) -> String {
-    let bare = body.trim_start_matches('\u{feff}');
-    let mut seen = 0;
-    let mut out: Vec<String> = Vec::new();
-    let mut done = false;
-    let mut fence = Fencing::default();
-
-    for line in bare.lines() {
-        let trimmed = line.trim();
-        if done || trimmed.is_empty() {
-            out.push(line.to_string());
-            continue;
-        }
-        if trimmed == "---"
-            && seen == 0
-            && bare.lines().filter(|one| one.trim() == "---").count() > 1
-        {
-            seen = 1;
-            out.push(line.to_string());
-            continue;
-        }
-        if seen == 1 {
-            if trimmed == "---" {
-                seen = 2;
-            }
-            out.push(line.to_string());
-            continue;
-        }
-        if fence.inside(line) || wordless(trimmed) {
-            out.push(line.to_string());
-            continue;
-        }
-        let after = quoteless(line);
-        // A row of a table, and a marker with nothing after it, are lines a name would break.
-        let bare_line = trimmed.starts_with('|')
-            || matches!(crate::refs::alerted(after), Some(rest) if rest.is_empty());
-        match bare_line {
-            false => {
-                out.push(format!("{} ({said})", line.trim_end()));
-                done = true;
-            }
-            true => out.push(line.to_string()),
-        }
-    }
-
-    if !done {
-        return format!("# {said}\n\n{bare}");
-    }
-    let mut whole = out.join("\n");
-    if bare.ends_with('\n') {
-        whole.push('\n');
-    }
-    whole
 }
 
 pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
@@ -469,13 +96,6 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
             Err(e) => return Err(Error::Io(e)),
         }
     }
-}
-
-pub fn settled(body: &str) -> String {
-    if body.is_empty() || body.ends_with('\n') {
-        return body.to_string();
-    }
-    format!("{body}\n")
 }
 
 /// The editor hands back what it loaded with its own line endings and without the last newline,
@@ -553,24 +173,6 @@ pub fn name_at_end(root: &Path, data: &Path, parent: &str, which: &[&str]) -> Re
             whole: settled(&whole),
         })
     })
-}
-
-/// A line naming a page is not the person's writing, so it does not take their one step back with
-/// it: the body kept beside the document stays, and only the print of what it stands against moves.
-/// A step back already spent stays spent — carrying that one forward would offer to undo whatever
-/// spent it, which is somebody's writing.
-fn kept_still(data: &Path, id: &str, was: &str, left: &str) -> Result<()> {
-    let stood = crate::attach::printed(settled(was).as_bytes());
-    if before_left_at(data, id).as_deref() != Some(stood.as_str()) {
-        return Ok(());
-    }
-    let Ok(into) = resolve(&data.join("originals-at"), id) else {
-        return Ok(());
-    };
-    write_atomic(
-        &into,
-        crate::attach::printed(settled(left).as_bytes()).as_bytes(),
-    )
 }
 
 fn named_after(body: &str, cards: &[String]) -> String {
@@ -689,325 +291,8 @@ pub fn amend(
     })
 }
 
-/// A heading inside a fence is code, not a title: skipping the fences is what keeps a shell
-/// prompt from becoming a section.
-pub fn headings(body: &str) -> Vec<(usize, usize, String)> {
-    let mut out = Vec::new();
-    let mut fenced = false;
-    for (n, line) in body.lines().enumerate() {
-        let bare = line.trim_start();
-        if bare.starts_with("```") || bare.starts_with("~~~") {
-            fenced = !fenced;
-            continue;
-        }
-        if fenced {
-            continue;
-        }
-        let deep = bare.chars().take_while(|one| *one == '#').count();
-        if deep == 0 || deep > 3 || !bare[deep..].starts_with(' ') {
-            continue;
-        }
-        out.push((n + 1, deep, bare[deep + 1..].trim().to_string()));
-    }
-    out
-}
-
-/// Where a section ends: the next heading no deeper than its own, or the end of the document.
-/// The blank lines before the next heading separate the two, so they belong to neither.
-pub fn section_lines(body: &str, at: usize) -> Option<(usize, usize)> {
-    let all = headings(body);
-    let lines: Vec<&str> = body.lines().collect();
-    section_ends(&all, &lines, at)
-}
-
-fn section_ends(
-    all: &[(usize, usize, String)],
-    lines: &[&str],
-    at: usize,
-) -> Option<(usize, usize)> {
-    let (line, deep, _) = all.get(at)?;
-    let mut last = all
-        .iter()
-        .skip(at + 1)
-        .find(|(_, other, _)| other <= deep)
-        .map(|(next, _, _)| next - 1)
-        .unwrap_or(lines.len());
-    while last > *line && lines.get(last - 1).is_some_and(|one| one.trim().is_empty()) {
-        last -= 1;
-    }
-    Some((*line, last))
-}
-
-pub fn outlined(body: &str) -> Vec<Heading> {
-    let all = headings(body);
-    let lines: Vec<&str> = body.lines().collect();
-    all.iter()
-        .enumerate()
-        .map(|(at, (line, level, title))| {
-            let (_, to) = section_ends(&all, &lines, at).unwrap_or((*line, *line));
-            let chars = lines[line - 1..to]
-                .iter()
-                .map(|one| one.chars().count() + 1)
-                .sum();
-            Heading {
-                at,
-                line: *line,
-                level: *level,
-                title: title.clone(),
-                to,
-                chars,
-            }
-        })
-        .collect()
-}
-
-/// Cut where the lines really end, so a body that ended in a newline still does. A run that ends
-/// before it begins, or begins past the last line, is nothing at all: callers splice a head and a
-/// tail around an edit, and a tail that answered with the whole body would duplicate it.
-pub fn lines_between(body: &str, from: usize, to: usize) -> String {
-    if to < from {
-        return String::new();
-    }
-    let mut start = None;
-    let mut end = body.len();
-    let mut at = 0usize;
-    for (n, line) in body.split_inclusive('\n').enumerate() {
-        if n + 1 == from {
-            start = Some(at);
-        }
-        at += line.len();
-        if n + 1 == to {
-            end = at;
-            break;
-        }
-    }
-    let Some(start) = start else {
-        return String::new();
-    };
-    body.get(start..end).unwrap_or_default().to_string()
-}
-
-/// What can be worked out from a body without anybody writing it down, and so can never be
-/// stale: every field here is read back out of the text each time the file changes.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Card {
-    pub print: String,
-    pub title: String,
-    pub chars: usize,
-    pub lines: usize,
-    pub words: usize,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub outline: Vec<Heading>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub keywords: Vec<String>,
-    #[serde(default, skip_serializing_if = "none_at_all")]
-    pub pictures: usize,
-    #[serde(default, skip_serializing_if = "none_at_all")]
-    pub links: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Heading {
-    pub at: usize,
-    pub line: usize,
-    pub level: usize,
-    pub title: String,
-    #[serde(default)]
-    pub to: usize,
-    #[serde(default)]
-    pub chars: usize,
-}
-
-fn none_at_all(many: &usize) -> bool {
-    *many == 0
-}
-
-/// What a card cannot work out because nobody can: somebody read the document and said what it
-/// was about. It is kept beside the card, on this machine only, and carries the print of the
-/// body it was written against — so a reader can be told it is describing an older text.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct Gist {
-    pub print: String,
-    pub summary: String,
-    #[serde(default, skip_serializing_if = "String::is_empty")]
-    pub notes: String,
-    pub at: jiff::Timestamp,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub by: Option<String>,
-}
-
 pub const SUMMARY_AT_MOST: usize = 2_000;
 pub const NOTES_AT_MOST: usize = 4_000;
-
-const KEYWORDS_AT_MOST: usize = 12;
-const A_WORD_AT_LEAST: usize = 4;
-
-impl Card {
-    pub fn read_from(body: &str) -> Self {
-        let outline = outlined(body);
-        let (pictures, links) = pointed_at(body);
-        Self {
-            print: crate::attach::printed(body.as_bytes()),
-            title: titled(body),
-            chars: body.chars().count(),
-            lines: body.lines().count(),
-            words: body.split_whitespace().count(),
-            keywords: standing_out(body),
-            outline,
-            pictures,
-            links,
-        }
-    }
-}
-
-/// Searching without opening anything: the cards already hold the text, folded the same way a
-/// query is, so the database names the few documents worth reading and only those are read.
-/// Without a cache there is nothing to ask, and the caller falls back to walking the files.
-pub fn sighted(
-    root: &Path,
-    cache: Option<&crate::cache::Cache>,
-    query: &str,
-    most: usize,
-    wanted: impl Fn(&str) -> bool,
-) -> Option<Vec<Sighting>> {
-    let terms = crate::text::terms(query);
-    if terms.is_empty() {
-        return Some(Vec::new());
-    }
-    let cache = cache?;
-    // A card missing for a file that is there means the text was never read into the database,
-    // and answering from what it holds would quietly leave that document out of every search.
-    let all = all(root);
-    for one in &all {
-        card_of(root, Some(cache), &one.id)?;
-    }
-
-    let mut found = cache.holding(&terms)?;
-    found.sort();
-    let mut out = Vec::new();
-    for id in found {
-        if out.len() >= most || !wanted(&id) {
-            continue;
-        }
-        let Ok(body) = read(root, &id) else { continue };
-        let title = titled(&body);
-        let line = match crate::text::folded(&title)
-            .split_whitespace()
-            .collect::<String>()
-            .is_empty()
-        {
-            _ if terms
-                .iter()
-                .all(|term| crate::text::folded(&title).contains(term.as_str())) =>
-            {
-                String::new()
-            }
-            _ => match shown_around(&body, &terms) {
-                Some(line) => line,
-                None => continue,
-            },
-        };
-        out.push(Sighting { id, title, line });
-    }
-    Some(out)
-}
-
-/// Worked out once per version of a file and remembered locally, because reading two hundred
-/// bodies to answer "which of these is about the roof" is a cost nobody should pay twice.
-pub fn card_of(root: &Path, cache: Option<&crate::cache::Cache>, id: &str) -> Option<Card> {
-    let at = resolve(root, id).ok()?;
-    let stamp = stamped(&at)?;
-    if let Some(cache) = cache
-        && let Some(card) = cache.card(id, stamp)
-    {
-        return Some(card);
-    }
-    let body = read(root, id).ok()?;
-    let card = Card::read_from(&body);
-    if let Some(cache) = cache {
-        cache.note_card(id, stamp, &card, &crate::text::folded(&bared(&body)));
-    }
-    Some(card)
-}
-
-/// The cards of many, in one pass. It forgets nothing: the caller asks for a page at a time,
-/// and throwing away every card outside that page would leave the cache colder each time.
-pub fn cards_of(
-    root: &Path,
-    cache: Option<&crate::cache::Cache>,
-    ids: &[String],
-) -> std::collections::BTreeMap<String, Card> {
-    ids.iter()
-        .filter_map(|id| card_of(root, cache, id).map(|card| (id.clone(), card)))
-        .collect()
-}
-
-/// What is remembered about documents that are no longer on disk, weighed against the files
-/// themselves rather than against whatever somebody happened to ask for.
-pub fn forget_stray_cards(root: &Path, cache: Option<&crate::cache::Cache>) {
-    let Some(cache) = cache else {
-        return;
-    };
-    cache.forget_cards(&all(root).into_iter().map(|one| one.id).collect());
-}
-
-/// A picture is drawn where a link is followed, and an agent choosing a document wants to know
-/// which of the two it is walking into.
-fn pointed_at(body: &str) -> (usize, usize) {
-    let (mut drawn, mut followed) = (0, 0);
-    let bytes = body.as_bytes();
-    for (at, _) in body.match_indices('[') {
-        let Some(shut) = crate::refs::shuts(&body[at + 1..]) else {
-            continue;
-        };
-        if bytes.get(at + 1 + shut + 1) != Some(&b'(') {
-            continue;
-        }
-        match at > 0 && bytes[at - 1] == b'!' {
-            true => drawn += 1,
-            false => followed += 1,
-        }
-    }
-    (drawn, followed)
-}
-
-/// The tags a body carries first, since somebody meant those; then the words it leans on, which
-/// nobody meant but which say what it is about all the same.
-fn standing_out(body: &str) -> Vec<String> {
-    let mut out: Vec<String> = crate::tagging::tags_in(body)
-        .iter()
-        .map(|one| one.as_str().to_string())
-        .collect();
-
-    let mut times: std::collections::HashMap<String, usize> = Default::default();
-    for word in crate::text::terms(body) {
-        if word.chars().count() < A_WORD_AT_LEAST {
-            continue;
-        }
-        *times.entry(word).or_default() += 1;
-    }
-    let mut said: Vec<(String, usize)> = times.into_iter().filter(|(_, n)| *n > 1).collect();
-    said.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-    for (word, _) in said {
-        if out.len() >= KEYWORDS_AT_MOST {
-            break;
-        }
-        if !out.contains(&word) {
-            out.push(word);
-        }
-    }
-    out.truncate(KEYWORDS_AT_MOST);
-    out
-}
-
-/// A document imported from Windows keeps its line endings, and nobody types those.
-fn as_written(was: &str, old: &str, new: &str) -> (String, String) {
-    if was.contains(old) || !was.contains("\r\n") {
-        return (old.to_string(), new.to_string());
-    }
-    let crlf = |said: &str| said.replace("\r\n", "\n").replace('\n', "\r\n");
-    (crlf(old), crlf(new))
-}
 
 const LOCK: &str = ".lock";
 /// Waiting beats refusing: the writers that queue here are a saving editor, a sync round and an
@@ -1223,41 +508,6 @@ pub fn laid_out_as(
     })
 }
 
-fn unpictured(body: &str, at: &str) -> String {
-    let shut = format!("](<{at}>)");
-    let mut said = String::with_capacity(body.len());
-    let mut from = 0;
-    while let Some(found) = body[from..].find(&shut).map(|n| from + n) {
-        let opened = began(&body[..found]);
-        let cut = match opened {
-            Some(open) if body[..open].ends_with('!') => open - 1,
-            _ => found,
-        };
-        said.push_str(&body[from..cut]);
-        if cut != found {
-            said.push_str(&body[cut + 1..found]);
-        }
-        said.push_str(&shut);
-        from = found + shut.len();
-    }
-    said.push_str(&body[from..]);
-    said
-}
-
-fn began(before: &str) -> Option<usize> {
-    let mut escaped = false;
-    let mut open = None;
-    for (at, c) in before.char_indices() {
-        match c {
-            _ if escaped => escaped = false,
-            '\\' => escaped = true,
-            '[' => open = Some(at),
-            _ => {}
-        }
-    }
-    open
-}
-
 fn left_behind(left: &mut Vec<String>, one: String) {
     if !left.contains(&one) {
         left.push(one);
@@ -1307,27 +557,6 @@ fn laid_out(
         }
     }
     Ok(taken)
-}
-
-pub fn spelled(said: &str) -> String {
-    let flat: String = said
-        .chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == ' ' || c == '-' {
-                c
-            } else {
-                '-'
-            }
-        })
-        .collect();
-    let flat = flat.trim().replace(' ', "-");
-    let flat: String = flat.chars().take(60).collect();
-    let flat = flat.trim_matches('-').to_string();
-    if flat.is_empty() || crate::attach::reserved(&flat) {
-        "documento".into()
-    } else {
-        flat
-    }
 }
 
 pub fn referenced(root: &Path) -> Vec<String> {
@@ -1572,31 +801,6 @@ fn skipped(chars: &mut std::iter::Peekable<std::str::Chars>, opens: char, shuts:
     }
 }
 
-fn unspanned(line: &str) -> String {
-    if !line.contains("<span data-ico=") {
-        return line.to_string();
-    }
-    let mut out = String::with_capacity(line.len());
-    let mut rest = line;
-    while let Some(at) = rest.find("<span data-ico=") {
-        out.push_str(&rest[..at]);
-        let after = &rest[at..];
-        let Some(shut) = after.find('>') else {
-            return out + after;
-        };
-        let inner = &after[shut + 1..];
-        match inner.find("</span>") {
-            Some(ends) => {
-                out.push_str(&inner[..ends]);
-                rest = &inner[ends + "</span>".len()..];
-            }
-            None => return out + inner,
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 pub fn bare(line: &str) -> String {
     let line = &unspanned(line);
     let flat = line.trim();
@@ -1644,13 +848,6 @@ pub fn bare(line: &str) -> String {
         }
     }
     out.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-fn wordless(said: &str) -> bool {
-    said.is_empty()
-        || !said
-            .chars()
-            .any(|c| c.is_alphanumeric() || matches!(c, '¿' | '?' | '¡' | '!'))
 }
 
 fn bared(body: &str) -> String {
@@ -2170,7 +1367,3 @@ fn entity(from: &str) -> bool {
 #[cfg(test)]
 #[path = "docs_survival.rs"]
 mod survival;
-
-#[cfg(test)]
-#[path = "docs_cards.rs"]
-mod cards;

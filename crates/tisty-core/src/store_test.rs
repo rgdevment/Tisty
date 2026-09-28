@@ -28,6 +28,7 @@ fn the_segments_of_a_machine_always_come_back_in_the_order_they_were_written() {
         ]
     );
 }
+use super::identity::{DISPLACED, set_aside};
 use super::*;
 use crate::event::TaskAdd;
 use ulid::Ulid;

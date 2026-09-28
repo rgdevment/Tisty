@@ -18,13 +18,13 @@ fn a_section_reaches_the_next_heading_of_its_own_rank_and_drops_the_blank_lines_
 
 #[test]
 fn a_line_that_opens_a_list_is_measured_from_its_own_indent() {
-    assert_eq!(super::listed(5, 0, ""), 5);
-    assert_eq!(super::listed(5, 0, "- x"), 2);
-    assert_eq!(super::listed(5, 2, "- x"), 4);
-    assert_eq!(super::listed(2, 5, "- x"), 2);
-    assert_eq!(super::listed(5, 2, "texto"), 0);
-    assert_eq!(super::listed(2, 5, "texto"), 2);
-    assert_eq!(super::listed(3, 3, "texto"), 3);
+    assert_eq!(super::text::listed(5, 0, ""), 5);
+    assert_eq!(super::text::listed(5, 0, "- x"), 2);
+    assert_eq!(super::text::listed(5, 2, "- x"), 4);
+    assert_eq!(super::text::listed(2, 5, "- x"), 2);
+    assert_eq!(super::text::listed(5, 2, "texto"), 0);
+    assert_eq!(super::text::listed(2, 5, "texto"), 2);
+    assert_eq!(super::text::listed(3, 3, "texto"), 3);
 }
 
 #[test]
@@ -43,13 +43,13 @@ fn a_heading_is_counted_by_its_hashes_and_never_read_inside_a_fence() {
 
 #[test]
 fn a_number_opens_a_list_only_up_to_nine_digits_and_with_a_gap_after_it() {
-    assert_eq!(super::bullet("- x"), Some(2));
-    assert_eq!(super::bullet("-x"), None);
-    assert_eq!(super::bullet("1. x"), Some(3));
-    assert_eq!(super::bullet("1x y"), None);
-    assert_eq!(super::bullet(". x"), None);
-    assert_eq!(super::bullet("123456789. x"), Some(11));
-    assert_eq!(super::bullet("1234567890. x"), None);
+    assert_eq!(super::text::bullet("- x"), Some(2));
+    assert_eq!(super::text::bullet("-x"), None);
+    assert_eq!(super::text::bullet("1. x"), Some(3));
+    assert_eq!(super::text::bullet("1x y"), None);
+    assert_eq!(super::text::bullet(". x"), None);
+    assert_eq!(super::text::bullet("123456789. x"), Some(11));
+    assert_eq!(super::text::bullet("1234567890. x"), None);
 }
 
 #[test]
