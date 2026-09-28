@@ -48,6 +48,10 @@ pub fn keep_carried(data: &Path, id: &str, body: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn carried_at(data: &Path, id: &str) -> Option<PathBuf> {
+    resolve(&base(data), id).ok()
+}
+
 pub fn carried_print(data: &Path, id: &str) -> Option<String> {
     resolve(&base(data), id)
         .ok()
@@ -80,7 +84,10 @@ pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
         Err(e) => return Err(e),
     }
     match std::fs::read(at) {
-        Ok(bytes) => Ok(Some(crate::attach::printed(&bytes))),
+        Ok(bytes) => {
+            crate::counting::opened();
+            Ok(Some(crate::attach::printed(&bytes)))
+        }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),
     }

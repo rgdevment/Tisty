@@ -186,6 +186,10 @@ impl Session {
         self.writes
     }
 
+    pub fn behind(&self) -> bool {
+        self.behind
+    }
+
     pub fn adopt(&mut self, fresh: Projected) {
         self.behind = self.writes != fresh.writes
             || tisty_core::cache::fingerprint(&self.paths.store()) != fresh.print;
@@ -614,7 +618,10 @@ impl Session {
         self.state.books_among(files)
     }
 
-    pub fn settle_what_came(&mut self, read: &[(String, String)]) {
+    pub fn settle_what_came(&mut self, read: &[(String, String)], since: u64) {
+        if self.writes != since {
+            return;
+        }
         let told = tisty_core::tidy::settling_what_came(&self.state, read);
         self.settled(told);
     }
@@ -669,11 +676,12 @@ impl Session {
         )
     }
 
-    pub fn swept(&mut self, was: &tisty_core::tidy::Already, done: &tisty_core::tidy::Already) {
-        if done != was
+    pub fn swept(&mut self, was: &tisty_core::tidy::Already, walked: tisty_core::tidy::Walked) {
+        let (_, done) = walked.with(&self.state);
+        if &done != was
             && let Some(cache) = self.cache.as_ref()
         {
-            cache.note_already(done);
+            cache.note_already(&done);
         }
     }
 

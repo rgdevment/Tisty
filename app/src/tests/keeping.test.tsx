@@ -104,7 +104,6 @@ const holders = {
 const carrying = {
   chosen: undefined as string | undefined,
   asked: true,
-  backsUp: true,
   last: undefined as string | undefined,
   heard: undefined as string | undefined,
   loose: 0,
@@ -156,7 +155,6 @@ beforeEach(() => {
   Object.assign(carrying, {
     chosen: undefined,
     asked: true,
-    backsUp: true,
     last: undefined,
     loose: 0,
   });
@@ -460,9 +458,8 @@ describe("the maintenance panel", () => {
     expect(sent("choose_sync")[0].args.dest).toBe("G:/My Drive/tisty");
   });
 
-  it("hides backing up once a shared folder holds every machine", async () => {
+  it("keeps backing up on offer once a shared folder holds every machine", async () => {
     carrying.chosen = "G:/My Drive/tisty";
-    carrying.backsUp = false;
     render(
       <Keeping
         onPack={() => {}}
@@ -476,8 +473,8 @@ describe("the maintenance panel", () => {
     await data();
 
     expect(screen.getByText(/leaving copies in/i)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /create backup/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /restore/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /create backup/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /restore/i })).toBeTruthy();
   });
 
   it("never restores without asking first", async () => {

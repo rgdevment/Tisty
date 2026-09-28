@@ -13,7 +13,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const state = { chosen: undefined as string | undefined, asked: true, backsUp: true, loose: 0 };
+const state = { chosen: undefined as string | undefined, asked: true, loose: 0 };
 let carried: ReturnType<typeof carrying> | undefined;
 
 beforeEach(() => {

@@ -23,7 +23,7 @@ pub struct Restored {
     pub devices: usize,
 }
 
-pub fn write(data: &Path, into: &Path, aside: &Path) -> Result<Made> {
+pub fn write(data: &Path, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
     let store_id = store::identity(data.join("store"))?;
     store::read_all(data.join("store"))?;
 
@@ -41,7 +41,7 @@ pub fn write(data: &Path, into: &Path, aside: &Path) -> Result<Made> {
         aside.join(&named)
     };
 
-    match fill(data, &part, store_id) {
+    match fill(data, also, &part, store_id) {
         Ok(made) => {
             place(&part, into)?;
             let _ = std::fs::remove_file(&part);
@@ -85,7 +85,7 @@ fn place(part: &Path, into: &Path) -> std::io::Result<()> {
     done
 }
 
-fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
+fn fill(data: &Path, also: Option<&Path>, into: &Path, store_id: String) -> Result<Made> {
     let file = std::fs::File::create(into)?;
     let _ = crate::paths::ours_alone(into);
     let mut zip = zip::ZipWriter::new(file);
@@ -94,46 +94,94 @@ fn fill(data: &Path, into: &Path, store_id: String) -> Result<Made> {
         bytes: 0,
         store_id,
     };
+    let mut written: std::collections::BTreeSet<String> = Default::default();
 
     for folder in CARRIED {
         let root = data.join(folder);
         for at in walk(&root) {
-            let Ok(rest) = at.strip_prefix(data) else {
-                continue;
-            };
-            let Some(parts) = named(rest) else {
-                continue;
-            };
-            if parts
-                .iter()
-                .any(|one| matches!(one, std::borrow::Cow::Owned(_)))
-            {
-                witness::warn(
-                    channel::BACKUP,
-                    "a name this copy cannot spell went in spelled as close as it can be",
-                    &[("at", Fact::Path(at.clone()))],
-                );
-            }
-            if kept_out(&parts) {
-                continue;
-            }
-            let named = rest.to_string_lossy().replace('\\', "/");
-            let weighs = std::fs::metadata(&at)?.len();
-
-            made.files += 1;
-            made.bytes += weighs;
-            if made.bytes > AT_MOST || made.files > AT_MOST_FILES {
-                return Err(Error::TooBig);
-            }
-
-            zip.start_file(named, zip::write::SimpleFileOptions::default())
-                .map_err(zipped)?;
-            let mut file = std::fs::File::open(&at)?;
-            std::io::copy(&mut file, &mut zip)?;
+            packed(&mut zip, &mut made, &mut written, data, &at)?;
         }
     }
+
+    if let Some(also) = also {
+        for folder in ["attachments", "docs"] {
+            for at in walk(&also.join(folder)) {
+                if !carried_alone(also, &at) {
+                    continue;
+                }
+                packed(&mut zip, &mut made, &mut written, also, &at)?;
+            }
+        }
+    }
+
     zip.finish().map_err(zipped)?;
     Ok(made)
+}
+
+pub fn carried_alone(root: &Path, at: &Path) -> bool {
+    if let Ok(rest) = at.strip_prefix(root.join("docs")) {
+        let parts: Vec<&str> = rest
+            .components()
+            .filter_map(|one| one.as_os_str().to_str())
+            .collect();
+        return matches!(parts[..], [leaf] if crate::docs::a_body(leaf));
+    }
+    let Ok(rest) = at.strip_prefix(root.join("attachments")) else {
+        return false;
+    };
+    let parts: Vec<&str> = rest
+        .components()
+        .filter_map(|one| one.as_os_str().to_str())
+        .collect();
+    let [shelf, leaf] = parts[..] else {
+        return false;
+    };
+    !leaf.ends_with(".part") && crate::attach::shelved(shelf, leaf)
+}
+
+fn packed(
+    zip: &mut zip::ZipWriter<std::fs::File>,
+    made: &mut Made,
+    written: &mut std::collections::BTreeSet<String>,
+    from: &Path,
+    at: &Path,
+) -> Result<()> {
+    let Ok(rest) = at.strip_prefix(from) else {
+        return Ok(());
+    };
+    let Some(parts) = named(rest) else {
+        return Ok(());
+    };
+    if parts
+        .iter()
+        .any(|one| matches!(one, std::borrow::Cow::Owned(_)))
+    {
+        witness::warn(
+            channel::BACKUP,
+            "a name this copy cannot spell went in spelled as close as it can be",
+            &[("at", Fact::Path(at.to_path_buf()))],
+        );
+    }
+    if kept_out(&parts) {
+        return Ok(());
+    }
+    let named = rest.to_string_lossy().replace('\\', "/");
+    if !written.insert(named.clone()) {
+        return Ok(());
+    }
+    let weighs = std::fs::metadata(at)?.len();
+
+    made.files += 1;
+    made.bytes += weighs;
+    if made.bytes > AT_MOST || made.files > AT_MOST_FILES {
+        return Err(Error::TooBig);
+    }
+
+    zip.start_file(named, zip::write::SimpleFileOptions::default())
+        .map_err(zipped)?;
+    let mut file = std::fs::File::open(at)?;
+    std::io::copy(&mut file, zip)?;
+    Ok(())
 }
 
 pub fn read(paths: &Paths, from: &Path) -> Result<Restored> {
@@ -202,6 +250,8 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.heard_at = None;
+    config.sync = None;
+    config.restored_at = Some(jiff::Timestamp::now());
     config.save(paths)?;
 
     store::kept_before_the_store_goes(paths);
@@ -227,6 +277,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
         );
     }
     crate::docs::forget_what_was_carried(data);
+    said_goodbye(paths, &was.device_id, &config.device_id);
 
     Ok(Restored {
         files: done.files,
@@ -239,6 +290,21 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
             })
             .unwrap_or(0),
     })
+}
+
+fn said_goodbye(paths: &Paths, was: &crate::DeviceId, now: &crate::DeviceId) {
+    if !paths.store().join(&was.0).is_dir() {
+        return;
+    }
+    let told = crate::Store::open(paths.store(), now.clone())
+        .and_then(|mut store| store.append(crate::Op::DeviceRemove { d: was.clone() }));
+    if let Err(e) = told {
+        witness::warn(
+            channel::BACKUP,
+            "the machine this one replaces stays on the list",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
 }
 
 fn swap(data: &Path, staged: &Path, old: &Path) -> Result<()> {
@@ -294,9 +360,9 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
     }
 }
 
-pub fn reset(paths: &Paths, into: &Path, aside: &Path) -> Result<Made> {
+pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
     let data = paths.data();
-    let made = write(data, into, aside)?;
+    let made = write(data, into, aside, also)?;
 
     let mut config = Config::load_or_init(paths)?;
     config.device_id = crate::DeviceId(crate::config::new_device_id());
@@ -385,7 +451,7 @@ fn only_one_taking_over(dest: &Path) -> Result<std::fs::File> {
 pub fn take_over(dest: &Path, ours: &str, into: &Path, aside: &Path) -> Result<Made> {
     let _gate = only_one_taking_over(dest)?;
     rescued(dest);
-    let made = write(dest, into, aside)?;
+    let made = write(dest, into, aside, None)?;
 
     let old = dest.join(format!(".taking-over-{}", std::process::id()));
     if old.exists() {

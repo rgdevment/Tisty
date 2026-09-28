@@ -1,3 +1,4 @@
+use super::segments::same;
 use super::*;
 use std::path::PathBuf;
 use tisty_core::event::{DeviceId, TaskAdd};
@@ -2826,6 +2827,37 @@ fn a_machine_writing_a_newer_schema_stops_the_sync_instead_of_carrying_half() {
 }
 
 #[test]
+fn a_push_is_stopped_by_a_newer_schema_too_instead_of_writing_first_and_asking_later() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let before =
+        tisty_core::store::distinct_in(&shared.path().join(STORE).join(&one.device)).unwrap();
+
+    let theirs = shared.path().join("store/dev_b");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::write(
+        theirs.join("active.tisty"),
+        b"{\"v\":99,\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WT\",\"d\":{\"title\":\"from the future\",\"order\":\"V\"}}
+",
+    )
+    .unwrap();
+
+    wrote(&one, "lo que escribo mientras no puedo leerles".into());
+    let stopped = carry(&one.data, &one.device, shared.path(), Way::Push, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Newer(ref who)) if who == "dev_b"),
+        "a push is what every edit fires, and it asked nothing: {stopped:?}"
+    );
+    assert_eq!(
+        tisty_core::store::distinct_in(&shared.path().join(STORE).join(&one.device)).unwrap(),
+        before,
+        "it wrote our history beside a machine we cannot read"
+    );
+}
+
+#[test]
 fn what_proves_a_store_is_its_own_never_reaches_the_meeting_place() {
     fn every_file(at: &Path, found: &mut Vec<PathBuf>) {
         let Ok(entries) = std::fs::read_dir(at) else {
@@ -5154,4 +5186,77 @@ fn two_histories_of_the_same_length_reach_the_same_distance() {
     let theirs = shared.path().join(STORE).join(&one.device);
 
     assert!(!ours_reaches_further(&mine, &theirs));
+}
+
+fn many_segments(who: &Machine, lots: usize) {
+    let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+    for lot in 0..lots {
+        let ops: Vec<Op> = (0..5_000)
+            .map(|n| Op::TaskAdd {
+                id: Ulid::generate(),
+                d: TaskAdd::new(format!("t {lot}-{n}"), "a0"),
+            })
+            .collect();
+        held.append_batch(ops).unwrap();
+    }
+}
+
+#[test]
+fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    many_segments(&one, 3);
+
+    let alive: Vec<String> = (0..40)
+        .map(|n| {
+            let id = format!("dev_a-{n:04}");
+            filed(
+                &one,
+                &id,
+                &format!(
+                    "# doc {n}
+
+{}",
+                    "cuerpo de prueba
+"
+                    .repeat(30)
+                ),
+            );
+            wrote_body(
+                &one.data.join(PAPERS),
+                &id,
+                &format!(
+                    "# doc {n}
+
+{}",
+                    "cuerpo de prueba
+"
+                    .repeat(30)
+                ),
+            );
+            id
+        })
+        .collect();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+
+    let two = machine("dev_b");
+    many_segments(&two, 3);
+    let theirs = shared.path().join(STORE).join("dev_b");
+    std::fs::create_dir_all(&theirs).unwrap();
+    for at in std::fs::read_dir(two.store.join("dev_b")).unwrap() {
+        let at = at.unwrap().path();
+        std::fs::copy(&at, theirs.join(at.file_name().unwrap())).unwrap();
+    }
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+
+    let before = tisty_core::counting::from_now();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+    let quiet = tisty_core::counting::from_now();
+
+    assert!(
+        quiet <= 69,
+        "a round with nothing to carry opened {quiet} files where 69 is what it takes,          and the round before it opened {before}"
+    );
 }

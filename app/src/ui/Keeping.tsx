@@ -1100,47 +1100,43 @@ export default function Keeping({
               </Line>
             </div>
 
-            {state.backsUp && (
-              <>
-                <Band label={t("backup")} />
-                <div className="border-t border-hair">
-                  <Line
-                    title={t("backupSave")}
-                    why={
-                      <>
-                        <span className="block">{t("backupWhat")}</span>
-                        <span className="mt-0.5 block tabular-nums">
-                          {[
-                            holds,
-                            fill("backupAbout", weigh(state.weight)),
-                            state.backedUpAt ? stamped(state.backedUpAt) : t("backupNever"),
-                          ].join(" · ")}
-                        </span>
-                      </>
-                    }
-                    which="backup"
-                    said={said}
-                    trouble={trouble}
-                  >
-                    <button type="button" disabled={held} onClick={makeBackup} className={mild}>
-                      {t("backupMake")}
-                    </button>
-                  </Line>
+            <Band label={t("backup")} />
+            <div className="border-t border-hair">
+              <Line
+                title={t("backupSave")}
+                why={
+                  <>
+                    <span className="block">{t("backupWhat")}</span>
+                    <span className="mt-0.5 block tabular-nums">
+                      {[
+                        holds,
+                        fill("backupAbout", weigh(state.weight)),
+                        state.backedUpAt ? stamped(state.backedUpAt) : t("backupNever"),
+                      ].join(" · ")}
+                    </span>
+                  </>
+                }
+                which="backup"
+                said={said}
+                trouble={trouble}
+              >
+                <button type="button" disabled={held} onClick={makeBackup} className={mild}>
+                  {t("backupMake")}
+                </button>
+              </Line>
 
-                  <Line
-                    title={t("restoreTitle")}
-                    why={t("restoreWhat")}
-                    which="restore"
-                    said={said}
-                    trouble={trouble}
-                  >
-                    <button type="button" disabled={held} onClick={takeBackup} className={risky}>
-                      {t("restoreFrom")}
-                    </button>
-                  </Line>
-                </div>
-              </>
-            )}
+              <Line
+                title={t("restoreTitle")}
+                why={t("restoreWhat")}
+                which="restore"
+                said={said}
+                trouble={trouble}
+              >
+                <button type="button" disabled={held} onClick={takeBackup} className={risky}>
+                  {t("restoreFrom")}
+                </button>
+              </Line>
+            </div>
 
             <Band label={t("whereItLives")} />
             <div className="border-t border-hair">

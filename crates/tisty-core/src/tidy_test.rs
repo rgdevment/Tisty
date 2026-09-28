@@ -257,3 +257,32 @@ fn a_shared_folder_that_is_not_there_is_never_mistaken_for_a_tidy_one() {
         "once it is there, it counts"
     );
 }
+
+#[test]
+fn an_attachment_put_back_on_a_task_while_the_folders_are_walked_is_not_taken_out() {
+    let (_room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let shelf = paths.data().join("attachments/ab");
+    std::fs::create_dir_all(&shelf).unwrap();
+    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+
+    let mut state = State::default();
+    state.retired.insert(at.into());
+
+    let walked = Sweeping::of(&paths, &state, None, None, false).walk();
+
+    let mut back = state.clone();
+    let id = ulid::Ulid::generate();
+    let mut task = crate::model::Task::new(id, "el plano", "a0");
+    task.description = Some(format!("![una](<{at}>)"));
+    back.tasks.insert(id, task);
+
+    let (swept, done) = walked.with(&back);
+
+    assert_eq!(swept.attachments, 0);
+    assert!(
+        shelf.join("una-a3f90001.png").exists(),
+        "it was put back on a task while the folders were being walked"
+    );
+    assert!(done.attachments.is_empty());
+}

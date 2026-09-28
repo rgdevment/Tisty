@@ -28,17 +28,19 @@ pub struct Already {
     pub attachments: BTreeSet<String>,
 }
 
-/// What a sweep needs from the store, taken while whoever owns the state can be asked, so the
-/// walking of the folders can happen anywhere. Reading what the tasks point at parses every
-/// description, so it is only paid when there is something owed.
 pub struct Sweeping {
     paths: Paths,
     shed: BTreeSet<String>,
     retired: BTreeSet<String>,
-    named: Vec<String>,
     dest: Option<std::path::PathBuf>,
     bin: bool,
     done: Already,
+    owed: bool,
+}
+
+pub struct Walked {
+    job: Sweeping,
+    named: Vec<String>,
 }
 
 impl Sweeping {
@@ -50,22 +52,13 @@ impl Sweeping {
         bin: bool,
     ) -> Self {
         let done = cache.map(|one| one.already()).unwrap_or_default();
-        let owed = state.retired.difference(&done.attachments).next().is_some();
         Self {
             paths: paths.clone(),
             shed: state.shed.clone(),
             retired: state.retired.clone(),
-            named: match owed {
-                true => state
-                    .tasks
-                    .values()
-                    .flat_map(|task| task.references())
-                    .map(|one| one.target)
-                    .collect(),
-                false => Vec::new(),
-            },
             dest: dest.map(Path::to_path_buf),
             bin,
+            owed: state.retired.difference(&done.attachments).next().is_some(),
             done,
         }
     }
@@ -74,20 +67,36 @@ impl Sweeping {
         self.done.clone()
     }
 
-    pub fn run(self) -> (Swept, Already) {
-        let Self {
+    pub fn walk(self) -> Walked {
+        let named = match self.owed {
+            true => crate::docs::referenced(&self.paths.docs()),
+            false => Vec::new(),
+        };
+        Walked { job: self, named }
+    }
+}
+
+impl Walked {
+    pub fn with(self, state: &State) -> (Swept, Already) {
+        let Walked { job, named } = self;
+        let Sweeping {
             paths,
             shed,
             retired,
-            named,
             dest,
             bin,
             mut done,
-        } = self;
+            ..
+        } = job;
         let dest = dest.as_deref();
         let held = || {
-            let mut all = named;
-            all.extend(crate::docs::referenced(&paths.docs()));
+            let mut all: Vec<String> = state
+                .tasks
+                .values()
+                .flat_map(|task| task.references())
+                .map(|one| one.target)
+                .collect();
+            all.extend(named);
             all
         };
         let swept = Swept {
@@ -108,7 +117,7 @@ pub fn all_of_it(
 ) -> Swept {
     let job = Sweeping::of(paths, state, cache, dest, bin);
     let was = job.already();
-    let (swept, done) = job.run();
+    let (swept, done) = job.walk().with(state);
     if done != was
         && let Some(cache) = cache
     {

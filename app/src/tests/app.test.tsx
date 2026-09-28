@@ -111,7 +111,7 @@ beforeEach(() => {
       case "docs":
         return Promise.resolve({ folders: [], docs: [] });
       case "sync_state":
-        return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
+        return Promise.resolve({ asked: true, loose: 0 });
       case "snapshot":
         return Promise.resolve(shot(args.view as { archive?: boolean } | undefined));
       case "task_story":
@@ -414,7 +414,6 @@ describe("what a sync brings in", () => {
           return Promise.resolve({
             chosen: "G:/My Drive/tisty",
             asked: true,
-            backsUp: false,
             loose: 0,
           });
         case "sync_now":
@@ -444,7 +443,6 @@ describe("what the maintenance screen writes", () => {
           return Promise.resolve({
             chosen: "G:/My Drive/tisty",
             asked: true,
-            backsUp: false,
             loose: 0,
           });
         case "sync_now":

@@ -12,6 +12,7 @@ const TELLS_OF_TROUBLE: &[&str] = &[
     "internalNamed",
     "storeNewer",
     "otherStore",
+    "restoredApart",
     "wouldReset",
 ];
 
@@ -146,7 +147,6 @@ const REFUSALS: &[&str] = &[
     "syncBroke",
     "wouldMerge",
     "remoteInsideStore",
-    "sharedIsTheBackup",
     "otherStore",
     "restoreFailed",
     "stillCarrying",

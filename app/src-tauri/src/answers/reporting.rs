@@ -204,7 +204,7 @@ pub fn facts(
         loose_bytes: adrift.bytes,
         weight: report::weighed(session.paths.data()),
         syncs: session.config.sync.is_some(),
-        shared: !session.config.backs_up(),
+        shared: session.config.shares(),
         backed_up_at: session.config.backed_up_at.map(|at| at.to_string()),
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
