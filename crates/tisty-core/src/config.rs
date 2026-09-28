@@ -54,8 +54,8 @@ impl Config {
         crate::attach::COPIED_UP_TO
     }
 
-    pub fn backs_up(&self) -> bool {
-        !matches!(self.sync, Some(Sync::Folder(_)))
+    pub fn shares(&self) -> bool {
+        matches!(self.sync, Some(Sync::Folder(_)))
     }
 }
 

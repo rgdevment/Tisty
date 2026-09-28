@@ -146,7 +146,6 @@ const REFUSALS: &[&str] = &[
     "syncBroke",
     "wouldMerge",
     "remoteInsideStore",
-    "sharedIsTheBackup",
     "otherStore",
     "restoreFailed",
     "stillCarrying",

@@ -77,7 +77,7 @@ beforeEach(() => {
       case "docs":
         return Promise.resolve({ folders: [], docs: [paper] });
       case "sync_state":
-        return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
+        return Promise.resolve({ asked: true, loose: 0 });
       case "snapshot":
         return Promise.resolve(shot());
       case "search":

@@ -86,7 +86,7 @@ fn as_settings(session: &Session) -> Settings {
         locale: session.config.locale.clone(),
         theme: session.config.theme,
         holds: session.config.holds.unwrap_or_default(),
-        shares: !session.config.backs_up(),
+        shares: session.config.shares(),
         only_shared_above: session.config.only_shared_above(),
     }
 }

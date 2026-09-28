@@ -56,7 +56,6 @@ const KNOWN = [
   "movedUnderfoot",
   "notAllowed",
   "remoteInsideStore",
-  "sharedIsTheBackup",
   "otherStore",
   "syncNewer",
   "storeNewer",

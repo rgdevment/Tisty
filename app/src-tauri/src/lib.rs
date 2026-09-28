@@ -176,7 +176,6 @@ struct Carrying {
     keeper: Option<String>,
     kept_by: Option<String>,
     asked: bool,
-    backs_up: bool,
     last: Option<String>,
     heard: Option<String>,
     loose: usize,

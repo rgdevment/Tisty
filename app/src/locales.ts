@@ -920,7 +920,6 @@ const en = {
     "This machine is backed up and then holds what the folder holds.\n\nWhat you have here now leaves the app and stays only in the backup, which opens without Tisty.",
   apartElse: "Pick another folder",
   apartUndo: "A backup is written first. This cannot be undone from the app.",
-  sharedIsTheBackup: "Your shared folder already holds every machine's history",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig:
     "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 750 MB.",
@@ -2281,7 +2280,6 @@ const es: Catalog = {
     "Esta máquina se respalda y queda con lo que guarda la carpeta.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
   apartElse: "Elegir otra carpeta",
   apartUndo: "Se guarda un respaldo antes. No se deshace desde la aplicación.",
-  sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig:
     "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 750 MB.",

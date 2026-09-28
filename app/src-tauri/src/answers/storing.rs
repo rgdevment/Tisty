@@ -174,7 +174,6 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         keeper: said.as_ref().map(|one| one.keeper.clone()),
         kept_by: said.and_then(|one| one.named),
         asked: config.sync.is_some(),
-        backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
         heard: config.heard_at.map(|at| at.to_string()),
         loose: tisty_core::attach::loose(session.paths.data(), &held).files(),
@@ -501,9 +500,6 @@ pub async fn back_up(
     let _done = alone.inner().taken()?;
     let (data, aside) = {
         let session = held(&session);
-        if !session.config.backs_up() {
-            return Err(Refusal::of("sharedIsTheBackup"));
-        }
         (
             session.paths.data().to_path_buf(),
             session.paths.cache().to_path_buf(),
@@ -860,13 +856,7 @@ pub async fn restore(
     from: String,
 ) -> Answer<usize> {
     let _done = alone.inner().taken()?;
-    let paths = {
-        let session = held(&session);
-        if !session.config.backs_up() {
-            return Err(Refusal::of("sharedIsTheBackup"));
-        }
-        session.paths.clone()
-    };
+    let paths = { held(&session).paths.clone() };
 
     let at = std::path::PathBuf::from(&from);
     let done = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::read(&paths, &at))

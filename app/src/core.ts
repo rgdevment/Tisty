@@ -415,7 +415,6 @@ export interface Carrying {
   keeper?: Keeper;
   keptBy?: string;
   asked: boolean;
-  backsUp: boolean;
   last?: string;
   heard?: string;
   loose: number;
