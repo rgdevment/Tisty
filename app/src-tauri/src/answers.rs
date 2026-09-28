@@ -1,6 +1,8 @@
 pub mod agents;
 pub mod attaching;
+pub mod carrying;
 pub mod papers;
+pub mod reporting;
 pub mod settings;
 pub mod shelves;
 pub mod storing;

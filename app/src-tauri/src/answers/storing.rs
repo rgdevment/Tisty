@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
@@ -900,4 +900,87 @@ fn told(at: &std::path::Path) -> Told {
             into,
         },
     }
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Freeing {
+    pub gone: usize,
+    pub freed: u64,
+    pub done: bool,
+}
+
+#[derive(Default)]
+pub struct Stopping(std::sync::atomic::AtomicBool);
+
+/// Turning it on is the only change that moves anything, so it is asked for rather than done on
+/// the way past: it can take an afternoon, and somebody may want it to stop.
+#[tauri::command(async)]
+pub async fn free_up(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    stopping: tauri::State<'_, Stopping>,
+) -> Answer<Freeing> {
+    let _done = alone.inner().taken()?;
+    stopping
+        .0
+        .store(false, std::sync::atomic::Ordering::Relaxed);
+    let (data, dest, above) = {
+        let session = held(&session);
+        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+            return Err(Refusal::of("noRemote"));
+        };
+        (
+            session.paths.data().to_path_buf(),
+            dest,
+            session.config.only_shared_above(),
+        )
+    };
+
+    let telling = app.clone();
+    let done = tauri::async_runtime::spawn_blocking(move || {
+        let mut said = 0;
+        tisty_sync::let_go_telling(&data, &dest, above, &mut |far| {
+            if far.gone != said {
+                said = far.gone;
+                let _ = telling.emit(
+                    "freeing",
+                    Freeing {
+                        gone: far.gone,
+                        freed: far.freed,
+                        done: false,
+                    },
+                );
+            }
+            !telling
+                .state::<Stopping>()
+                .0
+                .load(std::sync::atomic::Ordering::Relaxed)
+        })
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(said)?;
+
+    witness::note(
+        channel::SYNC,
+        "big attachments were left to the shared folder",
+        &[
+            ("count", Fact::Count(done.gone)),
+            ("bytes", Fact::Bytes(done.freed)),
+        ],
+    );
+    let now = Freeing {
+        gone: done.gone,
+        freed: done.freed,
+        done: true,
+    };
+    let _ = app.emit("freeing", now.clone());
+    Ok(now)
+}
+
+#[tauri::command]
+pub fn stop_freeing(stopping: tauri::State<'_, Stopping>) {
+    stopping.0.store(true, std::sync::atomic::Ordering::Relaxed);
 }

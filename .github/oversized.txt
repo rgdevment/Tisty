@@ -1,4 +1,3 @@
 2374 app/src/App.tsx
 2020 app/src/ui/Keeping.tsx
-2406 app/src-tauri/src/lib.rs
 1632 crates/tisty-sync/src/lib.rs

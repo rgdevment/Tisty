@@ -4,8 +4,8 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Op, Reading, State};
 
 use crate::{
-    Answer, Refusal, Session, Task, blamed, doc_out, folder_open, held, leave, placed, reading_as,
-    said, signing, stop, weighed,
+    Answer, Refusal, Session, Task, blamed, doc_out, folder_open, held, placed, reading_as, said,
+    signing, stop, weighed,
 };
 
 #[tauri::command]
@@ -492,11 +492,6 @@ pub fn doc_page(
 #[tauri::command]
 pub fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
     held(&session).drop_doc(&id)
-}
-
-#[tauri::command]
-pub fn parted(app: tauri::AppHandle) {
-    leave(&app);
 }
 
 #[tauri::command]

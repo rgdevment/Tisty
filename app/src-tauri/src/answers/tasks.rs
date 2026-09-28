@@ -5,10 +5,10 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Op, Tag, Task};
 
 use crate::{
-    Answer, Asking, Change, Filter, Left, Logs, Refusal, Scope, Session, Snapshot, View, ahead,
-    asking, coming, dated_field, erasing, finding, held, herald, language, offering,
-    opening_to_agents, recalled, recurring, refusal_code, repeated, tagged, tags_in_use, tally,
-    today, weighed, wiring, zone,
+    Answer, Asking, Change, Filter, Logs, Refusal, Scope, Session, Snapshot, View, ahead, asking,
+    coming, dated_field, erasing, finding, held, herald, language, offering, opening_to_agents,
+    recalled, recurring, refusal_code, repeated, tagged, tags_in_use, tally, today, weighed,
+    wiring, zone,
 };
 
 #[tauri::command]
@@ -752,4 +752,108 @@ pub fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<T
         .get(&id)
         .cloned()
         .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
+#[derive(serde::Serialize)]
+pub struct Left {
+    pub kind: &'static str,
+    pub target: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub away: bool,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub gone: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+}
+
+impl Edits {
+    pub(crate) fn apply(
+        &self,
+        draft: &mut tisty_core::capture::Draft,
+        now: &jiff::Zoned,
+        spoken: &str,
+    ) -> Result<(), Refusal> {
+        if self.no_date {
+            draft.date = None;
+        }
+        if self.no_deadline {
+            draft.deadline = None;
+        }
+        if self.no_list {
+            draft.filing = None;
+        }
+        if self.no_priority {
+            draft.priority = None;
+        }
+        if self.no_repeat {
+            draft.repeat = None;
+        }
+        for name in &self.no_tags {
+            if let Ok(tag) = Tag::new(name) {
+                draft.tags.retain(|kept| *kept != tag);
+            }
+        }
+        if let Some(raw) = &self.date {
+            draft.date = Some(dated(raw, now, spoken)?);
+        }
+        if let Some(raw) = &self.deadline {
+            draft.deadline = Some(dated(raw, now, spoken)?);
+        }
+        if let Some(name) = &self.priority {
+            draft.priority = Some(named_priority(name)?);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn retitled(
+        &self,
+        text: &str,
+        read: &tisty_nl::Parsed,
+        spoken: &str,
+    ) -> Option<String> {
+        let undone = self.no_date
+            || self.no_deadline
+            || self.no_list
+            || self.no_priority
+            || self.no_repeat
+            || !self.no_tags.is_empty();
+        if !undone && !self.take_offer {
+            return None;
+        }
+
+        let letters: Vec<char> = text.chars().collect();
+        let mut kept: Vec<tisty_nl::Span> = read
+            .spans
+            .iter()
+            .copied()
+            .filter(|span| !self.unmarked(span, &letters))
+            .collect();
+
+        if self.take_offer
+            && let Some(offer) = read.offers.first()
+        {
+            kept.extend(offer.spans.iter().copied());
+        }
+        Some(tisty_nl::title_without(text, &kept, spoken))
+    }
+
+    pub(crate) fn unmarked(&self, span: &tisty_nl::Span, letters: &[char]) -> bool {
+        match span.mark {
+            tisty_nl::Mark::Date => self.no_date,
+            tisty_nl::Mark::Repeat => self.no_repeat,
+            tisty_nl::Mark::Deadline => self.no_deadline,
+            tisty_nl::Mark::List => self.no_list,
+            tisty_nl::Mark::Priority => self.no_priority,
+            tisty_nl::Mark::Tag => {
+                let written: String = letters[span.from..span.to].iter().collect();
+                Tag::new(written.trim_start_matches('#')).is_ok_and(|tag| {
+                    self.no_tags
+                        .iter()
+                        .any(|name| Tag::new(name) == Ok(tag.clone()))
+                })
+            }
+        }
+    }
 }

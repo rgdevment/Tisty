@@ -4,7 +4,7 @@ use tauri::Emitter;
 #[cfg(windows)]
 use tauri::Manager;
 
-use crate::{Answer, HERE, Refusal, Session, Updating, held, shop, translated, update};
+use crate::{Answer, HERE, Refusal, Session, Updating, desktop, held, shop, update};
 
 /// Which window owns the dialogs the Store raises on its own.
 #[cfg(not(windows))]
@@ -199,7 +199,7 @@ pub async fn update_install(
 
     let asked = want.clone();
     let mut building = app.updater_builder();
-    if let Some(platform) = update::platform(translated()) {
+    if let Some(platform) = update::platform(desktop::translated()) {
         building = building.target(platform);
     }
     let update = building

@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 
-use tisty_core::witness::{self, channel};
+use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Answer, Refusal, Session, Task, held, herald, weighed};
+use crate::{Answer, Refusal, Session, Task, finding, held, herald, show, weighed};
 
 #[tauri::command]
 pub fn attach(
@@ -101,3 +101,155 @@ pub fn complete(
     }
     Ok(task)
 }
+
+#[tauri::command(async)]
+pub fn attached(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<Vec<u8>> {
+    let (data, shared) = finding::where_to(&session);
+    let at = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
+    };
+    std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
+}
+
+#[tauri::command(async)]
+pub fn served(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<String> {
+    let (data, shared) = finding::where_to(&session);
+    let at = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
+    };
+    Ok(at.to_string_lossy().into_owned())
+}
+
+#[tauri::command(async)]
+pub fn attach_export(
+    session: tauri::State<'_, Mutex<Session>>,
+    reference: String,
+    into: String,
+) -> Answer<()> {
+    let (data, shared) = finding::where_to(&session);
+    let from = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
+    };
+    std::fs::copy(&from, &into).map_err(|e| {
+        witness::warn(
+            channel::ATTACH,
+            "an attachment could not be taken out",
+            &[
+                ("at", Fact::Id(reference)),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+        Refusal::about("cannotWrite", into)
+    })?;
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
+    let (data, shared) = finding::where_to(&session);
+    let at = finding::where_it_lies(&reference, &data, shared.as_deref())
+        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
+    let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
+    Ok(told.len())
+}
+
+#[tauri::command(async)]
+pub fn opened(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    reference: String,
+) -> Answer<()> {
+    let (data, shared) = finding::where_to(&session);
+    let at = match finding::found_in(&reference, &data, shared.as_deref()) {
+        finding::Sought::At(at) => at,
+        other => return Err(finding::unreachable(other, reference)),
+    };
+    if !safe_to_open(&at) {
+        return show(&at, &reference);
+    }
+    handed(&at).map_err(|_| Refusal::about("cannotOpen", reference))?;
+    let _ = app;
+    Ok(())
+}
+
+fn handed(at: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    tauri_plugin_opener::open_path(at, None::<&str>)?;
+    Ok(())
+}
+
+fn safe_to_open(at: &std::path::Path) -> bool {
+    let name = at
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .trim_end_matches(['.', ' '])
+        .to_lowercase();
+    let ext = name.rsplit_once('.').map(|(_, e)| e).unwrap_or_default();
+    matches!(
+        ext,
+        "pdf"
+            | "txt"
+            | "md"
+            | "markdown"
+            | "rtf"
+            | "csv"
+            | "tsv"
+            | "json"
+            | "xml"
+            | "yaml"
+            | "yml"
+            | "toml"
+            | "log"
+            | "png"
+            | "jpg"
+            | "jpeg"
+            | "gif"
+            | "webp"
+            | "avif"
+            | "bmp"
+            | "tiff"
+            | "tif"
+            | "heic"
+            | "svg"
+            | "ico"
+            | "mp3"
+            | "wav"
+            | "flac"
+            | "aac"
+            | "ogg"
+            | "opus"
+            | "m4a"
+            | "mp4"
+            | "m4v"
+            | "mov"
+            | "webm"
+            | "mkv"
+            | "avi"
+            | "doc"
+            | "docx"
+            | "xls"
+            | "xlsx"
+            | "ppt"
+            | "pptx"
+            | "odt"
+            | "ods"
+            | "odp"
+            | "pages"
+            | "numbers"
+            | "key"
+            | "epub"
+            | "zip"
+            | "gz"
+            | "tar"
+            | "bz2"
+            | "xz"
+            | "7z"
+    )
+}
+
+#[cfg(test)]
+#[path = "attaching_test.rs"]
+mod tests;

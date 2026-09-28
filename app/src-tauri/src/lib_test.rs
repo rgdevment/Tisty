@@ -281,59 +281,6 @@ use super::*;
 use crate::summing::{AHEAD, BEADS, horizon};
 
 #[test]
-fn a_name_that_only_windows_reads_as_a_program_is_never_opened() {
-    for name in [
-        ".exe",
-        ".bat",
-        ".cmd",
-        "pay.exe.",
-        "pay.exe ",
-        "pay.exe...",
-        "x.exe",
-        "x.msi",
-        "x.settingcontent-ms",
-        "x.appref-ms",
-        "x.jnlp",
-        "x.py",
-        "x.inf",
-        "x.scpt",
-        "x.mobileconfig",
-        "x.inetloc",
-        "x.command",
-        "x.desktop",
-        "x.EXE",
-        "x.Bat",
-    ] {
-        assert!(
-            !safe_to_open(std::path::Path::new(name)),
-            "{name} would be opened"
-        );
-    }
-}
-
-#[test]
-fn the_files_a_person_actually_attaches_still_open() {
-    for name in [
-        "informe.pdf",
-        "foto.png",
-        "hoja.xlsx",
-        "notas.md",
-        "musica.mp3",
-        "video.mp4",
-        "datos.csv",
-        "archivo.zip",
-        "diagrama.svg",
-        "carta.docx",
-        "FOTO.JPEG",
-    ] {
-        assert!(
-            safe_to_open(std::path::Path::new(name)),
-            "{name} was refused"
-        );
-    }
-}
-
-#[test]
 fn only_paths_inside_the_store_can_be_shown() {
     let home = tempfile::tempdir().unwrap();
     let data = home.path().join("data");
@@ -394,7 +341,7 @@ fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
         .collect();
     allowed.sort();
 
-    let audited = ["src-tauri/src/lib.rs", "src-tauri/src/shop.rs"];
+    let audited = ["src-tauri/src/desktop.rs", "src-tauri/src/shop.rs"];
     assert_eq!(
         allowed.len(),
         audited.len(),
@@ -947,51 +894,6 @@ fn choosing_a_different_date_leaves_the_title_alone() {
         ..Default::default()
     };
     assert_eq!(edits.retitled(text, &read, "es"), None);
-}
-
-#[test]
-fn a_report_is_one_zip_that_carries_what_was_ticked() {
-    let tmp = tempfile::tempdir().unwrap();
-    let at = tmp.path().join("tisty-report.zip");
-    let log = (
-        "tisty.log".to_string(),
-        b"WARN sync folder unreachable
-"
-        .to_vec(),
-    );
-
-    bundled(
-        &at,
-        "# report
-version 0.1.0
-",
-        std::slice::from_ref(&log),
-    )
-    .unwrap();
-
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(&at).unwrap()).unwrap();
-    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
-    assert!(named.contains(&"report.txt".to_string()), "{named:?}");
-    assert!(named.contains(&"tisty.log".to_string()), "{named:?}");
-
-    use std::io::Read;
-    let mut said = String::new();
-    zip.by_name("report.txt")
-        .unwrap()
-        .read_to_string(&mut said)
-        .unwrap();
-    assert!(said.contains("version 0.1.0"), "{said}");
-}
-
-#[test]
-fn a_report_without_the_log_carries_only_itself() {
-    let tmp = tempfile::tempdir().unwrap();
-    let at = tmp.path().join("tisty-report.zip");
-
-    bundled(&at, "# report", &[]).unwrap();
-
-    let zip = zip::ZipArchive::new(std::fs::File::open(&at).unwrap()).unwrap();
-    assert_eq!(zip.file_names().count(), 1);
 }
 
 fn every_day(until: Option<jiff::civil::Date>) -> Change {

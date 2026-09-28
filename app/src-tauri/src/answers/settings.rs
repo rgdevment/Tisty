@@ -42,7 +42,7 @@ use tauri::{Emitter, Manager};
 use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Answer, Bound, HERE, Refusal, Session, held, herald, language, parting, update};
+use crate::{Answer, Bound, HERE, Refusal, Session, desktop, held, herald, language, update};
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -411,7 +411,7 @@ pub fn close_window(
             let _ = window.emit("withdrawn", ());
             let _ = window.hide();
         }
-        tisty_core::config::Closing::Quit => parting(window.app_handle()),
+        tisty_core::config::Closing::Quit => desktop::parting(window.app_handle()),
     }
     Ok(())
 }
