@@ -1099,3 +1099,48 @@ fn a_document_that_only_the_folder_has_is_carried_and_a_lock_beside_it_is_not() 
         "what this machine holds wins over the folder's copy of the same name: {said}"
     );
 }
+
+#[test]
+fn a_restore_leaves_written_which_folder_it_stopped_sharing_with() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+
+    let shared = out.path().join("shared");
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::Folder(shared.clone()));
+    config.save(&paths).unwrap();
+
+    read(&paths, &file).unwrap();
+
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(now.sync, None);
+    assert_eq!(
+        now.shared_was,
+        Some(shared),
+        "without this the person has to remember the path to go back to it"
+    );
+}
+
+#[test]
+fn a_restore_with_nothing_shared_leaves_no_folder_behind() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+
+    read(&paths, &file).unwrap();
+
+    assert_eq!(
+        Config::load(&paths.config_file())
+            .unwrap()
+            .unwrap()
+            .shared_was,
+        None
+    );
+}

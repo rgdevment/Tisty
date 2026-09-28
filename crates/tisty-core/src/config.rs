@@ -118,6 +118,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub restored_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shared_was: Option<std::path::PathBuf>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync: Option<Sync>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub synced_at: Option<jiff::Timestamp>,
@@ -182,6 +184,7 @@ impl Config {
             theme: None,
             backed_up_at: None,
             restored_at: None,
+            shared_was: None,
             sync: None,
             synced_at: None,
             heard_at: None,

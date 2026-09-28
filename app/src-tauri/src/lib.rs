@@ -184,6 +184,8 @@ struct Carrying {
     lists: usize,
     attachments: usize,
     weight: u64,
+    carries: u64,
+    shared_was: Option<String>,
     backed_up_at: Option<String>,
 }
 
