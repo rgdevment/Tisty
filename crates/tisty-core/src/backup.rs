@@ -7,7 +7,7 @@ use crate::{
 };
 
 const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
-const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
+pub const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -250,6 +250,10 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.heard_at = None;
+    config.shared_was = match &was.sync {
+        Some(crate::config::Sync::Folder(at)) => Some(at.clone()),
+        _ => None,
+    };
     config.sync = None;
     config.restored_at = Some(jiff::Timestamp::now());
     config.save(paths)?;
@@ -261,7 +265,20 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     std::fs::create_dir_all(&old)?;
     if let Err(e) = swap(data, &staged, &old) {
         if was.save(paths).is_err() {
-            witness::error(channel::BACKUP, "device name not put back", &[]);
+            witness::error(
+                channel::BACKUP,
+                "nothing was restored and the settings could not be put back either, so this machine may answer to another name and share with nobody",
+                &[
+                    ("device", Fact::Id(was.device_id.0.clone())),
+                    (
+                        "shared",
+                        Fact::Why(match &was.sync {
+                            Some(crate::config::Sync::Folder(at)) => at.display().to_string(),
+                            _ => "none".to_string(),
+                        }),
+                    ),
+                ],
+            );
         }
         let _ = std::fs::remove_dir_all(&staged);
         return Err(e);

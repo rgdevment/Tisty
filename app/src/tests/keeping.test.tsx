@@ -107,6 +107,9 @@ const carrying = {
   last: undefined as string | undefined,
   heard: undefined as string | undefined,
   loose: 0,
+  weight: 1_000,
+  carries: 8 * 1024 * 1024 * 1024,
+  sharedWas: undefined as string | undefined,
 };
 
 const arriving = {
@@ -2883,5 +2886,43 @@ describe("taking every loose attachment out at once", () => {
     const references = sent("retire_attachments")[0]?.args.references as string[];
     expect(references).toHaveLength(3);
     expect(references).toContain("attachments/ab/charla-a3f9.mp4");
+  });
+
+  it("will not offer a copy that is past what one file holds", async () => {
+    carrying.weight = 9 * 1024 * 1024 * 1024;
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+    await data();
+
+    expect(
+      (screen.getByRole("button", { name: /create backup/i }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText(/past the/i)).toBeTruthy();
+  });
+
+  it("says which folder it stopped sharing with when a restore let one go", async () => {
+    carrying.sharedWas = "G:/My Drive/tisty";
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+    await data();
+
+    expect(screen.getByText(/not sharing since you restored/i)).toBeTruthy();
+    expect(screen.getByText(/G:\/My Drive\/tisty/)).toBeTruthy();
   });
 });

@@ -220,6 +220,11 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         attachments: report::attachments(session.paths.data()).files,
         weight: report::weighed(session.paths.data())
             + report::also_weighed(session.paths.data(), let_go_to(&session).as_deref()),
+        carries: tisty_core::backup::AT_MOST,
+        shared_was: config
+            .shared_was
+            .as_ref()
+            .map(|at| at.display().to_string()),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
 }
