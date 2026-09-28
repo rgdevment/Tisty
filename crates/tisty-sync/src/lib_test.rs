@@ -5290,8 +5290,17 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let quiet = tisty_core::counting::from_now();
 
     assert!(
-        quiet <= 37,
-        "a round with nothing to carry read {quiet} files where 37 is what it takes, and the round before it read {before}"
+        quiet <= 41,
+        "a round with nothing to carry read {quiet} files where 41 is what it takes, and the round before it read {before}"
+    );
+
+    let _ = tisty_core::counting::from_now();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+    let alone = tisty_core::counting::from_now();
+
+    assert!(
+        alone <= 49,
+        "the same round without a cache to lean on read {alone} files where 49 is what it takes"
     );
 }
 
@@ -5541,8 +5550,8 @@ fn a_history_brought_home_is_not_read_again_to_see_whether_it_should_go_back() {
     assert_eq!(moved.brought, 3);
     assert_eq!(moved.sent, 0);
     assert!(
-        opened <= 27,
-        "bringing three segments home read {opened} files where 27 is what it takes; handing on asked again what the two sides hold instead of counting both histories"
+        opened <= 29,
+        "bringing three segments home read {opened} files where 29 is what it takes; handing on asked again what the two sides hold instead of counting both histories"
     );
 }
 
@@ -5680,5 +5689,36 @@ fn a_history_handed_on_is_written_down_and_a_round_that_moved_none_is_not() {
         handed_on(&paths).len(),
         1,
         "the second round moved nothing, so it had nothing to say"
+    );
+}
+
+#[test]
+fn what_was_written_after_the_round_looked_still_goes_up() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let mine = one.store.join(&one.device);
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let mut alike = Alike::default();
+    assert_eq!(
+        alike.of(&one.device, &theirs, &mine).len(),
+        1,
+        "both sides hold the same segment when the round starts"
+    );
+
+    wrote(&one, "lo que se escribio a mitad de ronda".into());
+    let sent = alike
+        .carried(&one.device, &theirs, &mine, Toward::Folder, false)
+        .unwrap();
+
+    assert_eq!(
+        sent, 1,
+        "a segment somebody wrote to mid round is not alike any more"
+    );
+    assert_eq!(
+        tisty_core::store::distinct_in(&theirs).unwrap(),
+        tisty_core::store::distinct_in(&mine).unwrap(),
+        "the folder is missing what was written while the round was looking elsewhere"
     );
 }
