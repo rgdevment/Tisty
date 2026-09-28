@@ -3,8 +3,8 @@ use std::path::Path;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
-    Moved, PAPERS, Trouble, Undecided, copy_onto, docs_lock, io, joined, landed, plainly, straight,
-    write,
+    Holding, Moved, PAPERS, STORE, Trouble, Undecided, copy_onto, docs_lock, io, joined, landed,
+    plainly, straight, write,
 };
 
 pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
@@ -195,4 +195,25 @@ pub(crate) fn carry_papers_leaning_on(
     }
     outcome?;
     Ok(done)
+}
+
+pub fn unclaimed(dest: &Path) -> Holding {
+    match tisty_core::store::read_all(dest.join(STORE)) {
+        Ok(events) => unclaimed_leaning_on(dest, &tisty_core::State::replay(&events)),
+        Err(_) => Holding::Unreadable,
+    }
+}
+
+pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Holding {
+    let here = tisty_core::docs::names(&dest.join(PAPERS));
+    let named: std::collections::BTreeSet<String> = told
+        .docs
+        .values()
+        .map(|one| one.file.clone())
+        .chain(told.shed.iter().cloned())
+        .collect();
+    match here.difference(&named).count() {
+        0 => Holding::Whole,
+        adrift => Holding::Strays(adrift),
+    }
 }

@@ -49,15 +49,16 @@ pub fn also_weighed(data: &Path, also: Option<&Path>) -> u64 {
             .filter_map(|one| one.ok())
             .map(|one| match one.file_type() {
                 Ok(kind) if kind.is_dir() => missing(from, &one.path(), data),
-                Ok(_) => one
+                Ok(kind) if kind.is_file() => one
                     .path()
                     .strip_prefix(from)
                     .ok()
                     .filter(|rest| !data.join(rest).exists())
+                    .filter(|rest| tisty_core::backup::carried_alone(from, &from.join(rest)))
                     .and_then(|_| one.metadata().ok())
                     .map(|m| m.len())
                     .unwrap_or(0),
-                Err(_) => 0,
+                _ => 0,
             })
             .sum()
     }

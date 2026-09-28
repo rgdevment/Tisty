@@ -995,3 +995,7 @@ mod letting_go;
 #[cfg(test)]
 #[path = "lib_ordering.rs"]
 mod ordering;
+
+#[cfg(test)]
+#[path = "lib_restored.rs"]
+mod restored;

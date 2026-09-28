@@ -721,6 +721,10 @@ fn well_formed(id: &str) -> bool {
         && number.chars().all(|c| c.is_ascii_digit())
 }
 
+pub fn a_body(leaf: &str) -> bool {
+    named(Path::new(leaf)).is_some()
+}
+
 fn named(at: &Path) -> Option<String> {
     if at.extension()? != EXTENSION {
         return None;

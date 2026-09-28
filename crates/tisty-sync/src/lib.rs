@@ -2,8 +2,8 @@ mod guarding;
 mod papers;
 mod segments;
 
-pub use papers::{carry_papers, carry_papers_holding};
-use papers::{carry_papers_leaning_on, settled_body};
+pub use papers::{carry_papers, carry_papers_holding, unclaimed};
+use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
 use segments::{Named, copy_segments, matching, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -170,7 +170,7 @@ pub fn carry_telling(
         .map(|paper| paper.file.clone())
         .collect();
     let buried = buried_now(&told, data);
-    let adrift = taking && matches!(unclaimed(dest), Holding::Strays(_));
+    let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
     if giving {
         let mut carried = Vec::new();
         moved.sent += copy_held(
@@ -323,26 +323,6 @@ pub enum Holding {
     Whole,
     Strays(usize),
     Unreadable,
-}
-
-pub fn unclaimed(dest: &Path) -> Holding {
-    let here = tisty_core::docs::names(&dest.join(PAPERS));
-    let named: std::collections::BTreeSet<String> =
-        match tisty_core::store::read_all(dest.join(STORE)) {
-            Ok(events) => {
-                let told = tisty_core::State::replay(&events);
-                told.docs
-                    .values()
-                    .map(|one| one.file.clone())
-                    .chain(told.shed.iter().cloned())
-                    .collect()
-            }
-            Err(_) => return Holding::Unreadable,
-        };
-    match here.difference(&named).count() {
-        0 => Holding::Whole,
-        adrift => Holding::Strays(adrift),
-    }
 }
 
 pub fn signed_at(dest: &Path) -> Option<String> {

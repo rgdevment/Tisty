@@ -57,6 +57,7 @@ const KNOWN = [
   "notAllowed",
   "remoteInsideStore",
   "otherStore",
+  "restoredApart",
   "syncNewer",
   "storeNewer",
   "cannotWrite",

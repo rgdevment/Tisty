@@ -12,6 +12,7 @@ const TELLS_OF_TROUBLE: &[&str] = &[
     "internalNamed",
     "storeNewer",
     "otherStore",
+    "restoredApart",
     "wouldReset",
 ];
 

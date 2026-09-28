@@ -913,7 +913,7 @@ fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
 }
 
 #[test]
-fn a_restore_stops_sharing_so_the_folder_does_not_bring_back_what_it_undid() {
+fn a_restore_stops_sharing_and_says_it_went_back_so_nothing_is_carried_in_silence() {
     let (_src, data) = filled("comprar pan");
     let dir = tempfile::tempdir().unwrap();
     let paths = Paths::new(data.clone(), dir.path().join("config"));
@@ -927,10 +927,14 @@ fn a_restore_stops_sharing_so_the_folder_does_not_bring_back_what_it_undid() {
 
     read(&paths, &file).unwrap();
 
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
     assert_eq!(
-        Config::load(&paths.config_file()).unwrap().unwrap().sync,
-        None,
+        now.sync, None,
         "it would have carried the undone history back within the minute"
+    );
+    assert!(
+        now.restored_at.is_some(),
+        "choosing the folder again has to ask which side wins, and this is what says so"
     );
 }
 
@@ -1005,5 +1009,93 @@ fn what_is_in_both_places_is_carried_once() {
             .filter(|one| one.ends_with("foto-a1b2c3d4.png"))
             .count(),
         1
+    );
+}
+
+#[test]
+fn what_the_folder_holds_half_written_or_misnamed_does_not_ride_along() {
+    let (_src, data) = filled("comprar pan");
+    let shared = tempfile::tempdir().unwrap();
+    let shelf = shared.path().join("attachments").join("cd");
+    std::fs::create_dir_all(&shelf).unwrap();
+    std::fs::write(shelf.join("video-9f8e7d6c.mp4"), b"what was let go of").unwrap();
+    std::fs::write(
+        shelf.join("foto-a1b2c3d4.4242.0.part"),
+        b"half of a download",
+    )
+    .unwrap();
+    std::fs::write(
+        shelf.join("not-an-attachment.txt"),
+        b"somebody put this here",
+    )
+    .unwrap();
+    let loose = shared.path().join("attachments").join("zzz");
+    std::fs::create_dir_all(&loose).unwrap();
+    std::fs::write(
+        loose.join("video-9f8e7d6c.mp4"),
+        b"a shelf no name hashes to",
+    )
+    .unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
+
+    let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    assert!(
+        named.contains(&"attachments/cd/video-9f8e7d6c.mp4".to_string()),
+        "{named:?}"
+    );
+    for out in [
+        "attachments/cd/foto-a1b2c3d4.4242.0.part",
+        "attachments/cd/not-an-attachment.txt",
+        "attachments/zzz/video-9f8e7d6c.mp4",
+    ] {
+        assert!(
+            !named.contains(&out.to_string()),
+            "{out} would land in the store as something nobody can account for: {named:?}"
+        );
+    }
+}
+
+#[test]
+fn a_document_that_only_the_folder_has_is_carried_and_a_lock_beside_it_is_not() {
+    let (_src, data) = filled("comprar pan");
+    let shared = tempfile::tempdir().unwrap();
+    let papers = shared.path().join("docs");
+    std::fs::create_dir_all(&papers).unwrap();
+    std::fs::write(
+        papers.join("dev_b-0007.md"),
+        b"# lo que otra maquina decidio",
+    )
+    .unwrap();
+    std::fs::write(papers.join("a3f1-0001.md"), b"# la version de alla").unwrap();
+    std::fs::write(papers.join(".spent-dev_b"), b"una marca, no un documento").unwrap();
+    std::fs::write(papers.join("dev_b-0008.md.part"), b"a medio escribir").unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
+
+    let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    assert!(
+        named.contains(&"docs/dev_b-0007.md".to_string()),
+        "it lives only up there, and the copy promises every machine: {named:?}"
+    );
+    for out in ["docs/.spent-dev_b", "docs/dev_b-0008.md.part"] {
+        assert!(!named.contains(&out.to_string()), "{out} in {named:?}");
+    }
+
+    use std::io::Read;
+    let mut said = String::new();
+    zip.by_name("docs/a3f1-0001.md")
+        .unwrap()
+        .read_to_string(&mut said)
+        .unwrap();
+    assert!(
+        said.contains("lo que dije"),
+        "what this machine holds wins over the folder's copy of the same name: {said}"
     );
 }

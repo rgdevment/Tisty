@@ -104,13 +104,39 @@ fn fill(data: &Path, also: Option<&Path>, into: &Path, store_id: String) -> Resu
     }
 
     if let Some(also) = also {
-        for at in walk(&also.join("attachments")) {
-            packed(&mut zip, &mut made, &mut written, also, &at)?;
+        for folder in ["attachments", "docs"] {
+            for at in walk(&also.join(folder)) {
+                if !carried_alone(also, &at) {
+                    continue;
+                }
+                packed(&mut zip, &mut made, &mut written, also, &at)?;
+            }
         }
     }
 
     zip.finish().map_err(zipped)?;
     Ok(made)
+}
+
+pub fn carried_alone(root: &Path, at: &Path) -> bool {
+    if let Ok(rest) = at.strip_prefix(root.join("docs")) {
+        let parts: Vec<&str> = rest
+            .components()
+            .filter_map(|one| one.as_os_str().to_str())
+            .collect();
+        return matches!(parts[..], [leaf] if crate::docs::a_body(leaf));
+    }
+    let Ok(rest) = at.strip_prefix(root.join("attachments")) else {
+        return false;
+    };
+    let parts: Vec<&str> = rest
+        .components()
+        .filter_map(|one| one.as_os_str().to_str())
+        .collect();
+    let [shelf, leaf] = parts[..] else {
+        return false;
+    };
+    !leaf.ends_with(".part") && crate::attach::shelved(shelf, leaf)
 }
 
 fn packed(
@@ -225,6 +251,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.synced_at = None;
     config.heard_at = None;
     config.sync = None;
+    config.restored_at = Some(jiff::Timestamp::now());
     config.save(paths)?;
 
     store::kept_before_the_store_goes(paths);

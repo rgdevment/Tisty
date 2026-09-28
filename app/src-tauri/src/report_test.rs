@@ -148,13 +148,13 @@ fn what_the_folder_holds_and_this_machine_let_go_of_is_counted_once() {
 
     let here = data.join("attachments").join("ab");
     std::fs::create_dir_all(&here).unwrap();
-    std::fs::write(here.join("foto.png"), vec![0u8; 100]).unwrap();
+    std::fs::write(here.join("foto-a1b2c3d4.png"), vec![0u8; 100]).unwrap();
 
     let theirs = shared.join("attachments");
     std::fs::create_dir_all(theirs.join("ab")).unwrap();
     std::fs::create_dir_all(theirs.join("cd")).unwrap();
-    std::fs::write(theirs.join("ab").join("foto.png"), vec![0u8; 100]).unwrap();
-    std::fs::write(theirs.join("cd").join("video.mp4"), vec![0u8; 900]).unwrap();
+    std::fs::write(theirs.join("ab").join("foto-a1b2c3d4.png"), vec![0u8; 100]).unwrap();
+    std::fs::write(theirs.join("cd").join("video-9f8e7d6c.mp4"), vec![0u8; 900]).unwrap();
 
     assert_eq!(also_weighed(&data, None), 0, "nothing is shared");
     assert_eq!(

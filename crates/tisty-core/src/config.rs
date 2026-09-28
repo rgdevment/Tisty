@@ -116,6 +116,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backed_up_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restored_at: Option<jiff::Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync: Option<Sync>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub synced_at: Option<jiff::Timestamp>,
@@ -179,6 +181,7 @@ impl Config {
             on_close: None,
             theme: None,
             backed_up_at: None,
+            restored_at: None,
             sync: None,
             synced_at: None,
             heard_at: None,
