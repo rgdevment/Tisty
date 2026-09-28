@@ -905,13 +905,13 @@ fn told(at: &std::path::Path) -> Told {
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Freeing {
-    pub gone: usize,
-    pub freed: u64,
-    pub done: bool,
+    gone: usize,
+    freed: u64,
+    done: bool,
 }
 
 #[derive(Default)]
-pub struct Stopping(std::sync::atomic::AtomicBool);
+pub(crate) struct Stopping(std::sync::atomic::AtomicBool);
 
 /// Turning it on is the only change that moves anything, so it is asked for rather than done on
 /// the way past: it can take an afternoon, and somebody may want it to stop.

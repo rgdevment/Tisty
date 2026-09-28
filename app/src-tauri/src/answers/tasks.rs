@@ -756,16 +756,16 @@ pub fn reopen(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<T
 
 #[derive(serde::Serialize)]
 pub struct Left {
-    pub kind: &'static str,
-    pub target: String,
+    kind: &'static str,
+    target: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub label: Option<String>,
+    label: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub away: bool,
+    away: bool,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
-    pub gone: bool,
+    gone: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bytes: Option<u64>,
+    bytes: Option<u64>,
 }
 
 impl Edits {
@@ -839,7 +839,7 @@ impl Edits {
         Some(tisty_nl::title_without(text, &kept, spoken))
     }
 
-    pub(crate) fn unmarked(&self, span: &tisty_nl::Span, letters: &[char]) -> bool {
+    fn unmarked(&self, span: &tisty_nl::Span, letters: &[char]) -> bool {
         match span.mark {
             tisty_nl::Mark::Date => self.no_date,
             tisty_nl::Mark::Repeat => self.no_repeat,

@@ -119,7 +119,7 @@ impl Refusal {
     }
 }
 
-pub(crate) const REFUSALS: &[&str] = &[
+const REFUSALS: &[&str] = &[
     "untitled",
     "noSuchList",
     "ambiguousList",

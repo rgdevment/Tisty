@@ -80,31 +80,31 @@ pub fn doc_export(
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Taken {
-    pub files: usize,
-    pub missed: usize,
-    pub left: usize,
+    files: usize,
+    missed: usize,
+    left: usize,
 }
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Packed {
-    pub docs: usize,
-    pub pages: usize,
-    pub folders: usize,
-    pub files: usize,
-    pub missed: usize,
-    pub left: usize,
+    docs: usize,
+    pages: usize,
+    folders: usize,
+    files: usize,
+    missed: usize,
+    left: usize,
 }
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Unpacked {
-    pub docs: usize,
-    pub pages: usize,
-    pub folders: usize,
-    pub joined: usize,
-    pub files: usize,
-    pub missed: usize,
+    docs: usize,
+    pages: usize,
+    folders: usize,
+    joined: usize,
+    files: usize,
+    missed: usize,
 }
 
 #[tauri::command(async)]

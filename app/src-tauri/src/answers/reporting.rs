@@ -98,28 +98,28 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Gone {
-    pub id: String,
-    pub file: String,
-    pub title: String,
+    id: String,
+    file: String,
+    title: String,
 }
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Reviewed {
-    pub tasks: usize,
-    pub lists: usize,
-    pub agrees: bool,
-    pub loose: usize,
-    pub loose_bytes: u64,
-    pub astray: Vec<tisty_core::attach::Astray>,
-    pub stranded: Vec<tisty_core::docs::Stray>,
-    pub missing: Vec<Gone>,
-    pub events: usize,
-    pub machines: Vec<report::Machine>,
-    pub log_bytes: u64,
-    pub docs_bytes: u64,
-    pub held_bytes: u64,
-    pub held_files: usize,
+    tasks: usize,
+    lists: usize,
+    agrees: bool,
+    loose: usize,
+    loose_bytes: u64,
+    astray: Vec<tisty_core::attach::Astray>,
+    stranded: Vec<tisty_core::docs::Stray>,
+    missing: Vec<Gone>,
+    events: usize,
+    machines: Vec<report::Machine>,
+    log_bytes: u64,
+    docs_bytes: u64,
+    held_bytes: u64,
+    held_files: usize,
 }
 
 #[tauri::command(async)]
