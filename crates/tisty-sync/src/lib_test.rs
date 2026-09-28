@@ -5819,3 +5819,57 @@ fn a_meeting_place_we_never_carried_to_is_taken_up_without_a_word() {
         "a folder we had never carried to was refused as if it had been emptied"
     );
 }
+
+#[test]
+fn a_folder_that_answers_to_another_name_now_is_still_the_one_we_carried_to() {
+    let one = machine("uno");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
+
+    let mark = tisty_core::paths::told_apart(shared.path()).expect("the folder is there");
+    let gone = shared.path().join("under-another-letter");
+    std::fs::write(
+        kept.path().join(super::place::CARRIED_TO),
+        format!(
+            "{}
+{mark}
+",
+            gone.display()
+        ),
+    )
+    .unwrap();
+
+    let stopped = carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Emptied(_))),
+        "the drive came back as another letter and the folder was taken for a new one: {stopped:?}"
+    );
+}
+
+#[test]
+fn a_note_of_where_we_carried_from_before_the_mark_is_still_read() {
+    let one = machine("uno");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
+    std::fs::write(
+        kept.path().join(super::place::CARRIED_TO),
+        shared.path().display().to_string(),
+    )
+    .unwrap();
+
+    std::fs::create_dir_all(shared.path().join("a-way-round")).unwrap();
+    let same = shared.path().join("a-way-round").join("..");
+    let stopped = carry_leaning_on(&one.data, aside, &one.device, &same, Way::Both, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Emptied(_))),
+        "a note written before this machine knew how to tell folders apart stopped counting: {stopped:?}"
+    );
+}

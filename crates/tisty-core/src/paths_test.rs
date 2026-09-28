@@ -135,8 +135,23 @@ fn a_folder_written_down_is_the_one_the_disk_agrees_on() {
 
     assert_eq!(as_written(&one), as_written(&one.join("..").join("one")));
     assert_ne!(as_written(&one), as_written(&two));
-    assert_eq!(told_apart(&one).as_deref(), Some(as_written(&one).as_str()));
-    assert_ne!(told_apart(&one), told_apart(&two));
+}
+
+#[test]
+fn what_tells_a_folder_apart_follows_it_and_not_the_name_it_was_reached_by() {
+    let room = tempfile::tempdir().unwrap();
+    let one = room.path().join("one");
+    let two = room.path().join("two");
+    std::fs::create_dir_all(&one).unwrap();
+    std::fs::create_dir_all(&two).unwrap();
+
+    let mark = told_apart(&one).expect("a folder that is there can be told apart");
+    assert_eq!(
+        told_apart(&one.join("..").join("one")).as_deref(),
+        Some(mark.as_str())
+    );
+    assert_ne!(told_apart(&two).as_deref(), Some(mark.as_str()));
+    assert_ne!(mark, as_written(&one), "a path is not what tells it apart");
 }
 
 #[test]
@@ -145,5 +160,5 @@ fn a_folder_that_is_not_there_is_written_down_as_it_was_asked_for() {
     let nowhere = room.path().join("nowhere");
 
     assert_eq!(as_written(&nowhere), nowhere.display().to_string());
-    assert_eq!(told_apart(&nowhere), None);
+    assert_eq!(told_apart(&nowhere), None, "nothing there to tell apart");
 }

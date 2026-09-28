@@ -156,10 +156,22 @@ pub fn as_written(at: &Path) -> String {
         .to_string()
 }
 
+#[cfg(windows)]
 pub fn told_apart(at: &Path) -> Option<String> {
-    std::fs::canonicalize(at)
-        .ok()
-        .map(|one| one.display().to_string())
+    let held = winapi_util::Handle::from_path_any(at).ok()?;
+    let one = winapi_util::file::information(&held).ok()?;
+    Some(format!(
+        "{:x}:{:x}",
+        one.volume_serial_number(),
+        one.file_index()
+    ))
+}
+
+#[cfg(not(windows))]
+pub fn told_apart(at: &Path) -> Option<String> {
+    use std::os::unix::fs::MetadataExt;
+    let one = std::fs::metadata(at).ok()?;
+    Some(format!("{:x}:{:x}", one.dev(), one.ino()))
 }
 
 pub fn profile() -> Option<String> {

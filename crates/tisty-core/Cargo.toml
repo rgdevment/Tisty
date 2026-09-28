@@ -31,6 +31,7 @@ sys-locale.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 same-file.workspace = true
+winapi-util.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
