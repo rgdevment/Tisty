@@ -84,7 +84,8 @@ pub async fn settle_in(
 
     if brought {
         let at = paths.clone();
-        let fresh = elsewhere(move || session::projected(&at))
+        let writes = held(&session).writes();
+        let fresh = elsewhere(move || session::projected(&at, writes))
             .await?
             .map_err(|e| {
                 blamed(
@@ -114,18 +115,20 @@ pub async fn settle_in(
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
         let at = paths.clone();
-        let fresh = elsewhere(move || {
-            let _ = std::fs::remove_dir_all(at.cache());
-            session::projected(&at)
-        })
-        .await?
-        .map_err(|e| {
-            blamed(
-                channel::CACHE,
-                "the store would not project without a cache",
-                e,
-            )
-        })?;
+        let writes = {
+            let session = held(&session);
+            let _ = std::fs::remove_dir_all(session.paths.cache());
+            session.writes()
+        };
+        let fresh = elsewhere(move || session::projected(&at, writes))
+            .await?
+            .map_err(|e| {
+                blamed(
+                    channel::CACHE,
+                    "the store would not project without a cache",
+                    e,
+                )
+            })?;
         held(&session).adopt(fresh);
     }
 
@@ -385,7 +388,8 @@ pub async fn sync_now(
     let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
         let at = paths.clone();
-        let fresh = elsewhere(move || session::projected(&at))
+        let writes = held(&session).writes();
+        let fresh = elsewhere(move || session::projected(&at, writes))
             .await?
             .map_err(|e| {
                 blamed(

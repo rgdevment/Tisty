@@ -15,22 +15,28 @@ pub struct Session {
     pub minded: std::collections::HashMap<String, String>,
     pub locale: Option<String>,
     pub log: Option<(String, Vec<Event>)>,
-    /// A projection read without the lock can miss a commit that landed while it ran, and the
-    /// next commit puts `print` back in step and hides it. This outlives that.
+    /// The fingerprint is read from the directory entry, which lags a write on Windows, so what
+    /// was committed here is counted rather than measured.
+    writes: u64,
     behind: bool,
 }
 
 pub struct Projected {
     state: State,
     print: String,
+    writes: u64,
 }
 
 /// The fingerprint is taken before the reading, so a store written while this runs leaves the
 /// session looking older than it is and the next reload projects again, rather than the reverse.
-pub fn projected(paths: &Paths) -> tisty_core::Result<Projected> {
+pub fn projected(paths: &Paths, writes: u64) -> tisty_core::Result<Projected> {
     let print = tisty_core::cache::fingerprint(&paths.store());
     let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
-    Ok(Projected { state, print })
+    Ok(Projected {
+        state,
+        print,
+        writes,
+    })
 }
 
 /// What the toolkit says goes where everything else does. Without this its own refusals — an
@@ -88,6 +94,7 @@ impl Session {
             print,
             minded: std::collections::HashMap::new(),
             log: None,
+            writes: 0,
             behind: false,
         };
         session.tidy_up(true);
@@ -171,12 +178,17 @@ impl Session {
     }
 
     pub fn reproject(&mut self) -> tisty_core::Result<()> {
-        self.adopt(projected(&self.paths)?);
+        self.adopt(projected(&self.paths, self.writes)?);
         Ok(())
     }
 
+    pub fn writes(&self) -> u64 {
+        self.writes
+    }
+
     pub fn adopt(&mut self, fresh: Projected) {
-        self.behind = tisty_core::cache::fingerprint(&self.paths.store()) != fresh.print;
+        self.behind = self.writes != fresh.writes
+            || tisty_core::cache::fingerprint(&self.paths.store()) != fresh.print;
         self.state = fresh.state;
         self.print = fresh.print;
         self.log = None;
@@ -652,6 +664,7 @@ impl Session {
 
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<()> {
         let event = self.store.append(op)?;
+        self.writes += 1;
         self.state.apply(&event);
         self.print = self.carry(std::slice::from_ref(&event));
         Ok(())
@@ -659,6 +672,7 @@ impl Session {
 
     pub fn commit_all(&mut self, ops: Vec<Op>) -> tisty_core::Result<()> {
         let events = self.store.append_batch(ops)?;
+        self.writes += 1;
         for event in &events {
             self.state.apply(event);
         }
@@ -666,9 +680,15 @@ impl Session {
         Ok(())
     }
 
+    /// A state that missed a commit must not stamp the cache as current, or the projection that
+    /// would have caught up loads the gap back.
     pub fn carry(&mut self, events: &[Event]) -> String {
+        let cache = match self.behind {
+            true => None,
+            false => self.cache.as_mut(),
+        };
         tisty_core::cache::advance(
-            self.cache.as_mut(),
+            cache,
             &self.state,
             events,
             &self.paths.store(),

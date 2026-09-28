@@ -13,7 +13,7 @@ fn a_commit_that_lands_while_the_store_is_read_survives_the_projection_that_miss
     let paths = somewhere(&kept);
     let mut session = Session::at(paths.clone()).unwrap();
 
-    let reading = projected(&paths).unwrap();
+    let reading = projected(&paths, session.writes()).unwrap();
 
     let wrote = ulid::Ulid::generate();
     session
@@ -57,6 +57,6 @@ fn a_projection_nothing_interrupted_leaves_the_session_settled() {
         })
         .unwrap();
 
-    session.adopt(projected(&paths).unwrap());
+    session.adopt(projected(&paths, session.writes()).unwrap());
     assert!(!session.reload().unwrap(), "nothing moved underneath it");
 }
