@@ -46,4 +46,11 @@ const spanned = Range.prototype as unknown as {
 spanned.getClientRects ??= flat;
 spanned.getBoundingClientRect ??= flat;
 
-afterEach(cleanup);
+// An unmounted editor leaves timers behind, and on a fake clock they fire once the environment is
+// already gone, which ends the run on `window is not defined` with every test passing.
+afterEach(() => {
+  cleanup();
+  if (vi.isFakeTimers()) {
+    vi.advanceTimersByTime(50);
+  }
+});
