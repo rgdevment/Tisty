@@ -122,7 +122,7 @@ fn a_backup_carries_the_store_and_the_attachments() {
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
 
-    let made = write(&data, &file, tmp().path()).unwrap();
+    let made = write(&data, &file, tmp().path(), None).unwrap();
     assert!(made.files >= 2, "{made:?}");
     assert!(made.bytes > 0);
     assert!(file.exists());
@@ -135,7 +135,7 @@ fn restoring_forgets_what_this_machine_had_carried_instead_of_pushing_it_back() 
     let paths = Paths::new(data.clone(), dir.path().join("config"));
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let mut said = crate::docs::Carried::default();
     said.keep(
@@ -163,7 +163,7 @@ fn joining_forgets_what_this_machine_had_carried() {
     said.save(&data).unwrap();
     let out = tempfile::tempdir().unwrap();
 
-    reset(&paths, &out.path().join("before.zip"), tmp().path()).unwrap();
+    reset(&paths, &out.path().join("before.zip"), tmp().path(), None).unwrap();
 
     assert_eq!(crate::docs::Carried::read(&data).of("a3f1-0001"), None);
 }
@@ -173,7 +173,7 @@ fn a_backup_carries_the_documents_too_or_it_does_not_carry_your_work() {
     let (_src, data) = filled("comprar pan");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let fresh = tempfile::tempdir().unwrap();
     read(&quarters(&fresh), &file).unwrap();
@@ -206,7 +206,7 @@ fn a_reset_leaves_nothing_of_what_was_here() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("before-joining.zip");
-    reset(&paths, &file, tmp().path()).unwrap();
+    reset(&paths, &file, tmp().path(), None).unwrap();
 
     assert!(store::read_all(paths.store()).unwrap().is_empty());
     assert!(!paths.data().join("docs/a3f1-0001.md").exists());
@@ -221,7 +221,7 @@ fn a_key_left_inside_a_store_is_not_lost_when_the_store_is_replaced() {
     let (_src, data) = filled("comprar pan");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let dir = tempfile::tempdir().unwrap();
     let mut paths = quarters(&dir);
@@ -254,7 +254,7 @@ fn starting_over_keeps_what_the_zip_it_writes_cannot_carry() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("before-joining.zip");
-    reset(&paths, &file, tmp().path()).unwrap();
+    reset(&paths, &file, tmp().path(), None).unwrap();
 
     assert_ne!(
         store::identity(paths.store()).unwrap(),
@@ -280,7 +280,7 @@ fn a_machine_that_rejoins_comes_back_under_a_new_name() {
     let was = Config::load_or_init(&paths).unwrap().device_id;
     let out = tempfile::tempdir().unwrap();
 
-    reset(&paths, &out.path().join("before.zip"), tmp().path()).unwrap();
+    reset(&paths, &out.path().join("before.zip"), tmp().path(), None).unwrap();
 
     let now = Config::load_or_init(&paths).unwrap().device_id;
     assert_ne!(now, was, "it came back carrying its own tombstone");
@@ -300,7 +300,7 @@ fn a_reset_cannot_happen_without_the_backup_landing_first() {
         .unwrap();
 
     let nowhere = dir.path().join("no/such/place/before-joining.zip");
-    let why = reset(&paths, &nowhere, tmp().path());
+    let why = reset(&paths, &nowhere, tmp().path(), None);
 
     assert!(why.is_err(), "it reset with nowhere to put the backup");
     assert_eq!(
@@ -318,7 +318,7 @@ fn what_a_reset_backed_up_can_be_restored_afterwards() {
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("before-joining.zip");
 
-    reset(&paths, &file, tmp().path()).unwrap();
+    reset(&paths, &file, tmp().path(), None).unwrap();
     let fresh = tempfile::tempdir().unwrap();
     read(&quarters(&fresh), &file).unwrap();
 
@@ -334,7 +334,7 @@ fn a_backup_carries_what_a_document_looked_like_before_it_was_converted() {
     let (_src, data) = filled("comprar pan");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let fresh = tempfile::tempdir().unwrap();
     read(&quarters(&fresh), &file).unwrap();
@@ -355,7 +355,7 @@ fn a_destination_that_cannot_be_written_leaves_it_alone() {
     std::fs::create_dir(&taken).unwrap();
     std::fs::write(taken.join("inside"), b"still here").unwrap();
 
-    assert!(write(&data, &taken, tmp().path()).is_err());
+    assert!(write(&data, &taken, tmp().path(), None).is_err());
     assert!(taken.join("inside").exists());
 }
 
@@ -365,7 +365,7 @@ fn nothing_is_left_beside_the_backup() {
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
 
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let left: Vec<String> = std::fs::read_dir(out.path())
         .unwrap()
@@ -380,7 +380,7 @@ fn what_comes_back_is_what_went_in() {
     let (_src, data) = filled("comprar pan");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let fresh = tempfile::tempdir().unwrap();
     let restored = read(&quarters(&fresh), &file).unwrap();
@@ -404,7 +404,7 @@ fn what_proves_the_store_is_its_own_never_enters_a_copy() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let held = std::fs::read(&file).unwrap();
     let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
@@ -436,7 +436,7 @@ fn a_copy_carries_everything_a_working_store_holds() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
     let inside: Vec<String> = (0..zip.len())
@@ -475,7 +475,7 @@ fn restoring_onto_an_empty_machine_keeps_the_old_devices_history() {
     let (_src, data) = filled("lo de antes");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let fresh = tempfile::tempdir().unwrap();
     read(&quarters(&fresh), &file).unwrap();
@@ -510,7 +510,7 @@ fn restoring_goes_back_to_the_moment_and_loses_what_came_after() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(paths.data(), &file, tmp().path()).unwrap();
+    write(paths.data(), &file, tmp().path(), None).unwrap();
 
     store
         .append(Op::TaskAdd {
@@ -522,9 +522,13 @@ fn restoring_goes_back_to_the_moment_and_loses_what_came_after() {
 
     read(&paths, &file).unwrap();
 
+    let kept = store::read_all(paths.store()).unwrap();
+    let tasks = kept
+        .iter()
+        .filter(|one| matches!(one.op, Op::TaskAdd { .. }))
+        .count();
     assert_eq!(
-        store::read_all(paths.store()).unwrap().len(),
-        1,
+        tasks, 1,
         "a photograph does not keep what happened after it"
     );
     let now = Config::load(&paths.config_file())
@@ -541,7 +545,7 @@ fn a_backup_of_another_store_is_refused_rather_than_merged() {
     let (_b, other) = filled("lo de otro");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&one, &file, tmp().path()).unwrap();
+    write(&one, &file, tmp().path(), None).unwrap();
 
     let other_paths = Paths::new(&other, other.parent().unwrap().join("config"));
     let Err(Error::OtherStore { theirs }) = read(&other_paths, &file) else {
@@ -558,7 +562,7 @@ fn the_configuration_never_travels() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let held = std::fs::File::open(&file).unwrap();
     let mut zip = zip::ZipArchive::new(held).unwrap();
@@ -600,7 +604,7 @@ fn a_corrupt_backup_costs_nothing() {
     let paths = Paths::new(&data, data.parent().unwrap().join("config"));
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&data, &file, tmp().path()).unwrap();
+    write(&data, &file, tmp().path(), None).unwrap();
 
     let mut bytes = std::fs::read(&file).unwrap();
     let middle = bytes.len() / 2;
@@ -623,7 +627,7 @@ fn a_backup_with_no_marker_is_refused_onto_a_store_that_has_one() {
     let (_b, other) = filled("lo de otro");
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(&other, &file, tmp().path()).unwrap();
+    write(&other, &file, tmp().path(), None).unwrap();
 
     let stripped = out.path().join("stripped.zip");
     {
@@ -667,7 +671,7 @@ fn the_machine_is_renamed_before_anything_is_replaced() {
 
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("tisty.zip");
-    write(paths.data(), &file, tmp().path()).unwrap();
+    write(paths.data(), &file, tmp().path(), None).unwrap();
     read(&paths, &file).unwrap();
 
     let now = Config::load(&paths.config_file()).unwrap().unwrap();
@@ -813,7 +817,7 @@ fn a_zip_full_of_refused_entries_does_not_roll_the_diary_away() {
     let (_src, data) = filled("comprar pan");
     let out = tempfile::tempdir().unwrap();
     let good = out.path().join("tisty.zip");
-    write(&data, &good, tmp().path()).unwrap();
+    write(&data, &good, tmp().path(), None).unwrap();
 
     let hostile = out.path().join("hostile.zip");
     {
@@ -906,4 +910,100 @@ fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
             "«{held}» goes into a copy and cannot come back from one"
         );
     }
+}
+
+#[test]
+fn a_restore_stops_sharing_so_the_folder_does_not_bring_back_what_it_undid() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::Folder(out.path().join("shared")));
+    config.save(&paths).unwrap();
+
+    read(&paths, &file).unwrap();
+
+    assert_eq!(
+        Config::load(&paths.config_file()).unwrap().unwrap().sync,
+        None,
+        "it would have carried the undone history back within the minute"
+    );
+}
+
+#[test]
+fn a_restore_says_in_the_log_that_the_machine_it_was_is_gone() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.device_id = DeviceId("dev_a".into());
+    config.save(&paths).unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+
+    read(&paths, &file).unwrap();
+
+    let told = store::read_all(paths.store()).unwrap();
+    assert!(
+        told.iter()
+            .any(|one| matches!(&one.op, Op::DeviceRemove { d } if d.0 == "dev_a")),
+        "every other machine would list this one twice, once more for each restore"
+    );
+    assert!(
+        !crate::State::replay(&told)
+            .devices
+            .contains(&DeviceId("dev_a".into()))
+    );
+}
+
+#[test]
+fn a_copy_taken_where_the_folder_holds_the_big_ones_carries_them_too() {
+    let (_src, data) = filled("comprar pan");
+    let shared = tempfile::tempdir().unwrap();
+    let theirs = shared.path().join("attachments").join("cd");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::write(theirs.join("video-9f8e7d6c.mp4"), b"what was let go of").unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
+
+    let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    assert!(
+        named.contains(&"attachments/cd/video-9f8e7d6c.mp4".to_string()),
+        "a machine that let go of its copies would restore without them: {named:?}"
+    );
+    assert!(
+        named.contains(&"attachments/ab/foto-a1b2c3d4.png".to_string()),
+        "{named:?}"
+    );
+}
+
+#[test]
+fn what_is_in_both_places_is_carried_once() {
+    let (_src, data) = filled("comprar pan");
+    let shared = tempfile::tempdir().unwrap();
+    let theirs = shared.path().join("attachments").join("ab");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::write(theirs.join("foto-a1b2c3d4.png"), b"a picture").unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    let made = write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
+
+    let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
+    assert_eq!(zip.len(), made.files);
+    assert_eq!(
+        zip.file_names()
+            .filter(|one| one.ends_with("foto-a1b2c3d4.png"))
+            .count(),
+        1
+    );
 }

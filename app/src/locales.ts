@@ -994,7 +994,8 @@ const en = {
   backupMade: "{name} saved",
   restored: "{name} files restored",
   restoreFailed: "Nothing was changed — the restore could not finish: {name}",
-  restoreSure: "Restore goes back to that moment, and everything after it is lost. Restore anyway?",
+  restoreSure:
+    "Restore goes back to that moment, and everything after it is lost. A shared folder still holds what you are undoing, so this machine stops sharing it and you choose it again afterwards. Restore anyway?",
   review: "Review",
   reviewCount: "{name} tasks",
   reviewLists: "{name} lists",
@@ -2354,7 +2355,8 @@ const es: Catalog = {
   backupMade: "{name} guardados",
   restored: "{name} archivos restaurados",
   restoreFailed: "No se cambió nada — la restauración no pudo terminar: {name}",
-  restoreSure: "Restaurar vuelve a ese momento, y todo lo posterior se pierde. ¿Quieres continuar?",
+  restoreSure:
+    "Restaurar vuelve a ese momento, y todo lo posterior se pierde. Una carpeta compartida todavía guarda lo que estás deshaciendo, así que este equipo deja de compartirla y la vuelves a elegir después. ¿Quieres continuar?",
   review: "Revisión",
   reviewCount: "{name} tareas",
   reviewLists: "{name} listas",

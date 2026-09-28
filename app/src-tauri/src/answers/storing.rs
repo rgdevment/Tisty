@@ -498,30 +498,32 @@ pub async fn back_up(
     into: String,
 ) -> Answer<u64> {
     let _done = alone.inner().taken()?;
-    let (data, aside) = {
+    let (data, aside, also) = {
         let session = held(&session);
         (
             session.paths.data().to_path_buf(),
             session.paths.cache().to_path_buf(),
+            session.dest(),
         )
     };
 
     let at = std::path::PathBuf::from(&into);
-    let made =
-        tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at, &aside))
-            .await
-            .map_err(|_| Refusal::of("internal"))?
-            .map_err(|e| {
-                witness::error(
-                    channel::BACKUP,
-                    "the backup could not be written",
-                    &[("why", Fact::Why(e.to_string()))],
-                );
-                match e {
-                    tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
-                    _ => Refusal::about("cannotWrite", into),
-                }
-            })?;
+    let made = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::backup::write(&data, &at, &aside, also.as_deref())
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| {
+        witness::error(
+            channel::BACKUP,
+            "the backup could not be written",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        match e {
+            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+            _ => Refusal::about("cannotWrite", into),
+        }
+    })?;
 
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
@@ -667,14 +669,18 @@ pub async fn join_them(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (paths, aside) = {
+    let (paths, aside, also) = {
         let session = held(&session);
-        (session.paths.clone(), session.paths.cache().to_path_buf())
+        (
+            session.paths.clone(),
+            session.paths.cache().to_path_buf(),
+            session.dest(),
+        )
     };
 
     let at = std::path::PathBuf::from(&into);
     let made = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::backup::reset(&paths, &at, &aside)
+        tisty_core::backup::reset(&paths, &at, &aside, also.as_deref())
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -817,7 +823,7 @@ pub async fn merge_stores(
 
     let at = std::path::PathBuf::from(&into);
     let seam = tauri::async_runtime::spawn_blocking(move || -> Answer<tisty_sync::Stitched> {
-        tisty_core::backup::write(&data, &at, &aside).map_err(|e| {
+        tisty_core::backup::write(&data, &at, &aside, Some(&dest)).map_err(|e| {
             witness::error(
                 channel::BACKUP,
                 "nothing was joined because the backup did not land",
