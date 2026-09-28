@@ -1,4 +1,4 @@
-use super::segments::same;
+use super::segments::{Alike, hand_on, ours_reaches_further, ours_went_missing, same};
 use super::*;
 use std::path::PathBuf;
 use tisty_core::event::{DeviceId, TaskAdd};
@@ -5205,6 +5205,8 @@ fn many_segments(who: &Machine, lots: usize) {
 fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
+    let aside = tempfile::tempdir().unwrap();
+    let aside = Some(aside.path());
     many_segments(&one, 3);
 
     let alive: Vec<String> = (0..40)
@@ -5237,7 +5239,15 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
             id
         })
         .collect();
-    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+    carry_leaning_on(
+        &one.data,
+        aside,
+        &one.device,
+        shared.path(),
+        Way::Push,
+        &alive,
+    )
+    .unwrap();
 
     let two = machine("dev_b");
     many_segments(&two, 3);
@@ -5248,15 +5258,427 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
         std::fs::copy(&at, theirs.join(at.file_name().unwrap())).unwrap();
     }
 
-    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
-    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+    carry_leaning_on(
+        &one.data,
+        aside,
+        &one.device,
+        shared.path(),
+        Way::Both,
+        &alive,
+    )
+    .unwrap();
+    carry_leaning_on(
+        &one.data,
+        aside,
+        &one.device,
+        shared.path(),
+        Way::Both,
+        &alive,
+    )
+    .unwrap();
 
     let before = tisty_core::counting::from_now();
-    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+    carry_leaning_on(
+        &one.data,
+        aside,
+        &one.device,
+        shared.path(),
+        Way::Both,
+        &alive,
+    )
+    .unwrap();
     let quiet = tisty_core::counting::from_now();
 
     assert!(
-        quiet <= 69,
-        "a round with nothing to carry opened {quiet} files where 69 is what it takes,          and the round before it opened {before}"
+        quiet <= 37,
+        "a round with nothing to carry read {quiet} files where 37 is what it takes, and the round before it read {before}"
+    );
+}
+
+fn a_segment(at: &Path, named: &str, body: &str) {
+    std::fs::create_dir_all(at).unwrap();
+    std::fs::write(at.join(named), body).unwrap();
+}
+
+#[test]
+fn what_was_compared_once_is_not_compared_again_until_something_moves() {
+    let room = tempfile::tempdir().unwrap();
+    let theirs = room.path().join("theirs");
+    let mine = room.path().join("mine");
+    a_segment(&theirs, "000001.tisty", "one way\n");
+    a_segment(&mine, "000001.tisty", "another\n");
+
+    let mut alike = Alike::default();
+    assert!(alike.of("dev_b", &theirs, &mine).is_empty());
+
+    std::fs::write(theirs.join("000001.tisty"), "another\n").unwrap();
+    assert!(
+        alike.of("dev_b", &theirs, &mine).is_empty(),
+        "asking twice in one round is what this exists to avoid"
+    );
+
+    a_segment(&mine, "000002.tisty", "and more\n");
+    let done = alike
+        .carried("dev_b", &theirs, &mine, Toward::Folder, false)
+        .unwrap();
+
+    assert_eq!(done, 1);
+    assert_eq!(
+        alike.of("dev_b", &theirs, &mine).len(),
+        2,
+        "a copy moved something, so what was answered before is not the answer now"
+    );
+}
+
+fn sown(store: &Path, device: &str, many: usize) {
+    let mut held = Store::open(store, DeviceId(device.into())).unwrap();
+    for n in 0..many {
+        held.append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new(format!("t{n}"), "a0"),
+        })
+        .unwrap();
+    }
+}
+
+#[test]
+fn a_machine_that_holds_the_same_history_hands_nothing_on() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = room.path().join("folder");
+    let store = room.path().join("store");
+    sown(&folder, "dev_b", 1);
+    std::fs::create_dir_all(store.join("dev_b")).unwrap();
+    std::fs::copy(
+        folder.join("dev_b").join("active.tisty"),
+        store.join("dev_b").join("active.tisty"),
+    )
+    .unwrap();
+
+    let theirs = folder.join("dev_b");
+    let mine = store.join("dev_b");
+    assert!(
+        !ours_reaches_further(&mine, &theirs),
+        "the same history is not further along"
+    );
+
+    sown(&store, "dev_b", 1);
+    assert!(
+        ours_reaches_further(&mine, &theirs),
+        "one event more is further along, and it grew from what they hold"
+    );
+}
+
+#[test]
+fn a_machine_the_folder_has_never_heard_of_is_handed_on_only_if_it_wrote_something() {
+    let room = tempfile::tempdir().unwrap();
+    let theirs = room.path().join("folder").join("dev_b");
+    let mine = room.path().join("store").join("dev_b");
+    std::fs::create_dir_all(&mine).unwrap();
+
+    assert!(
+        !ours_reaches_further(&mine, &theirs),
+        "holding an empty folder for somebody is nothing to hand on"
+    );
+
+    sown(&room.path().join("store"), "dev_b", 1);
+    assert!(
+        ours_reaches_further(&mine, &theirs),
+        "what the folder never heard of is exactly what to hand on"
+    );
+}
+
+#[test]
+fn a_history_the_folder_holds_more_of_is_left_where_it_is() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    sown(&one.store, "dev_c", 1);
+    let elsewhere = tempfile::tempdir().unwrap();
+    sown(elsewhere.path(), "dev_c", 2);
+    let theirs = shared.path().join(STORE).join("dev_c");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::copy(
+        elsewhere.path().join("dev_c").join("active.tisty"),
+        theirs.join("active.tisty"),
+    )
+    .unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    assert_eq!(
+        tisty_core::store::distinct_in(&theirs).unwrap(),
+        2,
+        "the folder knows more of that machine than we kept, so the little we kept is not put over it"
+    );
+}
+
+#[test]
+fn every_history_handed_on_is_counted() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    sown(&one.store, "dev_b", 1);
+    sown(&one.store, "dev_c", 1);
+
+    let moved = carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    assert_eq!(
+        moved.sent, 3,
+        "ours, and the two we were holding for others"
+    );
+    for who in ["dev_b", "dev_c"] {
+        assert!(
+            shared
+                .path()
+                .join(STORE)
+                .join(who)
+                .join("active.tisty")
+                .is_file(),
+            "{who} never reached the folder"
+        );
+    }
+}
+
+#[test]
+fn handing_something_on_asks_again_what_the_two_sides_have_in_common() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    sown(&one.store, "dev_c", 1);
+    let theirs = shared.path().join(STORE).join("dev_c");
+    let mine = one.store.join("dev_c");
+
+    let mut alike = Alike::default();
+    assert!(
+        alike.of("dev_c", &theirs, &mine).is_empty(),
+        "the folder has never heard of that machine"
+    );
+
+    let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(sent, 1);
+    assert_eq!(
+        alike.of("dev_c", &theirs, &mine).len(),
+        1,
+        "the copy made them alike, and what was answered before is not the answer now"
+    );
+}
+
+#[test]
+fn a_folder_entry_that_is_not_a_directory_is_no_history_to_hand_on_to() {
+    let room = tempfile::tempdir().unwrap();
+    let store = room.path().join("store");
+    sown(&store, "dev_c", 1);
+    let theirs = room.path().join("folder").join("dev_c");
+    std::fs::create_dir_all(theirs.parent().unwrap()).unwrap();
+    std::fs::write(&theirs, "not a history\n").unwrap();
+
+    assert!(
+        !ours_reaches_further(&store.join("dev_c"), &theirs),
+        "unreadable is not the same as never heard of"
+    );
+}
+
+#[test]
+fn a_history_of_ours_that_is_not_a_directory_is_not_one_that_went_missing() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = room.path().join("folder");
+    sown(&folder, "dev_c", 1);
+    let mine = room.path().join("store").join("dev_c");
+    std::fs::create_dir_all(mine.parent().unwrap()).unwrap();
+    std::fs::write(&mine, "not a history\n").unwrap();
+
+    assert!(
+        !ours_went_missing(&mine, &folder.join("dev_c")),
+        "a history we cannot read is not a history we lost"
+    );
+}
+
+#[test]
+fn the_same_history_on_both_sides_is_nothing_to_take_back() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = room.path().join("folder");
+    let store = room.path().join("store");
+    sown(&folder, "dev_c", 1);
+    std::fs::create_dir_all(store.join("dev_c")).unwrap();
+    std::fs::copy(
+        folder.join("dev_c").join("active.tisty"),
+        store.join("dev_c").join("active.tisty"),
+    )
+    .unwrap();
+
+    assert!(
+        !ours_went_missing(&store.join("dev_c"), &folder.join("dev_c")),
+        "the same count on both sides is nothing to take back"
+    );
+}
+
+#[test]
+fn a_history_brought_home_is_not_read_again_to_see_whether_it_should_go_back() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let aside = tempfile::tempdir().unwrap();
+    let aside = Some(aside.path());
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let elsewhere = tempfile::tempdir().unwrap();
+    sown(elsewhere.path(), "dev_c", 12_000);
+    let theirs = shared.path().join(STORE).join("dev_c");
+    std::fs::create_dir_all(&theirs).unwrap();
+    for at in tisty_core::store::segments_in(&elsewhere.path().join("dev_c")).unwrap() {
+        std::fs::copy(&at, theirs.join(at.file_name().unwrap())).unwrap();
+        let counter = at.with_extension("count");
+        if counter.is_file() {
+            std::fs::copy(&counter, theirs.join(counter.file_name().unwrap())).unwrap();
+        }
+    }
+    assert_eq!(tisty_core::store::segments_in(&theirs).unwrap().len(), 3);
+
+    let _ = tisty_core::counting::from_now();
+    let moved =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let opened = tisty_core::counting::from_now();
+
+    assert_eq!(moved.brought, 3);
+    assert_eq!(moved.sent, 0);
+    assert!(
+        opened <= 27,
+        "bringing three segments home read {opened} files where 27 is what it takes; handing on asked again what the two sides hold instead of counting both histories"
+    );
+}
+
+#[test]
+fn nothing_handed_on_keeps_what_was_already_compared() {
+    let room = tempfile::tempdir().unwrap();
+    let theirs = room.path().join("theirs");
+    let mine = room.path().join("mine");
+    a_segment(&theirs, "000001.tisty", "the same\n");
+    a_segment(&mine, "000001.tisty", "the same\n");
+
+    let mut alike = Alike::default();
+    assert_eq!(alike.of("dev_b", &theirs, &mine).len(), 1);
+
+    let done = alike
+        .carried("dev_b", &theirs, &mine, Toward::Folder, false)
+        .unwrap();
+    assert_eq!(done, 0, "both sides hold the same bytes");
+
+    std::fs::write(mine.join("000001.tisty"), "not any more\n").unwrap();
+    assert_eq!(
+        alike.of("dev_b", &theirs, &mine).len(),
+        1,
+        "nothing moved, so the round keeps the answer it already paid for"
+    );
+}
+
+#[test]
+fn only_the_segments_that_match_are_remembered() {
+    let room = tempfile::tempdir().unwrap();
+    let theirs = room.path().join("theirs");
+    let mine = room.path().join("mine");
+    a_segment(&theirs, "000001.tisty", "shared\n");
+    a_segment(&theirs, "000002.tisty", "theirs alone\n");
+    a_segment(&mine, "000001.tisty", "shared\n");
+    a_segment(&mine, "000002.tisty", "mine alone\n");
+
+    let mut alike = Alike::default();
+    let known = alike.of("dev_b", &theirs, &mine);
+
+    assert_eq!(known.len(), 1);
+    assert!(known.contains(std::ffi::OsStr::new("000001.tisty")));
+}
+
+#[test]
+fn an_empty_history_is_never_all_the_other_side_holds() {
+    let room = tempfile::tempdir().unwrap();
+    let theirs = room.path().join("theirs");
+    let mine = room.path().join("mine");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::create_dir_all(&mine).unwrap();
+
+    let mut alike = Alike::default();
+    assert!(!alike.settled("dev_b", &theirs, &mine, Toward::Home));
+    assert!(
+        !alike.settled("dev_c", &theirs, &mine, Toward::Folder),
+        "holding nothing is not the same as holding everything they hold"
+    );
+}
+
+#[test]
+fn a_file_in_our_store_is_not_a_machine_to_hand_on() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    std::fs::write(one.store.join("notes.txt"), "not a machine\n").unwrap();
+
+    let mut alike = Alike::default();
+    let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(sent, 0);
+    assert!(!shared.path().join(STORE).join("notes.txt").exists());
+}
+
+#[test]
+fn a_forced_round_leaves_alike_histories_where_they_are() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    sown(&one.store, "dev_c", 1);
+
+    let mut alike = Alike::default();
+    let first = hand_on(&one.store, &one.device, shared.path(), true, &mut alike).unwrap();
+    let mut alike = Alike::default();
+    let second = hand_on(&one.store, &one.device, shared.path(), true, &mut alike).unwrap();
+
+    assert_eq!(first, 1);
+    assert_eq!(
+        second, 0,
+        "asking again sends our own history over, never one we only keep for somebody else"
+    );
+}
+
+#[test]
+fn a_history_taken_back_is_counted_as_it_comes() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let mine = one.store.join(&one.device);
+    std::fs::remove_dir_all(&mine).unwrap();
+
+    let moved = carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    assert_eq!(moved.brought, 1, "our own history came back uncounted");
+    assert!(mine.join("active.tisty").is_file());
+}
+
+fn handed_on(paths: &tisty_core::paths::Paths) -> Vec<String> {
+    tisty_core::witness::recent(paths, 200)
+        .into_iter()
+        .filter(|line| line.contains("was holding for another was handed on"))
+        .collect()
+}
+
+#[test]
+fn a_history_handed_on_is_written_down_and_a_round_that_moved_none_is_not() {
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    sown(&one.store, "dev_c", 1);
+
+    let kept = tempfile::tempdir().unwrap();
+    let paths = watching(kept.path());
+    let mut alike = Alike::default();
+    let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(sent, 1);
+    assert_eq!(handed_on(&paths).len(), 1);
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(
+        handed_on(&paths).len(),
+        1,
+        "the second round moved nothing, so it had nothing to say"
     );
 }
