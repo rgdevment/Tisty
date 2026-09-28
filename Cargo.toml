@@ -66,6 +66,7 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
+too_many_lines = "deny"
 
 # Turning a number into a key is meant to be slow, but only as slowly as the machine can
 # manage: unoptimised it takes tens of seconds, which no test run or debug build wants.

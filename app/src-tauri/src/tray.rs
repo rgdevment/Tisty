@@ -62,7 +62,7 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
         .on_menu_event(|app, event| match event.id.as_ref() {
             "capture" => quicken(app),
             "show" => surface(app),
-            "quit" => crate::parting(app),
+            "quit" => crate::desktop::parting(app),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
