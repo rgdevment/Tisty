@@ -2,24 +2,49 @@ use std::path::Path;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Trouble, copy_onto, io};
+use crate::{Grew, STORE, Trouble, copy_onto, io, one_grew_from_the_other, plainly};
 
 pub(crate) type Named = std::collections::BTreeSet<std::ffi::OsString>;
 
-pub(crate) fn matching(theirs: &Path, mine: &Path) -> (Named, bool) {
+#[derive(Default)]
+pub(crate) struct Alike(std::collections::BTreeMap<String, Named>);
+
+impl Alike {
+    pub(crate) fn of(&mut self, who: &str, theirs: &Path, mine: &Path) -> &Named {
+        self.0
+            .entry(who.to_string())
+            .or_insert_with(|| alike_in(theirs, mine))
+    }
+
+    pub(crate) fn again(&mut self, who: &str) {
+        self.0.remove(who);
+    }
+}
+
+fn alike_in(theirs: &Path, mine: &Path) -> Named {
     let Ok(offered) = tisty_core::store::segments_in(theirs) else {
-        return (Named::default(), false);
+        return Named::default();
     };
-    let known: Named = offered
+    offered
         .iter()
         .filter(|at| {
             at.file_name()
                 .is_some_and(|named| same(at, &mine.join(named)))
         })
         .filter_map(|at| at.file_name().map(std::ffi::OsStr::to_os_string))
-        .collect();
-    let settled = !offered.is_empty() && known.len() == offered.len();
-    (known, settled)
+        .collect()
+}
+
+pub(crate) fn all_of(dir: &Path, known: &Named) -> bool {
+    tisty_core::store::segments_in(dir)
+        .map(|held| {
+            !held.is_empty()
+                && held
+                    .iter()
+                    .filter_map(|at| at.file_name())
+                    .all(|named| known.contains(named))
+        })
+        .unwrap_or(false)
 }
 
 pub(crate) fn copy_segments(
@@ -127,4 +152,81 @@ pub(crate) fn same(from: &Path, to: &Path) -> bool {
             return false;
         }
     }
+}
+
+pub(crate) fn hand_on(
+    store: &Path,
+    device: &str,
+    dest: &Path,
+    again: bool,
+    alike: &mut Alike,
+) -> Result<usize, Trouble> {
+    let there = dest.join(STORE);
+    let Ok(entries) = std::fs::read_dir(store) else {
+        return Ok(0);
+    };
+    let mut sent = 0;
+    for entry in entries.filter_map(|e| e.ok()) {
+        let named = entry.file_name();
+        let Some(named) = named.to_str() else {
+            continue;
+        };
+        if named.eq_ignore_ascii_case(device) || !entry.path().is_dir() {
+            continue;
+        }
+        let theirs = there.join(named);
+        let known = alike.of(named, &theirs, &entry.path()).clone();
+        if all_of(&entry.path(), &known) || !ours_reaches_further(&entry.path(), &theirs) {
+            continue;
+        }
+        plainly(&theirs)?;
+        let done = copy_segments(&entry.path(), &theirs, again, &known)?;
+        if done > 0 {
+            alike.again(named);
+        }
+        if done > 0 {
+            witness::note(
+                channel::SYNC,
+                "a history this machine was holding for another was handed on",
+                &[
+                    ("at", Fact::Id(named.to_string())),
+                    ("sent", Fact::Count(done)),
+                ],
+            );
+        }
+        sent += done;
+    }
+    Ok(sent)
+}
+
+pub(crate) fn ours_went_missing(mine: &Path, theirs: &Path) -> bool {
+    let held = match tisty_core::store::distinct_in(mine) {
+        Ok(held) => held,
+        Err(tisty_core::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => 0,
+        Err(_) => return false,
+    };
+    if tisty_core::store::check_device(theirs).is_err() {
+        return false;
+    }
+    let Ok(coming) = tisty_core::store::distinct_in(theirs) else {
+        return false;
+    };
+    coming > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
+}
+
+pub(crate) fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
+    let Ok(ours) = tisty_core::store::distinct_in(mine) else {
+        return false;
+    };
+    match tisty_core::store::check_device(theirs) {
+        Ok(_) => {}
+        Err(tisty_core::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {
+            return ours > 0;
+        }
+        Err(_) => return false,
+    }
+    let Ok(held) = tisty_core::store::distinct_in(theirs) else {
+        return false;
+    };
+    ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
 }

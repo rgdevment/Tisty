@@ -1,4 +1,4 @@
-use super::segments::same;
+use super::segments::{ours_reaches_further, same};
 use super::*;
 use std::path::PathBuf;
 use tisty_core::event::{DeviceId, TaskAdd};
@@ -5256,7 +5256,7 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let quiet = tisty_core::counting::from_now();
 
     assert!(
-        quiet <= 69,
-        "a round with nothing to carry opened {quiet} files where 69 is what it takes,          and the round before it opened {before}"
+        quiet <= 53,
+        "a round with nothing to carry opened {quiet} files where 53 is what it takes,          and the round before it opened {before}"
     );
 }

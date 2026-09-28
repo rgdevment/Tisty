@@ -4,7 +4,7 @@ mod segments;
 
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
-use segments::{Named, copy_segments, matching, sweep};
+use segments::{Alike, Named, all_of, copy_segments, hand_on, ours_went_missing, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -123,9 +123,10 @@ pub fn carry_telling(
     let giving = matches!(way, Way::Both | Way::Push | Way::Again);
 
     let mut moved = Moved::default();
+    let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        moved.brought = bring(&store, device, dest, &mut moved.unreadable)?;
+        moved.brought = bring(&store, device, dest, &mut moved.unreadable, &mut alike)?;
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);
@@ -147,7 +148,7 @@ pub fn carry_telling(
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
         moved.sent = copy_segments(&store.join(device), &mine, again, &Named::default())?;
-        moved.sent += hand_on(&store, device, dest, again)?;
+        moved.sent += hand_on(&store, device, dest, again, &mut alike)?;
     }
     let alive: Vec<String> = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
@@ -407,7 +408,7 @@ fn whole_of(device_dir: &Path) -> Whole {
     }
 }
 
-fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
+pub(crate) fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
     let (ours, theirs) = match (whole_of(here), whole_of(there)) {
         (Whole::Said(ours), Whole::Said(theirs)) => (ours, theirs),
         (Whole::Unread, _) | (_, Whole::Unread) => return Grew::Unread,
@@ -569,6 +570,7 @@ fn bring(
     device: &str,
     dest: &Path,
     unreadable: &mut Vec<String>,
+    alike: &mut Alike,
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
     let at = dest.join(STORE);
@@ -596,8 +598,8 @@ fn bring(
         }
         let mine = store.join(named);
         if named.eq_ignore_ascii_case(device) {
-            let (known, settled) = matching(&entry.path(), &mine);
-            if !settled && ours_went_missing(&mine, &entry.path()) {
+            let known = alike.of(named, &entry.path(), &mine).clone();
+            if !all_of(&entry.path(), &known) && ours_went_missing(&mine, &entry.path()) {
                 match tisty_core::store::alone(&mine) {
                     Some(_held) if ours_went_missing(&mine, &entry.path()) => {
                         witness::warn(
@@ -619,8 +621,8 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        let (known, settled) = matching(&entry.path(), &mine);
-        if !settled {
+        let known = alike.of(named, &entry.path(), &mine).clone();
+        if !all_of(&entry.path(), &known) {
             let coming = match tisty_core::store::check_device(&entry.path())
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
             {
@@ -683,74 +685,6 @@ fn bring(
         tisty_core::store::read_all(store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
     }
     Ok(brought)
-}
-
-fn hand_on(store: &Path, device: &str, dest: &Path, again: bool) -> Result<usize, Trouble> {
-    let there = dest.join(STORE);
-    let Ok(entries) = std::fs::read_dir(store) else {
-        return Ok(0);
-    };
-    let mut sent = 0;
-    for entry in entries.filter_map(|e| e.ok()) {
-        let named = entry.file_name();
-        let Some(named) = named.to_str() else {
-            continue;
-        };
-        if named.eq_ignore_ascii_case(device) || !entry.path().is_dir() {
-            continue;
-        }
-        let theirs = there.join(named);
-        let (known, settled) = matching(&entry.path(), &theirs);
-        if settled || !ours_reaches_further(&entry.path(), &theirs) {
-            continue;
-        }
-        plainly(&theirs)?;
-        let done = copy_segments(&entry.path(), &theirs, again, &known)?;
-        if done > 0 {
-            witness::note(
-                channel::SYNC,
-                "a history this machine was holding for another was handed on",
-                &[
-                    ("at", Fact::Id(named.to_string())),
-                    ("sent", Fact::Count(done)),
-                ],
-            );
-        }
-        sent += done;
-    }
-    Ok(sent)
-}
-
-fn ours_went_missing(mine: &Path, theirs: &Path) -> bool {
-    let held = match tisty_core::store::distinct_in(mine) {
-        Ok(held) => held,
-        Err(tisty_core::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => 0,
-        Err(_) => return false,
-    };
-    if tisty_core::store::check_device(theirs).is_err() {
-        return false;
-    }
-    let Ok(coming) = tisty_core::store::distinct_in(theirs) else {
-        return false;
-    };
-    coming > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
-}
-
-fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
-    let Ok(ours) = tisty_core::store::distinct_in(mine) else {
-        return false;
-    };
-    match tisty_core::store::check_device(theirs) {
-        Ok(_) => {}
-        Err(tisty_core::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {
-            return ours > 0;
-        }
-        Err(_) => return false,
-    }
-    let Ok(held) = tisty_core::store::distinct_in(theirs) else {
-        return false;
-    };
-    ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -1229,7 +1163,7 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     })
 }
 
-fn plainly(at: &Path) -> Result<(), Trouble> {
+pub(crate) fn plainly(at: &Path) -> Result<(), Trouble> {
     if std::fs::symlink_metadata(at).is_ok_and(|one| one.file_type().is_symlink()) {
         witness::warn(
             channel::SYNC,
