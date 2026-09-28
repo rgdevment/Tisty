@@ -78,6 +78,21 @@ fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGu
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+/// Disk work that grows with the store belongs on a thread of its own: a command that is an
+/// `async fn` runs on the executor, and the window stops drawing until it returns.
+async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Answer<T> {
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|e| {
+            witness::error(
+                channel::WINDOW,
+                "a piece of work never came back",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Refusal::of("internal")
+        })
+}
+
 fn today() -> jiff::civil::Date {
     jiff::Zoned::now().date()
 }

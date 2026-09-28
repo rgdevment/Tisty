@@ -5,8 +5,8 @@ use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
-    Answer, Carrying, Filter, OneAtATime, Refusal, Scope, Session, Settling, blamed, glimpse, held,
-    report, room, said, show, today, within,
+    Answer, Carrying, Filter, OneAtATime, Refusal, Scope, Session, Settling, blamed, elsewhere,
+    glimpse, held, report, room, said, session, show, today, within,
 };
 
 #[tauri::command]
@@ -15,7 +15,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, data, store, aside, device, alive, holds) = {
+    let (was, dest, paths, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -34,6 +34,7 @@ pub async fn settle_in(
         (
             was,
             dest,
+            session.paths.clone(),
             session.paths.data().to_path_buf(),
             session.paths.store(),
             session.paths.cache().to_path_buf(),
@@ -47,8 +48,9 @@ pub async fn settle_in(
     let mut stuck = None;
     let mut arrived = Vec::new();
     let mut carried = dest.is_none();
+    let _done = alone.inner().claim();
     if let Some(dest) = dest
-        && let Some(_done) = alone.inner().claim()
+        && _done.is_some()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
@@ -80,19 +82,29 @@ pub async fn settle_in(
         brought = tisty_core::cache::fingerprint(&store) != before;
     }
 
-    let mut session = held(&session);
     if brought {
-        session.reproject().map_err(|e| {
-            blamed(
-                channel::SYNC,
-                "the store would not project after carrying",
-                e,
-            )
-        })?;
+        let at = paths.clone();
+        let writes = held(&session).writes();
+        let fresh = elsewhere(move || session::projected(&at, writes))
+            .await?
+            .map_err(|e| {
+                blamed(
+                    channel::SYNC,
+                    "the store would not project after carrying",
+                    e,
+                )
+            })?;
+        held(&session).adopt(fresh);
     }
-    session.settle_what_arrived(&arrived);
-    let audit =
-        tisty_core::cache::audit(&session.paths.store(), session.paths.cache()).map_err(|e| {
+    let books = held(&session).books_among(&arrived);
+    let at = paths.clone();
+    let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
+    held(&session).settle_what_came(&read);
+
+    let at = paths.clone();
+    let audit = elsewhere(move || tisty_core::cache::audit(&at.store(), at.cache()))
+        .await?
+        .map_err(|e| {
             witness::error(
                 channel::CACHE,
                 "the cache could not be audited on settling in",
@@ -105,18 +117,28 @@ pub async fn settle_in(
         })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
-        let _ = std::fs::remove_dir_all(session.paths.cache());
-        session.reproject().map_err(|e| {
-            blamed(
-                channel::CACHE,
-                "the store would not project without a cache",
-                e,
-            )
-        })?;
+        let at = paths.clone();
+        let writes = {
+            let mut session = held(&session);
+            if let Some(cache) = session.cache.as_mut() {
+                cache.invalidate();
+            }
+            session.writes()
+        };
+        let fresh = elsewhere(move || session::projected(&at, writes))
+            .await?
+            .map_err(|e| {
+                blamed(
+                    channel::CACHE,
+                    "the store would not project without a cache",
+                    e,
+                )
+            })?;
+        held(&session).adopt(fresh);
     }
 
     if carried {
-        session.keep(|c| c.opened_by = Some(here.to_string()))?;
+        held(&session).keep(|c| c.opened_by = Some(here.to_string()))?;
     }
     Ok(Settling {
         ran: true,
@@ -318,13 +340,14 @@ pub async fn sync_now(
         });
     };
 
-    let (dest, data, store, aside, device, alive, holds) = {
+    let (dest, paths, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
         (
             dest,
+            session.paths.clone(),
             session.paths.data().to_path_buf(),
             session.paths.store(),
             session.paths.cache().to_path_buf(),
@@ -367,19 +390,42 @@ pub async fn sync_now(
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
 
-    let mut session = held(&session);
     let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
-        session.reproject().map_err(|e| {
-            blamed(
-                channel::SYNC,
-                "the store would not project after syncing",
-                e,
-            )
-        })?;
+        let at = paths.clone();
+        let writes = held(&session).writes();
+        let fresh = elsewhere(move || session::projected(&at, writes))
+            .await?
+            .map_err(|e| {
+                blamed(
+                    channel::SYNC,
+                    "the store would not project after syncing",
+                    e,
+                )
+            })?;
+        held(&session).adopt(fresh);
     }
-    session.settle_what_arrived(&done.arrived);
-    session.tidy_up(false);
+    let (job, was_swept) = {
+        let session = held(&session);
+        let job = session.sweeping(false);
+        let was = job.already();
+        (job, was)
+    };
+    let at = paths.clone();
+    let (_, swept) = elsewhere(move || {
+        tisty_core::parcel::swept(at.data());
+        tisty_core::attach::swept(at.data());
+        job.run()
+    })
+    .await?;
+
+    let books = held(&session).books_among(&done.arrived);
+    let at = paths.clone();
+    let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
+
+    let mut session = held(&session);
+    session.settle_what_came(&read);
+    session.swept(&was_swept, &swept);
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
@@ -645,13 +691,14 @@ pub async fn join_them(
         Refusal::about("cannotWrite", into)
     })?;
 
-    *held(&session) = Session::open().map_err(|e| {
+    let fresh = elsewhere(Session::open).await?.map_err(|e| {
         blamed(
             channel::BACKUP,
             "the session would not reopen after being reset",
             e,
         )
     })?;
+    *held(&session) = fresh;
     Ok(made.bytes)
 }
 
@@ -795,13 +842,14 @@ pub async fn merge_stores(
     .await
     .map_err(|_| Refusal::of("internal"))??;
 
-    *held(&session) = Session::open().map_err(|e| {
+    let fresh = elsewhere(Session::open).await?.map_err(|e| {
         blamed(
             channel::BACKUP,
             "the session would not reopen after joining",
             e,
         )
     })?;
+    *held(&session) = fresh;
     Ok(seam.stitch.is_some())
 }
 
@@ -831,13 +879,14 @@ pub async fn restore(
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 
-    *held(&session) = Session::open().map_err(|e| {
+    let fresh = elsewhere(Session::open).await?.map_err(|e| {
         blamed(
             channel::BACKUP,
             "the session would not reopen after a restore",
             e,
         )
     })?;
+    *held(&session) = fresh;
     Ok(done.files)
 }
 

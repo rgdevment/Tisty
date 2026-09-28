@@ -19,13 +19,13 @@ fn a_paper_the_log_shed_is_taken_out_once_and_not_looked_for_again() {
     state.shed.insert("dev_a-0001".into());
     let mut done = Already::default();
 
-    assert_eq!(papers(&paths, &state, None, &mut done), 1);
+    assert_eq!(papers(&paths, &state.shed, None, &mut done), 1);
     assert!(!paths.docs().join("dev_a-0001.md").exists());
     assert!(done.papers.contains("dev_a-0001"));
 
     a_paper(&paths, "dev_a-0001");
     assert_eq!(
-        papers(&paths, &state, None, &mut done),
+        papers(&paths, &state.shed, None, &mut done),
         0,
         "a set that only grows is not walked again"
     );
@@ -37,7 +37,7 @@ fn a_paper_the_log_shed_is_taken_out_once_and_not_looked_for_again() {
     state.shed.insert("dev_a-0002".into());
     a_paper(&paths, "dev_a-0002");
     assert_eq!(
-        papers(&paths, &state, None, &mut done),
+        papers(&paths, &state.shed, None, &mut done),
         1,
         "only the new one"
     );
@@ -52,7 +52,7 @@ fn nothing_retired_means_nobody_reads_every_document_to_find_out() {
 
     let gone = attachments(
         &paths,
-        &state,
+        &state.retired,
         None,
         || {
             asked.set(true);
@@ -81,7 +81,13 @@ fn an_attachment_something_still_names_is_left_and_asked_about_again() {
     let mut done = Already::default();
 
     assert_eq!(
-        attachments(&paths, &state, None, || vec![at.to_string()], &mut done),
+        attachments(
+            &paths,
+            &state.retired,
+            None,
+            || vec![at.to_string()],
+            &mut done
+        ),
         0
     );
     assert!(shelf.join("una-a3f90001.png").exists());
@@ -91,7 +97,7 @@ fn an_attachment_something_still_names_is_left_and_asked_about_again() {
     );
 
     assert_eq!(
-        attachments(&paths, &state, None, Vec::new, &mut done),
+        attachments(&paths, &state.retired, None, Vec::new, &mut done),
         1,
         "and once nothing names it, it goes"
     );
@@ -211,7 +217,7 @@ fn a_file_that_would_not_go_is_looked_for_again_next_time() {
     let mut done = Already::default();
 
     assert_eq!(
-        papers(&paths, &state, None, &mut done),
+        papers(&paths, &state.shed, None, &mut done),
         0,
         "it would not go"
     );
@@ -223,7 +229,7 @@ fn a_file_that_would_not_go_is_looked_for_again_next_time() {
     std::fs::remove_dir(&at).unwrap();
     std::fs::write(&at, b"# Algo").unwrap();
     assert_eq!(
-        papers(&paths, &state, None, &mut done),
+        papers(&paths, &state.shed, None, &mut done),
         1,
         "and then it goes"
     );
@@ -238,14 +244,14 @@ fn a_shared_folder_that_is_not_there_is_never_mistaken_for_a_tidy_one() {
     state.shed.insert("dev_a-0001".into());
     let mut done = Already::default();
 
-    papers(&paths, &state, Some(&away), &mut done);
+    papers(&paths, &state.shed, Some(&away), &mut done);
     assert!(
         done.papers.is_empty(),
         "an unmounted drive looks exactly like an empty one, so nothing is written off"
     );
 
     std::fs::create_dir_all(away.join("docs")).unwrap();
-    papers(&paths, &state, Some(&away), &mut done);
+    papers(&paths, &state.shed, Some(&away), &mut done);
     assert!(
         done.papers.contains("dev_a-0001"),
         "once it is there, it counts"

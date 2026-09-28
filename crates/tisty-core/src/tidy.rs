@@ -28,6 +28,77 @@ pub struct Already {
     pub attachments: BTreeSet<String>,
 }
 
+/// What a sweep needs from the store, taken while whoever owns the state can be asked, so the
+/// walking of the folders can happen anywhere. Reading what the tasks point at parses every
+/// description, so it is only paid when there is something owed.
+pub struct Sweeping {
+    paths: Paths,
+    shed: BTreeSet<String>,
+    retired: BTreeSet<String>,
+    named: Vec<String>,
+    dest: Option<std::path::PathBuf>,
+    bin: bool,
+    done: Already,
+}
+
+impl Sweeping {
+    pub fn of(
+        paths: &Paths,
+        state: &State,
+        cache: Option<&crate::cache::Cache>,
+        dest: Option<&Path>,
+        bin: bool,
+    ) -> Self {
+        let done = cache.map(|one| one.already()).unwrap_or_default();
+        let owed = state.retired.difference(&done.attachments).next().is_some();
+        Self {
+            paths: paths.clone(),
+            shed: state.shed.clone(),
+            retired: state.retired.clone(),
+            named: match owed {
+                true => state
+                    .tasks
+                    .values()
+                    .flat_map(|task| task.references())
+                    .map(|one| one.target)
+                    .collect(),
+                false => Vec::new(),
+            },
+            dest: dest.map(Path::to_path_buf),
+            bin,
+            done,
+        }
+    }
+
+    pub fn already(&self) -> Already {
+        self.done.clone()
+    }
+
+    pub fn run(self) -> (Swept, Already) {
+        let Self {
+            paths,
+            shed,
+            retired,
+            named,
+            dest,
+            bin,
+            mut done,
+        } = self;
+        let dest = dest.as_deref();
+        let held = || {
+            let mut all = named;
+            all.extend(crate::docs::referenced(&paths.docs()));
+            all
+        };
+        let swept = Swept {
+            papers: papers(&paths, &shed, dest, &mut done),
+            attachments: attachments(&paths, &retired, dest, held, &mut done),
+            binned: if bin { self::bin(&paths) } else { 0 },
+        };
+        (swept, done)
+    }
+}
+
 pub fn all_of_it(
     paths: &Paths,
     state: &State,
@@ -35,24 +106,9 @@ pub fn all_of_it(
     dest: Option<&Path>,
     bin: bool,
 ) -> Swept {
-    let mut done = cache.map(|one| one.already()).unwrap_or_default();
-    let was = done.clone();
-
-    let held = || {
-        let mut named: Vec<String> = state
-            .tasks
-            .values()
-            .flat_map(|task| task.references())
-            .map(|one| one.target)
-            .collect();
-        named.extend(crate::docs::referenced(&paths.docs()));
-        named
-    };
-    let swept = Swept {
-        papers: papers(paths, state, dest, &mut done),
-        attachments: attachments(paths, state, dest, held, &mut done),
-        binned: if bin { self::bin(paths) } else { 0 },
-    };
+    let job = Sweeping::of(paths, state, cache, dest, bin);
+    let was = job.already();
+    let (swept, done) = job.run();
     if done != was
         && let Some(cache) = cache
     {
@@ -61,24 +117,45 @@ pub fn all_of_it(
     swept
 }
 
-pub fn settling_what_arrived(paths: &Paths, state: &State, files: &[String]) -> Vec<crate::Op> {
+/// Reading the bodies is the slow half and needs nothing but the folder, so whoever holds the
+/// state can ask for the books, have them read elsewhere, and hand back what came.
+pub fn bodies_of(paths: &Paths, books: &[String]) -> Vec<(String, String)> {
     let root = paths.docs();
-    let mut told = Vec::new();
-    for file in state.books_among(files) {
-        match crate::docs::read(&root, &file) {
-            Ok(body) => told.extend(state.settling(&file, &body)),
+    let mut read = Vec::new();
+    for file in books {
+        match crate::docs::read(&root, file) {
+            Ok(body) => read.push((file.clone(), body)),
             Err(e) => witness::warn(
                 channel::SYNC,
                 "a document that arrived could not be read to settle its pages",
-                &[("file", Fact::Id(file)), ("why", Fact::Why(e.to_string()))],
+                &[
+                    ("file", Fact::Id(file.clone())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
             ),
         }
     }
-    told
+    read
 }
 
-pub fn papers(paths: &Paths, state: &State, dest: Option<&Path>, done: &mut Already) -> usize {
-    let owed: BTreeSet<String> = state.shed.difference(&done.papers).cloned().collect();
+pub fn settling_what_came(state: &State, read: &[(String, String)]) -> Vec<crate::Op> {
+    read.iter()
+        .flat_map(|(file, body)| state.settling(file, body))
+        .collect()
+}
+
+pub fn settling_what_arrived(paths: &Paths, state: &State, files: &[String]) -> Vec<crate::Op> {
+    let read = bodies_of(paths, &state.books_among(files));
+    settling_what_came(state, &read)
+}
+
+pub fn papers(
+    paths: &Paths,
+    shed: &BTreeSet<String>,
+    dest: Option<&Path>,
+    done: &mut Already,
+) -> usize {
+    let owed: BTreeSet<String> = shed.difference(&done.papers).cloned().collect();
     if owed.is_empty() {
         return 0;
     }
@@ -104,16 +181,12 @@ pub fn papers(paths: &Paths, state: &State, dest: Option<&Path>, done: &mut Alre
 
 pub fn attachments(
     paths: &Paths,
-    state: &State,
+    retired: &BTreeSet<String>,
     dest: Option<&Path>,
     held: impl FnOnce() -> Vec<String>,
     done: &mut Already,
 ) -> usize {
-    let owed: BTreeSet<String> = state
-        .retired
-        .difference(&done.attachments)
-        .cloned()
-        .collect();
+    let owed: BTreeSet<String> = retired.difference(&done.attachments).cloned().collect();
     if owed.is_empty() {
         return 0;
     }
