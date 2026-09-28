@@ -17,6 +17,19 @@ pub struct Session {
     pub log: Option<(String, Vec<Event>)>,
 }
 
+pub struct Projected {
+    state: State,
+    print: String,
+}
+
+/// The fingerprint is taken before the reading, so a store written while this runs leaves the
+/// session looking older than it is and the next reload projects again, rather than the reverse.
+pub fn projected(paths: &Paths) -> tisty_core::Result<Projected> {
+    let print = tisty_core::cache::fingerprint(&paths.store());
+    let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
+    Ok(Projected { state, print })
+}
+
 /// What the toolkit says goes where everything else does. Without this its own refusals — an
 /// asset it would not serve, a window it could not draw — are written to a logger nobody set up,
 /// so they leave no trace at all and the window simply shows nothing.
@@ -154,9 +167,13 @@ impl Session {
     }
 
     pub fn reproject(&mut self) -> tisty_core::Result<()> {
-        self.state = tisty_core::cache::project(&self.paths.store(), self.paths.cache())?;
-        self.print = tisty_core::cache::fingerprint(&self.paths.store());
+        self.adopt(projected(&self.paths)?);
         Ok(())
+    }
+
+    pub fn adopt(&mut self, fresh: Projected) {
+        self.state = fresh.state;
+        self.print = fresh.print;
     }
 
     pub fn alive(&self) -> Vec<String> {
