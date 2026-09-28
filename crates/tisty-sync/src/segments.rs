@@ -120,7 +120,8 @@ pub(crate) fn copy_segments(
         }
 
         let target = into.join(named);
-        if !again && (known.contains(named) || same(&at, &target)) {
+        let sealed = named.to_str().is_some_and(tisty_core::store::is_sealed);
+        if !again && ((sealed && known.contains(named)) || same(&at, &target)) {
             continue;
         }
         copy_onto(&at, &target)?;
