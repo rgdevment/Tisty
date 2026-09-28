@@ -9,6 +9,30 @@ use crate::{
     glimpse, held, report, room, said, session, show, today, within,
 };
 
+/// A projection is read without the lock, so a commit can land while it runs and the state that
+/// comes back would be missing it. Reading again is cheaper than acting on what is already known
+/// to be stale, and a second round only happens if somebody wrote during the first.
+async fn catching_up(
+    session: &tauri::State<'_, Mutex<Session>>,
+    paths: &tisty_core::Paths,
+    said: &'static str,
+    channel: &'static str,
+) -> Answer<()> {
+    for _ in 0..2 {
+        let at = paths.clone();
+        let writes = held(session).writes();
+        let fresh = elsewhere(move || session::projected(&at, writes))
+            .await?
+            .map_err(|e| blamed(channel, said, e))?;
+        let mut session = held(session);
+        session.adopt(fresh);
+        if !session.behind() {
+            break;
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn settle_in(
     session: tauri::State<'_, Mutex<Session>>,
@@ -48,9 +72,8 @@ pub async fn settle_in(
     let mut stuck = None;
     let mut arrived = Vec::new();
     let mut carried = dest.is_none();
-    let _done = alone.inner().claim();
     if let Some(dest) = dest
-        && _done.is_some()
+        && let Some(_done) = alone.inner().claim()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
@@ -83,23 +106,21 @@ pub async fn settle_in(
     }
 
     if brought {
-        let at = paths.clone();
-        let writes = held(&session).writes();
-        let fresh = elsewhere(move || session::projected(&at, writes))
-            .await?
-            .map_err(|e| {
-                blamed(
-                    channel::SYNC,
-                    "the store would not project after carrying",
-                    e,
-                )
-            })?;
-        held(&session).adopt(fresh);
+        catching_up(
+            &session,
+            &paths,
+            "the store would not project after carrying",
+            channel::SYNC,
+        )
+        .await?;
     }
-    let books = held(&session).books_among(&arrived);
+    let (books, since) = {
+        let session = held(&session);
+        (session.books_among(&arrived), session.writes())
+    };
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
-    held(&session).settle_what_came(&read);
+    held(&session).settle_what_came(&read, since);
 
     let at = paths.clone();
     let audit = elsewhere(move || tisty_core::cache::audit(&at.store(), at.cache()))
@@ -117,6 +138,9 @@ pub async fn settle_in(
         })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
+        // Rebuilding is as heavy as a carry, and nothing else should be reading the cache while
+        // it goes; a machine whose cache agrees never takes this and is refused nothing.
+        let _done = alone.inner().claim();
         let at = paths.clone();
         let writes = {
             let mut session = held(&session);
@@ -135,6 +159,15 @@ pub async fn settle_in(
                 )
             })?;
         held(&session).adopt(fresh);
+        if held(&session).behind() {
+            catching_up(
+                &session,
+                &paths,
+                "the store would not project without a cache",
+                channel::CACHE,
+            )
+            .await?;
+        }
     }
 
     if carried {
@@ -392,18 +425,13 @@ pub async fn sync_now(
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
-        let at = paths.clone();
-        let writes = held(&session).writes();
-        let fresh = elsewhere(move || session::projected(&at, writes))
-            .await?
-            .map_err(|e| {
-                blamed(
-                    channel::SYNC,
-                    "the store would not project after syncing",
-                    e,
-                )
-            })?;
-        held(&session).adopt(fresh);
+        catching_up(
+            &session,
+            &paths,
+            "the store would not project after syncing",
+            channel::SYNC,
+        )
+        .await?;
     }
     let (job, was_swept) = {
         let session = held(&session);
@@ -412,20 +440,23 @@ pub async fn sync_now(
         (job, was)
     };
     let at = paths.clone();
-    let (_, swept) = elsewhere(move || {
+    let walked = elsewhere(move || {
         tisty_core::parcel::swept(at.data());
         tisty_core::attach::swept(at.data());
-        job.run()
+        job.walk()
     })
     .await?;
 
-    let books = held(&session).books_among(&done.arrived);
+    let (books, since) = {
+        let session = held(&session);
+        (session.books_among(&done.arrived), session.writes())
+    };
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
 
     let mut session = held(&session);
-    session.settle_what_came(&read);
-    session.swept(&was_swept, &swept);
+    session.settle_what_came(&read, since);
+    session.swept(&was_swept, walked);
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
