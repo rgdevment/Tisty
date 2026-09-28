@@ -26,6 +26,37 @@ pub struct Already {
     pub papers: BTreeSet<String>,
     #[serde(default)]
     pub attachments: BTreeSet<String>,
+    #[serde(default)]
+    pub papers_up: BTreeSet<String>,
+    #[serde(default)]
+    pub attachments_up: BTreeSet<String>,
+    #[serde(default)]
+    pub up_to: Option<String>,
+}
+
+impl Already {
+    fn facing(&mut self, dest: Option<&Path>) {
+        let Some(now) = dest.and_then(crate::paths::told_apart) else {
+            return;
+        };
+        if self.up_to.as_deref() != Some(now.as_str()) {
+            self.papers_up.clear();
+            self.attachments_up.clear();
+            self.up_to = Some(now);
+        }
+    }
+
+    fn owes(&self, all: &BTreeSet<String>, dest: bool, up: bool) -> BTreeSet<String> {
+        let (here, there) = match up {
+            true => (&self.attachments, &self.attachments_up),
+            false => (&self.papers, &self.papers_up),
+        };
+        let mut owed: BTreeSet<String> = all.difference(here).cloned().collect();
+        if dest {
+            owed.extend(all.difference(there).cloned());
+        }
+        owed
+    }
 }
 
 pub struct Sweeping {
@@ -51,14 +82,15 @@ impl Sweeping {
         dest: Option<&Path>,
         bin: bool,
     ) -> Self {
-        let done = cache.map(|one| one.already()).unwrap_or_default();
+        let mut done = cache.map(|one| one.already()).unwrap_or_default();
+        done.facing(dest);
         Self {
             paths: paths.clone(),
             shed: state.shed.clone(),
             retired: state.retired.clone(),
             dest: dest.map(Path::to_path_buf),
             bin,
-            owed: state.retired.difference(&done.attachments).next().is_some(),
+            owed: !done.owes(&state.retired, dest.is_some(), true).is_empty(),
             done,
         }
     }
@@ -164,7 +196,7 @@ pub fn papers(
     dest: Option<&Path>,
     done: &mut Already,
 ) -> usize {
-    let owed: BTreeSet<String> = shed.difference(&done.papers).cloned().collect();
+    let owed = done.owes(shed, dest.is_some(), false);
     if owed.is_empty() {
         return 0;
     }
@@ -174,10 +206,17 @@ pub fn papers(
         gone += crate::docs::sweep(&dest.join("docs"), &owed);
     }
     forget_the_prints(paths, &owed);
-    done.papers.extend(owed.into_iter().filter(|file| {
-        let here = |root: &Path| went(root, crate::docs::resolve(root, file));
-        here(&paths.docs()) && dest.is_none_or(|_| reach.is_some_and(|at| here(&at.join("docs"))))
-    }));
+    let here = |file: &String| went(&paths.docs(), crate::docs::resolve(&paths.docs(), file));
+    done.papers
+        .extend(owed.iter().filter(|file| here(file)).cloned());
+    if let Some(at) = reach {
+        let up = |file: &String| {
+            let there = at.join("docs");
+            went(&there, crate::docs::resolve(&there, file))
+        };
+        done.papers_up
+            .extend(owed.iter().filter(|file| up(file)).cloned());
+    }
     if gone > 0 {
         witness::note(
             channel::SYNC,
@@ -195,7 +234,7 @@ pub fn attachments(
     held: impl FnOnce() -> Vec<String>,
     done: &mut Already,
 ) -> usize {
-    let owed: BTreeSet<String> = retired.difference(&done.attachments).cloned().collect();
+    let owed = done.owes(retired, dest.is_some(), true);
     if owed.is_empty() {
         return 0;
     }
@@ -206,12 +245,18 @@ pub fn attachments(
     if let Some(dest) = reach {
         gone += crate::attach::sweep(dest, &owed, &held);
     }
-    done.attachments.extend(owed.into_iter().filter(|one| {
-        let here = |root: &Path| went(root, crate::attach::resolve(one, root));
-        !held.contains(one.as_str())
-            && here(paths.data())
-            && dest.is_none_or(|_| reach.is_some_and(here))
-    }));
+    let went_from = |root: &Path, one: &String| {
+        !held.contains(one.as_str()) && went(root, crate::attach::resolve(one, root))
+    };
+    done.attachments.extend(
+        owed.iter()
+            .filter(|one| went_from(paths.data(), one))
+            .cloned(),
+    );
+    if let Some(at) = reach {
+        done.attachments_up
+            .extend(owed.iter().filter(|one| went_from(at, one)).cloned());
+    }
     if gone > 0 {
         witness::note(
             channel::ATTACH,

@@ -5659,10 +5659,10 @@ fn a_history_taken_back_is_counted_as_it_comes() {
     assert!(mine.join("active.tisty").is_file());
 }
 
-fn handed_on(paths: &tisty_core::paths::Paths) -> Vec<String> {
+fn handed_on(paths: &tisty_core::paths::Paths, who: &str) -> Vec<String> {
     tisty_core::witness::recent(paths, 200)
         .into_iter()
-        .filter(|line| line.contains("was holding for another was handed on"))
+        .filter(|line| line.contains("was holding for another was handed on") && line.contains(who))
         .collect()
 }
 
@@ -5672,7 +5672,7 @@ fn a_history_handed_on_is_written_down_and_a_round_that_moved_none_is_not() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
-    sown(&one.store, "dev_c", 1);
+    sown(&one.store, "dev_written_down", 1);
 
     let kept = tempfile::tempdir().unwrap();
     let paths = watching(kept.path());
@@ -5680,13 +5680,13 @@ fn a_history_handed_on_is_written_down_and_a_round_that_moved_none_is_not() {
     let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
 
     assert_eq!(sent, 1);
-    assert_eq!(handed_on(&paths).len(), 1);
+    assert_eq!(handed_on(&paths, "dev_written_down").len(), 1);
 
     let mut alike = Alike::default();
     hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
 
     assert_eq!(
-        handed_on(&paths).len(),
+        handed_on(&paths, "dev_written_down").len(),
         1,
         "the second round moved nothing, so it had nothing to say"
     );
@@ -5720,5 +5720,102 @@ fn what_was_written_after_the_round_looked_still_goes_up() {
         tisty_core::store::distinct_in(&theirs).unwrap(),
         tisty_core::store::distinct_in(&mine).unwrap(),
         "the folder is missing what was written while the round was looking elsewhere"
+    );
+}
+
+fn half_a_copy(at: &Path, who: &str, ago: u64) -> PathBuf {
+    let one = at.join(format!("active.{who}.0.part"));
+    std::fs::write(&one, b"half of what another machine is writing").unwrap();
+    let when = std::time::SystemTime::now() - std::time::Duration::from_secs(ago);
+    std::fs::File::options()
+        .write(true)
+        .open(&one)
+        .unwrap()
+        .set_modified(when)
+        .unwrap();
+    one
+}
+
+#[test]
+fn a_copy_another_machine_has_in_flight_outlives_our_round() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let theirs = half_a_copy(
+        &shared.path().join(STORE).join(&one.device),
+        &std::process::id().to_string(),
+        60,
+    );
+
+    wrote(&one, "algo mas".into());
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    assert!(
+        theirs.is_file(),
+        "two machines can be given one process number, and this round took a copy the other was making"
+    );
+}
+
+#[test]
+fn a_copy_nobody_came_back_for_is_swept_whoever_left_it() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let theirs = half_a_copy(
+        &shared.path().join(STORE).join(&one.device),
+        "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        25 * 60 * 60,
+    );
+
+    wrote(&one, "algo mas".into());
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    assert!(
+        !theirs.exists(),
+        "what a machine that is gone left in the folder stayed there for ever"
+    );
+}
+
+#[test]
+fn a_meeting_place_named_another_way_is_still_the_one_we_carried_to() {
+    let one = machine("uno");
+    let aside = tempfile::tempdir().unwrap();
+    let aside = Some(aside.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
+
+    std::fs::create_dir_all(shared.path().join("a-way-round")).unwrap();
+    let same = shared.path().join("a-way-round").join("..");
+    let stopped = carry_leaning_on(&one.data, aside, &one.device, &same, Way::Both, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Emptied(_))),
+        "the same folder spelled another way was taken for a new one: {stopped:?}"
+    );
+}
+
+#[test]
+fn a_meeting_place_we_never_carried_to_is_taken_up_without_a_word() {
+    let one = machine("uno");
+    let aside = tempfile::tempdir().unwrap();
+    let aside = Some(aside.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let elsewhere = tempfile::tempdir().unwrap();
+    carry_leaning_on(
+        &one.data,
+        aside,
+        &one.device,
+        elsewhere.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+
+    assert!(
+        elsewhere.path().join(STORE).join(&one.device).is_dir(),
+        "a folder we had never carried to was refused as if it had been emptied"
     );
 }

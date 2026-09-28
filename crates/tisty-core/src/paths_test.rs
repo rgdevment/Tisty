@@ -1,4 +1,4 @@
-use super::{aside, named};
+use super::{as_written, aside, named, told_apart};
 use std::path::PathBuf;
 
 #[test]
@@ -123,4 +123,27 @@ fn store_docs_and_attachments_are_all_synced() {
     for path in [p.store(), p.docs(), p.attachments()] {
         assert!(path.starts_with(p.data()), "{path:?} should be synced");
     }
+}
+
+#[test]
+fn a_folder_written_down_is_the_one_the_disk_agrees_on() {
+    let room = tempfile::tempdir().unwrap();
+    let one = room.path().join("one");
+    let two = room.path().join("two");
+    std::fs::create_dir_all(&one).unwrap();
+    std::fs::create_dir_all(&two).unwrap();
+
+    assert_eq!(as_written(&one), as_written(&one.join("..").join("one")));
+    assert_ne!(as_written(&one), as_written(&two));
+    assert_eq!(told_apart(&one).as_deref(), Some(as_written(&one).as_str()));
+    assert_ne!(told_apart(&one), told_apart(&two));
+}
+
+#[test]
+fn a_folder_that_is_not_there_is_written_down_as_it_was_asked_for() {
+    let room = tempfile::tempdir().unwrap();
+    let nowhere = room.path().join("nowhere");
+
+    assert_eq!(as_written(&nowhere), nowhere.display().to_string());
+    assert_eq!(told_apart(&nowhere), None);
 }

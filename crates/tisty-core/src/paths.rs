@@ -149,6 +149,19 @@ pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn as_written(at: &Path) -> String {
+    std::fs::canonicalize(at)
+        .unwrap_or_else(|_| at.to_path_buf())
+        .display()
+        .to_string()
+}
+
+pub fn told_apart(at: &Path) -> Option<String> {
+    std::fs::canonicalize(at)
+        .ok()
+        .map(|one| one.display().to_string())
+}
+
 pub fn profile() -> Option<String> {
     named(&std::env::var(PROFILE_ENV).ok()?)
 }

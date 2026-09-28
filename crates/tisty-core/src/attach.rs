@@ -100,10 +100,9 @@ pub fn swept(data: &Path) {
     let Ok(entries) = std::fs::read_dir(data.join("attachments")) else {
         return;
     };
-    let mine = format!(".{}.", std::process::id());
     for at in entries.filter_map(|one| one.ok()).map(|one| one.path()) {
         let named = at.file_name().and_then(|one| one.to_str()).unwrap_or("");
-        if named.ends_with(".part") && !named.starts_with(&mine) && at.is_file() {
+        if at.is_file() && crate::parting::spent(&at, named) {
             let _ = std::fs::remove_file(&at);
         }
     }
@@ -136,8 +135,7 @@ pub fn keep(source: &Path, root: &Path, limit: u64) -> Result<Kept> {
 
 fn parting() -> String {
     static TURN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let turn = TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    format!(".{}.{turn}.part", std::process::id())
+    crate::parting::named(TURN.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
 }
 
 fn through(
