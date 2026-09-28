@@ -1,15 +1,17 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::cell::Cell;
 
-static OPENED: AtomicU64 = AtomicU64::new(0);
+thread_local! {
+    static OPENED: Cell<u64> = const { Cell::new(0) };
+}
 
 pub fn opened() {
-    OPENED.fetch_add(1, Ordering::Relaxed);
+    OPENED.with(|one| one.set(one.get() + 1));
 }
 
 pub fn opens() -> u64 {
-    OPENED.load(Ordering::Relaxed)
+    OPENED.with(Cell::get)
 }
 
 pub fn from_now() -> u64 {
-    OPENED.swap(0, Ordering::Relaxed)
+    OPENED.with(|one| one.replace(0))
 }

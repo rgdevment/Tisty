@@ -5207,7 +5207,37 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let shared = tempfile::tempdir().unwrap();
     many_segments(&one, 3);
 
-    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let alive: Vec<String> = (0..40)
+        .map(|n| {
+            let id = format!("dev_a-{n:04}");
+            filed(
+                &one,
+                &id,
+                &format!(
+                    "# doc {n}
+
+{}",
+                    "cuerpo de prueba
+"
+                    .repeat(30)
+                ),
+            );
+            wrote_body(
+                &one.data.join(PAPERS),
+                &id,
+                &format!(
+                    "# doc {n}
+
+{}",
+                    "cuerpo de prueba
+"
+                    .repeat(30)
+                ),
+            );
+            id
+        })
+        .collect();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
 
     let two = machine("dev_b");
     many_segments(&two, 3);
@@ -5218,15 +5248,15 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
         std::fs::copy(&at, theirs.join(at.file_name().unwrap())).unwrap();
     }
 
-    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
-    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
 
     let before = tisty_core::counting::from_now();
-    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &alive).unwrap();
     let quiet = tisty_core::counting::from_now();
 
     assert!(
         quiet <= 69,
-        "a round with nothing to carry opened {quiet} files, and it used to open 69          (the warm-up round before it opened {before})"
+        "a round with nothing to carry opened {quiet} files where 69 is what it takes,          and the round before it opened {before}"
     );
 }
