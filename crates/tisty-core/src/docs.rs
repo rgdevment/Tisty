@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 
 use std::io::Read;
 
-
 use crate::{Error, Result, event::DeviceId, store::write_atomic};
 
 mod cards;
