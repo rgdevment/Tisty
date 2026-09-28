@@ -1,5 +1,7 @@
 mod guarding;
+mod segments;
 
+use segments::{Named, copy_segments, matching, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -141,7 +143,7 @@ pub fn carry_telling(
         }
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
-        moved.sent = copy_segments(&store.join(device), &mine, again)?;
+        moved.sent = copy_segments(&store.join(device), &mine, again, &Named::default())?;
         moved.sent += hand_on(&store, device, dest, again)?;
     }
     let alive: Vec<String> = match &said {
@@ -611,7 +613,8 @@ fn bring(
         }
         let mine = store.join(named);
         if named.eq_ignore_ascii_case(device) {
-            if !settled_already(&entry.path(), &mine) && ours_went_missing(&mine, &entry.path()) {
+            let (known, settled) = matching(&entry.path(), &mine);
+            if !settled && ours_went_missing(&mine, &entry.path()) {
                 match tisty_core::store::alone(&mine) {
                     Some(_held) if ours_went_missing(&mine, &entry.path()) => {
                         witness::warn(
@@ -620,7 +623,7 @@ fn bring(
                             &[("at", Fact::Id(named.to_string()))],
                         );
                         plainly(&mine)?;
-                        brought += copy_segments(&entry.path(), &mine, false)?;
+                        brought += copy_segments(&entry.path(), &mine, false, &known)?;
                     }
                     Some(_) => {}
                     None => witness::warn(
@@ -633,7 +636,8 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        if !settled_already(&entry.path(), &mine) {
+        let (known, settled) = matching(&entry.path(), &mine);
+        if !settled {
             let coming = match tisty_core::store::check_device(&entry.path())
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
             {
@@ -689,7 +693,7 @@ fn bring(
                 continue;
             }
         }
-        brought += copy_segments(&entry.path(), &mine, false)?;
+        brought += copy_segments(&entry.path(), &mine, false, &known)?;
     }
 
     if brought > 0 {
@@ -713,12 +717,12 @@ fn hand_on(store: &Path, device: &str, dest: &Path, again: bool) -> Result<usize
             continue;
         }
         let theirs = there.join(named);
-        if settled_already(&entry.path(), &theirs) || !ours_reaches_further(&entry.path(), &theirs)
-        {
+        let (known, settled) = matching(&entry.path(), &theirs);
+        if settled || !ours_reaches_further(&entry.path(), &theirs) {
             continue;
         }
         plainly(&theirs)?;
-        let done = copy_segments(&entry.path(), &theirs, again)?;
+        let done = copy_segments(&entry.path(), &theirs, again, &known)?;
         if done > 0 {
             witness::note(
                 channel::SYNC,
@@ -764,86 +768,6 @@ fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
         return false;
     };
     ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
-}
-
-fn settled_already(theirs: &Path, mine: &Path) -> bool {
-    let Ok(offered) = tisty_core::store::segments_in(theirs) else {
-        return false;
-    };
-    !offered.is_empty()
-        && offered.iter().all(|at| {
-            at.file_name()
-                .is_some_and(|named| same(at, &mine.join(named)))
-        })
-}
-
-fn copy_segments(from: &Path, into: &Path, again: bool) -> Result<usize, Trouble> {
-    let carried = match tisty_core::store::segments_in(from) {
-        Ok(carried) => carried,
-        Err(e) => {
-            if !matches!(&e, tisty_core::Error::Io(io) if io.kind() == std::io::ErrorKind::NotFound)
-            {
-                witness::warn(
-                    channel::SYNC,
-                    "segments unlistable",
-                    &[
-                        ("at", Fact::Path(from.to_path_buf())),
-                        ("why", Fact::Why(e.to_string())),
-                    ],
-                );
-            }
-            return Ok(0);
-        }
-    };
-    if carried.is_empty() {
-        return Ok(0);
-    }
-    std::fs::create_dir_all(into).map_err(io)?;
-    sweep(into);
-    let mut done = 0;
-    for at in carried {
-        let Some(named) = at.file_name() else {
-            continue;
-        };
-        let counter = at.with_extension("count");
-        if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
-            let target = into.join(tally);
-            if again || !same(&counter, &target) {
-                copy_onto(&counter, &target)?;
-            }
-        }
-
-        let target = into.join(named);
-        if !again && same(&at, &target) {
-            continue;
-        }
-        copy_onto(&at, &target)?;
-        done += 1;
-    }
-    Ok(done)
-}
-
-fn sweep(dir: &Path) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    let mine = format!(".{}.", std::process::id());
-    for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
-        let ours = at
-            .file_name()
-            .and_then(|n| n.to_str())
-            .is_some_and(|n| n.ends_with(".part") && n.contains(&mine));
-        if ours && let Err(e) = std::fs::remove_file(&at) {
-            witness::warn(
-                channel::SYNC,
-                "leftover not removed",
-                &[
-                    ("at", Fact::Path(at.clone())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-        }
-    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -1105,37 +1029,6 @@ fn copy_held(
         );
     }
     Ok(done)
-}
-
-fn same(from: &Path, to: &Path) -> bool {
-    use std::io::Read;
-
-    let (Ok(a), Ok(b)) = (std::fs::metadata(from), std::fs::metadata(to)) else {
-        return false;
-    };
-    if a.len() != b.len() {
-        return false;
-    }
-    if a.len() == 0 {
-        return true;
-    }
-    let (Ok(here), Ok(there)) = (std::fs::File::open(from), std::fs::File::open(to)) else {
-        return false;
-    };
-    let mut here = std::io::BufReader::new(here);
-    let mut there = std::io::BufReader::new(there);
-    let mut one = [0u8; 16 * 1024];
-    let mut two = [0u8; 16 * 1024];
-    loop {
-        let read = match here.read(&mut one) {
-            Ok(0) => return true,
-            Ok(read) => read,
-            Err(_) => return false,
-        };
-        if there.read_exact(&mut two[..read]).is_err() || one[..read] != two[..read] {
-            return false;
-        }
-    }
 }
 
 static ROUND: AtomicU64 = AtomicU64::new(0);

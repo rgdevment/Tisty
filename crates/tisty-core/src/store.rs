@@ -484,6 +484,7 @@ fn last_line(path: &Path) -> Result<Option<String>> {
     use std::io::{Read, Seek};
 
     let mut file = File::open(path)?;
+    crate::counting::opened();
     let weighs = file.metadata()?.len();
     if weighs == 0 {
         return Ok(None);
@@ -590,6 +591,7 @@ pub fn read_tail(path: &Path, from: u64) -> Result<Vec<Event>> {
 
 fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usize> {
     let mut file = File::open(path)?;
+    crate::counting::opened();
     if from > 0 {
         use std::io::Seek;
         file.seek(std::io::SeekFrom::Start(from))?;

@@ -376,6 +376,7 @@ pub fn read_outside(at: &Path) -> Result<String> {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
     let file = std::fs::File::open(at)?;
+    crate::counting::opened();
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
@@ -393,6 +394,7 @@ pub fn read_outside(at: &Path) -> Result<String> {
 pub fn read(root: &Path, id: &str) -> Result<String> {
     let at = resolve(root, id)?;
     let file = std::fs::File::open(&at)?;
+    crate::counting::opened();
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(id.to_string()));
     }
