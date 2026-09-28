@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const rust = readFileSync(resolve(process.cwd(), "src-tauri/src/lib.rs"), "utf8");
+const rust = readFileSync(resolve(process.cwd(), "src-tauri/src/summing.rs"), "utf8");
 
 const made = new Set(
   [
