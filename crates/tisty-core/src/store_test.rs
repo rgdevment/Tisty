@@ -1234,3 +1234,12 @@ fn a_machine_that_just_rotated_is_still_read_from_the_segment_behind() {
 
     assert_eq!(newest_schema(&at).unwrap(), 99);
 }
+
+#[test]
+fn the_one_still_being_written_to_is_the_only_segment_that_is_not_sealed() {
+    assert!(is_sealed("000001.tisty"));
+    assert!(is_sealed("0000000001.tisty"));
+    assert!(!is_sealed("active.tisty"));
+    assert!(!is_sealed("notes.txt"));
+    assert!(!is_sealed("00001.count"));
+}

@@ -435,6 +435,10 @@ pub fn is_segment(name: &str) -> bool {
         })
 }
 
+pub fn is_sealed(name: &str) -> bool {
+    is_segment(name) && name != ACTIVE
+}
+
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
     let mut found: Vec<PathBuf> = std::fs::read_dir(device_dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
