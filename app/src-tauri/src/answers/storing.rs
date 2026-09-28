@@ -116,8 +116,10 @@ pub async fn settle_in(
     if !agrees {
         let at = paths.clone();
         let writes = {
-            let session = held(&session);
-            let _ = std::fs::remove_dir_all(session.paths.cache());
+            let mut session = held(&session);
+            if let Some(cache) = session.cache.as_mut() {
+                cache.invalidate();
+            }
             session.writes()
         };
         let fresh = elsewhere(move || session::projected(&at, writes))
