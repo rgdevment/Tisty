@@ -278,6 +278,7 @@ fn the_other_version_of_a_page_is_a_page_of_the_same_document() {
     assert_eq!(where_at, Some(folder));
 }
 use super::*;
+use crate::summing::{AHEAD, BEADS, horizon};
 
 #[test]
 fn a_name_that_only_windows_reads_as_a_program_is_never_opened() {

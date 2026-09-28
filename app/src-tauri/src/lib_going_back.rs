@@ -1,4 +1,5 @@
-use super::{Session, one_step_back, went_back};
+use super::Session;
+use crate::answers::papers::{one_step_back, went_back};
 use tisty_core::{Op, Paths};
 
 struct Desk {

@@ -1,5 +1,5 @@
-use super::*;
 use super::door::{Door, let_in};
+use super::*;
 
 fn four_ids() -> Vec<String> {
     (1..=4).map(|n| format!("wwwwwwww-000{n}")).collect()

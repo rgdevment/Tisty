@@ -1,11 +1,11 @@
 use std::sync::Mutex;
 
-use tisty_core::witness::{self, channel};
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Op, Reading, State};
 
 use crate::{
-    Answer, Refusal, Session, Task, blamed, doc_out, folder_open, held, leave, noted, placed,
-    reading_as, said, signing, stop, weighed,
+    Answer, Refusal, Session, Task, blamed, doc_out, folder_open, held, leave, placed, reading_as,
+    said, signing, stop, weighed,
 };
 
 #[tauri::command]
@@ -610,4 +610,340 @@ pub fn read_as(session: tauri::State<'_, Mutex<Session>>, id: String, how: Strin
         _ => return Err(Refusal::of("notAReading")),
     };
     reading_as(&mut held(&session), id, how)
+}
+
+const CATCHING_UP_AT_ONCE: usize = 500;
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Papers {
+    folders: Vec<Folded>,
+    docs: Vec<Filed>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Folded {
+    id: String,
+    name: String,
+    parent: Option<String>,
+    icon: Option<String>,
+    color: Option<String>,
+    holds: usize,
+    /// The folder's own mark, so only the one that was shelved offers to come back.
+    archived: bool,
+    /// What the archive holds, the folders above it counted in.
+    away: bool,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Filed {
+    id: String,
+    file: String,
+    tags: Vec<String>,
+    title: String,
+    told: bool,
+    bytes: Option<u64>,
+    wrote: Option<String>,
+    folder: Option<String>,
+    /// The document's own mark, so the menu offers what the document itself can answer for.
+    archived: bool,
+    /// What the archive holds, the folder above it counted in.
+    away: bool,
+    locked: bool,
+    gone: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    guest: Option<String>,
+    page_of: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    flagged: Option<Marked>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    folder_was: Option<Vec<String>>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Marked {
+    at: String,
+    said: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    via: Option<String>,
+}
+
+#[tauri::command(async)]
+pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Filed>> {
+    let (root, owing) = {
+        let held = held(&session);
+        let owing: std::collections::BTreeSet<String> = held
+            .state
+            .docs
+            .values()
+            .filter(|one| one.title.is_none())
+            .map(|one| one.file.clone())
+            .collect();
+        (held.paths.docs(), owing)
+    };
+
+    let found: Vec<tisty_core::docs::Doc> = match owing.is_empty() {
+        true => Vec::new(),
+        false => tisty_core::docs::all(&root)
+            .into_iter()
+            .filter(|one| owing.contains(&one.id))
+            .collect(),
+    };
+
+    for some in found.chunks(CATCHING_UP_AT_ONCE) {
+        // Read the bodies before taking the session: five hundred files off a synced folder is a
+        // second of disk, and nothing else can be asked of Tisty while the guard is held.
+        let read: Vec<(&tisty_core::docs::Doc, Option<tisty_core::event::Said>)> = some
+            .iter()
+            .map(|one| {
+                let said = tisty_core::docs::read(&root, &one.id)
+                    .ok()
+                    .map(|body| tisty_core::event::Said::of(&body));
+                (one, said)
+            })
+            .collect();
+
+        let mut held = held(&session);
+        let ops: Vec<Op> = read
+            .into_iter()
+            .filter_map(|(one, said)| {
+                let kept = held.state.docs.values().find(|kept| kept.file == one.id)?;
+                let said = said
+                    .unwrap_or_else(|| tisty_core::event::Said {
+                        title: one.title.clone(),
+                        bytes: None,
+                        tags: Some(kept.tags.clone()),
+                        by: None,
+                    })
+                    .by(None);
+                said.news_for(kept).then_some(Op::DocSaid {
+                    id: kept.id,
+                    d: said,
+                })
+            })
+            .collect();
+        if !ops.is_empty() {
+            held.commit_all(ops)
+                .map_err(|e| blamed(channel::WINDOW, "the titles could not be written down", e))?;
+        }
+    }
+    Ok(gathered(&held(&session)))
+}
+
+#[tauri::command(async)]
+pub fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
+    let mut session = held(&session);
+    session.reload()?;
+    Ok(Papers {
+        folders: hanging(&session.state, None),
+        docs: gathered(&session),
+    })
+}
+
+fn gathered(session: &Session) -> Vec<Filed> {
+    let on_disk = tisty_core::docs::names(&session.paths.docs());
+    let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.docs.values().collect();
+    kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+
+    kept_in_order
+        .into_iter()
+        .map(|kept| Filed {
+            id: kept.id.to_string(),
+            file: kept.file.clone(),
+            title: kept.title.clone().unwrap_or_default(),
+            told: kept.title.is_some(),
+            bytes: kept.bytes,
+            wrote: kept.wrote.map(|at| at.to_string()),
+            folder: kept.folder.map(|at| at.to_string()),
+            archived: kept.archived,
+            away: session.state.held_away(kept),
+            locked: session.state.shut(kept.id),
+            gone: !on_disk.contains(&kept.file),
+            // Empty means it came from elsewhere under nobody's name: the list still has to
+            // say so before anybody signs it as their own.
+            guest: kept.guest.then(|| kept.by.clone().unwrap_or_default()),
+            page_of: kept.page_of.map(|up| up.to_string()),
+            tags: kept.tags.iter().map(|one| one.to_string()).collect(),
+            flagged: kept.flagged.as_ref().map(|mark| Marked {
+                at: mark.at.to_string(),
+                said: mark.body.clone(),
+                via: mark.via.clone(),
+            }),
+            folder_was: kept.folder_was.clone(),
+        })
+        .collect()
+}
+
+fn hanging(state: &State, parent: Option<tisty_core::model::FolderId>) -> Vec<Folded> {
+    state
+        .under(parent)
+        .into_iter()
+        .flat_map(|one| {
+            let mut branch = vec![Folded {
+                id: one.id.to_string(),
+                name: one.name.clone(),
+                parent: one.parent.map(|at| at.to_string()),
+                icon: one.icon.clone(),
+                color: one.color.clone(),
+                holds: state.held_by(one.id),
+                archived: one.archived,
+                away: state.folder_away(one.id),
+            }];
+            branch.append(&mut hanging(state, Some(one.id)));
+            branch
+        })
+        .collect()
+}
+
+pub fn one_step_back(session: &Session, id: &str) -> Option<String> {
+    let was = tisty_core::docs::read_before(session.paths.data(), id)?;
+    let now = tisty_core::docs::read(&session.paths.docs(), id).ok()?;
+    if tisty_core::docs::unchanged(&now, &was) {
+        return None;
+    }
+    let print = tisty_core::attach::printed(now.as_bytes());
+    match tisty_core::docs::before_left_at(session.paths.data(), id).as_deref() == Some(&print) {
+        true => Some(was),
+        false => None,
+    }
+}
+
+pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {
+    if session.state.bolted(id) {
+        return Err(Refusal::of(match session.state.away(id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
+    }
+    let Some(was) = one_step_back(session, id) else {
+        return Err(Refusal::of("nothingKeptBeside"));
+    };
+    let root = session.paths.docs();
+    let now = tisty_core::docs::read(&root, id)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
+    let print = tisty_core::attach::printed(now.as_bytes());
+    tisty_core::docs::kept_before(session.paths.data(), id, &now, &was)
+        .map_err(|e| blamed(channel::WINDOW, "what a document said could not be kept", e))?;
+    let made =
+        tisty_core::docs::rewrite(&root, session.paths.data(), id, &was, &print).map_err(|e| {
+            match e {
+                tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+                _ => blamed(channel::WINDOW, "a document could not be written", e),
+            }
+        })?;
+    let whole = match made {
+        tisty_core::docs::Rewrite::Moved => return Err(Refusal::about("documentMoved", id)),
+        tisty_core::docs::Rewrite::Made { whole, .. } => whole,
+    };
+    session.mind_body(id, &tisty_core::docs::settled(&whole));
+    session.corpus.forget(id);
+    let hand = signing(&session.state);
+    session.retell(id, &whole, hand);
+    Ok(tisty_core::docs::Doc {
+        title: tisty_core::docs::titled(&whole),
+        id: id.to_string(),
+    })
+}
+
+#[tauri::command(async)]
+pub fn doc_back(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<tisty_core::docs::Doc> {
+    let mut session = held(&session);
+    went_back(&mut session, &id)
+}
+
+#[tauri::command(async)]
+pub fn doc_backable(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
+    let session = held(&session);
+    Ok(!session.state.bolted(&id) && one_step_back(&session, &id).is_some())
+}
+
+#[tauri::command(async)]
+pub fn doc_write(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    body: String,
+    anyway: Option<bool>,
+) -> Answer<tisty_core::docs::Doc> {
+    let mut session = held(&session);
+    if session.state.bolted(&id) {
+        return Err(Refusal::of(match session.state.away(&id) {
+            true => "documentAway",
+            false => "documentLocked",
+        }));
+    }
+    if !anyway.unwrap_or(false) && session.moved(&id) {
+        return Err(Refusal::about("documentMoved", id));
+    }
+    let root = session.paths.docs();
+    if tisty_core::docs::read(&root, &id).is_ok_and(|was| tisty_core::docs::unchanged(&was, &body))
+    {
+        return Ok(tisty_core::docs::Doc {
+            title: tisty_core::docs::titled(&body),
+            id,
+        });
+    }
+    tisty_core::docs::write(&root, &id, &body).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => {
+            Refusal::about("documentTooLong", weighed(limit))
+        }
+        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+        _ => blamed(channel::WINDOW, "a document could not be written", e),
+    })?;
+    session.mind_body(&id, &tisty_core::docs::settled(&body));
+    session.corpus.forget(&id);
+    let hand = signing(&session.state);
+    session.retell(&id, &body, hand);
+    let title = tisty_core::docs::titled(&body);
+    Ok(tisty_core::docs::Doc { title, id })
+}
+
+/// What reading a body catches up with: the title and the tags both come out of it, and neither
+/// is worth a line in the log unless it changed. Size alone is not news — it moves with every
+/// keystroke — but where there is news anyway, the note carries the size it was read at.
+fn noted(session: &mut Session, file: &str, body: &str) {
+    let Some(kept) = session.state.docs.values().find(|one| one.file == file) else {
+        return;
+    };
+    let told = tisty_core::event::Said {
+        title: tisty_core::docs::titled(body),
+        bytes: kept.bytes,
+        tags: Some(tisty_core::tagging::tags_in(body)),
+        by: None,
+    };
+    if !told.news_for(kept) {
+        return;
+    }
+    let id = kept.id;
+    let said = tisty_core::event::Said {
+        bytes: Some(tisty_core::docs::settled(body).len() as u64),
+        // Reading a document is not writing into it, whoever happens to be signing.
+        by: None,
+        ..told
+    };
+    if let Err(e) = session.commit(Op::DocSaid { id, d: said }) {
+        witness::warn(
+            channel::STORE,
+            "what a document says of itself could not be written down",
+            &[
+                ("at", Fact::Id(id.to_string())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
+}
+
+/// Read as a file, ordered from the log: a body that arrived from elsewhere may say otherwise.
+#[tauri::command(async)]
+pub fn doc_order(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    body: String,
+) -> Answer<bool> {
+    Ok(held(&session).retell(&id, &body, None))
 }
