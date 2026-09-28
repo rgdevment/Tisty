@@ -41,7 +41,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             anyhow::bail!("{}", lang.get("sandbox-cannot-join"));
         }
         let aside = app.paths.cache().to_path_buf();
-        let made = tisty_core::backup::reset(&app.paths, &into, &aside)?;
+        let made = tisty_core::backup::reset(&app.paths, &into, &aside, None)?;
         println!(
             "  {}",
             style::dim(&lang.fill(
@@ -74,7 +74,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             anyhow::bail!("{}", lang.get("sandbox-cannot-join"));
         }
         let aside = app.paths.cache().to_path_buf();
-        tisty_core::backup::write(&data, &into, &aside)?;
+        tisty_core::backup::write(&data, &into, &aside, Some(&dest))?;
         let done = match carrier::stitch(&data, &device, &dest) {
             Ok(done) => done,
             Err(trouble) => return Ok(said(&trouble, lang)),

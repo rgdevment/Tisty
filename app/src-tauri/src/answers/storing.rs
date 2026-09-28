@@ -9,6 +9,27 @@ use crate::{
     glimpse, held, report, room, said, session, show, today, within,
 };
 
+async fn catching_up(
+    session: &tauri::State<'_, Mutex<Session>>,
+    paths: &tisty_core::Paths,
+    said: &'static str,
+    channel: &'static str,
+) -> Answer<()> {
+    for _ in 0..2 {
+        let at = paths.clone();
+        let writes = held(session).writes();
+        let fresh = elsewhere(move || session::projected(&at, writes))
+            .await?
+            .map_err(|e| blamed(channel, said, e))?;
+        let mut session = held(session);
+        session.adopt(fresh);
+        if !session.behind() {
+            break;
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn settle_in(
     session: tauri::State<'_, Mutex<Session>>,
@@ -48,9 +69,8 @@ pub async fn settle_in(
     let mut stuck = None;
     let mut arrived = Vec::new();
     let mut carried = dest.is_none();
-    let _done = alone.inner().claim();
     if let Some(dest) = dest
-        && _done.is_some()
+        && let Some(_done) = alone.inner().claim()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
@@ -83,23 +103,21 @@ pub async fn settle_in(
     }
 
     if brought {
-        let at = paths.clone();
-        let writes = held(&session).writes();
-        let fresh = elsewhere(move || session::projected(&at, writes))
-            .await?
-            .map_err(|e| {
-                blamed(
-                    channel::SYNC,
-                    "the store would not project after carrying",
-                    e,
-                )
-            })?;
-        held(&session).adopt(fresh);
+        catching_up(
+            &session,
+            &paths,
+            "the store would not project after carrying",
+            channel::SYNC,
+        )
+        .await?;
     }
-    let books = held(&session).books_among(&arrived);
+    let (books, since) = {
+        let session = held(&session);
+        (session.books_among(&arrived), session.writes())
+    };
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
-    held(&session).settle_what_came(&read);
+    held(&session).settle_what_came(&read, since);
 
     let at = paths.clone();
     let audit = elsewhere(move || tisty_core::cache::audit(&at.store(), at.cache()))
@@ -117,6 +135,7 @@ pub async fn settle_in(
         })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
+        let _done = alone.inner().claim();
         let at = paths.clone();
         let writes = {
             let mut session = held(&session);
@@ -135,6 +154,15 @@ pub async fn settle_in(
                 )
             })?;
         held(&session).adopt(fresh);
+        if held(&session).behind() {
+            catching_up(
+                &session,
+                &paths,
+                "the store would not project without a cache",
+                channel::CACHE,
+            )
+            .await?;
+        }
     }
 
     if carried {
@@ -149,7 +177,7 @@ pub async fn settle_in(
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
     let session = held(&session);
     let config = &session.config;
@@ -174,7 +202,6 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         keeper: said.as_ref().map(|one| one.keeper.clone()),
         kept_by: said.and_then(|one| one.named),
         asked: config.sync.is_some(),
-        backs_up: config.backs_up(),
         last: config.synced_at.map(|at| at.to_string()),
         heard: config.heard_at.map(|at| at.to_string()),
         loose: tisty_core::attach::loose(session.paths.data(), &held).files(),
@@ -191,7 +218,8 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             .len(),
         lists: session.state.lists.len(),
         attachments: report::attachments(session.paths.data()).files,
-        weight: report::weighed(session.paths.data()),
+        weight: report::weighed(session.paths.data())
+            + report::also_weighed(session.paths.data(), let_go_to(&session).as_deref()),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
 }
@@ -284,6 +312,20 @@ pub fn make_room(at: String) -> Answer<()> {
     std::fs::create_dir_all(&at).map_err(|e| Refusal::about("cannotWrite", e.to_string()))
 }
 
+fn let_go_to(session: &Session) -> Option<std::path::PathBuf> {
+    session
+        .dest()
+        .filter(|_| session.config.holds() == tisty_core::config::Holds::Shared)
+}
+
+pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
+    session.config.restored_at.is_some()
+        && tisty_sync::theirs(at).is_some_and(|theirs| {
+            tisty_core::store::peek_identity(session.paths.store())
+                .is_some_and(|ours| ours.trim() == theirs.trim())
+        })
+}
+
 #[tauri::command]
 pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) -> Answer<()> {
     let mut session = held(&session);
@@ -308,6 +350,11 @@ pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<Strin
         }
         None => tisty_core::config::Sync::Local,
     };
+    if let tisty_core::config::Sync::Folder(at) = &chosen
+        && went_back_on(&session, at)
+    {
+        return Err(Refusal::about("restoredApart", at.display().to_string()));
+    }
     // Leaving a folder that holds what this machine let go of takes them with it — but only while
     // it is there to bring them back from. Gone, refusing would trap somebody with nowhere to go.
     if session.config.holds() != tisty_core::config::Holds::Everywhere
@@ -345,6 +392,9 @@ pub async fn sync_now(
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
+        if went_back_on(&session, &dest) {
+            return Err(Refusal::about("restoredApart", dest.display().to_string()));
+        }
         (
             dest,
             session.paths.clone(),
@@ -392,18 +442,13 @@ pub async fn sync_now(
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
-        let at = paths.clone();
-        let writes = held(&session).writes();
-        let fresh = elsewhere(move || session::projected(&at, writes))
-            .await?
-            .map_err(|e| {
-                blamed(
-                    channel::SYNC,
-                    "the store would not project after syncing",
-                    e,
-                )
-            })?;
-        held(&session).adopt(fresh);
+        catching_up(
+            &session,
+            &paths,
+            "the store would not project after syncing",
+            channel::SYNC,
+        )
+        .await?;
     }
     let (job, was_swept) = {
         let session = held(&session);
@@ -412,20 +457,23 @@ pub async fn sync_now(
         (job, was)
     };
     let at = paths.clone();
-    let (_, swept) = elsewhere(move || {
+    let walked = elsewhere(move || {
         tisty_core::parcel::swept(at.data());
         tisty_core::attach::swept(at.data());
-        job.run()
+        job.walk()
     })
     .await?;
 
-    let books = held(&session).books_among(&done.arrived);
+    let (books, since) = {
+        let session = held(&session);
+        (session.books_among(&done.arrived), session.writes())
+    };
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
 
     let mut session = held(&session);
-    session.settle_what_came(&read);
-    session.swept(&was_swept, &swept);
+    session.settle_what_came(&read, since);
+    session.swept(&was_swept, walked);
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
@@ -499,33 +547,33 @@ pub async fn back_up(
     into: String,
 ) -> Answer<u64> {
     let _done = alone.inner().taken()?;
-    let (data, aside) = {
+    let (data, aside, also) = {
         let session = held(&session);
-        if !session.config.backs_up() {
-            return Err(Refusal::of("sharedIsTheBackup"));
-        }
         (
             session.paths.data().to_path_buf(),
             session.paths.cache().to_path_buf(),
+            let_go_to(&session),
         )
     };
 
     let at = std::path::PathBuf::from(&into);
-    let made =
-        tauri::async_runtime::spawn_blocking(move || tisty_core::backup::write(&data, &at, &aside))
-            .await
-            .map_err(|_| Refusal::of("internal"))?
-            .map_err(|e| {
-                witness::error(
-                    channel::BACKUP,
-                    "the backup could not be written",
-                    &[("why", Fact::Why(e.to_string()))],
-                );
-                match e {
-                    tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
-                    _ => Refusal::about("cannotWrite", into),
-                }
-            })?;
+    let made = tauri::async_runtime::spawn_blocking(move || {
+        tisty_core::backup::write(&data, &at, &aside, also.as_deref())
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+    .map_err(|e| {
+        witness::error(
+            channel::BACKUP,
+            "the backup could not be written",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        match e {
+            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+            tisty_core::Error::TooBig => Refusal::of("tooBig"),
+            _ => Refusal::about("cannotWrite", into),
+        }
+    })?;
 
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
@@ -678,7 +726,7 @@ pub async fn join_them(
 
     let at = std::path::PathBuf::from(&into);
     let made = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::backup::reset(&paths, &at, &aside)
+        tisty_core::backup::reset(&paths, &at, &aside, None)
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -688,7 +736,10 @@ pub async fn join_them(
             "nothing was reset because the backup did not land",
             &[("why", Fact::Why(e.to_string()))],
         );
-        Refusal::about("cannotWrite", into)
+        match e {
+            tisty_core::Error::TooBig => Refusal::of("tooBig"),
+            _ => Refusal::about("cannotWrite", into),
+        }
     })?;
 
     let fresh = elsewhere(Session::open).await?.map_err(|e| {
@@ -699,6 +750,7 @@ pub async fn join_them(
         )
     })?;
     *held(&session) = fresh;
+    held(&session).keep(|c| c.restored_at = None)?;
     Ok(made.bytes)
 }
 
@@ -734,9 +786,13 @@ pub async fn take_over(
             "the folder was left alone because its backup did not land",
             &[("why", Fact::Why(e.to_string()))],
         );
-        Refusal::about("cannotWrite", into)
+        match e {
+            tisty_core::Error::TooBig => Refusal::of("tooBig"),
+            _ => Refusal::about("cannotWrite", into),
+        }
     })?;
 
+    held(&session).keep(|c| c.restored_at = None)?;
     Ok(made.bytes)
 }
 
@@ -806,7 +862,7 @@ pub async fn merge_stores(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (data, dest, aside, device) = {
+    let (data, dest, aside, device, also) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -816,18 +872,22 @@ pub async fn merge_stores(
             dest,
             session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
+            let_go_to(&session),
         )
     };
 
     let at = std::path::PathBuf::from(&into);
     let seam = tauri::async_runtime::spawn_blocking(move || -> Answer<tisty_sync::Stitched> {
-        tisty_core::backup::write(&data, &at, &aside).map_err(|e| {
+        tisty_core::backup::write(&data, &at, &aside, also.as_deref()).map_err(|e| {
             witness::error(
                 channel::BACKUP,
                 "nothing was joined because the backup did not land",
                 &[("why", Fact::Why(e.to_string()))],
             );
-            Refusal::about("cannotWrite", into)
+            match e {
+                tisty_core::Error::TooBig => Refusal::of("tooBig"),
+                _ => Refusal::about("cannotWrite", into),
+            }
         })?;
         tisty_sync::stitch(&data, &device, &dest).map_err(|trouble| {
             let refusal = said(trouble);
@@ -860,13 +920,7 @@ pub async fn restore(
     from: String,
 ) -> Answer<usize> {
     let _done = alone.inner().taken()?;
-    let paths = {
-        let session = held(&session);
-        if !session.config.backs_up() {
-            return Err(Refusal::of("sharedIsTheBackup"));
-        }
-        session.paths.clone()
-    };
+    let paths = { held(&session).paths.clone() };
 
     let at = std::path::PathBuf::from(&from);
     let done = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::read(&paths, &at))
@@ -876,6 +930,7 @@ pub async fn restore(
             tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
             tisty_core::Error::Io(why) => Refusal::about("restoreFailed", why.to_string()),
             tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+            tisty_core::Error::TooBig => Refusal::of("tooBig"),
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 

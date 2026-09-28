@@ -191,7 +191,7 @@ function backend(cmd: string, args: Record<string, unknown>): Promise<unknown> {
     case "settle_in":
       return Promise.resolve({ ran: false, brought: false, agrees: true });
     case "sync_state":
-      return Promise.resolve({ asked: true, backsUp: true, loose: 0 });
+      return Promise.resolve({ asked: true, loose: 0 });
     case "snapshot":
       return Promise.resolve({
         tasks: [],

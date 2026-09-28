@@ -920,7 +920,8 @@ const en = {
     "This machine is backed up and then holds what the folder holds.\n\nWhat you have here now leaves the app and stays only in the backup, which opens without Tisty.",
   apartElse: "Pick another folder",
   apartUndo: "A backup is written first. This cannot be undone from the app.",
-  sharedIsTheBackup: "Your shared folder already holds every machine's history",
+  restoredApart:
+    "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig:
     "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 750 MB.",
@@ -995,7 +996,8 @@ const en = {
   backupMade: "{name} saved",
   restored: "{name} files restored",
   restoreFailed: "Nothing was changed — the restore could not finish: {name}",
-  restoreSure: "Restore goes back to that moment, and everything after it is lost. Restore anyway?",
+  restoreSure:
+    "Restore goes back to that moment, and everything after it is lost. A shared folder still holds what you are undoing, so this machine stops sharing it; choosing it again asks you which side wins before anything moves. Restore anyway?",
   review: "Review",
   reviewCount: "{name} tasks",
   reviewLists: "{name} lists",
@@ -2281,7 +2283,8 @@ const es: Catalog = {
     "Esta máquina se respalda y queda con lo que guarda la carpeta.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
   apartElse: "Elegir otra carpeta",
   apartUndo: "Se guarda un respaldo antes. No se deshace desde la aplicación.",
-  sharedIsTheBackup: "Tu carpeta compartida ya guarda el historial de todos tus equipos",
+  restoredApart:
+    "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig:
     "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 750 MB.",
@@ -2356,7 +2359,8 @@ const es: Catalog = {
   backupMade: "{name} guardados",
   restored: "{name} archivos restaurados",
   restoreFailed: "No se cambió nada — la restauración no pudo terminar: {name}",
-  restoreSure: "Restaurar vuelve a ese momento, y todo lo posterior se pierde. ¿Quieres continuar?",
+  restoreSure:
+    "Restaurar vuelve a ese momento, y todo lo posterior se pierde. Una carpeta compartida todavía guarda lo que estás deshaciendo, así que este equipo deja de compartirla; al volver a elegirla te preguntará qué lado manda antes de mover nada. ¿Quieres continuar?",
   review: "Revisión",
   reviewCount: "{name} tareas",
   reviewLists: "{name} listas",

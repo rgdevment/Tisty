@@ -6,14 +6,16 @@ use crate::{Error, Result, event::DeviceId, store::write_atomic};
 
 mod cards;
 mod carried;
+mod prints;
 mod text;
 
 pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
 use carried::kept_still;
 pub use carried::{
-    Carried, before_left_at, carried_print, forget_carried, forget_what_was_carried, keep_carried,
-    kept_before, print_of, read_before, read_carried,
+    Carried, before_left_at, carried_at, carried_print, forget_carried, forget_what_was_carried,
+    keep_carried, kept_before, print_of, read_before, read_carried,
 };
+pub use prints::Prints;
 use text::{Fencing, as_written, bullet, quoted, quoteless, unpictured, unspanned, wordless};
 pub use text::{
     Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,
@@ -376,6 +378,7 @@ pub fn read_outside(at: &Path) -> Result<String> {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
     let file = std::fs::File::open(at)?;
+    crate::counting::opened();
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(at.display().to_string()));
     }
@@ -393,6 +396,7 @@ pub fn read_outside(at: &Path) -> Result<String> {
 pub fn read(root: &Path, id: &str) -> Result<String> {
     let at = resolve(root, id)?;
     let file = std::fs::File::open(&at)?;
+    crate::counting::opened();
     if !file.metadata()?.is_file() {
         return Err(Error::OutsideTheStore(id.to_string()));
     }
@@ -715,6 +719,10 @@ fn well_formed(id: &str) -> bool {
         && !number.is_empty()
         && number.len() <= 12
         && number.chars().all(|c| c.is_ascii_digit())
+}
+
+pub fn a_body(leaf: &str) -> bool {
+    named(Path::new(leaf)).is_some()
 }
 
 fn named(at: &Path) -> Option<String> {

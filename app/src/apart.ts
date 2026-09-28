@@ -10,7 +10,11 @@ const NAMED: Record<Door, string> = {
 
 export const stillApart = (problem: unknown): boolean => {
   const refusal = problem as { code?: string } | undefined;
-  return refusal?.code === "wouldReset" || refusal?.code === "otherStore";
+  return (
+    refusal?.code === "wouldReset" ||
+    refusal?.code === "otherStore" ||
+    refusal?.code === "restoredApart"
+  );
 };
 
 export const walkThrough = async (door: Door | "else"): Promise<boolean> => {

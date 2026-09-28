@@ -1,3 +1,10 @@
+mod guarding;
+mod papers;
+mod segments;
+
+pub use papers::{carry_papers, carry_papers_holding, unclaimed};
+use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
+use segments::{Named, copy_segments, matching, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -107,12 +114,7 @@ pub fn carry_telling(
     holds: Holds,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
-    if !dest.is_dir() {
-        return Err(Trouble::NotThere(dest.display().to_string()));
-    }
-    for folder in [STORE, HELD, PAPERS] {
-        straight(&dest.join(folder), dest)?;
-    }
+    guarding::before_carrying(dest, device)?;
     let store = data.join(STORE);
     let ours = settled(&store, dest, carried_here(aside, dest))?;
 
@@ -137,19 +139,14 @@ pub fn carry_telling(
         if said.as_ref().or(pushed.as_ref()).is_none() {
             return Err(Trouble::Unreadable(store.display().to_string()));
         }
-        let who = tisty_core::event::DeviceId(device.to_string());
-        let told =
-            tisty_core::store::ledger(&store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
-        if !told.may_write(&who) {
-            return Err(Trouble::NotAllowed(device.to_string()));
-        }
+        guarding::allowed_to_write(&store, device)?;
         let marker = dest.join(STORE).join(MARKER);
         if std::fs::read_to_string(&marker).ok().as_deref() != Some(ours.as_str()) {
             write(&marker, ours.as_bytes())?;
         }
         let mine = dest.join(STORE).join(device);
         plainly(&mine)?;
-        moved.sent = copy_segments(&store.join(device), &mine, again)?;
+        moved.sent = copy_segments(&store.join(device), &mine, again, &Named::default())?;
         moved.sent += hand_on(&store, device, dest, again)?;
     }
     let alive: Vec<String> = match &said {
@@ -173,7 +170,7 @@ pub fn carry_telling(
         .map(|paper| paper.file.clone())
         .collect();
     let buried = buried_now(&told, data);
-    let adrift = taking && matches!(unclaimed(dest), Holding::Strays(_));
+    let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
     if giving {
         let mut carried = Vec::new();
         moved.sent += copy_held(
@@ -326,26 +323,6 @@ pub enum Holding {
     Whole,
     Strays(usize),
     Unreadable,
-}
-
-pub fn unclaimed(dest: &Path) -> Holding {
-    let here = tisty_core::docs::names(&dest.join(PAPERS));
-    let named: std::collections::BTreeSet<String> =
-        match tisty_core::store::read_all(dest.join(STORE)) {
-            Ok(events) => {
-                let told = tisty_core::State::replay(&events);
-                told.docs
-                    .values()
-                    .map(|one| one.file.clone())
-                    .chain(told.shed.iter().cloned())
-                    .collect()
-            }
-            Err(_) => return Holding::Unreadable,
-        };
-    match here.difference(&named).count() {
-        0 => Holding::Whole,
-        adrift => Holding::Strays(adrift),
-    }
 }
 
 pub fn signed_at(dest: &Path) -> Option<String> {
@@ -619,7 +596,8 @@ fn bring(
         }
         let mine = store.join(named);
         if named.eq_ignore_ascii_case(device) {
-            if !settled_already(&entry.path(), &mine) && ours_went_missing(&mine, &entry.path()) {
+            let (known, settled) = matching(&entry.path(), &mine);
+            if !settled && ours_went_missing(&mine, &entry.path()) {
                 match tisty_core::store::alone(&mine) {
                     Some(_held) if ours_went_missing(&mine, &entry.path()) => {
                         witness::warn(
@@ -628,7 +606,7 @@ fn bring(
                             &[("at", Fact::Id(named.to_string()))],
                         );
                         plainly(&mine)?;
-                        brought += copy_segments(&entry.path(), &mine, false)?;
+                        brought += copy_segments(&entry.path(), &mine, false, &known)?;
                     }
                     Some(_) => {}
                     None => witness::warn(
@@ -641,7 +619,8 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        if !settled_already(&entry.path(), &mine) {
+        let (known, settled) = matching(&entry.path(), &mine);
+        if !settled {
             let coming = match tisty_core::store::check_device(&entry.path())
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
             {
@@ -697,7 +676,7 @@ fn bring(
                 continue;
             }
         }
-        brought += copy_segments(&entry.path(), &mine, false)?;
+        brought += copy_segments(&entry.path(), &mine, false, &known)?;
     }
 
     if brought > 0 {
@@ -721,12 +700,12 @@ fn hand_on(store: &Path, device: &str, dest: &Path, again: bool) -> Result<usize
             continue;
         }
         let theirs = there.join(named);
-        if settled_already(&entry.path(), &theirs) || !ours_reaches_further(&entry.path(), &theirs)
-        {
+        let (known, settled) = matching(&entry.path(), &theirs);
+        if settled || !ours_reaches_further(&entry.path(), &theirs) {
             continue;
         }
         plainly(&theirs)?;
-        let done = copy_segments(&entry.path(), &theirs, again)?;
+        let done = copy_segments(&entry.path(), &theirs, again, &known)?;
         if done > 0 {
             witness::note(
                 channel::SYNC,
@@ -772,86 +751,6 @@ fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
         return false;
     };
     ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
-}
-
-fn settled_already(theirs: &Path, mine: &Path) -> bool {
-    let Ok(offered) = tisty_core::store::segments_in(theirs) else {
-        return false;
-    };
-    !offered.is_empty()
-        && offered.iter().all(|at| {
-            at.file_name()
-                .is_some_and(|named| same(at, &mine.join(named)))
-        })
-}
-
-fn copy_segments(from: &Path, into: &Path, again: bool) -> Result<usize, Trouble> {
-    let carried = match tisty_core::store::segments_in(from) {
-        Ok(carried) => carried,
-        Err(e) => {
-            if !matches!(&e, tisty_core::Error::Io(io) if io.kind() == std::io::ErrorKind::NotFound)
-            {
-                witness::warn(
-                    channel::SYNC,
-                    "segments unlistable",
-                    &[
-                        ("at", Fact::Path(from.to_path_buf())),
-                        ("why", Fact::Why(e.to_string())),
-                    ],
-                );
-            }
-            return Ok(0);
-        }
-    };
-    if carried.is_empty() {
-        return Ok(0);
-    }
-    std::fs::create_dir_all(into).map_err(io)?;
-    sweep(into);
-    let mut done = 0;
-    for at in carried {
-        let Some(named) = at.file_name() else {
-            continue;
-        };
-        let counter = at.with_extension("count");
-        if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
-            let target = into.join(tally);
-            if again || !same(&counter, &target) {
-                copy_onto(&counter, &target)?;
-            }
-        }
-
-        let target = into.join(named);
-        if !again && same(&at, &target) {
-            continue;
-        }
-        copy_onto(&at, &target)?;
-        done += 1;
-    }
-    Ok(done)
-}
-
-fn sweep(dir: &Path) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    let mine = format!(".{}.", std::process::id());
-    for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
-        let ours = at
-            .file_name()
-            .and_then(|n| n.to_str())
-            .is_some_and(|n| n.ends_with(".part") && n.contains(&mine));
-        if ours && let Err(e) = std::fs::remove_file(&at) {
-            witness::warn(
-                channel::SYNC,
-                "leftover not removed",
-                &[
-                    ("at", Fact::Path(at.clone())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-        }
-    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -1115,40 +1014,9 @@ fn copy_held(
     Ok(done)
 }
 
-fn same(from: &Path, to: &Path) -> bool {
-    use std::io::Read;
-
-    let (Ok(a), Ok(b)) = (std::fs::metadata(from), std::fs::metadata(to)) else {
-        return false;
-    };
-    if a.len() != b.len() {
-        return false;
-    }
-    if a.len() == 0 {
-        return true;
-    }
-    let (Ok(here), Ok(there)) = (std::fs::File::open(from), std::fs::File::open(to)) else {
-        return false;
-    };
-    let mut here = std::io::BufReader::new(here);
-    let mut there = std::io::BufReader::new(there);
-    let mut one = [0u8; 16 * 1024];
-    let mut two = [0u8; 16 * 1024];
-    loop {
-        let read = match here.read(&mut one) {
-            Ok(0) => return true,
-            Ok(read) => read,
-            Err(_) => return false,
-        };
-        if there.read_exact(&mut two[..read]).is_err() || one[..read] != two[..read] {
-            return false;
-        }
-    }
-}
-
 static ROUND: AtomicU64 = AtomicU64::new(0);
 
-fn write(at: &Path, body: &[u8]) -> Result<(), Trouble> {
+pub(crate) fn write(at: &Path, body: &[u8]) -> Result<(), Trouble> {
     written(at, body)
 }
 
@@ -1270,7 +1138,7 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     Ok(None)
 }
 
-fn landed(mine: &Path, theirs: &Path) -> bool {
+pub(crate) fn landed(mine: &Path, theirs: &Path) -> bool {
     use tisty_core::docs::print_of;
     match (print_of(mine), print_of(theirs)) {
         (Ok(Some(ours)), Ok(Some(yours))) => ours == yours,
@@ -1278,7 +1146,13 @@ fn landed(mine: &Path, theirs: &Path) -> bool {
     }
 }
 
-fn joined(data: &Path, dest: &Path, id: &str, mine: &Path, theirs: &Path) -> Option<String> {
+pub(crate) fn joined(
+    data: &Path,
+    dest: &Path,
+    id: &str,
+    mine: &Path,
+    theirs: &Path,
+) -> Option<String> {
     let gave_up = |why: &'static str| {
         witness::note(
             channel::SYNC,
@@ -1334,192 +1208,8 @@ fn anywhere(reference: &str, data: &Path, dest: &Path) -> bool {
     })
 }
 
-fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
-    let said = std::fs::read_to_string(mine)
-        .or_else(|_| std::fs::read_to_string(theirs))
-        .ok();
-    let Some(said) = said else {
-        tisty_core::docs::forget_carried(data, id);
-        return;
-    };
-    if tisty_core::docs::keep_carried(data, id, &said).is_err() {
-        witness::warn(
-            channel::SYNC,
-            "the settled body could not be kept, so the next round has no base to lean on",
-            &[("at", Fact::Id(id.to_string()))],
-        );
-        tisty_core::docs::forget_carried(data, id);
-    }
-}
-
-pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], false)
-}
-
-pub fn carry_papers_holding(
-    data: &Path,
-    dest: &Path,
-    alive: &[String],
-    shut: &[String],
-) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, false)
-}
-
-fn carry_papers_leaning_on(
-    data: &Path,
-    dest: &Path,
-    alive: &[String],
-    shut: &[String],
-    again: bool,
-) -> Result<Moved, Trouble> {
-    use tisty_core::docs::{Carried, Move, moved, print_of};
-
-    let here = data.join(PAPERS);
-    let there = dest.join(PAPERS);
-    straight(&there, dest)?;
-    let was = Carried::read(data);
-    let mut said = was.clone();
-    let mut done = Moved::default();
-
-    let outcome = (|| -> Result<(), Trouble> {
-        for id in alive {
-            let (Ok(mine), Ok(theirs)) = (
-                tisty_core::docs::resolve(&here, id),
-                tisty_core::docs::resolve(&there, id),
-            ) else {
-                witness::warn(
-                    channel::SYNC,
-                    "a document was named in a way no document can be named",
-                    &[("at", Fact::Id(id.clone()))],
-                );
-                continue;
-            };
-            if plainly(&theirs).is_err() || plainly(&mine).is_err() {
-                done.astray.push(id.clone());
-                continue;
-            }
-            let (ours, yours) = match (print_of(&mine), print_of(&theirs)) {
-                (Ok(ours), Ok(yours)) => (ours, yours),
-                (here, there) => {
-                    let why = here.err().or(there.err());
-                    witness::warn(
-                        channel::SYNC,
-                        "a document could not be read, so this turn leaves it alone",
-                        &[
-                            ("at", Fact::Id(id.clone())),
-                            (
-                                "why",
-                                Fact::Why(why.map(|e| e.to_string()).unwrap_or_else(|| "?".into())),
-                            ),
-                        ],
-                    );
-                    done.astray.push(id.clone());
-                    continue;
-                }
-            };
-
-            match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
-                Move::Nothing => {
-                    if again && mine.is_file() {
-                        std::fs::create_dir_all(&there).map_err(io)?;
-                        copy_onto(&mine, &theirs)?;
-                    }
-                    if let Some(print) = ours.or(yours) {
-                        let steady = said.of(id) == Some(print.as_str())
-                            && tisty_core::docs::carried_print(data, id).as_deref()
-                                == Some(print.as_str());
-                        if !steady {
-                            settled_body(data, id, &mine, &theirs);
-                        }
-                        said.keep(id, &print);
-                    }
-                }
-                Move::Send => {
-                    std::fs::create_dir_all(&there).map_err(io)?;
-                    copy_onto(&mine, &theirs)?;
-                    done.sent += 1;
-                    if let Some(print) = ours {
-                        settled_body(data, id, &mine, &theirs);
-                        said.keep(id, &print);
-                    }
-                }
-                Move::Bring if shut.contains(id) => {
-                    witness::warn(
-                        channel::SYNC,
-                        "a locked document arrived changed, so it waits for the person",
-                        &[("at", Fact::Id(id.clone()))],
-                    );
-                    done.undecided.push(Undecided {
-                        id: id.clone(),
-                        theirs: yours.unwrap_or_default(),
-                    });
-                }
-                Move::TheyDecide if shut.contains(id) => {
-                    witness::warn(
-                        channel::SYNC,
-                        "a locked document was written on both sides, and no join writes over it",
-                        &[("at", Fact::Id(id.clone()))],
-                    );
-                    done.undecided.push(Undecided {
-                        id: id.clone(),
-                        theirs: yours.unwrap_or_default(),
-                    });
-                }
-                Move::Bring => {
-                    std::fs::create_dir_all(&here).map_err(io)?;
-                    let _held = docs_lock(&here, id);
-                    copy_onto(&theirs, &mine)?;
-                    done.brought += 1;
-                    done.arrived.push(id.clone());
-                    if let Some(print) = yours {
-                        settled_body(data, id, &mine, &theirs);
-                        said.keep(id, &print);
-                    }
-                }
-                Move::TheyDecide => {
-                    let _held = docs_lock(&here, id);
-                    match joined(data, dest, id, &mine, &theirs) {
-                        Some(whole) => {
-                            write(&mine, whole.as_bytes())?;
-                            copy_onto(&mine, &theirs)?;
-                            done.sent += 1;
-                            done.brought += 1;
-                            done.joined.push(id.clone());
-                            done.arrived.push(id.clone());
-                            if landed(&mine, &theirs) {
-                                if let Ok(Some(print)) = print_of(&mine) {
-                                    settled_body(data, id, &mine, &theirs);
-                                    said.keep(id, &print);
-                                }
-                            } else {
-                                witness::warn(
-                                    channel::SYNC,
-                                    "another machine wrote while this one joined, so the base stays put",
-                                    &[("at", Fact::Id(id.clone()))],
-                                );
-                            }
-                        }
-                        None => done.undecided.push(Undecided {
-                            id: id.clone(),
-                            theirs: yours.unwrap_or_default(),
-                        }),
-                    }
-                }
-            }
-        }
-        Ok(())
-    })();
-
-    if said != was {
-        said.save(data)
-            .map_err(|e| Trouble::Unreadable(e.to_string()))?;
-    }
-    outcome?;
-    Ok(done)
-}
-
 /// Unheld beats unwritten: a round that skipped a document comes back for it.
-fn docs_lock(here: &Path, id: &str) -> Option<tisty_core::docs::Alone> {
+pub(crate) fn docs_lock(here: &Path, id: &str) -> Option<tisty_core::docs::Alone> {
     let held = tisty_core::docs::hold(here);
     if held.is_none() {
         witness::warn(

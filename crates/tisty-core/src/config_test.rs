@@ -199,6 +199,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         on_close: Some(Closing::Hide),
         theme: Some(Theme::Dark),
         backed_up_at: None,
+        restored_at: None,
         sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
         synced_at: None,
         heard_at: None,
@@ -240,36 +241,37 @@ fn the_look_follows_the_computer_until_one_is_chosen() {
     assert!(written.contains("theme = \"light\""), "{written}");
 }
 
+fn bare() -> Config {
+    Config {
+        device_id: DeviceId(new_device_id()),
+        agent_id: None,
+        candidates: None,
+        sown: None,
+        locale: None,
+        editor: None,
+        quiet: None,
+        checked_at: None,
+        found_version: None,
+        found_in_the_shop: None,
+        attach_up_to: None,
+        holds: None,
+        opened_by: None,
+        on_close: None,
+        theme: None,
+        backed_up_at: None,
+        restored_at: None,
+        sync: None,
+        synced_at: None,
+        heard_at: None,
+        guide: None,
+        here_since: None,
+        asked_for_a_star: None,
+        asked_to_wire: None,
+    }
+}
+
 mod ceilings {
     use super::*;
-
-    fn bare() -> Config {
-        Config {
-            device_id: DeviceId(new_device_id()),
-            agent_id: None,
-            candidates: None,
-            sown: None,
-            locale: None,
-            editor: None,
-            quiet: None,
-            checked_at: None,
-            found_version: None,
-            found_in_the_shop: None,
-            attach_up_to: None,
-            holds: None,
-            opened_by: None,
-            on_close: None,
-            theme: None,
-            backed_up_at: None,
-            sync: None,
-            synced_at: None,
-            heard_at: None,
-            guide: None,
-            here_since: None,
-            asked_for_a_star: None,
-            asked_to_wire: None,
-        }
-    }
 
     #[test]
     fn a_task_never_takes_a_file_past_what_the_product_promises() {
@@ -306,5 +308,21 @@ mod ceilings {
 
         assert_eq!(config.copies_in_a_doc(), 750 * 1024 * 1024);
         assert!(config.copies_in_a_doc() > config.copies_up_to());
+    }
+}
+
+mod sharing {
+    use super::*;
+
+    #[test]
+    fn a_store_shares_only_where_a_folder_was_chosen() {
+        let mut config = bare();
+        assert!(!config.shares(), "nothing was chosen");
+
+        config.sync = Some(Sync::Local);
+        assert!(!config.shares(), "staying local is not sharing");
+
+        config.sync = Some(Sync::Folder(std::path::PathBuf::from("G:/Drive/tisty")));
+        assert!(config.shares());
     }
 }

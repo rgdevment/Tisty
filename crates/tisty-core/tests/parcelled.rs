@@ -2614,7 +2614,7 @@ lo mio",
     parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
 
     let zip = room.path().join("respaldo.zip");
-    tisty_core::backup::write(here.data(), &zip, room.path()).unwrap();
+    tisty_core::backup::write(here.data(), &zip, room.path(), None).unwrap();
 
     let there = tmp();
     let far = Paths::new(there.path().join("data"), there.path().join("config"));
@@ -2657,7 +2657,7 @@ lo mio",
     parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
 
     let zip = room.path().join("before-joining.zip");
-    tisty_core::backup::reset(&here.paths, &zip, room.path()).unwrap();
+    tisty_core::backup::reset(&here.paths, &zip, room.path(), None).unwrap();
     assert_eq!(
         tisty_core::store::peek_identity(here.paths.store()),
         None,

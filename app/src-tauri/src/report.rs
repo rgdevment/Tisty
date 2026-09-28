@@ -37,6 +37,34 @@ pub struct Facts {
 
 pub use tisty_core::witness::hidden;
 
+pub fn also_weighed(data: &Path, also: Option<&Path>) -> u64 {
+    let Some(also) = also else {
+        return 0;
+    };
+    fn missing(from: &Path, at: &Path, data: &Path) -> u64 {
+        let Ok(entries) = std::fs::read_dir(at) else {
+            return 0;
+        };
+        entries
+            .filter_map(|one| one.ok())
+            .map(|one| match one.file_type() {
+                Ok(kind) if kind.is_dir() => missing(from, &one.path(), data),
+                Ok(kind) if kind.is_file() => one
+                    .path()
+                    .strip_prefix(from)
+                    .ok()
+                    .filter(|rest| !data.join(rest).exists())
+                    .filter(|rest| tisty_core::backup::carried_alone(from, &from.join(rest)))
+                    .and_then(|_| one.metadata().ok())
+                    .map(|m| m.len())
+                    .unwrap_or(0),
+                _ => 0,
+            })
+            .sum()
+    }
+    missing(also, &also.join("attachments"), data)
+}
+
 pub fn weighed(root: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(root) else {
         return 0;
