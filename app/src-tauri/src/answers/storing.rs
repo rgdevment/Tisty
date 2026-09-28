@@ -48,8 +48,9 @@ pub async fn settle_in(
     let mut stuck = None;
     let mut arrived = Vec::new();
     let mut carried = dest.is_none();
+    let _done = alone.inner().claim();
     if let Some(dest) = dest
-        && let Some(_done) = alone.inner().claim()
+        && _done.is_some()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
@@ -663,13 +664,14 @@ pub async fn join_them(
         Refusal::about("cannotWrite", into)
     })?;
 
-    *held(&session) = Session::open().map_err(|e| {
+    let fresh = elsewhere(Session::open).await?.map_err(|e| {
         blamed(
             channel::BACKUP,
             "the session would not reopen after being reset",
             e,
         )
     })?;
+    *held(&session) = fresh;
     Ok(made.bytes)
 }
 
@@ -813,13 +815,14 @@ pub async fn merge_stores(
     .await
     .map_err(|_| Refusal::of("internal"))??;
 
-    *held(&session) = Session::open().map_err(|e| {
+    let fresh = elsewhere(Session::open).await?.map_err(|e| {
         blamed(
             channel::BACKUP,
             "the session would not reopen after joining",
             e,
         )
     })?;
+    *held(&session) = fresh;
     Ok(seam.stitch.is_some())
 }
 
@@ -849,13 +852,14 @@ pub async fn restore(
             _ => Refusal::about("cannotRead", from.clone()),
         })?;
 
-    *held(&session) = Session::open().map_err(|e| {
+    let fresh = elsewhere(Session::open).await?.map_err(|e| {
         blamed(
             channel::BACKUP,
             "the session would not reopen after a restore",
             e,
         )
     })?;
+    *held(&session) = fresh;
     Ok(done.files)
 }
 

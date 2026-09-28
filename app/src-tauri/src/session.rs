@@ -15,6 +15,9 @@ pub struct Session {
     pub minded: std::collections::HashMap<String, String>,
     pub locale: Option<String>,
     pub log: Option<(String, Vec<Event>)>,
+    /// A projection read without the lock can miss a commit that landed while it ran, and the
+    /// next commit puts `print` back in step and hides it. This outlives that.
+    behind: bool,
 }
 
 pub struct Projected {
@@ -85,6 +88,7 @@ impl Session {
             print,
             minded: std::collections::HashMap::new(),
             log: None,
+            behind: false,
         };
         session.tidy_up(true);
         if let Some(host) = tisty_core::agent::unhosted(&session.config, &session.state)
@@ -147,7 +151,7 @@ impl Session {
 
     pub fn reload(&mut self) -> tisty_core::Result<bool> {
         let print = tisty_core::cache::fingerprint(&self.paths.store());
-        if print == self.print {
+        if !self.behind && print == self.print {
             return Ok(false);
         }
         self.reproject()?;
@@ -172,8 +176,10 @@ impl Session {
     }
 
     pub fn adopt(&mut self, fresh: Projected) {
+        self.behind = tisty_core::cache::fingerprint(&self.paths.store()) != fresh.print;
         self.state = fresh.state;
         self.print = fresh.print;
+        self.log = None;
     }
 
     pub fn alive(&self) -> Vec<String> {
@@ -692,3 +698,7 @@ impl log::Log for Relayed {
 
     fn flush(&self) {}
 }
+
+#[cfg(test)]
+#[path = "session_test.rs"]
+mod tests;

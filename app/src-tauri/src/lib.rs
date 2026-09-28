@@ -83,7 +83,14 @@ fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGu
 async fn elsewhere<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Answer<T> {
     tauri::async_runtime::spawn_blocking(work)
         .await
-        .map_err(|_| Refusal::of("internal"))
+        .map_err(|e| {
+            witness::error(
+                channel::WINDOW,
+                "a piece of work never came back",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Refusal::of("internal")
+        })
 }
 
 fn today() -> jiff::civil::Date {
