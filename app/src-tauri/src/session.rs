@@ -610,8 +610,16 @@ impl Session {
         Ok(tisty_core::undo::unhung(told, &self.state, id))
     }
 
-    pub fn settle_what_arrived(&mut self, files: &[String]) {
-        let told = tisty_core::tidy::settling_what_arrived(&self.paths, &self.state, files);
+    pub fn books_among(&self, files: &[String]) -> Vec<String> {
+        self.state.books_among(files)
+    }
+
+    pub fn settle_what_came(&mut self, read: &[(String, String)]) {
+        let told = tisty_core::tidy::settling_what_came(&self.state, read);
+        self.settled(told);
+    }
+
+    fn settled(&mut self, told: Vec<Op>) {
         if told.is_empty() {
             return;
         }
@@ -649,6 +657,24 @@ impl Session {
             dest.as_deref(),
             bin,
         );
+    }
+
+    pub fn sweeping(&self, bin: bool) -> tisty_core::tidy::Sweeping {
+        tisty_core::tidy::Sweeping::of(
+            &self.paths,
+            &self.state,
+            self.cache.as_ref(),
+            self.dest().as_deref(),
+            bin,
+        )
+    }
+
+    pub fn swept(&mut self, was: &tisty_core::tidy::Already, done: &tisty_core::tidy::Already) {
+        if done != was
+            && let Some(cache) = self.cache.as_ref()
+        {
+            cache.note_already(done);
+        }
     }
 
     pub fn take_a_seat(&mut self) -> tisty_core::Result<()> {

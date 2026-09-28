@@ -96,7 +96,10 @@ pub async fn settle_in(
             })?;
         held(&session).adopt(fresh);
     }
-    held(&session).settle_what_arrived(&arrived);
+    let books = held(&session).books_among(&arrived);
+    let at = paths.clone();
+    let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
+    held(&session).settle_what_came(&read);
 
     let at = paths.clone();
     let audit = elsewhere(move || tisty_core::cache::audit(&at.store(), at.cache()))
@@ -402,9 +405,27 @@ pub async fn sync_now(
             })?;
         held(&session).adopt(fresh);
     }
+    let (job, was_swept) = {
+        let session = held(&session);
+        let job = session.sweeping(false);
+        let was = job.already();
+        (job, was)
+    };
+    let at = paths.clone();
+    let (_, swept) = elsewhere(move || {
+        tisty_core::parcel::swept(at.data());
+        tisty_core::attach::swept(at.data());
+        job.run()
+    })
+    .await?;
+
+    let books = held(&session).books_among(&done.arrived);
+    let at = paths.clone();
+    let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
+
     let mut session = held(&session);
-    session.settle_what_arrived(&done.arrived);
-    session.tidy_up(false);
+    session.settle_what_came(&read);
+    session.swept(&was_swept, &swept);
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
