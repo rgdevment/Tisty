@@ -9,9 +9,6 @@ use crate::{
     glimpse, held, report, room, said, session, show, today, within,
 };
 
-/// A projection is read without the lock, so a commit can land while it runs and the state that
-/// comes back would be missing it. Reading again is cheaper than acting on what is already known
-/// to be stale, and a second round only happens if somebody wrote during the first.
 async fn catching_up(
     session: &tauri::State<'_, Mutex<Session>>,
     paths: &tisty_core::Paths,
@@ -138,8 +135,6 @@ pub async fn settle_in(
         })?;
     let agrees = matches!(audit, tisty_core::cache::Audit::Agrees { .. });
     if !agrees {
-        // Rebuilding is as heavy as a carry, and nothing else should be reading the cache while
-        // it goes; a machine whose cache agrees never takes this and is refused nothing.
         let _done = alone.inner().claim();
         let at = paths.clone();
         let writes = {

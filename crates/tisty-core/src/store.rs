@@ -468,6 +468,45 @@ pub fn distinct_in(device_dir: &Path) -> Result<usize> {
     Ok(events.len())
 }
 
+pub fn newest_schema(device_dir: &Path) -> Result<u32> {
+    for segment in segments_in(device_dir)?.iter().rev() {
+        let Some(line) = last_line(segment)? else {
+            continue;
+        };
+        if let Ok(one) = serde_json::from_str::<Stamped>(&line) {
+            return Ok(one.v);
+        }
+    }
+    Ok(0)
+}
+
+fn last_line(path: &Path) -> Result<Option<String>> {
+    use std::io::{Read, Seek};
+
+    let mut file = File::open(path)?;
+    let weighs = file.metadata()?.len();
+    if weighs == 0 {
+        return Ok(None);
+    }
+    let window = weighs.min(64 * 1024);
+    file.seek(std::io::SeekFrom::Start(weighs - window))?;
+    let mut read = Vec::new();
+    file.read_to_end(&mut read)?;
+
+    let text = String::from_utf8_lossy(&read);
+    let whole = match window == weighs {
+        true => text.as_ref(),
+        false => match text.find('\n') {
+            Some(at) => &text[at + 1..],
+            None => return Ok(None),
+        },
+    };
+    Ok(whole
+        .lines()
+        .rfind(|one| !one.trim().is_empty())
+        .map(str::to_owned))
+}
+
 pub fn check_device(device_dir: &Path) -> Result<usize> {
     let segments = segments_in(device_dir)?;
     contiguous(&segments)?;

@@ -28,8 +28,6 @@ pub struct Already {
     pub attachments: BTreeSet<String>,
 }
 
-/// What a sweep needs from the store, taken while whoever owns the state can be asked, so the
-/// walking of the folders can happen anywhere.
 pub struct Sweeping {
     paths: Paths,
     shed: BTreeSet<String>,
@@ -40,9 +38,6 @@ pub struct Sweeping {
     owed: bool,
 }
 
-/// The folders, already walked. What a task points at is read from the state at the last moment
-/// instead: it is cheap to gather and it is the half a person can change while this runs, by
-/// putting back an attachment somebody had taken off a task.
 pub struct Walked {
     job: Sweeping,
     named: Vec<String>,

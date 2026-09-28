@@ -618,9 +618,6 @@ impl Session {
         self.state.books_among(files)
     }
 
-    /// The bodies were read without the lock, so a document written in between would have its
-    /// pages put back in the order the reading saw. Nothing is settled from a reading somebody
-    /// wrote over; the carry that follows settles it.
     pub fn settle_what_came(&mut self, read: &[(String, String)], since: u64) {
         if self.writes != since {
             return;

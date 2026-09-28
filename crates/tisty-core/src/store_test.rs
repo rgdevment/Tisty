@@ -1189,3 +1189,48 @@ fn a_store_opened_with_another_installs_settings_keeps_its_key_where_it_is() {
         "somebody else's key was installed on this machine"
     );
 }
+
+#[test]
+fn what_schema_a_machine_writes_under_is_read_from_its_last_line_alone() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("dev_b");
+    std::fs::create_dir_all(&at).unwrap();
+
+    assert_eq!(newest_schema(&at).unwrap(), 0, "nothing written yet");
+
+    let one = "{\"v\":15,\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WT\",\"d\":{\"title\":\"hoy\",\"order\":\"V\"}}";
+    let after = "{\"v\":99,\"ts\":\"2026-08-26T10:00:01Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WU\",\"d\":{\"title\":\"manana\",\"order\":\"W\"}}";
+    std::fs::write(
+        at.join("active.tisty"),
+        format!(
+            "{one}
+{after}
+"
+        ),
+    )
+    .unwrap();
+    assert_eq!(
+        newest_schema(&at).unwrap(),
+        99,
+        "the newest write is what decides whether we can stand beside it"
+    );
+}
+
+#[test]
+fn a_machine_that_just_rotated_is_still_read_from_the_segment_behind() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("dev_b");
+    std::fs::create_dir_all(&at).unwrap();
+    let sealed = "{\"v\":99,\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WT\",\"d\":{\"title\":\"hoy\",\"order\":\"V\"}}";
+    std::fs::write(
+        at.join("000001.tisty"),
+        format!(
+            "{sealed}
+"
+        ),
+    )
+    .unwrap();
+    std::fs::write(at.join("active.tisty"), b"").unwrap();
+
+    assert_eq!(newest_schema(&at).unwrap(), 99);
+}

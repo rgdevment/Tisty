@@ -1,3 +1,5 @@
+mod guarding;
+
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -107,12 +109,7 @@ pub fn carry_telling(
     holds: Holds,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
-    if !dest.is_dir() {
-        return Err(Trouble::NotThere(dest.display().to_string()));
-    }
-    for folder in [STORE, HELD, PAPERS] {
-        straight(&dest.join(folder), dest)?;
-    }
+    guarding::before_carrying(dest, device)?;
     let store = data.join(STORE);
     let ours = settled(&store, dest, carried_here(aside, dest))?;
 
@@ -137,12 +134,7 @@ pub fn carry_telling(
         if said.as_ref().or(pushed.as_ref()).is_none() {
             return Err(Trouble::Unreadable(store.display().to_string()));
         }
-        let who = tisty_core::event::DeviceId(device.to_string());
-        let told =
-            tisty_core::store::ledger(&store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
-        if !told.may_write(&who) {
-            return Err(Trouble::NotAllowed(device.to_string()));
-        }
+        guarding::allowed_to_write(&store, device)?;
         let marker = dest.join(STORE).join(MARKER);
         if std::fs::read_to_string(&marker).ok().as_deref() != Some(ours.as_str()) {
             write(&marker, ours.as_bytes())?;

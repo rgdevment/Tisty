@@ -37,8 +37,6 @@ pub struct Facts {
 
 pub use tisty_core::witness::hidden;
 
-/// What a shared folder holds and this machine let go of: the copy carries it, so the size beside
-/// the button has to count it or it promises a zip a tenth of what it writes.
 pub fn also_weighed(data: &Path, also: Option<&Path>) -> u64 {
     let Some(also) = also else {
         return 0;

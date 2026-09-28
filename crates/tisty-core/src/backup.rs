@@ -103,8 +103,6 @@ fn fill(data: &Path, also: Option<&Path>, into: &Path, store_id: String) -> Resu
         }
     }
 
-    // What holds attachments in the shared folder keeps no local copy of the big ones, so a copy
-    // taken from this machine alone would come back without them.
     if let Some(also) = also {
         for at in walk(&also.join("attachments")) {
             packed(&mut zip, &mut made, &mut written, also, &at)?;
@@ -226,8 +224,6 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.heard_at = None;
-    // The folder holds the history this copy was taken before, and a carry would bring all of it
-    // back within the minute, so a restore that meant to undo something would undo nothing.
     config.sync = None;
     config.save(paths)?;
 
@@ -269,8 +265,6 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     })
 }
 
-/// The machine keeps its history and takes a new name, so without this it reads as a stranger
-/// on every other machine that shares the folder, once for every restore.
 fn said_goodbye(paths: &Paths, was: &crate::DeviceId, now: &crate::DeviceId) {
     if !paths.store().join(&was.0).is_dir() {
         return;
