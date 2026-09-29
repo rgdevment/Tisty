@@ -408,6 +408,7 @@ pub fn doc_new(
                 bytes: None,
                 tags: Some(Vec::new()),
                 by: None,
+                print: None,
             }),
             folder,
             page_of,
@@ -583,6 +584,7 @@ pub fn settle_paper(
                     bytes: None,
                     tags: Some(Vec::new()),
                     by: None,
+                    print: None,
                 }),
                 page_of,
             },
@@ -712,6 +714,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
                         bytes: None,
                         tags: Some(kept.tags.clone()),
                         by: None,
+                        print: None,
                     })
                     .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
@@ -906,10 +909,9 @@ fn noted(session: &mut Session, file: &str, body: &str) {
         return;
     };
     let told = tisty_core::event::Said {
-        title: tisty_core::docs::titled(body),
         bytes: kept.bytes,
-        tags: Some(tisty_core::tagging::tags_in(body)),
         by: None,
+        ..tisty_core::event::Said::of(body)
     };
     if !told.news_for(kept) {
         return;

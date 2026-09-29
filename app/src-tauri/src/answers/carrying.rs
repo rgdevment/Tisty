@@ -157,6 +157,7 @@ pub fn doc_import(
                 bytes: None,
                 tags: Some(Vec::new()),
                 by: None,
+                print: None,
             }),
             folder,
             page_of: None,

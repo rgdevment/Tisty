@@ -59,6 +59,8 @@ pub struct Kept {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bytes: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub print: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub made: Option<jiff::Timestamp>,

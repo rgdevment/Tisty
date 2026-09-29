@@ -4074,6 +4074,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
                 bytes: Some(42),
                 tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
                 by: None,
+                print: None,
             },
         },
     );
@@ -4376,6 +4377,7 @@ fn a_history_handed_on_reaches_the_folder_byte_for_byte() {
                 bytes: Some(13),
                 tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
                 by: Some("otra persona".into()),
+                print: None,
             },
         },
     );
@@ -5909,4 +5911,145 @@ fn a_note_of_another_place_from_before_the_mark_leaves_this_one_alone() {
         .expect("a folder the note never named is one we have never carried to");
 
     assert!(shared.path().join(STORE).join(&one.device).is_dir());
+}
+
+#[test]
+fn a_body_that_arrived_empty_never_writes_over_the_one_we_have() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    filed(&one, "uno-0001", "# Notas\n\nlo que escribi\n");
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let theirs = shared.path().join(PAPERS).join("uno-0001.md");
+    std::fs::write(&theirs, b"").unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        "# Notas\n\nlo que escribi\n",
+        "a failed download read as somebody emptying the document"
+    );
+}
+
+#[test]
+fn a_body_the_person_emptied_still_travels() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    filed(&one, "uno-0001", "# Notas\n\nlo que escribi\n");
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    wrote_body(&one.data.join(PAPERS), "uno-0001", "");
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == "uno-0001")
+        .map(|paper| paper.id)
+        .expect("the document is in the log");
+    says(
+        &one,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(""),
+        },
+    );
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(shared.path().join(PAPERS).join("uno-0001.md")).unwrap(),
+        "",
+        "the person emptied it on purpose and the folder kept the old one"
+    );
+}
+
+#[test]
+fn the_last_copy_here_is_kept_when_the_one_up_there_only_weighs_the_same() {
+    let one = machine("dev_a");
+    let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+        .map(|at| (at % 251) as u8)
+        .collect();
+    let heavy = planted(&one.data, "charla.mp4", &big);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    assert!(shared.path().join(&heavy).is_file(), "it went up");
+
+    let mut other = big.clone();
+    other[7] ^= 0xff;
+    std::fs::write(shared.path().join(&heavy), &other).unwrap();
+    let carried = [(heavy.clone(), big.len() as u64)];
+
+    let freed = super::let_go_of(
+        &one.data,
+        shared.path(),
+        &carried,
+        tisty_core::attach::COPIED_UP_TO,
+    );
+
+    assert_eq!(freed, 0);
+    assert!(
+        one.data.join(&heavy).is_file(),
+        "the only copy left was let go of on the strength of its weight"
+    );
+}
+
+#[test]
+fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
+    let one = machine("dev_a");
+    let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+        .map(|at| (at % 251) as u8)
+        .collect();
+    let heavy = planted(&one.data, "charla.mp4", &big);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let carried = [(heavy.clone(), big.len() as u64)];
+
+    let freed = super::let_go_of(
+        &one.data,
+        shared.path(),
+        &carried,
+        tisty_core::attach::COPIED_UP_TO,
+    );
+
+    assert_eq!(freed, big.len() as u64);
+    assert!(!one.data.join(&heavy).exists());
+}
+
+#[test]
+fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let body = "# Notas\n\nlo que escribi\n";
+    filed(&one, "uno-0001", body);
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == "uno-0001")
+        .map(|paper| paper.id)
+        .expect("the document is in the log");
+    says(
+        &one,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(body),
+        },
+    );
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    std::fs::write(
+        shared.path().join(PAPERS).join("uno-0001.md"),
+        b"algo que nadie escribio\n",
+    )
+    .unwrap();
+
+    let moved = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        moved.astray.contains(&"uno-0001".to_string()),
+        "a body nobody wrote down was taken in without a word"
+    );
+    assert_eq!(
+        std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        body
+    );
 }
