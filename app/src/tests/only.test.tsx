@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { List } from "../core";
 import Only, { said } from "../ui/Only";
-import { asView } from "../views";
+import { A_COLUMN, asView } from "../views";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) =>
@@ -121,17 +121,19 @@ describe("the filter reaching the store", () => {
     expect(asView({ named: "tasks", slice: "today", lists: ["01A"] })).toEqual({
       window: "today",
       lists: ["01A"],
+      most: A_COLUMN,
     });
   });
 
   it("asks for nothing extra when no list is picked", () => {
-    expect(asView({ named: "tasks", slice: "all", lists: [] })).toEqual({});
+    expect(asView({ named: "tasks", slice: "all", lists: [] })).toEqual({ most: A_COLUMN });
   });
 
   it("carries every picked list through", () => {
     expect(asView({ named: "tasks", slice: "repeating", lists: ["01A", "01B"] })).toEqual({
       repeating: true,
       lists: ["01A", "01B"],
+      most: A_COLUMN,
     });
   });
 });

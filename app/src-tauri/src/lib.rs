@@ -36,6 +36,8 @@ use tisty_core::{
 #[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
+    total: usize,
+    soonest: std::collections::BTreeMap<String, Vec<Task>>,
     ahead: Vec<Coming>,
     routines: Vec<Habit>,
     lists: Vec<List>,

@@ -85,6 +85,38 @@ fn a_meeting_place_that_went_empty_is_not_seeded_again_behind_our_back() {
 }
 
 #[test]
+fn sending_it_all_again_is_how_a_person_says_the_empty_folder_is_the_right_one() {
+    let one = machine("uno");
+    let aside = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(
+        &one.data,
+        Some(aside.path()),
+        &one.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+    std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
+
+    carry_leaning_on(
+        &one.data,
+        Some(aside.path()),
+        &one.device,
+        shared.path(),
+        Way::Again,
+        &[],
+    )
+    .unwrap();
+
+    assert!(
+        shared.path().join(STORE).join(&one.device).exists(),
+        "the way out of the guard is the button that says send it all again"
+    );
+}
+
+#[test]
 fn a_folder_we_never_carried_to_is_still_a_fresh_start() {
     let one = machine("uno");
     let aside = tempfile::tempdir().unwrap();

@@ -87,7 +87,7 @@ describe("the river of days", () => {
   });
 
   it("starts on the monday of the week you are living and runs on for months", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     expect(days()).toHaveLength(120);
     expect(days()[0].getAttribute("data-day")).toBe(weekDay(0));
@@ -95,7 +95,7 @@ describe("the river of days", () => {
   });
 
   it("names the month once, where it turns", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     const said = [...document.querySelectorAll("p")]
       .map((one) => one.textContent ?? "")
@@ -108,6 +108,7 @@ describe("the river of days", () => {
   it("puts each task under the day it carries", () => {
     render(
       <Spread
+        counts={{}}
         tasks={[made("01A", "Kermés", weekDay(4), "11:00:00")]}
         onPlace={vi.fn()}
         onOpen={vi.fn()}
@@ -121,6 +122,7 @@ describe("the river of days", () => {
   it("does not call a day free when work is owed on it", () => {
     render(
       <Spread
+        counts={{}}
         tasks={[owing("01A", "Entregar el informe", weekDay(4))]}
         onPlace={vi.fn()}
         onOpen={vi.fn()}
@@ -133,21 +135,37 @@ describe("the river of days", () => {
   });
 
   it("calls a day with nothing on it free", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     expect(dayAt(3)?.textContent).toContain(t("spreadFree"));
   });
 
   it("keeps what has no day at all in the tray", () => {
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />,
+    );
 
     expect(document.querySelector("[data-tray]")?.textContent).toContain("Sin fecha");
     expect(dayAt(0)?.textContent).not.toContain("Sin fecha");
   });
 
+  it("says how many wait in the tray, not how many it was handed", () => {
+    render(
+      <Spread
+        tasks={[made("01A", "Sin fecha")]}
+        counts={{ tray: 4820 }}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector("[data-tray]")?.textContent).toContain("4820");
+  });
+
   it("leaves routines out of it, since a cadence deals their day", () => {
     render(
       <Spread
+        counts={{}}
         tasks={[routine("01A", "Tomar píldoras", weekDay(2))]}
         onPlace={vi.fn()}
         onOpen={vi.fn()}
@@ -160,6 +178,7 @@ describe("the river of days", () => {
   it("draws every task the same way, whatever it carries", () => {
     render(
       <Spread
+        counts={{}}
         tasks={[
           made("01A", "Con hora", weekDay(1), "09:00:00"),
           made("01B", "Sin hora", weekDay(1)),
@@ -179,7 +198,9 @@ describe("the river of days", () => {
 
   it("deals a task a day when you drop it on one", () => {
     const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={placed} onOpen={vi.fn()} />,
+    );
 
     dragged(screen.getByText("Sin fecha"), dayAt(3));
 
@@ -189,7 +210,12 @@ describe("the river of days", () => {
   it("says nothing when the day it lands on is the one it already had", () => {
     const placed = vi.fn();
     render(
-      <Spread tasks={[made("01A", "Kermés", weekDay(4))]} onPlace={placed} onOpen={vi.fn()} />,
+      <Spread
+        tasks={[made("01A", "Kermés", weekDay(4))]}
+        counts={{}}
+        onPlace={placed}
+        onOpen={vi.fn()}
+      />,
     );
 
     dragged(screen.getByText("Kermés"), dayAt(4));
@@ -199,7 +225,9 @@ describe("the river of days", () => {
 
   it("opens what you press without dragging", () => {
     const opened = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={opened} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={vi.fn()} onOpen={opened} />,
+    );
 
     const card = screen.getByText("Sin fecha");
     fireEvent.pointerDown(card, { button: 0, clientX: 0, clientY: 0 });
@@ -212,7 +240,9 @@ describe("the river of days", () => {
   it("opens from the keyboard, like every other list in the app", async () => {
     const opened = vi.fn();
     const user = userEvent.setup();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={opened} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={vi.fn()} onOpen={opened} />,
+    );
 
     const card = screen.getByText("Sin fecha").closest("button") as HTMLElement;
     card.focus();
@@ -225,6 +255,7 @@ describe("the river of days", () => {
     const carrying = vi.fn();
     render(
       <Spread
+        counts={{}}
         tasks={[made("01A", "Sin fecha")]}
         onPlace={vi.fn()}
         onOpen={vi.fn()}
@@ -246,7 +277,9 @@ describe("the river of days", () => {
 
   it("does not open what you only dragged somewhere else", () => {
     const opened = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={opened} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={vi.fn()} onOpen={opened} />,
+    );
 
     const card = screen.getByText("Sin fecha");
     dragged(card, dayAt(3));
@@ -257,7 +290,14 @@ describe("the river of days", () => {
 
   it("reaches a day that already went by, so slipped work can be dealt again", () => {
     const gone = iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-    render(<Spread tasks={[made("01A", "Se me pasó", gone)]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(
+      <Spread
+        tasks={[made("01A", "Se me pasó", gone)]}
+        counts={{}}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+      />,
+    );
 
     expect(document.querySelector(`[data-day="${gone}"]`)).toBeTruthy();
     expect(document.querySelector(`[data-day="${gone}"]`)?.textContent).toContain("Se me pasó");
@@ -266,7 +306,12 @@ describe("the river of days", () => {
   it("takes the day away when a dated task is dropped back on the tray", () => {
     const placed = vi.fn();
     render(
-      <Spread tasks={[made("01A", "Kermés", weekDay(4))]} onPlace={placed} onOpen={vi.fn()} />,
+      <Spread
+        tasks={[made("01A", "Kermés", weekDay(4))]}
+        counts={{}}
+        onPlace={placed}
+        onOpen={vi.fn()}
+      />,
     );
 
     dragged(
@@ -279,7 +324,9 @@ describe("the river of days", () => {
 
   it("says nothing when what comes back to the tray never had a day", () => {
     const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={placed} onOpen={vi.fn()} />,
+    );
 
     dragged(screen.getByText("Sin fecha"), document.querySelector("[data-tray]"));
 
@@ -289,7 +336,12 @@ describe("the river of days", () => {
   it("moves a task that already had a day onto a different one", () => {
     const placed = vi.fn();
     render(
-      <Spread tasks={[made("01A", "Kermés", weekDay(1))]} onPlace={placed} onOpen={vi.fn()} />,
+      <Spread
+        tasks={[made("01A", "Kermés", weekDay(1))]}
+        counts={{}}
+        onPlace={placed}
+        onOpen={vi.fn()}
+      />,
     );
 
     dragged(screen.getByText("Kermés"), dayAt(5));
@@ -299,7 +351,9 @@ describe("the river of days", () => {
 
   it("does nothing when a task is let go outside every day", () => {
     const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={placed} onOpen={vi.fn()} />,
+    );
 
     dragged(screen.getByText("Sin fecha"), document.body);
 
@@ -310,6 +364,7 @@ describe("the river of days", () => {
     const placed = vi.fn();
     render(
       <Spread
+        counts={{}}
         tasks={[
           made("01A", "Uno", weekDay(4)),
           made("01B", "Dos", weekDay(4)),
@@ -330,6 +385,7 @@ describe("the river of days", () => {
     const placed = vi.fn();
     render(
       <Spread
+        counts={{}}
         tasks={[
           made("01A", "Uno", weekDay(4)),
           made("01B", "Dos", weekDay(4)),
@@ -349,7 +405,9 @@ describe("the river of days", () => {
   });
 
   it("stays quiet when the day it lands on has room", () => {
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />,
+    );
 
     dragged(screen.getByText("Sin fecha"), dayAt(3));
 
@@ -360,6 +418,7 @@ describe("the river of days", () => {
     const placed = vi.fn();
     render(
       <Spread
+        counts={{}}
         tasks={[
           made("01A", "Uno", weekDay(6)),
           made("01B", "Dos", weekDay(6)),
@@ -392,7 +451,7 @@ describe("the month, for looking and no more", () => {
   const open = () => fireEvent.click(screen.getByRole("button", { name: t("spreadMoon") }));
 
   it("lays out six weeks of cells and hides the river while it shows", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     open();
 
@@ -401,7 +460,7 @@ describe("the month, for looking and no more", () => {
   });
 
   it("never calls a cell free, since Tisty cannot promise a day is", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     open();
 
@@ -411,6 +470,7 @@ describe("the month, for looking and no more", () => {
   it("shows what a day carries, and says how many it could not fit", () => {
     render(
       <Spread
+        counts={{}}
         tasks={[
           made("01A", "Uno", weekDay(3)),
           made("01B", "Dos", weekDay(3)),
@@ -432,7 +492,9 @@ describe("the month, for looking and no more", () => {
 
   it("takes no task anywhere: pressing a day sends you back to it in the river", () => {
     const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={placed} onOpen={vi.fn()} />,
+    );
 
     open();
     fireEvent.click(document.querySelector(`[data-day="${weekDay(5)}"]`) as HTMLElement);
@@ -442,7 +504,7 @@ describe("the month, for looking and no more", () => {
   });
 
   it("walks a month back and a month on", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
     open();
 
     const now = new Date();
@@ -469,7 +531,7 @@ describe("a monday read from a zone behind UTC", () => {
   });
 
   it("opens the week that monday starts, not the one it closed", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     expect(days()[0].getAttribute("data-day")).toBe("2026-09-07");
     expect(document.querySelector('[data-day="2026-08-31"]')).toBeNull();
@@ -488,7 +550,9 @@ describe("a week that crosses into another month and year", () => {
 
   it("still lands a drop on the right date", () => {
     const placed = vi.fn();
-    render(<Spread tasks={[made("01A", "Sin fecha")]} onPlace={placed} onOpen={vi.fn()} />);
+    render(
+      <Spread tasks={[made("01A", "Sin fecha")]} counts={{}} onPlace={placed} onOpen={vi.fn()} />,
+    );
 
     expect(document.querySelector('[data-day="2025-12-29"]')).toBeTruthy();
     expect(document.querySelector('[data-day="2026-01-04"]')).toBeTruthy();

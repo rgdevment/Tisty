@@ -848,7 +848,7 @@ const en = {
   noRemote: "No destination is set yet",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
   emptiedPlace:
-    "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted.",
+    "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncNewer:
@@ -2214,7 +2214,7 @@ const es: Catalog = {
   noRemote: "todavía no hay destino",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
   emptiedPlace:
-    "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados.",
+    "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
   syncNewer:

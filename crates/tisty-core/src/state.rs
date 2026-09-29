@@ -1073,8 +1073,7 @@ impl State {
     }
 
     pub fn ordered_open(&self) -> Vec<&Task> {
-        // Borrowed, not cloned: sort_by asks for the key on both sides of every comparison, and
-        // the tally alone sorts this list thirteen times for one snapshot.
+        // Borrowed, not cloned: one snapshot walks this list several times over.
         fn key(t: &Task) -> (Option<jiff::civil::DateTime>, Priority, &str, TaskId) {
             (
                 t.date.as_ref().map(|d| d.at),

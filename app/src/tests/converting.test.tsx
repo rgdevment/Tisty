@@ -88,6 +88,8 @@ const shot = (view: View | undefined): Snapshot => ({
           : []
         : [told]
     : [open],
+  total: 0,
+  soonest: {},
   ahead: [],
   routines: [],
   lists: [],

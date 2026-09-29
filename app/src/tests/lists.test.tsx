@@ -56,7 +56,7 @@ describe("tending a list", () => {
       <Lists
         lists={lists}
         counts={{ "01A": 2 }}
-        tasks={[]}
+        soonest={{}}
         onOpen={vi.fn()}
         onChanged={changed}
         onError={vi.fn()}
@@ -149,18 +149,18 @@ describe("what a list card says about what is inside", () => {
       <Lists
         lists={lists}
         counts={{ "01A": tasks.filter((one) => one.list === "01A").length }}
-        tasks={tasks}
+        soonest={{ "01A": tasks.filter((one) => one.list === "01A") }}
         onOpen={vi.fn()}
         onChanged={vi.fn()}
         onError={vi.fn()}
       />,
     );
 
-  it("puts what comes soonest first, and dated work before undated", () => {
+  it("names them in the order it was handed, which is the one the core settled", () => {
     withTasks([
-      task("1", "sin fecha"),
-      task("2", "la lejana", "2030-01-01"),
       task("3", "la cercana", "2020-01-01"),
+      task("2", "la lejana", "2030-01-01"),
+      task("1", "sin fecha"),
     ]);
 
     const said = screen.getAllByRole("button").map((one) => one.textContent);
@@ -168,13 +168,6 @@ describe("what a list card says about what is inside", () => {
     expect(order[0]).toContain("la cercana");
     expect(order[1]).toContain("la lejana");
     expect(order[2]).toContain("sin fecha");
-  });
-
-  it("names three and no more, however many the list holds", () => {
-    withTasks(["1", "2", "3", "4", "5"].map((n) => task(n, `tarea ${n}`, `2030-01-0${n}`)));
-
-    expect(screen.getByText("tarea 3")).toBeTruthy();
-    expect(screen.queryByText("tarea 4")).toBeNull();
   });
 
   it("says it is settled where nothing is open, rather than leaving the card bare", () => {

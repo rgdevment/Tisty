@@ -8,6 +8,7 @@ import { Pip, spokenLabel } from "./Spoke";
 
 interface Props {
   tasks: Task[];
+  counts: Record<string, number>;
   onPlace: (task: string, on: string | null) => void;
   onOpen: (task: Task) => void;
   onCarrying?: (held: boolean) => void;
@@ -49,7 +50,7 @@ const moonOf = (at: Date): string => {
   return said.charAt(0).toUpperCase() + said.slice(1);
 };
 
-export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
+export default function Spread({ tasks, counts, onPlace, onOpen, onCarrying }: Props) {
   const [glance, setGlance] = useState<{ year: number; month: number } | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
@@ -418,7 +419,7 @@ export default function Spread({ tasks, onPlace, onOpen, onCarrying }: Props) {
             <header className="flex items-center gap-2 border-b border-hair px-3 py-2">
               <span className="text-[13px] font-semibold">{t("spreadTray")}</span>
               <span className="ml-auto text-[11.5px] tabular-nums text-faint">
-                {waiting.length || ""}
+                {(counts.tray ?? waiting.length) || ""}
               </span>
             </header>
             {losing ? (

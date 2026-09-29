@@ -27,6 +27,14 @@ pub(crate) struct View {
     #[serde(default)]
     pub(crate) repeating: bool,
     #[serde(default)]
+    pub(crate) most: Option<usize>,
+    #[serde(default)]
+    pub(crate) board: bool,
+    #[serde(default)]
+    pub(crate) spread: bool,
+    #[serde(default)]
+    pub(crate) soonest: bool,
+    #[serde(default)]
     pub(crate) reading: Option<String>,
 }
 

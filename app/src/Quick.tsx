@@ -20,7 +20,7 @@ export default function Quick() {
     const away = () => void window.hide();
 
     const look = () =>
-      snapshot({})
+      snapshot({ most: 0 })
         .then((fresh) => {
           adopt(fresh.locale);
           setData(fresh);
