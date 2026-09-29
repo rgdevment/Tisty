@@ -120,9 +120,9 @@ pub fn carry_telling(
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
     let store = data.join(STORE);
-    let ours = settled(&store, dest, carried_here(aside, dest))?;
-
     let again = matches!(way, Way::Again);
+    let ours = settled(&store, dest, carried_here(aside, dest) && !again)?;
+
     let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
     let giving = matches!(way, Way::Both | Way::Push | Way::Again);
 
