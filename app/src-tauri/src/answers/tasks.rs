@@ -162,6 +162,7 @@ pub fn snapshot(
     Ok(Snapshot {
         tasks,
         total,
+        soonest: crate::summing::soonest_in(&session.state),
         ahead: coming(&session.state, today()),
         routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),

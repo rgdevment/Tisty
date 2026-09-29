@@ -1088,3 +1088,59 @@ fn what_a_column_carries_stays_a_column_however_many_there_are() {
         "the whole lot weighs {whole} and the column {carried}: the cap is not doing anything"
     );
 }
+
+#[test]
+fn a_list_card_is_handed_what_comes_soonest_and_no_more_than_three() {
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+    let elsewhere =
+        tisty_core::model::List::new(tisty_core::model::ListId::generate(), "trabajo", "a1");
+    state.lists.insert(elsewhere.id, elsewhere.clone());
+
+    let mut undated = held("sin fecha");
+    undated.list = Some(list.id);
+    kept(&mut state, undated);
+    for (n, day) in [(1, 20), (2, 10), (3, 5), (4, 1)] {
+        let mut one = held(&format!("la de {n}"));
+        one.list = Some(list.id);
+        one.date = Some(tisty_core::model::DateSpec::all_day(
+            away(today(), day),
+            "America/Santiago",
+        ));
+        kept(&mut state, one);
+    }
+    let mut lonely = held("la de la otra lista");
+    lonely.list = Some(elsewhere.id);
+    kept(&mut state, lonely);
+
+    let soonest = crate::summing::soonest_in(&state);
+    let here: Vec<&str> = soonest[&list.id.to_string()]
+        .iter()
+        .map(|one| one.title.as_str())
+        .collect();
+
+    assert_eq!(
+        here,
+        ["la de 4", "la de 3", "la de 2"],
+        "the nearest day comes first, three of them, and what has no day waits behind"
+    );
+    assert_eq!(soonest[&elsewhere.id.to_string()].len(), 1);
+}
+
+#[test]
+fn a_list_of_undated_work_still_names_three_of_it() {
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+    for n in 0..5 {
+        let mut one = held(&format!("alguna vez {n}"));
+        one.list = Some(list.id);
+        one.order = format!("a{n}");
+        kept(&mut state, one);
+    }
+
+    let soonest = crate::summing::soonest_in(&state);
+
+    assert_eq!(soonest[&list.id.to_string()].len(), crate::summing::SOONEST);
+}

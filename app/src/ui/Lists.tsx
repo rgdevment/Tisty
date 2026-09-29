@@ -10,32 +10,18 @@ import { painted } from "./Hue";
 import Naming from "./Naming";
 import Pick from "./Pick";
 
-const AHEAD = 3;
-
 const whenOf = (task: Task) => task.date ?? task.deadline;
-
-const soonest = (all: Task[]): Task[] =>
-  [...all]
-    .sort((a, b) => {
-      const at = whenOf(a)?.at;
-      const bt = whenOf(b)?.at;
-      if (at && bt) return at.localeCompare(bt);
-      if (at) return -1;
-      if (bt) return 1;
-      return a.order.localeCompare(b.order);
-    })
-    .slice(0, AHEAD);
 
 interface Props {
   lists: List[];
   counts: Record<string, number>;
-  tasks: Task[];
+  soonest: Record<string, Task[]>;
   onOpen: (id: string) => void;
   onChanged: () => void;
   onError: (problem: unknown) => void;
 }
 
-export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError }: Props) {
+export default function Lists({ lists, counts, soonest, onOpen, onChanged, onError }: Props) {
   const [making, setMaking] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string>();
@@ -143,7 +129,7 @@ export default function Lists({ lists, counts, tasks, onOpen, onChanged, onError
 
         <div className="grid grid-cols-1 gap-3.5 @min-[620px]:grid-cols-2 @min-[1040px]:grid-cols-3">
           {lists.map((list) => {
-            const next = soonest(tasks.filter((one) => one.list === list.id));
+            const next = soonest[list.id] ?? [];
             return (
               <div
                 key={list.id}

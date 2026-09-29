@@ -29,6 +29,34 @@ pub fn a_column(
     ))
 }
 
+pub const SOONEST: usize = 3;
+
+pub fn soonest_in(state: &State) -> std::collections::BTreeMap<String, Vec<Task>> {
+    let when = |task: &Task| {
+        task.date
+            .as_ref()
+            .or(task.deadline.as_ref())
+            .map(|one| one.at)
+    };
+    let mut by: std::collections::BTreeMap<String, Vec<&Task>> = Default::default();
+    for task in state.tasks.values().filter(|one| one.is_open()) {
+        if let Some(list) = task.list {
+            by.entry(list.to_string()).or_default().push(task);
+        }
+    }
+    by.into_iter()
+        .map(|(id, mut held)| {
+            held.sort_by(|a, b| match (when(a), when(b)) {
+                (Some(a), Some(b)) => a.cmp(&b),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.order.cmp(&b.order),
+            });
+            (id, held.into_iter().take(SOONEST).cloned().collect())
+        })
+        .collect()
+}
+
 pub fn asked_about() -> Vec<(&'static str, Filter)> {
     let mut asked: Vec<(&'static str, Filter)> = vec![
         (

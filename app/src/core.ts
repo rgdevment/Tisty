@@ -130,6 +130,7 @@ export interface Habit {
 export interface Snapshot {
   tasks: Task[];
   total: number;
+  soonest: Record<string, Task[]>;
   ahead: Coming[];
   routines: Habit[];
   lists: List[];

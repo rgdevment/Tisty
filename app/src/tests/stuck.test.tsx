@@ -38,6 +38,7 @@ const shot = (): Snapshot => ({
     },
   ],
   total: 0,
+  soonest: {},
   ahead: [],
   routines: [],
   lists: [],

@@ -1840,7 +1840,7 @@ export default function App() {
               <Lists
                 lists={data.lists}
                 counts={data.counts}
-                tasks={data.tasks}
+                soonest={data.soonest}
                 onOpen={(id) => setChosen({ named: "lists", list: id })}
                 onChanged={load}
                 onError={(e) => setError(saidPlainly(e))}
@@ -1972,13 +1972,9 @@ export default function App() {
                         : undefined
                     }
                     note={
-                      found
-                        ? found.total > found.tasks.length
-                          ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
-                          : undefined
-                        : data.total > data.tasks.length
-                          ? fill("someOfMany", `${data.tasks.length}/${data.total}`)
-                          : undefined
+                      found && found.total > found.tasks.length
+                        ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
+                        : undefined
                     }
                     selected={selected}
                     fresh={captured?.id}
