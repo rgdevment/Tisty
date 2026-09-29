@@ -4454,7 +4454,6 @@ fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
         &Default::default(),
         false,
         Some(&other.data),
-        None,
         Some(1000),
         None,
         None,
@@ -5072,7 +5071,6 @@ fn fetched(shared: &Path, other: &Machine, most: Option<u64>, again: bool) -> us
         &Default::default(),
         again,
         Some(&other.data),
-        None,
         most,
         None,
         None,
@@ -6018,56 +6016,40 @@ fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
 }
 
 #[test]
-fn what_the_log_answers_for_reaches_the_machine_that_never_kept_it() {
+fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
     let one = machine("uno");
-    let kept = planted(&one.data, "foto.png", b"lo que de verdad guardamos");
-    let (sha256, bytes) = tisty_core::attach::digest_of(&one.data.join(&kept)).unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    let body = "# Notas\n\nlo que escribi\n";
+    filed(&one, "uno-0001", body);
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == "uno-0001")
+        .map(|paper| paper.id)
+        .expect("the document is in the log");
     says(
         &one,
-        Op::AttachKept {
-            d: tisty_core::event::Held {
-                at: kept.clone(),
-                sha256: sha256.clone(),
-                bytes,
-            },
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(body),
         },
     );
-    let shared = tempfile::tempdir().unwrap();
-    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
-    let other = blank("dos");
-    carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
+    std::fs::write(
+        shared.path().join(PAPERS).join("uno-0001.md"),
+        b"algo que nadie escribio\n",
+    )
+    .unwrap();
 
-    let told = tisty_core::State::replay(&tisty_core::store::read_all(&other.store).unwrap());
-    let held = told.kept.get(&kept).expect("the log says what it holds");
-    assert_eq!(held.sha256, sha256);
-    assert_eq!(held.bytes, bytes);
-    assert_eq!(
-        std::fs::read(other.data.join(&kept)).unwrap(),
-        b"lo que de verdad guardamos"
-    );
-}
+    let moved = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
-#[test]
-fn a_file_the_log_answers_for_is_told_apart_by_all_of_its_digest() {
-    let said: std::collections::BTreeMap<String, (String, u64)> = [(
-        "attachments/ab/foto-a3f90001.png".to_string(),
-        ("a3f90001".repeat(8), 12u64),
-    )]
-    .into_iter()
-    .collect();
-
-    assert!(tisty_core::attach::as_kept(
-        &said,
-        "attachments/ab/foto-a3f90001.png",
-        &"a3f90001".repeat(8)
-    ));
     assert!(
-        !tisty_core::attach::as_kept(
-            &said,
-            "attachments/ab/foto-a3f90001.png",
-            &format!("a3f90001{}", "0".repeat(56))
-        ),
-        "the name only vouches for the first forty bits of it"
+        moved.astray.contains(&"uno-0001".to_string()),
+        "a body nobody wrote down was taken in without a word"
+    );
+    assert_eq!(
+        std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        body
     );
 }

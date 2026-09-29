@@ -194,7 +194,6 @@ pub fn carry_telling(
             None,
             None,
             None,
-            None,
             Some(&mut carried),
         )?;
         if holds == Holds::Shared {
@@ -223,22 +222,12 @@ pub fn carry_telling(
     }
     if taking {
         let reachable = adrift.then(|| named_now(&told, data));
-        let vouched: std::collections::BTreeMap<String, (String, u64)> =
-            tisty_core::attach::digests(data)
-                .into_iter()
-                .chain(
-                    told.kept
-                        .iter()
-                        .map(|(at, held)| (at.clone(), (held.sha256.clone(), held.bytes))),
-                )
-                .collect();
         moved.brought += copy_held(
             &dest.join(HELD),
             &data.join(HELD),
             &buried_now(&told, data),
             false,
             Some(data),
-            Some(&vouched),
             left_behind(holds),
             reachable.as_ref(),
             None,
@@ -683,7 +672,7 @@ fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) ->
         ) else {
             continue;
         };
-        if !landed_whole(&there, told.get(reference), *bytes) {
+        if !landed_whole(&there, told.get(reference), *bytes, reference) {
             witness::warn(
                 channel::ATTACH,
                 "the copy up there is not the one we hold, so the one here is kept",
@@ -698,12 +687,23 @@ fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) ->
     freed
 }
 
-fn landed_whole(there: &Path, told: Option<&(String, u64)>, bytes: u64) -> bool {
-    let Some((sha256, _)) = told else {
+fn landed_whole(there: &Path, told: Option<&(String, u64)>, bytes: u64, reference: &str) -> bool {
+    if !std::fs::metadata(there).is_ok_and(|one| one.is_file() && one.len() == bytes) {
+        return false;
+    }
+    let Ok((sha256, _)) = tisty_core::attach::hashed(there) else {
         return false;
     };
-    tisty_core::attach::digest_of(there)
-        .is_ok_and(|(there, weighs)| weighs == bytes && there.eq_ignore_ascii_case(sha256))
+    match told {
+        Some((ours, _)) => ours.eq_ignore_ascii_case(&sha256),
+        None => shelved_as(reference)
+            .is_some_and(|(under, named)| tisty_core::attach::vouched(under, named, &sha256)),
+    }
+}
+
+fn shelved_as(reference: &str) -> Option<(&str, &str)> {
+    let rest = reference.strip_prefix("attachments/")?;
+    rest.split_once('/')
 }
 
 pub fn let_go_telling(
@@ -784,7 +784,6 @@ fn copy_held(
     buried: &std::collections::BTreeSet<String>,
     again: bool,
     ledger: Option<&Path>,
-    told: Option<&std::collections::BTreeMap<String, (String, u64)>>,
     above: Option<u64>,
     reachable: Option<&std::collections::BTreeSet<String>>,
     carried: Option<&mut Vec<(String, u64)>>,
@@ -792,7 +791,7 @@ fn copy_held(
     let mut done = 0;
     let mut left = 0;
     let mut carried = carried;
-    let written_down = told.cloned().unwrap_or_default();
+    let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
         Err(e) => {

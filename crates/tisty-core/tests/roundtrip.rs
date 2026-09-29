@@ -393,6 +393,7 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
             order: "a0".into(),
             title: Some(said.title.clone()),
             bytes: said.bytes,
+            print: said.print.clone(),
             wrote: None,
             made: None,
             made_by: None,
@@ -408,7 +409,6 @@ fn what_a_note_says_a_body_weighs_is_what_the_file_holds() {
             tags: Vec::new(),
             flagged: None,
             folder_was: None,
-            print: None,
         }),
         "opening it again is news, so it writes another note"
     );

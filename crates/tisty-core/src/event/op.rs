@@ -77,7 +77,6 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.host",
     "person.signed",
     "attach.retire",
-    "attach.kept",
     "stores.joined",
 ];
 
@@ -205,9 +204,6 @@ pub enum Op {
     #[serde(rename = "attach.retire")]
     AttachRetire { d: String },
 
-    #[serde(rename = "attach.kept")]
-    AttachKept { d: crate::event::Held },
-
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
 }
@@ -267,7 +263,6 @@ impl Op {
                 | Op::DeviceHost { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
-                | Op::AttachKept { .. }
         )
     }
 
@@ -322,7 +317,6 @@ impl Op {
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
-            | Op::AttachKept { .. }
             | Op::StoresJoined { .. } => self,
         }
     }
@@ -454,7 +448,6 @@ impl Op {
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachRetire { .. }
-            | Op::AttachKept { .. }
             | Op::StoresJoined { .. } => None,
         }
     }
@@ -703,13 +696,6 @@ pub struct FolderAdd {
     pub color: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Held {
-    pub at: String,
-    pub sha256: String,
-    pub bytes: u64,
-}
-
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Said {
     pub title: String,
@@ -749,7 +735,7 @@ impl Said {
         kept.title.as_deref() != Some(self.title.as_str())
             || kept.bytes != self.bytes
             || self.tags.as_ref().is_some_and(|one| *one != kept.tags)
-            || matches!((&self.print, &kept.print), (Some(now), Some(was)) if now != was)
+            || (self.print.is_some() && self.print != kept.print)
     }
 }
 

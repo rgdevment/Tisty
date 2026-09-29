@@ -33,7 +33,6 @@ pub struct State {
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub retired: BTreeSet<String>,
-    pub kept: BTreeMap<String, crate::event::Held>,
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
     pub(crate) fill: Fill,
@@ -395,7 +394,6 @@ impl State {
                     self.retired.insert(d.clone());
                 }
             }
-            Op::AttachKept { d } => self.attach_kept(d),
             Op::StoresJoined { d } => {
                 self.forebears.insert(d.absorbed.clone());
                 self.forebears.insert(d.survivor.clone());

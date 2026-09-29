@@ -96,9 +96,7 @@ pub(crate) fn carry_papers_leaning_on(
                 }
             };
 
-            let ours = a_body(ours, &mine, told_empty, id, "here");
-            let yours = a_body(yours, &theirs, told_empty, id, "in the folder");
-            let yours = vouched_for(yours, printed.and_then(|told| told.get(id)), id);
+            let yours = a_body(yours, &theirs, told_empty || !holds_bytes(&mine), id);
 
             match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Nothing => {
@@ -125,6 +123,11 @@ pub(crate) fn carry_papers_leaning_on(
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
+                }
+                Move::Bring | Move::TheyDecide
+                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
+                {
+                    done.astray.push(id.clone());
                 }
                 Move::Bring if shut.contains(id) => {
                     witness::warn(
@@ -225,40 +228,33 @@ pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Hol
     }
 }
 
-fn a_body(
-    print: Option<String>,
-    at: &Path,
-    told_empty: bool,
-    id: &str,
-    where_at: &'static str,
-) -> Option<String> {
+fn holds_bytes(at: &Path) -> bool {
+    std::fs::metadata(at).is_ok_and(|one| one.len() > 0)
+}
+
+fn a_body(print: Option<String>, at: &Path, allowed: bool, id: &str) -> Option<String> {
     let print = print?;
-    if told_empty || std::fs::metadata(at).is_ok_and(|one| one.len() > 0) {
+    if allowed || holds_bytes(at) {
         return Some(print);
     }
     witness::warn(
         channel::SYNC,
-        "a document holding nothing where the log says it holds something was left out of this turn",
-        &[
-            ("at", Fact::Id(id.to_string())),
-            ("side", Fact::Word(where_at)),
-        ],
+        "the folder holds nothing where this machine holds a body, so this turn leaves it there",
+        &[("at", Fact::Id(id.to_string()))],
     );
     None
 }
 
-fn vouched_for(print: Option<String>, says: Option<&String>, id: &str) -> Option<String> {
-    let print = print?;
-    let Some(says) = says else {
-        return Some(print);
-    };
-    if says == &print {
-        return Some(print);
+fn answered_for(print: Option<&String>, says: Option<&String>, id: &str) -> bool {
+    match (print, says) {
+        (Some(print), Some(says)) if print != says => {
+            witness::warn(
+                channel::SYNC,
+                "the folder holds a body the log does not answer for, so this turn leaves it there",
+                &[("at", Fact::Id(id.to_string()))],
+            );
+            false
+        }
+        _ => true,
     }
-    witness::warn(
-        channel::SYNC,
-        "the folder holds a body the log does not answer for, so this turn leaves it there",
-        &[("at", Fact::Id(id.to_string()))],
-    );
-    None
 }
