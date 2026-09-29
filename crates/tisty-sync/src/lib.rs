@@ -1,9 +1,11 @@
 mod guarding;
 mod papers;
+mod place;
 mod segments;
 
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
+use place::{carried_here, note_carried};
 use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -16,7 +18,6 @@ pub use tisty_core::store::MARKER;
 pub const STORE: &str = "store";
 const HELD: &str = "attachments";
 const PAPERS: &str = "docs";
-const CARRIED_TO: &str = "carried-to";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Trouble {
@@ -215,22 +216,6 @@ pub fn carry_telling(
     }
     note_carried(aside, dest);
     Ok(moved)
-}
-
-fn carried_here(aside: Option<&Path>, dest: &Path) -> bool {
-    let Some(aside) = aside else { return false };
-    std::fs::read_to_string(aside.join(CARRIED_TO))
-        .is_ok_and(|last| last.trim() == dest.display().to_string())
-}
-
-fn note_carried(aside: Option<&Path>, dest: &Path) {
-    let Some(aside) = aside else { return };
-    if std::fs::create_dir_all(aside).is_ok() {
-        let _ = written(
-            &aside.join(CARRIED_TO),
-            dest.display().to_string().as_bytes(),
-        );
-    }
 }
 
 fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
@@ -1156,11 +1141,10 @@ fn beside(at: &Path) -> std::path::PathBuf {
         let _ = std::fs::create_dir_all(parent);
         let _ = tisty_core::paths::ours_alone(parent);
     }
-    let mine = ROUND.fetch_add(1, Ordering::Relaxed);
-    at.with_extension(format!("{}.{mine}.part", std::process::id()))
+    tisty_core::parting::beside(at, ROUND.fetch_add(1, Ordering::Relaxed))
 }
 
-fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
+pub(crate) fn written(at: &Path, body: &[u8]) -> Result<(), Trouble> {
     laid(at, |file| std::io::Write::write_all(&mut &*file, body))
 }
 
@@ -1174,8 +1158,7 @@ fn laid(
         std::fs::create_dir_all(parent).map_err(io)?;
         let _ = tisty_core::paths::ours_alone(parent);
     }
-    let mine = ROUND.fetch_add(1, Ordering::Relaxed);
-    let tmp = at.with_extension(format!("{}.{mine}.part", std::process::id()));
+    let tmp = tisty_core::parting::beside(at, ROUND.fetch_add(1, Ordering::Relaxed));
 
     let done = (|| {
         let file = std::fs::File::create(&tmp)?;

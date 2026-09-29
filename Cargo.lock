@@ -5160,6 +5160,7 @@ dependencies = [
  "toml 0.9.12+spec-1.1.0",
  "ulid",
  "unicode-normalization",
+ "winapi-util",
  "zeroize",
  "zip 6.0.0",
 ]

@@ -1393,3 +1393,48 @@ fn a_ledger_entry_is_not_trusted_when_it_climbs_out_of_the_store() {
         again.at
     );
 }
+
+fn aged(at: &std::path::Path, ago: u64) {
+    let when = std::time::SystemTime::now() - std::time::Duration::from_secs(ago);
+    std::fs::File::options()
+        .write(true)
+        .open(at)
+        .unwrap()
+        .set_modified(when)
+        .unwrap();
+}
+
+#[test]
+fn a_copy_left_behind_goes_and_nothing_else_does() {
+    let root = tempfile::tempdir().unwrap();
+    let shed = root.path().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+
+    let stale = shed.join(".01ARZ3NDEKTSV4RRFFQ69G5FAV.0.part");
+    let fresh = shed.join(".01BX5ZZKBKACTAV9WEVGEMMVRZ.0.part");
+    let ours = shed.join(crate::parting::named(0));
+    let kept = shed.join("una-a3f90001.png");
+    for at in [&stale, &fresh, &ours, &kept] {
+        std::fs::write(at, b"unos bytes").unwrap();
+    }
+    aged(&stale, 25 * 60 * 60);
+
+    swept(root.path());
+
+    assert!(!stale.exists(), "what nobody came back for stayed");
+    assert!(
+        fresh.is_file(),
+        "a copy another machine has in flight was taken"
+    );
+    assert!(ours.is_file(), "our own copy in flight was taken");
+    assert!(kept.is_file(), "an attachment was taken for a leftover");
+}
+
+#[test]
+fn a_copy_in_the_making_is_named_after_this_run() {
+    let one = parting();
+
+    assert!(one.contains(crate::parting::ours()));
+    assert!(one.ends_with(".part"));
+    assert_ne!(one, parting(), "two copies at once would be one file");
+}
