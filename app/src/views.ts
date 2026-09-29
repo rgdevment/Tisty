@@ -60,21 +60,21 @@ export interface Chosen {
 
 export const A_COLUMN = 200;
 
-export function asView(chosen: Chosen): View {
-  if (chosen.list) return { list: chosen.list, most: A_COLUMN };
-  if (chosen.tags?.length) return { tags: chosen.tags, everything: true, most: A_COLUMN };
+export function asView(chosen: Chosen, reach: number = A_COLUMN): View {
+  if (chosen.list) return { list: chosen.list, most: reach };
+  if (chosen.tags?.length) return { tags: chosen.tags, everything: true, most: reach };
 
   switch (chosen.named) {
     case "tasks":
       return chosen.lists?.length
-        ? { ...sliced(chosen.slice), lists: chosen.lists, most: A_COLUMN }
-        : { ...sliced(chosen.slice), most: A_COLUMN };
+        ? { ...sliced(chosen.slice), lists: chosen.lists, most: reach }
+        : { ...sliced(chosen.slice), most: reach };
     case "archive":
       return chosen.folded
-        ? { archive: true, hidden: true, most: A_COLUMN }
-        : { archive: true, reading: chosen.layer ?? "story", most: A_COLUMN };
+        ? { archive: true, hidden: true, most: reach }
+        : { archive: true, reading: chosen.layer ?? "story", most: reach };
     case "tags":
-      return { tagged: true, everything: true, most: A_COLUMN };
+      return { tagged: true, everything: true, most: reach };
     default:
       return {};
   }

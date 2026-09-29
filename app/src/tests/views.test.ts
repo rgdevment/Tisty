@@ -51,6 +51,15 @@ describe("asView", () => {
     });
   });
 
+  it("asks for a wider window when the column has been scrolled to its end", () => {
+    expect(asView({ named: "tasks" }, A_COLUMN * 3)).toEqual({
+      window: "today",
+      most: A_COLUMN * 3,
+    });
+    expect(asView({ named: "archive" }, A_COLUMN * 2).most).toBe(A_COLUMN * 2);
+    expect(asView({ named: "quadrants" }, A_COLUMN * 2)).toEqual({});
+  });
+
   it("falls back to today", () => {
     expect(asView({})).toEqual({});
     expect(asView({ named: "tasks" })).toEqual({ window: "today", most: A_COLUMN });

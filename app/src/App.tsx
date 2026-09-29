@@ -109,6 +109,7 @@ import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
 import {
+  A_COLUMN,
   accepts,
   asView,
   type Chosen,
@@ -677,8 +678,12 @@ export default function App() {
     setAsking(null);
   }, [chosen]);
 
+  const [reach, setReach] = useState(A_COLUMN);
+  useEffect(() => {
+    setReach(A_COLUMN);
+  }, [chosen]);
   const load = useCallback(() => {
-    snapshot(asView(chosen))
+    snapshot(asView(chosen, reach))
       .then((fresh) => {
         adopt(fresh.locale);
         knowAgents(fresh.agents, {
@@ -692,7 +697,7 @@ export default function App() {
         acted.current = null;
       })
       .catch((e) => setError(saidPlainly(e)));
-  }, [chosen]);
+  }, [chosen, reach]);
 
   useEffect(() => {
     settleIn()
@@ -2019,6 +2024,11 @@ export default function App() {
                       found?.papers.length && !shown.length
                         ? t("onlyPapers")
                         : nothing(chosen, found !== null, data.counts.tracesHidden ?? 0)
+                    }
+                    onReach={
+                      !found && data.total > data.tasks.length
+                        ? () => setReach((was) => was + A_COLUMN)
+                        : undefined
                     }
                     note={
                       found

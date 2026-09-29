@@ -198,6 +198,7 @@ fn bare() -> View {
         inbox: false,
         list: None,
         lists: Vec::new(),
+        most: None,
         tags: Vec::new(),
         tagged: false,
         hidden: false,
@@ -1048,4 +1049,31 @@ fn counting_in_one_pass_says_what_counting_one_by_one_said() {
     }
 
     assert_eq!(crate::summing::tally(&state), counted_one_by_one(&state));
+}
+
+#[test]
+fn what_a_column_carries_stays_a_column_however_many_there_are() {
+    let mut state = State::default();
+    for n in 0..5_000 {
+        let mut task = held(&format!("una de las muchas que hay {n}"));
+        task.description = Some("con una nota de las que la gente escribe de verdad".into());
+        kept(&mut state, task);
+    }
+
+    let found = state.matching(&Filter::default(), today());
+    assert_eq!(found.len(), 5_000);
+
+    let column: Vec<_> = found.iter().take(crate::MOST).collect();
+    let carried = serde_json::to_string(&column).unwrap().len();
+    let whole = serde_json::to_string(&found).unwrap().len();
+
+    assert!(
+        carried <= 80 * 1024,
+        "a column of {} tasks weighs {carried} bytes, where 80 KiB is what it takes",
+        column.len()
+    );
+    assert!(
+        whole > carried * 10,
+        "the whole lot weighs {whole} and the column {carried}: the cap is not doing anything"
+    );
 }
