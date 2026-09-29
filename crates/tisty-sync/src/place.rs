@@ -23,20 +23,28 @@ pub(crate) fn note_carried(aside: Option<&Path>, dest: &Path) {
 
 fn said_of(dest: &Path) -> String {
     match tisty_core::paths::told_apart(dest) {
-        Some(one) => format!("{}\n{one}\n", dest.display()),
-        None => format!("{}\n", dest.display()),
+        Some(one) => format!("{one}\n{}", dest.display()),
+        None => dest.display().to_string(),
     }
 }
 
+fn a_mark(one: &str) -> bool {
+    matches!(one.split_once(':'), Some((volume, at))
+        if !volume.is_empty()
+            && !at.is_empty()
+            && [volume, at]
+                .iter()
+                .all(|one| one.bytes().all(|b| b.is_ascii_hexdigit())))
+}
+
 fn is_the_one(kept: &str, dest: &Path) -> bool {
-    let mut lines = kept.lines().map(str::trim).filter(|one| !one.is_empty());
-    let Some(path) = lines.next() else {
-        return false;
+    let (mark, path) = match kept.split_once('\n') {
+        Some((one, rest)) if a_mark(one.trim()) => (Some(one.trim()), rest),
+        _ => (None, kept),
     };
-    if let (Some(kept), Some(now)) = (lines.next(), tisty_core::paths::told_apart(dest))
-        && kept == now
-    {
-        return true;
+    let path = path.trim();
+    if let (Some(mark), Some(now)) = (mark, tisty_core::paths::told_apart(dest)) {
+        return mark == now;
     }
-    path == dest.display().to_string() || as_written(Path::new(path)) == as_written(dest)
+    !path.is_empty() && as_written(Path::new(path)) == as_written(dest)
 }

@@ -480,3 +480,67 @@ fn a_folder_to_reach_never_makes_the_walk_forget_to_read_the_documents() {
     );
     assert!(after.attachments_up.is_empty());
 }
+
+#[test]
+fn a_folder_we_cannot_reach_never_makes_us_walk_this_side_again() {
+    let (room, paths) = desk();
+    a_paper(&paths, "dev_a-0001");
+    let mut state = State::default();
+    state.shed.insert("dev_a-0001".into());
+    state
+        .retired
+        .insert("attachments/ab/una-a3f90001.png".into());
+    let mut done = Already::default();
+    let away = room.path().join("nowhere");
+
+    assert_eq!(papers(&paths, &state.shed, Some(&away), &mut done), 1);
+    attachments(&paths, &state.retired, Some(&away), Vec::new, &mut done);
+    assert!(done.papers.contains("dev_a-0001"));
+    assert!(done.papers_up.is_empty());
+
+    let asked = std::cell::Cell::new(false);
+    let gone = attachments(
+        &paths,
+        &state.retired,
+        Some(&away),
+        || {
+            asked.set(true);
+            Vec::new()
+        },
+        &mut done,
+    );
+
+    assert_eq!(gone, 0);
+    assert_eq!(
+        papers(&paths, &state.shed, Some(&away), &mut done),
+        0,
+        "the drive is away, and that is no reason to walk this side of it again"
+    );
+    assert!(!asked.get());
+}
+
+#[test]
+fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
+    let all: BTreeSet<String> = ["attachments/ab/una-a3f90001.png".to_string()]
+        .into_iter()
+        .collect();
+    let mut done = Already::default();
+
+    assert!(done.owes_any(&all, true, true));
+    assert!(done.owes_any(&all, false, true));
+
+    done.attachments
+        .insert("attachments/ab/una-a3f90001.png".into());
+    assert!(
+        done.owes_any(&all, true, true),
+        "gone from here is not gone from the folder"
+    );
+    assert!(
+        !done.owes_any(&all, false, true),
+        "with nowhere else to reach, gone from here is all there was to do"
+    );
+
+    done.attachments_up
+        .insert("attachments/ab/una-a3f90001.png".into());
+    assert!(!done.owes_any(&all, true, true));
+}

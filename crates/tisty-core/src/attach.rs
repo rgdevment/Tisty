@@ -102,7 +102,7 @@ pub fn swept(data: &Path) {
     };
     for at in entries.filter_map(|one| one.ok()).map(|one| one.path()) {
         let named = at.file_name().and_then(|one| one.to_str()).unwrap_or("");
-        if at.is_file() && crate::parting::spent(&at, named) {
+        if crate::parting::spent(&at, named) && at.is_file() {
             let _ = std::fs::remove_file(&at);
         }
     }

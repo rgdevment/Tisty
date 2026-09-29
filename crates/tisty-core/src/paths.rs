@@ -160,18 +160,18 @@ pub fn as_written(at: &Path) -> String {
 pub fn told_apart(at: &Path) -> Option<String> {
     let held = winapi_util::Handle::from_path_any(at).ok()?;
     let one = winapi_util::file::information(&held).ok()?;
-    Some(format!(
-        "{:x}:{:x}",
-        one.volume_serial_number(),
-        one.file_index()
-    ))
+    apart(one.volume_serial_number(), one.file_index())
 }
 
 #[cfg(not(windows))]
 pub fn told_apart(at: &Path) -> Option<String> {
     use std::os::unix::fs::MetadataExt;
     let one = std::fs::metadata(at).ok()?;
-    Some(format!("{:x}:{:x}", one.dev(), one.ino()))
+    apart(one.dev(), one.ino())
+}
+
+fn apart(volume: u64, one: u64) -> Option<String> {
+    (one != 0).then(|| format!("{volume:x}:{one:x}"))
 }
 
 pub fn profile() -> Option<String> {

@@ -5833,12 +5833,7 @@ fn a_folder_that_answers_to_another_name_now_is_still_the_one_we_carried_to() {
     let gone = shared.path().join("under-another-letter");
     std::fs::write(
         kept.path().join(super::place::CARRIED_TO),
-        format!(
-            "{}
-{mark}
-",
-            gone.display()
-        ),
+        format!("{mark}\n{}", gone.display()),
     )
     .unwrap();
 
@@ -5860,7 +5855,7 @@ fn a_note_of_where_we_carried_from_before_the_mark_is_still_read() {
     std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
     std::fs::write(
         kept.path().join(super::place::CARRIED_TO),
-        shared.path().display().to_string(),
+        format!("{}\n", shared.path().display()),
     )
     .unwrap();
 
@@ -5872,4 +5867,46 @@ fn a_note_of_where_we_carried_from_before_the_mark_is_still_read() {
         matches!(stopped, Err(Trouble::Emptied(_))),
         "a note written before this machine knew how to tell folders apart stopped counting: {stopped:?}"
     );
+}
+
+#[test]
+fn another_folder_that_took_the_letter_is_not_the_one_we_carried_to() {
+    let one = machine("uno");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let elsewhere = tempfile::tempdir().unwrap();
+    let theirs = tisty_core::paths::told_apart(elsewhere.path()).expect("it is there");
+    std::fs::write(
+        kept.path().join(super::place::CARRIED_TO),
+        format!("{theirs}\n{}", shared.path().display()),
+    )
+    .unwrap();
+    std::fs::remove_dir_all(shared.path().join(STORE)).unwrap();
+
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[])
+        .expect("another disk under the same name is a folder we have never carried to");
+
+    assert!(shared.path().join(STORE).join(&one.device).is_dir());
+}
+
+#[test]
+fn a_note_of_another_place_from_before_the_mark_leaves_this_one_alone() {
+    let one = machine("uno");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let elsewhere = tempfile::tempdir().unwrap();
+    std::fs::write(
+        kept.path().join(super::place::CARRIED_TO),
+        elsewhere.path().display().to_string(),
+    )
+    .unwrap();
+
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[])
+        .expect("a folder the note never named is one we have never carried to");
+
+    assert!(shared.path().join(STORE).join(&one.device).is_dir());
 }
