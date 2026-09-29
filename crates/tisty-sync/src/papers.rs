@@ -26,7 +26,7 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], false)
+    carry_papers_leaning_on(data, dest, alive, &[], None, None, false)
 }
 
 pub fn carry_papers_holding(
@@ -35,7 +35,7 @@ pub fn carry_papers_holding(
     alive: &[String],
     shut: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, false)
+    carry_papers_leaning_on(data, dest, alive, shut, None, None, false)
 }
 
 pub(crate) fn carry_papers_leaning_on(
@@ -43,6 +43,8 @@ pub(crate) fn carry_papers_leaning_on(
     dest: &Path,
     alive: &[String],
     shut: &[String],
+    empty: Option<&[String]>,
+    printed: Option<&std::collections::BTreeMap<String, String>>,
     again: bool,
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
@@ -73,6 +75,7 @@ pub(crate) fn carry_papers_leaning_on(
                 done.astray.push(id.clone());
                 continue;
             }
+            let told_empty = empty.is_none_or(|told| told.contains(id));
             let (ours, yours) = match (prints.of(&mine), prints.of(&theirs)) {
                 (Ok(ours), Ok(yours)) => (ours, yours),
                 (here, there) => {
@@ -92,6 +95,8 @@ pub(crate) fn carry_papers_leaning_on(
                     continue;
                 }
             };
+
+            let yours = a_body(yours, &theirs, told_empty || !holds_bytes(&mine), id);
 
             match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Nothing => {
@@ -118,6 +123,11 @@ pub(crate) fn carry_papers_leaning_on(
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
+                }
+                Move::Bring | Move::TheyDecide
+                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
+                {
+                    done.astray.push(id.clone());
                 }
                 Move::Bring if shut.contains(id) => {
                     witness::warn(
@@ -215,5 +225,36 @@ pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Hol
     match here.difference(&named).count() {
         0 => Holding::Whole,
         adrift => Holding::Strays(adrift),
+    }
+}
+
+fn holds_bytes(at: &Path) -> bool {
+    std::fs::metadata(at).is_ok_and(|one| one.len() > 0)
+}
+
+fn a_body(print: Option<String>, at: &Path, allowed: bool, id: &str) -> Option<String> {
+    let print = print?;
+    if allowed || holds_bytes(at) {
+        return Some(print);
+    }
+    witness::warn(
+        channel::SYNC,
+        "the folder holds nothing where this machine holds a body, so this turn leaves it there",
+        &[("at", Fact::Id(id.to_string()))],
+    );
+    None
+}
+
+fn answered_for(print: Option<&String>, says: Option<&String>, id: &str) -> bool {
+    match (print, says) {
+        (Some(print), Some(says)) if print != says => {
+            witness::warn(
+                channel::SYNC,
+                "the folder holds a body the log does not answer for, so this turn leaves it there",
+                &[("at", Fact::Id(id.to_string()))],
+            );
+            false
+        }
+        _ => true,
     }
 }

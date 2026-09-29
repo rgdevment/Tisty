@@ -919,7 +919,6 @@ fn plain(ext: &str) -> bool {
 pub fn printed(bytes: &[u8]) -> String {
     fingerprint(bytes)
 }
-
 fn fingerprint(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);

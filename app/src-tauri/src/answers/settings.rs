@@ -254,6 +254,7 @@ pub fn guide(
                 bytes: None,
                 tags: Some(Vec::new()),
                 by: None,
+                print: None,
             }),
             folder: Some(folder),
             page_of: None,

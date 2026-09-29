@@ -74,6 +74,13 @@ pub fn read_before(data: &Path, id: &str) -> Option<String> {
     std::fs::read_to_string(at).ok()
 }
 
+fn as_settled(mut bytes: Vec<u8>) -> Vec<u8> {
+    if !bytes.is_empty() && bytes.last() != Some(&b'\n') {
+        bytes.push(b'\n');
+    }
+    bytes
+}
+
 pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
     match std::fs::metadata(at) {
         Ok(one) if one.len() > BODY_AT_MOST => {
@@ -86,7 +93,7 @@ pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
     match std::fs::read(at) {
         Ok(bytes) => {
             crate::counting::opened();
-            Ok(Some(crate::attach::printed(&bytes)))
+            Ok(Some(crate::attach::printed(&as_settled(bytes))))
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e),

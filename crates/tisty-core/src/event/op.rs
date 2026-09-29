@@ -696,7 +696,7 @@ pub struct FolderAdd {
     pub color: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Said {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -707,16 +707,20 @@ pub struct Said {
     pub tags: Option<Vec<crate::model::Tag>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub print: Option<String>,
 }
 
 impl Said {
     pub fn of(body: &str) -> Self {
+        let settled = crate::docs::settled(body);
         Self {
             title: crate::docs::titled(body),
+            print: Some(crate::attach::printed(settled.as_bytes())),
             // What the file will hold, not what was handed in: a body without its last newline
             // is written with one, and noting the shorter count makes every later read look
             // like news and write another note.
-            bytes: Some(crate::docs::settled(body).len() as u64),
+            bytes: Some(settled.len() as u64),
             tags: Some(crate::tagging::tags_in(body)),
             by: None,
         }
@@ -731,6 +735,7 @@ impl Said {
         kept.title.as_deref() != Some(self.title.as_str())
             || kept.bytes != self.bytes
             || self.tags.as_ref().is_some_and(|one| *one != kept.tags)
+            || (self.print.is_some() && self.print != kept.print)
     }
 }
 

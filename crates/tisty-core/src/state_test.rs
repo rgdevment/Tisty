@@ -2240,6 +2240,7 @@ fn a_number_filed_as_a_tag_under_an_older_rule_is_not_read_back_as_one() {
                         bytes: None,
                         tags: Some(vec![Tag::new("2").unwrap(), Tag::new("casa").unwrap()]),
                         by: None,
+                        print: None,
                     }),
                     ..Default::default()
                 },
@@ -3214,6 +3215,7 @@ fn a_tag_counts_no_document_the_archive_holds_away_from_sight() {
                     bytes: None,
                     tags: Some(vec![tag.clone()]),
                     by: None,
+                    print: None,
                 },
             },
         ));

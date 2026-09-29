@@ -166,6 +166,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         edited_by: None,
         flagged: None,
         folder_was: None,
+        print: None,
     };
 
     let same = crate::event::Said {
@@ -173,6 +174,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         bytes: Some(31),
         tags: Some(vec![Tag::new("legal").unwrap()]),
         by: None,
+        print: None,
     };
     assert!(!same.news_for(&kept));
 
