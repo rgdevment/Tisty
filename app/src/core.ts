@@ -129,6 +129,7 @@ export interface Habit {
 
 export interface Snapshot {
   tasks: Task[];
+  total: number;
   ahead: Coming[];
   routines: Habit[];
   lists: List[];
@@ -247,6 +248,7 @@ export interface View {
   hidden?: boolean;
   window?: "today" | "upcoming" | "overdue" | "undated";
   repeating?: boolean;
+  most?: number;
 }
 
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });

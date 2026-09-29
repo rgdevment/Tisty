@@ -7,126 +7,153 @@ pub const AHEAD: i64 = 7;
 
 pub const BEADS: usize = 5;
 
-pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
-    let mut counts = std::collections::BTreeMap::new();
-    let mut count = |key: &str, filter: Filter| {
-        counts.insert(key.to_string(), state.matching(&filter, today()).len());
-    };
-
-    count(
-        "tasks",
-        Filter {
-            window: Some(Window::Today),
-            ..Default::default()
-        },
-    );
-    count(
-        "upcoming",
-        Filter {
-            window: Some(Window::After(today())),
-            ..Default::default()
-        },
-    );
-    count(
-        "repeating",
-        Filter {
-            repeating: true,
-            ..Default::default()
-        },
-    );
-    count("all", Filter::default());
-    count(
-        "archive",
-        Filter {
-            scope: Scope::Archived,
-            ..Default::default()
-        },
-    );
-    count(
-        "folded",
-        Filter {
-            scope: Scope::Archived,
-            hidden: true,
-            ..Default::default()
-        },
-    );
+pub fn asked_about() -> Vec<(&'static str, Filter)> {
+    let mut asked: Vec<(&'static str, Filter)> = vec![
+        (
+            "tasks",
+            Filter {
+                window: Some(Window::Today),
+                ..Default::default()
+            },
+        ),
+        (
+            "upcoming",
+            Filter {
+                window: Some(Window::After(today())),
+                ..Default::default()
+            },
+        ),
+        (
+            "repeating",
+            Filter {
+                repeating: true,
+                ..Default::default()
+            },
+        ),
+        ("all", Filter::default()),
+        (
+            "archive",
+            Filter {
+                scope: Scope::Archived,
+                ..Default::default()
+            },
+        ),
+        (
+            "folded",
+            Filter {
+                scope: Scope::Archived,
+                hidden: true,
+                ..Default::default()
+            },
+        ),
+        (
+            "tracesHidden",
+            Filter {
+                scope: Scope::Archived,
+                hidden: true,
+                reading: Some(Reading::Trace),
+                ..Default::default()
+            },
+        ),
+        (
+            "overdue",
+            Filter {
+                window: Some(Window::Overdue),
+                ..Default::default()
+            },
+        ),
+        (
+            "dueToday",
+            Filter {
+                window: Some(Window::On(today())),
+                ..Default::default()
+            },
+        ),
+        (
+            "undated",
+            Filter {
+                window: Some(Window::Undated),
+                ..Default::default()
+            },
+        ),
+        (
+            "inbox",
+            Filter {
+                inbox: true,
+                ..Default::default()
+            },
+        ),
+    ];
     for (key, how) in [("stories", Reading::Story), ("traces", Reading::Trace)] {
-        count(
+        asked.push((
             key,
             Filter {
                 scope: Scope::Archived,
                 reading: Some(how),
                 ..Default::default()
             },
-        );
+        ));
     }
-    // The empty trace layer says where the trace went: hidden traces, not every hidden task.
-    count(
-        "tracesHidden",
-        Filter {
-            scope: Scope::Archived,
-            hidden: true,
-            reading: Some(Reading::Trace),
-            ..Default::default()
-        },
-    );
-    count(
-        "overdue",
-        Filter {
-            window: Some(Window::Overdue),
-            ..Default::default()
-        },
-    );
-    count(
-        "dueToday",
-        Filter {
-            window: Some(Window::On(today())),
-            ..Default::default()
-        },
-    );
-    count(
-        "undated",
-        Filter {
-            window: Some(Window::Undated),
-            ..Default::default()
-        },
-    );
-    count(
-        "inbox",
-        Filter {
-            inbox: true,
-            ..Default::default()
-        },
-    );
     for (key, wanted) in [
         ("do", tisty_core::model::Priority::Do),
         ("decide", tisty_core::model::Priority::Decide),
         ("delegate", tisty_core::model::Priority::Delegate),
         ("minor", tisty_core::model::Priority::Minor),
     ] {
-        count(
+        asked.push((
             key,
             Filter {
                 priority: Some(wanted),
                 ..Default::default()
             },
-        );
+        ));
+    }
+    asked
+}
+
+pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
+    let today = today();
+    let asked = asked_about();
+    let whole = Filter::default();
+    let mut counts: std::collections::BTreeMap<String, usize> = asked
+        .iter()
+        .map(|(key, _)| ((*key).to_string(), 0))
+        .collect();
+    let mut quadrants = 0;
+    let mut in_list: std::collections::BTreeMap<tisty_core::model::ListId, usize> =
+        Default::default();
+
+    for task in state.tasks.values() {
+        let open = task.is_open();
+        for (key, filter) in &asked {
+            let fits = match filter.scope {
+                Scope::Open => open,
+                Scope::Archived => !open,
+                Scope::Either => true,
+            };
+            if fits && filter.matches(task, today) {
+                *counts.entry((*key).to_string()).or_default() += 1;
+            }
+        }
+        if !open {
+            continue;
+        }
+        if let Some(list) = task.list {
+            *in_list.entry(list).or_default() += 1;
+        }
+        if !task.priority.set() && whole.matches(task, today) {
+            quadrants += 1;
+        }
     }
 
     counts.insert("routines".to_string(), tisty_core::series::how_many(state));
-
     counts.insert("tags".to_string(), state.tags().len());
-    counts.insert(
-        "quadrants".to_string(),
-        state
-            .matching(&Filter::default(), today())
-            .iter()
-            .filter(|task| !task.priority.set())
-            .count(),
-    );
-
+    counts.insert("quadrants".to_string(), quadrants);
     for list in state.ordered_lists() {
-        counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
+        counts.insert(
+            list.id.to_string(),
+            in_list.get(&list.id).copied().unwrap_or(0),
+        );
     }
     counts
 }

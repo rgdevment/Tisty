@@ -1,19 +1,28 @@
 import { describe, expect, it } from "vitest";
 import type { List } from "../core";
-import { accepts, asView, invite, title } from "../views";
+import { A_COLUMN, accepts, asView, invite, title } from "../views";
 
 const lists: List[] = [{ id: "01L", name: "work", order: "a0" }];
 
 describe("asView", () => {
   it("asks for the hidden ones only while the drawer is open", () => {
-    expect(asView({ named: "archive", folded: true })).toEqual({ archive: true, hidden: true });
+    expect(asView({ named: "archive", folded: true })).toEqual({
+      archive: true,
+      hidden: true,
+      most: A_COLUMN,
+    });
   });
 
   it("opens the archive on the layer that has something to tell", () => {
-    expect(asView({ named: "archive" })).toEqual({ archive: true, reading: "story" });
+    expect(asView({ named: "archive" })).toEqual({
+      archive: true,
+      reading: "story",
+      most: A_COLUMN,
+    });
     expect(asView({ named: "archive", layer: "trace" })).toEqual({
       archive: true,
       reading: "trace",
+      most: A_COLUMN,
     });
   });
 
@@ -21,21 +30,30 @@ describe("asView", () => {
     expect(asView({ named: "archive", layer: "story", folded: true })).toEqual({
       archive: true,
       hidden: true,
+      most: A_COLUMN,
     });
   });
 
   it("lets a chosen list outrank whatever else was selected", () => {
-    expect(asView({ named: "tasks", list: "01L" })).toEqual({ list: "01L" });
+    expect(asView({ named: "tasks", list: "01L" })).toEqual({ list: "01L", most: A_COLUMN });
   });
 
   it("reaches into the archive for tags, unlike every other view", () => {
-    expect(asView({ tags: ["home"] })).toEqual({ tags: ["home"], everything: true });
-    expect(asView({ named: "tags" })).toEqual({ tagged: true, everything: true });
+    expect(asView({ tags: ["home"] })).toEqual({
+      tags: ["home"],
+      everything: true,
+      most: A_COLUMN,
+    });
+    expect(asView({ named: "tags" })).toEqual({
+      tagged: true,
+      everything: true,
+      most: A_COLUMN,
+    });
   });
 
   it("falls back to today", () => {
     expect(asView({})).toEqual({});
-    expect(asView({ named: "tasks" })).toEqual({ window: "today" });
+    expect(asView({ named: "tasks" })).toEqual({ window: "today", most: A_COLUMN });
   });
 });
 

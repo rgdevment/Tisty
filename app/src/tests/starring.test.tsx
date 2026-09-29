@@ -67,6 +67,8 @@ let tasks: Task[];
 
 const shot = (view: { archive?: boolean } | undefined): Snapshot => ({
   tasks: tasks.filter((one) => (view?.archive ? one.status !== "open" : one.status === "open")),
+  total: tasks.filter((one) => (view?.archive ? one.status !== "open" : one.status === "open"))
+    .length,
   ahead: [],
   routines: [],
   lists: [],

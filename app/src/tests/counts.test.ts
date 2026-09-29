@@ -6,7 +6,8 @@ const rust = readFileSync(resolve(process.cwd(), "src-tauri/src/summing.rs"), "u
 
 const made = new Set(
   [
-    ...rust.matchAll(/count\(\s*"([a-zA-Z]+)"/g),
+    // Every view the one pass asks about, and the ones inserted beside it.
+    ...rust.matchAll(/\(\s*"([a-zA-Z]+)",\s*Filter/g),
     ...rust.matchAll(/counts\.insert\(\s*"([a-zA-Z]+)"/g),
     // The layer counts come out of a loop over their names.
     ...rust.matchAll(/\("([a-z]+)", Reading::[A-Z][a-z]+\)/g),

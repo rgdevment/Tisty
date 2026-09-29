@@ -1999,7 +1999,7 @@ export default function App() {
                         ? undefined
                         : chosen.named === "archive" && !chosen.folded && chosen.layer === "routine"
                           ? data.counts.routines
-                          : shown.length
+                          : (found?.tasks.length ?? data.total)
                     }
                     onBack={
                       chosen.list
@@ -2021,9 +2021,13 @@ export default function App() {
                         : nothing(chosen, found !== null, data.counts.tracesHidden ?? 0)
                     }
                     note={
-                      found && found.total > found.tasks.length
-                        ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
-                        : undefined
+                      found
+                        ? found.total > found.tasks.length
+                          ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
+                          : undefined
+                        : data.total > data.tasks.length
+                          ? fill("someOfMany", `${data.tasks.length}/${data.total}`)
+                          : undefined
                     }
                     selected={selected}
                     fresh={captured?.id}

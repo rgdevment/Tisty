@@ -36,6 +36,7 @@ use tisty_core::{
 #[derive(serde::Serialize)]
 struct Snapshot {
     tasks: Vec<Task>,
+    total: usize,
     ahead: Vec<Coming>,
     routines: Vec<Habit>,
     lists: Vec<List>,

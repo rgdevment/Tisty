@@ -157,18 +157,21 @@ pub fn snapshot(
         language(&app, &spoken);
     }
 
+    let most = view.as_ref().and_then(|view| view.most);
     let filter = match view {
         Some(view) => view.resolve()?,
         None => Filter::default(),
     };
+    let found = session.state.matching(&filter, today());
+    let total = found.len();
 
     Ok(Snapshot {
-        tasks: session
-            .state
-            .matching(&filter, today())
+        tasks: found
             .into_iter()
+            .take(most.unwrap_or(usize::MAX))
             .cloned()
             .collect(),
+        total,
         ahead: coming(&session.state, today()),
         routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),

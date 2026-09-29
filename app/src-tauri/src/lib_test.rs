@@ -995,3 +995,57 @@ fn every_picture_the_guide_names_is_where_the_bundler_looks() {
         }
     }
 }
+
+fn counted_one_by_one(state: &State) -> std::collections::BTreeMap<String, usize> {
+    let mut counts: std::collections::BTreeMap<String, usize> = crate::summing::asked_about()
+        .into_iter()
+        .map(|(key, filter)| (key.to_string(), state.matching(&filter, today()).len()))
+        .collect();
+    counts.insert("routines".to_string(), tisty_core::series::how_many(state));
+    counts.insert("tags".to_string(), state.tags().len());
+    counts.insert(
+        "quadrants".to_string(),
+        state
+            .matching(&Filter::default(), today())
+            .iter()
+            .filter(|task| !task.priority.set())
+            .count(),
+    );
+    for list in state.ordered_lists() {
+        counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
+    }
+    counts
+}
+
+#[test]
+fn counting_in_one_pass_says_what_counting_one_by_one_said() {
+    let from = today();
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+
+    for n in 0..24 {
+        let mut task = held(&format!("una de tantas {n}"));
+        if n % 2 == 0 {
+            task.date = Some(tisty_core::model::DateSpec::all_day(
+                away(from, n % 5 - 2),
+                "America/Santiago",
+            ));
+        }
+        if n % 3 == 0 {
+            task.list = Some(list.id);
+        }
+        if n % 4 == 0 {
+            task.priority = tisty_core::model::Priority::Do;
+        }
+        if n % 5 == 0 {
+            task.status = tisty_core::model::Status::Done;
+        }
+        if n % 7 == 0 {
+            task.hidden = true;
+        }
+        kept(&mut state, task);
+    }
+
+    assert_eq!(crate::summing::tally(&state), counted_one_by_one(&state));
+}

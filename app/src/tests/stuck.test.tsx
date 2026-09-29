@@ -37,6 +37,7 @@ const shot = (): Snapshot => ({
       volume: {},
     },
   ],
+  total: 0,
   ahead: [],
   routines: [],
   lists: [],
