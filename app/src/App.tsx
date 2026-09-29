@@ -69,6 +69,7 @@ import {
 } from "./core";
 import { decideAll, decidesByBlock } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
+import { deep, destinations, trail } from "./folders";
 import { todayLong } from "./format";
 import { adopt, fill, t, type Word } from "./locales";
 import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
@@ -495,14 +496,14 @@ export default function App() {
     if (doc.folder && papers.folders.some((one) => one.id === doc.folder)) return doc.folder;
     const was = (doc.folderWas ?? []).join(" / ");
     const again = was
-      ? papers.folders.find((one) => !one.away && trail(one.id) === was)
+      ? papers.folders.find((one) => !one.away && trail(papers.folders, one.id) === was)
       : undefined;
     return again?.id ?? null;
   };
 
   const backFrom = (doc: Filed): string | null => {
     const home = backHome(doc);
-    if (home) return trail(home);
+    if (home) return trail(papers.folders, home);
     const was = doc.folderWas ?? [];
     return was.length ? was.join(" / ") : null;
   };
@@ -542,68 +543,7 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   };
 
-  const deep = (at: string | null | undefined): number => {
-    let steps = 0;
-    const seen = new Set<string>();
-    for (let up = at; up && !seen.has(up); ) {
-      seen.add(up);
-      steps += 1;
-      up = papers.folders.find((one) => one.id === up)?.parent ?? null;
-    }
-    return steps;
-  };
-
-  const trail = (at: string): string => {
-    const names: string[] = [];
-    const seen = new Set<string>();
-    for (let up: string | null | undefined = at; up && !seen.has(up); ) {
-      seen.add(up);
-      const one = papers.folders.find((each) => each.id === up);
-      if (!one) break;
-      names.unshift(one.name);
-      up = one.parent;
-    }
-    return names.join(" / ");
-  };
-
-  const destinations = (
-    skip: string | null,
-    land: (folder?: string) => void,
-    moving?: Folded,
-  ): Choice[] => {
-    const under = (at: string): string[] => {
-      const kids = papers.folders.filter((one) => one.parent === at);
-      return kids.flatMap((one) => [one.id, ...under(one.id)]);
-    };
-    const forbidden = moving ? new Set([moving.id, ...under(moving.id)]) : new Set<string>();
-    const tallest = (at: string): number =>
-      1 +
-      papers.folders
-        .filter((one) => one.parent === at)
-        .reduce((most, one) => Math.max(most, tallest(one.id)), 0);
-    const tall = moving ? tallest(moving.id) : 0;
-
-    return [
-      {
-        key: "unfiled",
-        icon: "↥",
-        label: t("unfiled"),
-        off: skip === null,
-        onPick: () => land(undefined),
-      },
-      ...papers.folders
-        .filter((one) => one.id !== skip && !forbidden.has(one.id))
-        .filter((one) => !moving || deep(one.id) + tall <= DEEPEST)
-        .map((one) => ({
-          key: one.id,
-          icon: one.parent ? "↳" : "▸",
-          label: trail(one.id),
-          onPick: () => land(one.id),
-        })),
-    ];
-  };
-
-  const roomBelow = here != null && deep(here) < DEEPEST;
+  const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
   const openDoc = (paper: string) => {
     if (papers.docs.some((one) => one.file === paper)) {
       return setChosen({ named: "docs", doc: paper });
@@ -1039,7 +979,7 @@ export default function App() {
           key: "newFolder",
           icon: "+",
           label: t("newFolder"),
-          off: folder.away || deep(folder.id) >= DEEPEST,
+          off: folder.away || deep(papers.folders, folder.id) >= DEEPEST,
           onPick: () => {
             setHere(folder.id);
             setMakingFolder(true);
@@ -1061,6 +1001,7 @@ export default function App() {
           into: {
             label: t("moveHere"),
             choices: destinations(
+              papers.folders,
               folder.id,
               (parent) =>
                 folderFile(folder.id, parent)
@@ -1183,7 +1124,7 @@ export default function App() {
           off: byAnother(doc) || !!doc.pageOf,
           into: {
             label: t("moveHere"),
-            choices: destinations(doc.folder, (folder) =>
+            choices: destinations(papers.folders, doc.folder, (folder) =>
               docFile(doc.id, folder)
                 .then(papersChanged)
                 .catch((e) => setError(saidPlainly(e))),
@@ -1420,7 +1361,7 @@ export default function App() {
                       .filter((one) => !one.away && one.id !== backHome(backing))
                       .map((one) => (
                         <option key={one.id} value={one.id}>
-                          {trail(one.id)}
+                          {trail(papers.folders, one.id)}
                         </option>
                       ))}
                   </select>
