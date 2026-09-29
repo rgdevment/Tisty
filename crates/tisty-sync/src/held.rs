@@ -186,7 +186,7 @@ pub(crate) fn copy_held(
             let under = shelf.file_name();
             let under = under.to_str().unwrap_or_default();
             // What iCloud left in place of a file is not litter, and saying so would bury the log.
-            if tisty_core::icloud::marker(named) {
+            if tisty_core::holes::marker(named) {
                 continue;
             }
             if !tisty_core::attach::shelved(under, named) {

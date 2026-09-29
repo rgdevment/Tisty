@@ -10,6 +10,7 @@ pub fn unreachable(found: Sought, reference: String) -> Refusal {
         Sought::Coming => Refusal::about("comingDown", reference),
         Sought::Away => Refusal::of("sharedAway"),
         Sought::Torn => Refusal::about("attachmentTorn", reference),
+        Sought::Held => Refusal::about("heldAway", reference),
         _ => Refusal::about("cannotRead", reference),
     }
 }
@@ -20,6 +21,7 @@ pub enum Sought {
     Away,
     /// It is there, and it is not what its name says it is.
     Torn,
+    Held,
     No,
 }
 
@@ -69,24 +71,32 @@ pub fn found_in(
             continue;
         };
         let ours = root == data;
+        let left = tisty_core::holes::left_in_place(&at);
         if at.is_file() {
             if !ours && !under_root(&at, root) {
                 return Sought::No;
             }
-            if !ours && !vouching::vouches(&at, reference) {
-                return Sought::Torn;
+            if !ours {
+                match vouching::vouches(&at, reference) {
+                    Some(true) => {}
+                    Some(false) => return Sought::Torn,
+                    None if tisty_core::holes::comes_by_reading(&left) => return Sought::Held,
+                    None => return Sought::Torn,
+                }
             }
             return Sought::At(at);
         }
-        if tisty_core::icloud::shed(&at).is_some() {
-            if !tisty_core::icloud::can_ask() {
+        if matches!(left, tisty_core::holes::Left::Sidecar(_)) {
+            if !tisty_core::holes::can_ask(&left) {
                 return Sought::Away;
             }
-            if !tisty_core::icloud::waited_for(&at, COMES_WITHIN) {
+            if !tisty_core::holes::waited_for(&at, COMES_WITHIN) {
                 return Sought::Coming;
             }
             // What comes back from a cloud answers for its name like anything else that lives there.
-            return match ours || (under_root(&at, root) && vouching::vouches(&at, reference)) {
+            return match ours
+                || (under_root(&at, root) && vouching::vouches(&at, reference).unwrap_or_default())
+            {
                 true => Sought::At(at),
                 false => Sought::Torn,
             };

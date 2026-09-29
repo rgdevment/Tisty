@@ -22,8 +22,9 @@ fn what_answered_for_its_name_is_remembered_past_this_launch() {
     std::fs::copy(&loose, &file).unwrap();
     let reference = format!("attachments/{shelf}/{leaf}");
 
-    assert!(
+    assert_eq!(
         vouching::vouches(&file, &reference),
+        Some(true),
         "the name does not answer for it"
     );
     assert!(kept.is_file(), "the answer was not written down");
@@ -69,6 +70,61 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
         ),
         finding::Sought::No
     ));
+}
+
+#[cfg(windows)]
+#[test]
+fn a_hole_whose_body_cannot_be_read_is_not_accused_of_being_torn() {
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const OFFLINE: u32 = 0x0000_1000;
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let here = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let cache = here.path().join("cache").join("vouched.json");
+    crate::vouching::vouching_kept_at(cache.clone());
+
+    let loose = from.path().join("charla.mp4");
+    std::fs::write(&loose, b"lo grabado").unwrap();
+    let reference =
+        tisty_core::attach::keep(&loose, shared.path(), tisty_core::attach::COPIED_UP_TO)
+            .unwrap()
+            .at;
+    let at = shared.path().join(&reference);
+    let body = std::fs::read(&at).unwrap();
+
+    std::fs::remove_file(&at).unwrap();
+    let mut marked = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&at)
+        .unwrap();
+    marked.write_all(&body).unwrap();
+    drop(marked);
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(&at)
+        .unwrap();
+
+    let told = finding::found_in(&reference, here.path(), Some(shared.path()));
+    drop(shut);
+
+    let said = std::fs::read_to_string(&cache).unwrap_or_default();
+    assert!(
+        !said.contains("false"),
+        "a keeper that would not open it was written down as corruption: {said}"
+    );
+    assert!(
+        matches!(told, finding::Sought::Held),
+        "a body nobody could read is not a body that lied"
+    );
 }
 
 #[test]
