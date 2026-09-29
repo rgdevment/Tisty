@@ -177,15 +177,6 @@ pub fn carry_telling(
         .filter(|paper| paper.bytes == Some(0))
         .map(|paper| paper.file.clone())
         .collect();
-    let vouched: std::collections::BTreeMap<String, (String, u64)> =
-        tisty_core::attach::digests(data)
-            .into_iter()
-            .chain(
-                told.kept
-                    .iter()
-                    .map(|(at, held)| (at.clone(), (held.sha256.clone(), held.bytes))),
-            )
-            .collect();
     let printed: std::collections::BTreeMap<String, String> = told
         .docs
         .values()
@@ -232,6 +223,15 @@ pub fn carry_telling(
     }
     if taking {
         let reachable = adrift.then(|| named_now(&told, data));
+        let vouched: std::collections::BTreeMap<String, (String, u64)> =
+            tisty_core::attach::digests(data)
+                .into_iter()
+                .chain(
+                    told.kept
+                        .iter()
+                        .map(|(at, held)| (at.clone(), (held.sha256.clone(), held.bytes))),
+                )
+                .collect();
         moved.brought += copy_held(
             &dest.join(HELD),
             &data.join(HELD),
