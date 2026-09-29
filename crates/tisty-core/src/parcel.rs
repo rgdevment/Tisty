@@ -1043,9 +1043,7 @@ fn taken_in(
                 guest: elsewhere || paper.guest,
                 said: Some(Said {
                     title: made.title.clone(),
-                    bytes: Some(crate::docs::settled(&body).len() as u64),
-                    tags: Some(crate::tagging::tags_in(&body)),
-                    by: None,
+                    ..Said::of(&body)
                 }),
                 folder,
                 page_of: up,

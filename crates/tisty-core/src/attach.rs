@@ -249,6 +249,17 @@ fn listed(root: &Path, sha256: &str) -> Option<String> {
         .map(|one| one.at)
 }
 
+pub fn kept_but_unsaid(
+    root: &Path,
+    said: &std::collections::BTreeMap<String, crate::event::Held>,
+) -> Vec<crate::event::Held> {
+    digests(root)
+        .into_iter()
+        .filter(|(at, _)| !said.contains_key(at) && names_an_attachment(at))
+        .map(|(at, (sha256, bytes))| crate::event::Held { at, sha256, bytes })
+        .collect()
+}
+
 pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)> {
     let Ok(text) = std::fs::read_to_string(ledger(root)) else {
         return Default::default();
@@ -918,6 +929,22 @@ fn plain(ext: &str) -> bool {
 
 pub fn printed(bytes: &[u8]) -> String {
     fingerprint(bytes)
+}
+
+pub fn digest_of(at: &Path) -> Result<(String, u64)> {
+    let mut file = std::fs::File::open(at)?;
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; AT_A_TIME];
+    let mut bytes = 0u64;
+    loop {
+        let read = file.read(&mut buf)?;
+        if read == 0 {
+            break;
+        }
+        bytes += read as u64;
+        hasher.update(&buf[..read]);
+    }
+    Ok((hexed(hasher.finalize()), bytes))
 }
 
 fn fingerprint(bytes: &[u8]) -> String {

@@ -264,6 +264,7 @@ fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
             bytes: Some(12),
             tags: Some(Vec::new()),
             by: None,
+            print: None,
         },
     };
 
@@ -355,6 +356,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
                 bytes: None,
                 tags: Some(Vec::new()),
                 by: None,
+                print: None,
             }),
             folder: None,
             page_of: None,
@@ -376,6 +378,7 @@ fn a_note_reaches_the_document_it_speaks_of() {
             bytes: Some(40),
             tags: Some(Vec::new()),
             by: None,
+            print: None,
         },
     })
     .unwrap();
@@ -434,6 +437,7 @@ fn the_note_goes_out_marked_so_an_older_build_skips_it() {
             bytes: None,
             tags: Some(Vec::new()),
             by: None,
+            print: None,
         },
     })
     .unwrap();

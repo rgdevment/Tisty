@@ -171,6 +171,26 @@ pub fn carry_telling(
         .filter(|paper| told.shut(paper.id))
         .map(|paper| paper.file.clone())
         .collect();
+    let empty: Vec<String> = told
+        .docs
+        .values()
+        .filter(|paper| paper.bytes == Some(0))
+        .map(|paper| paper.file.clone())
+        .collect();
+    let vouched: std::collections::BTreeMap<String, (String, u64)> =
+        tisty_core::attach::digests(data)
+            .into_iter()
+            .chain(
+                told.kept
+                    .iter()
+                    .map(|(at, held)| (at.clone(), (held.sha256.clone(), held.bytes))),
+            )
+            .collect();
+    let printed: std::collections::BTreeMap<String, String> = told
+        .docs
+        .values()
+        .filter_map(|paper| Some((paper.file.clone(), paper.print.clone()?)))
+        .collect();
     let buried = buried_now(&told, data);
     let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
     if giving {
@@ -183,6 +203,7 @@ pub fn carry_telling(
             None,
             None,
             None,
+            None,
             Some(&mut carried),
         )?;
         if holds == Holds::Shared {
@@ -190,7 +211,15 @@ pub fn carry_telling(
         }
     }
     if !alive.is_empty() {
-        let papers = carry_papers_leaning_on(data, dest, &alive, &shut, again)?;
+        let papers = carry_papers_leaning_on(
+            data,
+            dest,
+            &alive,
+            &shut,
+            Some(&empty),
+            Some(&printed),
+            again,
+        )?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
@@ -209,6 +238,7 @@ pub fn carry_telling(
             &buried_now(&told, data),
             false,
             Some(data),
+            Some(&vouched),
             left_behind(holds),
             reachable.as_ref(),
             None,
@@ -642,6 +672,7 @@ pub struct LetGo {
 /// what we wrote a second ago.
 fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) -> u64 {
     let mut freed = 0;
+    let told = tisty_core::attach::digests(data);
     for (reference, bytes) in carried {
         if *bytes <= above {
             continue;
@@ -652,13 +683,27 @@ fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) ->
         ) else {
             continue;
         };
-        let landed =
-            std::fs::metadata(&there).is_ok_and(|told| told.is_file() && told.len() == *bytes);
-        if landed && std::fs::remove_file(&here).is_ok() {
+        if !landed_whole(&there, told.get(reference), *bytes) {
+            witness::warn(
+                channel::ATTACH,
+                "the copy up there is not the one we hold, so the one here is kept",
+                &[("at", Fact::Id(reference.clone()))],
+            );
+            continue;
+        }
+        if std::fs::remove_file(&here).is_ok() {
             freed += bytes;
         }
     }
     freed
+}
+
+fn landed_whole(there: &Path, told: Option<&(String, u64)>, bytes: u64) -> bool {
+    let Some((sha256, _)) = told else {
+        return false;
+    };
+    tisty_core::attach::digest_of(there)
+        .is_ok_and(|(there, weighs)| weighs == bytes && there.eq_ignore_ascii_case(sha256))
 }
 
 pub fn let_go_telling(
@@ -739,6 +784,7 @@ fn copy_held(
     buried: &std::collections::BTreeSet<String>,
     again: bool,
     ledger: Option<&Path>,
+    told: Option<&std::collections::BTreeMap<String, (String, u64)>>,
     above: Option<u64>,
     reachable: Option<&std::collections::BTreeSet<String>>,
     carried: Option<&mut Vec<(String, u64)>>,
@@ -746,7 +792,7 @@ fn copy_held(
     let mut done = 0;
     let mut left = 0;
     let mut carried = carried;
-    let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
+    let written_down = told.cloned().unwrap_or_default();
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
         Err(e) => {

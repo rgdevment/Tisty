@@ -4074,6 +4074,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
                 bytes: Some(42),
                 tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
                 by: None,
+                print: None,
             },
         },
     );
@@ -4376,6 +4377,7 @@ fn a_history_handed_on_reaches_the_folder_byte_for_byte() {
                 bytes: Some(13),
                 tags: Some(vec![tisty_core::Tag::new("casa").unwrap()]),
                 by: Some("otra persona".into()),
+                print: None,
             },
         },
     );
@@ -4452,6 +4454,7 @@ fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
         &Default::default(),
         false,
         Some(&other.data),
+        None,
         Some(1000),
         None,
         None,
@@ -5069,6 +5072,7 @@ fn fetched(shared: &Path, other: &Machine, most: Option<u64>, again: bool) -> us
         &Default::default(),
         again,
         Some(&other.data),
+        None,
         most,
         None,
         None,
@@ -5909,4 +5913,161 @@ fn a_note_of_another_place_from_before_the_mark_leaves_this_one_alone() {
         .expect("a folder the note never named is one we have never carried to");
 
     assert!(shared.path().join(STORE).join(&one.device).is_dir());
+}
+
+#[test]
+fn a_body_that_arrived_empty_never_writes_over_the_one_we_have() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    filed(&one, "uno-0001", "# Notas\n\nlo que escribi\n");
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let theirs = shared.path().join(PAPERS).join("uno-0001.md");
+    std::fs::write(&theirs, b"").unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        "# Notas\n\nlo que escribi\n",
+        "a failed download read as somebody emptying the document"
+    );
+}
+
+#[test]
+fn a_body_the_person_emptied_still_travels() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    filed(&one, "uno-0001", "# Notas\n\nlo que escribi\n");
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    wrote_body(&one.data.join(PAPERS), "uno-0001", "");
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == "uno-0001")
+        .map(|paper| paper.id)
+        .expect("the document is in the log");
+    says(
+        &one,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(""),
+        },
+    );
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(shared.path().join(PAPERS).join("uno-0001.md")).unwrap(),
+        "",
+        "the person emptied it on purpose and the folder kept the old one"
+    );
+}
+
+#[test]
+fn the_last_copy_here_is_kept_when_the_one_up_there_only_weighs_the_same() {
+    let one = machine("dev_a");
+    let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+        .map(|at| (at % 251) as u8)
+        .collect();
+    let heavy = planted(&one.data, "charla.mp4", &big);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    assert!(shared.path().join(&heavy).is_file(), "it went up");
+
+    let mut other = big.clone();
+    other[7] ^= 0xff;
+    std::fs::write(shared.path().join(&heavy), &other).unwrap();
+    let carried = [(heavy.clone(), big.len() as u64)];
+
+    let freed = super::let_go_of(
+        &one.data,
+        shared.path(),
+        &carried,
+        tisty_core::attach::COPIED_UP_TO,
+    );
+
+    assert_eq!(freed, 0);
+    assert!(
+        one.data.join(&heavy).is_file(),
+        "the only copy left was let go of on the strength of its weight"
+    );
+}
+
+#[test]
+fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
+    let one = machine("dev_a");
+    let big: Vec<u8> = (0..(tisty_core::attach::COPIED_UP_TO as usize + 1024))
+        .map(|at| (at % 251) as u8)
+        .collect();
+    let heavy = planted(&one.data, "charla.mp4", &big);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let carried = [(heavy.clone(), big.len() as u64)];
+
+    let freed = super::let_go_of(
+        &one.data,
+        shared.path(),
+        &carried,
+        tisty_core::attach::COPIED_UP_TO,
+    );
+
+    assert_eq!(freed, big.len() as u64);
+    assert!(!one.data.join(&heavy).exists());
+}
+
+#[test]
+fn what_the_log_answers_for_reaches_the_machine_that_never_kept_it() {
+    let one = machine("uno");
+    let kept = planted(&one.data, "foto.png", b"lo que de verdad guardamos");
+    let (sha256, bytes) = tisty_core::attach::digest_of(&one.data.join(&kept)).unwrap();
+    says(
+        &one,
+        Op::AttachKept {
+            d: tisty_core::event::Held {
+                at: kept.clone(),
+                sha256: sha256.clone(),
+                bytes,
+            },
+        },
+    );
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let other = blank("dos");
+    carry(&other.data, &other.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    let told = tisty_core::State::replay(&tisty_core::store::read_all(&other.store).unwrap());
+    let held = told.kept.get(&kept).expect("the log says what it holds");
+    assert_eq!(held.sha256, sha256);
+    assert_eq!(held.bytes, bytes);
+    assert_eq!(
+        std::fs::read(other.data.join(&kept)).unwrap(),
+        b"lo que de verdad guardamos"
+    );
+}
+
+#[test]
+fn a_file_the_log_answers_for_is_told_apart_by_all_of_its_digest() {
+    let said: std::collections::BTreeMap<String, (String, u64)> = [(
+        "attachments/ab/foto-a3f90001.png".to_string(),
+        ("a3f90001".repeat(8), 12u64),
+    )]
+    .into_iter()
+    .collect();
+
+    assert!(tisty_core::attach::as_kept(
+        &said,
+        "attachments/ab/foto-a3f90001.png",
+        &"a3f90001".repeat(8)
+    ));
+    assert!(
+        !tisty_core::attach::as_kept(
+            &said,
+            "attachments/ab/foto-a3f90001.png",
+            &format!("a3f90001{}", "0".repeat(56))
+        ),
+        "the name only vouches for the first forty bits of it"
+    );
 }

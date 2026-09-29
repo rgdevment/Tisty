@@ -197,10 +197,17 @@ impl State {
         }
     }
 
+    pub(crate) fn attach_kept(&mut self, d: &crate::event::Held) {
+        if crate::attach::names_an_attachment(&d.at) {
+            self.kept.insert(d.at.clone(), d.clone());
+        }
+    }
+
     pub(crate) fn doc_said(&mut self, event: &Event, id: &DocId, d: &Said) {
         if let Some(kept) = self.docs.get_mut(id) {
             kept.title = Some(d.title.clone());
             kept.bytes = d.bytes;
+            kept.print = d.print.clone();
             // A note from a build that never read tags says nothing about them.
             if let Some(tags) = &d.tags {
                 kept.tags = crate::tagging::worth_keeping(tags);
@@ -230,6 +237,7 @@ impl State {
                 order: d.order.clone(),
                 title: d.said.as_ref().map(|one| one.title.clone()),
                 bytes: d.said.as_ref().and_then(|one| one.bytes),
+                print: d.said.as_ref().and_then(|one| one.print.clone()),
                 wrote: Some(d.wrote.or(d.made).unwrap_or(event.timestamp)),
                 made: Some(d.made.unwrap_or(event.timestamp)),
                 made_by: Some(event.device.clone()),

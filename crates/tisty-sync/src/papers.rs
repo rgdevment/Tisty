@@ -26,7 +26,7 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], false)
+    carry_papers_leaning_on(data, dest, alive, &[], None, None, false)
 }
 
 pub fn carry_papers_holding(
@@ -35,7 +35,7 @@ pub fn carry_papers_holding(
     alive: &[String],
     shut: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, false)
+    carry_papers_leaning_on(data, dest, alive, shut, None, None, false)
 }
 
 pub(crate) fn carry_papers_leaning_on(
@@ -43,6 +43,8 @@ pub(crate) fn carry_papers_leaning_on(
     dest: &Path,
     alive: &[String],
     shut: &[String],
+    empty: Option<&[String]>,
+    printed: Option<&std::collections::BTreeMap<String, String>>,
     again: bool,
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
@@ -73,6 +75,7 @@ pub(crate) fn carry_papers_leaning_on(
                 done.astray.push(id.clone());
                 continue;
             }
+            let told_empty = empty.is_none_or(|told| told.contains(id));
             let (ours, yours) = match (prints.of(&mine), prints.of(&theirs)) {
                 (Ok(ours), Ok(yours)) => (ours, yours),
                 (here, there) => {
@@ -92,6 +95,10 @@ pub(crate) fn carry_papers_leaning_on(
                     continue;
                 }
             };
+
+            let ours = a_body(ours, &mine, told_empty, id, "here");
+            let yours = a_body(yours, &theirs, told_empty, id, "in the folder");
+            let yours = vouched_for(yours, printed.and_then(|told| told.get(id)), id);
 
             match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Nothing => {
@@ -216,4 +223,42 @@ pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Hol
         0 => Holding::Whole,
         adrift => Holding::Strays(adrift),
     }
+}
+
+fn a_body(
+    print: Option<String>,
+    at: &Path,
+    told_empty: bool,
+    id: &str,
+    where_at: &'static str,
+) -> Option<String> {
+    let print = print?;
+    if told_empty || std::fs::metadata(at).is_ok_and(|one| one.len() > 0) {
+        return Some(print);
+    }
+    witness::warn(
+        channel::SYNC,
+        "a document holding nothing where the log says it holds something was left out of this turn",
+        &[
+            ("at", Fact::Id(id.to_string())),
+            ("side", Fact::Word(where_at)),
+        ],
+    );
+    None
+}
+
+fn vouched_for(print: Option<String>, says: Option<&String>, id: &str) -> Option<String> {
+    let print = print?;
+    let Some(says) = says else {
+        return Some(print);
+    };
+    if says == &print {
+        return Some(print);
+    }
+    witness::warn(
+        channel::SYNC,
+        "the folder holds a body the log does not answer for, so this turn leaves it there",
+        &[("at", Fact::Id(id.to_string()))],
+    );
+    None
 }

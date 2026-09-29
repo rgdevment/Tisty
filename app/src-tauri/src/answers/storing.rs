@@ -375,6 +375,23 @@ pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<Strin
     session.keep(|c| c.sync = Some(chosen))
 }
 
+fn said_what_we_hold(session: &tauri::State<'_, Mutex<Session>>) {
+    let mut session = held(session);
+    let ours =
+        tisty_core::attach::kept_but_unsaid(session.paths.data(), &session.state.kept.clone());
+    if ours.is_empty() {
+        return;
+    }
+    let ops: Vec<Op> = ours.into_iter().map(|d| Op::AttachKept { d }).collect();
+    if let Err(e) = session.commit_all(ops) {
+        witness::warn(
+            channel::ATTACH,
+            "what this machine holds could not be written down before the round",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
 #[tauri::command]
 pub async fn sync_now(
     app: tauri::AppHandle,
@@ -392,6 +409,7 @@ pub async fn sync_now(
         });
     };
 
+    said_what_we_hold(&session);
     let (dest, paths, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {

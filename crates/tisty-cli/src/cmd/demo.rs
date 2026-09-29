@@ -305,6 +305,7 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
                 bytes: None,
                 tags: Some(Vec::new()),
                 by: None,
+                print: None,
             }),
             folder: (n >= 2).then_some(shelf),
         },
