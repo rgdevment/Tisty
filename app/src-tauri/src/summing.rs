@@ -7,6 +7,28 @@ pub const AHEAD: i64 = 7;
 
 pub const BEADS: usize = 5;
 
+pub fn a_column(
+    state: &State,
+    view: Option<crate::asked::View>,
+    today: jiff::civil::Date,
+) -> Result<(Vec<Task>, usize), crate::Refusal> {
+    let most = view.as_ref().and_then(|one| one.most);
+    let filter = match view {
+        Some(view) => view.resolve()?,
+        None => Filter::default(),
+    };
+    let found = state.matching(&filter, today);
+    let total = found.len();
+    Ok((
+        found
+            .into_iter()
+            .take(most.unwrap_or(usize::MAX))
+            .cloned()
+            .collect(),
+        total,
+    ))
+}
+
 pub fn asked_about() -> Vec<(&'static str, Filter)> {
     let mut asked: Vec<(&'static str, Filter)> = vec![
         (

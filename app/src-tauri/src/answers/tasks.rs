@@ -157,20 +157,10 @@ pub fn snapshot(
         language(&app, &spoken);
     }
 
-    let most = view.as_ref().and_then(|view| view.most);
-    let filter = match view {
-        Some(view) => view.resolve()?,
-        None => Filter::default(),
-    };
-    let found = session.state.matching(&filter, today());
-    let total = found.len();
+    let (tasks, total) = crate::summing::a_column(&session.state, view, today())?;
 
     Ok(Snapshot {
-        tasks: found
-            .into_iter()
-            .take(most.unwrap_or(usize::MAX))
-            .cloned()
-            .collect(),
+        tasks,
         total,
         ahead: coming(&session.state, today()),
         routines: recurring(&session.state, today()),

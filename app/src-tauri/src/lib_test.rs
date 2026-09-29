@@ -1060,12 +1060,23 @@ fn what_a_column_carries_stays_a_column_however_many_there_are() {
         kept(&mut state, task);
     }
 
-    let found = state.matching(&Filter::default(), today());
-    assert_eq!(found.len(), 5_000);
+    let asked = View {
+        most: Some(crate::MOST),
+        ..bare()
+    };
+    let (column, total) = crate::summing::a_column(&state, Some(asked), today()).unwrap();
+    let (whole_of_it, _) = crate::summing::a_column(&state, Some(bare()), today()).unwrap();
 
-    let column: Vec<_> = found.iter().take(crate::MOST).collect();
+    assert_eq!(total, 5_000, "the window is told how many there are");
+    assert_eq!(column.len(), crate::MOST, "and is handed a column of them");
+    assert_eq!(
+        whole_of_it.len(),
+        5_000,
+        "asking for no window still brings them all"
+    );
+
     let carried = serde_json::to_string(&column).unwrap().len();
-    let whole = serde_json::to_string(&found).unwrap().len();
+    let whole = serde_json::to_string(&whole_of_it).unwrap().len();
 
     assert!(
         carried <= 80 * 1024,
