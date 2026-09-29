@@ -1270,7 +1270,7 @@ export default function App() {
     const said = number;
     setMovingTo(null);
     setNumber("");
-    packing([], named, said);
+    void packing([], named, said);
   };
 
   const openLocked = () => {
@@ -1279,7 +1279,7 @@ export default function App() {
     const said = number;
     setLocked(null);
     setNumber("");
-    landing(at, said);
+    void landing(at, said);
   };
 
   return (
@@ -1401,7 +1401,7 @@ export default function App() {
               onClick={() => {
                 const named = whoFor;
                 setWhoFor(null);
-                packing([], named);
+                void packing([], named);
               }}
               className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
             >
