@@ -198,6 +198,10 @@ fn bare() -> View {
         inbox: false,
         list: None,
         lists: Vec::new(),
+        most: None,
+        board: false,
+        spread: false,
+        soonest: false,
         tags: Vec::new(),
         tagged: false,
         hidden: false,
@@ -994,4 +998,370 @@ fn every_picture_the_guide_names_is_where_the_bundler_looks() {
             assert!(root.join(tongue).join(shot).is_file(), "falta {shot}");
         }
     }
+}
+
+fn counted_one_by_one(state: &State) -> std::collections::BTreeMap<String, usize> {
+    let mut counts: std::collections::BTreeMap<String, usize> = crate::summing::asked_about()
+        .into_iter()
+        .map(|(key, filter)| (key.to_string(), state.matching(&filter, today()).len()))
+        .collect();
+    counts.insert("routines".to_string(), tisty_core::series::how_many(state));
+    counts.insert("tags".to_string(), state.tags().len());
+    counts.insert(
+        "quadrants".to_string(),
+        state
+            .matching(&Filter::default(), today())
+            .iter()
+            .filter(|task| !task.priority.set() && task.repeat.is_none())
+            .count(),
+    );
+    counts.insert(
+        "tray".to_string(),
+        state
+            .matching(&Filter::default(), today())
+            .iter()
+            .filter(|task| crate::summing::waits_in_the_tray(task))
+            .count(),
+    );
+    for list in state.ordered_lists() {
+        counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
+    }
+    counts
+}
+
+#[test]
+fn counting_in_one_pass_says_what_counting_one_by_one_said() {
+    let from = today();
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+
+    for n in 0..24 {
+        let mut task = held(&format!("una de tantas {n}"));
+        if n % 2 == 0 {
+            task.date = Some(tisty_core::model::DateSpec::all_day(
+                away(from, n % 5 - 2),
+                "America/Santiago",
+            ));
+        }
+        if n % 3 == 0 {
+            task.list = Some(list.id);
+        }
+        if n % 4 == 0 {
+            task.priority = tisty_core::model::Priority::Do;
+        }
+        if n % 5 == 0 {
+            task.status = tisty_core::model::Status::Done;
+        }
+        if n % 7 == 0 {
+            task.hidden = true;
+        }
+        if n % 6 == 0 {
+            task.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+                every: 1,
+                unit: tisty_core::model::Unit::Week,
+            }));
+        }
+        kept(&mut state, task);
+    }
+
+    assert_eq!(crate::summing::tally(&state), counted_one_by_one(&state));
+}
+
+fn a_column_is_as_long_as_the_window_says() -> usize {
+    let said = std::fs::read_to_string("../src/views.ts").expect("the window says how far it asks");
+    let at = said
+        .split("export const A_COLUMN = ")
+        .nth(1)
+        .expect("and it says it there");
+    at.split(';')
+        .next()
+        .and_then(|one| one.trim().parse().ok())
+        .expect("as a number")
+}
+
+#[test]
+fn what_a_column_carries_stays_a_column_however_many_there_are() {
+    let mut state = State::default();
+    for n in 0..5_000 {
+        let mut task = held(&format!("una de las muchas que hay {n}"));
+        task.description = Some("con una nota de las que la gente escribe de verdad".into());
+        kept(&mut state, task);
+    }
+
+    let asked = View {
+        most: Some(a_column_is_as_long_as_the_window_says()),
+        ..bare()
+    };
+    let (column, total) = crate::summing::a_column(&state, Some(asked), today()).unwrap();
+    let (whole_of_it, _) = crate::summing::a_column(&state, Some(bare()), today()).unwrap();
+
+    assert_eq!(total, 5_000, "the window is told how many there are");
+    assert_eq!(
+        column.len(),
+        a_column_is_as_long_as_the_window_says(),
+        "and is handed a column of them"
+    );
+    assert_eq!(
+        whole_of_it.len(),
+        5_000,
+        "asking for no window still brings them all"
+    );
+
+    let carried = serde_json::to_string(&column).unwrap().len();
+    let whole = serde_json::to_string(&whole_of_it).unwrap().len();
+
+    assert!(
+        carried <= 80 * 1024,
+        "a column of {} tasks weighs {carried} bytes, where 80 KiB is what it takes",
+        column.len()
+    );
+    assert!(
+        whole > carried * 10,
+        "the whole lot weighs {whole} and the column {carried}: the cap is not doing anything"
+    );
+}
+
+#[test]
+fn a_list_card_is_handed_what_comes_soonest_and_no_more_than_three() {
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+    let elsewhere =
+        tisty_core::model::List::new(tisty_core::model::ListId::generate(), "trabajo", "a1");
+    state.lists.insert(elsewhere.id, elsewhere.clone());
+
+    let mut undated = held("sin fecha");
+    undated.list = Some(list.id);
+    kept(&mut state, undated);
+    for (n, day) in [(1, 20), (2, 10), (3, 5), (4, 1)] {
+        let mut one = held(&format!("la de {n}"));
+        one.list = Some(list.id);
+        one.date = Some(tisty_core::model::DateSpec::all_day(
+            away(today(), day),
+            "America/Santiago",
+        ));
+        kept(&mut state, one);
+    }
+    let mut lonely = held("la de la otra lista");
+    lonely.list = Some(elsewhere.id);
+    kept(&mut state, lonely);
+
+    let soonest = crate::summing::soonest_in(&state, today());
+    let here: Vec<&str> = soonest[&list.id.to_string()]
+        .iter()
+        .map(|one| one.title.as_str())
+        .collect();
+
+    assert_eq!(
+        here,
+        ["la de 4", "la de 3", "la de 2"],
+        "the nearest day comes first, three of them, and what has no day waits behind"
+    );
+    assert_eq!(soonest[&elsewhere.id.to_string()].len(), 1);
+}
+
+#[test]
+fn a_list_of_undated_work_still_names_three_of_it() {
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+    for n in 0..5 {
+        let mut one = held(&format!("alguna vez {n}"));
+        one.list = Some(list.id);
+        one.order = format!("a{n}");
+        kept(&mut state, one);
+    }
+
+    let soonest = crate::summing::soonest_in(&state, today());
+
+    assert_eq!(soonest[&list.id.to_string()].len(), crate::summing::SOONEST);
+}
+
+#[test]
+fn a_board_is_handed_a_hand_of_each_quarter_and_not_the_pile() {
+    use tisty_core::model::Priority;
+
+    let mut state = State::default();
+    for n in 0..900 {
+        let mut task = held(&format!("una de tantas {n}"));
+        task.priority = match n % 5 {
+            0 => Priority::Do,
+            1 => Priority::Decide,
+            2 => Priority::Delegate,
+            3 => Priority::Minor,
+            _ => Priority::Unset,
+        };
+        kept(&mut state, task);
+    }
+
+    let (hand, all) = crate::summing::a_board(&state, 20, today());
+    let mut by: std::collections::BTreeMap<Priority, usize> = Default::default();
+    for task in &hand {
+        *by.entry(task.priority).or_default() += 1;
+    }
+
+    assert_eq!(by[&Priority::Do], 20);
+    assert_eq!(by[&Priority::Decide], 20);
+    assert_eq!(by[&Priority::Delegate], 20);
+    assert_eq!(by[&Priority::Minor], 20);
+    assert_eq!(by[&Priority::Unset], 20, "the unplaced pile is a hand too");
+    assert_eq!(hand.len(), 100);
+
+    assert_eq!(all, 900, "what is said is how many there are");
+    let (whole, _) = crate::summing::a_board(&state, usize::MAX, today());
+    assert_eq!(whole.len(), 900, "asking for no hand still deals them all");
+}
+
+#[test]
+fn what_repeats_never_waits_in_the_unplaced_pile() {
+    let mut state = State::default();
+    let mut every_week = held("regar las plantas");
+    every_week.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+        every: 1,
+        unit: tisty_core::model::Unit::Week,
+    }));
+    kept(&mut state, every_week);
+    kept(&mut state, held("una suelta"));
+
+    let (hand, _) = crate::summing::a_board(&state, 10, today());
+
+    assert_eq!(hand.len(), 1);
+    assert_eq!(hand[0].title, "una suelta");
+}
+
+#[test]
+fn the_spread_is_handed_every_day_and_only_a_hand_of_the_tray() {
+    let mut state = State::default();
+    for n in 0..300 {
+        let mut dated = held(&format!("con dia {n}"));
+        dated.date = Some(tisty_core::model::DateSpec::all_day(
+            today(),
+            "America/Santiago",
+        ));
+        kept(&mut state, dated);
+        kept(&mut state, held(&format!("en la bandeja {n}")));
+    }
+
+    let (drawn, all) = crate::summing::a_spread(&state, 20, today());
+
+    let waiting = drawn
+        .iter()
+        .filter(|task| crate::summing::waits_in_the_tray(task))
+        .count();
+    assert_eq!(waiting, 20, "the tray is a hand");
+    assert_eq!(
+        drawn.len() - waiting,
+        300,
+        "every day is drawn, so every day travels"
+    );
+    assert_eq!(
+        all, 600,
+        "what is said is how many there are, not how many were dealt"
+    );
+}
+
+#[test]
+fn what_repeats_is_never_dealt_to_the_spread() {
+    let mut state = State::default();
+    let mut weekly = held("regar las plantas");
+    weekly.date = Some(tisty_core::model::DateSpec::all_day(
+        today(),
+        "America/Santiago",
+    ));
+    weekly.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+        every: 1,
+        unit: tisty_core::model::Unit::Week,
+    }));
+    kept(&mut state, weekly);
+    let mut once = held("ir al dentista");
+    once.date = Some(tisty_core::model::DateSpec::all_day(
+        today(),
+        "America/Santiago",
+    ));
+    kept(&mut state, once);
+
+    let (drawn, _) = crate::summing::a_spread(&state, 10, today());
+
+    assert_eq!(drawn.len(), 1);
+    assert_eq!(drawn[0].title, "ir al dentista");
+}
+
+#[test]
+fn a_routine_nobody_prioritised_is_not_counted_as_waiting_to_be_placed() {
+    let mut state = State::default();
+    let mut weekly = held("regar las plantas");
+    weekly.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+        every: 1,
+        unit: tisty_core::model::Unit::Week,
+    }));
+    kept(&mut state, weekly);
+
+    let counts = crate::summing::tally(&state);
+
+    assert_eq!(counts["quadrants"], 0, "the board would not draw it either");
+}
+
+#[test]
+fn a_list_card_is_never_handed_what_the_person_folded_away() {
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+    let list = list.id;
+    let mut folded = held("lo que escondio");
+    folded.list = Some(list);
+    folded.hidden = true;
+    folded.date = Some(tisty_core::model::DateSpec::all_day(
+        today(),
+        "America/Santiago",
+    ));
+    kept(&mut state, folded);
+    let mut plain = held("lo que se ve");
+    plain.list = Some(list);
+    kept(&mut state, plain);
+
+    let soonest = crate::summing::soonest_in(&state, today());
+
+    let named: Vec<&str> = soonest[&list.to_string()]
+        .iter()
+        .map(|task| task.title.as_str())
+        .collect();
+    assert_eq!(named, vec!["lo que se ve"]);
+}
+
+#[test]
+fn a_card_breaks_a_tie_the_way_the_person_ordered_it() {
+    let mut state = State::default();
+    let list = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a0");
+    state.lists.insert(list.id, list.clone());
+    let list = list.id;
+    for title in ["tercera", "primera", "segunda"] {
+        let mut task = held(title);
+        task.list = Some(list);
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            today(),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+    }
+    let by_hand = ["primera", "segunda", "tercera"];
+    for (at, title) in by_hand.iter().enumerate() {
+        let id = state
+            .tasks
+            .values()
+            .find(|task| task.title == *title)
+            .map(|task| task.id)
+            .expect("the task is there");
+        if let Some(task) = state.tasks.get_mut(&id) {
+            task.order = format!("a{at}");
+        }
+    }
+
+    let soonest = crate::summing::soonest_in(&state, today());
+
+    let named: Vec<&str> = soonest[&list.to_string()]
+        .iter()
+        .map(|task| task.title.as_str())
+        .collect();
+    assert_eq!(named, by_hand);
 }

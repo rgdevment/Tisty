@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import type { Axis } from "./archive";
 import type { List, Reading, View } from "./core";
 import { fill, t } from "./locales";
@@ -58,23 +59,31 @@ export interface Chosen {
   axis?: Axis;
 }
 
-export function asView(chosen: Chosen): View {
-  if (chosen.list) return { list: chosen.list };
-  if (chosen.tags?.length) return { tags: chosen.tags, everything: true };
+export const A_COLUMN = 200;
+
+export function asView(chosen: Chosen, reach: number = A_COLUMN): View {
+  if (chosen.list) return { list: chosen.list, most: reach };
+  if (chosen.tags?.length) return { tags: chosen.tags, everything: true, most: reach };
 
   switch (chosen.named) {
     case "tasks":
       return chosen.lists?.length
-        ? { ...sliced(chosen.slice), lists: chosen.lists }
-        : sliced(chosen.slice);
+        ? { ...sliced(chosen.slice), lists: chosen.lists, most: reach }
+        : { ...sliced(chosen.slice), most: reach };
     case "archive":
       return chosen.folded
-        ? { archive: true, hidden: true }
-        : { archive: true, reading: chosen.layer ?? "story" };
+        ? { archive: true, hidden: true, most: reach }
+        : { archive: true, reading: chosen.layer ?? "story", most: reach };
     case "tags":
-      return { tagged: true, everything: true };
+      return { tagged: true, everything: true, most: reach };
+    case "quadrants":
+      return { board: true, most: reach };
+    case "spread":
+      return { spread: true, most: reach };
+    case "lists":
+      return { soonest: true, most: reach };
     default:
-      return {};
+      return { most: reach };
   }
 }
 
@@ -140,4 +149,31 @@ export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): s
   if (chosen.lists?.length) return t("listEmpty");
   if (chosen.slice === "all") return t("allEmpty");
   return t("todayEmpty");
+}
+
+export function headerCount(
+  chosen: Chosen,
+  found: { tasks: unknown[] } | null,
+  counts: Record<string, number>,
+  total: number,
+): number | undefined {
+  if (chosen.named === "tasks") return undefined;
+  if (chosen.named === "archive" && !chosen.folded && chosen.layer === "routine") {
+    return counts.routines;
+  }
+  if (found) return found.tasks.length;
+  if (chosen.named === "search") return undefined;
+  return total;
+}
+
+export function useReach(chosen: Chosen) {
+  const [reach, setReach] = useState(A_COLUMN);
+  const [seen, setSeen] = useState(chosen);
+  const further = useCallback(() => setReach((was) => was + A_COLUMN), []);
+  if (seen !== chosen) {
+    setSeen(chosen);
+    setReach(A_COLUMN);
+    return { reach: A_COLUMN, further };
+  }
+  return { reach, further };
 }

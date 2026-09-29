@@ -22,6 +22,7 @@ interface Props {
   dense?: boolean;
   empty?: string;
   note?: string;
+  onReach?: () => void;
   onSelect: (id: string) => void;
   onComplete?: (id: string) => void;
   onFold?: (id: string, away: boolean) => void;
@@ -48,6 +49,7 @@ export default function TaskList({
   dense,
   empty,
   note,
+  onReach,
   onSelect,
   onComplete,
   onFold,
@@ -354,10 +356,25 @@ export default function TaskList({
             </section>
           ))}
 
+        {!instead && onReach && <Edge onReach={onReach} />}
         {below}
       </div>
     </main>
   );
+}
+
+function Edge({ onReach }: { onReach: () => void }) {
+  const mark = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const at = mark.current;
+    if (!at || typeof IntersectionObserver === "undefined") return;
+    const watch = new IntersectionObserver((seen) => {
+      if (seen.some((one) => one.isIntersecting)) onReach();
+    });
+    watch.observe(at);
+    return () => watch.disconnect();
+  }, [onReach]);
+  return <div ref={mark} aria-hidden="true" className="h-px shrink-0" />;
 }
 
 function Meta({ task, list }: { task: Task; list?: string }) {

@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { accepts, asView, invite, nothing, SLICES } from "../views";
+import { A_COLUMN, accepts, asView, invite, nothing, SLICES } from "../views";
 
 describe("Tasks, the view that replaced Today and Upcoming", () => {
   it("means today when nothing was chosen", () => {
-    expect(asView({ named: "tasks" })).toEqual({ window: "today" });
+    expect(asView({ named: "tasks" })).toEqual({ window: "today", most: A_COLUMN });
   });
 
   it.each([
-    ["today", { window: "today" }],
-    ["upcoming", { window: "upcoming" }],
-    ["repeating", { repeating: true }],
-    ["all", {}],
+    ["today", { window: "today", most: A_COLUMN }],
+    ["upcoming", { window: "upcoming", most: A_COLUMN }],
+    ["repeating", { repeating: true, most: A_COLUMN }],
+    ["all", { most: A_COLUMN }],
   ] as const)("asks the core for %s", (slice, view) => {
     expect(asView({ named: "tasks", slice })).toEqual(view);
   });
@@ -24,7 +24,10 @@ describe("Tasks, the view that replaced Today and Upcoming", () => {
   });
 
   it("lets a chosen list win over the slice", () => {
-    expect(asView({ named: "tasks", slice: "all", list: "01L" })).toEqual({ list: "01L" });
+    expect(asView({ named: "tasks", slice: "all", list: "01L" })).toEqual({
+      list: "01L",
+      most: A_COLUMN,
+    });
   });
 });
 
