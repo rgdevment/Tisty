@@ -26,6 +26,54 @@ pub struct Already {
     pub papers: BTreeSet<String>,
     #[serde(default)]
     pub attachments: BTreeSet<String>,
+    #[serde(default)]
+    pub papers_up: BTreeSet<String>,
+    #[serde(default)]
+    pub attachments_up: BTreeSet<String>,
+    #[serde(default)]
+    pub up_to: Option<String>,
+}
+
+impl Already {
+    fn facing(&mut self, dest: Option<&Path>) {
+        let Some(now) = dest
+            .map(|at| crate::paths::told_apart(at).unwrap_or_else(|| crate::paths::as_written(at)))
+        else {
+            return;
+        };
+        if self.up_to.as_deref() != Some(now.as_str()) {
+            self.papers_up.clear();
+            self.attachments_up.clear();
+            self.up_to = Some(now);
+        }
+    }
+
+    fn owed_here(&self, all: &BTreeSet<String>, up: bool) -> BTreeSet<String> {
+        let here = match up {
+            true => &self.attachments,
+            false => &self.papers,
+        };
+        all.difference(here).cloned().collect()
+    }
+
+    fn owed_up(&self, all: &BTreeSet<String>, reach: bool, up: bool) -> BTreeSet<String> {
+        if !reach {
+            return BTreeSet::new();
+        }
+        let there = match up {
+            true => &self.attachments_up,
+            false => &self.papers_up,
+        };
+        all.difference(there).cloned().collect()
+    }
+
+    fn owes_any(&self, all: &BTreeSet<String>, reach: bool, up: bool) -> bool {
+        let (here, there) = match up {
+            true => (&self.attachments, &self.attachments_up),
+            false => (&self.papers, &self.papers_up),
+        };
+        all.difference(here).next().is_some() || (reach && all.difference(there).next().is_some())
+    }
 }
 
 pub struct Sweeping {
@@ -51,14 +99,16 @@ impl Sweeping {
         dest: Option<&Path>,
         bin: bool,
     ) -> Self {
-        let done = cache.map(|one| one.already()).unwrap_or_default();
+        let mut done = cache.map(|one| one.already()).unwrap_or_default();
+        done.facing(dest);
+        let reach = dest.is_some_and(Path::is_dir);
         Self {
             paths: paths.clone(),
             shed: state.shed.clone(),
             retired: state.retired.clone(),
             dest: dest.map(Path::to_path_buf),
             bin,
-            owed: state.retired.difference(&done.attachments).next().is_some(),
+            owed: done.owes_any(&state.retired, reach, true),
             done,
         }
     }
@@ -164,20 +214,28 @@ pub fn papers(
     dest: Option<&Path>,
     done: &mut Already,
 ) -> usize {
-    let owed: BTreeSet<String> = shed.difference(&done.papers).cloned().collect();
-    if owed.is_empty() {
+    let reach = dest.filter(|at| at.is_dir());
+    let owed = done.owed_here(shed, false);
+    let owed_up = done.owed_up(shed, reach.is_some(), false);
+    if owed.is_empty() && owed_up.is_empty() {
         return 0;
     }
-    let reach = dest.filter(|at| at.is_dir());
-    let mut gone = crate::docs::sweep(&paths.docs(), &owed);
-    if let Some(dest) = reach {
-        gone += crate::docs::sweep(&dest.join("docs"), &owed);
-    }
+    let ours = paths.docs();
+    let mut gone = crate::docs::sweep(&ours, &owed);
     forget_the_prints(paths, &owed);
-    done.papers.extend(owed.into_iter().filter(|file| {
-        let here = |root: &Path| went(root, crate::docs::resolve(root, file));
-        here(&paths.docs()) && dest.is_none_or(|_| reach.is_some_and(|at| here(&at.join("docs"))))
-    }));
+    done.papers.extend(
+        owed.into_iter()
+            .filter(|file| went(&ours, crate::docs::resolve(&ours, file))),
+    );
+    if let Some(at) = reach {
+        let there = at.join("docs");
+        gone += crate::docs::sweep(&there, &owed_up);
+        done.papers_up.extend(
+            owed_up
+                .into_iter()
+                .filter(|file| went(&there, crate::docs::resolve(&there, file))),
+        );
+    }
     if gone > 0 {
         witness::note(
             channel::SYNC,
@@ -195,23 +253,25 @@ pub fn attachments(
     held: impl FnOnce() -> Vec<String>,
     done: &mut Already,
 ) -> usize {
-    let owed: BTreeSet<String> = retired.difference(&done.attachments).cloned().collect();
-    if owed.is_empty() {
+    let reach = dest.filter(|at| at.is_dir());
+    let owed = done.owed_here(retired, true);
+    let owed_up = done.owed_up(retired, reach.is_some(), true);
+    if owed.is_empty() && owed_up.is_empty() {
         return 0;
     }
     let named = held();
     let held: BTreeSet<&str> = named.iter().map(String::as_str).collect();
-    let reach = dest.filter(|at| at.is_dir());
+    let went_from = |root: &Path, one: &String| {
+        !held.contains(one.as_str()) && went(root, crate::attach::resolve(one, root))
+    };
     let mut gone = crate::attach::sweep(paths.data(), &owed, &held);
-    if let Some(dest) = reach {
-        gone += crate::attach::sweep(dest, &owed, &held);
+    done.attachments
+        .extend(owed.into_iter().filter(|one| went_from(paths.data(), one)));
+    if let Some(at) = reach {
+        gone += crate::attach::sweep(at, &owed_up, &held);
+        done.attachments_up
+            .extend(owed_up.into_iter().filter(|one| went_from(at, one)));
     }
-    done.attachments.extend(owed.into_iter().filter(|one| {
-        let here = |root: &Path| went(root, crate::attach::resolve(one, root));
-        !held.contains(one.as_str())
-            && here(paths.data())
-            && dest.is_none_or(|_| reach.is_some_and(here))
-    }));
     if gone > 0 {
         witness::note(
             channel::ATTACH,

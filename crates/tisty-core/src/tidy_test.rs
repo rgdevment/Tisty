@@ -246,14 +246,14 @@ fn a_shared_folder_that_is_not_there_is_never_mistaken_for_a_tidy_one() {
 
     papers(&paths, &state.shed, Some(&away), &mut done);
     assert!(
-        done.papers.is_empty(),
+        done.papers_up.is_empty(),
         "an unmounted drive looks exactly like an empty one, so nothing is written off"
     );
 
     std::fs::create_dir_all(away.join("docs")).unwrap();
     papers(&paths, &state.shed, Some(&away), &mut done);
     assert!(
-        done.papers.contains("dev_a-0001"),
+        done.papers_up.contains("dev_a-0001"),
         "once it is there, it counts"
     );
 }
@@ -285,4 +285,262 @@ fn an_attachment_put_back_on_a_task_while_the_folders_are_walked_is_not_taken_ou
         "it was put back on a task while the folders were being walked"
     );
     assert!(done.attachments.is_empty());
+}
+
+#[test]
+fn what_went_before_there_was_a_folder_still_reaches_the_folder_afterwards() {
+    let (room, paths) = desk();
+    a_paper(&paths, "dev_a-0001");
+    let mut state = State::default();
+    state.shed.insert("dev_a-0001".into());
+    let mut done = Already::default();
+
+    assert_eq!(papers(&paths, &state.shed, None, &mut done), 1);
+    assert!(done.papers.contains("dev_a-0001"));
+
+    let later = room.path().join("shared");
+    std::fs::create_dir_all(later.join("docs")).unwrap();
+    let theirs = later.join("docs").join("dev_a-0001.md");
+    std::fs::write(&theirs, b"# Algo").unwrap();
+
+    assert_eq!(
+        papers(&paths, &state.shed, Some(&later), &mut done),
+        1,
+        "a folder set up afterwards never heard what was deleted before it"
+    );
+    assert!(!theirs.exists());
+    assert!(done.papers_up.contains("dev_a-0001"));
+}
+
+#[test]
+fn an_attachment_retired_before_there_was_a_folder_still_reaches_the_folder_afterwards() {
+    let (room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    for root in [paths.data().to_path_buf(), room.path().join("shared")] {
+        std::fs::create_dir_all(root.join("attachments/ab")).unwrap();
+        std::fs::write(root.join(at), b"unos bytes").unwrap();
+    }
+    let mut state = State::default();
+    state.retired.insert(at.into());
+    let mut done = Already::default();
+
+    assert_eq!(
+        attachments(&paths, &state.retired, None, Vec::new, &mut done),
+        1
+    );
+    assert!(done.attachments.contains(at));
+
+    let later = room.path().join("shared");
+    assert_eq!(
+        attachments(&paths, &state.retired, Some(&later), Vec::new, &mut done),
+        1,
+        "a folder set up afterwards kept what this machine had already retired"
+    );
+    assert!(!later.join(at).exists());
+    assert!(done.attachments_up.contains(at));
+}
+
+#[test]
+fn a_store_with_no_folder_does_not_walk_the_same_deletions_every_time() {
+    let (_room, paths) = desk();
+    a_paper(&paths, "dev_a-0001");
+    let mut state = State::default();
+    state.shed.insert("dev_a-0001".into());
+    state
+        .retired
+        .insert("attachments/ab/una-a3f90001.png".into());
+    let mut done = Already::default();
+
+    papers(&paths, &state.shed, None, &mut done);
+    attachments(&paths, &state.retired, None, Vec::new, &mut done);
+
+    let asked = std::cell::Cell::new(false);
+    let gone = attachments(
+        &paths,
+        &state.retired,
+        None,
+        || {
+            asked.set(true);
+            Vec::new()
+        },
+        &mut done,
+    );
+
+    assert_eq!(gone, 0);
+    assert_eq!(papers(&paths, &state.shed, None, &mut done), 0);
+    assert!(
+        !asked.get(),
+        "with nowhere else to reach, what is gone from here is gone, and nobody reads the documents again"
+    );
+}
+
+#[test]
+fn an_attachment_only_a_document_names_survives_the_walk() {
+    let (_room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let shelf = paths.data().join("attachments/ab");
+    std::fs::create_dir_all(&shelf).unwrap();
+    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+    a_paper(&paths, "dev_a-0001");
+    std::fs::write(
+        paths.docs().join("dev_a-0001.md"),
+        format!("# Algo\n\n![una]({at})\n"),
+    )
+    .unwrap();
+
+    let mut state = State::default();
+    state.retired.insert(at.into());
+    let (swept, _) = Sweeping::of(&paths, &state, None, None, false)
+        .walk()
+        .with(&state);
+
+    assert_eq!(swept.attachments, 0);
+    assert!(
+        shelf.join("una-a3f90001.png").is_file(),
+        "the walk never read the documents, so what one of them names was taken out"
+    );
+}
+
+#[test]
+fn an_attachment_something_still_names_is_not_written_off_for_being_away() {
+    let (_room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let mut state = State::default();
+    state.retired.insert(at.into());
+    let mut done = Already::default();
+
+    attachments(
+        &paths,
+        &state.retired,
+        None,
+        || vec![at.to_string()],
+        &mut done,
+    );
+
+    assert!(
+        done.attachments.is_empty(),
+        "it is still named, so being away from this machine settles nothing"
+    );
+}
+
+#[test]
+fn a_deletion_that_reached_one_folder_is_still_owed_to_the_next_one() {
+    let (room, paths) = desk();
+    a_paper(&paths, "dev_a-0001");
+    let mut state = State::default();
+    state.shed.insert("dev_a-0001".into());
+    let mut done = Already::default();
+
+    let first = room.path().join("one");
+    std::fs::create_dir_all(first.join("docs")).unwrap();
+    std::fs::write(first.join("docs").join("dev_a-0001.md"), b"# Algo").unwrap();
+    assert_eq!(papers(&paths, &state.shed, Some(&first), &mut done), 2);
+    assert!(done.papers_up.contains("dev_a-0001"));
+
+    let second = room.path().join("two");
+    std::fs::create_dir_all(second.join("docs")).unwrap();
+    let theirs = second.join("docs").join("dev_a-0001.md");
+    std::fs::write(&theirs, b"# Algo").unwrap();
+    done.facing(Some(&second));
+
+    assert_eq!(
+        papers(&paths, &state.shed, Some(&second), &mut done),
+        1,
+        "the next folder was told nothing about what the last one already took out"
+    );
+    assert!(!theirs.exists());
+}
+
+#[test]
+fn a_folder_to_reach_never_makes_the_walk_forget_to_read_the_documents() {
+    let (room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let shelf = paths.data().join("attachments/ab");
+    std::fs::create_dir_all(&shelf).unwrap();
+    let mut state = State::default();
+    state.retired.insert(at.into());
+    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+    a_paper(&paths, "dev_a-0001");
+    std::fs::write(
+        paths.docs().join("dev_a-0001.md"),
+        format!("# Algo\n\n![una]({at})\n"),
+    )
+    .unwrap();
+
+    let later = room.path().join("shared");
+    std::fs::create_dir_all(&later).unwrap();
+    let (swept, after) = Sweeping::of(&paths, &state, None, Some(&later), false)
+        .walk()
+        .with(&state);
+
+    assert_eq!(swept.attachments, 0);
+    assert!(
+        shelf.join("una-a3f90001.png").is_file(),
+        "the walk asked the folder about it without reading what still names it"
+    );
+    assert!(after.attachments_up.is_empty());
+}
+
+#[test]
+fn a_folder_we_cannot_reach_never_makes_us_walk_this_side_again() {
+    let (room, paths) = desk();
+    a_paper(&paths, "dev_a-0001");
+    let mut state = State::default();
+    state.shed.insert("dev_a-0001".into());
+    state
+        .retired
+        .insert("attachments/ab/una-a3f90001.png".into());
+    let mut done = Already::default();
+    let away = room.path().join("nowhere");
+
+    assert_eq!(papers(&paths, &state.shed, Some(&away), &mut done), 1);
+    attachments(&paths, &state.retired, Some(&away), Vec::new, &mut done);
+    assert!(done.papers.contains("dev_a-0001"));
+    assert!(done.papers_up.is_empty());
+
+    let asked = std::cell::Cell::new(false);
+    let gone = attachments(
+        &paths,
+        &state.retired,
+        Some(&away),
+        || {
+            asked.set(true);
+            Vec::new()
+        },
+        &mut done,
+    );
+
+    assert_eq!(gone, 0);
+    assert_eq!(
+        papers(&paths, &state.shed, Some(&away), &mut done),
+        0,
+        "the drive is away, and that is no reason to walk this side of it again"
+    );
+    assert!(!asked.get());
+}
+
+#[test]
+fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
+    let all: BTreeSet<String> = ["attachments/ab/una-a3f90001.png".to_string()]
+        .into_iter()
+        .collect();
+    let mut done = Already::default();
+
+    assert!(done.owes_any(&all, true, true));
+    assert!(done.owes_any(&all, false, true));
+
+    done.attachments
+        .insert("attachments/ab/una-a3f90001.png".into());
+    assert!(
+        done.owes_any(&all, true, true),
+        "gone from here is not gone from the folder"
+    );
+    assert!(
+        !done.owes_any(&all, false, true),
+        "with nowhere else to reach, gone from here is all there was to do"
+    );
+
+    done.attachments_up
+        .insert("attachments/ab/una-a3f90001.png".into());
+    assert!(!done.owes_any(&all, true, true));
 }

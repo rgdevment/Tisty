@@ -149,6 +149,31 @@ pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn as_written(at: &Path) -> String {
+    std::fs::canonicalize(at)
+        .unwrap_or_else(|_| at.to_path_buf())
+        .display()
+        .to_string()
+}
+
+#[cfg(windows)]
+pub fn told_apart(at: &Path) -> Option<String> {
+    let held = winapi_util::Handle::from_path_any(at).ok()?;
+    let one = winapi_util::file::information(&held).ok()?;
+    apart(one.volume_serial_number(), one.file_index())
+}
+
+#[cfg(not(windows))]
+pub fn told_apart(at: &Path) -> Option<String> {
+    use std::os::unix::fs::MetadataExt;
+    let one = std::fs::metadata(at).ok()?;
+    apart(one.dev(), one.ino())
+}
+
+fn apart(volume: u64, one: u64) -> Option<String> {
+    (one != 0).then(|| format!("{volume:x}:{one:x}"))
+}
+
 pub fn profile() -> Option<String> {
     named(&std::env::var(PROFILE_ENV).ok()?)
 }

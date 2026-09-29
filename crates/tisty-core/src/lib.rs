@@ -16,6 +16,7 @@ pub mod merge;
 pub mod model;
 pub mod order;
 pub mod parcel;
+pub mod parting;
 pub mod paths;
 pub mod refs;
 pub mod series;

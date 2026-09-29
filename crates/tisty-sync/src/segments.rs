@@ -134,13 +134,12 @@ pub(crate) fn sweep(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
     };
-    let mine = format!(".{}.", std::process::id());
     for at in entries.filter_map(|e| e.ok()).map(|e| e.path()) {
-        let ours = at
+        let gone = at
             .file_name()
             .and_then(|n| n.to_str())
-            .is_some_and(|n| n.ends_with(".part") && n.contains(&mine));
-        if ours && let Err(e) = std::fs::remove_file(&at) {
+            .is_some_and(|n| tisty_core::parting::spent(&at, n));
+        if gone && let Err(e) = std::fs::remove_file(&at) {
             witness::warn(
                 channel::SYNC,
                 "leftover not removed",
