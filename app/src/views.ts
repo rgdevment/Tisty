@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Axis } from "./archive";
 import type { List, Reading, View } from "./core";
 import { fill, t } from "./locales";
@@ -78,8 +78,12 @@ export function asView(chosen: Chosen, reach: number = A_COLUMN): View {
       return { tagged: true, everything: true, most: reach };
     case "quadrants":
       return { board: true, most: reach };
+    case "spread":
+      return { spread: true, most: reach };
+    case "lists":
+      return { soonest: true, most: reach };
     default:
-      return {};
+      return { most: reach };
   }
 }
 
@@ -147,10 +151,29 @@ export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): s
   return t("todayEmpty");
 }
 
+export function headerCount(
+  chosen: Chosen,
+  found: { tasks: unknown[] } | null,
+  counts: Record<string, number>,
+  total: number,
+): number | undefined {
+  if (chosen.named === "tasks") return undefined;
+  if (chosen.named === "archive" && !chosen.folded && chosen.layer === "routine") {
+    return counts.routines;
+  }
+  if (found) return found.tasks.length;
+  if (chosen.named === "search") return undefined;
+  return total;
+}
+
 export function useReach(chosen: Chosen) {
   const [reach, setReach] = useState(A_COLUMN);
-  useEffect(() => {
+  const [seen, setSeen] = useState(chosen);
+  const further = useCallback(() => setReach((was) => was + A_COLUMN), []);
+  if (seen !== chosen) {
+    setSeen(chosen);
     setReach(A_COLUMN);
-  }, [chosen]);
-  return { reach, further: () => setReach((was) => was + A_COLUMN) };
+    return { reach: A_COLUMN, further };
+  }
+  return { reach, further };
 }

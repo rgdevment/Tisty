@@ -356,7 +356,7 @@ export default function TaskList({
             </section>
           ))}
 
-        {onReach && <Edge onReach={onReach} />}
+        {!instead && onReach && <Edge onReach={onReach} />}
         {below}
       </div>
     </main>

@@ -202,7 +202,8 @@ export default function Matrix({
                       {(counts[where] ?? mine.length) || ""}
                     </span>
                     {where === "minor" ? (
-                      mine.length > 0 && (
+                      mine.length > 0 &&
+                      mine.length === (counts[where] ?? mine.length) && (
                         <button
                           type="button"
                           onClick={() => onDiscardAll(mine.map((one) => one.id))}

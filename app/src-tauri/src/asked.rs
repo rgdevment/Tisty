@@ -31,6 +31,10 @@ pub(crate) struct View {
     #[serde(default)]
     pub(crate) board: bool,
     #[serde(default)]
+    pub(crate) spread: bool,
+    #[serde(default)]
+    pub(crate) soonest: bool,
+    #[serde(default)]
     pub(crate) reading: Option<String>,
 }
 

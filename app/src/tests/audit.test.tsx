@@ -93,6 +93,7 @@ describe("the crowded-day nudge never sends a task to a day that has already gon
     const placed = vi.fn();
     render(
       <Spread
+        counts={{}}
         tasks={[
           made("01A", "Uno", weekDay(2)),
           made("01B", "Dos", weekDay(2)),
@@ -116,7 +117,7 @@ describe("the crowded-day nudge never sends a task to a day that has already gon
 describe("pressing Hoy while the month is open", () => {
   it("asks to reach today's row in the river, not just the top of it", () => {
     const today = iso(new Date());
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: t("spreadMoon") }));
     fireEvent.click(screen.getByRole("button", { name: t("spreadNow") }));
@@ -129,7 +130,12 @@ describe("pressing Hoy while the month is open", () => {
 describe("what a cell in the month grid tells you about itself", () => {
   it("a cell holding a task announces that task in its label", () => {
     render(
-      <Spread tasks={[made("01A", "Kermés", weekDay(3))]} onPlace={vi.fn()} onOpen={vi.fn()} />,
+      <Spread
+        tasks={[made("01A", "Kermés", weekDay(3))]}
+        counts={{}}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+      />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: t("spreadMoon") }));
@@ -139,7 +145,7 @@ describe("what a cell in the month grid tells you about itself", () => {
   });
 
   it("a cell outside the shown month names its month, not just a bare weekday and number", () => {
-    render(<Spread tasks={[]} onPlace={vi.fn()} onOpen={vi.fn()} />);
+    render(<Spread tasks={[]} counts={{}} onPlace={vi.fn()} onOpen={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: t("spreadMoon") }));
 

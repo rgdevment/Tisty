@@ -251,6 +251,8 @@ export interface View {
   repeating?: boolean;
   most?: number;
   board?: boolean;
+  spread?: boolean;
+  soonest?: boolean;
 }
 
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });

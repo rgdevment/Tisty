@@ -7,25 +7,55 @@ pub const AHEAD: i64 = 7;
 
 pub const BEADS: usize = 5;
 
-pub fn a_board(state: &State, most: usize, today: jiff::civil::Date) -> Vec<Task> {
+pub fn a_board(state: &State, most: usize, today: jiff::civil::Date) -> (Vec<Task>, usize) {
     let whole = Filter::default();
     let mut by: std::collections::BTreeMap<tisty_core::model::Priority, Vec<&Task>> =
         Default::default();
     let mut loose: Vec<&Task> = Vec::new();
+    let mut all = 0;
     for task in state.ordered_open() {
         if !whole.matches(task, today) {
             continue;
         }
         if task.priority.set() {
+            all += 1;
             let mine = by.entry(task.priority).or_default();
             if mine.len() < most {
                 mine.push(task);
             }
-        } else if task.repeat.is_none() && loose.len() < most {
-            loose.push(task);
+        } else if task.repeat.is_none() {
+            all += 1;
+            if loose.len() < most {
+                loose.push(task);
+            }
         }
     }
-    by.into_values().flatten().chain(loose).cloned().collect()
+    let dealt = by.into_values().flatten().chain(loose).cloned().collect();
+    (dealt, all)
+}
+
+pub fn waits_in_the_tray(task: &Task) -> bool {
+    task.date.is_none() && task.deadline.is_none() && task.repeat.is_none()
+}
+
+pub fn a_spread(state: &State, most: usize, today: jiff::civil::Date) -> (Vec<Task>, usize) {
+    let whole = Filter::default();
+    let mut dated: Vec<&Task> = Vec::new();
+    let mut waiting: Vec<&Task> = Vec::new();
+    let mut all = 0;
+    for task in state.ordered_open() {
+        if !whole.matches(task, today) || task.repeat.is_some() {
+            continue;
+        }
+        all += 1;
+        if task.date.is_some() || task.deadline.is_some() {
+            dated.push(task);
+        } else if waiting.len() < most {
+            waiting.push(task);
+        }
+    }
+    let drawn = dated.into_iter().chain(waiting).cloned().collect();
+    (drawn, all)
 }
 
 pub fn a_column(
@@ -34,10 +64,11 @@ pub fn a_column(
     today: jiff::civil::Date,
 ) -> Result<(Vec<Task>, usize), crate::Refusal> {
     let most = view.as_ref().and_then(|one| one.most);
+    if view.as_ref().is_some_and(|one| one.spread) {
+        return Ok(a_spread(state, most.unwrap_or(usize::MAX), today));
+    }
     if view.as_ref().is_some_and(|one| one.board) {
-        let placed = a_board(state, most.unwrap_or(usize::MAX), today);
-        let many = placed.len();
-        return Ok((placed, many));
+        return Ok(a_board(state, most.unwrap_or(usize::MAX), today));
     }
     let filter = match view {
         Some(view) => view.resolve()?,
@@ -57,17 +88,25 @@ pub fn a_column(
 
 pub const SOONEST: usize = 3;
 
-pub fn soonest_in(state: &State) -> std::collections::BTreeMap<String, Vec<Task>> {
+pub fn soonest_in(
+    state: &State,
+    today: jiff::civil::Date,
+) -> std::collections::BTreeMap<String, Vec<Task>> {
     let when = |task: &Task| {
         task.date
             .as_ref()
             .or(task.deadline.as_ref())
             .map(|one| one.at)
     };
-    let mut by: std::collections::BTreeMap<String, Vec<&Task>> = Default::default();
-    for task in state.tasks.values().filter(|one| one.is_open()) {
+    let whole = Filter::default();
+    let mut by: std::collections::BTreeMap<tisty_core::model::ListId, Vec<&Task>> =
+        Default::default();
+    for task in state.ordered_open() {
+        if !whole.matches(task, today) {
+            continue;
+        }
         if let Some(list) = task.list {
-            by.entry(list.to_string()).or_default().push(task);
+            by.entry(list).or_default().push(task);
         }
     }
     by.into_iter()
@@ -76,9 +115,12 @@ pub fn soonest_in(state: &State) -> std::collections::BTreeMap<String, Vec<Task>
                 (Some(a), Some(b)) => a.cmp(&b),
                 (Some(_), None) => std::cmp::Ordering::Less,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => a.order.cmp(&b.order),
+                (None, None) => std::cmp::Ordering::Equal,
             });
-            (id, held.into_iter().take(SOONEST).cloned().collect())
+            (
+                id.to_string(),
+                held.into_iter().take(SOONEST).cloned().collect(),
+            )
         })
         .collect()
 }
@@ -196,6 +238,7 @@ pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
         .map(|(key, _)| ((*key).to_string(), 0))
         .collect();
     let mut quadrants = 0;
+    let mut tray = 0;
     let mut in_list: std::collections::BTreeMap<tisty_core::model::ListId, usize> =
         Default::default();
 
@@ -217,14 +260,21 @@ pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
         if let Some(list) = task.list {
             *in_list.entry(list).or_default() += 1;
         }
-        if !task.priority.set() && whole.matches(task, today) {
+        if !whole.matches(task, today) {
+            continue;
+        }
+        if !task.priority.set() && task.repeat.is_none() {
             quadrants += 1;
+        }
+        if waits_in_the_tray(task) {
+            tray += 1;
         }
     }
 
     counts.insert("routines".to_string(), tisty_core::series::how_many(state));
     counts.insert("tags".to_string(), state.tags().len());
     counts.insert("quadrants".to_string(), quadrants);
+    counts.insert("tray".to_string(), tray);
     for list in state.ordered_lists() {
         counts.insert(
             list.id.to_string(),

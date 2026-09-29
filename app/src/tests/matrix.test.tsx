@@ -166,6 +166,16 @@ describe("the matrix", () => {
     expect(onDiscardAll).toHaveBeenCalledWith(["4"]);
   });
 
+  it("does not offer to empty a quadrant it was only handed a part of", () => {
+    widen(1500);
+    show({ counts: { minor: 350 } });
+
+    expect(
+      within(quadrant("Minor")).queryByRole("button", { name: "I won't do any of them" }),
+    ).toBeNull();
+    expect(quadrant("Minor").textContent).toContain("350");
+  });
+
   it("stays out of the way until it is asked for", async () => {
     widen(1500);
     show();

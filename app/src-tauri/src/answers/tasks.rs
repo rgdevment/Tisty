@@ -157,12 +157,17 @@ pub fn snapshot(
         language(&app, &spoken);
     }
 
+    let wanted = view.as_ref().is_some_and(|one| one.soonest);
     let (tasks, total) = crate::summing::a_column(&session.state, view, today())?;
 
     Ok(Snapshot {
         tasks,
         total,
-        soonest: crate::summing::soonest_in(&session.state),
+        soonest: if wanted {
+            crate::summing::soonest_in(&session.state, today())
+        } else {
+            Default::default()
+        },
         ahead: coming(&session.state, today()),
         routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),

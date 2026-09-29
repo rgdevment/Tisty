@@ -113,6 +113,7 @@ import {
   accepts,
   asView,
   type Chosen,
+  headerCount,
   invite,
   LAYERS,
   layerCount,
@@ -1703,6 +1704,7 @@ export default function App() {
             if (!data.tasks.some((one) => one.id === captured.id)) {
               setChosen({ named: "tasks", slice: "all" });
             }
+            setHeld(captured);
             setSelected(captured.id);
             setReveal(captured.id);
             dismiss();
@@ -1876,9 +1878,8 @@ export default function App() {
                 <Spread
                   onCarrying={setDealing}
                   tasks={data.tasks}
-                  onPlace={(id, on) =>
-                    act(patch(id, on === null ? { noDate: true } : { date: on }))
-                  }
+                  counts={data.counts}
+                  onPlace={(id, on) => act(patch(id, on ? { date: on } : { noDate: true }))}
                   onOpen={(one) => setSelected(one.id)}
                 />
               </div>
@@ -1938,13 +1939,7 @@ export default function App() {
                     lists={data.lists}
                     title={title(chosen, data.lists)}
                     when={chosen.named === "tasks" ? todayLong() : undefined}
-                    count={
-                      chosen.named === "tasks"
-                        ? undefined
-                        : chosen.named === "archive" && !chosen.folded && chosen.layer === "routine"
-                          ? data.counts.routines
-                          : (found?.tasks.length ?? data.total)
-                    }
+                    count={headerCount(chosen, found, data.counts, data.total)}
                     onBack={
                       chosen.list
                         ? () => {
