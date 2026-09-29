@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Axis } from "./archive";
 import type { List, Reading, View } from "./core";
 import { fill, t } from "./locales";
@@ -75,6 +76,8 @@ export function asView(chosen: Chosen, reach: number = A_COLUMN): View {
         : { archive: true, reading: chosen.layer ?? "story", most: reach };
     case "tags":
       return { tagged: true, everything: true, most: reach };
+    case "quadrants":
+      return { board: true, most: reach };
     default:
       return {};
   }
@@ -142,4 +145,12 @@ export function nothing(chosen: Chosen, searching: boolean, tracesHidden = 0): s
   if (chosen.lists?.length) return t("listEmpty");
   if (chosen.slice === "all") return t("allEmpty");
   return t("todayEmpty");
+}
+
+export function useReach(chosen: Chosen) {
+  const [reach, setReach] = useState(A_COLUMN);
+  useEffect(() => {
+    setReach(A_COLUMN);
+  }, [chosen]);
+  return { reach, further: () => setReach((was) => was + A_COLUMN) };
 }

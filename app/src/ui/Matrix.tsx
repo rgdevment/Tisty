@@ -10,6 +10,7 @@ const SLIP = 5;
 
 interface Props {
   tasks: Task[];
+  counts: Record<string, number>;
   lists: List[];
   beside: boolean;
   onPlace: (task: string, where: Priority) => void;
@@ -22,6 +23,7 @@ const KEPT = "tisty.tray";
 
 export default function Matrix({
   tasks,
+  counts,
   lists,
   beside,
   onPlace,
@@ -81,7 +83,7 @@ export default function Matrix({
     [loose, only],
   );
 
-  const waiting = loose.length;
+  const waiting = counts.quadrants ?? loose.length;
 
   const under = (x: number, y: number): Priority | null => {
     const zone = document.elementFromPoint(x, y)?.closest("[data-quadrant]");
@@ -197,7 +199,7 @@ export default function Matrix({
                       {said(where)}
                     </span>
                     <span className="ml-auto text-[11.5px] text-faint tabular-nums">
-                      {mine.length || ""}
+                      {(counts[where] ?? mine.length) || ""}
                     </span>
                     {where === "minor" ? (
                       mine.length > 0 && (

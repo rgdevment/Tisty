@@ -250,6 +250,7 @@ export interface View {
   window?: "today" | "upcoming" | "overdue" | "undated";
   repeating?: boolean;
   most?: number;
+  board?: boolean;
 }
 
 export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });

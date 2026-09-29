@@ -110,7 +110,6 @@ import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
 import {
-  A_COLUMN,
   accepts,
   asView,
   type Chosen,
@@ -122,6 +121,7 @@ import {
   SLICES,
   type Slice,
   title,
+  useReach,
 } from "./views";
 import { knowAgents } from "./who";
 
@@ -618,10 +618,7 @@ export default function App() {
     setAsking(null);
   }, [chosen]);
 
-  const [reach, setReach] = useState(A_COLUMN);
-  useEffect(() => {
-    setReach(A_COLUMN);
-  }, [chosen]);
+  const { reach, further } = useReach(chosen);
   const load = useCallback(() => {
     snapshot(asView(chosen, reach))
       .then((fresh) => {
@@ -1852,6 +1849,7 @@ export default function App() {
                 {strip && <div className="shrink-0 px-5 pt-2">{strip}</div>}
                 <Matrix
                   tasks={data.tasks}
+                  counts={data.counts}
                   lists={data.lists}
                   beside={beside}
                   onPlace={(id, where) => act(patch(id, { priority: where }))}
@@ -1966,11 +1964,7 @@ export default function App() {
                         ? t("onlyPapers")
                         : nothing(chosen, found !== null, data.counts.tracesHidden ?? 0)
                     }
-                    onReach={
-                      !found && data.total > data.tasks.length
-                        ? () => setReach((was) => was + A_COLUMN)
-                        : undefined
-                    }
+                    onReach={!found && data.total > data.tasks.length ? further : undefined}
                     note={
                       found && found.total > found.tasks.length
                         ? fill("someOfMany", `${found.tasks.length}/${found.total}`)

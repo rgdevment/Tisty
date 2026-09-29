@@ -199,6 +199,7 @@ fn bare() -> View {
         list: None,
         lists: Vec::new(),
         most: None,
+        board: false,
         tags: Vec::new(),
         tagged: false,
         hidden: false,
@@ -1143,4 +1144,55 @@ fn a_list_of_undated_work_still_names_three_of_it() {
     let soonest = crate::summing::soonest_in(&state);
 
     assert_eq!(soonest[&list.id.to_string()].len(), crate::summing::SOONEST);
+}
+
+#[test]
+fn a_board_is_handed_a_hand_of_each_quarter_and_not_the_pile() {
+    use tisty_core::model::Priority;
+
+    let mut state = State::default();
+    for n in 0..900 {
+        let mut task = held(&format!("una de tantas {n}"));
+        task.priority = match n % 5 {
+            0 => Priority::Do,
+            1 => Priority::Decide,
+            2 => Priority::Delegate,
+            3 => Priority::Minor,
+            _ => Priority::Unset,
+        };
+        kept(&mut state, task);
+    }
+
+    let hand = crate::summing::a_board(&state, 20, today());
+    let mut by: std::collections::BTreeMap<Priority, usize> = Default::default();
+    for task in &hand {
+        *by.entry(task.priority).or_default() += 1;
+    }
+
+    assert_eq!(by[&Priority::Do], 20);
+    assert_eq!(by[&Priority::Decide], 20);
+    assert_eq!(by[&Priority::Delegate], 20);
+    assert_eq!(by[&Priority::Minor], 20);
+    assert_eq!(by[&Priority::Unset], 20, "the unplaced pile is a hand too");
+    assert_eq!(hand.len(), 100);
+
+    let whole = crate::summing::a_board(&state, usize::MAX, today());
+    assert_eq!(whole.len(), 900, "asking for no hand still deals them all");
+}
+
+#[test]
+fn what_repeats_never_waits_in_the_unplaced_pile() {
+    let mut state = State::default();
+    let mut every_week = held("regar las plantas");
+    every_week.repeat = Some(tisty_core::model::Repeat::due(tisty_core::model::Cadence {
+        every: 1,
+        unit: tisty_core::model::Unit::Week,
+    }));
+    kept(&mut state, every_week);
+    kept(&mut state, held("una suelta"));
+
+    let hand = crate::summing::a_board(&state, 10, today());
+
+    assert_eq!(hand.len(), 1);
+    assert_eq!(hand[0].title, "una suelta");
 }

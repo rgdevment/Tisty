@@ -57,7 +57,10 @@ describe("asView", () => {
       most: A_COLUMN * 3,
     });
     expect(asView({ named: "archive" }, A_COLUMN * 2).most).toBe(A_COLUMN * 2);
-    expect(asView({ named: "quadrants" }, A_COLUMN * 2)).toEqual({});
+    expect(asView({ named: "quadrants" }, A_COLUMN * 2)).toEqual({
+      board: true,
+      most: A_COLUMN * 2,
+    });
   });
 
   it("falls back to today", () => {

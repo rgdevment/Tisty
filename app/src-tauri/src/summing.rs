@@ -7,12 +7,38 @@ pub const AHEAD: i64 = 7;
 
 pub const BEADS: usize = 5;
 
+pub fn a_board(state: &State, most: usize, today: jiff::civil::Date) -> Vec<Task> {
+    let whole = Filter::default();
+    let mut by: std::collections::BTreeMap<tisty_core::model::Priority, Vec<&Task>> =
+        Default::default();
+    let mut loose: Vec<&Task> = Vec::new();
+    for task in state.ordered_open() {
+        if !whole.matches(task, today) {
+            continue;
+        }
+        if task.priority.set() {
+            let mine = by.entry(task.priority).or_default();
+            if mine.len() < most {
+                mine.push(task);
+            }
+        } else if task.repeat.is_none() && loose.len() < most {
+            loose.push(task);
+        }
+    }
+    by.into_values().flatten().chain(loose).cloned().collect()
+}
+
 pub fn a_column(
     state: &State,
     view: Option<crate::asked::View>,
     today: jiff::civil::Date,
 ) -> Result<(Vec<Task>, usize), crate::Refusal> {
     let most = view.as_ref().and_then(|one| one.most);
+    if view.as_ref().is_some_and(|one| one.board) {
+        let placed = a_board(state, most.unwrap_or(usize::MAX), today);
+        let many = placed.len();
+        return Ok((placed, many));
+    }
     let filter = match view {
         Some(view) => view.resolve()?,
         None => Filter::default(),

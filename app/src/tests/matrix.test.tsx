@@ -46,6 +46,7 @@ const widen = (px: number) => {
 const at = (extra: Partial<React.ComponentProps<typeof Matrix>> = {}) => (
   <Matrix
     tasks={tasks}
+    counts={{}}
     lists={lists}
     beside={false}
     onPlace={vi.fn()}
