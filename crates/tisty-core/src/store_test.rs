@@ -1446,3 +1446,49 @@ fn a_segment_closed_and_refilled_to_the_same_length_is_not_read_as_untouched() {
         "two segments of the same length read as the same segment"
     );
 }
+
+#[test]
+fn a_sidecar_left_without_its_segment_does_not_make_the_next_one_skip_a_number() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
+    store.append(a_task("the first thing")).unwrap();
+    std::fs::write(dir.join("000001.sig"), b"a rename that never happened").unwrap();
+
+    store.rotate().unwrap();
+
+    assert!(
+        dir.join("000001.tisty").is_file(),
+        "an orphan sidecar took the number the segment should have had"
+    );
+    assert!(
+        !dir.join("000002.tisty").exists(),
+        "the sequence skipped one, which refuses the store to every machine in it"
+    );
+    Store::open(dir.parent().unwrap(), DeviceId("dev_a".into()))
+        .unwrap()
+        .read_all()
+        .expect("the store it just wrote it can no longer read");
+}
+
+#[test]
+fn a_segment_of_its_own_it_cannot_read_stops_it_signing_rather_than_signing_short() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let dir = paths.store().join(&who.0);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::create_dir_all(dir.join("000001.tisty")).unwrap();
+
+    let mut store = Store::open(paths.store(), who)
+        .unwrap()
+        .signing_with(Some(key));
+    store
+        .append(a_task("written over a chain it cannot fold"))
+        .unwrap();
+
+    assert!(
+        !dir.join("active.sig").exists(),
+        "it signed a chain that leaves out bytes every reader can see"
+    );
+}

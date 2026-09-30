@@ -387,3 +387,14 @@ at = \"https://somewhere\"
 {again}"
     );
 }
+
+#[test]
+fn a_way_of_syncing_it_does_know_and_cannot_make_sense_of_is_said_out_loud() {
+    let said = ["device_id = \"dev_a\"", "[sync]", "how = \"folder\""].join("\n");
+    let broken = toml::from_str::<Config>(&said);
+
+    assert!(
+        broken.is_err(),
+        "a folder to sync with and no folder named read as a way this build never heard of, which turns syncing off without a word"
+    );
+}

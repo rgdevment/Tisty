@@ -51,13 +51,17 @@ fn a_folder_that_said_its_shape_and_went_quiet_is_not_read_as_empty() {
 }
 
 #[test]
-fn a_folder_with_nothing_in_it_is_still_one_to_start_in() {
-    let (_room, data, dest) = a_place();
+fn another_folder_from_before_this_file_is_still_one_to_take_up() {
+    let (room, data, dest) = a_place();
     stamp(&data, &dest);
-    std::fs::remove_file(dest.join(NAMED)).unwrap();
+    before_reading(&data, &dest).unwrap();
 
-    before_reading(&data, &dest)
-        .expect("choosing an empty folder after syncing elsewhere was turned away");
+    let older = room.path().join("older");
+    std::fs::create_dir_all(older.join(STORE).join("dev_b")).unwrap();
+
+    before_reading(&data, &older).expect(
+        "a machine that had met one folder saying its shape could never take up an older one",
+    );
 }
 
 #[test]

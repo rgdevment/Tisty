@@ -856,7 +856,7 @@ const en = {
   syncShape:
     "Nothing was synced, in either direction. The shared folder is arranged in a way this Tisty does not know, so a newer one has been there. Update this machine and try once more — writing into it now could undo what it left.",
   syncUnshaped:
-    "Nothing was synced, in either direction. The shared folder said what shape it was in and now says nothing, which is what a round that did not finish looks like. If a cloud client is still bringing it down, wait for it; otherwise sync from the machine that last wrote there.",
+    "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the machine that last wrote there.",
   syncNewer:
     "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this machine. Update it and try once more.",
   storeNewer:
@@ -2228,7 +2228,7 @@ const es: Catalog = {
   syncShape:
     "No se sincronizó nada, en ningún sentido. La carpeta compartida está dispuesta de una forma que este Tisty no conoce, así que ha pasado por ahí uno más nuevo. Actualiza este equipo y vuelve a intentarlo: escribir ahí ahora podría deshacer lo que dejó.",
   syncUnshaped:
-    "No se sincronizó nada, en ningún sentido. La carpeta compartida decía en qué forma estaba y ahora no dice nada, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
+    "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
   syncNewer:
     "No se sincronizó nada, en ningún sentido. «{name}» escribe con un Tisty más nuevo que este, así que lo que escribas aquí se queda aquí hasta que actualices este equipo. Actualízalo y vuelve a intentarlo.",
   storeNewer:
