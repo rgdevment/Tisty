@@ -16,7 +16,8 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
     config.agent_id = Some(who.clone());
     config.save(paths)?;
 
-    let mut store = Store::open(paths.store(), who.clone())?;
+    let mut store =
+        Store::open(paths.store(), who.clone())?.signing_with(crate::signing::mine(paths, &who));
     store.append_batch(vec![
         Op::DeviceJoin {
             d: who.clone(),
@@ -134,7 +135,8 @@ pub fn retire(paths: &Paths) -> Result<Option<DeviceId>> {
     config.agent_id = None;
     config.save(paths)?;
 
-    let mut store = Store::open(paths.store(), config.device_id.clone())?;
+    let mut store = Store::open(paths.store(), config.device_id.clone())?
+        .signing_with(crate::signing::mine(paths, &config.device_id));
     store.append(Op::DeviceRemove { d: who.clone() })?;
     Ok(Some(who))
 }

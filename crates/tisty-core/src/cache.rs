@@ -805,6 +805,7 @@ fn reached(
                 | crate::Op::FolderDelete { .. }
                 | crate::Op::DeviceJoin { .. }
                 | crate::Op::DeviceHost { .. }
+                | crate::Op::DeviceKey { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachKept { .. }
                 | crate::Op::AttachLetGo { .. }

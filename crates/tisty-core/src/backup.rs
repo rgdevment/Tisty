@@ -314,6 +314,7 @@ fn said_goodbye(paths: &Paths, was: &crate::DeviceId, now: &crate::DeviceId) {
         return;
     }
     let told = crate::Store::open(paths.store(), now.clone())
+        .map(|store| store.signing_with(crate::signing::mine(paths, now)))
         .and_then(|mut store| store.append(crate::Op::DeviceRemove { d: was.clone() }));
     if let Err(e) = told {
         witness::warn(

@@ -78,7 +78,8 @@ impl Session {
     pub fn at(paths: Paths) -> tisty_core::Result<Self> {
         let config = Config::load_or_init(&paths)?;
         tisty_core::store::brought_home(&paths);
-        let store = Store::open(paths.store(), config.device_id.clone())?;
+        let store = Store::open(paths.store(), config.device_id.clone())?
+            .signing_with(tisty_core::signing::mine(&paths, &config.device_id));
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
         let print = tisty_core::cache::fingerprint(&paths.store());
@@ -689,12 +690,15 @@ impl Session {
 
     pub fn take_a_seat(&mut self) -> tisty_core::Result<()> {
         let who = self.config.device_id.clone();
-        if self.state.devices.contains(&who) {
-            return Ok(());
-        }
         let shown = tisty_core::signing::mine(&self.paths, &who)
             .as_ref()
             .map(tisty_core::signing::shown);
+        if self.state.devices.contains(&who) {
+            return match shown.filter(|_| !self.state.keys.contains_key(&who)) {
+                Some(shown) => self.commit(Op::DeviceKey { d: who, p: shown }),
+                None => Ok(()),
+            };
+        }
         self.commit(Op::DeviceJoin {
             d: who,
             k: Some(tisty_core::DeviceKind::Machine),

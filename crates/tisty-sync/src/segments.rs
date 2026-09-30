@@ -134,14 +134,8 @@ pub(crate) fn copy_segments(
                     beside_it += 1;
                 }
                 true => {}
-                // Only what the bytes that just landed made untrue: a count answers for a
-                // segment that no longer changes, and a signature nothing overwrote is the
-                // only one that segment will ever have, since a machine signs at rotation.
-                false if !stands && kind == tisty_core::signing::SIG => {
-                    beside_it += usize::from(std::fs::remove_file(&there).is_ok());
-                }
-                // Nothing is taken away on account of a kind this build cannot read: absence
-                // here means only that we do not know what it was for.
+                // Nothing is taken away for being absent over there: whoever can write in that
+                // folder could delete a signature, and taking ours with it is the downgrade.
                 false => {}
             }
         }

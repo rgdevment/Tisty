@@ -614,9 +614,16 @@ export interface Settled {
   carried: Carried;
   undecided: string[];
   unreadable: string[];
+  disowned: string[];
   astray: string[];
   joined: string[];
 }
+
+export const whatWentAmiss = (said: Settled) =>
+  (said.astray?.length && "someDocsAstray") ||
+  (said.disowned?.length && "someoneDisowned") ||
+  (said.unreadable?.length && "someoneUnreadable") ||
+  null;
 
 export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>
   invoke("sync_now", { way });

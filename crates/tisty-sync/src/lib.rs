@@ -4,6 +4,7 @@ mod papers;
 mod place;
 mod segments;
 mod shape;
+mod verified;
 
 pub use held::let_go_telling;
 use held::{copy_held, left_behind, let_go_of};
@@ -60,6 +61,8 @@ pub struct Moved {
     pub freed: u64,
     pub undecided: Vec<Undecided>,
     pub unreadable: Vec<String>,
+    /// Machines whose history carries a signature that does not answer to the key they published.
+    pub disowned: Vec<String>,
     pub astray: Vec<String>,
     pub joined: Vec<String>,
     pub arrived: Vec<String>,
@@ -136,7 +139,7 @@ pub fn carry_telling(
     let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        moved.brought = bring(&store, device, dest, &mut moved.unreadable, &mut alike)?;
+        moved.brought = bring(data, &store, device, dest, &mut moved, &mut alike)?;
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);
@@ -543,14 +546,114 @@ fn seats(store: &Path) -> std::collections::BTreeSet<tisty_core::event::DeviceId
         .collect()
 }
 
+fn anything_signed_in(dir: &Path) -> bool {
+    tisty_core::store::segments_in(dir).is_ok_and(|found| {
+        found
+            .iter()
+            .any(|one| one.with_extension(tisty_core::signing::SIG).is_file())
+    })
+}
+
+/// Checked before any of it is taken in, and only from where the last round left off.
+#[allow(clippy::too_many_arguments)]
+fn answers_for_itself(
+    data: &Path,
+    store: &Path,
+    dest: &Path,
+    theirs: &Path,
+    named: &str,
+    device: &str,
+    knew: &mut Option<tisty_core::store::Ledger>,
+    alike: &mut Alike,
+) -> Answered {
+    if !anything_signed_in(theirs) {
+        return Answered::Yes;
+    }
+    // Only what we held before the round: a key arriving beside the history it answers for would
+    // let an impostor bring its own word for what it signs with.
+    let told = match knew {
+        Some(told) => told,
+        None => match tisty_core::store::ledger(store) {
+            Ok(told) => knew.insert(told),
+            Err(e) => {
+                witness::warn(
+                    channel::SYNC,
+                    "this machine's own log would not say what the others sign with, so nothing signed was taken in",
+                    &[("why", Fact::Why(e.to_string()))],
+                );
+                return Answered::Unreadable;
+            }
+        },
+    };
+    let who = tisty_core::DeviceId(named.to_string());
+    let by = told
+        .keys
+        .get(&who)
+        .and_then(|said| tisty_core::signing::read(said));
+    let Some(by) = by else {
+        // A machine we hold no key for has nothing to check — but our own name is not one of
+        // those: a history signed under it that we cannot answer for is not ours to take back.
+        if !named.eq_ignore_ascii_case(device) {
+            return Answered::Yes;
+        }
+        witness::warn(
+            channel::SYNC,
+            "a history signed under this machine's own name cannot be checked from here, so it was left in the folder",
+            &[("at", Fact::Id(named.to_string()))],
+        );
+        return Answered::Unreadable;
+    };
+    use tisty_core::answering::Adrift;
+    let mine = store.join(named);
+    let ours_already = alike.of(named, theirs, &mine).clone();
+    let from = verified::of(data, dest, named);
+    let answers = tisty_core::answering::answers(theirs, &who, &by, from, &|segment| {
+        ours_already.contains(std::ffi::OsStr::new(segment))
+    });
+    match answers {
+        Ok(held) => {
+            verified::keep(data, dest, named, held);
+            Answered::Yes
+        }
+        Err(Adrift::Unreadable(why)) => {
+            witness::warn(
+                channel::SYNC,
+                "a history in the shared folder could not be read through to its signature, so it was left out",
+                &[("at", Fact::Id(named.to_string())), ("why", Fact::Why(why))],
+            );
+            Answered::Unreadable
+        }
+        Err(Adrift::Disowned(segment)) => {
+            verified::keep(data, dest, named, Default::default());
+            witness::warn(
+                channel::SYNC,
+                "a history in the shared folder does not answer to the key that machine published, so none of it was taken in",
+                &[
+                    ("at", Fact::Id(named.to_string())),
+                    ("segment", Fact::Id(segment)),
+                ],
+            );
+            Answered::Disowned
+        }
+    }
+}
+
+enum Answered {
+    Yes,
+    Unreadable,
+    Disowned,
+}
+
 fn bring(
+    data: &Path,
     store: &Path,
     device: &str,
     dest: &Path,
-    unreadable: &mut Vec<String>,
+    moved: &mut Moved,
     alike: &mut Alike,
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
+    let mut knew = None;
     let at = dest.join(STORE);
     let entries = match std::fs::read_dir(&at) {
         Ok(entries) => entries,
@@ -580,6 +683,25 @@ fn bring(
                 && ours_went_missing(&mine, &entry.path())
             {
                 match tisty_core::store::alone(&mine) {
+                    // Our own name is the one worth wearing: what comes back under it is checked
+                    // like anybody else's, or the next thing we write would sign it as ours.
+                    Some(_held)
+                        if !matches!(
+                            answers_for_itself(
+                                data,
+                                store,
+                                dest,
+                                &entry.path(),
+                                named,
+                                device,
+                                &mut knew,
+                                alike,
+                            ),
+                            Answered::Yes
+                        ) =>
+                    {
+                        moved.disowned.push(named.to_string());
+                    }
                     Some(_held) if ours_went_missing(&mine, &entry.path()) => {
                         witness::warn(
                             channel::SYNC,
@@ -601,6 +723,26 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
+        match answers_for_itself(
+            data,
+            store,
+            dest,
+            &entry.path(),
+            named,
+            device,
+            &mut knew,
+            alike,
+        ) {
+            Answered::Yes => {}
+            Answered::Unreadable => {
+                moved.unreadable.push(named.to_string());
+                continue;
+            }
+            Answered::Disowned => {
+                moved.disowned.push(named.to_string());
+                continue;
+            }
+        }
         if !alike.settled(named, &entry.path(), &mine, Toward::Home) {
             let coming = match tisty_core::store::check_device(&entry.path())
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
@@ -623,7 +765,7 @@ fn bring(
                             ("why", Fact::Why(why.to_string())),
                         ],
                     );
-                    unreadable.push(named.to_string());
+                    moved.unreadable.push(named.to_string());
                     continue;
                 }
             };

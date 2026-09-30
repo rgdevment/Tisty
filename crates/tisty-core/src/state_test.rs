@@ -4546,3 +4546,88 @@ fn the_same_key_in_another_case_is_not_a_second_key() {
         "a machine that wrote its key in another case read as a machine that changed it"
     );
 }
+
+#[test]
+fn a_machine_seated_before_keys_travelled_publishes_one_on_its_own() {
+    let mut state = State::default();
+    let who = DeviceId("dev_a".into());
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let said = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+
+    state.apply(&ev(
+        1,
+        "dev_a",
+        Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: None,
+        },
+    ));
+    assert!(
+        state.keys.is_empty(),
+        "a join with nothing to say said something"
+    );
+
+    state.apply(&ev(
+        2,
+        "dev_a",
+        Op::DeviceKey {
+            d: who.clone(),
+            p: said.clone(),
+        },
+    ));
+
+    assert_eq!(state.keys.get(&who), Some(&said));
+}
+
+#[test]
+fn nobody_publishes_a_key_for_a_machine_that_is_not_them() {
+    let mut state = State::default();
+    let who = DeviceId("dev_a".into());
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let said = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+
+    state.apply(&ev(
+        1,
+        "dev_b",
+        Op::DeviceKey {
+            d: who.clone(),
+            p: said,
+        },
+    ));
+
+    assert!(
+        state.keys.is_empty(),
+        "one machine answered for what another signs with"
+    );
+}
+
+#[test]
+fn the_key_a_machine_published_first_stands_however_it_is_said_again() {
+    let mut state = State::default();
+    let who = DeviceId("dev_a".into());
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let first = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+    let other =
+        crate::signing::shown(&crate::signing::mine(&paths, &DeviceId("dev_b".into())).unwrap());
+
+    for said in [&first, &other] {
+        state.apply(&ev(
+            1,
+            "dev_a",
+            Op::DeviceKey {
+                d: who.clone(),
+                p: said.clone(),
+            },
+        ));
+    }
+
+    assert_eq!(
+        state.keys.get(&who),
+        Some(&first),
+        "a second key took the place of the first, which is the door this closes"
+    );
+}

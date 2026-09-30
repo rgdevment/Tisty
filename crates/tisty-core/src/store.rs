@@ -35,7 +35,7 @@ pub struct Store {
     lock: Option<File>,
     via: Option<String>,
     signs: Option<ed25519_dalek::SigningKey>,
-    tip: [u8; 32],
+    covers: Option<crate::signing::Covers>,
 }
 
 impl Store {
@@ -81,28 +81,57 @@ impl Store {
             via: None,
             lock: None,
             signs: None,
-            tip: crate::signing::NOTHING_BEFORE,
+            covers: None,
         })
     }
 
     /// The key lives outside the store, so whoever knows where hands it over.
     pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
         self.signs = key;
+        self
+    }
+
+    /// Reading a history through to work out where its chain stands is the price of writing, not
+    /// of opening: a command that only reads never pays it.
+    fn knows_where_it_stands(&mut self) -> Result<()> {
+        if self.signs.is_none() || self.covers.is_some() {
+            return Ok(());
+        }
         match self.tip_now() {
-            Some(tip) => self.tip = tip,
+            Some(covers) => self.covers = Some(covers),
             None => self.signs = None,
         }
-        self
+        Ok(())
     }
 
     /// A signature found here is only a base for what follows if this machine's own key answers
     /// for it: `.sig` files arrive with a carry, so one in our directory is not ours to trust.
-    fn tip_now(&self) -> Option<[u8; 32]> {
+    fn tip_now(&self) -> Option<crate::signing::Covers> {
         let Some(key) = &self.signs else {
-            return Some(crate::signing::NOTHING_BEFORE);
+            return Some(crate::signing::Covers {
+                tip: crate::signing::NOTHING_BEFORE,
+                at: 0,
+            });
         };
         let by = key.verifying_key();
-        let found = segments_in(&self.dir).unwrap_or_default();
+        let active = self.dir.join(ACTIVE);
+        let now = active_mark(&active).0;
+        if let Ok(said) = std::fs::read_to_string(active.with_extension(crate::signing::SIG))
+            && let Some(held) = crate::signing::holds(&by, &self.about(ACTIVE), &said)
+            && held.at <= now
+        {
+            return match read_from(&active, held.at) {
+                Ok(rest) => Some(crate::signing::Covers {
+                    tip: crate::signing::tip_of(held.tip, &rest),
+                    at: now,
+                }),
+                Err(_) => None,
+            };
+        }
+
+        let Ok(found) = segments_in(&self.dir) else {
+            return None;
+        };
         let mut tip = crate::signing::NOTHING_BEFORE;
         let mut onward = 0;
         for (at, one) in found.iter().enumerate() {
@@ -115,7 +144,7 @@ impl Store {
             if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
                 && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
             {
-                tip = held;
+                tip = held.tip;
                 onward = at + 1;
             }
         }
@@ -132,7 +161,7 @@ impl Store {
             };
             tip = crate::signing::tip_of(tip, &said);
         }
-        Some(tip)
+        Some(crate::signing::Covers { tip, at: now })
     }
 
     fn about<'a>(&'a self, segment: &'a str) -> crate::signing::About<'a> {
@@ -143,7 +172,7 @@ impl Store {
     }
 
     fn sign(&self, at: &Path) {
-        let Some(key) = &self.signs else {
+        let (Some(key), Some(covers)) = (&self.signs, &self.covers) else {
             return;
         };
         let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
@@ -151,7 +180,7 @@ impl Store {
         };
         if let Err(e) = write_atomic(
             &at.with_extension(crate::signing::SIG),
-            crate::signing::signed(key, &self.about(named), &self.tip).as_bytes(),
+            crate::signing::signed(key, &self.about(named), covers).as_bytes(),
         ) {
             witness::warn(
                 channel::STORE,
@@ -194,17 +223,14 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         let mark = active_mark(&active);
         if mark == self.seen {
-            return Ok(());
+            return self.knows_where_it_stands();
         }
         self.overtaken = true;
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
         // their lines and sign a chain nobody can recompute.
-        if let Some(tip) = self.tip_now() {
-            self.tip = tip;
-        } else {
-            self.signs = None;
-        }
+        self.covers = None;
+        self.knows_where_it_stands()?;
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
         if (head, seq) > (self.head, self.seq) {
@@ -372,8 +398,11 @@ impl Store {
                 .open(self.dir.join(ACTIVE))?;
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
-            if self.signs.is_some() {
-                self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
+            if let Some(covers) = self.covers {
+                self.covers = Some(crate::signing::Covers {
+                    tip: crate::signing::tip_of(covers.tip, said.as_bytes()),
+                    at: covers.at + said.len() as u64,
+                });
             }
 
             self.active_events += lot.len();
@@ -386,7 +415,8 @@ impl Store {
         Ok(())
     }
 
-    fn rotate(&mut self) -> Result<()> {
+    pub(crate) fn rotate(&mut self) -> Result<()> {
+        self.knows_where_it_stands()?;
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
@@ -401,10 +431,27 @@ impl Store {
                 &closed.with_extension("count"),
                 lines.to_string().as_bytes(),
             )?;
-            let _ = std::fs::remove_file(active.with_extension(crate::signing::SIG));
+            let stale = active.with_extension(crate::signing::SIG);
+            match std::fs::remove_file(&stale) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => {
+                    // Left standing it would answer for whatever takes the old segment's place,
+                    // and nothing this machine writes after that could be recomputed.
+                    self.signs = None;
+                    witness::warn(
+                        channel::STORE,
+                        "a signature for the segment just closed could not be taken away, so this machine stopped signing",
+                        &[("at", Fact::Path(stale)), ("why", Fact::Why(e.to_string()))],
+                    );
+                }
+            }
         }
         self.active_events = 0;
         self.seen = Mark::default();
+        if let Some(covers) = self.covers {
+            self.covers = Some(crate::signing::Covers { at: 0, ..covers });
+        }
         Ok(())
     }
 
@@ -458,6 +505,8 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 pub struct Ledger {
     pub allowed: std::collections::BTreeSet<DeviceId>,
     pub named: std::collections::BTreeSet<DeviceId>,
+    /// What each machine said it signs with, read in the same pass that says who may write.
+    pub keys: std::collections::BTreeMap<DeviceId, String>,
 }
 
 impl Ledger {
@@ -499,11 +548,17 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
     let mut said = Ledger::default();
     for event in &told {
         match &event.op {
-            Op::DeviceJoin { d, .. } => {
+            Op::DeviceJoin { d, p, .. } => {
                 said.named.insert(d.clone());
                 if !gone.contains(d) {
                     said.allowed.insert(d.clone());
                 }
+                if let Some(shown) = p {
+                    crate::signing::published(&mut said.keys, &event.device, d, shown);
+                }
+            }
+            Op::DeviceKey { d, p } => {
+                crate::signing::published(&mut said.keys, &event.device, d, p);
             }
             Op::DeviceRemove { d } => {
                 said.named.insert(d.clone());
@@ -555,8 +610,12 @@ pub fn beside_a_segment(named: &str) -> Option<(&str, &str)> {
 }
 
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
+    // An entry dropped for being unreadable is a segment missing from a history that reads as
+    // whole, so the listing fails rather than shortens.
     let mut found: Vec<PathBuf> = std::fs::read_dir(device_dir)?
-        .filter_map(|e| e.ok().map(|e| e.path()))
+        .map(|one| one.map(|one| one.path()))
+        .collect::<std::io::Result<Vec<PathBuf>>>()?
+        .into_iter()
         .filter(|at| {
             at.file_name()
                 .and_then(|n| n.to_str())
@@ -829,6 +888,16 @@ mod atomic_tests;
 /// The stamp narrows that to one tick of whatever the filesystem keeps, not to nothing.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Mark(u64, Option<std::time::SystemTime>);
+
+fn read_from(path: &Path, from: u64) -> std::io::Result<Vec<u8>> {
+    use std::io::{Read, Seek};
+    let mut file = File::open(path)?;
+    crate::counting::opened();
+    file.seek(std::io::SeekFrom::Start(from))?;
+    let mut rest = Vec::new();
+    file.read_to_end(&mut rest)?;
+    Ok(rest)
+}
 
 fn active_mark(path: &Path) -> Mark {
     std::fs::metadata(path)

@@ -125,13 +125,17 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     app.tidy_up(true);
 
     let who = app.config().device_id.clone();
-    if !tisty_core::store::ledger(app.paths.store())?
+    let shown = tisty_core::signing::mine(&app.paths, &who)
+        .as_ref()
+        .map(tisty_core::signing::shown);
+    if tisty_core::store::ledger(app.paths.store())?
         .allowed
         .contains(&who)
     {
-        let shown = tisty_core::signing::mine(&app.paths, &who)
-            .as_ref()
-            .map(tisty_core::signing::shown);
+        if let Some(shown) = shown.filter(|_| !app.state.keys.contains_key(&who)) {
+            app.commit(tisty_core::Op::DeviceKey { d: who, p: shown })?;
+        }
+    } else {
         app.commit(tisty_core::Op::DeviceJoin {
             d: who,
             k: Some(tisty_core::DeviceKind::Machine),
@@ -160,6 +164,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         (&moved.undecided_ids(), "papers-undecided"),
         (&moved.astray, "papers-astray"),
         (&moved.unreadable, "machines-unreadable"),
+        (&moved.disowned, "machines-disowned"),
     ] {
         if many.is_empty() {
             continue;

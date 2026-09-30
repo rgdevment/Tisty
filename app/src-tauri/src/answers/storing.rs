@@ -431,6 +431,7 @@ pub async fn sync_now(
             carried: "busy",
             undecided: Vec::new(),
             unreadable: Vec::new(),
+            disowned: Vec::new(),
             astray: Vec::new(),
             joined: Vec::new(),
         });
@@ -532,7 +533,8 @@ pub async fn sync_now(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
-    let unsettled = done.undecided.len() + done.unreadable.len() + done.astray.len();
+    let unsettled =
+        done.undecided.len() + done.unreadable.len() + done.disowned.len() + done.astray.len();
     let facts = [
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
         ("sent", Fact::Count(done.sent)),
@@ -540,6 +542,7 @@ pub async fn sync_now(
         ("arrived", Fact::Count(done.arrived.len())),
         ("undecided", Fact::Count(done.undecided.len())),
         ("unreadable", Fact::Count(done.unreadable.len())),
+        ("disowned", Fact::Count(done.disowned.len())),
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
@@ -553,7 +556,12 @@ pub async fn sync_now(
     } else if carried > 0 || moved {
         witness::note(channel::SYNC, "a carry finished", &facts);
     }
-    for one in done.unreadable.iter().chain(done.astray.iter()) {
+    for one in done
+        .unreadable
+        .iter()
+        .chain(done.disowned.iter())
+        .chain(done.astray.iter())
+    {
         witness::warn(
             channel::SYNC,
             "a carry could not settle a document",
@@ -576,6 +584,7 @@ pub async fn sync_now(
         },
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
         unreadable: done.unreadable,
+        disowned: done.disowned,
         astray: done.astray,
         joined: done.joined,
     })
@@ -587,6 +596,7 @@ pub struct Settled {
     carried: &'static str,
     undecided: Vec<String>,
     unreadable: Vec<String>,
+    disowned: Vec<String>,
     astray: Vec<String>,
     joined: Vec<String>,
 }

@@ -2587,3 +2587,99 @@ fn doctor_names_the_keys_that_were_set_aside() {
     );
     assert!(out.contains('1'), "{out}");
 }
+
+#[test]
+fn a_machine_that_joined_before_keys_existed_publishes_one_on_its_next_sync() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let cli = Cli::new();
+    cli.ok(&["config", "set", "remote", &met]);
+    cli.ok(&["buy bread"]);
+    cli.ok(&["sync"]);
+
+    let mine = std::fs::read_dir(cli.store())
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.path())
+        .find(|at| at.is_dir() && at.join("active.tisty").is_file())
+        .expect("a history of our own");
+    let at = mine.join("active.tisty");
+    let older: Vec<String> = std::fs::read_to_string(&at)
+        .unwrap()
+        .lines()
+        .filter_map(|line| {
+            let mut event: tisty_core::Event = serde_json::from_str(line).unwrap();
+            event.op = match event.op {
+                tisty_core::Op::DeviceKey { .. } => return None,
+                tisty_core::Op::DeviceJoin { d, k, .. } => {
+                    tisty_core::Op::DeviceJoin { d, k, p: None }
+                }
+                held => held,
+            };
+            Some(serde_json::to_string(&event).unwrap())
+        })
+        .collect();
+    std::fs::write(
+        &at,
+        format!(
+            "{}
+",
+            older.join(
+                "
+"
+            )
+        ),
+    )
+    .unwrap();
+    assert!(
+        !std::fs::read_to_string(&at).unwrap().contains("\"p\":"),
+        "the log still carries a key, so this proves nothing"
+    );
+
+    cli.ok(&["sync"]);
+
+    let after = std::fs::read_to_string(&at).unwrap();
+    assert!(
+        after.contains("device.key"),
+        "a machine seated before keys existed never published one:
+{after}"
+    );
+}
+
+#[test]
+fn what_a_machine_writes_from_the_command_line_it_signs() {
+    let cli = Cli::new();
+    cli.ok(&["buy bread"]);
+
+    let mine = std::fs::read_dir(cli.store())
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.path())
+        .find(|at| at.is_dir() && at.join("active.tisty").is_file())
+        .expect("a history of our own");
+
+    let said = std::fs::read_to_string(mine.join("active.sig"))
+        .expect("a machine wrote a task and nothing here answers for it");
+    let whole = std::fs::read(mine.join("active.tisty")).unwrap();
+    let device = mine.file_name().unwrap().to_str().unwrap().to_string();
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let key = tisty_core::signing::mine(&paths, &tisty_core::DeviceId(device.clone()))
+        .expect("the key it signed with");
+
+    let held = tisty_core::signing::holds(
+        &key.verifying_key(),
+        &tisty_core::signing::About {
+            device: &device,
+            segment: "active.tisty",
+        },
+        &said,
+    )
+    .expect("what it wrote does not answer to the key it keeps");
+
+    assert_eq!(held.at, whole.len() as u64);
+    assert_eq!(
+        held.tip,
+        tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &whole)
+    );
+}

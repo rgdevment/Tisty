@@ -66,6 +66,7 @@ import {
   type Wired,
   wakeFor,
   waking,
+  whatWentAmiss,
   wireAgent,
 } from "../core";
 import { decideAll } from "../deciding";
@@ -322,10 +323,9 @@ export default function Keeping({
         return "declined";
       }
       const shut = await decideAll(answer.undecided);
-      if (answer.astray?.length) {
-        setTrouble({ card: "sync", text: t("someDocsAstray") });
-      } else if (answer.unreadable?.length) {
-        setTrouble({ card: "sync", text: t("someoneUnreadable") });
+      const amiss = whatWentAmiss(answer);
+      if (amiss) {
+        setTrouble({ card: "sync", text: t(amiss) });
       } else if (shut.length) {
         setTrouble({ card: "sync", text: fill("someLockedAtOdds", await namedDocs(shut)) });
       } else if (answer.joined?.length) {

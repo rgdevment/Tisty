@@ -381,6 +381,7 @@ impl State {
                 }
             }
             Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
+            Op::DeviceKey { d, p } => self.key_published(event, d, p),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of } => {
                 if (event.device == *d || event.device == *of)

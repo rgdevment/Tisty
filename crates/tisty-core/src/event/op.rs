@@ -75,6 +75,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.join",
     "device.remove",
     "device.host",
+    "device.key",
     "person.signed",
     "attach.kept",
     "attach.let_go",
@@ -201,6 +202,10 @@ pub enum Op {
     /// said nothing about where. Optional, so a build that predates it skips it.
     #[serde(rename = "device.host")]
     DeviceHost { d: DeviceId, of: DeviceId },
+    /// Said apart from the join, which every machine in a log took before keys travelled with it
+    /// and which a second one would read as a machine seating itself again.
+    #[serde(rename = "device.key")]
+    DeviceKey { d: DeviceId, p: String },
 
     #[serde(rename = "person.signed")]
     Signed { d: Signature },
@@ -261,6 +266,7 @@ impl Op {
                 | Op::Signed { .. }
                 | Op::DocSigned { .. }
                 | Op::DeviceHost { .. }
+                | Op::DeviceKey { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,
@@ -280,6 +286,7 @@ impl Op {
                 | Op::DocSaid { .. }
                 | Op::Signed { .. }
                 | Op::DeviceHost { .. }
+                | Op::DeviceKey { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
         )
@@ -333,6 +340,7 @@ impl Op {
             Op::DocUnlock { .. } => Op::DocUnlock { id },
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
+            | Op::DeviceKey { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
@@ -466,6 +474,7 @@ impl Op {
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
+            | Op::DeviceKey { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }

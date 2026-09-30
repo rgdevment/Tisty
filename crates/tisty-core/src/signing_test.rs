@@ -158,14 +158,17 @@ fn what_a_machine_signed_it_can_answer_for_and_nobody_else_can() {
     let (_room, paths) = room();
     let ours = mine(&paths, &DeviceId("dev_a".into())).unwrap();
     let other = mine(&paths, &DeviceId("dev_b".into())).unwrap();
-    let tip = tip_of(NOTHING_BEFORE, b"what it wrote\n");
+    let reach = Covers {
+        tip: tip_of(NOTHING_BEFORE, b"what it wrote\n"),
+        at: 14,
+    };
     let one = about("dev_a", "active.tisty");
 
-    let said = signed(&ours, &one, &tip);
+    let said = signed(&ours, &one, &reach);
 
     assert_eq!(
         holds(&ours.verifying_key(), &one, &said),
-        Some(tip),
+        Some(reach),
         "it could not answer for its own signature"
     );
     assert!(
@@ -179,9 +182,12 @@ fn a_signature_only_answers_for_the_segment_and_the_machine_it_was_made_for() {
     let (_room, paths) = room();
     let key = mine(&paths, &DeviceId("dev_a".into())).unwrap();
     let by = key.verifying_key();
-    let tip = tip_of(NOTHING_BEFORE, b"what it wrote\n");
+    let reach = Covers {
+        tip: tip_of(NOTHING_BEFORE, b"what it wrote\n"),
+        at: 14,
+    };
 
-    let said = signed(&key, &about("dev_a", "000004.tisty"), &tip);
+    let said = signed(&key, &about("dev_a", "000004.tisty"), &reach);
 
     assert!(
         holds(&by, &about("dev_a", "000005.tisty"), &said).is_none(),
@@ -200,7 +206,11 @@ fn a_signature_over_something_else_is_turned_away() {
     let key = mine(&paths, &DeviceId("dev_a".into())).unwrap();
     let by = key.verifying_key();
     let one = about("dev_a", "active.tisty");
-    let said = signed(&key, &one, &tip_of(NOTHING_BEFORE, b"what it wrote\n"));
+    let reach = Covers {
+        tip: tip_of(NOTHING_BEFORE, b"what it wrote\n"),
+        at: 14,
+    };
+    let said = signed(&key, &one, &reach);
 
     let swapped = said.replace(
         &hexed(&tip_of(NOTHING_BEFORE, b"what it wrote\n")),
