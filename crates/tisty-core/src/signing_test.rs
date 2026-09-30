@@ -98,3 +98,79 @@ fn what_was_kept_as_a_key_and_is_not_one_is_not_read_as_one() {
         "it made a key over what somebody kept there"
     );
 }
+
+#[test]
+fn the_tip_moves_with_every_line_and_with_what_came_before() {
+    let one = tip_of(NOTHING_BEFORE, b"first\n");
+    let two = tip_of(NOTHING_BEFORE, b"first\nsecond\n");
+    let onward = tip_of(one, b"second\n");
+
+    assert_ne!(one, two, "a second line left the tip where it was");
+    assert_eq!(
+        two, onward,
+        "a segment does not carry on from the one before"
+    );
+    assert_ne!(
+        tip_of([1u8; 32], b"first\n"),
+        one,
+        "what came before did not reach the tip"
+    );
+}
+
+#[test]
+fn a_line_changed_anywhere_moves_the_tip() {
+    let said = tip_of(NOTHING_BEFORE, b"one\ntwo\nthree\n");
+
+    assert_ne!(
+        said,
+        tip_of(NOTHING_BEFORE, b"one\ntwo!\nthree\n"),
+        "middle"
+    );
+    assert_ne!(said, tip_of(NOTHING_BEFORE, b"one\ntwo\n"), "cut short");
+    assert_ne!(
+        said,
+        tip_of(NOTHING_BEFORE, b"two\none\nthree\n"),
+        "reordered"
+    );
+}
+
+#[test]
+fn what_a_machine_sealed_it_can_answer_for_and_nobody_else_can() {
+    let (_room, paths) = room();
+    let ours = mine(&paths, &DeviceId("dev_a".into())).unwrap();
+    let other = mine(&paths, &DeviceId("dev_b".into())).unwrap();
+    let tip = tip_of(NOTHING_BEFORE, b"what it wrote\n");
+
+    let said = sealed(&ours, &tip);
+
+    assert_eq!(
+        holds(&ours.verifying_key(), &said),
+        Some(tip),
+        "it could not answer for its own seal"
+    );
+    assert!(
+        holds(&other.verifying_key(), &said).is_none(),
+        "another machine's key answered for it"
+    );
+}
+
+#[test]
+fn a_seal_over_something_else_is_turned_away() {
+    let (_room, paths) = room();
+    let key = mine(&paths, &DeviceId("dev_a".into())).unwrap();
+    let by = key.verifying_key();
+    let said = sealed(&key, &tip_of(NOTHING_BEFORE, b"what it wrote\n"));
+
+    let swapped = said.replace(
+        &hexed(&tip_of(NOTHING_BEFORE, b"what it wrote\n")),
+        &hexed(&tip_of(NOTHING_BEFORE, b"what it did not\n")),
+    );
+
+    assert!(
+        holds(&by, &swapped).is_none(),
+        "a tip was swapped under a seal and it still answered"
+    );
+    assert!(holds(&by, "").is_none());
+    assert!(holds(&by, "{}").is_none());
+    assert!(holds(&by, r#"{"tip":"ab","sig":"cd"}"#).is_none());
+}

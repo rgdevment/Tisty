@@ -69,6 +69,54 @@ pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
     }
 }
 
+pub const NOTHING_BEFORE: [u8; 32] = [0u8; 32];
+
+pub fn tip_of(before: [u8; 32], said: &[u8]) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    let mut tip = before;
+    for line in said.split_inclusive(|one| *one == b'\n') {
+        let mut over = Sha256::new();
+        over.update(tip);
+        over.update(line);
+        tip = over.finalize().into();
+    }
+    tip
+}
+
+pub fn sealed(key: &SigningKey, tip: &[u8; 32]) -> String {
+    use ed25519_dalek::Signer;
+    let said = Said {
+        tip: hexed(tip),
+        sig: hexed(&key.sign(tip).to_bytes()),
+    };
+    serde_json::to_string(&said).unwrap_or_default()
+}
+
+pub fn holds(by: &VerifyingKey, said: &str) -> Option<[u8; 32]> {
+    use ed25519_dalek::Verifier;
+    let said: Said = serde_json::from_str(said).ok()?;
+    let tip = unhexed(&said.tip)?;
+    let sig = ed25519_dalek::Signature::from_slice(&unhexed_long(&said.sig)?).ok()?;
+    by.verify(&tip, &sig).ok().map(|()| tip)
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Said {
+    tip: String,
+    sig: String,
+}
+
+fn unhexed_long(said: &str) -> Option<[u8; 64]> {
+    if said.len() != 128 || !said.chars().all(|one| one.is_ascii_hexdigit()) {
+        return None;
+    }
+    let mut out = [0u8; 64];
+    for (at, one) in out.iter_mut().enumerate() {
+        *one = u8::from_str_radix(said.get(at * 2..at * 2 + 2)?, 16).ok()?;
+    }
+    Some(out)
+}
+
 fn hexed(bytes: &[u8]) -> String {
     bytes.iter().map(|one| format!("{one:02x}")).collect()
 }
