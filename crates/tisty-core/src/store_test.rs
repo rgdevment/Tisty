@@ -1360,3 +1360,29 @@ fn a_machine_with_no_key_seals_nothing_rather_than_sealing_badly() {
         "it wrote a seal with no key to make one"
     );
 }
+
+#[test]
+fn a_machine_with_no_key_leaves_no_seal_behind_when_it_rotates() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
+    store.append(a_task("chase the invoice")).unwrap();
+    assert!(
+        dir.join("active.sig").is_file(),
+        "it sealed nothing to begin with"
+    );
+
+    let mut keyless = Store::open(dir.parent().unwrap(), DeviceId("dev_a".into()))
+        .unwrap()
+        .signing_with(None);
+    keyless.rotate().unwrap();
+    keyless.append(a_task("and the other one")).unwrap();
+
+    assert!(
+        !dir.join("active.sig").exists(),
+        "the seal of the segment that was rotated away is still beside the new one"
+    );
+    assert!(
+        !dir.join("000001.sig").exists(),
+        "a machine with no key sealed the segment it rotated"
+    );
+}

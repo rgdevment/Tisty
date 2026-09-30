@@ -19,7 +19,7 @@ pub fn shown(key: &SigningKey) -> String {
 }
 
 pub fn read(said: &str) -> Option<VerifyingKey> {
-    let bytes = unhexed(said)?;
+    let bytes = unhexed::<32>(said)?;
     VerifyingKey::from_bytes(&bytes).ok()
 }
 
@@ -128,8 +128,8 @@ pub fn sealed(key: &SigningKey, about: &About, tip: &[u8; 32]) -> String {
 pub fn holds(by: &VerifyingKey, about: &About, said: &str) -> Option<[u8; 32]> {
     use ed25519_dalek::Verifier;
     let said: Said = serde_json::from_str(said).ok()?;
-    let tip = unhexed(&said.tip)?;
-    let sig = ed25519_dalek::Signature::from_slice(&unhexed_long(&said.sig)?).ok()?;
+    let tip = unhexed::<32>(&said.tip)?;
+    let sig = ed25519_dalek::Signature::from_slice(&unhexed::<64>(&said.sig)?).ok()?;
     by.verify(&over(about, &tip), &sig).ok().map(|()| tip)
 }
 
@@ -139,26 +139,15 @@ struct Said {
     sig: String,
 }
 
-fn unhexed_long(said: &str) -> Option<[u8; 64]> {
-    if said.len() != 128 || !said.chars().all(|one| one.is_ascii_hexdigit()) {
-        return None;
-    }
-    let mut out = [0u8; 64];
-    for (at, one) in out.iter_mut().enumerate() {
-        *one = u8::from_str_radix(said.get(at * 2..at * 2 + 2)?, 16).ok()?;
-    }
-    Some(out)
-}
-
 fn hexed(bytes: &[u8]) -> String {
     bytes.iter().map(|one| format!("{one:02x}")).collect()
 }
 
-fn unhexed(said: &str) -> Option<[u8; 32]> {
-    if said.len() != 64 || !said.chars().all(|one| one.is_ascii_hexdigit()) {
+fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {
+    if said.len() != N * 2 || !said.chars().all(|one| one.is_ascii_hexdigit()) {
         return None;
     }
-    let mut out = [0u8; 32];
+    let mut out = [0u8; N];
     for (at, one) in out.iter_mut().enumerate() {
         *one = u8::from_str_radix(said.get(at * 2..at * 2 + 2)?, 16).ok()?;
     }
