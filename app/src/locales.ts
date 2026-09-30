@@ -853,6 +853,10 @@ const en = {
     "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
+  syncShape:
+    "Nothing was synced, in either direction. The shared folder is arranged in a way this Tisty does not know, so a newer one has been there. Update this machine and try once more — writing into it now could undo what it left.",
+  syncUnshaped:
+    "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the machine that last wrote there.",
   syncNewer:
     "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this machine. Update it and try once more.",
   storeNewer:
@@ -2221,6 +2225,10 @@ const es: Catalog = {
     "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",
   syncRefused:
     "El sistema negó el acceso a la carpeta de sincronización. En macOS, una carpeta dentro de Documentos, Escritorio o Descargas necesita tu permiso: Ajustes del Sistema → Privacidad y seguridad → Archivos y carpetas.",
+  syncShape:
+    "No se sincronizó nada, en ningún sentido. La carpeta compartida está dispuesta de una forma que este Tisty no conoce, así que ha pasado por ahí uno más nuevo. Actualiza este equipo y vuelve a intentarlo: escribir ahí ahora podría deshacer lo que dejó.",
+  syncUnshaped:
+    "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
   syncNewer:
     "No se sincronizó nada, en ningún sentido. «{name}» escribe con un Tisty más nuevo que este, así que lo que escribas aquí se queda aquí hasta que actualices este equipo. Actualízalo y vuelve a intentarlo.",
   storeNewer:

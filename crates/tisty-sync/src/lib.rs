@@ -3,6 +3,7 @@ mod held;
 mod papers;
 mod place;
 mod segments;
+mod shape;
 
 pub use held::let_go_telling;
 use held::{copy_held, left_behind, let_go_of};
@@ -34,6 +35,8 @@ pub enum Trouble {
     SameName(String),
     Emptied(String),
     Newer(String),
+    Shape(String),
+    Unshaped(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,6 +124,7 @@ pub fn carry_telling(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
+    shape::before_reading(data, dest)?;
     let store = data.join(STORE);
     let again = matches!(way, Way::Again);
     let ours = settled(&store, dest, carried_here(aside, dest) && !again)?;
@@ -168,6 +172,9 @@ pub fn carry_telling(
             &[],
         );
         moved.astray = alive;
+        if giving {
+            shape::stamp(data, dest);
+        }
         return Ok(moved);
     };
     let shut: Vec<String> = told
@@ -240,6 +247,10 @@ pub fn carry_telling(
             Some(&mut moved.took_in),
             &told.kept,
         )?;
+    }
+    // Last of all, so finding it is finding a round that got to the end.
+    if giving {
+        shape::stamp(data, dest);
     }
     note_carried(aside, dest);
     Ok(moved)

@@ -185,6 +185,8 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::NotAllowed(who) => lang.fill("not-allowed", &[("id", who)]),
         carrier::Trouble::SameName(who) => lang.fill("same-name", &[("id", who)]),
         carrier::Trouble::Emptied(at) => lang.fill("emptied-place", &[("at", at)]),
+        carrier::Trouble::Shape(at) => lang.fill("sync-shape", &[("at", at)]),
+        carrier::Trouble::Unshaped(at) => lang.fill("sync-unshaped", &[("at", at)]),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)
