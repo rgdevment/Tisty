@@ -6485,3 +6485,60 @@ fn a_meeting_place_arranged_by_a_build_that_knows_more_stops_the_round() {
         "it wrote into a folder it does not understand: {stopped:?}"
     );
 }
+
+#[test]
+fn a_history_changed_under_its_signature_never_becomes_state_on_the_next_machine() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    held.append(Op::DeviceJoin {
+        d: who.clone(),
+        k: Some(tisty_core::DeviceKind::Machine),
+        p: tisty_core::signing::mine(&paths, &who)
+            .as_ref()
+            .map(tisty_core::signing::shown),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(
+        two.store.join(&one.device).join("active.tisty").is_file(),
+        "the first round brought nothing, so the second proves nothing"
+    );
+
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let whole = std::fs::read_to_string(theirs.join("active.tisty")).unwrap();
+    std::fs::write(
+        theirs.join("active.tisty"),
+        whole.replace("chase the invoice", "chase the invoicf"),
+    )
+    .unwrap();
+
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.disowned,
+        vec![one.device.clone()],
+        "a history changed under its own signature was not called out"
+    );
+    assert!(
+        !std::fs::read_to_string(two.store.join(&one.device).join("active.tisty"))
+            .unwrap()
+            .contains("invoicf"),
+        "what does not answer for itself became state anyway"
+    );
+}

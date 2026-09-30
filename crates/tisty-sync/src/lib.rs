@@ -4,6 +4,7 @@ mod papers;
 mod place;
 mod segments;
 mod shape;
+mod verified;
 
 pub use held::let_go_telling;
 use held::{copy_held, left_behind, let_go_of};
@@ -60,6 +61,8 @@ pub struct Moved {
     pub freed: u64,
     pub undecided: Vec<Undecided>,
     pub unreadable: Vec<String>,
+    /// Machines whose history carries a signature that does not answer to the key they published.
+    pub disowned: Vec<String>,
     pub astray: Vec<String>,
     pub joined: Vec<String>,
     pub arrived: Vec<String>,
@@ -136,7 +139,7 @@ pub fn carry_telling(
     let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        moved.brought = bring(&store, device, dest, &mut moved.unreadable, &mut alike)?;
+        moved.brought = bring(data, &store, device, dest, &mut moved, &mut alike)?;
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);
@@ -543,14 +546,74 @@ fn seats(store: &Path) -> std::collections::BTreeSet<tisty_core::event::DeviceId
         .collect()
 }
 
+fn anything_signed_in(dir: &Path) -> bool {
+    tisty_core::store::segments_in(dir).is_ok_and(|found| {
+        found
+            .iter()
+            .any(|one| one.with_extension(tisty_core::signing::SIG).is_file())
+    })
+}
+
+/// Checked before any of it is taken in, and only from where the last round left off.
+fn answers_for_itself(
+    data: &Path,
+    store: &Path,
+    theirs: &Path,
+    named: &str,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> bool {
+    if !anything_signed_in(theirs) {
+        return true;
+    }
+    // Only what we held before the round: a key arriving beside the history it answers for would
+    // let an impostor bring its own word for what it signs with.
+    let told = knew.get_or_insert_with(|| {
+        tisty_core::store::ledger(store).unwrap_or_else(|e| {
+            witness::warn(
+                channel::SYNC,
+                "this machine's own log would not say what the others sign with, so nothing arriving was checked",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            Default::default()
+        })
+    });
+    let who = tisty_core::DeviceId(named.to_string());
+    let Some(by) = told
+        .keys
+        .get(&who)
+        .and_then(|said| tisty_core::signing::read(said))
+    else {
+        return true;
+    };
+    match tisty_core::answering::answers(theirs, &who, &by, verified::of(data, named)) {
+        Ok(held) => {
+            verified::keep(data, named, held);
+            true
+        }
+        Err(segment) => {
+            witness::warn(
+                channel::SYNC,
+                "a history in the shared folder does not answer to the key that machine published, so none of it was taken in",
+                &[
+                    ("at", Fact::Id(named.to_string())),
+                    ("segment", Fact::Id(segment)),
+                ],
+            );
+            false
+        }
+    }
+}
+
 fn bring(
+    data: &Path,
     store: &Path,
     device: &str,
     dest: &Path,
-    unreadable: &mut Vec<String>,
+    moved: &mut Moved,
     alike: &mut Alike,
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
+    let mut knew = None;
     let at = dest.join(STORE);
     let entries = match std::fs::read_dir(&at) {
         Ok(entries) => entries,
@@ -601,6 +664,10 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
+        if !answers_for_itself(data, store, &entry.path(), named, &mut knew) {
+            moved.disowned.push(named.to_string());
+            continue;
+        }
         if !alike.settled(named, &entry.path(), &mine, Toward::Home) {
             let coming = match tisty_core::store::check_device(&entry.path())
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
@@ -623,7 +690,7 @@ fn bring(
                             ("why", Fact::Why(why.to_string())),
                         ],
                     );
-                    unreadable.push(named.to_string());
+                    moved.unreadable.push(named.to_string());
                     continue;
                 }
             };

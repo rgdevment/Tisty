@@ -22,6 +22,20 @@ impl Default for Reached {
     }
 }
 
+impl Reached {
+    pub fn said(&self) -> String {
+        format!("{} {}", self.segment, signing::hexed(&self.tip))
+    }
+
+    pub fn read(said: &str) -> Option<Self> {
+        let (segment, tip) = said.split_once(' ')?;
+        Some(Self {
+            segment: segment.parse().ok()?,
+            tip: signing::unhexed::<32>(tip)?,
+        })
+    }
+}
+
 /// Every segment of theirs that carries a signature, recomputed from the bytes that are there
 /// and checked against the key that machine published. One carrying none is not refused: asking
 /// that there be one is a later rule, and every history written before signing has none.

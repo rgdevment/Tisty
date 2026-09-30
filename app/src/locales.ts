@@ -881,6 +881,8 @@ const en = {
     "A document was left out of this sync because it could not be read — usually one past the size a document may weigh. It is still on this machine; it just did not travel.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
+  someoneDisowned:
+    "One machine's history in the shared folder carries a signature that does not answer to the key that machine published, so none of what it holds was taken in. Either something changed those files after they were written, or somebody else wrote them under that name.",
   noBase: "There is nothing to compare against yet, so this one is decided whole",
   cannotWeave: "That document changed while you were deciding — look again",
   movedUnderfoot: "That document changed while you were deciding — look again",
@@ -2253,6 +2255,8 @@ const es: Catalog = {
     "Un documento se quedó fuera de esta sincronización porque no se pudo leer — normalmente uno que pasa del tamaño que puede pesar un documento. Sigue en esta máquina; solo no viajó.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
+  someoneDisowned:
+    "El historial de una máquina en la carpeta compartida trae una firma que no responde a la clave que esa máquina publicó, así que no se tomó nada de lo que tiene. O algo cambió esos archivos después de escribirlos, o los escribió alguien más con ese nombre.",
   noBase: "Todavía no hay con qué comparar, así que este se decide entero",
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
   movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",

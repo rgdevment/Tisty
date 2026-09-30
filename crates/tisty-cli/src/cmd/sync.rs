@@ -164,6 +164,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         (&moved.undecided_ids(), "papers-undecided"),
         (&moved.astray, "papers-astray"),
         (&moved.unreadable, "machines-unreadable"),
+        (&moved.disowned, "machines-disowned"),
     ] {
         if many.is_empty() {
             continue;

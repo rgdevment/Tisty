@@ -126,7 +126,7 @@ struct Said {
     sig: String,
 }
 
-fn hexed(bytes: &[u8]) -> String {
+pub(crate) fn hexed(bytes: &[u8]) -> String {
     use std::fmt::Write;
     bytes
         .iter()
@@ -136,7 +136,7 @@ fn hexed(bytes: &[u8]) -> String {
         })
 }
 
-fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {
+pub(crate) fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {
     if said.len() != N * 2 || !said.chars().all(|one| one.is_ascii_hexdigit()) {
         return None;
     }
