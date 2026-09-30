@@ -266,16 +266,16 @@ fn a_segment_that_arrived_half_written_is_an_error() {
     store.append(add("one more")).unwrap();
 
     let dir = tmp.path().join(&device.0);
-    let sealed = dir.join("000001.tisty");
-    assert_eq!(declared_count(&sealed), Some(4));
+    let closed = dir.join("000001.tisty");
+    assert_eq!(declared_count(&closed), Some(4));
 
-    let kept: String = std::fs::read_to_string(&sealed)
+    let kept: String = std::fs::read_to_string(&closed)
         .unwrap()
         .lines()
         .take(2)
         .collect::<Vec<_>>()
         .join("\n");
-    std::fs::write(&sealed, kept + "\n").unwrap();
+    std::fs::write(&closed, kept + "\n").unwrap();
 
     assert!(matches!(
         read_all(tmp.path()),
@@ -613,7 +613,7 @@ fn an_event_carries_the_zone_of_whoever_wrote_it() {
 }
 
 #[test]
-fn a_skipped_event_still_counts_towards_a_sealed_segment() {
+fn a_skipped_event_still_counts_towards_a_closed_segment() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path().join("dev_a");
     std::fs::create_dir_all(&dir).unwrap();
@@ -638,7 +638,7 @@ fn a_skipped_event_still_counts_towards_a_sealed_segment() {
     assert_eq!(
         read.len(),
         1,
-        "a sealed segment declares lines, so skipping one cannot read as a truncated download"
+        "a closed segment declares lines, so skipping one cannot read as a truncated download"
     );
 }
 
@@ -1243,12 +1243,12 @@ fn a_machine_that_just_rotated_is_still_read_from_the_segment_behind() {
 }
 
 #[test]
-fn the_one_still_being_written_to_is_the_only_segment_that_is_not_sealed() {
-    assert!(is_sealed("000001.tisty"));
-    assert!(is_sealed("0000000001.tisty"));
-    assert!(!is_sealed("active.tisty"));
-    assert!(!is_sealed("notes.txt"));
-    assert!(!is_sealed("00001.count"));
+fn the_one_still_being_written_to_is_the_only_segment_that_is_not_closed() {
+    assert!(is_closed("000001.tisty"));
+    assert!(is_closed("0000000001.tisty"));
+    assert!(!is_closed("active.tisty"));
+    assert!(!is_closed("notes.txt"));
+    assert!(!is_closed("00001.count"));
 }
 
 #[test]
@@ -1305,48 +1305,48 @@ fn a_task(said: &str) -> Op {
 }
 
 #[test]
-fn what_a_machine_writes_it_seals_and_the_seal_answers_for_what_is_there() {
+fn what_a_machine_writes_it_signs_and_the_signature_answers_for_what_is_there() {
     let tmp = tempfile::tempdir().unwrap();
     let (mut store, key, dir) = a_machine_that_signs(tmp.path());
 
     store.append(a_task("chase the invoice")).unwrap();
 
-    let said = std::fs::read_to_string(dir.join("active.sig")).expect("it sealed nothing");
+    let said = std::fs::read_to_string(dir.join("active.sig")).expect("it signed nothing");
     let tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
-        .expect("the seal does not answer");
+        .expect("the signature does not answer");
     assert_eq!(
         tip,
         crate::signing::tip_of(
             crate::signing::NOTHING_BEFORE,
             &std::fs::read(dir.join(ACTIVE)).unwrap()
         ),
-        "the seal is over something other than what is written there"
+        "the signature is over something other than what is written there"
     );
 }
 
 #[test]
-fn a_line_changed_after_the_fact_no_longer_answers_to_the_seal() {
+fn a_line_changed_after_the_fact_no_longer_answers_to_the_signature() {
     let tmp = tempfile::tempdir().unwrap();
     let (mut store, key, dir) = a_machine_that_signs(tmp.path());
     store.append(a_task("chase the invoice")).unwrap();
     let said = std::fs::read_to_string(dir.join("active.sig")).unwrap();
-    let sealed_tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said).unwrap();
+    let signed_tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said).unwrap();
 
     let whole = std::fs::read_to_string(dir.join(ACTIVE)).unwrap();
     std::fs::write(dir.join(ACTIVE), whole.replace("chase", "cease")).unwrap();
 
     assert_ne!(
-        sealed_tip,
+        signed_tip,
         crate::signing::tip_of(
             crate::signing::NOTHING_BEFORE,
             &std::fs::read(dir.join(ACTIVE)).unwrap()
         ),
-        "a word was changed under the seal and the tip did not move"
+        "a word was changed under the signature and the tip did not move"
     );
 }
 
 #[test]
-fn a_machine_with_no_key_seals_nothing_rather_than_sealing_badly() {
+fn a_machine_with_no_key_signs_nothing_rather_than_signing_badly() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path().join("store");
     let mut store = Store::open(&root, DeviceId("dev_a".into()))
@@ -1357,18 +1357,18 @@ fn a_machine_with_no_key_seals_nothing_rather_than_sealing_badly() {
 
     assert!(
         !root.join("dev_a").join("active.sig").exists(),
-        "it wrote a seal with no key to make one"
+        "it wrote a signature with no key to make one"
     );
 }
 
 #[test]
-fn a_machine_with_no_key_leaves_no_seal_behind_when_it_rotates() {
+fn a_machine_with_no_key_leaves_no_signature_behind_when_it_rotates() {
     let tmp = tempfile::tempdir().unwrap();
     let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
     store.append(a_task("chase the invoice")).unwrap();
     assert!(
         dir.join("active.sig").is_file(),
-        "it sealed nothing to begin with"
+        "it signed nothing to begin with"
     );
 
     let mut keyless = Store::open(dir.parent().unwrap(), DeviceId("dev_a".into()))
@@ -1379,16 +1379,16 @@ fn a_machine_with_no_key_leaves_no_seal_behind_when_it_rotates() {
 
     assert!(
         !dir.join("active.sig").exists(),
-        "the seal of the segment that was rotated away is still beside the new one"
+        "the signature of the segment that was rotated away is still beside the new one"
     );
     assert!(
         !dir.join("000001.sig").exists(),
-        "a machine with no key sealed the segment it rotated"
+        "a machine with no key signed the segment it rotated"
     );
 }
 
 #[test]
-fn nothing_to_write_leaves_no_seal_behind() {
+fn nothing_to_write_leaves_no_signature_behind() {
     let tmp = tempfile::tempdir().unwrap();
     let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
 
@@ -1396,7 +1396,7 @@ fn nothing_to_write_leaves_no_seal_behind() {
 
     assert!(
         !dir.join("active.sig").exists(),
-        "a seal was written for a segment that was never started"
+        "a signature was written for a segment that was never started"
     );
     assert!(!dir.join(ACTIVE).exists());
 }

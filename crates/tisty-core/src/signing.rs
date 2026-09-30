@@ -50,13 +50,13 @@ pub fn tip_of(before: [u8; 32], said: &[u8]) -> [u8; 32] {
     tip
 }
 
-pub const SEAL: &str = "sig";
+pub const SIG: &str = "sig";
 
-/// A tip alone says nothing about what it is a tip of, so an old seal would answer for a segment
-/// rolled back to the bytes it covered, or for another segment holding the same lines.
+/// A tip alone says nothing about what it is a tip of, so an old signature would answer for a
+/// segment rolled back to the bytes it covered, or for another segment holding the same lines.
 fn over(about: &About, tip: &[u8; 32]) -> Vec<u8> {
     let mut said =
-        format!("tisty.seal\u{0}{}\u{0}{}\u{0}", about.device, about.segment).into_bytes();
+        format!("tisty.sig\u{0}{}\u{0}{}\u{0}", about.device, about.segment).into_bytes();
     said.extend_from_slice(tip);
     said
 }
@@ -66,7 +66,7 @@ pub struct About<'a> {
     pub segment: &'a str,
 }
 
-pub fn sealed(key: &SigningKey, about: &About, tip: &[u8; 32]) -> String {
+pub fn signed(key: &SigningKey, about: &About, tip: &[u8; 32]) -> String {
     use ed25519_dalek::Signer;
     let said = Said {
         tip: hexed(tip),

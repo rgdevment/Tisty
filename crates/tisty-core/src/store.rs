@@ -91,8 +91,8 @@ impl Store {
         self
     }
 
-    /// A seal found here is only a base for what follows if this machine's own key answers for it:
-    /// `.sig` files arrive with a carry, so one left in our directory is not ours to trust.
+    /// A signature found here is only a base for what follows if this machine's own key answers
+    /// for it: `.sig` files arrive with a carry, so one in our directory is not ours to trust.
     fn tip_now(&self) -> [u8; 32] {
         let Some(key) = &self.signs else {
             return crate::signing::NOTHING_BEFORE;
@@ -105,10 +105,10 @@ impl Store {
             let Some(named) = one.file_name().and_then(|one| one.to_str()) else {
                 continue;
             };
-            if !is_sealed(named) {
+            if !is_closed(named) {
                 continue;
             }
-            if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SEAL))
+            if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
                 && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
             {
                 tip = held;
@@ -130,7 +130,7 @@ impl Store {
         }
     }
 
-    fn seal(&self, at: &Path) {
+    fn sign(&self, at: &Path) {
         let Some(key) = &self.signs else {
             return;
         };
@@ -138,12 +138,12 @@ impl Store {
             return;
         };
         if let Err(e) = write_atomic(
-            &at.with_extension(crate::signing::SEAL),
-            crate::signing::sealed(key, &self.about(named), &self.tip).as_bytes(),
+            &at.with_extension(crate::signing::SIG),
+            crate::signing::signed(key, &self.about(named), &self.tip).as_bytes(),
         ) {
             witness::warn(
                 channel::STORE,
-                "what this machine wrote could not be sealed, so nothing here answers for it",
+                "what this machine wrote could not be signed, so nothing here answers for it",
                 &[
                     ("at", Fact::Path(at.to_path_buf())),
                     ("why", Fact::Why(e.to_string())),
@@ -187,7 +187,7 @@ impl Store {
         self.overtaken = true;
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
-        // their lines and seal a chain nobody can recompute.
+        // their lines and sign a chain nobody can recompute.
         self.tip = self.tip_now();
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
@@ -362,7 +362,7 @@ impl Store {
             at += lot.len();
         }
         if !events.is_empty() {
-            self.seal(&self.dir.join(ACTIVE));
+            self.sign(&self.dir.join(ACTIVE));
         }
         self.seen = active_mark(&self.dir.join(ACTIVE));
         Ok(())
@@ -372,18 +372,18 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
-            let sealed = self.dir.join(format!("{next:06}.tisty"));
-            // Sealed before the rename, never after: a death in between would leave a segment
-            // nothing ever seals, and no later pass goes back for it.
-            self.seal(&sealed);
-            std::fs::rename(&active, &sealed)?;
+            let closed = self.dir.join(format!("{next:06}.tisty"));
+            // Signed before the rename, never after: a death in between would leave a segment
+            // nothing ever signs, and no later pass goes back for it.
+            self.sign(&closed);
+            std::fs::rename(&active, &closed)?;
 
-            let (lines, _, _) = tail_of(&sealed)?;
+            let (lines, _, _) = tail_of(&closed)?;
             write_atomic(
-                &sealed.with_extension("count"),
+                &closed.with_extension("count"),
                 lines.to_string().as_bytes(),
             )?;
-            let _ = std::fs::remove_file(active.with_extension(crate::signing::SEAL));
+            let _ = std::fs::remove_file(active.with_extension(crate::signing::SIG));
         }
         self.active_events = 0;
         self.seen = Mark::default();
@@ -519,7 +519,7 @@ pub fn is_segment(name: &str) -> bool {
         })
 }
 
-pub fn is_sealed(name: &str) -> bool {
+pub fn is_closed(name: &str) -> bool {
     is_segment(name) && name != ACTIVE
 }
 
@@ -664,7 +664,7 @@ struct Stamped {
     op: String,
 }
 
-/// A sealed segment declares lines, not events, so a skipped one must still be counted or the
+/// A closed segment declares lines, not events, so a skipped one must still be counted or the
 /// count check reads it as a truncated download.
 fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<usize> {
     read_segment_from(path, 0, out)
@@ -835,7 +835,7 @@ pub fn alone(device_dir: &Path) -> Option<Alone> {
 /// A line is written whole or not at all, so one that will not parse at the very end of the
 /// segment still being written is the half of an event a power cut took. It is set aside rather
 /// than read, because refusing it would take every whole event before it down as well. Only ever
-/// the last line, only ever this machine's own active segment: a sealed one has its count to
+/// the last line, only ever this machine's own active segment: a closed one has its count to
 /// answer for, and another machine's history is not ours to mend.
 fn mend(dir: &Path) {
     // Behind the same lock every writer takes: mending renames a fresh file over the old one, so
@@ -887,7 +887,7 @@ fn mend(dir: &Path) {
     {
         let mut kept = whole.clone();
         kept.push(b'\n');
-        let _ = std::fs::remove_file(path.with_extension(crate::signing::SEAL));
+        let _ = std::fs::remove_file(path.with_extension(crate::signing::SIG));
         if let Err(why) = write_atomic(path, &kept) {
             witness::warn(
                 channel::STORE,
@@ -918,7 +918,7 @@ fn mend(dir: &Path) {
         Some(at) => &whole[..=at],
         None => &[],
     };
-    let _ = std::fs::remove_file(path.with_extension(crate::signing::SEAL));
+    let _ = std::fs::remove_file(path.with_extension(crate::signing::SIG));
     if let Err(why) = write_atomic(path, kept) {
         witness::warn(
             channel::STORE,

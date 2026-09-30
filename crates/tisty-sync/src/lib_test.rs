@@ -461,9 +461,9 @@ fn rotated(who: &Machine) {
     let at = who.store.join(&who.device);
     let whole = std::fs::read_to_string(at.join("active.tisty")).unwrap();
     let lines: Vec<&str> = whole.lines().collect();
-    let (sealed, tail) = lines.split_at(lines.len() - 1);
-    std::fs::write(at.join("000001.tisty"), format!("{}\n", sealed.join("\n"))).unwrap();
-    std::fs::write(at.join("000001.count"), sealed.len().to_string()).unwrap();
+    let (closed, tail) = lines.split_at(lines.len() - 1);
+    std::fs::write(at.join("000001.tisty"), format!("{}\n", closed.join("\n"))).unwrap();
+    std::fs::write(at.join("000001.count"), closed.len().to_string()).unwrap();
     std::fs::write(at.join("active.tisty"), format!("{}\n", tail.join("\n"))).unwrap();
 }
 
@@ -3750,7 +3750,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
     carry(&three.data, &three.device, shared.path(), Way::Both, &[]).unwrap();
 
     let theirs = shared.path().join(STORE).join(&three.device);
-    let sealed = theirs.join("000001.tisty");
+    let closed = theirs.join("000001.tisty");
     let whole = std::fs::read_to_string(theirs.join("active.tisty")).unwrap();
     std::fs::remove_file(theirs.join("active.tisty")).unwrap();
     std::fs::write(
@@ -3759,7 +3759,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
     )
     .unwrap();
     let cut: Vec<&str> = whole.lines().take(4).collect();
-    std::fs::write(&sealed, format!("{}\n", cut.join("\n"))).unwrap();
+    std::fs::write(&closed, format!("{}\n", cut.join("\n"))).unwrap();
     assert_eq!(tisty_core::store::distinct_in(&theirs).unwrap(), 4);
     assert!(
         tisty_core::store::check_device(&theirs).is_err(),
@@ -3775,7 +3775,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
         was,
         "a history nobody can read whole was written into anyway"
     );
-    assert!(sealed.is_file());
+    assert!(closed.is_file());
 }
 
 #[test]
@@ -6299,7 +6299,7 @@ fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
 }
 
 #[test]
-fn a_seal_travels_with_the_segment_it_answers_for() {
+fn a_signature_travels_with_the_segment_it_answers_for() {
     let one = machine("dev_a");
     let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
     let who = DeviceId(one.device.clone());
@@ -6319,7 +6319,7 @@ fn a_seal_travels_with_the_segment_it_answers_for() {
 
     let there = shared.path().join("store").join(&one.device);
     let said = std::fs::read_to_string(there.join("active.sig"))
-        .expect("the seal stayed behind, so nothing over there can answer for the segment");
+        .expect("the signature stayed behind, so nothing over there can answer for the segment");
     let tip = tisty_core::signing::holds(
         &key.verifying_key(),
         &tisty_core::signing::About {
@@ -6335,15 +6335,15 @@ fn a_seal_travels_with_the_segment_it_answers_for() {
             tisty_core::signing::NOTHING_BEFORE,
             &std::fs::read(there.join("active.tisty")).unwrap()
         ),
-        "what arrived is not what the seal was made over"
+        "what arrived is not what the signature was made over"
     );
 }
 
-fn a_segment_with_its_siblings(dir: &std::path::Path, count: &str, seal: &str) {
+fn a_segment_with_its_siblings(dir: &std::path::Path, count: &str, sig: &str) {
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join("000001.tisty"), b"one line").unwrap();
     std::fs::write(dir.join("000001.count"), count.as_bytes()).unwrap();
-    std::fs::write(dir.join("000001.sig"), seal.as_bytes()).unwrap();
+    std::fs::write(dir.join("000001.sig"), sig.as_bytes()).unwrap();
 }
 
 #[test]
@@ -6351,8 +6351,8 @@ fn a_source_caught_without_a_count_does_not_take_the_one_already_there() {
     let room = tempfile::tempdir().unwrap();
     let from = room.path().join("from");
     let into = room.path().join("into");
-    a_segment_with_its_siblings(&from, "1", "a seal");
-    a_segment_with_its_siblings(&into, "1", "a seal");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
     std::fs::remove_file(from.join("000001.count")).unwrap();
 
     crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
@@ -6364,37 +6364,40 @@ fn a_source_caught_without_a_count_does_not_take_the_one_already_there() {
 }
 
 #[test]
-fn a_source_that_let_go_of_a_seal_takes_the_far_one_with_it() {
+fn a_source_that_let_go_of_a_signature_takes_the_far_one_with_it() {
     let room = tempfile::tempdir().unwrap();
     let from = room.path().join("from");
     let into = room.path().join("into");
-    a_segment_with_its_siblings(&from, "1", "a seal");
-    a_segment_with_its_siblings(&into, "1", "a seal");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
     std::fs::remove_file(from.join("000001.sig")).unwrap();
 
     crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
 
     assert!(
         !into.join("000001.sig").exists(),
-        "a seal nobody answers for any more was left standing"
+        "a signature nobody answers for any more was left standing"
     );
 }
 
 #[test]
-fn a_carry_that_moved_only_a_seal_is_not_reported_as_nothing() {
+fn a_carry_that_moved_only_a_signature_is_not_reported_as_nothing() {
     let room = tempfile::tempdir().unwrap();
     let from = room.path().join("from");
     let into = room.path().join("into");
-    a_segment_with_its_siblings(&from, "1", "a newer seal");
-    a_segment_with_its_siblings(&into, "1", "a seal");
+    a_segment_with_its_siblings(&from, "1", "a newer signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
 
     let (done, beside) =
         crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
 
     assert_eq!(
         std::fs::read_to_string(into.join("000001.sig")).unwrap(),
-        "a newer seal"
+        "a newer signature"
     );
-    assert_eq!(done, 0, "a seal was counted as a segment brought home");
-    assert!(beside > 0, "a seal moved and the round called it a no-op");
+    assert_eq!(done, 0, "a signature was counted as a segment brought home");
+    assert!(
+        beside > 0,
+        "a signature moved and the round called it a no-op"
+    );
 }

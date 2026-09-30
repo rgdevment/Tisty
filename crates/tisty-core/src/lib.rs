@@ -90,7 +90,7 @@ pub enum Error {
         line: usize,
         source: serde_json::Error,
     },
-    #[error("{file} holds {found} events, not what it was sealed with: it arrived incomplete")]
+    #[error("{file} holds {found} events, not what it was closed with: it arrived incomplete")]
     TruncatedSegment {
         file: String,
         found: usize,

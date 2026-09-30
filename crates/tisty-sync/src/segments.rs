@@ -115,16 +115,16 @@ pub(crate) fn copy_segments(
             continue;
         };
         let target = into.join(named);
-        let sealed = named.to_str().is_some_and(tisty_core::store::is_sealed);
-        let stands = !again && ((sealed && known.contains(named)) || same(&at, &target));
+        let closed = named.to_str().is_some_and(tisty_core::store::is_closed);
+        let stands = !again && ((closed && known.contains(named)) || same(&at, &target));
         if !stands {
             copy_onto(&at, &target)?;
             done += 1;
         }
 
-        // After the segment, never before: a seal copied first would answer for fewer bytes than
-        // the segment that lands beside it, and read as a segment somebody tampered with.
-        for kind in ["count", tisty_core::signing::SEAL] {
+        // After the segment, never before: a signature copied first would answer for fewer bytes
+        // than the segment beside it, and read as a segment somebody tampered with.
+        for kind in ["count", tisty_core::signing::SIG] {
             let beside = at.with_extension(kind);
             let there = target.with_extension(kind);
             match beside.is_file() {
@@ -134,8 +134,8 @@ pub(crate) fn copy_segments(
                 }
                 true => {}
                 // A count answers for a segment that no longer changes, so the one already there
-                // stays true; a seal that went from the source answers for bytes that moved.
-                false if kind == tisty_core::signing::SEAL => {
+                // stays true; a signature that went from the source answers for bytes that moved.
+                false if kind == tisty_core::signing::SIG => {
                     beside_it += usize::from(std::fs::remove_file(&there).is_ok());
                 }
                 false => {}

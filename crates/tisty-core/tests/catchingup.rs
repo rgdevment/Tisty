@@ -171,13 +171,13 @@ fn catching_up_does_not_read_the_whole_log_again() {
     drop(outside);
     drop(store);
 
-    let mut sealed: Vec<std::path::PathBuf> = std::fs::read_dir(store_root.join("dev_a"))
+    let mut closed: Vec<std::path::PathBuf> = std::fs::read_dir(store_root.join("dev_a"))
         .unwrap()
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().is_some_and(|e| e == "tisty"))
         .collect();
-    sealed.sort();
-    let first = sealed.first().unwrap().clone();
+    closed.sort();
+    let first = closed.first().unwrap().clone();
     // Same length, so the only thing the fingerprint sees changed is the file that grew.
     let mut said = std::fs::read(&first).unwrap();
     said[..42].copy_from_slice(b"{ not an event at all, not one bit of it }");
