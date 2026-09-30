@@ -57,7 +57,9 @@ impl Cache {
                  DROP TABLE IF EXISTS folder;
                  DROP TABLE IF EXISTS doc;
                  DROP TABLE IF EXISTS tombstone;
-                 DROP TABLE IF EXISTS paper;",
+                 DROP TABLE IF EXISTS paper;
+                 DROP TABLE IF EXISTS kept;
+                 DROP TABLE IF EXISTS holder;",
             )
         {
             witness::warn(
@@ -799,6 +801,8 @@ fn reached(
                 | crate::Op::DeviceJoin { .. }
                 | crate::Op::DeviceHost { .. }
                 | crate::Op::DeviceRemove { .. }
+                | crate::Op::AttachKept { .. }
+                | crate::Op::AttachLetGo { .. }
                 | crate::Op::AttachRetire { .. }
                 | crate::Op::Signed { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.

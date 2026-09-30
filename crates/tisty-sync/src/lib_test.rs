@@ -3068,7 +3068,6 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
-        &Default::default(),
     )
     .unwrap();
     assert!(!one.data.join(&heavy).exists(), "it went up and let go");
@@ -3082,7 +3081,6 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
-        &Default::default(),
     )
     .unwrap();
 
@@ -3291,6 +3289,33 @@ fn a_body_that_contradicts_what_the_log_says_it_holds_is_not_taken_in() {
 }
 
 #[test]
+fn a_machine_that_takes_a_body_in_is_told_what_it_now_holds() {
+    let one = machine("dev_a");
+    let body = b"lo grabado";
+    let heavy = planted(&one.data, "charla.mp4", body);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = machine("dev_b");
+    stitch(&two.data, &two.device, shared.path()).unwrap();
+    let moved = carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    assert!(
+        two.data.join(&heavy).is_file(),
+        "the body never reached the second machine"
+    );
+    assert_eq!(
+        moved.took_in,
+        vec![(
+            heavy.clone(),
+            tisty_core::attach::printed(body),
+            body.len() as u64
+        )],
+        "the round said nothing about what this machine now holds"
+    );
+}
+
+#[test]
 fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
     let one = machine("dev_a");
     let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
@@ -3322,7 +3347,6 @@ fn a_round_on_a_machine_that_shares_them_does_not_bring_the_big_ones_home() {
         Way::Both,
         &[],
         Holds::Shared,
-        &Default::default(),
     )
     .unwrap();
 
@@ -3351,7 +3375,6 @@ fn a_round_lets_go_of_what_it_just_pushed_when_that_is_the_setting() {
         Way::Both,
         &[],
         Holds::Shared,
-        &Default::default(),
     )
     .unwrap();
 
@@ -3530,7 +3553,6 @@ fn a_round_says_the_log_is_home_before_it_says_the_documents_are() {
         Way::Pull,
         &[],
         Holds::Everywhere,
-        &Default::default(),
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -3553,7 +3575,6 @@ fn a_round_that_carried_nothing_says_nothing() {
         Way::Both,
         &[],
         Holds::Everywhere,
-        &Default::default(),
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -6182,7 +6203,11 @@ fn the_last_copy_here_is_kept_when_the_one_up_there_only_weighs_the_same() {
     let mut other = big.clone();
     other[7] ^= 0xff;
     std::fs::write(shared.path().join(&heavy), &other).unwrap();
-    let carried = [(heavy.clone(), big.len() as u64)];
+    let carried = [(
+        heavy.clone(),
+        tisty_core::attach::printed(&big),
+        big.len() as u64,
+    )];
 
     let freed = super::let_go_of(
         &one.data,
@@ -6207,7 +6232,11 @@ fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
     let heavy = planted(&one.data, "charla.mp4", &big);
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
-    let carried = [(heavy.clone(), big.len() as u64)];
+    let carried = [(
+        heavy.clone(),
+        tisty_core::attach::printed(&big),
+        big.len() as u64,
+    )];
 
     let freed = super::let_go_of(
         &one.data,

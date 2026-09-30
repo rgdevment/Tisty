@@ -13,13 +13,13 @@ use crate::{HELD, LetGo, Trouble, beside, plainly, sweep};
 pub(crate) fn let_go_of(
     data: &Path,
     dest: &Path,
-    carried: &[(String, u64)],
+    carried: &[(String, String, u64)],
     above: u64,
 ) -> (u64, Vec<String>) {
     let mut freed = 0;
     let mut let_go = Vec::new();
     let told = tisty_core::attach::digests(data);
-    for (reference, bytes) in carried {
+    for (reference, _, bytes) in carried {
         if *bytes <= above {
             continue;
         }
@@ -166,7 +166,7 @@ pub(crate) fn copy_held(
     ledger: Option<&Path>,
     above: Option<u64>,
     reachable: Option<&std::collections::BTreeSet<String>>,
-    carried: Option<&mut Vec<(String, u64)>>,
+    carried: Option<&mut Vec<(String, String, u64)>>,
     avowed: &std::collections::BTreeMap<String, (String, u64)>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
@@ -174,9 +174,16 @@ pub(crate) fn copy_held(
     let mut carried = carried;
     let mut written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     for (at, one) in avowed {
-        written_down
-            .entry(at.clone())
-            .or_insert_with(|| one.clone());
+        if written_down
+            .insert(at.clone(), one.clone())
+            .is_some_and(|was| was.0 != one.0)
+        {
+            witness::warn(
+                channel::ATTACH,
+                "the book kept here and the log disagree about what an attachment holds",
+                &[("at", Fact::Id(at.clone()))],
+            );
+        }
     }
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
@@ -305,7 +312,7 @@ pub(crate) fn copy_held(
                 tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
             }
             if let Some(carried) = carried.as_deref_mut() {
-                carried.push((reference, bytes));
+                carried.push((reference, sha256, bytes));
             }
             done += 1;
         }

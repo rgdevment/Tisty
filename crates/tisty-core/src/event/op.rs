@@ -251,7 +251,9 @@ impl Op {
     pub fn settles(&self) -> bool {
         matches!(
             self,
-            Op::DocSaid { .. }
+            Op::AttachKept { .. }
+                | Op::AttachLetGo { .. }
+                | Op::DocSaid { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
                 | Op::Signed { .. }

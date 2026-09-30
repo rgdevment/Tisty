@@ -9,6 +9,29 @@ use crate::{
     glimpse, held, report, room, said, session, show, today, within,
 };
 
+fn said_now_held(session: &tauri::State<'_, Mutex<Session>>, took_in: &[(String, String, u64)]) {
+    if took_in.is_empty() {
+        return;
+    }
+    let said_so = took_in
+        .iter()
+        .map(|(at, sha256, bytes)| tisty_core::Op::AttachKept {
+            d: tisty_core::event::Held {
+                at: at.clone(),
+                sha256: sha256.clone(),
+                bytes: *bytes,
+            },
+        })
+        .collect();
+    if let Err(e) = held(session).commit_all(said_so) {
+        witness::warn(
+            channel::SYNC,
+            "bodies came in and the log was not told this machine now holds them",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
 fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[String]) {
     if let_go.is_empty() {
         return;
@@ -53,7 +76,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, paths, data, store, aside, device, alive, holds, avowed) = {
+    let (was, dest, paths, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -79,7 +102,6 @@ pub async fn settle_in(
             session.config.device_id.0.clone(),
             session.alive(),
             session.config.holds(),
-            session.state.kept.clone(),
         )
     };
 
@@ -101,10 +123,10 @@ pub async fn settle_in(
                 tisty_sync::Way::Both,
                 &alive,
                 holds,
-                &avowed,
             )
         })
         .await;
+        brought = tisty_core::cache::fingerprint(&store) != before;
         match carried {
             Ok(Err(why)) => {
                 let refusal = said(why);
@@ -118,10 +140,10 @@ pub async fn settle_in(
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
             Ok(Ok(done)) => {
                 said_no_longer_held(&session, &done.let_go);
+                said_now_held(&session, &done.took_in);
                 arrived = done.arrived;
             }
         }
-        brought = tisty_core::cache::fingerprint(&store) != before;
     }
 
     if brought {
@@ -414,7 +436,7 @@ pub async fn sync_now(
         });
     };
 
-    let (dest, paths, data, store, aside, device, alive, holds, avowed) = {
+    let (dest, paths, data, store, aside, device, alive, holds) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -431,7 +453,6 @@ pub async fn sync_now(
             session.config.device_id.0.clone(),
             session.alive(),
             session.config.holds(),
-            session.state.kept.clone(),
         )
     };
 
@@ -453,7 +474,6 @@ pub async fn sync_now(
             way,
             &alive,
             holds,
-            &avowed,
             &mut |far| {
                 let _ = telling.emit(
                     "carried",
@@ -469,8 +489,9 @@ pub async fn sync_now(
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
 
-    said_no_longer_held(&session, &done.let_go);
     let moved = tisty_core::cache::fingerprint(&store) != before;
+    said_no_longer_held(&session, &done.let_go);
+    said_now_held(&session, &done.took_in);
     if moved {
         catching_up(
             &session,
@@ -1107,20 +1128,7 @@ pub async fn free_up(
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
 
-    if !done.let_go.is_empty() {
-        let said_so: Vec<tisty_core::Op> = done
-            .let_go
-            .iter()
-            .map(|at| tisty_core::Op::AttachLetGo { d: at.clone() })
-            .collect();
-        if let Err(e) = held(&session).commit_all(said_so) {
-            witness::warn(
-                channel::SYNC,
-                "copies were let go of and the log was not told",
-                &[("why", Fact::Why(e.to_string()))],
-            );
-        }
-    }
+    said_no_longer_held(&session, &done.let_go);
     witness::note(
         channel::SYNC,
         "big attachments were left to the shared folder",

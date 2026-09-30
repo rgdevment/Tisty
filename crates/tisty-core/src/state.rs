@@ -1292,7 +1292,7 @@ impl State {
 }
 
 fn vouches_for_its_name(said: &crate::event::Held) -> bool {
-    if !crate::attach::names_an_attachment(&said.at) || said.bytes == 0 {
+    if !crate::attach::names_an_attachment(&said.at) {
         return false;
     }
     if said.sha256.len() != 64 || !said.sha256.chars().all(|one| one.is_ascii_hexdigit()) {

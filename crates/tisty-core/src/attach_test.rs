@@ -1464,7 +1464,7 @@ fn every_way_an_attachment_is_born_says_what_it_holds() {
         walked(&root.join(one), &mut found);
     }
 
-    let mut seen = 0;
+    let mut keeps = 0;
     let mut forgot = Vec::new();
     for at in found {
         let named = at.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/");
@@ -1474,18 +1474,19 @@ fn every_way_an_attachment_is_born_says_what_it_holds() {
         let Ok(said) = std::fs::read_to_string(&at) else {
             continue;
         };
-        if !said.contains("attach::keep(") {
+        let kept = said.matches("attach::keep(").count();
+        if kept == 0 {
             continue;
         }
-        seen += 1;
-        if !said.contains(".told()") {
+        keeps += kept;
+        if said.matches(".told()").count() < kept {
             forgot.push(named);
         }
     }
 
     assert!(
-        seen >= 6,
-        "only {seen} ways of keeping an attachment were found"
+        keeps > 0,
+        "no way of keeping an attachment was found, so this guards nothing"
     );
     assert!(
         forgot.is_empty(),

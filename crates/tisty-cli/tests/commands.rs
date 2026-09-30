@@ -302,6 +302,37 @@ fn attaching_tells_the_log_what_the_file_holds() {
 }
 
 #[test]
+fn undoing_still_works_after_a_file_was_attached() {
+    let cli = Cli::new();
+    cli.ok(&["chase the invoice"]);
+    cli.ok(&["ls", "all"]);
+    let loose = cli.home.path().join("invoice.pdf");
+    std::fs::write(&loose, "not really a pdf").unwrap();
+    cli.ok(&["attach", "1", loose.to_str().unwrap()]);
+
+    let back = cli.run(&["undo"]);
+
+    assert_eq!(
+        back.code, 0,
+        "undo refused after an attachment: {}",
+        back.out
+    );
+    let card = cli.ok(&["show", "1"]);
+    assert!(
+        !card.contains("invoice.pdf"),
+        "the entry the attachment wrote is still there: {card}"
+    );
+
+    let again = cli.run(&["undo"]);
+
+    assert_eq!(
+        again.code, 0,
+        "undo walked back onto what the attachment avowed and stopped there: {}",
+        again.out
+    );
+}
+
+#[test]
 fn attaching_by_a_documents_name_puts_the_file_in_the_document() {
     let cli = Cli::new();
     let made = cli

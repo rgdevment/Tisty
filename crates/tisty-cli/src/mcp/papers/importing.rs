@@ -64,10 +64,6 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let (state, mut store) = opened(paths)?;
     where_it_lands(&state, args)?;
     let (whole, brought) = beside_the_file(paths, &at, &made.body);
-    if !brought.told.is_empty() {
-        store.append_batch(brought.told).map_err(hitch)?;
-    }
-    drop(store);
     let made = tisty_core::arriving::Tidied {
         body: whole,
         changed: made.changed,
@@ -112,6 +108,10 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         )));
     }
     short_and_plain(&asked_again)?;
+    if !brought.told.is_empty() {
+        store.append_batch(brought.told).map_err(hitch)?;
+    }
+    drop(store);
     let written = write_doc(paths, &asked_again)?;
 
     let changed = made.changed.join(", ");

@@ -577,6 +577,58 @@ fn a_machine_taken_off_the_store_stops_counting_as_one_that_has_it() {
 }
 
 #[test]
+fn an_attachment_avowed_after_the_cache_was_built_is_not_lost_by_the_tail() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+    store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("something first", "a0"),
+        })
+        .unwrap();
+
+    project(&store_root, &cache_dir).unwrap();
+
+    let body = b"lo grabado";
+    let (reference, sha256) = an_attachment_that_answers_for_itself(body);
+    let task = Ulid::generate();
+    store
+        .append_batch(vec![
+            Op::AttachKept {
+                d: crate::event::Held {
+                    at: reference.clone(),
+                    sha256: sha256.clone(),
+                    bytes: body.len() as u64,
+                },
+            },
+            Op::TaskAdd {
+                id: task,
+                d: TaskAdd::new("what the file was kept with", "a1"),
+            },
+        ])
+        .unwrap();
+
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .kept
+            .get(&reference),
+        Some(&(sha256.clone(), body.len() as u64)),
+        "the tail was applied onto a warm cache and what it said was thrown away"
+    );
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .kept
+            .get(&reference),
+        Some(&(sha256, body.len() as u64)),
+        "and the cache it stamped as current gives it back missing for good"
+    );
+}
+
+#[test]
 fn tombstones_survive_the_round_trip() {
     let f = loaded();
     let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
