@@ -341,6 +341,113 @@ fn a_log_that_grew_leaves_the_cache_behind() {
     assert_eq!(project(&f.store_root, &f.cache_dir).unwrap().tasks.len(), 2);
 }
 
+fn an_attachment_that_answers_for_itself(body: &[u8]) -> (String, String) {
+    let sha256 = crate::attach::printed(body);
+    let reference = format!("attachments/{}/charla-{}.mp4", &sha256[..2], &sha256[2..10]);
+    (reference, sha256)
+}
+
+#[test]
+fn what_an_attachment_holds_comes_back_from_the_cache_and_not_only_from_the_log() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+
+    let body = b"lo grabado";
+    let (reference, sha256) = an_attachment_that_answers_for_itself(body);
+    store
+        .append(Op::AttachKept {
+            d: crate::event::Held {
+                at: reference.clone(),
+                sha256: sha256.clone(),
+                bytes: body.len() as u64,
+            },
+        })
+        .unwrap();
+
+    let held = (sha256, body.len() as u64);
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .kept
+            .get(&reference),
+        Some(&held),
+        "the log said what it holds and the first projection lost it"
+    );
+    assert!(matches!(
+        audit(&store_root, &cache_dir).unwrap(),
+        Audit::Agrees { .. }
+    ));
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .kept
+            .get(&reference),
+        Some(&held),
+        "the cache handed back a store that had forgotten what its attachments hold"
+    );
+}
+
+#[test]
+fn a_digest_the_name_does_not_avow_is_not_taken_in() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+
+    let (reference, _) = an_attachment_that_answers_for_itself(b"lo grabado");
+    let other = crate::attach::printed(b"otra cosa");
+    for said in [other, "not a digest".into(), String::new()] {
+        store
+            .append(Op::AttachKept {
+                d: crate::event::Held {
+                    at: reference.clone(),
+                    sha256: said,
+                    bytes: 10,
+                },
+            })
+            .unwrap();
+    }
+
+    assert!(
+        project(&store_root, &cache_dir).unwrap().kept.is_empty(),
+        "a digest that contradicts the name it arrived under was written down"
+    );
+}
+
+#[test]
+fn retiring_an_attachment_forgets_what_it_held() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+
+    let body = b"lo grabado";
+    let (reference, sha256) = an_attachment_that_answers_for_itself(body);
+    store
+        .append(Op::AttachKept {
+            d: crate::event::Held {
+                at: reference.clone(),
+                sha256,
+                bytes: body.len() as u64,
+            },
+        })
+        .unwrap();
+    store
+        .append(Op::AttachRetire {
+            d: reference.clone(),
+        })
+        .unwrap();
+
+    let state = project(&store_root, &cache_dir).unwrap();
+    assert!(
+        state.kept.is_empty(),
+        "what nothing keeps any more still said what it held"
+    );
+    assert!(state.retired.contains(&reference));
+}
+
 #[test]
 fn tombstones_survive_the_round_trip() {
     let f = loaded();

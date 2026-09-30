@@ -1,9 +1,9 @@
 mod op;
 
 pub use op::{
-    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, Flag, FolderAdd, KNOWN_OPS, ListAdd, LogAdd,
-    LogEdit, Look, Name, Op, Resolve, Said, Signature, StepAdd, StepRef, StepReorder, StepText,
-    Stitch, TaskAdd, TaskMove, TaskPatch,
+    ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, Flag, FolderAdd, Held, KNOWN_OPS, ListAdd,
+    LogAdd, LogEdit, Look, Name, Op, Resolve, Said, Signature, StepAdd, StepRef, StepReorder,
+    StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -70,6 +70,12 @@ impl Event {
         Some(self.timestamp.to_zoned(zone))
     }
 
+    /// A reader that predates this operation skips it instead of refusing the whole store.
+    pub fn skippable(mut self) -> Self {
+        self.optional = true;
+        self
+    }
+
     pub fn in_batch(mut self, batch: Ulid) -> Self {
         self.batch = Some(batch);
         self
@@ -129,6 +135,7 @@ impl Event {
             | Op::DeviceHost { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
+            | Op::AttachKept { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => None,
         }

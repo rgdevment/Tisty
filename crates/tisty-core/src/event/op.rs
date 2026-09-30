@@ -76,6 +76,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.remove",
     "device.host",
     "person.signed",
+    "attach.kept",
     "attach.retire",
     "stores.joined",
 ];
@@ -201,11 +202,20 @@ pub enum Op {
     #[serde(rename = "person.signed")]
     Signed { d: Signature },
 
+    #[serde(rename = "attach.kept")]
+    AttachKept { d: Held },
     #[serde(rename = "attach.retire")]
     AttachRetire { d: String },
 
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Held {
+    pub at: String,
+    pub sha256: String,
+    pub bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -316,6 +326,7 @@ impl Op {
             | Op::DeviceHost { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
+            | Op::AttachKept { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => self,
         }
@@ -447,6 +458,7 @@ impl Op {
             | Op::DeviceHost { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
+            | Op::AttachKept { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => None,
         }

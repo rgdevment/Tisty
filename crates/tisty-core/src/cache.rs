@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 7;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 8;
 
 pub struct Cache {
     db: Connection,
@@ -77,6 +77,10 @@ impl Cache {
                  CREATE TABLE IF NOT EXISTS folder(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS doc(id TEXT PRIMARY KEY, doc TEXT NOT NULL);
                  CREATE TABLE IF NOT EXISTS tombstone(id TEXT PRIMARY KEY, source TEXT);
+                 CREATE TABLE IF NOT EXISTS kept(
+                     id TEXT PRIMARY KEY,
+                     sha256 TEXT NOT NULL,
+                     bytes INTEGER NOT NULL);
                  CREATE TABLE IF NOT EXISTS paper(
                      id TEXT PRIMARY KEY,
                      bytes INTEGER NOT NULL,
@@ -95,6 +99,21 @@ impl Cache {
             return Ok(None);
         }
         Ok(Some(Self { db }))
+    }
+
+    fn every_kept(&self) -> std::collections::BTreeMap<String, (String, u64)> {
+        let Ok(mut asked) = self.db.prepare("SELECT id, sha256, bytes FROM kept") else {
+            return Default::default();
+        };
+        let Ok(rows) = asked.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                (row.get::<_, String>(1)?, row.get::<_, i64>(2)? as u64),
+            ))
+        }) else {
+            return Default::default();
+        };
+        rows.filter_map(|one| one.ok()).collect()
     }
 
     pub fn load(&self, fingerprint: &str, bodies: bool) -> Option<State> {
@@ -127,6 +146,7 @@ impl Cache {
             .meta("retired")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.kept = self.every_kept();
         state.agents = self
             .meta("agents")
             .and_then(|said| serde_json::from_str(&said).ok())
@@ -254,6 +274,7 @@ impl Cache {
             tx.execute("DELETE FROM folder", [])?;
             tx.execute("DELETE FROM doc", [])?;
             tx.execute("DELETE FROM tombstone", [])?;
+            tx.execute("DELETE FROM kept", [])?;
             {
                 let mut task = tx.prepare("INSERT INTO task VALUES (?,?)")?;
                 let mut body = tx.prepare("INSERT INTO task_body VALUES (?,?)")?;
@@ -278,6 +299,12 @@ impl Cache {
                 for d in state.docs.values() {
                     let doc = serde_json::to_string(d).unwrap_or_default();
                     kept.execute(rusqlite::params![d.id.to_string(), doc])?;
+                }
+            }
+            {
+                let mut said = tx.prepare("INSERT INTO kept VALUES (?,?,?)")?;
+                for (at, (sha256, bytes)) in &state.kept {
+                    said.execute(rusqlite::params![at, sha256, *bytes as i64])?;
                 }
             }
             {
