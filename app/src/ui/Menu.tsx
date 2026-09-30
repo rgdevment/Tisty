@@ -70,6 +70,7 @@ export default function Menu({ at, choices, label, up, onClose }: Props) {
     <div
       ref={card}
       role="menu"
+      tabIndex={-1}
       aria-label={showing.label}
       style={{ left: where.x, top: where.y }}
       onKeyDown={(e) => {

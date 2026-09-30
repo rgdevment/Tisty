@@ -116,10 +116,10 @@ fn a_hole_whose_body_cannot_be_read_is_not_accused_of_being_torn() {
     let told = finding::found_in(&reference, here.path(), Some(shared.path()));
     drop(shut);
 
-    let said = std::fs::read_to_string(&cache).unwrap_or_default();
     assert!(
-        !said.contains("false"),
-        "a keeper that would not open it was written down as corruption: {said}"
+        !cache.is_file(),
+        "a body nobody could read was written down either way: {}",
+        std::fs::read_to_string(&cache).unwrap_or_default()
     );
     assert!(
         matches!(told, finding::Sought::Held),

@@ -177,7 +177,10 @@ function unreadable(page: never): string {
 /// The trail is a record, not a page: a reference reads as what it was called, not as its syntax.
 function plainly(body: string): string {
   return body
-    .replace(/<span[^>]*data-ico="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/span>/g, ":$1:")
+    .replace(/<span([^>]*)>[\s\S]*?<\/span>/g, (whole, attrs: string) => {
+      const ico = /data-ico="([a-z0-9-]+)"/.exec(attrs);
+      return ico ? `:${ico[1]}:` : whole;
+    })
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/<[^>]+>/g, "")
     .trim();

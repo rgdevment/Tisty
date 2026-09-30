@@ -224,7 +224,7 @@ const KIND: Record<string, string> = {
 export const asData = (bytes: number[], src: string): string => {
   const kind = KIND[src.split(".").pop()?.toLowerCase() ?? ""] ?? "image/png";
   let raw = "";
-  for (const one of bytes) raw += String.fromCharCode(one);
+  for (const one of bytes) raw += String.fromCodePoint(one);
   return `data:${kind};base64,${btoa(raw)}`;
 };
 

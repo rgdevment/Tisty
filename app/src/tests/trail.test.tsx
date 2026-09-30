@@ -152,4 +152,19 @@ describe("the trail", () => {
     expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
     expect(screen.queryByText(/data-ico/)).toBeNull();
   });
+
+  it("keeps what a span without an icon was wrapping, and names no icon for it", async () => {
+    await shown([
+      {
+        at: "2026-08-27T01:24:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: 'listo <span class="whatever" data-hue="teal">del todo</span>',
+      } as Draft,
+    ]);
+
+    expect(screen.getByText(/listo del todo/)).toBeTruthy();
+    expect(screen.queryByText(/::/)).toBeNull();
+    expect(screen.queryByText(/span/)).toBeNull();
+  });
 });

@@ -94,11 +94,16 @@ pub fn found_in(
                 return Sought::Coming;
             }
             // What comes back from a cloud answers for its name like anything else that lives there.
-            return match ours
-                || (under_root(&at, root) && vouching::vouches(&at, reference).unwrap_or_default())
-            {
-                true => Sought::At(at),
-                false => Sought::Torn,
+            if ours {
+                return Sought::At(at);
+            }
+            if !under_root(&at, root) {
+                return Sought::No;
+            }
+            return match vouching::vouches(&at, reference) {
+                Some(true) => Sought::At(at),
+                Some(false) => Sought::Torn,
+                None => Sought::Held,
             };
         }
     }
