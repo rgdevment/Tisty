@@ -78,17 +78,52 @@ fn nothing_that_hunts_for_an_attachment_does_it_on_the_thread_that_draws() {
         .expect("the orders that serve an attachment");
     let loose: Vec<&str> = said
         .lines()
-        .filter(|one| one.contains("finding::found_in("))
+        .filter(|one| one.contains("finding::handed_over("))
+        .filter(|one| !one.contains("elsewhere("))
         .filter(|one| one.len() - one.trim_start().len() < 8)
         .collect();
 
     assert!(
-        said.contains("finding::found_in("),
+        said.contains("finding::handed_over("),
         "the orders stopped looking for anything"
     );
     assert!(
         loose.is_empty(),
         "a lookup sits in the body of an order instead of inside `elsewhere`: {loose:?}"
+    );
+}
+
+#[test]
+fn handing_an_attachment_over_writes_down_the_day_and_a_refusal_does_not() {
+    let here = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let reached = here.path().join("cache").join(tisty_core::lately::USED);
+
+    let loose = from.path().join("nota.txt");
+    std::fs::write(&loose, b"lo apuntado").unwrap();
+    let reference = tisty_core::attach::keep(&loose, here.path(), tisty_core::attach::COPIED_UP_TO)
+        .unwrap()
+        .at;
+
+    assert_eq!(
+        tisty_core::lately::last(&reached, &reference),
+        None,
+        "nobody has reached for it yet"
+    );
+
+    finding::handed_over(&reference, here.path(), None, &reached).expect("it is right here");
+
+    assert!(
+        tisty_core::lately::last(&reached, &reference).is_some_and(|when| when > 0),
+        "handing it over wrote down no day"
+    );
+
+    let never = "attachments/ab/nope-00000000.txt";
+    assert!(finding::handed_over(never, here.path(), None, &reached).is_err());
+    assert_eq!(
+        tisty_core::lately::last(&reached, never),
+        None,
+        "what was refused was never reached for"
     );
 }
 

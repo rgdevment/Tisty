@@ -12,6 +12,7 @@ pub mod event;
 pub mod herald;
 pub mod holes;
 pub mod keepers;
+pub mod lately;
 pub mod merge;
 pub mod model;
 pub mod order;

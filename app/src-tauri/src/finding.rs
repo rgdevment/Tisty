@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::{Refusal, Session, held, vouching};
+use crate::{Answer, Refusal, Session, held, vouching};
 
 /// Long enough for a file already on its way, short enough that nobody thinks the app hung.
 const COMES_WITHIN: std::time::Duration = std::time::Duration::from_millis(1_500);
@@ -37,9 +37,17 @@ pub fn under_root(at: &std::path::Path, root: &std::path::Path) -> bool {
 /// session while it does would freeze the window.
 pub fn where_to(
     session: &tauri::State<'_, Mutex<Session>>,
-) -> (std::path::PathBuf, Option<std::path::PathBuf>) {
+) -> (
+    std::path::PathBuf,
+    Option<std::path::PathBuf>,
+    std::path::PathBuf,
+) {
     let session = held(session);
-    (session.paths.data().to_path_buf(), session.shared_now())
+    (
+        session.paths.data().to_path_buf(),
+        session.shared_now(),
+        session.paths.cache().join(tisty_core::lately::USED),
+    )
 }
 
 /// The store first, then the shared folder, which is where a machine that let go of it kept it.
@@ -59,6 +67,21 @@ pub fn where_it_lies(
         }
     }
     None
+}
+
+pub fn handed_over(
+    reference: &str,
+    data: &std::path::Path,
+    shared: Option<&std::path::Path>,
+    reached: &std::path::Path,
+) -> Answer<std::path::PathBuf> {
+    match found_in(reference, data, shared) {
+        Sought::At(at) => {
+            tisty_core::lately::used(reached, reference);
+            Ok(at)
+        }
+        other => Err(unreachable(other, reference.to_string())),
+    }
 }
 
 pub fn found_in(
