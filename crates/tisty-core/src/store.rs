@@ -35,7 +35,7 @@ pub struct Store {
     lock: Option<File>,
     via: Option<String>,
     signs: Option<ed25519_dalek::SigningKey>,
-    covers: crate::signing::Covers,
+    covers: Option<crate::signing::Covers>,
 }
 
 impl Store {
@@ -81,21 +81,27 @@ impl Store {
             via: None,
             lock: None,
             signs: None,
-            covers: crate::signing::Covers {
-                tip: crate::signing::NOTHING_BEFORE,
-                at: 0,
-            },
+            covers: None,
         })
     }
 
     /// The key lives outside the store, so whoever knows where hands it over.
     pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
         self.signs = key;
+        self
+    }
+
+    /// Reading a history through to work out where its chain stands is the price of writing, not
+    /// of opening: a command that only reads never pays it.
+    fn knows_where_it_stands(&mut self) -> Result<()> {
+        if self.signs.is_none() || self.covers.is_some() {
+            return Ok(());
+        }
         match self.tip_now() {
-            Some(covers) => self.covers = covers,
+            Some(covers) => self.covers = Some(covers),
             None => self.signs = None,
         }
-        self
+        Ok(())
     }
 
     /// A signature found here is only a base for what follows if this machine's own key answers
@@ -123,7 +129,9 @@ impl Store {
             };
         }
 
-        let found = segments_in(&self.dir).unwrap_or_default();
+        let Ok(found) = segments_in(&self.dir) else {
+            return None;
+        };
         let mut tip = crate::signing::NOTHING_BEFORE;
         let mut onward = 0;
         for (at, one) in found.iter().enumerate() {
@@ -164,7 +172,7 @@ impl Store {
     }
 
     fn sign(&self, at: &Path) {
-        let Some(key) = &self.signs else {
+        let (Some(key), Some(covers)) = (&self.signs, &self.covers) else {
             return;
         };
         let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
@@ -172,7 +180,7 @@ impl Store {
         };
         if let Err(e) = write_atomic(
             &at.with_extension(crate::signing::SIG),
-            crate::signing::signed(key, &self.about(named), &self.covers).as_bytes(),
+            crate::signing::signed(key, &self.about(named), covers).as_bytes(),
         ) {
             witness::warn(
                 channel::STORE,
@@ -215,17 +223,14 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         let mark = active_mark(&active);
         if mark == self.seen {
-            return Ok(());
+            return self.knows_where_it_stands();
         }
         self.overtaken = true;
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
         // their lines and sign a chain nobody can recompute.
-        if let Some(covers) = self.tip_now() {
-            self.covers = covers;
-        } else {
-            self.signs = None;
-        }
+        self.covers = None;
+        self.knows_where_it_stands()?;
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
         if (head, seq) > (self.head, self.seq) {
@@ -393,11 +398,11 @@ impl Store {
                 .open(self.dir.join(ACTIVE))?;
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
-            if self.signs.is_some() {
-                self.covers = crate::signing::Covers {
-                    tip: crate::signing::tip_of(self.covers.tip, said.as_bytes()),
-                    at: self.covers.at + said.len() as u64,
-                };
+            if let Some(covers) = self.covers {
+                self.covers = Some(crate::signing::Covers {
+                    tip: crate::signing::tip_of(covers.tip, said.as_bytes()),
+                    at: covers.at + said.len() as u64,
+                });
             }
 
             self.active_events += lot.len();
@@ -411,6 +416,7 @@ impl Store {
     }
 
     pub(crate) fn rotate(&mut self) -> Result<()> {
+        self.knows_where_it_stands()?;
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
@@ -425,11 +431,27 @@ impl Store {
                 &closed.with_extension("count"),
                 lines.to_string().as_bytes(),
             )?;
-            let _ = std::fs::remove_file(active.with_extension(crate::signing::SIG));
+            let stale = active.with_extension(crate::signing::SIG);
+            match std::fs::remove_file(&stale) {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => {
+                    // Left standing it would answer for whatever takes the old segment's place,
+                    // and nothing this machine writes after that could be recomputed.
+                    self.signs = None;
+                    witness::warn(
+                        channel::STORE,
+                        "a signature for the segment just closed could not be taken away, so this machine stopped signing",
+                        &[("at", Fact::Path(stale)), ("why", Fact::Why(e.to_string()))],
+                    );
+                }
+            }
         }
         self.active_events = 0;
         self.seen = Mark::default();
-        self.covers.at = 0;
+        if let Some(covers) = self.covers {
+            self.covers = Some(crate::signing::Covers { at: 0, ..covers });
+        }
         Ok(())
     }
 
@@ -588,8 +610,12 @@ pub fn beside_a_segment(named: &str) -> Option<(&str, &str)> {
 }
 
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
+    // An entry dropped for being unreadable is a segment missing from a history that reads as
+    // whole, so the listing fails rather than shortens.
     let mut found: Vec<PathBuf> = std::fs::read_dir(device_dir)?
-        .filter_map(|e| e.ok().map(|e| e.path()))
+        .map(|one| one.map(|one| one.path()))
+        .collect::<std::io::Result<Vec<PathBuf>>>()?
+        .into_iter()
         .filter(|at| {
             at.file_name()
                 .and_then(|n| n.to_str())

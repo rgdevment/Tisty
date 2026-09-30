@@ -5,12 +5,14 @@ use ed25519_dalek::VerifyingKey;
 use crate::event::DeviceId;
 use crate::signing;
 
-/// The last closed segment whose signature answered, and the chain tip after it. Kept so the
-/// next round folds what arrived since rather than the machine's whole history over again.
+/// The last closed segment whose signature answered, and the chain tip after it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reached {
     pub segment: u32,
     pub tip: [u8; 32],
+    /// Whether this machine has ever shown a signature. Signing only ever starts: once it has,
+    /// a segment arriving without one is a signature taken away, not a history from before.
+    pub signing: bool,
 }
 
 impl Default for Reached {
@@ -18,43 +20,66 @@ impl Default for Reached {
         Self {
             segment: 0,
             tip: signing::NOTHING_BEFORE,
+            signing: false,
         }
     }
 }
 
 impl Reached {
     pub fn said(&self) -> String {
-        format!("{} {}", self.segment, signing::hexed(&self.tip))
+        let signing = u8::from(self.signing);
+        format!("{} {signing} {}", self.segment, signing::hexed(&self.tip))
     }
 
     pub fn read(said: &str) -> Option<Self> {
-        let (segment, tip) = said.split_once(' ')?;
+        let mut apart = said.split(' ');
+        let (Some(segment), Some(signing), Some(tip), None) =
+            (apart.next(), apart.next(), apart.next(), apart.next())
+        else {
+            return None;
+        };
         Some(Self {
             segment: segment.parse().ok()?,
             tip: signing::unhexed::<32>(tip)?,
+            signing: signing == "1",
         })
     }
 }
 
-/// Every segment of theirs that carries a signature, recomputed from the bytes that are there
-/// and checked against the key that machine published. One carrying none is not refused: asking
-/// that there be one is a later rule, and every history written before signing has none.
-///
-/// The error is the segment that did not answer.
+/// Why a history was not taken in. What cannot be read now may read tomorrow, and a round that
+/// says so heals itself; a chain that does not add up is somebody's hand and never heals.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Adrift {
+    Unreadable(String),
+    Disowned(String),
+}
+
+/// Every segment of theirs checked against the key that machine published, recomputed from the
+/// bytes that are there. A closed segment is passed over only where it is byte for byte the copy
+/// we already answered for — `ours_already` — so what the far side changed is read again however
+/// old it is, and the round pays no second reading for asking.
 pub fn answers(
-    dir: &Path,
+    theirs: &Path,
     device: &DeviceId,
     by: &VerifyingKey,
     from: Reached,
-) -> Result<Reached, String> {
-    let Ok(found) = crate::store::segments_in(dir) else {
-        return Ok(from);
+    ours_already: &dyn Fn(&str) -> bool,
+) -> Result<Reached, Adrift> {
+    let found = match crate::store::segments_in(theirs) {
+        Ok(found) => found,
+        Err(e) => return Err(Adrift::Unreadable(e.to_string())),
     };
+    if found.is_empty() {
+        return Ok(from);
+    }
     if !found
         .iter()
         .any(|one| one.with_extension(signing::SIG).is_file())
     {
-        return Ok(from);
+        return match from.signing {
+            true => Err(Adrift::Disowned(String::new())),
+            false => Ok(from),
+        };
     }
 
     let mut tip = from.tip;
@@ -64,39 +89,37 @@ pub fn answers(
             continue;
         };
         let number = numbered(named);
-        if number.is_some_and(|n| n <= from.segment) {
+        if number.is_some_and(|n| n <= from.segment) && ours_already(named) {
             continue;
         }
         let Ok(bytes) = std::fs::read(one) else {
-            return Err(named.to_string());
+            return Err(Adrift::Unreadable(named.to_string()));
         };
         let about = signing::About {
             device: &device.0,
             segment: named,
         };
         let answered = match std::fs::read_to_string(one.with_extension(signing::SIG)) {
-            Ok(said) => {
-                let Some(covers) = signing::holds(by, &about, &said) else {
-                    return Err(named.to_string());
-                };
-                let Ok(reach) = usize::try_from(covers.at) else {
-                    return Err(named.to_string());
-                };
-                let Some(under) = bytes.get(..reach) else {
-                    return Err(named.to_string());
-                };
-                if signing::tip_of(tip, under) != covers.tip {
-                    return Err(named.to_string());
+            Ok(said) => match signing::holds(by, &about, &said) {
+                // The whole segment or none of it: one answering for a prefix would let a line
+                // appended past it in, and the next thing that machine writes would sign it.
+                Some(covers) if covers.at != bytes.len() as u64 => {
+                    return Err(Adrift::Unreadable(named.to_string()));
                 }
-                true
-            }
+                Some(covers) if signing::tip_of(tip, &bytes) != covers.tip => {
+                    return Err(Adrift::Disowned(named.to_string()));
+                }
+                Some(_) => true,
+                None => return Err(Adrift::Unreadable(named.to_string())),
+            },
+            Err(_) if held.signing => return Err(Adrift::Disowned(named.to_string())),
             Err(_) => false,
         };
         tip = signing::tip_of(tip, &bytes);
-        // Only ever the tip of a closed segment: the one still being written grows, and a memo
-        // that counted it in would fold those bytes a second time on the next round.
+        held.signing |= answered;
         if answered && let Some(n) = number {
-            held = Reached { segment: n, tip };
+            held.segment = n;
+            held.tip = tip;
         }
     }
     Ok(held)

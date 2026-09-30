@@ -6368,8 +6368,11 @@ fn a_source_caught_without_a_count_does_not_take_the_one_already_there() {
     );
 }
 
+/// Whoever can write in that folder could delete a signature, so taking ours away for being
+/// gone over there is the downgrade itself. A stale one answers for the wrong number of bytes,
+/// which reads as a history that cannot be read through — and that heals when it is signed again.
 #[test]
-fn a_signature_goes_when_the_bytes_under_it_were_written_over() {
+fn a_signature_is_never_taken_away_for_being_gone_at_the_far_end() {
     let room = tempfile::tempdir().unwrap();
     let from = room.path().join("from");
     let into = room.path().join("into");
@@ -6381,8 +6384,8 @@ fn a_signature_goes_when_the_bytes_under_it_were_written_over() {
     crate::segments::copy_segments(&from, &into, true, &Default::default()).unwrap();
 
     assert!(
-        !into.join("000001.sig").exists(),
-        "a signature nobody answers for any more was left standing"
+        into.join("000001.sig").is_file(),
+        "a signature went because somebody stopped carrying one, which is the whole attack"
     );
 }
 
@@ -6540,5 +6543,66 @@ fn a_history_changed_under_its_signature_never_becomes_state_on_the_next_machine
             .unwrap()
             .contains("invoicf"),
         "what does not answer for itself became state anyway"
+    );
+}
+
+/// Our own name is the one worth wearing: a line put into our directory in the shared folder
+/// comes home under it, and the next thing we write would sign it as ours.
+#[test]
+fn a_line_put_into_our_own_history_over_there_does_not_come_home() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    held.append(Op::DeviceJoin {
+        d: who.clone(),
+        k: Some(tisty_core::DeviceKind::Machine),
+        p: tisty_core::signing::mine(&paths, &who)
+            .as_ref()
+            .map(tisty_core::signing::shown),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let whole = std::fs::read_to_string(theirs.join("active.tisty")).unwrap();
+    let forged = whole
+        .lines()
+        .last()
+        .unwrap()
+        .replace("chase the", "pay the");
+    std::fs::write(
+        theirs.join("active.tisty"),
+        format!(
+            "{whole}{forged}
+"
+        ),
+    )
+    .unwrap();
+    std::fs::remove_dir_all(one.store.join(&one.device)).unwrap();
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    let home = one.store.join(&one.device).join("active.tisty");
+    let came = std::fs::read_to_string(&home).unwrap_or_default();
+    assert!(
+        !came.contains("pay the"),
+        "a line somebody put under our own name came home:
+{came}"
+    );
+    assert!(
+        !after.disowned.is_empty() || !after.unreadable.is_empty(),
+        "it came back from the folder without a word about why not"
     );
 }

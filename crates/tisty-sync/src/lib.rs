@@ -555,42 +555,76 @@ fn anything_signed_in(dir: &Path) -> bool {
 }
 
 /// Checked before any of it is taken in, and only from where the last round left off.
+#[allow(clippy::too_many_arguments)]
 fn answers_for_itself(
     data: &Path,
     store: &Path,
+    dest: &Path,
     theirs: &Path,
     named: &str,
+    device: &str,
     knew: &mut Option<tisty_core::store::Ledger>,
-) -> bool {
+    alike: &mut Alike,
+) -> Answered {
     if !anything_signed_in(theirs) {
-        return true;
+        return Answered::Yes;
     }
     // Only what we held before the round: a key arriving beside the history it answers for would
     // let an impostor bring its own word for what it signs with.
-    let told = knew.get_or_insert_with(|| {
-        tisty_core::store::ledger(store).unwrap_or_else(|e| {
-            witness::warn(
-                channel::SYNC,
-                "this machine's own log would not say what the others sign with, so nothing arriving was checked",
-                &[("why", Fact::Why(e.to_string()))],
-            );
-            Default::default()
-        })
-    });
+    let told = match knew {
+        Some(told) => told,
+        None => match tisty_core::store::ledger(store) {
+            Ok(told) => knew.insert(told),
+            Err(e) => {
+                witness::warn(
+                    channel::SYNC,
+                    "this machine's own log would not say what the others sign with, so nothing signed was taken in",
+                    &[("why", Fact::Why(e.to_string()))],
+                );
+                return Answered::Unreadable;
+            }
+        },
+    };
     let who = tisty_core::DeviceId(named.to_string());
-    let Some(by) = told
+    let by = told
         .keys
         .get(&who)
-        .and_then(|said| tisty_core::signing::read(said))
-    else {
-        return true;
-    };
-    match tisty_core::answering::answers(theirs, &who, &by, verified::of(data, named)) {
-        Ok(held) => {
-            verified::keep(data, named, held);
-            true
+        .and_then(|said| tisty_core::signing::read(said));
+    let Some(by) = by else {
+        // A machine we hold no key for has nothing to check — but our own name is not one of
+        // those: a history signed under it that we cannot answer for is not ours to take back.
+        if !named.eq_ignore_ascii_case(device) {
+            return Answered::Yes;
         }
-        Err(segment) => {
+        witness::warn(
+            channel::SYNC,
+            "a history signed under this machine's own name cannot be checked from here, so it was left in the folder",
+            &[("at", Fact::Id(named.to_string()))],
+        );
+        return Answered::Unreadable;
+    };
+    use tisty_core::answering::Adrift;
+    let mine = store.join(named);
+    let ours_already = alike.of(named, theirs, &mine).clone();
+    let from = verified::of(data, dest, named);
+    let answers = tisty_core::answering::answers(theirs, &who, &by, from, &|segment| {
+        ours_already.contains(std::ffi::OsStr::new(segment))
+    });
+    match answers {
+        Ok(held) => {
+            verified::keep(data, dest, named, held);
+            Answered::Yes
+        }
+        Err(Adrift::Unreadable(why)) => {
+            witness::warn(
+                channel::SYNC,
+                "a history in the shared folder could not be read through to its signature, so it was left out",
+                &[("at", Fact::Id(named.to_string())), ("why", Fact::Why(why))],
+            );
+            Answered::Unreadable
+        }
+        Err(Adrift::Disowned(segment)) => {
+            verified::keep(data, dest, named, Default::default());
             witness::warn(
                 channel::SYNC,
                 "a history in the shared folder does not answer to the key that machine published, so none of it was taken in",
@@ -599,9 +633,15 @@ fn answers_for_itself(
                     ("segment", Fact::Id(segment)),
                 ],
             );
-            false
+            Answered::Disowned
         }
     }
+}
+
+enum Answered {
+    Yes,
+    Unreadable,
+    Disowned,
 }
 
 fn bring(
@@ -643,6 +683,25 @@ fn bring(
                 && ours_went_missing(&mine, &entry.path())
             {
                 match tisty_core::store::alone(&mine) {
+                    // Our own name is the one worth wearing: what comes back under it is checked
+                    // like anybody else's, or the next thing we write would sign it as ours.
+                    Some(_held)
+                        if !matches!(
+                            answers_for_itself(
+                                data,
+                                store,
+                                dest,
+                                &entry.path(),
+                                named,
+                                device,
+                                &mut knew,
+                                alike,
+                            ),
+                            Answered::Yes
+                        ) =>
+                    {
+                        moved.disowned.push(named.to_string());
+                    }
                     Some(_held) if ours_went_missing(&mine, &entry.path()) => {
                         witness::warn(
                             channel::SYNC,
@@ -664,9 +723,25 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        if !answers_for_itself(data, store, &entry.path(), named, &mut knew) {
-            moved.disowned.push(named.to_string());
-            continue;
+        match answers_for_itself(
+            data,
+            store,
+            dest,
+            &entry.path(),
+            named,
+            device,
+            &mut knew,
+            alike,
+        ) {
+            Answered::Yes => {}
+            Answered::Unreadable => {
+                moved.unreadable.push(named.to_string());
+                continue;
+            }
+            Answered::Disowned => {
+                moved.disowned.push(named.to_string());
+                continue;
+            }
         }
         if !alike.settled(named, &entry.path(), &mine, Toward::Home) {
             let coming = match tisty_core::store::check_device(&entry.path())

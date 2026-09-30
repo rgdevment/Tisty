@@ -533,7 +533,8 @@ pub async fn sync_now(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
-    let unsettled = done.undecided.len() + done.unreadable.len() + done.astray.len();
+    let unsettled =
+        done.undecided.len() + done.unreadable.len() + done.disowned.len() + done.astray.len();
     let facts = [
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
         ("sent", Fact::Count(done.sent)),
@@ -541,6 +542,7 @@ pub async fn sync_now(
         ("arrived", Fact::Count(done.arrived.len())),
         ("undecided", Fact::Count(done.undecided.len())),
         ("unreadable", Fact::Count(done.unreadable.len())),
+        ("disowned", Fact::Count(done.disowned.len())),
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
