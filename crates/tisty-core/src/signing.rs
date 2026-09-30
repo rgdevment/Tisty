@@ -12,7 +12,11 @@ pub fn kept_at(paths: &crate::Paths, device: &DeviceId) -> Option<PathBuf> {
 }
 
 pub fn shown(key: &SigningKey) -> String {
-    hexed(key.verifying_key().as_bytes())
+    shown_of(&key.verifying_key())
+}
+
+pub fn shown_of(key: &VerifyingKey) -> String {
+    hexed(key.as_bytes())
 }
 
 pub fn read(said: &str) -> Option<VerifyingKey> {

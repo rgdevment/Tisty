@@ -6364,7 +6364,25 @@ fn a_source_caught_without_a_count_does_not_take_the_one_already_there() {
 }
 
 #[test]
-fn a_source_that_let_go_of_a_signature_takes_the_far_one_with_it() {
+fn a_signature_goes_when_the_bytes_under_it_were_written_over() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
+    std::fs::remove_file(from.join("000001.sig")).unwrap();
+    std::fs::write(from.join("000001.tisty"), b"another line entirely").unwrap();
+
+    crate::segments::copy_segments(&from, &into, true, &Default::default()).unwrap();
+
+    assert!(
+        !into.join("000001.sig").exists(),
+        "a signature nobody answers for any more was left standing"
+    );
+}
+
+#[test]
+fn a_signature_stays_when_the_segment_under_it_never_moved() {
     let room = tempfile::tempdir().unwrap();
     let from = room.path().join("from");
     let into = room.path().join("into");
@@ -6375,8 +6393,8 @@ fn a_source_that_let_go_of_a_signature_takes_the_far_one_with_it() {
     crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
 
     assert!(
-        !into.join("000001.sig").exists(),
-        "a signature nobody answers for any more was left standing"
+        into.join("000001.sig").is_file(),
+        "the only signature that segment will ever have was thrown away for nothing"
     );
 }
 

@@ -133,9 +133,10 @@ pub(crate) fn copy_segments(
                     beside_it += 1;
                 }
                 true => {}
-                // A count answers for a segment that no longer changes, so the one already there
-                // stays true; a signature that went from the source answers for bytes that moved.
-                false if kind == tisty_core::signing::SIG => {
+                // Only what the bytes that just landed made untrue: a count answers for a
+                // segment that no longer changes, and a signature nothing overwrote is the
+                // only one that segment will ever have, since a machine signs at rotation.
+                false if !stands && kind == tisty_core::signing::SIG => {
                     beside_it += usize::from(std::fs::remove_file(&there).is_ok());
                 }
                 false => {}

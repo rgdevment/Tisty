@@ -28,7 +28,7 @@ fn the_segments_of_a_machine_always_come_back_in_the_order_they_were_written() {
         ]
     );
 }
-use super::identity::{DISPLACED, set_aside};
+use super::identity::set_aside;
 use super::*;
 use crate::event::TaskAdd;
 use ulid::Ulid;
@@ -993,10 +993,24 @@ fn the_marker_does_not_disturb_reading_the_log() {
 }
 
 #[test]
-fn what_is_set_aside_is_named_after_the_key_it_replaces() {
-    assert!(
-        DISPLACED.starts_with(KEEP),
-        "{DISPLACED} would not be found beside {KEEP}"
+fn what_is_set_aside_is_listed_whichever_key_it_replaces() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    std::fs::create_dir_all(paths.private()).unwrap();
+    let store_key = paths
+        .private()
+        .join(format!("01ARZ3NDEKTSV4RRFFQ69G5FAV{KEEP}"));
+    let device_key = paths
+        .private()
+        .join(format!("dev_a{}", crate::signing::KEEP));
+
+    assert!(set_aside(&paths, &store_key, b"not a key", "a test"));
+    assert!(set_aside(&paths, &device_key, b"nor is this", "a test"));
+
+    assert_eq!(
+        displaced(&paths).len(),
+        2,
+        "a key was parked where doctor never looks"
     );
 }
 
@@ -1406,14 +1420,29 @@ fn a_segment_closed_and_refilled_to_the_same_length_is_not_read_as_untouched() {
     let tmp = tempfile::tempdir().unwrap();
     let at = tmp.path().join("active.tisty");
     std::fs::write(&at, b"aaaa").unwrap();
+    let long_ago =
+        std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&at)
+        .unwrap()
+        .set_modified(long_ago)
+        .unwrap();
     let was = active_mark(&at);
 
-    for _ in 0..80 {
-        std::thread::sleep(std::time::Duration::from_millis(25));
-        std::fs::write(&at, b"bbbb").unwrap();
-        if active_mark(&at) != was {
-            return;
-        }
-    }
-    panic!("two segments of the same length read as the same segment");
+    std::fs::write(&at, b"bbbb").unwrap();
+    let ten_past =
+        std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_010);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&at)
+        .unwrap()
+        .set_modified(ten_past)
+        .unwrap();
+
+    assert_ne!(
+        active_mark(&at),
+        was,
+        "two segments of the same length read as the same segment"
+    );
 }

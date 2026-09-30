@@ -77,12 +77,19 @@ A machine that holds a signing key writes a `.sig` beside each of its own
 segments — `active.sig`, `NNNNNN.sig`. Inside is a tip and a signature over it:
 the tip is a SHA-256 chain folded line by line across this machine's whole
 history, and what is signed is the machine, the segment's name and that tip
-together, so one signature never answers for another segment nor for bytes
-rolled back to a length it once covered. It is written before the segment it
-covers is renamed and carried after it is copied, never the other way round. A
-`.sig` that is missing or does not verify is not read as tampering on its own:
-the chain is folded again from the last one that does. This is not the seal a
+together, so one signature never answers for another segment, nor for the same
+segment on another machine. It is written before the segment it covers is
+renamed and carried after it is copied, never the other way round. A `.sig`
+that is missing or does not verify is not read as tampering on its own: the
+chain is folded again from the last one that does. This is not the seal a
 parcel carries: that one is an HMAC over a manifest, under the store's key.
+
+What it does not catch, and is not meant to: a segment rolled back **whole** to
+an earlier state together with the signature that answered for it then. Both
+agree, and nothing outside them says which of the two is the later one. What
+answers for that is the closed segment that follows, whose chain runs through
+the rolled-back one — so only the active segment, the one nothing follows yet,
+is open to it.
 
 ### What a power cut leaves behind
 

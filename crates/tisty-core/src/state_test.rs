@@ -4511,3 +4511,38 @@ fn an_assistant_cannot_retire_an_attachment() {
     state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
     assert_eq!(state.retired.len(), 1);
 }
+
+#[test]
+fn the_same_key_in_another_case_is_not_a_second_key() {
+    let mut state = State::default();
+    let who = DeviceId("dev_a".into());
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let said = crate::signing::shown(&key);
+
+    state.apply(&ev(
+        1,
+        "dev_a",
+        Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: Some(said.to_uppercase()),
+        },
+    ));
+    state.apply(&ev(
+        2,
+        "dev_a",
+        Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: Some(said.clone()),
+        },
+    ));
+
+    assert_eq!(
+        state.keys.get(&who),
+        Some(&said),
+        "a machine that wrote its key in another case read as a machine that changed it"
+    );
+}

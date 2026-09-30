@@ -795,6 +795,7 @@ mod atomic_tests;
 
 /// A length alone cannot tell a rotation from a quiet moment: the segment another writer closed
 /// and refilled to the same size would read as untouched, and the chain would fork from there.
+/// The stamp narrows that to one tick of whatever the filesystem keeps, not to nothing.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Mark(u64, Option<std::time::SystemTime>);
 

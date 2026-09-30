@@ -7,7 +7,9 @@ use crate::{Error, Result};
 
 use super::{is_store_name, write_atomic};
 
-pub(crate) const DISPLACED: &str = ".store-key.was-";
+/// Every key set aside is named after the file it replaces, so what they share is the mark,
+/// not the name: a device key parked under the store key's mark would never be listed.
+pub(crate) const DISPLACED: &str = ".was-";
 
 /// This says it is really that store: it never leaves the machine, and without it nobody
 /// can write a parcel that lands here as though it had been born here.
