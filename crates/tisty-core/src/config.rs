@@ -16,6 +16,10 @@ use crate::{
 pub enum Sync {
     Local,
     Folder(std::path::PathBuf),
+    /// A way a later build knows and this one does not. Kept exactly as it was read: refusing
+    /// it would stop this build opening at all, and dropping it would take the choice away.
+    #[serde(untagged)]
+    Unknown(toml::Value),
 }
 
 fn said_once(named: &str) -> bool {
@@ -153,6 +157,11 @@ pub struct Config {
     pub asked_for_a_star: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_to_wire: Option<bool>,
+    /// What a later build wrote and this one has no name for. Serde drops what it cannot name
+    /// and `save` writes the struct whole, so without this one run of an older build erases it.
+    /// Last, because a table in TOML swallows every key that follows it.
+    #[serde(flatten)]
+    pub rest: toml::Table,
 }
 
 impl Config {
@@ -194,6 +203,7 @@ impl Config {
             here_since: Some(jiff::Timestamp::now()),
             asked_for_a_star: None,
             asked_to_wire: None,
+            rest: toml::Table::new(),
         };
         config.save(paths)?;
         Ok(config)

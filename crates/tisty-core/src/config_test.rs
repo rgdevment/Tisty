@@ -215,6 +215,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         here_since: Some(jiff::Timestamp::from_second(1_700_000_000).unwrap()),
         asked_for_a_star: Some(true),
         asked_to_wire: Some(true),
+        rest: toml::Table::new(),
     };
 
     let written = toml::to_string_pretty(&config).unwrap();
@@ -269,6 +270,7 @@ fn bare() -> Config {
         here_since: None,
         asked_for_a_star: None,
         asked_to_wire: None,
+        rest: toml::Table::new(),
     }
 }
 
@@ -327,4 +329,61 @@ mod sharing {
         config.sync = Some(Sync::Folder(std::path::PathBuf::from("G:/Drive/tisty")));
         assert!(config.shares());
     }
+}
+
+#[test]
+fn one_run_of_an_older_build_does_not_erase_what_a_later_one_wrote() {
+    let tmp = tempfile::tempdir().unwrap();
+    let p = paths(&tmp);
+    std::fs::create_dir_all(p.config()).unwrap();
+    std::fs::write(
+        p.config_file(),
+        "device_id = \"dev_a\"
+what_a_later_build_knows = 7
+",
+    )
+    .unwrap();
+
+    let mut read = Config::load(&p.config_file()).unwrap().unwrap();
+    read.locale = Some("es".into());
+    read.save(&p).unwrap();
+
+    let again = std::fs::read_to_string(p.config_file()).unwrap();
+    assert!(
+        again.contains("what_a_later_build_knows = 7"),
+        "opening an older build took a setting it did not know with it:
+{again}"
+    );
+    assert!(again.contains("locale = \"es\""), "{again}");
+}
+
+#[test]
+fn a_way_of_syncing_this_build_does_not_know_neither_stops_it_nor_is_thrown_away() {
+    let tmp = tempfile::tempdir().unwrap();
+    let p = paths(&tmp);
+    std::fs::create_dir_all(p.config()).unwrap();
+    std::fs::write(
+        p.config_file(),
+        "device_id = \"dev_a\"
+
+[sync]
+how = \"cloud\"
+at = \"https://somewhere\"
+",
+    )
+    .unwrap();
+
+    let read = Config::load(&p.config_file())
+        .expect("a way of syncing it does not know stopped it opening")
+        .unwrap();
+
+    assert!(!read.shares(), "it read an unknown way as a folder");
+    read.save(&p).unwrap();
+
+    let again = std::fs::read_to_string(p.config_file()).unwrap();
+    assert!(
+        again.contains("cloud") && again.contains("https://somewhere"),
+        "the way this machine was set to sync was thrown away:
+{again}"
+    );
 }
