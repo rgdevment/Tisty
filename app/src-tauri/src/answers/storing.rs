@@ -9,6 +9,23 @@ use crate::{
     glimpse, held, report, room, said, session, show, today, within,
 };
 
+fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[String]) {
+    if let_go.is_empty() {
+        return;
+    }
+    let said_so = let_go
+        .iter()
+        .map(|at| tisty_core::Op::AttachLetGo { d: at.clone() })
+        .collect();
+    if let Err(e) = held(session).commit_all(said_so) {
+        witness::warn(
+            channel::SYNC,
+            "copies were let go of and the log was not told",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
 async fn catching_up(
     session: &tauri::State<'_, Mutex<Session>>,
     paths: &tisty_core::Paths,
@@ -97,7 +114,10 @@ pub async fn settle_in(
                 stuck = Some(refusal);
             }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
-            Ok(Ok(done)) => arrived = done.arrived,
+            Ok(Ok(done)) => {
+                said_no_longer_held(&session, &done.let_go);
+                arrived = done.arrived;
+            }
         }
         brought = tisty_core::cache::fingerprint(&store) != before;
     }
@@ -445,6 +465,7 @@ pub async fn sync_now(
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
 
+    said_no_longer_held(&session, &done.let_go);
     let moved = tisty_core::cache::fingerprint(&store) != before;
     if moved {
         catching_up(
@@ -1035,22 +1056,32 @@ pub async fn free_up(
     stopping
         .0
         .store(false, std::sync::atomic::Ordering::Relaxed);
-    let (data, dest, above) = {
+    let (data, dest, above, held_away) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
+        let mine = session.store.device().clone();
+        let held_away: std::collections::BTreeSet<String> = session
+            .state
+            .holders
+            .iter()
+            .filter(|(_, who)| who.iter().any(|one| one != &mine))
+            .map(|(at, _)| at.clone())
+            .collect();
         (
             session.paths.data().to_path_buf(),
             dest,
             session.config.only_shared_above(),
+            held_away,
         )
     };
 
     let telling = app.clone();
     let done = tauri::async_runtime::spawn_blocking(move || {
         let mut said = 0;
-        tisty_sync::let_go_telling(&data, &dest, above, &mut |far| {
+        let elsewhere = |at: &str| held_away.contains(at);
+        tisty_sync::let_go_telling(&data, &dest, above, &elsewhere, &mut |far| {
             if far.gone != said {
                 said = far.gone;
                 let _ = telling.emit(
@@ -1072,6 +1103,20 @@ pub async fn free_up(
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
 
+    if !done.let_go.is_empty() {
+        let said_so: Vec<tisty_core::Op> = done
+            .let_go
+            .iter()
+            .map(|at| tisty_core::Op::AttachLetGo { d: at.clone() })
+            .collect();
+        if let Err(e) = held(&session).commit_all(said_so) {
+            witness::warn(
+                channel::SYNC,
+                "copies were let go of and the log was not told",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+        }
+    }
     witness::note(
         channel::SYNC,
         "big attachments were left to the shared folder",

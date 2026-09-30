@@ -10,8 +10,14 @@ use crate::{HELD, LetGo, Trouble, beside, plainly, sweep};
 /// What a round just put up there, checked by its size where it landed: the bytes were hashed on
 /// the way and the name was renamed into place, so reading it back would only ask the cloud for
 /// what we wrote a second ago.
-pub(crate) fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], above: u64) -> u64 {
+pub(crate) fn let_go_of(
+    data: &Path,
+    dest: &Path,
+    carried: &[(String, u64)],
+    above: u64,
+) -> (u64, Vec<String>) {
     let mut freed = 0;
+    let mut let_go = Vec::new();
     let told = tisty_core::attach::digests(data);
     for (reference, bytes) in carried {
         if *bytes <= above {
@@ -33,9 +39,10 @@ pub(crate) fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], abo
         }
         if std::fs::remove_file(&here).is_ok() {
             freed += bytes;
+            let_go.push(reference.clone());
         }
     }
-    freed
+    (freed, let_go)
 }
 
 pub(crate) fn landed_whole(
@@ -69,6 +76,7 @@ pub fn let_go_telling(
     data: &Path,
     dest: &Path,
     above: u64,
+    elsewhere: &dyn Fn(&str) -> bool,
     told: &mut dyn FnMut(&LetGo) -> bool,
 ) -> Result<LetGo, Trouble> {
     let mut done = LetGo::default();
@@ -104,11 +112,14 @@ pub fn let_go_telling(
                 weighs,
                 under,
                 named,
+                &reference,
+                elsewhere,
             ) {
                 true => {
                     if std::fs::remove_file(&at).is_ok() {
                         done.gone += 1;
                         done.freed += weighs;
+                        done.let_go.push(reference);
                     }
                 }
                 false => done.kept.push(reference),
@@ -121,12 +132,19 @@ pub fn let_go_telling(
     Ok(done)
 }
 
-pub(crate) fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
+pub(crate) fn twinned(
+    there: &Path,
+    weighs: u64,
+    under: &str,
+    named: &str,
+    reference: &str,
+    elsewhere: &dyn Fn(&str) -> bool,
+) -> bool {
     if !std::fs::metadata(there).is_ok_and(|told| told.is_file() && told.len() == weighs) {
         return false;
     }
     if tisty_core::holes::a_hole(there) {
-        return false;
+        return elsewhere(reference);
     }
     tisty_core::attach::hashed(there)
         .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
