@@ -86,17 +86,32 @@ fn a_name_a_directory_cannot_hold_gets_no_key() {
 }
 
 #[test]
-fn what_was_kept_as_a_key_and_is_not_one_is_not_read_as_one() {
+fn what_was_kept_as_a_key_and_is_not_one_is_set_aside_before_a_new_one_lands() {
     let (_room, paths) = room();
     let who = DeviceId("dev_a".into());
     let at = kept_at(&paths, &who).unwrap();
     std::fs::create_dir_all(paths.private()).unwrap();
     std::fs::write(&at, b"three bytes short of a key").unwrap();
 
-    assert!(
-        mine(&paths, &who).is_none(),
-        "it made a key over what somebody kept there"
+    let made = mine(&paths, &who).expect("a machine with a torn key file stayed mute for good");
+
+    assert_eq!(
+        mine(&paths, &who).unwrap().to_bytes(),
+        made.to_bytes(),
+        "it made a second key on the next call"
     );
+    assert!(
+        kept_beside(&paths, &at, b"three bytes short of a key"),
+        "what somebody kept there was written over instead of set aside"
+    );
+}
+
+fn kept_beside(paths: &crate::Paths, at: &std::path::Path, held: &[u8]) -> bool {
+    std::fs::read_dir(paths.private())
+        .unwrap()
+        .filter_map(|one| one.ok().map(|one| one.path()))
+        .filter(|one| one != at)
+        .any(|one| std::fs::read(one).is_ok_and(|there| there == held))
 }
 
 #[test]
@@ -199,4 +214,18 @@ fn a_seal_over_something_else_is_turned_away() {
     assert!(holds(&by, &one, "").is_none());
     assert!(holds(&by, &one, "{}").is_none());
     assert!(holds(&by, &one, r#"{"tip":"ab","sig":"cd"}"#).is_none());
+}
+
+#[test]
+fn a_key_truncated_on_disk_does_not_mute_the_machine_for_good() {
+    let (_room, paths) = room();
+    let who = DeviceId("dev_a".into());
+    let first = mine(&paths, &who).expect("a key was made");
+    let at = kept_at(&paths, &who).unwrap();
+
+    std::fs::write(&at, b"").unwrap();
+
+    let after = mine(&paths, &who).expect("an empty key file left the machine unable to sign");
+    assert_ne!(after.to_bytes(), first.to_bytes());
+    assert_eq!(mine(&paths, &who).unwrap().to_bytes(), after.to_bytes());
 }

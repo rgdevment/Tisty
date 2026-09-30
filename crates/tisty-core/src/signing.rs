@@ -1,11 +1,8 @@
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 
 use ed25519_dalek::{SigningKey, VerifyingKey};
 
 use crate::event::DeviceId;
-use crate::witness::{self, Fact, channel};
 
 pub const KEEP: &str = ".device-key";
 
@@ -24,66 +21,19 @@ pub fn read(said: &str) -> Option<VerifyingKey> {
 }
 
 pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
+    use crate::store::identity::{Kept, kept, minted};
+
     let at = kept_at(paths, device)?;
-    match std::fs::read(&at) {
-        Ok(held) => match <[u8; 32]>::try_from(held.as_slice()) {
-            Ok(kept) => return Some(SigningKey::from_bytes(&kept)),
-            Err(_) => {
-                witness::error(
-                    channel::STORE,
-                    "what was kept as this machine's signing key is not one, so it can prove nothing it wrote",
-                    &[("at", Fact::Path(at.clone()))],
-                );
-                return None;
-            }
-        },
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => {
-            witness::error(
-                channel::STORE,
-                "this machine's signing key could not be read",
-                &[
-                    ("at", Fact::Path(at.clone())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            return None;
-        }
-    }
-
-    let mut fresh = [0u8; 32];
-    rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
-    std::fs::create_dir_all(paths.private()).ok()?;
-    let _ = crate::paths::ours_alone(&paths.private());
-    match made(&at) {
-        Ok(mut file) => {
-            file.write_all(&fresh).ok()?;
-            file.sync_all().ok()?;
-            let _ = crate::paths::ours_alone(&at);
-            Some(SigningKey::from_bytes(&fresh))
-        }
-        Err(_) => std::fs::read(&at)
-            .ok()
-            .and_then(|held| <[u8; 32]>::try_from(held.as_slice()).ok())
-            .map(|kept| SigningKey::from_bytes(&kept)),
-    }
-}
-
-/// Narrow before the secret lands, not after: a widening afterwards leaves a window, and one that
-/// never runs because the process died leaves the key readable for good.
-#[cfg(unix)]
-fn made(at: &std::path::Path) -> std::io::Result<File> {
-    use std::os::unix::fs::OpenOptionsExt;
-    std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .open(at)
-}
-
-#[cfg(not(unix))]
-fn made(at: &std::path::Path) -> std::io::Result<File> {
-    File::create_new(at)
+    let one = match kept(
+        paths,
+        &at,
+        "what was kept as this machine's signing key is not one",
+    ) {
+        Kept::Good(one) => Some(one),
+        Kept::Gone => minted(paths, &at),
+        Kept::Blocked => None,
+    }?;
+    Some(SigningKey::from_bytes(&one))
 }
 
 pub const NOTHING_BEFORE: [u8; 32] = [0u8; 32];
@@ -140,7 +90,13 @@ struct Said {
 }
 
 fn hexed(bytes: &[u8]) -> String {
-    bytes.iter().map(|one| format!("{one:02x}")).collect()
+    use std::fmt::Write;
+    bytes
+        .iter()
+        .fold(String::with_capacity(bytes.len() * 2), |mut said, one| {
+            let _ = write!(said, "{one:02x}");
+            said
+        })
 }
 
 fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {

@@ -61,6 +61,7 @@ Some payload fields carry more than their name says:
 | Field | On | Meaning |
 |---|---|---|
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
+| `p` | `device.join` | the machine's public signing key, 32 bytes in hex. Only a machine's own word for its own key counts, and the first one published stands: a later join naming another key is refused, not believed. Anything that is not a key is dropped and the join lands without it |
 | `d`, `of` | `device.host` | the machine an agent device is hosted on. The join is written as the agent and said nothing about where; this says it, marked `opt`, and only the agent's own word or its host's counts — `d` an agent, `of` a machine. The window writes it as the machine, so it settles like `doc.said`: `undo` walks past it |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
@@ -71,6 +72,16 @@ Some payload fields carry more than their name says:
 
 `active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
 are numbered from one without gaps.
+
+A machine that holds a signing key writes a `.sig` beside each of its own
+segments — `active.sig`, `NNNNNN.sig`. Inside is a tip and a signature over it:
+the tip is a SHA-256 chain folded line by line across this machine's whole
+history, and what is signed is the machine, the segment's name and that tip
+together, so one signature never answers for another segment nor for bytes
+rolled back to a length it once covered. It is written before the segment it
+covers is renamed and carried after it is copied, never the other way round. A
+`.sig` that is missing or does not verify is not read as tampering on its own:
+the chain is folded again from the last one that does.
 
 ### What a power cut leaves behind
 

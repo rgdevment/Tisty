@@ -8,7 +8,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-mod identity;
+pub(crate) mod identity;
 
 pub use identity::{
     KEEP, MARKER, brought_home, displaced, identity, kept_at, kept_before_the_store_goes,
@@ -29,7 +29,7 @@ pub struct Store {
     active_events: usize,
     head: jiff::Timestamp,
     seq: u64,
-    seen: u64,
+    seen: Mark,
     overtaken: bool,
     lock: Option<File>,
     via: Option<String>,
@@ -66,7 +66,7 @@ impl Store {
 
         mend(&dir);
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
-        let seen = active_size(&dir.join(ACTIVE));
+        let seen = active_mark(&dir.join(ACTIVE));
 
         Ok(Self {
             active_events,
@@ -180,8 +180,8 @@ impl Store {
 
     fn catch_up(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
-        let size = active_size(&active);
-        if size == self.seen {
+        let mark = active_mark(&active);
+        if mark == self.seen {
             return Ok(());
         }
         self.overtaken = true;
@@ -195,7 +195,7 @@ impl Store {
             self.head = head;
             self.seq = seq;
         }
-        self.seen = size;
+        self.seen = mark;
         Ok(())
     }
 
@@ -361,8 +361,10 @@ impl Store {
             self.active_events += lot.len();
             at += lot.len();
         }
-        self.seal(&self.dir.join(ACTIVE));
-        self.seen = active_size(&self.dir.join(ACTIVE));
+        if !events.is_empty() {
+            self.seal(&self.dir.join(ACTIVE));
+        }
+        self.seen = active_mark(&self.dir.join(ACTIVE));
         Ok(())
     }
 
@@ -371,6 +373,9 @@ impl Store {
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
             let sealed = self.dir.join(format!("{next:06}.tisty"));
+            // Sealed before the rename, never after: a death in between would leave a segment
+            // nothing ever seals, and no later pass goes back for it.
+            self.seal(&sealed);
             std::fs::rename(&active, &sealed)?;
 
             let (lines, _, _) = tail_of(&sealed)?;
@@ -378,11 +383,10 @@ impl Store {
                 &sealed.with_extension("count"),
                 lines.to_string().as_bytes(),
             )?;
-            self.seal(&sealed);
             let _ = std::fs::remove_file(active.with_extension(crate::signing::SEAL));
         }
         self.active_events = 0;
-        self.seen = 0;
+        self.seen = Mark::default();
         Ok(())
     }
 
@@ -789,8 +793,15 @@ fn poured(tmp: &Path, contents: &[u8]) -> Result<()> {
 #[path = "store_atomic_tests.rs"]
 mod atomic_tests;
 
-fn active_size(path: &Path) -> u64 {
-    std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
+/// A length alone cannot tell a rotation from a quiet moment: the segment another writer closed
+/// and refilled to the same size would read as untouched, and the chain would fork from there.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct Mark(u64, Option<std::time::SystemTime>);
+
+fn active_mark(path: &Path) -> Mark {
+    std::fs::metadata(path)
+        .map(|m| Mark(m.len(), m.modified().ok()))
+        .unwrap_or_default()
 }
 
 pub struct Alone(File);

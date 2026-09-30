@@ -37,8 +37,8 @@ impl Alike {
     ) -> Result<usize, Trouble> {
         let (from, into) = from_to(theirs, mine, way);
         let (from, into) = (from.to_path_buf(), into.to_path_buf());
-        let done = copy_segments(&from, &into, again, self.of(who, theirs, mine))?;
-        if done > 0 {
+        let (done, beside) = copy_segments(&from, &into, again, self.of(who, theirs, mine))?;
+        if done > 0 || beside > 0 {
             self.0.remove(who);
         }
         Ok(done)
@@ -78,12 +78,14 @@ fn all_of(dir: &Path, known: &Named) -> bool {
         .unwrap_or(false)
 }
 
+/// Segments and what sits beside them are counted apart: the first is what the round says it
+/// brought home, the second only says the memo of what both sides hold is out of date.
 pub(crate) fn copy_segments(
     from: &Path,
     into: &Path,
     again: bool,
     known: &Named,
-) -> Result<usize, Trouble> {
+) -> Result<(usize, usize), Trouble> {
     let carried = match tisty_core::store::segments_in(from) {
         Ok(carried) => carried,
         Err(e) => {
@@ -98,15 +100,16 @@ pub(crate) fn copy_segments(
                     ],
                 );
             }
-            return Ok(0);
+            return Ok((0, 0));
         }
     };
     if carried.is_empty() {
-        return Ok(0);
+        return Ok((0, 0));
     }
     std::fs::create_dir_all(into).map_err(io)?;
     sweep(into);
     let mut done = 0;
+    let mut beside_it = 0;
     for at in carried {
         let Some(named) = at.file_name() else {
             continue;
@@ -125,15 +128,21 @@ pub(crate) fn copy_segments(
             let beside = at.with_extension(kind);
             let there = target.with_extension(kind);
             match beside.is_file() {
-                true if again || !same(&beside, &there) => copy_onto(&beside, &there)?,
-                true => {}
-                false => {
-                    let _ = std::fs::remove_file(&there);
+                true if again || !same(&beside, &there) => {
+                    copy_onto(&beside, &there)?;
+                    beside_it += 1;
                 }
+                true => {}
+                // A count answers for a segment that no longer changes, so the one already there
+                // stays true; a seal that went from the source answers for bytes that moved.
+                false if kind == tisty_core::signing::SEAL => {
+                    beside_it += usize::from(std::fs::remove_file(&there).is_ok());
+                }
+                false => {}
             }
         }
     }
-    Ok(done)
+    Ok((done, beside_it))
 }
 
 pub(crate) fn sweep(dir: &Path) {

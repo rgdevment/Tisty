@@ -946,7 +946,7 @@ fn rotation_resets_what_the_store_believes_it_has_seen() {
     store.append(add("after")).unwrap();
 
     assert_eq!(store.active_events, 1);
-    assert_eq!(store.seen, active_size(&store.dir.join(ACTIVE)));
+    assert_eq!(store.seen, active_mark(&store.dir.join(ACTIVE)));
 }
 #[test]
 fn a_store_keeps_the_same_name_however_often_it_is_asked() {
@@ -1385,4 +1385,35 @@ fn a_machine_with_no_key_leaves_no_seal_behind_when_it_rotates() {
         !dir.join("000001.sig").exists(),
         "a machine with no key sealed the segment it rotated"
     );
+}
+
+#[test]
+fn nothing_to_write_leaves_no_seal_behind() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
+
+    store.append_batch(Vec::new()).unwrap();
+
+    assert!(
+        !dir.join("active.sig").exists(),
+        "a seal was written for a segment that was never started"
+    );
+    assert!(!dir.join(ACTIVE).exists());
+}
+
+#[test]
+fn a_segment_closed_and_refilled_to_the_same_length_is_not_read_as_untouched() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join("active.tisty");
+    std::fs::write(&at, b"aaaa").unwrap();
+    let was = active_mark(&at);
+
+    for _ in 0..80 {
+        std::thread::sleep(std::time::Duration::from_millis(25));
+        std::fs::write(&at, b"bbbb").unwrap();
+        if active_mark(&at) != was {
+            return;
+        }
+    }
+    panic!("two segments of the same length read as the same segment");
 }

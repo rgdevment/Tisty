@@ -55,29 +55,10 @@ pub fn secret_kept(paths: &crate::Paths) -> Option<[u8; 32]> {
 pub fn secret(paths: &crate::Paths) -> Option<[u8; 32]> {
     let named = identity(paths.store()).ok()?;
     let at = kept_at(paths, &named)?;
-    match std::fs::read(&at) {
-        Ok(held) => match <[u8; 32]>::try_from(held.as_slice()) {
-            Ok(kept) => return Some(kept),
-            Err(_) => {
-                if !set_aside(paths, &at, &held, "what was kept as the key is not one")
-                    || std::fs::remove_file(&at).is_err()
-                {
-                    return None;
-                }
-            }
-        },
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => {
-            witness::error(
-                channel::STORE,
-                "the key could not be read, so this store cannot prove its own writing",
-                &[
-                    ("at", Fact::Path(at.clone())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            return None;
-        }
+    match kept(paths, &at, "what was kept as the key is not one") {
+        Kept::Good(one) => return Some(one),
+        Kept::Blocked => return None,
+        Kept::Gone => {}
     }
 
     if let Ok(inside) = std::fs::read(paths.store().join(KEEP))
@@ -86,21 +67,78 @@ pub fn secret(paths: &crate::Paths) -> Option<[u8; 32]> {
         return Some(kept);
     }
 
+    minted(paths, &at)
+}
+
+pub(crate) enum Kept {
+    Good([u8; 32]),
+    Gone,
+    Blocked,
+}
+
+pub(crate) fn kept(paths: &crate::Paths, at: &Path, why: &str) -> Kept {
+    match std::fs::read(at) {
+        Ok(held) => match <[u8; 32]>::try_from(held.as_slice()) {
+            Ok(one) => Kept::Good(one),
+            Err(_) if set_aside(paths, at, &held, why) && std::fs::remove_file(at).is_ok() => {
+                Kept::Gone
+            }
+            Err(_) => Kept::Blocked,
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Kept::Gone,
+        Err(e) => {
+            witness::error(
+                channel::STORE,
+                "a key could not be read, so this machine cannot prove its own writing",
+                &[
+                    ("at", Fact::Path(at.to_path_buf())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            Kept::Blocked
+        }
+    }
+}
+
+pub(crate) fn minted(paths: &crate::Paths, at: &Path) -> Option<[u8; 32]> {
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
     std::fs::create_dir_all(paths.private()).ok()?;
     let _ = crate::paths::ours_alone(&paths.private());
-    match File::create_new(&at) {
+    match made(at) {
         Ok(mut file) => {
-            file.write_all(&fresh).ok()?;
-            file.sync_all().ok()?;
-            let _ = crate::paths::ours_alone(&at);
+            if file
+                .write_all(&fresh)
+                .and_then(|()| file.sync_all())
+                .is_err()
+            {
+                let _ = std::fs::remove_file(at);
+                return None;
+            }
+            let _ = crate::paths::ours_alone(at);
             Some(fresh)
         }
-        Err(_) => std::fs::read(&at)
+        Err(_) => std::fs::read(at)
             .ok()
             .and_then(|held| <[u8; 32]>::try_from(held.as_slice()).ok()),
     }
+}
+
+/// Unix narrows before the secret lands; Windows cannot, and leans on a private directory nobody
+/// else's account reaches.
+#[cfg(unix)]
+fn made(at: &Path) -> std::io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(at)
+}
+
+#[cfg(not(unix))]
+fn made(at: &Path) -> std::io::Result<File> {
+    File::create_new(at)
 }
 
 pub fn kept_before_the_store_goes(paths: &crate::Paths) {

@@ -6338,3 +6338,63 @@ fn a_seal_travels_with_the_segment_it_answers_for() {
         "what arrived is not what the seal was made over"
     );
 }
+
+fn a_segment_with_its_siblings(dir: &std::path::Path, count: &str, seal: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    std::fs::write(dir.join("000001.tisty"), b"one line").unwrap();
+    std::fs::write(dir.join("000001.count"), count.as_bytes()).unwrap();
+    std::fs::write(dir.join("000001.sig"), seal.as_bytes()).unwrap();
+}
+
+#[test]
+fn a_source_caught_without_a_count_does_not_take_the_one_already_there() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a seal");
+    a_segment_with_its_siblings(&into, "1", "a seal");
+    std::fs::remove_file(from.join("000001.count")).unwrap();
+
+    crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert!(
+        into.join("000001.count").is_file(),
+        "the guard against a truncated segment was removed at the far end"
+    );
+}
+
+#[test]
+fn a_source_that_let_go_of_a_seal_takes_the_far_one_with_it() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a seal");
+    a_segment_with_its_siblings(&into, "1", "a seal");
+    std::fs::remove_file(from.join("000001.sig")).unwrap();
+
+    crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert!(
+        !into.join("000001.sig").exists(),
+        "a seal nobody answers for any more was left standing"
+    );
+}
+
+#[test]
+fn a_carry_that_moved_only_a_seal_is_not_reported_as_nothing() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a newer seal");
+    a_segment_with_its_siblings(&into, "1", "a seal");
+
+    let (done, beside) =
+        crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(into.join("000001.sig")).unwrap(),
+        "a newer seal"
+    );
+    assert_eq!(done, 0, "a seal was counted as a segment brought home");
+    assert!(beside > 0, "a seal moved and the round called it a no-op");
+}
