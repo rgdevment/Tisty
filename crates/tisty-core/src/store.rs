@@ -410,7 +410,7 @@ impl Store {
         Ok(())
     }
 
-    fn rotate(&mut self) -> Result<()> {
+    pub(crate) fn rotate(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
