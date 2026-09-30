@@ -17,6 +17,7 @@ pub use identity::{
 
 const ACTIVE: &str = "active.tisty";
 const LOCK: &str = ".lock";
+const TORN: &str = "torn";
 const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
 const SEGMENT_MAX_EVENTS: usize = 5_000;
@@ -523,6 +524,19 @@ pub fn is_closed(name: &str) -> bool {
     is_segment(name) && name != ACTIVE
 }
 
+/// What sits beside a segment and belongs to this machine alone. Everything else travels,
+/// whether this build has a name for it or not: a later one may write a sibling we cannot
+/// read, and leaving it behind loses it as surely as deleting it.
+pub fn beside_a_segment(named: &str) -> Option<(&str, &str)> {
+    let mut apart = named.split('.');
+    let (Some(stem), Some(kind), None) = (apart.next(), apart.next(), apart.next()) else {
+        return None;
+    };
+    let stays_here = kind.is_empty() || kind == TORN || named == LOCK;
+    let a_segment = kind == "tisty";
+    (!stem.is_empty() && !stays_here && !a_segment).then_some((stem, kind))
+}
+
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
     let mut found: Vec<PathBuf> = std::fs::read_dir(device_dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
@@ -902,7 +916,7 @@ fn mend(dir: &Path) {
         return;
     }
 
-    let aside = path.with_extension("torn");
+    let aside = path.with_extension(TORN);
     if let Err(why) = std::fs::write(&aside, tail) {
         witness::error(
             channel::STORE,

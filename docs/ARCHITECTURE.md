@@ -1116,6 +1116,32 @@ That folder is **not** the data directory, and pointing a cloud client at
 `AppData` is still the wrong thing to do. The store stays on your disk; only
 copies travel.
 
+### The folder says what shape it is in
+
+```text
+<shared>/tisty.toml              shape = 1, and the folders that shape has
+├── store/                       every machine's history, one directory each
+├── attachments/
+└── docs/
+```
+
+`tisty.toml` is **read before anything else there and written after everything
+else**, so finding it is finding a round that got to the end. A number this build
+does not know means a later one arranged that folder around something this one
+cannot see, and the round stops in both directions rather than write over it —
+the same refusal a newer schema in the log already earns.
+
+Its absence is never read as «there is nothing here». A folder that has never
+said its shape is one from before this file existed, and is adopted and stamped.
+A folder that said it and has gone quiet is one where a round did not finish or
+a hand went through, and nothing is read from it until it says so again. The
+difference is remembered in `<data>/.shape-seen`, which never travels.
+
+**What sits beside a segment travels whether this build has a name for it or
+not.** Only the lock and a mend left behind stay on the machine that made them.
+A later build may write a sibling this one cannot read, and leaving it where it
+was loses it as surely as deleting it.
+
 **Only machines on the list write there.** Being on it is what gives a machine a
 voice; one that was removed keeps its own copy and never pushes again. You join
 by adopting, not by asking — reaching those files is the authorisation — so

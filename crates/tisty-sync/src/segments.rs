@@ -108,6 +108,7 @@ pub(crate) fn copy_segments(
     }
     std::fs::create_dir_all(into).map_err(io)?;
     sweep(into);
+    let found = beside_each(from);
     let mut done = 0;
     let mut beside_it = 0;
     for at in carried {
@@ -124,9 +125,9 @@ pub(crate) fn copy_segments(
 
         // After the segment, never before: a signature copied first would answer for fewer bytes
         // than the segment beside it, and read as a segment somebody tampered with.
-        for kind in ["count", tisty_core::signing::SIG] {
-            let beside = at.with_extension(kind);
-            let there = target.with_extension(kind);
+        for kind in beside_this(&found, named) {
+            let beside = at.with_extension(&kind);
+            let there = target.with_extension(&kind);
             match beside.is_file() {
                 true if again || !same(&beside, &there) => {
                     copy_onto(&beside, &there)?;
@@ -139,11 +140,49 @@ pub(crate) fn copy_segments(
                 false if !stands && kind == tisty_core::signing::SIG => {
                     beside_it += usize::from(std::fs::remove_file(&there).is_ok());
                 }
+                // Nothing is taken away on account of a kind this build cannot read: absence
+                // here means only that we do not know what it was for.
                 false => {}
             }
         }
     }
     Ok((done, beside_it))
+}
+
+type Kinds = std::collections::BTreeMap<String, std::collections::BTreeSet<String>>;
+
+fn beside_each(dir: &Path) -> Kinds {
+    let mut found = Kinds::new();
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return found;
+    };
+    for named in entries
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name())
+    {
+        if let Some(named) = named.to_str()
+            && let Some((stem, kind)) = tisty_core::store::beside_a_segment(named)
+        {
+            found
+                .entry(stem.to_string())
+                .or_default()
+                .insert(kind.to_string());
+        }
+    }
+    found
+}
+
+/// What this build knows to look for, and whatever else the far side happened to leave beside
+/// the segment: a sibling a later build writes must travel, or it is lost as surely as deleted.
+fn beside_this(found: &Kinds, segment: &std::ffi::OsStr) -> std::collections::BTreeSet<String> {
+    let mut kinds: std::collections::BTreeSet<String> =
+        ["count", tisty_core::signing::SIG].map(String::from).into();
+    if let Some(stem) = Path::new(segment).file_stem().and_then(|one| one.to_str())
+        && let Some(theirs) = found.get(stem)
+    {
+        kinds.extend(theirs.iter().cloned());
+    }
+    kinds
 }
 
 pub(crate) fn sweep(dir: &Path) {
