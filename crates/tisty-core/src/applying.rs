@@ -45,6 +45,10 @@ impl State {
         self.agents.remove(d);
         self.hosts.remove(d);
         self.dropped.insert(d.clone());
+        self.holders.retain(|_, who| {
+            who.remove(d);
+            !who.is_empty()
+        });
     }
 
     pub(crate) fn store_signed(&mut self, d: &Signature) {

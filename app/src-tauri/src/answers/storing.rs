@@ -9,6 +9,46 @@ use crate::{
     glimpse, held, report, room, said, session, show, today, within,
 };
 
+fn said_now_held(session: &tauri::State<'_, Mutex<Session>>, took_in: &[(String, String, u64)]) {
+    if took_in.is_empty() {
+        return;
+    }
+    let said_so = took_in
+        .iter()
+        .map(|(at, sha256, bytes)| tisty_core::Op::AttachKept {
+            d: tisty_core::event::Held {
+                at: at.clone(),
+                sha256: sha256.clone(),
+                bytes: *bytes,
+            },
+        })
+        .collect();
+    if let Err(e) = held(session).commit_all(said_so) {
+        witness::warn(
+            channel::SYNC,
+            "bodies came in and the log was not told this machine now holds them",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
+fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[String]) {
+    if let_go.is_empty() {
+        return;
+    }
+    let said_so = let_go
+        .iter()
+        .map(|at| tisty_core::Op::AttachLetGo { d: at.clone() })
+        .collect();
+    if let Err(e) = held(session).commit_all(said_so) {
+        witness::warn(
+            channel::SYNC,
+            "copies were let go of and the log was not told",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
+}
+
 async fn catching_up(
     session: &tauri::State<'_, Mutex<Session>>,
     paths: &tisty_core::Paths,
@@ -86,6 +126,7 @@ pub async fn settle_in(
             )
         })
         .await;
+        brought = tisty_core::cache::fingerprint(&store) != before;
         match carried {
             Ok(Err(why)) => {
                 let refusal = said(why);
@@ -97,9 +138,12 @@ pub async fn settle_in(
                 stuck = Some(refusal);
             }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
-            Ok(Ok(done)) => arrived = done.arrived,
+            Ok(Ok(done)) => {
+                said_no_longer_held(&session, &done.let_go);
+                said_now_held(&session, &done.took_in);
+                arrived = done.arrived;
+            }
         }
-        brought = tisty_core::cache::fingerprint(&store) != before;
     }
 
     if brought {
@@ -446,6 +490,8 @@ pub async fn sync_now(
     .map_err(said)?;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
+    said_no_longer_held(&session, &done.let_go);
+    said_now_held(&session, &done.took_in);
     if moved {
         catching_up(
             &session,
@@ -1035,22 +1081,32 @@ pub async fn free_up(
     stopping
         .0
         .store(false, std::sync::atomic::Ordering::Relaxed);
-    let (data, dest, above) = {
+    let (data, dest, above, held_away) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
+        let mine = session.store.device().clone();
+        let held_away: std::collections::BTreeSet<String> = session
+            .state
+            .holders
+            .iter()
+            .filter(|(_, who)| who.iter().any(|one| one != &mine))
+            .map(|(at, _)| at.clone())
+            .collect();
         (
             session.paths.data().to_path_buf(),
             dest,
             session.config.only_shared_above(),
+            held_away,
         )
     };
 
     let telling = app.clone();
     let done = tauri::async_runtime::spawn_blocking(move || {
         let mut said = 0;
-        tisty_sync::let_go_telling(&data, &dest, above, &mut |far| {
+        let elsewhere = |at: &str| held_away.contains(at);
+        tisty_sync::let_go_telling(&data, &dest, above, &elsewhere, &mut |far| {
             if far.gone != said {
                 said = far.gone;
                 let _ = telling.emit(
@@ -1072,6 +1128,7 @@ pub async fn free_up(
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
 
+    said_no_longer_held(&session, &done.let_go);
     witness::note(
         channel::SYNC,
         "big attachments were left to the shared folder",

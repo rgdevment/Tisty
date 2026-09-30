@@ -1243,3 +1243,31 @@ fn the_one_still_being_written_to_is_the_only_segment_that_is_not_sealed() {
     assert!(!is_sealed("notes.txt"));
     assert!(!is_sealed("00001.count"));
 }
+
+#[test]
+fn what_an_attachment_holds_is_written_down_where_an_older_reader_can_step_over_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("store");
+    let mut store = Store::open(&root, DeviceId("dev_a".into())).unwrap();
+
+    let body = b"lo grabado";
+    let sha256 = crate::attach::printed(body);
+    store
+        .append(Op::AttachKept {
+            d: crate::event::Held {
+                at: format!("attachments/{}/charla-{}.mp4", &sha256[..2], &sha256[2..10]),
+                sha256,
+                bytes: body.len() as u64,
+            },
+        })
+        .unwrap();
+
+    let said = std::fs::read_to_string(root.join("dev_a").join("active.tisty")).unwrap();
+    let line = said.lines().last().expect("a line was written");
+
+    assert!(line.contains(r#""op":"attach.kept""#), "{line}");
+    assert!(
+        line.contains(r#""opt":true"#),
+        "a reader that predates this would refuse the whole store: {line}"
+    );
+}

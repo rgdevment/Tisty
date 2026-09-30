@@ -929,6 +929,7 @@ struct Carried {
     kept: usize,
     missed: Vec<String>,
     papers: Vec<String>,
+    told: Vec<tisty_core::Op>,
 }
 
 fn unescaped(target: &str) -> String {

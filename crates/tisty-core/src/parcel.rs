@@ -989,7 +989,7 @@ fn taken_in(
             landed.missed += 1;
             continue;
         };
-        let body = brought(data, staged, &body, &mut carried, &mut landed);
+        let body = brought(data, staged, &body, &mut carried, &mut landed, &mut ops);
 
         let up = paper
             .page_of
@@ -1265,6 +1265,7 @@ fn brought(
     body: &str,
     carried: &mut BTreeMap<String, String>,
     landed: &mut Landed,
+    ops: &mut Vec<Op>,
 ) -> String {
     let mut told = body.to_string();
     for one in crate::refs::extract(body).into_iter().map(|one| one.target) {
@@ -1288,6 +1289,7 @@ fn brought(
                 continue;
             };
             landed.files += 1;
+            ops.push(kept.told());
             carried.insert(one.clone(), kept.at);
         }
         if let Some(now) = carried.get(&one)

@@ -60,6 +60,8 @@ pub struct Moved {
     pub astray: Vec<String>,
     pub joined: Vec<String>,
     pub arrived: Vec<String>,
+    pub let_go: Vec<String>,
+    pub took_in: Vec<(String, String, u64)>,
 }
 
 impl Moved {
@@ -198,9 +200,11 @@ pub fn carry_telling(
             None,
             None,
             Some(&mut carried),
+            &told.kept,
         )?;
         if holds == Holds::Shared {
-            moved.freed = let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
+            (moved.freed, moved.let_go) =
+                let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
         }
     }
     if !alive.is_empty() {
@@ -233,7 +237,8 @@ pub fn carry_telling(
             Some(data),
             left_behind(holds),
             reachable.as_ref(),
-            None,
+            Some(&mut moved.took_in),
+            &told.kept,
         )?;
     }
     note_carried(aside, dest);
@@ -655,6 +660,7 @@ pub struct LetGo {
     pub gone: usize,
     pub freed: u64,
     pub kept: Vec<String>,
+    pub let_go: Vec<String>,
 }
 
 static ROUND: AtomicU64 = AtomicU64::new(0);

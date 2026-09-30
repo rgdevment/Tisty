@@ -7,7 +7,7 @@ use tisty_core::Paths;
 
 use super::super::asked::{body_at_most, short_and_plain, text};
 use super::super::jsonrpc::told;
-use super::super::{Refused, opened};
+use super::super::{Refused, hitch, opened};
 
 pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "path") else {
@@ -61,7 +61,8 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
     short_and_plain(&json!({ "body": made.body }))?;
     // The files beside it are copied in below, and a document turned away after that would
     // leave them on the person's disk with nothing pointing at them.
-    where_it_lands(&opened(paths)?.0, args)?;
+    let (state, mut store) = opened(paths)?;
+    where_it_lands(&state, args)?;
     let (whole, brought) = beside_the_file(paths, &at, &made.body);
     let made = tisty_core::arriving::Tidied {
         body: whole,
@@ -107,6 +108,10 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         )));
     }
     short_and_plain(&asked_again)?;
+    if !brought.told.is_empty() {
+        store.append_batch(brought.told).map_err(hitch)?;
+    }
+    drop(store);
     let written = write_doc(paths, &asked_again)?;
 
     let changed = made.changed.join(", ");

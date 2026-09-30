@@ -269,6 +269,70 @@ fn attaching_copies_the_file_and_says_where_it_came_from() {
 }
 
 #[test]
+fn attaching_tells_the_log_what_the_file_holds() {
+    let cli = Cli::new();
+    cli.ok(&["chase the invoice"]);
+    cli.ok(&["ls", "all"]);
+    let loose = cli.home.path().join("invoice.pdf");
+    let body = b"not really a pdf";
+    std::fs::write(&loose, body).unwrap();
+
+    cli.ok(&["attach", "1", loose.to_str().unwrap()]);
+
+    let store = cli.home.path().join("data").join("store");
+    let device = std::fs::read_dir(&store)
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .find(|one| one.path().is_dir())
+        .unwrap();
+    let said = std::fs::read_to_string(device.path().join("active.tisty")).unwrap();
+    let told = said
+        .lines()
+        .find(|one| one.contains(r#""op":"attach.kept""#))
+        .expect("the log was never told what the file holds");
+
+    assert!(
+        told.contains(&tisty_core::attach::printed(body)),
+        "what it holds is not the digest of what was attached: {told}"
+    );
+    assert!(
+        told.contains(r#""opt":true"#),
+        "a build that predates this would refuse the store: {told}"
+    );
+}
+
+#[test]
+fn undoing_still_works_after_a_file_was_attached() {
+    let cli = Cli::new();
+    cli.ok(&["chase the invoice"]);
+    cli.ok(&["ls", "all"]);
+    let loose = cli.home.path().join("invoice.pdf");
+    std::fs::write(&loose, "not really a pdf").unwrap();
+    cli.ok(&["attach", "1", loose.to_str().unwrap()]);
+
+    let back = cli.run(&["undo"]);
+
+    assert_eq!(
+        back.code, 0,
+        "undo refused after an attachment: {}",
+        back.out
+    );
+    let card = cli.ok(&["show", "1"]);
+    assert!(
+        !card.contains("invoice.pdf"),
+        "the entry the attachment wrote is still there: {card}"
+    );
+
+    let again = cli.run(&["undo"]);
+
+    assert_eq!(
+        again.code, 0,
+        "undo walked back onto what the attachment avowed and stopped there: {}",
+        again.out
+    );
+}
+
+#[test]
 fn attaching_by_a_documents_name_puts_the_file_in_the_document() {
     let cli = Cli::new();
     let made = cli

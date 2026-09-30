@@ -133,6 +133,7 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let lang = crate::i18n::Lang::detect(config.locale.as_deref());
             let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
             let zone = jiff::tz::TimeZone::system();
+            store.append(kept.told()).map_err(hitch)?;
             store
                 .append(Op::TaskLog {
                     id,
@@ -155,6 +156,13 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     )),
                     other => hitch(other),
                 })?;
+            if let Err(why) = store.append(kept.told()) {
+                tisty_core::witness::warn(
+                    tisty_core::witness::channel::ATTACH,
+                    "what an attachment holds could not be written down",
+                    &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+                );
+            }
             let title = tisty_core::docs::titled(&whole);
             Ok(told(
                 format!("Kept {named:?} at the end of {title:?}."),

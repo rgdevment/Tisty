@@ -32,6 +32,8 @@ pub struct State {
     pub hosts: BTreeMap<DeviceId, DeviceId>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
+    pub kept: BTreeMap<String, (String, u64)>,
+    pub holders: BTreeMap<String, BTreeSet<DeviceId>>,
     pub retired: BTreeSet<String>,
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
@@ -389,9 +391,29 @@ impl State {
             }
             Op::Signed { d } => self.store_signed(d),
             Op::DeviceRemove { d } => self.device_removed(d),
+            Op::AttachKept { d } => {
+                if vouches_for_its_name(d) {
+                    self.kept
+                        .insert(d.at.clone(), (d.sha256.to_ascii_lowercase(), d.bytes));
+                    self.holders
+                        .entry(d.at.clone())
+                        .or_default()
+                        .insert(event.device.clone());
+                }
+            }
+            Op::AttachLetGo { d } => {
+                if let Some(who) = self.holders.get_mut(d) {
+                    who.remove(&event.device);
+                    if who.is_empty() {
+                        self.holders.remove(d);
+                    }
+                }
+            }
             Op::AttachRetire { d } => {
                 if crate::attach::names_an_attachment(d) {
                     self.retired.insert(d.clone());
+                    self.kept.remove(d);
+                    self.holders.remove(d);
                 }
             }
             Op::StoresJoined { d } => {
@@ -1267,6 +1289,20 @@ impl State {
             .values()
             .filter(move |one| !self.held_away(one) && one.tags.contains(tag))
     }
+}
+
+fn vouches_for_its_name(said: &crate::event::Held) -> bool {
+    if !crate::attach::names_an_attachment(&said.at) {
+        return false;
+    }
+    if said.sha256.len() != 64 || !said.sha256.chars().all(|one| one.is_ascii_hexdigit()) {
+        return false;
+    }
+    let mut parts = said.at.rsplit('/');
+    let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
+        return false;
+    };
+    crate::attach::vouched(shelf, leaf, &said.sha256)
 }
 
 fn loose(name: &str) -> String {
