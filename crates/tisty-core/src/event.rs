@@ -127,6 +127,7 @@ impl Event {
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
+            | Op::DeviceKey { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }

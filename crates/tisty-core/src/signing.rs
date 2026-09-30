@@ -19,6 +19,24 @@ pub fn shown_of(key: &VerifyingKey) -> String {
     hexed(key.as_bytes())
 }
 
+/// Only a machine's own word for its own key counts, and the first it publishes stands. False
+/// when one already stood and differs, which is the door a rekey would otherwise walk through.
+pub fn published(
+    into: &mut std::collections::BTreeMap<DeviceId, String>,
+    by: &DeviceId,
+    whose: &DeviceId,
+    said: &str,
+) -> bool {
+    if by != whose {
+        return true;
+    }
+    let Some(key) = read(said) else {
+        return true;
+    };
+    let shown = shown_of(&key);
+    *into.entry(whose.clone()).or_insert(shown.clone()) == shown
+}
+
 pub fn read(said: &str) -> Option<VerifyingKey> {
     let bytes = unhexed::<32>(said)?;
     VerifyingKey::from_bytes(&bytes).ok()
@@ -58,10 +76,13 @@ pub const SIG: &str = "sig";
 
 /// A tip alone says nothing about what it is a tip of, so an old signature would answer for a
 /// segment rolled back to the bytes it covered, or for another segment holding the same lines.
-fn over(about: &About, tip: &[u8; 32]) -> Vec<u8> {
-    let mut said =
-        format!("tisty.sig\u{0}{}\u{0}{}\u{0}", about.device, about.segment).into_bytes();
-    said.extend_from_slice(tip);
+fn over(about: &About, covers: &Covers) -> Vec<u8> {
+    let mut said = format!(
+        "tisty.sig\u{0}{}\u{0}{}\u{0}{}\u{0}",
+        about.device, about.segment, covers.at
+    )
+    .into_bytes();
+    said.extend_from_slice(&covers.tip);
     said
 }
 
@@ -70,30 +91,42 @@ pub struct About<'a> {
     pub segment: &'a str,
 }
 
-pub fn signed(key: &SigningKey, about: &About, tip: &[u8; 32]) -> String {
+/// The count is signed with the tip, or a reader resuming from it could be told any number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Covers {
+    pub tip: [u8; 32],
+    pub at: u64,
+}
+
+pub fn signed(key: &SigningKey, about: &About, covers: &Covers) -> String {
     use ed25519_dalek::Signer;
     let said = Said {
-        tip: hexed(tip),
-        sig: hexed(&key.sign(&over(about, tip)).to_bytes()),
+        tip: hexed(&covers.tip),
+        at: covers.at,
+        sig: hexed(&key.sign(&over(about, covers)).to_bytes()),
     };
     serde_json::to_string(&said).unwrap_or_default()
 }
 
-pub fn holds(by: &VerifyingKey, about: &About, said: &str) -> Option<[u8; 32]> {
+pub fn holds(by: &VerifyingKey, about: &About, said: &str) -> Option<Covers> {
     use ed25519_dalek::Verifier;
     let said: Said = serde_json::from_str(said).ok()?;
-    let tip = unhexed::<32>(&said.tip)?;
+    let covers = Covers {
+        tip: unhexed::<32>(&said.tip)?,
+        at: said.at,
+    };
     let sig = ed25519_dalek::Signature::from_slice(&unhexed::<64>(&said.sig)?).ok()?;
-    by.verify(&over(about, &tip), &sig).ok().map(|()| tip)
+    by.verify(&over(about, &covers), &sig).ok().map(|()| covers)
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct Said {
     tip: String,
+    at: u64,
     sig: String,
 }
 
-fn hexed(bytes: &[u8]) -> String {
+pub(crate) fn hexed(bytes: &[u8]) -> String {
     use std::fmt::Write;
     bytes
         .iter()
@@ -103,7 +136,7 @@ fn hexed(bytes: &[u8]) -> String {
         })
 }
 
-fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {
+pub(crate) fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {
     if said.len() != N * 2 || !said.chars().all(|one| one.is_ascii_hexdigit()) {
         return None;
     }
