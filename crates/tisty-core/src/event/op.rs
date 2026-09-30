@@ -268,7 +268,8 @@ impl Op {
     pub fn is_optional(&self) -> bool {
         matches!(
             self,
-            Op::DocSaid { .. }
+            Op::AttachKept { .. }
+                | Op::DocSaid { .. }
                 | Op::Signed { .. }
                 | Op::DeviceHost { .. }
                 | Op::DocFlag { .. }

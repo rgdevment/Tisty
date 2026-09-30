@@ -101,11 +101,14 @@ pub fn attach(
         let kept = tisty_core::attach::keep(at, app.paths.data(), app.copies_up_to())
             .map_err(|e| weighed(e, &named, lang))?;
         let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
-        app.commit(Op::TaskLog {
-            id,
-            d: LogAdd::new(Ulid::generate(), body)
-                .in_zone(jiff::tz::TimeZone::system().iana_name().map(str::to_string)),
-        })?;
+        app.commit_all(vec![
+            kept.told(),
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(Ulid::generate(), body)
+                    .in_zone(jiff::tz::TimeZone::system().iana_name().map(str::to_string)),
+            },
+        ])?;
         report(app, id, today, lang);
     });
     Ok(ExitCode::SUCCESS)
@@ -133,6 +136,7 @@ fn into_doc(
         .map_err(|e| weighed(e, named, lang))?;
     let whole = tisty_core::docs::append(&root, which, &kept.written(named))
         .map_err(|e| room_or(e, lang))?;
+    app.commit(kept.told())?;
     println!(
         "  {}  {}",
         crate::style::dim(which),

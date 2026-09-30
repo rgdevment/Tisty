@@ -70,12 +70,6 @@ impl Event {
         Some(self.timestamp.to_zoned(zone))
     }
 
-    /// A reader that predates this operation skips it instead of refusing the whole store.
-    pub fn skippable(mut self) -> Self {
-        self.optional = true;
-        self
-    }
-
     pub fn in_batch(mut self, batch: Ulid) -> Self {
         self.batch = Some(batch);
         self

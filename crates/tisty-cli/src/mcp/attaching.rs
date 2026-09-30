@@ -134,11 +134,14 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let body = tisty_core::attach::journalled(&kept, &named, at, lang.get("attached-from"));
             let zone = jiff::tz::TimeZone::system();
             store
-                .append(Op::TaskLog {
-                    id,
-                    d: LogAdd::new(Ulid::generate(), body)
-                        .in_zone(zone.iana_name().map(str::to_string)),
-                })
+                .append_batch(vec![
+                    kept.told(),
+                    Op::TaskLog {
+                        id,
+                        d: LogAdd::new(Ulid::generate(), body)
+                            .in_zone(zone.iana_name().map(str::to_string)),
+                    },
+                ])
                 .map_err(hitch)?;
             let title = state.tasks[&id].title.clone();
             Ok(told(
@@ -155,6 +158,7 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     )),
                     other => hitch(other),
                 })?;
+            store.append(kept.told()).map_err(hitch)?;
             let title = tisty_core::docs::titled(&whole);
             Ok(told(
                 format!("Kept {named:?} at the end of {title:?}."),

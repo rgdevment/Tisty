@@ -176,6 +176,7 @@ pub fn guide(
 
     let data = session.paths.data().to_path_buf();
 
+    let mut told_of = Vec::new();
     let mut body = told.to_string();
     let mut pages: Vec<(&str, String)> = leaves
         .iter()
@@ -191,6 +192,7 @@ pub fn guide(
         };
         let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        told_of.push(kept.told());
         let named = format!("](<{}>)", kept.at);
         body = body.replace(&format!("]({shot})"), &named);
         for (_, one) in pages.iter_mut() {
@@ -206,7 +208,7 @@ pub fn guide(
             .iter()
             .map(|one| one.order.as_str()),
     );
-    session.commit(Op::FolderAdd {
+    told_of.push(Op::FolderAdd {
         id: folder,
         d: tisty_core::event::FolderAdd {
             name: called.to_string(),
@@ -215,7 +217,8 @@ pub fn guide(
             icon: None,
             color: None,
         },
-    })?;
+    });
+    session.commit_all(told_of)?;
 
     let root = session.paths.docs();
     let device = session.store.device().clone();

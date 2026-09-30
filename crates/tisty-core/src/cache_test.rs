@@ -449,6 +449,40 @@ fn retiring_an_attachment_forgets_what_it_held() {
 }
 
 #[test]
+fn a_later_word_on_the_same_attachment_stands_and_the_case_is_not_kept() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+
+    let body = b"lo grabado";
+    let (reference, sha256) = an_attachment_that_answers_for_itself(body);
+    for (said, bytes) in [
+        (sha256.to_uppercase(), 1),
+        (sha256.clone(), body.len() as u64),
+    ] {
+        store
+            .append(Op::AttachKept {
+                d: crate::event::Held {
+                    at: reference.clone(),
+                    sha256: said,
+                    bytes,
+                },
+            })
+            .unwrap();
+    }
+
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .kept
+            .get(&reference),
+        Some(&(sha256, body.len() as u64)),
+        "the last word did not stand, or the digest kept the case it arrived in"
+    );
+}
+
+#[test]
 fn tombstones_survive_the_round_trip() {
     let f = loaded();
     let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
