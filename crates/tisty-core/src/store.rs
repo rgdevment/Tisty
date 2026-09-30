@@ -33,6 +33,8 @@ pub struct Store {
     overtaken: bool,
     lock: Option<File>,
     via: Option<String>,
+    signs: Option<ed25519_dalek::SigningKey>,
+    tip: [u8; 32],
 }
 
 impl Store {
@@ -77,7 +79,53 @@ impl Store {
             device,
             via: None,
             lock: None,
+            signs: None,
+            tip: crate::signing::NOTHING_BEFORE,
         })
+    }
+
+    /// The key lives outside the store, so whoever knows where hands it over.
+    pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
+        self.tip = self.tip_now();
+        self.signs = key;
+        self
+    }
+
+    fn tip_now(&self) -> [u8; 32] {
+        let before = segments_in(&self.dir)
+            .unwrap_or_default()
+            .into_iter()
+            .rfind(|at| {
+                at.file_name()
+                    .and_then(|one| one.to_str())
+                    .is_some_and(is_sealed)
+            })
+            .and_then(|at| std::fs::read_to_string(at.with_extension(crate::signing::SEAL)).ok())
+            .and_then(|said| crate::signing::tip_in(&said))
+            .unwrap_or(crate::signing::NOTHING_BEFORE);
+        match std::fs::read(self.dir.join(ACTIVE)) {
+            Ok(said) => crate::signing::tip_of(before, &said),
+            Err(_) => before,
+        }
+    }
+
+    fn seal(&self, at: &Path) {
+        let Some(key) = &self.signs else {
+            return;
+        };
+        if let Err(e) = write_atomic(
+            &at.with_extension(crate::signing::SEAL),
+            crate::signing::sealed(key, &self.tip).as_bytes(),
+        ) {
+            witness::warn(
+                channel::STORE,
+                "what this machine wrote could not be sealed, so nothing here answers for it",
+                &[
+                    ("at", Fact::Path(at.to_path_buf())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
     }
 
     fn acquire(&mut self) -> Result<()> {
@@ -281,6 +329,8 @@ impl Store {
                 .open(self.dir.join(ACTIVE))?;
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
+            self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
+            self.seal(&self.dir.join(ACTIVE));
 
             self.active_events += lot.len();
             at += lot.len();
@@ -301,6 +351,8 @@ impl Store {
                 &sealed.with_extension("count"),
                 lines.to_string().as_bytes(),
             )?;
+            self.seal(&sealed);
+            let _ = std::fs::remove_file(active.with_extension(crate::signing::SEAL));
         }
         self.active_events = 0;
         self.seen = 0;

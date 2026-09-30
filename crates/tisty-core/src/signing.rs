@@ -92,6 +92,13 @@ pub fn sealed(key: &SigningKey, tip: &[u8; 32]) -> String {
     serde_json::to_string(&said).unwrap_or_default()
 }
 
+pub const SEAL: &str = "sig";
+
+pub fn tip_in(said: &str) -> Option<[u8; 32]> {
+    let said: Said = serde_json::from_str(said).ok()?;
+    unhexed(&said.tip)
+}
+
 pub fn holds(by: &VerifyingKey, said: &str) -> Option<[u8; 32]> {
     use ed25519_dalek::Verifier;
     let said: Said = serde_json::from_str(said).ok()?;

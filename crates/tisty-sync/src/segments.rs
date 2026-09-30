@@ -111,11 +111,13 @@ pub(crate) fn copy_segments(
         let Some(named) = at.file_name() else {
             continue;
         };
-        let counter = at.with_extension("count");
-        if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
-            let target = into.join(tally);
-            if again || !same(&counter, &target) {
-                copy_onto(&counter, &target)?;
+        for kind in ["count", tisty_core::signing::SEAL] {
+            let beside = at.with_extension(kind);
+            if let Some(also) = beside.file_name().filter(|_| beside.is_file()) {
+                let target = into.join(also);
+                if again || !same(&beside, &target) {
+                    copy_onto(&beside, &target)?;
+                }
             }
         }
 

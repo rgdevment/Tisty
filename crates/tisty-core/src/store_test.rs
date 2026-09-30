@@ -1278,3 +1278,75 @@ fn what_an_attachment_holds_is_written_down_where_an_older_reader_can_step_over_
         "a reader that predates this would refuse the whole store: {line}"
     );
 }
+
+fn a_machine_that_signs(at: &std::path::Path) -> (Store, ed25519_dalek::SigningKey, PathBuf) {
+    let paths = crate::Paths::new(at.join("data"), at.join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let store = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    let dir = paths.store().join(&who.0);
+    (store, key, dir)
+}
+
+fn a_task(said: &str) -> Op {
+    Op::TaskAdd {
+        id: ulid::Ulid::generate(),
+        d: crate::event::TaskAdd::new(said, "a0"),
+    }
+}
+
+#[test]
+fn what_a_machine_writes_it_seals_and_the_seal_answers_for_what_is_there() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, key, dir) = a_machine_that_signs(tmp.path());
+
+    store.append(a_task("chase the invoice")).unwrap();
+
+    let said = std::fs::read_to_string(dir.join("active.sig")).expect("it sealed nothing");
+    let tip = crate::signing::holds(&key.verifying_key(), &said).expect("the seal does not answer");
+    assert_eq!(
+        tip,
+        crate::signing::tip_of(
+            crate::signing::NOTHING_BEFORE,
+            &std::fs::read(dir.join(ACTIVE)).unwrap()
+        ),
+        "the seal is over something other than what is written there"
+    );
+}
+
+#[test]
+fn a_line_changed_after_the_fact_no_longer_answers_to_the_seal() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, key, dir) = a_machine_that_signs(tmp.path());
+    store.append(a_task("chase the invoice")).unwrap();
+    let said = std::fs::read_to_string(dir.join("active.sig")).unwrap();
+    let sealed_tip = crate::signing::holds(&key.verifying_key(), &said).unwrap();
+
+    let whole = std::fs::read_to_string(dir.join(ACTIVE)).unwrap();
+    std::fs::write(dir.join(ACTIVE), whole.replace("chase", "cease")).unwrap();
+
+    assert_ne!(
+        sealed_tip,
+        crate::signing::tip_of(
+            crate::signing::NOTHING_BEFORE,
+            &std::fs::read(dir.join(ACTIVE)).unwrap()
+        ),
+        "a word was changed under the seal and the tip did not move"
+    );
+}
+
+#[test]
+fn a_machine_with_no_key_seals_nothing_rather_than_sealing_badly() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("store");
+    let mut store = Store::open(&root, DeviceId("dev_a".into())).unwrap();
+
+    store.append(a_task("chase the invoice")).unwrap();
+
+    assert!(
+        !root.join("dev_a").join("active.sig").exists(),
+        "it wrote a seal with no key to make one"
+    );
+}

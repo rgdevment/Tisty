@@ -6297,3 +6297,36 @@ fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
         body
     );
 }
+
+#[test]
+fn a_seal_travels_with_the_segment_it_answers_for() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let there = shared.path().join("store").join(&one.device);
+    let said = std::fs::read_to_string(there.join("active.sig"))
+        .expect("the seal stayed behind, so nothing over there can answer for the segment");
+    let tip = tisty_core::signing::holds(&key.verifying_key(), &said).expect("it does not answer");
+    assert_eq!(
+        tip,
+        tisty_core::signing::tip_of(
+            tisty_core::signing::NOTHING_BEFORE,
+            &std::fs::read(there.join("active.tisty")).unwrap()
+        ),
+        "what arrived is not what the seal was made over"
+    );
+}
