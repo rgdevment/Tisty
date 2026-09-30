@@ -3123,6 +3123,81 @@ fn nothing_is_freed_when_what_is_up_there_is_not_the_same_file() {
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn nothing_is_freed_when_the_copy_up_there_is_a_hole_its_keeper_has_not_filled() {
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const OFFLINE: u32 = 0x0000_1000;
+
+    let one = machine("dev_a");
+    let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let up = shared.path().join(&heavy);
+    let body = std::fs::read(&up).unwrap();
+    std::fs::remove_file(&up).unwrap();
+    let mut marked = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&up)
+        .unwrap();
+    marked.write_all(&body).unwrap();
+    drop(marked);
+
+    let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+
+    assert_eq!(done.gone, 0, "nothing is let go of");
+    assert_eq!(done.kept, vec![heavy.clone()]);
+    assert!(
+        one.data.join(&heavy).is_file(),
+        "a copy nobody can answer for without fetching it keeps the local one alive"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn what_the_round_just_wrote_counts_as_landed_even_when_its_keeper_took_the_body() {
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const OFFLINE: u32 = 0x0000_1000;
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let room = tempfile::tempdir().unwrap();
+    let there = room.path().join("charla-d5d43135.mp4");
+    let mut marked = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&there)
+        .unwrap();
+    marked.write_all(b"lo grabado").unwrap();
+    drop(marked);
+    let (sha256, bytes) = tisty_core::attach::hashed(&there).unwrap();
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(&there)
+        .unwrap();
+    let told = super::held::landed_whole(
+        &there,
+        Some(&(sha256, bytes)),
+        bytes,
+        "attachments/cd/charla-d5d43135.mp4",
+    );
+    drop(shut);
+
+    assert!(
+        told,
+        "the round wrote and hashed it on the way up, so nobody has to read it back"
+    );
+}
+
 #[test]
 fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
     let one = machine("dev_a");

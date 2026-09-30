@@ -22,8 +22,9 @@ fn what_answered_for_its_name_is_remembered_past_this_launch() {
     std::fs::copy(&loose, &file).unwrap();
     let reference = format!("attachments/{shelf}/{leaf}");
 
-    assert!(
+    assert_eq!(
         vouching::vouches(&file, &reference),
+        Some(true),
         "the name does not answer for it"
     );
     assert!(kept.is_file(), "the answer was not written down");
@@ -69,6 +70,172 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
         ),
         finding::Sought::No
     ));
+}
+
+#[test]
+fn nothing_that_hunts_for_an_attachment_does_it_on_the_thread_that_draws() {
+    let said = std::fs::read_to_string("src/answers/attaching.rs")
+        .expect("the orders that serve an attachment");
+    let mut inside = "";
+    let mut loose: Vec<(&str, &str)> = Vec::new();
+    for line in said.lines() {
+        let bare = line.trim_start();
+        if bare.starts_with("fn ")
+            || bare.starts_with("pub fn ")
+            || bare.starts_with("async fn ")
+            || bare.starts_with("pub async fn ")
+        {
+            inside = bare;
+        }
+        if (line.contains("std::fs::") || line.contains("finding::handed_over("))
+            && inside.contains("async fn ")
+        {
+            loose.push((inside, bare));
+        }
+    }
+
+    assert!(
+        said.contains("finding::handed_over("),
+        "the orders stopped looking for anything"
+    );
+    assert!(
+        loose.is_empty(),
+        "work that reads a body sits in an async order instead of behind `elsewhere`: {loose:?}"
+    );
+}
+
+#[test]
+fn what_was_really_handed_over_is_written_down_and_a_refusal_is_not() {
+    let here = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let reached = here.path().join("cache").join(tisty_core::lately::USED);
+    let looking = || finding::Where {
+        data: here.path().to_path_buf(),
+        shared: None,
+        reached: reached.clone(),
+    };
+
+    let loose = from.path().join("nota.txt");
+    std::fs::write(&loose, b"lo apuntado").unwrap();
+    let reference = tisty_core::attach::keep(&loose, here.path(), tisty_core::attach::COPIED_UP_TO)
+        .unwrap()
+        .at;
+
+    assert_eq!(
+        tisty_core::lately::last(&reached, &reference),
+        None,
+        "nobody has reached for it yet"
+    );
+
+    crate::answers::attaching::read_out(reference.clone(), looking()).expect("it is right here");
+
+    assert!(
+        tisty_core::lately::last(&reached, &reference).is_some_and(|when| when > 0),
+        "handing it over wrote down no day"
+    );
+
+    let never = "attachments/ab/nope-00000000.txt".to_string();
+    assert!(crate::answers::attaching::read_out(never.clone(), looking()).is_err());
+    assert_eq!(
+        tisty_core::lately::last(&reached, &never),
+        None,
+        "what was refused was never reached for"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_read_that_fails_after_the_lookup_is_not_written_down_as_reached_for() {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let here = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let reached = here.path().join("cache").join(tisty_core::lately::USED);
+
+    let loose = from.path().join("nota.txt");
+    std::fs::write(&loose, b"lo apuntado").unwrap();
+    let reference = tisty_core::attach::keep(&loose, here.path(), tisty_core::attach::COPIED_UP_TO)
+        .unwrap()
+        .at;
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(here.path().join(&reference))
+        .unwrap();
+    let told = crate::answers::attaching::read_out(
+        reference.clone(),
+        finding::Where {
+            data: here.path().to_path_buf(),
+            shared: None,
+            reached: reached.clone(),
+        },
+    );
+    drop(shut);
+
+    assert!(told.is_err(), "a locked body cannot be read");
+    assert_eq!(
+        tisty_core::lately::last(&reached, &reference),
+        None,
+        "a read that failed was written down as reached for"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_hole_whose_body_cannot_be_read_is_not_accused_of_being_torn() {
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const OFFLINE: u32 = 0x0000_1000;
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let here = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let cache = here.path().join("cache").join("vouched.json");
+    crate::vouching::vouching_kept_at(cache.clone());
+
+    let loose = from.path().join("charla.mp4");
+    std::fs::write(&loose, b"lo grabado").unwrap();
+    let reference =
+        tisty_core::attach::keep(&loose, shared.path(), tisty_core::attach::COPIED_UP_TO)
+            .unwrap()
+            .at;
+    let at = shared.path().join(&reference);
+    let body = std::fs::read(&at).unwrap();
+
+    std::fs::remove_file(&at).unwrap();
+    let mut marked = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&at)
+        .unwrap();
+    marked.write_all(&body).unwrap();
+    drop(marked);
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(&at)
+        .unwrap();
+
+    let told = finding::found_in(&reference, here.path(), Some(shared.path()));
+    drop(shut);
+
+    assert!(
+        !cache.is_file(),
+        "a body nobody could read was written down either way: {}",
+        std::fs::read_to_string(&cache).unwrap_or_default()
+    );
+    assert!(
+        matches!(told, finding::Sought::Held),
+        "a body nobody could read is not a body that lied"
+    );
 }
 
 #[test]
