@@ -398,3 +398,54 @@ fn a_way_of_syncing_it_does_know_and_cannot_make_sense_of_is_said_out_loud() {
         "a folder to sync with and no folder named read as a way this build never heard of, which turns syncing off without a word"
     );
 }
+
+#[test]
+fn a_key_this_build_cannot_name_survives_a_sync_folder_being_set() {
+    let tmp = tempfile::tempdir().unwrap();
+    let p = paths(&tmp);
+    std::fs::create_dir_all(p.config()).unwrap();
+    let said = [
+        "device_id = \"dev_a\"",
+        "what_a_later_build_knows = 7",
+        "and_a_word = \"kept\"",
+        "[sync]",
+        "how = \"folder\"",
+        "at = \"G:/Mi unidad/Tisty\"",
+    ]
+    .join(
+        "
+",
+    );
+    std::fs::write(p.config_file(), &said).unwrap();
+
+    let read = Config::load(&p.config_file()).unwrap().unwrap();
+    assert!(
+        read.shares(),
+        "the folder it was set to sync with was lost on the way in"
+    );
+    read.save(&p).unwrap();
+
+    let again = std::fs::read_to_string(p.config_file()).unwrap();
+    let back = Config::load(&p.config_file())
+        .expect("what it wrote itself it can no longer read")
+        .unwrap();
+
+    assert_eq!(
+        back.rest
+            .get("what_a_later_build_knows")
+            .and_then(toml::Value::as_integer),
+        Some(7),
+        "a key of a later build ended up somewhere else:
+{again}"
+    );
+    assert_eq!(
+        back.rest.get("and_a_word").and_then(toml::Value::as_str),
+        Some("kept"),
+        "{again}"
+    );
+    assert!(
+        back.shares(),
+        "the folder to sync with did not survive:
+{again}"
+    );
+}
