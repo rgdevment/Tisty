@@ -493,7 +493,7 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
                 continue;
             };
             // A marker is the file iCloud took away, not a stray: taking it out is taking the file.
-            if crate::icloud::marker(&leaf) || !shelved(&name, &leaf) {
+            if crate::holes::marker(&leaf) || !shelved(&name, &leaf) {
                 continue;
             }
             if held.contains(format!("{name}/{leaf}").as_str()) {

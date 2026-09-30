@@ -115,6 +115,7 @@ const KNOWN = [
   "comingDown",
   "docComing",
   "sharedAway",
+  "heldAway",
   "attachmentTorn",
   "sharedAwayToLeave",
   "intoItself",

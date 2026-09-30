@@ -114,10 +114,10 @@ export function carrying(
   };
 
   const seen = () => {
-    if (document.visibilityState === "visible") pull();
+    if (document.visibilityState === "visible") void pull();
   };
 
-  settings(() => pull());
+  void settings(() => void pull());
 
   window.addEventListener("focus", pull);
   document.addEventListener("visibilitychange", seen);
@@ -130,7 +130,9 @@ export function carrying(
       soon = setTimeout(() => go("push"), AFTER_A_CHANGE);
     },
     recheck() {
-      settings((was) => was !== folder && both());
+      void settings((was) => {
+        if (was !== folder) void both();
+      });
     },
     stop() {
       gone = true;

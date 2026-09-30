@@ -154,7 +154,7 @@ export default function Welcome({ onDone }: Props) {
         if (went.current) return;
         setCarrying(false);
         if (!stillApart(e)) return setStuck(saidPlainly(e));
-        syncKin()
+        void syncKin()
           .catch(() => "unsure" as const)
           .then(setKin);
       })
@@ -243,7 +243,7 @@ export default function Welcome({ onDone }: Props) {
             type="button"
             onClick={() => {
               setOffer(undefined);
-              syncKin()
+              void syncKin()
                 .catch(() => "unsure" as const)
                 .then(setKin);
             }}

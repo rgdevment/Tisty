@@ -383,7 +383,7 @@ export default function Keeping({
   const letGoOfAll = (astray: Astray[]) => {
     if (held || astray.length === 0) return;
     ask(fill("upkeepSafeAllSure", String(astray.length)), { kind: "warning" })
-      .then(async (sure) => {
+      .then((sure) => {
         if (!sure) return;
         run("review", retireAttachments(astray.map((one) => one.at)).then(checked), (now) => {
           setAudit(now);

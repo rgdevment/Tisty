@@ -651,7 +651,7 @@ export default function Editor({
                 hint: "↧",
                 icon: "clip",
                 run: () => {
-                  onAttach().then((markdown) => {
+                  void onAttach().then((markdown) => {
                     if (markdown) editor.chain().focus().insertContent(markdown).run();
                   });
                 },
@@ -719,7 +719,7 @@ export default function Editor({
   const fetches = (reference: string, get: () => Promise<void>) => {
     if (pending.current.has(reference)) return;
     pending.current.add(reference);
-    get()
+    void get()
       .catch((problem: unknown) => {
         missing.current.add(reference.slice(reference.indexOf(":") + 1));
         const said = problem as { code?: string; name?: string } | null;
@@ -965,6 +965,7 @@ export default function Editor({
       {naming && editor && (
         <>
           <span
+            aria-hidden="true"
             className="fixed inset-0 z-30"
             onMouseDown={() => {
               setNaming(null);
@@ -1011,6 +1012,7 @@ export default function Editor({
       {glyphing && editor && (
         <>
           <span
+            aria-hidden="true"
             className="fixed inset-0 z-30"
             onMouseDown={() => {
               setGlyphing(null);
@@ -1082,6 +1084,7 @@ export default function Editor({
       {choosing && editor && (
         <>
           <span
+            aria-hidden="true"
             className="fixed inset-0 z-30"
             onMouseDown={() => {
               setChoosing(null);

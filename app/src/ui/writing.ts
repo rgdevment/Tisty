@@ -98,14 +98,6 @@ class Ink {
     this.last = text.charCodeAt(text.length - 1);
   }
 
-  prior(): number {
-    if (this.len < 2) return -1;
-    const tail = this.parts[this.parts.length - 1];
-    if (tail.length > 1) return tail.charCodeAt(tail.length - 2);
-    const older = this.parts[this.parts.length - 2];
-    return older.charCodeAt(older.length - 1);
-  }
-
   priorSlashes(): number {
     let at = this.parts.length - 1;
     if (at < 0) return 0;

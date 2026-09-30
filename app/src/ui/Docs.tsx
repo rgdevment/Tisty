@@ -546,7 +546,7 @@ export default function Docs({
     setSeeing(null);
   };
 
-  const toPdf = async () => {
+  const toPdf = () => {
     if (!open || making) return;
     setSigning(false);
     setPdfAsked(true);

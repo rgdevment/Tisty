@@ -79,14 +79,12 @@ pub fn vouching_kept(asked: String, said: bool) {
     }
 }
 
-pub fn vouches(at: &std::path::Path, reference: &str) -> bool {
+pub fn vouches(at: &std::path::Path, reference: &str) -> Option<bool> {
     let mut parts = reference.rsplit('/');
     let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
-        return false;
+        return Some(false);
     };
-    let Ok(told) = std::fs::metadata(at) else {
-        return false;
-    };
+    let told = std::fs::metadata(at).ok()?;
     let when = told
         .modified()
         .ok()
@@ -96,12 +94,12 @@ pub fn vouches(at: &std::path::Path, reference: &str) -> bool {
     let asked = format!("{}|{}|{when}", at.display(), told.len());
 
     if let Some(held) = vouched_before(&asked) {
-        return held;
+        return Some(held);
     }
     // Not while the lock is held: reading the file takes seconds, and every other window
     // command that touches an attachment would wait behind it.
-    let said = tisty_core::attach::hashed(at)
-        .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(shelf, leaf, &sha256));
+    let (sha256, _) = tisty_core::attach::hashed(at).ok()?;
+    let said = tisty_core::attach::vouched(shelf, leaf, &sha256);
     vouching_kept(asked, said);
-    said
+    Some(said)
 }

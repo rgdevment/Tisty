@@ -511,6 +511,8 @@ const en = {
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
   sharedAway:
     "That file is kept in the shared folder, and the shared folder is not here. Check your cloud or your connection",
+  heldAway:
+    "{name} is kept online only, and your cloud did not hand it over. Check that it is running and connected, or mark that folder «always keep on this device» so it stays here",
   sharedAwayToLeave:
     "This machine left its large attachments in {name}. Set «Where large attachments stay» back to «On every machine» and sync once, so they come home before you point Tisty elsewhere",
   holdsTitle: "Where large attachments stay",
@@ -1874,6 +1876,8 @@ const es: Catalog = {
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
   sharedAway:
     "Ese archivo vive en la carpeta compartida, y la carpeta compartida no está. Revisa tu nube o tu conexión",
+  heldAway:
+    "{name} está guardado solo en la nube, y tu nube no lo entregó. Comprueba que esté funcionando y con conexión, o marca esa carpeta como «conservar siempre en este dispositivo» para que se quede aquí",
   sharedAwayToLeave:
     "Este equipo dejó sus adjuntos grandes en {name}. Pon «Dónde se quedan los adjuntos grandes» en «En cada equipo» y sincroniza una vez, para que vuelvan antes de apuntar Tisty a otro sitio",
   holdsTitle: "Dónde se quedan los adjuntos grandes",

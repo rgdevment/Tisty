@@ -846,7 +846,7 @@ fn anywhere(reference: &str, data: &Path, dest: &Path) -> bool {
     [data, dest].iter().any(|root| {
         let held = root.join(HELD);
         tisty_core::attach::resolve(reference, root).is_ok_and(|at| {
-            at.starts_with(&held) && (at.is_file() || tisty_core::icloud::shed(&at).is_some())
+            at.starts_with(&held) && (at.is_file() || tisty_core::holes::a_hole(&at))
         })
     })
 }
