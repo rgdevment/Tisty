@@ -6320,7 +6320,15 @@ fn a_seal_travels_with_the_segment_it_answers_for() {
     let there = shared.path().join("store").join(&one.device);
     let said = std::fs::read_to_string(there.join("active.sig"))
         .expect("the seal stayed behind, so nothing over there can answer for the segment");
-    let tip = tisty_core::signing::holds(&key.verifying_key(), &said).expect("it does not answer");
+    let tip = tisty_core::signing::holds(
+        &key.verifying_key(),
+        &tisty_core::signing::About {
+            device: &one.device,
+            segment: "active.tisty",
+        },
+        &said,
+    )
+    .expect("it does not answer");
     assert_eq!(
         tip,
         tisty_core::signing::tip_of(

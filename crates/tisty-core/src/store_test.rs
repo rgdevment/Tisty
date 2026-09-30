@@ -1290,6 +1290,13 @@ fn a_machine_that_signs(at: &std::path::Path) -> (Store, ed25519_dalek::SigningK
     (store, key, dir)
 }
 
+fn over_active() -> crate::signing::About<'static> {
+    crate::signing::About {
+        device: "dev_a",
+        segment: ACTIVE,
+    }
+}
+
 fn a_task(said: &str) -> Op {
     Op::TaskAdd {
         id: ulid::Ulid::generate(),
@@ -1305,7 +1312,8 @@ fn what_a_machine_writes_it_seals_and_the_seal_answers_for_what_is_there() {
     store.append(a_task("chase the invoice")).unwrap();
 
     let said = std::fs::read_to_string(dir.join("active.sig")).expect("it sealed nothing");
-    let tip = crate::signing::holds(&key.verifying_key(), &said).expect("the seal does not answer");
+    let tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
+        .expect("the seal does not answer");
     assert_eq!(
         tip,
         crate::signing::tip_of(
@@ -1322,7 +1330,7 @@ fn a_line_changed_after_the_fact_no_longer_answers_to_the_seal() {
     let (mut store, key, dir) = a_machine_that_signs(tmp.path());
     store.append(a_task("chase the invoice")).unwrap();
     let said = std::fs::read_to_string(dir.join("active.sig")).unwrap();
-    let sealed_tip = crate::signing::holds(&key.verifying_key(), &said).unwrap();
+    let sealed_tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said).unwrap();
 
     let whole = std::fs::read_to_string(dir.join(ACTIVE)).unwrap();
     std::fs::write(dir.join(ACTIVE), whole.replace("chase", "cease")).unwrap();
@@ -1341,7 +1349,9 @@ fn a_line_changed_after_the_fact_no_longer_answers_to_the_seal() {
 fn a_machine_with_no_key_seals_nothing_rather_than_sealing_badly() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path().join("store");
-    let mut store = Store::open(&root, DeviceId("dev_a".into())).unwrap();
+    let mut store = Store::open(&root, DeviceId("dev_a".into()))
+        .unwrap()
+        .signing_with(None);
 
     store.append(a_task("chase the invoice")).unwrap();
 

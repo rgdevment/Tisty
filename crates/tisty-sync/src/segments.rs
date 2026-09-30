@@ -111,23 +111,27 @@ pub(crate) fn copy_segments(
         let Some(named) = at.file_name() else {
             continue;
         };
+        let target = into.join(named);
+        let sealed = named.to_str().is_some_and(tisty_core::store::is_sealed);
+        let stands = !again && ((sealed && known.contains(named)) || same(&at, &target));
+        if !stands {
+            copy_onto(&at, &target)?;
+            done += 1;
+        }
+
+        // After the segment, never before: a seal copied first would answer for fewer bytes than
+        // the segment that lands beside it, and read as a segment somebody tampered with.
         for kind in ["count", tisty_core::signing::SEAL] {
             let beside = at.with_extension(kind);
-            if let Some(also) = beside.file_name().filter(|_| beside.is_file()) {
-                let target = into.join(also);
-                if again || !same(&beside, &target) {
-                    copy_onto(&beside, &target)?;
+            let there = target.with_extension(kind);
+            match beside.is_file() {
+                true if again || !same(&beside, &there) => copy_onto(&beside, &there)?,
+                true => {}
+                false => {
+                    let _ = std::fs::remove_file(&there);
                 }
             }
         }
-
-        let target = into.join(named);
-        let sealed = named.to_str().is_some_and(tisty_core::store::is_sealed);
-        if !again && ((sealed && known.contains(named)) || same(&at, &target)) {
-            continue;
-        }
-        copy_onto(&at, &target)?;
-        done += 1;
     }
     Ok(done)
 }

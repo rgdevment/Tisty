@@ -134,24 +134,49 @@ fn a_line_changed_anywhere_moves_the_tip() {
     );
 }
 
+fn about<'a>(device: &'a str, segment: &'a str) -> About<'a> {
+    About { device, segment }
+}
+
 #[test]
 fn what_a_machine_sealed_it_can_answer_for_and_nobody_else_can() {
     let (_room, paths) = room();
     let ours = mine(&paths, &DeviceId("dev_a".into())).unwrap();
     let other = mine(&paths, &DeviceId("dev_b".into())).unwrap();
     let tip = tip_of(NOTHING_BEFORE, b"what it wrote\n");
+    let one = about("dev_a", "active.tisty");
 
-    let said = sealed(&ours, &tip);
+    let said = sealed(&ours, &one, &tip);
 
     assert_eq!(
-        holds(&ours.verifying_key(), &said),
+        holds(&ours.verifying_key(), &one, &said),
         Some(tip),
         "it could not answer for its own seal"
     );
     assert!(
-        holds(&other.verifying_key(), &said).is_none(),
+        holds(&other.verifying_key(), &one, &said).is_none(),
         "another machine's key answered for it"
     );
+}
+
+#[test]
+fn a_seal_only_answers_for_the_segment_and_the_machine_it_was_made_for() {
+    let (_room, paths) = room();
+    let key = mine(&paths, &DeviceId("dev_a".into())).unwrap();
+    let by = key.verifying_key();
+    let tip = tip_of(NOTHING_BEFORE, b"what it wrote\n");
+
+    let said = sealed(&key, &about("dev_a", "000004.tisty"), &tip);
+
+    assert!(
+        holds(&by, &about("dev_a", "000005.tisty"), &said).is_none(),
+        "a seal was moved onto another segment and still answered"
+    );
+    assert!(
+        holds(&by, &about("dev_b", "000004.tisty"), &said).is_none(),
+        "a seal was moved onto another machine and still answered"
+    );
+    assert!(holds(&by, &about("dev_a", "000004.tisty"), &said).is_some());
 }
 
 #[test]
@@ -159,7 +184,8 @@ fn a_seal_over_something_else_is_turned_away() {
     let (_room, paths) = room();
     let key = mine(&paths, &DeviceId("dev_a".into())).unwrap();
     let by = key.verifying_key();
-    let said = sealed(&key, &tip_of(NOTHING_BEFORE, b"what it wrote\n"));
+    let one = about("dev_a", "active.tisty");
+    let said = sealed(&key, &one, &tip_of(NOTHING_BEFORE, b"what it wrote\n"));
 
     let swapped = said.replace(
         &hexed(&tip_of(NOTHING_BEFORE, b"what it wrote\n")),
@@ -167,10 +193,10 @@ fn a_seal_over_something_else_is_turned_away() {
     );
 
     assert!(
-        holds(&by, &swapped).is_none(),
+        holds(&by, &one, &swapped).is_none(),
         "a tip was swapped under a seal and it still answered"
     );
-    assert!(holds(&by, "").is_none());
-    assert!(holds(&by, "{}").is_none());
-    assert!(holds(&by, r#"{"tip":"ab","sig":"cd"}"#).is_none());
+    assert!(holds(&by, &one, "").is_none());
+    assert!(holds(&by, &one, "{}").is_none());
+    assert!(holds(&by, &one, r#"{"tip":"ab","sig":"cd"}"#).is_none());
 }

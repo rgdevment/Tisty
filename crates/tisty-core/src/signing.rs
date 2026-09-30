@@ -55,7 +55,7 @@ pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
     std::fs::create_dir_all(paths.private()).ok()?;
     let _ = crate::paths::ours_alone(&paths.private());
-    match File::create_new(&at) {
+    match made(&at) {
         Ok(mut file) => {
             file.write_all(&fresh).ok()?;
             file.sync_all().ok()?;
@@ -67,6 +67,23 @@ pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
             .and_then(|held| <[u8; 32]>::try_from(held.as_slice()).ok())
             .map(|kept| SigningKey::from_bytes(&kept)),
     }
+}
+
+/// Narrow before the secret lands, not after: a widening afterwards leaves a window, and one that
+/// never runs because the process died leaves the key readable for good.
+#[cfg(unix)]
+fn made(at: &std::path::Path) -> std::io::Result<File> {
+    use std::os::unix::fs::OpenOptionsExt;
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(at)
+}
+
+#[cfg(not(unix))]
+fn made(at: &std::path::Path) -> std::io::Result<File> {
+    File::create_new(at)
 }
 
 pub const NOTHING_BEFORE: [u8; 32] = [0u8; 32];
@@ -83,28 +100,37 @@ pub fn tip_of(before: [u8; 32], said: &[u8]) -> [u8; 32] {
     tip
 }
 
-pub fn sealed(key: &SigningKey, tip: &[u8; 32]) -> String {
+pub const SEAL: &str = "sig";
+
+/// A tip alone says nothing about what it is a tip of, so an old seal would answer for a segment
+/// rolled back to the bytes it covered, or for another segment holding the same lines.
+fn over(about: &About, tip: &[u8; 32]) -> Vec<u8> {
+    let mut said =
+        format!("tisty.seal\u{0}{}\u{0}{}\u{0}", about.device, about.segment).into_bytes();
+    said.extend_from_slice(tip);
+    said
+}
+
+pub struct About<'a> {
+    pub device: &'a str,
+    pub segment: &'a str,
+}
+
+pub fn sealed(key: &SigningKey, about: &About, tip: &[u8; 32]) -> String {
     use ed25519_dalek::Signer;
     let said = Said {
         tip: hexed(tip),
-        sig: hexed(&key.sign(tip).to_bytes()),
+        sig: hexed(&key.sign(&over(about, tip)).to_bytes()),
     };
     serde_json::to_string(&said).unwrap_or_default()
 }
 
-pub const SEAL: &str = "sig";
-
-pub fn tip_in(said: &str) -> Option<[u8; 32]> {
-    let said: Said = serde_json::from_str(said).ok()?;
-    unhexed(&said.tip)
-}
-
-pub fn holds(by: &VerifyingKey, said: &str) -> Option<[u8; 32]> {
+pub fn holds(by: &VerifyingKey, about: &About, said: &str) -> Option<[u8; 32]> {
     use ed25519_dalek::Verifier;
     let said: Said = serde_json::from_str(said).ok()?;
     let tip = unhexed(&said.tip)?;
     let sig = ed25519_dalek::Signature::from_slice(&unhexed_long(&said.sig)?).ok()?;
-    by.verify(&tip, &sig).ok().map(|()| tip)
+    by.verify(&over(about, &tip), &sig).ok().map(|()| tip)
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

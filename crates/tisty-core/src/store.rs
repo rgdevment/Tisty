@@ -86,26 +86,47 @@ impl Store {
 
     /// The key lives outside the store, so whoever knows where hands it over.
     pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
-        self.tip = self.tip_now();
         self.signs = key;
+        self.tip = self.tip_now();
         self
     }
 
+    /// A seal found here is only a base for what follows if this machine's own key answers for it:
+    /// `.sig` files arrive with a carry, so one left in our directory is not ours to trust.
     fn tip_now(&self) -> [u8; 32] {
-        let before = segments_in(&self.dir)
-            .unwrap_or_default()
-            .into_iter()
-            .rfind(|at| {
-                at.file_name()
-                    .and_then(|one| one.to_str())
-                    .is_some_and(is_sealed)
-            })
-            .and_then(|at| std::fs::read_to_string(at.with_extension(crate::signing::SEAL)).ok())
-            .and_then(|said| crate::signing::tip_in(&said))
-            .unwrap_or(crate::signing::NOTHING_BEFORE);
-        match std::fs::read(self.dir.join(ACTIVE)) {
-            Ok(said) => crate::signing::tip_of(before, &said),
-            Err(_) => before,
+        let Some(key) = &self.signs else {
+            return crate::signing::NOTHING_BEFORE;
+        };
+        let by = key.verifying_key();
+        let found = segments_in(&self.dir).unwrap_or_default();
+        let mut tip = crate::signing::NOTHING_BEFORE;
+        let mut onward = 0;
+        for (at, one) in found.iter().enumerate() {
+            let Some(named) = one.file_name().and_then(|one| one.to_str()) else {
+                continue;
+            };
+            if !is_sealed(named) {
+                continue;
+            }
+            if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SEAL))
+                && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
+            {
+                tip = held;
+                onward = at + 1;
+            }
+        }
+        for one in found.iter().skip(onward) {
+            if let Ok(said) = std::fs::read(one) {
+                tip = crate::signing::tip_of(tip, &said);
+            }
+        }
+        tip
+    }
+
+    fn about<'a>(&'a self, segment: &'a str) -> crate::signing::About<'a> {
+        crate::signing::About {
+            device: &self.device.0,
+            segment,
         }
     }
 
@@ -113,9 +134,12 @@ impl Store {
         let Some(key) = &self.signs else {
             return;
         };
+        let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
+            return;
+        };
         if let Err(e) = write_atomic(
             &at.with_extension(crate::signing::SEAL),
-            crate::signing::sealed(key, &self.tip).as_bytes(),
+            crate::signing::sealed(key, &self.about(named), &self.tip).as_bytes(),
         ) {
             witness::warn(
                 channel::STORE,
@@ -162,6 +186,9 @@ impl Store {
         }
         self.overtaken = true;
 
+        // Another writer appended to the same segment, so a tip folded onto ours would skip
+        // their lines and seal a chain nobody can recompute.
+        self.tip = self.tip_now();
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
         if (head, seq) > (self.head, self.seq) {
@@ -330,11 +357,11 @@ impl Store {
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
             self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
-            self.seal(&self.dir.join(ACTIVE));
 
             self.active_events += lot.len();
             at += lot.len();
         }
+        self.seal(&self.dir.join(ACTIVE));
         self.seen = active_size(&self.dir.join(ACTIVE));
         Ok(())
     }
@@ -849,6 +876,7 @@ fn mend(dir: &Path) {
     {
         let mut kept = whole.clone();
         kept.push(b'\n');
+        let _ = std::fs::remove_file(path.with_extension(crate::signing::SEAL));
         if let Err(why) = write_atomic(path, &kept) {
             witness::warn(
                 channel::STORE,
@@ -879,6 +907,7 @@ fn mend(dir: &Path) {
         Some(at) => &whole[..=at],
         None => &[],
     };
+    let _ = std::fs::remove_file(path.with_extension(crate::signing::SEAL));
     if let Err(why) = write_atomic(path, kept) {
         witness::warn(
             channel::STORE,
