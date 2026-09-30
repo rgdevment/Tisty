@@ -100,11 +100,19 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         .collect();
     let aside = app.paths.cache().to_path_buf();
     let holds = app.config().holds();
-    let moved =
-        match carrier::carry_holding(&data, Some(&aside), &device, &dest, way, &alive, holds) {
-            Ok(moved) => moved,
-            Err(trouble) => return Ok(said(&trouble, lang)),
-        };
+    let moved = match carrier::carry_holding(
+        &data,
+        Some(&aside),
+        &device,
+        &dest,
+        way,
+        &alive,
+        holds,
+        &app.state.kept,
+    ) {
+        Ok(moved) => moved,
+        Err(trouble) => return Ok(said(&trouble, lang)),
+    };
 
     if moved.brought > 0 {
         *app = App::at(app.paths.clone())?;

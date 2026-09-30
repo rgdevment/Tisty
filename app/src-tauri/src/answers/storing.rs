@@ -53,7 +53,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, paths, data, store, aside, device, alive, holds) = {
+    let (was, dest, paths, data, store, aside, device, alive, holds, avowed) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -79,6 +79,7 @@ pub async fn settle_in(
             session.config.device_id.0.clone(),
             session.alive(),
             session.config.holds(),
+            session.state.kept.clone(),
         )
     };
 
@@ -100,6 +101,7 @@ pub async fn settle_in(
                 tisty_sync::Way::Both,
                 &alive,
                 holds,
+                &avowed,
             )
         })
         .await;
@@ -412,7 +414,7 @@ pub async fn sync_now(
         });
     };
 
-    let (dest, paths, data, store, aside, device, alive, holds) = {
+    let (dest, paths, data, store, aside, device, alive, holds, avowed) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -429,6 +431,7 @@ pub async fn sync_now(
             session.config.device_id.0.clone(),
             session.alive(),
             session.config.holds(),
+            session.state.kept.clone(),
         )
     };
 
@@ -450,6 +453,7 @@ pub async fn sync_now(
             way,
             &alive,
             holds,
+            &avowed,
             &mut |far| {
                 let _ = telling.emit(
                     "carried",

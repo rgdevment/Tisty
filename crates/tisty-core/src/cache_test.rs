@@ -544,6 +544,39 @@ fn who_holds_a_body_survives_the_cache_and_letting_go_takes_it_off_the_list() {
 }
 
 #[test]
+fn a_machine_taken_off_the_store_stops_counting_as_one_that_has_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+
+    let body = b"lo grabado";
+    let (reference, sha256) = an_attachment_that_answers_for_itself(body);
+    let mut store = Store::open(&store_root, DeviceId("dev_b".into())).unwrap();
+    store
+        .append(Op::AttachKept {
+            d: crate::event::Held {
+                at: reference.clone(),
+                sha256,
+                bytes: body.len() as u64,
+            },
+        })
+        .unwrap();
+    store
+        .append(Op::DeviceRemove {
+            d: DeviceId("dev_b".into()),
+        })
+        .unwrap();
+
+    assert!(
+        !project(&store_root, &cache_dir)
+            .unwrap()
+            .holders
+            .contains_key(&reference),
+        "a machine nobody counts on any more was still counted as holding a body"
+    );
+}
+
+#[test]
 fn tombstones_survive_the_round_trip() {
     let f = loaded();
     let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();

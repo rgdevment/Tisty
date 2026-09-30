@@ -3068,6 +3068,7 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
+        &Default::default(),
     )
     .unwrap();
     assert!(!one.data.join(&heavy).exists(), "it went up and let go");
@@ -3081,6 +3082,7 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
+        &Default::default(),
     )
     .unwrap();
 
@@ -3245,6 +3247,50 @@ fn a_hole_another_machine_says_it_holds_is_let_go_of_without_reading_it() {
 }
 
 #[test]
+fn a_body_that_contradicts_what_the_log_says_it_holds_is_not_taken_in() {
+    let one = machine("dev_a");
+    let body = b"lo grabado";
+    let heavy = planted(&one.data, "charla.mp4", body);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let brought_to = |avowed: &std::collections::BTreeMap<String, (String, u64)>| {
+        let other = machine("dev_b");
+        copy_held(
+            &shared.path().join(HELD),
+            &other.data.join(HELD),
+            &Default::default(),
+            false,
+            Some(&other.data),
+            None,
+            None,
+            None,
+            avowed,
+        )
+        .unwrap();
+        other.data.join(&heavy).is_file()
+    };
+
+    let lying = std::collections::BTreeMap::from([(
+        heavy.clone(),
+        (tisty_core::attach::printed(b"otra cosa"), body.len() as u64),
+    )]);
+    assert!(
+        !brought_to(&lying),
+        "a body the log says holds something else was taken in"
+    );
+
+    let telling = std::collections::BTreeMap::from([(
+        heavy.clone(),
+        (tisty_core::attach::printed(body), body.len() as u64),
+    )]);
+    assert!(
+        brought_to(&telling),
+        "a body that holds what the log says was turned away"
+    );
+}
+
+#[test]
 fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
     let one = machine("dev_a");
     let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
@@ -3276,6 +3322,7 @@ fn a_round_on_a_machine_that_shares_them_does_not_bring_the_big_ones_home() {
         Way::Both,
         &[],
         Holds::Shared,
+        &Default::default(),
     )
     .unwrap();
 
@@ -3304,6 +3351,7 @@ fn a_round_lets_go_of_what_it_just_pushed_when_that_is_the_setting() {
         Way::Both,
         &[],
         Holds::Shared,
+        &Default::default(),
     )
     .unwrap();
 
@@ -3482,6 +3530,7 @@ fn a_round_says_the_log_is_home_before_it_says_the_documents_are() {
         Way::Pull,
         &[],
         Holds::Everywhere,
+        &Default::default(),
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -3504,6 +3553,7 @@ fn a_round_that_carried_nothing_says_nothing() {
         Way::Both,
         &[],
         Holds::Everywhere,
+        &Default::default(),
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -4610,6 +4660,7 @@ fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
         Some(1000),
         None,
         None,
+        &Default::default(),
     )
     .unwrap();
 
@@ -5227,6 +5278,7 @@ fn fetched(shared: &Path, other: &Machine, most: Option<u64>, again: bool) -> us
         most,
         None,
         None,
+        &Default::default(),
     )
     .unwrap()
 }

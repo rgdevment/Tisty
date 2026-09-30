@@ -76,7 +76,16 @@ pub fn carry(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_holding(data, None, device, dest, way, alive, Holds::Everywhere)
+    carry_holding(
+        data,
+        None,
+        device,
+        dest,
+        way,
+        alive,
+        Holds::Everywhere,
+        &Default::default(),
+    )
 }
 
 pub fn carry_leaning_on(
@@ -87,7 +96,16 @@ pub fn carry_leaning_on(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_holding(data, aside, device, dest, way, alive, Holds::Everywhere)
+    carry_holding(
+        data,
+        aside,
+        device,
+        dest,
+        way,
+        alive,
+        Holds::Everywhere,
+        &Default::default(),
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,6 +114,7 @@ pub enum Reached {
     Papers,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn carry_holding(
     data: &Path,
     aside: Option<&Path>,
@@ -104,8 +123,19 @@ pub fn carry_holding(
     way: Way,
     alive: &[String],
     holds: Holds,
+    avowed: &std::collections::BTreeMap<String, (String, u64)>,
 ) -> Result<Moved, Trouble> {
-    carry_telling(data, aside, device, dest, way, alive, holds, &mut |_| {})
+    carry_telling(
+        data,
+        aside,
+        device,
+        dest,
+        way,
+        alive,
+        holds,
+        avowed,
+        &mut |_| {},
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -117,6 +147,7 @@ pub fn carry_telling(
     way: Way,
     alive: &[String],
     holds: Holds,
+    avowed: &std::collections::BTreeMap<String, (String, u64)>,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
@@ -199,6 +230,7 @@ pub fn carry_telling(
             None,
             None,
             Some(&mut carried),
+            avowed,
         )?;
         if holds == Holds::Shared {
             (moved.freed, moved.let_go) =
@@ -236,6 +268,7 @@ pub fn carry_telling(
             left_behind(holds),
             reachable.as_ref(),
             None,
+            avowed,
         )?;
     }
     note_carried(aside, dest);

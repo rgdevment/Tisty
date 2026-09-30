@@ -167,11 +167,17 @@ pub(crate) fn copy_held(
     above: Option<u64>,
     reachable: Option<&std::collections::BTreeSet<String>>,
     carried: Option<&mut Vec<(String, u64)>>,
+    avowed: &std::collections::BTreeMap<String, (String, u64)>,
 ) -> Result<usize, Trouble> {
     let mut done = 0;
     let mut left = 0;
     let mut carried = carried;
-    let written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
+    let mut written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
+    for (at, one) in avowed {
+        written_down
+            .entry(at.clone())
+            .or_insert_with(|| one.clone());
+    }
     let shelves = match std::fs::read_dir(from) {
         Ok(shelves) => shelves,
         Err(e) => {
