@@ -84,7 +84,7 @@ fn a_whole_last_line_missing_only_its_newline_is_still_an_event() {
 }
 
 #[test]
-fn a_sealed_segment_is_never_mended_however_broken_it_looks() {
+fn a_closed_segment_is_never_mended_however_broken_it_looks() {
     let room = tempfile::tempdir().unwrap();
     let root = room.path().join("store");
     let device = DeviceId("dev_a3f9".into());
@@ -107,7 +107,7 @@ fn a_sealed_segment_is_never_mended_however_broken_it_looks() {
 }
 
 #[test]
-fn a_batch_that_crosses_a_segment_keeps_every_event_and_seals_what_it_left() {
+fn a_batch_that_crosses_a_segment_keeps_every_event_and_closes_what_it_left() {
     let room = tempfile::tempdir().unwrap();
     let root = room.path().join("store");
     let device = DeviceId("dev_a3f9".into());

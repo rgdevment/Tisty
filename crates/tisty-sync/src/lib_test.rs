@@ -461,9 +461,9 @@ fn rotated(who: &Machine) {
     let at = who.store.join(&who.device);
     let whole = std::fs::read_to_string(at.join("active.tisty")).unwrap();
     let lines: Vec<&str> = whole.lines().collect();
-    let (sealed, tail) = lines.split_at(lines.len() - 1);
-    std::fs::write(at.join("000001.tisty"), format!("{}\n", sealed.join("\n"))).unwrap();
-    std::fs::write(at.join("000001.count"), sealed.len().to_string()).unwrap();
+    let (closed, tail) = lines.split_at(lines.len() - 1);
+    std::fs::write(at.join("000001.tisty"), format!("{}\n", closed.join("\n"))).unwrap();
+    std::fs::write(at.join("000001.count"), closed.len().to_string()).unwrap();
     std::fs::write(at.join("active.tisty"), format!("{}\n", tail.join("\n"))).unwrap();
 }
 
@@ -541,6 +541,7 @@ fn a_machine_that_was_removed_cannot_stitch_itself_into_the_folder() {
         Op::DeviceJoin {
             d: DeviceId("dev_otra".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -1178,6 +1179,7 @@ fn a_machine_on_the_list_writes_as_it_always_did() {
         Op::DeviceJoin {
             d: DeviceId("dev_a".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     let shared = tempfile::tempdir().unwrap();
@@ -2446,6 +2448,7 @@ fn a_machine_nobody_ever_named_is_not_locked_out_by_someone_elses_list() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     let shared = tempfile::tempdir().unwrap();
@@ -2494,6 +2497,7 @@ fn a_machine_that_was_removed_writes_nothing_at_all() {
         Op::DeviceJoin {
             d: DeviceId("dev_a".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -2501,6 +2505,7 @@ fn a_machine_that_was_removed_writes_nothing_at_all() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -2536,6 +2541,7 @@ fn a_machine_that_was_removed_still_brings_what_is_there() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -2571,6 +2577,7 @@ fn the_word_that_removes_it_is_read_before_it_writes() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -3743,7 +3750,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
     carry(&three.data, &three.device, shared.path(), Way::Both, &[]).unwrap();
 
     let theirs = shared.path().join(STORE).join(&three.device);
-    let sealed = theirs.join("000001.tisty");
+    let closed = theirs.join("000001.tisty");
     let whole = std::fs::read_to_string(theirs.join("active.tisty")).unwrap();
     std::fs::remove_file(theirs.join("active.tisty")).unwrap();
     std::fs::write(
@@ -3752,7 +3759,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
     )
     .unwrap();
     let cut: Vec<&str> = whole.lines().take(4).collect();
-    std::fs::write(&sealed, format!("{}\n", cut.join("\n"))).unwrap();
+    std::fs::write(&closed, format!("{}\n", cut.join("\n"))).unwrap();
     assert_eq!(tisty_core::store::distinct_in(&theirs).unwrap(), 4);
     assert!(
         tisty_core::store::check_device(&theirs).is_err(),
@@ -3768,7 +3775,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
         was,
         "a history nobody can read whole was written into anyway"
     );
-    assert!(sealed.is_file());
+    assert!(closed.is_file());
 }
 
 #[test]
@@ -5173,6 +5180,7 @@ fn a_device_removed_before_a_merge_is_still_removed_after_it() {
         Op::DeviceJoin {
             d: DeviceId("uno".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -5180,6 +5188,7 @@ fn a_device_removed_before_a_merge_is_still_removed_after_it() {
         Op::DeviceJoin {
             d: DeviceId("vieja".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -6286,5 +6295,127 @@ fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
     assert_eq!(
         std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
         body
+    );
+}
+
+#[test]
+fn a_signature_travels_with_the_segment_it_answers_for() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let there = shared.path().join("store").join(&one.device);
+    let said = std::fs::read_to_string(there.join("active.sig"))
+        .expect("the signature stayed behind, so nothing over there can answer for the segment");
+    let tip = tisty_core::signing::holds(
+        &key.verifying_key(),
+        &tisty_core::signing::About {
+            device: &one.device,
+            segment: "active.tisty",
+        },
+        &said,
+    )
+    .expect("it does not answer");
+    assert_eq!(
+        tip,
+        tisty_core::signing::tip_of(
+            tisty_core::signing::NOTHING_BEFORE,
+            &std::fs::read(there.join("active.tisty")).unwrap()
+        ),
+        "what arrived is not what the signature was made over"
+    );
+}
+
+fn a_segment_with_its_siblings(dir: &std::path::Path, count: &str, sig: &str) {
+    std::fs::create_dir_all(dir).unwrap();
+    std::fs::write(dir.join("000001.tisty"), b"one line").unwrap();
+    std::fs::write(dir.join("000001.count"), count.as_bytes()).unwrap();
+    std::fs::write(dir.join("000001.sig"), sig.as_bytes()).unwrap();
+}
+
+#[test]
+fn a_source_caught_without_a_count_does_not_take_the_one_already_there() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
+    std::fs::remove_file(from.join("000001.count")).unwrap();
+
+    crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert!(
+        into.join("000001.count").is_file(),
+        "the guard against a truncated segment was removed at the far end"
+    );
+}
+
+#[test]
+fn a_signature_goes_when_the_bytes_under_it_were_written_over() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
+    std::fs::remove_file(from.join("000001.sig")).unwrap();
+    std::fs::write(from.join("000001.tisty"), b"another line entirely").unwrap();
+
+    crate::segments::copy_segments(&from, &into, true, &Default::default()).unwrap();
+
+    assert!(
+        !into.join("000001.sig").exists(),
+        "a signature nobody answers for any more was left standing"
+    );
+}
+
+#[test]
+fn a_signature_stays_when_the_segment_under_it_never_moved() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
+    std::fs::remove_file(from.join("000001.sig")).unwrap();
+
+    crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert!(
+        into.join("000001.sig").is_file(),
+        "the only signature that segment will ever have was thrown away for nothing"
+    );
+}
+
+#[test]
+fn a_carry_that_moved_only_a_signature_is_not_reported_as_nothing() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a newer signature");
+    a_segment_with_its_siblings(&into, "1", "a signature");
+
+    let (done, beside) =
+        crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(into.join("000001.sig")).unwrap(),
+        "a newer signature"
+    );
+    assert_eq!(done, 0, "a signature was counted as a segment brought home");
+    assert!(
+        beside > 0,
+        "a signature moved and the round called it a no-op"
     );
 }

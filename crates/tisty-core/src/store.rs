@@ -8,7 +8,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-mod identity;
+pub(crate) mod identity;
 
 pub use identity::{
     KEEP, MARKER, brought_home, displaced, identity, kept_at, kept_before_the_store_goes,
@@ -29,10 +29,12 @@ pub struct Store {
     active_events: usize,
     head: jiff::Timestamp,
     seq: u64,
-    seen: u64,
+    seen: Mark,
     overtaken: bool,
     lock: Option<File>,
     via: Option<String>,
+    signs: Option<ed25519_dalek::SigningKey>,
+    tip: [u8; 32],
 }
 
 impl Store {
@@ -64,7 +66,7 @@ impl Store {
 
         mend(&dir);
         let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
-        let seen = active_size(&dir.join(ACTIVE));
+        let seen = active_mark(&dir.join(ACTIVE));
 
         Ok(Self {
             active_events,
@@ -77,7 +79,77 @@ impl Store {
             device,
             via: None,
             lock: None,
+            signs: None,
+            tip: crate::signing::NOTHING_BEFORE,
         })
+    }
+
+    /// The key lives outside the store, so whoever knows where hands it over.
+    pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
+        self.signs = key;
+        self.tip = self.tip_now();
+        self
+    }
+
+    /// A signature found here is only a base for what follows if this machine's own key answers
+    /// for it: `.sig` files arrive with a carry, so one in our directory is not ours to trust.
+    fn tip_now(&self) -> [u8; 32] {
+        let Some(key) = &self.signs else {
+            return crate::signing::NOTHING_BEFORE;
+        };
+        let by = key.verifying_key();
+        let found = segments_in(&self.dir).unwrap_or_default();
+        let mut tip = crate::signing::NOTHING_BEFORE;
+        let mut onward = 0;
+        for (at, one) in found.iter().enumerate() {
+            let Some(named) = one.file_name().and_then(|one| one.to_str()) else {
+                continue;
+            };
+            if !is_closed(named) {
+                continue;
+            }
+            if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
+                && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
+            {
+                tip = held;
+                onward = at + 1;
+            }
+        }
+        for one in found.iter().skip(onward) {
+            if let Ok(said) = std::fs::read(one) {
+                tip = crate::signing::tip_of(tip, &said);
+            }
+        }
+        tip
+    }
+
+    fn about<'a>(&'a self, segment: &'a str) -> crate::signing::About<'a> {
+        crate::signing::About {
+            device: &self.device.0,
+            segment,
+        }
+    }
+
+    fn sign(&self, at: &Path) {
+        let Some(key) = &self.signs else {
+            return;
+        };
+        let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
+            return;
+        };
+        if let Err(e) = write_atomic(
+            &at.with_extension(crate::signing::SIG),
+            crate::signing::signed(key, &self.about(named), &self.tip).as_bytes(),
+        ) {
+            witness::warn(
+                channel::STORE,
+                "what this machine wrote could not be signed, so nothing here answers for it",
+                &[
+                    ("at", Fact::Path(at.to_path_buf())),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+        }
     }
 
     fn acquire(&mut self) -> Result<()> {
@@ -108,19 +180,22 @@ impl Store {
 
     fn catch_up(&mut self) -> Result<()> {
         let active = self.dir.join(ACTIVE);
-        let size = active_size(&active);
-        if size == self.seen {
+        let mark = active_mark(&active);
+        if mark == self.seen {
             return Ok(());
         }
         self.overtaken = true;
 
+        // Another writer appended to the same segment, so a tip folded onto ours would skip
+        // their lines and sign a chain nobody can recompute.
+        self.tip = self.tip_now();
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
         if (head, seq) > (self.head, self.seq) {
             self.head = head;
             self.seq = seq;
         }
-        self.seen = size;
+        self.seen = mark;
         Ok(())
     }
 
@@ -281,11 +356,15 @@ impl Store {
                 .open(self.dir.join(ACTIVE))?;
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
+            self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
 
             self.active_events += lot.len();
             at += lot.len();
         }
-        self.seen = active_size(&self.dir.join(ACTIVE));
+        if !events.is_empty() {
+            self.sign(&self.dir.join(ACTIVE));
+        }
+        self.seen = active_mark(&self.dir.join(ACTIVE));
         Ok(())
     }
 
@@ -293,17 +372,21 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         if active.try_exists()? {
             let next = next_segment_number(&self.dir)?;
-            let sealed = self.dir.join(format!("{next:06}.tisty"));
-            std::fs::rename(&active, &sealed)?;
+            let closed = self.dir.join(format!("{next:06}.tisty"));
+            // Signed before the rename, never after: a death in between would leave a segment
+            // nothing ever signs, and no later pass goes back for it.
+            self.sign(&closed);
+            std::fs::rename(&active, &closed)?;
 
-            let (lines, _, _) = tail_of(&sealed)?;
+            let (lines, _, _) = tail_of(&closed)?;
             write_atomic(
-                &sealed.with_extension("count"),
+                &closed.with_extension("count"),
                 lines.to_string().as_bytes(),
             )?;
+            let _ = std::fs::remove_file(active.with_extension(crate::signing::SIG));
         }
         self.active_events = 0;
-        self.seen = 0;
+        self.seen = Mark::default();
         Ok(())
     }
 
@@ -377,6 +460,7 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
         if let Op::DeviceJoin {
             d,
             k: Some(crate::event::DeviceKind::Agent),
+            ..
         } = &one.op
             && d == &one.device
         {
@@ -435,7 +519,7 @@ pub fn is_segment(name: &str) -> bool {
         })
 }
 
-pub fn is_sealed(name: &str) -> bool {
+pub fn is_closed(name: &str) -> bool {
     is_segment(name) && name != ACTIVE
 }
 
@@ -580,7 +664,7 @@ struct Stamped {
     op: String,
 }
 
-/// A sealed segment declares lines, not events, so a skipped one must still be counted or the
+/// A closed segment declares lines, not events, so a skipped one must still be counted or the
 /// count check reads it as a truncated download.
 fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<usize> {
     read_segment_from(path, 0, out)
@@ -709,8 +793,16 @@ fn poured(tmp: &Path, contents: &[u8]) -> Result<()> {
 #[path = "store_atomic_tests.rs"]
 mod atomic_tests;
 
-fn active_size(path: &Path) -> u64 {
-    std::fs::metadata(path).map(|m| m.len()).unwrap_or(0)
+/// A length alone cannot tell a rotation from a quiet moment: the segment another writer closed
+/// and refilled to the same size would read as untouched, and the chain would fork from there.
+/// The stamp narrows that to one tick of whatever the filesystem keeps, not to nothing.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+struct Mark(u64, Option<std::time::SystemTime>);
+
+fn active_mark(path: &Path) -> Mark {
+    std::fs::metadata(path)
+        .map(|m| Mark(m.len(), m.modified().ok()))
+        .unwrap_or_default()
 }
 
 pub struct Alone(File);
@@ -744,7 +836,7 @@ pub fn alone(device_dir: &Path) -> Option<Alone> {
 /// A line is written whole or not at all, so one that will not parse at the very end of the
 /// segment still being written is the half of an event a power cut took. It is set aside rather
 /// than read, because refusing it would take every whole event before it down as well. Only ever
-/// the last line, only ever this machine's own active segment: a sealed one has its count to
+/// the last line, only ever this machine's own active segment: a closed one has its count to
 /// answer for, and another machine's history is not ours to mend.
 fn mend(dir: &Path) {
     // Behind the same lock every writer takes: mending renames a fresh file over the old one, so
@@ -796,6 +888,7 @@ fn mend(dir: &Path) {
     {
         let mut kept = whole.clone();
         kept.push(b'\n');
+        let _ = std::fs::remove_file(path.with_extension(crate::signing::SIG));
         if let Err(why) = write_atomic(path, &kept) {
             witness::warn(
                 channel::STORE,
@@ -826,6 +919,7 @@ fn mend(dir: &Path) {
         Some(at) => &whole[..=at],
         None => &[],
     };
+    let _ = std::fs::remove_file(path.with_extension(crate::signing::SIG));
     if let Err(why) = write_atomic(path, kept) {
         witness::warn(
             channel::STORE,

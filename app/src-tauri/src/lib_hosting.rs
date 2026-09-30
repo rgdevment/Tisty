@@ -28,6 +28,7 @@ fn the_window_says_where_an_older_agent_lives_once() {
         .append(Op::DeviceJoin {
             d: agent.clone(),
             k: Some(tisty_core::event::DeviceKind::Agent),
+            p: None,
         })
         .unwrap();
 

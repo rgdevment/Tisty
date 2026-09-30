@@ -21,6 +21,9 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(DeviceKind::Agent),
+            p: crate::signing::mine(paths, &who)
+                .as_ref()
+                .map(crate::signing::shown),
         },
         Op::DeviceHost {
             d: who.clone(),

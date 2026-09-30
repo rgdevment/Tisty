@@ -132,6 +132,7 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
             Op::DeviceJoin {
                 d,
                 k: Some(crate::event::DeviceKind::Agent),
+                ..
             } if d == &event.device => Some(d),
             _ => None,
         })

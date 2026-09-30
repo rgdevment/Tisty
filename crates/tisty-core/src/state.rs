@@ -34,6 +34,7 @@ pub struct State {
     pub dropped: BTreeSet<DeviceId>,
     pub kept: BTreeMap<String, (String, u64)>,
     pub holders: BTreeMap<String, BTreeSet<DeviceId>>,
+    pub keys: BTreeMap<DeviceId, String>,
     pub retired: BTreeSet<String>,
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
@@ -379,7 +380,7 @@ impl State {
                     doc.flagged = None;
                 }
             }
-            Op::DeviceJoin { d, k } => self.device_joined(event, d, k),
+            Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of } => {
                 if (event.device == *d || event.device == *of)

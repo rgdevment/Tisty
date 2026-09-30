@@ -129,9 +129,13 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         .allowed
         .contains(&who)
     {
+        let shown = tisty_core::signing::mine(&app.paths, &who)
+            .as_ref()
+            .map(tisty_core::signing::shown);
         app.commit(tisty_core::Op::DeviceJoin {
             d: who,
             k: Some(tisty_core::DeviceKind::Machine),
+            p: shown,
         })?;
     }
 

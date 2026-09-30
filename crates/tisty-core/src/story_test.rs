@@ -225,6 +225,7 @@ fn a_conversion_an_assistant_wrote_is_no_chapter_because_it_never_landed() {
         Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     );
     joined.device = agent.clone();
@@ -273,6 +274,7 @@ fn opening_a_task_to_agents_is_a_chapter_and_shutting_it_another() {
         Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     );
     joined.device = agent.clone();
@@ -311,6 +313,7 @@ fn a_fill_in_the_replay_let_go_is_no_chapter_and_one_it_kept_is() {
         Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     );
     joined.device = agent.clone();

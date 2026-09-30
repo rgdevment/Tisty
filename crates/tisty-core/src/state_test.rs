@@ -1175,6 +1175,7 @@ fn with_an_agent() -> (State, DocId) {
         Op::DeviceJoin {
             d: DeviceId("dev_agent".into()),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     ));
     let id = Ulid::generate();
@@ -1239,6 +1240,7 @@ fn a_join_says_whether_it_is_a_machine_or_an_agent() {
         Op::DeviceJoin {
             d: laptop.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
     state.apply(&ev(
@@ -1247,6 +1249,7 @@ fn a_join_says_whether_it_is_a_machine_or_an_agent() {
         Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     ));
 
@@ -1272,6 +1275,7 @@ fn joined(state: &mut State, who: &str, k: crate::event::DeviceKind) {
         Op::DeviceJoin {
             d: DeviceId(who.into()),
             k: Some(k),
+            p: None,
         },
     ));
 }
@@ -1431,6 +1435,7 @@ fn coming_back_as_a_machine_takes_the_agent_badge_off() {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     ));
     state.apply(&ev(
@@ -1439,6 +1444,7 @@ fn coming_back_as_a_machine_takes_the_agent_badge_off() {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
 
@@ -1504,6 +1510,7 @@ fn a_machine_that_joined_is_allowed_to_write() {
         Op::DeviceJoin {
             d: DeviceId("mac0".into()),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
 
@@ -1521,6 +1528,7 @@ fn a_machine_that_was_removed_is_no_longer_allowed() {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
     state.apply(&ev(2, "mac0", Op::DeviceRemove { d: who.clone() }));
@@ -1539,6 +1547,7 @@ fn a_machine_that_comes_back_is_allowed_again_because_the_later_word_wins() {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
     state.apply(&ev(2, "mac0", Op::DeviceRemove { d: who.clone() }));
@@ -1548,6 +1557,7 @@ fn a_machine_that_comes_back_is_allowed_again_because_the_later_word_wins() {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
 
@@ -1566,6 +1576,7 @@ fn removing_one_machine_says_nothing_about_the_others() {
         Op::DeviceJoin {
             d: one.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
     state.apply(&ev(
@@ -1574,6 +1585,7 @@ fn removing_one_machine_says_nothing_about_the_others() {
         Op::DeviceJoin {
             d: other.clone(),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
     state.apply(&ev(3, "mac0", Op::DeviceRemove { d: other }));
@@ -1595,6 +1607,7 @@ fn a_word_about_a_machine_is_never_buried_by_a_tombstone() {
         Op::DeviceJoin {
             d: DeviceId("win1".into()),
             k: Some(crate::event::DeviceKind::Machine),
+            p: None,
         },
     ));
 
@@ -4474,6 +4487,7 @@ fn a_device_only_says_what_kind_it_is_itself() {
         Op::DeviceJoin {
             d: DeviceId("dev_laptop".into()),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     ));
     assert!(
@@ -4496,4 +4510,39 @@ fn an_assistant_cannot_retire_an_attachment() {
 
     state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
     assert_eq!(state.retired.len(), 1);
+}
+
+#[test]
+fn the_same_key_in_another_case_is_not_a_second_key() {
+    let mut state = State::default();
+    let who = DeviceId("dev_a".into());
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let said = crate::signing::shown(&key);
+
+    state.apply(&ev(
+        1,
+        "dev_a",
+        Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: Some(said.to_uppercase()),
+        },
+    ));
+    state.apply(&ev(
+        2,
+        "dev_a",
+        Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: Some(said.clone()),
+        },
+    ));
+
+    assert_eq!(
+        state.keys.get(&who),
+        Some(&said),
+        "a machine that wrote its key in another case read as a machine that changed it"
+    );
 }

@@ -192,6 +192,8 @@ pub enum Op {
         /// it is a machine: an event from before this field existed must not demote an agent.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         k: Option<DeviceKind>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        p: Option<String>,
     },
     #[serde(rename = "device.remove")]
     DeviceRemove { d: DeviceId },

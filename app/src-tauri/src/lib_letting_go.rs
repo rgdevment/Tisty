@@ -137,6 +137,7 @@ fn opening_to_agents_is_for_an_open_task_the_person_wrote() {
         .append(Op::DeviceJoin {
             d: agent,
             k: Some(tisty_core::event::DeviceKind::Agent),
+            p: None,
         })
         .unwrap();
     wrote
