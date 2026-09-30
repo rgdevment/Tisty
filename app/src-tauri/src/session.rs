@@ -692,9 +692,13 @@ impl Session {
         if self.state.devices.contains(&who) {
             return Ok(());
         }
+        let shown = tisty_core::signing::mine(&self.paths, &who)
+            .as_ref()
+            .map(tisty_core::signing::shown);
         self.commit(Op::DeviceJoin {
             d: who,
             k: Some(tisty_core::DeviceKind::Machine),
+            p: shown,
         })
     }
 

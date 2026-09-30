@@ -21,6 +21,7 @@ fn with_an_agent() -> State {
         Op::DeviceJoin {
             d: DeviceId("dev_agent".into()),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     ));
     state

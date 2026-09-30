@@ -628,6 +628,109 @@ fn an_attachment_avowed_after_the_cache_was_built_is_not_lost_by_the_tail() {
     );
 }
 
+fn a_key_that_reads_back() -> String {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let key = crate::signing::mine(&paths, &DeviceId("dev_a".into())).unwrap();
+    crate::signing::shown(&key)
+}
+
+#[test]
+fn the_key_a_machine_published_survives_the_cache_and_the_first_one_stands() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let said = a_key_that_reads_back();
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+    store
+        .append(Op::DeviceJoin {
+            d: DeviceId("dev_a".into()),
+            k: None,
+            p: Some(said.clone()),
+        })
+        .unwrap();
+
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .keys
+            .get(&DeviceId("dev_a".into())),
+        Some(&said)
+    );
+    assert!(matches!(
+        audit(&store_root, &cache_dir).unwrap(),
+        Audit::Agrees { .. }
+    ));
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .keys
+            .get(&DeviceId("dev_a".into())),
+        Some(&said),
+        "the cache handed back a store that had forgotten what a machine publishes"
+    );
+
+    store
+        .append(Op::DeviceJoin {
+            d: DeviceId("dev_a".into()),
+            k: None,
+            p: Some(a_key_that_reads_back()),
+        })
+        .unwrap();
+
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .keys
+            .get(&DeviceId("dev_a".into())),
+        Some(&said),
+        "a second key took the place of the first, which is how a forged history gets washed"
+    );
+}
+
+#[test]
+fn a_key_published_about_somebody_else_is_not_believed() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+    store
+        .append(Op::DeviceJoin {
+            d: DeviceId("dev_b".into()),
+            k: None,
+            p: Some(a_key_that_reads_back()),
+        })
+        .unwrap();
+
+    let state = project(&store_root, &cache_dir).unwrap();
+
+    assert!(
+        !state.keys.contains_key(&DeviceId("dev_b".into())),
+        "one machine spoke for another's key and was believed"
+    );
+    assert!(state.devices.contains(&DeviceId("dev_b".into())));
+}
+
+#[test]
+fn what_is_not_a_key_is_not_written_down_as_one() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+    let mut store = Store::open(&store_root, DeviceId("dev_a".into())).unwrap();
+    store
+        .append(Op::DeviceJoin {
+            d: DeviceId("dev_a".into()),
+            k: None,
+            p: Some("not a key at all".into()),
+        })
+        .unwrap();
+
+    assert!(
+        project(&store_root, &cache_dir).unwrap().keys.is_empty(),
+        "anything a machine says is a key was taken for one"
+    );
+}
+
 #[test]
 fn tombstones_survive_the_round_trip() {
     let f = loaded();
@@ -914,6 +1017,7 @@ fn a_cache_remembers_where_each_agent_lives() {
             Op::DeviceJoin {
                 d: agent.clone(),
                 k: Some(crate::event::DeviceKind::Agent),
+                p: None,
             },
             Op::DeviceHost {
                 d: agent.clone(),
@@ -936,6 +1040,7 @@ fn a_host_said_in_a_tail_is_still_known_at_the_next_open() {
         .append(Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         })
         .unwrap();
     project(&f.store_root, &f.cache_dir).unwrap();

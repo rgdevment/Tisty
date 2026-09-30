@@ -37,8 +37,8 @@ impl Alike {
     ) -> Result<usize, Trouble> {
         let (from, into) = from_to(theirs, mine, way);
         let (from, into) = (from.to_path_buf(), into.to_path_buf());
-        let done = copy_segments(&from, &into, again, self.of(who, theirs, mine))?;
-        if done > 0 {
+        let (done, beside) = copy_segments(&from, &into, again, self.of(who, theirs, mine))?;
+        if done > 0 || beside > 0 {
             self.0.remove(who);
         }
         Ok(done)
@@ -78,12 +78,14 @@ fn all_of(dir: &Path, known: &Named) -> bool {
         .unwrap_or(false)
 }
 
+/// Segments and what sits beside them are counted apart: the first is what the round says it
+/// brought home, the second only says the memo of what both sides hold is out of date.
 pub(crate) fn copy_segments(
     from: &Path,
     into: &Path,
     again: bool,
     known: &Named,
-) -> Result<usize, Trouble> {
+) -> Result<(usize, usize), Trouble> {
     let carried = match tisty_core::store::segments_in(from) {
         Ok(carried) => carried,
         Err(e) => {
@@ -98,36 +100,50 @@ pub(crate) fn copy_segments(
                     ],
                 );
             }
-            return Ok(0);
+            return Ok((0, 0));
         }
     };
     if carried.is_empty() {
-        return Ok(0);
+        return Ok((0, 0));
     }
     std::fs::create_dir_all(into).map_err(io)?;
     sweep(into);
     let mut done = 0;
+    let mut beside_it = 0;
     for at in carried {
         let Some(named) = at.file_name() else {
             continue;
         };
-        let counter = at.with_extension("count");
-        if let Some(tally) = counter.file_name().filter(|_| counter.is_file()) {
-            let target = into.join(tally);
-            if again || !same(&counter, &target) {
-                copy_onto(&counter, &target)?;
-            }
+        let target = into.join(named);
+        let closed = named.to_str().is_some_and(tisty_core::store::is_closed);
+        let stands = !again && ((closed && known.contains(named)) || same(&at, &target));
+        if !stands {
+            copy_onto(&at, &target)?;
+            done += 1;
         }
 
-        let target = into.join(named);
-        let sealed = named.to_str().is_some_and(tisty_core::store::is_sealed);
-        if !again && ((sealed && known.contains(named)) || same(&at, &target)) {
-            continue;
+        // After the segment, never before: a signature copied first would answer for fewer bytes
+        // than the segment beside it, and read as a segment somebody tampered with.
+        for kind in ["count", tisty_core::signing::SIG] {
+            let beside = at.with_extension(kind);
+            let there = target.with_extension(kind);
+            match beside.is_file() {
+                true if again || !same(&beside, &there) => {
+                    copy_onto(&beside, &there)?;
+                    beside_it += 1;
+                }
+                true => {}
+                // Only what the bytes that just landed made untrue: a count answers for a
+                // segment that no longer changes, and a signature nothing overwrote is the
+                // only one that segment will ever have, since a machine signs at rotation.
+                false if !stands && kind == tisty_core::signing::SIG => {
+                    beside_it += usize::from(std::fs::remove_file(&there).is_ok());
+                }
+                false => {}
+            }
         }
-        copy_onto(&at, &target)?;
-        done += 1;
     }
-    Ok(done)
+    Ok((done, beside_it))
 }
 
 pub(crate) fn sweep(dir: &Path) {

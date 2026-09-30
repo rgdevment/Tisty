@@ -25,6 +25,7 @@ scrypt.workspace = true
 rand_core.workspace = true
 zeroize.workspace = true
 hmac.workspace = true
+ed25519-dalek.workspace = true
 zip.workspace = true
 unicode-normalization.workspace = true
 sys-locale.workspace = true

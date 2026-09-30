@@ -28,7 +28,7 @@ fn the_segments_of_a_machine_always_come_back_in_the_order_they_were_written() {
         ]
     );
 }
-use super::identity::{DISPLACED, set_aside};
+use super::identity::set_aside;
 use super::*;
 use crate::event::TaskAdd;
 use ulid::Ulid;
@@ -74,6 +74,7 @@ fn concatenating_two_histories_locks_nobody_who_was_writing_out() {
             Op::DeviceJoin {
                 d: DeviceId("dev_here".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
             add("lo de aqui"),
         ],
@@ -85,6 +86,7 @@ fn concatenating_two_histories_locks_nobody_who_was_writing_out() {
             Op::DeviceJoin {
                 d: DeviceId("dev_there".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
             add("lo de alli"),
         ],
@@ -111,6 +113,7 @@ fn a_history_that_never_named_anyone_is_not_shut_out_by_one_that_did() {
             Op::DeviceJoin {
                 d: DeviceId("dev_there".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
             Op::DeviceRemove {
                 d: DeviceId("dev_gone".into()),
@@ -155,6 +158,7 @@ fn once_a_machine_is_removed_no_ordering_of_the_log_lets_it_back_in() {
                 Op::DeviceJoin {
                     d: DeviceId("dev_m".into()),
                     k: Some(crate::event::DeviceKind::Machine),
+                    p: None,
                 },
             ),
             (
@@ -170,6 +174,7 @@ fn once_a_machine_is_removed_no_ordering_of_the_log_lets_it_back_in() {
                 Op::DeviceJoin {
                     d: DeviceId("dev_both".into()),
                     k: Some(crate::event::DeviceKind::Machine),
+                    p: None,
                 },
             ),
         ] {
@@ -215,6 +220,7 @@ fn a_removal_survives_a_clock_that_runs_behind_the_machine_it_removes() {
             Op::DeviceJoin {
                 d: DeviceId("dev_keeper".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
         ),
         (
@@ -224,6 +230,7 @@ fn a_removal_survives_a_clock_that_runs_behind_the_machine_it_removes() {
             Op::DeviceJoin {
                 d: DeviceId("dev_gone".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
         ),
         (
@@ -259,16 +266,16 @@ fn a_segment_that_arrived_half_written_is_an_error() {
     store.append(add("one more")).unwrap();
 
     let dir = tmp.path().join(&device.0);
-    let sealed = dir.join("000001.tisty");
-    assert_eq!(declared_count(&sealed), Some(4));
+    let closed = dir.join("000001.tisty");
+    assert_eq!(declared_count(&closed), Some(4));
 
-    let kept: String = std::fs::read_to_string(&sealed)
+    let kept: String = std::fs::read_to_string(&closed)
         .unwrap()
         .lines()
         .take(2)
         .collect::<Vec<_>>()
         .join("\n");
-    std::fs::write(&sealed, kept + "\n").unwrap();
+    std::fs::write(&closed, kept + "\n").unwrap();
 
     assert!(matches!(
         read_all(tmp.path()),
@@ -606,7 +613,7 @@ fn an_event_carries_the_zone_of_whoever_wrote_it() {
 }
 
 #[test]
-fn a_skipped_event_still_counts_towards_a_sealed_segment() {
+fn a_skipped_event_still_counts_towards_a_closed_segment() {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path().join("dev_a");
     std::fs::create_dir_all(&dir).unwrap();
@@ -631,7 +638,7 @@ fn a_skipped_event_still_counts_towards_a_sealed_segment() {
     assert_eq!(
         read.len(),
         1,
-        "a sealed segment declares lines, so skipping one cannot read as a truncated download"
+        "a closed segment declares lines, so skipping one cannot read as a truncated download"
     );
 }
 
@@ -939,7 +946,7 @@ fn rotation_resets_what_the_store_believes_it_has_seen() {
     store.append(add("after")).unwrap();
 
     assert_eq!(store.active_events, 1);
-    assert_eq!(store.seen, active_size(&store.dir.join(ACTIVE)));
+    assert_eq!(store.seen, active_mark(&store.dir.join(ACTIVE)));
 }
 #[test]
 fn a_store_keeps_the_same_name_however_often_it_is_asked() {
@@ -986,10 +993,24 @@ fn the_marker_does_not_disturb_reading_the_log() {
 }
 
 #[test]
-fn what_is_set_aside_is_named_after_the_key_it_replaces() {
-    assert!(
-        DISPLACED.starts_with(KEEP),
-        "{DISPLACED} would not be found beside {KEEP}"
+fn what_is_set_aside_is_listed_whichever_key_it_replaces() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    std::fs::create_dir_all(paths.private()).unwrap();
+    let store_key = paths
+        .private()
+        .join(format!("01ARZ3NDEKTSV4RRFFQ69G5FAV{KEEP}"));
+    let device_key = paths
+        .private()
+        .join(format!("dev_a{}", crate::signing::KEEP));
+
+    assert!(set_aside(&paths, &store_key, b"not a key", "a test"));
+    assert!(set_aside(&paths, &device_key, b"nor is this", "a test"));
+
+    assert_eq!(
+        displaced(&paths).len(),
+        2,
+        "a key was parked where doctor never looks"
     );
 }
 
@@ -1236,12 +1257,12 @@ fn a_machine_that_just_rotated_is_still_read_from_the_segment_behind() {
 }
 
 #[test]
-fn the_one_still_being_written_to_is_the_only_segment_that_is_not_sealed() {
-    assert!(is_sealed("000001.tisty"));
-    assert!(is_sealed("0000000001.tisty"));
-    assert!(!is_sealed("active.tisty"));
-    assert!(!is_sealed("notes.txt"));
-    assert!(!is_sealed("00001.count"));
+fn the_one_still_being_written_to_is_the_only_segment_that_is_not_closed() {
+    assert!(is_closed("000001.tisty"));
+    assert!(is_closed("0000000001.tisty"));
+    assert!(!is_closed("active.tisty"));
+    assert!(!is_closed("notes.txt"));
+    assert!(!is_closed("00001.count"));
 }
 
 #[test]
@@ -1269,5 +1290,159 @@ fn what_an_attachment_holds_is_written_down_where_an_older_reader_can_step_over_
     assert!(
         line.contains(r#""opt":true"#),
         "a reader that predates this would refuse the whole store: {line}"
+    );
+}
+
+fn a_machine_that_signs(at: &std::path::Path) -> (Store, ed25519_dalek::SigningKey, PathBuf) {
+    let paths = crate::Paths::new(at.join("data"), at.join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let store = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    let dir = paths.store().join(&who.0);
+    (store, key, dir)
+}
+
+fn over_active() -> crate::signing::About<'static> {
+    crate::signing::About {
+        device: "dev_a",
+        segment: ACTIVE,
+    }
+}
+
+fn a_task(said: &str) -> Op {
+    Op::TaskAdd {
+        id: ulid::Ulid::generate(),
+        d: crate::event::TaskAdd::new(said, "a0"),
+    }
+}
+
+#[test]
+fn what_a_machine_writes_it_signs_and_the_signature_answers_for_what_is_there() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, key, dir) = a_machine_that_signs(tmp.path());
+
+    store.append(a_task("chase the invoice")).unwrap();
+
+    let said = std::fs::read_to_string(dir.join("active.sig")).expect("it signed nothing");
+    let tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
+        .expect("the signature does not answer");
+    assert_eq!(
+        tip,
+        crate::signing::tip_of(
+            crate::signing::NOTHING_BEFORE,
+            &std::fs::read(dir.join(ACTIVE)).unwrap()
+        ),
+        "the signature is over something other than what is written there"
+    );
+}
+
+#[test]
+fn a_line_changed_after_the_fact_no_longer_answers_to_the_signature() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, key, dir) = a_machine_that_signs(tmp.path());
+    store.append(a_task("chase the invoice")).unwrap();
+    let said = std::fs::read_to_string(dir.join("active.sig")).unwrap();
+    let signed_tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said).unwrap();
+
+    let whole = std::fs::read_to_string(dir.join(ACTIVE)).unwrap();
+    std::fs::write(dir.join(ACTIVE), whole.replace("chase", "cease")).unwrap();
+
+    assert_ne!(
+        signed_tip,
+        crate::signing::tip_of(
+            crate::signing::NOTHING_BEFORE,
+            &std::fs::read(dir.join(ACTIVE)).unwrap()
+        ),
+        "a word was changed under the signature and the tip did not move"
+    );
+}
+
+#[test]
+fn a_machine_with_no_key_signs_nothing_rather_than_signing_badly() {
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("store");
+    let mut store = Store::open(&root, DeviceId("dev_a".into()))
+        .unwrap()
+        .signing_with(None);
+
+    store.append(a_task("chase the invoice")).unwrap();
+
+    assert!(
+        !root.join("dev_a").join("active.sig").exists(),
+        "it wrote a signature with no key to make one"
+    );
+}
+
+#[test]
+fn a_machine_with_no_key_leaves_no_signature_behind_when_it_rotates() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
+    store.append(a_task("chase the invoice")).unwrap();
+    assert!(
+        dir.join("active.sig").is_file(),
+        "it signed nothing to begin with"
+    );
+
+    let mut keyless = Store::open(dir.parent().unwrap(), DeviceId("dev_a".into()))
+        .unwrap()
+        .signing_with(None);
+    keyless.rotate().unwrap();
+    keyless.append(a_task("and the other one")).unwrap();
+
+    assert!(
+        !dir.join("active.sig").exists(),
+        "the signature of the segment that was rotated away is still beside the new one"
+    );
+    assert!(
+        !dir.join("000001.sig").exists(),
+        "a machine with no key signed the segment it rotated"
+    );
+}
+
+#[test]
+fn nothing_to_write_leaves_no_signature_behind() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
+
+    store.append_batch(Vec::new()).unwrap();
+
+    assert!(
+        !dir.join("active.sig").exists(),
+        "a signature was written for a segment that was never started"
+    );
+    assert!(!dir.join(ACTIVE).exists());
+}
+
+#[test]
+fn a_segment_closed_and_refilled_to_the_same_length_is_not_read_as_untouched() {
+    let tmp = tempfile::tempdir().unwrap();
+    let at = tmp.path().join("active.tisty");
+    std::fs::write(&at, b"aaaa").unwrap();
+    let long_ago =
+        std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&at)
+        .unwrap()
+        .set_modified(long_ago)
+        .unwrap();
+    let was = active_mark(&at);
+
+    std::fs::write(&at, b"bbbb").unwrap();
+    let ten_past =
+        std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_010);
+    std::fs::OpenOptions::new()
+        .write(true)
+        .open(&at)
+        .unwrap()
+        .set_modified(ten_past)
+        .unwrap();
+
+    assert_ne!(
+        active_mark(&at),
+        was,
+        "two segments of the same length read as the same segment"
     );
 }

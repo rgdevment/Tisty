@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 9;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 10;
 
 pub struct Cache {
     db: Connection,
@@ -160,6 +160,10 @@ impl Cache {
             .unwrap_or_default();
         state.devices = self
             .meta("devices")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
+        state.keys = self
+            .meta("keys")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
         state.dropped = self
@@ -353,13 +357,14 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
                     serde_json::to_string(&state.signed).unwrap_or_default(),
                     serde_json::to_string(&state.signed_before).unwrap_or_default(),
                     serde_json::to_string(&state.devices).unwrap_or_default(),
+                    serde_json::to_string(&state.keys).unwrap_or_default(),
                     serde_json::to_string(&state.dropped).unwrap_or_default(),
                     serde_json::to_string(&state.retired).unwrap_or_default(),
                     serde_json::to_string(&state.shed).unwrap_or_default(),

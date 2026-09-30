@@ -80,9 +80,25 @@ impl State {
         event: &Event,
         d: &DeviceId,
         k: &Option<crate::event::DeviceKind>,
+        p: &Option<String>,
     ) {
         self.dropped.remove(d);
         self.devices.insert(d.clone());
+        // Kept as this machine would write it, never as it arrived: the same key in another
+        // case is the same key, and a raw string would read the two as a machine changing it.
+        if let Some(said) = p.as_deref().filter(|_| d == &event.device)
+            && let Some(key) = crate::signing::read(said)
+        {
+            let shown = crate::signing::shown_of(&key);
+            let stands = self.keys.entry(d.clone()).or_insert(shown.clone());
+            if *stands != shown {
+                crate::witness::warn(
+                    crate::witness::channel::STORE,
+                    "a machine that already published a key published another, and the first one stands",
+                    &[("by", crate::witness::Fact::Id(d.0.clone()))],
+                );
+            }
+        }
         match k.filter(|_| d == &event.device) {
             Some(crate::event::DeviceKind::Agent) => {
                 self.agents.insert(d.clone());

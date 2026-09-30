@@ -8,7 +8,7 @@ system behaves, not a record of why it was designed this way.
 ```text
 <data>/store/                    the truth. Syncs. Survives everything.
 ├── dev_a3f1/
-│   ├── 000001.tisty             sealed segment, never written again
+│   ├── 000001.tisty             closed segment, never written again
 │   └── active.tisty             the only file this device appends to
 └── dev_9f2c/
     └── active.tisty             another device's, never touched by this one
@@ -24,7 +24,7 @@ thing from Tisty's own `docs/` — and the path is not configurable.
 
 ## The event log
 
-One JSON object per line. Files only ever grow at the end, and a sealed segment
+One JSON object per line. Files only ever grow at the end, and a closed segment
 is never modified again.
 
 ```jsonl
@@ -61,6 +61,7 @@ Some payload fields carry more than their name says:
 | Field | On | Meaning |
 |---|---|---|
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
+| `p` | `device.join` | the machine's public signing key, 32 bytes in hex. Only a machine's own word for its own key counts, and the first one published stands: a later join naming another key is refused, not believed. Anything that is not a key is dropped and the join lands without it |
 | `d`, `of` | `device.host` | the machine an agent device is hosted on. The join is written as the agent and said nothing about where; this says it, marked `opt`, and only the agent's own word or its host's counts — `d` an agent, `of` a machine. The window writes it as the machine, so it settles like `doc.said`: `undo` walks past it |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
@@ -69,8 +70,26 @@ Some payload fields carry more than their name says:
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
 
-`active.tisty` is sealed as `NNNNNN.tisty` every 5.000 events. Sealed segments
+`active.tisty` is closed as `NNNNNN.tisty` every 5.000 events. Closed segments
 are numbered from one without gaps.
+
+A machine that holds a signing key writes a `.sig` beside each of its own
+segments — `active.sig`, `NNNNNN.sig`. Inside is a tip and a signature over it:
+the tip is a SHA-256 chain folded line by line across this machine's whole
+history, and what is signed is the machine, the segment's name and that tip
+together, so one signature never answers for another segment, nor for the same
+segment on another machine. It is written before the segment it covers is
+renamed and carried after it is copied, never the other way round. A `.sig`
+that is missing or does not verify is not read as tampering on its own: the
+chain is folded again from the last one that does. This is not the seal a
+parcel carries: that one is an HMAC over a manifest, under the store's key.
+
+What it does not catch, and is not meant to: a segment rolled back **whole** to
+an earlier state together with the signature that answered for it then. Both
+agree, and nothing outside them says which of the two is the later one. What
+answers for that is the closed segment that follows, whose chain runs through
+the rolled-back one — so only the active segment, the one nothing follows yet,
+is open to it.
 
 ### What a power cut leaves behind
 
@@ -78,7 +97,7 @@ A line is written whole or not at all, so one that will not parse at the very
 end of the segment still being written is the half of an event a cut took. It is
 set aside as `active.torn` rather than read: refusing it would take every whole
 event before it down as well. Only ever the last line, only ever this machine's
-own active segment — a sealed one has its count to answer for, and another
+own active segment — a closed one has its count to answer for, and another
 machine's history is not ours to mend.
 
 Three things it must get right, and each of them was once wrong:
@@ -689,18 +708,18 @@ so every machine reaches the same state.
 
 Reading refuses to continue, rather than returning a smaller history, when:
 
-- a sealed segment is missing from the sequence,
-- a sealed segment is present but empty,
-- a sealed segment holds a different count of events than its `.count` declares,
+- a closed segment is missing from the sequence,
+- a closed segment is present but empty,
+- a closed segment holds a different count of events than its `.count` declares,
 - any line fails to parse,
 - an event declares a schema version this build does not know.
 
 Syncing holds the same line from the other end: a device's history that arrives
 **shorter than the one already held** is left where it is. Contiguity alone does
-not catch that — the gap is not *between* sealed segments but *before* `active`,
-and nothing in the folder says how many sealed ones there should be. So the
+not catch that — the gap is not *between* closed segments but *before* `active`,
+and nothing in the folder says how many closed ones there should be. So the
 counts are compared instead. A cloud client may well deliver a rotated `active`
-before the sealed segment that carries what it dropped; that ordering must not
+before the closed segment that carries what it dropped; that ordering must not
 cost anyone their copy.
 
 ## How merging works
@@ -948,7 +967,7 @@ that no longer existed. This is not waste; it is the price of the tombstone.
 **The measured rate.** A line is 225 bytes on average (p50 200, p90 310). One
 user action is 1.09 events. A developer's machine with three writers and a
 275-event test day in it averaged 40 events a day; ordinary personal use is
-nearer 10 to 30. That is **1 to 3 MB a year**, a sealed segment of 5,000 events
+nearer 10 to 30. That is **1 to 3 MB a year**, a closed segment of 5,000 events
 every six to eighteen months, and **about 130 MB after forty years** at the
 faster rate. On that same store the log was 158 KB while the attachments were
 65 MB: **the log is 0.2% of the data directory, and attachments are four hundred
@@ -973,7 +992,7 @@ field — turns `Grew::Yes` into `Grew::No`, and an ordinary reconnection become
 `Kin::Clash`: the four-answer question you are asked when you meet a stranger's
 store.
 
-**A gap refuses the whole store.** `contiguous` requires sealed segments
+**A gap refuses the whole store.** `contiguous` requires closed segments
 numbered 1..N. Truncating from the front does not make the store smaller, it
 makes it unreadable — every device in it, not only the truncated one.
 
