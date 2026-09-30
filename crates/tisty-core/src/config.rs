@@ -11,11 +11,33 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase", tag = "how", content = "at")]
 pub enum Sync {
     Local,
     Folder(std::path::PathBuf),
+    /// A way a later build knows and this one does not. Kept exactly as it was read: refusing
+    /// it would stop this build opening at all, and dropping it would take the choice away.
+    #[serde(untagged)]
+    Unknown(toml::Value),
+}
+
+/// A way this build has a name for and cannot make sense of is broken, not new, and saying so
+/// out loud is the old behaviour worth keeping: only a name it has never heard is kept aside.
+impl<'de> Deserialize<'de> for Sync {
+    fn deserialize<D: serde::Deserializer<'de>>(one: D) -> std::result::Result<Self, D::Error> {
+        use serde::de::Error;
+        let raw = toml::Value::deserialize(one)?;
+        match raw.get("how").and_then(toml::Value::as_str) {
+            Some("local") => Ok(Self::Local),
+            Some("folder") => raw
+                .get("at")
+                .and_then(toml::Value::as_str)
+                .map(|at| Self::Folder(at.into()))
+                .ok_or_else(|| D::Error::custom("syncing with a folder and no folder named")),
+            _ => Ok(Self::Unknown(raw)),
+        }
+    }
 }
 
 fn said_once(named: &str) -> bool {
@@ -153,6 +175,11 @@ pub struct Config {
     pub asked_for_a_star: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_to_wire: Option<bool>,
+    /// What a later build wrote and this one has no name for. Serde drops what it cannot name
+    /// and `save` writes the struct whole, so without this one run of an older build erases it.
+    /// Last, because a table in TOML swallows every key that follows it.
+    #[serde(flatten)]
+    pub rest: toml::Table,
 }
 
 impl Config {
@@ -194,6 +221,7 @@ impl Config {
             here_since: Some(jiff::Timestamp::now()),
             asked_for_a_star: None,
             asked_to_wire: None,
+            rest: toml::Table::new(),
         };
         config.save(paths)?;
         Ok(config)

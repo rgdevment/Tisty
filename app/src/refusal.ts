@@ -59,6 +59,8 @@ const KNOWN = [
   "otherStore",
   "restoredApart",
   "syncNewer",
+  "syncShape",
+  "syncUnshaped",
   "storeNewer",
   "cannotWrite",
   "attachmentTooBig",
@@ -129,7 +131,7 @@ type Known = (typeof KNOWN)[number];
 
 const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).includes(code);
 
-const BEHIND = ["storeNewer", "syncNewer"];
+const BEHIND = ["storeNewer", "syncNewer", "syncShape"];
 
 /** The offer the person clicked is off the feed: what is offered now has to be looked up again. */
 export const offerMoved = (problem: unknown): boolean =>

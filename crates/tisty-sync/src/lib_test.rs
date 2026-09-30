@@ -6419,3 +6419,64 @@ fn a_carry_that_moved_only_a_signature_is_not_reported_as_nothing() {
         "a signature moved and the round called it a no-op"
     );
 }
+
+#[test]
+fn a_sibling_this_build_has_no_name_for_travels_with_its_segment() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let into = room.path().join("into");
+    a_segment_with_its_siblings(&from, "1", "a signature");
+    std::fs::write(from.join("000001.whatever"), b"a later build wrote this").unwrap();
+    std::fs::write(from.join("active.tisty"), b"still being written").unwrap();
+    std::fs::write(from.join("active.torn"), b"a mend this machine made").unwrap();
+    std::fs::write(from.join(".lock"), b"").unwrap();
+
+    crate::segments::copy_segments(&from, &into, false, &Default::default()).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(into.join("000001.whatever"))
+            .ok()
+            .as_deref(),
+        Some("a later build wrote this"),
+        "a sibling with no name this build knows was left behind"
+    );
+    assert!(
+        !into.join("active.torn").exists(),
+        "a mend belongs to the machine that made it and went to the far side"
+    );
+    assert!(!into.join(".lock").exists(), "the lock travelled");
+}
+
+#[test]
+fn a_round_leaves_the_meeting_place_saying_what_shape_it_is_in() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml"))
+        .expect("a round wrote a whole history and never said what shape it left");
+    assert!(said.contains("shape = 1"), "{said}");
+    assert!(said.contains("store"), "{said}");
+}
+
+#[test]
+fn a_meeting_place_arranged_by_a_build_that_knows_more_stops_the_round() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::write(
+        shared.path().join("tisty.toml"),
+        "shape = 99
+",
+    )
+    .unwrap();
+
+    let two = machine("dos");
+    let stopped = carry(&two.data, &two.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Shape(_))),
+        "it wrote into a folder it does not understand: {stopped:?}"
+    );
+}

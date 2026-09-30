@@ -17,6 +17,7 @@ pub use identity::{
 
 const ACTIVE: &str = "active.tisty";
 const LOCK: &str = ".lock";
+const TORN: &str = "torn";
 const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
 const SEGMENT_MAX_EVENTS: usize = 5_000;
@@ -87,15 +88,18 @@ impl Store {
     /// The key lives outside the store, so whoever knows where hands it over.
     pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
         self.signs = key;
-        self.tip = self.tip_now();
+        match self.tip_now() {
+            Some(tip) => self.tip = tip,
+            None => self.signs = None,
+        }
         self
     }
 
     /// A signature found here is only a base for what follows if this machine's own key answers
     /// for it: `.sig` files arrive with a carry, so one in our directory is not ours to trust.
-    fn tip_now(&self) -> [u8; 32] {
+    fn tip_now(&self) -> Option<[u8; 32]> {
         let Some(key) = &self.signs else {
-            return crate::signing::NOTHING_BEFORE;
+            return Some(crate::signing::NOTHING_BEFORE);
         };
         let by = key.verifying_key();
         let found = segments_in(&self.dir).unwrap_or_default();
@@ -116,11 +120,19 @@ impl Store {
             }
         }
         for one in found.iter().skip(onward) {
-            if let Ok(said) = std::fs::read(one) {
-                tip = crate::signing::tip_of(tip, &said);
-            }
+            // Skipping one would sign a chain over bytes that are there, leaving every
+            // reader that can read them to see a tip nobody can reach.
+            let Ok(said) = std::fs::read(one) else {
+                witness::warn(
+                    channel::STORE,
+                    "a segment of this machine's own could not be read, so nothing it writes now is signed",
+                    &[("at", Fact::Path(one.clone()))],
+                );
+                return None;
+            };
+            tip = crate::signing::tip_of(tip, &said);
         }
-        tip
+        Some(tip)
     }
 
     fn about<'a>(&'a self, segment: &'a str) -> crate::signing::About<'a> {
@@ -188,7 +200,11 @@ impl Store {
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
         // their lines and sign a chain nobody can recompute.
-        self.tip = self.tip_now();
+        if let Some(tip) = self.tip_now() {
+            self.tip = tip;
+        } else {
+            self.signs = None;
+        }
         let (events, head, seq) = tail_of(&active)?;
         self.active_events = events;
         if (head, seq) > (self.head, self.seq) {
@@ -356,7 +372,9 @@ impl Store {
                 .open(self.dir.join(ACTIVE))?;
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
-            self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
+            if self.signs.is_some() {
+                self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
+            }
 
             self.active_events += lot.len();
             at += lot.len();
@@ -521,6 +539,19 @@ pub fn is_segment(name: &str) -> bool {
 
 pub fn is_closed(name: &str) -> bool {
     is_segment(name) && name != ACTIVE
+}
+
+/// What sits beside a segment and belongs to this machine alone. Everything else travels,
+/// whether this build has a name for it or not: a later one may write a sibling we cannot
+/// read, and leaving it behind loses it as surely as deleting it.
+pub fn beside_a_segment(named: &str) -> Option<(&str, &str)> {
+    let mut apart = named.split('.');
+    let (Some(stem), Some(kind), None) = (apart.next(), apart.next(), apart.next()) else {
+        return None;
+    };
+    let stays_here = kind.is_empty() || kind == TORN;
+    let a_segment = kind == "tisty";
+    (!stem.is_empty() && !stays_here && !a_segment).then_some((stem, kind))
 }
 
 pub fn segments_in(device_dir: &Path) -> Result<Vec<PathBuf>> {
@@ -902,7 +933,7 @@ fn mend(dir: &Path) {
         return;
     }
 
-    let aside = path.with_extension("torn");
+    let aside = path.with_extension(TORN);
     if let Err(why) = std::fs::write(&aside, tail) {
         witness::error(
             channel::STORE,
@@ -980,15 +1011,13 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
     Ok((lines, head, seq))
 }
 
+/// Segments alone decide the next number. What sits beside one is written before the rename that
+/// makes the segment, so counting those would have an orphan sidecar skip a number, and a gap in
+/// the sequence refuses the whole store to every machine in it.
 fn next_segment_number(dir: &Path) -> Result<u32> {
-    let highest = std::fs::read_dir(dir)?
-        .filter_map(|e| e.ok())
-        .filter_map(|e| {
-            e.path()
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .and_then(|s| s.parse::<u32>().ok())
-        })
+    let highest = segments_in(dir)?
+        .iter()
+        .filter_map(|at| at.file_stem()?.to_str()?.parse::<u32>().ok())
         .max()
         .unwrap_or(0);
     Ok(highest + 1)

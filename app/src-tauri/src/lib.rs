@@ -375,6 +375,8 @@ fn said(trouble: tisty_sync::Trouble) -> Refusal {
         tisty_sync::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
         tisty_sync::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
         tisty_sync::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
+        tisty_sync::Trouble::Shape(at) => Refusal::about("syncShape", at),
+        tisty_sync::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
         tisty_sync::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }
