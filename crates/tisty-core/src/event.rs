@@ -130,6 +130,7 @@ impl Event {
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
+            | Op::AttachLetGo { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => None,
         }

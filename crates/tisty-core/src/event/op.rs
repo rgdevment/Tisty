@@ -77,6 +77,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.host",
     "person.signed",
     "attach.kept",
+    "attach.let_go",
     "attach.retire",
     "stores.joined",
 ];
@@ -204,6 +205,8 @@ pub enum Op {
 
     #[serde(rename = "attach.kept")]
     AttachKept { d: Held },
+    #[serde(rename = "attach.let_go")]
+    AttachLetGo { d: String },
     #[serde(rename = "attach.retire")]
     AttachRetire { d: String },
 
@@ -269,6 +272,7 @@ impl Op {
         matches!(
             self,
             Op::AttachKept { .. }
+                | Op::AttachLetGo { .. }
                 | Op::DocSaid { .. }
                 | Op::Signed { .. }
                 | Op::DeviceHost { .. }
@@ -328,6 +332,7 @@ impl Op {
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
+            | Op::AttachLetGo { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => self,
         }
@@ -460,6 +465,7 @@ impl Op {
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
+            | Op::AttachLetGo { .. }
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. } => None,
         }

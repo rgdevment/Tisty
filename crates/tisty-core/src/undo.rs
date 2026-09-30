@@ -283,6 +283,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::DeviceRemove { .. }
         | Op::Signed { .. }
         | Op::AttachKept { .. }
+        | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }
         | Op::StoresJoined { .. } => None,
     }

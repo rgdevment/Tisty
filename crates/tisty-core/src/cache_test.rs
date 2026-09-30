@@ -483,6 +483,67 @@ fn a_later_word_on_the_same_attachment_stands_and_the_case_is_not_kept() {
 }
 
 #[test]
+fn who_holds_a_body_survives_the_cache_and_letting_go_takes_it_off_the_list() {
+    let tmp = tempfile::tempdir().unwrap();
+    let store_root = tmp.path().join("store");
+    let cache_dir = tmp.path().join("cache");
+
+    let body = b"lo grabado";
+    let (reference, sha256) = an_attachment_that_answers_for_itself(body);
+    for named in ["dev_a", "dev_b"] {
+        let mut store = Store::open(&store_root, DeviceId(named.into())).unwrap();
+        store
+            .append(Op::AttachKept {
+                d: crate::event::Held {
+                    at: reference.clone(),
+                    sha256: sha256.clone(),
+                    bytes: body.len() as u64,
+                },
+            })
+            .unwrap();
+    }
+
+    let held = project(&store_root, &cache_dir).unwrap();
+    assert_eq!(
+        held.holders.get(&reference).map(|who| who.len()),
+        Some(2),
+        "both machines said they had it"
+    );
+    assert!(matches!(
+        audit(&store_root, &cache_dir).unwrap(),
+        Audit::Agrees { .. }
+    ));
+    assert_eq!(
+        project(&store_root, &cache_dir)
+            .unwrap()
+            .holders
+            .get(&reference)
+            .map(|who| who.len()),
+        Some(2),
+        "the cache handed back a store that had forgotten who holds what"
+    );
+
+    Store::open(&store_root, DeviceId("dev_a".into()))
+        .unwrap()
+        .append(Op::AttachLetGo {
+            d: reference.clone(),
+        })
+        .unwrap();
+
+    let now = project(&store_root, &cache_dir).unwrap();
+    let who = now
+        .holders
+        .get(&reference)
+        .expect("one machine still has it");
+    assert_eq!(who.len(), 1, "letting go did not take it off the list");
+    assert!(who.contains(&DeviceId("dev_b".into())));
+    assert!(
+        now.kept.contains_key(&reference),
+        "letting go of a copy does not unsay what the file holds"
+    );
+}
+
+#[test]
 fn tombstones_survive_the_round_trip() {
     let f = loaded();
     let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();

@@ -33,6 +33,7 @@ pub struct State {
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub kept: BTreeMap<String, (String, u64)>,
+    pub holders: BTreeMap<String, BTreeSet<DeviceId>>,
     pub retired: BTreeSet<String>,
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
@@ -394,12 +395,25 @@ impl State {
                 if vouches_for_its_name(d) {
                     self.kept
                         .insert(d.at.clone(), (d.sha256.to_ascii_lowercase(), d.bytes));
+                    self.holders
+                        .entry(d.at.clone())
+                        .or_default()
+                        .insert(event.device.clone());
+                }
+            }
+            Op::AttachLetGo { d } => {
+                if let Some(who) = self.holders.get_mut(d) {
+                    who.remove(&event.device);
+                    if who.is_empty() {
+                        self.holders.remove(d);
+                    }
                 }
             }
             Op::AttachRetire { d } => {
                 if crate::attach::names_an_attachment(d) {
                     self.retired.insert(d.clone());
                     self.kept.remove(d);
+                    self.holders.remove(d);
                 }
             }
             Op::StoresJoined { d } => {
