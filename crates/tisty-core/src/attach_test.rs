@@ -52,7 +52,7 @@ fn a_small_file_is_copied_in_and_named_by_its_contents() {
     let (_src, file) = dropped("shot.PNG", b"pretend this is a screenshot");
     let root = tempfile::tempdir().unwrap();
 
-    let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+    let Kept { at, sha256, .. } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
 
     assert!(at.starts_with("attachments/"), "{at}");
     assert!(at.ends_with(".png"), "the extension is lowercased: {at}");
@@ -301,6 +301,7 @@ fn everything_that_is_kept_comes_in_as_a_card() {
     let held = |at: &str| Kept {
         at: at.into(),
         sha256: "ab".into(),
+        bytes: 2,
     };
 
     assert_eq!(
@@ -319,6 +320,7 @@ fn a_path_with_spaces_is_still_held_together() {
     let kept = Kept {
         at: "attachments/ab/clip (1).mkv".into(),
         sha256: "ab".into(),
+        bytes: 2,
     };
     let written = kept.written("clip (1).mkv");
     assert!(written.starts_with("![clip (1).mkv](<"), "{written}");
@@ -330,6 +332,7 @@ fn a_name_that_would_break_the_link_is_flattened() {
     let one = Kept {
         at: "attachments/ab/cd.png".into(),
         sha256: "ab".into(),
+        bytes: 2,
     };
     assert_eq!(
         one.written("shot](javascript:alert(1))["),
@@ -460,7 +463,7 @@ fn a_file_without_an_extension_keeps_its_name_and_its_stamp() {
     let (_src, file) = dropped("README", b"no extension here");
     let root = tempfile::tempdir().unwrap();
 
-    let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+    let Kept { at, sha256, .. } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
 
     assert!(at.ends_with(&format!("readme-{}", &sha256[2..10])), "{at}");
 }
@@ -512,7 +515,7 @@ fn a_very_long_name_is_cut_without_losing_the_stamp() {
     let (_src, file) = dropped(&format!("{}.pdf", "nombre-larguisimo-".repeat(10)), b"f");
     let root = tempfile::tempdir().unwrap();
 
-    let Kept { at, sha256 } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+    let Kept { at, sha256, .. } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
     let kept = at.rsplit('/').next().unwrap();
 
     assert!(kept.len() < 80, "{} chars: {kept}", kept.len());
@@ -912,7 +915,7 @@ fn the_right_shelf_alone_vouches_for_nothing() {
 fn a_longer_stamp_is_checked_to_its_full_length() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
-    let Kept { at, sha256 } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
+    let Kept { at, sha256, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
     let mut parts = at.split('/');
     parts.next();
     let shelf = parts.next().unwrap();
@@ -1437,4 +1440,83 @@ fn a_copy_in_the_making_is_named_after_this_run() {
     assert!(one.contains(crate::parting::ours()));
     assert!(one.ends_with(".part"));
     assert_ne!(one, parting(), "two copies at once would be one file");
+}
+
+#[test]
+fn every_way_an_attachment_is_born_says_what_it_holds() {
+    fn walked(at: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        let Ok(here) = std::fs::read_dir(at) else {
+            return;
+        };
+        for one in here.filter_map(|one| one.ok()) {
+            let path = one.path();
+            if path.is_dir() {
+                walked(&path, out);
+            } else if path.extension().is_some_and(|one| one == "rs") {
+                out.push(path);
+            }
+        }
+    }
+
+    let root = std::path::Path::new("../..");
+    let mut found = Vec::new();
+    for one in ["crates", "app/src-tauri/src"] {
+        walked(&root.join(one), &mut found);
+    }
+
+    let mut keeps = 0;
+    let mut forgot = Vec::new();
+    for at in found {
+        let named = at.to_string_lossy().replace(std::path::MAIN_SEPARATOR, "/");
+        if named.contains("_test.rs") || named.contains("/tests/") || named.contains("/target/") {
+            continue;
+        }
+        let Ok(said) = std::fs::read_to_string(&at) else {
+            continue;
+        };
+        let kept = said.matches("attach::keep(").count();
+        if kept == 0 {
+            continue;
+        }
+        keeps += kept;
+        if said.matches(".told()").count() < kept {
+            forgot.push(named);
+        }
+    }
+
+    assert!(
+        keeps > 0,
+        "no way of keeping an attachment was found, so this guards nothing"
+    );
+    assert!(
+        forgot.is_empty(),
+        "an attachment is kept here and the log is never told what it holds: {forgot:?}"
+    );
+}
+
+#[test]
+fn what_was_kept_says_its_name_its_digest_and_its_weight() {
+    let root = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let file = from.path().join("nota.txt");
+    let body = b"lo apuntado";
+    std::fs::write(&file, body).unwrap();
+
+    let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+    assert_eq!(
+        kept.bytes,
+        body.len() as u64,
+        "it did not report its weight"
+    );
+    let crate::Op::AttachKept { d } = kept.told() else {
+        panic!("what it tells is not what an attachment holds");
+    };
+    assert_eq!(d.at, kept.at);
+    assert_eq!(d.sha256, kept.sha256);
+    assert_eq!(d.bytes, kept.bytes);
+    assert!(
+        vouched(&d.at[12..14], &d.at[15..], &d.sha256),
+        "what it tells does not answer for the name it kept"
+    );
 }

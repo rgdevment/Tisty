@@ -3096,7 +3096,7 @@ fn letting_go_frees_only_what_the_shared_folder_really_holds() {
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+    let done = let_go_telling(&one.data, shared.path(), 1000, &|_| false, &mut |_| true).unwrap();
 
     assert_eq!(done.gone, 1, "only the big one");
     assert_eq!(done.freed, 4000);
@@ -3113,7 +3113,7 @@ fn nothing_is_freed_when_what_is_up_there_is_not_the_same_file() {
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
     std::fs::write(shared.path().join(&heavy), vec![9u8; 4000]).unwrap();
 
-    let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+    let done = let_go_telling(&one.data, shared.path(), 1000, &|_| false, &mut |_| true).unwrap();
 
     assert_eq!(done.gone, 0);
     assert_eq!(done.kept, vec![heavy.clone()]);
@@ -3148,7 +3148,7 @@ fn nothing_is_freed_when_the_copy_up_there_is_a_hole_its_keeper_has_not_filled()
     marked.write_all(&body).unwrap();
     drop(marked);
 
-    let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+    let done = let_go_telling(&one.data, shared.path(), 1000, &|_| false, &mut |_| true).unwrap();
 
     assert_eq!(done.gone, 0, "nothing is let go of");
     assert_eq!(done.kept, vec![heavy.clone()]);
@@ -3198,13 +3198,130 @@ fn what_the_round_just_wrote_counts_as_landed_even_when_its_keeper_took_the_body
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn a_hole_another_machine_says_it_holds_is_let_go_of_without_reading_it() {
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const OFFLINE: u32 = 0x0000_1000;
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let one = machine("dev_a");
+    let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let up = shared.path().join(&heavy);
+    let body = std::fs::read(&up).unwrap();
+    std::fs::remove_file(&up).unwrap();
+    let mut marked = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&up)
+        .unwrap();
+    marked.write_all(&body).unwrap();
+    drop(marked);
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(&up)
+        .unwrap();
+    let done = let_go_telling(&one.data, shared.path(), 1000, &|_| true, &mut |_| true).unwrap();
+    drop(shut);
+
+    assert_eq!(done.gone, 1, "the log said another machine has it");
+    assert_eq!(
+        done.let_go,
+        vec![heavy.clone()],
+        "it did not say what it let go of"
+    );
+    assert!(
+        !one.data.join(&heavy).exists(),
+        "the local copy stayed although nothing had to be read to be sure"
+    );
+}
+
+#[test]
+fn a_body_that_contradicts_what_the_log_says_it_holds_is_not_taken_in() {
+    let one = machine("dev_a");
+    let body = b"lo grabado";
+    let heavy = planted(&one.data, "charla.mp4", body);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let brought_to = |avowed: &std::collections::BTreeMap<String, (String, u64)>| {
+        let other = machine("dev_b");
+        copy_held(
+            &shared.path().join(HELD),
+            &other.data.join(HELD),
+            &Default::default(),
+            false,
+            Some(&other.data),
+            None,
+            None,
+            None,
+            avowed,
+        )
+        .unwrap();
+        other.data.join(&heavy).is_file()
+    };
+
+    let lying = std::collections::BTreeMap::from([(
+        heavy.clone(),
+        (tisty_core::attach::printed(b"otra cosa"), body.len() as u64),
+    )]);
+    assert!(
+        !brought_to(&lying),
+        "a body the log says holds something else was taken in"
+    );
+
+    let telling = std::collections::BTreeMap::from([(
+        heavy.clone(),
+        (tisty_core::attach::printed(body), body.len() as u64),
+    )]);
+    assert!(
+        brought_to(&telling),
+        "a body that holds what the log says was turned away"
+    );
+}
+
+#[test]
+fn a_machine_that_takes_a_body_in_is_told_what_it_now_holds() {
+    let one = machine("dev_a");
+    let body = b"lo grabado";
+    let heavy = planted(&one.data, "charla.mp4", body);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = machine("dev_b");
+    stitch(&two.data, &two.device, shared.path()).unwrap();
+    let moved = carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    assert!(
+        two.data.join(&heavy).is_file(),
+        "the body never reached the second machine"
+    );
+    assert_eq!(
+        moved.took_in,
+        vec![(
+            heavy.clone(),
+            tisty_core::attach::printed(body),
+            body.len() as u64
+        )],
+        "the round said nothing about what this machine now holds"
+    );
+}
+
 #[test]
 fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
     let one = machine("dev_a");
     let heavy = planted(&one.data, "charla.mp4", &vec![3u8; 4000]);
     let shared = tempfile::tempdir().unwrap();
 
-    let done = let_go_telling(&one.data, shared.path(), 1000, &mut |_| true).unwrap();
+    let done = let_go_telling(&one.data, shared.path(), 1000, &|_| false, &mut |_| true).unwrap();
 
     assert_eq!(done.gone, 0);
     assert!(one.data.join(&heavy).is_file());
@@ -4564,6 +4681,7 @@ fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
         Some(1000),
         None,
         None,
+        &Default::default(),
     )
     .unwrap();
 
@@ -5181,6 +5299,7 @@ fn fetched(shared: &Path, other: &Machine, most: Option<u64>, again: bool) -> us
         most,
         None,
         None,
+        &Default::default(),
     )
     .unwrap()
 }
@@ -6084,7 +6203,11 @@ fn the_last_copy_here_is_kept_when_the_one_up_there_only_weighs_the_same() {
     let mut other = big.clone();
     other[7] ^= 0xff;
     std::fs::write(shared.path().join(&heavy), &other).unwrap();
-    let carried = [(heavy.clone(), big.len() as u64)];
+    let carried = [(
+        heavy.clone(),
+        tisty_core::attach::printed(&big),
+        big.len() as u64,
+    )];
 
     let freed = super::let_go_of(
         &one.data,
@@ -6093,7 +6216,7 @@ fn the_last_copy_here_is_kept_when_the_one_up_there_only_weighs_the_same() {
         tisty_core::attach::COPIED_UP_TO,
     );
 
-    assert_eq!(freed, 0);
+    assert_eq!(freed.0, 0);
     assert!(
         one.data.join(&heavy).is_file(),
         "the only copy left was let go of on the strength of its weight"
@@ -6109,7 +6232,11 @@ fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
     let heavy = planted(&one.data, "charla.mp4", &big);
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
-    let carried = [(heavy.clone(), big.len() as u64)];
+    let carried = [(
+        heavy.clone(),
+        tisty_core::attach::printed(&big),
+        big.len() as u64,
+    )];
 
     let freed = super::let_go_of(
         &one.data,
@@ -6118,7 +6245,8 @@ fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
         tisty_core::attach::COPIED_UP_TO,
     );
 
-    assert_eq!(freed, big.len() as u64);
+    assert_eq!(freed.0, big.len() as u64);
+    assert_eq!(freed.1.len(), 1, "what it let go of was not reported");
     assert!(!one.data.join(&heavy).exists());
 }
 

@@ -21,9 +21,20 @@ pub const COPIED_MOST: u64 = COPIED_UP_TO;
 pub struct Kept {
     pub at: String,
     pub sha256: String,
+    pub bytes: u64,
 }
 
 impl Kept {
+    pub fn told(&self) -> crate::Op {
+        crate::Op::AttachKept {
+            d: crate::event::Held {
+                at: self.at.clone(),
+                sha256: self.sha256.clone(),
+                bytes: self.bytes,
+            },
+        }
+    }
+
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
         let target = self.at.clone();
@@ -164,7 +175,9 @@ fn through(
 
     if let Some(at) = listed(root, &sha256) {
         match resolve(&at, root) {
-            Ok(held) if holds(&held, part, bytes) => return Ok(Kept { at, sha256 }),
+            Ok(held) if holds(&held, part, bytes) => {
+                return Ok(Kept { at, sha256, bytes });
+            }
             Ok(held) => witness::warn(
                 channel::ATTACH,
                 "what the ledger points at is not what it says it is",
@@ -197,8 +210,9 @@ fn through(
     let kept = Kept {
         at: format!("attachments/{shelf}/{name}"),
         sha256,
+        bytes,
     };
-    note(root, &kept, bytes);
+    note(root, &kept);
     Ok(kept)
 }
 
@@ -319,8 +333,8 @@ pub fn noted(root: &Path, reference: &str, sha256: &str, bytes: u64) {
         &Kept {
             at: reference.to_string(),
             sha256: sha256.to_string(),
+            bytes,
         },
-        bytes,
     );
 }
 
@@ -347,14 +361,14 @@ pub fn hashed(at: &Path) -> Result<(String, u64)> {
     Ok((hexed(hasher.finalize()), bytes))
 }
 
-fn note(root: &Path, kept: &Kept, bytes: u64) {
+fn note(root: &Path, kept: &Kept) {
     if listed(root, &kept.sha256).is_some() {
         return;
     }
     let line = match serde_json::to_string(&Noted {
         at: kept.at.clone(),
         sha256: kept.sha256.clone(),
-        bytes,
+        bytes: kept.bytes,
     }) {
         Ok(line) => line,
         Err(_) => return,

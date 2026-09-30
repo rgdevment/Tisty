@@ -105,6 +105,18 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             Ok(moved) => moved,
             Err(trouble) => return Ok(said(&trouble, lang)),
         };
+    for at in &moved.let_go {
+        app.commit(tisty_core::Op::AttachLetGo { d: at.clone() })?;
+    }
+    for (at, sha256, bytes) in &moved.took_in {
+        app.commit(tisty_core::Op::AttachKept {
+            d: tisty_core::event::Held {
+                at: at.clone(),
+                sha256: sha256.clone(),
+                bytes: *bytes,
+            },
+        })?;
+    }
 
     if moved.brought > 0 {
         *app = App::at(app.paths.clone())?;

@@ -45,6 +45,16 @@ pub fn attach(
         }
     })?;
 
+    if let Err(e) = held(&session).commit(kept.told()) {
+        witness::warn(
+            channel::ATTACH,
+            "what an attachment holds could not be written down",
+            &[
+                ("at", Fact::Id(kept.at.clone())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    }
     Ok(kept.written(&name))
 }
 
