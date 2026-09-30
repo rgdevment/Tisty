@@ -26,7 +26,7 @@ pub(crate) fn let_go_of(data: &Path, dest: &Path, carried: &[(String, u64)], abo
         if !landed_whole(&there, told.get(reference), *bytes, reference) {
             witness::warn(
                 channel::ATTACH,
-                "the copy up there is not the one we hold, so the one here is kept",
+                "the copy up there is not one we can answer for, so the one here is kept",
                 &[("at", Fact::Id(reference.clone()))],
             );
             continue;
@@ -45,6 +45,9 @@ pub(crate) fn landed_whole(
     reference: &str,
 ) -> bool {
     if !std::fs::metadata(there).is_ok_and(|one| one.is_file() && one.len() == bytes) {
+        return false;
+    }
+    if tisty_core::holes::a_hole(there) {
         return false;
     }
     let Ok((sha256, _)) = tisty_core::attach::hashed(there) else {
@@ -120,6 +123,9 @@ pub fn let_go_telling(
 
 pub(crate) fn twinned(there: &Path, weighs: u64, under: &str, named: &str) -> bool {
     if !std::fs::metadata(there).is_ok_and(|told| told.is_file() && told.len() == weighs) {
+        return false;
+    }
+    if tisty_core::holes::a_hole(there) {
         return false;
     }
     tisty_core::attach::hashed(there)

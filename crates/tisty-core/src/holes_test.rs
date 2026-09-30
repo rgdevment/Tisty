@@ -96,3 +96,26 @@ fn a_file_windows_itself_marks_as_held_away_is_read_as_a_hole() {
     assert_eq!(left_in_place(&away), Left::Marked);
     assert!(a_hole(&away));
 }
+
+#[cfg(windows)]
+#[test]
+fn a_link_standing_where_the_attachment_goes_does_not_hide_the_hole_behind_it() {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    let room = tempfile::tempdir().unwrap();
+    let away = room.path().join("charla-90706bde.mp4");
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&away)
+        .unwrap();
+    let named = room.path().join("linked-90706bde.mp4");
+    if std::os::windows::fs::symlink_file(&away, &named).is_err() {
+        return;
+    }
+
+    assert!(named.is_file(), "a link resolves like any other file");
+    assert_eq!(left_in_place(&named), Left::Marked);
+    assert!(a_hole(&named));
+}

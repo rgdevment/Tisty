@@ -72,6 +72,26 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
     ));
 }
 
+#[test]
+fn nothing_that_hunts_for_an_attachment_does_it_on_the_thread_that_draws() {
+    let said = std::fs::read_to_string("src/answers/attaching.rs")
+        .expect("the orders that serve an attachment");
+    let loose: Vec<&str> = said
+        .lines()
+        .filter(|one| one.contains("finding::found_in("))
+        .filter(|one| one.len() - one.trim_start().len() < 8)
+        .collect();
+
+    assert!(
+        said.contains("finding::found_in("),
+        "the orders stopped looking for anything"
+    );
+    assert!(
+        loose.is_empty(),
+        "a lookup sits in the body of an order instead of inside `elsewhere`: {loose:?}"
+    );
+}
+
 #[cfg(windows)]
 #[test]
 fn a_hole_whose_body_cannot_be_read_is_not_accused_of_being_torn() {

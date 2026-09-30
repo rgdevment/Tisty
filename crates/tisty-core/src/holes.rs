@@ -45,7 +45,13 @@ pub fn marker(name: &str) -> bool {
 #[cfg(windows)]
 fn held_away(at: &Path) -> bool {
     use std::os::windows::fs::MetadataExt;
-    std::fs::symlink_metadata(at).is_ok_and(|told| marked(told.file_attributes()))
+    let Ok(told) = std::fs::symlink_metadata(at) else {
+        return false;
+    };
+    if told.file_type().is_symlink() {
+        return std::fs::metadata(at).is_ok_and(|one| marked(one.file_attributes()));
+    }
+    marked(told.file_attributes())
 }
 
 #[cfg(not(windows))]
