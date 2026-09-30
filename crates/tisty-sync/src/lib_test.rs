@@ -541,6 +541,7 @@ fn a_machine_that_was_removed_cannot_stitch_itself_into_the_folder() {
         Op::DeviceJoin {
             d: DeviceId("dev_otra".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -1178,6 +1179,7 @@ fn a_machine_on_the_list_writes_as_it_always_did() {
         Op::DeviceJoin {
             d: DeviceId("dev_a".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     let shared = tempfile::tempdir().unwrap();
@@ -2446,6 +2448,7 @@ fn a_machine_nobody_ever_named_is_not_locked_out_by_someone_elses_list() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     let shared = tempfile::tempdir().unwrap();
@@ -2494,6 +2497,7 @@ fn a_machine_that_was_removed_writes_nothing_at_all() {
         Op::DeviceJoin {
             d: DeviceId("dev_a".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -2501,6 +2505,7 @@ fn a_machine_that_was_removed_writes_nothing_at_all() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -2536,6 +2541,7 @@ fn a_machine_that_was_removed_still_brings_what_is_there() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -2571,6 +2577,7 @@ fn the_word_that_removes_it_is_read_before_it_writes() {
         Op::DeviceJoin {
             d: DeviceId("dev_b".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -5173,6 +5180,7 @@ fn a_device_removed_before_a_merge_is_still_removed_after_it() {
         Op::DeviceJoin {
             d: DeviceId("uno".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(
@@ -5180,6 +5188,7 @@ fn a_device_removed_before_a_merge_is_still_removed_after_it() {
         Op::DeviceJoin {
             d: DeviceId("vieja".into()),
             k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
         },
     );
     says(

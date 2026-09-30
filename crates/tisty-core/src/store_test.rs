@@ -74,6 +74,7 @@ fn concatenating_two_histories_locks_nobody_who_was_writing_out() {
             Op::DeviceJoin {
                 d: DeviceId("dev_here".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
             add("lo de aqui"),
         ],
@@ -85,6 +86,7 @@ fn concatenating_two_histories_locks_nobody_who_was_writing_out() {
             Op::DeviceJoin {
                 d: DeviceId("dev_there".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
             add("lo de alli"),
         ],
@@ -111,6 +113,7 @@ fn a_history_that_never_named_anyone_is_not_shut_out_by_one_that_did() {
             Op::DeviceJoin {
                 d: DeviceId("dev_there".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
             Op::DeviceRemove {
                 d: DeviceId("dev_gone".into()),
@@ -155,6 +158,7 @@ fn once_a_machine_is_removed_no_ordering_of_the_log_lets_it_back_in() {
                 Op::DeviceJoin {
                     d: DeviceId("dev_m".into()),
                     k: Some(crate::event::DeviceKind::Machine),
+                    p: None,
                 },
             ),
             (
@@ -170,6 +174,7 @@ fn once_a_machine_is_removed_no_ordering_of_the_log_lets_it_back_in() {
                 Op::DeviceJoin {
                     d: DeviceId("dev_both".into()),
                     k: Some(crate::event::DeviceKind::Machine),
+                    p: None,
                 },
             ),
         ] {
@@ -215,6 +220,7 @@ fn a_removal_survives_a_clock_that_runs_behind_the_machine_it_removes() {
             Op::DeviceJoin {
                 d: DeviceId("dev_keeper".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
         ),
         (
@@ -224,6 +230,7 @@ fn a_removal_survives_a_clock_that_runs_behind_the_machine_it_removes() {
             Op::DeviceJoin {
                 d: DeviceId("dev_gone".into()),
                 k: Some(crate::event::DeviceKind::Machine),
+                p: None,
             },
         ),
         (

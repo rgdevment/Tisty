@@ -377,6 +377,7 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
         if let Op::DeviceJoin {
             d,
             k: Some(crate::event::DeviceKind::Agent),
+            ..
         } = &one.op
             && d == &one.device
         {

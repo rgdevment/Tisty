@@ -89,6 +89,7 @@ fn an_assistant_cannot_convert_but_the_rest_of_its_patch_lands() {
         Op::DeviceJoin {
             d: DeviceId("dev_agent".into()),
             k: Some(crate::event::DeviceKind::Agent),
+            p: None,
         },
     ));
     let id = closed(&mut state, 2, "dev_agent", "comprar pan");
