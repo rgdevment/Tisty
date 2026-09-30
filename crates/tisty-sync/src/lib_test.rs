@@ -2466,6 +2466,7 @@ fn being_named_once_and_dropped_is_not_the_same_as_never_being_named() {
     let said = tisty_core::store::Ledger {
         allowed: [DeviceId("dev_b".into())].into(),
         named: [DeviceId("dev_a".into()), DeviceId("dev_b".into())].into(),
+        keys: Default::default(),
     };
 
     assert!(!said.may_write(&DeviceId("dev_a".into())));
@@ -2480,6 +2481,7 @@ fn two_machines_removing_each_other_at_once_do_not_brick_the_store() {
     let said = tisty_core::store::Ledger {
         allowed: Default::default(),
         named: [DeviceId("dev_a".into()), DeviceId("dev_b".into())].into(),
+        keys: Default::default(),
     };
 
     assert!(

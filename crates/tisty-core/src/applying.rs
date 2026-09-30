@@ -40,17 +40,8 @@ impl State {
         });
     }
 
-    /// The first key a machine publishes stands, and the same key in another case is the same key.
     pub(crate) fn key_published(&mut self, event: &Event, d: &DeviceId, said: &str) {
-        if d != &event.device {
-            return;
-        }
-        let Some(key) = crate::signing::read(said) else {
-            return;
-        };
-        let shown = crate::signing::shown_of(&key);
-        let stands = self.keys.entry(d.clone()).or_insert(shown.clone());
-        if *stands != shown {
+        if !crate::signing::published(&mut self.keys, &event.device, d, said) {
             crate::witness::warn(
                 crate::witness::channel::STORE,
                 "a machine that already published a key published another, and the first one stands",

@@ -483,6 +483,8 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 pub struct Ledger {
     pub allowed: std::collections::BTreeSet<DeviceId>,
     pub named: std::collections::BTreeSet<DeviceId>,
+    /// What each machine said it signs with, read in the same pass that says who may write.
+    pub keys: std::collections::BTreeMap<DeviceId, String>,
 }
 
 impl Ledger {
@@ -524,11 +526,17 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
     let mut said = Ledger::default();
     for event in &told {
         match &event.op {
-            Op::DeviceJoin { d, .. } => {
+            Op::DeviceJoin { d, p, .. } => {
                 said.named.insert(d.clone());
                 if !gone.contains(d) {
                     said.allowed.insert(d.clone());
                 }
+                if let Some(shown) = p {
+                    crate::signing::published(&mut said.keys, &event.device, d, shown);
+                }
+            }
+            Op::DeviceKey { d, p } => {
+                crate::signing::published(&mut said.keys, &event.device, d, p);
             }
             Op::DeviceRemove { d } => {
                 said.named.insert(d.clone());

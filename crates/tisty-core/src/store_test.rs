@@ -1546,3 +1546,52 @@ fn a_machine_resumes_from_its_own_signature_without_reading_the_history_behind_i
         "resuming gave a different chain than folding the closed segment and the active one"
     );
 }
+
+#[test]
+fn the_ledger_reads_what_each_machine_signs_with_in_the_pass_that_says_who_may_write() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let said = crate::signing::shown(&key);
+    let mut store = Store::open(paths.store(), who.clone()).unwrap();
+    store
+        .append(Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: None,
+        })
+        .unwrap();
+    store
+        .append(Op::DeviceKey {
+            d: who.clone(),
+            p: said.clone(),
+        })
+        .unwrap();
+
+    let told = ledger(paths.store()).unwrap();
+
+    assert_eq!(told.keys.get(&who), Some(&said));
+    assert!(told.allowed.contains(&who));
+}
+
+#[test]
+fn the_ledger_takes_nobody_word_for_what_another_machine_signs_with() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let other = DeviceId("dev_b".into());
+    let said = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+    let mut store = Store::open(paths.store(), other.clone()).unwrap();
+    store
+        .append(Op::DeviceKey {
+            d: who.clone(),
+            p: said,
+        })
+        .unwrap();
+
+    assert!(
+        ledger(paths.store()).unwrap().keys.is_empty(),
+        "one machine answered for what another signs with"
+    );
+}

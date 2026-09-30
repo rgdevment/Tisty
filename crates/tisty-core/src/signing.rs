@@ -19,6 +19,24 @@ pub fn shown_of(key: &VerifyingKey) -> String {
     hexed(key.as_bytes())
 }
 
+/// Only a machine's own word for its own key counts, and the first it publishes stands. False
+/// when one already stood and differs, which is the door a rekey would otherwise walk through.
+pub fn published(
+    into: &mut std::collections::BTreeMap<DeviceId, String>,
+    by: &DeviceId,
+    whose: &DeviceId,
+    said: &str,
+) -> bool {
+    if by != whose {
+        return true;
+    }
+    let Some(key) = read(said) else {
+        return true;
+    };
+    let shown = shown_of(&key);
+    *into.entry(whose.clone()).or_insert(shown.clone()) == shown
+}
+
 pub fn read(said: &str) -> Option<VerifyingKey> {
     let bytes = unhexed::<32>(said)?;
     VerifyingKey::from_bytes(&bytes).ok()
