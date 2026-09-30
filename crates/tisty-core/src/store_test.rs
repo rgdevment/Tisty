@@ -1328,13 +1328,16 @@ fn what_a_machine_writes_it_signs_and_the_signature_answers_for_what_is_there() 
     let said = std::fs::read_to_string(dir.join("active.sig")).expect("it signed nothing");
     let tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
         .expect("the signature does not answer");
+    let whole = std::fs::read(dir.join(ACTIVE)).unwrap();
     assert_eq!(
-        tip,
-        crate::signing::tip_of(
-            crate::signing::NOTHING_BEFORE,
-            &std::fs::read(dir.join(ACTIVE)).unwrap()
-        ),
+        tip.tip,
+        crate::signing::tip_of(crate::signing::NOTHING_BEFORE, &whole),
         "the signature is over something other than what is written there"
+    );
+    assert_eq!(
+        tip.at,
+        whole.len() as u64,
+        "the signature answers for a different number of bytes than are there"
     );
 }
 
@@ -1350,7 +1353,7 @@ fn a_line_changed_after_the_fact_no_longer_answers_to_the_signature() {
     std::fs::write(dir.join(ACTIVE), whole.replace("chase", "cease")).unwrap();
 
     assert_ne!(
-        signed_tip,
+        signed_tip.tip,
         crate::signing::tip_of(
             crate::signing::NOTHING_BEFORE,
             &std::fs::read(dir.join(ACTIVE)).unwrap()
@@ -1490,5 +1493,56 @@ fn a_segment_of_its_own_it_cannot_read_stops_it_signing_rather_than_signing_shor
     assert!(
         !dir.join("active.sig").exists(),
         "it signed a chain that leaves out bytes every reader can see"
+    );
+}
+
+#[test]
+fn a_machine_resumes_from_its_own_signature_without_reading_the_history_behind_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let dir = paths.store().join(&who.0);
+    {
+        let mut store = Store::open(paths.store(), who.clone())
+            .unwrap()
+            .signing_with(Some(key.clone()));
+        store.append(a_task("the first thing")).unwrap();
+        store.rotate().unwrap();
+        store.append(a_task("and the next")).unwrap();
+    }
+    assert!(dir.join("000001.tisty").is_file() && dir.join("active.sig").is_file());
+
+    // An unsigned closed segment is every history written before signing, and an unreadable one
+    // stands in for one too long to fold again.
+    let was = crate::signing::holds(
+        &key.verifying_key(),
+        &crate::signing::About {
+            device: "dev_a",
+            segment: "000001.tisty",
+        },
+        &std::fs::read_to_string(dir.join("000001.sig")).unwrap(),
+    )
+    .unwrap()
+    .tip;
+    std::fs::remove_file(dir.join("000001.sig")).unwrap();
+    std::fs::remove_file(dir.join("000001.tisty")).unwrap();
+    std::fs::create_dir(dir.join("000001.tisty")).unwrap();
+
+    let mut store = Store::open(paths.store(), who)
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    store.append(a_task("written after")).unwrap();
+
+    let said = std::fs::read_to_string(dir.join("active.sig"))
+        .expect("it read the whole history again and gave up signing");
+    let held = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
+        .expect("the signature does not answer");
+    let whole = std::fs::read(dir.join(ACTIVE)).unwrap();
+    assert_eq!(held.at, whole.len() as u64);
+    assert_eq!(
+        held.tip,
+        crate::signing::tip_of(was, &whole),
+        "resuming gave a different chain than folding the closed segment and the active one"
     );
 }

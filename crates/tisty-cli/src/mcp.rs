@@ -247,8 +247,10 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
                 .into(),
         ));
     }
+    let key = tisty_core::signing::mine(paths, &agent);
     let store = Store::open(paths.store(), agent)
         .map_err(hitch)?
+        .signing_with(key)
         .speaking_through(speaking_through());
     Ok((state, store))
 }

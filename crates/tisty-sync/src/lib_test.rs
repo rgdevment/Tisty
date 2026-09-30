@@ -6329,13 +6329,16 @@ fn a_signature_travels_with_the_segment_it_answers_for() {
         &said,
     )
     .expect("it does not answer");
+    let arrived = std::fs::read(there.join("active.tisty")).unwrap();
     assert_eq!(
-        tip,
-        tisty_core::signing::tip_of(
-            tisty_core::signing::NOTHING_BEFORE,
-            &std::fs::read(there.join("active.tisty")).unwrap()
-        ),
+        tip.tip,
+        tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &arrived),
         "what arrived is not what the signature was made over"
+    );
+    assert_eq!(
+        tip.at,
+        arrived.len() as u64,
+        "the signature answers for a different number of bytes than arrived"
     );
 }
 

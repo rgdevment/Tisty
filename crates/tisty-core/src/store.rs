@@ -35,7 +35,7 @@ pub struct Store {
     lock: Option<File>,
     via: Option<String>,
     signs: Option<ed25519_dalek::SigningKey>,
-    tip: [u8; 32],
+    covers: crate::signing::Covers,
 }
 
 impl Store {
@@ -81,7 +81,10 @@ impl Store {
             via: None,
             lock: None,
             signs: None,
-            tip: crate::signing::NOTHING_BEFORE,
+            covers: crate::signing::Covers {
+                tip: crate::signing::NOTHING_BEFORE,
+                at: 0,
+            },
         })
     }
 
@@ -89,7 +92,7 @@ impl Store {
     pub fn signing_with(mut self, key: Option<ed25519_dalek::SigningKey>) -> Self {
         self.signs = key;
         match self.tip_now() {
-            Some(tip) => self.tip = tip,
+            Some(covers) => self.covers = covers,
             None => self.signs = None,
         }
         self
@@ -97,11 +100,29 @@ impl Store {
 
     /// A signature found here is only a base for what follows if this machine's own key answers
     /// for it: `.sig` files arrive with a carry, so one in our directory is not ours to trust.
-    fn tip_now(&self) -> Option<[u8; 32]> {
+    fn tip_now(&self) -> Option<crate::signing::Covers> {
         let Some(key) = &self.signs else {
-            return Some(crate::signing::NOTHING_BEFORE);
+            return Some(crate::signing::Covers {
+                tip: crate::signing::NOTHING_BEFORE,
+                at: 0,
+            });
         };
         let by = key.verifying_key();
+        let active = self.dir.join(ACTIVE);
+        let now = active_mark(&active).0;
+        if let Ok(said) = std::fs::read_to_string(active.with_extension(crate::signing::SIG))
+            && let Some(held) = crate::signing::holds(&by, &self.about(ACTIVE), &said)
+            && held.at <= now
+        {
+            return match read_from(&active, held.at) {
+                Ok(rest) => Some(crate::signing::Covers {
+                    tip: crate::signing::tip_of(held.tip, &rest),
+                    at: now,
+                }),
+                Err(_) => None,
+            };
+        }
+
         let found = segments_in(&self.dir).unwrap_or_default();
         let mut tip = crate::signing::NOTHING_BEFORE;
         let mut onward = 0;
@@ -115,7 +136,7 @@ impl Store {
             if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
                 && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
             {
-                tip = held;
+                tip = held.tip;
                 onward = at + 1;
             }
         }
@@ -132,7 +153,7 @@ impl Store {
             };
             tip = crate::signing::tip_of(tip, &said);
         }
-        Some(tip)
+        Some(crate::signing::Covers { tip, at: now })
     }
 
     fn about<'a>(&'a self, segment: &'a str) -> crate::signing::About<'a> {
@@ -151,7 +172,7 @@ impl Store {
         };
         if let Err(e) = write_atomic(
             &at.with_extension(crate::signing::SIG),
-            crate::signing::signed(key, &self.about(named), &self.tip).as_bytes(),
+            crate::signing::signed(key, &self.about(named), &self.covers).as_bytes(),
         ) {
             witness::warn(
                 channel::STORE,
@@ -200,8 +221,8 @@ impl Store {
 
         // Another writer appended to the same segment, so a tip folded onto ours would skip
         // their lines and sign a chain nobody can recompute.
-        if let Some(tip) = self.tip_now() {
-            self.tip = tip;
+        if let Some(covers) = self.tip_now() {
+            self.covers = covers;
         } else {
             self.signs = None;
         }
@@ -373,7 +394,10 @@ impl Store {
             file.write_all(said.as_bytes())?;
             file.sync_all()?;
             if self.signs.is_some() {
-                self.tip = crate::signing::tip_of(self.tip, said.as_bytes());
+                self.covers = crate::signing::Covers {
+                    tip: crate::signing::tip_of(self.covers.tip, said.as_bytes()),
+                    at: self.covers.at + said.len() as u64,
+                };
             }
 
             self.active_events += lot.len();
@@ -405,6 +429,7 @@ impl Store {
         }
         self.active_events = 0;
         self.seen = Mark::default();
+        self.covers.at = 0;
         Ok(())
     }
 
@@ -829,6 +854,16 @@ mod atomic_tests;
 /// The stamp narrows that to one tick of whatever the filesystem keeps, not to nothing.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 struct Mark(u64, Option<std::time::SystemTime>);
+
+fn read_from(path: &Path, from: u64) -> std::io::Result<Vec<u8>> {
+    use std::io::{Read, Seek};
+    let mut file = File::open(path)?;
+    crate::counting::opened();
+    file.seek(std::io::SeekFrom::Start(from))?;
+    let mut rest = Vec::new();
+    file.read_to_end(&mut rest)?;
+    Ok(rest)
+}
 
 fn active_mark(path: &Path) -> Mark {
     std::fs::metadata(path)

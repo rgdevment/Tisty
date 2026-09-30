@@ -40,6 +40,25 @@ impl State {
         });
     }
 
+    /// The first key a machine publishes stands, and the same key in another case is the same key.
+    pub(crate) fn key_published(&mut self, event: &Event, d: &DeviceId, said: &str) {
+        if d != &event.device {
+            return;
+        }
+        let Some(key) = crate::signing::read(said) else {
+            return;
+        };
+        let shown = crate::signing::shown_of(&key);
+        let stands = self.keys.entry(d.clone()).or_insert(shown.clone());
+        if *stands != shown {
+            crate::witness::warn(
+                crate::witness::channel::STORE,
+                "a machine that already published a key published another, and the first one stands",
+                &[("by", crate::witness::Fact::Id(d.0.clone()))],
+            );
+        }
+    }
+
     pub(crate) fn device_removed(&mut self, d: &DeviceId) {
         self.devices.remove(d);
         self.agents.remove(d);
@@ -84,20 +103,8 @@ impl State {
     ) {
         self.dropped.remove(d);
         self.devices.insert(d.clone());
-        // Kept as this machine would write it, never as it arrived: the same key in another
-        // case is the same key, and a raw string would read the two as a machine changing it.
-        if let Some(said) = p.as_deref().filter(|_| d == &event.device)
-            && let Some(key) = crate::signing::read(said)
-        {
-            let shown = crate::signing::shown_of(&key);
-            let stands = self.keys.entry(d.clone()).or_insert(shown.clone());
-            if *stands != shown {
-                crate::witness::warn(
-                    crate::witness::channel::STORE,
-                    "a machine that already published a key published another, and the first one stands",
-                    &[("by", crate::witness::Fact::Id(d.0.clone()))],
-                );
-            }
+        if let Some(said) = p.as_deref() {
+            self.key_published(event, d, said);
         }
         match k.filter(|_| d == &event.device) {
             Some(crate::event::DeviceKind::Agent) => {
