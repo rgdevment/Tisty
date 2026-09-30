@@ -3158,6 +3158,46 @@ fn nothing_is_freed_when_the_copy_up_there_is_a_hole_its_keeper_has_not_filled()
     );
 }
 
+#[cfg(windows)]
+#[test]
+fn what_the_round_just_wrote_counts_as_landed_even_when_its_keeper_took_the_body() {
+    use std::io::Write;
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const OFFLINE: u32 = 0x0000_1000;
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let room = tempfile::tempdir().unwrap();
+    let there = room.path().join("charla-d5d43135.mp4");
+    let mut marked = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .attributes(OFFLINE)
+        .open(&there)
+        .unwrap();
+    marked.write_all(b"lo grabado").unwrap();
+    drop(marked);
+    let (sha256, bytes) = tisty_core::attach::hashed(&there).unwrap();
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(&there)
+        .unwrap();
+    let told = super::held::landed_whole(
+        &there,
+        Some(&(sha256, bytes)),
+        bytes,
+        "attachments/cd/charla-d5d43135.mp4",
+    );
+    drop(shut);
+
+    assert!(
+        told,
+        "the round wrote and hashed it on the way up, so nobody has to read it back"
+    );
+}
+
 #[test]
 fn nothing_is_freed_when_the_shared_folder_never_saw_it() {
     let one = machine("dev_a");

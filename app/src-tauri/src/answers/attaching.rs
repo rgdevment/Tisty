@@ -102,17 +102,33 @@ pub fn complete(
     Ok(task)
 }
 
+fn refused(found: &std::path::Path, reference: &str) -> Refusal {
+    match tisty_core::holes::a_hole(found) {
+        true => Refusal::about("heldAway", reference.to_string()),
+        false => Refusal::about("cannotRead", reference.to_string()),
+    }
+}
+
+pub(crate) fn read_out(reference: String, at: finding::Where) -> Answer<Vec<u8>> {
+    let found = finding::handed_over(&reference, &at)?;
+    let body = std::fs::read(&found).map_err(|_| refused(&found, &reference))?;
+    tisty_core::lately::used(&at.reached, &reference);
+    Ok(body)
+}
+
 #[tauri::command]
 pub async fn attached(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<Vec<u8>> {
-    let (data, shared, reached) = finding::where_to(&session);
-    elsewhere(move || {
-        let at = finding::handed_over(&reference, &data, shared.as_deref(), &reached)?;
-        std::fs::read(&at).map_err(|_| Refusal::about("cannotRead", reference))
-    })
-    .await?
+    let at = finding::where_to(&session);
+    elsewhere(move || read_out(reference, at)).await?
+}
+
+fn pointed_at(reference: String, at: finding::Where) -> Answer<String> {
+    let found = finding::handed_over(&reference, &at)?;
+    tisty_core::lately::used(&at.reached, &reference);
+    Ok(found.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -120,12 +136,25 @@ pub async fn served(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<String> {
-    let (data, shared, reached) = finding::where_to(&session);
-    elsewhere(move || {
-        let at = finding::handed_over(&reference, &data, shared.as_deref(), &reached)?;
-        Ok(at.to_string_lossy().into_owned())
-    })
-    .await?
+    let at = finding::where_to(&session);
+    elsewhere(move || pointed_at(reference, at)).await?
+}
+
+fn taken_out(reference: String, into: String, at: finding::Where) -> Answer<()> {
+    let from = finding::handed_over(&reference, &at)?;
+    std::fs::copy(&from, &into).map_err(|e| {
+        witness::warn(
+            channel::ATTACH,
+            "an attachment could not be taken out",
+            &[
+                ("at", Fact::Id(reference.clone())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+        Refusal::about("cannotWrite", into)
+    })?;
+    tisty_core::lately::used(&at.reached, &reference);
+    Ok(())
 }
 
 #[tauri::command]
@@ -134,32 +163,23 @@ pub async fn attach_export(
     reference: String,
     into: String,
 ) -> Answer<()> {
-    let (data, shared, reached) = finding::where_to(&session);
-    elsewhere(move || {
-        let from = finding::handed_over(&reference, &data, shared.as_deref(), &reached)?;
-        std::fs::copy(&from, &into).map_err(|e| {
-            witness::warn(
-                channel::ATTACH,
-                "an attachment could not be taken out",
-                &[
-                    ("at", Fact::Id(reference)),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            Refusal::about("cannotWrite", into)
-        })?;
-        Ok(())
-    })
-    .await?
+    let at = finding::where_to(&session);
+    elsewhere(move || taken_out(reference, into, at)).await?
 }
 
 #[tauri::command(async)]
 pub fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
-    let (data, shared, _reached) = finding::where_to(&session);
-    let at = finding::where_it_lies(&reference, &data, shared.as_deref())
+    let looking = finding::where_to(&session);
+    let at = finding::where_it_lies(&reference, &looking.data, looking.shared.as_deref())
         .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
     Ok(told.len())
+}
+
+fn looked_up(reference: String, at: finding::Where) -> Answer<std::path::PathBuf> {
+    let found = finding::handed_over(&reference, &at)?;
+    tisty_core::lately::used(&at.reached, &reference);
+    Ok(found)
 }
 
 #[tauri::command]
@@ -168,10 +188,9 @@ pub async fn opened(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    let (data, shared, reached) = finding::where_to(&session);
+    let looking = finding::where_to(&session);
     let asked = reference.clone();
-    let at = elsewhere(move || finding::handed_over(&asked, &data, shared.as_deref(), &reached))
-        .await??;
+    let at = elsewhere(move || looked_up(asked, looking)).await??;
     if !safe_to_open(&at) {
         return show(&at, &reference);
     }

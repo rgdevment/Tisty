@@ -37,7 +37,7 @@ export const orientedOf = (from: ArrayLike<number>): number => {
     if (size < 2) return 1;
     if (marker === 0xe1) {
       const head = at + 4;
-      const said = String.fromCodePoint(...bytes.slice(head, head + 4));
+      const said = String.fromCharCode(...bytes.slice(head, head + 4));
       if (said === "Exif") return inTiff(bytes, head + 6);
     }
     at += 2 + size;

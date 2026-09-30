@@ -6,6 +6,7 @@ use crate::witness::{self, Fact, channel};
 pub const USED: &str = "used.json";
 
 const KEPT_AT_MOST: usize = 4096;
+const NO_SOONER_THAN: u64 = 60 * 60 * 24;
 
 pub type Used = BTreeMap<String, u64>;
 
@@ -26,6 +27,12 @@ pub fn used(at: &Path, reference: &str) {
 
 pub fn used_on(at: &Path, reference: &str, when: u64) {
     let mut seen = every(at);
+    if seen
+        .get(reference)
+        .is_some_and(|said| when.saturating_sub(*said) < NO_SOONER_THAN)
+    {
+        return;
+    }
     seen.insert(reference.to_string(), when);
     while seen.len() > KEPT_AT_MOST {
         let Some(oldest) = seen

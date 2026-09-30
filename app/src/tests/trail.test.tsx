@@ -153,6 +153,19 @@ describe("the trail", () => {
     expect(screen.queryByText(/data-ico/)).toBeNull();
   });
 
+  it("names an icon wrapped in another span, instead of leaking what it held", async () => {
+    await shown([
+      {
+        at: "2026-08-27T01:24:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: 'listo <span class="a"><span data-ico="rocket">x</span></span>',
+      } as Draft,
+    ]);
+
+    expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
+  });
+
   it("keeps what a span without an icon was wrapping, and names no icon for it", async () => {
     await shown([
       {

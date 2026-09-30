@@ -4,7 +4,7 @@ const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 
 md.inline.ruler.before("link", "wiki", (state, silent) => {
   const { src, pos } = state;
-  if (src.codePointAt(pos) !== 0x5b || src.codePointAt(pos + 1) !== 0x5b) return false;
+  if (src.charCodeAt(pos) !== 0x5b || src.charCodeAt(pos + 1) !== 0x5b) return false;
 
   const shut = src.indexOf("]]", pos + 2);
   if (shut < 0) return false;

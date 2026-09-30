@@ -95,7 +95,7 @@ class Ink {
     this.offs.push(this.len);
     this.parts.push(text);
     this.len += text.length;
-    this.last = text.codePointAt(text.length - 1) ?? -1;
+    this.last = text.charCodeAt(text.length - 1);
   }
 
   priorSlashes(): number {
@@ -105,7 +105,7 @@ class Ink {
     let seen = 0;
     while (at >= 0) {
       while (idx >= 0) {
-        if (this.parts[at].codePointAt(idx) !== 92) return seen;
+        if (this.parts[at].charCodeAt(idx) !== 92) return seen;
         seen += 1;
         idx -= 1;
       }
@@ -140,7 +140,7 @@ class Ink {
     this.offs.length = peek.part;
     this.len = peek.from;
     const older = this.parts[peek.part - 1];
-    this.last = older ? (older.codePointAt(older.length - 1) ?? -1) : -1;
+    this.last = older ? older.charCodeAt(older.length - 1) : -1;
     this.add(text);
   }
 

@@ -39,6 +39,32 @@ fn reaching_for_it_again_moves_the_day_and_adds_no_row() {
 }
 
 #[test]
+fn reaching_for_it_again_the_same_day_writes_nothing() {
+    let (_room, at) = room();
+    let one = "attachments/ab/charla-00000000.mp4";
+
+    used_on(&at, one, 1_700_000_000);
+    let first = std::fs::metadata(&at).unwrap().modified().unwrap();
+
+    used_on(&at, one, 1_700_000_000 + NO_SOONER_THAN - 1);
+
+    assert_eq!(last(&at, one), Some(1_700_000_000), "the day did not move");
+    assert_eq!(
+        std::fs::metadata(&at).unwrap().modified().unwrap(),
+        first,
+        "the file was written again for nothing"
+    );
+
+    used_on(&at, one, 1_700_000_000 + NO_SOONER_THAN);
+
+    assert_eq!(
+        last(&at, one),
+        Some(1_700_000_000 + NO_SOONER_THAN),
+        "a day later it does move"
+    );
+}
+
+#[test]
 fn each_attachment_keeps_its_own_day() {
     let (_room, at) = room();
 

@@ -76,12 +76,23 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
 fn nothing_that_hunts_for_an_attachment_does_it_on_the_thread_that_draws() {
     let said = std::fs::read_to_string("src/answers/attaching.rs")
         .expect("the orders that serve an attachment");
-    let loose: Vec<&str> = said
-        .lines()
-        .filter(|one| one.contains("finding::handed_over("))
-        .filter(|one| !one.contains("elsewhere("))
-        .filter(|one| one.len() - one.trim_start().len() < 8)
-        .collect();
+    let mut inside = "";
+    let mut loose: Vec<(&str, &str)> = Vec::new();
+    for line in said.lines() {
+        let bare = line.trim_start();
+        if bare.starts_with("fn ")
+            || bare.starts_with("pub fn ")
+            || bare.starts_with("async fn ")
+            || bare.starts_with("pub async fn ")
+        {
+            inside = bare;
+        }
+        if (line.contains("std::fs::") || line.contains("finding::handed_over("))
+            && inside.contains("async fn ")
+        {
+            loose.push((inside, bare));
+        }
+    }
 
     assert!(
         said.contains("finding::handed_over("),
@@ -89,15 +100,20 @@ fn nothing_that_hunts_for_an_attachment_does_it_on_the_thread_that_draws() {
     );
     assert!(
         loose.is_empty(),
-        "a lookup sits in the body of an order instead of inside `elsewhere`: {loose:?}"
+        "work that reads a body sits in an async order instead of behind `elsewhere`: {loose:?}"
     );
 }
 
 #[test]
-fn handing_an_attachment_over_writes_down_the_day_and_a_refusal_does_not() {
+fn what_was_really_handed_over_is_written_down_and_a_refusal_is_not() {
     let here = tempfile::tempdir().unwrap();
     let from = tempfile::tempdir().unwrap();
     let reached = here.path().join("cache").join(tisty_core::lately::USED);
+    let looking = || finding::Where {
+        data: here.path().to_path_buf(),
+        shared: None,
+        reached: reached.clone(),
+    };
 
     let loose = from.path().join("nota.txt");
     std::fs::write(&loose, b"lo apuntado").unwrap();
@@ -111,19 +127,59 @@ fn handing_an_attachment_over_writes_down_the_day_and_a_refusal_does_not() {
         "nobody has reached for it yet"
     );
 
-    finding::handed_over(&reference, here.path(), None, &reached).expect("it is right here");
+    crate::answers::attaching::read_out(reference.clone(), looking()).expect("it is right here");
 
     assert!(
         tisty_core::lately::last(&reached, &reference).is_some_and(|when| when > 0),
         "handing it over wrote down no day"
     );
 
-    let never = "attachments/ab/nope-00000000.txt";
-    assert!(finding::handed_over(never, here.path(), None, &reached).is_err());
+    let never = "attachments/ab/nope-00000000.txt".to_string();
+    assert!(crate::answers::attaching::read_out(never.clone(), looking()).is_err());
     assert_eq!(
-        tisty_core::lately::last(&reached, never),
+        tisty_core::lately::last(&reached, &never),
         None,
         "what was refused was never reached for"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_read_that_fails_after_the_lookup_is_not_written_down_as_reached_for() {
+    use std::os::windows::fs::OpenOptionsExt;
+
+    const SHARED_WITH_NOBODY: u32 = 0;
+
+    let here = tempfile::tempdir().unwrap();
+    let from = tempfile::tempdir().unwrap();
+    let reached = here.path().join("cache").join(tisty_core::lately::USED);
+
+    let loose = from.path().join("nota.txt");
+    std::fs::write(&loose, b"lo apuntado").unwrap();
+    let reference = tisty_core::attach::keep(&loose, here.path(), tisty_core::attach::COPIED_UP_TO)
+        .unwrap()
+        .at;
+
+    let shut = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(SHARED_WITH_NOBODY)
+        .open(here.path().join(&reference))
+        .unwrap();
+    let told = crate::answers::attaching::read_out(
+        reference.clone(),
+        finding::Where {
+            data: here.path().to_path_buf(),
+            shared: None,
+            reached: reached.clone(),
+        },
+    );
+    drop(shut);
+
+    assert!(told.is_err(), "a locked body cannot be read");
+    assert_eq!(
+        tisty_core::lately::last(&reached, &reference),
+        None,
+        "a read that failed was written down as reached for"
     );
 }
 

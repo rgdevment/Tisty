@@ -48,7 +48,7 @@ pub(crate) fn landed_whole(
         return false;
     }
     if tisty_core::holes::a_hole(there) {
-        return false;
+        return true;
     }
     let Ok((sha256, _)) = tisty_core::attach::hashed(there) else {
         return false;

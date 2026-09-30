@@ -33,21 +33,21 @@ pub fn under_root(at: &std::path::Path, root: &std::path::Path) -> bool {
     }
 }
 
-/// Where to look, taken and let go of at once: what follows can wait on iCloud, and holding the
-/// session while it does would freeze the window.
-pub fn where_to(
-    session: &tauri::State<'_, Mutex<Session>>,
-) -> (
-    std::path::PathBuf,
-    Option<std::path::PathBuf>,
-    std::path::PathBuf,
-) {
+pub struct Where {
+    pub data: std::path::PathBuf,
+    pub shared: Option<std::path::PathBuf>,
+    pub reached: std::path::PathBuf,
+}
+
+/// Taken and let go of at once: what follows can wait on a cloud, and holding the session while it
+/// does would freeze the window.
+pub fn where_to(session: &tauri::State<'_, Mutex<Session>>) -> Where {
     let session = held(session);
-    (
-        session.paths.data().to_path_buf(),
-        session.shared_now(),
-        session.paths.cache().join(tisty_core::lately::USED),
-    )
+    Where {
+        data: session.paths.data().to_path_buf(),
+        shared: session.shared_now(),
+        reached: session.paths.cache().join(tisty_core::lately::USED),
+    }
 }
 
 /// The store first, then the shared folder, which is where a machine that let go of it kept it.
@@ -69,17 +69,9 @@ pub fn where_it_lies(
     None
 }
 
-pub fn handed_over(
-    reference: &str,
-    data: &std::path::Path,
-    shared: Option<&std::path::Path>,
-    reached: &std::path::Path,
-) -> Answer<std::path::PathBuf> {
-    match found_in(reference, data, shared) {
-        Sought::At(at) => {
-            tisty_core::lately::used(reached, reference);
-            Ok(at)
-        }
+pub fn handed_over(reference: &str, at: &Where) -> Answer<std::path::PathBuf> {
+    match found_in(reference, &at.data, at.shared.as_deref()) {
+        Sought::At(found) => Ok(found),
         other => Err(unreachable(other, reference.to_string())),
     }
 }
@@ -94,41 +86,35 @@ pub fn found_in(
             continue;
         };
         let ours = root == data;
-        let left = tisty_core::holes::left_in_place(&at);
-        if at.is_file() {
-            if !ours && !under_root(&at, root) {
-                return Sought::No;
+        if !at.is_file() {
+            let left = tisty_core::holes::left_in_place(&at);
+            if !matches!(left, tisty_core::holes::Left::Sidecar(_)) {
+                continue;
             }
-            if !ours {
-                match vouching::vouches(&at, reference) {
-                    Some(true) => {}
-                    Some(false) => return Sought::Torn,
-                    None if tisty_core::holes::comes_by_reading(&left) => return Sought::Held,
-                    None => return Sought::Torn,
-                }
-            }
-            return Sought::At(at);
-        }
-        if matches!(left, tisty_core::holes::Left::Sidecar(_)) {
             if !tisty_core::holes::can_ask(&left) {
                 return Sought::Away;
             }
             if !tisty_core::holes::waited_for(&at, COMES_WITHIN) {
                 return Sought::Coming;
             }
-            // What comes back from a cloud answers for its name like anything else that lives there.
-            if ours {
-                return Sought::At(at);
-            }
-            if !under_root(&at, root) {
-                return Sought::No;
-            }
-            return match vouching::vouches(&at, reference) {
-                Some(true) => Sought::At(at),
-                Some(false) => Sought::Torn,
-                None => Sought::Held,
-            };
         }
+        // What comes back from a cloud answers for its name like anything else that lives there.
+        if !ours && !under_root(&at, root) {
+            return Sought::No;
+        }
+        if !ours {
+            match vouching::vouches(&at, reference) {
+                Some(true) => {}
+                Some(false) => return Sought::Torn,
+                None => {
+                    return match tisty_core::holes::a_hole(&at) {
+                        true => Sought::Held,
+                        false => Sought::Torn,
+                    };
+                }
+            }
+        }
+        return Sought::At(at);
     }
     match shared {
         Some(dest) if !dest.is_dir() => Sought::Away,
