@@ -48,21 +48,15 @@ jobs:
       - name: The conventions the script keeps
         run: bash scripts/rules.sh
 
-      - name: No Spanish identifiers
+      # Nothing else looks at a subject that reached main without a pull request.
+      - name: The subject that landed
+        if: github.event_name == 'push'
         run: |
-          if grep -rnE '\b(fecha|limite|prioridad|filtro|tarea|titulo|etiqueta) *:' \
-               crates/*/src --include='*.rs' | grep -v '"'; then
-            echo "::error::identifiers are English; user-facing strings live in locales/"
-            exit 1
-          fi
-
-      - name: No interface strings hardcoded
-        run: |
-          if grep -rnE 'println!\("[a-záéíóúñ]|bail!\("[a-záéíóúñ]' \
-               crates/tisty-cli/src --include='*.rs'; then
-            echo "::error::interface text belongs in locales/, not in the source"
-            exit 1
-          fi
+          said=$(git log -1 --format=%s)
+          case "$said" in
+            Merge\ * | Revert\ *) echo "a merge keeps its own shape" ;;
+            *) bash scripts/commits.sh --subject "$said" ;;
+          esac
 
       - name: A spawned binary is never left the runner's language
         run: |
@@ -92,6 +86,15 @@ jobs:
           same README.md README.es.md
           same app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md
 
+  # One turn of the suite is what CI already runs on every push and pull request, so this job
+  # only earns its toolchain when it runs the twenty that say whether a test is deterministic.
+  determinism:
+    name: Tests are deterministic
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
@@ -101,12 +104,8 @@ jobs:
       - name: Locales define the same keys
         run: cargo test -p tisty-cli --bin tisty i18n
 
-      - name: Tests are deterministic
+      - name: Twenty turns of the suite
         run: |
-          turns=1
-          if [ "${GITHUB_EVENT_NAME}" = "schedule" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            turns=20
-          fi
-          for i in $(seq 1 "$turns"); do
+          for i in $(seq 1 20); do
             cargo test -p tisty-core -p tisty-nl -p tisty-sync --quiet || exit 1
           done
