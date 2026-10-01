@@ -117,7 +117,8 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         let now = active_mark(&active).0;
         if let Ok(said) = std::fs::read_to_string(active.with_extension(crate::signing::SIG))
-            && let Some(held) = crate::signing::holds(&by, &self.about(ACTIVE), &said)
+            && let crate::signing::Holds::Covers(held) =
+                crate::signing::holds(&by, &self.about(ACTIVE), &said)
             && held.at <= now
         {
             return match read_from(&active, held.at) {
@@ -142,7 +143,11 @@ impl Store {
                 continue;
             }
             if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
-                && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
+                && let crate::signing::Holds::Covers(held) =
+                    crate::signing::holds(&by, &self.about(named), &said)
+                // A signature over a prefix leaves the rest of the segment out of the chain, and
+                // skipping it whole would sign a tip over bytes that were never folded in.
+                && std::fs::metadata(one).is_ok_and(|was| was.len() == held.at)
             {
                 tip = held.tip;
                 onward = at + 1;

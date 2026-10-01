@@ -1,4 +1,5 @@
-import { type Carried, folderAstir, syncNow, syncState } from "./core";
+import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
+import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 
 const AFTER_A_CHANGE = 4_000;
@@ -8,7 +9,11 @@ const A_GLANCE = 30_000;
 
 type Way = "push" | "pull" | undefined;
 
-export type Awry = { why: "slow" } | { why: "busy" } | { why: "broke"; said: string };
+export type Awry =
+  | { why: "slow" }
+  | { why: "busy" }
+  | { why: "broke"; said: string }
+  | { why: "amiss"; said: string };
 
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
@@ -55,7 +60,16 @@ export function carrying(
         }
         if (mine !== round) return answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
-        awry(answer.carried === "busy" ? { why: "busy" } : null);
+        // A history turned away is the whole point of signing it, and the round that finds it is
+        // the one nobody is watching: saying nothing here is how it goes unnoticed for months.
+        const amiss = whatWentAmiss(answer);
+        awry(
+          answer.carried === "busy"
+            ? { why: "busy" }
+            : amiss
+              ? { why: "amiss", said: t(amiss) }
+              : null,
+        );
         return answer.carried;
       })
       .catch((problem) => {

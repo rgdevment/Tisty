@@ -41,6 +41,8 @@ fn named(dest: &Path, device: &str) -> String {
         .unwrap_or_else(|_| dest.to_path_buf())
         .display()
         .to_string();
+    // The name comes from a folder anybody may write to, and this file is read a line at a time.
+    let device = device.replace(['\n', '\t', ' '], "_");
     format!("{device} {}", at.replace(['\n', '\t'], " "))
 }
 

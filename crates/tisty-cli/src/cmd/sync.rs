@@ -128,6 +128,18 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     let shown = tisty_core::signing::mine(&app.paths, &who)
         .as_ref()
         .map(tisty_core::signing::shown);
+    if let Some(shown) = &shown {
+        tisty_core::vouched::confirm(app.paths.data(), &who, shown);
+        if tisty_core::vouched::confirmed(app.paths.data(), &who)
+            .is_some_and(|stood| &stood.key != shown)
+        {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::STORE,
+                "this machine signs with a key other than the one it answered for, so the others will turn its history away",
+                &[("at", tisty_core::witness::Fact::Id(who.0.clone()))],
+            );
+        }
+    }
     if tisty_core::store::ledger(app.paths.store())?
         .allowed
         .contains(&who)
