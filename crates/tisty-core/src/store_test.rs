@@ -1266,7 +1266,7 @@ fn the_one_still_being_written_to_is_the_only_segment_that_is_not_closed() {
 }
 
 #[test]
-fn what_an_attachment_holds_is_written_down_where_an_older_reader_can_step_over_it() {
+fn what_an_attachment_holds_is_written_down_where_an_older_reader_cannot_step_over_it() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path().join("store");
     let mut store = Store::open(&root, DeviceId("dev_a".into())).unwrap();
@@ -1287,9 +1287,10 @@ fn what_an_attachment_holds_is_written_down_where_an_older_reader_can_step_over_
     let line = said.lines().last().expect("a line was written");
 
     assert!(line.contains(r#""op":"attach.kept""#), "{line}");
+    let read: crate::event::Event = serde_json::from_str(line).expect("the line reads back");
     assert!(
-        line.contains(r#""opt":true"#),
-        "a reader that predates this would refuse the whole store: {line}"
+        !read.optional,
+        "a reader that steps over this reads a body as held elsewhere when it was let go: {line}"
     );
 }
 

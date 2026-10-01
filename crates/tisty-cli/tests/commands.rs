@@ -295,9 +295,10 @@ fn attaching_tells_the_log_what_the_file_holds() {
         told.contains(&tisty_core::attach::printed(body)),
         "what it holds is not the digest of what was attached: {told}"
     );
+    let read: tisty_core::event::Event = serde_json::from_str(told).expect("the line reads back");
     assert!(
-        told.contains(r#""opt":true"#),
-        "a build that predates this would refuse the store: {told}"
+        !read.optional,
+        "a build that walks past this reads a body as held elsewhere when it was let go, and lets go of the last copy: {told}"
     );
 }
 
