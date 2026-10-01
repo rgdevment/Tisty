@@ -167,25 +167,34 @@ Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
 diff; the *what* is already in the patch. Keep the subject under 90 characters:
 CI refuses a longer one.
 
-`scripts/rules.sh` holds the conventions a person can break in a second — four
-lines of comment in a row, a file grown past what anybody reads through, the core
-printing to a terminal the window inherits. `scripts/commits.sh` holds the shape
-and the length of a subject. Run either whenever you like, and if you want them
-run for you:
+`scripts/rules.sh` holds the conventions a person can break in a second: four
+lines of comment in a row, a file grown past what anybody reads through, Spanish
+where the code should be English, the core printing to a terminal the window
+inherits, a panic where the core should answer, and anything new reaching the
+command line that is frozen. `scripts/commits.sh` holds the shape and the length
+of a subject. Run either whenever you like, and if you want them run for you:
 
 ```sh
 git config core.hooksPath hooks
 ```
 
-That gives you two: `pre-commit` runs the conventions, which takes about a
-second, and `pre-push` adds the subjects of what you are about to send and
-`cargo fmt --all --check`. Nothing slower goes in either — the suite, the build
-and the markdown lint are minutes, and they belong to CI.
+That gives you three. `pre-commit` runs the conventions, `cargo fmt --all
+--check` and biome — about two seconds, and between them they are most of what
+turns CI red. `commit-msg` weighs the subject while the fix is still an `--amend`
+rather than a rebase. `pre-push` runs the conventions again and the subjects of
+everything you are about to send. Nothing slower goes in any of them: the suite,
+the build and the markdown lint are minutes, and they belong to CI.
+
+Two of those rules keep a written record rather than a threshold.
+`.github/oversized.txt` holds every file already past the ceiling, and what is
+above it only shrinks. `.github/frozen-cli.txt` holds the command line as it
+stands, so a new command or a new flag has to be made explicit instead of
+arriving unnoticed.
 
 **Those hooks are comfort, not enforcement.** A fresh clone does not have them
-until somebody sets that, and `--no-verify` walks straight past both. What the
-repository actually requires is what CI refuses, which is why the workflows run
-the same two files rather than keeping their own copies of the rules.
+until somebody sets that, and `--no-verify` walks straight past all three. What
+the repository actually requires is what CI refuses, which is why the workflows
+run the same two files rather than keeping their own copies of the rules.
 
 ## Security
 
