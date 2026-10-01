@@ -1600,3 +1600,62 @@ fn the_ledger_takes_nobody_word_for_what_another_machine_signs_with() {
         "one machine answered for what another signs with"
     );
 }
+
+#[test]
+fn what_a_device_said_it_signs_with_is_read_from_its_own_directory() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let said = crate::signing::shown(&key);
+    let mut store = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    let dir = paths.store().join(&who.0);
+
+    assert_eq!(key_said_in(&dir, &who), None);
+
+    store
+        .append(Op::DeviceKey {
+            d: who.clone(),
+            p: said.clone(),
+        })
+        .unwrap();
+    drop(store);
+
+    assert_eq!(key_said_in(&dir, &who).as_deref(), Some(said.as_str()));
+    assert_eq!(
+        key_said_in(&dir, &DeviceId("dev_b".into())),
+        None,
+        "one machine's directory answered for another's key"
+    );
+}
+
+#[test]
+fn a_torn_segment_does_not_hide_what_another_one_says_a_device_signs_with() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let said = crate::signing::shown(&key);
+    let mut store = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    store
+        .append(Op::DeviceKey {
+            d: who.clone(),
+            p: said.clone(),
+        })
+        .unwrap();
+    store.rotate().unwrap();
+    store.append(a_task("chase the invoice")).unwrap();
+    drop(store);
+    let dir = paths.store().join(&who.0);
+    std::fs::write(dir.join("active.tisty"), b"not a line of anything\n").unwrap();
+
+    assert_eq!(
+        key_said_in(&dir, &who).as_deref(),
+        Some(said.as_str()),
+        "a segment nobody can read hid what an earlier one plainly says"
+    );
+}
