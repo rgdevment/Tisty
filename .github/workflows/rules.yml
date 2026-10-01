@@ -43,12 +43,10 @@ jobs:
           done
           echo "every workflow parses"
 
-      - name: The core produces no terminal output
-        run: |
-          if grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'; then
-            echo "::error::tisty-core must not print: the GUI inherits it as garbage"
-            exit 1
-          fi
+      # One implementation for the conventions a person can break in a second: the hook runs
+      # the same file, so local and CI can never drift into saying different things.
+      - name: The conventions the script keeps
+        run: bash scripts/rules.sh
 
       - name: No Spanish identifiers
         run: |
@@ -65,57 +63,6 @@ jobs:
             echo "::error::interface text belongs in locales/, not in the source"
             exit 1
           fi
-
-      - name: No prose blocks in the code
-        run: |
-          found=$(find crates/*/src app/src-tauri/src -name '*.rs' -print0 \
-            | xargs -0 awk '
-                /^[[:space:]]*\/\/\// { run = 0; next }
-                /^[[:space:]]*\/\// && !/\/\/!|TODO|FIXME|SAFETY|noqa|https?:\/\// { run++; if (run == 4) print FILENAME ":" FNR; next }
-                { run = 0 }')
-          if [ -n "$found" ]; then
-            echo "$found"
-            echo "::error::four lines of comment is prose; that goes in planning/, not in the source"
-            exit 1
-          fi
-
-      - name: No file grows past what a person can hold
-        run: |
-          set -euo pipefail
-          status=0
-          measured=$(mktemp)
-          tables_not_code='locales\.ts|glyphs\.ts|marks\.ts|model/mark\.rs'
-          test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src app/src-tauri/src --include='*.rs' \
-            | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
-          find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
-            | grep -vE "node_modules|/tests/|\.test\.|$tables_not_code|$test_modules" \
-            | sort | while read -r one; do
-              printf '%s %s\n' "$(wc -l < "$one" | tr -d ' ')" "$one"
-            done > "$measured"
-
-          while read -r now at; do
-            was=$(tr -d '\015' < .github/oversized.txt | awk -v at="$at" '$2 == at { print $1 }')
-            if [ -z "$was" ]; then
-              if [ "$now" -gt 1500 ]; then
-                echo "::error file=$at::$at is $now lines of code; 1500 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
-                status=1
-              fi
-            elif [ "$now" -gt "$was" ]; then
-              echo "::error file=$at::$at was already over the ceiling at $was lines and grew to $now. What is above it only shrinks"
-              status=1
-            elif [ "$now" -lt "$was" ]; then
-              echo "::error file=$at::$at is down to $now lines from $was. Write that into .github/oversized.txt so it cannot grow back"
-              status=1
-            fi
-          done < "$measured"
-
-          while read -r _ at; do
-            if [ ! -f "$at" ]; then
-              echo "::error::$at is in .github/oversized.txt and no longer exists; take the line out"
-              status=1
-            fi
-          done < <(tr -d '\015' < .github/oversized.txt)
-          exit $status
 
       - name: No voseo in the Spanish anywhere
         run: |

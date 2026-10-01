@@ -164,7 +164,22 @@ breaks "by tuesday" otherwise.
 
 Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
 `test:`). Explain *why* in the body when the reason is not obvious from the
-diff; the *what* is already in the patch.
+diff; the *what* is already in the patch. Keep the subject under 90 characters:
+CI refuses a longer one.
+
+`scripts/rules.sh` holds the conventions a person can break in a second — four
+lines of comment in a row, a file grown past what anybody reads through, the core
+printing to a terminal the window inherits. Run it whenever you like, and if you
+want it run for you:
+
+```sh
+git config core.hooksPath hooks
+```
+
+**That hook is comfort, not enforcement.** A fresh clone does not have it until
+somebody sets that, and `--no-verify` walks straight past it. What the repository
+actually requires is what CI refuses, which is why the workflow runs the same
+file rather than keeping its own copy of the rules.
 
 ## Security
 
