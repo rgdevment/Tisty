@@ -64,26 +64,6 @@ jobs:
             exit 1
           fi
 
-      - name: No voseo in the Spanish anywhere
-        run: |
-          if grep -rniE '\b(vos|tenés|querés|podés|andá|mirá|hacé|che)\b' \
-             app/src/locales.ts crates/tisty-cli/locales README.es.md \
-             app/src-tauri/resources/guide/es/guia.md; then
-            echo "::error::Spanish is neutral: no voseo"
-            exit 1
-          fi
-
-      - name: No peninsular Spanish in what a person reads
-        run: |
-          if grep -rniE '\b(fichero|ficheros|ordenador|pulsa|pulsar|pulsando)\b' \
-             app/src/locales.ts crates/tisty-cli/locales README.es.md \
-             app/src-tauri/resources/guide/es/guia.md; then
-            echo "::error::use archivo, equipo, presionar"
-            exit 1
-          fi
-
-      # The suite runs once, in one locale, because no test reads the ambient one: every
-      # spawn of the binary pins it. A spawn that forgot would test the runner, not the code.
       - name: A spawned binary is never left the runner's language
         run: |
           status=0

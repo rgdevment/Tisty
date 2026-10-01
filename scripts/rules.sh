@@ -32,13 +32,16 @@ no_prose_blocks() {
 }
 
 nothing_past_what_a_person_holds() {
-  local measured tables_not_code test_modules now at was before
+  local measured skip test_modules now at was before
   measured=$(mktemp)
-  tables_not_code='locales\.ts|glyphs\.ts|marks\.ts|model/mark\.rs'
+  skip='node_modules|/tests/|\.test\.|locales\.ts|glyphs\.ts|marks\.ts|model/mark\.rs'
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src app/src-tauri/src --include='*.rs' \
     | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
+  if [ -n "$test_modules" ]; then
+    skip="$skip|$test_modules"
+  fi
   find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
-    | grep -vE "node_modules|/tests/|\.test\.|$tables_not_code|$test_modules" \
+    | grep -vE "$skip" \
     | sort | while read -r one; do
       printf '%s %s\n' "$(wc -l < "$one" | tr -d ' ')" "$one"
     done > "$measured"
@@ -75,11 +78,12 @@ read_by_a_person() {
     README.es.md
     app/src-tauri/resources/guide/es/guia.md
   )
-  if grep -rniEf .github/not-this-spanish.txt "${where[@]}"; then
-    amiss "the Spanish a person reads is neutral and not peninsular"
-  else
-    went_well "the Spanish a person reads"
-  fi
+  grep -rniEf .github/not-this-spanish.txt "${where[@]}"
+  case $? in
+    0) amiss "the Spanish a person reads is neutral and not peninsular" ;;
+    1) went_well "the Spanish a person reads" ;;
+    *) amiss "the Spanish a person reads could not be looked through where it is written" ;;
+  esac
 }
 
 nothing_the_core_prints() {

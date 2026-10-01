@@ -5,10 +5,13 @@ cd "$(git rev-parse --show-toplevel)" || exit 0
 
 bash scripts/rules.sh || exit 1
 
-base=$(git merge-base HEAD origin/main 2>/dev/null) || exit 0
-bash scripts/commits.sh "$base..HEAD" || exit 1
-
 cargo fmt --all --check || {
   echo "x  cargo fmt --all would change files"
   exit 1
 }
+
+if base=$(git merge-base HEAD origin/main 2>/dev/null) && [ -n "$base" ]; then
+  bash scripts/commits.sh "$base..HEAD" || exit 1
+else
+  echo "x  origin/main is not here, so the subjects were not looked at"
+fi
