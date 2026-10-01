@@ -454,6 +454,7 @@ export interface Machine {
   signs: string | null;
   confirmed: string | null;
   confirmedWhen: number;
+  turnedAway: "disowned" | "unreadable" | null;
 }
 
 export interface Stray {

@@ -4,6 +4,7 @@ mod papers;
 mod place;
 mod segments;
 mod shape;
+pub mod turned;
 mod verified;
 
 pub use held::let_go_telling;
@@ -562,7 +563,7 @@ fn claimed(
     store: &Path,
     who: &tisty_core::DeviceId,
     knew: &mut Option<tisty_core::store::Ledger>,
-) -> Option<String> {
+) -> Result<Option<String>, ()> {
     let told = match knew {
         Some(told) => told,
         None => match tisty_core::store::ledger(store) {
@@ -570,14 +571,14 @@ fn claimed(
             Err(e) => {
                 witness::warn(
                     channel::SYNC,
-                    "this machine's own log would not say what the others sign with",
+                    "this machine's own log would not say what the others sign with, so nothing signed was taken in",
                     &[("why", Fact::Why(e.to_string()))],
                 );
-                return None;
+                return Err(());
             }
         },
     };
-    told.keys.get(who).cloned()
+    Ok(told.keys.get(who).cloned())
 }
 
 /// Checked before any of it is taken in, and only from where the last round left off.
@@ -592,13 +593,29 @@ fn answers_for_itself(
     knew: &mut Option<tisty_core::store::Ledger>,
     alike: &mut Alike,
 ) -> Answered {
-    if !anything_signed_in(theirs) {
-        return Answered::Yes;
-    }
     let who = tisty_core::DeviceId(named.to_string());
-    let said = match tisty_core::vouched::confirmed(data, &who) {
+    let stood = tisty_core::vouched::confirmed(data, &who);
+    let from = verified::of(data, dest, named);
+    // Nothing to check is not the same as nothing to answer for. A key somebody answered for is
+    // the whole demand — a folder stripped of every signature is the cheapest way to make a
+    // history look like one written before signing, and the memo alone is a thing that can age out.
+    if !anything_signed_in(theirs) {
+        if stood.is_none() && !from.signing {
+            return Answered::Yes;
+        }
+        witness::warn(
+            channel::SYNC,
+            "a history that has to answer for itself arrived with no signature at all, so none of it was taken in",
+            &[("at", Fact::Id(named.to_string()))],
+        );
+        return Answered::Disowned;
+    }
+    let said = match stood {
         Some(stood) => Some(stood.key),
-        None => claimed(store, &who, knew),
+        None => match claimed(store, &who, knew) {
+            Ok(said) => said,
+            Err(()) => return Answered::Unreadable,
+        },
     };
     let by = said.and_then(|said| tisty_core::signing::read(&said));
     let Some(by) = by else {
@@ -617,7 +634,6 @@ fn answers_for_itself(
     use tisty_core::answering::Adrift;
     let mine = store.join(named);
     let ours_already = alike.of(named, theirs, &mine).clone();
-    let from = verified::of(data, dest, named);
     let answers = tisty_core::answering::answers(theirs, &who, &by, from, &|segment| {
         ours_already.contains(std::ffi::OsStr::new(segment))
     });
@@ -635,7 +651,17 @@ fn answers_for_itself(
             Answered::Unreadable
         }
         Err(Adrift::Disowned(segment)) => {
-            verified::keep(data, dest, named, Default::default());
+            // Read again from the first line next round, but never give up knowing it signed:
+            // that latch is what tells a signature taken away from a history written before one.
+            verified::keep(
+                data,
+                dest,
+                named,
+                tisty_core::answering::Reached {
+                    signing: true,
+                    ..Default::default()
+                },
+            );
             witness::warn(
                 channel::SYNC,
                 "a history in the shared folder does not answer to the key kept for that machine, so none of it was taken in",
@@ -665,6 +691,7 @@ fn bring(
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
     let mut knew: Option<tisty_core::store::Ledger> = None;
+    let mut away: std::collections::BTreeMap<String, turned::Away> = Default::default();
     let at = dest.join(STORE);
     let entries = match std::fs::read_dir(&at) {
         Ok(entries) => entries,
@@ -686,6 +713,16 @@ fn bring(
             continue;
         };
         if !entry.path().is_dir() {
+            continue;
+        }
+        // Anybody who reaches the folder can name a directory, and a name is what every memo and
+        // every ledger line is keyed by. One that could not be a machine of ours never becomes one.
+        if !tisty_core::store::is_device_name(named) {
+            witness::warn(
+                channel::SYNC,
+                "the shared folder holds a directory that no machine of ours could be named, so it was left alone",
+                &[("at", Fact::Id(named.to_string()))],
+            );
             continue;
         }
         let mine = store.join(named);
@@ -746,10 +783,12 @@ fn bring(
         ) {
             Answered::Yes => {}
             Answered::Unreadable => {
+                away.insert(named.to_string(), turned::Away::Unreadable);
                 moved.unreadable.push(named.to_string());
                 continue;
             }
             Answered::Disowned => {
+                away.insert(named.to_string(), turned::Away::Disowned);
                 moved.disowned.push(named.to_string());
                 continue;
             }
@@ -813,6 +852,7 @@ fn bring(
         brought += alike.carried(named, &entry.path(), &mine, Toward::Home, false)?;
     }
 
+    turned::keep(data, &away);
     if brought > 0 {
         tisty_core::store::read_all(store).map_err(|e| Trouble::Unreadable(e.to_string()))?;
     }

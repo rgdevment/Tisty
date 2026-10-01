@@ -42,6 +42,14 @@ pub fn read(said: &str) -> Option<VerifyingKey> {
     VerifyingKey::from_bytes(&bytes).ok()
 }
 
+/// What this machine already signs with, without minting one for the asking: a report that reads
+/// the key must not be the thing that creates it.
+pub fn shown_kept(paths: &crate::Paths, device: &DeviceId) -> Option<String> {
+    let held = std::fs::read(kept_at(paths, device)?).ok()?;
+    let one = <[u8; 32]>::try_from(held.as_slice()).ok()?;
+    Some(shown(&SigningKey::from_bytes(&one)))
+}
+
 pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
     use crate::store::identity::{Kept, kept, minted};
 

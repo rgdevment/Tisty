@@ -77,10 +77,27 @@ pub fn answers(
         .any(|one| one.with_extension(signing::SIG).is_file())
     {
         return match from.signing {
-            true => Err(Adrift::Disowned(String::new())),
+            true => Err(Adrift::Disowned(device.0.clone())),
             false => Ok(from),
         };
     }
+
+    // `from.tip` already holds every segment up to `from.segment`, so one of those read again
+    // would be folded in twice. Where that is going to happen the memo is no use and the whole
+    // history is answered for from its first line; the latch is what must not be given up.
+    let from = match found.iter().any(|one| {
+        one.file_name()
+            .and_then(|one| one.to_str())
+            .is_some_and(|named| {
+                numbered(named).is_some_and(|n| n <= from.segment) && !ours_already(named)
+            })
+    }) {
+        true => Reached {
+            signing: from.signing,
+            ..Default::default()
+        },
+        false => from,
+    };
 
     let mut tip = from.tip;
     let mut held = from;
@@ -99,22 +116,35 @@ pub fn answers(
             device: &device.0,
             segment: named,
         };
-        let answered = match std::fs::read_to_string(one.with_extension(signing::SIG)) {
-            Ok(said) => match signing::holds(by, &about, &said) {
-                // The whole segment or none of it: one answering for a prefix would let a line
-                // appended past it in, and the next thing that machine writes would sign it.
-                signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
-                    return Err(Adrift::Unreadable(named.to_string()));
-                }
-                signing::Holds::Covers(covers) if signing::tip_of(tip, &bytes) != covers.tip => {
-                    return Err(Adrift::Disowned(named.to_string()));
-                }
-                signing::Holds::Covers(_) => true,
-                signing::Holds::Refused => return Err(Adrift::Disowned(named.to_string())),
-                signing::Holds::Unreadable => {
-                    return Err(Adrift::Unreadable(named.to_string()));
-                }
+        let answered = match std::fs::read(one.with_extension(signing::SIG)) {
+            Ok(said) => match String::from_utf8(said) {
+                Ok(said) => match signing::holds(by, &about, &said) {
+                    // The whole segment or none of it: one answering for a prefix would let a
+                    // line appended past it in, and the next write would sign it.
+                    signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
+                        return Err(Adrift::Unreadable(named.to_string()));
+                    }
+                    signing::Holds::Covers(covers)
+                        if signing::tip_of(tip, &bytes) != covers.tip =>
+                    {
+                        return Err(Adrift::Disowned(named.to_string()));
+                    }
+                    signing::Holds::Covers(_) => true,
+                    signing::Holds::Refused => {
+                        return Err(Adrift::Disowned(named.to_string()));
+                    }
+                    signing::Holds::Unreadable => {
+                        return Err(Adrift::Unreadable(named.to_string()));
+                    }
+                },
+                // Bytes that are not text are a signature that will not read, not one taken away.
+                Err(_) => return Err(Adrift::Unreadable(named.to_string())),
             },
+            // Only a sidecar that is not there is one taken away. A folder that would not hand it
+            // over — a lock, a permission, a directory planted in its place — is read again.
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                return Err(Adrift::Unreadable(named.to_string()));
+            }
             Err(_) if held.signing => return Err(Adrift::Disowned(named.to_string())),
             Err(_) => false,
         };

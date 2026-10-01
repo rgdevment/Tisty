@@ -145,6 +145,9 @@ impl Store {
             if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
                 && let crate::signing::Holds::Covers(held) =
                     crate::signing::holds(&by, &self.about(named), &said)
+                // A signature over a prefix leaves the rest of the segment out of the chain, and
+                // skipping it whole would sign a tip over bytes that were never folded in.
+                && std::fs::metadata(one).is_ok_and(|was| was.len() == held.at)
             {
                 tip = held.tip;
                 onward = at + 1;

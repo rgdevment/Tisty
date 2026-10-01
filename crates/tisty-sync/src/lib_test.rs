@@ -6648,3 +6648,222 @@ fn a_history_signed_with_another_key_than_the_one_confirmed_does_not_come_home()
         "a history signed with a key nobody answered for was taken in"
     );
 }
+
+/// The cheapest hand there is: a history that answered for itself once, then arrives with every
+/// signature removed. Reading that as a history from before signing hands the forger the folder.
+#[test]
+fn a_history_stripped_of_every_signature_does_not_come_home() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    assert!(
+        tisty_core::vouched::confirm(&two.data, &who, &tisty_core::signing::shown(&key)),
+        "the second machine could not answer for the key"
+    );
+    let first = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(
+        first.disowned,
+        Vec::<String>::new(),
+        "a true history was refused"
+    );
+    assert!(
+        home_of(&two, &one.device).contains("chase the invoice"),
+        "the history did not come home at all"
+    );
+
+    let there = shared.path().join(STORE).join(&one.device);
+    let whole = std::fs::read_to_string(there.join("active.tisty")).unwrap();
+    std::fs::write(
+        there.join("active.tisty"),
+        whole.replace("chase the invoice", "chase the other one"),
+    )
+    .unwrap();
+    for found in std::fs::read_dir(&there)
+        .unwrap()
+        .filter_map(|one| one.ok())
+    {
+        if found.path().extension().is_some_and(|one| one == "sig") {
+            std::fs::remove_file(found.path()).unwrap();
+        }
+    }
+
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        !home_of(&two, &one.device).contains("chase the other one"),
+        "a forged line came home once every signature beside it was removed"
+    );
+    assert!(
+        !after.disowned.is_empty() || !after.unreadable.is_empty(),
+        "the round said nothing at all about a history it could not answer for"
+    );
+}
+
+/// Our own log not reading is no reason to stop checking everybody else: it is the one moment a
+/// forger would most like us to take their word for it.
+#[test]
+fn a_log_of_our_own_that_will_not_read_does_not_open_the_folder() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let there = shared.path().join(STORE).join(&one.device);
+    let whole = std::fs::read_to_string(there.join("active.tisty")).unwrap();
+    std::fs::write(
+        there.join("active.tisty"),
+        whole.replace("chase the invoice", "chase the other one"),
+    )
+    .unwrap();
+
+    let ours = two.store.join("dev_junk");
+    std::fs::create_dir_all(&ours).unwrap();
+    std::fs::write(
+        ours.join("active.tisty"),
+        b"{\"v\":99,\"what\":\"newer\"}
+",
+    )
+    .unwrap();
+
+    let _ = carry(&two.data, &two.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        !home_of(&two, &one.device).contains("chase the other one"),
+        "a forged line came home while this machine's own log would not read"
+    );
+}
+
+/// A folder stripped of every signature before anybody ever saw it signed leaves no memo to
+/// remember by. What a person answered for is the demand itself, and it outlives any memo.
+#[test]
+fn a_key_somebody_answered_for_is_demanded_even_on_the_first_round() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let there = shared.path().join(STORE).join(&one.device);
+    for found in std::fs::read_dir(&there)
+        .unwrap()
+        .filter_map(|one| one.ok())
+    {
+        if found.path().extension().is_some_and(|one| one == "sig") {
+            std::fs::remove_file(found.path()).unwrap();
+        }
+    }
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    assert!(
+        tisty_core::vouched::confirm(&two.data, &who, &tisty_core::signing::shown(&key)),
+        "the second machine could not answer for the key"
+    );
+
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.disowned,
+        vec![one.device.clone()],
+        "a history with no signature at all came in under a key somebody answered for"
+    );
+    assert!(
+        !home_of(&two, &one.device).contains("chase the invoice"),
+        "it was taken in anyway"
+    );
+}
+
+/// The window cannot work this out from the two keys: the log keeps the first one a machine
+/// published and never another, so they agree while the folder is being refused. The round leaves
+/// its own verdict where the window can read it, and takes it back when the history comes home.
+#[test]
+fn what_a_round_turned_away_is_left_where_the_window_can_read_it() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let elsewhere = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let other = tisty_core::signing::shown(
+        &tisty_core::signing::mine(&elsewhere, &DeviceId("dev_c".into())).unwrap(),
+    );
+    assert!(tisty_core::vouched::confirm(&two.data, &who, &other));
+
+    carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        turned::of(&two.data).get(&one.device),
+        Some(&turned::Away::Disowned),
+        "the round turned a history away and left nothing the window could say so with"
+    );
+
+    std::fs::remove_file(two.data.join(".keys-confirmed")).unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        turned::of(&two.data).get(&one.device),
+        None,
+        "the history came home and the window would still be warning about it"
+    );
+}
+
+fn home_of(who: &Machine, whose: &str) -> String {
+    std::fs::read_to_string(who.store.join(whose).join("active.tisty")).unwrap_or_default()
+}

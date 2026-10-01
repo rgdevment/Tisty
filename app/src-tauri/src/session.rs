@@ -695,6 +695,15 @@ impl Session {
             .map(tisty_core::signing::shown);
         if let Some(shown) = &shown {
             tisty_core::vouched::confirm(self.paths.data(), &who, shown);
+            if tisty_core::vouched::confirmed(self.paths.data(), &who)
+                .is_some_and(|stood| &stood.key != shown)
+            {
+                witness::warn(
+                    channel::STORE,
+                    "this machine signs with a key other than the one it answered for, so the others will turn its history away",
+                    &[("at", Fact::Id(who.0.clone()))],
+                );
+            }
         }
         if self.state.devices.contains(&who) {
             return match shown.filter(|_| !self.state.keys.contains_key(&who)) {

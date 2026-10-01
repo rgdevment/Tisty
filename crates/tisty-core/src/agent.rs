@@ -16,6 +16,12 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
     config.agent_id = Some(who.clone());
     config.save(paths)?;
 
+    if let Some(shown) = crate::signing::mine(paths, &who)
+        .as_ref()
+        .map(crate::signing::shown)
+    {
+        crate::vouched::confirm(paths.data(), &who, &shown);
+    }
     let mut store =
         Store::open(paths.store(), who.clone())?.signing_with(crate::signing::mine(paths, &who));
     store.append_batch(vec![

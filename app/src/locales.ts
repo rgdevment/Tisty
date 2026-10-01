@@ -884,7 +884,7 @@ const en = {
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
-    "One machine's history in the shared folder carries a signature that does not answer to the key that machine published, so none of what it holds was taken in. Either something changed those files after they were written, or somebody else wrote them under that name.",
+    "One machine's history in the shared folder carries a signature that does not answer to the key kept for that machine, so none of what it holds was taken in. Either something changed those files after they were written, or that machine now signs with a key other than the one confirmed here.",
   noBase: "There is nothing to compare against yet, so this one is decided whole",
   cannotWeave: "That document changed while you were deciding — look again",
   movedUnderfoot: "That document changed while you were deciding — look again",
@@ -1256,16 +1256,22 @@ const en = {
   machineKeyThen:
     "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
   machineKeyForGood:
-    "This is not changed later. To give it a new key the machine has to be removed and added again.",
+    "This is not changed later. A machine that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
   machineKeyDone: "That key is now the one it answers for",
-  machineKeyMine: "This is the key this machine signs with. Read it out when another one asks.",
+  machineKeyMine:
+    "This is the key the others have for this machine. Read it out when one of them asks.",
   machineKeyNone: "It has not said what it signs with. Nothing it writes is checked.",
   machineAstrayStood: "the one you confirmed {name}",
   machineAstrayNow: "the one it signs with now",
   machineAstrayWhat:
     "Nothing this machine has written since then has come in here, and it will not. What was already here stays where it was.",
   machineAstrayDo:
-    "If you gave it a new key yourself — you reinstalled it, you changed disks — remove it from the list and add it again from that machine: it comes in with its new key and you confirm it again. If you have done none of that, ask at that machine before touching the list.",
+    "If you gave it a new key yourself — you reinstalled it, you changed disks — that machine has to join the folder afresh, which gives it a new name here and empties what it holds first, so back it up there before you do. Removing it from this list does not give it a new key. If you have done none of that, ask at that machine before touching anything.",
+  machineAstrayMine:
+    "This is this machine, so its own history is the one the others are turning away. The key it signs with is not the one it answered for — restore the key file if you still have it, or let this machine join the folder afresh, which empties what it holds first.",
+  machineAstrayStoodEver: "the one answered for here",
+  machineKeyStandsEver: "confirmed",
+  machineKeyOurs: "its own",
   machineAstrayOnly:
     "A machine whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
   looseWhat:
@@ -2285,7 +2291,7 @@ const es: Catalog = {
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
-    "El historial de una máquina en la carpeta compartida trae una firma que no responde a la clave que esa máquina publicó, así que no se tomó nada de lo que tiene. O algo cambió esos archivos después de escribirlos, o los escribió alguien más con ese nombre.",
+    "El historial de una máquina en la carpeta compartida trae una firma que no responde a la clave guardada para esa máquina, así que no se tomó nada de lo que tiene. O algo cambió esos archivos después de escribirlos, o esa máquina firma ahora con otra clave que la confirmada aquí.",
   noBase: "Todavía no hay con qué comparar, así que este se decide entero",
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
   movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",
@@ -2657,17 +2663,22 @@ const es: Catalog = {
   machineKeyThen:
     "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
   machineKeyForGood:
-    "Esto no se cambia después. Para darle una clave nueva hay que remover la máquina y volver a añadirla.",
+    "Esto no se cambia después. Una máquina que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
   machineKeyDone: "Esa clave es ahora la que responde por ella",
   machineKeyMine:
-    "Esta es la clave con la que firma esta máquina. Léela en voz alta cuando otra la pida.",
+    "Esta es la clave que las demás tienen para esta máquina. Léela en voz alta cuando alguna la pida.",
   machineKeyNone: "No ha dicho con qué firma. Nada de lo que escribe se comprueba.",
   machineAstrayStood: "la que confirmaste {name}",
   machineAstrayNow: "la que usa ahora",
   machineAstrayWhat:
     "Nada de lo que esta máquina ha escrito desde entonces ha entrado aquí, y no entrará. Lo que ya estaba sigue donde estaba.",
   machineAstrayDo:
-    "Si le diste una clave nueva tú —la reinstalaste, cambiaste de disco—, remuévela de la lista y vuelve a añadirla desde ella: entra con su clave nueva y la confirmas otra vez. Si no has hecho nada de eso, pregunta en esa máquina antes de tocar la lista.",
+    "Si le diste una clave nueva tú —la reinstalaste, cambiaste de disco—, esa máquina tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga, así que respáldala allí primero. Removerla de esta lista no le da una clave nueva. Si no has hecho nada de eso, pregunta en esa máquina antes de tocar nada.",
+  machineAstrayMine:
+    "Esta es esta máquina, así que su propio historial es el que las demás están rechazando. La clave con la que firma no es la que respondió por ella: restaura el archivo de la clave si lo tienes, o deja que esta máquina entre de nuevo a la carpeta, lo que vacía antes lo que tenga.",
+  machineAstrayStoodEver: "la que se confirmó aquí",
+  machineKeyStandsEver: "confirmada",
+  machineKeyOurs: "la suya",
   machineAstrayOnly:
     "Una máquina cuya clave nadie confirmó nunca no llega a esto: la primera clave que publica se toma por buena. Esto solo aparece donde alguien dijo «esta es».",
   looseWhat:

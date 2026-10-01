@@ -88,7 +88,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             &session.state.dropped,
             &session.state.assistants,
             &session.state.keys,
-            session.paths.data(),
+            &session.paths,
         ),
         log_bytes: report::weighed(&session.paths.store()),
         docs_bytes: report::weighed(&session.paths.docs()),

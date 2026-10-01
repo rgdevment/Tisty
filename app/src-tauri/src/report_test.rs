@@ -13,7 +13,7 @@ fn listed(
         gone,
         assistants,
         &Default::default(),
-        nowhere.path(),
+        &tisty_core::Paths::new(nowhere.path().join("data"), nowhere.path().join("config")),
     )
 }
 
@@ -198,7 +198,7 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
         &Default::default(),
         &Default::default(),
         &keys,
-        &data,
+        &paths,
     );
     let one = before.iter().find(|one| one.id == "win1").unwrap();
     assert_eq!(one.signs.as_deref(), Some(said.as_str()));
@@ -212,7 +212,7 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
         &Default::default(),
         &Default::default(),
         &keys,
-        &data,
+        &paths,
     );
     let one = after.iter().find(|one| one.id == "win1").unwrap();
     assert_eq!(one.confirmed.as_deref(), Some(said.as_str()));
@@ -230,4 +230,36 @@ fn a_machine_that_published_nothing_shows_no_key_rather_than_an_empty_one() {
 
     assert_eq!(all[0].signs, None);
     assert_eq!(all[0].confirmed, None);
+}
+
+/// The log keeps the first key a machine published and never another, so for this machine the
+/// claim can be stale while the key on disk is the one it really signs with. Reading the claim
+/// here is how a row says "confirmed" in green while every other machine turns it away.
+#[test]
+fn this_machine_shows_the_key_it_really_signs_with_not_the_one_the_log_froze() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(room.path().join("data"), room.path().join("config"));
+    std::fs::create_dir_all(paths.data()).unwrap();
+    let who = tisty_core::DeviceId("mac0".into());
+    let ours = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &who).unwrap());
+    let stale = tisty_core::signing::shown(
+        &tisty_core::signing::mine(&paths, &tisty_core::DeviceId("win1".into())).unwrap(),
+    );
+    let told = [wrote("mac0", 0)];
+
+    let all = machines(
+        &told,
+        "mac0",
+        &Default::default(),
+        &Default::default(),
+        &[(who.clone(), stale.clone())].into(),
+        &paths,
+    );
+
+    assert_eq!(
+        all[0].signs.as_deref(),
+        Some(ours.as_str()),
+        "the row showed the key the log froze instead of the one on disk"
+    );
+    assert_ne!(all[0].signs.as_deref(), Some(stale.as_str()));
 }

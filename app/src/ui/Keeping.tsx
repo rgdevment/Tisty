@@ -81,7 +81,7 @@ import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
 import Keepers from "./Keepers";
-import { KeyAstray, KeyOf, MachineRow } from "./Keys";
+import { Asked, hushed, hushedName, MachineList } from "./Keys";
 import Modal from "./Modal";
 
 const carried = {
@@ -97,6 +97,7 @@ type Which =
   | "backup"
   | "restore"
   | "review"
+  | "machines"
   | "terminal"
   | "quick"
   | "waking"
@@ -459,13 +460,24 @@ export default function Keeping({
       .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
+  // A refusal says "look again", so the window is the one that looks: leaving the stale key and a
+  // live button on the row is how somebody clicks the same refusal forever.
   const confirmKey = (one: Machine) => {
     if (held || !one.signs) return;
+    const said = one.signs;
     setKeyOf(null);
-    run("review", confirmMachineKey(one.id, one.signs).then(checked), (now) => {
-      setAudit(now);
-      setSaid({ card: "review", text: t("machineKeyDone") });
-    });
+    run(
+      "machines",
+      confirmMachineKey(one.id, said)
+        .then(() => null)
+        .catch((e) => saidPlainly(e))
+        .then((amiss) => checked().then((now) => ({ amiss, now }))),
+      ({ amiss, now }) => {
+        setAudit(now);
+        if (amiss) setTrouble({ card: "machines", text: amiss });
+        else setSaid({ card: "machines", text: t("machineKeyDone") });
+      },
+    );
   };
 
   const dropMachine = (one: Machine) => {
@@ -478,12 +490,12 @@ export default function Keeping({
       .then(
         (sure) =>
           sure &&
-          run("review", removeMachine(one.id).then(checked), (now) => {
+          run("machines", removeMachine(one.id).then(checked), (now) => {
             setAudit(now);
-            setSaid({ card: "review", text: t("machineDropped") });
+            setSaid({ card: "machines", text: t("machineDropped") });
           }),
       )
-      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
+      .catch((e) => setTrouble({ card: "machines", text: saidPlainly(e) }));
   };
 
   const takeBackup = () => {
@@ -589,16 +601,16 @@ export default function Keeping({
           </div>
         </Modal>
       )}
-      {keyOf && (
-        <KeyOf one={keyOf} busy={held} onConfirm={confirmKey} onClose={() => setKeyOf(null)} />
-      )}
-      {astray && (
-        <KeyAstray
-          one={astray}
-          when={dated(astray.confirmedWhen)}
-          onClose={() => setAstray(null)}
-        />
-      )}
+      <Asked
+        keyOf={keyOf}
+        astray={astray}
+        busy={held}
+        onConfirm={confirmKey}
+        onClose={() => {
+          setKeyOf(null);
+          setAstray(null);
+        }}
+      />
       {picking && (
         <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
           <p className="mb-4 text-[12.5px] leading-relaxed text-soft">{t("keepersWhy")}</p>
@@ -1426,31 +1438,21 @@ export default function Keeping({
 
             <Group label={t("theMachines")} />
 
-            <Card title={t("theMachines")} which="review" busy={busy} said={said} trouble={trouble}>
+            <Card
+              title={t("theMachines")}
+              which="machines"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
               <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
-              {audit && (
-                <ul className="mt-2 flex flex-col gap-1 text-[12.5px]">
-                  {audit.machines.map((one) => (
-                    <MachineRow
-                      key={one.id}
-                      one={one}
-                      busy={held}
-                      quiet={hushed(one)}
-                      wrote={one.when === 0 ? t("machineNever") : dated(one.when)}
-                      stood={dated(one.confirmedWhen)}
-                      onKey={setKeyOf}
-                      onAstray={setAstray}
-                      onDrop={dropMachine}
-                    />
-                  ))}
-                </ul>
-              )}
-              {audit?.machines.some(hushed) && (
-                <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("machineHushed")}</p>
-              )}
-              {audit && audit.machines.length === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("machinesNone")}</p>
-              )}
+              <MachineList
+                all={audit?.machines ?? null}
+                busy={held}
+                onKey={setKeyOf}
+                onAstray={setAstray}
+                onDrop={dropMachine}
+              />
             </Card>
 
             <Card title={t("tagsRead")} which="tagging" busy={busy} said={said} trouble={trouble}>
@@ -1590,10 +1592,12 @@ export default function Keeping({
               )}
             </Card>
 
-            <Group label={fill("upkeepWaiting", hushedName(audit) ?? t("theMachines"))} />
+            <Group
+              label={fill("upkeepWaiting", hushedName(audit?.machines ?? []) ?? t("theMachines"))}
+            />
 
             <Card
-              title={fill("upkeepWaiting", hushedName(audit) ?? t("theMachines"))}
+              title={fill("upkeepWaiting", hushedName(audit?.machines ?? []) ?? t("theMachines"))}
               which="review"
               busy={busy}
               said={said}
@@ -1612,9 +1616,9 @@ export default function Keeping({
                         <span className="block font-mono text-[10.5px] text-faint">{one.file}</span>
                       </span>
                       <span className="flex shrink-0 items-baseline gap-2.5">
-                        {hushedName(audit) ? (
+                        {hushedName(audit?.machines ?? []) ? (
                           <span className="text-[11.5px] text-faint">
-                            {fill("upkeepForgetWaits", hushedName(audit) ?? "")}
+                            {fill("upkeepForgetWaits", hushedName(audit?.machines ?? []) ?? "")}
                           </span>
                         ) : (
                           <button
@@ -1777,14 +1781,7 @@ export default function Keeping({
   );
 }
 
-const HUSHED = 7 * 24 * 60 * 60;
 const QUIET_DAYS = 3;
-
-const hushedName = (audit: Reviewed | null): string | null =>
-  audit?.machines.find(hushed)?.called ?? null;
-
-const hushed = (one: Machine): boolean =>
-  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
 
 const dated = (when: number): string => {
   const at = new Date(when * 1000);
@@ -1936,6 +1933,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   backup: "backup",
   restore: "restoreTitle",
   review: "review",
+  machines: "theMachines",
   brittle: "brittleAre",
   terminal: "terminal",
   quick: "quick",

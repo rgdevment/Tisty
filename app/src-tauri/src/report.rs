@@ -111,6 +111,9 @@ pub struct Machine {
     pub signs: Option<String>,
     pub confirmed: Option<String>,
     pub confirmed_when: u64,
+    /// What the last round did with its history. Only the round knows this; the two keys above
+    /// can agree while the folder is being refused.
+    pub turned_away: Option<String>,
 }
 
 pub fn machines(
@@ -119,9 +122,14 @@ pub fn machines(
     gone: &std::collections::BTreeSet<tisty_core::DeviceId>,
     assistants: &std::collections::BTreeSet<tisty_core::DeviceId>,
     keys: &std::collections::BTreeMap<tisty_core::DeviceId, String>,
-    data: &Path,
+    paths: &tisty_core::Paths,
 ) -> Vec<Machine> {
+    let data = paths.data();
     let stood = tisty_core::vouched::all_confirmed(data);
+    let away = tisty_sync::turned::of(data);
+    // The log keeps the first key a machine published and never another, so for this machine the
+    // claim can be years stale while the key on disk is what it actually signs with.
+    let ours = tisty_core::signing::shown_kept(paths, &tisty_core::DeviceId(mine.to_string()));
     let mut last: std::collections::BTreeMap<&tisty_core::DeviceId, i64> = Default::default();
     for one in told {
         let when = one.timestamp.as_second();
@@ -138,9 +146,16 @@ pub fn machines(
             called: tisty_core::config::nicknamed(&who.0),
             when,
             mine: who.0 == mine,
-            signs: keys.get(who).cloned(),
+            signs: match who.0 == mine {
+                true => ours.clone().or_else(|| keys.get(who).cloned()),
+                false => keys.get(who).cloned(),
+            },
             confirmed: stood.get(who).map(|one| one.key.clone()),
             confirmed_when: stood.get(who).map_or(0, |one| one.when),
+            turned_away: away.get(&who.0).map(|one| match one {
+                tisty_sync::turned::Away::Disowned => "disowned".to_string(),
+                tisty_sync::turned::Away::Unreadable => "unreadable".to_string(),
+            }),
         })
         .collect();
     all.sort_by(|a, b| b.when.cmp(&a.when).then_with(|| a.id.cmp(&b.id)));
