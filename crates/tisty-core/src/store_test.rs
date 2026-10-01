@@ -1660,3 +1660,81 @@ fn a_torn_segment_does_not_hide_what_another_one_says_a_device_signs_with() {
         "a segment nobody can read hid what an earlier one plainly says"
     );
 }
+
+#[test]
+fn a_machine_answers_for_the_past_it_wrote_before_it_had_a_key() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let dir = paths.store().join(&who.0);
+    {
+        let mut before = Store::open(paths.store(), who.clone()).unwrap();
+        before.append(a_task("chase the invoice")).unwrap();
+        before.rotate().unwrap();
+        before.append(a_task("call the bank")).unwrap();
+        before.rotate().unwrap();
+        before.append(a_task("water the plants")).unwrap();
+    }
+    assert!(!dir.join("000001.sig").exists());
+    assert!(!dir.join("000002.sig").exists());
+
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let mut now = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    now.append(a_task("and the one after")).unwrap();
+    drop(now);
+
+    let by = key.verifying_key();
+    let mut tip = crate::signing::NOTHING_BEFORE;
+    for named in ["000001.tisty", "000002.tisty"] {
+        let said = std::fs::read_to_string(dir.join(named).with_extension("sig"))
+            .unwrap_or_else(|_| panic!("{named} answers for nothing"));
+        let held = crate::signing::holds(
+            &by,
+            &crate::signing::About {
+                device: "dev_a",
+                segment: named,
+            },
+            &said,
+        )
+        .covers()
+        .unwrap_or_else(|| panic!("{named} does not answer to the key it was signed with"));
+        let whole = std::fs::read(dir.join(named)).unwrap();
+        tip = crate::signing::tip_of(tip, &whole);
+        assert_eq!(held.at, whole.len() as u64, "{named} answers for a prefix");
+        assert_eq!(
+            held.tip, tip,
+            "{named} answers for a chain of its own making"
+        );
+    }
+}
+
+#[test]
+fn what_already_answers_for_itself_is_never_signed_again() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(room.path().join("data"), room.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let dir = paths.store().join(&who.0);
+    {
+        let mut before = Store::open(paths.store(), who.clone()).unwrap();
+        before.append(a_task("chase the invoice")).unwrap();
+        before.rotate().unwrap();
+        before.append(a_task("call the bank")).unwrap();
+    }
+    let stood = "what somebody else once put here";
+    std::fs::write(dir.join("000001.sig"), stood).unwrap();
+
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let mut now = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    now.append(a_task("and the one after")).unwrap();
+    drop(now);
+
+    assert_eq!(
+        std::fs::read_to_string(dir.join("000001.sig")).unwrap(),
+        stood,
+        "a signature that stood was written over"
+    );
+}

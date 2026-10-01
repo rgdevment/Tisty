@@ -165,6 +165,13 @@ impl Store {
                 return None;
             };
             tip = crate::signing::tip_of(tip, &said);
+            self.answers_for_what_it_closed(
+                one,
+                &crate::signing::Covers {
+                    tip,
+                    at: said.len() as u64,
+                },
+            );
         }
         Some(crate::signing::Covers { tip, at: now })
     }
@@ -176,8 +183,23 @@ impl Store {
         }
     }
 
+    fn answers_for_what_it_closed(&self, at: &Path, covers: &crate::signing::Covers) {
+        let named = at.file_name().and_then(|one| one.to_str());
+        if !named.is_some_and(is_closed) || at.with_extension(crate::signing::SIG).exists() {
+            return;
+        }
+        self.seal(at, covers);
+    }
+
     fn sign(&self, at: &Path) {
-        let (Some(key), Some(covers)) = (&self.signs, &self.covers) else {
+        let Some(covers) = self.covers else {
+            return;
+        };
+        self.seal(at, &covers);
+    }
+
+    fn seal(&self, at: &Path, covers: &crate::signing::Covers) {
+        let Some(key) = &self.signs else {
             return;
         };
         let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
