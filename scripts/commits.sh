@@ -17,6 +17,12 @@ amiss() {
   status=1
 }
 
+listed=$(git rev-list --no-merges "$range" 2>&1) || {
+  printf '%s\n' "$listed"
+  amiss "the commits between $range could not be listed, so no subject was looked at"
+  exit 1
+}
+
 seen=0
 while read -r sha; do
   [ -n "$sha" ] || continue
@@ -31,7 +37,7 @@ while read -r sha; do
     amiss "${sha:0:8} subject is ${#said} characters, keep it under $most"
     printf '  %s\n' "$said"
   fi
-done < <(git rev-list --no-merges "$range")
+done <<< "$listed"
 
 if [ "$status" -eq 1 ]; then
   echo ""

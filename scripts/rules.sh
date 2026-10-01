@@ -16,10 +16,19 @@ went_well() {
   [ -n "${GITHUB_ACTIONS:-}" ] || printf 'ok %s\n' "$1"
 }
 
+looked_through() {
+  case $2 in
+    0) amiss "$1"; return 1 ;;
+    1) return 0 ;;
+    *) amiss "$3"; return 1 ;;
+  esac
+}
+
 no_prose_blocks() {
   local found
   found=$(find crates/*/src app/src-tauri/src -name '*.rs' -print0 \
     | xargs -0 awk '
+        FNR == 1 { run = 0 }
         /^[[:space:]]*\/\/\// { run = 0; next }
         /^[[:space:]]*\/\// && !/\/\/!|TODO|FIXME|SAFETY|noqa|https?:\/\// { run++; if (run == 4) print FILENAME ":" FNR; next }
         { run = 0 }')
@@ -46,6 +55,12 @@ nothing_past_what_a_person_holds() {
       printf '%s %s\n' "$(wc -l < "$one" | tr -d ' ')" "$one"
     done > "$measured"
 
+  if [ ! -s "$measured" ]; then
+    rm -f "$measured"
+    amiss "no source file was found to measure, so the ceiling was never looked at"
+    return
+  fi
+
   before=$status
   while read -r now at; do
     was=$(tr -d '\015' < .github/oversized.txt | awk -v at="$at" '$2 == at { print $1 }')
@@ -71,30 +86,32 @@ nothing_past_what_a_person_holds() {
 }
 
 read_by_a_person() {
-  [ -f .github/not-this-spanish.txt ] || return 0
   local where=(
     app/src/locales.ts
     crates/tisty-cli/locales
     README.es.md
     app/src-tauri/resources/guide/es/guia.md
   )
+  if [ ! -f .github/not-this-spanish.txt ]; then
+    amiss "the words the Spanish may not use are not here, so nobody looked for them"
+    return
+  fi
   grep -rniEf .github/not-this-spanish.txt "${where[@]}"
-  case $? in
-    0) amiss "the Spanish a person reads is neutral and not peninsular" ;;
-    1) went_well "the Spanish a person reads" ;;
-    *) amiss "the Spanish a person reads could not be looked through where it is written" ;;
-  esac
+  looked_through \
+    "the Spanish a person reads is neutral and not peninsular" $? \
+    "the Spanish a person reads could not be looked through where it is written" \
+    && went_well "the Spanish a person reads"
 }
 
 nothing_the_core_prints() {
-  if grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'; then
-    amiss "tisty-core must not print: the GUI inherits it as garbage"
-  else
-    went_well "the core produces no terminal output"
-  fi
+  grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'
+  looked_through \
+    "tisty-core must not print: the GUI inherits it as garbage" $? \
+    "tisty-core could not be looked through for what it prints" \
+    && went_well "the core produces no terminal output"
 }
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
 read_by_a_person
