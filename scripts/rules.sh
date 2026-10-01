@@ -42,6 +42,7 @@ no_prose_blocks() {
 
 nothing_past_what_a_person_holds() {
   local measured skip test_modules now at was before
+  declare -A ceiling
   measured=$(mktemp)
   skip='node_modules|/tests/|\.test\.|locales\.ts|glyphs\.ts|marks\.ts|model/mark\.rs'
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src app/src-tauri/src --include='*.rs' \
@@ -51,9 +52,8 @@ nothing_past_what_a_person_holds() {
   fi
   find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
     | grep -vE "$skip" \
-    | sort | while read -r one; do
-      printf '%s %s\n' "$(wc -l < "$one" | tr -d ' ')" "$one"
-    done > "$measured"
+    | sort | tr '\n' '\0' | xargs -0 wc -l \
+    | awk '$2 != "total" { print $1, $2 }' > "$measured"
 
   if [ ! -s "$measured" ]; then
     rm -f "$measured"
@@ -61,9 +61,13 @@ nothing_past_what_a_person_holds() {
     return
   fi
 
+  while read -r now at; do
+    [ -n "${at:-}" ] && ceiling["$at"]=$now
+  done < <(tr -d '\015' < .github/oversized.txt)
+
   before=$status
   while read -r now at; do
-    was=$(tr -d '\015' < .github/oversized.txt | awk -v at="$at" '$2 == at { print $1 }')
+    was=${ceiling["$at"]:-}
     if [ -z "$was" ]; then
       if [ "$now" -gt 1500 ]; then
         amiss "$at is $now lines of code; 1500 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
@@ -103,17 +107,96 @@ read_by_a_person() {
     && went_well "the Spanish a person reads"
 }
 
+written_in_english() {
+  grep -rnE '\b(fn|let|const|struct|enum|type|mod|function|interface) +[A-Za-z_]*(^|_)(que|de|la|el|los|las|una|con|por|para|sin|cuando|donde|hasta|desde|tarea|fecha|titulo|nombre|usuario|archivo|carpeta)(_|\b)' \
+    crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx'
+  looked_through \
+    "an identifier is in Spanish; what a person reads lives in locales/" $? \
+    "the source could not be looked through for Spanish identifiers" \
+    || return
+  grep -rnE '^\s*//.*\b(que|porque|pero|aunque|cuando|donde|seg[uú]n|tambi[eé]n|aqu[ií]|ah[ií]|entonces)\b' \
+    crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx'
+  looked_through \
+    "a comment is in Spanish; code, comments and test names are English" $? \
+    "the source could not be looked through for Spanish comments" \
+    || return
+  grep -rnE '(bail|anyhow|panic|expect|format)!?\(\s*"[^"]*\b(que|porque|pero|cuando|seg[uú]n|tambi[eé]n)\b' \
+    crates/*/src app/src-tauri/src --include='*.rs' | grep -vE 'locales|_test'
+  looked_through \
+    "an error message is in Spanish; what a person reads lives in locales/" $? \
+    "the source could not be looked through for Spanish error messages" \
+    && went_well "code, comments and error messages in English"
+}
+
+nothing_the_window_cannot_translate() {
+  grep -rnE 'println!\("[a-záéíóúñ]|bail!\("[a-záéíóúñ]' \
+    crates/tisty-cli/src --include='*.rs'
+  looked_through \
+    "interface text belongs in locales/, not in the source" $? \
+    "the command line could not be looked through for interface text" \
+    && went_well "no interface strings hardcoded"
+}
+
+nothing_that_takes_the_window_down() {
+  local test_modules looked found
+  test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src --include='*.rs' \
+    | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
+  looked=$(find crates/tisty-core/src crates/tisty-sync/src -name '*.rs' \
+    | grep -vE "_tests?\.rs$|${test_modules:-^$}")
+  if [ -z "$looked" ]; then
+    amiss "the core and the round could not be looked through for what panics"
+    return
+  fi
+  found=$(printf '%s\n' "$looked" | tr '\n' '\0' \
+    | xargs -0 grep -nE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(')
+  if [ -n "$found" ]; then
+    printf '%s\n' "$found"
+    amiss "the core and the round answer, they never stop: a panic reaches the window as a closed window"
+  else
+    went_well "nothing in the core or the round panics"
+  fi
+}
+
 nothing_the_core_prints() {
-  grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'
+  grep -rn 'println!\|eprintln!\|print!\|dbg!\|io::stdin\|io::stdout\|io::stderr' \
+    crates/tisty-core/src --include='*.rs'
   looked_through \
     "tisty-core must not print: the GUI inherits it as garbage" $? \
     "tisty-core could not be looked through for what it prints" \
     && went_well "the core produces no terminal output"
 }
 
+nothing_new_reaches_the_command_line() {
+  local kept now added
+  kept=.github/frozen-cli.txt
+  if [ ! -f "$kept" ]; then
+    amiss "what the command line already carries is not written down, so nobody saw it grow"
+    return
+  fi
+  now=$( { awk '/^pub enum Command/,/^}/' crates/tisty-cli/src/main.rs \
+            | awk '/^    [A-Z]/ { kept = ($0 ~ /^    (Demo|Sync|Doctor|Export|Mcp|Leave|Agent)\b/) } !kept'
+          awk '/^pub struct (AddArgs|SetArgs)/,/^}/' crates/tisty-cli/src/main.rs; } \
+          | grep -oE '^    [A-Z][A-Za-z]*|^ +(pub )?[a-z_]+:' | sed 's/pub //; s/[ :]//g' | sort -u)
+  if [ -z "$now" ]; then
+    amiss "the command line could not be read, so nobody saw whether it grew"
+    return
+  fi
+  added=$(comm -13 <(sort "$kept") <(printf '%s\n' "$now"))
+  if [ -n "$added" ]; then
+    printf '%s\n' "$added"
+    amiss "the command line is frozen: a feature is done when the core and the window have it"
+  else
+    went_well "nothing new reached the command line"
+  fi
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
 read_by_a_person
+written_in_english
+nothing_the_window_cannot_translate
 nothing_the_core_prints
+nothing_that_takes_the_window_down
+nothing_new_reaches_the_command_line
 exit $status
