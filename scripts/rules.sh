@@ -157,7 +157,7 @@ nothing_that_takes_the_window_down() {
     return
   fi
   mapfile -t files <<< "$looked"
-  found=$(grep -nE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(' "${files[@]}")
+  found=$(grep -nHE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(' "${files[@]}")
   case $? in
     0)
       printf '%s\n' "$found"
