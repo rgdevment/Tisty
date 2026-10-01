@@ -168,11 +168,12 @@ fn what_a_machine_signed_it_can_answer_for_and_nobody_else_can() {
 
     assert_eq!(
         holds(&ours.verifying_key(), &one, &said),
-        Some(reach),
+        Holds::Covers(reach),
         "it could not answer for its own signature"
     );
-    assert!(
-        holds(&other.verifying_key(), &one, &said).is_none(),
+    assert_eq!(
+        holds(&other.verifying_key(), &one, &said),
+        Holds::Refused,
         "another machine's key answered for it"
     );
 }
@@ -189,15 +190,21 @@ fn a_signature_only_answers_for_the_segment_and_the_machine_it_was_made_for() {
 
     let said = signed(&key, &about("dev_a", "000004.tisty"), &reach);
 
-    assert!(
-        holds(&by, &about("dev_a", "000005.tisty"), &said).is_none(),
+    assert_eq!(
+        holds(&by, &about("dev_a", "000005.tisty"), &said),
+        Holds::Refused,
         "a signature was moved onto another segment and still answered"
     );
-    assert!(
-        holds(&by, &about("dev_b", "000004.tisty"), &said).is_none(),
+    assert_eq!(
+        holds(&by, &about("dev_b", "000004.tisty"), &said),
+        Holds::Refused,
         "a signature was moved onto another machine and still answered"
     );
-    assert!(holds(&by, &about("dev_a", "000004.tisty"), &said).is_some());
+    assert!(
+        holds(&by, &about("dev_a", "000004.tisty"), &said)
+            .covers()
+            .is_some()
+    );
 }
 
 #[test]
@@ -217,13 +224,17 @@ fn a_signature_over_something_else_is_turned_away() {
         &hexed(&tip_of(NOTHING_BEFORE, b"what it did not\n")),
     );
 
-    assert!(
-        holds(&by, &one, &swapped).is_none(),
+    assert_eq!(
+        holds(&by, &one, &swapped),
+        Holds::Refused,
         "a tip was swapped under a signature and it still answered"
     );
-    assert!(holds(&by, &one, "").is_none());
-    assert!(holds(&by, &one, "{}").is_none());
-    assert!(holds(&by, &one, r#"{"tip":"ab","sig":"cd"}"#).is_none());
+    assert_eq!(holds(&by, &one, ""), Holds::Unreadable);
+    assert_eq!(holds(&by, &one, "{}"), Holds::Unreadable);
+    assert_eq!(
+        holds(&by, &one, r#"{"tip":"ab","sig":"cd"}"#),
+        Holds::Unreadable
+    );
 }
 
 #[test]

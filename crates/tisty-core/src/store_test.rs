@@ -1327,6 +1327,7 @@ fn what_a_machine_writes_it_signs_and_the_signature_answers_for_what_is_there() 
 
     let said = std::fs::read_to_string(dir.join("active.sig")).expect("it signed nothing");
     let tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
+        .covers()
         .expect("the signature does not answer");
     let whole = std::fs::read(dir.join(ACTIVE)).unwrap();
     assert_eq!(
@@ -1347,7 +1348,9 @@ fn a_line_changed_after_the_fact_no_longer_answers_to_the_signature() {
     let (mut store, key, dir) = a_machine_that_signs(tmp.path());
     store.append(a_task("chase the invoice")).unwrap();
     let said = std::fs::read_to_string(dir.join("active.sig")).unwrap();
-    let signed_tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said).unwrap();
+    let signed_tip = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
+        .covers()
+        .unwrap();
 
     let whole = std::fs::read_to_string(dir.join(ACTIVE)).unwrap();
     std::fs::write(dir.join(ACTIVE), whole.replace("chase", "cease")).unwrap();
@@ -1523,6 +1526,7 @@ fn a_machine_resumes_from_its_own_signature_without_reading_the_history_behind_i
         },
         &std::fs::read_to_string(dir.join("000001.sig")).unwrap(),
     )
+    .covers()
     .unwrap()
     .tip;
     std::fs::remove_file(dir.join("000001.sig")).unwrap();
@@ -1537,6 +1541,7 @@ fn a_machine_resumes_from_its_own_signature_without_reading_the_history_behind_i
     let said = std::fs::read_to_string(dir.join("active.sig"))
         .expect("it read the whole history again and gave up signing");
     let held = crate::signing::holds(&key.verifying_key(), &over_active(), &said)
+        .covers()
         .expect("the signature does not answer");
     let whole = std::fs::read(dir.join(ACTIVE)).unwrap();
     assert_eq!(held.at, whole.len() as u64);

@@ -875,6 +875,7 @@ pub fn run() {
             answers::storing::joining,
             answers::storing::folder_astir,
             answers::storing::remove_machine,
+            answers::storing::confirm_machine_key,
             answers::storing::retire_attachment,
             answers::papers::settle_paper,
             answers::storing::paper_rifts,

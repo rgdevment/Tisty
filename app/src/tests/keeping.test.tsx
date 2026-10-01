@@ -796,6 +796,224 @@ describe("the maintenance panel", () => {
     expect(said.textContent).not.toMatch(/remove/i);
   });
 
+  const ONE = "5c2a9d37e104b6ca88f3d2504e8b71f0a3f19c2d7b40e81a6239ce4f0dab5712";
+  const OTHER = "b7102fae93c4d0167a51e8c2403f9bd68e2174ac55d930bf1c6e480729ab35df";
+
+  const theseMachines = (all: Record<string, unknown>[]) => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? otherwise(cmd, args).then((was) => ({
+            ...(was as Record<string, unknown>),
+            machines: all,
+          }))
+        : otherwise(cmd, args);
+  };
+
+  const reviewed = async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await data();
+    await go(/maintenance/i);
+    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+  };
+
+  const aMachine = (more: Record<string, unknown>) => ({
+    id: "win1-0002",
+    called: "salvia 07",
+    when: Math.floor(Date.now() / 1000),
+    mine: false,
+    signs: null,
+    confirmed: null,
+    confirmedWhen: 0,
+    turnedAway: null,
+    ...more,
+  });
+
+  it("offers to confirm a key nobody has answered for yet", async () => {
+    theseMachines([aMachine({ signs: ONE })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText(/unconfirmed/i)).toBeTruthy();
+    expect(screen.getByText(/5c2a9d37/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^confirm$/i })).toBeTruthy();
+  });
+
+  it("sends the key it showed, so one that moved meanwhile is never confirmed blind", async () => {
+    theseMachines([aMachine({ signs: ONE })]);
+    await reviewed();
+    await screen.findByText(/win1-0002/);
+
+    await userEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+    const whole = await screen.findByText(/5c2a9d37\s+e104b6ca/);
+    expect(whole).toBeTruthy();
+    const dialog = within(screen.getByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: /^confirm$/i }));
+
+    await waitFor(() => {
+      const said = ipc.calls.find((one) => one.cmd === "confirm_machine_key");
+      expect(said?.args).toEqual({ id: "win1-0002", key: ONE });
+    });
+  });
+
+  it("never offers to confirm again what somebody already answered for", async () => {
+    theseMachines([aMachine({ signs: ONE, confirmed: ONE, confirmedWhen: 1_754_000_000 })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /see the key/i })).toBeTruthy();
+  });
+
+  it("says a machine signs with another key than the one confirmed, and offers no way to accept it", async () => {
+    theseMachines([aMachine({ signs: OTHER, confirmed: ONE, confirmedWhen: 1_754_000_000 })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText(/not the confirmed one/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: /what happened/i }));
+    expect(await screen.findByText(/has come in here, and it will not/i)).toBeTruthy();
+    expect(screen.getByText(/b7102fae/)).toBeTruthy();
+  });
+
+  it("reads this machine's own key out without ever asking it to be confirmed", async () => {
+    theseMachines([aMachine({ mine: true, signs: ONE })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText("its own")).toBeTruthy();
+    expect(screen.queryByText(/unconfirmed/i)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /see the key/i }));
+
+    expect(await screen.findByText(/read it out when one of them asks/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
+  });
+
+  it("never claims somebody confirmed this machine's own key", async () => {
+    theseMachines([aMachine({ mine: true, signs: ONE, confirmed: ONE, confirmedWhen: 1_754_000 })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.queryByText(/^confirmed /i)).toBeNull();
+    expect(screen.getByText("its own")).toBeTruthy();
+  });
+
+  it("says a key somebody answered for stands, even where it was never published here", async () => {
+    theseMachines([aMachine({ signs: null, confirmed: ONE, confirmedWhen: 1_754_000_000 })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.queryByText(/has not said what it signs with/i)).toBeNull();
+    expect(screen.getByText(/5c2a9d37/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /see the key/i })).toBeTruthy();
+  });
+
+  it("never dates a confirmation it has no day for", async () => {
+    theseMachines([aMachine({ signs: ONE, confirmed: ONE, confirmedWhen: 0 })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.queryByText(/1970|Jan 1/)).toBeNull();
+    expect(screen.getByText(/^confirmed$/i)).toBeTruthy();
+  });
+
+  it("tells its own machine the history being turned away is its own", async () => {
+    theseMachines([
+      aMachine({ mine: true, signs: OTHER, confirmed: ONE, confirmedWhen: 1_754_000_000 }),
+    ]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    await userEvent.click(screen.getByRole("button", { name: /what happened/i }));
+
+    expect(
+      await screen.findByText(/its own history is the one the others are turning away/i),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(/has to join the folder afresh, which gives it a new name/i),
+    ).toBeNull();
+  });
+
+  it("shows both keys whole when they differ, never two briefs that read alike", async () => {
+    const twinA = `5c2a9d37${"a".repeat(48)}0dab5712`;
+    const twinB = `5c2a9d37${"b".repeat(48)}0dab5712`;
+    theseMachines([aMachine({ signs: twinB, confirmed: twinA, confirmedWhen: 1_754_000_000 })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    await userEvent.click(screen.getByRole("button", { name: /what happened/i }));
+
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(dialog.getByText(/5c2a9d37 aaaaaaaa aaaaaaaa aaaaaaaa/)).toBeTruthy();
+    expect(dialog.getByText(/5c2a9d37 bbbbbbbb bbbbbbbb bbbbbbbb/)).toBeTruthy();
+  });
+
+  it("says a machine was turned away when the round says so, whatever the two keys agree on", async () => {
+    theseMachines([
+      aMachine({
+        signs: ONE,
+        confirmed: ONE,
+        confirmedWhen: 1_754_000_000,
+        turnedAway: "disowned",
+      }),
+    ]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText(/not the confirmed one/i)).toBeTruthy();
+    expect(screen.queryByText(/^confirmed /i)).toBeNull();
+    expect(screen.getByRole("button", { name: /what happened/i })).toBeTruthy();
+  });
+
+  it("stops warning once the round takes that history in again", async () => {
+    theseMachines([
+      aMachine({ signs: ONE, confirmed: ONE, confirmedWhen: 1_754_000_000, turnedAway: null }),
+    ]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.queryByText(/not the confirmed one/i)).toBeNull();
+    expect(screen.getByText(/^confirmed /i)).toBeTruthy();
+  });
+
+  it("looks again when a confirm is refused, so the stale key never stays on the row", async () => {
+    theseMachines([aMachine({ signs: ONE })]);
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "confirm_machine_key" ? Promise.reject({ code: "keyMoved" }) : otherwise(cmd, args);
+    await reviewed();
+    await screen.findByText(/win1-0002/);
+
+    await userEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+    const dialog = within(screen.getByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: /^confirm$/i }));
+
+    expect(await screen.findByText(/publishes another key now/i)).toBeTruthy();
+    await waitFor(() => {
+      expect(ipc.calls.filter((one) => one.cmd === "checked").length).toBeGreaterThan(1);
+    });
+  });
+
+  it("says nothing about a key for a machine that never published one", async () => {
+    theseMachines([aMachine({})]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText(/has not said what it signs with/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /see the key/i })).toBeNull();
+  });
+
   it("keeps quiet about machines when every one of them is up to date", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>

@@ -73,6 +73,8 @@ const KNOWN = [
   "stillCarrying",
   "sandboxCannotJoin",
   "notThisMachine",
+  "keyMoved",
+  "keyNotConfirmed",
   "stillReferenced",
   "internal",
   "internalNamed",

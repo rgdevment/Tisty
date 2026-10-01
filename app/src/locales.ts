@@ -197,6 +197,8 @@ const en = {
   allEmpty: "Nothing open. What you close lives in the archive.",
   sandboxCannotJoin: "A sandbox never joins another store: it is a test one.",
   notThisMachine: "A machine cannot remove itself.",
+  keyMoved: "That machine publishes another key now. Look again.",
+  keyNotConfirmed: "That key could not be kept.",
   stillReferenced: "Something references that attachment now. Look again.",
   inSandbox:
     "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
@@ -882,7 +884,7 @@ const en = {
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
-    "One machine's history in the shared folder carries a signature that does not answer to the key that machine published, so none of what it holds was taken in. Either something changed those files after they were written, or somebody else wrote them under that name.",
+    "One machine's history in the shared folder carries a signature that does not answer to the key kept for that machine, so none of what it holds was taken in. Either something changed those files after they were written, or that machine now signs with a key other than the one confirmed here.",
   noBase: "There is nothing to compare against yet, so this one is decided whole",
   cannotWeave: "That document changed while you were deciding — look again",
   movedUnderfoot: "That document changed while you were deciding — look again",
@@ -1241,6 +1243,37 @@ const en = {
   machinesNone: "No machine has written yet",
   machineHushed:
     "Some machines have not written here in a while. They may still be using what looks loose below.",
+  machineSigns: "signs with",
+  machineKeyLoose: "unconfirmed",
+  machineKeyStands: "confirmed {name}",
+  machineKeyAstray: "signs with a key that is not the confirmed one",
+  machineKeyConfirm: "Confirm",
+  machineKeySee: "See the key",
+  machineKeyAsk: "What happened",
+  machineKeyTitle: "Confirm the key of {name}?",
+  machineKeyRead:
+    "Open this same card on {name} and read its key there. If it is the one below, character by character, confirm it.",
+  machineKeyThen:
+    "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
+  machineKeyForGood:
+    "This is not changed later. A machine that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
+  machineKeyDone: "That key is now the one it answers for",
+  machineKeyMine:
+    "This is the key the others have for this machine. Read it out when one of them asks.",
+  machineKeyNone: "It has not said what it signs with. Nothing it writes is checked.",
+  machineAstrayStood: "the one you confirmed {name}",
+  machineAstrayNow: "the one it signs with now",
+  machineAstrayWhat:
+    "Nothing this machine has written since then has come in here, and it will not. What was already here stays where it was.",
+  machineAstrayDo:
+    "If you gave it a new key yourself — you reinstalled it, you changed disks — that machine has to join the folder afresh, which gives it a new name here and empties what it holds first, so back it up there before you do. Removing it from this list does not give it a new key. If you have done none of that, ask at that machine before touching anything.",
+  machineAstrayMine:
+    "This is this machine, so its own history is the one the others are turning away. The key it signs with is not the one it answered for — restore the key file if you still have it, or let this machine join the folder afresh, which empties what it holds first.",
+  machineAstrayStoodEver: "the one answered for here",
+  machineKeyStandsEver: "confirmed",
+  machineKeyOurs: "its own",
+  machineAstrayOnly:
+    "A machine whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
   looseWhat:
     "No task and no document on this machine references these. Documents do not travel between machines yet, so another one may still reference them. Emptying is by hand, from the folder.",
   looseWait:
@@ -1567,6 +1600,8 @@ const es: Catalog = {
   allEmpty: "No hay nada abierto. Lo que cierras vive en el archivo.",
   sandboxCannotJoin: "Un sandbox no se une nunca a otro almacén: es de prueba.",
   notThisMachine: "Una máquina no puede removerse a sí misma.",
+  keyMoved: "Esa máquina publica otra clave ahora. Míralo de nuevo.",
+  keyNotConfirmed: "Esa clave no se pudo guardar.",
   stillReferenced: "Algo referencia ese adjunto ahora. Vuelve a mirar.",
   inSandbox:
     "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
@@ -2256,7 +2291,7 @@ const es: Catalog = {
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
-    "El historial de una máquina en la carpeta compartida trae una firma que no responde a la clave que esa máquina publicó, así que no se tomó nada de lo que tiene. O algo cambió esos archivos después de escribirlos, o los escribió alguien más con ese nombre.",
+    "El historial de una máquina en la carpeta compartida trae una firma que no responde a la clave guardada para esa máquina, así que no se tomó nada de lo que tiene. O algo cambió esos archivos después de escribirlos, o esa máquina firma ahora con otra clave que la confirmada aquí.",
   noBase: "Todavía no hay con qué comparar, así que este se decide entero",
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
   movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",
@@ -2615,6 +2650,37 @@ const es: Catalog = {
   machinesNone: "Ninguna máquina ha escrito todavía",
   machineHushed:
     "Hay equipos que llevan tiempo sin escribir aquí. Puede que sigan usando lo que abajo parece suelto.",
+  machineSigns: "firma con",
+  machineKeyLoose: "sin confirmar",
+  machineKeyStands: "confirmada {name}",
+  machineKeyAstray: "firma con una clave que no es la confirmada",
+  machineKeyConfirm: "Confirmar",
+  machineKeySee: "Ver la clave",
+  machineKeyAsk: "Qué pasó",
+  machineKeyTitle: "¿Confirmar la clave de {name}?",
+  machineKeyRead:
+    "Abre esta misma tarjeta en {name} y lee ahí su clave. Si es la de abajo, carácter por carácter, confírmala.",
+  machineKeyThen:
+    "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
+  machineKeyForGood:
+    "Esto no se cambia después. Una máquina que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
+  machineKeyDone: "Esa clave es ahora la que responde por ella",
+  machineKeyMine:
+    "Esta es la clave que las demás tienen para esta máquina. Léela en voz alta cuando alguna la pida.",
+  machineKeyNone: "No ha dicho con qué firma. Nada de lo que escribe se comprueba.",
+  machineAstrayStood: "la que confirmaste {name}",
+  machineAstrayNow: "la que usa ahora",
+  machineAstrayWhat:
+    "Nada de lo que esta máquina ha escrito desde entonces ha entrado aquí, y no entrará. Lo que ya estaba sigue donde estaba.",
+  machineAstrayDo:
+    "Si le diste una clave nueva tú —la reinstalaste, cambiaste de disco—, esa máquina tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga, así que respáldala allí primero. Removerla de esta lista no le da una clave nueva. Si no has hecho nada de eso, pregunta en esa máquina antes de tocar nada.",
+  machineAstrayMine:
+    "Esta es esta máquina, así que su propio historial es el que las demás están rechazando. La clave con la que firma no es la que respondió por ella: restaura el archivo de la clave si lo tienes, o deja que esta máquina entre de nuevo a la carpeta, lo que vacía antes lo que tenga.",
+  machineAstrayStoodEver: "la que se confirmó aquí",
+  machineKeyStandsEver: "confirmada",
+  machineKeyOurs: "la suya",
+  machineAstrayOnly:
+    "Una máquina cuya clave nadie confirmó nunca no llega a esto: la primera clave que publica se toma por buena. Esto solo aparece donde alguien dijo «esta es».",
   looseWhat:
     "Ninguna tarea ni documento de esta máquina los referencia. Los documentos todavía no viajan entre máquinas, así que otra podría seguir referenciándolos. Vaciar es a mano, desde la carpeta.",
   looseWait:

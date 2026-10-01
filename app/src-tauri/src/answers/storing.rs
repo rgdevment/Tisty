@@ -770,6 +770,31 @@ pub fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> 
     Ok(())
 }
 
+/// The key travels back from the window so a claim that changed between the reading and the
+/// answering is refused instead of confirmed.
+#[tauri::command]
+pub fn confirm_machine_key(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    key: String,
+) -> Answer<()> {
+    let session = held(&session);
+    let who = tisty_core::event::DeviceId(id.clone());
+    if session.state.keys.get(&who) != Some(&key) {
+        return Err(Refusal::of("keyMoved"));
+    }
+    if !tisty_core::vouched::confirm(session.paths.data(), &who, &key) {
+        return Err(Refusal::of("keyNotConfirmed"));
+    }
+
+    witness::note(
+        channel::SYNC,
+        "somebody answered for the key a machine signs with",
+        &[("at", Fact::Id(id))],
+    );
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn join_them(
     session: tauri::State<'_, Mutex<Session>>,

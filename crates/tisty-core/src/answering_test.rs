@@ -212,3 +212,116 @@ fn a_segment_no_longer_the_copy_we_hold_is_read_again() {
         "a closed segment already numbered was passed over without asking whether it is still ours"
     );
 }
+
+/// The memo's tip already holds every segment up to its number. Reading one of those again and
+/// folding it onto that tip would count it twice, and the verdict for a history nobody touched
+/// would be the permanent one.
+#[test]
+fn a_segment_nobody_touched_is_not_disowned_for_being_read_again() {
+    let held = a_machine_that_wrote(2);
+    let mut store = held.signs();
+    store.rotate().unwrap();
+    store.append(a_line(9)).unwrap();
+    drop(store);
+    held.ours_too("000001.tisty");
+    held.ours_too("active.tisty");
+    let answered = held.asked(Reached::default()).unwrap();
+    assert_eq!(answered.segment, 1);
+
+    held.ours.borrow_mut().clear();
+
+    let again = held
+        .asked(answered)
+        .expect("a history nobody touched was called somebody's hand");
+    assert_eq!(again.segment, 1);
+    assert_eq!(again.tip, answered.tip);
+    assert!(again.signing);
+}
+
+#[test]
+fn a_signature_that_does_not_verify_is_a_hand_and_never_heals() {
+    let held = a_machine_that_wrote(2);
+    let other = DeviceId("dev_b".into());
+    let theirs = signing::mine(&held.paths, &other).unwrap();
+    let said = signing::signed(
+        &theirs,
+        &signing::About {
+            device: &held.who.0,
+            segment: "active.tisty",
+        },
+        &signing::Covers {
+            tip: signing::tip_of(
+                signing::NOTHING_BEFORE,
+                &std::fs::read(held.dir.join("active.tisty")).unwrap(),
+            ),
+            at: std::fs::metadata(held.dir.join("active.tisty"))
+                .unwrap()
+                .len(),
+        },
+    );
+    std::fs::write(held.dir.join("active.sig"), said.as_bytes()).unwrap();
+
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_signature_that_will_not_parse_can_heal() {
+    let held = a_machine_that_wrote(2);
+    let answered = held.asked(Reached::default()).unwrap();
+    assert!(answered.signing);
+
+    std::fs::write(held.dir.join("active.sig"), b"{\"tip\":\"ab").unwrap();
+
+    assert_eq!(
+        held.asked(answered),
+        Err(Adrift::Unreadable("active.tisty".into()))
+    );
+}
+
+/// A sidecar cut off mid-character, or zero-padded by the folder it travelled through, is a
+/// signature that will not read — not one somebody took away.
+#[test]
+fn a_sidecar_whose_bytes_are_not_text_can_heal() {
+    let held = a_machine_that_wrote(2);
+    let answered = held.asked(Reached::default()).unwrap();
+
+    std::fs::write(held.dir.join("active.sig"), [0xff, 0xfe, 0x41]).unwrap();
+
+    assert_eq!(
+        held.asked(answered),
+        Err(Adrift::Unreadable("active.tisty".into()))
+    );
+}
+
+#[test]
+fn every_signature_taken_away_is_not_a_history_from_before_signing() {
+    let held = a_machine_that_wrote(2);
+    let answered = held.asked(Reached::default()).unwrap();
+    assert!(answered.signing);
+
+    for one in std::fs::read_dir(&held.dir)
+        .unwrap()
+        .filter_map(|one| one.ok())
+    {
+        if one
+            .path()
+            .extension()
+            .is_some_and(|one| one == signing::SIG)
+        {
+            std::fs::remove_file(one.path()).unwrap();
+        }
+    }
+
+    assert_eq!(
+        held.asked(answered),
+        Err(Adrift::Disowned(held.who.0.clone())),
+        "every signature was stripped and the history came in anyway"
+    );
+    assert!(
+        held.asked(Reached::default()).is_ok(),
+        "a history that never signed is not a signature taken away"
+    );
+}

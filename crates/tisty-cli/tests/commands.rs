@@ -2675,6 +2675,7 @@ fn what_a_machine_writes_from_the_command_line_it_signs() {
         },
         &said,
     )
+    .covers()
     .expect("what it wrote does not answer to the key it keeps");
 
     assert_eq!(held.at, whole.len() as u64);
