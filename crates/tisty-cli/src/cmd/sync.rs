@@ -128,6 +128,9 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     let shown = tisty_core::signing::mine(&app.paths, &who)
         .as_ref()
         .map(tisty_core::signing::shown);
+    if let Some(shown) = &shown {
+        tisty_core::vouched::confirm(app.paths.data(), &who, shown);
+    }
     if tisty_core::store::ledger(app.paths.store())?
         .allowed
         .contains(&who)

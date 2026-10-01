@@ -108,6 +108,9 @@ pub struct Machine {
     pub called: String,
     pub when: i64,
     pub mine: bool,
+    pub signs: Option<String>,
+    pub confirmed: Option<String>,
+    pub confirmed_when: u64,
 }
 
 pub fn machines(
@@ -115,7 +118,10 @@ pub fn machines(
     mine: &str,
     gone: &std::collections::BTreeSet<tisty_core::DeviceId>,
     assistants: &std::collections::BTreeSet<tisty_core::DeviceId>,
+    keys: &std::collections::BTreeMap<tisty_core::DeviceId, String>,
+    data: &Path,
 ) -> Vec<Machine> {
+    let stood = tisty_core::vouched::all_confirmed(data);
     let mut last: std::collections::BTreeMap<&tisty_core::DeviceId, i64> = Default::default();
     for one in told {
         let when = one.timestamp.as_second();
@@ -132,6 +138,9 @@ pub fn machines(
             called: tisty_core::config::nicknamed(&who.0),
             when,
             mine: who.0 == mine,
+            signs: keys.get(who).cloned(),
+            confirmed: stood.get(who).map(|one| one.key.clone()),
+            confirmed_when: stood.get(who).map_or(0, |one| one.when),
         })
         .collect();
     all.sort_by(|a, b| b.when.cmp(&a.when).then_with(|| a.id.cmp(&b.id)));

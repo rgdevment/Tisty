@@ -6330,6 +6330,7 @@ fn a_signature_travels_with_the_segment_it_answers_for() {
         },
         &said,
     )
+    .covers()
     .expect("it does not answer");
     let arrived = std::fs::read(there.join("active.tisty")).unwrap();
     assert_eq!(
@@ -6604,5 +6605,46 @@ fn a_line_put_into_our_own_history_over_there_does_not_come_home() {
     assert!(
         !after.disowned.is_empty() || !after.unreadable.is_empty(),
         "it came back from the folder without a word about why not"
+    );
+}
+
+/// What a machine published is its own word; what the person answered for is this machine's.
+/// Once confirmed, a history has to answer to that key and no other.
+#[test]
+fn a_history_signed_with_another_key_than_the_one_confirmed_does_not_come_home() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let elsewhere = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let other = tisty_core::signing::shown(
+        &tisty_core::signing::mine(&elsewhere, &DeviceId("dev_c".into())).unwrap(),
+    );
+    assert!(
+        tisty_core::vouched::confirm(&two.data, &who, &other),
+        "the second machine could not answer for a key"
+    );
+
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.disowned,
+        vec![one.device.clone()],
+        "a history signed with a key nobody answered for was taken in"
     );
 }

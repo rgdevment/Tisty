@@ -554,6 +554,32 @@ fn anything_signed_in(dir: &Path) -> bool {
     })
 }
 
+/// A machine's own word for what it signs with, read from the log only where nobody has answered
+/// for it yet. It catches a history altered without that machine's key, which is the hand anybody
+/// who reaches the folder can lay on it; what it cannot catch is the key itself being planted,
+/// and that is what a person confirming one closes.
+fn claimed(
+    store: &Path,
+    who: &tisty_core::DeviceId,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> Option<String> {
+    let told = match knew {
+        Some(told) => told,
+        None => match tisty_core::store::ledger(store) {
+            Ok(told) => knew.insert(told),
+            Err(e) => {
+                witness::warn(
+                    channel::SYNC,
+                    "this machine's own log would not say what the others sign with",
+                    &[("why", Fact::Why(e.to_string()))],
+                );
+                return None;
+            }
+        },
+    };
+    told.keys.get(who).cloned()
+}
+
 /// Checked before any of it is taken in, and only from where the last round left off.
 #[allow(clippy::too_many_arguments)]
 fn answers_for_itself(
@@ -569,27 +595,12 @@ fn answers_for_itself(
     if !anything_signed_in(theirs) {
         return Answered::Yes;
     }
-    // Only what we held before the round: a key arriving beside the history it answers for would
-    // let an impostor bring its own word for what it signs with.
-    let told = match knew {
-        Some(told) => told,
-        None => match tisty_core::store::ledger(store) {
-            Ok(told) => knew.insert(told),
-            Err(e) => {
-                witness::warn(
-                    channel::SYNC,
-                    "this machine's own log would not say what the others sign with, so nothing signed was taken in",
-                    &[("why", Fact::Why(e.to_string()))],
-                );
-                return Answered::Unreadable;
-            }
-        },
-    };
     let who = tisty_core::DeviceId(named.to_string());
-    let by = told
-        .keys
-        .get(&who)
-        .and_then(|said| tisty_core::signing::read(said));
+    let said = match tisty_core::vouched::confirmed(data, &who) {
+        Some(stood) => Some(stood.key),
+        None => claimed(store, &who, knew),
+    };
+    let by = said.and_then(|said| tisty_core::signing::read(&said));
     let Some(by) = by else {
         // A machine we hold no key for has nothing to check — but our own name is not one of
         // those: a history signed under it that we cannot answer for is not ours to take back.
@@ -627,7 +638,7 @@ fn answers_for_itself(
             verified::keep(data, dest, named, Default::default());
             witness::warn(
                 channel::SYNC,
-                "a history in the shared folder does not answer to the key that machine published, so none of it was taken in",
+                "a history in the shared folder does not answer to the key kept for that machine, so none of it was taken in",
                 &[
                     ("at", Fact::Id(named.to_string())),
                     ("segment", Fact::Id(segment)),
@@ -653,7 +664,7 @@ fn bring(
     alike: &mut Alike,
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
-    let mut knew = None;
+    let mut knew: Option<tisty_core::store::Ledger> = None;
     let at = dest.join(STORE);
     let entries = match std::fs::read_dir(&at) {
         Ok(entries) => entries,

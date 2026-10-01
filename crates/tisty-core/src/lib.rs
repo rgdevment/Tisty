@@ -32,6 +32,7 @@ pub mod text;
 pub mod tidy;
 pub mod undo;
 pub mod view;
+pub mod vouched;
 pub mod witness;
 
 pub use config::Config;

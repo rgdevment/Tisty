@@ -16,6 +16,7 @@ import {
   type Carrying,
   checked,
   chooseSync,
+  confirmMachineKey,
   copied,
   docAdopt,
   docDrop,
@@ -80,6 +81,7 @@ import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
 import Keepers from "./Keepers";
+import { KeyAstray, KeyOf, MachineRow } from "./Keys";
 import Modal from "./Modal";
 
 const carried = {
@@ -148,6 +150,8 @@ export default function Keeping({
   const [typed, setTyped] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
+  const [keyOf, setKeyOf] = useState<Machine | null>(null);
+  const [astray, setAstray] = useState<Machine | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
   const [alike, setAlike] = useState<Twins[] | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
@@ -455,6 +459,15 @@ export default function Keeping({
       .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
+  const confirmKey = (one: Machine) => {
+    if (held || !one.signs) return;
+    setKeyOf(null);
+    run("review", confirmMachineKey(one.id, one.signs).then(checked), (now) => {
+      setAudit(now);
+      setSaid({ card: "review", text: t("machineKeyDone") });
+    });
+  };
+
   const dropMachine = (one: Machine) => {
     if (held) return;
     const said = `${fill("machineDropSure", one.called)}\n\n${fill(
@@ -575,6 +588,16 @@ export default function Keeping({
             </button>
           </div>
         </Modal>
+      )}
+      {keyOf && (
+        <KeyOf one={keyOf} busy={held} onConfirm={confirmKey} onClose={() => setKeyOf(null)} />
+      )}
+      {astray && (
+        <KeyAstray
+          one={astray}
+          when={dated(astray.confirmedWhen)}
+          onClose={() => setAstray(null)}
+        />
       )}
       {picking && (
         <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
@@ -1408,45 +1431,17 @@ export default function Keeping({
               {audit && (
                 <ul className="mt-2 flex flex-col gap-1 text-[12.5px]">
                   {audit.machines.map((one) => (
-                    <li
+                    <MachineRow
                       key={one.id}
-                      className={`flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2 ${
-                        one.mine ? "bg-accent-soft" : ""
-                      }`}
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-[13px] font-semibold">
-                          {one.called}
-                          {one.mine && (
-                            <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
-                              {t("machineHere")}
-                            </span>
-                          )}
-                        </span>
-                        <span
-                          className={`block text-[12.5px] ${hushed(one) ? "text-ink" : "text-soft"}`}
-                        >
-                          {one.when === 0 ? t("machineNever") : dated(one.when)}
-                        </span>
-                        <span className="block font-mono text-[10.5px] break-all text-faint">
-                          {one.id}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2.5">
-                        {one.mine ? (
-                          <span className="text-[12.5px] text-faint">{t("machineNeverDrop")}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={held}
-                            onClick={() => dropMachine(one)}
-                            className="rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-urgent hover:text-urgent disabled:text-faint"
-                          >
-                            {t("machineDrop")}
-                          </button>
-                        )}
-                      </span>
-                    </li>
+                      one={one}
+                      busy={held}
+                      quiet={hushed(one)}
+                      wrote={one.when === 0 ? t("machineNever") : dated(one.when)}
+                      stood={dated(one.confirmedWhen)}
+                      onKey={setKeyOf}
+                      onAstray={setAstray}
+                      onDrop={dropMachine}
+                    />
                   ))}
                 </ul>
               )}

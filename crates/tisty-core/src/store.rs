@@ -117,7 +117,8 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         let now = active_mark(&active).0;
         if let Ok(said) = std::fs::read_to_string(active.with_extension(crate::signing::SIG))
-            && let Some(held) = crate::signing::holds(&by, &self.about(ACTIVE), &said)
+            && let crate::signing::Holds::Covers(held) =
+                crate::signing::holds(&by, &self.about(ACTIVE), &said)
             && held.at <= now
         {
             return match read_from(&active, held.at) {
@@ -142,7 +143,8 @@ impl Store {
                 continue;
             }
             if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
-                && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
+                && let crate::signing::Holds::Covers(held) =
+                    crate::signing::holds(&by, &self.about(named), &said)
             {
                 tip = held.tip;
                 onward = at + 1;

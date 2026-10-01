@@ -54,8 +54,8 @@ pub enum Adrift {
     Disowned(String),
 }
 
-/// Every segment of theirs checked against the key that machine published, recomputed from the
-/// bytes that are there. A closed segment is passed over only where it is byte for byte the copy
+/// Every segment of theirs checked against the key it is handed for that machine, recomputed from
+/// the bytes that are there. A closed segment is passed over only where it is byte for byte the copy
 /// we already answered for — `ours_already` — so what the far side changed is read again however
 /// old it is, and the round pays no second reading for asking.
 pub fn answers(
@@ -103,14 +103,17 @@ pub fn answers(
             Ok(said) => match signing::holds(by, &about, &said) {
                 // The whole segment or none of it: one answering for a prefix would let a line
                 // appended past it in, and the next thing that machine writes would sign it.
-                Some(covers) if covers.at != bytes.len() as u64 => {
+                signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
                     return Err(Adrift::Unreadable(named.to_string()));
                 }
-                Some(covers) if signing::tip_of(tip, &bytes) != covers.tip => {
+                signing::Holds::Covers(covers) if signing::tip_of(tip, &bytes) != covers.tip => {
                     return Err(Adrift::Disowned(named.to_string()));
                 }
-                Some(_) => true,
-                None => return Err(Adrift::Unreadable(named.to_string())),
+                signing::Holds::Covers(_) => true,
+                signing::Holds::Refused => return Err(Adrift::Disowned(named.to_string())),
+                signing::Holds::Unreadable => {
+                    return Err(Adrift::Unreadable(named.to_string()));
+                }
             },
             Err(_) if held.signing => return Err(Adrift::Disowned(named.to_string())),
             Err(_) => false,

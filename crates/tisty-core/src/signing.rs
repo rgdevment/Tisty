@@ -108,15 +108,42 @@ pub fn signed(key: &SigningKey, about: &About, covers: &Covers) -> String {
     serde_json::to_string(&said).unwrap_or_default()
 }
 
-pub fn holds(by: &VerifyingKey, about: &About, said: &str) -> Option<Covers> {
+/// A signature that will not parse may yet be a round that has not finished; one that parses and
+/// does not answer is a hand. Telling them apart is what lets the first heal and the second not.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Holds {
+    Covers(Covers),
+    Refused,
+    Unreadable,
+}
+
+impl Holds {
+    pub fn covers(self) -> Option<Covers> {
+        match self {
+            Holds::Covers(covers) => Some(covers),
+            Holds::Refused | Holds::Unreadable => None,
+        }
+    }
+}
+
+pub fn holds(by: &VerifyingKey, about: &About, said: &str) -> Holds {
     use ed25519_dalek::Verifier;
-    let said: Said = serde_json::from_str(said).ok()?;
-    let covers = Covers {
-        tip: unhexed::<32>(&said.tip)?,
-        at: said.at,
+    let read = || {
+        let said: Said = serde_json::from_str(said).ok()?;
+        let covers = Covers {
+            tip: unhexed::<32>(&said.tip)?,
+            at: said.at,
+        };
+        let sig = ed25519_dalek::Signature::from_slice(&unhexed::<64>(&said.sig)?).ok()?;
+        Some((covers, sig))
     };
-    let sig = ed25519_dalek::Signature::from_slice(&unhexed::<64>(&said.sig)?).ok()?;
-    by.verify(&over(about, &covers), &sig).ok().map(|()| covers)
+    let Some((covers, sig)) = read() else {
+        return Holds::Unreadable;
+    };
+    match by.verify(&over(about, &covers), &sig) {
+        Ok(()) => Holds::Covers(covers),
+        Err(_) => Holds::Refused,
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

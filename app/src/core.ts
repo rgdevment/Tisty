@@ -451,6 +451,9 @@ export interface Machine {
   called: string;
   when: number;
   mine: boolean;
+  signs: string | null;
+  confirmed: string | null;
+  confirmedWhen: number;
 }
 
 export interface Stray {
@@ -723,6 +726,8 @@ export const retireAttachment = (reference: string): Promise<void> =>
 export const retireAttachments = (references: string[]): Promise<number> =>
   invoke("retire_attachments", { references });
 export const removeMachine = (id: string): Promise<void> => invoke("remove_machine", { id });
+export const confirmMachineKey = (id: string, key: string): Promise<void> =>
+  invoke("confirm_machine_key", { id, key });
 export const joinThem = (into: string): Promise<number> => invoke("join_them", { into });
 
 export const takeOver = (into: string): Promise<number> => invoke("take_over", { into });
