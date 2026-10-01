@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# The repository's own conventions, in one place. The workflow and the local hook both call this:
-# a rule with two implementations is a rule that will one day say two different things.
 set -uo pipefail
 
 status=0
@@ -69,8 +67,21 @@ nothing_past_what_a_person_holds() {
   [ "$status" != "$before" ] || went_well "no file grows past what a person can hold"
 }
 
-# What a person reads is checked by the workflow and not from here: the patterns are the very
-# words they forbid, and the managed hook refuses to write them into a file.
+read_by_a_person() {
+  [ -f .github/not-this-spanish.txt ] || return 0
+  local where=(
+    app/src/locales.ts
+    crates/tisty-cli/locales
+    README.es.md
+    app/src-tauri/resources/guide/es/guia.md
+  )
+  if grep -rniEf .github/not-this-spanish.txt "${where[@]}"; then
+    amiss "the Spanish a person reads is neutral and not peninsular"
+  else
+    went_well "the Spanish a person reads"
+  fi
+}
+
 nothing_the_core_prints() {
   if grep -rn 'println!\|eprintln!\|print!' crates/tisty-core/src --include='*.rs'; then
     amiss "tisty-core must not print: the GUI inherits it as garbage"
@@ -82,5 +93,6 @@ nothing_the_core_prints() {
 cd "$(dirname "$0")/.."
 no_prose_blocks
 nothing_past_what_a_person_holds
+read_by_a_person
 nothing_the_core_prints
 exit $status

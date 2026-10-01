@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Comfort, not enforcement: a fresh clone does not have it until core.hooksPath is set, and
-# --no-verify walks past it. What the repository actually requires is what CI refuses.
 set -uo pipefail
 
 cd "$(git rev-parse --show-toplevel)" || exit 0

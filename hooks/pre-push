@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)" || exit 0
+
+bash scripts/rules.sh || exit 1
+
+base=$(git merge-base HEAD origin/main 2>/dev/null) || exit 0
+bash scripts/commits.sh "$base..HEAD" || exit 1
+
+cargo fmt --all --check || {
+  echo "x  cargo fmt --all would change files"
+  exit 1
+}
