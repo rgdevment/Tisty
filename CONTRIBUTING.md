@@ -164,7 +164,28 @@ breaks "by tuesday" otherwise.
 
 Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
 `test:`). Explain *why* in the body when the reason is not obvious from the
-diff; the *what* is already in the patch.
+diff; the *what* is already in the patch. Keep the subject under 90 characters:
+CI refuses a longer one.
+
+`scripts/rules.sh` holds the conventions a person can break in a second — four
+lines of comment in a row, a file grown past what anybody reads through, the core
+printing to a terminal the window inherits. `scripts/commits.sh` holds the shape
+and the length of a subject. Run either whenever you like, and if you want them
+run for you:
+
+```sh
+git config core.hooksPath hooks
+```
+
+That gives you two: `pre-commit` runs the conventions, which takes about a
+second, and `pre-push` adds the subjects of what you are about to send and
+`cargo fmt --all --check`. Nothing slower goes in either — the suite, the build
+and the markdown lint are minutes, and they belong to CI.
+
+**Those hooks are comfort, not enforcement.** A fresh clone does not have them
+until somebody sets that, and `--no-verify` walks straight past both. What the
+repository actually requires is what CI refuses, which is why the workflows run
+the same two files rather than keeping their own copies of the rules.
 
 ## Security
 
