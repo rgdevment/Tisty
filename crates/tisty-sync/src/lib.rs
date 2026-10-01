@@ -594,23 +594,22 @@ fn answers_for_itself(
     alike: &mut Alike,
 ) -> Answered {
     let who = tisty_core::DeviceId(named.to_string());
-    let stood = tisty_core::vouched::confirmed(data, &who);
     let from = verified::of(data, dest, named);
-    // Nothing to check is not the same as nothing to answer for. A key somebody answered for is
-    // the whole demand — a folder stripped of every signature is the cheapest way to make a
-    // history look like one written before signing, and the memo alone is a thing that can age out.
     if !anything_signed_in(theirs) {
-        if stood.is_none() && !from.signing {
+        let owed = from.signing
+            || tisty_core::vouched::confirmed(data, &who).is_some()
+            || tisty_core::store::key_said_in(theirs, &who).is_some();
+        if !owed {
             return Answered::Yes;
         }
         witness::warn(
             channel::SYNC,
-            "a history that has to answer for itself arrived with no signature at all, so none of it was taken in",
+            "a history that owes a signature arrived with none at all, so none of it was taken in",
             &[("at", Fact::Id(named.to_string()))],
         );
         return Answered::Disowned;
     }
-    let said = match stood {
+    let said = match tisty_core::vouched::confirmed(data, &who) {
         Some(stood) => Some(stood.key),
         None => match claimed(store, &who, knew) {
             Ok(said) => said,
