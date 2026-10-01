@@ -598,7 +598,9 @@ fn answers_for_itself(
     if !anything_signed_in(theirs) {
         let owed = from.signing
             || tisty_core::vouched::confirmed(data, &who).is_some()
-            || tisty_core::store::key_said_in(theirs, &who).is_some();
+            || tisty_core::store::key_said_in(theirs, &who).is_some()
+            || tisty_core::store::newest_schema(theirs)
+                .is_ok_and(|was| was >= tisty_core::event::SIGNED_FROM);
         if !owed {
             return Answered::Yes;
         }

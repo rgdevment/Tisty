@@ -11,6 +11,10 @@ use ulid::Ulid;
 
 pub const SCHEMA_VERSION: u32 = 16;
 
+pub const SIGNED_FROM: u32 = 16;
+
+const _: () = assert!(SCHEMA_VERSION >= SIGNED_FROM);
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct DeviceId(pub String);
