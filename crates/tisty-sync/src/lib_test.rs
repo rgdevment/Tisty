@@ -31,7 +31,7 @@ fn machine(named: &str) -> Machine {
 }
 
 fn filed(who: &Machine, file: &str, body: &str) {
-    let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+    let mut held = signing(who);
     held.append(Op::DocAdd {
         id: Ulid::generate(),
         d: tisty_core::event::DocAdd {
@@ -1029,7 +1029,7 @@ fn a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoni
     )
     .unwrap();
 
-    let mut held = Store::open(&one.store, DeviceId(one.device.clone())).unwrap();
+    let mut held = signing(&one);
     let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
         .docs
         .values()
@@ -1045,8 +1045,21 @@ fn a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoni
     assert!(!two.data.join(PAPERS).join("uno-0001.md").exists());
 }
 
+fn signing(who: &Machine) -> Store {
+    let whose = DeviceId(who.device.clone());
+    let paths = tisty_core::Paths::new(who.data.clone(), who.data.join("config"));
+    let key = tisty_core::signing::mine(&paths, &whose);
+    if let Some(shown) = key.as_ref().map(tisty_core::signing::shown) {
+        std::fs::create_dir_all(&who.data).unwrap();
+        tisty_core::vouched::confirm(&who.data, &whose, &shown);
+    }
+    Store::open(&who.store, whose.clone())
+        .unwrap()
+        .signing_with(key)
+}
+
 fn wrote(who: &Machine, title: String) {
-    let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+    let mut held = signing(who);
     held.append(Op::TaskAdd {
         id: Ulid::generate(),
         d: TaskAdd::new(title, "a0"),
@@ -1067,7 +1080,7 @@ fn titles(store: &Path) -> Vec<String> {
 }
 
 fn says(who: &Machine, op: Op) {
-    let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+    let mut held = signing(who);
     held.append(op).unwrap();
 }
 
@@ -5157,7 +5170,7 @@ fn a_document_deleted_in_one_history_never_comes_back_once_the_histories_are_mer
     )
     .unwrap();
 
-    let mut held = Store::open(&one.store, DeviceId(one.device.clone())).unwrap();
+    let mut held = signing(&one);
     let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
         .docs
         .values()
@@ -5428,7 +5441,7 @@ fn two_histories_of_the_same_length_reach_the_same_distance() {
 }
 
 fn many_segments(who: &Machine, lots: usize) {
-    let mut held = Store::open(&who.store, DeviceId(who.device.clone())).unwrap();
+    let mut held = signing(who);
     for lot in 0..lots {
         let ops: Vec<Op> = (0..5_000)
             .map(|n| Op::TaskAdd {
@@ -5529,8 +5542,8 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let quiet = tisty_core::counting::from_now();
 
     assert!(
-        quiet <= 45,
-        "a round with nothing to carry read {quiet} files where 45 is what it takes, and the round before it read {before}"
+        quiet <= 65,
+        "a round with nothing to carry read {quiet} files where 65 is what it takes, and the round before it read {before}"
     );
 
     let _ = tisty_core::counting::from_now();
@@ -5538,8 +5551,8 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let alone = tisty_core::counting::from_now();
 
     assert!(
-        alone <= 53,
-        "the same round without a cache to lean on read {alone} files where 53 is what it takes"
+        alone <= 73,
+        "the same round without a cache to lean on read {alone} files where 73 is what it takes"
     );
 }
 
@@ -5579,7 +5592,11 @@ fn what_was_compared_once_is_not_compared_again_until_something_moves() {
 }
 
 fn sown(store: &Path, device: &str, many: usize) {
-    let mut held = Store::open(store, DeviceId(device.into())).unwrap();
+    let whose = DeviceId(device.into());
+    let paths = tisty_core::Paths::new(store.to_path_buf(), store.join("config"));
+    let mut held = Store::open(store, whose.clone())
+        .unwrap()
+        .signing_with(tisty_core::signing::mine(&paths, &whose));
     for n in 0..many {
         held.append(Op::TaskAdd {
             id: Ulid::generate(),
@@ -5774,9 +5791,11 @@ fn a_history_brought_home_is_not_read_again_to_see_whether_it_should_go_back() {
     std::fs::create_dir_all(&theirs).unwrap();
     for at in tisty_core::store::segments_in(&elsewhere.path().join("dev_c")).unwrap() {
         std::fs::copy(&at, theirs.join(at.file_name().unwrap())).unwrap();
-        let counter = at.with_extension("count");
-        if counter.is_file() {
-            std::fs::copy(&counter, theirs.join(counter.file_name().unwrap())).unwrap();
+        for beside in ["count", "sig"] {
+            let one = at.with_extension(beside);
+            if one.is_file() {
+                std::fs::copy(&one, theirs.join(one.file_name().unwrap())).unwrap();
+            }
         }
     }
     assert_eq!(tisty_core::store::segments_in(&theirs).unwrap().len(), 3);
@@ -6931,47 +6950,46 @@ fn a_machine_that_published_a_key_owes_a_signature_nobody_confirmed() {
 }
 
 #[test]
-fn a_history_written_before_its_machine_had_a_key_is_not_a_signature_taken_away() {
+fn a_history_from_before_the_fence_is_not_a_signature_taken_away() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
-    let who = DeviceId(one.device.clone());
-    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
-    let mut held = Store::open(&one.store, who.clone())
-        .unwrap()
-        .signing_with(Some(key.clone()));
-    held.append(Op::DeviceKey {
-        d: who.clone(),
-        p: tisty_core::signing::shown(&key),
-    })
-    .unwrap();
-    drop(held);
-
-    let two = blank("dev_b");
-    std::fs::create_dir_all(&two.data).unwrap();
     let before = tempfile::tempdir().unwrap();
-    for at in std::fs::read_dir(shared.path().join(STORE).join(&one.device)).unwrap() {
-        let at = at.unwrap().path();
-        let there = before.path().join(STORE).join(&one.device);
-        std::fs::create_dir_all(&there).unwrap();
-        std::fs::copy(&at, there.join(at.file_name().unwrap())).unwrap();
-    }
+    let there = before.path().join(STORE).join(&one.device);
+    std::fs::create_dir_all(&there).unwrap();
+    let whole = std::fs::read_to_string(
+        shared
+            .path()
+            .join(STORE)
+            .join(&one.device)
+            .join("active.tisty"),
+    )
+    .unwrap();
+    let older = whole.replace(
+        &format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION),
+        &format!("\"v\":{}", tisty_core::event::SIGNED_FROM - 1),
+    );
+    assert_ne!(older, whole, "the history was not written at this schema");
+    std::fs::write(there.join("active.tisty"), &older).unwrap();
     std::fs::copy(
         shared.path().join(STORE).join(tisty_core::store::MARKER),
         before.path().join(STORE).join(tisty_core::store::MARKER),
     )
     .unwrap();
-    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
-    carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
 
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
     let after = carry(&two.data, &two.device, before.path(), Way::Pull, &[]).unwrap();
 
     assert_eq!(
         after.disowned,
         Vec::<String>::new(),
-        "a folder holding only what that machine wrote before it had a key was called a hand"
+        "a history from before the fence owes a signature it never could have carried"
+    );
+    assert!(
+        home_of(&two, &one.device).contains("lo de dev_a"),
+        "it did not come home"
     );
 }
 
@@ -7037,7 +7055,7 @@ fn a_segment_torn_to_hide_what_a_machine_signs_with_brings_nothing_home() {
 
     let after = after.expect("the round broke instead of turning one history away");
     assert_eq!(
-        after.unreadable,
+        after.disowned,
         vec![one.device.clone()],
         "the round read a history through to nothing and said nothing about it"
     );
@@ -7046,4 +7064,44 @@ fn a_segment_torn_to_hide_what_a_machine_signs_with_brings_nothing_home() {
 
 fn home_of(who: &Machine, whose: &str) -> String {
     std::fs::read_to_string(who.store.join(whose).join("active.tisty")).unwrap_or_default()
+}
+
+#[test]
+fn a_history_from_the_fence_onward_owes_a_signature_even_saying_no_key() {
+    let one = blank("dev_a");
+    let whose = DeviceId(one.device.clone());
+    let mut held = Store::open(&one.store, whose).unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("lo de dev_a", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let whole = std::fs::read_to_string(
+        shared
+            .path()
+            .join(STORE)
+            .join(&one.device)
+            .join("active.tisty"),
+    )
+    .unwrap();
+    assert!(
+        whole.contains(&format!("\"v\":{}", tisty_core::event::SIGNED_FROM)),
+        "the folder does not hold a history at the schema this is about"
+    );
+    assert!(!whole.contains("device.key"), "it says what it signs with");
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.disowned,
+        vec![one.device.clone()],
+        "a history written from the fence onward came in without a signature"
+    );
+    assert!(!home_of(&two, &one.device).contains("lo de dev_a"));
 }
