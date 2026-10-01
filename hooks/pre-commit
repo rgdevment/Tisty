@@ -17,11 +17,15 @@ quietly() {
 
 if command -v cargo > /dev/null; then
   quietly "cargo fmt --all --check" "cargo fmt --all would change files"
+else
+  echo "x  cargo is not here, so the formatting was not looked at"
 fi
 
 if [ -d app/node_modules ]; then
   quietly "cd app && npx --no-install biome check src" \
-    "biome would change files, and it is the first thing CI runs"
+    "biome would change files, or is not installed; it is the first thing CI runs"
+else
+  echo "x  app/node_modules is not here, so biome did not look at the window"
 fi
 
 exit $status

@@ -51,7 +51,12 @@ jobs:
       # Nothing else looks at a subject that reached main without a pull request.
       - name: The subject that landed
         if: github.event_name == 'push'
-        run: bash scripts/commits.sh --subject "$(git log -1 --format=%s)"
+        run: |
+          said=$(git log -1 --format=%s)
+          case "$said" in
+            Merge\ * | Revert\ *) echo "a merge keeps its own shape" ;;
+            *) bash scripts/commits.sh --subject "$said" ;;
+          esac
 
       - name: A spawned binary is never left the runner's language
         run: |

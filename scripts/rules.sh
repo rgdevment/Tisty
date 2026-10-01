@@ -52,7 +52,7 @@ nothing_past_what_a_person_holds() {
   fi
   find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
     | grep -vE "$skip" \
-    | sort | tr '\n' '\0' | xargs -0 wc -l \
+    | sort | tr '\n' '\0' | xargs -0r wc -l \
     | awk '$2 != "total" { print $1, $2 }' > "$measured"
 
   if [ ! -s "$measured" ]; then
@@ -108,11 +108,19 @@ read_by_a_person() {
 }
 
 written_in_english() {
-  grep -rnE '\b(fn|let|const|struct|enum|type|mod|function|interface) +[A-Za-z_]*(^|_)(que|de|la|el|los|las|una|con|por|para|sin|cuando|donde|hasta|desde|tarea|fecha|titulo|nombre|usuario|archivo|carpeta)(_|\b)' \
+  local spanish='(tarea|fecha|limite|prioridad|filtro|titulo|etiqueta|nombre|usuario|archivo|carpeta|cuando|donde|hasta|desde|porque|aunque)'
+  grep -rnE "\b(fn|let|const|struct|enum|type|mod|function|interface) +([A-Za-z_]*_)?$spanish(_|\b)" \
     crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx'
   looked_through \
     "an identifier is in Spanish; what a person reads lives in locales/" $? \
     "the source could not be looked through for Spanish identifiers" \
+    || return
+  grep -rnE "\b$spanish *:" \
+    crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx' \
+    | grep -v '"'
+  looked_through \
+    "a field is named in Spanish; what a person reads lives in locales/" $? \
+    "the source could not be looked through for Spanish field names" \
     || return
   grep -rnE '^\s*//.*\b(que|porque|pero|aunque|cuando|donde|seg[uú]n|tambi[eé]n|aqu[ií]|ah[ií]|entonces)\b' \
     crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx'
@@ -139,6 +147,7 @@ nothing_the_window_cannot_translate() {
 
 nothing_that_takes_the_window_down() {
   local test_modules looked found
+  local -a files
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src --include='*.rs' \
     | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
   looked=$(find crates/tisty-core/src crates/tisty-sync/src -name '*.rs' \
@@ -147,14 +156,16 @@ nothing_that_takes_the_window_down() {
     amiss "the core and the round could not be looked through for what panics"
     return
   fi
-  found=$(printf '%s\n' "$looked" | tr '\n' '\0' \
-    | xargs -0 grep -nE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(')
-  if [ -n "$found" ]; then
-    printf '%s\n' "$found"
-    amiss "the core and the round answer, they never stop: a panic reaches the window as a closed window"
-  else
-    went_well "nothing in the core or the round panics"
-  fi
+  mapfile -t files <<< "$looked"
+  found=$(grep -nE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(' "${files[@]}")
+  case $? in
+    0)
+      printf '%s\n' "$found"
+      amiss "the core and the round answer, they never stop: a panic reaches the window as a closed window"
+      ;;
+    1) went_well "nothing in the core or the round panics" ;;
+    *) amiss "the core and the round could not be looked through for what panics" ;;
+  esac
 }
 
 nothing_the_core_prints() {
@@ -175,13 +186,15 @@ nothing_new_reaches_the_command_line() {
   fi
   now=$( { awk '/^pub enum Command/,/^}/' crates/tisty-cli/src/main.rs \
             | awk '/^    [A-Z]/ { kept = ($0 ~ /^    (Demo|Sync|Doctor|Export|Mcp|Leave|Agent)\b/) } !kept'
-          awk '/^pub struct (AddArgs|SetArgs)/,/^}/' crates/tisty-cli/src/main.rs; } \
-          | grep -oE '^    [A-Z][A-Za-z]*|^ +(pub )?[a-z_]+:' | sed 's/pub //; s/[ :]//g' | sort -u)
+          awk '/^pub (enum [A-Za-z]*Action|struct (Cli|AddArgs|SetArgs))/,/^}/' \
+            crates/tisty-cli/src/main.rs; } \
+          | grep -oE '^    [A-Z][A-Za-z]*|^ +(pub )?[a-z_]+:|alias = "[a-z-]+"' \
+          | sed 's/pub //; s/alias = //; s/[ :"]//g' | sort -u)
   if [ -z "$now" ]; then
     amiss "the command line could not be read, so nobody saw whether it grew"
     return
   fi
-  added=$(comm -13 <(sort "$kept") <(printf '%s\n' "$now"))
+  added=$(comm -13 <(tr -d '\015' < "$kept" | sort) <(printf '%s\n' "$now"))
   if [ -n "$added" ]; then
     printf '%s\n' "$added"
     amiss "the command line is frozen: a feature is done when the core and the window have it"
