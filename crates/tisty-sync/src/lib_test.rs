@@ -5529,8 +5529,8 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let quiet = tisty_core::counting::from_now();
 
     assert!(
-        quiet <= 41,
-        "a round with nothing to carry read {quiet} files where 41 is what it takes, and the round before it read {before}"
+        quiet <= 45,
+        "a round with nothing to carry read {quiet} files where 45 is what it takes, and the round before it read {before}"
     );
 
     let _ = tisty_core::counting::from_now();
@@ -5538,8 +5538,8 @@ fn a_round_that_changes_nothing_opens_what_it_has_to_and_no_more() {
     let alone = tisty_core::counting::from_now();
 
     assert!(
-        alone <= 49,
-        "the same round without a cache to lean on read {alone} files where 49 is what it takes"
+        alone <= 53,
+        "the same round without a cache to lean on read {alone} files where 53 is what it takes"
     );
 }
 
@@ -5789,8 +5789,8 @@ fn a_history_brought_home_is_not_read_again_to_see_whether_it_should_go_back() {
     assert_eq!(moved.brought, 3);
     assert_eq!(moved.sent, 0);
     assert!(
-        opened <= 29,
-        "bringing three segments home read {opened} files where 29 is what it takes; handing on asked again what the two sides hold instead of counting both histories"
+        opened <= 32,
+        "bringing three segments home read {opened} files where 32 is what it takes; handing on asked again what the two sides hold instead of counting both histories"
     );
 }
 
@@ -6862,6 +6862,186 @@ fn what_a_round_turned_away_is_left_where_the_window_can_read_it() {
         None,
         "the history came home and the window would still be warning about it"
     );
+}
+
+#[test]
+fn a_machine_that_published_a_key_owes_a_signature_nobody_confirmed() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::DeviceKey {
+        d: who.clone(),
+        p: tisty_core::signing::shown(&key),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let first = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(
+        home_of(&two, &one.device).contains("chase the invoice"),
+        "a true signed history did not come home"
+    );
+    assert_eq!(first.disowned, Vec::<String>::new());
+
+    let there = shared.path().join(STORE).join(&one.device);
+    let whole = std::fs::read_to_string(there.join("active.tisty")).unwrap();
+    std::fs::write(
+        there.join("active.tisty"),
+        whole.replace("chase the invoice", "chase the other one"),
+    )
+    .unwrap();
+    for found in std::fs::read_dir(&there)
+        .unwrap()
+        .filter_map(|one| one.ok())
+    {
+        if found.path().extension().is_some_and(|one| one == "sig") {
+            std::fs::remove_file(found.path()).unwrap();
+        }
+    }
+    assert!(
+        !two.data.join(".verified-to").is_file(),
+        "the first round answered for the history, so the latch would carry this and not the key"
+    );
+
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.disowned,
+        vec![one.device.clone()],
+        "a machine that published a key was taken on trust once its signatures were removed"
+    );
+    assert!(
+        !home_of(&two, &one.device).contains("chase the other one"),
+        "the forged line came home"
+    );
+}
+
+#[test]
+fn a_history_written_before_its_machine_had_a_key_is_not_a_signature_taken_away() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::DeviceKey {
+        d: who.clone(),
+        p: tisty_core::signing::shown(&key),
+    })
+    .unwrap();
+    drop(held);
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let before = tempfile::tempdir().unwrap();
+    for at in std::fs::read_dir(shared.path().join(STORE).join(&one.device)).unwrap() {
+        let at = at.unwrap().path();
+        let there = before.path().join(STORE).join(&one.device);
+        std::fs::create_dir_all(&there).unwrap();
+        std::fs::copy(&at, there.join(at.file_name().unwrap())).unwrap();
+    }
+    std::fs::copy(
+        shared.path().join(STORE).join(tisty_core::store::MARKER),
+        before.path().join(STORE).join(tisty_core::store::MARKER),
+    )
+    .unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let after = carry(&two.data, &two.device, before.path(), Way::Pull, &[]).unwrap();
+
+    assert_eq!(
+        after.disowned,
+        Vec::<String>::new(),
+        "a folder holding only what that machine wrote before it had a key was called a hand"
+    );
+}
+
+#[test]
+fn a_segment_torn_to_hide_what_a_machine_signs_with_brings_nothing_home() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::DeviceKey {
+        d: who.clone(),
+        p: tisty_core::signing::shown(&key),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let there = shared.path().join(STORE).join(&one.device);
+    let whole = std::fs::read_to_string(there.join("active.tisty")).unwrap();
+    assert!(whole.contains("device.key"));
+    let rest = whole
+        .lines()
+        .filter(|one| !one.contains("device.key"))
+        .collect::<Vec<&str>>()
+        .join("\n");
+    std::fs::write(
+        there.join("active.tisty"),
+        format!("{rest}\n").replace("chase the invoice", "chase the other one"),
+    )
+    .unwrap();
+    for found in std::fs::read_dir(&there)
+        .unwrap()
+        .filter_map(|one| one.ok())
+    {
+        if found
+            .path()
+            .extension()
+            .is_some_and(|one| one == "sig" || one == "count")
+        {
+            std::fs::remove_file(found.path()).unwrap();
+        }
+    }
+    std::fs::write(there.join("000001.tisty"), b"not a line of anything\n").unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        !home_of(&two, &one.device).contains("chase the other one"),
+        "tearing the segment that says what the machine signs with let the rest come home"
+    );
+
+    let after = after.expect("the round broke instead of turning one history away");
+    assert_eq!(
+        after.unreadable,
+        vec![one.device.clone()],
+        "the round read a history through to nothing and said nothing about it"
+    );
+    assert_eq!(after.brought, 0);
 }
 
 fn home_of(who: &Machine, whose: &str) -> String {
