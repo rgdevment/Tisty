@@ -2204,6 +2204,12 @@ fn a_removed_machine_that_comes_back_waits_until_somebody_answers_for_it() {
     );
 
     first.ok(&["sync", "--confirm", &named(&second)]);
+    let turned = std::fs::read_to_string(first.home.path().join("data").join(".turned-away"))
+        .unwrap_or_default();
+    assert!(
+        !turned.contains(&named(&second)),
+        "the window would keep saying it waits until the next round: {turned}"
+    );
     first.ok(&["sync"]);
 
     let out = first.ok(&["ls", "all"]);

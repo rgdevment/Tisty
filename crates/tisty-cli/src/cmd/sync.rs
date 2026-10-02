@@ -225,6 +225,7 @@ fn answered_for(app: &App, dest: &std::path::Path, whose: &str, lang: Lang) -> E
         eprintln!("{}", lang.fill("key-not-answered-for", &[("id", whose)]));
         return ExitCode::from(EXIT_ERROR);
     }
+    carrier::turned::let_through(app.paths.data(), whose);
     println!(
         "
   {} {}",

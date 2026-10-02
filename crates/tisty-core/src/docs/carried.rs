@@ -137,10 +137,16 @@ pub(super) fn kept_still(data: &Path, id: &str, was: &str, left: &str) -> Result
 
 impl Carried {
     pub fn read(data: &Path) -> Self {
-        std::fs::read_to_string(ledger(data))
-            .ok()
-            .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_default()
+        let Ok(said) = std::fs::read_to_string(ledger(data)) else {
+            return Self::default();
+        };
+        if let Ok(prints) = serde_json::from_str(&said) {
+            return Self {
+                prints,
+                up_to: None,
+            };
+        }
+        serde_json::from_str(&said).unwrap_or_default()
     }
 
     pub fn save(&self, data: &Path) -> Result<()> {
@@ -162,12 +168,16 @@ impl Carried {
         self.prints.remove(id);
     }
 
-    pub fn facing(&mut self, dest: &Path) -> bool {
+    pub fn facing(&mut self, dest: &Path, been_here: bool) -> bool {
         if self
             .up_to
             .as_deref()
             .is_some_and(|kept| crate::paths::is_the_one(kept, dest))
         {
+            return false;
+        }
+        if self.up_to.is_none() && been_here && !self.prints.is_empty() {
+            self.up_to = Some(crate::paths::told_of(dest));
             return false;
         }
         self.prints.clear();

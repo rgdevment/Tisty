@@ -2437,6 +2437,57 @@ fn a_body_kept_beside_a_document_is_no_ancestor_unless_the_ledger_names_it() {
 }
 
 #[test]
+fn a_base_written_before_the_folder_was_named_still_stands_after_an_update_in_place() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    filed(
+        &one,
+        "dev_a-0001",
+        "# Minuta
+
+lo que los dos vieron
+",
+    );
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let print = tisty_core::docs::carried_print(&one.data, "dev_a-0001").expect("a base");
+    std::fs::write(
+        one.data.join("carried.json"),
+        format!("{{\"dev_a-0001\":\"{print}\"}}"),
+    )
+    .unwrap();
+    tisty_core::docs::write(
+        &one.data.join(PAPERS),
+        "dev_a-0001",
+        "# Minuta
+
+lo que los dos vieron
+lo mio
+",
+    )
+    .unwrap();
+
+    let done =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        done.undecided.is_empty(),
+        "updating in place was read as another folder, so it asked about a document only this side touched"
+    );
+    assert_eq!(done.sent, 1);
+    assert_eq!(
+        body(shared.path(), "dev_a-0001"),
+        "# Minuta
+
+lo que los dos vieron
+lo mio
+"
+    );
+}
+
+#[test]
 fn a_base_from_one_folder_is_not_leaned_on_in_another() {
     let one = blank("dev_a");
     let first = tempfile::tempdir().unwrap();

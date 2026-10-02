@@ -26,7 +26,7 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], None, None, false)
+    carry_papers_leaning_on(data, dest, alive, &[], None, None, false, false)
 }
 
 pub fn carry_papers_holding(
@@ -35,9 +35,10 @@ pub fn carry_papers_holding(
     alive: &[String],
     shut: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, None, None, false)
+    carry_papers_leaning_on(data, dest, alive, shut, None, None, false, false)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn carry_papers_leaning_on(
     data: &Path,
     dest: &Path,
@@ -46,6 +47,7 @@ pub(crate) fn carry_papers_leaning_on(
     empty: Option<&[String]>,
     printed: Option<&std::collections::BTreeMap<String, String>>,
     again: bool,
+    been_here: bool,
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
 
@@ -54,7 +56,7 @@ pub(crate) fn carry_papers_leaning_on(
     straight(&there, dest)?;
     let was = Carried::read(data);
     let mut said = was.clone();
-    if said.facing(dest) {
+    if said.facing(dest, been_here) {
         tisty_core::docs::forget_what_was_carried(data);
     }
     let mut prints = Prints::read(data);
