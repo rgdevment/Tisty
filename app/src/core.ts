@@ -372,6 +372,8 @@ export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", {
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
 
+export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
+
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });

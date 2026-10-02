@@ -11,19 +11,16 @@ const ipc = vi.hoisted(() => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (name: string, args: { path?: string }) => {
+  invoke: (name: string, args: { path?: string; url?: string }) => {
     if (name === "revealed") {
       ipc.shown.push(args.path ?? "");
       return Promise.resolve();
     }
+    if (name === "open_link") {
+      ipc.opened.push(args.url ?? "");
+      return Promise.resolve();
+    }
     return Promise.resolve(ipc.left);
-  },
-}));
-
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: (at: string) => {
-    ipc.opened.push(at);
-    return Promise.resolve();
   },
 }));
 

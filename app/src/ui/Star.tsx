@@ -1,5 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { starDone } from "../core";
+import { openLink, starDone } from "../core";
 import { t } from "../locales";
 import Corner from "./Corner";
 
@@ -15,7 +14,7 @@ export default function Star({ apart, onSettled, onError }: Props) {
   const settle = (open: boolean) => {
     onSettled();
     starDone().catch(onError);
-    if (open) openUrl(REPO).catch(onError);
+    if (open) openLink(REPO).catch(onError);
   };
 
   return (
