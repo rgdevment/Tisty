@@ -1740,7 +1740,7 @@ fn the_first_machine_to_sync_asks_about_the_rest_instead_of_shutting_the_door() 
         "a machine that turned up in a folder this one had been using walked in: {waiting}"
     );
 
-    first.ok(&["sync", "--confirm", &named(&second)]);
+    first.ok(&["sync", "--confirm", &named(&second), "--force"]);
     first.ok(&["sync"]);
 
     let out = first.ok(&["ls", "all"]);
@@ -2203,7 +2203,23 @@ fn a_removed_machine_that_comes_back_waits_until_somebody_answers_for_it() {
         "a machine nobody here answered for walked back in under a new name: {waiting}"
     );
 
-    first.ok(&["sync", "--confirm", &named(&second)]);
+    let unseen = first.run(&["sync", "--confirm", &named(&second)]);
+    assert_ne!(
+        unseen.code, 0,
+        "a key nobody looked at was answered for: {}{}",
+        unseen.out, unseen.err
+    );
+    assert!(
+        unseen.err.contains("--force"),
+        "it did not say how to answer where nobody can look: {}",
+        unseen.err
+    );
+    assert!(
+        !first.ok(&["ls", "all"]).contains("water the plants"),
+        "it let the machine in on a question nobody answered"
+    );
+
+    first.ok(&["sync", "--confirm", &named(&second), "--force"]);
     let turned = std::fs::read_to_string(first.home.path().join("data").join(".turned-away"))
         .unwrap_or_default();
     assert!(

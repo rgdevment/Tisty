@@ -177,6 +177,8 @@ pub enum Command {
         merge: Option<std::path::PathBuf>,
         #[arg(long, value_name = "MACHINE", conflicts_with_all = ["push", "pull", "again", "join", "take_over", "merge"])]
         confirm: Option<String>,
+        #[arg(long, requires = "confirm")]
+        force: bool,
     },
     Doctor {
         #[arg(long)]

@@ -13,6 +13,7 @@ pub struct Asked {
     pub take_over: Option<std::path::PathBuf>,
     pub merge: Option<std::path::PathBuf>,
     pub confirm: Option<String>,
+    pub force: bool,
 }
 
 pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode> {
@@ -24,6 +25,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         take_over,
         merge,
         confirm,
+        force,
     } = asked;
     let Some(Sync::Folder(dest)) = app.config().sync.clone() else {
         anyhow::bail!("{}", lang.get("no-remote"));
@@ -33,7 +35,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     let mut device = app.config().device_id.0.clone();
 
     if let Some(whose) = confirm {
-        return Ok(answered_for(app, &dest, &whose, lang));
+        return answered_for(app, &dest, &whose, force, lang);
     }
 
     let way = match (push, pull, again) {
@@ -204,11 +206,17 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     Ok(ExitCode::SUCCESS)
 }
 
-fn answered_for(app: &App, dest: &std::path::Path, whose: &str, lang: Lang) -> ExitCode {
+fn answered_for(
+    app: &App,
+    dest: &std::path::Path,
+    whose: &str,
+    force: bool,
+    lang: Lang,
+) -> anyhow::Result<ExitCode> {
     let who = tisty_core::DeviceId(whose.to_string());
     if !tisty_core::store::is_device_name(whose) {
         eprintln!("{}", lang.fill("not-a-machine", &[("id", whose)]));
-        return ExitCode::from(EXIT_ERROR);
+        return Ok(ExitCode::from(EXIT_ERROR));
     }
     let says =
         app.state.keys.get(&who).cloned().or_else(|| {
@@ -219,20 +227,27 @@ fn answered_for(app: &App, dest: &std::path::Path, whose: &str, lang: Lang) -> E
             "{}",
             lang.fill("machine-signs-with-nothing", &[("id", whose)])
         );
-        return ExitCode::from(EXIT_ERROR);
+        return Ok(ExitCode::from(EXIT_ERROR));
     };
+    println!(
+        "\n  {}",
+        style::dim(&lang.fill("machine-signs-with", &[("id", whose)]))
+    );
+    println!("  {says}\n");
+    if !crate::cmd::confirm(&lang.fill("confirm-key", &[("id", whose)]), force, lang)? {
+        return Ok(ExitCode::SUCCESS);
+    }
     if !tisty_core::vouched::confirm(app.paths.data(), &who, &says) {
         eprintln!("{}", lang.fill("key-not-answered-for", &[("id", whose)]));
-        return ExitCode::from(EXIT_ERROR);
+        return Ok(ExitCode::from(EXIT_ERROR));
     }
     carrier::turned::let_through(app.paths.data(), whose);
     println!(
-        "
-  {} {}",
+        "  {} {}",
         style::paint(style::GREEN, "✓"),
         lang.fill("key-answered-for", &[("id", whose), ("key", &says)])
     );
-    ExitCode::SUCCESS
+    Ok(ExitCode::SUCCESS)
 }
 
 fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
