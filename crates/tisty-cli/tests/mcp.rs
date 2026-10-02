@@ -4192,14 +4192,14 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
 
     let said = served.call(
         "propose",
-        serde_json::json!({ "title": "paint the door", "date": "2026-10-10", "deadline": "2026-10-01" }),
+        serde_json::json!({ "title": "paint the door", "date": on(8), "deadline": on(1) }),
     );
     assert_eq!(said["result"]["isError"], true, "{said}");
 
     let task = filed(&served, "paint the door");
     let moved = served.call(
         "reschedule",
-        serde_json::json!({ "task": &task, "date": "2026-10-10", "deadline": "2026-10-01" }),
+        serde_json::json!({ "task": &task, "date": on(8), "deadline": on(1) }),
     );
     assert_eq!(
         moved["result"]["isError"], true,
@@ -4207,7 +4207,7 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
     );
     let one = served.call(
         "reschedule",
-        serde_json::json!({ "task": &task, "deadline": "2026-10-01" }),
+        serde_json::json!({ "task": &task, "deadline": on(1) }),
     );
     assert_ne!(
         one["result"]["isError"].as_bool(),

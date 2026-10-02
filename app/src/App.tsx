@@ -712,7 +712,7 @@ export default function App() {
         const now = why?.why ?? null;
         if (now === wasAwry.current) return;
         wasAwry.current = now;
-        if (why?.why === "broke") {
+        if (why?.why === "broke" || why?.why === "amiss") {
           setNote(why.said);
           setTimeout(() => setNote(null), 6000);
         }
