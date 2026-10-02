@@ -101,7 +101,12 @@ pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct Carried(std::collections::BTreeMap<String, String>);
+pub struct Carried {
+    #[serde(default)]
+    prints: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    up_to: Option<String>,
+}
 
 fn ledger(data: &Path) -> PathBuf {
     data.join("carried.json")
@@ -132,10 +137,16 @@ pub(super) fn kept_still(data: &Path, id: &str, was: &str, left: &str) -> Result
 
 impl Carried {
     pub fn read(data: &Path) -> Self {
-        std::fs::read_to_string(ledger(data))
-            .ok()
-            .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_default()
+        let Ok(said) = std::fs::read_to_string(ledger(data)) else {
+            return Self::default();
+        };
+        if let Ok(prints) = serde_json::from_str(&said) {
+            return Self {
+                prints,
+                up_to: None,
+            };
+        }
+        serde_json::from_str(&said).unwrap_or_default()
     }
 
     pub fn save(&self, data: &Path) -> Result<()> {
@@ -146,14 +157,31 @@ impl Carried {
     }
 
     pub fn of(&self, id: &str) -> Option<&str> {
-        self.0.get(id).map(String::as_str)
+        self.prints.get(id).map(String::as_str)
     }
 
     pub fn keep(&mut self, id: &str, print: &str) {
-        self.0.insert(id.to_string(), print.to_string());
+        self.prints.insert(id.to_string(), print.to_string());
     }
 
     pub fn forget(&mut self, id: &str) {
-        self.0.remove(id);
+        self.prints.remove(id);
+    }
+
+    pub fn facing(&mut self, dest: &Path, been_here: bool) -> bool {
+        if self
+            .up_to
+            .as_deref()
+            .is_some_and(|kept| crate::paths::is_the_one(kept, dest))
+        {
+            return false;
+        }
+        if self.up_to.is_none() && been_here && !self.prints.is_empty() {
+            self.up_to = Some(crate::paths::told_of(dest));
+            return false;
+        }
+        self.prints.clear();
+        self.up_to = Some(crate::paths::told_of(dest));
+        true
     }
 }

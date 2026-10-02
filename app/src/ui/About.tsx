@@ -1,4 +1,3 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import copypaste from "../assets/copypaste.png";
 import linkunbound from "../assets/linkunbound.png";
@@ -6,6 +5,7 @@ import {
   about,
   type About as Build,
   notices,
+  openLink,
   type Ready,
   type Underway,
   updateCandidates,
@@ -172,7 +172,7 @@ export default function About({
               )}
             </span>
             {!step && newer.coming && (
-              <button type="button" onClick={() => openUrl(SHELF).catch(onError)} className={mild}>
+              <button type="button" onClick={() => openLink(SHELF).catch(onError)} className={mild}>
                 {t("updateOpenShop")}
               </button>
             )}
@@ -251,7 +251,7 @@ export default function About({
             wide={!build?.keptByTheStore}
             said={t("supportStar")}
             where="github.com/rgdevment/Tisty"
-            onPick={() => openUrl(STARS).catch(onError)}
+            onPick={() => openLink(STARS).catch(onError)}
           >
             <path
               fill="#e3b341"
@@ -262,7 +262,7 @@ export default function About({
             <Gives
               said={t("supportRate")}
               where="Microsoft Store"
-              onPick={() => openUrl(RATING).catch(onError)}
+              onPick={() => openLink(RATING).catch(onError)}
             >
               <path
                 fill="#0078d4"
@@ -273,7 +273,7 @@ export default function About({
           <Gives
             said={t("supportSponsor")}
             where="github.com/sponsors"
-            onPick={() => openUrl(SPONSOR).catch(onError)}
+            onPick={() => openLink(SPONSOR).catch(onError)}
           >
             <path
               fill="#db61a2"
@@ -283,7 +283,7 @@ export default function About({
           <Gives
             said={t("supportCoffee")}
             where="buymeacoffee.com"
-            onPick={() => openUrl(COFFEE).catch(onError)}
+            onPick={() => openLink(COFFEE).catch(onError)}
           >
             <path
               fill="#c8892a"
@@ -297,7 +297,7 @@ export default function About({
           <button
             key={tool.name}
             type="button"
-            onClick={() => openUrl(tool.at).catch(onError)}
+            onClick={() => openLink(tool.at).catch(onError)}
             className="mb-2 flex w-full items-start gap-3 rounded-[10px] border border-hair px-3.5 py-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
           >
             <img src={tool.icon} alt="" className="mt-px size-6 shrink-0 rounded-md" />
@@ -317,14 +317,14 @@ export default function About({
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => openUrl(build.repository).catch(onError)}
+              onClick={() => openLink(build.repository).catch(onError)}
               className={mild}
             >
               {t("aboutRepo")}
             </button>
             <button
               type="button"
-              onClick={() => openUrl(ALTERNATIVE).catch(onError)}
+              onClick={() => openLink(ALTERNATIVE).catch(onError)}
               className={mild}
             >
               {t("aboutAlternative")}
