@@ -7,6 +7,7 @@ mod desktop;
 mod finding;
 mod glimpse;
 mod herald;
+mod linking;
 mod refusing;
 mod report;
 mod session;
@@ -609,6 +610,10 @@ pub fn unreach() -> std::io::Result<bool> {
     reached
 }
 
+pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
+    std::fs::canonicalize(at).unwrap_or_else(|_| at.to_path_buf())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let session = match Session::open() {
@@ -667,7 +672,7 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
     app.handle()
         .asset_protocol_scope()
-        .allow_directory(&attachments, true)?;
+        .allow_directory(as_asked_for(&attachments), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
         capture: worded(&session.locale, "capture"),
@@ -702,11 +707,12 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             Some(tisty_core::config::Sync::Folder(dest)) => vec![dest.join("attachments")],
             _ => Vec::new(),
         };
+        let _ = std::fs::create_dir_all(held.paths.docs());
         for at in [held.paths.attachments(), held.paths.docs()]
             .into_iter()
             .chain(shared)
         {
-            if let Err(e) = seen.allow_directory(&at, true) {
+            if let Err(e) = seen.allow_directory(as_asked_for(&at), true) {
                 witness::warn(
                     channel::WINDOW,
                     "attachments will not show",
@@ -863,6 +869,7 @@ pub fn run() {
             answers::storing::roomy,
             answers::attaching::opened,
             answers::storing::revealed,
+            linking::open_link,
             answers::storing::sync_state,
             answers::storing::choose_sync,
             answers::storing::sync_now,
@@ -875,6 +882,7 @@ pub fn run() {
             answers::storing::joining,
             answers::storing::folder_astir,
             answers::storing::remove_machine,
+            answers::storing::confirm_machine_key,
             answers::storing::retire_attachment,
             answers::papers::settle_paper,
             answers::storing::paper_rifts,

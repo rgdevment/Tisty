@@ -26,7 +26,7 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], None, None, false)
+    carry_papers_leaning_on(data, dest, alive, &[], None, None, false, false)
 }
 
 pub fn carry_papers_holding(
@@ -35,9 +35,10 @@ pub fn carry_papers_holding(
     alive: &[String],
     shut: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, None, None, false)
+    carry_papers_leaning_on(data, dest, alive, shut, None, None, false, false)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn carry_papers_leaning_on(
     data: &Path,
     dest: &Path,
@@ -46,6 +47,7 @@ pub(crate) fn carry_papers_leaning_on(
     empty: Option<&[String]>,
     printed: Option<&std::collections::BTreeMap<String, String>>,
     again: bool,
+    been_here: bool,
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
 
@@ -54,6 +56,9 @@ pub(crate) fn carry_papers_leaning_on(
     straight(&there, dest)?;
     let was = Carried::read(data);
     let mut said = was.clone();
+    if said.facing(dest, been_here) {
+        tisty_core::docs::forget_what_was_carried(data);
+    }
     let mut prints = Prints::read(data);
     let asked = prints.clone();
     let mut done = Moved::default();
@@ -98,7 +103,20 @@ pub(crate) fn carry_papers_leaning_on(
 
             let yours = a_body(yours, &theirs, told_empty || !holds_bytes(&mine), id);
 
-            match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
+            let how = match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
+                Move::Bring | Move::TheyDecide
+                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
+                {
+                    done.undecided.push(Undecided {
+                        id: id.clone(),
+                        theirs: yours.unwrap_or_default(),
+                    });
+                    continue;
+                }
+                one => one,
+            };
+
+            match how {
                 Move::Nothing => {
                     if again && mine.is_file() {
                         std::fs::create_dir_all(&there).map_err(io)?;
@@ -123,11 +141,6 @@ pub(crate) fn carry_papers_leaning_on(
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
-                }
-                Move::Bring | Move::TheyDecide
-                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
-                {
-                    done.astray.push(id.clone());
                 }
                 Move::Bring if shut.contains(id) => {
                     witness::warn(
@@ -164,7 +177,7 @@ pub(crate) fn carry_papers_leaning_on(
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, dest, id, &mine, &theirs) {
+                    match joined(data, dest, id, &mine, &theirs, said.of(id)) {
                         Some(whole) => {
                             write(&mine, whole.as_bytes())?;
                             copy_onto(&mine, &theirs)?;
@@ -250,7 +263,7 @@ fn answered_for(print: Option<&String>, says: Option<&String>, id: &str) -> bool
         (Some(print), Some(says)) if print != says => {
             witness::warn(
                 channel::SYNC,
-                "the folder holds a body the log does not answer for, so this turn leaves it there",
+                "the folder holds a body the log does not answer for, so the person decides it",
                 &[("at", Fact::Id(id.to_string()))],
             );
             false

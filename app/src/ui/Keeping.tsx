@@ -16,6 +16,7 @@ import {
   type Carrying,
   checked,
   chooseSync,
+  confirmMachineKey,
   copied,
   docAdopt,
   docDrop,
@@ -80,6 +81,7 @@ import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
 import Keepers from "./Keepers";
+import { Asked, hushed, hushedName, MachineList } from "./Keys";
 import Modal from "./Modal";
 
 const carried = {
@@ -95,6 +97,7 @@ type Which =
   | "backup"
   | "restore"
   | "review"
+  | "machines"
   | "terminal"
   | "quick"
   | "waking"
@@ -148,6 +151,8 @@ export default function Keeping({
   const [typed, setTyped] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
+  const [keyOf, setKeyOf] = useState<Machine | null>(null);
+  const [astray, setAstray] = useState<Machine | null>(null);
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
   const [alike, setAlike] = useState<Twins[] | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
@@ -455,6 +460,26 @@ export default function Keeping({
       .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
   };
 
+  // A refusal says "look again", so the window is the one that looks: leaving the stale key and a
+  // live button on the row is how somebody clicks the same refusal forever.
+  const confirmKey = (one: Machine) => {
+    if (held || !one.signs) return;
+    const said = one.signs;
+    setKeyOf(null);
+    run(
+      "machines",
+      confirmMachineKey(one.id, said)
+        .then(() => null)
+        .catch((e) => saidPlainly(e))
+        .then((amiss) => checked().then((now) => ({ amiss, now }))),
+      ({ amiss, now }) => {
+        setAudit(now);
+        if (amiss) setTrouble({ card: "machines", text: amiss });
+        else setSaid({ card: "machines", text: t("machineKeyDone") });
+      },
+    );
+  };
+
   const dropMachine = (one: Machine) => {
     if (held) return;
     const said = `${fill("machineDropSure", one.called)}\n\n${fill(
@@ -465,12 +490,12 @@ export default function Keeping({
       .then(
         (sure) =>
           sure &&
-          run("review", removeMachine(one.id).then(checked), (now) => {
+          run("machines", removeMachine(one.id).then(checked), (now) => {
             setAudit(now);
-            setSaid({ card: "review", text: t("machineDropped") });
+            setSaid({ card: "machines", text: t("machineDropped") });
           }),
       )
-      .catch((e) => setTrouble({ card: "review", text: saidPlainly(e) }));
+      .catch((e) => setTrouble({ card: "machines", text: saidPlainly(e) }));
   };
 
   const takeBackup = () => {
@@ -576,6 +601,16 @@ export default function Keeping({
           </div>
         </Modal>
       )}
+      <Asked
+        keyOf={keyOf}
+        astray={astray}
+        busy={held}
+        onConfirm={confirmKey}
+        onClose={() => {
+          setKeyOf(null);
+          setAstray(null);
+        }}
+      />
       {picking && (
         <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
           <p className="mb-4 text-[12.5px] leading-relaxed text-soft">{t("keepersWhy")}</p>
@@ -1403,59 +1438,21 @@ export default function Keeping({
 
             <Group label={t("theMachines")} />
 
-            <Card title={t("theMachines")} which="review" busy={busy} said={said} trouble={trouble}>
+            <Card
+              title={t("theMachines")}
+              which="machines"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
               <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
-              {audit && (
-                <ul className="mt-2 flex flex-col gap-1 text-[12.5px]">
-                  {audit.machines.map((one) => (
-                    <li
-                      key={one.id}
-                      className={`flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2 ${
-                        one.mine ? "bg-accent-soft" : ""
-                      }`}
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-[13px] font-semibold">
-                          {one.called}
-                          {one.mine && (
-                            <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
-                              {t("machineHere")}
-                            </span>
-                          )}
-                        </span>
-                        <span
-                          className={`block text-[12.5px] ${hushed(one) ? "text-ink" : "text-soft"}`}
-                        >
-                          {one.when === 0 ? t("machineNever") : dated(one.when)}
-                        </span>
-                        <span className="block font-mono text-[10.5px] break-all text-faint">
-                          {one.id}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2.5">
-                        {one.mine ? (
-                          <span className="text-[12.5px] text-faint">{t("machineNeverDrop")}</span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={held}
-                            onClick={() => dropMachine(one)}
-                            className="rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-urgent hover:text-urgent disabled:text-faint"
-                          >
-                            {t("machineDrop")}
-                          </button>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {audit?.machines.some(hushed) && (
-                <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("machineHushed")}</p>
-              )}
-              {audit && audit.machines.length === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("machinesNone")}</p>
-              )}
+              <MachineList
+                all={audit?.machines ?? null}
+                busy={held}
+                onKey={setKeyOf}
+                onAstray={setAstray}
+                onDrop={dropMachine}
+              />
             </Card>
 
             <Card title={t("tagsRead")} which="tagging" busy={busy} said={said} trouble={trouble}>
@@ -1595,10 +1592,12 @@ export default function Keeping({
               )}
             </Card>
 
-            <Group label={fill("upkeepWaiting", hushedName(audit) ?? t("theMachines"))} />
+            <Group
+              label={fill("upkeepWaiting", hushedName(audit?.machines ?? []) ?? t("theMachines"))}
+            />
 
             <Card
-              title={fill("upkeepWaiting", hushedName(audit) ?? t("theMachines"))}
+              title={fill("upkeepWaiting", hushedName(audit?.machines ?? []) ?? t("theMachines"))}
               which="review"
               busy={busy}
               said={said}
@@ -1617,9 +1616,9 @@ export default function Keeping({
                         <span className="block font-mono text-[10.5px] text-faint">{one.file}</span>
                       </span>
                       <span className="flex shrink-0 items-baseline gap-2.5">
-                        {hushedName(audit) ? (
+                        {hushedName(audit?.machines ?? []) ? (
                           <span className="text-[11.5px] text-faint">
-                            {fill("upkeepForgetWaits", hushedName(audit) ?? "")}
+                            {fill("upkeepForgetWaits", hushedName(audit?.machines ?? []) ?? "")}
                           </span>
                         ) : (
                           <button
@@ -1782,14 +1781,7 @@ export default function Keeping({
   );
 }
 
-const HUSHED = 7 * 24 * 60 * 60;
 const QUIET_DAYS = 3;
-
-const hushedName = (audit: Reviewed | null): string | null =>
-  audit?.machines.find(hushed)?.called ?? null;
-
-const hushed = (one: Machine): boolean =>
-  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
 
 const dated = (when: number): string => {
   const at = new Date(when * 1000);
@@ -1941,6 +1933,7 @@ const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   backup: "backup",
   restore: "restoreTitle",
   review: "review",
+  machines: "theMachines",
   brittle: "brittleAre",
   terminal: "terminal",
   quick: "quick",

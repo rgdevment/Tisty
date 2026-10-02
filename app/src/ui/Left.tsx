@@ -1,6 +1,5 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { useAsked } from "../asked";
-import { revealed, taskLeft } from "../core";
+import { openLink, revealed, taskLeft } from "../core";
 import { weigh } from "../format";
 import { t } from "../locales";
 
@@ -62,7 +61,7 @@ function reach(
 ): (() => void) | undefined {
   const slip = (problem: unknown) => onError?.(problem);
   if (doc) return onDoc ? () => onDoc(doc) : undefined;
-  if (one.kind === "link") return () => void openUrl(one.target).catch(slip);
+  if (one.kind === "link") return () => void openLink(one.target).catch(slip);
   if (one.kind === "file") return () => void revealed(decodeURI(one.target)).catch(slip);
   return undefined;
 }

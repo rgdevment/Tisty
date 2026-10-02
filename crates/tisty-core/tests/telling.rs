@@ -256,19 +256,22 @@ ls
 }
 
 #[test]
-fn a_note_of_what_a_document_said_is_one_an_older_build_can_walk_past() {
+fn a_note_of_what_a_document_said_is_one_no_build_may_walk_past() {
     let op = tisty_core::Op::DocSaid {
         id: ulid::Ulid::generate(),
         d: tisty_core::event::Said {
             title: "Lo que dice".into(),
-            bytes: Some(12),
+            bytes: Some(0),
             tags: Some(Vec::new()),
             by: None,
             print: None,
         },
     };
 
-    assert!(op.is_optional(), "un lector viejo se atragantaria con ella");
+    assert!(
+        !op.is_optional(),
+        "a reader that walks past this cannot tell a body somebody emptied from one the folder truncated, and writes the old one back over it"
+    );
     assert!(op.settles(), "sin esto, deshacer se rompe tras escribir");
 }
 
@@ -425,7 +428,7 @@ fn a_log_written_before_the_note_existed_still_opens() {
 }
 
 #[test]
-fn the_note_goes_out_marked_so_an_older_build_skips_it() {
+fn the_note_goes_out_unmarked_so_an_older_build_stops_rather_than_guesses() {
     let room = tempfile::tempdir().unwrap();
     let store = room.path().join("store");
     let mut open = tisty_core::Store::open(&store, tisty_core::DeviceId("uno".into())).unwrap();
@@ -441,17 +444,35 @@ fn the_note_goes_out_marked_so_an_older_build_skips_it() {
         },
     })
     .unwrap();
+    open.append(tisty_core::Op::DeviceHost {
+        d: tisty_core::DeviceId("dev_agent".into()),
+        of: tisty_core::DeviceId("uno".into()),
+    })
+    .unwrap();
 
     let raw = std::fs::read_to_string(store.join("uno").join("active.tisty")).unwrap();
+    let said = raw
+        .lines()
+        .find(|one| one.contains("doc.said"))
+        .expect("the note was written");
+    let note: tisty_core::event::Event = serde_json::from_str(said).expect("it reads back");
 
-    assert!(raw.contains("doc.said"), "{raw}");
     assert!(
-        raw.contains("\"opt\":true"),
-        "sin la marca, un Tisty anterior se niega a abrir el almacen: {raw}"
+        !note.optional,
+        "con la marca, un Tisty anterior la salta y confunde un cuerpo vaciado con uno truncado: {said}"
     );
     assert!(
         raw.contains(&format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION)),
         "la nota va con la version del formato en vigor: {raw}"
+    );
+
+    let where_an_agent_lives = raw
+        .lines()
+        .find(|one| one.contains("device.host"))
+        .expect("the line about the agent was written");
+    assert!(
+        where_an_agent_lives.contains("\"opt\":true"),
+        "the mark reaches the wire under this spelling and no other, or a reader that does not know the name refuses the store as corruption instead of walking past it: {where_an_agent_lives}"
     );
 }
 
@@ -534,4 +555,41 @@ fn a_mark_written_into_the_text_is_something_the_editor_can_keep() {
         tisty_core::docs::survives(bad).is_err(),
         "acepto cualquier cosa: {bad}"
     );
+}
+
+#[test]
+fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
+    let costly = [
+        tisty_core::Op::AttachKept {
+            d: tisty_core::event::Held {
+                at: "attachments/ab/one.pdf".into(),
+                sha256: "ab".repeat(32),
+                bytes: 4,
+            },
+        },
+        tisty_core::Op::AttachLetGo {
+            d: "attachments/ab/one.pdf".into(),
+        },
+        tisty_core::Op::DeviceKey {
+            d: tisty_core::DeviceId("dev_a".into()),
+            p: "ab".repeat(32),
+        },
+        tisty_core::Op::DocSaid {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::Said {
+                title: "Lo que dice".into(),
+                bytes: Some(0),
+                tags: Some(Vec::new()),
+                by: None,
+                print: None,
+            },
+        },
+    ];
+
+    for one in costly {
+        assert!(
+            !one.is_optional(),
+            "an older build walking past this loses something it cannot get back: {one:?}"
+        );
+    }
 }
