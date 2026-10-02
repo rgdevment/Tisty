@@ -65,6 +65,7 @@ pub struct Moved {
     /// Machines whose history carries a signature that does not answer to the key they published.
     pub disowned: Vec<String>,
     pub astray: Vec<String>,
+    pub unprojected: bool,
     pub joined: Vec<String>,
     pub arrived: Vec<String>,
     pub let_go: Vec<String>,
@@ -176,6 +177,7 @@ pub fn carry_telling(
             &[],
         );
         moved.astray = alive;
+        moved.unprojected = true;
         if giving {
             shape::stamp(data, dest);
         }
@@ -924,6 +926,9 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     let theirs = tisty_core::docs::resolve(&dest.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;
     let mut said = Carried::read(data);
+    if said.facing(dest) {
+        tisty_core::docs::forget_what_was_carried(data);
+    }
     plainly(&theirs)?;
     plainly(&mine)?;
 

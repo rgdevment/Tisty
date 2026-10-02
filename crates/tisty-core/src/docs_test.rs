@@ -1680,6 +1680,49 @@ fn what_it_forgets_it_no_longer_answers_for() {
 }
 
 #[test]
+fn a_base_is_kept_for_the_folder_it_was_taken_against_and_dropped_in_any_other() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path();
+    let folder = tempfile::tempdir().unwrap();
+
+    let mut said = Carried::default();
+    assert!(said.facing(folder.path()), "a folder it never faced");
+    said.keep("mac0-0001", "abc123");
+    said.save(data).unwrap();
+
+    let mut again = Carried::read(data);
+    assert!(
+        !again.facing(folder.path()),
+        "the folder it was taken against was read as another one"
+    );
+    assert_eq!(again.of("mac0-0001"), Some("abc123"));
+
+    let elsewhere = tempfile::tempdir().unwrap();
+    assert!(again.facing(elsewhere.path()));
+    assert_eq!(
+        again.of("mac0-0001"),
+        None,
+        "a version the second folder never held was offered as what the two came from"
+    );
+}
+
+#[test]
+fn a_ledger_written_before_any_folder_was_named_is_a_base_for_none_of_them() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = tempfile::tempdir().unwrap();
+    std::fs::write(
+        room.path().join("carried.json"),
+        br#"{"mac0-0001":"abc123"}"#,
+    )
+    .unwrap();
+
+    let mut said = Carried::read(room.path());
+
+    assert!(said.facing(folder.path()));
+    assert_eq!(said.of("mac0-0001"), None);
+}
+
+#[test]
 fn a_ledger_that_is_not_there_answers_for_nothing_instead_of_failing() {
     let room = tempfile::tempdir().unwrap();
 

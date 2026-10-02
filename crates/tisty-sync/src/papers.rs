@@ -54,6 +54,9 @@ pub(crate) fn carry_papers_leaning_on(
     straight(&there, dest)?;
     let was = Carried::read(data);
     let mut said = was.clone();
+    if said.facing(dest) {
+        tisty_core::docs::forget_what_was_carried(data);
+    }
     let mut prints = Prints::read(data);
     let asked = prints.clone();
     let mut done = Moved::default();
@@ -98,7 +101,20 @@ pub(crate) fn carry_papers_leaning_on(
 
             let yours = a_body(yours, &theirs, told_empty || !holds_bytes(&mine), id);
 
-            match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
+            let how = match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
+                Move::Bring | Move::TheyDecide
+                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
+                {
+                    done.undecided.push(Undecided {
+                        id: id.clone(),
+                        theirs: yours.unwrap_or_default(),
+                    });
+                    continue;
+                }
+                one => one,
+            };
+
+            match how {
                 Move::Nothing => {
                     if again && mine.is_file() {
                         std::fs::create_dir_all(&there).map_err(io)?;
@@ -123,11 +139,6 @@ pub(crate) fn carry_papers_leaning_on(
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
                     }
-                }
-                Move::Bring | Move::TheyDecide
-                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
-                {
-                    done.astray.push(id.clone());
                 }
                 Move::Bring if shut.contains(id) => {
                     witness::warn(
@@ -250,7 +261,7 @@ fn answered_for(print: Option<&String>, says: Option<&String>, id: &str) -> bool
         (Some(print), Some(says)) if print != says => {
             witness::warn(
                 channel::SYNC,
-                "the folder holds a body the log does not answer for, so this turn leaves it there",
+                "the folder holds a body the log does not answer for, so the person decides it",
                 &[("at", Fact::Id(id.to_string()))],
             );
             false

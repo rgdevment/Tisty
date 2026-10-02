@@ -433,6 +433,7 @@ pub async fn sync_now(
             unreadable: Vec::new(),
             disowned: Vec::new(),
             astray: Vec::new(),
+            unprojected: false,
             joined: Vec::new(),
         });
     };
@@ -586,6 +587,7 @@ pub async fn sync_now(
         unreadable: done.unreadable,
         disowned: done.disowned,
         astray: done.astray,
+        unprojected: done.unprojected,
         joined: done.joined,
     })
 }
@@ -598,6 +600,7 @@ pub struct Settled {
     unreadable: Vec<String>,
     disowned: Vec<String>,
     astray: Vec<String>,
+    unprojected: bool,
     joined: Vec<String>,
 }
 

@@ -620,10 +620,12 @@ export interface Settled {
   unreadable: string[];
   disowned: string[];
   astray: string[];
+  unprojected: boolean;
   joined: string[];
 }
 
 export const whatWentAmiss = (said: Settled) =>
+  (said.unprojected && "ownLogUnreadable") ||
   (said.astray?.length && "someDocsAstray") ||
   (said.disowned?.length && "someoneDisowned") ||
   (said.unreadable?.length && "someoneUnreadable") ||

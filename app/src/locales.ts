@@ -880,7 +880,9 @@ const en = {
   someJoined:
     "Changes made on both machines were put together in {name}. Nothing was asked because they did not touch the same place.",
   someDocsAstray:
-    "A document was left out of this sync because it could not be read — usually one past the size a document may weigh. It is still on this machine; it just did not travel.",
+    "A document was left out of this sync because it could not be read here — one past the size a document may weigh, or a file this machine cannot open. It is still on this machine; it just did not travel.",
+  ownLogUnreadable:
+    "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
@@ -2287,7 +2289,9 @@ const es: Catalog = {
   someJoined:
     "Se juntaron los cambios de las dos máquinas en {name}. No se preguntó nada porque no tocaban el mismo sitio.",
   someDocsAstray:
-    "Un documento se quedó fuera de esta sincronización porque no se pudo leer — normalmente uno que pasa del tamaño que puede pesar un documento. Sigue en esta máquina; solo no viajó.",
+    "Un documento se quedó fuera de esta sincronización porque no se pudo leer aquí — uno que pasa del tamaño que puede pesar un documento, o un archivo que esta máquina no puede abrir. Sigue en esta máquina; solo no viajó.",
+  ownLogUnreadable:
+    "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:

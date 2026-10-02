@@ -100,6 +100,7 @@ same-lineage   = "that folder already held this same history: its identity was a
 papers-joined      = "changes from both machines were put together in: {names}"
 papers-undecided   = "written in both places and waiting on you, from the window: {names}"
 papers-astray      = "could not be read, so they did not travel: {names}"
+own-log-unreadable = "this machine's own log could not be read, so nothing travelled either way"
 machines-unreadable = "these machines' histories could not be read and were left out: {names}"
 machines-disowned   = "these machines' histories carry a signature that does not answer to the key kept for them, so none of what they hold was taken in: {names}. Either something changed those files after they were written, or they now sign with a key other than the one confirmed here"
 would-reset    = "that folder holds another history ({id}). Tisty does not merge two histories unless you ask, so pick one: `tisty sync --merge <backup.zip>` keeps both; `tisty sync --join <backup.zip>` leaves this machine holding what the folder holds; `tisty sync --take-over <backup.zip>` leaves the folder holding what this machine holds. All three back up first, and none can be undone"

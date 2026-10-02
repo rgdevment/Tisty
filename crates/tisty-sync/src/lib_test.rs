@@ -1677,6 +1677,10 @@ fn a_log_that_will_not_project_carries_no_body_either_way() {
     );
     assert_eq!(done.brought, 0);
     assert_eq!(done.astray, vec!["dev_a-0001".to_string()]);
+    assert!(
+        done.unprojected,
+        "a log nobody could read was told as a document nobody could read"
+    );
 }
 
 #[test]
@@ -2403,6 +2407,65 @@ fn a_base_wiped_from_under_us_is_written_again_on_the_next_round() {
     carry_papers(&one.data, shared.path(), &alive).unwrap();
 
     assert!(at.exists(), "la base para fusionar quedo perdida");
+}
+
+#[test]
+fn a_base_from_one_folder_is_not_leaned_on_in_another() {
+    let one = blank("dev_a");
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let alive = ["dev_a-0001".to_string()];
+    let mine = "# Minuta\n\nlo que la primera carpeta vio\n";
+    paper(&one, "dev_a-0001", mine);
+
+    carry_papers(&one.data, first.path(), &alive).unwrap();
+    theirs(
+        second.path(),
+        "dev_a-0001",
+        "# Minuta\n\notra rama entera\n",
+    );
+
+    let done = carry_papers(&one.data, second.path(), &alive).unwrap();
+
+    assert_eq!(
+        body(&one.data, "dev_a-0001"),
+        mine,
+        "a folder we had never compared against was taken for the newer side"
+    );
+    assert_eq!(done.brought, 0);
+    assert_eq!(done.undecided_ids(), alive);
+    assert!(
+        !one.data.join("carried").join("dev_a-0001.md").exists(),
+        "the body the first folder settled on stayed as the ancestor of a history it never had"
+    );
+}
+
+#[test]
+fn taking_up_another_folder_asks_only_about_what_the_two_sides_do_not_already_hold_alike() {
+    let one = blank("dev_a");
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let alive = ["dev_a-0001".to_string(), "dev_a-0002".to_string()];
+    paper(&one, "dev_a-0001", "# Igual\n");
+    paper(&one, "dev_a-0002", "# Distinto\n");
+
+    carry_papers(&one.data, first.path(), &alive).unwrap();
+    theirs(second.path(), "dev_a-0001", "# Igual\n");
+    theirs(second.path(), "dev_a-0002", "# Distinto\n\notra rama\n");
+
+    let done = carry_papers(&one.data, second.path(), &alive).unwrap();
+
+    assert_eq!(
+        done.undecided_ids(),
+        ["dev_a-0002".to_string()],
+        "losing the base turned a folder that agrees into a folder that argues"
+    );
+    assert_eq!(body(&one.data, "dev_a-0001"), "# Igual\n");
+    assert_eq!(
+        tisty_core::docs::carried_print(&one.data, "dev_a-0001"),
+        tisty_core::docs::print_of(&one.data.join("docs").join("dev_a-0001.md")).unwrap(),
+        "the base for the folder it faces now was not written"
+    );
 }
 
 #[test]
@@ -6281,7 +6344,7 @@ fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
 }
 
 #[test]
-fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
+fn a_body_the_log_does_not_answer_for_is_left_for_the_person_to_decide() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
     let body = "# Notas\n\nlo que escribi\n";
@@ -6310,12 +6373,21 @@ fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
     let moved = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     assert!(
-        moved.astray.contains(&"uno-0001".to_string()),
+        moved.undecided_ids().contains(&"uno-0001".to_string()),
         "a body nobody wrote down was taken in without a word"
+    );
+    assert!(
+        moved.astray.is_empty(),
+        "a document the person can still decide was filed as one nothing can be done about"
     );
     assert_eq!(
         std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
         body
+    );
+    assert_eq!(
+        std::fs::read_to_string(shared.path().join(PAPERS).join("uno-0001.md")).unwrap(),
+        "algo que nadie escribio\n",
+        "the side the person has not seen yet was written over"
     );
 }
 

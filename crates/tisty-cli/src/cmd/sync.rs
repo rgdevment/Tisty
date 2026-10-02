@@ -171,6 +171,9 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     };
     println!("\n  {} {}", style::paint(style::GREEN, "✓"), lang.get(told));
 
+    if moved.unprojected {
+        println!("  {}", style::dim(lang.get("own-log-unreadable")));
+    }
     for (many, word) in [
         (&moved.joined, "papers-joined"),
         (&moved.undecided_ids(), "papers-undecided"),
