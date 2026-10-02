@@ -310,3 +310,33 @@ fn a_machine_waiting_in_the_folder_is_listed_with_the_key_it_says_it_signs_with(
     assert_eq!(one.turned_away.as_deref(), Some("unconfirmed"));
     assert_eq!(one.when, 0, "it has never written here");
 }
+
+#[test]
+fn a_machine_the_person_removed_is_not_offered_back_because_it_kept_writing() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path().join("data");
+    std::fs::create_dir_all(&data).unwrap();
+    let paths = tisty_core::Paths::new(data.clone(), room.path().join("config"));
+    let gone: std::collections::BTreeSet<tisty_core::DeviceId> =
+        [tisty_core::DeviceId("dev_x".into())].into();
+    tisty_sync::turned::keep(
+        &data,
+        &[("dev_x".to_string(), tisty_sync::turned::Away::Unconfirmed)].into(),
+    );
+    let told = [wrote("mac0", 0)];
+
+    let all = machines(
+        &told,
+        "mac0",
+        &gone,
+        &Default::default(),
+        &Default::default(),
+        &paths,
+        None,
+    );
+
+    assert!(
+        all.iter().all(|one| one.id != "dev_x"),
+        "a machine the person dropped was offered back as one waiting to be let in"
+    );
+}

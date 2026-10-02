@@ -133,7 +133,8 @@ pub fn carry_telling(
     shape::before_reading(data, dest)?;
     let store = data.join(STORE);
     let again = matches!(way, Way::Again);
-    let ours = settled(&store, dest, carried_here(aside, dest) && !again)?;
+    let been_here = carried_here(aside, dest);
+    let ours = settled(&store, dest, been_here && !again)?;
 
     let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
     let giving = matches!(way, Way::Both | Way::Push | Way::Again);
@@ -142,7 +143,11 @@ pub fn carry_telling(
     let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        moved.brought = bring(data, &store, device, dest, &mut moved, &mut alike)?;
+        let adopting = !been_here
+            && tisty_core::vouched::all_confirmed(data)
+                .keys()
+                .all(|who| who.0.eq_ignore_ascii_case(device));
+        moved.brought = bring(data, &store, device, dest, adopting, &mut moved, &mut alike)?;
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);
@@ -722,15 +727,13 @@ fn bring(
     store: &Path,
     device: &str,
     dest: &Path,
+    adopting: bool,
     moved: &mut Moved,
     alike: &mut Alike,
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
     let mut knew: Option<tisty_core::store::Ledger> = None;
     let mut away: std::collections::BTreeMap<String, turned::Away> = Default::default();
-    let adopting = tisty_core::vouched::all_confirmed(data)
-        .keys()
-        .all(|who| who.0.eq_ignore_ascii_case(device));
     let at = dest.join(STORE);
     let entries = match std::fs::read_dir(&at) {
         Ok(entries) => entries,

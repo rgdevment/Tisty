@@ -1718,7 +1718,7 @@ fn joining_backs_the_machine_up_and_then_takes_what_the_folder_holds() {
 }
 
 #[test]
-fn the_first_machine_to_sync_does_not_shut_the_door_on_the_rest() {
+fn the_first_machine_to_sync_asks_about_the_rest_instead_of_shutting_the_door() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
 
@@ -1732,6 +1732,15 @@ fn the_first_machine_to_sync_does_not_shut_the_door_on_the_rest() {
     second.ok(&["sync"]);
     second.ok(&["call the bank"]);
     second.ok(&["sync"]);
+    first.ok(&["sync"]);
+
+    let waiting = first.ok(&["ls", "all"]);
+    assert!(
+        !waiting.contains("call the bank"),
+        "a machine that turned up in a folder this one had been using walked in: {waiting}"
+    );
+
+    first.ok(&["sync", "--confirm", &named(&second)]);
     first.ok(&["sync"]);
 
     let out = first.ok(&["ls", "all"]);

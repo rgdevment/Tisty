@@ -803,6 +803,8 @@ pub fn confirm_machine_key(
         return Err(Refusal::of("keyNotConfirmed"));
     }
 
+    tisty_sync::turned::let_through(session.paths.data(), &id);
+
     witness::note(
         channel::SYNC,
         "somebody answered for the key a machine signs with",

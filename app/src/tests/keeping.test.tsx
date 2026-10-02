@@ -998,6 +998,16 @@ describe("the maintenance panel", () => {
     expect(screen.queryByText(/not the confirmed one/i)).toBeNull();
   });
 
+  it("offers no confirm it could not carry out when the folder cannot say what it signs with", async () => {
+    theseMachines([aMachine({ signs: null, turnedAway: "unconfirmed" })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText(/^waiting$/i)).toBeTruthy();
+    expect(screen.getByText(/has not said what it signs with/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
+  });
+
   it("stops saying a machine waits once the round lets it in", async () => {
     theseMachines([
       aMachine({ signs: ONE, confirmed: ONE, confirmedWhen: 1_754_000_000, turnedAway: null }),

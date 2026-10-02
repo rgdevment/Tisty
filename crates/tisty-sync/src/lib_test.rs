@@ -7271,6 +7271,46 @@ fn the_first_folder_a_machine_ever_reaches_is_taken_up_whole() {
 }
 
 #[test]
+fn a_machine_that_shows_up_later_in_a_folder_we_already_use_waits_too() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let two = machine("dev_b");
+    let theirs = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let who = DeviceId(two.device.clone());
+    let key = tisty_core::signing::mine(&theirs, &who).expect("a key");
+    says(
+        &two,
+        Op::DeviceKey {
+            d: who.clone(),
+            p: tisty_core::signing::shown(&key),
+        },
+    );
+    let there = shared.path().join(STORE).join(&two.device);
+    std::fs::create_dir_all(&there).unwrap();
+    for found in std::fs::read_dir(two.store.join(&two.device)).unwrap() {
+        let found = found.unwrap().path();
+        std::fs::copy(&found, there.join(found.file_name().unwrap())).unwrap();
+    }
+
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.unconfirmed,
+        vec![two.device.clone()],
+        "a directory that turned up in a folder this machine has been using was taken on sight"
+    );
+    assert!(
+        !home_of(&one, &two.device).contains("lo de dev_b"),
+        "its history came home before anybody answered for its key"
+    );
+}
+
+#[test]
 fn a_machine_from_before_signing_is_not_left_waiting_for_a_key_it_never_had() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();

@@ -161,13 +161,15 @@ pub fn machines(
         })
         .collect();
     for (whose, away) in &away {
+        let who = tisty_core::DeviceId(whose.clone());
         if *away != tisty_sync::turned::Away::Unconfirmed
             || all.iter().any(|one| &one.id == whose)
             || !tisty_core::store::is_device_name(whose)
+            || gone.contains(&who)
+            || assistants.contains(&who)
         {
             continue;
         }
-        let who = tisty_core::DeviceId(whose.clone());
         let says = dest.and_then(|at| {
             tisty_core::store::key_said_in(&at.join(tisty_sync::STORE).join(whose), &who)
         });

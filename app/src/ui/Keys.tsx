@@ -256,10 +256,14 @@ function MachineRow({
           </span>
         ) : waiting(one) ? (
           <>
-            <span className="mt-0.5 block text-[11.5px] text-soft">
-              {t("machineSigns")}{" "}
-              <span className="font-mono text-ink">{briefly(standing(one) ?? "")}</span>
-            </span>
+            {standing(one) === null ? (
+              <span className="mt-0.5 block text-[11.5px] text-faint">{t("machineKeyNone")}</span>
+            ) : (
+              <span className="mt-0.5 block text-[11.5px] text-soft">
+                {t("machineSigns")}{" "}
+                <span className="font-mono text-ink">{briefly(standing(one) ?? "")}</span>
+              </span>
+            )}
             <span className="mt-0.5 block text-[11.5px] font-semibold text-hue-amber">
               {t("machineWaitsWhy")}
             </span>
@@ -291,7 +295,7 @@ function MachineRow({
           >
             {t("machineKeyAsk")}
           </button>
-        ) : waiting(one) || (standing(one) && !one.confirmed && !one.mine) ? (
+        ) : standing(one) && !one.confirmed && !one.mine ? (
           <button
             type="button"
             disabled={busy}
