@@ -21,7 +21,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { workspace = true }
 
 [target."cfg(windows)".dependencies]
-winreg = "0.55"
+winreg = "0.56"
 windows = { version = "0.62", features = [
   "ApplicationModel",
   "Management_Deployment",
@@ -30,7 +30,7 @@ windows = { version = "0.62", features = [
   "Win32_System_Com",
   "Win32_UI_Shell",
 ] }
-windows-future = "0.3"
+windows-future = "0.100"
 
 [dependencies]
 tisty-core.workspace = true
