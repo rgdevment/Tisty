@@ -117,7 +117,8 @@ impl Store {
         let active = self.dir.join(ACTIVE);
         let now = active_mark(&active).0;
         if let Ok(said) = std::fs::read_to_string(active.with_extension(crate::signing::SIG))
-            && let Some(held) = crate::signing::holds(&by, &self.about(ACTIVE), &said)
+            && let crate::signing::Holds::Covers(held) =
+                crate::signing::holds(&by, &self.about(ACTIVE), &said)
             && held.at <= now
         {
             return match read_from(&active, held.at) {
@@ -142,7 +143,11 @@ impl Store {
                 continue;
             }
             if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
-                && let Some(held) = crate::signing::holds(&by, &self.about(named), &said)
+                && let crate::signing::Holds::Covers(held) =
+                    crate::signing::holds(&by, &self.about(named), &said)
+                // A signature over a prefix leaves the rest of the segment out of the chain, and
+                // skipping it whole would sign a tip over bytes that were never folded in.
+                && std::fs::metadata(one).is_ok_and(|was| was.len() == held.at)
             {
                 tip = held.tip;
                 onward = at + 1;
@@ -160,6 +165,13 @@ impl Store {
                 return None;
             };
             tip = crate::signing::tip_of(tip, &said);
+            self.answers_for_what_it_closed(
+                one,
+                &crate::signing::Covers {
+                    tip,
+                    at: said.len() as u64,
+                },
+            );
         }
         Some(crate::signing::Covers { tip, at: now })
     }
@@ -171,8 +183,23 @@ impl Store {
         }
     }
 
+    fn answers_for_what_it_closed(&self, at: &Path, covers: &crate::signing::Covers) {
+        let named = at.file_name().and_then(|one| one.to_str());
+        if !named.is_some_and(is_closed) || at.with_extension(crate::signing::SIG).exists() {
+            return;
+        }
+        self.seal(at, covers);
+    }
+
     fn sign(&self, at: &Path) {
-        let (Some(key), Some(covers)) = (&self.signs, &self.covers) else {
+        let Some(covers) = self.covers else {
+            return;
+        };
+        self.seal(at, &covers);
+    }
+
+    fn seal(&self, at: &Path, covers: &crate::signing::Covers) {
+        let Some(key) = &self.signs else {
             return;
         };
         let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
@@ -633,6 +660,22 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
                 && segments_in(&e.path()).is_ok_and(|found| !found.is_empty())
         })
     })
+}
+
+pub fn key_said_in(device_dir: &Path, who: &DeviceId) -> Option<String> {
+    let segments = segments_in(device_dir).ok()?;
+    let mut events = Vec::new();
+    for segment in &segments {
+        let _ = read_segment(segment, &mut events);
+    }
+    events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    events
+        .iter()
+        .find_map(|one| match (&one.op, &one.device == who) {
+            (Op::DeviceKey { d, p }, true) if d == who => Some(p.clone()),
+            (Op::DeviceJoin { d, p: Some(p), .. }, true) if d == who => Some(p.clone()),
+            _ => None,
+        })
 }
 
 pub fn distinct_in(device_dir: &Path) -> Result<usize> {

@@ -1680,6 +1680,81 @@ fn what_it_forgets_it_no_longer_answers_for() {
 }
 
 #[test]
+fn a_base_is_kept_for_the_folder_it_was_taken_against_and_dropped_in_any_other() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path();
+    let folder = tempfile::tempdir().unwrap();
+
+    let mut said = Carried::default();
+    assert!(said.facing(folder.path(), false), "a folder it never faced");
+    said.keep("mac0-0001", "abc123");
+    said.save(data).unwrap();
+
+    let mut again = Carried::read(data);
+    assert!(
+        !again.facing(folder.path(), false),
+        "the folder it was taken against was read as another one"
+    );
+    assert_eq!(again.of("mac0-0001"), Some("abc123"));
+
+    let elsewhere = tempfile::tempdir().unwrap();
+    assert!(again.facing(elsewhere.path(), false));
+    assert_eq!(
+        again.of("mac0-0001"),
+        None,
+        "a version the second folder never held was offered as what the two came from"
+    );
+}
+
+#[test]
+fn a_ledger_written_before_any_folder_was_named_is_a_base_for_none_it_cannot_place() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = tempfile::tempdir().unwrap();
+    std::fs::write(
+        room.path().join("carried.json"),
+        br#"{"mac0-0001":"abc123"}"#,
+    )
+    .unwrap();
+
+    let mut said = Carried::read(room.path());
+
+    assert_eq!(
+        said.of("mac0-0001"),
+        Some("abc123"),
+        "the shape written before the folder was named was read as nothing at all"
+    );
+    assert!(said.facing(folder.path(), false));
+    assert_eq!(said.of("mac0-0001"), None);
+}
+
+#[test]
+fn a_ledger_written_before_any_folder_was_named_still_stands_where_this_machine_last_carried() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = tempfile::tempdir().unwrap();
+    std::fs::write(
+        room.path().join("carried.json"),
+        br#"{"mac0-0001":"abc123"}"#,
+    )
+    .unwrap();
+
+    let mut said = Carried::read(room.path());
+
+    assert!(
+        !said.facing(folder.path(), true),
+        "updating in place was read as carrying somewhere else"
+    );
+    assert_eq!(said.of("mac0-0001"), Some("abc123"));
+
+    said.save(room.path()).unwrap();
+    let mut again = Carried::read(room.path());
+    assert!(
+        !again.facing(folder.path(), false),
+        "the folder it was just given a name for was read as another one"
+    );
+    assert_eq!(again.of("mac0-0001"), Some("abc123"));
+}
+
+#[test]
 fn a_ledger_that_is_not_there_answers_for_nothing_instead_of_failing() {
     let room = tempfile::tempdir().unwrap();
 

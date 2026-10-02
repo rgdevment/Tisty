@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { carrying } from "../carrying";
+import { type Awry, carrying } from "../carrying";
+import { t } from "../locales";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -168,6 +169,28 @@ describe("carrying on its own", () => {
     await settle();
 
     expect(awry).toEqual([null]);
+  });
+
+  it("says a log of its own it cannot read instead of blaming the documents", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.resolve({
+            carried: "same",
+            undecided: [],
+            astray: ["dev_a-0001"],
+            unprojected: true,
+          });
+    const awry: Awry[] = [];
+
+    carried = carrying(
+      () => {},
+      () => {},
+      (why) => why && awry.push(why),
+    );
+    await settle();
+
+    expect(awry).toEqual([{ why: "amiss", said: t("ownLogUnreadable") }]);
   });
 
   it("hands over the documents at odds instead of dropping them", async () => {

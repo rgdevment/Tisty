@@ -56,6 +56,25 @@ name it was written under in its own `doc.add`. `doc.signed`, which re-signs a
 document already written, is **not** marked — dropping it would show the old
 name on one machine and the new one on the next.
 
+Schema 16 took the mark off four that had carried it, because each turns out to
+decide the fate of a file rather than add something to look at. `attach.kept`
+and `attach.let_go` are what the holders of a body are read from, and letting go
+of a local copy asks exactly that: a reader that walks past the release believes
+another machine still holds the body and lets go of the last one there is.
+`doc.said` is what says a body holds nothing, which is the only thing that tells
+a document somebody emptied from one the folder truncated — walk past it and the
+old body is written back over the emptying, and travels. `device.key` is a
+machine's own word for what it signs with, so walking past it is being unable to
+check a single signature and falling back to taking a history on trust.
+
+The mark is read only where the operation's **name** is one the reader has never
+met: a known operation written above the version it knows is refused whatever the
+mark says. So taking the mark off reaches exactly the builds that do not know the
+name — every release so far for `attach.kept`, `attach.let_go` and `device.key`,
+which no tag contains, and anything older than `doc.said` for that one. A build
+that does know the name is stopped by the fence instead, which is why the fence
+has to move with the mark.
+
 Some payload fields carry more than their name says:
 
 | Field | On | Meaning |
@@ -90,6 +109,16 @@ agree, and nothing outside them says which of the two is the later one. What
 answers for that is the closed segment that follows, whose chain runs through
 the rolled-back one — so only the active segment, the one nothing follows yet,
 is open to it.
+
+A key is a claim until somebody here answers for it. The first folder a machine
+reaches is taken up whole — it has nothing confirmed yet, so there is nobody to
+ask — and after that a machine appearing in that folder that nobody here
+answered for is left where it is: its history does not come in, the round says
+so, and the window shows its key to compare and confirm (`tisty sync --confirm`
+does the same from the command line). There is no telling a machine of yours
+coming back from a directory somebody planted without a person looking, so the
+person looks. What that machine wrote waits in the folder and arrives whole once
+its key is answered for.
 
 ### What a power cut leaves behind
 
@@ -1222,9 +1251,16 @@ matches is a file that matches and two machines cannot disagree about one — an
 on the way in the bytes are checked against that name.
 
 Document bodies travel by **three prints and no clock**: the local one, the
-folder's, and the last this machine carried. If one side moved, it is copied
-without asking. A clock would be worse than useless — a laptop waking up is an
-hour out, and that has already cost us a real bug.
+folder's, and the last this machine carried to that folder. If one side moved,
+it is copied without asking. A clock would be worse than useless — a laptop
+waking up is an hour out, and that has already cost us a real bug.
+
+That third print belongs to the folder it was taken against, so pointing Tisty
+at another one drops it, bodies and all. A version the new folder never held is
+not what the two of you came from, and leaning on it would copy one side over
+the other without ever comparing them. The price is paid once and in questions:
+what both sides already hold alike stays quiet, and only what differs is asked
+about.
 
 If both moved, the two versions are **merged block by block** before anyone is
 asked. The unit is the block — text between blank lines — which buys atomicity
@@ -1534,11 +1570,18 @@ document it had. A rejected move that emptied `page_of` would leave the person
 with a loose document nobody asked for, which is worse than the move not
 happening.
 
-**The schema is a fence, and it moved to 15.** Every event carries the version
+**The schema is a fence, and it moved to 16.** Every event carries the version
 that wrote it, and a store refuses a log written above the one it knows rather
 than reading half of it. The version rises when the same event would project
-differently, which is what happened here: `doc.archive` used to write a mark on
-every page of the document and now covers them instead. Two machines must both
+differently — `doc.archive`, which used to write a mark on every page of the
+document and now covers them instead, is what raised it to 15 — and it rises
+again when an operation stops being one a reader may walk past, which is what
+raised it to 16. Without the second rule the mark would come off at a version an
+older reader still accepts, and a reader that does not know the name has nowhere
+to go: it cannot parse the line, the mark is no longer there to excuse it, and it
+refuses the whole store as corruption. Moving the fence is what turns that into
+«you are behind», and what gives the folder's own guard something to read so it
+can turn the round away before a byte is copied. Two machines must both
 update before they sync again; the one left behind says so, and says that what
 is written there stays there until it does. The parcel carries its own version,
 raised to 2, but only when what it holds needs it — a parcel with nothing new to
@@ -1860,7 +1903,7 @@ down as an idea and not built.
 | Attachments | `<data>/attachments/` | yes |
 | Documents | `<data>/docs/` | yes, by three prints and no clock |
 | Attachment ledger | `<data>/attachments.jsonl` | **no** — local and rebuilt on demand |
-| Carried prints | `<data>/carried.json` | **no** — what this machine last carried |
+| Carried prints | `<data>/carried.json` | **no** — what this machine last carried, and to which folder |
 | Merge bases | `<data>/carried/` | **no** — the body each print stands for |
 | Highest name given out | `<data>/docs/.spent-<device>` | **no** — so a name is never reused |
 | Before a conversion | `<data>/originals/` | **no**, but it is in a backup |
