@@ -120,3 +120,34 @@ fn a_line_that_does_not_read_whole_is_no_confirmation() {
         assert_eq!(confirmed(&data, &who), None, "{line} stood as a key");
     }
 }
+
+#[test]
+fn answering_for_a_whole_list_leaves_out_what_already_stood() {
+    let (_room, data, paths) = a_place();
+    let one = DeviceId("dev_a".into());
+    let two = DeviceId("dev_b".into());
+    let keys: std::collections::BTreeMap<DeviceId, String> = [
+        (one.clone(), a_key(&paths, &one)),
+        (two.clone(), a_key(&paths, &two)),
+    ]
+    .into();
+    assert!(confirm(&data, &one, &keys[&one]));
+
+    assert_eq!(confirm_each(&data, &keys), 2, "it did not answer for both");
+    assert_eq!(all_confirmed(&data).len(), 2);
+    assert_eq!(
+        confirm_each(&data, &keys),
+        2,
+        "a second pass changed something"
+    );
+}
+
+#[test]
+fn answering_for_a_list_turns_away_what_is_not_a_key() {
+    let (_room, data, _paths) = a_place();
+    let keys: std::collections::BTreeMap<DeviceId, String> =
+        [(DeviceId("dev_a".into()), "not a key".to_string())].into();
+
+    assert_eq!(confirm_each(&data, &keys), 0);
+    assert!(all_confirmed(&data).is_empty());
+}

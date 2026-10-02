@@ -110,6 +110,16 @@ answers for that is the closed segment that follows, whose chain runs through
 the rolled-back one — so only the active segment, the one nothing follows yet,
 is open to it.
 
+A key is a claim until somebody here answers for it. The first folder a machine
+reaches is taken up whole — it has nothing confirmed yet, so there is nobody to
+ask — and after that a machine appearing in that folder that nobody here
+answered for is left where it is: its history does not come in, the round says
+so, and the window shows its key to compare and confirm (`tisty sync --confirm`
+does the same from the command line). There is no telling a machine of yours
+coming back from a directory somebody planted without a person looking, so the
+person looks. What that machine wrote waits in the folder and arrives whole once
+its key is answered for.
+
 ### What a power cut leaves behind
 
 A line is written whole or not at all, so one that will not parse at the very
@@ -1241,9 +1251,16 @@ matches is a file that matches and two machines cannot disagree about one — an
 on the way in the bytes are checked against that name.
 
 Document bodies travel by **three prints and no clock**: the local one, the
-folder's, and the last this machine carried. If one side moved, it is copied
-without asking. A clock would be worse than useless — a laptop waking up is an
-hour out, and that has already cost us a real bug.
+folder's, and the last this machine carried to that folder. If one side moved,
+it is copied without asking. A clock would be worse than useless — a laptop
+waking up is an hour out, and that has already cost us a real bug.
+
+That third print belongs to the folder it was taken against, so pointing Tisty
+at another one drops it, bodies and all. A version the new folder never held is
+not what the two of you came from, and leaning on it would copy one side over
+the other without ever comparing them. The price is paid once and in questions:
+what both sides already hold alike stays quiet, and only what differs is asked
+about.
 
 If both moved, the two versions are **merged block by block** before anyone is
 asked. The unit is the block — text between blank lines — which buys atomicity
@@ -1886,7 +1903,7 @@ down as an idea and not built.
 | Attachments | `<data>/attachments/` | yes |
 | Documents | `<data>/docs/` | yes, by three prints and no clock |
 | Attachment ledger | `<data>/attachments.jsonl` | **no** — local and rebuilt on demand |
-| Carried prints | `<data>/carried.json` | **no** — what this machine last carried |
+| Carried prints | `<data>/carried.json` | **no** — what this machine last carried, and to which folder |
 | Merge bases | `<data>/carried/` | **no** — the body each print stands for |
 | Highest name given out | `<data>/docs/.spent-<device>` | **no** — so a name is never reused |
 | Before a conversion | `<data>/originals/` | **no**, but it is in a backup |

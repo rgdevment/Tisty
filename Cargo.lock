@@ -5282,6 +5282,7 @@ dependencies = [
  "jiff",
  "log",
  "objc2",
+ "percent-encoding",
  "reqwest",
  "semver",
  "serde",

@@ -1,5 +1,4 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Editor as Writing } from "@tiptap/core";
 import type { Node as Written } from "@tiptap/pm/model";
 import { type EditorState, NodeSelection } from "@tiptap/pm/state";
@@ -13,6 +12,7 @@ import {
   glimpseFetch,
   glimpseKept,
   noteTrouble,
+  openLink,
   served,
   weighs,
 } from "../core";
@@ -743,7 +743,7 @@ export default function Editor({
             own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
           }),
     onWorld: (at) => {
-      void openUrl(at).catch(() => {});
+      void openLink(at).catch(() => {});
     },
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {

@@ -432,7 +432,9 @@ pub async fn sync_now(
             undecided: Vec::new(),
             unreadable: Vec::new(),
             disowned: Vec::new(),
+            unconfirmed: Vec::new(),
             astray: Vec::new(),
+            unprojected: false,
             joined: Vec::new(),
         });
     };
@@ -533,8 +535,11 @@ pub async fn sync_now(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
-    let unsettled =
-        done.undecided.len() + done.unreadable.len() + done.disowned.len() + done.astray.len();
+    let unsettled = done.undecided.len()
+        + done.unreadable.len()
+        + done.disowned.len()
+        + done.unconfirmed.len()
+        + done.astray.len();
     let facts = [
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
         ("sent", Fact::Count(done.sent)),
@@ -543,6 +548,7 @@ pub async fn sync_now(
         ("undecided", Fact::Count(done.undecided.len())),
         ("unreadable", Fact::Count(done.unreadable.len())),
         ("disowned", Fact::Count(done.disowned.len())),
+        ("unconfirmed", Fact::Count(done.unconfirmed.len())),
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
@@ -585,7 +591,9 @@ pub async fn sync_now(
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
         unreadable: done.unreadable,
         disowned: done.disowned,
+        unconfirmed: done.unconfirmed,
         astray: done.astray,
+        unprojected: done.unprojected,
         joined: done.joined,
     })
 }
@@ -597,7 +605,9 @@ pub struct Settled {
     undecided: Vec<String>,
     unreadable: Vec<String>,
     disowned: Vec<String>,
+    unconfirmed: Vec<String>,
     astray: Vec<String>,
+    unprojected: bool,
     joined: Vec<String>,
 }
 
@@ -780,12 +790,20 @@ pub fn confirm_machine_key(
 ) -> Answer<()> {
     let session = held(&session);
     let who = tisty_core::event::DeviceId(id.clone());
-    if session.state.keys.get(&who) != Some(&key) {
+    let says = session.state.keys.get(&who).cloned().or_else(|| {
+        let Some(tisty_core::config::Sync::Folder(at)) = &session.config.sync else {
+            return None;
+        };
+        tisty_core::store::key_said_in(&at.join(tisty_sync::STORE).join(&id), &who)
+    });
+    if says.as_deref() != Some(key.as_str()) {
         return Err(Refusal::of("keyMoved"));
     }
     if !tisty_core::vouched::confirm(session.paths.data(), &who, &key) {
         return Err(Refusal::of("keyNotConfirmed"));
     }
+
+    tisty_sync::turned::let_through(session.paths.data(), &id);
 
     witness::note(
         channel::SYNC,
