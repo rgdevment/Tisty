@@ -14,6 +14,7 @@ fn listed(
         assistants,
         &Default::default(),
         &tisty_core::Paths::new(nowhere.path().join("data"), nowhere.path().join("config")),
+        None,
     )
 }
 
@@ -199,6 +200,7 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
         &Default::default(),
         &keys,
         &paths,
+        None,
     );
     let one = before.iter().find(|one| one.id == "win1").unwrap();
     assert_eq!(one.signs.as_deref(), Some(said.as_str()));
@@ -213,6 +215,7 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
         &Default::default(),
         &keys,
         &paths,
+        None,
     );
     let one = after.iter().find(|one| one.id == "win1").unwrap();
     assert_eq!(one.confirmed.as_deref(), Some(said.as_str()));
@@ -254,6 +257,7 @@ fn this_machine_shows_the_key_it_really_signs_with_not_the_one_the_log_froze() {
         &Default::default(),
         &[(who.clone(), stale.clone())].into(),
         &paths,
+        None,
     );
 
     assert_eq!(
@@ -262,4 +266,47 @@ fn this_machine_shows_the_key_it_really_signs_with_not_the_one_the_log_froze() {
         "the row showed the key the log froze instead of the one on disk"
     );
     assert_ne!(all[0].signs.as_deref(), Some(stale.as_str()));
+}
+
+#[test]
+fn a_machine_waiting_in_the_folder_is_listed_with_the_key_it_says_it_signs_with() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path().join("data");
+    std::fs::create_dir_all(&data).unwrap();
+    let paths = tisty_core::Paths::new(data.clone(), room.path().join("config"));
+    let folder = tempfile::tempdir().unwrap();
+    let who = tisty_core::DeviceId("dev_x".into());
+    let said = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &who).unwrap());
+    let mut store =
+        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+    store
+        .append(tisty_core::Op::DeviceKey {
+            d: who.clone(),
+            p: said.clone(),
+        })
+        .unwrap();
+    drop(store);
+    tisty_sync::turned::keep(
+        &data,
+        &[("dev_x".to_string(), tisty_sync::turned::Away::Unconfirmed)].into(),
+    );
+    let told = [wrote("mac0", 0)];
+
+    let all = machines(
+        &told,
+        "mac0",
+        &Default::default(),
+        &Default::default(),
+        &Default::default(),
+        &paths,
+        Some(folder.path()),
+    );
+
+    let one = all
+        .iter()
+        .find(|one| one.id == "dev_x")
+        .expect("a machine waiting to be answered for is nowhere to be confirmed");
+    assert_eq!(one.signs.as_deref(), Some(said.as_str()));
+    assert_eq!(one.turned_away.as_deref(), Some("unconfirmed"));
+    assert_eq!(one.when, 0, "it has never written here");
 }

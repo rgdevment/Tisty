@@ -175,6 +175,8 @@ pub enum Command {
         take_over: Option<std::path::PathBuf>,
         #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull", "again", "join", "take_over"])]
         merge: Option<std::path::PathBuf>,
+        #[arg(long, value_name = "MACHINE", conflicts_with_all = ["push", "pull", "again", "join", "take_over", "merge"])]
+        confirm: Option<String>,
     },
     Doctor {
         #[arg(long)]

@@ -64,6 +64,7 @@ pub struct Moved {
     pub unreadable: Vec<String>,
     /// Machines whose history carries a signature that does not answer to the key they published.
     pub disowned: Vec<String>,
+    pub unconfirmed: Vec<String>,
     pub astray: Vec<String>,
     pub unprojected: bool,
     pub joined: Vec<String>,
@@ -592,14 +593,45 @@ fn answers_for_itself(
     theirs: &Path,
     named: &str,
     device: &str,
+    adopting: bool,
     knew: &mut Option<tisty_core::store::Ledger>,
     alike: &mut Alike,
 ) -> Answered {
     let who = tisty_core::DeviceId(named.to_string());
+    let ours = named.eq_ignore_ascii_case(device);
     let from = verified::of(data, dest, named);
-    if !anything_signed_in(theirs) {
+    let signed = anything_signed_in(theirs);
+    let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
+    if stood.is_none() && !ours && signed {
+        let says = match claimed(store, &who, knew) {
+            Ok(Some(claim)) => Some(claim),
+            Ok(None) if store.join(named).is_dir() => None,
+            Ok(None) => tisty_core::store::key_said_in(theirs, &who),
+            Err(()) => return Answered::Unreadable,
+        };
+        match says {
+            Some(says) if adopting && tisty_core::vouched::confirm(data, &who, &says) => {
+                witness::note(
+                    channel::SYNC,
+                    "reaching this folder for the first time answered for the key of a machine already writing in it",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+                stood = Some(says);
+            }
+            Some(_) => {
+                witness::note(
+                    channel::SYNC,
+                    "a machine says it signs what it writes and nobody here has answered for its key, so what it writes waits",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+                return Answered::Unconfirmed;
+            }
+            None => {}
+        }
+    }
+    if !signed {
         let owed = from.signing
-            || tisty_core::vouched::confirmed(data, &who).is_some()
+            || stood.is_some()
             || tisty_core::store::key_said_in(theirs, &who).is_some()
             || tisty_core::store::newest_schema(theirs)
                 .is_ok_and(|was| was >= tisty_core::event::SIGNED_FROM);
@@ -613,8 +645,8 @@ fn answers_for_itself(
         );
         return Answered::Disowned;
     }
-    let said = match tisty_core::vouched::confirmed(data, &who) {
-        Some(stood) => Some(stood.key),
+    let said = match stood {
+        Some(key) => Some(key),
         None => match claimed(store, &who, knew) {
             Ok(said) => said,
             Err(()) => return Answered::Unreadable,
@@ -624,7 +656,7 @@ fn answers_for_itself(
     let Some(by) = by else {
         // A machine we hold no key for has nothing to check — but our own name is not one of
         // those: a history signed under it that we cannot answer for is not ours to take back.
-        if !named.eq_ignore_ascii_case(device) {
+        if !ours {
             return Answered::Yes;
         }
         witness::warn(
@@ -682,6 +714,7 @@ enum Answered {
     Yes,
     Unreadable,
     Disowned,
+    Unconfirmed,
 }
 
 fn bring(
@@ -695,6 +728,9 @@ fn bring(
     let mut brought = 0;
     let mut knew: Option<tisty_core::store::Ledger> = None;
     let mut away: std::collections::BTreeMap<String, turned::Away> = Default::default();
+    let adopting = tisty_core::vouched::all_confirmed(data)
+        .keys()
+        .all(|who| who.0.eq_ignore_ascii_case(device));
     let at = dest.join(STORE);
     let entries = match std::fs::read_dir(&at) {
         Ok(entries) => entries,
@@ -745,6 +781,7 @@ fn bring(
                                 &entry.path(),
                                 named,
                                 device,
+                                adopting,
                                 &mut knew,
                                 alike,
                             ),
@@ -781,6 +818,7 @@ fn bring(
             &entry.path(),
             named,
             device,
+            adopting,
             &mut knew,
             alike,
         ) {
@@ -793,6 +831,11 @@ fn bring(
             Answered::Disowned => {
                 away.insert(named.to_string(), turned::Away::Disowned);
                 moved.disowned.push(named.to_string());
+                continue;
+            }
+            Answered::Unconfirmed => {
+                away.insert(named.to_string(), turned::Away::Unconfirmed);
+                moved.unconfirmed.push(named.to_string());
                 continue;
             }
         }
@@ -1011,6 +1054,7 @@ pub(crate) fn joined(
     id: &str,
     mine: &Path,
     theirs: &Path,
+    stood: Option<&str>,
 ) -> Option<String> {
     let gave_up = |why: &'static str| {
         witness::note(
@@ -1023,6 +1067,10 @@ pub(crate) fn joined(
     let Some(base) = tisty_core::docs::read_carried(data, id) else {
         return gave_up("no version they both came from");
     };
+    let printed = tisty_core::attach::printed(tisty_core::docs::settled(&base).as_bytes());
+    if Some(printed.as_str()) != stood {
+        return gave_up("the version kept beside it is not the one the ledger names");
+    }
     let Ok(ours) = std::fs::read_to_string(mine) else {
         return gave_up("this side could not be read");
     };

@@ -10,6 +10,7 @@ const KEPT: &str = ".turned-away";
 pub enum Away {
     Unreadable,
     Disowned,
+    Unconfirmed,
 }
 
 impl Away {
@@ -17,6 +18,7 @@ impl Away {
         match self {
             Away::Unreadable => "unreadable",
             Away::Disowned => "disowned",
+            Away::Unconfirmed => "unconfirmed",
         }
     }
 
@@ -24,6 +26,7 @@ impl Away {
         match said {
             "unreadable" => Some(Away::Unreadable),
             "disowned" => Some(Away::Disowned),
+            "unconfirmed" => Some(Away::Unconfirmed),
             _ => None,
         }
     }

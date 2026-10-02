@@ -26,6 +26,8 @@ export const astrayKey = (one: Machine): boolean =>
   one.turnedAway === "disowned" ||
   (Boolean(one.confirmed) && Boolean(one.signs) && one.confirmed !== one.signs);
 
+export const waiting = (one: Machine): boolean => one.turnedAway === "unconfirmed";
+
 const standing = (one: Machine): string | null => one.confirmed ?? one.signs ?? null;
 
 const dated = (when: number): string | null => {
@@ -225,7 +227,11 @@ function MachineRow({
   return (
     <li
       className={`flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2 ${
-        one.mine ? "bg-accent-soft" : ""
+        waiting(one)
+          ? "border border-hue-amber/40 bg-hue-amber/10"
+          : one.mine
+            ? "bg-accent-soft"
+            : ""
       }`}
     >
       <span className="min-w-0">
@@ -236,6 +242,11 @@ function MachineRow({
               {t("machineHere")}
             </span>
           )}
+          {waiting(one) && (
+            <span className="ml-2 rounded-full border border-hue-amber px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-hue-amber uppercase">
+              {t("machineWaits")}
+            </span>
+          )}
         </span>
         <span className={`block text-[12.5px] ${quiet ? "text-ink" : "text-soft"}`}>{wrote}</span>
         <span className="block font-mono text-[10.5px] break-all text-faint">{one.id}</span>
@@ -243,6 +254,16 @@ function MachineRow({
           <span className="mt-0.5 block text-[11.5px] font-semibold text-urgent">
             {t("machineKeyAstray")}
           </span>
+        ) : waiting(one) ? (
+          <>
+            <span className="mt-0.5 block text-[11.5px] text-soft">
+              {t("machineSigns")}{" "}
+              <span className="font-mono text-ink">{briefly(standing(one) ?? "")}</span>
+            </span>
+            <span className="mt-0.5 block text-[11.5px] font-semibold text-hue-amber">
+              {t("machineWaitsWhy")}
+            </span>
+          </>
         ) : standing(one) === null ? (
           <span className="mt-0.5 block text-[11.5px] text-faint">{t("machineKeyNone")}</span>
         ) : (
@@ -270,7 +291,7 @@ function MachineRow({
           >
             {t("machineKeyAsk")}
           </button>
-        ) : standing(one) && !one.confirmed && !one.mine ? (
+        ) : waiting(one) || (standing(one) && !one.confirmed && !one.mine) ? (
           <button
             type="button"
             disabled={busy}

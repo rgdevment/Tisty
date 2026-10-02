@@ -175,7 +175,7 @@ pub(crate) fn carry_papers_leaning_on(
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, dest, id, &mine, &theirs) {
+                    match joined(data, dest, id, &mine, &theirs, said.of(id)) {
                         Some(whole) => {
                             write(&mine, whole.as_bytes())?;
                             copy_onto(&mine, &theirs)?;

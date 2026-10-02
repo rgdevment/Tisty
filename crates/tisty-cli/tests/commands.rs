@@ -2161,7 +2161,7 @@ fn dropped(cli: &Cli, who: &str) {
 }
 
 #[test]
-fn a_removed_machine_comes_back_under_a_new_name_in_one_go() {
+fn a_removed_machine_that_comes_back_waits_until_somebody_answers_for_it() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
     let kept = tempfile::tempdir().unwrap();
@@ -2188,10 +2188,19 @@ fn a_removed_machine_comes_back_under_a_new_name_in_one_go() {
     second.ok(&["sync"]);
     first.ok(&["sync"]);
 
+    let waiting = first.ok(&["ls", "all"]);
+    assert!(
+        !waiting.contains("water the plants"),
+        "a machine nobody here answered for walked back in under a new name: {waiting}"
+    );
+
+    first.ok(&["sync", "--confirm", &named(&second)]);
+    first.ok(&["sync"]);
+
     let out = first.ok(&["ls", "all"]);
     assert!(
         out.contains("water the plants"),
-        "the machine that came back never reached the folder: {out}"
+        "answering for the machine that came back did not let it in: {out}"
     );
 }
 

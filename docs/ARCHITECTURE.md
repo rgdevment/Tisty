@@ -110,6 +110,16 @@ answers for that is the closed segment that follows, whose chain runs through
 the rolled-back one — so only the active segment, the one nothing follows yet,
 is open to it.
 
+A key is a claim until somebody here answers for it. The first folder a machine
+reaches is taken up whole — it has nothing confirmed yet, so there is nobody to
+ask — and after that a machine appearing in that folder that nobody here
+answered for is left where it is: its history does not come in, the round says
+so, and the window shows its key to compare and confirm (`tisty sync --confirm`
+does the same from the command line). There is no telling a machine of yours
+coming back from a directory somebody planted without a person looking, so the
+person looks. What that machine wrote waits in the folder and arrives whole once
+its key is answered for.
+
 ### What a power cut leaves behind
 
 A line is written whole or not at all, so one that will not parse at the very

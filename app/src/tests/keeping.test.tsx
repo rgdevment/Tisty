@@ -986,6 +986,29 @@ describe("the maintenance panel", () => {
     expect(screen.getByText(/^confirmed /i)).toBeTruthy();
   });
 
+  it("shows a machine nobody answered for as waiting, and offers to confirm it", async () => {
+    theseMachines([aMachine({ signs: ONE, turnedAway: "unconfirmed" })]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.getByText(/^waiting$/i)).toBeTruthy();
+    expect(screen.getByText(/nothing it writes comes in until you confirm it/i)).toBeTruthy();
+    expect(screen.getByText(/5c2a9d37/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^confirm$/i })).toBeTruthy();
+    expect(screen.queryByText(/not the confirmed one/i)).toBeNull();
+  });
+
+  it("stops saying a machine waits once the round lets it in", async () => {
+    theseMachines([
+      aMachine({ signs: ONE, confirmed: ONE, confirmedWhen: 1_754_000_000, turnedAway: null }),
+    ]);
+    await reviewed();
+
+    await screen.findByText(/win1-0002/);
+    expect(screen.queryByText(/^waiting$/i)).toBeNull();
+    expect(screen.getByText(/^confirmed /i)).toBeTruthy();
+  });
+
   it("looks again when a confirm is refused, so the stale key never stays on the row", async () => {
     theseMachines([aMachine({ signs: ONE })]);
     const otherwise = ipc.answer;

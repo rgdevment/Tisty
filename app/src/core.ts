@@ -454,7 +454,7 @@ export interface Machine {
   signs: string | null;
   confirmed: string | null;
   confirmedWhen: number;
-  turnedAway: "disowned" | "unreadable" | null;
+  turnedAway: "disowned" | "unreadable" | "unconfirmed" | null;
 }
 
 export interface Stray {
@@ -619,6 +619,7 @@ export interface Settled {
   undecided: string[];
   unreadable: string[];
   disowned: string[];
+  unconfirmed: string[];
   astray: string[];
   unprojected: boolean;
   joined: string[];
@@ -628,6 +629,7 @@ export const whatWentAmiss = (said: Settled) =>
   (said.unprojected && "ownLogUnreadable") ||
   (said.astray?.length && "someDocsAstray") ||
   (said.disowned?.length && "someoneDisowned") ||
+  (said.unconfirmed?.length && "someoneUnconfirmed") ||
   (said.unreadable?.length && "someoneUnreadable") ||
   null;
 
