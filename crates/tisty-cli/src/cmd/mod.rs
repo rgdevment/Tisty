@@ -67,6 +67,8 @@ pub fn dispatch(
             join,
             take_over,
             merge,
+            confirm,
+            force,
         } => sync::sync(
             app,
             sync::Asked {
@@ -76,6 +78,8 @@ pub fn dispatch(
                 join,
                 take_over,
                 merge,
+                confirm,
+                force,
             },
             lang,
         ),

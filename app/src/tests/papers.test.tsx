@@ -30,9 +30,9 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (at: string) => at,
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: () => Promise.resolve(null) }));
-vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: opener.url }));
 vi.mock("../core", async () => ({
   ...(await vi.importActual<typeof import("../core")>("../core")),
+  openLink: opener.url,
   docs: () => Promise.resolve({ folders: [], docs: shelf.docs }),
   opened: () => Promise.resolve(),
   revealed: opener.reveal,

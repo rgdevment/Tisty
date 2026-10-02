@@ -6,21 +6,18 @@ import About from "../ui/About";
 
 const opened = vi.hoisted(() => ({ urls: [] as string[] }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: (url: string) => {
-    opened.urls.push(url);
-    return Promise.resolve();
-  },
-}));
-
 const ipc = vi.hoisted(() => ({
   tries: 0,
   answer: (_cmd: string): Promise<unknown> => Promise.resolve(null),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+  invoke: (cmd: string, args?: Record<string, unknown>) => {
     if (cmd === "about") ipc.tries += 1;
+    if (cmd === "open_link") {
+      opened.urls.push(String(args?.url ?? ""));
+      return Promise.resolve(null);
+    }
     return ipc.answer(cmd);
   },
 }));

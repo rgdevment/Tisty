@@ -1532,3 +1532,28 @@ fn a_card_breaks_a_tie_the_way_the_person_ordered_it() {
         .collect();
     assert_eq!(named, by_hand);
 }
+
+#[test]
+fn the_door_is_opened_for_the_path_the_question_will_ask_about() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("attachments");
+    std::fs::create_dir_all(&at).unwrap();
+    let one = at.join("one.jpg");
+    std::fs::write(&one, b"x").unwrap();
+
+    let opened = crate::as_asked_for(&at);
+
+    assert_eq!(
+        std::fs::canonicalize(&one).unwrap().parent().unwrap(),
+        opened,
+        "the door was opened for a path the scope canonicalises away from"
+    );
+}
+
+#[test]
+fn a_folder_that_is_not_there_yet_is_named_as_it_was_given() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("not-made-yet");
+
+    assert_eq!(crate::as_asked_for(&at), at);
+}

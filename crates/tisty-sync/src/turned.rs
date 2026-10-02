@@ -10,6 +10,7 @@ const KEPT: &str = ".turned-away";
 pub enum Away {
     Unreadable,
     Disowned,
+    Unconfirmed,
 }
 
 impl Away {
@@ -17,6 +18,7 @@ impl Away {
         match self {
             Away::Unreadable => "unreadable",
             Away::Disowned => "disowned",
+            Away::Unconfirmed => "unconfirmed",
         }
     }
 
@@ -24,6 +26,7 @@ impl Away {
         match said {
             "unreadable" => Some(Away::Unreadable),
             "disowned" => Some(Away::Disowned),
+            "unconfirmed" => Some(Away::Unconfirmed),
             _ => None,
         }
     }
@@ -56,6 +59,15 @@ pub fn keep(data: &Path, away: &BTreeMap<String, Away>) {
         return;
     }
     let _ = tisty_core::store::write_atomic(&at, said.join("\n").as_bytes());
+}
+
+pub fn let_through(data: &Path, whose: &str) -> bool {
+    let mut away = of(data);
+    if away.remove(whose).is_none() {
+        return false;
+    }
+    keep(data, &away);
+    true
 }
 
 #[cfg(test)]

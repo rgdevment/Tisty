@@ -1718,7 +1718,7 @@ fn joining_backs_the_machine_up_and_then_takes_what_the_folder_holds() {
 }
 
 #[test]
-fn the_first_machine_to_sync_does_not_shut_the_door_on_the_rest() {
+fn the_first_machine_to_sync_asks_about_the_rest_instead_of_shutting_the_door() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
 
@@ -1732,6 +1732,15 @@ fn the_first_machine_to_sync_does_not_shut_the_door_on_the_rest() {
     second.ok(&["sync"]);
     second.ok(&["call the bank"]);
     second.ok(&["sync"]);
+    first.ok(&["sync"]);
+
+    let waiting = first.ok(&["ls", "all"]);
+    assert!(
+        !waiting.contains("call the bank"),
+        "a machine that turned up in a folder this one had been using walked in: {waiting}"
+    );
+
+    first.ok(&["sync", "--confirm", &named(&second), "--force"]);
     first.ok(&["sync"]);
 
     let out = first.ok(&["ls", "all"]);
@@ -2161,7 +2170,7 @@ fn dropped(cli: &Cli, who: &str) {
 }
 
 #[test]
-fn a_removed_machine_comes_back_under_a_new_name_in_one_go() {
+fn a_removed_machine_that_comes_back_waits_until_somebody_answers_for_it() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
     let kept = tempfile::tempdir().unwrap();
@@ -2188,10 +2197,41 @@ fn a_removed_machine_comes_back_under_a_new_name_in_one_go() {
     second.ok(&["sync"]);
     first.ok(&["sync"]);
 
+    let waiting = first.ok(&["ls", "all"]);
+    assert!(
+        !waiting.contains("water the plants"),
+        "a machine nobody here answered for walked back in under a new name: {waiting}"
+    );
+
+    let unseen = first.run(&["sync", "--confirm", &named(&second)]);
+    assert_ne!(
+        unseen.code, 0,
+        "a key nobody looked at was answered for: {}{}",
+        unseen.out, unseen.err
+    );
+    assert!(
+        unseen.err.contains("--force"),
+        "it did not say how to answer where nobody can look: {}",
+        unseen.err
+    );
+    assert!(
+        !first.ok(&["ls", "all"]).contains("water the plants"),
+        "it let the machine in on a question nobody answered"
+    );
+
+    first.ok(&["sync", "--confirm", &named(&second), "--force"]);
+    let turned = std::fs::read_to_string(first.home.path().join("data").join(".turned-away"))
+        .unwrap_or_default();
+    assert!(
+        !turned.contains(&named(&second)),
+        "the window would keep saying it waits until the next round: {turned}"
+    );
+    first.ok(&["sync"]);
+
     let out = first.ok(&["ls", "all"]);
     assert!(
         out.contains("water the plants"),
-        "the machine that came back never reached the folder: {out}"
+        "answering for the machine that came back did not let it in: {out}"
     );
 }
 

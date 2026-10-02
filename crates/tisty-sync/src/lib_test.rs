@@ -1677,6 +1677,10 @@ fn a_log_that_will_not_project_carries_no_body_either_way() {
     );
     assert_eq!(done.brought, 0);
     assert_eq!(done.astray, vec!["dev_a-0001".to_string()]);
+    assert!(
+        done.unprojected,
+        "a log nobody could read was told as a document nobody could read"
+    );
 }
 
 #[test]
@@ -2403,6 +2407,143 @@ fn a_base_wiped_from_under_us_is_written_again_on_the_next_round() {
     carry_papers(&one.data, shared.path(), &alive).unwrap();
 
     assert!(at.exists(), "la base para fusionar quedo perdida");
+}
+
+#[test]
+fn a_body_kept_beside_a_document_is_no_ancestor_unless_the_ledger_names_it() {
+    let one = blank("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let alive = ["dev_a-0001".to_string()];
+    paper(&one, "dev_a-0001", "# Minuta\n\nlo que los dos vieron\n");
+
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+    std::fs::write(
+        one.data.join("carried").join("dev_a-0001.md"),
+        "# Minuta\n\nuno\n\ndos\n",
+    )
+    .unwrap();
+    let mine = "# Minuta\n\nuno-mio\n\ndos\n";
+    paper(&one, "dev_a-0001", mine);
+    theirs(shared.path(), "dev_a-0001", "# Minuta\n\nuno\n\ndos-suyo\n");
+
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert!(
+        done.joined.is_empty(),
+        "a body nobody ever settled on was woven in as what the two sides came from"
+    );
+    assert_eq!(done.undecided_ids(), alive);
+    assert_eq!(body(&one.data, "dev_a-0001"), mine);
+}
+
+#[test]
+fn a_base_written_before_the_folder_was_named_still_stands_after_an_update_in_place() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    filed(
+        &one,
+        "dev_a-0001",
+        "# Minuta
+
+lo que los dos vieron
+",
+    );
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let print = tisty_core::docs::carried_print(&one.data, "dev_a-0001").expect("a base");
+    std::fs::write(
+        one.data.join("carried.json"),
+        format!("{{\"dev_a-0001\":\"{print}\"}}"),
+    )
+    .unwrap();
+    tisty_core::docs::write(
+        &one.data.join(PAPERS),
+        "dev_a-0001",
+        "# Minuta
+
+lo que los dos vieron
+lo mio
+",
+    )
+    .unwrap();
+
+    let done =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        done.undecided.is_empty(),
+        "updating in place was read as another folder, so it asked about a document only this side touched"
+    );
+    assert_eq!(done.sent, 1);
+    assert_eq!(
+        body(shared.path(), "dev_a-0001"),
+        "# Minuta
+
+lo que los dos vieron
+lo mio
+"
+    );
+}
+
+#[test]
+fn a_base_from_one_folder_is_not_leaned_on_in_another() {
+    let one = blank("dev_a");
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let alive = ["dev_a-0001".to_string()];
+    let mine = "# Minuta\n\nlo que la primera carpeta vio\n";
+    paper(&one, "dev_a-0001", mine);
+
+    carry_papers(&one.data, first.path(), &alive).unwrap();
+    theirs(
+        second.path(),
+        "dev_a-0001",
+        "# Minuta\n\notra rama entera\n",
+    );
+
+    let done = carry_papers(&one.data, second.path(), &alive).unwrap();
+
+    assert_eq!(
+        body(&one.data, "dev_a-0001"),
+        mine,
+        "a folder we had never compared against was taken for the newer side"
+    );
+    assert_eq!(done.brought, 0);
+    assert_eq!(done.undecided_ids(), alive);
+    assert!(
+        !one.data.join("carried").join("dev_a-0001.md").exists(),
+        "the body the first folder settled on stayed as the ancestor of a history it never had"
+    );
+}
+
+#[test]
+fn taking_up_another_folder_asks_only_about_what_the_two_sides_do_not_already_hold_alike() {
+    let one = blank("dev_a");
+    let first = tempfile::tempdir().unwrap();
+    let second = tempfile::tempdir().unwrap();
+    let alive = ["dev_a-0001".to_string(), "dev_a-0002".to_string()];
+    paper(&one, "dev_a-0001", "# Igual\n");
+    paper(&one, "dev_a-0002", "# Distinto\n");
+
+    carry_papers(&one.data, first.path(), &alive).unwrap();
+    theirs(second.path(), "dev_a-0001", "# Igual\n");
+    theirs(second.path(), "dev_a-0002", "# Distinto\n\notra rama\n");
+
+    let done = carry_papers(&one.data, second.path(), &alive).unwrap();
+
+    assert_eq!(
+        done.undecided_ids(),
+        ["dev_a-0002".to_string()],
+        "losing the base turned a folder that agrees into a folder that argues"
+    );
+    assert_eq!(body(&one.data, "dev_a-0001"), "# Igual\n");
+    assert_eq!(
+        tisty_core::docs::carried_print(&one.data, "dev_a-0001"),
+        tisty_core::docs::print_of(&one.data.join("docs").join("dev_a-0001.md")).unwrap(),
+        "the base for the folder it faces now was not written"
+    );
 }
 
 #[test]
@@ -5808,8 +5949,8 @@ fn a_history_brought_home_is_not_read_again_to_see_whether_it_should_go_back() {
     assert_eq!(moved.brought, 3);
     assert_eq!(moved.sent, 0);
     assert!(
-        opened <= 32,
-        "bringing three segments home read {opened} files where 32 is what it takes; handing on asked again what the two sides hold instead of counting both histories"
+        opened <= 35,
+        "bringing three segments home read {opened} files where 35 is what it takes: three for the segments, and one pass over a machine met for the first time to read what it says it signs with"
     );
 }
 
@@ -6281,7 +6422,7 @@ fn the_last_copy_here_goes_once_the_one_up_there_is_the_same_bytes() {
 }
 
 #[test]
-fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
+fn a_body_the_log_does_not_answer_for_is_left_for_the_person_to_decide() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
     let body = "# Notas\n\nlo que escribi\n";
@@ -6310,12 +6451,21 @@ fn a_body_the_log_does_not_answer_for_is_left_in_the_folder() {
     let moved = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     assert!(
-        moved.astray.contains(&"uno-0001".to_string()),
+        moved.undecided_ids().contains(&"uno-0001".to_string()),
         "a body nobody wrote down was taken in without a word"
+    );
+    assert!(
+        moved.astray.is_empty(),
+        "a document the person can still decide was filed as one nothing can be done about"
     );
     assert_eq!(
         std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
         body
+    );
+    assert_eq!(
+        std::fs::read_to_string(shared.path().join(PAPERS).join("uno-0001.md")).unwrap(),
+        "algo que nadie escribio\n",
+        "the side the person has not seen yet was written over"
     );
 }
 
@@ -6931,9 +7081,10 @@ fn a_machine_that_published_a_key_owes_a_signature_nobody_confirmed() {
             std::fs::remove_file(found.path()).unwrap();
         }
     }
+    let _ = std::fs::remove_file(two.data.join(".verified-to"));
     assert!(
         !two.data.join(".verified-to").is_file(),
-        "the first round answered for the history, so the latch would carry this and not the key"
+        "the latch would carry this round and not the key the machine published"
     );
 
     let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
@@ -7060,6 +7211,171 @@ fn a_segment_torn_to_hide_what_a_machine_signs_with_brings_nothing_home() {
         "the round read a history through to nothing and said nothing about it"
     );
     assert_eq!(after.brought, 0);
+}
+
+#[test]
+fn a_machine_nobody_answered_for_waits_from_the_first_time_it_is_seen() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::DeviceKey {
+        d: who.clone(),
+        p: tisty_core::signing::shown(&key),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    assert!(tisty_core::vouched::confirm(
+        &two.data,
+        &DeviceId("dev_c".into()),
+        &tisty_core::signing::shown(
+            &tisty_core::signing::mine(
+                &tisty_core::Paths::new(two.data.clone(), two.data.join("config")),
+                &DeviceId("dev_c".into())
+            )
+            .unwrap()
+        )
+    ));
+    let waiting = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        waiting.unconfirmed,
+        vec![one.device.clone()],
+        "a machine nobody answered for came in on sight"
+    );
+    assert!(
+        !home_of(&two, &one.device).contains("chase the invoice"),
+        "its history came home before anybody answered for its key"
+    );
+    assert_eq!(
+        turned::of(&two.data).get(&one.device),
+        Some(&turned::Away::Unconfirmed),
+        "the window has nothing to say it is waiting with"
+    );
+
+    assert!(tisty_core::vouched::confirm(
+        &two.data,
+        &who,
+        &tisty_core::signing::shown(&key)
+    ));
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(after.unconfirmed.is_empty());
+    assert!(
+        home_of(&two, &one.device).contains("chase the invoice"),
+        "answering for the key did not let the history in"
+    );
+    assert_eq!(turned::of(&two.data).get(&one.device), None);
+}
+
+#[test]
+fn the_first_folder_a_machine_ever_reaches_is_taken_up_whole() {
+    let one = machine("dev_a");
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::DeviceKey {
+        d: who.clone(),
+        p: tisty_core::signing::shown(&key),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::TaskAdd::new("chase the invoice", "a0"),
+    })
+    .unwrap();
+    drop(held);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let first = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        first.unconfirmed.is_empty(),
+        "a machine with nothing confirmed yet cannot answer for anybody, so it would never get in"
+    );
+    assert!(home_of(&two, &one.device).contains("chase the invoice"));
+    assert_eq!(
+        tisty_core::vouched::confirmed(&two.data, &who).map(|one| one.key),
+        Some(tisty_core::signing::shown(&key)),
+        "taking the folder up did not answer for the key it was taken up with"
+    );
+}
+
+#[test]
+fn a_machine_that_shows_up_later_in_a_folder_we_already_use_waits_too() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let two = machine("dev_b");
+    let theirs = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let who = DeviceId(two.device.clone());
+    let key = tisty_core::signing::mine(&theirs, &who).expect("a key");
+    says(
+        &two,
+        Op::DeviceKey {
+            d: who.clone(),
+            p: tisty_core::signing::shown(&key),
+        },
+    );
+    let there = shared.path().join(STORE).join(&two.device);
+    std::fs::create_dir_all(&there).unwrap();
+    for found in std::fs::read_dir(two.store.join(&two.device)).unwrap() {
+        let found = found.unwrap().path();
+        std::fs::copy(&found, there.join(found.file_name().unwrap())).unwrap();
+    }
+
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        after.unconfirmed,
+        vec![two.device.clone()],
+        "a directory that turned up in a folder this machine has been using was taken on sight"
+    );
+    assert!(
+        !home_of(&one, &two.device).contains("lo de dev_b"),
+        "its history came home before anybody answered for its key"
+    );
+}
+
+#[test]
+fn a_machine_from_before_signing_is_not_left_waiting_for_a_key_it_never_had() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let after = carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        after.unconfirmed.is_empty(),
+        "a machine that never said it signs was left waiting for a key nobody can read out"
+    );
+    assert!(home_of(&two, &one.device).contains("lo de dev_a"));
 }
 
 fn home_of(who: &Machine, whose: &str) -> String {

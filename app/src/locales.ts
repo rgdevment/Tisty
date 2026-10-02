@@ -880,7 +880,11 @@ const en = {
   someJoined:
     "Changes made on both machines were put together in {name}. Nothing was asked because they did not touch the same place.",
   someDocsAstray:
-    "A document was left out of this sync because it could not be read — usually one past the size a document may weigh. It is still on this machine; it just did not travel.",
+    "A document was left out of this sync because it could not be read here — one past the size a document may weigh, or a file this machine cannot open. It is still on this machine; it just did not travel.",
+  ownLogUnreadable:
+    "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
+  someoneUnconfirmed:
+    "A machine is writing in the shared folder that nobody here has answered for, so nothing it writes has come in. Confirm it in Upkeep to let it through — what it wrote stays in the folder meanwhile and arrives whole.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
@@ -1245,6 +1249,8 @@ const en = {
     "Some machines have not written here in a while. They may still be using what looks loose below.",
   machineSigns: "signs with",
   machineKeyLoose: "unconfirmed",
+  machineWaits: "Waiting",
+  machineWaitsWhy: "Nothing it writes comes in until you confirm it",
   machineKeyStands: "confirmed {name}",
   machineKeyAstray: "signs with a key that is not the confirmed one",
   machineKeyConfirm: "Confirm",
@@ -2287,7 +2293,11 @@ const es: Catalog = {
   someJoined:
     "Se juntaron los cambios de las dos máquinas en {name}. No se preguntó nada porque no tocaban el mismo sitio.",
   someDocsAstray:
-    "Un documento se quedó fuera de esta sincronización porque no se pudo leer — normalmente uno que pasa del tamaño que puede pesar un documento. Sigue en esta máquina; solo no viajó.",
+    "Un documento se quedó fuera de esta sincronización porque no se pudo leer aquí — uno que pasa del tamaño que puede pesar un documento, o un archivo que esta máquina no puede abrir. Sigue en esta máquina; solo no viajó.",
+  ownLogUnreadable:
+    "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
+  someoneUnconfirmed:
+    "Hay una máquina escribiendo en la carpeta compartida por la que nadie ha respondido aquí, así que nada de lo que escribe ha entrado. Confírmala en Mantenimiento para dejarla pasar — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
@@ -2652,6 +2662,8 @@ const es: Catalog = {
     "Hay equipos que llevan tiempo sin escribir aquí. Puede que sigan usando lo que abajo parece suelto.",
   machineSigns: "firma con",
   machineKeyLoose: "sin confirmar",
+  machineWaits: "Esperando",
+  machineWaitsWhy: "Nada de lo que escribe entra hasta que la confirmes",
   machineKeyStands: "confirmada {name}",
   machineKeyAstray: "firma con una clave que no es la confirmada",
   machineKeyConfirm: "Confirmar",

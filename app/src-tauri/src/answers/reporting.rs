@@ -89,6 +89,10 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             &session.state.assistants,
             &session.state.keys,
             &session.paths,
+            match &session.config.sync {
+                Some(tisty_core::config::Sync::Folder(at)) => Some(at.as_path()),
+                _ => None,
+            },
         ),
         log_bytes: report::weighed(&session.paths.store()),
         docs_bytes: report::weighed(&session.paths.docs()),

@@ -1,7 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
-import { opened, revealed, served } from "../core";
+import { opened, openLink, revealed, served } from "../core";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
@@ -101,7 +100,7 @@ export default function Composed({
           const target = link?.getAttribute("href") ?? "";
           const paper = docOf(target);
           const away = () =>
-            /^(https?|mailto|tel):/i.test(target) ? openUrl(target) : revealed(decodeURI(target));
+            /^(https?|mailto|tel):/i.test(target) ? openLink(target) : revealed(decodeURI(target));
 
           if (paper) return onDoc?.(paper);
           (inside ? opened(inside) : away()).catch((problem) => onError?.(problem));

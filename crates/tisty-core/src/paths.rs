@@ -174,6 +174,34 @@ fn apart(volume: u64, one: u64) -> Option<String> {
     (one != 0).then(|| format!("{volume:x}:{one:x}"))
 }
 
+pub fn told_of(at: &Path) -> String {
+    match told_apart(at) {
+        Some(one) => format!("{one}\n{}", at.display()),
+        None => at.display().to_string(),
+    }
+}
+
+fn a_mark(one: &str) -> bool {
+    matches!(one.split_once(':'), Some((volume, at))
+        if !volume.is_empty()
+            && !at.is_empty()
+            && [volume, at]
+                .iter()
+                .all(|one| one.bytes().all(|b| b.is_ascii_hexdigit())))
+}
+
+pub fn is_the_one(kept: &str, at: &Path) -> bool {
+    let (mark, path) = match kept.split_once('\n') {
+        Some((one, rest)) if a_mark(one.trim()) => (Some(one.trim()), rest),
+        _ => (None, kept),
+    };
+    let path = path.trim();
+    if let (Some(mark), Some(now)) = (mark, told_apart(at)) {
+        return mark == now;
+    }
+    !path.is_empty() && as_written(Path::new(path)) == as_written(at)
+}
+
 pub fn profile() -> Option<String> {
     named(&std::env::var(PROFILE_ENV).ok()?)
 }

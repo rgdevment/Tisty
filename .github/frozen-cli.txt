@@ -9,6 +9,7 @@ Attach
 clear
 command
 Config
+confirm
 date
 deadline
 Demo

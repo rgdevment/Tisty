@@ -41,6 +41,12 @@ pub fn confirm(data: &Path, who: &DeviceId, said: &str) -> bool {
     crate::store::write_atomic(&data.join(KEPT), kept.join("\n").as_bytes()).is_ok()
 }
 
+pub fn confirm_each(data: &Path, keys: &std::collections::BTreeMap<DeviceId, String>) -> usize {
+    keys.iter()
+        .filter(|(who, said)| confirm(data, who, said))
+        .count()
+}
+
 /// A line that does not read whole is no confirmation, so a key nobody can parse never stands in
 /// for one a person answered for.
 fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {

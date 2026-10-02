@@ -7,17 +7,14 @@ const calls = vi.hoisted(() => [] as string[]);
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
+    if (cmd === "open_link") {
+      calls.push(`openUrl:${String(args?.url ?? "")}`);
+      return Promise.resolve(null);
+    }
     calls.push(`${cmd}:${String(args?.reference ?? args?.path ?? "")}`);
     return Promise.resolve(cmd === "served" ? "/store/x.png" : null);
   },
   convertFileSrc: (at: string) => `asset://${at}`,
-}));
-
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: (at: string) => {
-    calls.push(`openUrl:${at}`);
-    return Promise.resolve();
-  },
 }));
 
 describe("following a link inside a document", () => {

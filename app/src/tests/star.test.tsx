@@ -5,18 +5,15 @@ import Star from "../ui/Star";
 
 const opened = vi.hoisted(() => ({ urls: [] as string[], refuse: false }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  openUrl: (url: string) => {
-    if (opened.refuse) return Promise.reject(new Error("no browser answered"));
-    opened.urls.push(url);
-    return Promise.resolve();
-  },
-}));
-
 const ipc = vi.hoisted(() => ({ sent: [] as string[] }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+  invoke: (cmd: string, args?: Record<string, unknown>) => {
+    if (cmd === "open_link") {
+      if (opened.refuse) return Promise.reject(new Error("no browser answered"));
+      opened.urls.push(String(args?.url ?? ""));
+      return Promise.resolve(null);
+    }
     ipc.sent.push(cmd);
     return Promise.resolve(null);
   },

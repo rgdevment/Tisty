@@ -372,6 +372,8 @@ export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", {
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
 
+export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
+
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
@@ -454,7 +456,7 @@ export interface Machine {
   signs: string | null;
   confirmed: string | null;
   confirmedWhen: number;
-  turnedAway: "disowned" | "unreadable" | null;
+  turnedAway: "disowned" | "unreadable" | "unconfirmed" | null;
 }
 
 export interface Stray {
@@ -619,13 +621,17 @@ export interface Settled {
   undecided: string[];
   unreadable: string[];
   disowned: string[];
+  unconfirmed: string[];
   astray: string[];
+  unprojected: boolean;
   joined: string[];
 }
 
 export const whatWentAmiss = (said: Settled) =>
+  (said.unprojected && "ownLogUnreadable") ||
   (said.astray?.length && "someDocsAstray") ||
   (said.disowned?.length && "someoneDisowned") ||
+  (said.unconfirmed?.length && "someoneUnconfirmed") ||
   (said.unreadable?.length && "someoneUnreadable") ||
   null;
 

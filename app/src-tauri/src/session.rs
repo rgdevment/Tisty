@@ -705,8 +705,12 @@ impl Session {
                 );
             }
         }
+        let starting = shown.is_some() && !self.state.keys.contains_key(&who);
+        if starting {
+            tisty_core::vouched::confirm_each(self.paths.data(), &self.state.keys);
+        }
         if self.state.devices.contains(&who) {
-            return match shown.filter(|_| !self.state.keys.contains_key(&who)) {
+            return match shown.filter(|_| starting) {
                 Some(shown) => self.commit(Op::DeviceKey { d: who, p: shown }),
                 None => Ok(()),
             };

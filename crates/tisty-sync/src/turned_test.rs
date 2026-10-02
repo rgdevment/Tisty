@@ -53,3 +53,26 @@ fn a_name_no_machine_could_have_is_never_written() {
 
     assert!(of(&data).is_empty());
 }
+
+#[test]
+fn answering_for_a_machine_stops_the_window_saying_it_waits_before_the_next_round() {
+    let (_room, data) = a_place();
+    keep(
+        &data,
+        &[
+            ("dev_a".to_string(), Away::Unconfirmed),
+            ("dev_b".to_string(), Away::Disowned),
+        ]
+        .into(),
+    );
+
+    assert!(let_through(&data, "dev_a"));
+
+    assert_eq!(of(&data).get("dev_a"), None);
+    assert_eq!(
+        of(&data).get("dev_b"),
+        Some(&Away::Disowned),
+        "letting one through spoke for the rest"
+    );
+    assert!(!let_through(&data, "dev_a"), "it said it changed twice");
+}
