@@ -290,7 +290,7 @@ fn an_assistant_patch_on_the_persons_task_is_let_go_whole_but_for_a_bell() {
 }
 
 /// Everything else an assistant could write on the person's task — a close, a drop, a hide,
-/// a move, a mark taken off, a step taken back — is let go, on an opened task too.
+/// a move, a mark taken off, a tick the person gave taken back — is let go, on an opened task too.
 #[test]
 fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
     let mut state = with_an_agent();
@@ -311,13 +311,24 @@ fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
     assert!(state.tasks[&mine].resolved.is_some(), "no unsaying");
     state.apply(&ev(
         34,
+        "dev_laptop",
+        Op::StepDone {
+            id: mine,
+            d: StepRef { step },
+        },
+    ));
+    state.apply(&ev(
+        34,
         "dev_agent",
         Op::StepUndone {
             id: mine,
             d: StepRef { step },
         },
     ));
-    assert!(state.tasks[&mine].steps[0].done, "no step taken back");
+    assert!(
+        state.tasks[&mine].steps[0].done,
+        "no taking back a tick the person gave"
+    );
     state.apply(&ev(
         35,
         "dev_agent",

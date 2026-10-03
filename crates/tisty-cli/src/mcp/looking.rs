@@ -92,7 +92,27 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
-    let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
+    let wheres: Vec<Option<(&str, String)>> = hits
+        .iter()
+        .map(|task| {
+            query
+                .as_deref()
+                .and_then(|query| tisty_core::view::mentioned_where(task, query))
+                .map(|(kind, line)| (kind, kept_here(&line)))
+        })
+        .collect();
+    let found: Vec<Value> = hits
+        .iter()
+        .zip(&wheres)
+        .map(|(task, said)| {
+            let mut one = brief(task, &state);
+            if let Some((kind, line)) = said {
+                one["in"] = json!(kind);
+                one["line"] = json!(line);
+            }
+            one
+        })
+        .collect();
     // `after` walks the tasks only — paging past them would empty this list without saying why.
     let papers = match (&query, sifted.none()) {
         (Some(query), true) => papers_matching(paths, &state, query, scope, usize::MAX),
@@ -102,7 +122,16 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let papers: Vec<Value> = papers.into_iter().take(most).collect();
     let mut lines: Vec<String> = hits
         .iter()
-        .map(|task| format!("{} — {} ({})", task.id, task.title, standing(task)))
+        .zip(&wheres)
+        .map(|(task, said)| match said {
+            Some((kind, line)) => format!(
+                "{} — {} ({})\n    {kind}: {line}",
+                task.id,
+                task.title,
+                standing(task)
+            ),
+            None => format!("{} — {} ({})", task.id, task.title, standing(task)),
+        })
         .collect();
     lines.extend(papers.iter().map(|one| {
         let put_away = if one["archived"] == json!(true) {
@@ -295,14 +324,16 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         whole["steps"] = json!(
             task.steps
                 .iter()
-                .map(|one| json!({ "text": one.text, "done": one.done }))
+                .map(|one| match one.by_agent {
+                    true => json!({ "text": one.text, "done": one.done, "by_agent": true }),
+                    false => json!({ "text": one.text, "done": one.done }),
+                })
                 .collect::<Vec<_>>()
         );
     }
-    if wants("journal") && !task.log.is_empty() {
+    if wants("journal") && task.journal().next().is_some() {
         whole["journal"] = json!(
-            task.log
-                .iter()
+            task.journal()
                 .map(|one| json!({ "at": one.at.to_string(), "body": kept_here(&one.body) }))
                 .collect::<Vec<_>>()
         );
@@ -326,7 +357,9 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         plainly.push_str(&format!(" ({notice})"));
         whole["notice"] = json!(notice);
     } else if task.open_to_agents {
-        plainly.push_str(" (open to agents: yours to describe, plan, tick and say done)");
+        plainly.push_str(
+            " (open to agents: yours to describe, plan, tick, untick and say done or not doing)",
+        );
     }
     if let Some(body) = &task.description
         && wants("description")
@@ -344,7 +377,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         }
     }
     if wants("journal") {
-        for one in &task.log {
+        for one in task.journal() {
             plainly.push_str(&format!("\n\n({}) {}", one.at, kept_here(&one.body)));
         }
     }
@@ -832,7 +865,21 @@ pub(super) fn brief(task: &Task, state: &State) -> Value {
     );
     put(
         "said_done",
-        json!(task.resolved.as_ref().map(|one| when(one.at))),
+        json!(
+            task.resolved
+                .as_ref()
+                .filter(|one| !one.drop)
+                .map(|one| when(one.at))
+        ),
+    );
+    put(
+        "said_not_doing",
+        json!(
+            task.resolved
+                .as_ref()
+                .filter(|one| one.drop)
+                .map(|one| when(one.at))
+        ),
     );
     put("open_to_agents", json!(task.open_to_agents.then_some(true)));
     Value::Object(kept)
@@ -938,7 +985,7 @@ impl Sifted {
             }
         }
         if let Some(want) = self.said_done
-            && task.resolved.is_some() != want
+            && (task.resolved.is_some() && task.is_open()) != want
         {
             return false;
         }

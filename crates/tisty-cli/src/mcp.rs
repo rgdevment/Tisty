@@ -18,7 +18,9 @@ use asked::{only_what_it_takes, short_and_plain, text};
 
 use attaching::attach;
 use catalogue::{instructions, tools};
-use chores::{describe, note, plan, propose, remind, reschedule, say_done, tick};
+use chores::{
+    describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, tick, untick,
+};
 pub(crate) use door::turn;
 use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
 
@@ -157,6 +159,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "describe" => describe(paths, &args),
         "plan" => plan(paths, &args),
         "tick" => tick(paths, &args),
+        "untick" => untick(paths, &args),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
         "write_doc" => write_doc(paths, &args),
@@ -167,6 +170,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "sum_up" => sum_up(paths, &args),
         "reschedule" => reschedule(paths, &args),
         "say_done" => say_done(paths, &args),
+        "say_not_doing" => say_not_doing(paths, &args),
         "read_doc" => read_doc(paths, &args),
         "outline_doc" => outline_doc(paths, &args),
         "docs" => papers(paths, &args),
@@ -203,7 +207,8 @@ fn pointed(name: &str) -> Option<&'static str> {
          did with `say_done` and the task stays open, marked, until they close it. What you only \
          learnt goes in `note`.";
     const DROPPING_A_TASK: &str = "Closing, dropping and erasing a task are the person's alone, \
-         and no tool here does any of them. Record what you found with `note`.";
+         and no tool here does any of them. Say it should not be done with `say_not_doing`, and \
+         they decide; what you only read goes in `note`.";
     const LOOKING_BACK: &str = "What is finished is not somewhere else: `find` and `docs` reach \
          it with `scope` set to `archive`, or `either` for both at once. A task the person closed \
          comes back from `find` like any other, and `read` says when and how it ended.";

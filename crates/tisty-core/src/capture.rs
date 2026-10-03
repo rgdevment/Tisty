@@ -59,7 +59,10 @@ pub fn plan(state: &State, draft: Draft) -> Result<Plan, Rejected> {
     let mut ops = Vec::with_capacity(2);
     let list = match &draft.filing {
         None => None,
-        Some(Filing::Kept(id)) => Some(*id),
+        Some(Filing::Kept(id)) => match state.lists.get(id) {
+            Some(one) if one.archived => return Err(Rejected::ArchivedList(one.name.clone())),
+            _ => Some(*id),
+        },
         Some(Filing::Named(name)) => Some(existing(state, name)?),
         Some(Filing::Marked(name)) => Some(match state.find_list(name).as_slice() {
             [one] if one.archived => return Err(Rejected::ArchivedList(name.clone())),

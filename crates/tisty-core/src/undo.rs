@@ -140,7 +140,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 id: *id,
                 d: Resolve::new(was.entry)
                     .said_by(was.at, was.by.clone())
-                    .through(was.via.clone()),
+                    .through(was.via.clone())
+                    .dropping(was.drop),
             }),
             None => Some(Op::TaskUnresolve { id: *id }),
         },
@@ -150,7 +151,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 id: *id,
                 d: Resolve::new(was.entry)
                     .said_by(was.at, was.by.clone())
-                    .through(was.via.clone()),
+                    .through(was.via.clone())
+                    .dropping(was.drop),
             })
         }
         Op::TaskLogEdit { id, d } => Some(Op::TaskLogEdit {
@@ -199,8 +201,14 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
-        Op::ListArchive { id } => Some(Op::ListUnarchive { id: *id }),
-        Op::ListUnarchive { id } => Some(Op::ListArchive { id: *id }),
+        Op::ListArchive { id } => {
+            (!before.lists.get(id)?.archived).then_some(Op::ListUnarchive { id: *id })
+        }
+        Op::ListUnarchive { id } => before
+            .lists
+            .get(id)?
+            .archived
+            .then_some(Op::ListArchive { id: *id }),
         Op::ListRename { id, .. } => Some(Op::ListRename {
             id: *id,
             d: crate::event::Name {

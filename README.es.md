@@ -601,15 +601,15 @@ bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
 vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
 
 Una tarea que escribiste tú sigue siendo tuya salvo que digas otra cosa. Ábrela
-a los agentes desde su detalle —«Permitir agentes»— y un
-asistente puede darla por hecha, para que la confirmes; describirla, si aún no
+a los agentes desde su detalle —«Permitir agentes»— y un asistente puede darla
+por hecha, o decir que no se hará, para que lo confirmes; describirla, si aún no
 tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es lo
-único que hace sin preguntar. Su día, su título, su lista y su cierre siguen
-siendo tuyos igual. «Sin agentes» cierra la puerta otra vez y conserva lo que
-alcanzó a completar. Lo que escribe un asistente va firmado con el nombre del
-programa por el que habló —«por Claude Code», «por Codex»— en la fila, el
-detalle y la bitácora, y Configuración › Asistentes cuenta lo que anotó cada
-uno.
+único que hace sin preguntar —también quitar una marca que puso por error, nunca
+una tuya—. Su día, su título, su lista y su cierre siguen siendo tuyos igual.
+«Sin agentes» cierra la puerta otra vez y conserva lo que alcanzó a completar.
+Lo que escribe un asistente va firmado con el nombre del programa por el que
+habló —«por Claude Code», «por Codex»— en la fila, el detalle y la bitácora, y
+Configuración › Asistentes cuenta lo que anotó cada uno.
 
 **La línea de comandos es tuya, no del asistente.** Un asistente con shell
 podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y

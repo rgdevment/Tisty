@@ -21,6 +21,8 @@ const KNOWN = [
   "badTag",
   "notATaskId",
   "onlyArchivedGoes",
+  "listStillOpen",
+  "markEntry",
   "notAClosing",
   "notATheme",
   "storyStays",

@@ -184,3 +184,18 @@ fn everything_the_phrase_carried_reaches_the_task_it_becomes() {
         "the source was left behind"
     );
 }
+
+#[test]
+fn a_list_put_away_takes_nothing_new_even_from_its_own_view() {
+    let mut state = with_lists(&["Office"]);
+    let id = *state.lists.keys().next().unwrap();
+    state.apply(&Event::new(
+        DeviceId("dev_a".into()),
+        jiff::Timestamp::from_millisecond(500).unwrap(),
+        Op::ListArchive { id },
+    ));
+
+    let said = plan(&state, drafted("call the bank", Some(Filing::Kept(id))));
+
+    assert!(matches!(said, Err(Rejected::ArchivedList(_))));
+}

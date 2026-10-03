@@ -323,3 +323,60 @@ describe("erasing what is already archived", () => {
     expect(folds).toHaveBeenCalledWith(true);
   });
 });
+
+describe("what an agent says should not be done", () => {
+  const marked = { at: "2026-08-06T18:40:00Z", by: "dev_agent", entry: "e1", drop: true };
+
+  const shown = (one: Task) => {
+    const on = { complete: vi.fn(), discard: vi.fn(), back: vi.fn() };
+    render(
+      <Detail
+        task={one}
+        lists={[]}
+        known={[]}
+        expanded={false}
+        onExpand={() => {}}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onStep={() => {}}
+        onMark={() => {}}
+        onDropStep={() => {}}
+        onLog={() => {}}
+        onComplete={on.complete}
+        onDiscard={on.discard}
+        onReopen={() => {}}
+        onStillOpen={on.back}
+        onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
+        onOpenToAgents={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    return on;
+  };
+
+  it("says so, and not that it is done", () => {
+    shown(task({ resolved: marked } as Partial<Task>));
+
+    expect(screen.getByText("An agent says this should not be done")).toBeTruthy();
+    expect(screen.queryByText("An agent says this is done")).toBeNull();
+  });
+
+  it("puts dropping it first, which is what confirming the word means", async () => {
+    const on = shown(task({ resolved: marked } as Partial<Task>));
+
+    await userEvent.click(screen.getByRole("button", { name: /not doing it/i }));
+
+    expect(on.discard).toHaveBeenCalled();
+    expect(on.complete).not.toHaveBeenCalled();
+  });
+
+  it("can be sent back like any other word", async () => {
+    const on = shown(task({ resolved: marked } as Partial<Task>));
+
+    await userEvent.click(screen.getByRole("button", { name: /still to do/i }));
+
+    expect(on.back).toHaveBeenCalled();
+  });
+});

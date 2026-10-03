@@ -598,14 +598,15 @@ day, no bell and no file, and if the same work comes back the assistant
 proposes a new one that says how the last one ended.
 
 A task you wrote stays yours unless you say otherwise. Open one to agents from
-its detail — «Allow agents» — and an assistant may say it is done,
-for you to confirm; describe it, where there is no description yet; plan its
-steps; and tick them off as it goes, which is the one thing it does without
-asking. Its day, its title, its list and its closing stay yours all the same.
-«No agents» shuts the door again and keeps what was filled in. What an
-assistant writes is signed with the name of the program it spoke through —
-«by Claude Code», «by Codex» — in the row, the detail and the journal, and
-Settings › Assistants counts what each one wrote.
+its detail — «Allow agents» — and an assistant may say it is done, or that it
+should not be done, for you to confirm; describe it, where there is no
+description yet; plan its steps; and tick them off as it goes, which is the one
+thing it does without asking — taking back a tick it gave by mistake included,
+never one you gave. Its day, its title, its list and its closing stay yours all
+the same. «No agents» shuts the door again and keeps what was filled in. What an
+assistant writes is signed with the name of the program it spoke through — «by
+Claude Code», «by Codex» — in the row, the detail and the journal, and Settings
+› Assistants counts what each one wrote.
 
 **The command line is yours, not the assistant's.** An assistant with a shell
 could type `tisty done 3` the day its MCP server is not connected, and act as

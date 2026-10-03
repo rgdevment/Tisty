@@ -12,8 +12,14 @@ export function spokenLabel(task: Task): string {
   return bits.join(" — ");
 }
 
-function saidBy(task: Task): string {
+export function saidBy(task: Task): string {
   const named = task.resolved ? clientNamed(task.resolved.via) : undefined;
+  if (task.resolved?.drop && task.status === "open") {
+    return named ? fill("agentNamedSaidNotDoing", named) : t("agentSaidNotDoing");
+  }
+  if (task.resolved?.drop) {
+    return named ? fill("agentNamedSettledNotDoing", named) : t("agentSettledNotDoing");
+  }
   if (named) return fill("agentNamedSaidDone", named);
   return task.status === "open" ? t("agentSaidDone") : t("agentSettled");
 }
@@ -24,7 +30,7 @@ export function Pip({ task }: { task: Task }) {
     <span
       aria-hidden="true"
       className="h-1.5 w-1.5 rounded-full bg-hue-teal"
-      title={task.resolved ? fill("agentSaidWhen", stamped(task.resolved.at)) : undefined}
+      title={saidWhen(task)}
     />
   );
 }
@@ -36,4 +42,10 @@ export function Lozenge({ task }: { task: Task }) {
       ◆
     </span>
   );
+}
+
+export function saidWhen(task: Task): string | undefined {
+  if (!task.resolved) return undefined;
+  const when = stamped(task.resolved.at);
+  return fill(task.resolved.drop ? "agentSaidNotDoingWhen" : "agentSaidWhen", when);
 }

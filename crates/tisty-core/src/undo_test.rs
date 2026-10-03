@@ -555,3 +555,63 @@ fn undoing_a_redundant_fold_leaves_it_folded() {
         Some(vec![Op::TaskShow { id }])
     );
 }
+
+#[test]
+fn an_entry_taken_out_comes_back_whole_on_undo() {
+    let id = Ulid::generate();
+    let entry = Ulid::generate();
+    let setup = vec![
+        a_task(id),
+        ev(
+            2,
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(entry, "spoke to accounting"),
+            },
+        ),
+    ];
+    let taken_out = ev(
+        3,
+        Op::TaskLogEdit {
+            id,
+            d: LogEdit {
+                entry,
+                body: String::new(),
+            },
+        },
+    );
+
+    let (before, undone) = round_trip(setup, taken_out);
+
+    assert_eq!(
+        undone.tasks[&id].journal().count(),
+        1,
+        "the entry is back in the journal"
+    );
+    assert_eq!(
+        undone.tasks[&id].entry(entry).unwrap().body,
+        before.tasks[&id].entry(entry).unwrap().body
+    );
+}
+
+#[test]
+fn a_word_that_it_will_not_be_done_comes_back_as_that_word() {
+    let id = Ulid::generate();
+    let entry = Ulid::generate();
+    let said = ev(
+        2,
+        Op::TaskResolve {
+            id,
+            d: crate::event::Resolve::new(entry).dropping(true),
+        },
+    );
+    let setup = vec![a_task(id), said];
+
+    let (before, undone) = round_trip(setup, ev(3, Op::TaskUnresolve { id }));
+
+    assert_eq!(before, undone);
+    assert!(
+        undone.tasks[&id].resolved.as_ref().unwrap().drop,
+        "undone, it still says the task will not be done, not that it is"
+    );
+}

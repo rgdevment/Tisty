@@ -4631,3 +4631,309 @@ fn the_key_a_machine_published_first_stands_however_it_is_said_again() {
         "a second key took the place of the first, which is the door this closes"
     );
 }
+
+fn a_step_filed_by_an_agent() -> (State, TaskId, crate::model::StepId) {
+    let mut state = State::default();
+    state.apply(&ev(
+        1,
+        "dev_agent",
+        Op::DeviceJoin {
+            d: DeviceId("dev_agent".into()),
+            k: Some(crate::event::DeviceKind::Agent),
+            p: None,
+        },
+    ));
+    let id = Ulid::generate();
+    state.apply(&ev(
+        2,
+        "dev_agent",
+        Op::TaskAdd {
+            id,
+            d: crate::event::TaskAdd::new("migrate the reader", "a0"),
+        },
+    ));
+    let step = Ulid::generate();
+    state.apply(&ev(
+        3,
+        "dev_agent",
+        Op::StepAdd {
+            id,
+            d: crate::event::StepAdd {
+                step,
+                text: "read the old format".into(),
+                order: "a0".into(),
+            },
+        },
+    ));
+    (state, id, step)
+}
+
+fn ticked(state: &mut State, at: i64, device: &str, id: TaskId, step: crate::model::StepId) {
+    state.apply(&ev(
+        at,
+        device,
+        Op::StepDone {
+            id,
+            d: crate::event::StepRef { step },
+        },
+    ));
+}
+
+fn unticked(state: &mut State, at: i64, device: &str, id: TaskId, step: crate::model::StepId) {
+    state.apply(&ev(
+        at,
+        device,
+        Op::StepUndone {
+            id,
+            d: crate::event::StepRef { step },
+        },
+    ));
+}
+
+#[test]
+fn an_assistant_takes_back_a_tick_it_gave() {
+    let (mut state, id, step) = a_step_filed_by_an_agent();
+    ticked(&mut state, 4, "dev_agent", id, step);
+    assert!(
+        state.tasks[&id].steps[0].by_agent,
+        "the tick remembers the hand"
+    );
+
+    unticked(&mut state, 5, "dev_agent", id, step);
+
+    let one = &state.tasks[&id].steps[0];
+    assert!(!one.done, "an assistant corrects what it marked by mistake");
+    assert!(!one.by_agent);
+}
+
+#[test]
+fn an_assistant_cannot_untick_what_the_person_ticked() {
+    let (mut state, id, step) = a_step_filed_by_an_agent();
+    ticked(&mut state, 4, "dev_laptop", id, step);
+
+    unticked(&mut state, 5, "dev_agent", id, step);
+
+    assert!(
+        state.tasks[&id].steps[0].done,
+        "a tick the person gave is theirs to take back"
+    );
+}
+
+#[test]
+fn a_tick_the_person_gives_again_becomes_theirs() {
+    let (mut state, id, step) = a_step_filed_by_an_agent();
+    ticked(&mut state, 4, "dev_agent", id, step);
+    unticked(&mut state, 5, "dev_laptop", id, step);
+    ticked(&mut state, 6, "dev_laptop", id, step);
+
+    unticked(&mut state, 7, "dev_agent", id, step);
+
+    assert!(state.tasks[&id].steps[0].done);
+    assert!(!state.tasks[&id].steps[0].by_agent);
+}
+
+fn a_list_holding(closed: bool) -> (State, crate::model::ListId, TaskId, TaskId) {
+    let mut state = State::default();
+    let list = Ulid::generate();
+    state.apply(&ev(
+        1,
+        "dev_laptop",
+        Op::ListAdd {
+            id: list,
+            d: crate::event::ListAdd {
+                name: "Home".into(),
+                order: order::first(),
+                color: None,
+            },
+        },
+    ));
+    let (open, done) = (Ulid::generate(), Ulid::generate());
+    for (at, id) in [(2, open), (3, done)] {
+        let mut d = crate::event::TaskAdd::new(format!("task {at}"), format!("a{at}"));
+        d.list = Some(list);
+        state.apply(&ev(at, "dev_laptop", Op::TaskAdd { id, d }));
+    }
+    if closed {
+        state.apply(&ev(
+            4,
+            "dev_laptop",
+            Op::TaskDone {
+                id: done,
+                filled: false,
+            },
+        ));
+    }
+    (state, list, open, done)
+}
+
+fn replayed(mut state: State, ops: Vec<Op>) -> State {
+    for (n, op) in ops.into_iter().enumerate() {
+        state.apply(&ev(10 + n as i64, "dev_laptop", op));
+    }
+    state
+}
+
+#[test]
+fn a_list_with_no_history_is_deleted_and_its_tasks_go_to_the_inbox() {
+    let (state, list, open, _) = a_list_holding(false);
+
+    let after = replayed(state.clone(), state.dropping_list(list));
+
+    assert!(!after.lists.contains_key(&list));
+    assert_eq!(after.tasks[&open].list, None);
+}
+
+#[test]
+fn a_list_with_history_is_archived_so_what_closed_keeps_its_name() {
+    let (state, list, open, done) = a_list_holding(true);
+    assert!(!state.is_settled(list));
+
+    let after = replayed(state.clone(), state.dropping_list(list));
+
+    assert!(after.lists[&list].archived, "kept, out of the way");
+    assert_eq!(
+        after.tasks[&done].list,
+        Some(list),
+        "the closed one still reads @Home"
+    );
+    assert_eq!(
+        after.tasks[&open].list, None,
+        "the open one went to the inbox"
+    );
+    assert!(after.is_settled(list));
+    assert_eq!(after.shelved_lists().len(), 1);
+    assert!(after.ordered_lists().is_empty(), "nowhere to file into");
+}
+
+#[test]
+fn an_assistant_ticking_a_step_the_person_already_ticked_does_not_take_it_over() {
+    let (mut state, id, step) = a_step_filed_by_an_agent();
+    ticked(&mut state, 4, "dev_laptop", id, step);
+    ticked(&mut state, 5, "dev_agent", id, step);
+
+    unticked(&mut state, 6, "dev_agent", id, step);
+
+    assert!(
+        state.tasks[&id].steps[0].done,
+        "the person's tick stays theirs"
+    );
+}
+
+#[test]
+fn a_person_ticking_again_claims_a_tick_an_assistant_gave() {
+    let (mut state, id, step) = a_step_filed_by_an_agent();
+    ticked(&mut state, 4, "dev_agent", id, step);
+    ticked(&mut state, 5, "dev_laptop", id, step);
+
+    unticked(&mut state, 6, "dev_agent", id, step);
+
+    assert!(state.tasks[&id].steps[0].done);
+}
+
+#[test]
+fn an_archived_list_that_a_racing_writer_filed_into_stays_in_sight() {
+    let (state, list, open, _) = a_list_holding(true);
+    let mut after = replayed(state.clone(), state.dropping_list(list));
+    after.apply(&ev(
+        30,
+        "dev_agent",
+        Op::TaskMove {
+            id: open,
+            d: crate::event::TaskMove {
+                list: Some(Some(list)),
+                order: None,
+            },
+        },
+    ));
+
+    assert!(after.lists[&list].archived);
+    assert_eq!(
+        after.ordered_lists().len(),
+        1,
+        "the stray task is not hidden"
+    );
+    assert!(after.shelved_lists().is_empty());
+}
+
+#[test]
+fn reopening_takes_back_a_successor_whose_only_note_was_taken_out() {
+    let (mut state, id) = repeating();
+    let born = successor(&state, id);
+    let entry = Ulid::generate();
+    state.apply(&ev(
+        15,
+        "a",
+        Op::TaskLog {
+            id: born,
+            d: crate::event::LogAdd::new(entry, "half an hour in the living room"),
+        },
+    ));
+    state.apply(&ev(
+        16,
+        "a",
+        Op::TaskLogEdit {
+            id: born,
+            d: crate::event::LogEdit {
+                entry,
+                body: String::new(),
+            },
+        },
+    ));
+
+    for op in state.reopening(id) {
+        state.apply(&ev(20, "a", op));
+    }
+
+    assert!(!state.tasks.contains_key(&born), "two turns stay open");
+}
+
+fn spoken(state: &mut State, at: i64, device: &str, id: TaskId, drop: bool) {
+    state.apply(&ev(
+        at,
+        device,
+        Op::TaskResolve {
+            id,
+            d: crate::event::Resolve::new(Ulid::generate()).dropping(drop),
+        },
+    ));
+}
+
+#[test]
+fn a_second_agent_word_does_not_turn_the_first_into_its_opposite() {
+    let (mut state, id, _) = a_step_filed_by_an_agent();
+    spoken(&mut state, 10, "dev_agent", id, false);
+
+    spoken(&mut state, 11, "dev_agent", id, true);
+
+    assert!(
+        !state.tasks[&id].resolved.as_ref().unwrap().drop,
+        "a word said is the one the person confirms"
+    );
+}
+
+#[test]
+fn the_person_puts_a_word_back_over_whatever_stands() {
+    let (mut state, id, _) = a_step_filed_by_an_agent();
+    spoken(&mut state, 10, "dev_agent", id, false);
+
+    spoken(&mut state, 11, "dev_laptop", id, true);
+
+    assert!(state.tasks[&id].resolved.as_ref().unwrap().drop);
+}
+
+#[test]
+fn erasing_a_list_already_archived_writes_nothing_that_undo_could_reverse() {
+    let (state, list, _, _) = a_list_holding(true);
+    let after = replayed(state.clone(), state.dropping_list(list));
+    let archived = replayed(after.clone(), vec![Op::ListArchive { id: list }]);
+
+    assert!(archived.dropping_list(list).is_empty());
+    assert_eq!(
+        crate::undo::inverse(
+            &ev(40, "dev_laptop", Op::ListArchive { id: list }),
+            &archived
+        ),
+        None,
+        "undoing an archive that changed nothing must not bring the list back"
+    );
+}

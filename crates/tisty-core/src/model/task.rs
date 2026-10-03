@@ -109,6 +109,8 @@ pub struct Step {
     pub text: String,
     pub done: bool,
     pub order: String,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub by_agent: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -144,6 +146,8 @@ pub struct Resolved {
     pub entry: LogId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub drop: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

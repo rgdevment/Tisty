@@ -4020,3 +4020,250 @@ fn what_a_document_is_read_as_follows_its_text_before_the_log_has_caught_up() {
         "and the outline says the same: {told}"
     );
 }
+
+fn filed_with_steps(served: &Served) -> String {
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "migrate the reader",
+            "steps": ["read the old format", "write the new one"],
+        }),
+    );
+    said["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("{said}"))
+        .to_string()
+}
+
+fn steps_of(served: &Served, task: &str) -> Vec<(String, bool)> {
+    let said = served.call(
+        "read",
+        serde_json::json!({ "task": task, "fields": ["steps"] }),
+    );
+    said["result"]["structuredContent"]["steps"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{said}"))
+        .iter()
+        .map(|one| {
+            (
+                one["text"].as_str().unwrap().to_string(),
+                one["done"].as_bool().unwrap(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn an_agent_takes_back_a_tick_it_gave_by_mistake() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.call(
+        "tick",
+        serde_json::json!({ "task": task, "step": "read the old format" }),
+    );
+
+    let said = served.call(
+        "untick",
+        serde_json::json!({ "task": task, "step": "Read the old format " }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(said["result"]["structuredContent"]["unticked"], 1);
+    assert_eq!(
+        steps_of(&served, &task),
+        vec![
+            ("read the old format".to_string(), false),
+            ("write the new one".to_string(), false),
+        ]
+    );
+}
+
+#[test]
+fn a_tick_the_person_gave_is_not_the_agents_to_take_back() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.cli(&["step", &task, "done", "1"]);
+    assert!(steps_of(&served, &task)[0].1, "the person ticked it");
+
+    let said = served.call(
+        "untick",
+        serde_json::json!({ "task": task, "step": "read the old format" }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(steps_of(&served, &task)[0].1, "it stays ticked");
+}
+
+#[test]
+fn unticking_a_step_nobody_ticked_changes_nothing() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+
+    let said = served.call(
+        "untick",
+        serde_json::json!({ "task": task, "step": "write the new one" }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert_eq!(said["result"]["structuredContent"]["unticked"], 0);
+    assert_eq!(said["result"]["structuredContent"]["already"], 1);
+}
+
+#[test]
+fn an_agent_says_a_task_should_not_be_done_and_leaves_it_to_the_person() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+
+    let said = served.call(
+        "say_not_doing",
+        serde_json::json!({ "task": task, "body": "the old reader was removed upstream" }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let read = &read["result"]["structuredContent"];
+    assert_eq!(read["status"], "open", "saying it drops nothing: {read}");
+    assert!(read["said_not_doing"].is_string(), "{read}");
+    assert!(read["said_done"].is_null(), "{read}");
+}
+
+#[test]
+fn saying_it_should_not_be_done_twice_is_refused() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    let why = serde_json::json!({ "task": task, "body": "moot" });
+    served.call("say_not_doing", why.clone());
+
+    let again = served.call("say_not_doing", why);
+
+    assert_eq!(again["result"]["isError"].as_bool(), Some(true), "{again}");
+    assert!(
+        again.to_string().contains("would not be done"),
+        "the refusal names the word already said: {again}"
+    );
+}
+
+#[test]
+fn a_past_decision_is_found_in_the_archive_with_the_line_that_says_it() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.call(
+        "note",
+        serde_json::json!({ "task": task, "body": "Compared both.\nWe chose sqlite for the cache." }),
+    );
+    served.cli(&["done", &task]);
+
+    let said = served.call(
+        "find",
+        serde_json::json!({ "query": "sqlite", "scope": "archive" }),
+    );
+
+    let hit = &said["result"]["structuredContent"]["matches"][0];
+    assert_eq!(hit["id"], task.as_str(), "{said}");
+    assert_eq!(hit["in"], "journal", "{said}");
+    assert_eq!(hit["line"], "We chose sqlite for the cache.", "{said}");
+}
+
+#[test]
+fn a_step_is_not_unticked_under_a_word_that_says_it_is_done() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.call(
+        "tick",
+        serde_json::json!({ "task": task, "steps": ["read the old format", "write the new one"] }),
+    );
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": task, "body": "both ran green" }),
+    );
+
+    let said = served.call(
+        "untick",
+        serde_json::json!({ "task": task, "step": "write the new one" }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    assert!(steps_of(&served, &task).iter().all(|(_, done)| *done));
+}
+
+#[test]
+fn a_step_is_not_ticked_under_a_word_that_it_should_not_be_done() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.call(
+        "say_not_doing",
+        serde_json::json!({ "task": task, "body": "moot" }),
+    );
+
+    let said = served.call(
+        "tick",
+        serde_json::json!({ "task": task, "step": "write the new one" }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+}
+
+#[test]
+fn the_line_find_hands_back_keeps_a_path_on_the_disk_to_itself() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.call(
+        "note",
+        serde_json::json!({ "task": task, "body": "kept from /Users/someone/private/taxes2026/statement.txt" }),
+    );
+
+    let said = served.call("find", serde_json::json!({ "query": "taxes2026" }));
+
+    assert!(!said.to_string().contains("/Users/someone"), "{said}");
+}
+
+#[test]
+fn read_leaves_out_an_entry_taken_out_and_says_which_ticks_are_an_agents() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.cli(&["log", &task, "a note to take back"]);
+    served.cli(&["undo"]);
+    served.call(
+        "tick",
+        serde_json::json!({ "task": task, "step": "write the new one" }),
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let read = &read["result"]["structuredContent"];
+
+    assert!(read["journal"].is_null(), "{read}");
+    assert_eq!(read["steps"][1]["by_agent"], true, "{read}");
+}
+
+#[test]
+fn a_turn_of_a_routine_is_not_said_to_be_left_undone() {
+    let served = Served::new();
+    let task = filed_with_steps(&served);
+    served.cli(&["set", &task, "--repeat", "every 3 days"]);
+
+    let said = served.call(
+        "say_not_doing",
+        serde_json::json!({ "task": task, "body": "moot" }),
+    );
+
+    assert_eq!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+}
+
+#[test]
+fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
+    let served = Served::new();
+    let said = served.talk(&[&serde_json::json!({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": { "protocolVersion": "2025-06-18", "capabilities": {},
+                    "clientInfo": { "name": "test", "version": "1" } },
+    })
+    .to_string()]);
+    let told = said[0]["result"]["instructions"]
+        .as_str()
+        .unwrap_or_default();
+
+    assert!(told.contains("say_not_doing"), "{told}");
+    assert!(told.contains("untick"), "{told}");
+}

@@ -32,9 +32,12 @@ impl State {
             by: d.by.clone().unwrap_or_else(|| event.device.clone()),
             entry: d.entry,
             via: d.via.clone().or_else(|| event.via.clone()),
+            drop: d.drop,
         };
+        let assistant = self.assistants.contains(&event.device);
         self.with_task(*id, |t| {
-            if t.is_open() {
+            // Two agents speaking before they sync must not turn one word into the other.
+            if t.is_open() && !(assistant && t.resolved.is_some()) {
                 t.resolved = Some(said);
             }
         });

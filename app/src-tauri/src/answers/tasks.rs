@@ -171,6 +171,7 @@ pub fn snapshot(
         ahead: coming(&session.state, today()),
         routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
+        shelved: session.state.shelved_lists().into_iter().cloned().collect(),
         tags: tags_in_use(&session.state),
         refs: session.state.references(),
         counts: tally(&session.state),
@@ -376,6 +377,7 @@ pub fn patch(
     let mut ops = Vec::new();
     let named = match change.list_named.as_deref().map(str::trim) {
         Some(name) if !name.is_empty() => Some(match session.state.list_called(name).as_slice() {
+            [one] if one.archived => return Err(Refusal::about("archivedList", name)),
             [one] => one.id,
             [_, _, ..] => return Err(Refusal::about("manyLists", name)),
             [] => {
@@ -542,7 +544,8 @@ pub fn write_log(
 ) -> Answer<Task> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let body = body.trim().to_string();
-    if body.is_empty() {
+    // Empty on an existing entry takes it out, the same op undo writes.
+    if body.is_empty() && entry.is_none() {
         return Err(Refusal::of("emptyEntry"));
     }
     tisty_core::state::short_enough(&body).map_err(|e| match e {
@@ -553,19 +556,38 @@ pub fn write_log(
     })?;
     let mut session = held(&session);
 
-    session.commit(match entry {
-        Some(raw) => Op::TaskLogEdit {
-            id,
-            d: LogEdit {
-                entry: raw.parse().map_err(|_| Refusal::of("notAnEntry"))?,
-                body,
-            },
-        },
+    let op = match entry {
+        Some(raw) => {
+            let entry = raw.parse().map_err(|_| Refusal::of("notAnEntry"))?;
+            if body.is_empty() {
+                session.reload()?;
+            }
+            let task = session.state.tasks.get(&id);
+            if body.is_empty()
+                && task
+                    .and_then(|task| task.entry(entry))
+                    .is_none_or(|one| one.body.trim().is_empty())
+            {
+                return Err(Refusal::of("notAnEntry"));
+            }
+            if body.is_empty()
+                && task
+                    .and_then(|task| task.resolved.as_ref())
+                    .is_some_and(|said| said.entry == entry)
+            {
+                return Err(Refusal::of("markEntry"));
+            }
+            Op::TaskLogEdit {
+                id,
+                d: LogEdit { entry, body },
+            }
+        }
         None => Op::TaskLog {
             id,
             d: LogAdd::new(ulid::Ulid::generate(), body).in_zone(Some(zone())),
         },
-    })?;
+    };
+    session.commit(op)?;
     session
         .state
         .tasks

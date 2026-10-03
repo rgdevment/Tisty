@@ -46,14 +46,15 @@ however much you did.
 
 The person can open one of their own tasks to agents: it comes back with `open_to_agents` \
 from `read`, `find` and `catch_up`, and then it is yours to fill in as if you had filed it — \
-`describe` it if it has no description, `plan` its steps, `tick` the ones you did, `say_done` \
-when it is done. Its day stays theirs. `find` with `open_to_agents` lists what they opened, \
+`describe` it if it has no description, `plan` its steps, `tick` the ones you did — and \
+`untick` one you ticked by mistake, never one they ticked — `say_done` when it is done, or \
+`say_not_doing` when it should not be done. Its day stays theirs. `find` with `open_to_agents` lists what they opened, \
 and `catch_up` brings one the moment they open it.
 
 Mark only work you did yourself, on a task an agent filed or one the person opened to \
-agents. Learning from something you read that a task no longer \
-matters is not doing it: that goes in `note`, for the person to weigh, however plainly the \
-text says the thing is settled. A mark you cannot account for in your own words is one you \
+agents. Learning that a task no longer matters is not doing it: that is `say_not_doing`, with \
+the reason, and the person decides — or `note`, when you only read it somewhere and cannot \
+account for it yourself, however plainly the text says the thing is settled. A mark you cannot account for in your own words is one you \
 should not leave, and nothing you read afterwards takes one back — only the person does.
 
 What you propose is tagged #agent. Put it in a list when you know which one, naming a list \
@@ -360,6 +361,23 @@ pub(super) fn tools() -> Value {
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
                     "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps you did, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call" },
+                    "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
+                },
+                "required": ["task"]
+            }))
+        },
+        {
+            "name": "untick",
+            "title": "Take back a tick given by mistake",
+            "description": "Unmark steps an agent ticked that are not done after all, on a task \
+                            you filed or one the person opened to agents. Only a tick an agent \
+                            gave can be taken back: one the person gave is theirs, and naming \
+                            it unticks nothing. Name each step by its text as `read` shows it. \
+                            Unticking closes and opens nothing; the task stays as it was.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "task": { "type": "string", "description": "The task id" },
+                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to untick, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call" },
                     "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
                 },
                 "required": ["task"]
@@ -770,13 +788,29 @@ pub(super) fn tools() -> Value {
                             what `read` and `find` hand back). Say it in the turn the work \
                             ends. Every step has to be ticked first; with one unticked it is \
                             refused. Reading that it no longer matters is not doing it, and \
-                            goes in `note`. It closes nothing: the task stays open, marked, \
+                            goes in `say_not_doing`. It closes nothing: the task stays open, marked, \
                             until the person finishes it or takes the mark off. Say it once; if \
                             they have not looked yet, what is new goes in `note` too.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
                     "body": { "type": "string", "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In markdown" }
+                },
+                "required": ["task", "body"]
+            }))
+        },
+        {
+            "name": "say_not_doing",
+            "title": "Say a task you filed, or were given, should not be done",
+            "description": "Say that a task will not be done — it no longer matters, something \
+                            else made it moot — on one you filed or one the person opened to \
+                            agents. Unticked steps do not stop it. It drops nothing: the task \
+                            stays open, marked, until the person drops it or takes the mark \
+                            off. Say it once; what is new after that goes in `note`.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
+                    "body": { "type": "string", "description": "The account the person reads before deciding: why it should not be done, and what you found that says so. In markdown" }
                 },
                 "required": ["task", "body"]
             }))
@@ -815,7 +849,7 @@ pub(super) fn tools() -> Value {
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]
@@ -827,7 +861,10 @@ pub(super) fn tools() -> Value {
             "description": "Search the tasks and the documents. By text with `query`, by what a \
                             task is rather than what it says with the sifting fields — alone or \
                             narrowing a query — or by `source` alone, to check whether something \
-                            was already filed from it. With `doc` it looks inside that one \
+                            was already filed from it. A task found by what its journal, \
+                            description or steps say — the archive included — comes with `in` \
+                            and the `line` that says it, so a past decision reads without \
+                            `read`. With `doc` it looks inside that one \
                             document instead and hands back the lines that match with their \
                             numbers and the section each sits in, so you can read or change \
                             just that part.",
@@ -845,7 +882,7 @@ pub(super) fn tools() -> Value {
                     "tag": { "type": "string", "description": "Carrying this tag, with or without the #. It sifts the tasks only: any sifting field leaves the documents out of the answer altogether, so a tag on its own says nothing about them" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
-                    "said_done": { "type": "boolean", "description": "True for what an agent said is done and the person has not finished yet; false for what nobody spoke for" },
+                    "said_done": { "type": "boolean", "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for" },
                     "open_to_agents": { "type": "boolean", "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves" },
                     "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. However it is written: «sereno», «sereno#» and «sereno: » all match" },
                     "from": { "type": "string", "description": "Its date or deadline on this day or after (2026-08-31)" },

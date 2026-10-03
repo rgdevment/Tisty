@@ -15,6 +15,8 @@ interface Props {
   onName: (name: string, icon?: string, colour?: string) => void;
   onDrop?: () => void;
   dropWord?: string;
+  onArchive?: () => void;
+  archiveWord?: string;
   onClose: () => void;
 }
 
@@ -29,6 +31,8 @@ export default function Naming({
   onName,
   onDrop,
   dropWord,
+  onArchive,
+  archiveWord,
   onClose,
 }: Props) {
   const [name, setName] = useState(called ?? "");
@@ -73,11 +77,20 @@ export default function Naming({
         >
           {t("cancel")}
         </button>
+        {onArchive && archiveWord && (
+          <button
+            type="button"
+            onClick={onArchive}
+            className="ml-auto rounded-[10px] px-3 py-1.5 text-[12.5px] text-soft hover:bg-hover"
+          >
+            {archiveWord}
+          </button>
+        )}
         {onDrop && dropWord && (
           <button
             type="button"
             onClick={onDrop}
-            className="ml-auto rounded-[10px] px-3 py-1.5 text-[12.5px] text-urgent hover:bg-hover"
+            className={`${onArchive && archiveWord ? "" : "ml-auto "} rounded-[10px] px-3 py-1.5 text-[12.5px] text-urgent hover:bg-hover`}
           >
             {dropWord}
           </button>

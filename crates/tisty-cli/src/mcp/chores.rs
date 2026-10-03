@@ -502,12 +502,12 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
-    if task.resolved.is_some() {
+    if let Some(said) = &task.resolved {
         return Err(Refused::Tool(format!(
-            "{:?} has already been said done, and a step added now would stand unticked under \
-             that mark — which is the very thing `say_done` refuses to do. Say what is still \
-             left with `note` and leave the task to the person.",
-            task.title
+            "{:?} has already been said {}, and a step added now would stand under that mark \
+             unlooked at. Say what is still left with `note` and leave the task to the person.",
+            task.title,
+            marked_as(said)
         )));
     }
     let mut ops = Vec::with_capacity(steps.len());
@@ -557,32 +557,10 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
-    let mut chosen: Vec<&tisty_core::model::Step> = Vec::new();
-    for one in &wanted {
-        let sought = tisty_core::text::folded(one.trim());
-        let alike: Vec<&tisty_core::model::Step> = task
-            .steps
-            .iter()
-            .filter(|step| tisty_core::text::folded(step.text.trim()) == sought)
-            .collect();
-        // Two steps written alike are a list with a line repeated: naming it ticks the next
-        // one still open, so the checklist is walked down rather than stuck on the name.
-        let Some(step) = alike
-            .iter()
-            .find(|step| !step.done && !chosen.iter().any(|had| had.id == step.id))
-            .or_else(|| alike.first())
-            .copied()
-        else {
-            return Err(Refused::Tool(format!(
-                "no step of {:?} reads {one:?}; nothing was ticked. `read` shows them as they \
-                 are written.",
-                task.title
-            )));
-        };
-        if !chosen.iter().any(|had| had.id == step.id) {
-            chosen.push(step);
-        }
+    if let Some(refusal) = already_said_done(task, "ticking") {
+        return Err(refusal);
     }
+    let chosen = steps_named(task, &wanted, "ticked", |step| !step.done)?;
     let (already, fresh): (Vec<&tisty_core::model::Step>, Vec<&tisty_core::model::Step>) =
         chosen.iter().partition(|step| step.done);
     if !fresh.is_empty() {
@@ -600,6 +578,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
                     !still_filling(&held, now)
+                        || now.resolved.is_some()
                         || now
                             .steps
                             .iter()
@@ -629,6 +608,83 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "id": id.to_string(),
             "title": task.title,
             "ticked": fresh.len(),
+            "already": already.len(),
+            "left": left,
+        }),
+    ))
+}
+
+pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool("unticking needs a `task` id.".into()));
+    };
+    let mut wanted = strings(args, "steps")?;
+    if let Some(one) = text(args, "step") {
+        wanted.push(one);
+    }
+    if wanted.is_empty() {
+        return Err(Refused::Tool(
+            "unticking needs `steps`: the text of each step an agent ticked by mistake, as \
+             `read` shows it (`step` for one)."
+                .into(),
+        ));
+    }
+    let (state, mut store) = opened(paths)?;
+    let (id, task) = filling(&state, &store, &said)?;
+    if let Some(refusal) = already_said_done(task, "unticking") {
+        return Err(refusal);
+    }
+    let chosen = steps_named(task, &wanted, "unticked", |step| step.by_agent)?;
+    if let Some(step) = chosen.iter().find(|step| step.done && !step.by_agent) {
+        return Err(Refused::Tool(format!(
+            "{:?} was ticked by the person, and taking it back is theirs; nothing was \
+             unticked. Say what you found with `note`.",
+            step.text
+        )));
+    }
+    let (fresh, already): (Vec<&tisty_core::model::Step>, Vec<&tisty_core::model::Step>) =
+        chosen.iter().partition(|step| step.done);
+    if !fresh.is_empty() {
+        let ids: Vec<tisty_core::model::StepId> = fresh.iter().map(|step| step.id).collect();
+        let ops = ids
+            .iter()
+            .map(|step| Op::StepUndone {
+                id,
+                d: StepRef { step: *step },
+            })
+            .collect();
+        let written = store
+            .append_batch_unless(ops, |events| {
+                let held = State::replay(events);
+                held.tasks.get(&id).is_none_or(|now| {
+                    !still_filling(&held, now)
+                        || now.resolved.is_some()
+                        || !ids.iter().all(|one| {
+                            now.step(*one)
+                                .is_some_and(|step| step.done && step.by_agent)
+                        })
+                })
+            })
+            .map_err(hitch)?;
+        if written.is_none() {
+            return Err(moved(task));
+        }
+    }
+    let left = task.steps.iter().filter(|step| !step.done).count() + fresh.len();
+    let mut said = match fresh.len() {
+        0 => format!("Nothing unticked on {:?}: ", task.title),
+        n => format!("Unticked {n} step(s) on {:?}. ", task.title),
+    };
+    if !already.is_empty() {
+        said.push_str(&format!("{} were not ticked. ", already.len()));
+    }
+    said.push_str(&format!("{left} unticked now."));
+    Ok(told(
+        said,
+        json!({
+            "id": id.to_string(),
+            "title": task.title,
+            "unticked": fresh.len(),
             "already": already.len(),
             "left": left,
         }),
@@ -669,17 +725,32 @@ pub(super) fn note(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    spoken_for(paths, args, false)
+}
+
+pub(super) fn say_not_doing(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    spoken_for(paths, args, true)
+}
+
+fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused> {
+    let saying = if drop {
+        "saying a task will not be done"
+    } else {
+        "saying a task is done"
+    };
     let Some(said) = text(args, "task") else {
-        return Err(Refused::Tool(
-            "saying a task is done needs the `task` id.".into(),
-        ));
+        return Err(Refused::Tool(format!("{saying} needs the `task` id.")));
     };
     let Some(body) = text(args, "body") else {
-        return Err(Refused::Tool(
-            "saying a task is done needs a `body`: what you did and how you know it holds. \
-             Without it the person has only your word and nothing to check it against."
-                .into(),
-        ));
+        return Err(Refused::Tool(format!(
+            "{saying} needs a `body`: {} Without it the person has only your word and nothing \
+             to check it against.",
+            if drop {
+                "why it should not be done, and what you found that says so."
+            } else {
+                "what you did and how you know it holds."
+            }
+        )));
     };
     let (state, mut store) = opened(paths)?;
     let Ok(id) = said.parse::<TaskId>() else {
@@ -719,14 +790,26 @@ pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .unwrap_or_else(|| "an assistant".to_string()),
         };
         return Err(Refused::Tool(format!(
-            "{who} already said {:?} was done on {}, and the person has not looked yet. Saying \
+            "{who} already said {:?} {} on {}, and the person has not looked yet. Saying \
              it again would only stack another entry on the journal — add what is new with \
              `note`.",
             task.title,
+            if already.drop {
+                "would not be done"
+            } else {
+                "was done"
+            },
             when(already.at)
         )));
     }
-    if let Some(refusal) = unticked(task) {
+    if drop && (task.repeat.is_some() || task.after.is_some()) {
+        return Err(Refused::Tool(format!(
+            "{:?} is a turn of something that repeats, and dropping it would end the repeat. \
+             Whether it goes on is the person's call: say why with `note`.",
+            task.title
+        )));
+    }
+    if !drop && let Some(refusal) = unticked(task) {
         return Err(refusal);
     }
 
@@ -743,7 +826,9 @@ pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 },
                 Op::TaskResolve {
                     id,
-                    d: Resolve::new(entry).said_by(jiff::Timestamp::now(), me.clone()),
+                    d: Resolve::new(entry)
+                        .said_by(jiff::Timestamp::now(), me.clone())
+                        .dropping(drop),
                 },
             ],
             |events| {
@@ -751,7 +836,7 @@ pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 held.tasks.get(&id).is_none_or(|now| {
                     !still_filling(&held, now)
                         || now.resolved.is_some()
-                        || now.steps.iter().any(|step| !step.done)
+                        || (!drop && now.steps.iter().any(|step| !step.done))
                 })
             },
         )
@@ -762,7 +847,12 @@ pub(super) fn say_done(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "Said done: {:?}. It stays open until the person finishes it.",
+            "{} {:?}. It stays open until the person decides.",
+            if drop {
+                "Said it will not be done:"
+            } else {
+                "Said done:"
+            },
             task.title
         ),
         json!({ "id": id.to_string(), "title": task.title, "open": true }),
@@ -815,12 +905,13 @@ fn still_filling(held: &State, now: &Task) -> bool {
 }
 
 fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
-    task.resolved.as_ref().map(|_| {
+    task.resolved.as_ref().map(|said| {
         Refused::Tool(format!(
-            "{:?} has already been said done, so {doing} now would speak over a mark nobody has \
+            "{:?} has already been said {}, so {doing} now would speak over a mark nobody has \
              looked at yet. Say what you have learnt with `note` and leave the task to the \
              person.",
-            task.title
+            task.title,
+            marked_as(said)
         ))
     })
 }
@@ -863,4 +954,42 @@ fn refused(e: Rejected) -> Refused {
         )),
         other => Refused::Protocol(-32603, format!("{other:?}")),
     }
+}
+
+fn marked_as(said: &tisty_core::model::Resolved) -> &'static str {
+    if said.drop { "not to be done" } else { "done" }
+}
+
+/// Steps written alike are a repeated line: naming one reaches the next that `fits`.
+fn steps_named<'a>(
+    task: &'a Task,
+    wanted: &[String],
+    doing: &str,
+    fits: impl Fn(&tisty_core::model::Step) -> bool,
+) -> Result<Vec<&'a tisty_core::model::Step>, Refused> {
+    let mut chosen: Vec<&tisty_core::model::Step> = Vec::new();
+    for one in wanted {
+        let sought = tisty_core::text::folded(one.trim());
+        let alike: Vec<&tisty_core::model::Step> = task
+            .steps
+            .iter()
+            .filter(|step| tisty_core::text::folded(step.text.trim()) == sought)
+            .collect();
+        let Some(step) = alike
+            .iter()
+            .find(|step| fits(step) && !chosen.iter().any(|had| had.id == step.id))
+            .or_else(|| alike.first())
+            .copied()
+        else {
+            return Err(Refused::Tool(format!(
+                "no step of {:?} reads {one:?}; nothing was {doing}. `read` shows them as they \
+                 are written.",
+                task.title
+            )));
+        };
+        if !chosen.iter().any(|had| had.id == step.id) {
+            chosen.push(step);
+        }
+    }
+    Ok(chosen)
 }
