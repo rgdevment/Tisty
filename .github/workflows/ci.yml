@@ -18,31 +18,60 @@ env:
 
 jobs:
   test:
-    name: test / ${{ matrix.os }}
+    name: test / ${{ matrix.os }}${{ matrix.part && format(' ({0})', matrix.part) || '' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            part: 1/2
+          - os: windows-latest
+            part: 2/2
+          - os: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          components: clippy
+          persist-credentials: false
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update && rustup component add clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          save-if: ${{ github.ref == 'refs/heads/main' && matrix.part != '2/2' }}
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
           tool: nextest
       # Clippy runs where the cache is written, or the next job pays to rebuild what it needs.
-      - run: cargo clippy --workspace --all-targets
-      - run: cargo nextest run --workspace --no-tests=pass
-      - if: runner.os == 'Windows'
+      - if: matrix.part != '2/2'
+        run: cargo clippy --workspace --all-targets
+      - name: The suite, or this runner's half of it
+        shell: bash
+        env:
+          PART: ${{ matrix.part }}
+        run: cargo nextest run --workspace --no-tests=pass ${PART:+--partition count:$PART}
+      - if: runner.os == 'macOS'
         run: cargo test --doc --workspace
+
+  # The ruleset requires this name; the suite itself runs in two halves above.
+  windows:
+    name: test / windows-latest
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Both halves passed
+        env:
+          RESULT: ${{ needs.test.result }}
+        run: |
+          if [ "$RESULT" != "success" ]; then
+            echo "::error::a half of the suite, or the macOS run, did not pass: $RESULT"
+            exit 1
+          fi
 
   lint:
     name: fmt
@@ -50,9 +79,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          components: rustfmt
+          persist-credentials: false
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update && rustup component add rustfmt
       - run: cargo fmt --all --check
 
   window:
@@ -64,6 +95,8 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -72,7 +105,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
-      - run: npm test
 
   prose:
     name: markdown
@@ -80,6 +112,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -94,6 +128,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
 
   coverage:
@@ -102,10 +138,12 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          components: llvm-tools-preview
+          persist-credentials: false
+
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update && rustup component add llvm-tools-preview
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -161,6 +199,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:

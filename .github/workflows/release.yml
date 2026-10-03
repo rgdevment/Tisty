@@ -38,13 +38,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            app/package-lock.json
+          package-manager-cache: false
       - run: npm ci
       - run: npm run lint:md
       # The registry has rules of its own — a description over 100 characters is the one
@@ -112,27 +111,6 @@ jobs:
             ran: a tag belongs on a commit that reached main and was tested there"
           exit 1
 
-  rust:
-    name: fmt + clippy
-    runs-on: windows-latest
-    timeout-minutes: 25
-    env:
-      RUSTFLAGS: -D warnings
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-        with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-        with:
-          shared-key: workspace
-          save-if: false
-      - uses: ./.github/actions/sidecar
-      - run: cargo fmt --all --check
-      - run: cargo clippy --workspace --all-targets
-
-  # The builds start as soon as the version is known; fmt and clippy still gate publishing below,
-  # so a run that fails them ships nothing, it only finds out later.
   version:
     name: Resolve the version
     needs: [gate]
@@ -154,6 +132,17 @@ jobs:
       HAS_UPDATER_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
       HAS_PFX: ${{ secrets.PFX_BASE64 != '' }}
       HAS_PFX_PASSWORD: ${{ secrets.PFX_PASSWORD != '' }}
+      HAS_GIST: ${{ secrets.GIST_TOKEN != '' }}
+      STORE_PUBLISH: ${{ vars.STORE_PUBLISH }}
+      HAS_STORE_APP_ID: ${{ vars.STORE_APP_ID != '' }}
+      HAS_STORE_TENANT: ${{ secrets.STORE_TENANT_ID != '' }}
+      HAS_STORE_SELLER: ${{ secrets.STORE_SELLER_ID != '' }}
+      HAS_STORE_CLIENT: ${{ secrets.STORE_CLIENT_ID != '' }}
+      HAS_STORE_SECRET: ${{ secrets.STORE_CLIENT_SECRET != '' }}
+      WINGET_PUBLISH: ${{ vars.WINGET_PUBLISH }}
+      HAS_WINGET: ${{ secrets.WINGET_TOKEN != '' }}
+      HAS_MSIX_IDENTITY: ${{ vars.MSIX_IDENTITY != '' }}
+      HAS_MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER != '' }}
     steps:
       - name: Signing secrets come in pairs
         run: |
@@ -195,6 +184,22 @@ jobs:
               want APPLE_ID "$HAS_APPLE_ID"
               want APPLE_APP_PASSWORD "$HAS_APPLE_APP_PASSWORD"
               want APPLE_TEAM_ID "$HAS_APPLE_TEAM_ID"
+              want GIST_TOKEN "$HAS_GIST"
+            fi
+            # A switch turned on is a promise to publish there; only a stable version goes.
+            if [[ "$GITHUB_REF" != *-* ]]; then
+              want MSIX_IDENTITY "$HAS_MSIX_IDENTITY"
+              want MSIX_PUBLISHER "$HAS_MSIX_PUBLISHER"
+              if [ "$STORE_PUBLISH" = "true" ]; then
+                want STORE_APP_ID "$HAS_STORE_APP_ID"
+                want STORE_TENANT_ID "$HAS_STORE_TENANT"
+                want STORE_SELLER_ID "$HAS_STORE_SELLER"
+                want STORE_CLIENT_ID "$HAS_STORE_CLIENT"
+                want STORE_CLIENT_SECRET "$HAS_STORE_SECRET"
+              fi
+              if [ "$WINGET_PUBLISH" = "true" ]; then
+                want WINGET_TOKEN "$HAS_WINGET"
+              fi
             fi
             [ -z "$missing" ] || fail "this tag would be released without:$missing"
           fi
@@ -257,6 +262,8 @@ jobs:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/prepare
         with:
@@ -356,6 +363,8 @@ jobs:
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/prepare
         with:
@@ -425,6 +434,8 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/prepare
         with:
@@ -434,8 +445,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
+          package-manager-cache: false
 
       - name: Frontend
         working-directory: app
@@ -669,18 +679,18 @@ jobs:
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/prepare
         with:
           version: ${{ needs.version.outputs.version }}
           targets: ${{ matrix.target }}
-          cache-key: ${{ matrix.target }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: app/package-lock.json
+          package-manager-cache: false
 
       - name: Frontend
         working-directory: app
@@ -829,6 +839,8 @@ jobs:
           fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         if: steps.gate.outputs.go == 'yes'
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -908,6 +920,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -943,9 +957,7 @@ jobs:
   publish:
     name: GitHub Release
     needs:
-      [
-        rust,
-        tested,
+      [tested,
         version,
         build-macos,
         build-windows,
@@ -956,7 +968,7 @@ jobs:
       ]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-      && needs.rust.result == 'success' && needs.tested.result == 'success'
+      && needs.tested.result == 'success'
       && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
       && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
@@ -966,8 +978,9 @@ jobs:
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # One tag at a time: every tag rewrites the same manifest branch and the Latest flag.
     concurrency:
-      group: release-publish-${{ github.ref }}
+      group: release-publish
       cancel-in-progress: false
     permissions:
       contents: write
@@ -977,6 +990,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: true # zizmor: ignore[artipacked] this job pushes the manifest branch
 
       # By prefix, not everything: the run also carries binaries set aside between jobs.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -1000,7 +1014,7 @@ jobs:
           done
 
       - name: Checksums
-        run: cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS
+        run: cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS
 
       - name: Verify every artifact to attest is present
         env:
@@ -1040,6 +1054,37 @@ jobs:
             fi
           done
           exit $status
+
+      # After publishing, this could only turn red once every copy had been offered the update.
+      - name: The signature answers to the key this build ships
+        env:
+          HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          if [ "${HAS_UPDATER_KEY}" != "true" ]; then
+            echo "::notice::no updater key, so there is no signature to check"
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq && sudo apt-get install -y -qq minisign && break
+            echo "minisign would not install (${attempt}/3)"
+            sleep $((attempt * 5))
+          done
+          command -v minisign
+          v="${{ needs.version.outputs.version }}"
+
+          jq -r '.plugins.updater.pubkey' app/src-tauri/tauri.conf.json | base64 -d > tisty.pub
+          for one in "dist/tisty-installer-$v-windows-x86_64.exe" \
+                     "dist/tisty-$v-macos-aarch64.app.tar.gz" \
+                     "dist/tisty-$v-macos-x86_64.app.tar.gz"; do
+            [ -s "$one" ] || continue
+            base64 -d < "$one.sig" > one.sig
+            if ! minisign -Vm "$one" -p tisty.pub -x one.sig; then
+              echo "::error::$one was signed with a key that is not the one in tauri.conf.json, so no copy could verify this update. Nothing was published."
+              exit 1
+            fi
+          done
+          rm -f tisty.pub one.sig
+          echo "the signatures and the shipped key are halves of the same pair"
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
@@ -1274,6 +1319,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # What a copy out there will do in a day's time, done here first. A signature made against
       # the wrong bytes reads exactly like a working release until someone tries to install it.
@@ -1386,8 +1433,8 @@ jobs:
             echo "go=no" >> "$GITHUB_OUTPUT"
           elif [ -z "$STORE_APP_ID" ] || [ -z "$STORE_TENANT_ID" ] || [ -z "$STORE_SELLER_ID" ] \
             || [ -z "$STORE_CLIENT_ID" ] || [ -z "$STORE_CLIENT_SECRET" ]; then
-            echo "::notice::no Store credentials; skipping"
-            echo "go=no" >> "$GITHUB_OUTPUT"
+            echo "::error::STORE_PUBLISH is true but a Store credential is empty"
+            exit 1
           else
             echo "go=yes" >> "$GITHUB_OUTPUT"
           fi
@@ -1467,6 +1514,8 @@ jobs:
           fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         if: steps.gate.outputs.go == 'yes'
 
       # A version is immutable once listed, so republishing a tag is a permanent red job.
@@ -1521,14 +1570,14 @@ jobs:
       && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # One tag at a time: the stable and the beta cask live in the same tap.
     concurrency:
-      group: release-homebrew-${{ github.ref }}
+      group: release-homebrew
       cancel-in-progress: false
     env:
       GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
     steps:
       - name: Update the tap
-        if: env.GIST_TOKEN != ''
         run: |
           set -euo pipefail
 
@@ -1720,8 +1769,8 @@ jobs:
             echo "::notice::WINGET_PUBLISH is not true; winget-pkgs gets nothing until it is"
             echo "go=no" >> "$GITHUB_OUTPUT"
           elif [ -z "$WINGET_TOKEN" ]; then
-            echo "::notice::no winget token; skipping"
-            echo "go=no" >> "$GITHUB_OUTPUT"
+            echo "::error::WINGET_PUBLISH is true but WINGET_TOKEN is empty"
+            exit 1
           else
             echo "go=yes" >> "$GITHUB_OUTPUT"
           fi

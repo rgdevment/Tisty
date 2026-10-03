@@ -14,14 +14,28 @@ amiss() {
   status=1
 }
 
+# Strict is for a title, which reaches main: only a revert keeps its shape there, and it is measured.
 weighed() {
-  local who=$1 said=$2
+  local who=$1 said=$2 strict=${3:-}
   said=$(printf '%s' "$said" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  if ! printf '%s' "$said" | grep -qE "$shape"; then
-    amiss "$who does not follow conventional commits"
-    printf '  %s\n' "$said"
-    return
+  if [ -z "$strict" ]; then
+    case $said in
+      "Merge branch '"* | "Merge pull request #"* | "Merge remote-tracking branch '"* | \
+        "Merge commit '"* | "Merge tag '"* | 'Revert "'* | "fixup! "* | "squash! "* | "amend! "*)
+        return
+        ;;
+    esac
   fi
+  case $said in
+    'Revert "'*) ;;
+    *)
+      if ! printf '%s' "$said" | grep -qE "$shape"; then
+        amiss "$who does not follow conventional commits"
+        printf '  %s\n' "$said"
+        return
+      fi
+      ;;
+  esac
   if [ "${#said}" -gt "$most" ]; then
     amiss "$who is ${#said} characters, keep it under $most"
     printf '  %s\n' "$said"
@@ -38,15 +52,15 @@ said_so() {
   exit $status
 }
 
-if [ "${1:-}" = "--subject" ]; then
-  [ -n "${2:-}" ] || { echo "usage: commits.sh --subject <text>"; exit 2; }
-  weighed "the subject" "$2"
+if [ "${1:-}" = "--subject" ] || [ "${1:-}" = "--title" ]; then
+  [ -n "${2:-}" ] || { echo "usage: commits.sh --subject|--title <text>"; exit 2; }
+  weighed "the subject" "$2" "$([ "$1" = "--title" ] && echo strict)"
   [ "$status" -eq 0 ] && [ -z "${GITHUB_ACTIONS:-}" ] && printf 'ok the subject is well formed\n'
   said_so
 fi
 
 range=${1:-}
-[ -n "$range" ] || { echo "usage: commits.sh <range> | --subject <text>"; exit 2; }
+[ -n "$range" ] || { echo "usage: commits.sh <range> | --subject <text> | --title <text>"; exit 2; }
 
 listed=$(git rev-list --no-merges "$range" 2>&1) || {
   printf '%s\n' "$listed"
