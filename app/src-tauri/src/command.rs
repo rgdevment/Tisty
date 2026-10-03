@@ -160,15 +160,15 @@ fn write(value: &str) -> std::io::Result<()> {
 fn write_to(at: &str, value: &str) -> std::io::Result<()> {
     use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE, REG_EXPAND_SZ};
     let key = winreg::RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(at, KEY_WRITE)?;
-    let mut held = winreg::RegValue {
-        bytes: Vec::new(),
+    let held = winreg::RegValue {
+        bytes: value
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .flat_map(u16::to_le_bytes)
+            .collect::<Vec<u8>>()
+            .into(),
         vtype: REG_EXPAND_SZ,
     };
-    held.bytes = value
-        .encode_utf16()
-        .chain(std::iter::once(0))
-        .flat_map(u16::to_le_bytes)
-        .collect();
     key.set_raw_value("Path", &held)?;
     Ok(())
 }

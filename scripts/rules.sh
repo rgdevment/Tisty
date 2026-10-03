@@ -41,8 +41,7 @@ no_prose_blocks() {
 }
 
 nothing_past_what_a_person_holds() {
-  local measured skip test_modules now at was before
-  declare -A ceiling
+  local measured kept skip test_modules now at was before
   measured=$(mktemp)
   skip='node_modules|/tests/|\.test\.|locales\.ts|glyphs\.ts|marks\.ts|model/mark\.rs'
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src app/src-tauri/src --include='*.rs' \
@@ -61,13 +60,12 @@ nothing_past_what_a_person_holds() {
     return
   fi
 
-  while read -r now at; do
-    [ -n "${at:-}" ] && ceiling["$at"]=$now
-  done < <(tr -d '\015' < .github/oversized.txt)
+  kept=$(mktemp)
+  tr -d '\015' < .github/oversized.txt > "$kept"
 
   before=$status
   while read -r now at; do
-    was=${ceiling["$at"]:-}
+    was=$(awk -v at="$at" '$2 == at { last = $1 } END { print last }' "$kept")
     if [ -z "$was" ]; then
       if [ "$now" -gt 1500 ]; then
         amiss "$at is $now lines of code; 1500 is the ceiling. Split it along a seam, or say why it belongs in .github/oversized.txt"
@@ -85,7 +83,7 @@ nothing_past_what_a_person_holds() {
     fi
   done < <(tr -d '\015' < .github/oversized.txt)
 
-  rm -f "$measured"
+  rm -f "$measured" "$kept"
   [ "$status" != "$before" ] || went_well "no file grows past what a person can hold"
 }
 
@@ -146,7 +144,7 @@ nothing_the_window_cannot_translate() {
 }
 
 nothing_that_takes_the_window_down() {
-  local test_modules looked found
+  local test_modules looked found one
   local -a files
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src --include='*.rs' \
     | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
@@ -156,7 +154,10 @@ nothing_that_takes_the_window_down() {
     amiss "the core and the round could not be looked through for what panics"
     return
   fi
-  mapfile -t files <<< "$looked"
+  files=()
+  while IFS= read -r one; do
+    files+=("$one")
+  done <<< "$looked"
   found=$(grep -nHE '\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|todo!\(' "${files[@]}")
   case $? in
     0)

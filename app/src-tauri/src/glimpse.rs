@@ -89,7 +89,11 @@ pub fn keep(cache: &Path, at: &str, one: &Glimpse) {
 fn file(cache: &Path, at: &str) -> PathBuf {
     let mut digest = Sha256::new();
     digest.update(at.as_bytes());
-    let named = format!("{:x}", digest.finalize());
+    let named: String = digest
+        .finalize()
+        .iter()
+        .map(|one| format!("{one:02x}"))
+        .collect();
     cache.join("glimpses").join(format!("{named}.json"))
 }
 

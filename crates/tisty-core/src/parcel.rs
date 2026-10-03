@@ -60,7 +60,7 @@ pub struct Manifest {
 }
 
 fn sealed(manifest: &Manifest, keep: &[u8]) -> Option<String> {
-    use hmac::Mac;
+    use hmac::{KeyInit, Mac};
     let bare = Manifest {
         seal: None,
         ..manifest.clone()
@@ -248,7 +248,7 @@ pub fn locked(at: &Path) -> bool {
 /// while the key it grinds out is not — so it is wiped rather than left in freed memory.
 fn keyed(number: &str, salt: &[u8], work: u8) -> Result<zeroize::Zeroizing<[u8; 32]>> {
     let mut key = zeroize::Zeroizing::new([0u8; 32]);
-    let how = scrypt::Params::new(work, 8, 1, 32).map_err(|_| Error::WrongNumber)?;
+    let how = scrypt::Params::new(work, 8, 1).map_err(|_| Error::WrongNumber)?;
     // Composed first, so a number typed on a Mac and the same one typed on Windows are the same
     // number rather than two spellings that grind out different keys.
     let said = crate::text::composed(number);
@@ -283,7 +283,8 @@ fn shut(from: &Path, into: &Path, number: &str, along: &Along) -> Result<()> {
         .map_err(|e| Error::Io(std::io::Error::other(e.to_string())))?;
 
     let key = keyed(number, &salt, WORK)?;
-    let sealer = chacha20poly1305::XChaCha20Poly1305::new(key.as_ref().into());
+    let sealer = chacha20poly1305::XChaCha20Poly1305::new_from_slice(key.as_ref())
+        .map_err(|_| Error::WrongNumber)?;
 
     let mut plain = std::io::BufReader::new(std::fs::File::open(from)?);
     let mut out = std::io::BufWriter::new(std::fs::File::create(into)?);
@@ -361,7 +362,8 @@ fn opened(from: &Path, into: &Path, number: Option<&str>, along: &Along) -> Resu
         return Err(Error::NotAParcel(from.display().to_string()));
     }
     let key = keyed(number, &salt, work[0])?;
-    let sealer = chacha20poly1305::XChaCha20Poly1305::new(key.as_ref().into());
+    let sealer = chacha20poly1305::XChaCha20Poly1305::new_from_slice(key.as_ref())
+        .map_err(|_| Error::WrongNumber)?;
 
     let mut out = std::io::BufWriter::new(std::fs::File::create(into)?);
     let mut block = vec![0u8; BLOCK + TAG];
