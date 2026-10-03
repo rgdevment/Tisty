@@ -34,17 +34,6 @@ allow-wildcard-paths = true
 
 [advisories]
 yanked = "deny"
-# Every one of these is unmaintained rather than vulnerable, reached only through
-# Tauri, and not ours to replace. Listed one by one so a new advisory still fails
-# the build.
-ignore = [
-  # unic-*, via urlpattern in tauri-utils.
-  "RUSTSEC-2025-0075",
-  "RUSTSEC-2025-0080",
-  "RUSTSEC-2025-0081",
-  "RUSTSEC-2025-0098",
-  "RUSTSEC-2025-0100",
-]
 
 [sources]
 unknown-registry = "deny"

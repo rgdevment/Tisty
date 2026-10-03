@@ -13,13 +13,13 @@ updates:
     commit-message:
       prefix: "chore"
     groups:
-      actions:
+      ci:
         patterns:
           - "*"
         update-types:
           - minor
           - patch
-      actions-majors:
+      ci-major:
         patterns:
           - "*"
         update-types:
@@ -32,6 +32,10 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "chore"
+    # Its types cross into the windows crate's own Store API, so it moves only when windows does.
+    ignore:
+      - dependency-name: windows-future
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     groups:
       rust:
         patterns:
@@ -39,7 +43,7 @@ updates:
         update-types:
           - minor
           - patch
-      rust-majors:
+      rust-major:
         patterns:
           - "*"
         update-types:
@@ -52,14 +56,20 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "chore"
+    # @stryker-mutator/vitest-runner 10 runs no test per mutant under vitest 5, so every mutant survives.
+    ignore:
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
     groups:
-      window:
+      ui:
         patterns:
           - "*"
         update-types:
           - minor
           - patch
-      window-majors:
+      ui-major:
         patterns:
           - "*"
         update-types:

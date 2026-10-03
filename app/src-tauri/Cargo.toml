@@ -21,7 +21,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { workspace = true }
 
 [target."cfg(windows)".dependencies]
-winreg = "0.55"
+winreg = "0.56"
 windows = { version = "0.62", features = [
   "ApplicationModel",
   "Management_Deployment",

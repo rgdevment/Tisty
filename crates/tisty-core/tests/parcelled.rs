@@ -2685,3 +2685,33 @@ lo mio",
         "the key is named after the store, so putting the store back is enough: nothing was set aside by hand and its own parcel still landed as a stranger's"
     );
 }
+
+#[test]
+fn a_parcel_locked_by_an_earlier_build_still_opens_with_its_number() {
+    let room = tmp();
+    let mut fresh = Room::new(room.path(), "after");
+    let sealed = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../fixtures/locked-before-the-crypto-moved.tistyx");
+    assert!(parcel::locked(&sealed));
+
+    let (landed, ops) = parcel::taken(
+        &fresh.paths,
+        &fresh.state,
+        &fresh.dev.clone(),
+        &sealed,
+        &Along::default(),
+        Some("123456"),
+    )
+    .unwrap();
+    assert_eq!(landed.docs, 1);
+    for op in ops {
+        fresh.tell(op);
+    }
+
+    let file = fresh.titled("Minutes").file.clone();
+    assert!(
+        fresh
+            .body(&file)
+            .contains("sealed before the crypto crates moved")
+    );
+}
