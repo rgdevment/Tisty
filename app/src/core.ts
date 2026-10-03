@@ -42,6 +42,7 @@ export interface Resolved {
   by: string;
   entry: string;
   via?: string;
+  drop?: boolean;
 }
 
 export interface Task {
@@ -134,6 +135,8 @@ export interface Snapshot {
   ahead: Coming[];
   routines: Habit[];
   lists: List[];
+  shelved?: List[];
+  every?: List[];
   tags: Counted[];
   refs: string[];
   counts: Record<string, number>;
@@ -255,7 +258,10 @@ export interface View {
   soonest?: boolean;
 }
 
-export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
+export const snapshot = (view?: View): Promise<Snapshot> =>
+  invoke<Snapshot>("snapshot", { view }).then((one) =>
+    one ? { ...one, every: [...one.lists, ...(one.shelved ?? [])] } : one,
+  );
 export type Scope = "either" | "open" | "archived";
 
 export interface Sighting {
@@ -953,3 +959,5 @@ export const listLook = (id: string, icon?: string, color?: string): Promise<Lis
 export const listRename = (id: string, name: string): Promise<List> =>
   invoke("list_rename", { id, name });
 export const listDrop = (id: string): Promise<void> => invoke("list_drop", { id });
+export const listArchive = (id: string): Promise<void> => invoke("list_archive", { id });
+export const listUnarchive = (id: string): Promise<void> => invoke("list_unarchive", { id });

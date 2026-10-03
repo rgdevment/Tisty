@@ -570,3 +570,139 @@ fn an_emptied_description_is_a_chapter_but_an_empty_one_was_never_written() {
 
     assert_eq!(story(&log, id).pages.len(), 1);
 }
+
+fn by_agent(seconds: i64, op: Op) -> Event {
+    let mut one = event(seconds, op);
+    one.device = DeviceId("dev_agent".into());
+    one
+}
+
+fn an_agent_filed(id: TaskId, step: StepId) -> Vec<Event> {
+    vec![
+        by_agent(
+            1,
+            Op::DeviceJoin {
+                d: DeviceId("dev_agent".into()),
+                k: Some(crate::event::DeviceKind::Agent),
+                p: None,
+            },
+        ),
+        by_agent(
+            2,
+            Op::TaskAdd {
+                id,
+                d: TaskAdd::new("migrate the reader", "a0"),
+            },
+        ),
+        by_agent(
+            3,
+            Op::StepAdd {
+                id,
+                d: StepAdd {
+                    step,
+                    text: "read the old format".into(),
+                    order: "a0".into(),
+                },
+            },
+        ),
+    ]
+}
+
+#[test]
+fn a_tick_an_assistant_takes_back_is_a_chapter_as_it_landed() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let mut log = an_agent_filed(id, step);
+    log.push(by_agent(
+        4,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    log.push(by_agent(
+        5,
+        Op::StepUndone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    let told = story(&log, id);
+
+    assert!(
+        matches!(chapters(&told).last(), Some(Chapter::Unticked { .. })),
+        "{:?}",
+        chapters(&told)
+    );
+}
+
+#[test]
+fn a_tick_the_person_gave_is_not_taken_back_in_the_trail_either() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let mut log = an_agent_filed(id, step);
+    log.push(event(
+        4,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    log.push(by_agent(
+        5,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    log.push(by_agent(
+        6,
+        Op::StepUndone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    let told = story(&log, id);
+
+    assert!(
+        !chapters(&told)
+            .iter()
+            .any(|one| matches!(one, Chapter::Unticked { .. })),
+        "{:?}",
+        chapters(&told)
+    );
+}
+
+#[test]
+fn an_entry_taken_out_is_not_quoted_back_from_the_trail() {
+    let id = Ulid::generate();
+    let entry = Ulid::generate();
+    let log = vec![
+        born(id, "renew the card"),
+        event(
+            5,
+            Op::TaskLog {
+                id,
+                d: LogAdd::new(entry, "the bank pin is 4321"),
+            },
+        ),
+        event(
+            6,
+            Op::TaskLogEdit {
+                id,
+                d: crate::event::LogEdit {
+                    entry,
+                    body: String::new(),
+                },
+            },
+        ),
+    ];
+
+    let told = story(&log, id);
+
+    assert!(
+        !format!("{:?}", chapters(&told)).contains("4321"),
+        "{:?}",
+        chapters(&told)
+    );
+}

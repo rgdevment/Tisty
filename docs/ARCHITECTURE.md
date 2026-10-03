@@ -218,18 +218,23 @@ mislabel, never open a door. Where an agent lives is said once by
 `device.host`, and the detail says «from this machine» or names the other.
 
 Filling a task in is the one thing an agent does on a task it did not file, and
-only where the person let it. `say_done`, `describe`, `plan` and `tick` reach a
-task an assistant filed, or one the person opened with `open_to_agents` — a
-verb of the window, on an open task of their own, never part of an edit and
-never the terminal's. Opened, the task stays theirs: its day, its title, its
-list and its closing are as out of reach as before, `tick` marks a step and
-never unmarks one, `describe` writes a description where there was none and
+only where the person let it. `say_done`, `say_not_doing`, `describe`, `plan`,
+`tick` and `untick` reach a task an assistant filed, or one the person opened
+with `open_to_agents` — a verb of the window, on an open task of their own,
+never part of an edit and never the terminal's. Opened, the task stays theirs:
+its day, its title, its list and its closing are as out of reach as before,
+`say_not_doing` leaves the same mark as `say_done` saying the task should be
+dropped rather than closed — confirming it drops, and nothing is dropped until
+the person does — `tick` marks a step, `untick` takes back only a tick an
+assistant gave — the step remembers whose hand ticked it, and a tick the person
+gave is theirs — `describe` writes a description where there was none and
 refuses to write over one, and `plan` adds steps under whatever is there. The
 core judges it again at replay — `TaskResolve`, `TaskDescribe`, `StepAdd` and
-`StepDone` from an assistant on a task nobody opened to them are let go,
-whatever the server that wrote them believed — so a fill-in written on one
-machine before the person shut the door on another projects the same
-everywhere. Shutting it keeps what was filled in; it is not an unsaying.
+`StepDone` from an assistant on a task nobody opened to them are let go, and so
+is a `StepUndone` on a step whose tick was not an assistant's, whatever the
+server that wrote them believed — so a fill-in written on one machine before the
+person shut the door on another projects the same everywhere. Shutting it keeps
+what was filled in; it is not an unsaying.
 
 A task the person closed is history to an agent. It comes back from `read`
 and `find` with `closed` set to the moment it ended and, from `read`, a

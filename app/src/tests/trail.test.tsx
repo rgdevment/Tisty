@@ -181,3 +181,26 @@ describe("the trail", () => {
     expect(screen.queryByText(/span/)).toBeNull();
   });
 });
+
+describe("the trail of a settled task", () => {
+  const wrote: Draft[] = [
+    { at: "2026-08-05T22:05:00Z", by: "dev_a", chapter: "wrote", body: "nine days to issue" },
+    { at: "2026-08-06T09:00:00Z", by: "dev_a", chapter: "closed" },
+  ];
+
+  it("counts the journal instead of quoting it, since the body shows it whole", async () => {
+    ipc.told = { id: "01A", pages: pages(...wrote) };
+    render(<Trail task="01A" lists={[]} summed={{ count: 3, last: "6 Aug" }} />);
+    await screen.findByRole("list");
+
+    expect(screen.queryByText("nine days to issue")).toBeNull();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByText(/Journal — 3 · the last 6 Aug/)).toBeTruthy();
+  });
+
+  it("reads an entry written empty as one taken out", async () => {
+    await shown([{ at: "2026-08-07T09:00:00Z", by: "dev_a", chapter: "rewrote", body: "" }]);
+
+    expect(screen.getByText("An entry is taken out")).toBeTruthy();
+  });
+});

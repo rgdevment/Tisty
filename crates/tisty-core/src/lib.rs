@@ -23,6 +23,7 @@ pub mod paths;
 pub mod refs;
 pub mod series;
 pub mod shape;
+mod shelving;
 pub mod signing;
 pub mod state;
 pub mod store;

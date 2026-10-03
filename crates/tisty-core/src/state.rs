@@ -218,6 +218,7 @@ impl State {
                 | Op::TaskDescribe { .. }
                 | Op::StepAdd { .. }
                 | Op::StepDone { .. } => self.attended_by_agents(task),
+                Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
                 _ => false,
             }
         {
@@ -308,8 +309,8 @@ impl State {
             Op::TaskUnresolve { id } => self.with_task(*id, |t| t.resolved = None),
 
             Op::StepAdd { id, d } => self.with_task(*id, |t| add_step(t, d)),
-            Op::StepDone { id, d } => self.with_step(*id, d.step, |s| s.done = true),
-            Op::StepUndone { id, d } => self.with_step(*id, d.step, |s| s.done = false),
+            Op::StepDone { id, d } => self.step_marked(event, *id, d.step, true),
+            Op::StepUndone { id, d } => self.step_marked(event, *id, d.step, false),
             Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.text = d.text.clone()),
             Op::StepReorder { id, d } => {
                 self.with_step(*id, d.step, |s| s.order = d.order.clone());
@@ -468,6 +469,19 @@ impl State {
                 task.retally();
             }
         }
+    }
+
+    fn untickable_by_agents(&self, task: &Task, step: StepId) -> bool {
+        self.attended_by_agents(task) && task.step(step).is_some_and(|one| one.by_agent)
+    }
+
+    fn step_marked(&mut self, event: &Event, task: TaskId, step: StepId, done: bool) {
+        let agent = self.assistants.contains(&event.device);
+        self.with_step(task, step, |s| {
+            // A redundant tick never takes a person's tick over; a person's always claims it.
+            s.by_agent = done && agent && (!s.done || s.by_agent);
+            s.done = done;
+        });
     }
 
     fn with_step(&mut self, task: TaskId, step: StepId, f: impl FnOnce(&mut Step)) {
@@ -1093,7 +1107,10 @@ impl State {
     }
 
     pub fn active_lists(&self) -> impl Iterator<Item = &List> {
-        self.lists.values().filter(|l| !l.archived)
+        let holding = self.lists_holding_open();
+        self.lists
+            .values()
+            .filter(move |l| !l.archived || holding.contains(&l.id))
     }
 
     pub fn ordered_open(&self) -> Vec<&Task> {
@@ -1312,7 +1329,7 @@ fn loose(name: &str) -> String {
 }
 
 fn untouched(born: &Task) -> bool {
-    born.log.is_empty() && !born.steps.iter().any(|step| step.done)
+    born.journal().next().is_none() && !born.steps.iter().any(|step| step.done)
 }
 
 fn shifted(
@@ -1427,6 +1444,7 @@ fn add_step(task: &mut Task, d: &StepAdd) {
         text: d.text.clone(),
         done: false,
         order: d.order.clone(),
+        by_agent: false,
     });
     sort_steps(task);
 }

@@ -12,6 +12,7 @@ import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
 import Prose from "./Prose";
 import Routine from "./Routine";
+import { saidBy } from "./Spoke";
 import Steps from "./Steps";
 import Trail from "./Trail";
 
@@ -91,7 +92,7 @@ export default function Detail({
           task.completed_at ?? "",
           task.hidden ? "hidden" : "",
           task.open_to_agents ? "open" : "",
-          task.log?.length ?? task.volume?.journal ?? 0,
+          task.volume?.journal ?? 0,
           task.steps?.length ?? task.volume?.steps ?? 0,
           task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
           task.description ? "described" : "",
@@ -101,6 +102,7 @@ export default function Detail({
         onError={onError}
         heading={<Section label={t("trail")} />}
         before={(from) => <Facts task={task} from={from} />}
+        summed={task.status === "open" ? undefined : journalled(task)}
       />
       <Left
         task={task.id}
@@ -128,8 +130,11 @@ export default function Detail({
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
           <span aria-hidden="true">◆</span>
           {clientNamed(task.resolved.via)
-            ? fill("agentNamedSaidDone", clientNamed(task.resolved.via) as string)
-            : t("agentSaidDone")}
+            ? fill(
+                task.resolved.drop ? "agentNamedSaidNotDoing" : "agentNamedSaidDone",
+                clientNamed(task.resolved.via) as string,
+              )
+            : t(task.resolved.drop ? "agentSaidNotDoing" : "agentSaidDone")}
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
         </p>
       )}
@@ -173,6 +178,7 @@ export default function Detail({
         onDoc={onDoc}
         onWhole={expanded ? undefined : onExpand}
         onWrite={onLog}
+        held={task.resolved?.entry}
       />
     </>
   );
@@ -222,27 +228,29 @@ export default function Detail({
         </>
       )}
 
-      {task.log && task.log.length > 0 && (
+      {task.log?.some((entry) => entry.body.trim()) && (
         <>
           <Section label={t("journal")} note={String(task.volume?.journal ?? task.log.length)} />
           <ul className="flex flex-col gap-3">
-            {task.log.map((entry) => (
-              <li key={entry.id}>
-                <span className="block text-[11.5px] tabular-nums text-faint">
-                  {wroteAt(entry.at, entry.tz)}
-                </span>
-                <Composed
-                  label={t("journal")}
-                  onError={onError}
-                  onDoc={onDoc}
-                  html={composed(
-                    entry.body,
-                    task.steps?.map((one) => one.text),
-                  )}
-                  className="prose text-[13px] leading-relaxed"
-                />
-              </li>
-            ))}
+            {task.log
+              .filter((entry) => entry.body.trim())
+              .map((entry) => (
+                <li key={entry.id}>
+                  <span className="block text-[11.5px] tabular-nums text-faint">
+                    {wroteAt(entry.at, entry.tz)}
+                  </span>
+                  <Composed
+                    label={t("journal")}
+                    onError={onError}
+                    onDoc={onDoc}
+                    html={composed(
+                      entry.body,
+                      task.steps?.map((one) => one.text),
+                    )}
+                    className="prose text-[13px] leading-relaxed"
+                  />
+                </li>
+              ))}
           </ul>
         </>
       )}
@@ -380,7 +388,11 @@ function Settled({
   };
   const choices: Choice[] = open
     ? [
-        ...(task.resolved ? [discard] : []),
+        ...(task.resolved?.drop
+          ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: onComplete }]
+          : task.resolved
+            ? [discard]
+            : []),
         ...(agentNamed(task.created_by)
           ? []
           : [
@@ -436,13 +448,24 @@ function Settled({
         >
           {open ? (
             <>
-              <button
-                type="button"
-                onClick={onComplete}
-                className={`${seat} font-medium text-accent`}
-              >
-                <span aria-hidden="true">✓</span> {t("markDone")}
-              </button>
+              {task.resolved?.drop ? (
+                <button
+                  type="button"
+                  onClick={onDiscard}
+                  title={discard.hint}
+                  className={`${seat} font-medium text-accent`}
+                >
+                  <span aria-hidden="true">⊘</span> {discard.label}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onComplete}
+                  className={`${seat} font-medium text-accent`}
+                >
+                  <span aria-hidden="true">✓</span> {t("markDone")}
+                </button>
+              )}
               {task.resolved ? (
                 <button
                   type="button"
@@ -593,9 +616,7 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}
-            {clientNamed(task.resolved.via)
-              ? fill("agentNamedSaidDone", clientNamed(task.resolved.via) as string)
-              : t("agentSettled")}
+            {saidBy(task)}
           </span>
         )}
       </p>
@@ -646,4 +667,13 @@ function Section({ label, note }: { label: string; note?: string }) {
       {note && <span>{note}</span>}
     </div>
   );
+}
+
+function journalled(task: Task): { count: number; last: string } {
+  const kept = (task.log ?? []).filter((entry) => entry.body.trim());
+  const last = kept.reduce<(typeof kept)[number] | undefined>(
+    (latest, entry) => (latest && latest.at >= entry.at ? latest : entry),
+    undefined,
+  );
+  return { count: kept.length, last: last ? wroteAt(last.at, last.tz) : "" };
 }

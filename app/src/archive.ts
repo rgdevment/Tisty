@@ -61,6 +61,24 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
   });
 }
 
+export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Date()): Row[] {
+  const spoken = (task: Task) =>
+    Boolean(task.resolved) &&
+    task.status === "open" &&
+    !(task.date && daysFrom(task.date.at, now) <= 0);
+  const waiting: Row[] = tasks
+    .filter(spoken)
+    .map((task) => ({ kind: "one" as const, key: task.id, task, band: t("agentBand") }));
+  return [
+    ...shelved(
+      tasks.filter((task) => !spoken(task)),
+      axis,
+      lists,
+    ),
+    ...waiting,
+  ];
+}
+
 export function banded(tasks: Task[], now = new Date()): Row[] {
   const waiting: Row[] = [];
   const rest: Row[] = [];

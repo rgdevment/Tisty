@@ -4,6 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
 import Detail from "../ui/Detail";
 
+const dialog = vi.hoisted(() => ({ sure: true, asked: 0 }));
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  ask: () => {
+    dialog.asked += 1;
+    return Promise.resolve(dialog.sure);
+  },
+}));
+
 const written: Task = {
   id: "01A",
   title: "write the report",
@@ -198,10 +207,73 @@ describe("what an edit is allowed to do", () => {
   });
 });
 
+const erasers = () =>
+  screen
+    .getAllByRole("button", { name: /^Remove / })
+    .filter((one) => !one.getAttribute("aria-label")?.includes("collect the figures"));
+
+describe("taking a journal entry out", () => {
+  it("asks for that entry by its id", async () => {
+    const user = userEvent.setup();
+    const on = open();
+
+    dialog.sure = true;
+    expect(erasers()).toHaveLength(1);
+    await user.click(erasers()[0]);
+
+    await vi.waitFor(() => expect(on.log).toHaveBeenCalledWith("", "01E"));
+  });
+
+  it("asks first, and leaves the entry when the answer is no", async () => {
+    const user = userEvent.setup();
+    const on = open();
+    dialog.sure = false;
+    dialog.asked = 0;
+
+    await user.click(erasers()[0]);
+
+    await vi.waitFor(() => expect(dialog.asked).toBe(1));
+    expect(on.log).not.toHaveBeenCalled();
+  });
+
+  it("does not draw an entry left empty, which is how one is taken out", () => {
+    open({
+      ...written,
+      log: [
+        ...(written.log ?? []),
+        { id: "02E", at: "2026-08-11 09:00:00", tz: "America/Santiago", body: "  " },
+      ],
+    });
+
+    expect(erasers()).toHaveLength(1);
+  });
+
+  it("does not draw it on a settled task either", () => {
+    open({
+      ...written,
+      status: "done",
+      log: [{ id: "02E", at: "2026-08-11 09:00:00", tz: "America/Santiago", body: "" }],
+    });
+
+    expect(screen.queryByText("Journal")).toBeNull();
+  });
+});
+
 describe("a settled task", () => {
   it("offers to reopen instead of to discard", () => {
     open({ ...written, status: "done" });
     expect(screen.getByRole("button", { name: /Reopen/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Not doing it/ })).toBeNull();
+  });
+});
+
+describe("the entry an agent's word rests on", () => {
+  it("offers no way to take it out while the word stands", () => {
+    open({
+      ...written,
+      resolved: { at: "2026-08-10T09:00:00Z", by: "dev_agent", entry: "01E" },
+    } as Task);
+
+    expect(erasers()).toHaveLength(0);
   });
 });

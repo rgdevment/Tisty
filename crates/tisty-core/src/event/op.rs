@@ -615,6 +615,9 @@ pub struct Resolve {
     /// which client spoke.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    /// Said not to be done at all: confirming it drops the task rather than closing it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub drop: bool,
 }
 
 impl Resolve {
@@ -624,7 +627,13 @@ impl Resolve {
             at: None,
             by: None,
             via: None,
+            drop: false,
         }
+    }
+
+    pub fn dropping(mut self, drop: bool) -> Self {
+        self.drop = drop;
+        self
     }
 
     pub fn said_by(mut self, at: jiff::Timestamp, by: DeviceId) -> Self {
