@@ -59,7 +59,7 @@ export default function Trail({ task, moved, lists, onError, heading, before, su
               >
                 {phrase(page, named)}
                 {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
-                {page.chapter === "wrote" && (
+                {page.chapter === "wrote" && page.body.trim() && (
                   <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
                     {plainly(page.body ?? "")}
                   </q>

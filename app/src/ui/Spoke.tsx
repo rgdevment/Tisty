@@ -12,10 +12,13 @@ export function spokenLabel(task: Task): string {
   return bits.join(" — ");
 }
 
-function saidBy(task: Task): string {
+export function saidBy(task: Task): string {
   const named = task.resolved ? clientNamed(task.resolved.via) : undefined;
-  if (task.resolved?.drop) {
+  if (task.resolved?.drop && task.status === "open") {
     return named ? fill("agentNamedSaidNotDoing", named) : t("agentSaidNotDoing");
+  }
+  if (task.resolved?.drop) {
+    return named ? fill("agentNamedSettledNotDoing", named) : t("agentSettledNotDoing");
   }
   if (named) return fill("agentNamedSaidDone", named);
   return task.status === "open" ? t("agentSaidDone") : t("agentSettled");

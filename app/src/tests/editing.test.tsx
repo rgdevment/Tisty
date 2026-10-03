@@ -266,3 +266,14 @@ describe("a settled task", () => {
     expect(screen.queryByRole("button", { name: /Not doing it/ })).toBeNull();
   });
 });
+
+describe("the entry an agent's word rests on", () => {
+  it("offers no way to take it out while the word stands", () => {
+    open({
+      ...written,
+      resolved: { at: "2026-08-10T09:00:00Z", by: "dev_agent", entry: "01E" },
+    } as Task);
+
+    expect(erasers()).toHaveLength(0);
+  });
+});

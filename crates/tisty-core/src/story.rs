@@ -107,6 +107,7 @@ struct Standing {
     filed_by_agent: bool,
     described: bool,
     steps: HashMap<StepId, String>,
+    ticked_by_agent: HashMap<StepId, bool>,
 }
 
 /// The same door `State::apply` keeps for an assistant's hand.
@@ -119,6 +120,9 @@ fn lets(op: &Op, standing: &Standing) -> bool {
         | Op::TaskDescribe { .. }
         | Op::StepAdd { .. }
         | Op::StepDone { .. } => attended,
+        Op::StepUndone { d, .. } => {
+            attended && standing.ticked_by_agent.get(&d.step) == Some(&true)
+        }
         _ => false,
     }
 }
@@ -144,9 +148,12 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
     mine.sort_by_key(|event| event.sort_key());
 
     let mut standing = Standing::default();
-    let mut pages = Vec::new();
+    let mut pages: Vec<Page> = Vec::new();
+    let mut wrote_on: HashMap<crate::model::LogId, usize> = HashMap::new();
 
     for event in mine {
+        let next = pages.len();
+        let mut taken_out = None;
         // The trail tells what landed: what `State::apply` lets go of an assistant's hand is
         // no chapter, or the trail would tell of steps and marks the task never took.
         let by_assistant = assistants.contains(&event.device);
@@ -281,12 +288,20 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                 standing.described = !empty;
             }
 
-            Op::TaskLog { d, .. } => write(Chapter::Wrote {
-                body: d.body.clone(),
-            }),
-            Op::TaskLogEdit { d, .. } => write(Chapter::Rewrote {
-                body: d.body.clone(),
-            }),
+            Op::TaskLog { d, .. } => {
+                wrote_on.insert(d.entry, next);
+                write(Chapter::Wrote {
+                    body: d.body.clone(),
+                })
+            }
+            Op::TaskLogEdit { d, .. } => {
+                if d.body.trim().is_empty() {
+                    taken_out = Some(d.entry);
+                }
+                write(Chapter::Rewrote {
+                    body: d.body.clone(),
+                })
+            }
 
             Op::StepAdd { d, .. } => {
                 standing.steps.insert(d.step, d.text.clone());
@@ -294,12 +309,21 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                     text: d.text.clone(),
                 });
             }
-            Op::StepDone { d, .. } => write(Chapter::Ticked {
-                text: standing.steps.get(&d.step).cloned().unwrap_or_default(),
-            }),
-            Op::StepUndone { d, .. } => write(Chapter::Unticked {
-                text: standing.steps.get(&d.step).cloned().unwrap_or_default(),
-            }),
+            Op::StepDone { d, .. } => {
+                let was = standing.ticked_by_agent.get(&d.step).copied();
+                standing
+                    .ticked_by_agent
+                    .insert(d.step, by_assistant && was.is_none_or(|agent| agent));
+                write(Chapter::Ticked {
+                    text: standing.steps.get(&d.step).cloned().unwrap_or_default(),
+                })
+            }
+            Op::StepUndone { d, .. } => {
+                standing.ticked_by_agent.remove(&d.step);
+                write(Chapter::Unticked {
+                    text: standing.steps.get(&d.step).cloned().unwrap_or_default(),
+                })
+            }
             Op::StepText { d, .. } => {
                 let was = standing.steps.get(&d.step).cloned().unwrap_or_default();
                 if was != d.text {
@@ -320,6 +344,15 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
             Op::TaskReopen { .. } => write(Chapter::Reopened),
 
             _ => {}
+        }
+        // What was taken out is not quoted back from the trail either.
+        if let Some(entry) = taken_out
+            && let Some(at) = wrote_on.get(&entry)
+            && let Some(page) = pages.get_mut(*at)
+        {
+            page.chapter = Chapter::Wrote {
+                body: String::new(),
+            };
         }
     }
 

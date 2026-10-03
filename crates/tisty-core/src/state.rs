@@ -1329,7 +1329,7 @@ fn loose(name: &str) -> String {
 }
 
 fn untouched(born: &Task) -> bool {
-    born.log.is_empty() && !born.steps.iter().any(|step| step.done)
+    born.journal().next().is_none() && !born.steps.iter().any(|step| step.done)
 }
 
 fn shifted(

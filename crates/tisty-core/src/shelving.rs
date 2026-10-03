@@ -25,14 +25,7 @@ impl State {
             .collect()
     }
 
-    pub fn list_holds_open(&self, id: ListId) -> bool {
-        self.tasks
-            .values()
-            .any(|task| task.list == Some(id) && task.is_open())
-    }
-
-    /// A list with closed tasks is archived rather than deleted, so its history keeps its name;
-    /// what is still open goes to the inbox either way.
+    /// Archived rather than deleted while it holds closed tasks, so their history keeps its name.
     pub fn dropping_list(&self, id: ListId) -> Vec<Op> {
         let held: Vec<_> = self
             .tasks
@@ -53,7 +46,9 @@ impl State {
                 },
             })
             .collect();
-        ops.push(Op::ListArchive { id });
+        if self.lists.get(&id).is_some_and(|one| !one.archived) {
+            ops.push(Op::ListArchive { id });
+        }
         ops
     }
 }

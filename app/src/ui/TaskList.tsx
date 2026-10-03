@@ -78,6 +78,12 @@ export default function TaskList({
     [tasks, bands, by, lists, offered],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
+  const first = useMemo(() => {
+    const seen = new Set<string>();
+    return new Set(
+      rows.filter((row) => !seen.has(row.task.id) && seen.add(row.task.id)).map((row) => row.key),
+    );
+  }, [rows]);
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
   const hidden = (band: string) => heads && shut.has(band);
   const many = useMemo(() => {
@@ -124,10 +130,12 @@ export default function TaskList({
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
 
-  const walk = (from: string, by: number) => {
+  const walk = (from: string, by: number, leaving?: string) => {
     const rows = Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
     const now = rows.findIndex((row) => row.dataset.row === from);
-    const next = rows[now + by];
+    let at = now + by;
+    while (leaving && rows[at]?.dataset.task === leaving) at += by;
+    const next = rows[at];
     if (!next) return;
     setReached(next.dataset.row ?? null);
     next.focus();
@@ -141,12 +149,12 @@ export default function TaskList({
           onSelect(task.id);
           return;
         }
-        walk(at, 1);
+        walk(at, 1, task.id);
         onComplete(task.id);
         return;
       }
       if (onFold && task.status !== "dropped") {
-        walk(at, 1);
+        walk(at, 1, task.id);
         onFold(task.id, !task.hidden);
       }
       return;
@@ -168,6 +176,7 @@ export default function TaskList({
         <div
           key={at}
           data-row={at}
+          data-task={task.id}
           role="listitem"
           tabIndex={stops(at) ? 0 : -1}
           aria-label={spokenLabel(task)}
@@ -218,6 +227,7 @@ export default function TaskList({
         <div
           ref={reveal === task.id ? asked : undefined}
           data-row={at}
+          data-task={task.id}
           role="listitem"
           tabIndex={stops(at) ? 0 : -1}
           aria-label={spokenLabel(task)}
@@ -370,7 +380,7 @@ export default function TaskList({
               {leaf.rows.map((row) => (
                 <div key={row.key}>
                   {!hidden(row.band) && line(row.task, row.key)}
-                  {!hidden(row.band) && ask?.(row.task.id)}
+                  {!hidden(row.band) && first.has(row.key) && ask?.(row.task.id)}
                 </div>
               ))}
             </section>

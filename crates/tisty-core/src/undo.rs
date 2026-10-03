@@ -201,8 +201,14 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             },
         }),
 
-        Op::ListArchive { id } => Some(Op::ListUnarchive { id: *id }),
-        Op::ListUnarchive { id } => Some(Op::ListArchive { id: *id }),
+        Op::ListArchive { id } => {
+            (!before.lists.get(id)?.archived).then_some(Op::ListUnarchive { id: *id })
+        }
+        Op::ListUnarchive { id } => before
+            .lists
+            .get(id)?
+            .archived
+            .then_some(Op::ListArchive { id: *id }),
         Op::ListRename { id, .. } => Some(Op::ListRename {
             id: *id,
             d: crate::event::Name {

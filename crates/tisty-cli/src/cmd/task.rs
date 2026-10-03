@@ -451,6 +451,10 @@ pub fn mv(
 ) -> anyhow::Result<ExitCode> {
     let target = match (list, inbox) {
         (Some(name), false) => match app.state.find_list(name).as_slice() {
+            [one] if one.archived => anyhow::bail!(
+                "{}",
+                lang.fill("archived-list-refuses", &[("name", &one.name)])
+            ),
             [one] => Some(one.id),
             [] => anyhow::bail!("{}", lang.fill("no-such-list", &[("selector", name)])),
             _ => anyhow::bail!("{}", lang.fill("ambiguous-list", &[("selector", name)])),

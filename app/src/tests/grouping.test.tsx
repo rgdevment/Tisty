@@ -19,11 +19,11 @@ const task = (id: string, title: string, list?: string, tags: string[] = []): Ta
   }) as unknown as Task;
 
 const open = [
-  task("1", "pagar la luz", "01H", ["casa", "pagos"]),
-  task("2", "llamar al dentista", undefined, ["salud"]),
-  task("3", "leer"),
+  task("1", "pay the power bill", "01H", ["home", "bills"]),
+  task("2", "call the dentist", undefined, ["health"]),
+  task("3", "read"),
 ];
-const lists = [{ id: "01H", name: "Casa", order: "a0" }];
+const lists = [{ id: "01H", name: "Home", order: "a0" }];
 
 const show = (props: Partial<React.ComponentProps<typeof TaskList>> = {}) =>
   render(
@@ -47,25 +47,25 @@ describe("grouping the open tasks", () => {
     show();
     await groupBy(/List/);
 
-    expect(heads()).toEqual(["Casa1", "No list2"]);
+    expect(heads()).toEqual(["Home1", "No list2"]);
   });
 
   it("puts a task under every one of its tags, and the untagged ones last", async () => {
     show();
     await groupBy(/Topic/);
 
-    expect(heads()).toEqual(["#casa1", "#pagos1", "#salud1", "Untagged1"]);
-    expect(screen.getAllByText("pagar la luz")).toHaveLength(2);
+    expect(heads()).toEqual(["#bills1", "#health1", "#home1", "Untagged1"]);
+    expect(screen.getAllByText("pay the power bill")).toHaveLength(2);
   });
 
   it("folds a group away and opens it again", async () => {
     show();
     await groupBy(/List/);
 
-    await userEvent.click(screen.getByRole("button", { name: /Casa/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Home/ }));
 
-    expect(screen.queryByText("pagar la luz")).toBeNull();
-    expect(screen.getByText("leer")).toBeTruthy();
+    expect(screen.queryByText("pay the power bill")).toBeNull();
+    expect(screen.getByText("read")).toBeTruthy();
   });
 
   it("remembers the grouping the next time the list is opened", async () => {
@@ -75,7 +75,7 @@ describe("grouping the open tasks", () => {
 
     show();
 
-    expect(heads()).toEqual(["Casa1", "No list2"]);
+    expect(heads()).toEqual(["Home1", "No list2"]);
   });
 
   it("leaves the archive to its own grouping", () => {
@@ -92,20 +92,20 @@ describe("grouping the open tasks", () => {
 
   it("keeps what an agent spoke for in its own band", async () => {
     const spoken = {
-      ...task("4", "renovar el certificado", "01H"),
+      ...task("4", "renew the certificate", "01H"),
       resolved: { at: "2026-08-06T18:40:00Z", by: "dev_agent", entry: "e1" },
     } as Task;
     show({ tasks: [...open, spoken] });
     await groupBy(/List/);
 
-    expect(heads()).toEqual(["Casa1", "No list2", "To confirm1"]);
+    expect(heads()).toEqual(["Home1", "No list2", "To confirm1"]);
   });
 
   it("opens a task an agent says should not be done instead of completing it", async () => {
     const select = vi.fn();
     const complete = vi.fn();
     const moot = {
-      ...task("5", "migrar el lector"),
+      ...task("5", "migrate the reader"),
       resolved: { at: "2026-08-06T18:40:00Z", by: "dev_agent", entry: "e1", drop: true },
     } as Task;
     show({ tasks: [moot], onSelect: select, onComplete: complete });
@@ -114,5 +114,46 @@ describe("grouping the open tasks", () => {
 
     expect(select).toHaveBeenCalledWith("5");
     expect(complete).not.toHaveBeenCalled();
+  });
+});
+
+describe("walking a grouped list", () => {
+  it("moves past a task's other copy when it is completed", async () => {
+    localStorage.setItem("tisty.grouped", "tag");
+    const two = [
+      task("1", "pay the power bill", undefined, ["home", "bills"]),
+      task("2", "read", undefined, ["health"]),
+    ];
+    render(
+      <TaskList
+        tasks={two}
+        lists={[]}
+        title="Open"
+        bands="day"
+        onSelect={() => {}}
+        onComplete={() => {}}
+      />,
+    );
+    const first = screen.getAllByRole("listitem")[0];
+    first.focus();
+
+    await userEvent.keyboard("{Control>}{Enter}{/Control}");
+
+    expect(document.activeElement?.getAttribute("data-task")).toBe("2");
+  });
+});
+
+describe("what a dropped task says of an agent's word", () => {
+  it("says the agent had said it should not be done", () => {
+    const gone = {
+      ...task("6", "migrate the reader"),
+      status: "dropped",
+      resolved: { at: "2026-08-06T18:40:00Z", by: "dev_agent", entry: "e1", drop: true },
+    } as Task;
+    render(<TaskList tasks={[gone]} lists={[]} title="Archive" onSelect={() => {}} />);
+
+    expect(screen.getByRole("listitem").getAttribute("aria-label")).toContain(
+      "had said it should not be done",
+    );
   });
 });

@@ -557,32 +557,10 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
-    let mut chosen: Vec<&tisty_core::model::Step> = Vec::new();
-    for one in &wanted {
-        let sought = tisty_core::text::folded(one.trim());
-        let alike: Vec<&tisty_core::model::Step> = task
-            .steps
-            .iter()
-            .filter(|step| tisty_core::text::folded(step.text.trim()) == sought)
-            .collect();
-        // Two steps written alike are a list with a line repeated: naming it ticks the next
-        // one still open, so the checklist is walked down rather than stuck on the name.
-        let Some(step) = alike
-            .iter()
-            .find(|step| !step.done && !chosen.iter().any(|had| had.id == step.id))
-            .or_else(|| alike.first())
-            .copied()
-        else {
-            return Err(Refused::Tool(format!(
-                "no step of {:?} reads {one:?}; nothing was ticked. `read` shows them as they \
-                 are written.",
-                task.title
-            )));
-        };
-        if !chosen.iter().any(|had| had.id == step.id) {
-            chosen.push(step);
-        }
+    if let Some(refusal) = already_said_done(task, "ticking") {
+        return Err(refusal);
     }
+    let chosen = steps_named(task, &wanted, "ticked", |step| !step.done)?;
     let (already, fresh): (Vec<&tisty_core::model::Step>, Vec<&tisty_core::model::Step>) =
         chosen.iter().partition(|step| step.done);
     if !fresh.is_empty() {
@@ -600,6 +578,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
                     !still_filling(&held, now)
+                        || now.resolved.is_some()
                         || now
                             .steps
                             .iter()
@@ -652,36 +631,16 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
-    let mut chosen: Vec<&tisty_core::model::Step> = Vec::new();
-    for one in &wanted {
-        let sought = tisty_core::text::folded(one.trim());
-        let alike: Vec<&tisty_core::model::Step> = task
-            .steps
-            .iter()
-            .filter(|step| tisty_core::text::folded(step.text.trim()) == sought)
-            .collect();
-        let Some(step) = alike
-            .iter()
-            .find(|step| step.by_agent && !chosen.iter().any(|had| had.id == step.id))
-            .or_else(|| alike.first())
-            .copied()
-        else {
-            return Err(Refused::Tool(format!(
-                "no step of {:?} reads {one:?}; nothing was unticked. `read` shows them as they \
-                 are written.",
-                task.title
-            )));
-        };
-        if step.done && !step.by_agent {
-            return Err(Refused::Tool(format!(
-                "{:?} was ticked by the person, and taking it back is theirs; nothing was \
-                 unticked. Say what you found with `note`.",
-                step.text
-            )));
-        }
-        if !chosen.iter().any(|had| had.id == step.id) {
-            chosen.push(step);
-        }
+    if let Some(refusal) = already_said_done(task, "unticking") {
+        return Err(refusal);
+    }
+    let chosen = steps_named(task, &wanted, "unticked", |step| step.by_agent)?;
+    if let Some(step) = chosen.iter().find(|step| step.done && !step.by_agent) {
+        return Err(Refused::Tool(format!(
+            "{:?} was ticked by the person, and taking it back is theirs; nothing was \
+             unticked. Say what you found with `note`.",
+            step.text
+        )));
     }
     let (fresh, already): (Vec<&tisty_core::model::Step>, Vec<&tisty_core::model::Step>) =
         chosen.iter().partition(|step| step.done);
@@ -699,10 +658,11 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
                     !still_filling(&held, now)
-                        || now
-                            .steps
-                            .iter()
-                            .any(|step| ids.contains(&step.id) && !(step.done && step.by_agent))
+                        || now.resolved.is_some()
+                        || !ids.iter().all(|one| {
+                            now.step(*one)
+                                .is_some_and(|step| step.done && step.by_agent)
+                        })
                 })
             })
             .map_err(hitch)?;
@@ -840,6 +800,13 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                 "was done"
             },
             when(already.at)
+        )));
+    }
+    if drop && (task.repeat.is_some() || task.after.is_some()) {
+        return Err(Refused::Tool(format!(
+            "{:?} is a turn of something that repeats, and dropping it would end the repeat. \
+             Whether it goes on is the person's call: say why with `note`.",
+            task.title
         )));
     }
     if !drop && let Some(refusal) = unticked(task) {
@@ -991,4 +958,38 @@ fn refused(e: Rejected) -> Refused {
 
 fn marked_as(said: &tisty_core::model::Resolved) -> &'static str {
     if said.drop { "not to be done" } else { "done" }
+}
+
+/// Steps written alike are a repeated line: naming one reaches the next that `fits`.
+fn steps_named<'a>(
+    task: &'a Task,
+    wanted: &[String],
+    doing: &str,
+    fits: impl Fn(&tisty_core::model::Step) -> bool,
+) -> Result<Vec<&'a tisty_core::model::Step>, Refused> {
+    let mut chosen: Vec<&tisty_core::model::Step> = Vec::new();
+    for one in wanted {
+        let sought = tisty_core::text::folded(one.trim());
+        let alike: Vec<&tisty_core::model::Step> = task
+            .steps
+            .iter()
+            .filter(|step| tisty_core::text::folded(step.text.trim()) == sought)
+            .collect();
+        let Some(step) = alike
+            .iter()
+            .find(|step| fits(step) && !chosen.iter().any(|had| had.id == step.id))
+            .or_else(|| alike.first())
+            .copied()
+        else {
+            return Err(Refused::Tool(format!(
+                "no step of {:?} reads {one:?}; nothing was {doing}. `read` shows them as they \
+                 are written.",
+                task.title
+            )));
+        };
+        if !chosen.iter().any(|had| had.id == step.id) {
+            chosen.push(step);
+        }
+    }
+    Ok(chosen)
 }

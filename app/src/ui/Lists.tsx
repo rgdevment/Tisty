@@ -38,8 +38,9 @@ export default function Lists({
   onChanged,
   onError,
 }: Props) {
-  const lists = every.filter((one) => !one.archived);
-  const shelved = every.filter((one) => one.archived);
+  const away = (one: List) => one.archived && !counts[one.id];
+  const lists = every.filter((one) => !away(one));
+  const shelved = every.filter(away);
   const [making, setMaking] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string>();

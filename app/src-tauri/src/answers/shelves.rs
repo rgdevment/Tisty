@@ -16,8 +16,10 @@ pub fn list_add(
         return Err(Refusal::of("untitled"));
     }
     let mut session = held(&session);
-    if !session.state.list_called(&name).is_empty() {
-        return Err(Refusal::about("manyLists", name));
+    match session.state.list_called(&name).as_slice() {
+        [] => {}
+        [one] if one.archived => return Err(Refusal::about("archivedList", name)),
+        _ => return Err(Refusal::about("manyLists", name)),
     }
 
     let id = ulid::Ulid::generate();
@@ -104,13 +106,16 @@ pub fn list_rename(
     if !session.state.lists.contains_key(&id) {
         return Err(Refusal::of("notAListId"));
     }
-    if session
+    let others: Vec<_> = session
         .state
         .list_called(&name)
-        .iter()
-        .any(|one| one.id != id)
-    {
-        return Err(Refusal::about("manyLists", name));
+        .into_iter()
+        .filter(|one| one.id != id)
+        .collect();
+    match others.as_slice() {
+        [] => {}
+        [one] if one.archived => return Err(Refusal::about("archivedList", name)),
+        _ => return Err(Refusal::about("manyLists", name)),
     }
 
     session.commit(Op::ListRename {
@@ -135,7 +140,9 @@ pub fn list_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         return Err(Refusal::of("notAListId"));
     }
     let ops = session.state.dropping_list(id);
-    session.commit_all(ops)?;
+    if !ops.is_empty() {
+        session.commit_all(ops)?;
+    }
     Ok(())
 }
 
@@ -147,7 +154,7 @@ pub fn list_archive(session: tauri::State<'_, Mutex<Session>>, id: String) -> An
     if !session.state.lists.contains_key(&id) {
         return Err(Refusal::of("notAListId"));
     }
-    if session.state.list_holds_open(id) {
+    if !session.state.is_settled(id) {
         return Err(Refusal::of("listStillOpen"));
     }
     session.commit(Op::ListArchive { id })?;

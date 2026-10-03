@@ -136,6 +136,7 @@ export interface Snapshot {
   routines: Habit[];
   lists: List[];
   shelved?: List[];
+  every?: List[];
   tags: Counted[];
   refs: string[];
   counts: Record<string, number>;
@@ -257,7 +258,10 @@ export interface View {
   soonest?: boolean;
 }
 
-export const snapshot = (view?: View): Promise<Snapshot> => invoke("snapshot", { view });
+export const snapshot = (view?: View): Promise<Snapshot> =>
+  invoke<Snapshot>("snapshot", { view }).then((one) =>
+    one ? { ...one, every: [...one.lists, ...(one.shelved ?? [])] } : one,
+  );
 export type Scope = "either" | "open" | "archived";
 
 export interface Sighting {

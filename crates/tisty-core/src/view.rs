@@ -140,10 +140,16 @@ pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String
     if matches_query(task, &terms)? != Hit::Mentioned {
         return None;
     }
-    let title = crate::text::folded(&task.title);
+    let named: Vec<String> = std::iter::once(crate::text::folded(&task.title))
+        .chain(
+            task.tags
+                .iter()
+                .map(|tag| crate::text::folded(tag.as_str())),
+        )
+        .collect();
     let unnamed: Vec<&String> = terms
         .iter()
-        .filter(|term| !title.contains(term.as_str()))
+        .filter(|term| !named.iter().any(|one| one.contains(term.as_str())))
         .collect();
     let saying = |text: &str| {
         text.lines()

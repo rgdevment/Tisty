@@ -2729,10 +2729,10 @@ fn what_a_machine_writes_from_the_command_line_it_signs() {
 #[test]
 fn a_list_with_open_tasks_is_not_archived() {
     let cli = Cli::new();
-    cli.ok(&["list", "add", "Oficina"]);
-    cli.ok(&["call the bank", "--list", "Oficina"]);
+    cli.ok(&["list", "add", "Office"]);
+    cli.ok(&["call the bank", "--list", "Office"]);
 
-    let run = cli.run(&["list", "archive", "Oficina"]);
+    let run = cli.run(&["list", "archive", "Office"]);
 
     assert_ne!(run.code, 0, "{}", run.out);
     assert!(!cli.ok(&["lists"]).contains("archived"));
@@ -2741,13 +2741,13 @@ fn a_list_with_open_tasks_is_not_archived() {
 #[test]
 fn erasing_a_list_with_closed_tasks_archives_it_so_they_keep_its_name() {
     let cli = Cli::new();
-    cli.ok(&["list", "add", "Oficina"]);
-    cli.ok(&["call the bank", "--list", "Oficina"]);
-    cli.ok(&["file the report", "--list", "Oficina"]);
+    cli.ok(&["list", "add", "Office"]);
+    cli.ok(&["call the bank", "--list", "Office"]);
+    cli.ok(&["file the report", "--list", "Office"]);
     cli.ok(&["ls", "all"]);
     cli.ok(&["done", "2"]);
 
-    cli.ok(&["list", "rm", "Oficina", "--force"]);
+    cli.ok(&["list", "rm", "Office", "--force"]);
 
     assert!(
         cli.ok(&["lists"]).contains("archived"),
@@ -2759,4 +2759,48 @@ fn erasing_a_list_with_closed_tasks_archives_it_so_they_keep_its_name() {
         "the open one went home: {inbox}"
     );
     assert!(!inbox.contains("file the report"), "{inbox}");
+}
+
+fn an_archived_office(cli: &Cli) {
+    cli.ok(&["list", "add", "Office"]);
+    cli.ok(&["file the report", "--list", "Office"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "1"]);
+    cli.ok(&["list", "rm", "Office", "--force"]);
+}
+
+#[test]
+fn a_name_an_archived_list_holds_says_to_bring_it_back() {
+    let cli = Cli::new();
+    an_archived_office(&cli);
+
+    let run = cli.run(&["list", "add", "Office"]);
+
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(run.err.contains("unarchive"), "{}", run.err);
+}
+
+#[test]
+fn a_task_is_not_moved_into_an_archived_list() {
+    let cli = Cli::new();
+    an_archived_office(&cli);
+    cli.ok(&["call the bank"]);
+    cli.ok(&["ls", "all"]);
+
+    let run = cli.run(&["mv", "1", "Office"]);
+
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(cli.ok(&["ls", "inbox"]).contains("call the bank"));
+}
+
+#[test]
+fn an_archived_list_with_open_work_is_listed_once() {
+    let cli = Cli::new();
+    an_archived_office(&cli);
+    cli.ok(&["ls", "archive"]);
+    cli.ok(&["undone", "1"]);
+
+    let said = cli.ok(&["lists"]);
+
+    assert_eq!(said.matches("Office").count(), 1, "{said}");
 }

@@ -12,6 +12,7 @@ import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
 import Prose from "./Prose";
 import Routine from "./Routine";
+import { saidBy } from "./Spoke";
 import Steps from "./Steps";
 import Trail from "./Trail";
 
@@ -91,7 +92,7 @@ export default function Detail({
           task.completed_at ?? "",
           task.hidden ? "hidden" : "",
           task.open_to_agents ? "open" : "",
-          task.log?.length ?? task.volume?.journal ?? 0,
+          task.volume?.journal ?? 0,
           task.steps?.length ?? task.volume?.steps ?? 0,
           task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
           task.description ? "described" : "",
@@ -177,6 +178,7 @@ export default function Detail({
         onDoc={onDoc}
         onWhole={expanded ? undefined : onExpand}
         onWrite={onLog}
+        held={task.resolved?.entry}
       />
     </>
   );
@@ -614,9 +616,7 @@ function Stamps({ task, lists }: { task: Task; lists: List[] }) {
         {task.resolved && (
           <span className="text-hue-teal">
             {" · "}
-            {clientNamed(task.resolved.via)
-              ? fill("agentNamedSaidDone", clientNamed(task.resolved.via) as string)
-              : t("agentSettled")}
+            {saidBy(task)}
           </span>
         )}
       </p>

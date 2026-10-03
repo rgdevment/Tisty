@@ -299,7 +299,7 @@ fn journalled(title: &str, bodies: &[&str]) -> Task {
 #[test]
 fn a_body_match_says_the_newest_journal_line_that_holds_it() {
     let t = journalled(
-        "migrar el lector",
+        "migrate the reader",
         &[
             "first try\nwe chose postgres",
             "on second thought\nwe chose sqlite",
@@ -322,7 +322,7 @@ fn a_name_match_needs_no_line() {
 #[test]
 fn a_long_line_is_clipped_on_a_character_not_a_byte() {
     let long = format!("decisión {}", "ñ".repeat(400));
-    let t = journalled("migrar", &[&long]);
+    let t = journalled("migrate", &[&long]);
 
     let (_, line) = mentioned_where(&t, "decision").unwrap();
 
@@ -333,24 +333,35 @@ fn a_long_line_is_clipped_on_a_character_not_a_byte() {
 #[test]
 fn with_several_words_the_line_is_the_one_the_name_does_not_already_say() {
     let t = journalled(
-        "migrar el lector",
-        &["revisé el lector", "elegimos postgres"],
+        "migrate the reader",
+        &["looked at the reader", "we chose postgres"],
     );
 
     assert_eq!(
-        mentioned_where(&t, "lector postgres"),
-        Some(("journal", "elegimos postgres".to_string()))
+        mentioned_where(&t, "reader postgres"),
+        Some(("journal", "we chose postgres".to_string()))
     );
 }
 
 #[test]
 fn the_newest_entry_is_the_one_written_last_not_the_one_listed_last() {
-    let mut t = journalled("migrar", &["we chose sqlite", "we chose postgres"]);
+    let mut t = journalled("migrate", &["we chose sqlite", "we chose postgres"]);
     t.log[0].at = jiff::Timestamp::from_second(200).unwrap();
     t.log[1].at = jiff::Timestamp::from_second(100).unwrap();
 
     assert_eq!(
         mentioned_where(&t, "chose"),
+        Some(("journal", "we chose sqlite".to_string()))
+    );
+}
+
+#[test]
+fn a_word_a_tag_already_says_is_not_the_line_looked_for() {
+    let mut t = journalled("migrate", &["we chose sqlite", "the agent looked"]);
+    t.tags = vec![crate::model::Tag::new("agent").unwrap()];
+
+    assert_eq!(
+        mentioned_where(&t, "agent sqlite"),
         Some(("journal", "we chose sqlite".to_string()))
     );
 }

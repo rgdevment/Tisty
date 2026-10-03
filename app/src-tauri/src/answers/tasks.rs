@@ -377,6 +377,7 @@ pub fn patch(
     let mut ops = Vec::new();
     let named = match change.list_named.as_deref().map(str::trim) {
         Some(name) if !name.is_empty() => Some(match session.state.list_called(name).as_slice() {
+            [one] if one.archived => return Err(Refusal::about("archivedList", name)),
             [one] => one.id,
             [_, _, ..] => return Err(Refusal::about("manyLists", name)),
             [] => {
@@ -558,6 +559,9 @@ pub fn write_log(
     let op = match entry {
         Some(raw) => {
             let entry = raw.parse().map_err(|_| Refusal::of("notAnEntry"))?;
+            if body.is_empty() {
+                session.reload()?;
+            }
             let task = session.state.tasks.get(&id);
             if body.is_empty()
                 && task

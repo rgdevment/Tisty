@@ -13,9 +13,10 @@ interface Props {
   onWhole?: () => void;
   onDoc?: (id: string) => void;
   onWrite: (body: string, entry?: string) => void;
+  held?: string;
 }
 
-export default function Journal({ entries, steps, onError, onWhole, onDoc, onWrite }: Props) {
+export default function Journal({ entries, steps, onError, onWhole, onDoc, onWrite, held }: Props) {
   const [draft, setDraft] = useState(0);
 
   return (
@@ -47,18 +48,20 @@ export default function Journal({ entries, steps, onError, onWhole, onDoc, onWri
                   <span className="text-hue-teal">{signedBy(entry.by, entry.via)}</span>
                 )}
               </time>
-              <button
-                type="button"
-                aria-label={`${t("remove")} ${wroteAt(entry.at, entry.tz)}`}
-                onClick={() =>
-                  ask(t("journalEraseSure"), { kind: "warning" })
-                    .then((sure) => sure && onWrite("", entry.id))
-                    .catch(onError)
-                }
-                className="ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-md text-faint opacity-0 outline-none group-hover:opacity-100 hover:bg-line hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                ×
-              </button>
+              {entry.id !== held && (
+                <button
+                  type="button"
+                  aria-label={`${t("remove")} ${wroteAt(entry.at, entry.tz)}`}
+                  onClick={() =>
+                    ask(t("journalEraseSure"), { kind: "warning" })
+                      .then((sure) => sure && onWrite("", entry.id))
+                      .catch(onError)
+                  }
+                  className="ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-md text-faint opacity-0 outline-none group-hover:opacity-100 hover:bg-line hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  ×
+                </button>
+              )}
             </div>
             <Prose
               value={entry.body}

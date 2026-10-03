@@ -194,7 +194,7 @@ describe("what a list card says about what is inside", () => {
 
 describe("putting a list away", () => {
   const changed = vi.fn();
-  const every: List[] = [...lists, { id: "01C", name: "Mudanza", order: "a2", archived: true }];
+  const every: List[] = [...lists, { id: "01C", name: "Moving", order: "a2", archived: true }];
 
   beforeEach(() => {
     store.shelved = [];
@@ -218,8 +218,8 @@ describe("putting a list away", () => {
     show();
 
     const away = screen.getByRole("region", { name: "Archived" });
-    expect(away.textContent).toContain("Mudanza");
-    expect(screen.queryByLabelText("Icon of Mudanza")).toBeNull();
+    expect(away.textContent).toContain("Moving");
+    expect(screen.queryByLabelText("Icon of Moving")).toBeNull();
   });
 
   it("offers to archive only a list with nothing open", async () => {
@@ -239,8 +239,26 @@ describe("putting a list away", () => {
   it("brings an archived list back", async () => {
     show();
 
-    await userEvent.click(screen.getByRole("button", { name: "Restore Mudanza" }));
+    await userEvent.click(screen.getByRole("button", { name: "Restore Moving" }));
 
     await waitFor(() => expect(store.restored).toEqual(["01C"]));
+  });
+});
+
+describe("an archived list somebody filed into", () => {
+  it("stands with the lists in use while it holds open work", () => {
+    render(
+      <Lists
+        lists={[{ id: "01C", name: "Moving", order: "a2", archived: true }]}
+        counts={{ "01C": 1 }}
+        soonest={{}}
+        onOpen={vi.fn()}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Icon of Moving")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Archived" })).toBeNull();
   });
 });

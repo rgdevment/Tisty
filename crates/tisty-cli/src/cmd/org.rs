@@ -72,7 +72,7 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
             };
 
             let name = app.state.lists[&id].name.clone();
-            if app.state.list_holds_open(id) {
+            if !app.state.is_settled(id) {
                 anyhow::bail!("{}", lang.fill("list-still-open", &[("name", &name)]));
             }
             app.commit(Op::ListArchive { id })?;
@@ -112,7 +112,9 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
             }
 
             let ops = app.state.dropping_list(id);
-            app.commit_all(ops)?;
+            if !ops.is_empty() {
+                app.commit_all(ops)?;
+            }
             println!("  {} {}", style::dim("✕"), style::dim(&name));
             Ok(ExitCode::SUCCESS)
         }
@@ -120,6 +122,17 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
 }
 
 fn taken(app: &App, name: &str, except: Option<ListId>, lang: Lang) -> anyhow::Result<()> {
+    if let Some(away) = app
+        .state
+        .find_list(name)
+        .into_iter()
+        .find(|l| Some(l.id) != except && l.archived && l.name.eq_ignore_ascii_case(name))
+    {
+        anyhow::bail!(
+            "{}",
+            lang.fill("archived-list-refuses", &[("name", &away.name)])
+        );
+    }
     if app
         .state
         .find_list(name)

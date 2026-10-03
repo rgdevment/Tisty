@@ -282,7 +282,7 @@ pub fn captured(
 
 pub fn lists(state: &State, lang: Lang) -> String {
     let mut active: Vec<&List> = state.active_lists().collect();
-    let mut away: Vec<&List> = state.lists.values().filter(|one| one.archived).collect();
+    let mut away: Vec<&List> = state.shelved_lists();
     if active.is_empty() && away.is_empty() {
         return format!("\n  {}\n\n", style::dim(lang.get("no-lists-yet")));
     }
@@ -644,6 +644,7 @@ fn chapter(what: &tisty_core::story::Chapter, state: &State, today: Date, lang: 
             lang.get("trail-wrote"),
             style::dim(&clipped(body))
         ),
+        Chapter::Rewrote { body } if body.trim().is_empty() => lang.get("trail-erased").into(),
         Chapter::Rewrote { .. } => lang.get("trail-rewrote").into(),
         Chapter::Planned { text } => lang.fill("trail-planned", &[("what", text)]),
         Chapter::Ticked { text } => lang.fill("trail-ticked", &[("what", text)]),

@@ -4649,7 +4649,7 @@ fn a_step_filed_by_an_agent() -> (State, TaskId, crate::model::StepId) {
         "dev_agent",
         Op::TaskAdd {
             id,
-            d: crate::event::TaskAdd::new("migrar el lector", "a0"),
+            d: crate::event::TaskAdd::new("migrate the reader", "a0"),
         },
     ));
     let step = Ulid::generate();
@@ -4660,7 +4660,7 @@ fn a_step_filed_by_an_agent() -> (State, TaskId, crate::model::StepId) {
             id,
             d: crate::event::StepAdd {
                 step,
-                text: "leer el formato viejo".into(),
+                text: "read the old format".into(),
                 order: "a0".into(),
             },
         },
@@ -4741,7 +4741,7 @@ fn a_list_holding(closed: bool) -> (State, crate::model::ListId, TaskId, TaskId)
         Op::ListAdd {
             id: list,
             d: crate::event::ListAdd {
-                name: "Casa".into(),
+                name: "Home".into(),
                 order: order::first(),
                 color: None,
             },
@@ -4749,7 +4749,7 @@ fn a_list_holding(closed: bool) -> (State, crate::model::ListId, TaskId, TaskId)
     ));
     let (open, done) = (Ulid::generate(), Ulid::generate());
     for (at, id) in [(2, open), (3, done)] {
-        let mut d = crate::event::TaskAdd::new(format!("tarea {at}"), format!("a{at}"));
+        let mut d = crate::event::TaskAdd::new(format!("task {at}"), format!("a{at}"));
         d.list = Some(list);
         state.apply(&ev(at, "dev_laptop", Op::TaskAdd { id, d }));
     }
@@ -4786,7 +4786,7 @@ fn a_list_with_no_history_is_deleted_and_its_tasks_go_to_the_inbox() {
 #[test]
 fn a_list_with_history_is_archived_so_what_closed_keeps_its_name() {
     let (state, list, open, done) = a_list_holding(true);
-    assert!(state.list_holds_open(list));
+    assert!(!state.is_settled(list));
 
     let after = replayed(state.clone(), state.dropping_list(list));
 
@@ -4794,13 +4794,13 @@ fn a_list_with_history_is_archived_so_what_closed_keeps_its_name() {
     assert_eq!(
         after.tasks[&done].list,
         Some(list),
-        "the closed one still reads @Casa"
+        "the closed one still reads @Home"
     );
     assert_eq!(
         after.tasks[&open].list, None,
         "the open one went to the inbox"
     );
-    assert!(!after.list_holds_open(list));
+    assert!(after.is_settled(list));
     assert_eq!(after.shelved_lists().len(), 1);
     assert!(after.ordered_lists().is_empty(), "nowhere to file into");
 }
@@ -4853,4 +4853,87 @@ fn an_archived_list_that_a_racing_writer_filed_into_stays_in_sight() {
         "the stray task is not hidden"
     );
     assert!(after.shelved_lists().is_empty());
+}
+
+#[test]
+fn reopening_takes_back_a_successor_whose_only_note_was_taken_out() {
+    let (mut state, id) = repeating();
+    let born = successor(&state, id);
+    let entry = Ulid::generate();
+    state.apply(&ev(
+        15,
+        "a",
+        Op::TaskLog {
+            id: born,
+            d: crate::event::LogAdd::new(entry, "half an hour in the living room"),
+        },
+    ));
+    state.apply(&ev(
+        16,
+        "a",
+        Op::TaskLogEdit {
+            id: born,
+            d: crate::event::LogEdit {
+                entry,
+                body: String::new(),
+            },
+        },
+    ));
+
+    for op in state.reopening(id) {
+        state.apply(&ev(20, "a", op));
+    }
+
+    assert!(!state.tasks.contains_key(&born), "two turns stay open");
+}
+
+fn spoken(state: &mut State, at: i64, device: &str, id: TaskId, drop: bool) {
+    state.apply(&ev(
+        at,
+        device,
+        Op::TaskResolve {
+            id,
+            d: crate::event::Resolve::new(Ulid::generate()).dropping(drop),
+        },
+    ));
+}
+
+#[test]
+fn a_second_agent_word_does_not_turn_the_first_into_its_opposite() {
+    let (mut state, id, _) = a_step_filed_by_an_agent();
+    spoken(&mut state, 10, "dev_agent", id, false);
+
+    spoken(&mut state, 11, "dev_agent", id, true);
+
+    assert!(
+        !state.tasks[&id].resolved.as_ref().unwrap().drop,
+        "a word said is the one the person confirms"
+    );
+}
+
+#[test]
+fn the_person_puts_a_word_back_over_whatever_stands() {
+    let (mut state, id, _) = a_step_filed_by_an_agent();
+    spoken(&mut state, 10, "dev_agent", id, false);
+
+    spoken(&mut state, 11, "dev_laptop", id, true);
+
+    assert!(state.tasks[&id].resolved.as_ref().unwrap().drop);
+}
+
+#[test]
+fn erasing_a_list_already_archived_writes_nothing_that_undo_could_reverse() {
+    let (state, list, _, _) = a_list_holding(true);
+    let after = replayed(state.clone(), state.dropping_list(list));
+    let archived = replayed(after.clone(), vec![Op::ListArchive { id: list }]);
+
+    assert!(archived.dropping_list(list).is_empty());
+    assert_eq!(
+        crate::undo::inverse(
+            &ev(40, "dev_laptop", Op::ListArchive { id: list }),
+            &archived
+        ),
+        None,
+        "undoing an archive that changed nothing must not bring the list back"
+    );
 }
