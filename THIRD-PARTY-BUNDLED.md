@@ -7,75 +7,80 @@ licence. Anything copied into Tisty's own source rather than bundled is in
 [THIRD-PARTY.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY.md)
 instead.
 
-## In the window (257 packages)
+## In the window (258 packages)
 
 | Package | Version | Licence |
 | --- | --- | --- |
 | `@antfu/install-pkg` | 1.1.0 | MIT |
 | `@babel/runtime` | 7.29.7 | MIT |
 | `@braintree/sanitize-url` | 7.1.2 | MIT |
+| `@chevrotain/cst-dts-gen` | 11.1.2 | Apache-2.0 |
+| `@chevrotain/gast` | 11.1.2 | Apache-2.0 |
+| `@chevrotain/regexp-to-ast` | 11.1.2 | Apache-2.0 |
 | `@chevrotain/types` | 11.1.2 | Apache-2.0 |
+| `@chevrotain/utils` | 11.1.2 | Apache-2.0 |
 | `@floating-ui/core` | 1.8.0 | MIT |
 | `@floating-ui/dom` | 1.8.0 | MIT |
 | `@floating-ui/utils` | 0.2.12 | MIT |
 | `@iconify/types` | 2.0.0 | MIT |
 | `@iconify/utils` | 3.1.4 | MIT |
-| `@mermaid-js/parser` | 1.2.1 | MIT |
+| `@mermaid-js/parser` | 2.0.0 | MIT |
 | `@noble/ciphers` | 1.3.0 | MIT |
 | `@noble/hashes` | 1.8.0 | MIT |
 | `@react-pdf/fns` | 3.1.3 | MIT |
-| `@react-pdf/font` | 4.0.10 | MIT |
-| `@react-pdf/image` | 3.1.1 | MIT |
-| `@react-pdf/layout` | 4.7.1 | MIT |
-| `@react-pdf/pdfkit` | 6.0.1 | MIT |
-| `@react-pdf/primitives` | 4.3.0 | MIT |
+| `@react-pdf/font` | 4.1.2 | MIT |
+| `@react-pdf/hyphenate` | 0.1.0 | MIT |
+| `@react-pdf/image` | 3.1.2 | MIT |
+| `@react-pdf/layout` | 5.2.0 | MIT |
+| `@react-pdf/paginate` | 1.0.1 | MIT |
+| `@react-pdf/primitives` | 4.4.0 | MIT |
 | `@react-pdf/reconciler` | 2.0.0 | MIT |
-| `@react-pdf/render` | 4.6.1 | MIT |
-| `@react-pdf/renderer` | 4.6.1 | MIT |
-| `@react-pdf/stylesheet` | 6.2.3 | MIT |
-| `@react-pdf/svg` | 1.1.0 | MIT |
-| `@react-pdf/textkit` | 6.4.1 | MIT |
-| `@react-pdf/types` | 2.11.3 | MIT |
+| `@react-pdf/render` | 4.7.0 | MIT |
+| `@react-pdf/renderer` | 4.9.0 | MIT |
+| `@react-pdf/stylesheet` | 6.3.2 | MIT |
+| `@react-pdf/svg` | 1.1.1 | MIT |
+| `@react-pdf/textkit` | 7.0.1 | MIT |
+| `@react-pdf/types` | 2.14.0 | MIT |
 | `@swc/helpers` | 0.5.23 | Apache-2.0 |
-| `@tauri-apps/api` | 2.11.1 | Apache-2.0 OR MIT |
-| `@tauri-apps/plugin-clipboard-manager` | 2.3.2 | MIT OR Apache-2.0 |
-| `@tauri-apps/plugin-dialog` | 2.7.2 | MIT OR Apache-2.0 |
-| `@tauri-apps/plugin-global-shortcut` | 2.3.2 | MIT OR Apache-2.0 |
-| `@tauri-apps/plugin-opener` | 2.5.4 | MIT OR Apache-2.0 |
-| `@tiptap/core` | 3.30.0 | MIT |
-| `@tiptap/extension-blockquote` | 3.30.0 | MIT |
-| `@tiptap/extension-bold` | 3.30.0 | MIT |
-| `@tiptap/extension-bubble-menu` | 3.30.0 | MIT |
-| `@tiptap/extension-bullet-list` | 3.30.0 | MIT |
-| `@tiptap/extension-code` | 3.30.0 | MIT |
-| `@tiptap/extension-code-block` | 3.30.0 | MIT |
-| `@tiptap/extension-code-block-lowlight` | 3.30.0 | MIT |
-| `@tiptap/extension-document` | 3.30.0 | MIT |
-| `@tiptap/extension-dropcursor` | 3.30.0 | MIT |
-| `@tiptap/extension-floating-menu` | 3.30.0 | MIT |
-| `@tiptap/extension-gapcursor` | 3.30.0 | MIT |
-| `@tiptap/extension-hard-break` | 3.30.0 | MIT |
-| `@tiptap/extension-heading` | 3.30.0 | MIT |
-| `@tiptap/extension-highlight` | 3.30.0 | MIT |
-| `@tiptap/extension-horizontal-rule` | 3.30.0 | MIT |
-| `@tiptap/extension-image` | 3.30.0 | MIT |
-| `@tiptap/extension-italic` | 3.30.0 | MIT |
-| `@tiptap/extension-link` | 3.30.0 | MIT |
-| `@tiptap/extension-list` | 3.30.0 | MIT |
-| `@tiptap/extension-list-item` | 3.30.0 | MIT |
-| `@tiptap/extension-list-keymap` | 3.30.0 | MIT |
-| `@tiptap/extension-ordered-list` | 3.30.0 | MIT |
-| `@tiptap/extension-paragraph` | 3.30.0 | MIT |
-| `@tiptap/extension-strike` | 3.30.0 | MIT |
-| `@tiptap/extension-table` | 3.30.0 | MIT |
-| `@tiptap/extension-task-item` | 3.30.0 | MIT |
-| `@tiptap/extension-task-list` | 3.30.0 | MIT |
-| `@tiptap/extension-text` | 3.30.0 | MIT |
-| `@tiptap/extension-underline` | 3.30.0 | MIT |
-| `@tiptap/extensions` | 3.30.0 | MIT |
-| `@tiptap/pm` | 3.30.0 | MIT |
-| `@tiptap/react` | 3.30.0 | MIT |
-| `@tiptap/starter-kit` | 3.30.0 | MIT |
+| `@tauri-apps/api` | 2.12.0 | Apache-2.0 OR MIT |
+| `@tauri-apps/plugin-clipboard-manager` | 2.4.0 | MIT OR Apache-2.0 |
+| `@tauri-apps/plugin-dialog` | 2.8.0 | MIT OR Apache-2.0 |
+| `@tauri-apps/plugin-global-shortcut` | 2.4.0 | MIT OR Apache-2.0 |
+| `@tauri-apps/plugin-opener` | 2.6.0 | MIT OR Apache-2.0 |
+| `@tiptap/core` | 3.31.3 | MIT |
+| `@tiptap/extension-blockquote` | 3.31.3 | MIT |
+| `@tiptap/extension-bold` | 3.31.3 | MIT |
+| `@tiptap/extension-bubble-menu` | 3.31.3 | MIT |
+| `@tiptap/extension-bullet-list` | 3.31.3 | MIT |
+| `@tiptap/extension-code` | 3.31.3 | MIT |
+| `@tiptap/extension-code-block` | 3.31.3 | MIT |
+| `@tiptap/extension-code-block-lowlight` | 3.31.3 | MIT |
+| `@tiptap/extension-document` | 3.31.3 | MIT |
+| `@tiptap/extension-dropcursor` | 3.31.3 | MIT |
+| `@tiptap/extension-floating-menu` | 3.31.3 | MIT |
+| `@tiptap/extension-gapcursor` | 3.31.3 | MIT |
+| `@tiptap/extension-hard-break` | 3.31.3 | MIT |
+| `@tiptap/extension-heading` | 3.31.3 | MIT |
+| `@tiptap/extension-highlight` | 3.31.3 | MIT |
+| `@tiptap/extension-horizontal-rule` | 3.31.3 | MIT |
+| `@tiptap/extension-image` | 3.31.3 | MIT |
+| `@tiptap/extension-italic` | 3.31.3 | MIT |
+| `@tiptap/extension-link` | 3.31.3 | MIT |
+| `@tiptap/extension-list` | 3.31.3 | MIT |
+| `@tiptap/extension-list-item` | 3.31.3 | MIT |
+| `@tiptap/extension-list-keymap` | 3.31.3 | MIT |
+| `@tiptap/extension-ordered-list` | 3.31.3 | MIT |
+| `@tiptap/extension-paragraph` | 3.31.3 | MIT |
+| `@tiptap/extension-strike` | 3.31.3 | MIT |
+| `@tiptap/extension-table` | 3.31.3 | MIT |
+| `@tiptap/extension-task-item` | 3.31.3 | MIT |
+| `@tiptap/extension-task-list` | 3.31.3 | MIT |
+| `@tiptap/extension-text` | 3.31.3 | MIT |
+| `@tiptap/extension-underline` | 3.31.3 | MIT |
+| `@tiptap/extensions` | 3.31.3 | MIT |
+| `@tiptap/pm` | 3.31.3 | MIT |
+| `@tiptap/react` | 3.31.3 | MIT |
+| `@tiptap/starter-kit` | 3.31.3 | MIT |
 | `@types/d3` | 7.4.3 | MIT |
 | `@types/d3-array` | 3.2.2 | MIT |
 | `@types/d3-axis` | 3.0.6 | MIT |
@@ -111,10 +116,10 @@ instead.
 | `@types/hast` | 3.0.5 | MIT |
 | `@types/katex` | 0.16.8 | MIT |
 | `@types/linkify-it` | 5.0.0 | MIT |
-| `@types/markdown-it` | 14.1.2 | MIT |
+| `@types/markdown-it` | 14.2.0 | MIT |
 | `@types/mdurl` | 2.0.0 | MIT |
-| `@types/react` | 19.2.18 | MIT |
-| `@types/react-dom` | 19.2.4 | MIT |
+| `@types/react` | 19.3.0 | MIT |
+| `@types/react-dom` | 19.3.0 | MIT |
 | `@types/trusted-types` | 2.0.7 | MIT |
 | `@types/unist` | 3.0.3 | MIT |
 | `@types/use-sync-external-store` | 0.0.6 | MIT |
@@ -122,8 +127,9 @@ instead.
 | `abs-svg-path` | 0.1.1 | MIT |
 | `argparse` | 3.0.0 | Python-2.0 |
 | `base64-js` | 1.5.1 | MIT |
-| `bidi-js` | 1.0.3 | MIT |
+| `bidi-js` | 1.1.0 | MIT |
 | `brotli` | 1.3.3 | MIT |
+| `chevrotain` | 11.1.2 | Apache-2.0 |
 | `clone` | 2.1.2 | MIT |
 | `color-name` | 2.1.1 | MIT |
 | `color-string` | 2.1.4 | MIT |
@@ -172,44 +178,43 @@ instead.
 | `devlop` | 1.1.0 | MIT |
 | `dfa` | 1.2.0 | MIT |
 | `dompurify` | 3.4.14 | (MPL-2.0 OR Apache-2.0) |
+| `elkjs` | 0.9.3 | EPL-2.0 |
 | `emoji-regex-xs` | 1.0.0 | MIT |
 | `entities` | 8.0.0 | BSD-2-Clause |
 | `es-toolkit` | 1.52.0 | MIT |
 | `events` | 3.3.0 | MIT |
 | `fast-deep-equal` | 3.1.3 | MIT |
 | `fast-equals` | 5.4.1 | MIT |
-| `fastdom` | 1.0.12 | MIT |
 | `fflate` | 0.8.3 | MIT |
 | `fontkit` | 2.0.4 | MIT |
 | `hachure-fill` | 0.5.2 | MIT |
 | `highlight.js` | 11.12.0 | BSD-3-Clause |
 | `hsl-to-hex` | 1.0.0 | MIT |
 | `hsl-to-rgb-for-reals` | 1.1.1 | ISC |
-| `hyphen` | 1.14.1 | ISC |
+| `hyphen` | 1.6.6 | ISC |
 | `iconv-lite` | 0.6.3 | MIT |
 | `import-meta-resolve` | 4.2.0 | MIT |
 | `inherits` | 2.0.4 | ISC |
 | `internmap` | 1.0.1 | ISC |
 | `is-url` | 1.2.4 | MIT |
 | `jay-peg` | 1.1.1 | MIT |
-| `js-md5` | 0.8.3 | MIT |
 | `js-tokens` | 4.0.0 | MIT |
-| `katex` | 0.16.47 | MIT |
+| `katex` | 0.18.9 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `linebreak` | 1.1.0 | MIT |
 | `linkify-it` | 6.1.0 | MIT |
 | `linkifyjs` | 4.3.3 | MIT |
-| `lodash-es` | 4.18.1 | MIT |
+| `lodash-es` | 4.17.23 | MIT |
 | `loose-envify` | 1.4.0 | MIT |
 | `lowlight` | 3.3.0 | MIT |
-| `markdown-it` | 15.0.0 | MIT |
+| `markdown-it` | 15.0.2 | MIT |
 | `markdown-it-mark` | 4.0.0 | MIT |
 | `markdown-it-task-lists` | 2.1.1 | ISC |
 | `marked` | 16.4.2 | MIT |
 | `mdurl` | 2.1.0 | MIT |
-| `media-engine` | 1.0.3 | MIT |
-| `mermaid` | 11.17.2 | MIT |
+| `media-engine` | 2.0.0 | MIT |
+| `mermaid` | 12.0.0 | MIT |
 | `normalize-svg-path` | 1.1.0 | MIT |
 | `object-assign` | 4.1.1 | MIT |
 | `orderedmap` | 2.1.1 | MIT |
@@ -217,6 +222,7 @@ instead.
 | `pako` | 0.2.9 | MIT |
 | `parse-svg-path` | 0.1.2 | MIT |
 | `path-data-parser` | 0.1.0 | MIT |
+| `pdfkit` | 0.20.1 | MIT |
 | `png-js` | 2.0.0 | see the package |
 | `points-on-curve` | 0.2.0 | MIT |
 | `points-on-path` | 0.2.1 | MIT |
@@ -235,11 +241,11 @@ instead.
 | `prosemirror-state` | 1.4.4 | MIT |
 | `prosemirror-tables` | 1.8.5 | MIT |
 | `prosemirror-transform` | 1.12.0 | MIT |
-| `prosemirror-view` | 1.42.2 | MIT |
+| `prosemirror-view` | 1.42.4 | MIT |
 | `punycode.js` | 2.3.1 | MIT |
 | `queue` | 6.0.2 | MIT |
-| `react` | 19.2.8 | MIT |
-| `react-dom` | 19.2.8 | MIT |
+| `react` | 19.3.0 | MIT |
+| `react-dom` | 19.3.0 | MIT |
 | `react-is` | 16.13.1 | MIT |
 | `require-from-string` | 2.0.2 | MIT |
 | `restructure` | 3.0.2 | MIT |
@@ -247,11 +253,8 @@ instead.
 | `rope-sequence` | 1.3.4 | MIT |
 | `roughjs` | 4.6.6 | MIT |
 | `rw` | 1.3.3 | BSD-3-Clause |
-| `safe-buffer` | 5.2.1 | MIT |
 | `safer-buffer` | 2.1.2 | MIT |
 | `scheduler` | 0.25.0-rc-603e6108-20241029 | MIT |
-| `strictdom` | 1.0.1 | MIT |
-| `string_decoder` | 1.3.0 | MIT |
 | `stylis` | 4.4.0 | MIT |
 | `svg-arc-to-cubic-bezier` | 3.2.0 | ISC |
 | `tiny-inflate` | 1.0.3 | MIT |
@@ -263,39 +266,37 @@ instead.
 | `unicode-properties` | 1.4.1 | MIT |
 | `unicode-trie` | 2.0.0 | MIT |
 | `use-sync-external-store` | 1.6.0 | MIT |
-| `util-deprecate` | 1.0.2 | MIT |
 | `uuid` | 14.0.2 | MIT |
-| `vite-compatible-readable-stream` | 3.6.1 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (380 crates)
+## In the core (384 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
 | `adler2` | 2.0.1 | 0BSD OR MIT OR Apache-2.0 |
-| `aead` | 0.5.2 | MIT OR Apache-2.0 |
+| `aead` | 0.6.1 | MIT OR Apache-2.0 |
 | `aho-corasick` | 1.1.5 | Unlicense OR MIT |
-| `alloc-no-stdlib` | 2.0.4 | BSD-3-Clause |
-| `alloc-stdlib` | 0.2.4 | BSD-3-Clause |
+| `alloc-no-stdlib` | 3.0.0 | BSD-3-Clause |
+| `alloc-stdlib` | 0.3.0 | BSD-3-Clause |
 | `anstream` | 1.0.0 | MIT OR Apache-2.0 |
 | `anstyle` | 1.0.14 | MIT OR Apache-2.0 |
 | `anstyle-parse` | 1.0.0 | MIT OR Apache-2.0 |
 | `anstyle-query` | 1.1.5 | MIT OR Apache-2.0 |
-| `anstyle-wincon` | 3.0.11 | MIT OR Apache-2.0 |
 | `anyhow` | 1.0.104 | MIT OR Apache-2.0 |
 | `arboard` | 3.6.1 | MIT OR Apache-2.0 |
 | `atomic-waker` | 1.1.2 | Apache-2.0 OR MIT |
 | `autocfg` | 1.5.1 | Apache-2.0 OR MIT |
 | `aws-lc-rs` | 1.18.0 | ISC AND (Apache-2.0 OR ISC) |
 | `aws-lc-sys` | 0.44.0 | ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0) |
-| `base64` | 0.22.1 | MIT OR Apache-2.0 |
+| `base64` | 0.21.7 | MIT OR Apache-2.0 |
 | `bit-set` | 0.8.0 | Apache-2.0 OR MIT |
 | `bit-vec` | 0.8.0 | Apache-2.0 OR MIT |
 | `bitflags` | 1.3.2 | MIT/Apache-2.0 |
 | `block-buffer` | 0.10.4 | MIT OR Apache-2.0 |
-| `brotli` | 8.0.4 | BSD-3-Clause AND MIT |
-| `brotli-decompressor` | 5.0.3 | BSD-3-Clause/MIT |
+| `block2` | 0.6.2 | MIT |
+| `brotli` | 9.0.0 | BSD-3-Clause AND MIT |
+| `brotli-decompressor` | 6.0.1 | BSD-3-Clause/MIT |
 | `bs58` | 0.5.1 | MIT/Apache-2.0 |
 | `bumpalo` | 3.20.3 | MIT OR Apache-2.0 |
 | `bytemuck` | 1.25.2 | Zlib OR Apache-2.0 OR MIT |
@@ -304,34 +305,40 @@ instead.
 | `bytes` | 1.12.1 | MIT |
 | `camino` | 1.2.5 | MIT OR Apache-2.0 |
 | `cargo_metadata` | 0.19.2 | MIT |
-| `cargo_toml` | 0.22.3 | Apache-2.0 OR MIT |
+| `cargo_toml` | 1.0.1 | Apache-2.0 OR MIT |
 | `cargo-platform` | 0.1.9 | MIT OR Apache-2.0 |
 | `cc` | 1.4.0 | MIT OR Apache-2.0 |
 | `cfb` | 0.7.3 | MIT |
 | `cfg_aliases` | 0.2.2 | MIT |
 | `cfg-if` | 1.0.4 | MIT OR Apache-2.0 |
-| `chacha20` | 0.9.1 | Apache-2.0 OR MIT |
-| `chacha20poly1305` | 0.10.1 | Apache-2.0 OR MIT |
+| `chacha20` | 0.10.2 | MIT OR Apache-2.0 |
+| `chacha20poly1305` | 0.11.0 | Apache-2.0 OR MIT |
 | `chrono` | 0.4.45 | MIT OR Apache-2.0 |
-| `cipher` | 0.4.4 | MIT OR Apache-2.0 |
-| `clap` | 4.6.5 | MIT OR Apache-2.0 |
-| `clap_builder` | 4.6.5 | MIT OR Apache-2.0 |
-| `clap_derive` | 4.6.4 | MIT OR Apache-2.0 |
+| `cipher` | 0.5.2 | MIT OR Apache-2.0 |
+| `clap` | 4.6.7 | MIT OR Apache-2.0 |
+| `clap_builder` | 4.6.7 | MIT OR Apache-2.0 |
+| `clap_derive` | 4.6.7 | MIT OR Apache-2.0 |
 | `clap_lex` | 1.1.0 | MIT OR Apache-2.0 |
-| `clipboard-win` | 5.4.1 | BSL-1.0 |
 | `cmake` | 0.1.58 | MIT OR Apache-2.0 |
+| `cmov` | 0.5.4 | Apache-2.0 OR MIT |
 | `colorchoice` | 1.0.5 | MIT OR Apache-2.0 |
 | `console` | 0.16.4 | MIT |
+| `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.1 | MIT OR Apache-2.0 |
+| `core-foundation` | 0.9.4 | MIT OR Apache-2.0 |
+| `core-foundation-sys` | 0.8.7 | MIT OR Apache-2.0 |
+| `core-graphics` | 0.25.0 | MIT OR Apache-2.0 |
+| `core-graphics-types` | 0.2.0 | MIT OR Apache-2.0 |
 | `cpufeatures` | 0.2.17 | MIT OR Apache-2.0 |
 | `crc32fast` | 1.5.0 | MIT OR Apache-2.0 |
 | `crossbeam-channel` | 0.5.16 | MIT OR Apache-2.0 |
 | `crossbeam-utils` | 0.8.22 | MIT OR Apache-2.0 |
 | `crypto-common` | 0.1.7 | MIT OR Apache-2.0 |
-| `cssparser` | 0.36.0 | MPL-2.0 |
-| `cssparser-macros` | 0.6.1 | MPL-2.0 |
-| `ctor` | 0.8.0 | Apache-2.0 OR MIT |
-| `ctor-proc-macro` | 0.0.7 | Apache-2.0 OR MIT |
+| `cssparser` | 0.37.0 | MPL-2.0 |
+| `cssparser-macros` | 0.7.1 | MPL-2.0 |
+| `ctor` | 1.0.13 | Apache-2.0 OR MIT |
+| `ctutils` | 0.4.2 | Apache-2.0 OR MIT |
+| `curve25519-dalek` | 5.0.0 | BSD-3-Clause |
 | `darling` | 0.23.0 | MIT |
 | `darling_core` | 0.23.0 | MIT |
 | `darling_macro` | 0.23.0 | MIT |
@@ -344,35 +351,40 @@ instead.
 | `dialoguer` | 0.12.0 | MIT |
 | `digest` | 0.10.7 | MIT OR Apache-2.0 |
 | `directories` | 6.0.0 | MIT OR Apache-2.0 |
-| `dirs` | 6.0.0 | MIT OR Apache-2.0 |
+| `dirs` | 7.0.0 | MIT OR Apache-2.0 |
 | `dirs-sys` | 0.5.0 | MIT OR Apache-2.0 |
+| `dispatch2` | 0.3.1 | Zlib OR Apache-2.0 OR MIT |
 | `displaydoc` | 0.2.7 | MIT OR Apache-2.0 |
-| `dom_query` | 0.27.0 | MIT |
+| `dom_query` | 0.28.0 | MIT |
 | `dpi` | 0.1.2 | Apache-2.0 AND MIT |
 | `dtoa` | 1.0.11 | MIT OR Apache-2.0 |
 | `dtoa-short` | 0.3.5 | MPL-2.0 |
-| `dtor` | 0.3.0 | Apache-2.0 OR MIT |
-| `dtor-proc-macro` | 0.0.6 | Apache-2.0 OR MIT |
 | `dunce` | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 |
 | `dyn-clone` | 1.0.20 | MIT OR Apache-2.0 |
+| `ed25519` | 3.0.0 | Apache-2.0 OR MIT |
+| `ed25519-dalek` | 3.0.0 | BSD-3-Clause |
+| `embed_plist` | 1.2.2 | MIT OR Apache-2.0 |
 | `embed-resource` | 3.0.11 | MIT |
-| `encode_unicode` | 1.0.0 | Apache-2.0 OR MIT |
 | `encoding_rs` | 0.8.35 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
 | `equivalent` | 1.0.2 | Apache-2.0 OR MIT |
 | `erased-serde` | 0.4.10 | MIT OR Apache-2.0 |
-| `error-code` | 3.3.2 | BSL-1.0 |
+| `errno` | 0.3.14 | MIT OR Apache-2.0 |
 | `fallible-iterator` | 0.3.0 | MIT/Apache-2.0 |
 | `fallible-streaming-iterator` | 0.1.9 | MIT/Apache-2.0 |
 | `fastrand` | 2.5.0 | Apache-2.0 OR MIT |
 | `fax` | 0.2.7 | MIT |
 | `fdeflate` | 0.3.7 | MIT OR Apache-2.0 |
+| `filetime` | 0.2.29 | MIT/Apache-2.0 |
 | `find-msvc-tools` | 0.1.9 | MIT OR Apache-2.0 |
 | `flate2` | 1.1.9 | MIT OR Apache-2.0 |
 | `fnv` | 1.0.7 | Apache-2.0 / MIT |
-| `foldhash` | 0.1.5 | Zlib |
+| `foldhash` | 0.2.0 | Zlib |
+| `foreign-types` | 0.5.0 | MIT/Apache-2.0 |
+| `foreign-types-macros` | 0.2.4 | MIT/Apache-2.0 |
+| `foreign-types-shared` | 0.3.1 | MIT/Apache-2.0 |
 | `form_urlencoded` | 1.2.2 | MIT OR Apache-2.0 |
 | `fs_extra` | 1.3.0 | MIT |
-| `fs4` | 0.13.1 | MIT OR Apache-2.0 |
+| `fs4` | 1.1.0 | MIT OR Apache-2.0 |
 | `futures-channel` | 0.3.33 | MIT OR Apache-2.0 |
 | `futures-core` | 0.3.33 | MIT OR Apache-2.0 |
 | `futures-io` | 0.3.33 | MIT OR Apache-2.0 |
@@ -388,19 +400,21 @@ instead.
 | `h2` | 0.4.16 | MIT |
 | `half` | 2.7.1 | MIT OR Apache-2.0 |
 | `hashbrown` | 0.12.3 | MIT OR Apache-2.0 |
-| `hashlink` | 0.10.0 | MIT OR Apache-2.0 |
+| `hashlink` | 0.12.2 | MIT OR Apache-2.0 |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 |
 | `hex` | 0.4.3 | MIT OR Apache-2.0 |
-| `hmac` | 0.12.1 | MIT OR Apache-2.0 |
-| `html5ever` | 0.38.0 | MIT OR Apache-2.0 |
+| `hmac` | 0.13.0 | MIT OR Apache-2.0 |
+| `html5ever` | 0.39.0 | MIT OR Apache-2.0 |
 | `http` | 1.5.0 | MIT OR Apache-2.0 |
 | `http-body` | 1.1.0 | MIT |
 | `http-body-util` | 0.1.4 | MIT |
 | `http-range` | 0.1.5 | MIT |
 | `httparse` | 1.10.1 | MIT OR Apache-2.0 |
+| `hybrid-array` | 0.4.15 | MIT OR Apache-2.0 |
 | `hyper` | 1.11.0 | MIT |
 | `hyper-rustls` | 0.27.9 | Apache-2.0 OR ISC OR MIT |
 | `hyper-util` | 0.1.20 | MIT |
+| `iana-time-zone` | 0.1.65 | MIT OR Apache-2.0 |
 | `ico` | 0.5.0 | MIT |
 | `icu_collections` | 2.2.0 | Unicode-3.0 |
 | `icu_locale_core` | 2.2.0 | Unicode-3.0 |
@@ -415,46 +429,54 @@ instead.
 | `image` | 0.25.10 | MIT OR Apache-2.0 |
 | `indexmap` | 1.9.3 | Apache-2.0 OR MIT |
 | `infer` | 0.19.0 | MIT |
-| `inout` | 0.1.4 | MIT OR Apache-2.0 |
+| `inout` | 0.2.2 | MIT OR Apache-2.0 |
 | `ipnet` | 2.12.1 | MIT OR Apache-2.0 |
 | `is_terminal_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
 | `itoa` | 1.0.18 | MIT OR Apache-2.0 |
-| `jiff` | 0.2.35 | Unlicense OR MIT |
+| `jiff` | 0.2.37 | Unlicense OR MIT |
 | `jiff-core` | 0.1.0 | Unlicense OR MIT |
-| `jiff-static` | 0.2.35 | Unlicense OR MIT |
-| `jiff-tzdb` | 0.1.8 | Unlicense OR MIT |
-| `jiff-tzdb-platform` | 0.1.3 | Unlicense OR MIT |
+| `jiff-static` | 0.2.37 | Unlicense OR MIT |
 | `jobserver` | 0.1.35 | MIT OR Apache-2.0 |
-| `json-patch` | 3.0.1 | MIT/Apache-2.0 |
-| `jsonptr` | 0.6.3 | MIT OR Apache-2.0 |
+| `json-patch` | 4.2.0 | MIT/Apache-2.0 |
+| `jsonptr` | 0.7.1 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.7.0 | MIT OR Apache-2.0 |
 | `libc` | 0.2.189 | MIT OR Apache-2.0 |
-| `libsqlite3-sys` | 0.35.0 | MIT |
+| `libsqlite3-sys` | 0.38.2 | MIT |
 | `litemap` | 0.8.2 | Unicode-3.0 |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 |
-| `log` | 0.4.33 | MIT OR Apache-2.0 |
+| `log` | 0.4.34 | MIT OR Apache-2.0 |
 | `lru-slab` | 0.1.2 | MIT OR Apache-2.0 OR Zlib |
-| `markup5ever` | 0.38.0 | MIT OR Apache-2.0 |
+| `mac-notification-sys` | 0.6.15 | MIT/Apache-2.0 |
+| `markup5ever` | 0.39.0 | MIT OR Apache-2.0 |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
 | `mime` | 0.3.17 | MIT OR Apache-2.0 |
 | `minisign-verify` | 0.2.5 | MIT |
 | `miniz_oxide` | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
 | `mio` | 1.2.2 | MIT |
 | `moxcms` | 0.8.1 | BSD-3-Clause OR Apache-2.0 |
-| `muda` | 0.19.3 | Apache-2.0 OR MIT |
+| `muda` | 0.20.0 | Apache-2.0 OR MIT |
 | `new_debug_unreachable` | 1.0.6 | MIT |
 | `notify-rust` | 4.18.0 | MIT OR Apache-2.0 |
-| `ntapi` | 0.4.3 | Apache-2.0 OR MIT |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 |
 | `num-traits` | 0.2.19 | MIT OR Apache-2.0 |
+| `objc2` | 0.6.4 | MIT |
+| `objc2-app-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-core-foundation` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-core-graphics` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-encode` | 4.1.0 | MIT |
+| `objc2-exception-helper` | 0.1.1 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-foundation` | 0.3.2 | MIT |
+| `objc2-io-surface` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-osa-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-quartz-core` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
+| `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
-| `once_cell_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
-| `opaque-debug` | 0.3.1 | MIT OR Apache-2.0 |
 | `open` | 5.4.1 | MIT |
 | `option-ext` | 0.2.0 | MPL-2.0 |
+| `osakit` | 0.3.1 | MIT OR Apache-2.0 |
 | `parking_lot` | 0.12.5 | MIT OR Apache-2.0 |
 | `parking_lot_core` | 0.9.12 | MIT OR Apache-2.0 |
-| `pbkdf2` | 0.12.2 | MIT OR Apache-2.0 |
+| `pbkdf2` | 0.13.0 | MIT OR Apache-2.0 |
 | `percent-encoding` | 2.3.2 | MIT OR Apache-2.0 |
 | `phf` | 0.13.1 | MIT |
 | `phf_codegen` | 0.13.1 | MIT |
@@ -465,12 +487,13 @@ instead.
 | `pkg-config` | 0.3.33 | MIT OR Apache-2.0 |
 | `plist` | 1.10.0 | MIT |
 | `png` | 0.17.16 | MIT OR Apache-2.0 |
-| `poly1305` | 0.8.0 | Apache-2.0 OR MIT |
+| `poly1305` | 0.9.1 | Apache-2.0 OR MIT |
 | `potential_utf` | 0.1.5 | Unicode-3.0 |
 | `powerfmt` | 0.2.0 | MIT OR Apache-2.0 |
 | `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 |
 | `precomputed-hash` | 0.1.1 | MIT |
 | `proc-macro2` | 1.0.107 | MIT OR Apache-2.0 |
+| `proptest` | 1.11.0 | MIT OR Apache-2.0 |
 | `pxfm` | 0.1.30 | BSD-3-Clause OR Apache-2.0 |
 | `quick-error` | 2.0.1 | MIT/Apache-2.0 |
 | `quick-xml` | 0.41.0 | MIT |
@@ -480,31 +503,35 @@ instead.
 | `quote` | 1.0.47 | MIT OR Apache-2.0 |
 | `rand` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand_chacha` | 0.9.0 | MIT OR Apache-2.0 |
-| `rand_core` | 0.6.4 | MIT OR Apache-2.0 |
+| `rand_core` | 0.9.5 | MIT OR Apache-2.0 |
 | `rand_pcg` | 0.10.2 | MIT OR Apache-2.0 |
+| `rand_xorshift` | 0.4.0 | MIT OR Apache-2.0 |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib |
 | `ref-cast` | 1.0.26 | MIT OR Apache-2.0 |
 | `ref-cast-impl` | 1.0.26 | MIT OR Apache-2.0 |
 | `regex` | 1.13.1 | MIT OR Apache-2.0 |
 | `regex-automata` | 0.4.18 | MIT OR Apache-2.0 |
 | `regex-syntax` | 0.8.11 | MIT OR Apache-2.0 |
-| `reqwest` | 0.13.4 | MIT OR Apache-2.0 |
+| `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
 | `rfd` | 0.16.0 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
-| `rusqlite` | 0.37.0 | MIT |
+| `rusqlite` | 0.40.2 | MIT |
 | `rustc_version` | 0.4.1 | MIT OR Apache-2.0 |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
+| `rustix` | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | `rustls` | 0.23.45 | Apache-2.0 OR ISC OR MIT |
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
 | `rustls-platform-verifier` | 0.7.0 | MIT OR Apache-2.0 |
 | `rustls-webpki` | 0.103.14 | ISC |
-| `salsa20` | 0.10.2 | MIT OR Apache-2.0 |
+| `salsa20` | 0.11.0 | MIT OR Apache-2.0 |
 | `same-file` | 1.0.6 | Unlicense/MIT |
 | `schemars` | 0.8.22 | MIT |
 | `schemars_derive` | 0.8.22 | MIT |
 | `scopeguard` | 1.2.0 | MIT OR Apache-2.0 |
-| `scrypt` | 0.11.0 | MIT OR Apache-2.0 |
-| `selectors` | 0.36.1 | MPL-2.0 |
+| `scrypt` | 0.12.0 | MIT OR Apache-2.0 |
+| `security-framework` | 3.7.0 | MIT OR Apache-2.0 |
+| `security-framework-sys` | 2.17.0 | MIT OR Apache-2.0 |
+| `selectors` | 0.38.0 | MPL-2.0 |
 | `semver` | 1.0.28 | MIT OR Apache-2.0 |
 | `serde` | 1.0.229 | MIT OR Apache-2.0 |
 | `serde_core` | 1.0.229 | MIT OR Apache-2.0 |
@@ -522,45 +549,47 @@ instead.
 | `sha2` | 0.10.9 | MIT OR Apache-2.0 |
 | `shell-words` | 1.1.1 | MIT/Apache-2.0 |
 | `shlex` | 2.0.1 | MIT OR Apache-2.0 |
+| `signature` | 3.0.0 | Apache-2.0 OR MIT |
 | `simd-adler32` | 0.3.10 | MIT |
 | `siphasher` | 1.0.3 | MIT/Apache-2.0 |
 | `slab` | 0.4.12 | MIT |
 | `smallvec` | 1.15.2 | MIT OR Apache-2.0 |
 | `socket2` | 0.6.5 | MIT OR Apache-2.0 |
-| `softbuffer` | 0.4.8 | MIT OR Apache-2.0 |
 | `stable_deref_trait` | 1.2.1 | MIT OR Apache-2.0 |
 | `string_cache` | 0.9.0 | MIT OR Apache-2.0 |
 | `string_cache_codegen` | 0.6.1 | MIT OR Apache-2.0 |
 | `strsim` | 0.11.1 | MIT |
 | `subtle` | 2.6.1 | BSD-3-Clause |
+| `swift-rs` | 1.0.8 | MIT OR Apache-2.0 |
 | `syn` | 2.0.119 | MIT OR Apache-2.0 |
 | `sync_wrapper` | 1.0.2 | Apache-2.0 |
 | `synstructure` | 0.13.2 | MIT |
 | `sys-locale` | 0.3.2 | MIT OR Apache-2.0 |
-| `sysinfo` | 0.39.6 | MIT |
-| `tao` | 0.35.3 | Apache-2.0 |
-| `tauri` | 2.11.5 | Apache-2.0 OR MIT |
-| `tauri-build` | 2.6.3 | Apache-2.0 OR MIT |
-| `tauri-codegen` | 2.6.3 | Apache-2.0 OR MIT |
-| `tauri-macros` | 2.6.3 | Apache-2.0 OR MIT |
-| `tauri-plugin` | 2.6.3 | Apache-2.0 OR MIT |
-| `tauri-plugin-clipboard-manager` | 2.3.2 | Apache-2.0 OR MIT |
-| `tauri-plugin-dialog` | 2.7.2 | Apache-2.0 OR MIT |
-| `tauri-plugin-fs` | 2.5.1 | Apache-2.0 OR MIT |
-| `tauri-plugin-global-shortcut` | 2.3.2 | Apache-2.0 OR MIT |
-| `tauri-plugin-notification` | 2.3.3 | Apache-2.0 OR MIT |
-| `tauri-plugin-opener` | 2.5.4 | Apache-2.0 OR MIT |
-| `tauri-plugin-single-instance` | 2.4.3 | Apache-2.0 OR MIT |
-| `tauri-plugin-updater` | 2.10.1 | Apache-2.0 OR MIT |
-| `tauri-runtime` | 2.11.3 | Apache-2.0 OR MIT |
-| `tauri-runtime-wry` | 2.11.4 | Apache-2.0 OR MIT |
-| `tauri-utils` | 2.9.3 | Apache-2.0 OR MIT |
+| `system-configuration` | 0.7.0 | MIT OR Apache-2.0 |
+| `system-configuration-sys` | 0.6.0 | MIT OR Apache-2.0 |
+| `tao` | 0.37.1 | Apache-2.0 |
+| `tar` | 0.4.46 | MIT OR Apache-2.0 |
+| `tauri` | 2.12.1 | Apache-2.0 OR MIT |
+| `tauri-build` | 2.7.1 | Apache-2.0 OR MIT |
+| `tauri-codegen` | 2.7.1 | Apache-2.0 OR MIT |
+| `tauri-macros` | 2.7.1 | Apache-2.0 OR MIT |
+| `tauri-plugin` | 2.7.1 | Apache-2.0 OR MIT |
+| `tauri-plugin-clipboard-manager` | 2.4.0 | Apache-2.0 OR MIT |
+| `tauri-plugin-dialog` | 2.8.1 | Apache-2.0 OR MIT |
+| `tauri-plugin-fs` | 2.6.0 | Apache-2.0 OR MIT |
+| `tauri-plugin-global-shortcut` | 2.4.0 | Apache-2.0 OR MIT |
+| `tauri-plugin-notification` | 2.5.1 | Apache-2.0 OR MIT |
+| `tauri-plugin-opener` | 2.6.0 | Apache-2.0 OR MIT |
+| `tauri-plugin-single-instance` | 2.5.2 | Apache-2.0 OR MIT |
+| `tauri-plugin-updater` | 2.13.0 | Apache-2.0 OR MIT |
+| `tauri-runtime` | 2.12.1 | Apache-2.0 OR MIT |
+| `tauri-runtime-wry` | 2.12.1 | Apache-2.0 OR MIT |
+| `tauri-utils` | 2.10.1 | Apache-2.0 OR MIT |
 | `tauri-winres` | 0.3.6 | MIT |
-| `tauri-winrt-notification` | 0.7.3 | MIT OR Apache-2.0 |
 | `tempfile` | 3.27.0 | MIT OR Apache-2.0 |
 | `tendril` | 0.5.1 | MIT OR Apache-2.0 |
-| `thiserror` | 1.0.69 | MIT OR Apache-2.0 |
-| `thiserror-impl` | 1.0.69 | MIT OR Apache-2.0 |
+| `thiserror` | 2.0.21 | MIT OR Apache-2.0 |
+| `thiserror-impl` | 2.0.21 | MIT OR Apache-2.0 |
 | `thread_local` | 1.1.10 | MIT OR Apache-2.0 |
 | `tiff` | 0.11.3 | MIT |
 | `time` | 0.3.55 | MIT OR Apache-2.0 |
@@ -572,8 +601,8 @@ instead.
 | `tokio` | 1.53.1 | MIT |
 | `tokio-rustls` | 0.26.4 | MIT OR Apache-2.0 |
 | `tokio-util` | 0.7.19 | MIT |
-| `toml` | 0.9.12+spec-1.1.0 | MIT OR Apache-2.0 |
-| `toml_datetime` | 0.7.5+spec-1.1.0 | MIT OR Apache-2.0 |
+| `toml` | 1.1.4+spec-1.1.0 | MIT OR Apache-2.0 |
+| `toml_datetime` | 1.1.1+spec-1.1.0 | MIT OR Apache-2.0 |
 | `toml_parser` | 1.1.3+spec-1.1.0 | MIT OR Apache-2.0 |
 | `toml_writer` | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |
 | `tower` | 0.5.3 | MIT |
@@ -583,60 +612,36 @@ instead.
 | `tracing` | 0.1.44 | MIT |
 | `tracing-attributes` | 0.1.31 | MIT |
 | `tracing-core` | 0.1.36 | MIT |
-| `tray-icon` | 0.24.2 | MIT OR Apache-2.0 |
+| `tray-icon` | 0.25.1 | MIT OR Apache-2.0 |
 | `try-lock` | 0.2.5 | MIT |
+| `typed-path` | 0.12.3 | MIT OR Apache-2.0 |
 | `typeid` | 1.0.3 | MIT OR Apache-2.0 |
 | `typenum` | 1.20.1 | MIT OR Apache-2.0 |
 | `ulid` | 3.0.0 | MIT |
-| `unic-char-property` | 0.9.0 | MIT/Apache-2.0 |
-| `unic-char-range` | 0.9.0 | MIT/Apache-2.0 |
-| `unic-common` | 0.9.0 | MIT/Apache-2.0 |
-| `unic-ucd-ident` | 0.9.0 | MIT/Apache-2.0 |
-| `unic-ucd-version` | 0.9.0 | MIT/Apache-2.0 |
+| `unarray` | 0.1.4 | MIT OR Apache-2.0 |
 | `unicode-ident` | 1.0.24 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `unicode-normalization` | 0.1.25 | MIT OR Apache-2.0 |
 | `unicode-segmentation` | 1.13.3 | MIT OR Apache-2.0 |
 | `unicode-width` | 0.2.2 | MIT OR Apache-2.0 |
-| `universal-hash` | 0.5.1 | MIT OR Apache-2.0 |
+| `universal-hash` | 0.6.1 | MIT OR Apache-2.0 |
 | `untrusted` | 0.9.0 | ISC |
 | `url` | 2.5.8 | MIT OR Apache-2.0 |
-| `urlpattern` | 0.3.0 | MIT |
+| `urlpattern` | 0.6.0 | MIT |
 | `utf8_iter` | 1.0.4 | Apache-2.0 OR MIT |
 | `utf8parse` | 0.2.2 | Apache-2.0 OR MIT |
 | `uuid` | 1.24.0 | Apache-2.0 OR MIT |
 | `vcpkg` | 0.2.15 | MIT/Apache-2.0 |
 | `version_check` | 0.9.5 | MIT/Apache-2.0 |
-| `vswhom` | 0.1.0 | MIT |
-| `vswhom-sys` | 0.1.3 | MIT |
 | `walkdir` | 2.5.0 | Unlicense/MIT |
 | `want` | 0.3.1 | MIT |
 | `web_atoms` | 0.2.5 | MIT OR Apache-2.0 |
-| `webview2-com` | 0.38.2 | MIT |
-| `webview2-com-macros` | 0.8.1 | MIT |
-| `webview2-com-sys` | 0.38.2 | MIT |
+| `web-time` | 1.1.0 | MIT OR Apache-2.0 |
 | `weezl` | 0.1.12 | MIT OR Apache-2.0 |
-| `winapi` | 0.3.9 | MIT/Apache-2.0 |
-| `winapi-util` | 0.1.11 | Unlicense OR MIT |
-| `window-vibrancy` | 0.6.0 | Apache-2.0 OR MIT |
-| `windows` | 0.61.3 | MIT OR Apache-2.0 |
-| `windows_x86_64_msvc` | 0.52.6 | MIT OR Apache-2.0 |
-| `windows-collections` | 0.2.0 | MIT OR Apache-2.0 |
-| `windows-core` | 0.61.2 | MIT OR Apache-2.0 |
-| `windows-future` | 0.2.1 | MIT OR Apache-2.0 |
-| `windows-implement` | 0.60.2 | MIT OR Apache-2.0 |
-| `windows-interface` | 0.59.3 | MIT OR Apache-2.0 |
-| `windows-link` | 0.1.3 | MIT OR Apache-2.0 |
-| `windows-numerics` | 0.2.0 | MIT OR Apache-2.0 |
-| `windows-result` | 0.3.4 | MIT OR Apache-2.0 |
-| `windows-strings` | 0.4.2 | MIT OR Apache-2.0 |
-| `windows-sys` | 0.59.0 | MIT OR Apache-2.0 |
-| `windows-targets` | 0.52.6 | MIT OR Apache-2.0 |
-| `windows-threading` | 0.1.0 | MIT OR Apache-2.0 |
-| `windows-version` | 0.1.7 | MIT OR Apache-2.0 |
-| `winnow` | 0.7.15 | MIT |
-| `winreg` | 0.55.0 | MIT |
+| `window-vibrancy` | 0.8.1 | Apache-2.0 OR MIT |
+| `winnow` | 1.0.4 | MIT |
 | `writeable` | 0.6.3 | Unicode-3.0 |
-| `wry` | 0.55.1 | Apache-2.0 OR MIT |
+| `wry` | 0.57.0 | Apache-2.0 OR MIT |
+| `xattr` | 1.6.1 | MIT OR Apache-2.0 |
 | `yoke` | 0.8.3 | Unicode-3.0 |
 | `yoke-derive` | 0.8.2 | Unicode-3.0 |
 | `zerocopy` | 0.8.56 | BSD-2-Clause OR Apache-2.0 OR MIT |
@@ -647,7 +652,7 @@ instead.
 | `zerotrie` | 0.2.4 | Unicode-3.0 |
 | `zerovec` | 0.11.6 | Unicode-3.0 |
 | `zerovec-derive` | 0.11.3 | Unicode-3.0 |
-| `zip` | 4.6.1 | MIT |
+| `zip` | 8.6.0 | MIT |
 | `zlib-rs` | 0.6.7 | Zlib |
 | `zmij` | 1.0.23 | MIT |
 | `zopfli` | 0.8.3 | Apache-2.0 |
@@ -735,7 +740,327 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+### `@chevrotain/cst-dts-gen` — Apache-2.0
+
+```text
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby 
+…
+```
+
+### `@chevrotain/gast` — Apache-2.0
+
+```text
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby 
+…
+```
+
+### `@chevrotain/regexp-to-ast` — Apache-2.0
+
+```text
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby 
+…
+```
+
 ### `@chevrotain/types` — Apache-2.0
+
+```text
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby 
+…
+```
+
+### `@chevrotain/utils` — Apache-2.0
 
 ```text
 Apache License
@@ -1077,6 +1402,34 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
+### `@react-pdf/hyphenate` — MIT
+
+```text
+MIT License
+
+Copyright (c) Diego Muracciole
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
+```
+
 ### `@react-pdf/image` — MIT
 
 ```text
@@ -1133,17 +1486,32 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
-### `@react-pdf/pdfkit` — MIT
+### `@react-pdf/paginate` — MIT
 
 ```text
-MIT LICENSE
-Copyright (c) 2014 Devon Govett
+MIT License
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Copyright (c) Diego Muracciole
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The package ships no licence file. Its text is at https://github.com/diegomura/react-pdf
 ```
 
 ### `@react-pdf/primitives` — MIT
@@ -3833,6 +4201,86 @@ SOFTWARE.
 The package ships no licence file. Its text is at https://github.com/devongovett/brotli.js
 ```
 
+### `chevrotain` — Apache-2.0
+
+```text
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby 
+…
+```
+
 ### `clone` — MIT
 
 ```text
@@ -4934,6 +5382,94 @@ Apache License
 …
 ```
 
+### `elkjs` — EPL-2.0
+
+```text
+# Eclipse Public License - v 2.0
+
+THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS ECLIPSE
+PUBLIC LICENSE (“AGREEMENT”). ANY USE, REPRODUCTION OR DISTRIBUTION OF
+THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
+
+## 1. DEFINITIONS
+
+“Contribution” means:
+
+-   a\) in the case of the initial Contributor, the initial content
+    Distributed under this Agreement, and
+-   b\) in the case of each subsequent Contributor:
+    -   i\) changes to the Program, and
+    -   ii\) additions to the Program;
+
+    where such changes and/or additions to the Program originate from
+    and are Distributed by that particular Contributor. A Contribution
+    “originates” from a Contributor if it was added to the Program by
+    such Contributor itself or anyone acting on such Contributor's
+    behalf. Contributions do not include changes or additions to the
+    Program that are not Modified Works.
+
+“Contributor” means any person or entity that Distributes the Program.
+
+“Licensed Patents” mean patent claims licensable by a Contributor which
+are necessarily infringed by the use or sale of its Contribution alone
+or when combined with the Program.
+
+“Program” means the Contributions Distributed in accordance with this
+Agreement.
+
+“Recipient” means anyone who receives the Program under this Agreement
+or any Secondary License (as applicable), including Contributors.
+
+“Derivative Works” shall mean any work, whether in Source Code or other
+form, that is based on (or derived from) the Program and for which the
+editorial revisions, annotations, elaborations, or other modifications
+represent, as a whole, an original work of authorship.
+
+“Modified Works” shall mean any work in Source Code or other form that
+results from an addition to, deletion from, or modification of the
+contents of the Program, including, for purposes of clarity any new file
+in Source Code form that contains any contents of the Program. Modified
+Works shall not include works that contain only declarations,
+interfaces, types, classes, structures, or files of the Program solely
+in each case in order to link to, bind by name, or subclass the Program
+or Modified Works thereof.
+
+“Distribute” means the acts of a) distributing or b) making available in
+any manner that enables the transfer of a copy.
+
+“Source Code” means the form of a Program preferred for making
+modifications, including but not limited to software source code,
+documentation source, and configuration files.
+
+“Secondary License” means either the GNU General Public License, Version
+2.0, or any later versions of that license, including any exceptions or
+additional permissions as identified by the initial Contributor.
+
+## 2. GRANT OF RIGHTS
+
+-   a\) Subject to the terms of this Agreement, each Contributor hereby
+    grants Recipient a non-exclusive, worldwide, royalty-free copyright
+    license to reproduce, prepare Derivative Works of, publicly display,
+    publicly perform, Distribute and sublicense the Contribution of such
+    Contributor, if any, and such Derivative Works.
+-   b\) Subject to the terms of this Agreement, each Contributor hereby
+    grants Recipient a non-exclusive, worldwide, royalty-free patent license
+    under Licensed Patents to make, use, sell, offer to sell, import and
+    otherwise transfer the Contribution of such Contributor, if any, in
+    Source Code or other form. This patent license shall apply to the
+    combination of the Contribution and the Program if, at the time the
+    Contribution is added by the Contributor, such addition of the
+    Contribution causes such combination to be covered by the
+    Licensed Patents. The patent license shall not apply to any other
+    combinations which include the Contribution. No hardware per se is
+    licensed hereunder.
+-   c\) Recipient understands that although each Contributor grants the
+    licenses to its Contributions set forth herein, no assurances are
+    provided by any Contributor that the Program does not infringe the
+    patent 
+…
+```
+
 ### `emoji-regex-xs` — MIT
 
 ```text
@@ -5079,34 +5615,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
-
-### `fastdom` — MIT
-
-```text
-MIT License
-
-Copyright (c) Wilson Page
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-The package ships no licence file. Its text is at https://github.com/wilsonpage/fastdom
 ```
 
 ### `fflate` — MIT
@@ -5278,7 +5786,7 @@ The package ships no licence file. Its text is at https://github.com/davidmarkcl
 ```text
 ISC License (ISC)
 
-Copyright (c) 2026, Yevhen Tiurin <yevhentiurin@gmail.com>
+Copyright (c) 2021, Yevhen Tiurin <yevhentiurin@gmail.com>
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -5483,31 +5991,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
-
-### `js-md5` — MIT
-
-```text
-Copyright 2014-2023 Chen, Yi-Cyuan
-
-Permission is hereby granted, free of charge, to any person obtaining
-a copy of this software and associated documentation files (the
-"Software"), to deal in the Software without restriction, including
-without limitation the rights to use, copy, modify, merge, publish,
-distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to
-the following conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
 ### `js-tokens` — MIT
@@ -5991,6 +6474,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+The package ships no licence file. Its text is at https://github.com/diegomura/media-engine
 ```
 
 ### `mermaid` — MIT
@@ -6201,6 +6686,19 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+### `pdfkit` — MIT
+
+```text
+MIT LICENSE
+Copyright (c) 2014 Devon Govett
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
 ### `png-js` — see the package
@@ -6948,32 +7446,6 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-### `safe-buffer` — MIT
-
-```text
-The MIT License (MIT)
-
-Copyright (c) Feross Aboukhadijeh
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-```
-
 ### `safer-buffer` — MIT
 
 ```text
@@ -7024,86 +7496,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-```
-
-### `strictdom` — MIT
-
-```text
-MIT License
-
-Copyright (c) Wilson Page
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-The package ships no licence file. Its text is at https://github.com/wilsonpage/strictdom
-```
-
-### `string_decoder` — MIT
-
-```text
-Node.js is licensed for use as follows:
-
-"""
-Copyright Node.js contributors. All rights reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to
-deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
-"""
-
-This license applies to parts of Node.js originating from the
-https://github.com/joyent/node repository:
-
-"""
-Copyright Joyent, Inc. and other Node contributors. All rights reserved.
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to
-deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
-"""
 ```
 
 ### `stylis` — MIT
@@ -7349,35 +7741,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### `util-deprecate` — MIT
-
-```text
-(The MIT License)
-
-Copyright (c) 2014 Nathan Rajlich <nathan@tootallnate.net>
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-```
-
 ### `uuid` — MIT
 
 ```text
@@ -7390,58 +7753,6 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
-
-### `vite-compatible-readable-stream` — MIT
-
-```text
-Node.js is licensed for use as follows:
-
-"""
-Copyright Node.js contributors. All rights reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to
-deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
-"""
-
-This license applies to parts of Node.js originating from the
-https://github.com/joyent/node repository:
-
-"""
-Copyright Joyent, Inc. and other Node contributors. All rights reserved.
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to
-deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
-"""
 ```
 
 ### `w3c-keyname` — MIT
