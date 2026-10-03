@@ -2725,3 +2725,38 @@ fn what_a_machine_writes_from_the_command_line_it_signs() {
         tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &whole)
     );
 }
+
+#[test]
+fn a_list_with_open_tasks_is_not_archived() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Oficina"]);
+    cli.ok(&["call the bank", "--list", "Oficina"]);
+
+    let run = cli.run(&["list", "archive", "Oficina"]);
+
+    assert_ne!(run.code, 0, "{}", run.out);
+    assert!(!cli.ok(&["lists"]).contains("archived"));
+}
+
+#[test]
+fn erasing_a_list_with_closed_tasks_archives_it_so_they_keep_its_name() {
+    let cli = Cli::new();
+    cli.ok(&["list", "add", "Oficina"]);
+    cli.ok(&["call the bank", "--list", "Oficina"]);
+    cli.ok(&["file the report", "--list", "Oficina"]);
+    cli.ok(&["ls", "all"]);
+    cli.ok(&["done", "2"]);
+
+    cli.ok(&["list", "rm", "Oficina", "--force"]);
+
+    assert!(
+        cli.ok(&["lists"]).contains("archived"),
+        "kept, out of the way"
+    );
+    let inbox = cli.ok(&["ls", "inbox"]);
+    assert!(
+        inbox.contains("call the bank"),
+        "the open one went home: {inbox}"
+    );
+    assert!(!inbox.contains("file the report"), "{inbox}");
+}

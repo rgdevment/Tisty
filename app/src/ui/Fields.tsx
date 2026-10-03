@@ -41,11 +41,13 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
       >
         <Sheet onClose={close}>
           {list && <Row onPick={() => apply({ inbox: true })}>{t("noList")}</Row>}
-          {lists.map((one) => (
-            <Row key={one.id} onPick={() => apply({ list: one.id })}>
-              {one.name}
-            </Row>
-          ))}
+          {lists
+            .filter((one) => !one.archived || one.id === task.list)
+            .map((one) => (
+              <Row key={one.id} onPick={() => apply({ list: one.id })}>
+                {one.name}
+              </Row>
+            ))}
           <Filing onName={(name) => apply({ listNamed: name })} />
         </Sheet>
       </Held>

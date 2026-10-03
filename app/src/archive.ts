@@ -61,6 +61,22 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
   });
 }
 
+/// Grouping the open tasks keeps what an agent spoke for in its own band, as the day bands do.
+export function regrouped(tasks: Task[], axis: Axis, lists: List[]): Row[] {
+  const spoken = (task: Task) => Boolean(task.resolved) && task.status === "open";
+  const waiting: Row[] = tasks
+    .filter(spoken)
+    .map((task) => ({ kind: "one" as const, key: task.id, task, band: t("agentBand") }));
+  return [
+    ...shelved(
+      tasks.filter((task) => !spoken(task)),
+      axis,
+      lists,
+    ),
+    ...waiting,
+  ];
+}
+
 export function banded(tasks: Task[], now = new Date()): Row[] {
   const waiting: Row[] = [];
   const rest: Row[] = [];

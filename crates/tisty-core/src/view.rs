@@ -134,6 +134,52 @@ pub fn matches_query(task: &Task, terms: &[String]) -> Option<Hit> {
         .then_some(Hit::Mentioned)
 }
 
+/// The line a body match lands on, the journal newest first; none when the name matched.
+pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String)> {
+    let terms = crate::text::terms(query);
+    if matches_query(task, &terms)? != Hit::Mentioned {
+        return None;
+    }
+    let title = crate::text::folded(&task.title);
+    let unnamed: Vec<&String> = terms
+        .iter()
+        .filter(|term| !title.contains(term.as_str()))
+        .collect();
+    let saying = |text: &str| {
+        text.lines()
+            .map(str::trim)
+            .find(|line| {
+                let folded = crate::text::folded(line);
+                unnamed.iter().any(|term| folded.contains(term.as_str()))
+            })
+            .map(clipped)
+    };
+    let mut newest: Vec<&crate::model::LogEntry> = task.log.iter().rev().collect();
+    newest.sort_by_key(|entry| std::cmp::Reverse(entry.at));
+    newest
+        .into_iter()
+        .find_map(|entry| saying(&entry.body).map(|line| ("journal", line)))
+        .or_else(|| {
+            task.description
+                .as_deref()
+                .and_then(saying)
+                .map(|line| ("description", line))
+        })
+        .or_else(|| {
+            task.steps
+                .iter()
+                .find_map(|step| saying(&step.text).map(|line| ("step", line)))
+        })
+}
+
+fn clipped(line: &str) -> String {
+    const MOST: usize = 200;
+    match line.char_indices().nth(MOST) {
+        Some((at, _)) => format!("{}…", &line[..at]),
+        None => line.to_string(),
+    }
+}
+
 #[cfg(test)]
 #[path = "view_test.rs"]
 mod tests;

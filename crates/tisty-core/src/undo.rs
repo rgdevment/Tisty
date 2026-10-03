@@ -140,7 +140,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 id: *id,
                 d: Resolve::new(was.entry)
                     .said_by(was.at, was.by.clone())
-                    .through(was.via.clone()),
+                    .through(was.via.clone())
+                    .dropping(was.drop),
             }),
             None => Some(Op::TaskUnresolve { id: *id }),
         },
@@ -150,7 +151,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 id: *id,
                 d: Resolve::new(was.entry)
                     .said_by(was.at, was.by.clone())
-                    .through(was.via.clone()),
+                    .through(was.via.clone())
+                    .dropping(was.drop),
             })
         }
         Op::TaskLogEdit { id, d } => Some(Op::TaskLogEdit {

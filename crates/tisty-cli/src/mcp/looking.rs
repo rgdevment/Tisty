@@ -92,7 +92,22 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
-    let found: Vec<Value> = hits.iter().map(|task| brief(task, &state)).collect();
+    let said_where = |task: &Task| {
+        query
+            .as_deref()
+            .and_then(|query| tisty_core::view::mentioned_where(task, query))
+    };
+    let found: Vec<Value> = hits
+        .iter()
+        .map(|task| {
+            let mut one = brief(task, &state);
+            if let Some((kind, line)) = said_where(task) {
+                one["in"] = json!(kind);
+                one["line"] = json!(line);
+            }
+            one
+        })
+        .collect();
     // `after` walks the tasks only — paging past them would empty this list without saying why.
     let papers = match (&query, sifted.none()) {
         (Some(query), true) => papers_matching(paths, &state, query, scope, usize::MAX),
@@ -102,7 +117,15 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let papers: Vec<Value> = papers.into_iter().take(most).collect();
     let mut lines: Vec<String> = hits
         .iter()
-        .map(|task| format!("{} — {} ({})", task.id, task.title, standing(task)))
+        .map(|task| match said_where(task) {
+            Some((kind, line)) => format!(
+                "{} — {} ({})\n    {kind}: {line}",
+                task.id,
+                task.title,
+                standing(task)
+            ),
+            None => format!("{} — {} ({})", task.id, task.title, standing(task)),
+        })
         .collect();
     lines.extend(papers.iter().map(|one| {
         let put_away = if one["archived"] == json!(true) {
@@ -832,7 +855,21 @@ pub(super) fn brief(task: &Task, state: &State) -> Value {
     );
     put(
         "said_done",
-        json!(task.resolved.as_ref().map(|one| when(one.at))),
+        json!(
+            task.resolved
+                .as_ref()
+                .filter(|one| !one.drop)
+                .map(|one| when(one.at))
+        ),
+    );
+    put(
+        "said_not_doing",
+        json!(
+            task.resolved
+                .as_ref()
+                .filter(|one| one.drop)
+                .map(|one| when(one.at))
+        ),
     );
     put("open_to_agents", json!(task.open_to_agents.then_some(true)));
     Value::Object(kept)

@@ -255,6 +255,7 @@ fn a_layer_filter_keeps_only_what_reads_that_way() {
             text: format!("step {n}"),
             done: true,
             order: format!("a{n}"),
+            by_agent: false,
         })
         .collect();
     told.retally();
@@ -277,4 +278,79 @@ fn a_layer_filter_keeps_only_what_reads_that_way() {
     assert!(!stories.matches(&errand, today()));
     assert!(!stories.matches(&turn, today()));
     assert!(traces.matches(&errand, today()));
+}
+
+fn journalled(title: &str, bodies: &[&str]) -> Task {
+    let mut t = task(title);
+    t.log = bodies
+        .iter()
+        .map(|body| crate::model::LogEntry {
+            id: Ulid::generate(),
+            at: jiff::Timestamp::UNIX_EPOCH,
+            tz: None,
+            body: body.to_string(),
+            by: None,
+            via: None,
+        })
+        .collect();
+    t
+}
+
+#[test]
+fn a_body_match_says_the_newest_journal_line_that_holds_it() {
+    let t = journalled(
+        "migrar el lector",
+        &[
+            "first try\nwe chose postgres",
+            "on second thought\nwe chose sqlite",
+        ],
+    );
+
+    assert_eq!(
+        mentioned_where(&t, "chose"),
+        Some(("journal", "we chose sqlite".to_string()))
+    );
+}
+
+#[test]
+fn a_name_match_needs_no_line() {
+    let t = journalled("chose a database", &["we chose sqlite"]);
+
+    assert_eq!(mentioned_where(&t, "chose"), None);
+}
+
+#[test]
+fn a_long_line_is_clipped_on_a_character_not_a_byte() {
+    let long = format!("decisión {}", "ñ".repeat(400));
+    let t = journalled("migrar", &[&long]);
+
+    let (_, line) = mentioned_where(&t, "decision").unwrap();
+
+    assert_eq!(line.chars().count(), 201);
+    assert!(line.ends_with('…'));
+}
+
+#[test]
+fn with_several_words_the_line_is_the_one_the_name_does_not_already_say() {
+    let t = journalled(
+        "migrar el lector",
+        &["revisé el lector", "elegimos postgres"],
+    );
+
+    assert_eq!(
+        mentioned_where(&t, "lector postgres"),
+        Some(("journal", "elegimos postgres".to_string()))
+    );
+}
+
+#[test]
+fn the_newest_entry_is_the_one_written_last_not_the_one_listed_last() {
+    let mut t = journalled("migrar", &["we chose sqlite", "we chose postgres"]);
+    t.log[0].at = jiff::Timestamp::from_second(200).unwrap();
+    t.log[1].at = jiff::Timestamp::from_second(100).unwrap();
+
+    assert_eq!(
+        mentioned_where(&t, "chose"),
+        Some(("journal", "we chose sqlite".to_string()))
+    );
 }

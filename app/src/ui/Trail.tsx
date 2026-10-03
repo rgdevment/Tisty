@@ -16,9 +16,11 @@ interface Props {
   /// Drawn above the trail with the day the first page was written: the age of a task is only
   /// known here, and asking for the story twice to count it would read the log twice.
   before?: (from: string) => React.ReactNode;
+  /// A settled task already shows its journal whole in the body, so here it is only counted.
+  summed?: { count: number; last: string };
 }
 
-export default function Trail({ task, moved, lists, onError, heading, before }: Props) {
+export default function Trail({ task, moved, lists, onError, heading, before, summed }: Props) {
   const told = useAsked(() => taskStory(task), [task, moved], onError);
 
   if (!told) return null;
@@ -38,32 +40,39 @@ export default function Trail({ task, moved, lists, onError, heading, before }: 
       {before?.(told.pages[0].at)}
       {heading}
       <ol className="flex flex-col">
-        {told.pages.map((page) => (
-          <li
-            key={page.n}
-            className="grid grid-cols-[76px_14px_minmax(0,1fr)] items-start gap-2.5 py-1.5"
-          >
-            <span
-              title={wroteAt(page.at)}
-              className="pt-px text-right text-[11.5px] whitespace-nowrap tabular-nums text-faint"
+        {told.pages
+          .filter((page) => !summed || (page.chapter !== "wrote" && page.chapter !== "rewrote"))
+          .map((page) => (
+            <li
+              key={page.n}
+              className="grid grid-cols-[76px_14px_minmax(0,1fr)] items-start gap-2.5 py-1.5"
             >
-              {shortStamp(page.at)}
-            </span>
-            <span className="text-center text-[11.5px] leading-5 text-faint">{glyph(page)}</span>
-            <span
-              className={`text-[12.5px] leading-relaxed ${page.undoing ? "text-faint" : "text-soft"}`}
-            >
-              {phrase(page, named)}
-              {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
-              {page.chapter === "wrote" && (
-                <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
-                  {plainly(page.body ?? "")}
-                </q>
-              )}
-            </span>
-          </li>
-        ))}
+              <span
+                title={wroteAt(page.at)}
+                className="pt-px text-right text-[11.5px] whitespace-nowrap tabular-nums text-faint"
+              >
+                {shortStamp(page.at)}
+              </span>
+              <span className="text-center text-[11.5px] leading-5 text-faint">{glyph(page)}</span>
+              <span
+                className={`text-[12.5px] leading-relaxed ${page.undoing ? "text-faint" : "text-soft"}`}
+              >
+                {phrase(page, named)}
+                {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
+                {page.chapter === "wrote" && (
+                  <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
+                    {plainly(page.body ?? "")}
+                  </q>
+                )}
+              </span>
+            </li>
+          ))}
       </ol>
+      {summed && summed.count > 0 && (
+        <p className="py-1.5 pl-[100px] text-[12.5px] leading-relaxed text-soft">
+          {fill("trailJournalSummed", String(summed.count), summed.last)}
+        </p>
+      )}
     </>
   );
 }
@@ -137,7 +146,7 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
     case "wrote":
       return t("trailWrote");
     case "rewrote":
-      return t("trailRewrote");
+      return page.body.trim() ? t("trailRewrote") : t("trailErased");
     case "planned":
       return fill("trailPlanned", page.text);
     case "ticked":

@@ -72,6 +72,9 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
             };
 
             let name = app.state.lists[&id].name.clone();
+            if app.state.list_holds_open(id) {
+                anyhow::bail!("{}", lang.fill("list-still-open", &[("name", &name)]));
+            }
             app.commit(Op::ListArchive { id })?;
             println!("  {} {}", style::dim("✕"), style::dim(&name));
             Ok(ExitCode::SUCCESS)
@@ -98,7 +101,7 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
                 .state
                 .tasks
                 .values()
-                .filter(|t| t.list == Some(id))
+                .filter(|t| t.list == Some(id) && t.is_open())
                 .count();
             let question = lang.fill(
                 "confirm-rm-list",
@@ -108,7 +111,8 @@ pub fn list(app: &mut App, action: Option<ListAction>, lang: Lang) -> anyhow::Re
                 return Ok(ExitCode::SUCCESS);
             }
 
-            app.commit(Op::ListDelete { id })?;
+            let ops = app.state.dropping_list(id);
+            app.commit_all(ops)?;
             println!("  {} {}", style::dim("✕"), style::dim(&name));
             Ok(ExitCode::SUCCESS)
         }

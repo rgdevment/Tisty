@@ -42,6 +42,7 @@ export interface Resolved {
   by: string;
   entry: string;
   via?: string;
+  drop?: boolean;
 }
 
 export interface Task {
@@ -134,6 +135,7 @@ export interface Snapshot {
   ahead: Coming[];
   routines: Habit[];
   lists: List[];
+  shelved?: List[];
   tags: Counted[];
   refs: string[];
   counts: Record<string, number>;
@@ -953,3 +955,5 @@ export const listLook = (id: string, icon?: string, color?: string): Promise<Lis
 export const listRename = (id: string, name: string): Promise<List> =>
   invoke("list_rename", { id, name });
 export const listDrop = (id: string): Promise<void> => invoke("list_drop", { id });
+export const listArchive = (id: string): Promise<void> => invoke("list_archive", { id });
+export const listUnarchive = (id: string): Promise<void> => invoke("list_unarchive", { id });

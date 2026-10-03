@@ -32,6 +32,7 @@ impl State {
             by: d.by.clone().unwrap_or_else(|| event.device.clone()),
             entry: d.entry,
             via: d.via.clone().or_else(|| event.via.clone()),
+            drop: d.drop,
         };
         self.with_task(*id, |t| {
             if t.is_open() {

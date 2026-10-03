@@ -1837,7 +1837,7 @@ export default function App() {
               />
             ) : chosen.named === "lists" && !chosen.list ? (
               <Lists
-                lists={data.lists}
+                lists={[...data.lists, ...(data.shelved ?? [])]}
                 counts={data.counts}
                 soonest={data.soonest}
                 onOpen={(id) => setChosen({ named: "lists", list: id })}
@@ -1902,7 +1902,7 @@ export default function App() {
               <Detail
                 key={task.id}
                 task={task}
-                lists={data.lists}
+                lists={[...data.lists, ...(data.shelved ?? [])]}
                 known={data.tags.map((one) => one.tag)}
                 expanded
                 from={title(chosen, data.lists)}
@@ -1936,7 +1936,7 @@ export default function App() {
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                   <TaskList
                     tasks={shown}
-                    lists={data.lists}
+                    lists={[...data.lists, ...(data.shelved ?? [])]}
                     title={title(chosen, data.lists)}
                     when={chosen.named === "tasks" ? todayLong() : undefined}
                     count={headerCount(chosen, found, data.counts, data.total)}
@@ -2187,7 +2187,7 @@ export default function App() {
               }`}
               key={task.id}
               task={task}
-              lists={data.lists}
+              lists={[...data.lists, ...(data.shelved ?? [])]}
               known={data.tags.map((one) => one.tag)}
               expanded={false}
               onExpand={() => remember("sheet")}

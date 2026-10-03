@@ -125,14 +125,43 @@ pub fn list_rename(
         .ok_or_else(|| Refusal::of("notAListId"))
 }
 
+// Judged against the store as it is now: an agent may have filed into the list since.
 #[tauri::command]
 pub fn list_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
     let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
     let mut session = held(&session);
+    session.reload()?;
     if !session.state.lists.contains_key(&id) {
         return Err(Refusal::of("notAListId"));
     }
-    session.commit(Op::ListDelete { id })?;
+    let ops = session.state.dropping_list(id);
+    session.commit_all(ops)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn list_archive(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
+    let mut session = held(&session);
+    session.reload()?;
+    if !session.state.lists.contains_key(&id) {
+        return Err(Refusal::of("notAListId"));
+    }
+    if session.state.list_holds_open(id) {
+        return Err(Refusal::of("listStillOpen"));
+    }
+    session.commit(Op::ListArchive { id })?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn list_unarchive(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id: tisty_core::ListId = id.parse().map_err(|_| Refusal::of("notAListId"))?;
+    let mut session = held(&session);
+    if !session.state.lists.get(&id).is_some_and(|one| one.archived) {
+        return Err(Refusal::of("notAListId"));
+    }
+    session.commit(Op::ListUnarchive { id })?;
     Ok(())
 }
 

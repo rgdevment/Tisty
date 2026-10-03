@@ -1,7 +1,16 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { useAttended } from "../attended";
-import { type List, listAdd, listDrop, listLook, listRename, type Task } from "../core";
+import {
+  type List,
+  listAdd,
+  listArchive,
+  listDrop,
+  listLook,
+  listRename,
+  listUnarchive,
+  type Task,
+} from "../core";
 import { isOverdue, isToday, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -21,7 +30,16 @@ interface Props {
   onError: (problem: unknown) => void;
 }
 
-export default function Lists({ lists, counts, soonest, onOpen, onChanged, onError }: Props) {
+export default function Lists({
+  lists: every,
+  counts,
+  soonest,
+  onOpen,
+  onChanged,
+  onError,
+}: Props) {
+  const lists = every.filter((one) => !one.archived);
+  const shelved = every.filter((one) => one.archived);
   const [making, setMaking] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string>();
@@ -71,6 +89,21 @@ export default function Lists({ lists, counts, soonest, onOpen, onChanged, onErr
           onChanged();
         });
       })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
+  const shelve = (list: List) => {
+    listArchive(list.id)
+      .then(() => {
+        setEditing(null);
+        onChanged();
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
+
+  const restore = (list: List) => {
+    listUnarchive(list.id)
+      .then(onChanged)
       .catch((e) => onError(saidPlainly(e)));
   };
 
@@ -196,6 +229,32 @@ export default function Lists({ lists, counts, soonest, onOpen, onChanged, onErr
             );
           })}
         </div>
+
+        {shelved.length > 0 && (
+          <section aria-label={t("listShelved")} className="mt-6">
+            <h3 className="mb-2 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+              {t("listShelved")}
+            </h3>
+            <ul className="flex flex-col gap-1">
+              {shelved.map((list) => (
+                <li
+                  key={list.id}
+                  className="flex items-center gap-2 rounded-md px-2 py-1 text-[12.5px] text-soft hover:bg-hover"
+                >
+                  <span className="min-w-0 flex-1 truncate">{list.name}</span>
+                  <button
+                    type="button"
+                    aria-label={`${t("listRestore")} ${list.name}`}
+                    onClick={() => restore(list)}
+                    className="rounded-md px-2 py-0.5 text-[11.5px] text-faint hover:bg-line hover:text-ink"
+                  >
+                    {t("listRestore")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
       {editing && (
         <Naming
@@ -209,6 +268,8 @@ export default function Lists({ lists, counts, soonest, onOpen, onChanged, onErr
           dropWord={t("listDrop")}
           onName={(called, drawn, colour) => settle(editing, called, drawn, colour)}
           onDrop={() => drop(editing)}
+          archiveWord={t("listArchive")}
+          onArchive={(counts[editing.id] ?? 0) === 0 ? () => shelve(editing) : undefined}
           onClose={() => setEditing(null)}
         />
       )}

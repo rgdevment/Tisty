@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type Axis, banded, monthly, shelved } from "../archive";
+import { AXES, type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import type { List, Task } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentTag, signedBy } from "../who";
-import { Lozenge, Pip, spokenLabel } from "./Spoke";
+import Grouping from "./Axis";
+import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
 
 interface Props {
   tasks: Task[];
@@ -60,16 +61,21 @@ export default function TaskList({
   instead,
   children,
 }: Props) {
+  const offered = axis === undefined && bands === "day";
+  const [grouped, setGrouped] = useState<Axis>(kept);
+  const by = axis ?? (offered ? grouped : undefined);
   const rows = useMemo(
     () =>
-      axis && axis !== "time"
-        ? shelved(tasks, axis, lists)
+      by && by !== "time"
+        ? offered
+          ? regrouped(tasks, by, lists)
+          : shelved(tasks, by, lists)
         : bands === "month"
           ? monthly(tasks)
           : bands === "day"
             ? banded(tasks)
             : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
-    [tasks, bands, axis, lists],
+    [tasks, bands, by, lists, offered],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
@@ -131,6 +137,10 @@ export default function TaskList({
     if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
       event.preventDefault();
       if (onComplete && task.status === "open") {
+        if (task.resolved?.drop) {
+          onSelect(task.id);
+          return;
+        }
         walk(at, 1);
         onComplete(task.id);
         return;
@@ -224,12 +234,13 @@ export default function TaskList({
           {onComplete && task.status === "open" ? (
             <button
               type="button"
-              aria-label={fill("completeIt", task.title)}
-              title={fill("completeIt", task.title)}
+              aria-label={task.resolved?.drop ? saidWhen(task) : fill("completeIt", task.title)}
+              title={task.resolved?.drop ? saidWhen(task) : fill("completeIt", task.title)}
               tabIndex={-1}
               onClick={(e) => {
                 e.stopPropagation();
-                onComplete(task.id);
+                if (task.resolved?.drop) onSelect(task.id);
+                else onComplete(task.id);
               }}
               className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] ${edge(task.priority)} ${
                 closing === task.id ? "bg-accent" : ""
@@ -305,6 +316,15 @@ export default function TaskList({
             </span>
           )}
         </div>
+        {offered && tasks.length > 0 && (
+          <Grouping
+            axis={grouped}
+            onChange={(one) => {
+              setGrouped(one);
+              keep(one);
+            }}
+          />
+        )}
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
@@ -432,10 +452,7 @@ function Volume({ task }: { task: Task }) {
   if (task.resolved && task.status === "open") {
     const when = stamped(task.resolved.at);
     return (
-      <span
-        title={fill("agentSaidWhen", when)}
-        className="pt-px text-[11.5px] whitespace-nowrap text-hue-teal"
-      >
+      <span title={saidWhen(task)} className="pt-px text-[11.5px] whitespace-nowrap text-hue-teal">
         <span aria-hidden="true">◆ </span>
         {when}
       </span>
@@ -460,3 +477,20 @@ const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
   if (!next.delete(key)) next.add(key);
   return next;
 };
+
+const KEPT = "tisty.grouped";
+
+function kept(): Axis {
+  try {
+    const said = localStorage.getItem(KEPT);
+    return AXES.find((one) => one === said) ?? "time";
+  } catch {
+    return "time";
+  }
+}
+
+function keep(axis: Axis) {
+  try {
+    localStorage.setItem(KEPT, axis);
+  } catch {}
+}
