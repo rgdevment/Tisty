@@ -65,6 +65,30 @@ pub(crate) fn translated() -> bool {
     rc == 0 && yes == 1
 }
 
+/// Whether the shell would hand a link of this scheme to an application. Without a buffer the call
+/// only measures, and ignoring the unknown keeps the "Open with" picker from counting as one.
+#[cfg(windows)]
+#[allow(unsafe_code)]
+pub(crate) fn answers_for(scheme: &str) -> bool {
+    use windows::Win32::UI::Shell::{
+        ASSOCF_INIT_IGNOREUNKNOWN, ASSOCF_IS_PROTOCOL, ASSOCSTR_EXECUTABLE, AssocQueryStringW,
+    };
+    use windows::core::{HSTRING, w};
+
+    let mut needed = 0u32;
+    let said = unsafe {
+        AssocQueryStringW(
+            ASSOCF_IS_PROTOCOL | ASSOCF_INIT_IGNOREUNKNOWN,
+            ASSOCSTR_EXECUTABLE,
+            &HSTRING::from(scheme),
+            w!("open"),
+            None,
+            &raw mut needed,
+        )
+    };
+    said.is_ok() && needed > 1
+}
+
 #[cfg(not(target_os = "macos"))]
 pub(crate) fn translated() -> bool {
     false

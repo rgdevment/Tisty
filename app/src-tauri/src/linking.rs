@@ -17,26 +17,23 @@ pub fn through(url: &str) -> String {
     )
 }
 
+// LinkUnbound refuses a link carrying control characters and says nothing, so the browser takes it.
 pub fn as_opened(url: &str, a_handler: bool) -> String {
-    match a_handler && on_the_web(url) {
+    match a_handler && on_the_web(url) && !url.chars().any(char::is_control) {
         true => through(url),
         false => url.to_string(),
     }
 }
 
-#[cfg(windows)]
-pub fn a_handler_is_there() -> bool {
-    winreg::RegKey::predef(winreg::enums::HKEY_CLASSES_ROOT)
-        .open_subkey(SCHEME)
-        .is_ok_and(|key| {
-            key.get_raw_value("URL Protocol").is_ok()
-                || key.open_subkey(r"shell\open\command").is_ok()
-        })
-}
-
-#[cfg(target_os = "macos")]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn a_handler_is_there() -> bool {
     answered(SCHEME)
+}
+
+// A packaged app declares its scheme in its manifest and never writes HKCR, so the shell is asked instead.
+#[cfg(windows)]
+fn answered(scheme: &str) -> bool {
+    crate::desktop::answers_for(scheme)
 }
 
 #[cfg(target_os = "macos")]
