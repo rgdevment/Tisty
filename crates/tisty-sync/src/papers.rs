@@ -4,7 +4,7 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
     Holding, Moved, PAPERS, STORE, Trouble, Undecided, copy_onto, docs_lock, io, joined, landed,
-    plainly, straight, write,
+    pointed_away, straight, write,
 };
 
 pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
@@ -49,7 +49,7 @@ pub(crate) fn carry_papers_leaning_on(
     again: bool,
     been_here: bool,
 ) -> Result<Moved, Trouble> {
-    use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
+    use tisty_core::docs::{Carried, Move, Prints, Seen, moved, print_of};
 
     let here = data.join(PAPERS);
     let there = dest.join(PAPERS);
@@ -76,32 +76,50 @@ pub(crate) fn carry_papers_leaning_on(
                 );
                 continue;
             };
-            if plainly(&theirs).is_err() || plainly(&mine).is_err() {
-                done.astray.push(id.clone());
-                continue;
-            }
             let told_empty = empty.is_none_or(|told| told.contains(id));
-            let (ours, yours) = match (prints.of(&mine), prints.of(&theirs)) {
-                (Ok(ours), Ok(yours)) => (ours, yours),
-                (here, there) => {
-                    let why = here.err().or(there.err());
-                    witness::warn(
-                        channel::SYNC,
-                        "a document could not be read, so this turn leaves it alone",
-                        &[
-                            ("at", Fact::Id(id.clone())),
-                            (
-                                "why",
-                                Fact::Why(why.map(|e| e.to_string()).unwrap_or_else(|| "?".into())),
-                            ),
-                        ],
-                    );
-                    done.astray.push(id.clone());
-                    continue;
-                }
-            };
+            let (ours, yours, mine_holds, theirs_holds) =
+                match (prints.seen(&mine), prints.seen(&theirs)) {
+                    (_, Ok(Seen::Linked)) => {
+                        pointed_away(&theirs);
+                        done.astray.push(id.clone());
+                        continue;
+                    }
+                    (Ok(Seen::Linked), _) => {
+                        pointed_away(&mine);
+                        done.astray.push(id.clone());
+                        continue;
+                    }
+                    (
+                        Ok(Seen::Held {
+                            print: ours,
+                            weighs: mine_weighs,
+                        }),
+                        Ok(Seen::Held {
+                            print: yours,
+                            weighs: theirs_weighs,
+                        }),
+                    ) => (ours, yours, mine_weighs > 0, theirs_weighs > 0),
+                    (here, there) => {
+                        let why = here.err().or(there.err());
+                        witness::warn(
+                            channel::SYNC,
+                            "a document could not be read, so this turn leaves it alone",
+                            &[
+                                ("at", Fact::Id(id.clone())),
+                                (
+                                    "why",
+                                    Fact::Why(
+                                        why.map(|e| e.to_string()).unwrap_or_else(|| "?".into()),
+                                    ),
+                                ),
+                            ],
+                        );
+                        done.astray.push(id.clone());
+                        continue;
+                    }
+                };
 
-            let yours = a_body(yours, &theirs, told_empty || !holds_bytes(&mine), id);
+            let yours = a_body(yours, told_empty || !mine_holds, theirs_holds, id);
 
             let how = match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
                 Move::Bring | Move::TheyDecide
@@ -241,13 +259,9 @@ pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Hol
     }
 }
 
-fn holds_bytes(at: &Path) -> bool {
-    std::fs::metadata(at).is_ok_and(|one| one.len() > 0)
-}
-
-fn a_body(print: Option<String>, at: &Path, allowed: bool, id: &str) -> Option<String> {
+fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option<String> {
     let print = print?;
-    if allowed || holds_bytes(at) {
+    if allowed || holds {
         return Some(print);
     }
     witness::warn(

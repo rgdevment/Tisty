@@ -114,6 +114,7 @@ pub async fn settle_in(
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
+        let key = tisty_core::signing::mine(&paths, &tisty_core::DeviceId(device.clone()));
         let carried = tauri::async_runtime::spawn_blocking(move || {
             tisty_sync::carry_holding(
                 &data,
@@ -123,6 +124,7 @@ pub async fn settle_in(
                 tisty_sync::Way::Both,
                 &alive,
                 holds,
+                key,
             )
         })
         .await;
@@ -468,6 +470,7 @@ pub async fn sync_now(
     };
 
     let telling = app.clone();
+    let key = tisty_core::signing::mine(&paths, &tisty_core::DeviceId(device.clone()));
     let done = tauri::async_runtime::spawn_blocking(move || {
         tisty_sync::carry_telling(
             &data,
@@ -477,6 +480,7 @@ pub async fn sync_now(
             way,
             &alive,
             holds,
+            key,
             &mut |far| {
                 let _ = telling.emit(
                     "carried",
@@ -734,6 +738,8 @@ pub fn weave_paper(
         e => blamed(channel::SYNC, "the woven body could not be written", e),
     })?;
     session.mind(&id);
+    let hand = crate::signing(&session.state);
+    session.retell(&id, &whole, hand);
     Ok(())
 }
 
@@ -966,7 +972,7 @@ pub async fn merge_stores(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (data, dest, aside, device, also) = {
+    let (data, dest, aside, device, also, key) = {
         let session = held(&session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
@@ -977,6 +983,7 @@ pub async fn merge_stores(
             session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
             let_go_to(&session),
+            tisty_core::signing::mine(&session.paths, &session.config.device_id),
         )
     };
 
@@ -993,7 +1000,7 @@ pub async fn merge_stores(
                 _ => Refusal::about("cannotWrite", into),
             }
         })?;
-        tisty_sync::stitch(&data, &device, &dest).map_err(|trouble| {
+        tisty_sync::stitch(&data, &device, &dest, key).map_err(|trouble| {
             let refusal = said(trouble);
             witness::warn(
                 channel::SYNC,

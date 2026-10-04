@@ -18,13 +18,23 @@ fn ledger(aside: &Path) -> PathBuf {
 }
 
 fn stamped(at: &Path) -> Option<(u64, i64)> {
-    let told = std::fs::metadata(at).ok()?;
+    crate::counting::looked();
+    stamp_of(&std::fs::metadata(at).ok()?)
+}
+
+fn stamp_of(told: &std::fs::Metadata) -> Option<(u64, i64)> {
     let when = told
         .modified()
         .ok()?
         .duration_since(std::time::UNIX_EPOCH)
         .ok()?;
     Some((told.len(), when.as_nanos() as i64))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Seen {
+    Linked,
+    Held { print: Option<String>, weighs: u64 },
 }
 
 impl Prints {
@@ -45,8 +55,28 @@ impl Prints {
     }
 
     pub fn of(&mut self, at: &Path) -> std::io::Result<Option<String>> {
+        self.stamped_as(at, stamped(at))
+    }
+
+    pub fn seen(&mut self, at: &Path) -> std::io::Result<Seen> {
+        crate::counting::looked();
+        let told = match std::fs::symlink_metadata(at) {
+            Ok(told) if told.file_type().is_symlink() => return Ok(Seen::Linked),
+            Ok(told) => stamp_of(&told),
+            Err(_) => None,
+        };
+        let weighs = told.map_or(0, |(weighs, _)| weighs);
+        let print = self.stamped_as(at, told)?;
+        Ok(Seen::Held { print, weighs })
+    }
+
+    fn stamped_as(
+        &mut self,
+        at: &Path,
+        told: Option<(u64, i64)>,
+    ) -> std::io::Result<Option<String>> {
         let named = at.to_string_lossy().into_owned();
-        let Some((weighs, when)) = stamped(at) else {
+        let Some((weighs, when)) = told else {
             self.0.remove(&named);
             return super::print_of(at);
         };

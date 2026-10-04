@@ -86,7 +86,16 @@ pub fn carry(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_holding(data, None, device, dest, way, alive, Holds::Everywhere)
+    carry_holding(
+        data,
+        None,
+        device,
+        dest,
+        way,
+        alive,
+        Holds::Everywhere,
+        None,
+    )
 }
 
 pub fn carry_leaning_on(
@@ -97,7 +106,16 @@ pub fn carry_leaning_on(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_holding(data, aside, device, dest, way, alive, Holds::Everywhere)
+    carry_holding(
+        data,
+        aside,
+        device,
+        dest,
+        way,
+        alive,
+        Holds::Everywhere,
+        None,
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,6 +124,8 @@ pub enum Reached {
     Papers,
 }
 
+// Unsigned, what the round writes leaves a segment its own published key no longer covers.
+#[allow(clippy::too_many_arguments)]
 pub fn carry_holding(
     data: &Path,
     aside: Option<&Path>,
@@ -114,8 +134,19 @@ pub fn carry_holding(
     way: Way,
     alive: &[String],
     holds: Holds,
+    key: Option<tisty_core::signing::SigningKey>,
 ) -> Result<Moved, Trouble> {
-    carry_telling(data, aside, device, dest, way, alive, holds, &mut |_| {})
+    carry_telling(
+        data,
+        aside,
+        device,
+        dest,
+        way,
+        alive,
+        holds,
+        key,
+        &mut |_| {},
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -127,6 +158,7 @@ pub fn carry_telling(
     way: Way,
     alive: &[String],
     holds: Holds,
+    key: Option<tisty_core::signing::SigningKey>,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
@@ -246,6 +278,13 @@ pub fn carry_telling(
         if papers.brought > 0 {
             saying(Reached::Papers);
         }
+        if !moved.joined.is_empty()
+            && answered_for_joined(&store, device, key, data, &told, &moved.joined)
+            && giving
+        {
+            let there = dest.join(STORE).join(device);
+            alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
+        }
     }
     if taking {
         let reachable = adrift.then(|| named_now(&told, data));
@@ -267,6 +306,42 @@ pub fn carry_telling(
     }
     note_carried(aside, dest);
     Ok(moved)
+}
+
+fn answered_for_joined(
+    store: &Path,
+    device: &str,
+    key: Option<tisty_core::signing::SigningKey>,
+    data: &Path,
+    told: &tisty_core::State,
+    joined: &[String],
+) -> bool {
+    let said: Vec<tisty_core::Op> = joined
+        .iter()
+        .filter_map(|file| {
+            let id = told.docs.values().find(|paper| &paper.file == file)?.id;
+            let body = tisty_core::docs::read(&data.join(PAPERS), file).ok()?;
+            Some(tisty_core::Op::DocSaid {
+                id,
+                d: tisty_core::event::Said::of(&body),
+            })
+        })
+        .collect();
+    let written = tisty_core::Store::open(store, tisty_core::DeviceId(device.to_string()))
+        .map(|held| held.signing_with(key))
+        .and_then(|mut held| {
+            said.into_iter()
+                .try_for_each(|op| held.append(op).map(|_| ()))
+        });
+    if let Err(e) = written {
+        witness::warn(
+            channel::SYNC,
+            "a joined document could not be written down, so the other machine will ask about it",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        return false;
+    }
+    true
 }
 
 fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
@@ -484,7 +559,12 @@ pub struct Stitched {
     pub stitch: Option<tisty_core::event::Stitch>,
 }
 
-pub fn stitch(data: &Path, device: &str, dest: &Path) -> Result<Stitched, Trouble> {
+pub fn stitch(
+    data: &Path,
+    device: &str,
+    dest: &Path,
+    key: Option<tisty_core::signing::SigningKey>,
+) -> Result<Stitched, Trouble> {
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
     }
@@ -532,7 +612,8 @@ pub fn stitch(data: &Path, device: &str, dest: &Path) -> Result<Stitched, Troubl
         theirs: yours,
     };
     let mut held = tisty_core::Store::open(&store, tisty_core::DeviceId(device.to_string()))
-        .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+        .map_err(|e| Trouble::Unreadable(e.to_string()))?
+        .signing_with(key);
     held.append(tisty_core::Op::StoresJoined { d: seam.clone() })
         .map_err(|e| Trouble::Broke(e.to_string()))?;
     drop(held);
@@ -1141,15 +1222,20 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
 }
 
 pub(crate) fn plainly(at: &Path) -> Result<(), Trouble> {
+    tisty_core::counting::looked();
     if std::fs::symlink_metadata(at).is_ok_and(|one| one.file_type().is_symlink()) {
-        witness::warn(
-            channel::SYNC,
-            "something in the meeting place points somewhere else, so it was left alone",
-            &[("at", Fact::Path(at.to_path_buf()))],
-        );
+        pointed_away(at);
         return Err(Trouble::Refused(at.display().to_string()));
     }
     Ok(())
+}
+
+pub(crate) fn pointed_away(at: &Path) {
+    witness::warn(
+        channel::SYNC,
+        "something in the meeting place points somewhere else, so it was left alone",
+        &[("at", Fact::Path(at.to_path_buf()))],
+    );
 }
 
 fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {
