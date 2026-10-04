@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use ed25519_dalek::{SigningKey, VerifyingKey};
+pub use ed25519_dalek::SigningKey;
+use ed25519_dalek::VerifyingKey;
 
 use crate::event::DeviceId;
 

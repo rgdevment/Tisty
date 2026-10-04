@@ -1095,6 +1095,7 @@ fn taken_in(
             && let Some(said) = d.said.as_mut()
         {
             said.bytes = Some(crate::docs::settled(&told).len() as u64);
+            said.print = crate::event::Said::of(&told).print;
         }
     }
 

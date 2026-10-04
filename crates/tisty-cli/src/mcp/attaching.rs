@@ -163,6 +163,13 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
                 );
             }
+            if super::retold(&state, &mut store, &which, &whole).is_err() {
+                tisty_core::witness::warn(
+                    tisty_core::witness::channel::ATTACH,
+                    "what the document now holds could not be written down",
+                    &[],
+                );
+            }
             let title = tisty_core::docs::titled(&whole);
             Ok(told(
                 format!("Kept {named:?} at the end of {title:?}."),

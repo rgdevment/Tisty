@@ -348,6 +348,18 @@ fn attaching_by_a_documents_name_puts_the_file_in_the_document() {
     let whole = cli.ok(&["doc", &name]);
     assert!(whole.contains("lo que se habló."), "{whole}");
     assert!(whole.contains("![plano.png](<attachments/"), "{whole}");
+
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let state = tisty_core::State::replay(&tisty_core::store::read_all(paths.store()).unwrap());
+    let paper = state.docs.values().find(|one| one.file == name).unwrap();
+    let body = tisty_core::docs::read(&paths.docs(), &name).unwrap();
+    assert_eq!(
+        paper.print,
+        tisty_core::event::Said::of(&body).print,
+        "the log still answers for the body before the file went in, so another machine would \
+         hold this one back"
+    );
 }
 
 #[test]
