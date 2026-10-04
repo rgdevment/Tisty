@@ -36,8 +36,11 @@ weighed() {
       fi
       ;;
   esac
-  if [ "${#said}" -gt "$most" ]; then
-    amiss "$who is ${#said} characters, keep it under $most"
+  # Bytes minus UTF-8 continuation bytes: ${#said} counts bytes when a GUI client spawns git without a locale.
+  local long
+  long=$(printf '%s' "$said" | LC_ALL=C tr -d '\200-\277' | wc -c | tr -d ' ')
+  if [ "$long" -gt "$most" ]; then
+    amiss "$who is $long characters, keep it under $most"
     printf '  %s\n' "$said"
   fi
 }
