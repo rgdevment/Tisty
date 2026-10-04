@@ -132,8 +132,8 @@ const crates = () => {
     );
     for (const line of said.split(/\r?\n/)) {
       const [named, licence] = line.replace(/ \(\*\)$/, "").split("|");
-      const [name, version, ...local] = (named ?? "").split(" ");
-      if (!version?.startsWith("v") || local.length > 0) continue;
+      const [name, version, ...from] = (named ?? "").split(" ");
+      if (!version?.startsWith("v") || /^\((\/|[A-Za-z]:[\\/]|\\\\)/.test(from.join(" "))) continue;
       const bare = version.slice(1);
       seen.set(`${name}@${bare}`, {
         name,
@@ -147,7 +147,11 @@ const crates = () => {
 
 const listed = (seen) =>
   [...seen.entries()]
-    .sort(([a], [b]) => a.localeCompare(b, "en", { numeric: true }))
+    .sort(
+      ([a, one], [b, two]) =>
+        (one.name ?? a).localeCompare(two.name ?? b, "en") ||
+        one.version.localeCompare(two.version, "en", { numeric: true }),
+    )
     .map(([key, one]) => `| \`${one.name ?? key}\` | ${one.version} | ${one.licence} |`)
     .join("\n");
 
