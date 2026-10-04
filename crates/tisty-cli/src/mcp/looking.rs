@@ -8,7 +8,7 @@ use ulid::Ulid;
 use super::asked::{strings, text};
 use super::jsonrpc::told;
 use super::{
-    Refused, absolute, alike, already, hitch, named, named_doc, opened, said, scoped, trail, when,
+    Refused, alike, already, hitch, named, named_doc, opened, said, scoped, trail, unpathed, when,
 };
 
 pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -729,16 +729,10 @@ fn what_it_touched(event: &tisty_core::event::Event) -> Option<(String, String)>
 /// Attaching records where a file came from, and those paths are the person's disk. The agent
 /// needs the card, not the shape of their home directory.
 fn kept_here(body: &str) -> String {
-    body.lines()
-        .map(|line| match absolute(line) {
-            Some(at) => format!("{}…", &line[..at]),
-            None => line.to_string(),
-        })
-        .collect::<Vec<_>>()
-        .join(
-            "
+    body.lines().map(unpathed).collect::<Vec<_>>().join(
+        "
 ",
-        )
+    )
 }
 
 /// Documents are searched by the same engine the window uses; a document the agent cannot find

@@ -260,6 +260,29 @@ fn a_path_is_found_by_its_drive_or_by_the_slash_that_opens_it() {
     assert_eq!(absolute("https://ejemplo.com"), None);
     assert_eq!(absolute("/etc/hosts"), None);
     assert_eq!(absolute("ver C:"), None);
+    assert_eq!(absolute("2 GB / 90 días"), None);
+    assert_eq!(absolute("uno / otro"), None);
+}
+
+#[test]
+fn only_the_path_is_hidden_and_the_rest_of_the_line_is_read() {
+    assert_eq!(
+        unpathed(r"De paso: `C:\Users\Mario\OneDrive\Tisty` guarda otro almacén viejo."),
+        "De paso: `[path]` guarda otro almacén viejo."
+    );
+    assert_eq!(
+        unpathed("kept at C:/Users/someone/Downloads/x.csv and opened twice"),
+        "kept at [path] and opened twice"
+    );
+    assert_eq!(
+        unpathed(r"from `G:\Mi unidad\Tisty` to /home/one/tisty, both"),
+        "from `[path]` to [path], both"
+    );
+    assert_eq!(
+        unpathed("arrancando en **2 GB / 90 días**. Eso implica más"),
+        "arrancando en **2 GB / 90 días**. Eso implica más"
+    );
+    assert_eq!(unpathed("https://ejemplo.com/a"), "https://ejemplo.com/a");
 }
 
 fn kept(body: &str) -> String {
