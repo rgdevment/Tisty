@@ -7,9 +7,8 @@ use ulid::Ulid;
 
 use super::asked::{strings, text};
 use super::jsonrpc::told;
-use super::{
-    Refused, alike, already, hitch, named, named_doc, opened, said, scoped, trail, unpathed, when,
-};
+use super::unpathing::unpathed;
+use super::{Refused, alike, already, hitch, named, named_doc, opened, said, scoped, trail, when};
 
 pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;

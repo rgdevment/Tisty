@@ -6,6 +6,7 @@ mod door;
 mod jsonrpc;
 mod looking;
 mod papers;
+mod unpathing;
 
 use papers::editing::edit_doc;
 use papers::filing::{archive_doc, file_doc, flag_doc, folder};
@@ -1417,48 +1418,6 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
         true => Ok(Part::Outline),
         false => Ok(held(1, last)),
     }
-}
-
-fn unpathed(line: &str) -> String {
-    let mut out = String::with_capacity(line.len());
-    let mut rest = line;
-    while let Some(at) = absolute(rest) {
-        out.push_str(&rest[..at]);
-        out.push_str("[path]");
-        let quoted = rest[..at].ends_with('`');
-        let path = &rest[at..];
-        let end = path
-            .char_indices()
-            .find(|&(_, c)| match quoted {
-                true => c == '`',
-                false => c.is_whitespace() || "`\"')]>,;»".contains(c),
-            })
-            .map_or(path.len(), |(end, _)| end);
-        rest = &path[end..];
-    }
-    out.push_str(rest);
-    out
-}
-
-fn absolute(line: &str) -> Option<usize> {
-    let bytes = line.as_bytes();
-    (0..bytes.len()).find(|&at| {
-        // A drive is one letter: without this, the "s" of "https://" reads as one and the rest
-        // of the line goes with it.
-        let alone = at == 0 || !bytes[at - 1].is_ascii_alphanumeric();
-        let drive = alone
-            && at + 2 < bytes.len()
-            && bytes[at].is_ascii_alphabetic()
-            && bytes[at + 1] == b':'
-            && (bytes[at + 2] == b'/' || bytes[at + 2] == b'\\');
-        let rooted = bytes[at] == b'/'
-            && at > 0
-            && bytes[at - 1] == b' '
-            && bytes
-                .get(at + 1)
-                .is_some_and(|next| !next.is_ascii_whitespace());
-        drive || rooted
-    })
 }
 
 /// «sereno#1», «sereno: #1» and «Sereno #1» name the same message, and a second filing of one
