@@ -60,3 +60,13 @@ fn what_is_opened_is_the_real_link_until_something_answers_for_the_scheme() {
         "a link that is not of the web was handed to the wrapper"
     );
 }
+
+#[cfg(target_os = "macos")]
+#[test]
+fn launch_services_answers_for_a_scheme_only_when_something_registered_it() {
+    assert!(answered("https"), "a Mac with no browser at all");
+    assert!(
+        !answered("tisty-nobody-registers-this"),
+        "a scheme nothing registered was said to have a handler"
+    );
+}
