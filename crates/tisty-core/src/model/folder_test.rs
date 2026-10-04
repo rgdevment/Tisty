@@ -31,6 +31,7 @@ fn a_document_with_no_folder_is_unfiled_rather_than_absent() {
         edited_by: None,
         flagged: None,
         folder_was: None,
+        told: Default::default(),
         print: None,
     };
     let json = serde_json::to_string(&kept).unwrap();

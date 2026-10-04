@@ -3,7 +3,7 @@ use std::path::Path;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
-    Holding, Moved, PAPERS, STORE, Trouble, Undecided, copy_onto, docs_lock, io, joined, landed,
+    Holding, Moved, PAPERS, STORE, Trouble, Undecided, copy_onto, docs_lock, io, joined,
     pointed_away, straight, write,
 };
 
@@ -26,7 +26,7 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], None, None, false, false)
+    carry_papers_leaning_on(data, dest, alive, &[], None, None, false, false, true)
 }
 
 pub fn carry_papers_holding(
@@ -35,7 +35,7 @@ pub fn carry_papers_holding(
     alive: &[String],
     shut: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, None, None, false, false)
+    carry_papers_leaning_on(data, dest, alive, shut, None, None, false, false, true)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -45,9 +45,10 @@ pub(crate) fn carry_papers_leaning_on(
     alive: &[String],
     shut: &[String],
     empty: Option<&[String]>,
-    printed: Option<&std::collections::BTreeMap<String, String>>,
+    printed: Option<&std::collections::BTreeMap<String, Answers>>,
     again: bool,
     been_here: bool,
+    taking: bool,
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, Prints, Seen, moved, print_of};
 
@@ -121,10 +122,16 @@ pub(crate) fn carry_papers_leaning_on(
 
             let yours = a_body(yours, told_empty || !mine_holds, theirs_holds, id);
 
-            let how = match moved(said.of(id), ours.as_deref(), yours.as_deref()) {
-                Move::Bring | Move::TheyDecide
-                    if !answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id) =>
-                {
+            let how = moved(said.of(id), ours.as_deref(), yours.as_deref());
+            let answer = match how {
+                Move::Bring | Move::TheyDecide if taking => {
+                    answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id)
+                }
+                _ => Answer::Yes,
+            };
+            let how = match how {
+                Move::Bring | Move::TheyDecide if !taking => continue,
+                Move::Bring | Move::TheyDecide if answer == Answer::No => {
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
@@ -150,6 +157,14 @@ pub(crate) fn carry_papers_leaning_on(
                         }
                         said.keep(id, &print);
                     }
+                }
+                Move::Send
+                    if printed.is_some_and(|told| {
+                        told.get(id)
+                            .is_some_and(|says| !says.answers_ours(ours.as_deref()))
+                    }) =>
+                {
+                    done.unanswered.push(id.clone());
                 }
                 Move::Send => {
                     std::fs::create_dir_all(&there).map_err(io)?;
@@ -185,6 +200,11 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
                     let _held = docs_lock(&here, id);
+                    if answer == Answer::Doubtful
+                        && let Ok(left) = std::fs::read_to_string(&theirs)
+                    {
+                        set_aside(data, id, &mine, &left);
+                    }
                     copy_onto(&theirs, &mine)?;
                     done.brought += 1;
                     done.arrived.push(id.clone());
@@ -197,23 +217,23 @@ pub(crate) fn carry_papers_leaning_on(
                     let _held = docs_lock(&here, id);
                     match joined(data, dest, id, &mine, &theirs, said.of(id)) {
                         Some(whole) => {
+                            if answer == Answer::Doubtful {
+                                set_aside(data, id, &mine, &whole);
+                            }
                             write(&mine, whole.as_bytes())?;
-                            copy_onto(&mine, &theirs)?;
-                            done.sent += 1;
                             done.brought += 1;
                             done.joined.push(id.clone());
                             done.arrived.push(id.clone());
-                            if landed(&mine, &theirs) {
-                                if let Ok(Some(print)) = print_of(&mine) {
-                                    settled_body(data, id, &mine, &theirs);
+                            match (print_of(&theirs), yours) {
+                                (Ok(Some(now)), Some(print)) if now == print => {
+                                    settled_body(data, id, &theirs, &mine);
                                     said.keep(id, &print);
                                 }
-                            } else {
-                                witness::warn(
+                                _ => witness::warn(
                                     channel::SYNC,
                                     "another machine wrote while this one joined, so the base stays put",
                                     &[("at", Fact::Id(id.clone()))],
-                                );
+                                ),
                             }
                         }
                         None => done.undecided.push(Undecided {
@@ -272,16 +292,54 @@ fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option
     None
 }
 
-fn answered_for(print: Option<&String>, says: Option<&String>, id: &str) -> bool {
-    match (print, says) {
-        (Some(print), Some(says)) if print != says => {
-            witness::warn(
-                channel::SYNC,
-                "the folder holds a body the log does not answer for, so the person decides it",
-                &[("at", Fact::Id(id.to_string()))],
-            );
-            false
-        }
-        _ => true,
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct Answers {
+    pub newest: Option<String>,
+    pub own: Option<String>,
+    pub others: std::collections::BTreeSet<String>,
+}
+
+impl Answers {
+    fn answers_ours(&self, ours: Option<&str>) -> bool {
+        let silent = self.newest.is_none() && self.own.is_none() && self.others.is_empty();
+        silent || ours.is_none() || ours == self.own.as_deref() || ours == self.newest.as_deref()
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Answer {
+    Yes,
+    Doubtful,
+    No,
+}
+
+fn set_aside(data: &Path, id: &str, mine: &Path, left: &str) {
+    let Ok(was) = std::fs::read_to_string(mine) else {
+        return;
+    };
+    if tisty_core::docs::kept_before(data, id, &was, left).is_err() {
+        witness::warn(
+            channel::SYNC,
+            "what a document held could not be set aside before another machine's version replaced it",
+            &[("at", Fact::Id(id.to_string()))],
+        );
+    }
+}
+
+fn answered_for(print: Option<&String>, says: Option<&Answers>, id: &str) -> Answer {
+    let (Some(print), Some(says)) = (print, says) else {
+        return Answer::Yes;
+    };
+    if says.newest.as_ref() == Some(print) || (says.newest.is_none() && says.others.is_empty()) {
+        return Answer::Yes;
+    }
+    if says.others.contains(print) {
+        return Answer::Doubtful;
+    }
+    witness::warn(
+        channel::SYNC,
+        "the folder holds a body the log does not answer for, so the person decides it",
+        &[("at", Fact::Id(id.to_string()))],
+    );
+    Answer::No
 }

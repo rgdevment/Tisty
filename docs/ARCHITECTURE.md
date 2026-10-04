@@ -1274,6 +1274,15 @@ whole block and cannot be spliced half from each side. Fenced code keeps its
 blanks, because there a blank line is content. Only overlapping edits are a
 question; two adjacent ones are simply both taken.
 
+A body reaches the folder only after the log that answers for it. A merge is
+written here alone, and so is a body changed with another editor; the window or
+the CLI writes its print down and pushes, and only then does the body leave, so
+the other machine never meets a body its log cannot vouch for. What the folder
+holds is taken in if it matches the newest print or the last one another machine
+wrote down — clocks decide which is newest, and a laptop can be an hour out — but
+a body that is only another machine's last word is set aside here before it
+replaces anything. A round that only pushes takes nothing in.
+
 The engine refuses rather than guess, and every refusal lands on the same tested
 road: the merge returns nothing, the document is left undecided, and **the
 person decides**, with «keep both» offered first because it is the only answer

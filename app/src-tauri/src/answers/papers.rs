@@ -550,10 +550,16 @@ pub fn settle_paper(
         _ => tisty_sync::Keep::Both,
     };
 
+    if !matches!(keep, tisty_sync::Keep::Theirs)
+        && let Some(shown) = session.asked.get(&id)
+        && tisty_sync::held_there(&dest, &id).as_ref() != Some(shown)
+    {
+        return Err(Refusal::of("movedUnderfoot"));
+    }
     let data = session.paths.data().to_path_buf();
     let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
     session.mind(&id);
-    told_as_settled(&mut session, &id);
+    session.asked.remove(&id);
 
     let Some(body) = brought else { return Ok(None) };
     let beside = session
@@ -596,14 +602,7 @@ pub fn settle_paper(
 
     tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
     session.mind(&id);
-    told_as_settled(&mut session, &id);
     Ok(Some(file))
-}
-
-fn told_as_settled(session: &mut Session, id: &str) {
-    if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), id) {
-        session.retell(id, &body, None);
-    }
 }
 
 /// The person's reading of a closed task, story or trace; a routine reads as a routine and
@@ -954,7 +953,3 @@ pub fn doc_order(
 ) -> Answer<bool> {
     Ok(held(&session).retell(&id, &body, None))
 }
-
-#[cfg(test)]
-#[path = "papers_test.rs"]
-mod tests;

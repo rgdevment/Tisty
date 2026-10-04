@@ -803,12 +803,15 @@ fn two_machines_touching_different_parts_end_up_with_one_document_and_no_questio
     assert_eq!(done.joined, vec!["uno-0001".to_string()]);
     assert_eq!(
         (done.sent, done.brought),
-        (1, 1),
-        "lo que se junta viaja en los dos sentidos y se cuenta una vez en cada uno"
+        (0, 1),
+        "the join waits here for the log that answers for it"
     );
     let whole = std::fs::read_to_string(here.join("uno-0001.md")).unwrap();
     assert!(whole.contains("del mac"), "{whole}");
     assert!(whole.contains("lo de windows"), "{whole}");
+
+    let after = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    assert_eq!(after.sent, 1, "{after:?}");
     assert_eq!(
         whole,
         std::fs::read_to_string(there.join("uno-0001.md")).unwrap()
@@ -902,29 +905,6 @@ fn a_join_leaves_the_base_on_what_both_sides_now_hold() {
         tisty_core::docs::read_carried(&one.data, "uno-0001"),
         Some(std::fs::read_to_string(here.join("uno-0001.md")).unwrap())
     );
-}
-
-#[test]
-fn a_body_the_other_side_no_longer_matches_is_not_taken_as_landed() {
-    let room = tempfile::tempdir().unwrap();
-    let mine = room.path().join("mio.md");
-    let theirs = room.path().join("suyo.md");
-    std::fs::write(&mine, "# Kit\n\njunto\n").unwrap();
-    std::fs::write(&theirs, "# Kit\n\notra cosa\n").unwrap();
-
-    assert!(!landed(&mine, &theirs));
-
-    std::fs::write(&theirs, "# Kit\n\njunto\n").unwrap();
-    assert!(landed(&mine, &theirs));
-}
-
-#[test]
-fn a_side_that_is_not_there_at_all_is_never_taken_as_landed() {
-    let room = tempfile::tempdir().unwrap();
-    let mine = room.path().join("mio.md");
-    std::fs::write(&mine, "# Kit\n").unwrap();
-
-    assert!(!landed(&mine, &room.path().join("no-esta.md")));
 }
 
 #[test]
@@ -3236,7 +3216,6 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
-        None,
     )
     .unwrap();
     assert!(!one.data.join(&heavy).exists(), "it went up and let go");
@@ -3250,7 +3229,6 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
-        None,
     )
     .unwrap();
 
@@ -3517,7 +3495,6 @@ fn a_round_on_a_machine_that_shares_them_does_not_bring_the_big_ones_home() {
         Way::Both,
         &[],
         Holds::Shared,
-        None,
     )
     .unwrap();
 
@@ -3546,7 +3523,6 @@ fn a_round_lets_go_of_what_it_just_pushed_when_that_is_the_setting() {
         Way::Both,
         &[],
         Holds::Shared,
-        None,
     )
     .unwrap();
 
@@ -3725,7 +3701,6 @@ fn a_round_says_the_log_is_home_before_it_says_the_documents_are() {
         Way::Pull,
         &[],
         Holds::Everywhere,
-        None,
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -3748,7 +3723,6 @@ fn a_round_that_carried_nothing_says_nothing() {
         Way::Both,
         &[],
         Holds::Everywhere,
-        None,
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -7468,64 +7442,96 @@ fn keyed(who: &Machine) -> Option<tisty_core::signing::SigningKey> {
     key
 }
 
-fn round(who: &Machine, shared: &Path, key: &Option<tisty_core::signing::SigningKey>) -> Moved {
+fn round(who: &Machine, shared: &Path, way: Way) -> Moved {
+    let alive: Vec<String> =
+        tisty_core::State::replay(&tisty_core::store::read_all(&who.store).unwrap())
+            .docs
+            .values()
+            .map(|paper| paper.file.clone())
+            .collect();
     carry_holding(
         &who.data,
         None,
         &who.device,
         shared,
-        Way::Both,
-        &[],
+        way,
+        &alive,
         Holds::Everywhere,
-        key.clone(),
     )
     .unwrap()
 }
 
-#[test]
-fn a_body_joined_on_one_machine_reaches_the_other_without_a_question() {
+fn answered(who: &Machine, joined: &[String]) {
+    for file in joined {
+        let body =
+            std::fs::read_to_string(who.data.join(PAPERS).join(format!("{file}.md"))).unwrap();
+        says(
+            who,
+            Op::DocSaid {
+                id: doc_named(who, file),
+                d: tisty_core::event::Said::of(&body),
+            },
+        );
+    }
+}
+
+fn joined_across(first: &str, joining: Way, last: Way) -> (Moved, String) {
     let one = machine("uno");
-    let one_key = keyed(&one);
+    keyed(&one);
     let shared = tempfile::tempdir().unwrap();
     let base = "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n";
     filed(&one, "uno-0001", base);
     edited(&one, "uno-0001", base);
-    round(&one, shared.path(), &one_key);
+    round(&one, shared.path(), Way::Both);
     let two = blank("dos");
-    round(&two, shared.path(), &None);
-    let two_key = keyed(&two);
-    round(&two, shared.path(), &two_key);
-    assert_eq!(
-        std::fs::read_to_string(two.data.join(PAPERS).join("uno-0001.md")).unwrap(),
-        base
-    );
+    round(&two, shared.path(), Way::Both);
+    keyed(&two);
+    round(&two, shared.path(), Way::Both);
 
-    edited(
-        &one,
-        "uno-0001",
-        "# Kit\n\nla introduccion del mac\n\nel cuerpo\n\nel cierre\n",
-    );
-    edited(
-        &two,
-        "uno-0001",
-        "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n\nlo de windows\n",
-    );
-    round(&two, shared.path(), &two_key);
-    let joining = round(&one, shared.path(), &one_key);
+    let mac = "# Kit\n\nla introduccion del mac\n\nel cuerpo\n\nel cierre\n";
+    let windows = "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n\nlo de windows\n";
+    if first == "uno" {
+        edited(&one, "uno-0001", mac);
+        edited(&two, "uno-0001", windows);
+    } else {
+        edited(&two, "uno-0001", windows);
+        edited(&one, "uno-0001", mac);
+    }
+    round(&two, shared.path(), Way::Both);
+    let joining = round(&one, shared.path(), joining);
     assert_eq!(joining.joined, vec!["uno-0001".to_string()], "{joining:?}");
+    answered(&one, &joining.to_answer());
+    round(&one, shared.path(), Way::Push);
 
-    let after = round(&two, shared.path(), &two_key);
-
-    assert!(after.unreadable.is_empty(), "{after:?}");
-    assert!(
-        after.undecided_ids().is_empty(),
-        "the other machine was asked about a body the two of them had already joined"
-    );
+    let after = round(&two, shared.path(), last);
     let whole = std::fs::read_to_string(two.data.join(PAPERS).join("uno-0001.md")).unwrap();
-    assert!(
-        whole.contains("del mac") && whole.contains("lo de windows"),
-        "{whole}"
-    );
+    (after, whole)
+}
+
+#[test]
+fn a_body_joined_on_one_machine_reaches_the_other_without_a_question() {
+    for first in ["uno", "dos"] {
+        for joining in [Way::Both, Way::Pull] {
+            for last in [Way::Both, Way::Pull] {
+                let (after, whole) = joined_across(first, joining, last);
+                assert!(after.unreadable.is_empty(), "{after:?}");
+                assert!(
+                    after.undecided_ids().is_empty(),
+                    "{first} first, joined on {joining:?}, read on {last:?}: {after:?}"
+                );
+                assert!(
+                    whole.contains("del mac") && whole.contains("lo de windows"),
+                    "{first} first, joined on {joining:?}, read on {last:?}: {whole}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_round_that_only_pushes_never_asks_about_what_it_did_not_bring() {
+    let (after, _) = joined_across("uno", Way::Both, Way::Push);
+    assert!(after.undecided_ids().is_empty(), "{after:?}");
 }
 
 #[test]
@@ -7554,5 +7560,67 @@ fn a_quiet_round_asks_each_document_only_what_it_has_to() {
         looked <= 3 * alive.len() as u64,
         "{looked} questions about {} documents",
         alive.len()
+    );
+}
+
+fn quiet_opens(retiring: bool) -> u64 {
+    let one = machine("uno");
+    for n in 1..=20 {
+        filed(
+            &one,
+            &format!("uno-{n:04}"),
+            &format!("# Doc {n}\n\ncuerpo {n}\n"),
+        );
+    }
+    if retiring {
+        let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
+        says(&one, Op::AttachRetire { d: kept });
+    }
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    tisty_core::counting::from_now();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    tisty_core::counting::from_now()
+}
+
+#[test]
+fn a_retired_attachment_costs_a_quiet_round_one_reading_of_the_documents() {
+    let plain = quiet_opens(false);
+    let retiring = quiet_opens(true);
+    assert!(retiring <= plain + 20, "{retiring} against {plain}");
+}
+
+#[test]
+fn a_body_edited_outside_the_window_travels_with_its_print_and_asks_nothing() {
+    let one = machine("uno");
+    keyed(&one);
+    let shared = tempfile::tempdir().unwrap();
+    let base = "# Acta\n\nlo de siempre\n";
+    filed(&one, "uno-0001", base);
+    edited(&one, "uno-0001", base);
+    round(&one, shared.path(), Way::Both);
+    let two = blank("dos");
+    round(&two, shared.path(), Way::Both);
+    keyed(&two);
+    round(&two, shared.path(), Way::Both);
+
+    let outside = "# Acta\n\nlo de siempre\n\nescrito con otro editor\n";
+    wrote_body(&one.data.join(PAPERS), "uno-0001", outside);
+    let held = round(&one, shared.path(), Way::Both);
+    assert_eq!(held.unanswered, vec!["uno-0001".to_string()], "{held:?}");
+    assert_eq!(
+        std::fs::read_to_string(shared.path().join(PAPERS).join("uno-0001.md")).unwrap(),
+        base,
+        "a body went to the folder before the log that answers for it"
+    );
+    answered(&one, &held.to_answer());
+    round(&one, shared.path(), Way::Push);
+
+    let after = round(&two, shared.path(), Way::Pull);
+    assert!(after.undecided_ids().is_empty(), "{after:?}");
+    assert_eq!(
+        std::fs::read_to_string(two.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        outside
     );
 }

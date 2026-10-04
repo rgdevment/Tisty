@@ -13,6 +13,7 @@ pub struct Session {
     pub print: String,
     /// What each open document looked like when this window last read or wrote it.
     pub minded: std::collections::HashMap<String, String>,
+    pub asked: std::collections::HashMap<String, String>,
     pub locale: Option<String>,
     pub log: Option<(String, Vec<Event>)>,
     /// The fingerprint is read from the directory entry, which lags a write on Windows, so what
@@ -94,6 +95,7 @@ impl Session {
             corpus: tisty_core::docs::Corpus::default(),
             print,
             minded: std::collections::HashMap::new(),
+            asked: std::collections::HashMap::new(),
             log: None,
             writes: 0,
             behind: false,

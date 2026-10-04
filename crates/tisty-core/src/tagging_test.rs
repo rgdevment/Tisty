@@ -166,6 +166,7 @@ fn a_tag_that_changed_is_news_even_where_the_title_did_not() {
         edited_by: None,
         flagged: None,
         folder_was: None,
+        told: Default::default(),
         print: None,
     };
 

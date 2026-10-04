@@ -114,7 +114,13 @@ pub async fn settle_in(
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
-        let key = tisty_core::signing::mine(&paths, &tisty_core::DeviceId(device.clone()));
+        let pushing = (
+            data.clone(),
+            aside.clone(),
+            device.clone(),
+            dest.clone(),
+            alive.clone(),
+        );
         let carried = tauri::async_runtime::spawn_blocking(move || {
             tisty_sync::carry_holding(
                 &data,
@@ -124,10 +130,12 @@ pub async fn settle_in(
                 tisty_sync::Way::Both,
                 &alive,
                 holds,
-                key,
             )
         })
         .await;
+        if let Ok(Ok(done)) = &carried {
+            answering(&session, &done.to_answer(), pushing, holds).await;
+        }
         brought = tisty_core::cache::fingerprint(&store) != before;
         match carried {
             Ok(Err(why)) => {
@@ -143,6 +151,7 @@ pub async fn settle_in(
             Ok(Ok(done)) => {
                 said_no_longer_held(&session, &done.let_go);
                 said_now_held(&session, &done.took_in);
+                still_asked(&session, &done.undecided);
                 arrived = done.arrived;
             }
         }
@@ -470,7 +479,13 @@ pub async fn sync_now(
     };
 
     let telling = app.clone();
-    let key = tisty_core::signing::mine(&paths, &tisty_core::DeviceId(device.clone()));
+    let pushing = (
+        data.clone(),
+        aside.clone(),
+        device.clone(),
+        dest.clone(),
+        alive.clone(),
+    );
     let done = tauri::async_runtime::spawn_blocking(move || {
         tisty_sync::carry_telling(
             &data,
@@ -480,7 +495,6 @@ pub async fn sync_now(
             way,
             &alive,
             holds,
-            key,
             &mut |far| {
                 let _ = telling.emit(
                     "carried",
@@ -495,10 +509,12 @@ pub async fn sync_now(
     .await
     .map_err(|_| Refusal::of("internal"))?
     .map_err(said)?;
+    answering(&session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
     said_no_longer_held(&session, &done.let_go);
     said_now_held(&session, &done.took_in);
+    still_asked(&session, &done.undecided);
     if moved {
         catching_up(
             &session,
@@ -983,7 +999,7 @@ pub async fn merge_stores(
             session.paths.cache().to_path_buf(),
             session.config.device_id.0.clone(),
             let_go_to(&session),
-            tisty_core::signing::mine(&session.paths, &session.config.device_id),
+            session.store.signs(),
         )
     };
 
@@ -1209,4 +1225,64 @@ pub async fn free_up(
 #[tauri::command]
 pub fn stop_freeing(stopping: tauri::State<'_, Stopping>) {
     stopping.0.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+type Pushing = (
+    std::path::PathBuf,
+    std::path::PathBuf,
+    String,
+    std::path::PathBuf,
+    Vec<String>,
+);
+
+async fn answering(
+    session: &tauri::State<'_, Mutex<Session>>,
+    files: &[String],
+    (data, aside, device, dest, alive): Pushing,
+    holds: tisty_core::config::Holds,
+) {
+    if files.is_empty() {
+        return;
+    }
+    let wrote = {
+        let mut session = held(session);
+        let docs = session.paths.docs();
+        files
+            .iter()
+            .filter(|file| {
+                tisty_core::docs::read(&docs, file)
+                    .is_ok_and(|body| session.retell(file, &body, None))
+            })
+            .count()
+    };
+    if wrote == 0 {
+        return;
+    }
+    let pushed = tauri::async_runtime::spawn_blocking(move || {
+        tisty_sync::carry_holding(
+            &data,
+            Some(&aside),
+            &device,
+            &dest,
+            tisty_sync::Way::Push,
+            &alive,
+            holds,
+        )
+    })
+    .await;
+    if !matches!(pushed, Ok(Ok(_))) {
+        witness::warn(
+            channel::SYNC,
+            "a document was written down but not handed on yet",
+            &[],
+        );
+    }
+}
+
+fn still_asked(session: &tauri::State<'_, Mutex<Session>>, undecided: &[tisty_sync::Undecided]) {
+    held(session).asked.extend(
+        undecided
+            .iter()
+            .map(|one| (one.id.clone(), one.theirs.clone())),
+    );
 }

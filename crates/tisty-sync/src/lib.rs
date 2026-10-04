@@ -68,12 +68,21 @@ pub struct Moved {
     pub astray: Vec<String>,
     pub unprojected: bool,
     pub joined: Vec<String>,
+    pub unanswered: Vec<String>,
     pub arrived: Vec<String>,
     pub let_go: Vec<String>,
     pub took_in: Vec<(String, String, u64)>,
 }
 
 impl Moved {
+    pub fn to_answer(&self) -> Vec<String> {
+        let mut all = self.joined.clone();
+        all.extend(self.unanswered.iter().cloned());
+        all.sort();
+        all.dedup();
+        all
+    }
+
     pub fn undecided_ids(&self) -> Vec<String> {
         self.undecided.iter().map(|one| one.id.clone()).collect()
     }
@@ -86,16 +95,7 @@ pub fn carry(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_holding(
-        data,
-        None,
-        device,
-        dest,
-        way,
-        alive,
-        Holds::Everywhere,
-        None,
-    )
+    carry_holding(data, None, device, dest, way, alive, Holds::Everywhere)
 }
 
 pub fn carry_leaning_on(
@@ -106,16 +106,7 @@ pub fn carry_leaning_on(
     way: Way,
     alive: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_holding(
-        data,
-        aside,
-        device,
-        dest,
-        way,
-        alive,
-        Holds::Everywhere,
-        None,
-    )
+    carry_holding(data, aside, device, dest, way, alive, Holds::Everywhere)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,8 +115,6 @@ pub enum Reached {
     Papers,
 }
 
-// Unsigned, what the round writes leaves a segment its own published key no longer covers.
-#[allow(clippy::too_many_arguments)]
 pub fn carry_holding(
     data: &Path,
     aside: Option<&Path>,
@@ -134,19 +123,8 @@ pub fn carry_holding(
     way: Way,
     alive: &[String],
     holds: Holds,
-    key: Option<tisty_core::signing::SigningKey>,
 ) -> Result<Moved, Trouble> {
-    carry_telling(
-        data,
-        aside,
-        device,
-        dest,
-        way,
-        alive,
-        holds,
-        key,
-        &mut |_| {},
-    )
+    carry_telling(data, aside, device, dest, way, alive, holds, &mut |_| {})
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -158,7 +136,6 @@ pub fn carry_telling(
     way: Way,
     alive: &[String],
     holds: Holds,
-    key: Option<tisty_core::signing::SigningKey>,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
@@ -233,10 +210,30 @@ pub fn carry_telling(
         .filter(|paper| paper.bytes == Some(0))
         .map(|paper| paper.file.clone())
         .collect();
-    let printed: std::collections::BTreeMap<String, String> = told
+    let printed: std::collections::BTreeMap<String, papers::Answers> = told
         .docs
         .values()
-        .filter_map(|paper| Some((paper.file.clone(), paper.print.clone()?)))
+        .map(|paper| {
+            let others = paper
+                .told
+                .iter()
+                .filter(|(who, _)| !who.eq_ignore_ascii_case(device))
+                .map(|(_, print)| print.clone())
+                .collect();
+            let own = paper
+                .told
+                .iter()
+                .find(|(who, _)| who.eq_ignore_ascii_case(device))
+                .map(|(_, print)| print.clone());
+            (
+                paper.file.clone(),
+                papers::Answers {
+                    newest: paper.print.clone(),
+                    own,
+                    others,
+                },
+            )
+        })
         .collect();
     let buried = buried_now(&told, data);
     let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
@@ -268,22 +265,17 @@ pub fn carry_telling(
             Some(&printed),
             again,
             been_here,
+            taking,
         )?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
         moved.astray = papers.astray;
         moved.joined = papers.joined;
+        moved.unanswered = papers.unanswered;
         moved.arrived = papers.arrived;
         if papers.brought > 0 {
             saying(Reached::Papers);
-        }
-        if !moved.joined.is_empty()
-            && answered_for_joined(&store, device, key, data, &told, &moved.joined)
-            && giving
-        {
-            let there = dest.join(STORE).join(device);
-            alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
         }
     }
     if taking {
@@ -291,7 +283,10 @@ pub fn carry_telling(
         moved.brought += copy_held(
             &dest.join(HELD),
             &data.join(HELD),
-            &buried_now(&told, data),
+            &match moved.arrived.is_empty() {
+                true => buried,
+                false => buried_now(&told, data),
+            },
             false,
             Some(data),
             left_behind(holds),
@@ -306,42 +301,6 @@ pub fn carry_telling(
     }
     note_carried(aside, dest);
     Ok(moved)
-}
-
-fn answered_for_joined(
-    store: &Path,
-    device: &str,
-    key: Option<tisty_core::signing::SigningKey>,
-    data: &Path,
-    told: &tisty_core::State,
-    joined: &[String],
-) -> bool {
-    let said: Vec<tisty_core::Op> = joined
-        .iter()
-        .filter_map(|file| {
-            let id = told.docs.values().find(|paper| &paper.file == file)?.id;
-            let body = tisty_core::docs::read(&data.join(PAPERS), file).ok()?;
-            Some(tisty_core::Op::DocSaid {
-                id,
-                d: tisty_core::event::Said::of(&body),
-            })
-        })
-        .collect();
-    let written = tisty_core::Store::open(store, tisty_core::DeviceId(device.to_string()))
-        .map(|held| held.signing_with(key))
-        .and_then(|mut held| {
-            said.into_iter()
-                .try_for_each(|op| held.append(op).map(|_| ()))
-        });
-    if let Err(e) = written {
-        witness::warn(
-            channel::SYNC,
-            "a joined document could not be written down, so the other machine will ask about it",
-            &[("why", Fact::Why(e.to_string()))],
-        );
-        return false;
-    }
-    true
 }
 
 fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
@@ -1011,6 +970,11 @@ pub enum Keep {
     Both,
 }
 
+pub fn held_there(dest: &Path, id: &str) -> Option<String> {
+    let at = tisty_core::docs::resolve(&dest.join(PAPERS), id).ok()?;
+    tisty_core::docs::print_of(&at).ok().flatten()
+}
+
 pub fn forget_paper(dest: &Path, id: &str) {
     let Ok(theirs) = tisty_core::docs::resolve(&dest.join(PAPERS), id) else {
         return;
@@ -1123,14 +1087,6 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
         ],
     );
     Ok(None)
-}
-
-pub(crate) fn landed(mine: &Path, theirs: &Path) -> bool {
-    use tisty_core::docs::print_of;
-    match (print_of(mine), print_of(theirs)) {
-        (Ok(Some(ours)), Ok(Some(yours))) => ours == yours,
-        _ => false,
-    }
 }
 
 pub(crate) fn joined(
