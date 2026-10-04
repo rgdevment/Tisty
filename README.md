@@ -849,8 +849,10 @@ renders the prose everywhere else;
 [react-pdf](https://react-pdf.org) makes the PDF; [Vite](https://vite.dev)
 builds it and [Vitest](https://vitest.dev) tests it.
 
-The full list, with versions and licences, is in `Cargo.lock` and
-`app/package-lock.json`.
+The full list, with versions and licences, is in
+[THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), and the licence texts the
+crates carry are in [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md); the
+About screen shows both.
 
 ## Contributing
 
