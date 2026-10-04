@@ -34,7 +34,24 @@ pub fn a_handler_is_there() -> bool {
         })
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn a_handler_is_there() -> bool {
+    answered(SCHEME)
+}
+
+#[cfg(target_os = "macos")]
+fn answered(scheme: &str) -> bool {
+    use objc2_app_kit::NSWorkspace;
+    use objc2_foundation::{NSString, NSURL};
+
+    NSURL::URLWithString(&NSString::from_str(&format!("{scheme}://open"))).is_some_and(|probe| {
+        NSWorkspace::sharedWorkspace()
+            .URLForApplicationToOpenURL(&probe)
+            .is_some()
+    })
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn a_handler_is_there() -> bool {
     false
 }
