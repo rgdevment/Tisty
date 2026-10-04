@@ -224,6 +224,7 @@ impl State {
             kept.bytes = d.bytes;
             if let Some(print) = &d.print {
                 kept.print = Some(print.clone());
+                kept.told.insert(event.device.0.clone(), print.clone());
             }
             // A note from a build that never read tags says nothing about them.
             if let Some(tags) = &d.tags {
@@ -255,6 +256,12 @@ impl State {
                 title: d.said.as_ref().map(|one| one.title.clone()),
                 bytes: d.said.as_ref().and_then(|one| one.bytes),
                 print: d.said.as_ref().and_then(|one| one.print.clone()),
+                told: d
+                    .said
+                    .as_ref()
+                    .and_then(|one| one.print.clone())
+                    .map(|print| [(event.device.0.clone(), print)].into())
+                    .unwrap_or_default(),
                 wrote: Some(d.wrote.or(d.made).unwrap_or(event.timestamp)),
                 made: Some(d.made.unwrap_or(event.timestamp)),
                 made_by: Some(event.device.clone()),

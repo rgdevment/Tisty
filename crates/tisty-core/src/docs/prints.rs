@@ -60,12 +60,11 @@ impl Prints {
 
     pub fn seen(&mut self, at: &Path) -> std::io::Result<Seen> {
         crate::counting::looked();
-        let told = match std::fs::symlink_metadata(at) {
+        let (weighs, told) = match std::fs::symlink_metadata(at) {
             Ok(told) if told.file_type().is_symlink() => return Ok(Seen::Linked),
-            Ok(told) => stamp_of(&told),
-            Err(_) => None,
+            Ok(told) => (told.len(), stamp_of(&told)),
+            Err(_) => (0, None),
         };
-        let weighs = told.map_or(0, |(weighs, _)| weighs);
         let print = self.stamped_as(at, told)?;
         Ok(Seen::Held { print, weighs })
     }
@@ -101,3 +100,7 @@ impl Prints {
         Ok(print)
     }
 }
+
+#[cfg(test)]
+#[path = "prints_test.rs"]
+mod tests;

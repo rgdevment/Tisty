@@ -1094,8 +1094,10 @@ fn taken_in(
         if let Some(Op::DocAdd { d, .. }) = ops.get_mut(at)
             && let Some(said) = d.said.as_mut()
         {
-            said.bytes = Some(crate::docs::settled(&told).len() as u64);
-            said.print = crate::event::Said::of(&told).print;
+            *said = crate::event::Said {
+                by: said.by.clone(),
+                ..crate::event::Said::of(&told)
+            };
         }
     }
 
