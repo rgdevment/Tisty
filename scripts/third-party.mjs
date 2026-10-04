@@ -115,14 +115,31 @@ const crates = () => {
   for (const triple of SHIPPED) {
     const said = execFileSync(
       "cargo",
-      ["metadata", "--format-version", "1", "--filter-platform", triple],
+      [
+        "tree",
+        "--locked",
+        "--workspace",
+        "--edges",
+        "normal,no-proc-macro",
+        "--target",
+        triple,
+        "--prefix",
+        "none",
+        "--format",
+        "{p}|{l}",
+      ],
       { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
     );
-    const meta = JSON.parse(said);
-    const ours = new Set(meta.workspace_members);
-    for (const one of meta.packages) {
-      if (ours.has(one.id) || seen.has(one.name)) continue;
-      seen.set(one.name, { version: one.version, licence: one.license ?? "see the crate" });
+    for (const line of said.split(/\r?\n/)) {
+      const [named, licence] = line.replace(/ \(\*\)$/, "").split("|");
+      const [name, version, ...local] = (named ?? "").split(" ");
+      if (!version?.startsWith("v") || local.length > 0) continue;
+      const bare = version.slice(1);
+      seen.set(`${name}@${bare}`, {
+        name,
+        version: bare,
+        licence: licence?.trim() || "see the crate",
+      });
     }
   }
   return seen;
@@ -130,8 +147,8 @@ const crates = () => {
 
 const listed = (seen) =>
   [...seen.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([name, one]) => `| \`${name}\` | ${one.version} | ${one.licence} |`)
+    .sort(([a], [b]) => a.localeCompare(b, "en", { numeric: true }))
+    .map(([key, one]) => `| \`${one.name ?? key}\` | ${one.version} | ${one.licence} |`)
     .join("\n");
 
 const js = shipped();
