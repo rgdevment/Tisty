@@ -164,7 +164,7 @@ breaks "by tuesday" otherwise.
 
 Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
 `test:`). Explain *why* in the body when the reason is not obvious from the
-diff; the *what* is already in the patch. Keep the subject under 90 characters:
+diff; the *what* is already in the patch. Keep the subject under 120 characters:
 CI refuses a longer one.
 
 `scripts/rules.sh` holds the conventions a person can break in a second: four
