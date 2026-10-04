@@ -114,6 +114,35 @@ impl App {
         self.config.copies_in_a_doc()
     }
 
+    pub fn retell(&mut self, file: &str, body: &str, hand: Option<String>) -> bool {
+        let mut said = self.state.settling(file, body);
+        if let Some(paper) = self.state.docs.values().find(|one| one.file == file) {
+            let now = tisty_core::event::Said::of(body).by(hand);
+            if now.news_for(paper) {
+                said.push(Op::DocSaid {
+                    id: paper.id,
+                    d: now,
+                });
+            }
+        }
+        if said.is_empty() {
+            return false;
+        }
+        if let Err(e) = self.commit_all(said) {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::SYNC,
+                "what a document now holds could not be written down",
+                &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+            );
+            return false;
+        }
+        true
+    }
+
+    pub fn signs(&self) -> Option<tisty_core::signing::SigningKey> {
+        self.store.signs()
+    }
+
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<Event> {
         let event = self.store.append(op)?;
         self.state.apply(&event);

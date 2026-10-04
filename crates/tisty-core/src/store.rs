@@ -91,6 +91,10 @@ impl Store {
         self
     }
 
+    pub fn signs(&self) -> Option<ed25519_dalek::SigningKey> {
+        self.signs.clone()
+    }
+
     /// Reading a history through to work out where its chain stands is the price of writing, not
     /// of opening: a command that only reads never pays it.
     fn knows_where_it_stands(&mut self) -> Result<()> {

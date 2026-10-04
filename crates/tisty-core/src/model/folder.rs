@@ -60,6 +60,8 @@ pub struct Kept {
     pub bytes: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub print: Option<String>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub told: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wrote: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

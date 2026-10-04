@@ -285,10 +285,10 @@ fn a_document_rewritten_on_the_way_in_is_answered_for_by_what_it_now_holds() {
     let mut there = Room::new(room.path(), "theirs");
     there.take_in(&box_at);
 
-    let obra = there.titled("Obra");
-    let held = there.body(&obra.file);
+    let work = there.titled("Obra");
+    let held = there.body(&work.file);
     assert_eq!(
-        obra.print,
+        work.print,
         tisty_core::event::Said::of(&held).print,
         "the log answers for the body before its references were rewritten, so a machine \
          syncing it would hold the real one back as a body nobody wrote"
