@@ -124,8 +124,7 @@ pub enum Reached {
     Papers,
 }
 
-/// `key` signs what the round itself writes down; without it a machine that publishes its key
-/// would hand on a segment its own signature no longer covers.
+// Unsigned, what the round writes leaves a segment its own published key no longer covers.
 #[allow(clippy::too_many_arguments)]
 pub fn carry_holding(
     data: &Path,
@@ -284,7 +283,6 @@ pub fn carry_telling(
             && giving
         {
             let there = dest.join(STORE).join(device);
-            // Counted once already: this only hands on the note just written.
             alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
         }
     }
@@ -310,8 +308,6 @@ pub fn carry_telling(
     Ok(moved)
 }
 
-/// A joined body is new to both logs, and the other machine holds back any body its log does not
-/// answer for: without its print written down, a join here is a question there.
 fn answered_for_joined(
     store: &Path,
     device: &str,

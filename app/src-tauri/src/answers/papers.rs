@@ -600,8 +600,6 @@ pub fn settle_paper(
     Ok(Some(file))
 }
 
-/// What a settled document now holds goes into the log at once: every other machine holds back a
-/// body its log does not answer for, and would ask the same question again.
 fn told_as_settled(session: &mut Session, id: &str) {
     if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), id) {
         session.retell(id, &body, None);

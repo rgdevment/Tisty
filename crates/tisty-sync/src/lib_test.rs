@@ -7550,7 +7550,6 @@ fn a_quiet_round_asks_each_document_only_what_it_has_to() {
 
     assert_eq!((done.sent, done.brought), (0, 0));
     assert_eq!(opened, 0, "a quiet round read a body it already knew");
-    // One look at each side and one at the base it was carried from; it was five before.
     assert!(
         looked <= 3 * alive.len() as u64,
         "{looked} questions about {} documents",

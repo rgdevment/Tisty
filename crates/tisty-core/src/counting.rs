@@ -17,7 +17,6 @@ pub fn from_now() -> u64 {
     OPENED.with(|one| one.replace(0))
 }
 
-/// A question about a file that reads none of it: what a quiet round mostly spends.
 pub fn looked() {
     LOOKED.with(|one| one.set(one.get() + 1));
 }

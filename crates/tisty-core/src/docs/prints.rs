@@ -31,7 +31,6 @@ fn stamp_of(told: &std::fs::Metadata) -> Option<(u64, i64)> {
     Some((told.len(), when.as_nanos() as i64))
 }
 
-/// What one look at a file tells: that it points somewhere else, or its print and its size.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Seen {
     Linked,
@@ -59,9 +58,6 @@ impl Prints {
         self.stamped_as(at, stamped(at))
     }
 
-    /// One question to the disk answers three: whether the name is a link, its size, and —
-    /// when size and time match what was remembered — its print. A plain file reads the same
-    /// through `symlink_metadata` as through `metadata`.
     pub fn seen(&mut self, at: &Path) -> std::io::Result<Seen> {
         crate::counting::looked();
         let told = match std::fs::symlink_metadata(at) {
