@@ -65,28 +65,60 @@ pub(crate) fn translated() -> bool {
     rc == 0 && yes == 1
 }
 
-/// Whether the shell would hand a link of this scheme to an application. Without a buffer the call
-/// only measures, and ignoring the unknown keeps the "Open with" picker from counting as one.
+#[cfg(windows)]
+pub(crate) fn answers_for(scheme: &str) -> bool {
+    use windows::Win32::UI::Shell::{ASSOCSTR_APPID, ASSOCSTR_EXECUTABLE};
+
+    answered_by(
+        associated(scheme, ASSOCSTR_EXECUTABLE).as_deref(),
+        associated(scheme, ASSOCSTR_APPID).as_deref(),
+    )
+}
+
 #[cfg(windows)]
 #[allow(unsafe_code)]
-pub(crate) fn answers_for(scheme: &str) -> bool {
+fn associated(scheme: &str, asked: windows::Win32::UI::Shell::ASSOCSTR) -> Option<String> {
     use windows::Win32::UI::Shell::{
-        ASSOCF_INIT_IGNOREUNKNOWN, ASSOCF_IS_PROTOCOL, ASSOCSTR_EXECUTABLE, AssocQueryStringW,
+        ASSOCF_INIT_IGNOREUNKNOWN, ASSOCF_IS_PROTOCOL, AssocQueryStringW,
     };
-    use windows::core::{HSTRING, w};
+    use windows::core::{HSTRING, PWSTR, w};
 
+    let scheme = HSTRING::from(scheme);
+    let flags = ASSOCF_IS_PROTOCOL | ASSOCF_INIT_IGNOREUNKNOWN;
     let mut needed = 0u32;
-    let said = unsafe {
+    unsafe { AssocQueryStringW(flags, asked, &scheme, w!("open"), None, &raw mut needed) }
+        .ok()
+        .ok()?;
+    if needed <= 1 {
+        return None;
+    }
+    let mut said = vec![0u16; needed as usize];
+    unsafe {
         AssocQueryStringW(
-            ASSOCF_IS_PROTOCOL | ASSOCF_INIT_IGNOREUNKNOWN,
-            ASSOCSTR_EXECUTABLE,
-            &HSTRING::from(scheme),
+            flags,
+            asked,
+            &scheme,
             w!("open"),
-            None,
+            Some(PWSTR(said.as_mut_ptr())),
             &raw mut needed,
         )
-    };
-    said.is_ok() && needed > 1
+    }
+    .ok()
+    .ok()?;
+    let end = said.iter().position(|one| *one == 0).unwrap_or(said.len());
+    Some(String::from_utf16_lossy(&said[..end]))
+}
+
+#[cfg(windows)]
+pub(crate) fn answered_by(executable: Option<&str>, packaged: Option<&str>) -> bool {
+    let picker = executable.is_some_and(|one| {
+        std::path::Path::new(one)
+            .file_name()
+            .and_then(|leaf| leaf.to_str())
+            .is_some_and(|leaf| leaf.eq_ignore_ascii_case("OpenWith.exe"))
+    });
+    executable.is_some_and(|one| !one.is_empty()) && !picker
+        || packaged.is_some_and(|one| !one.is_empty())
 }
 
 #[cfg(not(target_os = "macos"))]

@@ -91,3 +91,35 @@ fn the_system_answers_for_a_scheme_only_when_something_registered_it() {
         "a scheme nothing registered was said to have a handler"
     );
 }
+
+#[cfg(windows)]
+#[test]
+fn a_scheme_a_packaged_app_declares_has_a_handler() {
+    assert!(
+        answered("ms-settings"),
+        "a scheme only a packaged app answers for, as a Store LinkUnbound does, was said to have none"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn the_open_with_picker_is_not_a_handler() {
+    use crate::desktop::answered_by;
+    assert!(answered_by(
+        Some(r"C:\Program Files\LinkUnbound\linkunbound-shell.exe"),
+        None
+    ));
+    assert!(answered_by(
+        None,
+        Some("rgdevment.LinkUnbound-BrowserPicker_kdjgfdc2rb3gc!LinkUnbound")
+    ));
+    assert!(
+        !answered_by(Some(r"C:\WINDOWS\system32\OpenWith.exe"), None),
+        "the picker Windows offers when nothing answers was taken for an app"
+    );
+    assert!(!answered_by(
+        Some(r"c:\windows\SYSTEM32\openwith.EXE"),
+        None
+    ));
+    assert!(!answered_by(None, None));
+}
