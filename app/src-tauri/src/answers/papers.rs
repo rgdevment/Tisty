@@ -523,6 +523,8 @@ pub fn convert_paper(
         ),
     })?;
     session.mind(&id);
+    let hand = signing(&session.state);
+    session.retell(&id, &body, hand);
     Ok(())
 }
 
@@ -551,6 +553,7 @@ pub fn settle_paper(
     let data = session.paths.data().to_path_buf();
     let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
     session.mind(&id);
+    told_as_settled(&mut session, &id);
 
     let Some(body) = brought else { return Ok(None) };
     let beside = session
@@ -593,7 +596,16 @@ pub fn settle_paper(
 
     tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
     session.mind(&id);
+    told_as_settled(&mut session, &id);
     Ok(Some(file))
+}
+
+/// What a settled document now holds goes into the log at once: every other machine holds back a
+/// body its log does not answer for, and would ask the same question again.
+fn told_as_settled(session: &mut Session, id: &str) {
+    if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), id) {
+        session.retell(id, &body, None);
+    }
 }
 
 /// The person's reading of a closed task, story or trace; a routine reads as a routine and
@@ -944,3 +956,7 @@ pub fn doc_order(
 ) -> Answer<bool> {
     Ok(held(&session).retell(&id, &body, None))
 }
+
+#[cfg(test)]
+#[path = "papers_test.rs"]
+mod tests;

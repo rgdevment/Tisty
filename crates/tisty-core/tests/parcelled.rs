@@ -276,6 +276,26 @@ fn what_a_document_points_at_still_points_at_it_under_its_new_name() {
 }
 
 #[test]
+fn a_document_rewritten_on_the_way_in_is_answered_for_by_what_it_now_holds() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    let box_at = filled(&mut here);
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&box_at);
+
+    let obra = there.titled("Obra");
+    let held = there.body(&obra.file);
+    assert_eq!(
+        obra.print,
+        tisty_core::event::Said::of(&held).print,
+        "the log answers for the body before its references were rewritten, so a machine \
+         syncing it would hold the real one back as a body nobody wrote"
+    );
+}
+
+#[test]
 fn a_parcel_carries_the_writing_and_not_one_line_of_the_log() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");

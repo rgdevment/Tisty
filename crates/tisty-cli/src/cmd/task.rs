@@ -135,6 +135,19 @@ fn into_doc(
     let whole = tisty_core::docs::append(&root, which, &kept.written(named))
         .map_err(|e| room_or(e, lang))?;
     app.commit(kept.told())?;
+    let mut said = app.state.settling(which, &whole);
+    if let Some(paper) = app.state.docs.values().find(|one| one.file == which) {
+        let now = tisty_core::event::Said::of(&whole).by(app.state.signed.alias.clone());
+        if now.news_for(paper) {
+            said.push(tisty_core::Op::DocSaid {
+                id: paper.id,
+                d: now,
+            });
+        }
+    }
+    if !said.is_empty() {
+        app.commit_all(said)?;
+    }
     println!(
         "  {}  {}",
         crate::style::dim(which),

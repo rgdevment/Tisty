@@ -4267,3 +4267,28 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
     assert!(told.contains("say_not_doing"), "{told}");
     assert!(told.contains("untick"), "{told}");
 }
+
+#[test]
+fn a_file_kept_in_a_document_leaves_the_log_answering_for_what_it_now_holds() {
+    let served = Served::new();
+    let doc = served.wrote("# Plano\n\nla obra", None);
+    let at = served.home.path().join("plano.txt");
+    std::fs::write(&at, b"la cota del terreno").unwrap();
+
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "doc": doc, "path": at.to_str().unwrap() }),
+    );
+
+    let body = served.body_of(&doc);
+    assert!(body.contains("attachments/"), "{said}");
+    let events = tisty_core::store::read_all(served.data().join("store")).unwrap();
+    let state = tisty_core::State::replay(&events);
+    let kept = state.docs.values().find(|one| one.file == doc).unwrap();
+    assert_eq!(
+        kept.print,
+        tisty_core::event::Said::of(&body).print,
+        "the log still answers for the body before the file went in, so another machine would \
+         hold this one back"
+    );
+}

@@ -337,7 +337,7 @@ fn the_seam_is_written_down_before_the_new_name_is_taken() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
     let was = tisty_core::store::identity(&one.store).unwrap();
 
-    stitch(&one.data, &one.device, shared.path()).unwrap();
+    stitch(&one.data, &one.device, shared.path(), None).unwrap();
 
     let said = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap());
     assert_eq!(said.forebears.len(), 2, "la costura no quedo en el log");
@@ -352,10 +352,10 @@ fn a_seam_left_half_done_can_still_be_finished_and_says_the_same_thing() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
     let was = tisty_core::store::identity(&one.store).unwrap();
-    stitch(&one.data, &one.device, shared.path()).unwrap();
+    stitch(&one.data, &one.device, shared.path(), None).unwrap();
     std::fs::write(one.store.join(MARKER), was.as_bytes()).unwrap();
 
-    stitch(&one.data, &one.device, shared.path()).unwrap();
+    stitch(&one.data, &one.device, shared.path(), None).unwrap();
 
     let said = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap());
     assert!(said.forebears.contains(&was), "el linaje viejo se perdio");
@@ -554,7 +554,7 @@ fn a_machine_that_was_removed_cannot_stitch_itself_into_the_folder() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
     let was = tisty_core::store::identity(&one.store).unwrap();
 
-    let outcome = stitch(&one.data, &one.device, shared.path());
+    let outcome = stitch(&one.data, &one.device, shared.path(), None);
 
     assert!(
         matches!(outcome, Err(Trouble::NotAllowed(_))),
@@ -584,7 +584,7 @@ fn a_segment_that_cannot_be_read_is_never_called_a_clash() {
         Kin::Unsure(one.device.clone())
     );
     assert!(matches!(
-        stitch(&one.data, &one.device, shared.path()),
+        stitch(&one.data, &one.device, shared.path(), None),
         Err(Trouble::Unreadable(_))
     ));
 }
@@ -621,8 +621,8 @@ fn stitching_twice_never_writes_a_seam_that_joins_a_history_to_itself() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
     tisty_core::store::identity(&one.store).unwrap();
 
-    stitch(&one.data, &one.device, shared.path()).unwrap();
-    let again = stitch(&one.data, &one.device, shared.path()).unwrap();
+    stitch(&one.data, &one.device, shared.path(), None).unwrap();
+    let again = stitch(&one.data, &one.device, shared.path(), None).unwrap();
 
     assert!(again.stitch.is_none(), "anoto una costura de si misma");
     let seams = tisty_core::store::read_all(&one.store)
@@ -641,7 +641,7 @@ fn a_seam_says_which_history_was_absorbed_and_which_one_survived() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
     let was = tisty_core::store::identity(&one.store).unwrap();
 
-    let done = stitch(&one.data, &one.device, shared.path()).unwrap();
+    let done = stitch(&one.data, &one.device, shared.path(), None).unwrap();
 
     let seam = done.stitch.unwrap();
     assert_eq!(seam.absorbed, was);
@@ -660,7 +660,7 @@ fn a_seam_says_which_machines_came_from_each_side() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
     tisty_core::store::identity(&one.store).unwrap();
 
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -675,7 +675,12 @@ fn stitching_where_there_is_no_folder_says_so_instead_of_something_else() {
     let one = machine("uno");
     let nowhere = tempfile::tempdir().unwrap();
 
-    let outcome = stitch(&one.data, &one.device, &nowhere.path().join("no-esta"));
+    let outcome = stitch(
+        &one.data,
+        &one.device,
+        &nowhere.path().join("no-esta"),
+        None,
+    );
 
     assert!(matches!(outcome, Err(Trouble::NotThere(_))), "{outcome:?}");
 }
@@ -3231,6 +3236,7 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
+        None,
     )
     .unwrap();
     assert!(!one.data.join(&heavy).exists(), "it went up and let go");
@@ -3244,6 +3250,7 @@ fn a_round_does_not_read_back_what_it_just_wrote() {
         Way::Both,
         &[],
         Holds::Shared,
+        None,
     )
     .unwrap();
 
@@ -3460,7 +3467,7 @@ fn a_machine_that_takes_a_body_in_is_told_what_it_now_holds() {
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
 
     let two = machine("dev_b");
-    stitch(&two.data, &two.device, shared.path()).unwrap();
+    stitch(&two.data, &two.device, shared.path(), None).unwrap();
     let moved = carry(&two.data, &two.device, shared.path(), Way::Pull, &[]).unwrap();
 
     assert!(
@@ -3510,6 +3517,7 @@ fn a_round_on_a_machine_that_shares_them_does_not_bring_the_big_ones_home() {
         Way::Both,
         &[],
         Holds::Shared,
+        None,
     )
     .unwrap();
 
@@ -3538,6 +3546,7 @@ fn a_round_lets_go_of_what_it_just_pushed_when_that_is_the_setting() {
         Way::Both,
         &[],
         Holds::Shared,
+        None,
     )
     .unwrap();
 
@@ -3716,6 +3725,7 @@ fn a_round_says_the_log_is_home_before_it_says_the_documents_are() {
         Way::Pull,
         &[],
         Holds::Everywhere,
+        None,
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -3738,6 +3748,7 @@ fn a_round_that_carried_nothing_says_nothing() {
         Way::Both,
         &[],
         Holds::Everywhere,
+        None,
         &mut |far| heard.push(far),
     )
     .unwrap();
@@ -4908,7 +4919,7 @@ fn merging_two_unrelated_histories_loses_nothing_from_either_side() {
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let merged = stitch(&one.data, &one.device, shared.path()).unwrap();
+    let merged = stitch(&one.data, &one.device, shared.path(), None).unwrap();
     assert_eq!(merged.kin, Kin::Strangers);
     says(
         &one,
@@ -4935,7 +4946,7 @@ fn merging_adopts_the_folders_store_id_never_the_local_one_nor_a_new_one() {
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
     let folder_id = super::theirs(shared.path()).unwrap();
 
-    stitch(&one.data, &one.device, shared.path()).unwrap();
+    stitch(&one.data, &one.device, shared.path(), None).unwrap();
 
     let adopted = tisty_core::store::peek_identity(&one.store).unwrap();
     assert_eq!(adopted, folder_id);
@@ -4950,7 +4961,7 @@ fn the_other_machine_of_the_surviving_history_syncs_after_a_merge_without_being_
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -4984,7 +4995,7 @@ fn a_straggler_with_the_old_identity_is_recognized_as_the_same_lineage() {
     let two = machine("dos");
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -5012,7 +5023,7 @@ fn a_straggler_adopts_the_merged_identity_while_keeping_its_unsent_tail() {
     let two = machine("dos");
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -5021,7 +5032,7 @@ fn a_straggler_adopts_the_merged_identity_while_keeping_its_unsent_tail() {
 
     wrote(&straggler, "lo que tres no habia mandado".into());
 
-    let merged = stitch(&straggler.data, &straggler.device, shared.path()).unwrap();
+    let merged = stitch(&straggler.data, &straggler.device, shared.path(), None).unwrap();
     assert_eq!(merged.kin, Kin::SameLineage);
     assert!(merged.stitch.is_none());
 
@@ -5065,7 +5076,7 @@ fn merging_refuses_with_same_name_when_two_machines_clash_under_one_device_name(
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let Err(why) = stitch(&one.data, &one.device, shared.path()) else {
+    let Err(why) = stitch(&one.data, &one.device, shared.path(), None) else {
         panic!("two machines clashing under one name were merged");
     };
 
@@ -5082,7 +5093,7 @@ fn merging_leaves_the_local_identity_untouched_when_it_refuses_a_clash() {
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let _ = stitch(&one.data, &one.device, shared.path());
+    let _ = stitch(&one.data, &one.device, shared.path(), None);
 
     assert_eq!(
         tisty_core::store::peek_identity(&one.store).unwrap(),
@@ -5222,7 +5233,7 @@ fn merging_two_histories_lands_the_documents_of_both_sides_under_their_own_names
     )
     .unwrap();
 
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -5267,7 +5278,7 @@ fn the_same_attachment_kept_independently_on_both_sides_of_a_merge_is_not_duplic
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Both, &[]).unwrap();
 
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -5297,7 +5308,7 @@ fn a_document_deleted_in_one_history_never_comes_back_once_the_histories_are_mer
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -5358,7 +5369,7 @@ fn a_device_removed_before_a_merge_is_still_removed_after_it() {
     let shared = tempfile::tempdir().unwrap();
     carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
 
-    let seam = stitch(&one.data, &one.device, shared.path())
+    let seam = stitch(&one.data, &one.device, shared.path(), None)
         .unwrap()
         .stitch
         .unwrap();
@@ -5416,7 +5427,7 @@ fn a_store_it_cannot_read_stops_the_stitch_instead_of_joining_blindly() {
     let blind = one.data.join("gone");
 
     assert!(matches!(
-        stitch(&blind, &one.device, shared.path()),
+        stitch(&blind, &one.device, shared.path(), None),
         Err(Trouble::Unreadable(_))
     ));
 }
@@ -7420,4 +7431,99 @@ fn a_history_from_the_fence_onward_owes_a_signature_even_saying_no_key() {
         "a history written from the fence onward came in without a signature"
     );
     assert!(!home_of(&two, &one.device).contains("lo de dev_a"));
+}
+
+fn doc_named(who: &Machine, file: &str) -> Ulid {
+    tisty_core::State::replay(&tisty_core::store::read_all(&who.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == file)
+        .map(|paper| paper.id)
+        .expect("the document is in the log")
+}
+
+fn edited(who: &Machine, file: &str, body: &str) {
+    wrote_body(&who.data.join(PAPERS), file, body);
+    says(
+        who,
+        Op::DocSaid {
+            id: doc_named(who, file),
+            d: tisty_core::event::Said::of(body),
+        },
+    );
+}
+
+fn keyed(who: &Machine) -> Option<tisty_core::signing::SigningKey> {
+    let paths = tisty_core::Paths::new(who.data.clone(), who.data.join("config"));
+    let whose = DeviceId(who.device.clone());
+    let key = tisty_core::signing::mine(&paths, &whose);
+    says(
+        who,
+        Op::DeviceJoin {
+            d: whose,
+            k: Some(tisty_core::DeviceKind::Machine),
+            p: key.as_ref().map(tisty_core::signing::shown),
+        },
+    );
+    key
+}
+
+fn round(who: &Machine, shared: &Path, key: &Option<tisty_core::signing::SigningKey>) -> Moved {
+    carry_holding(
+        &who.data,
+        None,
+        &who.device,
+        shared,
+        Way::Both,
+        &[],
+        Holds::Everywhere,
+        key.clone(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_body_joined_on_one_machine_reaches_the_other_without_a_question() {
+    let one = machine("uno");
+    let one_key = keyed(&one);
+    let shared = tempfile::tempdir().unwrap();
+    let base = "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n";
+    filed(&one, "uno-0001", base);
+    edited(&one, "uno-0001", base);
+    round(&one, shared.path(), &one_key);
+    let two = blank("dos");
+    round(&two, shared.path(), &None);
+    let two_key = keyed(&two);
+    round(&two, shared.path(), &two_key);
+    assert_eq!(
+        std::fs::read_to_string(two.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        base
+    );
+
+    edited(
+        &one,
+        "uno-0001",
+        "# Kit\n\nla introduccion del mac\n\nel cuerpo\n\nel cierre\n",
+    );
+    edited(
+        &two,
+        "uno-0001",
+        "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n\nlo de windows\n",
+    );
+    round(&two, shared.path(), &two_key);
+    let joining = round(&one, shared.path(), &one_key);
+    assert_eq!(joining.joined, vec!["uno-0001".to_string()], "{joining:?}");
+
+    let after = round(&two, shared.path(), &two_key);
+
+    assert!(after.unreadable.is_empty(), "{after:?}");
+    assert!(
+        after.undecided_ids().is_empty(),
+        "the other machine was asked about a body the two of them had already joined"
+    );
+    let whole = std::fs::read_to_string(two.data.join(PAPERS).join("uno-0001.md")).unwrap();
+    assert!(
+        whole.contains("del mac") && whole.contains("lo de windows"),
+        "{whole}"
+    );
 }

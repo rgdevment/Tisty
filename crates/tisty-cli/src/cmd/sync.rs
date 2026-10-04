@@ -83,7 +83,8 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         }
         let aside = app.paths.cache().to_path_buf();
         tisty_core::backup::write(&data, &into, &aside, Some(&dest))?;
-        let done = match carrier::stitch(&data, &device, &dest) {
+        let key = tisty_core::signing::mine(&app.paths, &tisty_core::DeviceId(device.clone()));
+        let done = match carrier::stitch(&data, &device, &dest, key) {
             Ok(done) => done,
             Err(trouble) => return Ok(said(&trouble, lang)),
         };
@@ -108,11 +109,20 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         .collect();
     let aside = app.paths.cache().to_path_buf();
     let holds = app.config().holds();
-    let moved =
-        match carrier::carry_holding(&data, Some(&aside), &device, &dest, way, &alive, holds) {
-            Ok(moved) => moved,
-            Err(trouble) => return Ok(said(&trouble, lang)),
-        };
+    let key = tisty_core::signing::mine(&app.paths, &tisty_core::DeviceId(device.clone()));
+    let moved = match carrier::carry_holding(
+        &data,
+        Some(&aside),
+        &device,
+        &dest,
+        way,
+        &alive,
+        holds,
+        key,
+    ) {
+        Ok(moved) => moved,
+        Err(trouble) => return Ok(said(&trouble, lang)),
+    };
     for at in &moved.let_go {
         app.commit(tisty_core::Op::AttachLetGo { d: at.clone() })?;
     }
