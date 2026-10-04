@@ -61,10 +61,31 @@ fn what_is_opened_is_the_real_link_until_something_answers_for_the_scheme() {
     );
 }
 
-#[cfg(target_os = "macos")]
 #[test]
-fn launch_services_answers_for_a_scheme_only_when_something_registered_it() {
-    assert!(answered("https"), "a Mac with no browser at all");
+fn a_link_carrying_a_control_character_goes_to_the_browser_as_it_is() {
+    for one in [
+        "https://example.com/a\tb",
+        "https://example.com/a\nb",
+        "https://example.com/\u{7f}",
+        "https://example.com/\u{85}",
+    ] {
+        assert_eq!(
+            as_opened(one, true),
+            one,
+            "it was handed to a reader that refuses it"
+        );
+    }
+    assert_eq!(
+        as_opened("https://example.com/a b", true),
+        through("https://example.com/a b"),
+        "a space inside travels encoded and is not a reason to skip LinkUnbound"
+    );
+}
+
+#[cfg(any(windows, target_os = "macos"))]
+#[test]
+fn the_system_answers_for_a_scheme_only_when_something_registered_it() {
+    assert!(answered("https"), "a machine with no browser at all");
     assert!(
         !answered("tisty-nobody-registers-this"),
         "a scheme nothing registered was said to have a handler"
