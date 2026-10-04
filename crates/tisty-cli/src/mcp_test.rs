@@ -1,4 +1,5 @@
 use super::door::{Door, let_in};
+use super::unpathing::{absolute, unpathed};
 use super::*;
 
 fn four_ids() -> Vec<String> {
@@ -260,6 +261,53 @@ fn a_path_is_found_by_its_drive_or_by_the_slash_that_opens_it() {
     assert_eq!(absolute("https://ejemplo.com"), None);
     assert_eq!(absolute("/etc/hosts"), None);
     assert_eq!(absolute("ver C:"), None);
+    assert_eq!(absolute("2 GB / 90 días"), None);
+    assert_eq!(absolute("uno / otro"), None);
+}
+
+#[test]
+fn only_the_path_is_hidden_and_the_rest_of_the_line_is_read() {
+    assert_eq!(
+        unpathed(r"De paso: `C:\Users\Mario\OneDrive\Tisty` guarda otro almacén viejo."),
+        "De paso: `[path]` guarda otro almacén viejo."
+    );
+    assert_eq!(
+        unpathed("kept at C:/Users/someone/Downloads/x.csv and opened twice"),
+        "kept at [path] and opened twice"
+    );
+    assert_eq!(
+        unpathed(r"from `G:\Mi unidad\Tisty` to /home/one/tisty, both"),
+        "from `[path]` to [path], both"
+    );
+    assert_eq!(
+        unpathed("arrancando en **2 GB / 90 días**. Eso implica más"),
+        "arrancando en **2 GB / 90 días**. Eso implica más"
+    );
+    assert_eq!(unpathed("https://ejemplo.com/a"), "https://ejemplo.com/a");
+}
+
+#[test]
+fn a_path_with_spaces_is_hidden_whole_without_quotes() {
+    assert_eq!(
+        unpathed(r"guardado desde C:\Users\Mario Hidalgo\OneDrive - Personal\contrato.pdf"),
+        "guardado desde [path]"
+    );
+    assert_eq!(
+        unpathed("kept from /Users/x/Library/Mobile Documents/com~apple/notes.pdf"),
+        "kept from [path]"
+    );
+    assert_eq!(
+        unpathed(r#"run "C:\Program Files\Tisty\tisty.exe" twice"#),
+        r#"run "[path]" twice"#
+    );
+    assert_eq!(
+        unpathed(r"seen in C:\temp\one dir\x.md, then **2 GB / 90 días** stayed"),
+        "seen in [path], then **2 GB / 90 días** stayed"
+    );
+    assert_eq!(
+        unpathed("kept at C:/a/b.csv and read at https://ejemplo.com/x later"),
+        "kept at [path] and read at https://ejemplo.com/x later"
+    );
 }
 
 fn kept(body: &str) -> String {

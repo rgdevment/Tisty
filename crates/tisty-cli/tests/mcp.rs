@@ -940,6 +940,38 @@ fn a_note_comes_back_whole_even_when_it_carries_a_link() {
 }
 
 #[test]
+fn a_note_that_names_a_path_is_read_whole_but_the_path() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let filed = served.call("propose", serde_json::json!({ "title": "a long note" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let wrote = "Starting at **2 GB / 90 DAYS_KEPT**. An old store sits in \
+                 `C:/Users/someone/OneDrive/Tisty` and STAYS_SAID after it.";
+    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = back["result"]["structuredContent"]["journal"][0]["body"]
+        .as_str()
+        .unwrap_or_default();
+
+    for word in ["DAYS_KEPT", "STAYS_SAID"] {
+        assert!(
+            kept.contains(word),
+            "a note was cut where it named a path, and {word} never reached the agent: {kept}"
+        );
+    }
+    assert!(
+        !kept.contains("Users/someone"),
+        "the shape of a disk is not the agent's business: {kept}"
+    );
+}
+
+#[test]
 fn a_path_from_this_disk_is_still_elided() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
