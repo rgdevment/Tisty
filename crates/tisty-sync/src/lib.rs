@@ -1226,15 +1226,20 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
 }
 
 pub(crate) fn plainly(at: &Path) -> Result<(), Trouble> {
+    tisty_core::counting::looked();
     if std::fs::symlink_metadata(at).is_ok_and(|one| one.file_type().is_symlink()) {
-        witness::warn(
-            channel::SYNC,
-            "something in the meeting place points somewhere else, so it was left alone",
-            &[("at", Fact::Path(at.to_path_buf()))],
-        );
+        pointed_away(at);
         return Err(Trouble::Refused(at.display().to_string()));
     }
     Ok(())
+}
+
+pub(crate) fn pointed_away(at: &Path) {
+    witness::warn(
+        channel::SYNC,
+        "something in the meeting place points somewhere else, so it was left alone",
+        &[("at", Fact::Path(at.to_path_buf()))],
+    );
 }
 
 fn straight(at: &Path, under: &Path) -> Result<(), Trouble> {

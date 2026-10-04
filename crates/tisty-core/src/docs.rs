@@ -15,7 +15,7 @@ pub use carried::{
     Carried, before_left_at, carried_at, carried_print, forget_carried, forget_what_was_carried,
     keep_carried, kept_before, print_of, read_before, read_carried,
 };
-pub use prints::Prints;
+pub use prints::{Prints, Seen};
 use text::{Fencing, as_written, bullet, quoted, quoteless, unpictured, unspanned, wordless};
 pub use text::{
     Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,

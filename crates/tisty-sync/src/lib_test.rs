@@ -7527,3 +7527,33 @@ fn a_body_joined_on_one_machine_reaches_the_other_without_a_question() {
         "{whole}"
     );
 }
+
+#[test]
+fn a_quiet_round_asks_each_document_only_what_it_has_to() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let alive: Vec<String> = (1..=20)
+        .map(|n| {
+            let file = format!("uno-{n:04}");
+            filed(&one, &file, &format!("# Doc {n}\n\ncuerpo {n}\n"));
+            file
+        })
+        .collect();
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    tisty_core::counting::from_now();
+    tisty_core::counting::looks_from_now();
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+    let opened = tisty_core::counting::from_now();
+    let looked = tisty_core::counting::looks_from_now();
+
+    assert_eq!((done.sent, done.brought), (0, 0));
+    assert_eq!(opened, 0, "a quiet round read a body it already knew");
+    // One look at each side and one at the base it was carried from; it was five before.
+    assert!(
+        looked <= 3 * alive.len() as u64,
+        "{looked} questions about {} documents",
+        alive.len()
+    );
+}
