@@ -15,7 +15,7 @@ jobs:
     permissions:
       actions: write
       pull-requests: write
-    uses: rgdevment/cla-signatures/.github/workflows/cla.yml@0b313d465bc0edf42dc592d5f782434e108564f3 # main
+    uses: rgdevment/cla-signatures/.github/workflows/cla.yml@0b313d465bc0edf42dc592d5f782434e108564f3 # v1.0.0
     with:
       project: tisty
       document-url: https://github.com/rgdevment/Tisty/blob/main/CLA.md
