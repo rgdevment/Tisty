@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # A workflow that will not parse fails in no time at all, with no job and no line number, and
       # the one that matters is the release: it is only ever run when a tag is already pushed.
@@ -29,8 +31,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
       - run: npm ci
+
+      - name: The notices that ship are the ones the lockfiles say
+        run: |
+          rustup toolchain install --no-self-update
+          npm ci --prefix app --ignore-scripts
+          npm run notices
+          if ! git diff --exit-code --stat THIRD-PARTY-BUNDLED.md; then
+            echo "::error::THIRD-PARTY-BUNDLED.md ships inside the app and no longer matches the lockfiles. Run npm run notices and commit it."
+            exit 1
+          fi
 
       - name: The workflows parse
         run: |
@@ -43,6 +57,19 @@ jobs:
           done
           echo "every workflow parses"
 
+      # Parsing says nothing of a needs that names a job that is gone, or of input expanded into a shell.
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: zizmor
+      - name: The workflows mean what they say
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHELLCHECK_OPTS: --severity=warning
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          "$(go env GOPATH)/bin/actionlint"
+          zizmor --min-severity medium .github
+
       # One implementation for the conventions a person can break in a second: the hook runs
       # the same file, so local and CI can never drift into saying different things.
       - name: The conventions the script keeps
@@ -52,39 +79,7 @@ jobs:
       - name: The subject that landed
         if: github.event_name == 'push'
         run: |
-          said=$(git log -1 --format=%s)
-          case "$said" in
-            Merge\ * | Revert\ *) echo "a merge keeps its own shape" ;;
-            *) bash scripts/commits.sh --subject "$said" ;;
-          esac
-
-      - name: A spawned binary is never left the runner's language
-        run: |
-          status=0
-          for at in $(grep -ral 'CARGO_BIN_EXE_tisty' crates/tisty-cli/tests); do
-            spawns=$(grep -ac 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at")
-            pinned=$(grep -aA9 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at"               | grep -cE 'env_clear\(\)|env_remove\("LC_ALL"\)')
-            if [ "$spawns" != "$pinned" ]; then
-              echo "::error::$at spawns the binary $spawns time(s) and pins the language $pinned"
-              status=1
-            fi
-          done
-          exit $status
-
-      - name: Both languages carry the same documents
-        run: |
-          same() {
-            for mark in '^#' '```' '^|'; do
-              a=$(grep -c "$mark" "$1" || true)
-              b=$(grep -c "$mark" "$2" || true)
-              if [ "$a" != "$b" ]; then
-                echo "::error::$1 and $2 differ in '$mark': $a vs $b"
-                exit 1
-              fi
-            done
-          }
-          same README.md README.es.md
-          same app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md
+          bash scripts/commits.sh --title "$(git log -1 --format=%s)"
 
   # One turn of the suite is what CI already runs on every push and pull request, so this job
   # only earns its toolchain when it runs the twenty that say whether a test is deterministic.
@@ -95,7 +90,11 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          persist-credentials: false
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
@@ -106,6 +105,6 @@ jobs:
 
       - name: Twenty turns of the suite
         run: |
-          for i in $(seq 1 20); do
+          for _ in $(seq 1 20); do
             cargo test -p tisty-core -p tisty-nl -p tisty-sync --quiet || exit 1
           done

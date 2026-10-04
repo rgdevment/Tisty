@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: What the branch changed in the two crates
         id: touched
@@ -32,8 +33,10 @@ jobs:
           git diff "$from" -- crates > branch.diff
           if [ -s branch.diff ]; then echo "any=yes" >> "$GITHUB_OUTPUT"; fi
 
-      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: The toolchain rust-toolchain.toml names
         if: steps.touched.outputs.any == 'yes'
+        shell: bash
+        run: rustup toolchain install --no-self-update
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
@@ -78,6 +81,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: What the branch changed in the window
         id: touched
@@ -119,7 +123,9 @@ jobs:
         working-directory: app
         env:
           TOUCHED: ${{ steps.touched.outputs.list }}
-        run: npx stryker run --mutate "$TOUCHED"
+        run: |
+          npx stryker run --mutate "$TOUCHED"
+          echo "::notice::survivors are in the report above and the artifact; this check does not fail on them"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && steps.touched.outputs.list != ''

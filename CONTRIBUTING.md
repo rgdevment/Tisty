@@ -172,7 +172,10 @@ lines of comment in a row, a file grown past what anybody reads through, Spanish
 where the code should be English, the core printing to a terminal the window
 inherits, a panic where the core should answer, and anything new reaching the
 command line that is frozen. `scripts/commits.sh` holds the shape and the length
-of a subject. Run either whenever you like, and if you want them run for you:
+of a subject. Run either whenever you like. They also run for you: `npm install`
+or `npm ci`, at the root or in `app/`, points git at the hooks unless git already
+has a hooks path of yours, and `--ignore-scripts` skips it. Without npm it is one
+line:
 
 ```sh
 git config core.hooksPath hooks
