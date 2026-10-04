@@ -18,18 +18,13 @@ env:
 
 jobs:
   test:
-    name: test / ${{ matrix.os }}${{ matrix.part && format(' ({0})', matrix.part) || '' }}
+    name: test / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-latest
-            part: 1/2
-          - os: windows-latest
-            part: 2/2
-          - os: macos-latest
+        os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,38 +35,17 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
-          save-if: ${{ github.ref == 'refs/heads/main' && matrix.part != '2/2' }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
           tool: nextest
       # Clippy runs where the cache is written, or the next job pays to rebuild what it needs.
-      - if: matrix.part != '2/2'
-        run: cargo clippy --workspace --all-targets
-      - name: The suite, or this runner's half of it
-        shell: bash
-        env:
-          PART: ${{ matrix.part }}
-        run: cargo nextest run --workspace --no-tests=pass ${PART:+--partition count:$PART}
+      - run: cargo clippy --workspace --all-targets
+      - run: cargo nextest run --workspace --no-tests=pass
+      # Compiling the doc tests is most of what they cost, and macOS is the job with time to spare.
       - if: runner.os == 'macOS'
         run: cargo test --doc --workspace
-
-  # The ruleset requires this name; the suite itself runs in two halves above.
-  windows:
-    name: test / windows-latest
-    needs: test
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Both halves passed
-        env:
-          RESULT: ${{ needs.test.result }}
-        run: |
-          if [ "$RESULT" != "success" ]; then
-            echo "::error::a half of the suite, or the macOS run, did not pass: $RESULT"
-            exit 1
-          fi
 
   lint:
     name: fmt
