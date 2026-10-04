@@ -19,6 +19,8 @@ jobs:
     with:
       project: tisty
       document-url: https://github.com/rgdevment/Tisty/blob/main/CLA.md
+      # The owner signs like anyone else: one signature, and every pull request after it is checked the same way.
+      allowlist: dependabot[bot],github-actions[bot]
       not-signed-message: >-
         Thanks for the pull request. Tisty is released under the AGPL-3.0 and offered under
         separate commercial terms, which requires a signature from whoever opened it and every
