@@ -1,6 +1,6 @@
 name: CLA
 
-on:
+on: # zizmor: ignore[dangerous-triggers] the CLA check reads the pull request through the API and never checks it out
   issue_comment:
     types: [created]
   pull_request_target:
@@ -22,7 +22,8 @@ jobs:
        github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') ||
       github.event_name == 'pull_request_target'
     steps:
-      - name: CLA Assistant
+      - name: CLA Assistant # zizmor: ignore[archived-uses]
+        # TODO: contributor-assistant/github-action is archived; it gets no fixes from here on.
         uses: contributor-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08 # v2.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

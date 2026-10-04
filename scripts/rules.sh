@@ -2,6 +2,7 @@
 set -uo pipefail
 
 status=0
+missed=0
 
 amiss() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then
@@ -10,6 +11,7 @@ amiss() {
     printf 'x  %s\n' "$1"
   fi
   status=1
+  missed=$((missed + 1))
 }
 
 went_well() {
@@ -63,7 +65,7 @@ nothing_past_what_a_person_holds() {
   kept=$(mktemp)
   tr -d '\015' < .github/oversized.txt > "$kept"
 
-  before=$status
+  before=$missed
   while read -r now at; do
     was=$(awk -v at="$at" '$2 == at { last = $1 } END { print last }' "$kept")
     if [ -z "$was" ]; then
@@ -84,7 +86,7 @@ nothing_past_what_a_person_holds() {
   done < <(tr -d '\015' < .github/oversized.txt)
 
   rm -f "$measured" "$kept"
-  [ "$status" != "$before" ] || went_well "no file grows past what a person can hold"
+  [ "$missed" != "$before" ] || went_well "no file grows past what a person can hold"
 }
 
 read_by_a_person() {
@@ -186,7 +188,7 @@ nothing_new_reaches_the_command_line() {
     return
   fi
   now=$( { awk '/^pub enum Command/,/^}/' crates/tisty-cli/src/main.rs \
-            | awk '/^    [A-Z]/ { kept = ($0 ~ /^    (Demo|Sync|Doctor|Export|Mcp|Leave|Agent)\b/) } !kept'
+            | awk '/^    [A-Z]/ { kept = ($0 ~ /^    (Demo|Sync|Doctor|Export|Mcp|Leave|Agent)([^A-Za-z]|$)/) } !kept'
           awk '/^pub (enum [A-Za-z]*Action|struct (Cli|AddArgs|SetArgs))/,/^}/' \
             crates/tisty-cli/src/main.rs; } \
           | grep -oE '^    [A-Z][A-Za-z]*|^ +(pub )?[a-z_]+:|alias = "[a-z-]+"' \
@@ -204,6 +206,43 @@ nothing_new_reaches_the_command_line() {
   fi
 }
 
+every_spawn_pins_its_language() {
+  local at spawns pinned bad=0
+  if [ ! -d crates/tisty-cli/tests ]; then
+    amiss "crates/tisty-cli/tests is not here, so no spawned binary was looked at"
+    return
+  fi
+  while IFS= read -r at; do
+    spawns=$(grep -ac 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at")
+    pinned=$(grep -aA9 'Command::new(env!("CARGO_BIN_EXE_tisty"))' "$at" \
+      | grep -cE 'env_clear\(\)|env_remove\("LC_ALL"\)')
+    [ "$spawns" = "$pinned" ] \
+      || { amiss "$at spawns the binary $spawns time(s) and pins the language $pinned"; bad=1; }
+  done < <(grep -ral 'CARGO_BIN_EXE_tisty' crates/tisty-cli/tests)
+  [ "$bad" = 1 ] || went_well "every spawned binary has its language pinned"
+}
+
+both_languages_carry_the_same_documents() {
+  local pair one mark a b bad=0
+  for pair in "README.md README.es.md" \
+    "app/src-tauri/resources/guide/en/guide.md app/src-tauri/resources/guide/es/guia.md"; do
+    set -- $pair
+    for one in "$1" "$2"; do
+      if [ ! -f "$one" ]; then
+        amiss "$one is not here, so its other language was not compared"
+        bad=1
+        continue 2
+      fi
+    done
+    for mark in '^#' '```' '^|'; do
+      a=$(grep -c -- "$mark" "$1")
+      b=$(grep -c -- "$mark" "$2")
+      [ "$a" = "$b" ] || { amiss "$1 and $2 differ in '$mark': $a vs $b"; bad=1; }
+    done
+  done
+  [ "$bad" = 1 ] || went_well "both languages carry the same documents"
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
@@ -213,4 +252,6 @@ nothing_the_window_cannot_translate
 nothing_the_core_prints
 nothing_that_takes_the_window_down
 nothing_new_reaches_the_command_line
+every_spawn_pins_its_language
+both_languages_carry_the_same_documents
 exit $status

@@ -270,7 +270,7 @@ instead.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (384 crates)
+## In the core (420 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -283,13 +283,14 @@ instead.
 | `anstyle` | 1.0.14 | MIT OR Apache-2.0 |
 | `anstyle-parse` | 1.0.0 | MIT OR Apache-2.0 |
 | `anstyle-query` | 1.1.5 | MIT OR Apache-2.0 |
+| `anstyle-wincon` | 3.0.11 | MIT OR Apache-2.0 |
 | `anyhow` | 1.0.104 | MIT OR Apache-2.0 |
 | `arboard` | 3.6.1 | MIT OR Apache-2.0 |
 | `atomic-waker` | 1.1.2 | Apache-2.0 OR MIT |
 | `autocfg` | 1.5.1 | Apache-2.0 OR MIT |
 | `aws-lc-rs` | 1.18.0 | ISC AND (Apache-2.0 OR ISC) |
 | `aws-lc-sys` | 0.44.0 | ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0) |
-| `base64` | 0.21.7 | MIT OR Apache-2.0 |
+| `base64` | 0.22.1 | MIT OR Apache-2.0 |
 | `bit-set` | 0.8.0 | Apache-2.0 OR MIT |
 | `bit-vec` | 0.8.0 | Apache-2.0 OR MIT |
 | `bitflags` | 1.3.2 | MIT/Apache-2.0 |
@@ -319,6 +320,7 @@ instead.
 | `clap_builder` | 4.6.7 | MIT OR Apache-2.0 |
 | `clap_derive` | 4.6.7 | MIT OR Apache-2.0 |
 | `clap_lex` | 1.1.0 | MIT OR Apache-2.0 |
+| `clipboard-win` | 5.4.1 | BSL-1.0 |
 | `cmake` | 0.1.58 | MIT OR Apache-2.0 |
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
 | `colorchoice` | 1.0.5 | MIT OR Apache-2.0 |
@@ -339,6 +341,7 @@ instead.
 | `ctor` | 1.0.13 | Apache-2.0 OR MIT |
 | `ctutils` | 0.4.2 | Apache-2.0 OR MIT |
 | `curve25519-dalek` | 5.0.0 | BSD-3-Clause |
+| `curve25519-dalek-derive` | 0.1.1 | MIT/Apache-2.0 |
 | `darling` | 0.23.0 | MIT |
 | `darling_core` | 0.23.0 | MIT |
 | `darling_macro` | 0.23.0 | MIT |
@@ -365,10 +368,12 @@ instead.
 | `ed25519-dalek` | 3.0.0 | BSD-3-Clause |
 | `embed_plist` | 1.2.2 | MIT OR Apache-2.0 |
 | `embed-resource` | 3.0.11 | MIT |
+| `encode_unicode` | 1.0.0 | Apache-2.0 OR MIT |
 | `encoding_rs` | 0.8.35 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
 | `equivalent` | 1.0.2 | Apache-2.0 OR MIT |
 | `erased-serde` | 0.4.10 | MIT OR Apache-2.0 |
 | `errno` | 0.3.14 | MIT OR Apache-2.0 |
+| `error-code` | 3.3.2 | BSL-1.0 |
 | `fallible-iterator` | 0.3.0 | MIT/Apache-2.0 |
 | `fallible-streaming-iterator` | 0.1.9 | MIT/Apache-2.0 |
 | `fastrand` | 2.5.0 | Apache-2.0 OR MIT |
@@ -436,6 +441,8 @@ instead.
 | `jiff` | 0.2.37 | Unlicense OR MIT |
 | `jiff-core` | 0.1.0 | Unlicense OR MIT |
 | `jiff-static` | 0.2.37 | Unlicense OR MIT |
+| `jiff-tzdb` | 0.1.8 | Unlicense OR MIT |
+| `jiff-tzdb-platform` | 0.1.3 | Unlicense OR MIT |
 | `jobserver` | 0.1.35 | MIT OR Apache-2.0 |
 | `json-patch` | 4.2.0 | MIT/Apache-2.0 |
 | `jsonptr` | 0.7.1 | MIT OR Apache-2.0 |
@@ -457,6 +464,7 @@ instead.
 | `muda` | 0.20.0 | Apache-2.0 OR MIT |
 | `new_debug_unreachable` | 1.0.6 | MIT |
 | `notify-rust` | 4.18.0 | MIT OR Apache-2.0 |
+| `ntapi` | 0.4.3 | Apache-2.0 OR MIT |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 |
 | `num-traits` | 0.2.19 | MIT OR Apache-2.0 |
 | `objc2` | 0.6.4 | MIT |
@@ -471,6 +479,7 @@ instead.
 | `objc2-quartz-core` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
+| `once_cell_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
 | `open` | 5.4.1 | MIT |
 | `option-ext` | 0.2.0 | MPL-2.0 |
 | `osakit` | 0.3.1 | MIT OR Apache-2.0 |
@@ -555,6 +564,7 @@ instead.
 | `slab` | 0.4.12 | MIT |
 | `smallvec` | 1.15.2 | MIT OR Apache-2.0 |
 | `socket2` | 0.6.5 | MIT OR Apache-2.0 |
+| `softbuffer` | 0.4.8 | MIT OR Apache-2.0 |
 | `stable_deref_trait` | 1.2.1 | MIT OR Apache-2.0 |
 | `string_cache` | 0.9.0 | MIT OR Apache-2.0 |
 | `string_cache_codegen` | 0.6.1 | MIT OR Apache-2.0 |
@@ -565,6 +575,7 @@ instead.
 | `sync_wrapper` | 1.0.2 | Apache-2.0 |
 | `synstructure` | 0.13.2 | MIT |
 | `sys-locale` | 0.3.2 | MIT OR Apache-2.0 |
+| `sysinfo` | 0.39.6 | MIT |
 | `system-configuration` | 0.7.0 | MIT OR Apache-2.0 |
 | `system-configuration-sys` | 0.6.0 | MIT OR Apache-2.0 |
 | `tao` | 0.37.1 | Apache-2.0 |
@@ -586,6 +597,7 @@ instead.
 | `tauri-runtime-wry` | 2.12.1 | Apache-2.0 OR MIT |
 | `tauri-utils` | 2.10.1 | Apache-2.0 OR MIT |
 | `tauri-winres` | 0.3.6 | MIT |
+| `tauri-winrt-notification` | 0.7.3 | MIT OR Apache-2.0 |
 | `tempfile` | 3.27.0 | MIT OR Apache-2.0 |
 | `tendril` | 0.5.1 | MIT OR Apache-2.0 |
 | `thiserror` | 2.0.21 | MIT OR Apache-2.0 |
@@ -632,13 +644,37 @@ instead.
 | `uuid` | 1.24.0 | Apache-2.0 OR MIT |
 | `vcpkg` | 0.2.15 | MIT/Apache-2.0 |
 | `version_check` | 0.9.5 | MIT/Apache-2.0 |
+| `vswhom` | 0.1.0 | MIT |
+| `vswhom-sys` | 0.1.3 | MIT |
 | `walkdir` | 2.5.0 | Unlicense/MIT |
 | `want` | 0.3.1 | MIT |
 | `web_atoms` | 0.2.5 | MIT OR Apache-2.0 |
 | `web-time` | 1.1.0 | MIT OR Apache-2.0 |
+| `webview2-com` | 0.39.1 | MIT |
+| `webview2-com-macros` | 0.8.1 | MIT |
+| `webview2-com-sys` | 0.39.1 | MIT |
 | `weezl` | 0.1.12 | MIT OR Apache-2.0 |
+| `winapi` | 0.3.9 | MIT/Apache-2.0 |
+| `winapi-util` | 0.1.11 | Unlicense OR MIT |
 | `window-vibrancy` | 0.8.1 | Apache-2.0 OR MIT |
+| `windows` | 0.61.3 | MIT OR Apache-2.0 |
+| `windows_x86_64_msvc` | 0.52.6 | MIT OR Apache-2.0 |
+| `windows-collections` | 0.2.0 | MIT OR Apache-2.0 |
+| `windows-core` | 0.61.2 | MIT OR Apache-2.0 |
+| `windows-future` | 0.2.1 | MIT OR Apache-2.0 |
+| `windows-implement` | 0.60.2 | MIT OR Apache-2.0 |
+| `windows-interface` | 0.59.3 | MIT OR Apache-2.0 |
+| `windows-link` | 0.1.3 | MIT OR Apache-2.0 |
+| `windows-numerics` | 0.2.0 | MIT OR Apache-2.0 |
+| `windows-registry` | 0.6.1 | MIT OR Apache-2.0 |
+| `windows-result` | 0.3.4 | MIT OR Apache-2.0 |
+| `windows-strings` | 0.4.2 | MIT OR Apache-2.0 |
+| `windows-sys` | 0.59.0 | MIT OR Apache-2.0 |
+| `windows-targets` | 0.52.6 | MIT OR Apache-2.0 |
+| `windows-threading` | 0.1.0 | MIT OR Apache-2.0 |
+| `windows-version` | 0.1.7 | MIT OR Apache-2.0 |
 | `winnow` | 1.0.4 | MIT |
+| `winreg` | 0.55.0 | MIT |
 | `writeable` | 0.6.3 | Unicode-3.0 |
 | `wry` | 0.57.0 | Apache-2.0 OR MIT |
 | `xattr` | 1.6.1 | MIT OR Apache-2.0 |
@@ -652,7 +688,7 @@ instead.
 | `zerotrie` | 0.2.4 | Unicode-3.0 |
 | `zerovec` | 0.11.6 | Unicode-3.0 |
 | `zerovec-derive` | 0.11.3 | Unicode-3.0 |
-| `zip` | 8.6.0 | MIT |
+| `zip` | 4.6.1 | MIT |
 | `zlib-rs` | 0.6.7 | Zlib |
 | `zmij` | 1.0.23 | MIT |
 | `zopfli` | 0.8.3 | Apache-2.0 |

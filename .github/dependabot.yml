@@ -10,6 +10,8 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore"
     groups:
@@ -30,6 +32,8 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore"
     # Its types cross into the windows crate's own Store API, so it moves only when windows does.
@@ -54,6 +58,8 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore"
     # @stryker-mutator/vitest-runner 10 runs no test per mutant under vitest 5, so every mutant survives.
@@ -80,5 +86,7 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 1
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore"

@@ -17,25 +17,32 @@ runs:
   steps:
     - name: Smoke test
       shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+        VERSION: ${{ inputs.version }}
       run: |
-        bin="target/${{ inputs.target }}/release/tisty"
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
+        bin="target/$TARGET/release/tisty"
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
           bin="$bin.exe"
         fi
-        test "$("$bin" --version)" = "tisty ${{ inputs.version }}"
+        test "$("$bin" --version)" = "tisty $VERSION"
 
     - name: Package
       shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+        VERSION: ${{ inputs.version }}
+        SLUG: ${{ inputs.name }}
       run: |
-        name="tisty-cli-${{ inputs.version }}-${{ inputs.name }}"
+        name="tisty-cli-$VERSION-$SLUG"
         mkdir -p dist "$name"
         cp README.md LICENSE "$name"/
 
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          cp "target/${{ inputs.target }}/release/tisty.exe" "$name"/
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cp "target/$TARGET/release/tisty.exe" "$name"/
           7z a "dist/$name.zip" "$name"
         else
-          cp "target/${{ inputs.target }}/release/tisty" "$name"/
+          cp "target/$TARGET/release/tisty" "$name"/
           tar czf "dist/$name.tar.gz" "$name"
         fi
 
