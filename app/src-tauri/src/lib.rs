@@ -24,7 +24,7 @@ use tauri::{Emitter, Manager};
 
 pub(crate) use asked::{Change, View, ahead, dated_field, recalled, repeated, tagged};
 pub(crate) use refusing::{Refusal, blamed, refusal_code};
-pub(crate) use refusing::{behind_buttons, behind_said, where_it_comes_from};
+pub(crate) use refusing::{behind_here, where_it_comes_from};
 pub(crate) use session::Session;
 pub(crate) use summing::{Coming, Counted, Habit, coming, recurring, tags_in_use, tally};
 
@@ -626,18 +626,19 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             for window in app.webview_windows().values() {
                 let _ = window.close();
             }
-            let behind = matches!(why, tisty_core::Error::UnsupportedVersion(_));
+            let behind = match &why {
+                tisty_core::Error::UnsupportedVersion { device, .. } => Some(behind_here(device)),
+                _ => None,
+            };
             let said = app
                 .dialog()
-                .message(if behind {
-                    behind_said()
-                } else {
-                    why.to_string()
+                .message(match &behind {
+                    Some((told, ..)) => told.clone(),
+                    None => why.to_string(),
                 })
                 .kind(MessageDialogKind::Error)
                 .title("Tisty");
-            if behind {
-                let (yes, no) = behind_buttons();
+            if let Some((_, yes, no)) = behind {
                 if said
                     .buttons(MessageDialogButtons::OkCancelCustom(yes.into(), no.into()))
                     .blocking_show()

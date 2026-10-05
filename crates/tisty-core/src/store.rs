@@ -503,7 +503,7 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 
     for device in devices {
         let device = device?;
-        if !device.file_type()?.is_dir() {
+        if !device.file_type()?.is_dir() || !named_as_a_device(&device) {
             continue;
         }
 
@@ -606,6 +606,18 @@ pub fn is_store_name(name: &str) -> bool {
         && name
             .bytes()
             .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
+}
+
+pub fn named_as_a_device(entry: &std::fs::DirEntry) -> bool {
+    entry.file_name().to_str().is_some_and(is_device_name)
+}
+
+fn written_by(segment: &Path) -> String {
+    segment
+        .parent()
+        .and_then(|dir| dir.file_name())
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 pub fn is_device_name(name: &str) -> bool {
@@ -852,7 +864,10 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usi
         let strange = !KNOWN_OPS.contains(&stamp.op.as_str());
         if stamp.v > SCHEMA_VERSION {
             if !stamp.opt || !strange {
-                return Err(Error::UnsupportedVersion(stamp.v));
+                return Err(Error::UnsupportedVersion {
+                    version: stamp.v,
+                    device: written_by(path),
+                });
             }
             skipped(format!("schema {}", stamp.v));
             continue;

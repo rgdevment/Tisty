@@ -1238,3 +1238,14 @@ fn the_mark_only_ever_climbs() {
     cache.mark("c");
     assert_eq!(cache.meta("last_key").as_deref(), Some("c"));
 }
+
+#[test]
+fn a_folder_no_machine_could_be_named_leaves_the_fingerprint_alone() {
+    let f = loaded();
+    let before = fingerprint(&f.store_root);
+    let stray = f.store_root.join("Not A Machine");
+    std::fs::create_dir_all(&stray).unwrap();
+    std::fs::write(stray.join("active.tisty"), "{}\n").unwrap();
+
+    assert_eq!(before, fingerprint(&f.store_root));
+}

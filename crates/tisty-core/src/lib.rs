@@ -102,9 +102,9 @@ pub enum Error {
     #[error("segment {number:06} of {device} is missing: that slice of history is not here")]
     MissingSegment { number: usize, device: String },
     #[error(
-        "event schema version {0} is newer than this build understands: update Tisty on this machine before going on, or reading half of it would lose work"
+        "event schema version {version}, written by {device}, is newer than this build understands: update Tisty on this machine before going on, or reading half of it would lose work"
     )]
-    UnsupportedVersion(u32),
+    UnsupportedVersion { version: u32, device: String },
     #[error("another tisty process is using this device's store")]
     AlreadyRunning,
     #[error("could not determine the home directory")]
@@ -144,7 +144,7 @@ impl Error {
             Error::MalformedEvent { .. } => "malformedEvent",
             Error::TruncatedSegment { .. } => "truncatedSegment",
             Error::MissingSegment { .. } => "missingSegment",
-            Error::UnsupportedVersion(_) => "unsupportedVersion",
+            Error::UnsupportedVersion { .. } => "unsupportedVersion",
             Error::AlreadyRunning => "alreadyRunning",
             Error::NoHomeDirectory => "noHomeDirectory",
             Error::ConfigParse(_) => "configParse",
@@ -174,7 +174,10 @@ impl Error {
                 facts.push(("number", Fact::Count(*number)));
                 facts.push(("device", Fact::Id(device.clone())));
             }
-            Error::UnsupportedVersion(v) => facts.push(("version", Fact::Count(*v as usize))),
+            Error::UnsupportedVersion { version, device } => {
+                facts.push(("version", Fact::Count(*version as usize)));
+                facts.push(("device", Fact::Id(device.clone())));
+            }
             Error::AttachmentTooBig { bytes, limit } => {
                 facts.push(("bytes", Fact::Bytes(*bytes)));
                 facts.push(("limit", Fact::Bytes(*limit)));
