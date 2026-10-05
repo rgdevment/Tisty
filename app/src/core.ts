@@ -339,6 +339,7 @@ export const markStep = (id: string, step: string, done: boolean): Promise<Task>
 export const dropStep = (id: string, step: string): Promise<Task> =>
   invoke("drop_step", { id, step });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
+export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
 export const addPart = (whole: string, title: string): Promise<Task> =>
   invoke("add_part", { whole, title });
 export const hang = (id: string, whole: string | null): Promise<Task> =>

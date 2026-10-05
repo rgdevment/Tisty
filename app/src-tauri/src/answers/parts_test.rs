@@ -181,3 +181,14 @@ fn only_open_tasks_that_could_hold_parts_are_offered() {
     );
     assert!(titles(whole).is_empty(), "a task with parts is no part");
 }
+
+#[test]
+fn a_whole_put_out_of_sight_takes_no_new_parts_however_they_come() {
+    let mut state = State::default();
+    let whole = written(&mut state, 1, "move house", None);
+    let loose = written(&mut state, 2, "paint", None);
+    applied(&mut state, 3, vec![Op::TaskHide { id: whole }]);
+
+    assert!(part_added(&state, whole, "pack").is_err());
+    assert_eq!(hanging(&state, loose, Some(whole)), Err("wholeClosed"));
+}

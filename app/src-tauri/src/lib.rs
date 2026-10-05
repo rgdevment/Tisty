@@ -868,6 +868,7 @@ pub fn run() {
             answers::tasks::reopen,
             answers::tasks::patch,
             answers::tasks::write_step,
+            answers::parts::task_of,
             answers::parts::parts_of,
             answers::parts::add_part,
             answers::parts::hang,

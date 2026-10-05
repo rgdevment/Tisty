@@ -272,7 +272,7 @@ export default function Detail({
         onWrite={onStep}
         onMark={onMark}
         onDrop={onDropStep}
-        onTurn={!task.part_of && !task.repeat && !task.after ? onStepToPart : undefined}
+        onTurn={live && !task.part_of && !task.repeat && !task.after ? onStepToPart : undefined}
       />
 
       <Section

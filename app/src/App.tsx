@@ -64,6 +64,7 @@ import {
   stillOpen,
   syncState,
   type Task,
+  taskOf,
   type Underway,
   updateInstall,
   updateReady,
@@ -1267,7 +1268,7 @@ export default function App() {
     setSelected(undefined);
   };
 
-  const wholes = { ...data.wholes, ...found?.wholes };
+  const wholes = { ...found?.wholes, ...data.wholes };
   const detailing = (one: Task) => ({
     task: one,
     lists: data.every ?? data.lists,
@@ -1297,11 +1298,16 @@ export default function App() {
     whole: wholes[one.id],
     partOf: one.part_of ? wholes[one.part_of]?.title : undefined,
     onAddPart: (title: string) => act(addPart(one.id, title)),
-    onOpenPart: setSelected,
+    onOpenPart: (id: string) => taskOf(id).then(opening, (e) => setError(saidPlainly(e))),
     onCompletePart: marking,
     onHang: (whole: string | null) => act(hang(one.id, whole)),
     onStepToPart: (step: string) => act(stepToPart(one.id, step)),
   });
+
+  const opening = (one: Task) => {
+    setHeld(one);
+    setSelected(one.id);
+  };
 
   const lockAndPack = () => {
     if (movingTo === null || number.length < HOW_MANY) return;
@@ -1743,8 +1749,7 @@ export default function App() {
             if (!data.tasks.some((one) => one.id === captured.id)) {
               setChosen({ named: "tasks", slice: "all" });
             }
-            setHeld(captured);
-            setSelected(captured.id);
+            opening(captured);
             setReveal(captured.id);
             dismiss();
           }}

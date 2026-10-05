@@ -159,7 +159,7 @@ pub fn offered(state: &State, id: TaskId) -> Vec<Offered> {
 }
 
 fn takes_parts(holder: &Task) -> Result<(), &'static str> {
-    if holder.status != Status::Open {
+    if holder.status != Status::Open || holder.folded() {
         return Err("wholeClosed");
     }
     if holder.part_of.is_some() {
@@ -197,6 +197,14 @@ fn answered(session: &Session, id: TaskId) -> Answer<Task> {
 
 fn task_id(raw: &str) -> Result<TaskId, Refusal> {
     raw.parse().map_err(|_| Refusal::of("notATaskId"))
+}
+
+/// A part or a whole can be opened from a detail even when the view never listed it.
+#[tauri::command]
+pub fn task_of(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
+    let id = task_id(&id)?;
+    let session = held(&session);
+    answered(&session, id)
 }
 
 #[tauri::command]
