@@ -609,10 +609,16 @@ pub async fn sync_now(
     let done = done
         .map_err(|_| Refusal::of("internal"))
         .and_then(|carried| carried.map_err(said));
-    let stuck = done.as_ref().err().map(|why| Stuck {
-        code: why.code,
-        name: why.name.clone(),
-    });
+    let same_folder =
+        held(&session).config.sync == Some(tisty_core::config::Sync::Folder(pushing.3.clone()));
+    let stuck = done
+        .as_ref()
+        .err()
+        .filter(|_| same_folder)
+        .map(|why| Stuck {
+            code: why.code,
+            name: why.name.clone(),
+        });
     let _ = app.emit("brought", stuck);
     let done = done?;
     answering(&session, &done.to_answer(), pushing, holds).await;
