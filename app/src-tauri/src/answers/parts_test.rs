@@ -47,7 +47,8 @@ fn a_whole_is_counted_and_named_for_the_rows_that_show_its_parts() {
         Whole {
             title: "move house".into(),
             open: 1,
-            closed: 1
+            closed: 1,
+            away: 0
         }
     );
 }
@@ -67,6 +68,29 @@ fn hanging_says_why_instead_of_letting_nothing_land() {
         hanging(&state, part, None).is_ok(),
         "letting go always lands"
     );
+
+    applied(
+        &mut state,
+        4,
+        vec![Op::TaskDone {
+            id: whole,
+            filled: false,
+        }],
+    );
+    assert_eq!(hanging(&state, other, Some(whole)), Err("wholeClosed"));
+}
+
+#[test]
+fn a_part_put_out_of_sight_still_names_its_whole_and_still_counts_as_left() {
+    let mut state = State::default();
+    let whole = written(&mut state, 1, "move house", None);
+    let part = written(&mut state, 2, "pack", Some(whole));
+    applied(&mut state, 3, vec![Op::TaskHide { id: part }]);
+
+    let all = wholes(&state);
+    let counted = &all[&whole.to_string()];
+    assert_eq!(counted.title, "move house");
+    assert_eq!((counted.open, counted.closed, counted.away), (0, 0, 1));
 }
 
 #[test]

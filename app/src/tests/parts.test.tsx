@@ -168,3 +168,39 @@ describe("a step that outgrows itself", () => {
     expect(screen.queryByRole("button", { name: new RegExp(t("turnIntoTask")) })).toBeNull();
   });
 });
+
+describe("what the review asked of parts", () => {
+  it("leaves the parts as rows in a dense listing, which nests nothing", () => {
+    render(
+      <TaskList
+        tasks={[task("W", "move house"), task("P", "pack", { part_of: "W" })]}
+        lists={[]}
+        wholes={{ W: whole }}
+        title="Archivo"
+        dense
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("pack")).not.toBeNull();
+  });
+
+  it("keeps the count on a whole an assistant said done", () => {
+    listed([
+      task("W", "move house", { resolved: { at: "2026-10-05T10:00:00Z" } as Task["resolved"] }),
+      task("P", "pack", { part_of: "W" }),
+    ]);
+
+    expect(screen.getByText(/▣ 1\/2/)).not.toBeNull();
+  });
+
+  it("counts what is out of sight among what closing lets go", () => {
+    parts.splice(0, parts.length);
+    opened(task("W", "move house"), {
+      whole: { title: "move house", open: 0, closed: 1, away: 2 },
+      onAddPart: vi.fn(),
+    });
+
+    expect(screen.getByText(fill("partsLeft", "2"))).not.toBeNull();
+  });
+});

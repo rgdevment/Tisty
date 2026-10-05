@@ -133,7 +133,7 @@ export default function Detail({
                 },
               ]
             : []),
-          ...(!task.part_of && !whole && !task.repeat && onAddPart && !splitting
+          ...(!task.part_of && !whole && !task.repeat && !task.after && onAddPart && !splitting
             ? [
                 {
                   key: "split",
@@ -272,7 +272,7 @@ export default function Detail({
         onWrite={onStep}
         onMark={onMark}
         onDrop={onDropStep}
-        onTurn={!task.part_of && !task.repeat ? onStepToPart : undefined}
+        onTurn={!task.part_of && !task.repeat && !task.after ? onStepToPart : undefined}
       />
 
       <Section
@@ -409,7 +409,7 @@ export default function Detail({
           onFold={onFold}
           onReadAs={onReadAs}
           onOpenToAgents={onOpenToAgents}
-          left={whole?.open}
+          left={(whole?.open ?? 0) + (whole?.away ?? 0)}
           also={hanging}
         />
       </main>
@@ -455,7 +455,7 @@ export default function Detail({
         onFold={onFold}
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
-        left={whole?.open}
+        left={(whole?.open ?? 0) + (whole?.away ?? 0)}
         also={hanging}
       />
     </aside>

@@ -63,7 +63,7 @@ export default function TaskList({
   instead,
   children,
 }: Props) {
-  const here = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
+  const here = useMemo(() => new Set(dense ? [] : tasks.map((task) => task.id)), [tasks, dense]);
   const top = useMemo(
     () => tasks.filter((task) => !(task.part_of && here.has(task.part_of))),
     [tasks, here],
@@ -150,7 +150,8 @@ export default function TaskList({
     const rows = Array.from(listed.current?.querySelectorAll<HTMLElement>("[data-row]") ?? []);
     const now = rows.findIndex((row) => row.dataset.row === from);
     let at = now + by;
-    while (leaving && rows[at]?.dataset.task === leaving) at += by;
+    while (leaving && (rows[at]?.dataset.task === leaving || rows[at]?.dataset.whole === leaving))
+      at += by;
     const next = rows[at];
     if (!next) return;
     setReached(next.dataset.row ?? null);
@@ -244,6 +245,7 @@ export default function TaskList({
           ref={reveal === task.id ? asked : undefined}
           data-row={at}
           data-task={task.id}
+          data-whole={nested ? task.part_of : undefined}
           role="listitem"
           tabIndex={stops(at) ? 0 : -1}
           aria-label={spokenLabel(task)}
@@ -505,16 +507,19 @@ function Volume({
   onFold?: () => void;
 }) {
   const v = task.volume ?? {};
-  const counted = whole && (
+  const counted = whole && whole.open + whole.closed > 0 && (
     <Counted whole={whole} folded={folded ?? false} onFold={onFold} key="whole" />
   );
 
   if (task.resolved && task.status === "open") {
     const when = stamped(task.resolved.at);
     return (
-      <span title={saidWhen(task)} className="pt-px text-[11.5px] whitespace-nowrap text-hue-teal">
-        <span aria-hidden="true">◆ </span>
-        {when}
+      <span className="flex items-baseline gap-1.5 pt-px text-[11.5px] whitespace-nowrap">
+        {counted && <span className="text-faint">{counted}</span>}
+        <span title={saidWhen(task)} className="text-hue-teal">
+          <span aria-hidden="true">◆ </span>
+          {when}
+        </span>
       </span>
     );
   }

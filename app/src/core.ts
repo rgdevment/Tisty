@@ -155,6 +155,7 @@ export interface Whole {
   title: string;
   open: number;
   closed: number;
+  away?: number;
 }
 
 export interface Offered {

@@ -13,6 +13,8 @@ pub struct Whole {
     pub title: String,
     pub open: usize,
     pub closed: usize,
+    /// Open but put out of sight: not shown, still let go when the whole is closed.
+    pub away: usize,
 }
 
 #[derive(serde::Serialize, Debug, Clone, PartialEq, Eq)]
@@ -25,7 +27,7 @@ pub struct Offered {
 /// the whole it belongs to even when the whole is not in the view.
 pub fn wholes(state: &State) -> BTreeMap<String, Whole> {
     let mut all: BTreeMap<TaskId, Whole> = BTreeMap::new();
-    for part in state.tasks.values().filter(|one| !one.folded()) {
+    for part in state.tasks.values() {
         let Some(whole) = part.part_of.and_then(|id| state.tasks.get(&id)) else {
             continue;
         };
@@ -33,10 +35,13 @@ pub fn wholes(state: &State) -> BTreeMap<String, Whole> {
             title: whole.title.clone(),
             open: 0,
             closed: 0,
+            away: 0,
         });
-        match part.is_open() {
-            true => counted.open += 1,
-            false => counted.closed += 1,
+        match (part.is_open(), part.folded()) {
+            (true, true) => counted.away += 1,
+            (true, false) => counted.open += 1,
+            (false, false) => counted.closed += 1,
+            (false, true) => {}
         }
     }
     all.into_iter()
@@ -51,6 +56,9 @@ pub fn hanging(state: &State, id: TaskId, whole: Option<TaskId>) -> Result<Op, &
         let holder = state.tasks.get(&whole).ok_or("notATaskId")?;
         if whole == id {
             return Err("partOfItself");
+        }
+        if !holder.is_open() || holder.folded() {
+            return Err("wholeClosed");
         }
         if holder.part_of.is_some() {
             return Err("partOfAPart");
