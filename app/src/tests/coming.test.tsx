@@ -1,6 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ended, heard } from "../coming";
+import { ended, heard, unstuck } from "../coming";
 import { fill, t } from "../locales";
 import Coming, { SHOWN_AFTER, SLOW_AFTER } from "../ui/Coming";
 import TaskList from "../ui/TaskList";
@@ -95,14 +95,23 @@ describe("what is coming from the folder", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("shows the round that is getting through over the reason the last one stopped", () => {
+  it("shows the round that is getting through beside the reason the last one stopped", () => {
     render(<Coming />);
     act(() => ended({ code: "syncNewer", name: "dev_b" }));
 
     act(() => heard({ stage: "papers", done: 4, whole: 9 }, Date.now() - SHOWN_AFTER));
     act(() => vi.advanceTimersByTime(1_000));
 
-    expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByRole("status").textContent).toContain(t("comingPapers"));
+    expect(screen.getByRole("alert").textContent).toBe(fill("syncNewer", "dev_b"));
+  });
+
+  it("lets go of the stop when the folder is left or changed", () => {
+    render(<Coming />);
+    act(() => ended({ code: "syncNewer", name: "dev_b" }));
+
+    act(() => unstuck());
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

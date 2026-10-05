@@ -22,7 +22,9 @@ export const useOnlyAlive = (
     if (!known || !wanted?.length) return;
     const alive = wanted.filter((id) => known.some((one) => one.id === id));
     if (alive.length === wanted.length) return;
-    window.localStorage.setItem("tisty.only", JSON.stringify(alive));
+    try {
+      window.localStorage.setItem("tisty.only", JSON.stringify(alive));
+    } catch {}
     setChosen((was) => ({ ...was, lists: alive }));
   }, [known, chosen.lists, setChosen]);
 };

@@ -663,14 +663,14 @@ export default function App() {
       latest.current();
       papersAgain.current();
     };
-    const seen = () => {
+    const shownAgain = () => {
       if (document.visibilityState === "visible") again();
     };
     window.addEventListener("focus", again);
-    document.addEventListener("visibilitychange", seen);
+    document.addEventListener("visibilitychange", shownAgain);
     return () => {
       window.removeEventListener("focus", again);
-      document.removeEventListener("visibilitychange", seen);
+      document.removeEventListener("visibilitychange", shownAgain);
     };
   }, []);
 

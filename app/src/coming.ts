@@ -1,6 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
-import { saidPlainly } from "./refusal";
 
 export type Stage = "log" | "papers" | "attachments";
 
@@ -16,7 +15,7 @@ export interface Coming extends Heard {
 }
 
 let now: Coming | null = null;
-let stuck: string | null = null;
+let stuck: unknown = null;
 let hearing = false;
 const told = new Set<() => void>();
 
@@ -31,7 +30,12 @@ export const heard = (step: Heard | null, at = Date.now()) => {
 
 export const ended = (why: unknown) => {
   now = null;
-  stuck = why ? saidPlainly(why) : null;
+  stuck = why ?? null;
+  tell();
+};
+
+export const unstuck = () => {
+  stuck = null;
   tell();
 };
 
@@ -40,6 +44,7 @@ const hear = () => {
   hearing = true;
   void listen<Heard>("bringing", (step) => heard(step.payload));
   void listen<unknown>("brought", (end) => ended(end.payload));
+  void listen("unstuck", unstuck);
 };
 
 const subscribe = (change: () => void) => {
@@ -52,4 +57,4 @@ const subscribe = (change: () => void) => {
 
 export const useComing = (): Coming | null => useSyncExternalStore(subscribe, () => now);
 
-export const useStuck = (): string | null => useSyncExternalStore(subscribe, () => stuck);
+export const useStuck = (): unknown => useSyncExternalStore(subscribe, () => stuck);

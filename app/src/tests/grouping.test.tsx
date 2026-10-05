@@ -189,10 +189,13 @@ describe("showing only one list while grouped by list", () => {
     const saving = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("full");
     });
+    try {
+      act(() => group("list"));
 
-    act(() => group("list"));
-
-    expect(result.current[1]).toBe(true);
-    saving.mockRestore();
+      expect(result.current[1]).toBe(true);
+    } finally {
+      saving.mockRestore();
+      act(() => group("time"));
+    }
   });
 });
