@@ -1,10 +1,11 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { List, Task } from "../core";
+import type { Task } from "../core";
 import { group } from "../grouping";
-import Only from "../ui/Only";
+import { useOnly } from "../only";
 import TaskList from "../ui/TaskList";
+import type { Chosen } from "../views";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -161,26 +162,25 @@ describe("what a dropped task says of an agent's word", () => {
 });
 
 describe("showing only one list while grouped by list", () => {
-  const theirs = [{ id: "01H", name: "Home", order: "a0" }] as List[];
+  const chosen: Chosen = { named: "tasks", slice: "today", lists: ["01H"] };
 
-  it("offers the one-list chip while the rows are grouped some other way", () => {
-    render(<Only lists={theirs} chosen={["01H"]} onChange={() => {}} />);
+  it("keeps the one-list filter while the rows are grouped some other way", () => {
+    const { result } = renderHook(() => useOnly(chosen));
 
-    expect(screen.getByRole("button", { name: /Home/ })).toBeTruthy();
+    expect(result.current).toEqual([chosen, false]);
   });
 
-  it("hides the chip while grouped by list, and gives the choice back afterwards", () => {
-    const onChange = vi.fn();
-    const shown = render(<Only lists={theirs} chosen={["01H"]} onChange={onChange} />);
+  it("sets the filter aside while grouped by list, and the choice comes back after", () => {
+    const { result } = renderHook(() => useOnly(chosen));
 
     act(() => group("list"));
 
-    expect(screen.queryByRole("button", { name: /Home/ })).toBeNull();
-    expect(onChange).toHaveBeenLastCalledWith([]);
+    expect(result.current[1]).toBe(true);
+    expect(result.current[0].lists).toBeUndefined();
+    expect(chosen.lists).toEqual(["01H"]);
 
-    shown.rerender(<Only lists={theirs} chosen={[]} onChange={onChange} />);
     act(() => group("time"));
 
-    expect(onChange).toHaveBeenLastCalledWith(["01H"]);
+    expect(result.current[0]).toBe(chosen);
   });
 });
