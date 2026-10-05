@@ -28,6 +28,8 @@ const KNOWN = [
   "storyStays",
   "routineStays",
   "partsStay",
+  "partRepeats",
+  "wholeRepeats",
   "onlyClosedConverts",
   "routineReadsAsRoutine",
   "notAReading",

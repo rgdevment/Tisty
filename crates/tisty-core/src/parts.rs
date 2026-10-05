@@ -40,11 +40,29 @@ impl State {
         }
     }
 
-    pub(crate) fn part_turned_routine(&mut self, id: TaskId) {
-        if let Some(task) = self.tasks.get_mut(&id)
-            && repeats(task)
+    /// Written by a build that knew no parts, or crossing a move on another machine: the
+    /// windows refuse it before it is written.
+    pub(crate) fn turned_routine(&mut self, id: TaskId) {
+        if !self.tasks.get(&id).is_some_and(repeats) {
+            return;
+        }
+        for task in self
+            .tasks
+            .values_mut()
+            .filter(|task| task.id == id || task.part_of == Some(id))
         {
             task.part_of = None;
+        }
+    }
+
+    /// Why a repeat cannot be set here, if it cannot: what comes back never ends, and a whole
+    /// is there to end.
+    pub fn repeat_refused(&self, id: TaskId) -> Option<&'static str> {
+        let task = self.tasks.get(&id)?;
+        match () {
+            () if task.part_of.is_some() => Some("partRepeats"),
+            () if self.holds_parts(id) => Some("wholeRepeats"),
+            () => None,
         }
     }
 
