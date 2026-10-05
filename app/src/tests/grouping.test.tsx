@@ -183,4 +183,16 @@ describe("showing only one list while grouped by list", () => {
 
     expect(result.current[0]).toBe(chosen);
   });
+
+  it("still groups as asked when the choice cannot be saved", () => {
+    const { result } = renderHook(() => useOnly(chosen));
+    const saving = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("full");
+    });
+
+    act(() => group("list"));
+
+    expect(result.current[1]).toBe(true);
+    saving.mockRestore();
+  });
 });

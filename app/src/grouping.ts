@@ -13,11 +13,15 @@ const kept = (): Axis => {
 };
 
 const told = new Set<() => void>();
+let unsaved: Axis | null = null;
 
 export const group = (axis: Axis) => {
   try {
     localStorage.setItem(KEPT, axis);
-  } catch {}
+    unsaved = null;
+  } catch {
+    unsaved = axis;
+  }
   for (const one of told) one();
 };
 
@@ -28,4 +32,4 @@ const subscribe = (change: () => void) => {
   };
 };
 
-export const useGrouped = (): Axis => useSyncExternalStore(subscribe, kept);
+export const useGrouped = (): Axis => useSyncExternalStore(subscribe, () => unsaved ?? kept());

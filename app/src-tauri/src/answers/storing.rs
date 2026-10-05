@@ -485,7 +485,11 @@ pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
 }
 
 #[tauri::command]
-pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) -> Answer<()> {
+pub fn choose_sync(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    dest: Option<String>,
+) -> Answer<()> {
     let mut session = held(&session);
     let chosen = match dest
         .map(|one| one.trim().to_string())
@@ -525,7 +529,9 @@ pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<Strin
             old.display().to_string(),
         ));
     }
-    session.keep(|c| c.sync = Some(chosen))
+    session.keep(|c| c.sync = Some(chosen))?;
+    let _ = app.emit("brought", ());
+    Ok(())
 }
 
 #[tauri::command]

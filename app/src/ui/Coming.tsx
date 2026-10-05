@@ -24,15 +24,13 @@ export default function Coming() {
     return () => clearInterval(ticking);
   }, [coming]);
 
-  if (stuck)
-    return (
+  const long = coming ? Date.now() - coming.since : 0;
+  if (!coming || long < SHOWN_AFTER)
+    return stuck ? (
       <p role="alert" className="mx-2.5 mb-2 px-2.5 py-2 text-[11.5px] text-urgent">
         {stuck}
       </p>
-    );
-  if (!coming) return null;
-  const long = Date.now() - coming.since;
-  if (long < SHOWN_AFTER) return null;
+    ) : null;
   const far = coming.whole ? Math.min(100, Math.round((coming.done / coming.whole) * 100)) : 0;
 
   return (

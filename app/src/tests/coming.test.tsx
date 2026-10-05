@@ -94,4 +94,15 @@ describe("what is coming from the folder", () => {
 
     expect(screen.queryByRole("alert")).toBeNull();
   });
+
+  it("shows the round that is getting through over the reason the last one stopped", () => {
+    render(<Coming />);
+    act(() => ended({ code: "syncNewer", name: "dev_b" }));
+
+    act(() => heard({ stage: "papers", done: 4, whole: 9 }, Date.now() - SHOWN_AFTER));
+    act(() => vi.advanceTimersByTime(1_000));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain(t("comingPapers"));
+  });
 });
