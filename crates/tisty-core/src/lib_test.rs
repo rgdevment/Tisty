@@ -55,3 +55,21 @@ fn every_error_says_which_one_it_is() {
         witness::Fact::Code("noHomeDirectory")
     ));
 }
+
+#[test]
+fn a_newer_history_says_whose_it_is() {
+    let facts = Error::UnsupportedVersion {
+        version: 17,
+        device: "dev_f0ztyvwj".into(),
+    }
+    .told();
+
+    assert!(matches!(
+        fact_named(&facts, "device"),
+        witness::Fact::Id(id) if id == "dev_f0ztyvwj"
+    ));
+    assert!(matches!(
+        fact_named(&facts, "version"),
+        witness::Fact::Count(17)
+    ));
+}

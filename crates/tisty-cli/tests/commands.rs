@@ -2816,3 +2816,28 @@ fn an_archived_list_with_open_work_is_listed_once() {
 
     assert_eq!(said.matches("Office").count(), 1, "{said}");
 }
+
+fn written_ahead(data: &std::path::Path, device: &str) {
+    let dir = data.join("store").join(device);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("active.tisty"),
+        format!(
+            "{{\"v\":999,\"ts\":\"2026-10-04T00:00:00Z\",\"by\":\"{device}\",\"op\":\"task.delete\",\"id\":\"01M14RFT9ECC2B6E4CX4P59XPH\"}}\n"
+        ),
+    )
+    .unwrap();
+}
+
+#[test]
+fn a_store_a_newer_tisty_wrote_to_names_the_machine_that_did() {
+    let cli = Cli::new();
+    cli.ok(&["something of mine"]);
+    written_ahead(&cli.home.path().join("data"), "dev_f0ztyvwj");
+
+    let run = cli.run(&["ls", "all"]);
+
+    assert_ne!(run.code, 0);
+    assert!(run.err.contains("dev_f0ztyvwj"), "{}", run.err);
+    assert!(!run.err.contains("Microsoft Store"), "{}", run.err);
+}
