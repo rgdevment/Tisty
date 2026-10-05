@@ -548,7 +548,7 @@ pub fn step(
     resolved!(app, Some(selector), all, lang, |id| {
         let op = match action {
             StepAction::Add { text } => {
-                let text = text_or_stdin(text, lang)?;
+                let text = short_step(text_or_stdin(text, lang)?, lang)?;
                 Op::StepAdd {
                     id,
                     d: StepAdd {
@@ -580,7 +580,7 @@ pub fn step(
                 id,
                 d: StepText {
                     step: nth_step(app, id, number, lang)?,
-                    text: text_or_stdin(text, lang)?,
+                    text: short_step(text_or_stdin(text, lang)?, lang)?,
                 },
             },
         };
@@ -592,6 +592,19 @@ pub fn step(
         );
         Ok(ExitCode::SUCCESS)
     })
+}
+
+fn short_step(text: String, lang: Lang) -> anyhow::Result<String> {
+    if !tisty_core::model::step_fits(&text) {
+        anyhow::bail!(
+            "{}",
+            lang.fill(
+                "step-too-long",
+                &[("n", &tisty_core::model::STEP_AT_MOST.to_string())]
+            )
+        );
+    }
+    Ok(text)
 }
 
 fn nth_step(app: &App, id: TaskId, number: usize, lang: Lang) -> anyhow::Result<Ulid> {
