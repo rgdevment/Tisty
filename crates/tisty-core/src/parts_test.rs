@@ -276,3 +276,37 @@ fn a_build_that_knows_no_parts_reads_the_line_as_a_plain_task() {
         "nothing is written for a task of its own"
     );
 }
+
+#[test]
+fn a_whole_that_starts_repeating_lets_its_parts_go() {
+    let mut state = State::default();
+    let whole = written(&mut state, 1, "dev_a", "move house", None);
+    let part = written(&mut state, 2, "dev_a", "book the van", Some(whole));
+
+    state.apply(&ev(
+        3,
+        "dev_old",
+        Op::TaskUpdate {
+            id: whole,
+            d: TaskPatch {
+                repeat: Some(Some(weekly())),
+                ..Default::default()
+            },
+        },
+    ));
+
+    assert_eq!(whole_of(&state, part), None);
+    assert!(!state.holds_parts(whole));
+}
+
+#[test]
+fn a_repeat_is_refused_on_a_whole_and_on_a_part_before_it_is_written() {
+    let mut state = State::default();
+    let whole = written(&mut state, 1, "dev_a", "move house", None);
+    let part = written(&mut state, 2, "dev_a", "book the van", Some(whole));
+    let loose = written(&mut state, 3, "dev_a", "water the plants", None);
+
+    assert_eq!(state.repeat_refused(whole), Some("wholeRepeats"));
+    assert_eq!(state.repeat_refused(part), Some("partRepeats"));
+    assert_eq!(state.repeat_refused(loose), None);
+}

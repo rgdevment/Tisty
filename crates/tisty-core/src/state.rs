@@ -258,7 +258,7 @@ impl State {
                 let person = !self.assistants.contains(&event.device);
                 self.with_task(*id, |t| patch(t, d, person));
                 if d.repeat.is_some() {
-                    self.part_turned_routine(*id);
+                    self.turned_routine(*id);
                 }
             }
             Op::TaskDone { id, filled } => {

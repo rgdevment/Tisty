@@ -46,6 +46,7 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
           aria-label={t("addStep")}
           onChange={(e) => setAdding(oneLine(e.target.value))}
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing) return;
             if (e.key === "Enter") {
               e.preventDefault();
               put();
@@ -65,6 +66,7 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
   useEffect(() => setText(step.text), [step.id, step.text]);
 
   const keyed = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === "Enter") {
       e.preventDefault();
       e.currentTarget.blur();

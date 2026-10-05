@@ -373,6 +373,11 @@ pub fn patch(
         // Converting and opening to agents are verbs of their own, never part of an edit.
         ..Default::default()
     };
+    if matches!(d.repeat, Some(Some(_)))
+        && let Some(why) = session.state.repeat_refused(id)
+    {
+        return Err(Refusal::of(why));
+    }
 
     let mut ops = Vec::new();
     let named = match change.list_named.as_deref().map(str::trim) {

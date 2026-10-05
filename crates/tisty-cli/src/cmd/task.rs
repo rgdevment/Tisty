@@ -339,6 +339,15 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
         if d == TaskPatch::default() {
             anyhow::bail!("{}", lang.get("nothing-to-change"));
         }
+        if matches!(d.repeat, Some(Some(_)))
+            && let Some(why) = app.state.repeat_refused(id)
+        {
+            let key = match why {
+                "partRepeats" => "part-repeats",
+                _ => "whole-repeats",
+            };
+            anyhow::bail!("{}", lang.get(key));
+        }
 
         app.commit(Op::TaskUpdate { id, d })?;
         let task = &app.state.tasks[&id];
