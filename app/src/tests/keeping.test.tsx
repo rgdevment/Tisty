@@ -2240,9 +2240,10 @@ describe("the first-run assistant", () => {
     letGo();
   });
 
-  const carried = async (far: string) => {
+  const underway = async () => {
     const waiting = new Promise<void>((keep) => setTimeout(keep, 0));
-    for (const heard of bus.heard.get("carried") ?? []) heard({ payload: far });
+    for (const heard of bus.heard.get("bringing") ?? [])
+      heard({ payload: { stage: "log", done: 0, whole: 2 } });
     await waiting;
   };
 
@@ -2255,11 +2256,11 @@ describe("the first-run assistant", () => {
     await screen.findByRole("status");
   };
 
-  it("moves on once the folder's own writing has landed, files or no files", async () => {
+  it("moves on as soon as the round is underway, without waiting for anything to land", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await halfway();
 
-    await carried("papers");
+    await underway();
 
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
   });

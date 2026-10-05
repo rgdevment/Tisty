@@ -126,7 +126,7 @@ export default function Welcome({ onDone }: Props) {
 
   useEffect(() => {
     if (!carrying) return;
-    const off = listen("carried", () => {
+    const off = listen("bringing", () => {
       void next();
     });
     return () => {

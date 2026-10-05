@@ -580,9 +580,9 @@ pub async fn sync_now(
         telling.flush();
         done
     })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(said)?;
+    .await;
+    let _ = app.emit("brought", ());
+    let done = done.map_err(|_| Refusal::of("internal"))?.map_err(said)?;
     answering(&session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;

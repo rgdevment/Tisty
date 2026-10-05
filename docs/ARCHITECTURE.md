@@ -1308,7 +1308,13 @@ history and the documents arriving, and `Reached::Along` counts each stage — t
 machines' histories, then the bodies, then the attachments — as `done` of
 `whole`, never counting back; the history is whole before a body or an
 attachment is opened, so the window can draw what it has while the rest comes
-in. The window hears it as `bringing`, at most every quarter second. Each
+in. The window hears it as `bringing`, at most every quarter second, and
+`brought` when the turn ends however it ends. Nothing in the window waits on it:
+the welcome lets the person in as soon as the first `bringing` arrives — the
+folder has passed every check that needed them by then — a list with nothing yet
+says the history is on its way instead of saying it is empty, and a turn that
+runs past three seconds shows its stage and count at the foot of the sidebar,
+saying so when the cloud is slow rather than dropping the warning. Each
 attachment that lands is `Reached::Kept`, and the window writes `AttachKept` for
 it in handfuls as the turn goes, so a turn cut short still says this machine
 holds what it already brought.
