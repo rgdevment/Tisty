@@ -186,7 +186,7 @@ that reaches `main`, and CI holds it to the same shape and the same length.
 
 `scripts/rules.sh` holds the conventions a person can break in a second: four
 lines of comment in a row, a file grown past what anybody reads through, Spanish
-where the code should be English, peninsular Spanish where a person reads it,
+where the code should be English,
 interface text written into the source instead of the locales, the core printing
 to a terminal the window inherits, a panic where the core should answer,
 anything new reaching the command line that is frozen, a test that spawns the

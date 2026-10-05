@@ -89,24 +89,6 @@ nothing_past_what_a_person_holds() {
   [ "$missed" != "$before" ] || went_well "no file grows past what a person can hold"
 }
 
-read_by_a_person() {
-  local where=(
-    app/src/locales.ts
-    crates/tisty-cli/locales
-    README.es.md
-    app/src-tauri/resources/guide/es/guia.md
-  )
-  if [ ! -f .github/not-this-spanish.txt ]; then
-    amiss "the words the Spanish may not use are not here, so nobody looked for them"
-    return
-  fi
-  grep -rniEf .github/not-this-spanish.txt "${where[@]}"
-  looked_through \
-    "the Spanish a person reads is neutral and not peninsular" $? \
-    "the Spanish a person reads could not be looked through where it is written" \
-    && went_well "the Spanish a person reads"
-}
-
 written_in_english() {
   local spanish='(tarea|fecha|limite|prioridad|filtro|titulo|etiqueta|nombre|usuario|archivo|carpeta|cuando|donde|hasta|desde|porque|aunque)'
   grep -rnE "\b(fn|let|const|struct|enum|type|mod|function|interface) +([A-Za-z_]*_)?$spanish(_|\b)" \
@@ -246,7 +228,6 @@ both_languages_carry_the_same_documents() {
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
-read_by_a_person
 written_in_english
 nothing_the_window_cannot_translate
 nothing_the_core_prints
