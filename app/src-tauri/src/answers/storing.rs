@@ -485,7 +485,11 @@ pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
 }
 
 #[tauri::command]
-pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<String>) -> Answer<()> {
+pub fn choose_sync(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    dest: Option<String>,
+) -> Answer<()> {
     let mut session = held(&session);
     let chosen = match dest
         .map(|one| one.trim().to_string())
@@ -525,7 +529,9 @@ pub fn choose_sync(session: tauri::State<'_, Mutex<Session>>, dest: Option<Strin
             old.display().to_string(),
         ));
     }
-    session.keep(|c| c.sync = Some(chosen))
+    session.keep(|c| c.sync = Some(chosen))?;
+    let _ = app.emit("unstuck", ());
+    Ok(())
 }
 
 #[tauri::command]
@@ -547,9 +553,36 @@ pub async fn sync_now(
             joined: Vec::new(),
         });
     };
+    let was = held(&session).config.sync.clone();
+    let done = carried_round(&app, &session, way).await;
+    let now = held(&session);
+    let _ = app.emit(
+        "brought",
+        stuck_after(done.as_ref().err(), &was, &now.config.sync),
+    );
+    drop(now);
+    done
+}
 
+fn stuck_after(
+    why: Option<&Refusal>,
+    was: &Option<tisty_core::config::Sync>,
+    now: &Option<tisty_core::config::Sync>,
+) -> Option<Stuck> {
+    why.filter(|one| one.code != "noRemote" && was == now)
+        .map(|why| Stuck {
+            code: why.code,
+            name: why.name.clone(),
+        })
+}
+
+async fn carried_round(
+    app: &tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    way: Option<String>,
+) -> Answer<Settled> {
     let (dest, paths, data, store, aside, device, alive, holds) = {
-        let session = held(&session);
+        let session = held(session);
         let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
             return Err(Refusal::of("noRemote"));
         };
@@ -600,23 +633,15 @@ pub async fn sync_now(
         done
     })
     .await;
-    let done = done
-        .map_err(|_| Refusal::of("internal"))
-        .and_then(|carried| carried.map_err(said));
-    let stuck = done.as_ref().err().filter(|_| joining).map(|why| Stuck {
-        code: why.code,
-        name: why.name.clone(),
-    });
-    let _ = app.emit("brought", stuck);
-    let done = done?;
-    answering(&session, &done.to_answer(), pushing, holds).await;
+    let done = done.map_err(|_| Refusal::of("internal"))?.map_err(said)?;
+    answering(session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
-    said_no_longer_held(&session, &done.let_go);
-    still_asked(&session, &done.undecided);
+    said_no_longer_held(session, &done.let_go);
+    still_asked(session, &done.undecided);
     if moved {
         catching_up(
-            &session,
+            session,
             &paths,
             "the store would not project after syncing",
             channel::SYNC,
@@ -624,7 +649,7 @@ pub async fn sync_now(
         .await?;
     }
     let (job, was_swept) = {
-        let session = held(&session);
+        let session = held(session);
         let job = session.sweeping(false);
         let was = job.already();
         (job, was)
@@ -638,13 +663,13 @@ pub async fn sync_now(
     .await?;
 
     let (books, since) = {
-        let session = held(&session);
+        let session = held(session);
         (session.books_among(&done.arrived), session.writes())
     };
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
 
-    let mut session = held(&session);
+    let mut session = held(session);
     session.settle_what_came(&read, since);
     session.swept(&was_swept, walked);
     if let Err(e) = session.take_a_seat() {
@@ -1392,3 +1417,7 @@ fn still_asked(session: &tauri::State<'_, Mutex<Session>>, undecided: &[tisty_sy
             .map(|one| (one.id.clone(), one.theirs.clone())),
     );
 }
+
+#[cfg(test)]
+#[path = "storing_test.rs"]
+mod tests;

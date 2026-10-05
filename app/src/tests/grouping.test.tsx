@@ -1,8 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, renderHook, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
+import { group } from "../grouping";
+import { useOnly } from "../only";
 import TaskList from "../ui/TaskList";
+import type { Chosen } from "../views";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -155,5 +158,44 @@ describe("what a dropped task says of an agent's word", () => {
     expect(screen.getByRole("listitem").getAttribute("aria-label")).toContain(
       "had said it should not be done",
     );
+  });
+});
+
+describe("showing only one list while grouped by list", () => {
+  const chosen: Chosen = { named: "tasks", slice: "today", lists: ["01H"] };
+
+  it("keeps the one-list filter while the rows are grouped some other way", () => {
+    const { result } = renderHook(() => useOnly(chosen));
+
+    expect(result.current).toEqual([chosen, false]);
+  });
+
+  it("sets the filter aside while grouped by list, and the choice comes back after", () => {
+    const { result } = renderHook(() => useOnly(chosen));
+
+    act(() => group("list"));
+
+    expect(result.current[1]).toBe(true);
+    expect(result.current[0].lists).toBeUndefined();
+    expect(chosen.lists).toEqual(["01H"]);
+
+    act(() => group("time"));
+
+    expect(result.current[0]).toBe(chosen);
+  });
+
+  it("still groups as asked when the choice cannot be saved", () => {
+    const { result } = renderHook(() => useOnly(chosen));
+    const saving = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("full");
+    });
+    try {
+      act(() => group("list"));
+
+      expect(result.current[1]).toBe(true);
+    } finally {
+      saving.mockRestore();
+      act(() => group("time"));
+    }
   });
 });
