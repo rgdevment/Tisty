@@ -54,6 +54,7 @@ struct Snapshot {
     machines: std::collections::BTreeMap<String, String>,
     machine_here: String,
     clients: std::collections::BTreeMap<String, String>,
+    wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
 }
 
 impl From<tisty_core::capture::Rejected> for Refusal {
@@ -153,6 +154,7 @@ fn search(
         tasks,
         total,
         papers,
+        wholes: answers::parts::wholes(&session.state),
     })
 }
 
@@ -172,6 +174,7 @@ struct Found {
     tasks: Vec<Task>,
     papers: Vec<Paper>,
     total: usize,
+    wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
 }
 
 #[derive(serde::Serialize)]
@@ -865,6 +868,12 @@ pub fn run() {
             answers::tasks::reopen,
             answers::tasks::patch,
             answers::tasks::write_step,
+            answers::parts::task_of,
+            answers::parts::parts_of,
+            answers::parts::add_part,
+            answers::parts::hang,
+            answers::parts::step_to_part,
+            answers::parts::wholes_offered,
             answers::tasks::mark_step,
             answers::tasks::drop_step,
             answers::tasks::write_log,
