@@ -613,7 +613,7 @@ fn written_by(segment: &Path) -> String {
         .parent()
         .and_then(|dir| dir.file_name())
         .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_default()
+        .unwrap_or_else(|| segment.display().to_string())
 }
 
 pub fn is_device_name(name: &str) -> bool {

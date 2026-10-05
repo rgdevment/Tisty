@@ -251,3 +251,11 @@ fn a_newer_schema_names_the_machine_that_wrote_it() {
         other => panic!("the refusal has to say whose history is ahead: {other:?}"),
     }
 }
+
+#[test]
+fn a_newer_segment_with_no_folder_above_it_is_still_named() {
+    assert_eq!(
+        written_by(std::path::Path::new("active.tisty")),
+        "active.tisty"
+    );
+}
