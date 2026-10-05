@@ -1430,7 +1430,15 @@ const en = {
     "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
   welcomeCarrying: "Bringing what the folder already holds",
   welcomeCarryingWhy:
-    "The first round reads everything that is up there. You go in as soon as your tasks and documents are named; on a cloud folder the bodies and the files keep landing behind you.",
+    "The first round reads everything that is up there. You go in as soon as it starts: your tasks arrive first, and documents and attachments keep landing behind you while you work.",
+  comingLog: "Bringing the history…",
+  comingPapers: "Bringing documents…",
+  comingAttachments: "Bringing attachments…",
+  comingOf: "{name} of {other}",
+  comingSlow: "The cloud is slow. It keeps bringing; you can work meanwhile.",
+  comingHistory: "Your history is on its way",
+  comingHistoryWhy:
+    "Tasks show up here as they arrive from the folder. If you close Tisty, it picks up where it left off next time.",
   welcomeCarryStuck: "The folder's writing could not be brought here",
   welcomeAnyway: "Go in anyway",
   welcomeFolderHolds: "This folder already holds a Tisty",
@@ -2894,7 +2902,15 @@ const es: Catalog = {
     "Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.",
   welcomeCarrying: "Trayendo lo que ya hay en la carpeta",
   welcomeCarryingWhy:
-    "La primera vuelta lee todo lo que hay allá arriba. Entras en cuanto tus tareas y documentos tienen nombre; en una carpeta de nube los cuerpos y los archivos siguen llegando detrás de ti.",
+    "La primera vuelta lee todo lo que hay allá arriba. Entras en cuanto empieza: primero llegan tus tareas, y los documentos y adjuntos siguen llegando mientras trabajas.",
+  comingLog: "Trayendo la historia…",
+  comingPapers: "Trayendo documentos…",
+  comingAttachments: "Trayendo adjuntos…",
+  comingOf: "{name} de {other}",
+  comingSlow: "La nube va lenta. Sigue trayendo; puedes trabajar mientras.",
+  comingHistory: "Tu historia viene en camino",
+  comingHistoryWhy:
+    "Las tareas aparecen aquí en cuanto llegan desde la carpeta. Si cierras Tisty, sigue donde quedó la próxima vez.",
   welcomeCarryStuck: "No se pudo traer lo que hay en la carpeta",
   welcomeAnyway: "Entrar de todos modos",
   welcomeFolderHolds: "Esta carpeta ya trae un Tisty",

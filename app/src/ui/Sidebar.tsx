@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Filed, Folded, List, Papers } from "../core";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
+import Coming from "./Coming";
 import Glyph from "./Glyph";
 import Tree from "./Tree";
 
@@ -121,6 +122,7 @@ export default function Sidebar({
         )}
       </div>
 
+      <Coming />
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"

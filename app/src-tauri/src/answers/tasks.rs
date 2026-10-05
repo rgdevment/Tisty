@@ -160,6 +160,7 @@ pub async fn snapshot(
         .await?;
     }
     let mut session = held(&session);
+    session.reload()?;
     let spoken = Config::load(&session.paths.config_file())
         .ok()
         .flatten()

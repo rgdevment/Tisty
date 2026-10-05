@@ -89,6 +89,10 @@ impl Moved {
     }
 }
 
+pub fn been_here(aside: &Path, dest: &Path) -> bool {
+    carried_here(Some(aside), dest)
+}
+
 pub fn carry(
     data: &Path,
     device: &str,
