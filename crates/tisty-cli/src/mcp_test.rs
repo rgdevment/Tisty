@@ -287,6 +287,18 @@ fn only_the_path_is_hidden_and_the_rest_of_the_line_is_read() {
 }
 
 #[test]
+fn a_file_name_closes_the_path_and_what_follows_is_read() {
+    assert_eq!(
+        unpathed("kept at C:/a/b.csv and moved to x/y later"),
+        "kept at [path] and moved to x/y later"
+    );
+    assert_eq!(
+        unpathed(r"from C:\temp\a.txt and/or the other"),
+        "from [path] and/or the other"
+    );
+}
+
+#[test]
 fn a_path_with_spaces_is_hidden_whole_without_quotes() {
     assert_eq!(
         unpathed(r"guardado desde C:\Users\Mario Hidalgo\OneDrive - Personal\contrato.pdf"),

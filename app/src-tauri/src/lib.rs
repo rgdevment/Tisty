@@ -17,6 +17,7 @@ mod tray;
 mod update;
 mod vouching;
 mod waking;
+mod widgets;
 mod wiring;
 
 use tauri::{Emitter, Manager};
@@ -769,6 +770,11 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .register_uri_scheme_protocol("widget", |ctx, request| {
+            ctx.app_handle()
+                .state::<widgets::Lent>()
+                .shown(request.uri())
+        })
         .setup(settled)
         .on_window_event(|window, event| {
             if window.label() != "main" {
@@ -808,6 +814,7 @@ pub fn run() {
             }
         })
         .manage(OneAtATime::default())
+        .manage(widgets::Lent::default())
         .manage(Packing::default())
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
@@ -895,6 +902,9 @@ pub fn run() {
             answers::settings::about,
             answers::settings::notices,
             answers::settings::licences,
+            widgets::widget_lend,
+            widgets::widget_lend_kept,
+            widgets::widget_take_back,
             answers::settings::settings,
             answers::settings::keep_settings,
             answers::reporting::facts,

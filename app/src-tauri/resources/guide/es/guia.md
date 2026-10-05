@@ -225,6 +225,20 @@ dosis = \frac{peso \times 0.5}{2}
 
 Las dos cosas se dibujan con código que viaja dentro de Tisty. No se pide nada a internet, y funcionan con el cable desenchufado.
 
+#### Widgets
+
+Un bloque cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, estilos y, si quieres, algo de script. Corre aislado, sin red y con los colores de Tisty, y trae clases listas como `grid`, `stat`, `card` o `badge`, así que con HTML sencillo ya se ve bien. El código queda plegado; ábrelo con «Ver código».
+
+```widget title="Rina este mes"
+<div class="grid">
+  <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6 frente a agosto</em></div>
+  <div class="stat"><small>Kilómetros</small><b>61</b></div>
+  <div class="stat"><small>Próxima vacuna</small><b>12 nov</b><span class="badge warn">pendiente</span></div>
+</div>
+```
+
+Si el widget es grande, adjúntalo: un archivo `.html` adjunto a un documento se dibuja igual, y desde su barra puedes volver a verlo como adjunto.
+
 #### Código, con nombre y con color
 
 Un bloque de código se colorea según su lenguaje, y le puedes poner nombre: escribe el lenguaje y después `title="lo que sea"`. El nombre se ve en la cabecera del bloque, y el color llega también al PDF.

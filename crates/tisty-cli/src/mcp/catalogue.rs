@@ -401,7 +401,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "attach",
             "title": "Keep a file with a task or in a document",
-            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
+            "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. An `.html` or `.htm` page attached to a document is drawn there as a live widget, sealed like a ```widget block and with the same classes and colours, which suits a page too large to write inline; to show it as a plain card instead, give its reference the title `\"file\"`: `![name](<attachments/…/page.html> \"file\")`. One or the other, never both. The file is copied, not linked. A document takes a far larger file than a task does, so a video or a slide deck belongs in one. Only attach what you were asked to.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": {

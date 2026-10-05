@@ -225,6 +225,20 @@ dose = \frac{weight \times 0.5}{2}
 
 Both are drawn by code that ships inside Tisty. Nothing is fetched, and it works with the cable unplugged.
 
+#### Widgets
+
+A block that says `widget` is drawn as a small page: HTML, styles and, if you like, a little script. It runs sealed off, with no network and in Tisty's colours, and it comes with classes such as `grid`, `stat`, `card` and `badge`, so plain HTML already looks right. Its code stays folded; open it with «Show code».
+
+```widget title="Rina this month"
+<div class="grid">
+  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 on August</em></div>
+  <div class="stat"><small>Kilometres</small><b>61</b></div>
+  <div class="stat"><small>Next vaccine</small><b>12 Nov</b><span class="badge warn">due</span></div>
+</div>
+```
+
+If the widget grows large, attach it instead: an `.html` file attached to a document is drawn the same way, and its bar lets you show it as an attachment again.
+
 #### Code, with a name and a colour
 
 A code block is coloured by its language, and it can carry a name: write the language and then `title="whatever"`. The name shows in the block's header, and the colour reaches the PDF too.

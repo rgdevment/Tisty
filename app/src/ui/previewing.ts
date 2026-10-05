@@ -16,6 +16,7 @@ import {
   previewOf,
   weighed,
 } from "../previews";
+import { lendKept } from "./widgeting";
 
 export interface Reach {
   url: (reference: string) => string | null;
@@ -35,6 +36,7 @@ export interface Reach {
     drop: () => void,
     kept?: { at: string; name: string },
     leaf?: string,
+    live?: () => void,
   ) => void;
   onOpen?: (reference: string) => void;
   onAgain?: (reference: string) => void;
@@ -48,7 +50,21 @@ interface Spot {
   seen: Preview;
   href: string;
   label: string;
+  paged?: boolean;
+  shelved?: boolean;
 }
+
+export const AS_FILE = "file";
+
+const aPage = (href: string): boolean =>
+  href.startsWith("attachments/") && ["html", "htm"].includes(ending(href));
+
+export const asPaged = (node: Written): { href: string; label: string } | null => {
+  if (node.type.name !== "image") return null;
+  const href = String(node.attrs.src ?? "");
+  if (!aPage(href) || String(node.attrs.title ?? "") === AS_FILE) return null;
+  return { href, label: String(node.attrs.alt ?? "") };
+};
 
 export const asCard = (node: Written): { href: string; seen: Preview; label: string } | null => {
   if (node.type.name !== "image") return null;
@@ -77,9 +93,28 @@ export const asBookmark = (
 const found = (doc: Written): Spot[] => {
   const all: Spot[] = [];
   doc.descendants((node, at) => {
+    const page = asPaged(node);
+    if (page) {
+      all.push({
+        at,
+        size: 1,
+        seen: { as: "file", at: page.href, kind: ending(page.href) },
+        href: page.href,
+        label: page.label,
+        paged: true,
+      });
+      return false;
+    }
     const card = asCard(node);
     if (card) {
-      all.push({ at, size: 1, seen: card.seen, href: card.href, label: card.label });
+      all.push({
+        at,
+        size: 1,
+        seen: card.seen,
+        href: card.href,
+        label: card.label,
+        shelved: aPage(card.href),
+      });
       return false;
     }
     const mark = asBookmark(node);
@@ -274,6 +309,7 @@ const built = (
   back: () => void,
   drop: () => void,
   untie: () => void,
+  live?: () => void,
 ): HTMLElement => {
   const lost = seen.as !== "doc" && seen.as !== "web" && Boolean(reach.gone?.(seen.at));
 
@@ -404,7 +440,7 @@ const built = (
         ? undefined
         : { at: seen.at, name: label || named(seen.at) };
     const back = seen.as === "web" ? undefined : untie;
-    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, back, drop, kept, asPage);
+    reach.onMenu?.({ x: box.left, y: box.bottom + 4 }, back, drop, kept, asPage, live);
   });
   box.append(more);
   if (leaf !== null) leaves(box);
@@ -446,6 +482,44 @@ const shed = (
 ) => {
   if (at === undefined) return;
   view.dispatch(view.state.tr.delete(at, at + size));
+};
+
+const retitled = (
+  view: { state: EditorState; dispatch: (tr: Transaction) => void },
+  at: number | undefined,
+  title: string | null,
+) => {
+  if (at === undefined) return;
+  const node = view.state.doc.nodeAt(at);
+  if (node?.type.name !== "image") return;
+  view.dispatch(view.state.tr.setNodeMarkup(at, undefined, { ...node.attrs, title }));
+};
+
+const paging = (href: string, label: string, reach: Reach, shelve: () => void): HTMLElement => {
+  const box = frame("widget-page");
+  const bar = document.createElement("span");
+  bar.className = "widget-page-bar";
+  const name = document.createElement("span");
+  name.className = "widget-page-name";
+  name.textContent = label || named(href);
+  bar.append(name);
+  if (reach.onMenu) {
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "widget-page-shelve";
+    back.textContent = t("showAsAttachment");
+    back.addEventListener("click", (e) => {
+      e.stopPropagation();
+      shelve();
+    });
+    bar.append(back);
+  }
+  const drawn = document.createElement("span");
+  drawn.className = "widget-page-drawn";
+  box.append(bar, drawn);
+  const lending = lendKept(drawn, href);
+  waits.set(box, () => lending.drop());
+  return box;
 };
 
 const untied = (
@@ -550,27 +624,41 @@ export const previewing = (reach: () => Reach) => {
                 state.doc,
                 scan(state.doc).flatMap((one) => [
                   Decoration.node(one.at, one.at + one.size, { class: "card-source" }),
-                  Decoration.widget(
-                    one.at,
-                    (view, getPos) =>
-                      built(
-                        one.seen,
-                        now,
-                        one.label,
-                        () => view.focus(),
-                        () => shed(view, getPos(), one.size),
-                        () => untied(view, getPos(), one.href, one.label),
+                  one.paged
+                    ? Decoration.widget(
+                        one.at,
+                        (view, getPos) =>
+                          paging(one.href, one.label, now, () => retitled(view, getPos(), AS_FILE)),
+                        {
+                          key: `page:${one.href}:${one.label}:${now.onMenu ? "open" : "shut"}`,
+                          side: 1,
+                          ignoreSelection: true,
+                          stopEvent: () => true,
+                          destroy: (node: Node) => waits.get(node as HTMLElement)?.(),
+                        },
+                      )
+                    : Decoration.widget(
+                        one.at,
+                        (view, getPos) =>
+                          built(
+                            one.seen,
+                            now,
+                            one.label,
+                            () => view.focus(),
+                            () => shed(view, getPos(), one.size),
+                            () => untied(view, getPos(), one.href, one.label),
+                            one.shelved ? () => retitled(view, getPos(), null) : undefined,
+                          ),
+                        {
+                          key: `${one.seen.as}:${one.href}:${settled(one.seen, now)}`,
+                          side: 1,
+                          ignoreSelection: true,
+                          stopEvent: () => true,
+                          // Taken out of the page it would go on waiting, and hand a source to a
+                          // player nobody can see or pause.
+                          destroy: (node: Node) => waits.get(node as HTMLElement)?.(),
+                        },
                       ),
-                    {
-                      key: `${one.seen.as}:${one.href}:${settled(one.seen, now)}`,
-                      side: 1,
-                      ignoreSelection: true,
-                      stopEvent: () => true,
-                      // Taken out of the page it would go on waiting, and hand a source to a
-                      // player nobody can see or pause.
-                      destroy: (node: Node) => waits.get(node as HTMLElement)?.(),
-                    },
-                  ),
                 ]),
               );
             },

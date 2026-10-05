@@ -289,6 +289,7 @@ export default function Editor({
     drop: () => void;
     keep?: () => void;
     own?: () => void;
+    live?: () => void;
   } | null>(null);
   const [glyphing, setGlyphing] = useState<{ x: number; y: number } | null>(null);
   const [naming, setNaming] = useState<{ x: number; y: number; leaf: boolean } | null>(null);
@@ -486,7 +487,14 @@ export default function Editor({
       return editor.chain().focus("end").insertContent(card(file, title)).run();
     });
     hands.current.onOrder?.((file, before) => cardMoved(editor, file, before));
+    const page = editor.view.dom as HTMLElement;
+    const opened = (event: Event) => {
+      const paper = (event as CustomEvent<unknown>).detail;
+      if (typeof paper === "string" && paper) hands.current.onDoc?.(paper);
+    };
+    page.addEventListener("widgetdoc", opened);
     return () => {
+      page.removeEventListener("widgetdoc", opened);
       hands.current.onInsert?.(null);
       hands.current.onOrder?.(null);
     };
@@ -567,6 +575,13 @@ export default function Editor({
           hint: "```math",
           icon: "maths",
           run: () => editor.chain().focus().toggleCodeBlock({ language: "math" }).run(),
+        },
+        {
+          key: "widget",
+          label: t("widgetIt"),
+          hint: "```widget",
+          icon: "layout",
+          run: () => editor.chain().focus().toggleCodeBlock({ language: "widget" }).run(),
         },
         {
           key: "code",
@@ -734,11 +749,12 @@ export default function Editor({
     onOpen,
     onMenu: reading
       ? undefined
-      : (at, untie, drop, kept, leaf) =>
+      : (at, untie, drop, kept, leaf, live) =>
           setSwapping({
             at,
             untie,
             drop,
+            live,
             keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
             own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
           }),
@@ -1067,6 +1083,13 @@ export default function Editor({
               icon: "⇤",
               off: !swapping.own,
               onPick: swapping.own,
+            },
+            {
+              key: "live",
+              label: t("showAsWidget"),
+              icon: "▣",
+              off: !swapping.live,
+              onPick: swapping.live,
             },
             {
               key: "link",
