@@ -18,7 +18,7 @@ env:
 jobs:
   tisty-nl:
     name: tisty-nl / every mutant
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,7 +61,7 @@ jobs:
 
   tisty-sync:
     name: tisty-sync / every mutant
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,7 +104,7 @@ jobs:
 
   tisty-cli:
     name: tisty-cli / shard ${{ matrix.shard }} of 4
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 330
     strategy:
       fail-fast: false
@@ -151,7 +151,7 @@ jobs:
 
   tisty-core:
     name: tisty-core / shard ${{ matrix.shard }} of 16
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 330
     strategy:
       fail-fast: false
@@ -198,7 +198,7 @@ jobs:
 
   window:
     name: window / shard ${{ matrix.shard }} of 24
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 355
     strategy:
       fail-fast: false
@@ -255,7 +255,7 @@ jobs:
     name: what the whole sweep came to
     if: always() && !cancelled()
     needs: [tisty-nl, tisty-sync, tisty-cli, tisty-core, window]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write
