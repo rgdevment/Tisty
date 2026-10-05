@@ -140,8 +140,13 @@ export default function TaskList({
       sheets
         .flatMap((leaf) => leaf.rows)
         .filter((row) => !(heads && shut.has(row.band)))
-        .map((row) => row.key),
-    [sheets, shut, heads],
+        .flatMap((row) => [
+          row.key,
+          ...(tucked.has(row.task.id) ? [] : (inside.get(row.task.id) ?? [])).map(
+            (part) => `${row.key}/${part.id}`,
+          ),
+        ]),
+    [sheets, shut, heads, inside, tucked],
   );
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;

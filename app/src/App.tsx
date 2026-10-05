@@ -1297,9 +1297,12 @@ export default function App() {
     onDoc: openDoc,
     whole: wholes[one.id],
     partOf: one.part_of ? wholes[one.part_of]?.title : undefined,
-    onAddPart: (title: string) => act(addPart(one.id, title)),
+    onAddPart: (title: string) => act(addPart(one.id, title).then(() => taskOf(one.id))),
     onOpenPart: (id: string) => taskOf(id).then(opening, (e) => setError(saidPlainly(e))),
-    onCompletePart: marking,
+    onCompletePart: (id: string, title: string) => {
+      say(fill("saidDone", title));
+      act(complete(id).then(() => taskOf(one.id)));
+    },
     onHang: (whole: string | null) => act(hang(one.id, whole)),
     onStepToPart: (step: string) => act(stepToPart(one.id, step)),
   });

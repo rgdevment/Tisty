@@ -204,3 +204,14 @@ describe("what the review asked of parts", () => {
     expect(screen.getByText(fill("partsLeft", "2"))).not.toBeNull();
   });
 });
+
+describe("moving through a whole's parts with the keyboard", () => {
+  it("keeps the tab stop on the part last reached", () => {
+    listed([task("W", "move house"), task("P", "pack", { part_of: "W" })]);
+    const part = screen.getAllByRole("listitem")[1] as HTMLElement;
+
+    fireEvent.focus(part);
+
+    expect(part.tabIndex).toBe(0);
+  });
+});
