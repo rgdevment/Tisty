@@ -629,6 +629,15 @@ a test reads the constant out of the Rust and pins the window to it, the way
 `DEEPEST` is pinned. Nothing shortens a name that is already stored: the limit
 is on writing, so a folder named before the limit existed keeps the name it has.
 
+A step is a hundred characters at most — `STEP_AT_MOST` in `model/task.rs` — by
+the same recipe: the window, the terminal and the agent's `propose` and `plan`
+refuse a longer one, the field stops at the same count and counts down over its
+last twenty, and a test pins the window to the Rust. A step that needs more is a
+task of its own, with a description and a journal; the context of a sentence
+goes in the journal, naming the step. `tick` and `untick` name a step by its
+text and take any length, so a step written before the limit can still be
+ticked, and nothing already stored is shortened.
+
 It may file into a list, but only one that already exists — a name that matches
 nothing is refused with the names that do, so the agent cannot quietly invent a
 place. Without a list it lands in the inbox for the person to place, and either

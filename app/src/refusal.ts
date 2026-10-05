@@ -40,6 +40,7 @@ const KNOWN = [
   "notAPriority",
   "notAnEntry",
   "emptyStep",
+  "stepTooLong",
   "emptyEntry",
   "pastDeadline",
   "pastReminder",

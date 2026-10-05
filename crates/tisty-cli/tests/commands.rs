@@ -2841,3 +2841,31 @@ fn a_store_a_newer_tisty_wrote_to_names_the_machine_that_did() {
     assert!(run.err.contains("dev_f0ztyvwj"), "{}", run.err);
     assert!(!run.err.contains("Microsoft Store"), "{}", run.err);
 }
+
+#[test]
+fn a_step_past_the_limit_is_refused_and_says_what_to_do_instead() {
+    let cli = Cli::new();
+    cli.ok(&["write the report"]);
+    let long = "x".repeat(101);
+
+    let run = cli.run(&["step", "write the report", "add", &long]);
+
+    assert_ne!(run.code, 0);
+    assert!(run.err.contains("100"), "{}", run.err);
+    assert!(!cli.ok(&["show", "write the report"]).contains(&long));
+}
+
+#[test]
+fn rewording_a_step_past_the_limit_is_refused_too() {
+    let cli = Cli::new();
+    cli.ok(&["write the report"]);
+    cli.ok(&["step", "write the report", "add", "collect the figures"]);
+
+    let run = cli.run(&["step", "write the report", "text", "1", &"x".repeat(101)]);
+
+    assert_ne!(run.code, 0);
+    assert!(
+        cli.ok(&["show", "write the report"])
+            .contains("collect the figures")
+    );
+}
