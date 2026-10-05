@@ -23,6 +23,8 @@ permission.
 The AGPL asks one thing in return, and it is the same thing it asks of any
 binary: whoever receives a build has to be able to reach the source that made
 it. The releases page carries both, side by side, so pointing at it is enough.
+The licence texts and third-party notices of everything compiled into it travel
+inside the program too, under **About Tisty**.
 
 ## Why the store build is not simply AGPL
 
@@ -72,13 +74,15 @@ Little, and all of it reversible.
   your other per-user programs, and deliberately **not** in the folder your
   tasks live in.
 - The command line travels inside the installer, but **nothing is added to your
-  PATH**. The app offers that from Maintenance, where it can ask first and can
-  be undone. (An installer did it once and destroyed a PATH doing it: the tool
-  that builds Windows installers reads at most 1024 characters and writes back
-  what it managed to read.)
-- **Uninstalling removes the program and leaves your data alone.** Wanting the
-  program gone is not the same as wanting your history gone. If you do want it
-  gone, the folder is yours to delete.
+  PATH**. The app offers that from Settings → General, where it can ask first
+  and can be undone. (An installer did it once and destroyed a PATH doing it:
+  the tool that builds Windows installers reads at most 1024 characters and
+  writes back what it managed to read.)
+- **Uninstalling removes the program and leaves your data alone.** It takes
+  its own settings and cache with it, and the PATH entry if you added one; your
+  tasks, documents and attachments stay. Wanting the program gone is not the
+  same as wanting your history gone. If you do want it gone, the folder is
+  yours to delete.
 
 ## What it does with your data
 
@@ -106,8 +110,10 @@ A build from anywhere else is not ours, however it is named.
 There is a third check, and it is the only one the program enforces on its own:
 an update Tisty offers to install is verified against a public key compiled into
 the copy already on the machine. A build signed with any other key is refused,
-whatever it claims to be. The private half is held by the maintainer alone and
-cannot be rotated — if it were lost, every installed copy would go on working
+whatever it claims to be. A release is not published until every update in it
+has been checked against that same key. The private half is held by the
+maintainer alone and cannot be rotated — if it were lost, every installed copy
+would go on working
 and simply stop being able to update itself.
 
 A copy kept by the Microsoft Store is the one exception, because it downloads

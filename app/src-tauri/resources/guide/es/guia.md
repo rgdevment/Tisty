@@ -10,7 +10,7 @@ Todo local, sin cuentas, sin suscripciones y sin telemetría: tus datos son tuyo
 
 Y si trabajas con un asistente, tiene una puerta por MCP para leer tus documentos, escribir uno nuevo o proponerte tareas. El programa que la abre corre en esta máquina. Puede decirte que una tarea suya está hecha; cerrar y borrar no puede.
 
-Esta guía te tomará un par de minutos y podrás conocer un poco más de qué puedes hacer en Tisty. Puedes volver a ella cuando quieras desde Ajustes.
+Esta guía te tomará un par de minutos y podrás conocer un poco más de qué puedes hacer en Tisty. Puedes volver a ella cuando quieras desde Configuración.
 
 ---
 
@@ -45,7 +45,7 @@ Prueba con estas:
 
 Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita para escribir una tarea. Enter la guarda, Esc la cierra, y sigues con lo tuyo.
 
-Si ese atajo ya lo usa otro programa, Tisty prueba con otro y te dice cuál quedó en Ajustes.
+Si ese atajo ya lo usa otro programa, Tisty prueba con otro y te dice cuál quedó en Configuración.
 
 ### 3. El día de hoy
 
@@ -320,7 +320,11 @@ Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no es
 
 > No hay servidor nuestro por medio. Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.
 
-En Ajustes puedes además guardar un respaldo completo cuando quieras.
+Cada equipo firma lo que escribe. Uno que llega a la carpeta después que este espera a que confirmes su clave: en Configuración → Mantenimiento → Las máquinas aparece como **Esperando**, y **Confirmar** lo deja pasar cuando hayas comprobado, en ese equipo, que la clave es la misma.
+
+Cuando los dos equipos escribieron la misma parte de un documento, Tisty no elige: te muestra las dos versiones una junto a otra y te quedas con **Esta**, **La otra** o **Las dos**.
+
+En Configuración puedes además guardar un respaldo completo cuando quieras, también si sincronizas, porque una carpeta compartida no es un respaldo.
 
 ### 13. Terminar, descartar y borrar
 
@@ -332,9 +336,9 @@ El Archivo se lee en tres capas: las **historias**, que dejaron algo escrito; la
 
 > **Antes de borrar de verdad.** Solo se puede con lo que ya está cerrado **y** se lee como rastro. Una historia solo se oculta: para borrarla, léela antes como rastro. Al borrar desaparece de este equipo y de los demás en la siguiente sincronización, y no hay deshacer.
 
-Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Ajustes → Mantenimiento te los lista para soltarlos cuando quieras.
+Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Configuración → Mantenimiento te los lista para soltarlos cuando quieras.
 
-Ahí mismo está **Revisar el almacén**: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal.
+Ahí mismo, en **El almacén**, está **Revisión**: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal.
 
 ### 14. Atajos
 
@@ -357,4 +361,4 @@ Un enlace solo en su párrafo, como ese, se dibuja como tarjeta; el mismo enlace
 En [el mismo perfil](https://github.com/rgdevment) hay dos herramientas más, con la misma idea y los mismos términos: gratis, abiertas, sin anuncios, sin telemetría, todo en tu equipo.
 
 - [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — un gestor de portapapeles para Windows y macOS.
-- [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — un selector de navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de suponerlo.
+- [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — un selector de navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de suponerlo. Si está instalado, los enlaces que abres desde Tisty pasan por él.

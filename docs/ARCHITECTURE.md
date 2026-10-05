@@ -88,6 +88,7 @@ Some payload fields carry more than their name says:
 | `open_to_agents` | `task.update` | the person let an assistant fill this task in. Only their own hand sets it: written by an assistant, the field is dropped and the rest of the patch lands |
 | `tags` | `doc.said` | the tags read out of the body. Absent is not «none»: it is a build that did not read them, and treating the two alike would have an older machine wipe the tags of every document it saved |
 | `by` | `doc.said` | the alias the body was saved under, sealed at the writing rather than worked out afterwards from whoever happens to be signing now. Absent is a hand that did not sign, not the reader's own |
+| `print` | `doc.said` | the SHA-256 of the body as written, which is how the log answers for a body: one arriving from the folder is taken in when its print is one a log wrote down |
 
 `active.tisty` is closed as `NNNNNN.tisty` every 5.000 events. Closed segments
 are numbered from one without gaps.
@@ -103,6 +104,20 @@ that is missing or does not verify is not read as tampering on its own: the
 chain is folded again from the last one that does. This is not the seal a
 parcel carries: that one is an HMAC over a manifest, under the store's key.
 
+The key itself lives in `<config>/private/`, beside the store's own secret, and
+is never carried anywhere. What it owes is decided by the copy in the folder,
+not by this machine's log: a history whose events were written at
+`SIGNED_FROM` (schema 16) or later owes a signature, and so does one that
+carries its machine's own `device.key`, whatever version its lines claim. Such a
+history arriving with no signature at all is disowned — none of it comes in —
+while one written below the fence, before that machine had a key, never could
+have carried one and still comes home. A machine that gets a key late answers
+for the past it wrote before: on the first write after the key exists, every
+closed segment of its own that nothing answers for gets a `.sig` of its own,
+over the chain that segment really closes. A signature already in place is left
+exactly as it stands, whether it answers or not, because writing another over
+it would bless bytes that history never covered.
+
 What it does not catch, and is not meant to: a segment rolled back **whole** to
 an earlier state together with the signature that answered for it then. Both
 agree, and nothing outside them says which of the two is the later one. What
@@ -114,11 +129,14 @@ A key is a claim until somebody here answers for it. The first folder a machine
 reaches is taken up whole — it has nothing confirmed yet, so there is nobody to
 ask — and after that a machine appearing in that folder that nobody here
 answered for is left where it is: its history does not come in, the round says
-so, and the window shows its key to compare and confirm (`tisty sync --confirm`
-does the same from the command line). There is no telling a machine of yours
-coming back from a directory somebody planted without a person looking, so the
-person looks. What that machine wrote waits in the folder and arrives whole once
-its key is answered for.
+so, and the window shows its key to compare and confirm (`tisty sync --confirm
+<machine>` does the same from the command line). There is no telling a machine
+of yours coming back from a directory somebody planted without a person looking,
+so the person looks. What that machine wrote waits in the folder and arrives
+whole once its key is answered for. What the person answered for is kept in
+`<data>/.keys-confirmed`, apart from the log: the log decides what a machine
+claims, and only a person decides what is believed. A machine that never said
+what it signs with is not held this way — there is nothing to answer for.
 
 ### What a power cut leaves behind
 
@@ -508,21 +526,22 @@ A file kept with a task goes on its journal; one kept in a document is added at
 the end of it, as the same markdown the window writes when you drop a file in.
 The two carry different ceilings, and the agent gets the ceiling of the place it
 writes to: a task copies what the person set, up to 50 MB, and a document copies
-up to 500 MB, which is fixed. That is the window's rule, not a second one — a
+up to 750 MB, which is fixed. That is the window's rule, not a second one — a
 recording or a deck of slides is a document's to hold, not a task's.
 
 Whether the document can take it is asked **before** the copy, not after: whether
 the line still fits under the reader's ceiling, and whether the document already
-carries as many files as one is read with. Half a gigabyte is a slow way to find
-out there was no room, and a copy made for a line that is never written is a copy
-nothing names afterwards.
+carries as many files as one is read with. Three quarters of a gigabyte is a
+slow way to find out there was no room, and a copy made for a line that is never
+written is a copy nothing names afterwards.
 
 **A file is copied in 64 kB at a time**, hashed as it goes and written to a
 `.part` beside the shelves, then renamed into place — and one already kept is
-compared to it side by side rather than both being read in. A ceiling of 500 MB
-paid in memory would be half a gigabyte to read and another to compare against,
-and a failed allocation ends a process rather than a request. What is written is
-either renamed into its shelf or taken away: nothing half copied stays.
+compared to it side by side rather than both being read in. A ceiling of 750 MB
+paid in memory would be three quarters of a gigabyte to read and another to
+compare against, and a failed allocation ends a process rather than a request.
+What is written is either renamed into its shelf or taken away: nothing half
+copied stays.
 
 It reaches a document that exists in two ways, and neither is a rewrite.
 **Adding** puts text after the last line, leaving every byte that was there.
@@ -546,9 +565,11 @@ and the other's work would be gone. The window is held to the same rule — it i
 refused a save over a body it did not read — and there the refusal can be put to
 somebody, which a tool call cannot.
 
-A body lives outside the log, so neither writes an event; the window's watch
-compares a print of the documents themselves and tells the window to read the
-open one again, which it does unless there are unsaved changes in it.
+A body lives outside the log, and what either writes there is only the note that
+answers for it — a `doc.said` with the body's print, its title, size and tags.
+The window's watch compares a print of the documents themselves and tells the
+window to read the open one again, which it does unless there are unsaved
+changes in it.
 
 **And unsaved changes are where the window used to write over what arrived.** It
 keeps a print of every document it read or wrote; a save whose document no longer
@@ -563,12 +584,12 @@ body and writing it back is two steps, and a lock only the agent took would
 leave the window free to write between them — the agent would then save what it
 read before, over what the person just kept. `write` takes the lock; `append`
 and `edit` hold it across both steps and write through the unlocked path inside.
-Waiting is half a second, and a writer that waits longer is told the document is
+Waiting is two seconds, and a writer that waits longer is told the document is
 being written rather than made to queue.
 
 Syncing holds it too, per document rather than per round, so a long round never
 keeps the editor from saving. It is the one writer that carries on **unheld**
-if half a second is not enough: a round that skipped a body comes back for it,
+if two seconds are not enough: a round that skipped a body comes back for it,
 and if an agent wrote in the meantime the next round reads that as both sides
 moving and weaves. Refusing there would trade a settled disagreement for a
 stalled one.
@@ -1131,6 +1152,7 @@ tisty sync --join <backup.zip>     # back this machine up, empty it, take the fo
 tisty sync --take-over <backup.zip> # back the folder up, empty it, leave ours
 tisty sync --merge <backup.zip>    # back up, then hold both histories
 tisty sync --again                 # send everything of ours, skipping nothing
+tisty sync --confirm <machine>     # answer for the key a machine says it signs with
 ```
 
 Tisty always works in its own local directory. Syncing **leaves a copy** in that
@@ -1198,6 +1220,17 @@ so it is paid once in the life of a file rather than once per launch; a file tha
 changes gets a new key and is read again. Losing that file costs a re-read and
 nothing else.
 
+**A body a cloud left up there is a hole, not a file that lied.** What a keeper
+leaves in place of a body has one module answering for it, `holes.rs`. iCloud
+takes the name away and stands a `.{name}.icloud` sidecar beside it, which on a
+Mac `brctl download` is asked to bring down; Windows keeps the entry with its
+logical size and marks it in the file's attributes, and reading it is what
+fetches it. So a placeholder whose size matches is not hashed to vouch for it —
+that read would bring down the very file the setting leaves in the cloud — and a
+body that could not be read answers neither way: nothing is written down, and it
+is reported as held away rather than torn. Sidecars never travel and never go
+into a backup.
+
 Nothing waits on that read while holding a lock, or every other command touching
 an attachment would queue behind it. And nothing in the window may assume the
 answer is there yet: a player that asks once and gives up mounts with no source
@@ -1228,15 +1261,19 @@ device directory in the folder is left out and named in the result, and
 everything else — your own writing above all — still goes through.
 
 **Files already identical are skipped**, so syncing twice over moves nothing the
-second time. Identical means the same length and the same last 512 bytes, not
-the same timestamp: a segment only ever grows at the end, so a tail that matches
-is a file that matches. The date is deliberately no part of that answer: a date
-can be equal while the content is not, and the other way round.
+second time. Identical means the same length and then the same bytes, compared
+whole, 16 KiB at a time, and not the same timestamp. A length that differs
+answers at once without opening either file, which is what keeps the common case
+cheap. The date is deliberately no part of that answer: a date can be equal while
+the content is not, and the other way round.
 
-The blind spot is stated rather than hidden: two files of the same length that
-differ **before** their tail read as identical. Reaching that from an append-only
-log would take corruption, not use, and reading further would cost a full
-hydration on a projected drive — which is what a cloud folder is.
+Comparing only the tail would leave a blind spot: two files of the same length
+that differ **before** their last bytes would read as identical, and a segment
+rewritten in the middle is exactly what the round must not take for the one it
+already holds. The price is reading both files through whenever their lengths
+agree, which on a projected drive — which is what a cloud folder is — means
+bringing the body down. Within a round each machine's segments are compared once
+(`Alike`), and bringing and handing on both read that one answer.
 
 **Nothing that matters is decided by a file's date.** A copy carries the date it
 was made, not the date of what it came from, so a file always answers «when did
@@ -1261,11 +1298,13 @@ it is copied without asking. A clock would be worse than useless — a laptop
 waking up is an hour out, and that has already cost us a real bug.
 
 That third print belongs to the folder it was taken against, so pointing Tisty
-at another one drops it, bodies and all. A version the new folder never held is
-not what the two of you came from, and leaning on it would copy one side over
-the other without ever comparing them. The price is paid once and in questions:
-what both sides already hold alike stays quiet, and only what differs is asked
-about.
+at another one drops it, bodies and all. `carried.json` names that folder
+(`Carried::up_to`) by volume and inode first and by path second, so a drive that
+comes back under another letter is still the folder it was. A version the new
+folder never held is not what the two of you came from, and leaning on it would
+copy one side over the other without ever comparing them. The price is paid once
+and in questions: what both sides already hold alike stays quiet, and only what
+differs is asked about.
 
 If both moved, the two versions are **merged block by block** before anyone is
 asked. The unit is the block — text between blank lines — which buys atomicity
@@ -1283,11 +1322,20 @@ wrote down — clocks decide which is newest, and a laptop can be an hour out �
 a body that is only another machine's last word is set aside here before it
 replaces anything. A round that only pushes takes nothing in.
 
+That holds only because every path that rewrites a body writes its print down:
+saving, settling, converting and weaving a document, a file kept in one from the
+CLI or an assistant, a parcel whose references were rewritten on the way in. A
+body here that the log does not answer for — edited outside Tisty — is
+`unanswered` and held back rather than sent. One the folder holds that no log
+answers for is not taken in and not written over either: it is left undecided,
+and the person chooses mine, theirs or both. Settling «mine» is refused when the
+folder moved since the person was asked, the same as weaving.
+
 The engine refuses rather than guess, and every refusal lands on the same tested
 road: the merge returns nothing, the document is left undecided, and **the
 person decides**, with «keep both» offered first because it is the only answer
 that loses nothing. It refuses when the two sides rewrote the same block
-differently, when the comparison would cost more than four million cells, when
+differently, when the comparison would cost more than sixteen million cells, when
 the result would hold a block more times than either side has it or fewer than
 both kept, when the woven text would not split back into the very blocks it was
 made of, and when the weave would place two lists next to each other — Markdown
@@ -1408,10 +1456,11 @@ no warning until it was too late. The refusal now happens where the writing
 does.
 
 **What a document says about itself is read from the body, never asked for
-separately.** Saving one writes a note with three things read out of what you
-typed: the title, the size, and the tags. A tag is a hash with a letter or a
-digit against it — `# Heading` carries a space and stays a heading, and a colour
-or the fragment of a web address sits behind something that is not a separator.
+separately.** Saving one writes a note with what is read out of what you typed:
+the title, the size, the tags, and the print of the body. A tag is a hash with a
+letter or a digit against it — `# Heading` carries a space and stays a heading,
+and a colour or the fragment of a web address sits behind something that is not
+a separator.
 Fenced blocks and runs between backticks are stepped over, so pasted code is not
 mistaken for labelling. Accents come off and case is folded, so `#camion` and
 `#camión` are one word however anybody typed them that day, and a word pasted
@@ -1432,9 +1481,10 @@ the difference.
 Two limits are the point rather than the detail. **Sixty-four tags is where a
 body stops tagging**: a stylesheet pasted outside a fence reads every colour as
 one, and the log is append-only, so a line of four thousand would be written
-once and kept forever, on every machine. And **the note is only written when the
-title or the tags changed** — size moves with every keystroke, so it never
-counts as news on its own, though it rides along whenever there is news anyway.
+once and kept forever, on every machine. And **the note is only written when
+what it says changed** (`Said::news_for`): a save that leaves the body as it was
+writes nothing, and one that changes it writes a note, because the print it
+carries is what lets another machine take that body in.
 
 **A deletion is carried out, not inferred.** Deleting a document names its file
 in the log, and every machine that reads that event removes its own copy — the
@@ -1761,6 +1811,12 @@ GitHub, and a plain quote to anything that knows neither. The one exception is a
 icon, which Markdown has no way to say at all: that goes as a small piece of HTML
 with its name inside, so a reader that cannot draw it still reads the word.
 
+A widget is not an exception either: it is fenced code whose language is
+`widget`, so any other reader shows the HTML as code. Tisty draws it — and an
+attached `.html` the same way — in a sealed frame served over `widget://` under
+its own policy: no network, no reach into the window, and a link opened only on
+a click inside it.
+
 Text alignment used to be the second exception and no longer is. It wrote
 `<p style="text-align: center">` into the file to say something no Markdown
 syntax says, and a document full of that is a document that has stopped being
@@ -1886,12 +1942,20 @@ times is read once.
 
 ## Backing up by hand
 
-One zip of `store/`, `docs/`, `originals/` and `attachments/`, never the
-configuration — a shared `device_id` would put two machines in one file.
+One zip of `store/`, `docs/`, `originals/` and `attachments/` (`backup::CARRIED`),
+never the configuration — a shared `device_id` would put two machines in one
+file — and never `<config>/private/`, so neither the signing key nor the secret
+that seals parcels leaves in one. What goes in, and what a zip may put back, is
+one list of name shapes rather than a list of exclusions, so a file nobody
+thought to name stays out. Where attachments are held only in the shared folder,
+the bodies and attachments the folder alone keeps are packed in as well. A copy
+is capped at 8 GB and 200,000 files; past the size, the window says both
+numbers side by side and the button stays disabled.
 
 Restoring is **a photograph**: back to that moment, and what came after is lost
 on purpose. The machine **takes a new device id** so its directory starts empty
-and can never shrink what other machines already hold.
+and can never shrink what other machines already hold. A copy of another store
+is refused (`OtherStore`) unless this one is still empty.
 
 Nothing of yours is touched until the whole backup has been unpacked beside it
 and read back, and the swap moves every old folder aside before a single new one
@@ -1899,10 +1963,14 @@ steps in. A zip that turns out to be corrupt, truncated, somebody else's, or not
 a backup at all costs you nothing — and half a restore is the one outcome worth
 less than either whole.
 
-**Backing up and syncing are mutually exclusive**, and the buttons disable each
-other. The shared folder already holds every machine's history, so a second
-snapshot beside it would be a rival truth. Restoring is a local decision with
-global consequences, and the other machines never hear about it.
+**A shared folder is not a backup, so the backup stays.** Both are offered
+whether or not a folder is chosen; the buttons wait only while something else is
+being written, and making a copy also waits on its size. The folder holds the
+same history, not an earlier one, and it may live in somebody else's account.
+Restoring stops sharing — otherwise the folder would bring back what the copy
+went back on — and Settings names the folder it was, so choosing it again asks
+which side wins. It is a local decision with global consequences, and the other
+machines never hear about it.
 
 The honest limit: with syncing you get **redundancy, not a way back in time**.
 Delete a task and the deletion travels. Going back for everyone would have to be
@@ -1920,9 +1988,12 @@ down as an idea and not built.
 | Carried prints | `<data>/carried.json` | **no** — what this machine last carried, and to which folder |
 | Merge bases | `<data>/carried/` | **no** — the body each print stands for |
 | Highest name given out | `<data>/docs/.spent-<device>` | **no** — so a name is never reused |
-| Before a conversion | `<data>/originals/` | **no**, but it is in a backup |
+| What a write replaced | `<data>/originals/`, its print in `<data>/originals-at/` | **no**, but `originals/` is in a backup |
+| Keys answered for | `<data>/.keys-confirmed` | **no** — what the person at this machine confirmed |
+| Folder shapes met | `<data>/.shape-seen` | **no** |
 | Retired attachments | `<data>/bin/` | **no** — thirty days of grace |
 | Settings and device id | `<config>/config.toml` | **no** |
+| Signing key and store secret | `<config>/private/` | **no**, and never in a backup |
 | The program itself | `%LOCALAPPDATA%\Programs\Tisty` and friends | **no** |
 | Read cache | `<cache>/read.db` | **no** |
 | Last listing | `<cache>/selection.json` | **no** |
@@ -1941,6 +2012,13 @@ tests.
 The **configuration** never syncs, and that is what matters: if two machines
 shared a device id they would write to the same file and every guarantee above
 would stop holding. It is also why the configuration stays out of a backup.
+
+A setting this build has no name for is kept exactly as it was read and written
+back with the rest (`Config::rest`, flattened), so one run of an older build
+never erases what a newer one wrote. The way of syncing is `config::Sync` —
+`Local`, `Folder(path)`, or `Unknown`, which holds a way a later build knows
+untouched: refusing it would stop this build opening at all. A way this build
+does know and cannot make sense of is still refused out loud.
 
 The device id itself does travel, and has to — it is the name of the directory
 and the `by` field of every event, which is what tells the writers apart. What

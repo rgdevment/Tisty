@@ -423,7 +423,10 @@ dibujaste, y un bloque de código dice de qué lenguaje es y se colorea para él
 con sus líneas numeradas al lado del texto y no dentro, así copiar se lleva el
 código y nada más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
 debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
-`math` compone la fórmula que guarda.
+`math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
+pequeña página —HTML, estilos y, si quieres, un poco de script— aislada de la
+red y de la ventana, y un archivo `.html` adjunto a un documento se dibuja
+igual.
 
 **Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
 misma: el nombre del sitio y las palabras que escribiste. No se descarga nada
@@ -439,12 +442,19 @@ Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
 ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
 lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
 el pedacito de HTML que sí lo dice, y lo vuelve a leer.
+Donde el editor se topa con una forma que se sabe que no conserva —una cabecera
+al principio, notas al pie, enlaces escritos por referencia, bloques de HTML—,
+lo dice y abre el documento en solo lectura en vez de destruirlo en silencio.
+Esa lista es lo que revisa, no una promesa sobre todo lo que puede llevar un
+archivo Markdown.
 
-Se escribe sobre una hoja iluminada, y su primera línea es a la vez el nombre
-del documento y su título. Cuando la ventana da para ello, al lado se abre una
-columna con de qué va el documento, el formato que el menú `/` escondía y su
-índice. **Tisty genera su propio PDF** —A4, Carta o una hoja sin fin, con sus
-propios márgenes y los adjuntos dentro— y te lo enseña antes de exportarlo.
+Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
+el nombre del documento y su título —pasando por encima de una valla o de la
+marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
+abre una columna con de qué va el documento, el formato que el menú `/`
+escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o una hoja
+sin fin, con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
+de exportarlo.
 
 **Y salen enteros.** Un documento se copia como Markdown, se escribe en una
 carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
@@ -519,15 +529,24 @@ Dos equipos sí pueden escribir el mismo documento a la vez, y ahí Tisty los ju
 otro, y las dos cosas llegan sin que tengas que responder nada. Solo cuando los
 cambios se pisan de verdad hay una pregunta.
 
-**O respalda a mano.** Un zip, guardado donde quieras.
+**Cada equipo firma lo que escribe**, y uno por el que aquí nadie ha respondido
+espera en la puerta: su ficha en Configuración › *Mantenimiento* muestra la
+clave con la que firma, la comparas con la que ese equipo muestra en su propia
+ficha, y la confirmas —o escribes `tisty sync --confirm <máquina>`—. Hasta
+entonces no entra nada de lo que escribe; desde ese momento, lo que no responda
+a esa clave se rechaza, y Tisty te lo dice.
+
+**Y respalda a mano, con carpeta compartida o sin ella.** Un zip con todo tu
+historial, guardado donde quieras, y restaurado desde el mismo sitio en *Tus
+datos*.
 
 **Dónde viven los grandes lo dices tú.** Por defecto cada equipo carga con todos
 los adjuntos, que es por lo que cualquiera de ellos abre lo que sea con la red
-apagada. Ajustes ofrece otras dos formas: quedarte solo con lo que adjuntaste en
-este equipo y traer el resto cuando lo abras, o —por encima de 50 MB— dejarlos
-en la carpeta compartida y en ningún otro sitio. Esa última cambia la copia de
-tu disco por el espacio que ocupaba: el archivo está cuando está tu nube o tu
-NAS, y
+apagada. Para lo que pase de 50 MB, Configuración ofrece otras dos formas:
+quedarte solo con lo que adjuntaste en este equipo y traer el resto cuando lo
+abras, o dejarlos en la carpeta compartida y en ningún otro sitio. Esa última
+cambia la copia de tu disco por el espacio que ocupaba: el archivo está cuando
+está tu nube o tu NAS, y
 Tisty te lo dice con todas las letras cuando no. Una copia solo se suelta después
 de comprobar que la de la carpeta compartida tiene el mismo sha.
 
@@ -565,9 +584,9 @@ Pero si ya usas un asistente, es probable que le cuentes cosas que vale la pena
 guardar — el grupo del colegio pide cartulina para el lunes, la cuenta vence el
 30. Así que Tisty deja una puerta, y tú decides si la usas.
 
-Ajustes › Agentes enumera los asistentes que ya tienes instalados en este
-equipo y conecta el que elijas: escribe una sola línea en la configuración de
-ese asistente, deja el resto de ese archivo donde estaba y guarda al lado una
+Configuración › Asistentes enumera los asistentes que ya tienes instalados en
+este equipo y conecta el que elijas: escribe una sola línea en la configuración
+de ese asistente, deja el resto de ese archivo donde estaba y guarda al lado una
 copia de cómo era. Para uno que no conozca, basta una línea:
 
 ```console
@@ -577,9 +596,9 @@ $ <tu-asistente> mcp add tisty -- tisty mcp
 Donde `<tu-asistente>` es como se llame el tuyo. Habla
 [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
 cuenta, sin token, nada por la red. **Quien la abre eres tú.** El asistente
-aparece en Ajustes › Agentes como un dispositivo al que tienes que dar entrada,
-y sigue siendo un dispositivo que puedes echar; mientras no le des entrada, todo
-lo que intente se le niega.
+aparece en Configuración › Asistentes como un dispositivo al que tienes que dar
+entrada, y sigue siendo un dispositivo que puedes echar; mientras no le des
+entrada, todo lo que intente se le niega.
 
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
 fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
@@ -594,8 +613,9 @@ archivo que le señales —en una tarea o dentro de un documento, que admite el
 archivo más grande de los dos— y leer lo que ya está. Lo que no puede: cerrar una
 tarea ni borrarla, dar por hecha una tarea que escribiste tú, mover un día que
 pusiste tú, borrar un documento, renombrar ni vaciar una carpeta, alcanzar una
-tarea que plegaste, tomar archivos fuera de las carpetas donde aterriza una
-descarga, ni anotar dos veces lo mismo. Una tarea que cerraste es histórico
+tarea que plegaste, tomar archivos de cualquier sitio que no sea Descargas,
+Documentos, Imágenes, el escritorio o la carpeta temporal, ni anotar dos veces
+lo mismo. Una tarea que cerraste es histórico
 para él: le llega con un aviso que lo dice, se lee como terminó, no admite
 bitácora, ni un día nuevo, ni una alarma, ni un archivo, y si el mismo trabajo
 vuelve, el asistente propone una nueva que dice cómo terminó la anterior.
@@ -675,7 +695,7 @@ preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.
 
 **¿Dónde quedan mis datos?**
 En una carpeta de tu propio disco: un registro que solo crece con lo que pasó,
-tus documentos como archivos `.md` y tus adjuntos tal cual son. Ajustes ›
+tus documentos como archivos `.md` y tus adjuntos tal cual son. Configuración ›
 *Tus datos* escribe la ruta y *Ver el almacén* la abre. Nada está ofuscado y
 nada queda en un formato que solo Tisty sepa leer.
 
@@ -783,7 +803,8 @@ tu tiempo si el teléfono te importa más que el archivo.
 ## Idiomas
 
 La ventana, la guía, la bienvenida y el lenguaje natural hablan el idioma que
-elegiste la primera vez que abriste Tisty, y Ajustes lo cambia cuando quieras.
+elegiste la primera vez que abriste Tisty, y Configuración lo cambia cuando
+quieras.
 
 | Idioma | Etiqueta | Estado |
 | :-- | :-: | :-: |
@@ -804,7 +825,8 @@ telemetría, todo local.
   portapapeles para Windows y macOS.
 - **[LinkUnbound](https://rgdevment.com/linkunbound/)** — un selector de
   navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de
-  suponerlo.
+  suponerlo. Si está instalado, los enlaces web que abres desde Tisty pasan por
+  él.
 
 ## Apoyar el proyecto
 
