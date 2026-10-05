@@ -133,7 +133,12 @@ so, and the window shows its key to compare and confirm (`tisty sync --confirm
 <machine>` does the same from the command line). There is no telling a machine
 of yours coming back from a directory somebody planted without a person looking,
 so the person looks. What that machine wrote waits in the folder and arrives
-whole once its key is answered for. What the person answered for is kept in
+whole once its key is answered for. A machine that was in the folder when it was
+taken up but still in the cloud is taken up when it comes down: the names a
+joining round meant to take up are kept aside in `adopting` until each has
+arrived, and written before the round reads anything, so a first round cut short
+does not leave half the folder waiting on a person. A machine that appears later
+is not on that list. What the person answered for is kept in
 `<data>/.keys-confirmed`, apart from the log: the log decides what a machine
 claims, and only a person decides what is believed. A machine that never said
 what it signs with is not held this way — there is nothing to answer for.
@@ -1297,6 +1302,16 @@ on a thread of its own so the cloud starts bringing it down. The next turn finds
 it here. A store of thousands of files arriving on a new machine therefore comes
 in over several turns that each finish, instead of one turn that waits for every
 download in a row.
+
+A turn says how far it got. `Reached::Log` and `Reached::Papers` mark the
+history and the documents arriving, and `Reached::Along` counts each stage — the
+machines' histories, then the bodies, then the attachments — as `done` of
+`whole`, never counting back; the history is whole before a body or an
+attachment is opened, so the window can draw what it has while the rest comes
+in. The window hears it as `bringing`, at most every quarter second. Each
+attachment that lands is `Reached::Kept`, and the window writes `AttachKept` for
+it in handfuls as the turn goes, so a turn cut short still says this machine
+holds what it already brought.
 
 Nothing waits on that read while holding a lock, or every other command touching
 an attachment would queue behind it. The same holds for the folder and the

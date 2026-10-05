@@ -3412,6 +3412,7 @@ fn a_body_that_contradicts_what_the_log_says_it_holds_is_not_taken_in() {
             None,
             None,
             avowed,
+            &mut |_| {},
         )
         .unwrap();
         other.data.join(&heavy).is_file()
@@ -3705,6 +3706,7 @@ fn a_round_says_the_log_is_home_before_it_says_the_documents_are() {
     )
     .unwrap();
 
+    heard.retain(|far| !matches!(far, Reached::Along { .. }));
     assert_eq!(heard, vec![Reached::Log, Reached::Papers]);
 }
 
@@ -3727,6 +3729,7 @@ fn a_round_that_carried_nothing_says_nothing() {
     )
     .unwrap();
 
+    heard.retain(|far| !matches!(far, Reached::Along { .. }));
     assert!(heard.is_empty(), "{heard:?}");
 }
 
@@ -4830,6 +4833,7 @@ fn a_machine_that_leaves_the_big_ones_behind_still_takes_the_small() {
         None,
         None,
         &Default::default(),
+        &mut |_| {},
     )
     .unwrap();
 
@@ -5450,6 +5454,7 @@ fn fetched(shared: &Path, other: &Machine, most: Option<u64>, again: bool) -> us
         None,
         None,
         &Default::default(),
+        &mut |_| {},
     )
     .unwrap()
 }
@@ -7775,5 +7780,149 @@ fn a_name_still_in_the_cloud_is_said_to_be_coming_rather_than_missing() {
             alias: Some("mario".into()),
             coming: false
         }
+    );
+}
+
+#[test]
+fn a_round_tells_how_far_it_got_history_first_and_never_counting_back() {
+    let one = machine("dev_a");
+    filed(&one, "uno-0001", "# Kit\n\nuno\n");
+    let (_src, file) = {
+        let dir = tempfile::tempdir().unwrap();
+        let at = dir.path().join("contrato.pdf");
+        std::fs::write(&at, b"what the person really attached").unwrap();
+        (dir, at)
+    };
+    let kept =
+        tisty_core::attach::keep(&file, &one.data, tisty_core::attach::COPIED_UP_TO).unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    carry(
+        &one.data,
+        &one.device,
+        shared.path(),
+        Way::Push,
+        &["uno-0001".into()],
+    )
+    .unwrap();
+
+    let other = blank("dev_b");
+    std::fs::create_dir_all(&other.data).unwrap();
+    let mut heard = Vec::new();
+    carry_telling(
+        &other.data,
+        None,
+        &other.device,
+        shared.path(),
+        Way::Both,
+        &[],
+        Holds::Everywhere,
+        &mut |far| heard.push(far),
+    )
+    .unwrap();
+
+    let first = |wanted: Stage| {
+        heard
+            .iter()
+            .position(|far| matches!(far, Reached::Along { stage, .. } if *stage == wanted))
+            .unwrap_or_else(|| panic!("{wanted:?} never said how far it got"))
+    };
+    let log_done = heard.iter().position(|far| *far == Reached::Log).unwrap();
+    assert!(first(Stage::Log) < log_done);
+    assert!(
+        log_done < first(Stage::Papers) && first(Stage::Papers) < first(Stage::Attachments),
+        "the history was not whole before bodies and attachments were opened: {heard:?}"
+    );
+    for wanted in [Stage::Log, Stage::Papers, Stage::Attachments] {
+        let counts: Vec<(usize, usize)> = heard
+            .iter()
+            .filter_map(|far| match far {
+                Reached::Along { stage, done, whole } if *stage == wanted => Some((*done, *whole)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            counts.windows(2).all(|two| two[0].0 <= two[1].0),
+            "{wanted:?} counted back: {counts:?}"
+        );
+        assert!(counts.iter().all(|(done, whole)| done <= whole));
+        assert!(counts.last().is_some_and(|(done, whole)| done == whole));
+    }
+    assert_eq!(
+        heard
+            .iter()
+            .filter_map(|far| match far {
+                Reached::Kept { at, .. } => Some(at.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>(),
+        vec![kept.at.clone()],
+        "what landed was not told as it landed"
+    );
+}
+
+fn given_a_key(one: &Machine) {
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+    held.append(Op::DeviceKey {
+        d: who,
+        p: tisty_core::signing::shown(&key),
+    })
+    .unwrap();
+}
+
+fn joined_with_a_key(named: &str, shared: &Path) -> Machine {
+    let one = blank(named);
+    std::fs::create_dir_all(&one.data).unwrap();
+    carry(&one.data, &one.device, shared, Way::Both, &[]).unwrap();
+    given_a_key(&one);
+    wrote(&one, format!("lo de {named}"));
+    carry(&one.data, &one.device, shared, Way::Push, &[]).unwrap();
+    one
+}
+
+#[test]
+fn a_machine_still_in_the_cloud_when_the_folder_was_taken_up_is_taken_up_when_it_comes_down() {
+    let one = machine("dev_a");
+    given_a_key(&one);
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let _three = joined_with_a_key("dev_c", shared.path());
+    let up = shared.path().join(STORE).join("dev_c").join("active.tisty");
+    sent_up_to_the_cloud(&up);
+
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let first =
+        carry_leaning_on(&two.data, aside, &two.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(first.coming, vec!["dev_c".to_string()]);
+    assert!(first.unconfirmed.is_empty());
+
+    brought_down_from_the_cloud(&up);
+    let after =
+        carry_leaning_on(&two.data, aside, &two.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        after.unconfirmed.is_empty(),
+        "a machine that was in the folder when it was taken up waits as if it had shown up later"
+    );
+    assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
+    assert!(
+        !kept.path().join("adopting").exists(),
+        "taking up stayed open once everybody had come down"
+    );
+
+    let _four = joined_with_a_key("dev_d", shared.path());
+    let later =
+        carry_leaning_on(&two.data, aside, &two.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(
+        later.unconfirmed,
+        vec!["dev_d".to_string()],
+        "a machine that showed up after taking up was taken on sight"
     );
 }
