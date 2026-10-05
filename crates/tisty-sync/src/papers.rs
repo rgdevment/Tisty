@@ -63,6 +63,7 @@ pub(crate) fn carry_papers_leaning_on(
     let mut prints = Prints::read(data);
     let asked = prints.clone();
     let mut done = Moved::default();
+    let mut asked_for = Vec::new();
 
     let outcome = (|| -> Result<(), Trouble> {
         for id in alive {
@@ -77,6 +78,11 @@ pub(crate) fn carry_papers_leaning_on(
                 );
                 continue;
             };
+            if tisty_core::holes::a_hole(&theirs) {
+                asked_for.push(theirs);
+                done.coming.push(id.clone());
+                continue;
+            }
             let told_empty = empty.is_none_or(|told| told.contains(id));
             let (ours, yours, mine_holds, theirs_holds) =
                 match (prints.seen(&mine), prints.seen(&theirs)) {
@@ -246,6 +252,7 @@ pub(crate) fn carry_papers_leaning_on(
         }
         Ok(())
     })();
+    tisty_core::holes::ask_for(asked_for);
 
     if said != was {
         said.save(data)
