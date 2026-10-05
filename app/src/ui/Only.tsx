@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { List } from "../core";
+import { useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
 
@@ -20,6 +21,19 @@ export const said = (lists: List[], chosen: string[]): string => {
 export default function Only({ lists, chosen, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const byList = useGrouped() === "list";
+
+  useEffect(() => {
+    if (byList && chosen.length > 0) {
+      aside(chosen);
+      onChange([]);
+    } else if (!byList) {
+      const back = asideNow();
+      if (back.length === 0) return;
+      aside([]);
+      onChange(back);
+    }
+  }, [byList, chosen, onChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -37,7 +51,7 @@ export default function Only({ lists, chosen, onChange }: Props) {
     };
   }, [open]);
 
-  if (lists.length === 0) return null;
+  if (lists.length === 0 || byList) return null;
 
   const some = chosen.length > 0;
   const toggle = (id: string) =>
@@ -96,3 +110,21 @@ export default function Only({ lists, chosen, onChange }: Props) {
     </div>
   );
 }
+
+const ASIDE = "tisty.only.aside";
+
+const aside = (lists: string[]) => {
+  try {
+    if (lists.length) localStorage.setItem(ASIDE, JSON.stringify(lists));
+    else localStorage.removeItem(ASIDE);
+  } catch {}
+};
+
+const asideNow = (): string[] => {
+  try {
+    const said = JSON.parse(localStorage.getItem(ASIDE) ?? "[]");
+    return Array.isArray(said) ? said.filter((one) => typeof one === "string") : [];
+  } catch {
+    return [];
+  }
+};

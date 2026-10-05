@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Task } from "../core";
+import type { List, Task } from "../core";
+import { group } from "../grouping";
+import Only from "../ui/Only";
 import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
@@ -155,5 +157,30 @@ describe("what a dropped task says of an agent's word", () => {
     expect(screen.getByRole("listitem").getAttribute("aria-label")).toContain(
       "had said it should not be done",
     );
+  });
+});
+
+describe("showing only one list while grouped by list", () => {
+  const theirs = [{ id: "01H", name: "Home", order: "a0" }] as List[];
+
+  it("offers the one-list chip while the rows are grouped some other way", () => {
+    render(<Only lists={theirs} chosen={["01H"]} onChange={() => {}} />);
+
+    expect(screen.getByRole("button", { name: /Home/ })).toBeTruthy();
+  });
+
+  it("hides the chip while grouped by list, and gives the choice back afterwards", () => {
+    const onChange = vi.fn();
+    const shown = render(<Only lists={theirs} chosen={["01H"]} onChange={onChange} />);
+
+    act(() => group("list"));
+
+    expect(screen.queryByRole("button", { name: /Home/ })).toBeNull();
+    expect(onChange).toHaveBeenLastCalledWith([]);
+
+    shown.rerender(<Only lists={theirs} chosen={[]} onChange={onChange} />);
+    act(() => group("time"));
+
+    expect(onChange).toHaveBeenLastCalledWith(["01H"]);
   });
 });
