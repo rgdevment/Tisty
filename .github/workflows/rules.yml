@@ -69,6 +69,36 @@ jobs:
         run: |
           bash scripts/commits.sh --title "$(git log -1 --format=%s)"
 
+  notices:
+    name: The notices match the lockfiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Rust, from rust-toolchain.toml
+        run: rustup toolchain install --no-self-update
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: The window the notices read
+        working-directory: app
+        run: npm ci
+
+      - name: Written again, and unchanged
+        run: |
+          npm run notices
+          moved=$(git status --porcelain -- THIRD-PARTY-BUNDLED.md THIRD-PARTY-LICENSES.md)
+          if [ -n "$moved" ]; then
+            echo "$moved"
+            git diff -- THIRD-PARTY-BUNDLED.md THIRD-PARTY-LICENSES.md | head -200
+            echo "::error::THIRD-PARTY-BUNDLED.md or THIRD-PARTY-LICENSES.md is behind the lockfiles. Run «npm run notices» and commit what it writes."
+            exit 1
+          fi
+
   # One turn of the suite is what CI already runs on every push and pull request, so this job
   # only earns its toolchain when it runs the twenty that say whether a test is deterministic.
   determinism:
