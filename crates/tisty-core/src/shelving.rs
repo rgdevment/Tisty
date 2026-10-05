@@ -41,6 +41,7 @@ impl State {
             .map(|task| Op::TaskMove {
                 id: task.id,
                 d: TaskMove {
+                    part_of: None,
                     list: Some(None),
                     order: None,
                 },

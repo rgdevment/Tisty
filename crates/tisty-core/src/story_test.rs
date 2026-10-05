@@ -107,6 +107,7 @@ fn reordering_is_not_a_chapter() {
             Op::TaskMove {
                 id,
                 d: TaskMove {
+                    part_of: None,
                     list: None,
                     order: Some("a5".into()),
                 },
@@ -423,6 +424,7 @@ fn every_kind_of_move_becomes_the_chapter_that_names_it() {
             Op::TaskMove {
                 id,
                 d: TaskMove {
+                    part_of: None,
                     list: Some(Some(list)),
                     order: None,
                 },

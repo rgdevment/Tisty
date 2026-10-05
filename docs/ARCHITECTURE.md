@@ -927,6 +927,41 @@ never existed, and a mistyped year would drag the live turn years out and take
 the routine with it — so the window and the command line cannot widen it between
 them, and neither can a future caller.
 
+## A task with parts
+
+A list is where work lives and never ends; a tag cuts across. Neither says what
+a run of separate tasks is *for* until it is finished. A task can hold parts
+for that: each part is a whole task, with its steps and its journal, and
+`part_of` names the task it belongs to. One level only — a part holds no parts,
+and a task that holds parts is never one — and one whole per part; what cuts
+across is still a tag.
+
+`part_of` is an optional field on `task.add` and `task.move` (`null` lets a
+part go), with no new op and no schema bump: a build that knows nothing of it
+reads past the field and shows the part as a task of its own, which is all a
+part is. Everything that judges a part is judged at replay, in `parts.rs`, the
+way a folder's move is, so two machines that crossed a move agree on where the
+part landed: the later move wins, a whole that is not there or is itself a
+part is refused, and something that repeats can neither hold parts nor be one
+— a routine never ends, and a whole is there to end. The window and the
+terminal refuse a `repeat` on a whole or on a part before it is written
+(`State::repeat_refused`), so undo never has to put one back; one that arrives
+anyway, from a build that knew no parts, lets the whole and its parts go apart,
+and undoing it hangs them again.
+
+Nothing cascades in the projection, because an older build would not cascade
+and the machines would part ways. What a whole does to its parts is written as
+events of their own: finishing a whole with parts still open drops those parts
+and closes it in one transaction (`State::completing`, the one every window and
+the terminal already call), so one undo takes all of it back; a whole that is
+deleted anyway leaves its parts standing on their own; and a task that holds
+parts is not erasable (`Stays::Parts`), the same rule as the head of a routine.
+Nothing ever closes a whole by itself.
+
+An assistant may write a task as a part only of a task it filed or that the
+person opened to it; anywhere else the task is kept and the place let go. It
+never moves the person's tasks under anything, which the door already refuses.
+
 ## Reminders
 
 A reminder is an hour, kept on the task as a list of moments. Nothing about it is

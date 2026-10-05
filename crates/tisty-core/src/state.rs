@@ -253,19 +253,13 @@ impl State {
         }
 
         match &event.op {
-            Op::TaskAdd { id, d } => {
-                let mut task = task_from(*id, d);
-                task.created_by = Some(event.device.clone());
-                task.created_via = event.via.clone();
-                task.retally();
-                if let Some(source) = &task.source {
-                    self.sourced.insert(source.clone(), *id);
-                }
-                self.tasks.insert(*id, task);
-            }
+            Op::TaskAdd { id, d } => self.task_added(event, *id, d),
             Op::TaskUpdate { id, d } => {
                 let person = !self.assistants.contains(&event.device);
-                self.with_task(*id, |t| patch(t, d, person))
+                self.with_task(*id, |t| patch(t, d, person));
+                if d.repeat.is_some() {
+                    self.turned_routine(*id);
+                }
             }
             Op::TaskDone { id, filled } => {
                 let zone = event.zone.clone();
@@ -295,7 +289,12 @@ impl State {
             // read as a trace: the same stamp order everywhere, so every machine keeps it. And
             // what it was written from stays known, so an assistant does not file it again.
             Op::TaskDelete { id } => self.task_deleted(event, id),
-            Op::TaskMove { id, d } => self.with_task(*id, |t| move_task(t, d)),
+            Op::TaskMove { id, d } => {
+                self.with_task(*id, |t| move_task(t, d));
+                if let Some(whole) = d.part_of {
+                    self.task_parted(*id, whole, event);
+                }
+            }
 
             Op::TaskDescribe { id, d } => self.with_task(*id, |t| t.description = d.body.clone()),
             Op::TaskLog { id, d } => {
@@ -780,7 +779,14 @@ impl State {
             .collect()
     }
 
+    /// A whole's parts still open are let go in the same transaction, so one undo takes it back.
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
+        let mut ops = self.open_parts_dropped(id);
+        ops.extend(self.finishing(id, now));
+        ops
+    }
+
+    fn finishing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
         let done = vec![Op::TaskDone { id, filled: false }];
         let Some(task) = self.tasks.get(&id) else {
             return done;
@@ -1002,6 +1008,9 @@ impl State {
         task.erasable()?;
         if self.roots().contains(&id) {
             return Err(crate::model::Stays::Routine);
+        }
+        if self.holds_parts(id) {
+            return Err(crate::model::Stays::Parts);
         }
         Ok(())
     }
@@ -1346,7 +1355,7 @@ fn shifted(
     }
 }
 
-fn task_from(id: TaskId, d: &TaskAdd) -> Task {
+pub(crate) fn task_from(id: TaskId, d: &TaskAdd) -> Task {
     Task {
         priority: d.priority.unwrap_or_default(),
         date: d.date.clone(),
