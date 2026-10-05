@@ -68,6 +68,7 @@ const KNOWN = [
   "attachmentTooBig",
   "attachmentTooBigHere",
   "textTooLong",
+  "widgetTooBig",
   "documentTooBig",
   "documentTooLong",
   "archivedList",

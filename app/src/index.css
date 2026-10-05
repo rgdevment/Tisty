@@ -899,6 +899,91 @@ body {
   max-width: 100%;
   height: auto;
 }
+.tisty-doc .lit-drawn:has(.lit-widget) {
+  display: block;
+}
+.tisty-doc .lit-widget {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.tisty-doc .lit-refused {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--tisty-faint);
+}
+.tisty-doc .widget-page {
+  display: block;
+  margin: 8px 0;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--tisty-sheet);
+}
+.tisty-doc .widget-page-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--tisty-hair);
+  background: var(--tisty-panel);
+  font-size: 12.5px;
+}
+.tisty-doc .widget-page-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tisty-ink);
+  font-weight: 550;
+}
+.tisty-doc .widget-page-shelve {
+  font-size: 11.5px;
+  color: var(--tisty-soft);
+  border: 1px solid var(--tisty-line);
+  border-radius: 7px;
+  padding: 1px 8px;
+  background: transparent;
+}
+.tisty-doc .widget-page-shelve:hover {
+  background: var(--tisty-hover);
+}
+.tisty-doc .widget-page-drawn {
+  display: block;
+  padding: 14px;
+}
+.tisty-doc .widget-page-drawn .lit-widget {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.tisty-doc .lit-folding .lit-body {
+  max-height: 420px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.tisty-doc .lit-folding .lit-body:hover {
+  scrollbar-color: var(--tisty-line) transparent;
+}
+.tisty-doc .lit-fold {
+  font-size: 11.5px;
+  color: var(--tisty-soft);
+  border: 1px solid var(--tisty-line);
+  border-radius: 7px;
+  padding: 1px 8px;
+  background: transparent;
+}
+.tisty-doc .lit-fold:hover {
+  background: var(--tisty-hover);
+}
+.tisty-doc .lit-fold:focus-visible {
+  outline: 2px solid var(--tisty-accent);
+  outline-offset: 1px;
+}
 
 .hljs-comment,
 .hljs-quote {

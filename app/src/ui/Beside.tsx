@@ -24,6 +24,7 @@ export const SHAPES = [
   "code",
   "mermaid",
   "math",
+  "widget",
   "table",
   "rule",
   "pen",
