@@ -46,6 +46,7 @@ const en = {
     "This entry is the account an agent gave for its word on the task. Send the task back as still to do first",
   storyStays: "A story is only hidden, never erased. Read it as a trace first if it has to go",
   routineStays: "A routine's turn is never erased",
+  partsStay: "A task with parts is not erased: its parts would hang from nothing",
   onlyClosedConverts: "Only a closed task is read as a story or a trace",
   routineReadsAsRoutine: "A routine reads as a routine, turn by turn",
   notAReading: "That is not a way to read a task",
@@ -1475,6 +1476,7 @@ const es: Catalog = {
   storyStays:
     "Una historia solo se oculta, no se borra. Si tiene que irse, léela antes como rastro",
   routineStays: "La vuelta de una rutina no se borra",
+  partsStay: "Una tarea con partes no se borra: sus partes quedarían colgando de nada",
   onlyClosedConverts: "Solo una tarea cerrada se lee como historia o como rastro",
   routineReadsAsRoutine: "Una rutina se lee como rutina, vuelta a vuelta",
   notAReading: "Esa no es una forma de leer una tarea",

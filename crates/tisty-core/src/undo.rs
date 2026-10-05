@@ -117,6 +117,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 d: TaskMove {
                     list: d.list.as_ref().map(|_| task.list),
                     order: d.order.as_ref().map(|_| task.order.clone()),
+                    part_of: d.part_of.as_ref().map(|_| task.part_of),
                 },
             })
         }
