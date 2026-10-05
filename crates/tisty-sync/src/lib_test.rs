@@ -7624,3 +7624,113 @@ fn a_body_edited_outside_the_window_travels_with_its_print_and_asks_nothing() {
         outside
     );
 }
+
+fn sent_up_to_the_cloud(at: &Path) {
+    let name = at.file_name().unwrap().to_str().unwrap();
+    std::fs::rename(at, at.with_file_name(format!(".{name}.icloud"))).unwrap();
+}
+
+fn brought_down_from_the_cloud(at: &Path) {
+    let name = at.file_name().unwrap().to_str().unwrap();
+    std::fs::rename(at.with_file_name(format!(".{name}.icloud")), at).unwrap();
+}
+
+#[test]
+fn a_history_still_in_the_cloud_is_on_its_way_and_comes_in_a_later_turn() {
+    let theirs = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&theirs.data, &theirs.device, shared.path(), Way::Push, &[]).unwrap();
+    let up = shared.path().join(STORE).join("dev_a").join("active.tisty");
+    sent_up_to_the_cloud(&up);
+
+    let ours = blank("dev_b");
+    let first = carry(&ours.data, &ours.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    assert_eq!(first.coming, vec!["dev_a".to_string()]);
+    assert!(first.unreadable.is_empty(), "on its way is not unreadable");
+    assert!(titles(&ours.store).is_empty());
+
+    brought_down_from_the_cloud(&up);
+    let next = carry(&ours.data, &ours.device, shared.path(), Way::Pull, &[]).unwrap();
+
+    assert!(next.coming.is_empty());
+    assert!(titles(&ours.store).contains(&"lo de dev_a".to_string()));
+}
+
+#[test]
+fn a_document_still_in_the_cloud_is_never_read_and_comes_in_a_later_turn() {
+    let theirs = machine("dev_a");
+    let alive = ["nota-0001".to_string()];
+    filed(
+        &theirs,
+        "nota-0001",
+        "# Nota
+
+lo que dice la nota
+",
+    );
+    let shared = tempfile::tempdir().unwrap();
+    carry(
+        &theirs.data,
+        &theirs.device,
+        shared.path(),
+        Way::Push,
+        &alive,
+    )
+    .unwrap();
+    let up = tisty_core::docs::resolve(&shared.path().join(PAPERS), "nota-0001").unwrap();
+    sent_up_to_the_cloud(&up);
+
+    let ours = blank("dev_b");
+    let first = carry(&ours.data, &ours.device, shared.path(), Way::Pull, &alive).unwrap();
+
+    assert!(!first.coming.is_empty(), "{first:?}");
+    let mine = tisty_core::docs::resolve(&ours.data.join(PAPERS), "nota-0001").unwrap();
+    assert!(!mine.exists());
+
+    brought_down_from_the_cloud(&up);
+    carry(&ours.data, &ours.device, shared.path(), Way::Pull, &alive).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(&mine).unwrap(),
+        "# Nota
+
+lo que dice la nota
+"
+    );
+}
+
+#[test]
+fn a_newer_machine_with_an_old_segment_still_in_the_cloud_still_stops_the_turn() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let theirs = shared.path().join("store/dev_b");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::write(theirs.join(".000001.tisty.icloud"), b"stub").unwrap();
+    std::fs::write(
+        theirs.join("active.tisty"),
+        b"{\"v\":99,\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WT\",\"d\":{\"title\":\"from the future\",\"order\":\"V\"}}\n",
+    )
+    .unwrap();
+
+    let stopped = carry(&one.data, &one.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Newer(ref who)) if who == "dev_b"),
+        "{stopped:?}"
+    );
+}
+
+#[test]
+fn what_arrives_from_the_cloud_stirs_the_folder() {
+    let theirs = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&theirs.data, &theirs.device, shared.path(), Way::Push, &[]).unwrap();
+    let up = shared.path().join(STORE).join("dev_a").join("active.tisty");
+    sent_up_to_the_cloud(&up);
+    let before = stirring(shared.path());
+
+    brought_down_from_the_cloud(&up);
+
+    assert_ne!(before, stirring(shared.path()));
+}

@@ -171,6 +171,7 @@ pub(crate) fn copy_held(
 ) -> Result<usize, Trouble> {
     let mut done = 0;
     let mut left = 0;
+    let mut asked_for = Vec::new();
     let mut carried = carried;
     let mut written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
     for (at, one) in avowed {
@@ -224,6 +225,15 @@ pub(crate) fn copy_held(
             let under = under.to_str().unwrap_or_default();
             // What iCloud left in place of a file is not litter, and saying so would bury the log.
             if tisty_core::holes::marker(named) {
+                if let Some(real) = tisty_core::holes::named_away(named) {
+                    let reference = format!("attachments/{under}/{real}");
+                    if tisty_core::attach::shelved(under, real)
+                        && !buried.contains(&reference)
+                        && reachable.is_none_or(|named| named.contains(&reference))
+                    {
+                        asked_for.push(shelf.path().join(real));
+                    }
+                }
                 continue;
             }
             if !tisty_core::attach::shelved(under, named) {
@@ -270,6 +280,10 @@ pub(crate) fn copy_held(
                 continue;
             }
             let reference = format!("attachments/{under}/{named}");
+            if tisty_core::holes::a_hole(&at) {
+                asked_for.push(at.clone());
+                continue;
+            }
             let part = beside(&target);
             let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::COPIED_IN_DOC);
             let Ok((sha256, bytes)) = ferried else {
@@ -324,5 +338,8 @@ pub(crate) fn copy_held(
             &[("left", Fact::Count(left))],
         );
     }
+    asked_for.sort();
+    asked_for.dedup();
+    tisty_core::holes::ask_for(asked_for);
     Ok(done)
 }

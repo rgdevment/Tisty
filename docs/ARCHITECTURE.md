@@ -1285,6 +1285,19 @@ body that could not be read answers neither way: nothing is written down, and it
 is reported as held away rather than torn. Sidecars never travel and never go
 into a backup.
 
+Since Sonoma, iCloud Drive leaves no sidecar: the file stays where it was and
+`stat` reports it whole, with only the `SF_DATALESS` flag saying its bytes are
+in the cloud — Dropbox and OneDrive through File Provider do the same — and
+reading it waits for the download. A round never makes that wait. Before a
+history, a document body or an attachment is read from the shared folder,
+`holes::still_away` and `a_hole` ask whether it is there, by metadata alone; what
+is not stays out of the turn, is reported in `Moved::coming` — on its way, not
+unreadable — and is asked for with `holes::ask_for`, which reads one byte of it
+on a thread of its own so the cloud starts bringing it down. The next turn finds
+it here. A store of thousands of files arriving on a new machine therefore comes
+in over several turns that each finish, instead of one turn that waits for every
+download in a row.
+
 Nothing waits on that read while holding a lock, or every other command touching
 an attachment would queue behind it. And nothing in the window may assume the
 answer is there yet: a player that asks once and gives up mounts with no source

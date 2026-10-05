@@ -72,6 +72,7 @@ pub struct Moved {
     pub arrived: Vec<String>,
     pub let_go: Vec<String>,
     pub took_in: Vec<(String, String, u64)>,
+    pub coming: Vec<String>,
 }
 
 impl Moved {
@@ -274,6 +275,7 @@ pub fn carry_telling(
         moved.joined = papers.joined;
         moved.unanswered = papers.unanswered;
         moved.arrived = papers.arrived;
+        moved.coming.extend(papers.coming);
         if papers.brought > 0 {
             saying(Reached::Papers);
         }
@@ -405,7 +407,7 @@ pub fn signed_at(dest: &Path) -> Option<String> {
 pub fn stirring(dest: &Path) -> u64 {
     use std::hash::{Hash, Hasher};
 
-    let mut seen: Vec<(std::path::PathBuf, u64, u64)> = Vec::new();
+    let mut seen: Vec<(std::path::PathBuf, u64, u64, bool)> = Vec::new();
     let when = |at: &Path| {
         std::fs::metadata(at)
             .and_then(|one| Ok((one.len(), one.modified()?)))
@@ -427,7 +429,8 @@ pub fn stirring(dest: &Path) -> u64 {
             };
             for at in segments {
                 if let Some((len, stamped)) = when(&at) {
-                    seen.push((at, len, stamped));
+                    let away = tisty_core::holes::a_hole(&at);
+                    seen.push((at, len, stamped, away));
                 }
             }
         }
@@ -809,6 +812,20 @@ fn bring(
             continue;
         }
         let mine = store.join(named);
+        let pending = tisty_core::holes::still_away(&entry.path());
+        if !pending.is_empty() {
+            witness::note(
+                channel::SYNC,
+                "a machine's history is still on its way down from the cloud, so it waits for the next turn",
+                &[
+                    ("at", Fact::Id(named.to_string())),
+                    ("files", Fact::Count(pending.len())),
+                ],
+            );
+            tisty_core::holes::ask_for(pending);
+            moved.coming.push(named.to_string());
+            continue;
+        }
         if named.eq_ignore_ascii_case(device) {
             if !alike.settled(named, &entry.path(), &mine, Toward::Home)
                 && ours_went_missing(&mine, &entry.path())

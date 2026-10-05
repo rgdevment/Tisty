@@ -12,6 +12,12 @@ const OFFLINE: u32 = 0x0000_1000;
 const REPARSE_POINT: u32 = 0x0000_0400;
 const RECALL_ON_OPEN: u32 = 0x0004_0000;
 const RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
+// Since Sonoma, iCloud, Dropbox and OneDrive on a Mac leave no sidecar, only this flag.
+const SF_DATALESS: u32 = 0x4000_0000;
+
+pub fn dataless(flags: u32) -> bool {
+    flags & SF_DATALESS != 0
+}
 
 pub fn marked(attributes: u32) -> bool {
     attributes & (OFFLINE | RECALL_ON_DATA_ACCESS) != 0
@@ -42,6 +48,12 @@ pub fn marker(name: &str) -> bool {
     name.starts_with('.') && name.ends_with(".icloud")
 }
 
+pub fn named_away(name: &str) -> Option<&str> {
+    name.strip_prefix('.')?
+        .strip_suffix(".icloud")
+        .filter(|real| !real.is_empty())
+}
+
 #[cfg(windows)]
 fn held_away(at: &Path) -> bool {
     use std::os::windows::fs::MetadataExt;
@@ -54,9 +66,65 @@ fn held_away(at: &Path) -> bool {
     marked(told.file_attributes())
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn held_away(at: &Path) -> bool {
+    use std::os::macos::fs::MetadataExt;
+    std::fs::metadata(at).is_ok_and(|one| dataless(one.st_flags()))
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn held_away(_at: &Path) -> bool {
     false
+}
+
+pub fn still_away(dir: &Path) -> Vec<PathBuf> {
+    let Ok(all) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    all.filter_map(|one| one.ok())
+        .filter_map(|one| {
+            let at = one.path();
+            let name = at.file_name()?.to_str()?;
+            if marker(name) {
+                return named_away(name).map(|real| at.with_file_name(real));
+            }
+            (at.is_file() && held_away(&at)).then_some(at)
+        })
+        .collect()
+}
+
+// Reading is what brings a file down, and the read waits for it: done apart, the round goes on.
+pub fn ask_for(all: Vec<PathBuf>) {
+    let fresh: Vec<PathBuf> = {
+        let Ok(mut asked) = in_flight().lock() else {
+            return;
+        };
+        all.into_iter()
+            .filter(|at| asked.insert(at.clone()))
+            .collect()
+    };
+    if fresh.is_empty() {
+        return;
+    }
+    std::thread::spawn(move || {
+        for at in fresh {
+            if sidecar(&at).is_some() {
+                fetched(&at);
+            } else if let Ok(mut file) = std::fs::File::open(&at) {
+                let mut one = [0u8; 1];
+                let _ = std::io::Read::read(&mut file, &mut one);
+            }
+            if let Ok(mut asked) = in_flight().lock() {
+                asked.remove(&at);
+            }
+        }
+    });
+}
+
+fn in_flight() -> &'static std::sync::Mutex<std::collections::BTreeSet<PathBuf>> {
+    static ASKED: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeSet<PathBuf>>> =
+        std::sync::OnceLock::new();
+    ASKED.get_or_init(Default::default)
 }
 
 pub fn can_ask(left: &Left) -> bool {
