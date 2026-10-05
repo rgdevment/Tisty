@@ -903,9 +903,12 @@ pub(super) fn brief(task: &Task, state: &State) -> Value {
         "part_of",
         json!(task.part_of.map(|whole| whole.to_string())),
     );
-    let (closed, all) = state.parts_of(task.id).fold((0, 0), |(closed, all), part| {
-        (closed + usize::from(!part.is_open()), all + 1)
-    });
+    let (closed, all) = state
+        .parts_of(task.id)
+        .filter(|part| !part.folded())
+        .fold((0, 0), |(closed, all), part| {
+            (closed + usize::from(!part.is_open()), all + 1)
+        });
     if all > 0 {
         put("parts", json!(format!("{closed}/{all}")));
     }

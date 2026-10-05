@@ -6014,6 +6014,12 @@ fn a_part_the_person_hid_does_not_hold_its_whole_back() {
     );
     hide(&served, &packing);
 
+    let found = served.call("find", serde_json::json!({ "query": "move house" }));
+    assert!(
+        found.to_string().contains("\"parts\":\"0/1\""),
+        "the count leaves out what the person hid, as reading does: {found}"
+    );
+
     let after = served.call(
         "say_done",
         serde_json::json!({ "task": &whole, "body": "moved" }),
