@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -137,6 +138,54 @@ describe("the notice every bundled licence asks for", () => {
     expect(row.closest("table")).toBeTruthy();
     expect(screen.queryByText(/\| --- \|/)).toBeNull();
     expect(screen.queryByText(/^## /)).toBeNull();
+  });
+
+  it("keeps the licence texts behind their own button, asked for only when opened", async () => {
+    let asked = 0;
+    ipc.answer = (cmd) => {
+      if (cmd !== "licences") return Promise.resolve(build);
+      asked += 1;
+      return Promise.resolve(
+        "## Text 1\n\nCarried by `jiff` 0.2.0.\n\n```text\nThe Unlicense\n```",
+      );
+    };
+    render(<About ready={null} onError={() => {}} />);
+
+    const button = await screen.findByText("Licence texts");
+    expect(asked).toBe(0);
+
+    await userEvent.click(button);
+    expect(await screen.findByText(/The Unlicense/)).toBeTruthy();
+    expect(asked).toBe(1);
+
+    await userEvent.click(button);
+    await waitFor(() => {
+      expect(screen.queryByText(/The Unlicense/)).toBeNull();
+    });
+  });
+
+  it("says so when the licence texts cannot be read", async () => {
+    const said: unknown[] = [];
+    ipc.answer = (cmd) =>
+      cmd === "licences" ? Promise.reject(new Error("gone")) : Promise.resolve(build);
+    render(<About ready={null} onError={(problem) => said.push(problem)} />);
+
+    await userEvent.click(await screen.findByText("Licence texts"));
+
+    await waitFor(() => {
+      expect(said.length).toBe(1);
+    });
+  });
+
+  it("links only to whole addresses from both files, which a window cannot follow otherwise", () => {
+    for (const named of ["THIRD-PARTY-BUNDLED.md", "THIRD-PARTY-LICENSES.md"]) {
+      const body = readFileSync(`../${named}`, "utf8");
+      const targets = [...body.matchAll(/\]\(([^)\s]+)\)/g)].map((one) => one[1]);
+      expect(targets.length).toBeGreaterThan(0);
+      for (const target of targets) {
+        expect(target, `${named} links to ${target}`).toMatch(/^https:\/\//);
+      }
+    }
   });
 });
 

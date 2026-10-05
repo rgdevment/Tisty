@@ -894,6 +894,7 @@ pub fn run() {
             answers::reporting::rebuild,
             answers::settings::about,
             answers::settings::notices,
+            answers::settings::licences,
             answers::settings::settings,
             answers::settings::keep_settings,
             answers::reporting::facts,

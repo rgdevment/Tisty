@@ -664,6 +664,7 @@ const en = {
   aboutStore: "Store",
   aboutRepo: "Open the repository",
   aboutNotices: "Third-party notices",
+  aboutLicences: "Licence texts",
   aboutReveal: "Show the store",
   supportTitle: "Support Tisty",
   supportWhy:
@@ -2090,6 +2091,7 @@ const es: Catalog = {
   aboutStore: "Almacén",
   aboutRepo: "Abrir el repositorio",
   aboutNotices: "Avisos de terceros",
+  aboutLicences: "Textos de las licencias",
   aboutReveal: "Ver el almacén",
   supportTitle: "Apoyar a Tisty",
   supportWhy:

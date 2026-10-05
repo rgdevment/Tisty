@@ -603,6 +603,7 @@ export const about = (): Promise<About> => invoke("about");
 export const updateCandidates = (wants: boolean): Promise<void> =>
   invoke("update_candidates", { wants });
 export const notices = (): Promise<string> => invoke("notices");
+export const licences = (): Promise<string> => invoke("licences");
 
 export const starDue = (): Promise<boolean> => invoke("star_due");
 
