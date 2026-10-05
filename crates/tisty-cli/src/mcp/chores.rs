@@ -160,6 +160,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .map(|one| json!({ "id": one.id.to_string(), "title": one.title }))
         .collect();
     let sourced: Vec<String> = parts.iter().filter_map(|one| one.source.clone()).collect();
+    let parts_from = sourced.clone();
     let mut ops = mine.ops;
     for one in parts {
         ops.extend(one.ops);
@@ -194,6 +195,22 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             .as_deref()
             .and_then(|one| already(&held, one))
             .and_then(|id| held.tasks.get(&id));
+        if task.is_none()
+            && let Some((from, part)) = parts_from.iter().find_map(|one| {
+                already(&held, one)
+                    .and_then(|id| held.tasks.get(&id))
+                    .map(|part| (one, part))
+            })
+        {
+            return Ok(told(
+                format!(
+                    "A part's source, {from:?}, was proposed meanwhile, as {}: {:?}. Nothing was \
+                     written — neither the task nor any of its parts.",
+                    part.id, part.title
+                ),
+                json!({ "id": null, "proposed": false, "collided": part.id.to_string() }),
+            ));
+        }
         return Ok(told(
             match task {
                 Some(task) => format!(

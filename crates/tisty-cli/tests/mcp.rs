@@ -5975,12 +5975,13 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
         serde_json::json!([{ "title": "book the van", "source": "sereno#1" }]),
         serde_json::json!([
             { "title": "book the van", "source": "move#2" },
-            { "title": "pack", "source": "move#2" }
+            { "title": "pack", "source": "Move #2" }
         ]),
+        serde_json::json!([{ "title": "book the van", "source": "MOVE: #9" }]),
     ] {
         let said = served.call(
             "propose",
-            serde_json::json!({ "title": "move house", "parts": parts }),
+            serde_json::json!({ "title": "move house", "source": "move#9", "parts": parts }),
         );
         assert_eq!(said["result"]["isError"], true, "{said}");
     }

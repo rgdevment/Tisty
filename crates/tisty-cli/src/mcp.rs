@@ -1433,7 +1433,7 @@ fn part_asked(body: &str, args: &Value) -> Result<Part, Refused> {
 
 /// «sereno#1», «sereno: #1» and «Sereno #1» name the same message, and a second filing of one
 /// is a duplicate however it was written.
-fn alike(source: &str) -> String {
+pub(super) fn alike(source: &str) -> String {
     let one = source.trim().to_lowercase();
     let mut out = String::with_capacity(one.len());
     let mut space = false;

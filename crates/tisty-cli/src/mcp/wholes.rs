@@ -6,7 +6,7 @@ use tisty_core::model::TaskId;
 use super::asked::{only_what_it_takes, short_and_plain, text};
 use super::chores::{Drafted, drafted};
 use super::order;
-use super::{Refused, already};
+use super::{Refused, alike, already};
 
 const PARTS_AT_MOST: usize = 32;
 
@@ -108,14 +108,17 @@ pub(super) fn parts_drafted(
             ));
         };
         if let Some(source) = text(one, "source") {
-            let twice = drafts
+            let spelled = alike(&source);
+            let twice = whole
+                .source
                 .iter()
-                .any(|drafted| drafted.source.as_deref() == Some(source.as_str()));
+                .chain(drafts.iter().filter_map(|drafted| drafted.source.as_ref()))
+                .any(|other| alike(other) == spelled);
             if twice || already(state, &source).is_some() {
                 return Err(Refused::Tool(format!(
                     "the part {title:?} comes from {source:?}, which {} Nothing was written.",
                     match twice {
-                        true => "another part in this call comes from too.",
+                        true => "the task or another part in this call comes from too.",
                         false => "was proposed already: `find` it with `source`.",
                     }
                 )));
