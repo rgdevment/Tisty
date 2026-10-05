@@ -66,16 +66,11 @@ impl State {
         }
     }
 
-    /// The parts still open are let go in the same breath as the whole is finished, so one
-    /// undo takes all of it back.
-    pub fn completing_with_parts(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
-        let mut ops: Vec<Op> = self
-            .parts_of(id)
+    pub(crate) fn open_parts_dropped(&self, id: TaskId) -> Vec<Op> {
+        self.parts_of(id)
             .filter(|part| part.status == Status::Open)
             .map(|part| Op::TaskDrop { id: part.id })
-            .collect();
-        ops.extend(self.completing(id, now));
-        ops
+            .collect()
     }
 }
 

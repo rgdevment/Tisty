@@ -779,7 +779,14 @@ impl State {
             .collect()
     }
 
+    /// A whole's parts still open are let go in the same transaction, so one undo takes it back.
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
+        let mut ops = self.open_parts_dropped(id);
+        ops.extend(self.finishing(id, now));
+        ops
+    }
+
+    fn finishing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
         let done = vec![Op::TaskDone { id, filled: false }];
         let Some(task) = self.tasks.get(&id) else {
             return done;

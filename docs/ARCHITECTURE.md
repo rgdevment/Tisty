@@ -946,15 +946,17 @@ part is refused, and something that repeats can neither hold parts nor be one
 — a routine never ends, and a whole is there to end. The window and the
 terminal refuse a `repeat` on a whole or on a part before it is written
 (`State::repeat_refused`), so undo never has to put one back; one that arrives
-anyway, from a build that knew no parts, lets the whole and its parts go apart.
+anyway, from a build that knew no parts, lets the whole and its parts go apart,
+and undoing it hangs them again.
 
 Nothing cascades in the projection, because an older build would not cascade
 and the machines would part ways. What a whole does to its parts is written as
 events of their own: finishing a whole with parts still open drops those parts
-and closes it in one transaction (`State::completing_with_parts`), so one undo
-takes all of it back; a whole that is deleted anyway leaves its parts standing
-on their own; and a task that holds parts is not erasable (`Stays::Parts`), the
-same rule as the head of a routine. Nothing ever closes a whole by itself.
+and closes it in one transaction (`State::completing`, the one every window and
+the terminal already call), so one undo takes all of it back; a whole that is
+deleted anyway leaves its parts standing on their own; and a task that holds
+parts is not erasable (`Stays::Parts`), the same rule as the head of a routine.
+Nothing ever closes a whole by itself.
 
 An assistant may write a task as a part only of a task it filed or that the
 person opened to it; anywhere else the task is kept and the place let go. It

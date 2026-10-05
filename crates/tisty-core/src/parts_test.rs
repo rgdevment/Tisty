@@ -247,7 +247,7 @@ fn finishing_the_whole_lets_the_open_parts_go_and_keeps_the_closed_ones() {
         },
     ));
 
-    let ops = state.completing_with_parts(whole, jiff::Zoned::now());
+    let ops = state.completing(whole, jiff::Zoned::now());
 
     assert!(ops.contains(&Op::TaskDrop { id: open }));
     assert!(!ops.contains(&Op::TaskDrop { id: done }));
@@ -309,4 +309,32 @@ fn a_repeat_is_refused_on_a_whole_and_on_a_part_before_it_is_written() {
     assert_eq!(state.repeat_refused(whole), Some("wholeRepeats"));
     assert_eq!(state.repeat_refused(part), Some("partRepeats"));
     assert_eq!(state.repeat_refused(loose), None);
+}
+
+#[test]
+fn taking_back_a_repeat_from_an_older_build_hangs_the_parts_again() {
+    let mut state = State::default();
+    let whole = written(&mut state, 1, "dev_a", "move house", None);
+    let part = written(&mut state, 2, "dev_a", "book the van", Some(whole));
+    let before = state.clone();
+    let event = ev(
+        3,
+        "dev_old",
+        Op::TaskUpdate {
+            id: whole,
+            d: TaskPatch {
+                repeat: Some(Some(weekly())),
+                ..Default::default()
+            },
+        },
+    );
+
+    let back = crate::undo::inverse(&event, &before).expect("a patch has an inverse");
+    state.apply(&event);
+    assert_eq!(whole_of(&state, part), None);
+    for one in back {
+        state.apply(&ev(4, "dev_a", one));
+    }
+
+    assert_eq!(whole_of(&state, part), Some(whole));
 }

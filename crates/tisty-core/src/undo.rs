@@ -9,6 +9,11 @@ use crate::{
 pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
     let one = undoing(event, before)?;
     let mut back = vec![one];
+    if let Op::TaskUpdate { id, d } = &event.op
+        && matches!(d.repeat, Some(Some(_)))
+    {
+        back.extend(parts_hung_again(before, *id));
+    }
     if let Op::TaskReopen { id } = &event.op
         && before.tasks.get(id).is_some_and(|was| was.hidden)
     {
@@ -57,6 +62,22 @@ pub fn unhung(events: &[Event], now: &State, id: crate::model::DocId) -> crate::
                 .map(|one| one.order.as_str()),
         )),
     }
+}
+
+/// A repeat lets a whole and its parts go apart in replay, and taking it back hangs them again.
+fn parts_hung_again(before: &State, id: crate::model::TaskId) -> Vec<Op> {
+    let hung = |part: crate::model::TaskId, whole: crate::model::TaskId| Op::TaskMove {
+        id: part,
+        d: TaskMove {
+            part_of: Some(Some(whole)),
+            ..Default::default()
+        },
+    };
+    let mut ops: Vec<Op> = before.parts_of(id).map(|part| hung(part.id, id)).collect();
+    if let Some(whole) = before.tasks.get(&id).and_then(|task| task.part_of) {
+        ops.push(hung(id, whole));
+    }
+    ops
 }
 
 fn undoing(event: &Event, before: &State) -> Option<Op> {
