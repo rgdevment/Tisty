@@ -511,7 +511,7 @@ fn a_future_schema_version_is_refused() {
 
     assert!(matches!(
         read_all(tmp.path()),
-        Err(Error::UnsupportedVersion(_))
+        Err(Error::UnsupportedVersion { .. })
     ));
 }
 
@@ -675,7 +675,7 @@ fn an_event_from_a_newer_schema_is_skipped_when_it_says_it_may_be() {
     .unwrap();
     assert!(matches!(
         read_all(tmp.path()),
-        Err(Error::UnsupportedVersion(_))
+        Err(Error::UnsupportedVersion { .. })
     ));
 }
 
@@ -759,7 +759,7 @@ fn a_known_operation_from_a_newer_schema_is_never_skipped() {
     .unwrap();
 
     assert!(
-        matches!(read_all(tmp.path()), Err(Error::UnsupportedVersion(_))),
+        matches!(read_all(tmp.path()), Err(Error::UnsupportedVersion { .. })),
         "a deletion this build understands cannot be dropped for wearing a newer number:              the task would stay alive here and be gone everywhere else"
     );
 }

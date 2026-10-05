@@ -47,12 +47,23 @@ pub fn speaks_spanish() -> bool {
         .starts_with("es")
 }
 
-pub fn behind_words(spanish: bool, itself: bool) -> (String, &'static str, &'static str) {
-    let (said, how, yes, no) = if spanish {
+pub struct Behind<'a> {
+    pub spanish: bool,
+    pub itself: bool,
+    pub written_by: &'a str,
+    pub from_the_store: bool,
+}
+
+pub fn behind_words(behind: Behind) -> (String, &'static str, &'static str) {
+    let (said, by, store, how, yes, no) = if behind.spanish {
         (
             "Una versión más nueva de Tisty actualizó tus datos.
 
 Actualiza este Tisty para que los dos vuelvan a entenderse: abrirlos con esta versión perdería trabajo.",
+            "
+
+La escribió la máquina «{name}».",
+            " Este Tisty es el de Microsoft Store: si en este equipo hay otro Tisty instalado de otra forma, fue ese. Actualiza este desde la Store, o sigue con el otro.",
             "
 
 Esta copia la actualiza quien la instaló, no Tisty.",
@@ -66,34 +77,46 @@ Esta copia la actualiza quien la instaló, no Tisty.",
 Update this one so the two agree again: opening it with this version would lose work.",
             "
 
+The machine «{name}» wrote it.",
+            " This Tisty came from the Microsoft Store: if another Tisty installed some other way runs on this computer, that one did. Update this one from the Store, or keep using the other.",
+            "
+
 This copy is updated by whoever installed it, not by Tisty.",
             "Update",
             "Close",
         )
     };
-    match itself {
-        true => (said.to_string(), yes, no),
-        false => (format!("{said}{how}"), yes, no),
+    let mut told = said.to_string();
+    if !behind.written_by.is_empty() {
+        told.push_str(&by.replace("{name}", behind.written_by));
+        if behind.from_the_store {
+            // The sync guard turns a newer history from another computer away before it lands here.
+            told.push_str(store);
+        }
     }
+    if !behind.itself {
+        told.push_str(how);
+    }
+    (told, yes, no)
 }
 
 pub fn takes_itself_there() -> bool {
     update::self_installs(update::route().route) && !update::from_a_mount()
 }
 
-pub fn behind_said() -> String {
-    behind_words(speaks_spanish(), takes_itself_there()).0
-}
-
-pub fn behind_buttons() -> (&'static str, &'static str) {
-    let (_, yes, no) = behind_words(speaks_spanish(), takes_itself_there());
-    (yes, no)
+pub fn behind_here(written_by: &str) -> (String, &'static str, &'static str) {
+    behind_words(Behind {
+        spanish: speaks_spanish(),
+        itself: takes_itself_there(),
+        written_by,
+        from_the_store: tisty_core::paths::from_the_store(),
+    })
 }
 
 pub fn blamed(channel: &'static str, said: &'static str, error: tisty_core::Error) -> Refusal {
     witness::error(channel, said, &error.told());
     match error {
-        tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+        tisty_core::Error::UnsupportedVersion { .. } => Refusal::of("storeNewer"),
         other => Refusal::about("internalNamed", other.to_string()),
     }
 }

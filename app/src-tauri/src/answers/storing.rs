@@ -184,7 +184,7 @@ pub async fn settle_in(
                 &[("why", Fact::Why(e.to_string()))],
             );
             match e {
-                tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+                tisty_core::Error::UnsupportedVersion { .. } => Refusal::of("storeNewer"),
                 _ => Refusal::of("internal"),
             }
         })?;
@@ -660,7 +660,7 @@ pub async fn back_up(
             &[("why", Fact::Why(e.to_string()))],
         );
         match e {
-            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+            tisty_core::Error::UnsupportedVersion { .. } => Refusal::of("storeNewer"),
             tisty_core::Error::TooBig => Refusal::of("tooBig"),
             _ => Refusal::about("cannotWrite", into),
         }
@@ -1056,7 +1056,7 @@ pub async fn restore(
         .map_err(|e| match e {
             tisty_core::Error::OtherStore { theirs } => Refusal::about("otherStore", theirs),
             tisty_core::Error::Io(why) => Refusal::about("restoreFailed", why.to_string()),
-            tisty_core::Error::UnsupportedVersion(_) => Refusal::of("storeNewer"),
+            tisty_core::Error::UnsupportedVersion { .. } => Refusal::of("storeNewer"),
             tisty_core::Error::TooBig => Refusal::of("tooBig"),
             _ => Refusal::about("cannotRead", from.clone()),
         })?;

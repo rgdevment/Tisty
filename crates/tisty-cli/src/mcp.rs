@@ -240,7 +240,7 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let Some(agent) = config.agent_id.clone() else {
         return Err(Refused::Tool(
             "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Agents."
+             under Assistants."
                 .into(),
         ));
     };
@@ -249,7 +249,7 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     if !state.agents.contains(&agent) {
         return Err(Refused::Tool(
             "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Agents."
+             under Assistants."
                 .into(),
         ));
     }
@@ -294,10 +294,20 @@ fn hitch(e: tisty_core::Error) -> Refused {
         tisty_core::Error::AlreadyRunning => {
             "Tisty is being written to right now. Try the same call again.".into()
         }
-        tisty_core::Error::UnsupportedVersion(_) => {
-            "a newer Tisty updated the person's data, and this one cannot read it. Nothing was \
-             read or written: tell the person to update Tisty on this machine, and stop."
-                .into()
+        tisty_core::Error::UnsupportedVersion { device, .. } => {
+            let store = match tisty_core::paths::from_the_store() {
+                true => {
+                    " This Tisty came from the Microsoft Store: if another Tisty installed some \
+                     other way runs on this computer, that one wrote it, and the person can \
+                     update this one from the Store or keep using the other."
+                }
+                false => "",
+            };
+            format!(
+                "a newer Tisty updated the person's data, and this one cannot read it: the \
+                 machine {device} wrote it.{store} Nothing was read or written: tell the person \
+                 to update Tisty on this machine, and stop."
+            )
         }
         other => format!("Tisty could not be read or written: {other}"),
     })

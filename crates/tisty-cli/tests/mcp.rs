@@ -5753,3 +5753,22 @@ fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
         "a line continued with a backslash loses it and the gap reaches the agent: {found:#?}"
     );
 }
+
+#[test]
+fn an_agent_is_told_which_machine_wrote_ahead() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let ahead = served.home.path().join("data/store/dev_f0ztyvwj");
+    std::fs::create_dir_all(&ahead).unwrap();
+    std::fs::write(
+        ahead.join("active.tisty"),
+        "{\"v\":999,\"ts\":\"2026-10-04T00:00:00Z\",\"by\":\"dev_f0ztyvwj\",\"op\":\"task.delete\",\"id\":\"01M14RFT9ECC2B6E4CX4P59XPH\"}\n",
+    )
+    .unwrap();
+
+    let said = served.call("lists", serde_json::json!({})).to_string();
+
+    assert!(said.contains("dev_f0ztyvwj"), "{said}");
+    assert!(said.contains("newer Tisty"), "{said}");
+    assert!(!said.contains("Microsoft Store"), "{said}");
+}

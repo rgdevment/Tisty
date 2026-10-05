@@ -17,7 +17,7 @@ fn an_event_from_a_newer_tisty_says_so_instead_of_looking_broken() {
     let why = read_segment(&at, &mut out).unwrap_err();
 
     assert!(
-        matches!(why, Error::UnsupportedVersion(_)),
+        matches!(why, Error::UnsupportedVersion { .. }),
         "it read as corruption: {why:?}"
     );
 }
@@ -226,4 +226,36 @@ fn nothing_temporary_is_left_behind() {
         .filter(|named| named.contains("tmp"))
         .collect();
     assert!(left.is_empty(), "{left:?}");
+}
+
+fn ahead_in(store: &std::path::Path, device: &str) {
+    let dir = store.join(device);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join(ACTIVE),
+        format!(
+            "{{\"v\":{},\"ts\":\"2026-10-04T00:00:00Z\",\"by\":\"{device}\",\"op\":\"task.delete\",\"id\":\"01M14RFT9ECC2B6E4CX4P59XPH\"}}\n",
+            SCHEMA_VERSION + 1
+        ),
+    )
+    .unwrap();
+}
+
+#[test]
+fn a_newer_schema_names_the_machine_that_wrote_it() {
+    let room = tempfile::tempdir().unwrap();
+    ahead_in(room.path(), "dev_f0ztyvwj");
+
+    match read_all(room.path()) {
+        Err(Error::UnsupportedVersion { device, .. }) => assert_eq!(device, "dev_f0ztyvwj"),
+        other => panic!("the refusal has to say whose history is ahead: {other:?}"),
+    }
+}
+
+#[test]
+fn a_newer_segment_with_no_folder_above_it_is_still_named() {
+    assert_eq!(
+        written_by(std::path::Path::new("active.tisty")),
+        "active.tisty"
+    );
 }

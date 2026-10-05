@@ -608,6 +608,14 @@ pub fn is_store_name(name: &str) -> bool {
             .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
 }
 
+fn written_by(segment: &Path) -> String {
+    segment
+        .parent()
+        .and_then(|dir| dir.file_name())
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| segment.display().to_string())
+}
+
 pub fn is_device_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 48
@@ -852,7 +860,10 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usi
         let strange = !KNOWN_OPS.contains(&stamp.op.as_str());
         if stamp.v > SCHEMA_VERSION {
             if !stamp.opt || !strange {
-                return Err(Error::UnsupportedVersion(stamp.v));
+                return Err(Error::UnsupportedVersion {
+                    version: stamp.v,
+                    device: written_by(path),
+                });
             }
             skipped(format!("schema {}", stamp.v));
             continue;
