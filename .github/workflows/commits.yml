@@ -35,7 +35,7 @@ jobs:
           fits() { [ "$(printf '%s (#%s)' "$1" "$NUMBER" | wc -m)" -le 120 ]; }
           short=$(printf '%s' "$TITLE" | sed -E 's/ across [0-9]+ director(y|ies)//')
           fits "$short" || short=$(printf '%s' "$short" | sed -E 's/ from [^ ]+ to [^ ]+//')
-          fits "$short" || short=$(printf '%s' "$short" | sed -E 's/^([a-z]+: bump) .* in the ([^ ]+) group.*/\1 the \2 group/')
+          fits "$short" || short=$(printf '%s' "$short" | sed -E 's/^([a-z]+\([a-z-]+\): bump) .* in the ([^ ]+) group.*/\1 the \2 group/')
           if [ "$short" != "$TITLE" ]; then
             gh pr edit "$NUMBER" --title "$short"
             echo "«$TITLE» is now «$short»"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-shape='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+'
+shape='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\([a-z0-9._-]+\): .+'
 most=120
 status=0
 
@@ -14,28 +14,23 @@ amiss() {
   status=1
 }
 
-# Strict is for a title, which reaches main: only a revert keeps its shape there, and it is measured.
+# Strict is for a title, which reaches main and is measured with nothing let through.
 weighed() {
   local who=$1 said=$2 strict=${3:-}
   said=$(printf '%s' "$said" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   if [ -z "$strict" ]; then
     case $said in
       "Merge branch '"* | "Merge pull request #"* | "Merge remote-tracking branch '"* | \
-        "Merge commit '"* | "Merge tag '"* | 'Revert "'* | "fixup! "* | "squash! "* | "amend! "*)
+        "Merge commit '"* | "Merge tag '"* | "fixup! "* | "squash! "* | "amend! "*)
         return
         ;;
     esac
   fi
-  case $said in
-    'Revert "'*) ;;
-    *)
-      if ! printf '%s' "$said" | grep -qE "$shape"; then
-        amiss "$who does not follow conventional commits"
-        printf '  %s\n' "$said"
-        return
-      fi
-      ;;
-  esac
+  if ! printf '%s' "$said" | grep -qE "$shape"; then
+    amiss "$who does not read type(scope): change"
+    printf '  %s\n' "$said"
+    return
+  fi
   # Bytes minus UTF-8 continuation bytes: ${#said} counts bytes when a GUI client spawns git without a locale.
   local long
   long=$(printf '%s' "$said" | LC_ALL=C tr -d '\200-\277' | wc -c | tr -d ' ')
@@ -48,7 +43,7 @@ weighed() {
 said_so() {
   if [ "$status" -eq 1 ]; then
     echo ""
-    echo "Expected: type(optional-scope): description"
+    echo "Expected: type(scope): change, on one line with nothing under it"
     echo "Types:    feat fix docs style refactor perf test build ci chore revert"
     echo "Example:  feat(parser): recognise weekday names in Spanish"
   fi
@@ -76,6 +71,10 @@ while read -r sha; do
   [ -n "$sha" ] || continue
   seen=$((seen + 1))
   weighed "${sha:0:8}" "$(git log -1 --format=%s "$sha")"
+  if [ -n "$(git log -1 --format=%b "$sha" | tr -d '[:space:]')" ] \
+    && [ "$(git log -1 --format=%an "$sha")" != "dependabot[bot]" ]; then
+    amiss "${sha:0:8} carries lines under its subject; a commit is one line"
+  fi
 done <<< "$listed"
 
 [ "$status" -eq 0 ] && [ -z "${GITHUB_ACTIONS:-}" ] && printf 'ok %s commit subject(s) well formed\n' "$seen"
