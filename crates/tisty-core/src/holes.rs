@@ -12,8 +12,7 @@ const OFFLINE: u32 = 0x0000_1000;
 const REPARSE_POINT: u32 = 0x0000_0400;
 const RECALL_ON_OPEN: u32 = 0x0004_0000;
 const RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
-/// APFS flag for a file whose bytes live only in the cloud: iCloud Drive since Sonoma, and Dropbox
-/// and OneDrive through File Provider, leave no sidecar, only this.
+// Since Sonoma, iCloud, Dropbox and OneDrive on a Mac leave no sidecar, only this flag.
 const SF_DATALESS: u32 = 0x4000_0000;
 
 pub fn dataless(flags: u32) -> bool {
@@ -72,7 +71,6 @@ fn held_away(_at: &Path) -> bool {
     false
 }
 
-/// What in this directory is still in the cloud, by the path it will have once it is here.
 pub fn still_away(dir: &Path) -> Vec<PathBuf> {
     let Ok(all) = std::fs::read_dir(dir) else {
         return Vec::new();
@@ -90,8 +88,7 @@ pub fn still_away(dir: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-/// Reading a file is what makes the cloud bring it down, and that read waits for the download:
-/// done on a thread of its own, the round that found it goes on and the next one finds it here.
+// Reading is what brings a file down, and the read waits for it: done apart, the round goes on.
 pub fn ask_for(all: Vec<PathBuf>) {
     if all.is_empty() {
         return;

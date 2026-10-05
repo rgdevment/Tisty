@@ -7625,7 +7625,6 @@ fn a_body_edited_outside_the_window_travels_with_its_print_and_asks_nothing() {
     );
 }
 
-/// What iCloud leaves in place of a file it took back up: the bytes gone, a sidecar beside them.
 fn sent_up_to_the_cloud(at: &Path) {
     let name = at.file_name().unwrap().to_str().unwrap();
     std::fs::rename(at, at.with_file_name(format!(".{name}.icloud"))).unwrap();

@@ -72,8 +72,6 @@ pub struct Moved {
     pub arrived: Vec<String>,
     pub let_go: Vec<String>,
     pub took_in: Vec<(String, String, u64)>,
-    /// Machines and documents still on their way down from the cloud: asked for, and taken up
-    /// by a later turn instead of read now, which would wait for every download in a row.
     pub coming: Vec<String>,
 }
 
