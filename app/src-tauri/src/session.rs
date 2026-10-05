@@ -729,7 +729,6 @@ impl Session {
     }
 
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<()> {
-        self.notice_others();
         let event = self.store.append(op)?;
         self.writes += 1;
         self.state.apply(&event);
@@ -738,7 +737,6 @@ impl Session {
     }
 
     pub fn commit_all(&mut self, ops: Vec<Op>) -> tisty_core::Result<()> {
-        self.notice_others();
         let events = self.store.append_batch(ops)?;
         self.writes += 1;
         for event in &events {
@@ -748,11 +746,9 @@ impl Session {
         Ok(())
     }
 
-    /// A round may have brought histories in since the last projection; stamping over them hides them.
-    fn notice_others(&mut self) {
-        if tisty_core::cache::fingerprint(&self.paths.store()) != self.print {
-            self.behind = true;
-        }
+    /// For a writer that knows the store moved underneath: a commit would stamp over what it missed.
+    pub fn fell_behind(&mut self) {
+        self.behind = true;
     }
 
     /// A state that missed a commit must not stamp the cache as current, or the projection that

@@ -83,6 +83,7 @@ export default function Welcome({ onDone }: Props) {
   const [offer, setOffer] = useState<Joining>();
   const [named, setNamed] = useState<string>();
   const went = useRef(false);
+  const joined = useRef(false);
 
   const path = named ? STEPS.filter((one) => one !== "signing") : STEPS;
   const at = Math.min(path.indexOf(step), path.length - 1);
@@ -103,7 +104,9 @@ export default function Welcome({ onDone }: Props) {
   const finish = useCallback(() => {
     if (went.current) return Promise.resolve();
     went.current = true;
-    return Promise.allSettled([wakeFor(true), keepClosing("hide")])
+    const settling = Promise.allSettled([wakeFor(true), keepClosing("hide")]);
+    if (joined.current) return settling.then(() => onDone(undefined));
+    return settling
       .then(() => sowLists())
       .catch(() => undefined)
       .then(() =>
@@ -126,7 +129,7 @@ export default function Welcome({ onDone }: Props) {
 
   useEffect(() => {
     if (!carrying) return;
-    const off = listen("carried", () => {
+    const off = listen("bringing", () => {
       void next();
     });
     return () => {
@@ -193,6 +196,7 @@ export default function Welcome({ onDone }: Props) {
   };
 
   const takeItAll = () => {
+    joined.current = true;
     const name = offer?.alias ?? undefined;
     setOffer(undefined);
     setNamed(name);
@@ -202,6 +206,7 @@ export default function Welcome({ onDone }: Props) {
   const closed = (door: Door | "else" | null) => {
     setKin(undefined);
     if (door === null) return setStuck(t("wouldReset"));
+    joined.current = door === "merge" || door === "theirs";
     setCarrying(true);
     walkThrough(door)
       .then((gone) => {

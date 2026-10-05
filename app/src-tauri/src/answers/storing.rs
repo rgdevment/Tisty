@@ -37,10 +37,17 @@ const KEPT_EVERY: std::time::Duration = std::time::Duration::from_secs(2);
 const KEPT_AT_MOST: usize = 64;
 
 #[derive(Clone, serde::Serialize)]
+struct Stuck {
+    code: &'static str,
+    name: Option<String>,
+}
+
+#[derive(Clone, serde::Serialize)]
 struct Bringing {
     stage: &'static str,
     done: usize,
     whole: usize,
+    joining: bool,
 }
 
 /// What landed is told in handfuls, so a round cut short still owns what it already brought.
@@ -49,15 +56,17 @@ struct Telling {
     kept: Vec<(String, String, u64)>,
     kept_at: std::time::Instant,
     said: Option<(&'static str, std::time::Instant)>,
+    joining: bool,
 }
 
 impl Telling {
-    fn new(app: tauri::AppHandle) -> Self {
+    fn new(app: tauri::AppHandle, joining: bool) -> Self {
         Self {
             app,
             kept: Vec::new(),
             kept_at: std::time::Instant::now(),
             said: None,
+            joining,
         }
     }
 
@@ -82,7 +91,15 @@ impl Telling {
                     return;
                 }
                 self.said = Some((stage, std::time::Instant::now()));
-                let _ = self.app.emit("bringing", Bringing { stage, done, whole });
+                let _ = self.app.emit(
+                    "bringing",
+                    Bringing {
+                        stage,
+                        done,
+                        whole,
+                        joining: self.joining,
+                    },
+                );
             }
             tisty_sync::Reached::Kept { at, sha256, bytes } => {
                 self.kept.push((at, sha256, bytes));
@@ -99,6 +116,7 @@ impl Telling {
             return;
         }
         let session = self.app.state::<Mutex<Session>>();
+        held(&session).fell_behind();
         said_now_held(&session, &std::mem::take(&mut self.kept));
     }
 }
@@ -558,7 +576,8 @@ pub async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
-    let mut telling = Telling::new(app.clone());
+    let joining = !tisty_sync::been_here(&aside, &dest);
+    let mut telling = Telling::new(app.clone(), joining);
     let pushing = (
         data.clone(),
         aside.clone(),
@@ -580,9 +599,16 @@ pub async fn sync_now(
         telling.flush();
         done
     })
-    .await
-    .map_err(|_| Refusal::of("internal"))?
-    .map_err(said)?;
+    .await;
+    let done = done
+        .map_err(|_| Refusal::of("internal"))
+        .and_then(|carried| carried.map_err(said));
+    let stuck = done.as_ref().err().filter(|_| joining).map(|why| Stuck {
+        code: why.code,
+        name: why.name.clone(),
+    });
+    let _ = app.emit("brought", stuck);
+    let done = done?;
     answering(&session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;

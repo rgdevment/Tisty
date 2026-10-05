@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AXES, type Axis, banded, monthly, regrouped, shelved } from "../archive";
+import { useComing } from "../coming";
 import type { List, Task, Whole } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
@@ -76,6 +77,8 @@ export default function TaskList({
     }
     return out;
   }, [tasks, here]);
+  const coming = useComing();
+  const joining = coming?.stage === "log" && coming.joining === true;
   const [tucked, setTucked] = useState<ReadonlySet<string>>(new Set());
   const offered = axis === undefined && bands === "day";
   const [grouped, setGrouped] = useState<Axis>(kept);
@@ -385,7 +388,16 @@ export default function TaskList({
         className={`scroller flex flex-1 flex-col gap-3.5 px-5 pt-4 pb-6 ${width}`}
       >
         {instead}
-        {!instead && tasks.length === 0 && (
+        {!instead && tasks.length === 0 && joining && (
+          <p
+            role="status"
+            className="rounded-[10px] border border-hair bg-sheet px-5 py-4 text-[12.5px] leading-relaxed text-soft shadow-lift"
+          >
+            <span className="mb-1 block font-semibold text-ink">{t("comingHistory")}</span>
+            {t("comingHistoryWhy")}
+          </p>
+        )}
+        {!instead && tasks.length === 0 && !joining && (
           <p className="rounded-[10px] border border-hair bg-sheet px-5 py-4 text-[12.5px] leading-relaxed text-soft shadow-lift">
             {empty ?? t("nothingOpen")}
           </p>
