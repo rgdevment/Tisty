@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AXES, type Axis, banded, monthly, regrouped, shelved } from "../archive";
-import type { List, Task } from "../core";
+import type { List, Task, Whole } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
@@ -11,6 +11,7 @@ import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
 interface Props {
   tasks: Task[];
   lists: List[];
+  wholes?: Record<string, Whole>;
   selected?: string;
   fresh?: string;
   reveal?: string;
@@ -38,6 +39,7 @@ interface Props {
 export default function TaskList({
   tasks,
   lists,
+  wholes,
   selected,
   fresh,
   reveal,
@@ -61,6 +63,20 @@ export default function TaskList({
   instead,
   children,
 }: Props) {
+  const here = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
+  const top = useMemo(
+    () => tasks.filter((task) => !(task.part_of && here.has(task.part_of))),
+    [tasks, here],
+  );
+  const inside = useMemo(() => {
+    const out = new Map<string, Task[]>();
+    for (const task of tasks) {
+      if (!task.part_of || !here.has(task.part_of)) continue;
+      out.set(task.part_of, [...(out.get(task.part_of) ?? []), task]);
+    }
+    return out;
+  }, [tasks, here]);
+  const [tucked, setTucked] = useState<ReadonlySet<string>>(new Set());
   const offered = axis === undefined && bands === "day";
   const [grouped, setGrouped] = useState<Axis>(kept);
   const by = axis ?? (offered ? grouped : undefined);
@@ -68,14 +84,14 @@ export default function TaskList({
     () =>
       by && by !== "time"
         ? offered
-          ? regrouped(tasks, by, lists)
-          : shelved(tasks, by, lists)
+          ? regrouped(top, by, lists)
+          : shelved(top, by, lists)
         : bands === "month"
-          ? monthly(tasks)
+          ? monthly(top)
           : bands === "day"
-            ? banded(tasks)
-            : tasks.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
-    [tasks, bands, by, lists, offered],
+            ? banded(top)
+            : top.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
+    [top, bands, by, lists, offered],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   const first = useMemo(() => {
@@ -170,7 +186,7 @@ export default function TaskList({
     walk(at, by);
   };
 
-  const line = (task: Task, at: string) => {
+  const line = (task: Task, at: string, nested = false): React.ReactNode => {
     if (dense) {
       return (
         <div
@@ -275,10 +291,19 @@ export default function TaskList({
             >
               {task.title}
             </h2>
-            <Meta task={task} list={task.list ? named(task.list) : undefined} />
+            <Meta
+              task={task}
+              list={task.list ? named(task.list) : undefined}
+              whole={nested || !task.part_of ? undefined : wholes?.[task.part_of]?.title}
+            />
           </div>
 
-          <Volume task={task} />
+          <Volume
+            task={task}
+            whole={wholes?.[task.id]}
+            folded={tucked.has(task.id)}
+            onFold={inside.has(task.id) ? () => setTucked((was) => flip(was, task.id)) : undefined}
+          />
           {onFold && task.status !== "dropped" && (
             <button
               type="button"
@@ -296,6 +321,11 @@ export default function TaskList({
             </button>
           )}
         </div>
+        {!nested && inside.has(task.id) && !tucked.has(task.id) && (
+          <div className="ml-[30px] border-l border-hair pl-3">
+            {inside.get(task.id)?.map((part) => line(part, `${at}/${part.id}`, true))}
+          </div>
+        )}
       </div>
     );
   };
@@ -407,7 +437,7 @@ function Edge({ onReach }: { onReach: () => void }) {
   return <div ref={mark} aria-hidden="true" className="h-px shrink-0" />;
 }
 
-function Meta({ task, list }: { task: Task; list?: string }) {
+function Meta({ task, list, whole }: { task: Task; list?: string; whole?: string }) {
   const bits: React.ReactNode[] = [];
 
   if (task.date) {
@@ -435,6 +465,13 @@ function Meta({ task, list }: { task: Task; list?: string }) {
     );
   }
   if (list) bits.push(<span key="list">@{list}</span>);
+  if (whole) {
+    bits.push(
+      <span key="whole" title={fill("partOf", whole)} className="text-faint">
+        ⌂ {whole}
+      </span>,
+    );
+  }
   const filedBy = signedBy(task.created_by, task.created_via);
   const tags = (task.tags ?? []).filter((tag) => !(filedBy && tag === agentTag()));
   if (tags.length) {
@@ -456,8 +493,21 @@ function Meta({ task, list }: { task: Task; list?: string }) {
   return <div className="mt-0.5 flex flex-wrap gap-2.5 text-[11.5px] text-soft">{bits}</div>;
 }
 
-function Volume({ task }: { task: Task }) {
+function Volume({
+  task,
+  whole,
+  folded,
+  onFold,
+}: {
+  task: Task;
+  whole?: Whole;
+  folded?: boolean;
+  onFold?: () => void;
+}) {
   const v = task.volume ?? {};
+  const counted = whole && (
+    <Counted whole={whole} folded={folded ?? false} onFold={onFold} key="whole" />
+  );
 
   if (task.resolved && task.status === "open") {
     const when = stamped(task.resolved.at);
@@ -477,8 +527,43 @@ function Volume({ task }: { task: Task }) {
   return (
     <span className="flex items-baseline gap-1.5 pt-px text-[11.5px] whitespace-nowrap text-faint">
       <Lozenge task={task} />
+      {counted}
       {parts.join(" · ")}
     </span>
+  );
+}
+
+function Counted({
+  whole,
+  folded,
+  onFold,
+}: {
+  whole: Whole;
+  folded: boolean;
+  onFold?: () => void;
+}) {
+  const said = fill("partsClosed", String(whole.closed), String(whole.open + whole.closed));
+  const shown = `▣ ${whole.closed}/${whole.open + whole.closed}`;
+  if (!onFold) return <span title={said}>{shown}</span>;
+  return (
+    <button
+      type="button"
+      aria-expanded={!folded}
+      aria-label={`${said}. ${t(folded ? "partsShow" : "partsHide")}`}
+      title={said}
+      tabIndex={-1}
+      onKeyDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onFold();
+      }}
+      className="rounded-md px-1 hover:bg-line hover:text-ink"
+    >
+      <span aria-hidden="true" className="text-[9px]">
+        {folded ? "▸" : "▾"}{" "}
+      </span>
+      {shown}
+    </button>
   );
 }
 

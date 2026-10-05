@@ -7,6 +7,7 @@ interface Props {
   onWrite: (text: string, step?: string) => void;
   onMark: (step: string, done: boolean) => void;
   onDrop: (step: string) => void;
+  onTurn?: (step: string) => void;
 }
 
 const COUNTED_FROM = STEP_AT_MOST - 20;
@@ -19,7 +20,7 @@ const counted = (text: string): number => Array.from(text).length;
 const within = (text: string, most: number): string =>
   counted(text) > most ? Array.from(text).slice(0, most).join("") : text;
 
-export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
+export default function Steps({ steps, onWrite, onMark, onDrop, onTurn }: Props) {
   const [adding, setAdding] = useState("");
   const put = () => {
     if (adding.trim()) {
@@ -32,7 +33,7 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
     <>
       {steps.map((step) => (
         <div key={step.id}>
-          <Line step={step} onWrite={onWrite} onMark={onMark} onDrop={onDrop} />
+          <Line step={step} onWrite={onWrite} onMark={onMark} onDrop={onDrop} onTurn={onTurn} />
         </div>
       ))}
 
@@ -65,7 +66,7 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
   );
 }
 
-function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "steps">) {
+function Line({ step, onWrite, onMark, onDrop, onTurn }: { step: Step } & Omit<Props, "steps">) {
   const [text, setText] = useState(step.text);
   const dropped = useRef(false);
   useEffect(() => setText(step.text), [step.id, step.text]);
@@ -117,6 +118,19 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
         }`}
       />
       {text !== step.text && <Left text={text} />}
+      {onTurn && !step.done && (
+        <button
+          type="button"
+          aria-label={`${t("turnIntoTask")}: ${step.text}`}
+          title={t("turnIntoTask")}
+          onClick={() => onTurn(step.id)}
+          className={`mt-0.5 flex h-4 shrink-0 items-center justify-center rounded-md px-1 text-[11.5px] text-faint outline-none hover:bg-line hover:text-ink focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-accent ${
+            counted(step.text) >= STEP_AT_MOST ? "text-accent" : "opacity-0 group-hover:opacity-100"
+          }`}
+        >
+          ↗
+        </button>
+      )}
       <button
         type="button"
         aria-label={`${t("remove")} ${step.text}`}

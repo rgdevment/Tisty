@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { type Change, erasable, type List, readingOf, type Task } from "../core";
+import { useAsked } from "../asked";
+import {
+  type Change,
+  erasable,
+  type List,
+  readingOf,
+  type Task,
+  type Whole,
+  wholesOffered,
+} from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
@@ -10,6 +19,7 @@ import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
+import Parts from "./Parts";
 import Prose from "./Prose";
 import Routine from "./Routine";
 import { saidBy } from "./Spoke";
@@ -41,6 +51,13 @@ interface Props {
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  whole?: Whole;
+  partOf?: string;
+  onAddPart?: (title: string) => void;
+  onOpenPart?: (id: string) => void;
+  onCompletePart?: (id: string, title: string) => void;
+  onHang?: (whole: string | null) => void;
+  onStepToPart?: (step: string) => void;
 }
 
 export default function Detail({
@@ -68,8 +85,67 @@ export default function Detail({
   onClose,
   onError,
   onDoc,
+  whole,
+  partOf,
+  onAddPart,
+  onOpenPart,
+  onCompletePart,
+  onHang,
+  onStepToPart,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
+  const [splitting, setSplitting] = useState(false);
+  const live = task.status === "open";
+  const offered =
+    useAsked(
+      () => (onHang && live ? wholesOffered(task.id) : Promise.resolve([])),
+      [task.id, task.part_of, live],
+      onError,
+    ) ?? [];
+  const hanging: Choice[] =
+    live && onHang
+      ? [
+          ...(task.part_of
+            ? [
+                {
+                  key: "loose",
+                  label: fill("letGoOf", partOf ?? ""),
+                  icon: "⌂",
+                  onPick: () => onHang(null),
+                },
+              ]
+            : []),
+          ...(!task.part_of && !whole && offered.length > 0
+            ? [
+                {
+                  key: "hang",
+                  label: t("partOfWhich"),
+                  icon: "⌂",
+                  hint: t("partOfWhy"),
+                  into: {
+                    label: t("partOfWhich"),
+                    choices: offered.map((one) => ({
+                      key: one.id,
+                      label: one.title,
+                      onPick: () => onHang(one.id),
+                    })),
+                  },
+                },
+              ]
+            : []),
+          ...(!task.part_of && !whole && !task.repeat && onAddPart && !splitting
+            ? [
+                {
+                  key: "split",
+                  label: t("addParts"),
+                  icon: "▣",
+                  hint: t("addPartsWhy"),
+                  onPick: () => setSplitting(true),
+                },
+              ]
+            : []),
+        ]
+      : [];
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
@@ -121,6 +197,15 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
+      {task.part_of && partOf && (
+        <button
+          type="button"
+          onClick={() => task.part_of && onOpenPart?.(task.part_of)}
+          className="-mt-1.5 mb-3 block text-left text-[11.5px] text-faint hover:text-accent"
+        >
+          ⌂ {fill("partOf", partOf)}
+        </button>
+      )}
       {task.status === "open" && signedBy(task.created_by, task.created_via) && (
         <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
           {signedBy(task.created_by, task.created_via)}
@@ -159,13 +244,36 @@ export default function Detail({
         onWrite={(description) => onPatch({ description })}
       />
 
+      {(whole || splitting) && onAddPart && (
+        <>
+          <Section
+            label={t("parts")}
+            note={whole ? `${whole.closed}/${whole.open + whole.closed}` : undefined}
+          />
+          <Parts
+            task={task}
+            whole={whole}
+            onAdd={onAddPart}
+            onOpen={(id) => onOpenPart?.(id)}
+            onComplete={(id, title) => onCompletePart?.(id, title)}
+            onError={onError}
+          />
+        </>
+      )}
+
       <Section
         label={t("steps")}
         note={
           task.volume?.steps ? `${task.volume.steps_done ?? 0}/${task.volume.steps}` : undefined
         }
       />
-      <Steps steps={task.steps ?? []} onWrite={onStep} onMark={onMark} onDrop={onDropStep} />
+      <Steps
+        steps={task.steps ?? []}
+        onWrite={onStep}
+        onMark={onMark}
+        onDrop={onDropStep}
+        onTurn={!task.part_of && !task.repeat ? onStepToPart : undefined}
+      />
 
       <Section
         label={t("journal")}
@@ -301,6 +409,8 @@ export default function Detail({
           onFold={onFold}
           onReadAs={onReadAs}
           onOpenToAgents={onOpenToAgents}
+          left={whole?.open}
+          also={hanging}
         />
       </main>
     );
@@ -345,6 +455,8 @@ export default function Detail({
         onFold={onFold}
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
+        left={whole?.open}
+        also={hanging}
       />
     </aside>
   );
@@ -361,9 +473,13 @@ function Settled({
   onFold,
   onReadAs,
   onOpenToAgents,
+  left,
+  also = [],
 }: {
   task: Task;
   wide?: boolean;
+  left?: number;
+  also?: Choice[];
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
@@ -374,6 +490,7 @@ function Settled({
   onOpenToAgents: (open: boolean) => void;
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
+  const owing = task.status === "open" && (left ?? 0) > 0;
   const open = task.status === "open";
   const reading = readingOf(task);
   const seat =
@@ -405,6 +522,7 @@ function Settled({
                 onPick: () => onOpenToAgents(!task.open_to_agents),
               },
             ]),
+        ...also,
       ]
     : [
         ...(reading === "routine"
@@ -458,13 +576,19 @@ function Settled({
                   <span aria-hidden="true">⊘</span> {discard.label}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={onComplete}
-                  className={`${seat} font-medium text-accent`}
-                >
-                  <span aria-hidden="true">✓</span> {t("markDone")}
-                </button>
+                <>
+                  {owing && (
+                    <span className="shrink-0 px-2">{fill("partsLeft", String(left))}</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onComplete}
+                    title={owing ? t("closeLettingGoWhy") : undefined}
+                    className={`${seat} font-medium text-accent`}
+                  >
+                    <span aria-hidden="true">✓</span> {owing ? t("closeLettingGo") : t("markDone")}
+                  </button>
+                </>
               )}
               {task.resolved ? (
                 <button

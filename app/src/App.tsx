@@ -6,6 +6,7 @@ import { heard, play } from "./chime";
 import { asPlain } from "./copying";
 import {
   type Afoot,
+  addPart,
   attach,
   type Change,
   capture,
@@ -40,6 +41,7 @@ import {
   folderFile,
   folderLook,
   folderRename,
+  hang,
   markStep,
   noteTrouble,
   openToAgents,
@@ -58,6 +60,7 @@ import {
   sow,
   spelled,
   starDue,
+  stepToPart,
   stillOpen,
   syncState,
   type Task,
@@ -1264,6 +1267,42 @@ export default function App() {
     setSelected(undefined);
   };
 
+  const wholes = { ...data.wholes, ...found?.wholes };
+  const detailing = (one: Task) => ({
+    task: one,
+    lists: data.every ?? data.lists,
+    known: data.tags.map((tag) => tag.tag),
+    onPatch: (change: Change) => act(patch(one.id, change)),
+    onStep: (text: string, step?: string) => act(writeStep(one.id, text, step)),
+    onMark: (step: string, done: boolean) => act(markStep(one.id, step, done)),
+    onDropStep: (step: string) => act(dropStep(one.id, step)),
+    onLog: (body: string, entry?: string) => act(writeLog(one.id, body, entry)),
+    onComplete: () => {
+      marking(one.id, one.title);
+      setSelected(undefined);
+    },
+    onDiscard: () => {
+      act(discard(one.id));
+      setSelected(undefined);
+    },
+    onReopen: () => act(reopen(one.id)),
+    onStillOpen: () => act(stillOpen(one.id)),
+    onErase: () => wipe(one),
+    onFold: (away: boolean) => act(fold(one.id, away)),
+    onReadAs: (how: "story" | "trace") => act(readAs(one.id, how)),
+    onOpenToAgents: (open: boolean) => act(openToAgents(one.id, open)),
+    onClose: shut,
+    onError: (e: unknown) => setError(saidPlainly(e)),
+    onDoc: openDoc,
+    whole: wholes[one.id],
+    partOf: one.part_of ? wholes[one.part_of]?.title : undefined,
+    onAddPart: (title: string) => act(addPart(one.id, title)),
+    onOpenPart: setSelected,
+    onCompletePart: marking,
+    onHang: (whole: string | null) => act(hang(one.id, whole)),
+    onStepToPart: (step: string) => act(stepToPart(one.id, step)),
+  });
+
   const lockAndPack = () => {
     if (movingTo === null || number.length < HOW_MANY) return;
     const named = movingTo;
@@ -1901,35 +1940,11 @@ export default function App() {
             ) : sheet ? (
               <Detail
                 key={task.id}
-                task={task}
-                lists={data.every ?? data.lists}
-                known={data.tags.map((one) => one.tag)}
+                {...detailing(task)}
                 expanded
                 from={title(chosen, data.lists)}
                 onExpand={() => remember("sheet")}
                 onCollapse={() => (tight ? shut() : remember("columns"))}
-                onPatch={(change: Change) => act(patch(task.id, change))}
-                onStep={(text, step) => act(writeStep(task.id, text, step))}
-                onMark={(step, done) => act(markStep(task.id, step, done))}
-                onDropStep={(step) => act(dropStep(task.id, step))}
-                onLog={(body, entry) => act(writeLog(task.id, body, entry))}
-                onComplete={() => {
-                  marking(task.id, task.title);
-                  setSelected(undefined);
-                }}
-                onDiscard={() => {
-                  act(discard(task.id));
-                  setSelected(undefined);
-                }}
-                onReopen={() => act(reopen(task.id))}
-                onStillOpen={() => act(stillOpen(task.id))}
-                onErase={() => wipe(task)}
-                onFold={(away) => act(fold(task.id, away))}
-                onReadAs={(how) => act(readAs(task.id, how))}
-                onOpenToAgents={(open) => act(openToAgents(task.id, open))}
-                onClose={shut}
-                onError={(e) => setError(saidPlainly(e))}
-                onDoc={openDoc}
               />
             ) : (
               <div className="flex min-w-0">
@@ -1937,6 +1952,7 @@ export default function App() {
                   <TaskList
                     tasks={shown}
                     lists={data.every ?? data.lists}
+                    wholes={wholes}
                     title={title(chosen, data.lists)}
                     when={chosen.named === "tasks" ? todayLong() : undefined}
                     count={headerCount(chosen, found, data.counts, data.total)}
@@ -2186,34 +2202,10 @@ export default function App() {
                 dealing ? "pointer-events-none opacity-10" : ""
               }`}
               key={task.id}
-              task={task}
-              lists={data.every ?? data.lists}
-              known={data.tags.map((one) => one.tag)}
+              {...detailing(task)}
               expanded={false}
               onExpand={() => remember("sheet")}
               onCollapse={() => remember("columns")}
-              onPatch={(change: Change) => act(patch(task.id, change))}
-              onStep={(text, step) => act(writeStep(task.id, text, step))}
-              onMark={(step, done) => act(markStep(task.id, step, done))}
-              onDropStep={(step) => act(dropStep(task.id, step))}
-              onLog={(body, entry) => act(writeLog(task.id, body, entry))}
-              onComplete={() => {
-                marking(task.id, task.title);
-                setSelected(undefined);
-              }}
-              onDiscard={() => {
-                act(discard(task.id));
-                setSelected(undefined);
-              }}
-              onReopen={() => act(reopen(task.id))}
-              onStillOpen={() => act(stillOpen(task.id))}
-              onErase={() => wipe(task)}
-              onFold={(away) => act(fold(task.id, away))}
-              onReadAs={(how) => act(readAs(task.id, how))}
-              onOpenToAgents={(open) => act(openToAgents(task.id, open))}
-              onClose={shut}
-              onError={(e) => setError(saidPlainly(e))}
-              onDoc={openDoc}
             />
           )}
           {aside && (

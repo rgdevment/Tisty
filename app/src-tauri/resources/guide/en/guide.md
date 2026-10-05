@@ -82,6 +82,8 @@ Two ways of sorting that do not compete:
 
 A task keeps more than its title. Give it a description, note in its journal what you were working out, and leave it the steps you followed. Completing it erases none of that: it is archived with its date.
 
+A step is a line, a hundred characters at most. When one needs more —a description, a journal of its own— turn it into a task with **↗**, and it becomes a **part** of the task it came from. A task with parts is something that ends: it shows **▣ 3/7** where its steps would count, its parts fold beneath it, and elsewhere each part names it with **⌂**. You can also start one with **Add parts** in **⋯**, or hang any task under another with **Part of…**. Closing it with parts still open asks you to let them go in the same breath, and undo brings them back.
+
 That is the difference. The list tells you what is left; the archive tells you how you solved it last time. Search for a word you remember and it comes up, even if you closed it two years ago.
 
 ---

@@ -958,6 +958,16 @@ deleted anyway leaves its parts standing on their own; and a task that holds
 parts is not erasable (`Stays::Parts`), the same rule as the head of a routine.
 Nothing ever closes a whole by itself.
 
+The window learns which tasks are wholes from the snapshot itself: `wholes`
+maps each one to its title and its open and closed parts, counted once over
+the store, so a part names its whole with `⌂` even when the whole is not in
+the view, and a whole shows `▣ closed/total` and folds its parts beneath it
+when both are. The detail fetches a whole's parts on its own (`parts_of`).
+Hanging, adding a part and turning a step into one are judged before they are
+written (`answers/parts.rs`), so the person is told why rather than seeing a
+move that replay would refuse quietly; turning a step writes the new task and
+removes the step in one transaction.
+
 An assistant may write a task as a part only of a task it filed or that the
 person opened to it; anywhere else the task is kept and the place let go. It
 never moves the person's tasks under anything, which the door already refuses.
