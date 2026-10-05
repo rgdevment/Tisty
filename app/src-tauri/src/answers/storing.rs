@@ -37,6 +37,12 @@ const KEPT_EVERY: std::time::Duration = std::time::Duration::from_secs(2);
 const KEPT_AT_MOST: usize = 64;
 
 #[derive(Clone, serde::Serialize)]
+struct Stuck {
+    code: &'static str,
+    name: Option<String>,
+}
+
+#[derive(Clone, serde::Serialize)]
 struct Bringing {
     stage: &'static str,
     done: usize,
@@ -110,6 +116,7 @@ impl Telling {
             return;
         }
         let session = self.app.state::<Mutex<Session>>();
+        held(&session).fell_behind();
         said_now_held(&session, &std::mem::take(&mut self.kept));
     }
 }
@@ -569,7 +576,8 @@ pub async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
-    let mut telling = Telling::new(app.clone(), !tisty_sync::been_here(&aside, &dest));
+    let joining = !tisty_sync::been_here(&aside, &dest);
+    let mut telling = Telling::new(app.clone(), joining);
     let pushing = (
         data.clone(),
         aside.clone(),
@@ -592,8 +600,15 @@ pub async fn sync_now(
         done
     })
     .await;
-    let _ = app.emit("brought", ());
-    let done = done.map_err(|_| Refusal::of("internal"))?.map_err(said)?;
+    let done = done
+        .map_err(|_| Refusal::of("internal"))
+        .and_then(|carried| carried.map_err(said));
+    let stuck = done.as_ref().err().filter(|_| joining).map(|why| Stuck {
+        code: why.code,
+        name: why.name.clone(),
+    });
+    let _ = app.emit("brought", stuck);
+    let done = done?;
     answering(&session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;

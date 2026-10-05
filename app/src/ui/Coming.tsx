@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type Stage, useComing } from "../coming";
+import { type Stage, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
 
 export const SHOWN_AFTER = 3_000;
@@ -15,6 +15,7 @@ const counted = (many: number): string => new Intl.NumberFormat(locale()).format
 
 export default function Coming() {
   const coming = useComing();
+  const stuck = useStuck();
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -23,6 +24,12 @@ export default function Coming() {
     return () => clearInterval(ticking);
   }, [coming]);
 
+  if (stuck)
+    return (
+      <p role="alert" className="mx-2.5 mb-2 px-2.5 py-2 text-[11.5px] text-urgent">
+        {stuck}
+      </p>
+    );
   if (!coming) return null;
   const long = Date.now() - coming.since;
   if (long < SHOWN_AFTER) return null;

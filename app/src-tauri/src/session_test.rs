@@ -62,7 +62,7 @@ fn a_projection_nothing_interrupted_leaves_the_session_settled() {
 }
 
 #[test]
-fn writing_over_a_store_another_machine_wrote_into_still_brings_that_machine_in() {
+fn writing_over_a_store_a_round_wrote_into_still_brings_that_machine_in() {
     let kept = tempfile::tempdir().unwrap();
     let paths = somewhere(&kept);
     let mut session = Session::at(paths.clone()).unwrap();
@@ -81,6 +81,7 @@ fn writing_over_a_store_another_machine_wrote_into_still_brings_that_machine_in(
         .unwrap();
     drop(other);
 
+    session.fell_behind();
     session
         .commit(Op::TaskAdd {
             id: ulid::Ulid::generate(),

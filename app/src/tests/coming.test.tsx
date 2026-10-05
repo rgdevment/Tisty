@@ -1,13 +1,13 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { heard } from "../coming";
-import { t } from "../locales";
+import { ended, heard } from "../coming";
+import { fill, t } from "../locales";
 import Coming, { SHOWN_AFTER, SLOW_AFTER } from "../ui/Coming";
 import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
-afterEach(() => act(() => heard(null)));
+afterEach(() => act(() => ended(null)));
 
 describe("what is coming from the folder", () => {
   it("stays out of the way of a round that ends quickly", () => {
@@ -74,5 +74,18 @@ describe("what is coming from the folder", () => {
 
     expect(screen.getByText(t("nothingOpen"))).toBeTruthy();
     expect(screen.queryByText(t("comingHistory"))).toBeNull();
+  });
+
+  it("keeps saying why joining stopped once the person is already in", () => {
+    render(<Coming />);
+    act(() => heard({ stage: "log", done: 0, whole: 2, joining: true }));
+
+    act(() => ended({ code: "syncNewer", name: "dev_b" }));
+
+    expect(screen.getByRole("alert").textContent).toBe(fill("syncNewer", "dev_b"));
+
+    act(() => heard({ stage: "log", done: 0, whole: 2, joining: true }));
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
