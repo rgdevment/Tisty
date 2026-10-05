@@ -1,28 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { useAsked } from "../asked";
-import {
-  type Change,
-  erasable,
-  type List,
-  readingOf,
-  type Task,
-  type Whole,
-  wholesOffered,
-} from "../core";
+import { type Change, erasable, type List, readingOf, type Task, type Whole } from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
 import { placed, said } from "../quadrants";
 import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
+import Belongs from "./Belongs";
 import Composed from "./Composed";
 import Fields from "./Fields";
-import Hang from "./Hang";
 import Journal from "./Journal";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
-import Parts from "./Parts";
 import Prose from "./Prose";
 import Routine from "./Routine";
+import Section from "./Section";
 import { saidBy } from "./Spoke";
 import Steps from "./Steps";
 import Trail from "./Trail";
@@ -96,13 +87,7 @@ export default function Detail({
 }: Props) {
   const opened = useRef<HTMLElement>(null);
   const live = task.status === "open";
-  const holding = live && !task.repeat && !task.after;
-  const offered =
-    useAsked(
-      () => (onHang && live ? wholesOffered(task.id) : Promise.resolve([])),
-      [task.id, task.part_of, live],
-      onError,
-    ) ?? [];
+  const holding = live && !task.repeat && !task.after && !task.hidden;
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
@@ -203,55 +188,20 @@ export default function Detail({
         onWrite={onStep}
         onMark={onMark}
         onDrop={onDropStep}
-        onTurn={live && !task.part_of && !task.repeat && !task.after ? onStepToPart : undefined}
+        onTurn={holding && !task.part_of ? onStepToPart : undefined}
       />
 
-      {task.part_of
-        ? partOf && (
-            <>
-              <Section label={t("partOfHeading")} />
-              <div className="flex items-center gap-2.5 py-1 text-[13px]">
-                <button
-                  type="button"
-                  onClick={() => task.part_of && onOpenPart?.(task.part_of)}
-                  className="min-w-0 flex-1 truncate text-left text-accent hover:underline"
-                >
-                  ⌂ {partOf}
-                </button>
-                {live && onHang && (
-                  <button
-                    type="button"
-                    aria-label={fill("letGoOf", partOf)}
-                    onClick={() => onHang(null)}
-                    className="shrink-0 text-[12.5px] text-faint hover:text-ink"
-                  >
-                    {t("letItGo")}
-                  </button>
-                )}
-              </div>
-            </>
-          )
-        : (whole || (holding && onAddPart)) && (
-            <>
-              <Section
-                label={t("parts")}
-                note={whole ? `${whole.closed}/${whole.open + whole.closed}` : undefined}
-              />
-              <Parts
-                task={task}
-                whole={whole}
-                onAdd={holding ? onAddPart : undefined}
-                beside={
-                  onHang && !whole && offered.length > 0 ? (
-                    <Hang offered={offered} onHang={onHang} />
-                  ) : undefined
-                }
-                onOpen={(id) => onOpenPart?.(id)}
-                onComplete={(id, title) => onCompletePart?.(id, title)}
-                onError={onError}
-              />
-            </>
-          )}
+      <Belongs
+        task={task}
+        whole={whole}
+        partOf={partOf}
+        holding={holding}
+        onAddPart={onAddPart}
+        onHang={onHang}
+        onOpenPart={onOpenPart}
+        onCompletePart={onCompletePart}
+        onError={onError}
+      />
 
       <Section
         label={t("journal")}
@@ -450,12 +400,10 @@ function Settled({
   onReadAs,
   onOpenToAgents,
   left,
-  also = [],
 }: {
   task: Task;
   wide?: boolean;
   left?: number;
-  also?: Choice[];
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
@@ -498,7 +446,6 @@ function Settled({
                 onPick: () => onOpenToAgents(!task.open_to_agents),
               },
             ]),
-        ...also,
       ]
     : [
         ...(reading === "routine"
@@ -756,16 +703,6 @@ function Facts({ task, from }: { task: Task; from: string }) {
         ))}
       </dl>
     </>
-  );
-}
-
-function Section({ label, note }: { label: string; note?: string }) {
-  return (
-    <div className="mt-5 mb-1.5 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
-      <span>{label}</span>
-      <span className="h-px flex-1 bg-hair" />
-      {note && <span>{note}</span>}
-    </div>
   );
 }
 

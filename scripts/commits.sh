@@ -70,7 +70,9 @@ seen=0
 while read -r sha; do
   [ -n "$sha" ] || continue
   seen=$((seen + 1))
-  weighed "${sha:0:8}" "$(git log -1 --format=%s "$sha")"
+  subject=$(git log -1 --format=%s "$sha")
+  weighed "${sha:0:8}" "$subject"
+  case $subject in "fixup! "* | "squash! "* | "amend! "*) continue ;; esac
   if [ -n "$(git log -1 --format=%b "$sha" | tr -d '[:space:]')" ] \
     && [ "$(git log -1 --format=%an "$sha")" != "dependabot[bot]" ]; then
     amiss "${sha:0:8} carries lines under its subject; a commit is one line"

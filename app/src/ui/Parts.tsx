@@ -47,27 +47,31 @@ export default function Parts({ task, whole, onAdd, beside, onOpen, onComplete, 
         closed.map((part) => (
           <Row key={part.id} part={part} onOpen={onOpen} onComplete={onComplete} />
         ))}
-      {onAdd && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (adding.trim()) {
-              onAdd(adding.trim());
-              setAdding("");
-            }
-          }}
-          className="relative flex items-center gap-2.5 py-1"
-        >
-          <span className="h-[15px] w-[15px] shrink-0 rounded-full border-[1.5px] border-dashed border-line" />
-          <input
-            value={adding}
-            placeholder={t("addPart")}
-            aria-label={t("addPart")}
-            onChange={(e) => setAdding(e.target.value)}
-            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
-          />
+      {(onAdd || beside) && (
+        <div className="relative flex items-center gap-2.5 py-1">
+          {onAdd && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (adding.trim()) {
+                  onAdd(adding.trim());
+                  setAdding("");
+                }
+              }}
+              className="flex min-w-0 flex-1 items-center gap-2.5"
+            >
+              <span className="h-[15px] w-[15px] shrink-0 rounded-full border-[1.5px] border-dashed border-line" />
+              <input
+                value={adding}
+                placeholder={t("addPart")}
+                aria-label={t("addPart")}
+                onChange={(e) => setAdding(e.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
+              />
+            </form>
+          )}
           {beside}
-        </form>
+        </div>
       )}
     </>
   );

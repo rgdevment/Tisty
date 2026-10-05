@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task, Whole } from "../core";
 import { fill, t } from "../locales";
 import Detail from "../ui/Detail";
@@ -28,6 +28,11 @@ const task = (id: string, title: string, more: Partial<Task> = {}): Task => ({
 });
 
 const whole: Whole = { title: "move house", open: 1, closed: 1 };
+
+beforeEach(() => {
+  parts.splice(0, parts.length);
+  offered.splice(0, offered.length);
+});
 
 const listed = (tasks: Task[], wholes: Record<string, Whole> = { W: whole }) =>
   render(
@@ -162,7 +167,60 @@ describe("parts in plain sight", () => {
     fireEvent.click(screen.getByRole("button", { name: fill("letGoOf", "move house") }));
 
     expect(hang).toHaveBeenCalledWith(null);
+  });
+
+  it("gives a part no line to add parts of its own", () => {
+    opened(task("P", "pack", { part_of: "W" }), { partOf: "move house", onAddPart: vi.fn() });
+
     expect(screen.queryByLabelText(t("addPart"))).toBeNull();
+  });
+
+  it("still lets go of a whole whose name has not come in yet", () => {
+    const hang = vi.fn();
+    opened(task("P", "pack", { part_of: "W" }), { onHang: hang });
+
+    fireEvent.click(screen.getByRole("button", { name: fill("letGoOf", "…") }));
+
+    expect(hang).toHaveBeenCalledWith(null);
+  });
+
+  it("finds a whole whatever its accents", async () => {
+    offered.splice(0, offered.length, { id: "R", title: "Reunión con el banco" });
+    const hang = vi.fn();
+    opened(task("T", "pack the books"), { onAddPart: vi.fn(), onHang: hang });
+
+    fireEvent.click(await screen.findByRole("button", { name: `⌂ ${t("partOfOther")}` }));
+    fireEvent.change(screen.getByLabelText(t("partOfFind")), {
+      target: { value: "banco reunion" },
+    });
+
+    expect(screen.getByRole("button", { name: "Reunión con el banco" })).not.toBeNull();
+  });
+
+  it("does not hang a task on Enter before anything is typed", async () => {
+    offered.splice(0, offered.length, { id: "M", title: "move house" });
+    const hang = vi.fn();
+    opened(task("T", "pack the books"), { onAddPart: vi.fn(), onHang: hang });
+
+    fireEvent.click(await screen.findByRole("button", { name: `⌂ ${t("partOfOther")}` }));
+    fireEvent.keyDown(screen.getByLabelText(t("partOfFind")), { key: "Enter" });
+
+    expect(hang).not.toHaveBeenCalled();
+  });
+
+  it("keeps the finder out of the line that adds a part, so Enter there still adds", async () => {
+    offered.splice(0, offered.length, { id: "M", title: "move house" });
+    opened(task("T", "pack the books"), { onAddPart: vi.fn(), onHang: vi.fn() });
+
+    fireEvent.click(await screen.findByRole("button", { name: `⌂ ${t("partOfOther")}` }));
+
+    expect(screen.getByLabelText(t("partOfFind")).closest("form")).toBeNull();
+  });
+
+  it("does not ask for wholes a part could never hang from", () => {
+    opened(task("P", "pack", { part_of: "W" }), { partOf: "move house", onHang: vi.fn() });
+
+    expect(screen.queryByRole("button", { name: `⌂ ${t("partOfOther")}` })).toBeNull();
   });
 
   it("finds the whole by name, a handful at a time", async () => {

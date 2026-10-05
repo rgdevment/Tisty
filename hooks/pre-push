@@ -10,10 +10,10 @@ status=0
 while read -r _ mine _ theirs; do
   [ -n "${mine:-}" ] || continue
   [ "$mine" != "$nothing" ] || continue
-  if [ "${theirs:-$nothing}" != "$nothing" ]; then
-    range="$theirs..$mine"
-  elif base=$(git merge-base "$mine" origin/main 2> /dev/null) && [ -n "$base" ]; then
+  if base=$(git merge-base "$mine" origin/main 2> /dev/null) && [ -n "$base" ]; then
     range="$base..$mine"
+  elif [ "${theirs:-$nothing}" != "$nothing" ]; then
+    range="$theirs..$mine"
   else
     echo "!  origin/main is not here, so the subjects were not looked at"
     continue
