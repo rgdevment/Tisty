@@ -2265,6 +2265,39 @@ describe("the first-run assistant", () => {
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
   });
 
+  const olderThanTheFolder = async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "syncNewer", name: "dev_b" })
+        : answered(cmd, args);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await screen.findByText(t("welcomeOlder"));
+  };
+
+  it("offers to stay on this machine when the folder runs a newer Tisty, not to go in anyway", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+
+    expect(screen.queryByRole("button", { name: t("welcomeAnyway") })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
+
+    await waitFor(() => expect(sent("choose_sync")).toHaveLength(2));
+    expect(sent("choose_sync")[1].args.dest).toBeUndefined();
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+  });
+
+  it("goes back to the folders when another one is wanted instead", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeOtherFolder") }));
+
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+  });
+
   it("takes the name the folder already signs with, and does not ask for one", async () => {
     Object.assign(arriving, { holds: true, alias: "rgdevment" });
     const done = vi.fn();

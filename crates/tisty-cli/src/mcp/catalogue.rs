@@ -66,6 +66,12 @@ Fill in what you actually know. A title alone is a fine task; inventing a deadli
 gave you is worse than leaving it empty. Put what you read in `description`. Write titles \
 and notes in the language the person writes in.
 
+Size the work before you file it. A step is one line of a checklist, at most 100 characters; \
+a part is a task of its own, with its own steps, day and journal. When the work is several \
+separate tasks with one end — a move, a release, a plan — propose it with `parts` instead of \
+packing it into steps, one level only, and add to a whole you filed with `part_of`. A task the \
+person wrote takes parts from you only once they open it to agents.
+
 A date is not a warning. Something that happens once at a set hour and cannot be caught up on \
 afterwards — an appointment, a school event, a flight — is filed with `remind` set the evening \
 before. A person who only meets it on the day meets it too late, and that is the whole reason \

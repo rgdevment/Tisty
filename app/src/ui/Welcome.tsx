@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
+  chooseSync,
   guide,
   type Joining,
   joining,
@@ -16,7 +17,7 @@ import {
   wakeFor,
 } from "../core";
 import { adopt, fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { behind, saidPlainly } from "../refusal";
 import Apart, { type Door } from "./Apart";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
@@ -79,6 +80,7 @@ export default function Welcome({ onDone }: Props) {
   const [deciding, setDeciding] = useState(false);
   const [carrying, setCarrying] = useState(false);
   const [stuck, setStuck] = useState<string>();
+  const [older, setOlder] = useState(false);
   const [kin, setKin] = useState<Kin>();
   const [offer, setOffer] = useState<Joining>();
   const [named, setNamed] = useState<string>();
@@ -148,6 +150,7 @@ export default function Welcome({ onDone }: Props) {
     setBusy(true);
     setTrouble(undefined);
     setStuck(undefined);
+    setOlder(false);
     setCarrying(true);
     return round()
       .then((how) => {
@@ -159,6 +162,7 @@ export default function Welcome({ onDone }: Props) {
       .catch((e) => {
         if (went.current) return;
         setCarrying(false);
+        setOlder(behind(e));
         if (!stillApart(e)) return setStuck(saidPlainly(e));
         void syncKin()
           .catch(() => "unsure" as const)
@@ -215,7 +219,9 @@ export default function Welcome({ onDone }: Props) {
         return round().then(() => next());
       })
       .catch((e) => {
-        if (!went.current) setStuck(saidPlainly(e));
+        if (went.current) return;
+        setOlder(behind(e));
+        setStuck(saidPlainly(e));
       })
       .finally(() => {
         if (!went.current) setCarrying(false);
@@ -349,6 +355,44 @@ export default function Welcome({ onDone }: Props) {
               onPick={() => speak(one.code)}
             />
           ))
+        ) : stuck && older ? (
+          <div className="flex flex-col gap-3">
+            <div
+              role="alert"
+              className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
+            >
+              <span className="block text-[12.5px] font-semibold text-ink">
+                {t("welcomeOlder")}
+              </span>
+              {t("welcomeOlderWhy")}
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setStuck(undefined);
+                  setOlder(false);
+                }}
+                className="text-[12.5px] text-faint hover:text-ink"
+              >
+                {t("welcomeOtherFolder")}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true);
+                  chooseSync()
+                    .then(() => next())
+                    .catch((e) => setTrouble(saidPlainly(e)))
+                    .finally(() => setBusy(false));
+                }}
+                className="rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {t("welcomeStayHere")}
+              </button>
+            </div>
+          </div>
         ) : stuck ? (
           <div className="flex flex-col gap-3">
             <div
