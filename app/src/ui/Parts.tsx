@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useAsked } from "../asked";
 import { partsOf, type Task, type Whole } from "../core";
 import { fill, t } from "../locales";
@@ -6,15 +6,20 @@ import { fill, t } from "../locales";
 interface Props {
   task: Task;
   whole?: Whole;
-  onAdd: (title: string) => void;
+  onAdd?: (title: string) => void;
+  beside?: ReactNode;
   onOpen: (id: string) => void;
   onComplete: (id: string, title: string) => void;
   onError?: (problem: unknown) => void;
 }
 
-export default function Parts({ task, whole, onAdd, onOpen, onComplete, onError }: Props) {
+export default function Parts({ task, whole, onAdd, beside, onOpen, onComplete, onError }: Props) {
   const parts =
-    useAsked(() => partsOf(task.id), [task.id, whole?.open, whole?.closed], onError) ?? [];
+    useAsked(
+      () => (whole ? partsOf(task.id) : Promise.resolve([])),
+      [task.id, whole?.open, whole?.closed],
+      onError,
+    ) ?? [];
   const [closedShown, setClosedShown] = useState(false);
   const [adding, setAdding] = useState("");
   const open = parts.filter((one) => one.status === "open");
@@ -42,25 +47,28 @@ export default function Parts({ task, whole, onAdd, onOpen, onComplete, onError 
         closed.map((part) => (
           <Row key={part.id} part={part} onOpen={onOpen} onComplete={onComplete} />
         ))}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (adding.trim()) {
-            onAdd(adding.trim());
-            setAdding("");
-          }
-        }}
-        className="flex items-center gap-2.5 py-1"
-      >
-        <span className="h-[15px] w-[15px] shrink-0 rounded-full border-[1.5px] border-dashed border-line" />
-        <input
-          value={adding}
-          placeholder={t("addPart")}
-          aria-label={t("addPart")}
-          onChange={(e) => setAdding(e.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
-        />
-      </form>
+      {onAdd && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (adding.trim()) {
+              onAdd(adding.trim());
+              setAdding("");
+            }
+          }}
+          className="relative flex items-center gap-2.5 py-1"
+        >
+          <span className="h-[15px] w-[15px] shrink-0 rounded-full border-[1.5px] border-dashed border-line" />
+          <input
+            value={adding}
+            placeholder={t("addPart")}
+            aria-label={t("addPart")}
+            onChange={(e) => setAdding(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-faint"
+          />
+          {beside}
+        </form>
+      )}
     </>
   );
 }

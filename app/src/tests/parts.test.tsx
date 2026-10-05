@@ -7,9 +7,11 @@ import Steps from "../ui/Steps";
 import TaskList from "../ui/TaskList";
 
 const parts: Task[] = [];
+const offered: { id: string; title: string }[] = [];
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => Promise.resolve(cmd === "parts_of" ? parts : []),
+  invoke: (cmd: string) =>
+    Promise.resolve(cmd === "parts_of" ? parts : cmd === "wholes_offered" ? offered : []),
 }));
 
 const task = (id: string, title: string, more: Partial<Task> = {}): Task => ({
@@ -128,9 +130,78 @@ describe("the detail of a task with parts", () => {
     const back = vi.fn();
     opened(task("P", "pack", { part_of: "W" }), { partOf: "move house", onOpenPart: back });
 
-    fireEvent.click(screen.getByText(`⌂ ${fill("partOf", "move house")}`));
+    fireEvent.click(screen.getByRole("button", { name: "⌂ move house" }));
 
     expect(back).toHaveBeenCalledWith("W");
+  });
+});
+
+describe("parts in plain sight", () => {
+  it("offers a part to a task that has none, under its steps", () => {
+    parts.splice(0, parts.length);
+    opened(task("T", "test the login"), { onAddPart: vi.fn() });
+
+    expect(screen.getByText(t("parts"))).not.toBeNull();
+    expect(screen.getByLabelText(t("addPart"))).not.toBeNull();
+  });
+
+  it("offers no parts to a task that comes back", () => {
+    opened(
+      task("T", "water the plants", {
+        repeat: { from: "due", each: { every: 1, unit: "week" } },
+      }),
+      { onAddPart: vi.fn() },
+    );
+    expect(screen.queryByLabelText(t("addPart"))).toBeNull();
+  });
+
+  it("lets a part go of its whole from where the whole is named", () => {
+    const hang = vi.fn();
+    opened(task("P", "pack", { part_of: "W" }), { partOf: "move house", onHang: hang });
+
+    fireEvent.click(screen.getByRole("button", { name: fill("letGoOf", "move house") }));
+
+    expect(hang).toHaveBeenCalledWith(null);
+    expect(screen.queryByLabelText(t("addPart"))).toBeNull();
+  });
+
+  it("finds the whole by name, a handful at a time", async () => {
+    parts.splice(0, parts.length);
+    offered.splice(
+      0,
+      offered.length,
+      ...Array.from({ length: 8 }, (_, n) => ({ id: `W${n}`, title: `release ${n}` })),
+      { id: "M", title: "move house" },
+    );
+    const hang = vi.fn();
+    opened(task("T", "pack the books"), { onAddPart: vi.fn(), onHang: hang });
+
+    fireEvent.click(await screen.findByRole("button", { name: `⌂ ${t("partOfOther")}` }));
+    expect(screen.getByText(fill("partOfMore", "4"))).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText(t("partOfFind")), { target: { value: "move" } });
+    fireEvent.click(screen.getByRole("button", { name: "move house" }));
+
+    expect(hang).toHaveBeenCalledWith("M");
+  });
+
+  it("says so when no open task goes by that name", async () => {
+    offered.splice(0, offered.length, { id: "M", title: "move house" });
+    opened(task("T", "pack the books"), { onAddPart: vi.fn(), onHang: vi.fn() });
+
+    fireEvent.click(await screen.findByRole("button", { name: `⌂ ${t("partOfOther")}` }));
+    fireEvent.change(screen.getByLabelText(t("partOfFind")), { target: { value: "garden" } });
+
+    expect(screen.getByText(t("partOfNone"))).not.toBeNull();
+  });
+
+  it("does not offer a whole to a task that holds parts of its own", async () => {
+    parts.splice(0, parts.length, task("P", "pack", { part_of: "W" }));
+    offered.splice(0, offered.length, { id: "M", title: "move house" });
+    opened(task("W", "move house"), { whole, onAddPart: vi.fn(), onHang: vi.fn() });
+
+    await waitFor(() => expect(screen.getByText("pack")).not.toBeNull());
+    expect(screen.queryByRole("button", { name: `⌂ ${t("partOfOther")}` })).toBeNull();
   });
 });
 

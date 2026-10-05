@@ -16,6 +16,7 @@ import { placed, said } from "../quadrants";
 import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
 import Composed from "./Composed";
 import Fields from "./Fields";
+import Hang from "./Hang";
 import Journal from "./Journal";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
@@ -94,58 +95,14 @@ export default function Detail({
   onStepToPart,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
-  const [splitting, setSplitting] = useState(false);
   const live = task.status === "open";
+  const holding = live && !task.repeat && !task.after;
   const offered =
     useAsked(
       () => (onHang && live ? wholesOffered(task.id) : Promise.resolve([])),
       [task.id, task.part_of, live],
       onError,
     ) ?? [];
-  const hanging: Choice[] =
-    live && onHang
-      ? [
-          ...(task.part_of
-            ? [
-                {
-                  key: "loose",
-                  label: fill("letGoOf", partOf ?? ""),
-                  icon: "⌂",
-                  onPick: () => onHang(null),
-                },
-              ]
-            : []),
-          ...(!task.part_of && !whole && offered.length > 0
-            ? [
-                {
-                  key: "hang",
-                  label: t("partOfWhich"),
-                  icon: "⌂",
-                  hint: t("partOfWhy"),
-                  into: {
-                    label: t("partOfWhich"),
-                    choices: offered.map((one) => ({
-                      key: one.id,
-                      label: one.title,
-                      onPick: () => onHang(one.id),
-                    })),
-                  },
-                },
-              ]
-            : []),
-          ...(!task.part_of && !whole && !task.repeat && !task.after && onAddPart && !splitting
-            ? [
-                {
-                  key: "split",
-                  label: t("addParts"),
-                  icon: "▣",
-                  hint: t("addPartsWhy"),
-                  onPick: () => setSplitting(true),
-                },
-              ]
-            : []),
-        ]
-      : [];
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
@@ -197,15 +154,6 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.part_of && partOf && (
-        <button
-          type="button"
-          onClick={() => task.part_of && onOpenPart?.(task.part_of)}
-          className="-mt-1.5 mb-3 block text-left text-[11.5px] text-faint hover:text-accent"
-        >
-          ⌂ {fill("partOf", partOf)}
-        </button>
-      )}
       {task.status === "open" && signedBy(task.created_by, task.created_via) && (
         <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
           {signedBy(task.created_by, task.created_via)}
@@ -244,23 +192,6 @@ export default function Detail({
         onWrite={(description) => onPatch({ description })}
       />
 
-      {(whole || splitting) && onAddPart && (
-        <>
-          <Section
-            label={t("parts")}
-            note={whole ? `${whole.closed}/${whole.open + whole.closed}` : undefined}
-          />
-          <Parts
-            task={task}
-            whole={whole}
-            onAdd={onAddPart}
-            onOpen={(id) => onOpenPart?.(id)}
-            onComplete={(id, title) => onCompletePart?.(id, title)}
-            onError={onError}
-          />
-        </>
-      )}
-
       <Section
         label={t("steps")}
         note={
@@ -274,6 +205,53 @@ export default function Detail({
         onDrop={onDropStep}
         onTurn={live && !task.part_of && !task.repeat && !task.after ? onStepToPart : undefined}
       />
+
+      {task.part_of
+        ? partOf && (
+            <>
+              <Section label={t("partOfHeading")} />
+              <div className="flex items-center gap-2.5 py-1 text-[13px]">
+                <button
+                  type="button"
+                  onClick={() => task.part_of && onOpenPart?.(task.part_of)}
+                  className="min-w-0 flex-1 truncate text-left text-accent hover:underline"
+                >
+                  ⌂ {partOf}
+                </button>
+                {live && onHang && (
+                  <button
+                    type="button"
+                    aria-label={fill("letGoOf", partOf)}
+                    onClick={() => onHang(null)}
+                    className="shrink-0 text-[12.5px] text-faint hover:text-ink"
+                  >
+                    {t("letItGo")}
+                  </button>
+                )}
+              </div>
+            </>
+          )
+        : (whole || (holding && onAddPart)) && (
+            <>
+              <Section
+                label={t("parts")}
+                note={whole ? `${whole.closed}/${whole.open + whole.closed}` : undefined}
+              />
+              <Parts
+                task={task}
+                whole={whole}
+                onAdd={holding ? onAddPart : undefined}
+                beside={
+                  onHang && !whole && offered.length > 0 ? (
+                    <Hang offered={offered} onHang={onHang} />
+                  ) : undefined
+                }
+                onOpen={(id) => onOpenPart?.(id)}
+                onComplete={(id, title) => onCompletePart?.(id, title)}
+                onError={onError}
+              />
+            </>
+          )}
 
       <Section
         label={t("journal")}
@@ -410,7 +388,6 @@ export default function Detail({
           onReadAs={onReadAs}
           onOpenToAgents={onOpenToAgents}
           left={(whole?.open ?? 0) + (whole?.away ?? 0)}
-          also={hanging}
         />
       </main>
     );
@@ -456,7 +433,6 @@ export default function Detail({
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
         left={(whole?.open ?? 0) + (whole?.away ?? 0)}
-        also={hanging}
       />
     </aside>
   );
