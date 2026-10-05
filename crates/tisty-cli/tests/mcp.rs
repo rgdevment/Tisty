@@ -5772,3 +5772,45 @@ fn an_agent_is_told_which_machine_wrote_ahead() {
     assert!(said.contains("newer Tisty"), "{said}");
     assert!(!said.contains("Microsoft Store"), "{said}");
 }
+
+#[test]
+fn a_step_past_the_limit_turns_the_whole_call_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let long = "x".repeat(101);
+
+    let proposed = served.call(
+        "propose",
+        serde_json::json!({ "title": "ordenar el garaje", "steps": ["vaciar", long] }),
+    );
+    assert_eq!(proposed["result"]["isError"], true, "{proposed}");
+    assert!(!served.cli(&["ls", "all"]).contains("ordenar el garaje"));
+
+    let task = filed(&served, "pintar la puerta");
+    let planned = served.call(
+        "plan",
+        serde_json::json!({ "task": &task, "steps": ["lijar", long] }),
+    );
+    assert_eq!(planned["result"]["isError"], true, "{planned}");
+    assert!(
+        planned.to_string().contains("100"),
+        "the refusal has to say the limit: {planned}"
+    );
+}
+
+#[test]
+fn the_tools_tell_the_limit_on_a_step_before_anyone_hits_it() {
+    let served = Served::new();
+    let listed = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#]);
+    let said = listed[0].to_string();
+
+    assert_eq!(
+        said.matches(&format!(
+            "at most {} characters",
+            tisty_core::model::STEP_AT_MOST
+        ))
+        .count(),
+        2,
+        "propose and plan both say it"
+    );
+}

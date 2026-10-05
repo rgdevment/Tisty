@@ -107,6 +107,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(title) = text(args, "title") else {
         return Err(Refused::Tool("a task needs a `title`.".into()));
     };
+    steps_fit(&strings(args, "steps")?)?;
     let (state, mut store) = opened(paths)?;
 
     let again = args.get("again").and_then(Value::as_bool).unwrap_or(false);
@@ -500,6 +501,7 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "planning needs `steps`, the checklist to add, one string each.".into(),
         ));
     }
+    steps_fit(&steps)?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
     if let Some(said) = &task.resolved {
@@ -875,6 +877,18 @@ pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> 
 
 /// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
 /// and not folded away. The refusal says which of the three it is not.
+fn steps_fit(steps: &[String]) -> Result<(), Refused> {
+    match steps.iter().find(|one| !tisty_core::model::step_fits(one)) {
+        Some(long) => Err(Refused::Tool(format!(
+            "a step is at most {} characters, and {long:?} is longer. Nothing was written. A step \
+             that needs more is a task of its own: write the short step, and put the rest in \
+             the task's description.",
+            tisty_core::model::STEP_AT_MOST
+        ))),
+        None => Ok(()),
+    }
+}
+
 fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(format!(

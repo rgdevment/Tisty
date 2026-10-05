@@ -788,6 +788,7 @@ export interface Doc {
 export const DEEPEST = 4;
 
 export const FOLDER_NAME_AT_MOST = 40;
+export const STEP_AT_MOST = 100;
 
 export interface Folded {
   id: string;

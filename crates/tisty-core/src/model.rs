@@ -14,6 +14,6 @@ pub use list::{List, ListId, first_lists, sown, spoken};
 pub use repeat::{Cadence, From, Repeat, Unit};
 pub use tag::{AGENT_TAG, InvalidTag, Tag};
 pub use task::{
-    InvalidPriority, LogEntry, LogId, Priority, Reading, Resolved, STORY_AT, Status, Stays, Step,
-    StepId, Task, TaskId,
+    InvalidPriority, LogEntry, LogId, Priority, Reading, Resolved, STEP_AT_MOST, STORY_AT, Status,
+    Stays, Step, StepId, Task, TaskId, step_fits,
 };

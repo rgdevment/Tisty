@@ -453,6 +453,9 @@ pub fn write_step(
     if text.is_empty() {
         return Err(Refusal::of("emptyStep"));
     }
+    if !tisty_core::model::step_fits(&text) {
+        return Err(Refusal::of("stepTooLong"));
+    }
     let mut session = held(&session);
 
     let op = match step {

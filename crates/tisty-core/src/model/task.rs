@@ -103,6 +103,13 @@ impl From<Priority> for Wire {
     }
 }
 
+/// Checked where a step is written, never when the log is read: a longer one already kept stays.
+pub const STEP_AT_MOST: usize = 100;
+
+pub fn step_fits(text: &str) -> bool {
+    text.chars().count() <= STEP_AT_MOST
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Step {
     pub id: StepId,
