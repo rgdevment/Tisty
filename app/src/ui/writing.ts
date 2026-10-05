@@ -21,6 +21,8 @@ import { DOC } from "../markdown";
 import { isMark } from "../marks";
 import type { Moved } from "../paging";
 import { spared } from "./Icons";
+import { TONGUES } from "./tongues";
+import { besideWidget, type Lending, lend } from "./widgeting";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
 export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
@@ -334,7 +336,10 @@ const Pictured = Image.extend({
           state: { write: (text: string) => void; closeBlock: (node: unknown) => void },
           node: { attrs: Record<string, string> },
         ) {
-          state.write(`![${labelled(node.attrs.alt ?? "")}](${node.attrs.src ?? ""})`);
+          const title = node.attrs.title
+            ? ` "${node.attrs.title.replace(/(["\\])/g, "\\$1")}"`
+            : "";
+          state.write(`![${labelled(node.attrs.alt ?? "")}](${node.attrs.src ?? ""}${title})`);
           state.closeBlock(node);
         },
         parse: {},
@@ -849,42 +854,6 @@ const Ruled = Table.configure({ resizable: true }).extend({
   },
 });
 
-export const TONGUES = [
-  "bash",
-  "c",
-  "cpp",
-  "csharp",
-  "css",
-  "diff",
-  "go",
-  "graphql",
-  "ini",
-  "java",
-  "javascript",
-  "json",
-  "kotlin",
-  "less",
-  "lua",
-  "makefile",
-  "markdown",
-  "objectivec",
-  "perl",
-  "php",
-  "python",
-  "r",
-  "ruby",
-  "rust",
-  "scss",
-  "shell",
-  "sql",
-  "swift",
-  "typescript",
-  "vbnet",
-  "wasm",
-  "xml",
-  "yaml",
-] as const;
-
 // One counter for the window: mermaid resolves its id against the whole document.
 let sketches = 0;
 
@@ -918,13 +887,25 @@ const named = (md: Marking) => {
   });
 };
 
-export const DRAWN = ["mermaid", "math"];
+export const DRAWN = ["mermaid", "math", "widget"];
+
+const WAIT_TO_LEND = 400;
 
 export const KINDS = ["note", "tip", "important", "warning", "caution"] as const;
 
 const SHORT: Record<string, string> = { mmd: "mermaid" };
 
 const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
+  addKeyboardShortcuts() {
+    const inherited = this.parent?.() ?? {};
+    return {
+      ...inherited,
+      Backspace: (props) =>
+        besideWidget(props.editor, true) || (inherited.Backspace?.(props) ?? false),
+      Delete: (props) => besideWidget(props.editor, false) || (inherited.Delete?.(props) ?? false),
+    };
+  },
+
   addInputRules() {
     return [
       textblockTypeInputRule({
@@ -979,11 +960,35 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       name.placeholder = t("codeName");
       name.setAttribute("aria-label", t("codeName"));
 
+      const body = document.createElement("div");
+      body.className = "lit-body";
+      const lines = document.createElement("div");
+      lines.className = "lit-lines";
+      lines.setAttribute("contenteditable", "false");
+      lines.setAttribute("aria-hidden", "true");
+      const pre = document.createElement("pre");
+      const code = document.createElement("code");
+      pre.append(code);
+      body.append(lines, pre);
       const said = document.createElement("span");
       said.className = "lit-said";
+      const fold = document.createElement("button");
+      fold.type = "button";
+      fold.className = "lit-fold";
+      let folded = (node.textContent ?? "").trim() !== "";
+      const folding = (one: ProseNode) => {
+        const widget = String(one.attrs.language ?? "") === "widget";
+        if (widget && !(one.textContent ?? "").trim()) folded = false;
+        fold.hidden = !widget;
+        held.classList.toggle("lit-folding", widget);
+        body.hidden = widget && folded;
+        fold.textContent = t(folded ? "codeShow" : "codeHide");
+        fold.setAttribute("aria-expanded", String(!folded));
+      };
       const showing = (one: ProseNode) => {
         const now = String(one.attrs.language ?? "");
         const drawing = DRAWN.includes(now);
+        folding(one);
         if (drawing) said.textContent = now;
         if (document.activeElement !== name) name.value = String(one.attrs.title ?? "");
         picked.hidden = drawing;
@@ -1022,26 +1027,60 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
           })
           .run();
       });
-      bar.append(name, said, picked);
+      fold.addEventListener("click", () => {
+        folded = !folded;
+        folding(mine as ProseNode);
+      });
+      bar.append(name, said, fold, picked);
 
       const drawn = document.createElement("div");
       drawn.className = "lit-drawn";
       drawn.setAttribute("contenteditable", "false");
+      const entered = () => {
+        if (!folded) return;
+        const at = getPos();
+        if (at === undefined) return;
+        const { from } = editor.state.selection;
+        if (from <= at || from >= at + (mine as ProseNode).nodeSize) return;
+        folded = false;
+        folding(mine as ProseNode);
+      };
+      editor.on("selectionUpdate", entered);
+      drawn.addEventListener("widgetrefused", () => {
+        folded = false;
+        folding(mine as ProseNode);
+      });
 
-      const body = document.createElement("div");
-      body.className = "lit-body";
-      const lines = document.createElement("div");
-      lines.className = "lit-lines";
-      lines.setAttribute("contenteditable", "false");
-      lines.setAttribute("aria-hidden", "true");
-      const pre = document.createElement("pre");
-      const code = document.createElement("code");
-      pre.append(code);
-      body.append(lines, pre);
       held.append(bar, body, drawn);
 
       let asked = 0;
       let drew = "";
+      let lending: Lending | null = null;
+      let waiting: ReturnType<typeof setTimeout> | null = null;
+
+      const unlent = () => {
+        if (waiting) clearTimeout(waiting);
+        waiting = null;
+        lending?.drop();
+        lending = null;
+      };
+
+      const widgeted = (source: string) => {
+        asked += 1;
+        const first = lending === null && waiting === null && !drawn.firstChild;
+        unlent();
+        if (!source.trim()) {
+          drawn.replaceChildren();
+          return;
+        }
+        waiting = setTimeout(
+          () => {
+            waiting = null;
+            lending = lend(drawn, source);
+          },
+          first ? 0 : WAIT_TO_LEND,
+        );
+      };
 
       const figured = (source: string) => {
         asked += 1;
@@ -1106,6 +1145,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
 
       const sketching = (one: { attrs: Record<string, unknown>; textContent: string | null }) => {
         const tongue = String(one.attrs.language ?? "");
+        if (tongue !== "widget") unlent();
         if (!DRAWN.includes(tongue)) {
           asked += 1;
           drew = "";
@@ -1114,15 +1154,17 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         }
         const source = one.textContent ?? "";
         // Every keystroke would otherwise start a render, and a failed one leaves litter behind.
-        if (source === drew) return;
-        drew = source;
+        if (`${tongue}\n${source}` === drew) return;
+        drew = `${tongue}\n${source}`;
         if (tongue === "math") figured(source);
+        else if (tongue === "widget") widgeted(source);
         else sketched(source);
       };
       sketching(node);
 
       let mine: { attrs: Record<string, unknown>; textContent: string | null } = node;
       const again = () => {
+        if (String(mine.attrs.language ?? "") === "widget") return;
         if (!DRAWN.includes(String(mine.attrs.language ?? ""))) return;
         drew = "";
         sketching(mine);
@@ -1137,6 +1179,8 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         stopEvent: (one: Event) => bar.contains(one.target as HTMLElement),
         destroy: () => {
           asked += 1;
+          unlent();
+          editor.off("selectionUpdate", entered);
           sketchers.delete(again);
           drawn.replaceChildren();
         },
