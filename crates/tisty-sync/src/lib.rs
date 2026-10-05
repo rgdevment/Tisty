@@ -399,8 +399,45 @@ pub enum Holding {
 }
 
 pub fn signed_at(dest: &Path) -> Option<String> {
-    let events = tisty_core::store::read_all(dest.join(STORE)).ok()?;
-    tisty_core::State::replay(&events).signed.alias
+    signed_here(dest).alias
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Signed {
+    pub alias: Option<String>,
+    pub coming: bool,
+}
+
+pub fn signed_here(dest: &Path) -> Signed {
+    let mut events = Vec::new();
+    let mut away = Vec::new();
+    let Ok(devices) = std::fs::read_dir(dest.join(STORE)) else {
+        return Signed::default();
+    };
+    for device in devices.filter_map(|one| one.ok()) {
+        let at = device.path();
+        if !at.is_dir() {
+            continue;
+        }
+        let pending = tisty_core::holes::still_away(&at);
+        if !pending.is_empty() {
+            away.extend(pending);
+            continue;
+        }
+        let Ok(segments) = tisty_core::store::segments_in(&at) else {
+            continue;
+        };
+        for segment in segments {
+            if let Ok(read) = tisty_core::store::read_tail(&segment, 0) {
+                events.extend(read);
+            }
+        }
+    }
+    events.sort_by(|one, other| one.sort_key().cmp(&other.sort_key()));
+    let alias = tisty_core::State::replay(&events).signed.alias;
+    let coming = alias.is_none() && !away.is_empty();
+    tisty_core::holes::ask_for(away);
+    Signed { alias, coming }
 }
 
 /// Metadata only, so a window can ask often: nothing here reads a byte of what the folder holds.

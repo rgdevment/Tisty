@@ -193,6 +193,10 @@ impl Session {
         self.behind
     }
 
+    pub fn stale(&self) -> bool {
+        self.behind || tisty_core::cache::fingerprint(&self.paths.store()) != self.print
+    }
+
     pub fn adopt(&mut self, fresh: Projected) {
         self.behind = self.writes != fresh.writes
             || tisty_core::cache::fingerprint(&self.paths.store()) != fresh.print;

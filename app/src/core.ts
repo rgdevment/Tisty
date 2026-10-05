@@ -785,6 +785,7 @@ export interface Joining {
   fresh: boolean;
   holds: boolean;
   alias: string | null;
+  coming?: boolean;
 }
 
 export const joining = (): Promise<Joining> => invoke("joining");

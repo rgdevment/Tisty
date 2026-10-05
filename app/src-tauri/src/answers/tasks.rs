@@ -141,13 +141,25 @@ pub fn archive_shape(
 }
 
 #[tauri::command]
-pub fn snapshot(
+pub async fn snapshot(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     view: Option<View>,
 ) -> Answer<Snapshot> {
+    let (stale, paths) = {
+        let session = held(&session);
+        (session.stale(), session.paths.clone())
+    };
+    if stale {
+        crate::answers::storing::catching_up(
+            &session,
+            &paths,
+            "the store could not be read",
+            witness::channel::WINDOW,
+        )
+        .await?;
+    }
     let mut session = held(&session);
-    session.reload()?;
     let spoken = Config::load(&session.paths.config_file())
         .ok()
         .flatten()

@@ -1299,7 +1299,12 @@ in over several turns that each finish, instead of one turn that waits for every
 download in a row.
 
 Nothing waits on that read while holding a lock, or every other command touching
-an attachment would queue behind it. And nothing in the window may assume the
+an attachment would queue behind it. The same holds for the folder and the
+store as a whole: `joining`, `sync_kin` and `sync_state` take what they need
+under the session lock and read after letting it go, and `snapshot` reprojects
+a store that moved off the main thread and outside the lock, the way
+`catching_up` does, so a first turn that brings thousands of segments never
+leaves the window waiting to draw. And nothing in the window may assume the
 answer is there yet: a player that asks once and gives up mounts with no source
 and stays mute until the document is opened again, which is the bug this rule
 exists to prevent.
