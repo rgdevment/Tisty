@@ -151,68 +151,17 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Ok(told(said, kept));
     }
 
-    let on = day(args, "date")?;
-    let owed = day(args, "deadline")?;
-    in_order(on.as_ref(), owed.as_ref())?;
-
-    let mut tags: Vec<Tag> = Vec::new();
-    for one in strings(args, "tags")?
+    let whole = super::wholes::whole_named(&state, args)?;
+    let mine = drafted(&state, args, &title, whole)?;
+    let parts = super::wholes::parts_drafted(&state, args, &mine)?;
+    let (id, planned) = (mine.id, mine.planned);
+    let parted: Vec<Value> = parts
         .iter()
-        .filter_map(|said| Tag::written(said).ok())
-    {
-        if !tags.contains(&one) {
-            tags.push(one);
-        }
-    }
-    if let Ok(mine) = Tag::new(INBOX_TAG)
-        && !tags.contains(&mine)
-    {
-        tags.push(mine);
-    }
-
-    let draft = Draft {
-        title: title.clone(),
-        date: on,
-        deadline: owed,
-        priority: ranked(args)?,
-        filing: text(args, "list").map(tisty_core::capture::Filing::Named),
-        tags,
-        repeat: None,
-        source: text(args, "source"),
-    };
-    let plan =
-        tisty_core::capture::plan(&state, draft).map_err(|e| with_the_names(refused(e), &state))?;
-    let id = plan.task;
-    let mut ops = plan.ops;
-    if let Some(body) = text(args, "description") {
-        ops.push(Op::TaskDescribe {
-            id,
-            d: Body { body: Some(body) },
-        });
-    }
-    let bells = moments(args, "remind")?;
-    if !bells.is_empty() {
-        ops.push(Op::TaskUpdate {
-            id,
-            d: TaskPatch {
-                reminders: Some(bells),
-                ..Default::default()
-            },
-        });
-    }
-    let mut step = order::first();
-    let mut planned = 0;
-    for one in strings(args, "steps")? {
-        planned += 1;
-        ops.push(Op::StepAdd {
-            id,
-            d: StepAdd {
-                step: Ulid::generate(),
-                text: one,
-                order: step.clone(),
-            },
-        });
-        step = order::after(&step);
+        .map(|one| json!({ "id": one.id.to_string(), "title": one.title }))
+        .collect();
+    let mut ops = mine.ops;
+    for one in parts {
+        ops.extend(one.ops);
     }
 
     let source = text(args, "source");
@@ -271,16 +220,116 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if planned > 0 {
         kept.insert("steps".into(), json!(planned));
     }
+    if !parted.is_empty() {
+        kept.insert("parts".into(), json!(parted));
+    }
+    let parts_said = match parted.len() {
+        0 => String::new(),
+        n => format!(" It holds {n} part(s), each a task of its own: `read` it to see them."),
+    };
     Ok(told(
         match planned {
-            0 => format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}."),
+            0 => format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}.{parts_said}"),
             n => format!(
                 "Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
-                 `tick` each as you do it, `say_done` when all are."
+                 `tick` each as you do it, `say_done` when all are.{parts_said}"
             ),
         },
         Value::Object(kept),
     ))
+}
+
+pub(super) struct Drafted {
+    pub(super) id: TaskId,
+    pub(super) title: String,
+    pub(super) ops: Vec<Op>,
+    pub(super) planned: usize,
+}
+
+/// One task's events, written nowhere yet, so a whole and its parts land in one transaction.
+pub(super) fn drafted(
+    state: &State,
+    args: &Value,
+    title: &str,
+    part_of: Option<TaskId>,
+) -> Result<Drafted, Refused> {
+    steps_fit(&strings(args, "steps")?)?;
+    let on = day(args, "date")?;
+    let owed = day(args, "deadline")?;
+    in_order(on.as_ref(), owed.as_ref())?;
+
+    let mut tags: Vec<Tag> = Vec::new();
+    for one in strings(args, "tags")?
+        .iter()
+        .filter_map(|said| Tag::written(said).ok())
+    {
+        if !tags.contains(&one) {
+            tags.push(one);
+        }
+    }
+    if let Ok(mine) = Tag::new(INBOX_TAG)
+        && !tags.contains(&mine)
+    {
+        tags.push(mine);
+    }
+
+    let draft = Draft {
+        title: title.to_string(),
+        date: on,
+        deadline: owed,
+        priority: ranked(args)?,
+        filing: text(args, "list").map(tisty_core::capture::Filing::Named),
+        tags,
+        repeat: None,
+        source: text(args, "source"),
+    };
+    let plan =
+        tisty_core::capture::plan(state, draft).map_err(|e| with_the_names(refused(e), state))?;
+    let id = plan.task;
+    let mut ops = plan.ops;
+    if let Some(body) = text(args, "description") {
+        ops.push(Op::TaskDescribe {
+            id,
+            d: Body { body: Some(body) },
+        });
+    }
+    let bells = moments(args, "remind")?;
+    if !bells.is_empty() {
+        ops.push(Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                reminders: Some(bells),
+                ..Default::default()
+            },
+        });
+    }
+    let mut step = order::first();
+    let mut planned = 0;
+    for one in strings(args, "steps")? {
+        planned += 1;
+        ops.push(Op::StepAdd {
+            id,
+            d: StepAdd {
+                step: Ulid::generate(),
+                text: one,
+                order: step.clone(),
+            },
+        });
+        step = order::after(&step);
+    }
+    for op in &mut ops {
+        if let Op::TaskAdd { id: born, d } = op
+            && *born == id
+        {
+            d.part_of = part_of;
+        }
+    }
+    Ok(Drafted {
+        id,
+        title: title.to_string(),
+        ops,
+        planned,
+    })
 }
 
 pub(super) fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -802,6 +851,18 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                 "was done"
             },
             when(already.at)
+        )));
+    }
+    let open_parts = state
+        .parts_of(id)
+        .filter(|part| part.is_open() && part.resolved.is_none())
+        .count();
+    if !drop && open_parts > 0 {
+        return Err(Refused::Tool(format!(
+            "{:?} still has {open_parts} part(s) open, and a whole is done only when its parts \
+             are. Say each done as you finish it; whether to let the rest go is the person's \
+             call, so say what is left with `note`.",
+            task.title
         )));
     }
     if drop && (task.repeat.is_some() || task.after.is_some()) {
