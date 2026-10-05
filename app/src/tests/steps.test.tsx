@@ -76,3 +76,14 @@ describe("a step is one line", () => {
     expect(adding().value).toBe("una cosa otra");
   });
 });
+
+describe("writing through an input method", () => {
+  it("leaves Enter to the input method while a word is still being composed", () => {
+    const wrote = shown();
+    fireEvent.change(adding(), { target: { value: "にほん" } });
+    fireEvent.keyDown(adding(), { key: "Enter", isComposing: true });
+
+    expect(wrote).not.toHaveBeenCalled();
+    expect(adding().value).toBe("にほん");
+  });
+});
