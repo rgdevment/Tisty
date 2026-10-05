@@ -138,3 +138,12 @@ fn what_is_still_away_is_named_by_the_path_it_will_have() {
         vec![room.path().join("000002.tisty")]
     );
 }
+
+#[test]
+fn a_file_named_only_icloud_names_nothing_and_breaks_nothing() {
+    let room = tempfile::tempdir().unwrap();
+    std::fs::write(room.path().join(".icloud"), b"planted").unwrap();
+
+    assert_eq!(named_away(".icloud"), None);
+    assert!(still_away(room.path()).is_empty());
+}

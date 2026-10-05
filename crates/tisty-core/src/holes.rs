@@ -48,6 +48,12 @@ pub fn marker(name: &str) -> bool {
     name.starts_with('.') && name.ends_with(".icloud")
 }
 
+pub fn named_away(name: &str) -> Option<&str> {
+    name.strip_prefix('.')?
+        .strip_suffix(".icloud")
+        .filter(|real| !real.is_empty())
+}
+
 #[cfg(windows)]
 fn held_away(at: &Path) -> bool {
     use std::os::windows::fs::MetadataExt;
@@ -80,8 +86,7 @@ pub fn still_away(dir: &Path) -> Vec<PathBuf> {
             let at = one.path();
             let name = at.file_name()?.to_str()?;
             if marker(name) {
-                let real = &name[1..name.len() - ".icloud".len()];
-                return Some(at.with_file_name(real));
+                return named_away(name).map(|real| at.with_file_name(real));
             }
             (at.is_file() && held_away(&at)).then_some(at)
         })
@@ -90,19 +95,36 @@ pub fn still_away(dir: &Path) -> Vec<PathBuf> {
 
 // Reading is what brings a file down, and the read waits for it: done apart, the round goes on.
 pub fn ask_for(all: Vec<PathBuf>) {
-    if all.is_empty() {
+    let fresh: Vec<PathBuf> = {
+        let Ok(mut asked) = in_flight().lock() else {
+            return;
+        };
+        all.into_iter()
+            .filter(|at| asked.insert(at.clone()))
+            .collect()
+    };
+    if fresh.is_empty() {
         return;
     }
     std::thread::spawn(move || {
-        for at in all {
+        for at in fresh {
             if sidecar(&at).is_some() {
                 fetched(&at);
             } else if let Ok(mut file) = std::fs::File::open(&at) {
                 let mut one = [0u8; 1];
                 let _ = std::io::Read::read(&mut file, &mut one);
             }
+            if let Ok(mut asked) = in_flight().lock() {
+                asked.remove(&at);
+            }
         }
     });
+}
+
+fn in_flight() -> &'static std::sync::Mutex<std::collections::BTreeSet<PathBuf>> {
+    static ASKED: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeSet<PathBuf>>> =
+        std::sync::OnceLock::new();
+    ASKED.get_or_init(Default::default)
 }
 
 pub fn can_ask(left: &Left) -> bool {

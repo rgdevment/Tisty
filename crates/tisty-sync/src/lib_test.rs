@@ -7699,3 +7699,38 @@ lo que dice la nota
 "
     );
 }
+
+#[test]
+fn a_newer_machine_with_an_old_segment_still_in_the_cloud_still_stops_the_turn() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let theirs = shared.path().join("store/dev_b");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::write(theirs.join(".000001.tisty.icloud"), b"stub").unwrap();
+    std::fs::write(
+        theirs.join("active.tisty"),
+        b"{\"v\":99,\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"01M0ZX62YMRXMABJ6Q4FEF69WT\",\"d\":{\"title\":\"from the future\",\"order\":\"V\"}}\n",
+    )
+    .unwrap();
+
+    let stopped = carry(&one.data, &one.device, shared.path(), Way::Both, &[]);
+
+    assert!(
+        matches!(stopped, Err(Trouble::Newer(ref who)) if who == "dev_b"),
+        "{stopped:?}"
+    );
+}
+
+#[test]
+fn what_arrives_from_the_cloud_stirs_the_folder() {
+    let theirs = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&theirs.data, &theirs.device, shared.path(), Way::Push, &[]).unwrap();
+    let up = shared.path().join(STORE).join("dev_a").join("active.tisty");
+    sent_up_to_the_cloud(&up);
+    let before = stirring(shared.path());
+
+    brought_down_from_the_cloud(&up);
+
+    assert_ne!(before, stirring(shared.path()));
+}

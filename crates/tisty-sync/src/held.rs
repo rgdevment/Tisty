@@ -225,7 +225,15 @@ pub(crate) fn copy_held(
             let under = under.to_str().unwrap_or_default();
             // What iCloud left in place of a file is not litter, and saying so would bury the log.
             if tisty_core::holes::marker(named) {
-                asked_for.extend(tisty_core::holes::still_away(&shelf.path()));
+                if let Some(real) = tisty_core::holes::named_away(named) {
+                    let reference = format!("attachments/{under}/{real}");
+                    if tisty_core::attach::shelved(under, real)
+                        && !buried.contains(&reference)
+                        && reachable.is_none_or(|named| named.contains(&reference))
+                    {
+                        asked_for.push(shelf.path().join(real));
+                    }
+                }
                 continue;
             }
             if !tisty_core::attach::shelved(under, named) {

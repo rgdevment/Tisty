@@ -407,7 +407,7 @@ pub fn signed_at(dest: &Path) -> Option<String> {
 pub fn stirring(dest: &Path) -> u64 {
     use std::hash::{Hash, Hasher};
 
-    let mut seen: Vec<(std::path::PathBuf, u64, u64)> = Vec::new();
+    let mut seen: Vec<(std::path::PathBuf, u64, u64, bool)> = Vec::new();
     let when = |at: &Path| {
         std::fs::metadata(at)
             .and_then(|one| Ok((one.len(), one.modified()?)))
@@ -429,7 +429,8 @@ pub fn stirring(dest: &Path) -> u64 {
             };
             for at in segments {
                 if let Some((len, stamped)) = when(&at) {
-                    seen.push((at, len, stamped));
+                    let away = tisty_core::holes::a_hole(&at);
+                    seen.push((at, len, stamped, away));
                 }
             }
         }
