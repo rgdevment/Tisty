@@ -167,10 +167,10 @@ export default function Welcome({ onDone }: Props) {
   const settle = (tries = 0): Promise<void> =>
     joining()
       .then((how) => {
-        if (how.coming && tries < NAME_COMING_TRIES) {
-          window.setTimeout(() => void settle(tries + 1), NAME_COMING_EVERY);
-          return;
-        }
+        if (how.coming && tries < NAME_COMING_TRIES)
+          return new Promise<void>((done) => window.setTimeout(done, NAME_COMING_EVERY)).then(() =>
+            settle(tries + 1),
+          );
         setBusy(false);
         if (!how.fresh || !how.holds) return carryOn();
         setCarrying(false);
