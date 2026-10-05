@@ -65,6 +65,11 @@
     "vite": "^8.3.1",
     "vitest": "^4.1.11"
   },
+  "overrides": {
+    "typed-rest-client": {
+      "qs": "^6.15.2"
+    }
+  },
   "description": "Notes, documents and tasks, all local. No subscription, no telemetry",
   "license": "AGPL-3.0-only"
 }
