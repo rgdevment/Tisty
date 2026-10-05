@@ -90,6 +90,7 @@ This copy is updated by whoever installed it, not by Tisty.",
     if !behind.written_by.is_empty() {
         told.push_str(&by.replace("{name}", behind.written_by));
         if behind.from_the_store {
+            // The sync guard turns a newer history from another computer away before it lands here.
             told.push_str(store);
         }
     }
