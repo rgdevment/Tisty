@@ -29,8 +29,17 @@ describe("how long a step is allowed to be", () => {
 
   it("stops a new step at the limit instead of letting it be refused afterwards", () => {
     shown();
+    fireEvent.change(adding(), { target: { value: "x".repeat(STEP_AT_MOST + 10) } });
 
-    expect(adding().maxLength).toBe(STEP_AT_MOST);
+    expect(adding().value).toBe("x".repeat(STEP_AT_MOST));
+  });
+
+  it("counts a character the way the core does, an emoji as one", () => {
+    shown();
+    fireEvent.change(adding(), { target: { value: "🌱".repeat(STEP_AT_MOST) } });
+
+    expect(Array.from(adding().value)).toHaveLength(STEP_AT_MOST);
+    expect(screen.getByRole("status").textContent).toBe("0");
   });
 
   it("keeps a longer step written before the limit whole while it is read", () => {
@@ -39,7 +48,8 @@ describe("how long a step is allowed to be", () => {
 
     const field = screen.getByDisplayValue(long) as HTMLTextAreaElement;
     expect(field.value).toBe(long);
-    expect(field.maxLength).toBeGreaterThanOrEqual(long.length);
+    fireEvent.change(field, { target: { value: `${long}y` } });
+    expect(field.value).toBe(long);
   });
 });
 

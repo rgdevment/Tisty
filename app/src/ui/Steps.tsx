@@ -13,6 +13,12 @@ const COUNTED_FROM = STEP_AT_MOST - 20;
 
 const oneLine = (text: string): string => text.replace(/\s*\n\s*/g, " ");
 
+// By character, as the core counts: maxLength counts UTF-16 units and an emoji would cost two.
+const counted = (text: string): number => Array.from(text).length;
+
+const within = (text: string, most: number): string =>
+  counted(text) > most ? Array.from(text).slice(0, most).join("") : text;
+
 export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
   const [adding, setAdding] = useState("");
   const put = () => {
@@ -41,10 +47,9 @@ export default function Steps({ steps, onWrite, onMark, onDrop }: Props) {
         <textarea
           rows={1}
           value={adding}
-          maxLength={STEP_AT_MOST}
           placeholder={t("addStep")}
           aria-label={t("addStep")}
-          onChange={(e) => setAdding(oneLine(e.target.value))}
+          onChange={(e) => setAdding(within(oneLine(e.target.value), STEP_AT_MOST))}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return;
             if (e.key === "Enter") {
@@ -92,9 +97,10 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
       <textarea
         rows={1}
         value={text}
-        maxLength={Math.max(STEP_AT_MOST, step.text.length)}
         aria-label={fill("editStep", step.text)}
-        onChange={(e) => setText(oneLine(e.target.value))}
+        onChange={(e) =>
+          setText(within(oneLine(e.target.value), Math.max(STEP_AT_MOST, counted(step.text))))
+        }
         onBlur={() => {
           if (dropped.current) {
             dropped.current = false;
@@ -124,8 +130,8 @@ function Line({ step, onWrite, onMark, onDrop }: { step: Step } & Omit<Props, "s
 }
 
 function Left({ text }: { text: string }) {
-  if (text.length < COUNTED_FROM) return null;
-  const left = STEP_AT_MOST - text.length;
+  if (counted(text) < COUNTED_FROM) return null;
+  const left = STEP_AT_MOST - counted(text);
   return (
     <span
       role="status"

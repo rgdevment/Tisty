@@ -875,8 +875,6 @@ pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> 
     proposed(paths, one)
 }
 
-/// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
-/// and not folded away. The refusal says which of the three it is not.
 fn steps_fit(steps: &[String]) -> Result<(), Refused> {
     match steps.iter().find(|one| !tisty_core::model::step_fits(one)) {
         Some(long) => Err(Refused::Tool(format!(
@@ -889,6 +887,8 @@ fn steps_fit(steps: &[String]) -> Result<(), Refused> {
     }
 }
 
+/// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
+/// and not folded away. The refusal says which of the three it is not.
 fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(format!(
