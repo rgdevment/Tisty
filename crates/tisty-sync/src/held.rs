@@ -3,7 +3,7 @@ use std::path::Path;
 use tisty_core::config::Holds;
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{HELD, LetGo, Trouble, beside, plainly, sweep};
+use crate::{HELD, LetGo, Reached, Stage, Trouble, beside, plainly, sweep};
 
 /// Deletes a local copy only after the one up there is found to hash the same. `told` hears each
 /// one as it goes and answers whether to carry on.
@@ -168,6 +168,7 @@ pub(crate) fn copy_held(
     reachable: Option<&std::collections::BTreeSet<String>>,
     carried: Option<&mut Vec<(String, String, u64)>>,
     avowed: &std::collections::BTreeMap<String, (String, u64)>,
+    saying: &mut dyn FnMut(Reached),
 ) -> Result<usize, Trouble> {
     let mut done = 0;
     let mut left = 0;
@@ -202,17 +203,30 @@ pub(crate) fn copy_held(
             return Ok(0);
         }
     };
-    for shelf in shelves.filter_map(|e| e.ok()) {
-        if !shelf.path().is_dir() {
-            continue;
-        }
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
-            continue;
-        };
+    let shelves: Vec<_> = shelves
+        .filter_map(|e| e.ok())
+        .filter(|shelf| shelf.path().is_dir())
+        .filter_map(|shelf| {
+            let files: Vec<_> = std::fs::read_dir(shelf.path())
+                .ok()?
+                .filter_map(|e| e.ok())
+                .collect();
+            Some((shelf, files))
+        })
+        .collect();
+    let whole = shelves.iter().map(|(_, files)| files.len()).sum();
+    let mut seen = 0;
+    for (shelf, files) in shelves {
         let onto = into.join(shelf.file_name());
         plainly(&onto)?;
         sweep(&onto);
-        for file in files.filter_map(|e| e.ok()) {
+        for file in files {
+            saying(Reached::Along {
+                stage: Stage::Attachments,
+                done: seen,
+                whole,
+            });
+            seen += 1;
             let at = file.path();
             if !at.is_file() {
                 continue;
@@ -325,6 +339,11 @@ pub(crate) fn copy_held(
             if let Some(ledger) = ledger {
                 tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
             }
+            saying(Reached::Kept {
+                at: reference.clone(),
+                sha256: sha256.clone(),
+                bytes,
+            });
             if let Some(carried) = carried.as_deref_mut() {
                 carried.push((reference, sha256, bytes));
             }
@@ -338,6 +357,11 @@ pub(crate) fn copy_held(
             &[("left", Fact::Count(left))],
         );
     }
+    saying(Reached::Along {
+        stage: Stage::Attachments,
+        done: whole,
+        whole,
+    });
     asked_for.sort();
     asked_for.dedup();
     tisty_core::holes::ask_for(asked_for);

@@ -60,3 +60,38 @@ fn a_projection_nothing_interrupted_leaves_the_session_settled() {
     session.adopt(projected(&paths, session.writes()).unwrap());
     assert!(!session.reload().unwrap(), "nothing moved underneath it");
 }
+
+#[test]
+fn writing_over_a_store_another_machine_wrote_into_still_brings_that_machine_in() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let mut session = Session::at(paths.clone()).unwrap();
+
+    let theirs = ulid::Ulid::generate();
+    let mut other = tisty_core::Store::open(
+        paths.store(),
+        tisty_core::event::DeviceId("dev_other".into()),
+    )
+    .unwrap();
+    other
+        .append(Op::TaskAdd {
+            id: theirs,
+            d: TaskAdd::new("lo que trajo la ronda".to_string(), "a0"),
+        })
+        .unwrap();
+    drop(other);
+
+    session
+        .commit(Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: TaskAdd::new("lo mio".to_string(), "a0"),
+        })
+        .unwrap();
+
+    assert!(
+        session.stale(),
+        "the commit stamped a store it had not read"
+    );
+    assert!(session.reload().unwrap());
+    assert!(session.state.tasks.contains_key(&theirs));
+}

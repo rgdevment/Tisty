@@ -32,6 +32,77 @@ fn said_now_held(session: &tauri::State<'_, Mutex<Session>>, took_in: &[(String,
     }
 }
 
+const SAID_EVERY: std::time::Duration = std::time::Duration::from_millis(250);
+const KEPT_EVERY: std::time::Duration = std::time::Duration::from_secs(2);
+const KEPT_AT_MOST: usize = 64;
+
+#[derive(Clone, serde::Serialize)]
+struct Bringing {
+    stage: &'static str,
+    done: usize,
+    whole: usize,
+}
+
+/// What landed is told in handfuls, so a round cut short still owns what it already brought.
+struct Telling {
+    app: tauri::AppHandle,
+    kept: Vec<(String, String, u64)>,
+    kept_at: std::time::Instant,
+    said: Option<(&'static str, std::time::Instant)>,
+}
+
+impl Telling {
+    fn new(app: tauri::AppHandle) -> Self {
+        Self {
+            app,
+            kept: Vec::new(),
+            kept_at: std::time::Instant::now(),
+            said: None,
+        }
+    }
+
+    fn hear(&mut self, far: tisty_sync::Reached) {
+        match far {
+            tisty_sync::Reached::Log => {
+                let _ = self.app.emit("carried", "log");
+            }
+            tisty_sync::Reached::Papers => {
+                let _ = self.app.emit("carried", "papers");
+            }
+            tisty_sync::Reached::Along { stage, done, whole } => {
+                let stage = match stage {
+                    tisty_sync::Stage::Log => "log",
+                    tisty_sync::Stage::Papers => "papers",
+                    tisty_sync::Stage::Attachments => "attachments",
+                };
+                let quiet = self
+                    .said
+                    .is_some_and(|(was, at)| was == stage && at.elapsed() < SAID_EVERY);
+                if quiet && done < whole {
+                    return;
+                }
+                self.said = Some((stage, std::time::Instant::now()));
+                let _ = self.app.emit("bringing", Bringing { stage, done, whole });
+            }
+            tisty_sync::Reached::Kept { at, sha256, bytes } => {
+                self.kept.push((at, sha256, bytes));
+                if self.kept.len() >= KEPT_AT_MOST || self.kept_at.elapsed() >= KEPT_EVERY {
+                    self.flush();
+                }
+            }
+        }
+    }
+
+    fn flush(&mut self) {
+        self.kept_at = std::time::Instant::now();
+        if self.kept.is_empty() {
+            return;
+        }
+        let session = self.app.state::<Mutex<Session>>();
+        said_now_held(&session, &std::mem::take(&mut self.kept));
+    }
+}
+
 fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[String]) {
     if let_go.is_empty() {
         return;
@@ -487,7 +558,7 @@ pub async fn sync_now(
         _ => tisty_sync::Way::Both,
     };
 
-    let telling = app.clone();
+    let mut telling = Telling::new(app.clone());
     let pushing = (
         data.clone(),
         aside.clone(),
@@ -496,7 +567,7 @@ pub async fn sync_now(
         alive.clone(),
     );
     let done = tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry_telling(
+        let done = tisty_sync::carry_telling(
             &data,
             Some(&aside),
             &device,
@@ -504,16 +575,10 @@ pub async fn sync_now(
             way,
             &alive,
             holds,
-            &mut |far| {
-                let _ = telling.emit(
-                    "carried",
-                    match far {
-                        tisty_sync::Reached::Log => "log",
-                        tisty_sync::Reached::Papers => "papers",
-                    },
-                );
-            },
-        )
+            &mut |far| telling.hear(far),
+        );
+        telling.flush();
+        done
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -522,7 +587,6 @@ pub async fn sync_now(
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
     said_no_longer_held(&session, &done.let_go);
-    said_now_held(&session, &done.took_in);
     still_asked(&session, &done.undecided);
     if moved {
         catching_up(

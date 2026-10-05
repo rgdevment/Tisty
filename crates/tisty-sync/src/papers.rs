@@ -3,8 +3,8 @@ use std::path::Path;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
-    Holding, Moved, PAPERS, STORE, Trouble, Undecided, copy_onto, docs_lock, io, joined,
-    pointed_away, straight, write,
+    Holding, Moved, PAPERS, Reached, STORE, Stage, Trouble, Undecided, copy_onto, docs_lock, io,
+    joined, pointed_away, straight, write,
 };
 
 pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
@@ -26,7 +26,18 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
 }
 
 pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, &[], None, None, false, false, true)
+    carry_papers_leaning_on(
+        data,
+        dest,
+        alive,
+        &[],
+        None,
+        None,
+        false,
+        false,
+        true,
+        &mut |_| {},
+    )
 }
 
 pub fn carry_papers_holding(
@@ -35,7 +46,18 @@ pub fn carry_papers_holding(
     alive: &[String],
     shut: &[String],
 ) -> Result<Moved, Trouble> {
-    carry_papers_leaning_on(data, dest, alive, shut, None, None, false, false, true)
+    carry_papers_leaning_on(
+        data,
+        dest,
+        alive,
+        shut,
+        None,
+        None,
+        false,
+        false,
+        true,
+        &mut |_| {},
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -49,6 +71,7 @@ pub(crate) fn carry_papers_leaning_on(
     again: bool,
     been_here: bool,
     taking: bool,
+    saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
     use tisty_core::docs::{Carried, Move, Prints, Seen, moved, print_of};
 
@@ -65,8 +88,14 @@ pub(crate) fn carry_papers_leaning_on(
     let mut done = Moved::default();
     let mut asked_for = Vec::new();
 
+    let whole = alive.len();
     let outcome = (|| -> Result<(), Trouble> {
-        for id in alive {
+        for (done_so_far, id) in alive.iter().enumerate() {
+            saying(Reached::Along {
+                stage: Stage::Papers,
+                done: done_so_far,
+                whole,
+            });
             let (Ok(mine), Ok(theirs)) = (
                 tisty_core::docs::resolve(&here, id),
                 tisty_core::docs::resolve(&there, id),
@@ -250,6 +279,11 @@ pub(crate) fn carry_papers_leaning_on(
                 }
             }
         }
+        saying(Reached::Along {
+            stage: Stage::Papers,
+            done: whole,
+            whole,
+        });
         Ok(())
     })();
     tisty_core::holes::ask_for(asked_for);
