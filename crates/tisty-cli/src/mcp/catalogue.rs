@@ -244,6 +244,15 @@ pub(super) fn tools() -> Value {
                         "description": "Several at once, each written as a single one is. Left out when proposing one"
                     },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
+                    "parts": {
+                        "type": "array",
+                        "items": { "type": "object" },
+                        "description": "When the work is several separate tasks with one end — a move, a release, a plan — the tasks it is made of, each written the way a single one is, with its own steps. The task around them is finished when they are; one level only, at most 32 here, the rest in rounds with `part_of`. A step is a line; a part is a task"
+                    },
+                    "part_of": {
+                        "type": "string",
+                        "description": "The id of a task this one is a part of: one you filed, or one the person opened to agents. Left out, it stands on its own"
+                    },
                     "description": {
                         "type": "string",
                         "description": "What you read, in markdown"
@@ -849,7 +858,7 @@ pub(super) fn tools() -> Value {
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]
@@ -884,6 +893,7 @@ pub(super) fn tools() -> Value {
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
                     "said_done": { "type": "boolean", "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for" },
                     "open_to_agents": { "type": "boolean", "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves" },
+                    "part_of": { "type": "string", "description": "Only the parts of this task, by its id" },
                     "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. However it is written: «sereno», «sereno#» and «sereno: » all match" },
                     "from": { "type": "string", "description": "Its date or deadline on this day or after (2026-08-31)" },
                     "to": { "type": "string", "description": "Its date or deadline on this day or before" },
