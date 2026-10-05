@@ -21,7 +21,8 @@ import { DOC } from "../markdown";
 import { isMark } from "../marks";
 import type { Moved } from "../paging";
 import { spared } from "./Icons";
-import { type Lending, lend } from "./widgeting";
+import { TONGUES } from "./tongues";
+import { besideWidget, type Lending, lend } from "./widgeting";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
 export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
@@ -853,42 +854,6 @@ const Ruled = Table.configure({ resizable: true }).extend({
   },
 });
 
-export const TONGUES = [
-  "bash",
-  "c",
-  "cpp",
-  "csharp",
-  "css",
-  "diff",
-  "go",
-  "graphql",
-  "ini",
-  "java",
-  "javascript",
-  "json",
-  "kotlin",
-  "less",
-  "lua",
-  "makefile",
-  "markdown",
-  "objectivec",
-  "perl",
-  "php",
-  "python",
-  "r",
-  "ruby",
-  "rust",
-  "scss",
-  "shell",
-  "sql",
-  "swift",
-  "typescript",
-  "vbnet",
-  "wasm",
-  "xml",
-  "yaml",
-] as const;
-
 // One counter for the window: mermaid resolves its id against the whole document.
 let sketches = 0;
 
@@ -931,6 +896,16 @@ export const KINDS = ["note", "tip", "important", "warning", "caution"] as const
 const SHORT: Record<string, string> = { mmd: "mermaid" };
 
 const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) }).extend({
+  addKeyboardShortcuts() {
+    const inherited = this.parent?.() ?? {};
+    return {
+      ...inherited,
+      Backspace: (props) =>
+        besideWidget(props.editor, true) || (inherited.Backspace?.(props) ?? false),
+      Delete: (props) => besideWidget(props.editor, false) || (inherited.Delete?.(props) ?? false),
+    };
+  },
+
   addInputRules() {
     return [
       textblockTypeInputRule({
@@ -1061,6 +1036,16 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       const drawn = document.createElement("div");
       drawn.className = "lit-drawn";
       drawn.setAttribute("contenteditable", "false");
+      const entered = () => {
+        if (!folded) return;
+        const at = getPos();
+        if (at === undefined) return;
+        const { from } = editor.state.selection;
+        if (from <= at || from >= at + (mine as ProseNode).nodeSize) return;
+        folded = false;
+        folding(mine as ProseNode);
+      };
+      editor.on("selectionUpdate", entered);
       drawn.addEventListener("widgetrefused", () => {
         folded = false;
         folding(mine as ProseNode);
@@ -1195,6 +1180,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         destroy: () => {
           asked += 1;
           unlent();
+          editor.off("selectionUpdate", entered);
           sketchers.delete(again);
           drawn.replaceChildren();
         },

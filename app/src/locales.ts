@@ -965,6 +965,8 @@ const en = {
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
   widgetTooBig: "A widget can hold up to {name}; this one is bigger, so it is shown as code.",
+  pageTooBig:
+    "This page is over {name}, too large to draw as a widget; show it as an attachment to open it.",
   docBrimming: "{name} — this document is getting long enough to feel it while typing",
   docCrowded: "{count} attachments in view — enough to feel while typing",
   brittleAre: "Documents that open read only",
@@ -2402,6 +2404,8 @@ const es: Catalog = {
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
   widgetTooBig:
     "Un widget puede tener hasta {name}; este pasa de ahí, así que se muestra como código.",
+  pageTooBig:
+    "Esta página pasa de {name}, demasiado para dibujarla como widget; muéstrala como adjunto para abrirla.",
   docBrimming: "{name} — este documento empieza a ser largo y se nota al escribir",
   docCrowded: "{count} adjuntos a la vista — suficientes para que se note al escribir",
   brittleAre: "Documentos que abren en solo lectura",

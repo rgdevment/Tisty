@@ -1,3 +1,4 @@
+import { NodeSelection } from "@tiptap/pm/state";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
 import { opened } from "./mounted";
@@ -190,6 +191,20 @@ describe("the frame a widget is drawn in", () => {
     lending.drop();
   });
 
+  it("stops climbing when each answer is the frame plus the same again", async () => {
+    const { frame, lending, from } = await mounted();
+    const told = () => Number.parseFloat(frame.style.height);
+
+    for (let n = 0; n < 6; n += 1) from({ type: "resize", height: told() + 50 });
+    expect(told(), "a page sized by its own frame grew to the ceiling").toBeLessThan(
+      SHORTEST + 50 * 6,
+    );
+
+    from({ type: "resize", height: 60 });
+    expect(told()).toBe(60);
+    lending.drop();
+  });
+
   it("gives its page back and stops listening once dropped", async () => {
     const { frame, lending, from } = await mounted();
 
@@ -234,6 +249,43 @@ describe("a widget block in a document", () => {
 
     await vi.waitFor(() => expect(one.dom.querySelector(".lit-refused")).toBeTruthy());
     expect(one.dom.querySelector<HTMLElement>(".lit-body")?.hidden).toBe(false);
+    one.shut();
+  });
+
+  it("takes the whole block on Backspace after it, rather than its hidden code", () => {
+    const one = opened("```widget\n<p>hola</p>\n```\n\ntexto");
+    let after = -1;
+    one.editor.state.doc.descendants((node, at) => {
+      if (node.type.name === "paragraph") after = at + 1;
+    });
+    one.at(after);
+
+    one.pressed("Backspace");
+
+    expect(one.editor.state.selection).toBeInstanceOf(NodeSelection);
+    expect(one.markdown()).toBe("```widget\n<p>hola</p>\n```\n\ntexto");
+    one.shut();
+  });
+
+  it("takes the whole block on Delete before it, rather than pulling its code up", () => {
+    const one = opened("antes\n\n```widget\n<p>hola</p>\n```");
+    one.at(6);
+
+    one.pressed("Delete");
+
+    expect(one.editor.state.selection).toBeInstanceOf(NodeSelection);
+    expect(one.markdown()).toBe("antes\n\n```widget\n<p>hola</p>\n```");
+    one.shut();
+  });
+
+  it("opens its code when the caret finds its way inside", () => {
+    const one = opened("```widget\n<p>hola</p>\n```");
+    const body = one.dom.querySelector<HTMLElement>(".lit-body");
+    expect(body?.hidden).toBe(true);
+
+    one.at(3);
+
+    expect(body?.hidden).toBe(false);
     one.shut();
   });
 

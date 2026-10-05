@@ -131,7 +131,7 @@ fn an_attached_page_has_its_own_ceiling_and_survives_bytes_that_are_not_text() {
         lent.lend_kept(vec![b'x'; KEPT_AT_MOST + 1])
             .unwrap_err()
             .code,
-        "widgetTooBig"
+        "pageTooBig"
     );
     let id = lent
         .lend_kept(vec![b'<', b'p', b'>', 0xff, b'<', b'/', b'p', b'>'])
@@ -150,4 +150,14 @@ fn the_frame_is_measured_by_what_the_widget_holds_not_by_the_frame_itself() {
         "measuring the whole page never reads smaller than the frame, so it could only grow"
     );
     assert!(!page.contains("document.documentElement.scrollHeight"));
+}
+
+#[test]
+fn a_page_too_large_is_refused_by_its_size_before_a_byte_is_read() {
+    assert!(small_enough(KEPT_AT_MOST as u64).is_ok());
+    assert_eq!(
+        small_enough(750 * 1024 * 1024).unwrap_err().code,
+        "pageTooBig",
+        "a page a document may hold, far past the ceiling, was let through to be read whole"
+    );
 }

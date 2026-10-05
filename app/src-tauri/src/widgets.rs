@@ -26,7 +26,7 @@ impl Lent {
 
     pub fn lend_kept(&self, body: Vec<u8>) -> Answer<String> {
         if body.len() > KEPT_AT_MOST {
-            return Err(Refusal::about("widgetTooBig", weighed(KEPT_AT_MOST as u64)));
+            return Err(too_big_a_page());
         }
         Ok(self.held(String::from_utf8_lossy(&body).into_owned()))
     }
@@ -80,6 +80,27 @@ pub fn widget_lend(lent: tauri::State<'_, Lent>, body: String) -> Answer<String>
     lent.lend(body)
 }
 
+fn too_big_a_page() -> Refusal {
+    Refusal::about("pageTooBig", weighed(KEPT_AT_MOST as u64))
+}
+
+pub fn small_enough(weighs: u64) -> Answer<()> {
+    match weighs > KEPT_AT_MOST as u64 {
+        true => Err(too_big_a_page()),
+        false => Ok(()),
+    }
+}
+
+fn kept_page(reference: String, at: finding::Where) -> Answer<Vec<u8>> {
+    let found = finding::handed_over(&reference, &at)?;
+    small_enough(
+        std::fs::metadata(&found)
+            .map(|one| one.len())
+            .unwrap_or(u64::MAX),
+    )?;
+    crate::answers::attaching::read_out(reference, at)
+}
+
 pub fn a_page(reference: &str) -> bool {
     let named = reference
         .rsplit('/')
@@ -99,7 +120,7 @@ pub async fn widget_lend_kept(
         return Err(Refusal::of("notAllowed"));
     }
     let at = finding::where_to(&session);
-    let body = elsewhere(move || crate::answers::attaching::read_out(reference, at)).await??;
+    let body = elsewhere(move || kept_page(reference, at)).await??;
     lent.lend_kept(body)
 }
 

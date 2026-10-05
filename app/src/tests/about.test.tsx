@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -99,6 +100,16 @@ describe("the other tools", () => {
   });
 });
 
+const upward = (named: string): string => {
+  let at = resolve(".");
+  while (!existsSync(join(at, named))) {
+    const above = dirname(at);
+    if (above === at) throw new Error(`${named} is in no folder above ${resolve(".")}`);
+    at = above;
+  }
+  return join(at, named);
+};
+
 describe("the notice every bundled licence asks for", () => {
   it("is shown from the window, and asked for only when it is", async () => {
     let asked = 0;
@@ -179,7 +190,7 @@ describe("the notice every bundled licence asks for", () => {
 
   it("links only to whole addresses from both files, which a window cannot follow otherwise", () => {
     for (const named of ["THIRD-PARTY-BUNDLED.md", "THIRD-PARTY-LICENSES.md"]) {
-      const body = readFileSync(`../${named}`, "utf8");
+      const body = readFileSync(upward(named), "utf8");
       const targets = [...body.matchAll(/\]\(([^)\s]+)\)/g)].map((one) => one[1]);
       expect(targets.length).toBeGreaterThan(0);
       for (const target of targets) {

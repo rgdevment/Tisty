@@ -1,4 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import type { Editor as Writing } from "@tiptap/core";
+import { NodeSelection } from "@tiptap/pm/state";
 import { openLink, widgetLend, widgetLendKept, widgetTakeBack } from "../core";
 import { t } from "../locales";
 import { DOC } from "../markdown";
@@ -27,6 +29,7 @@ export const openable = (href: string): "doc" | "web" | null => {
 };
 
 export const OPENS_EVERY = 1000;
+export const CLIMBS_AT_MOST = 3;
 
 export const clickedInto = (frame: HTMLIFrameElement): boolean => {
   const activation = (navigator as { userActivation?: { isActive: boolean } }).userActivation;
@@ -62,6 +65,8 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
   let id: string | null = null;
   let gone = false;
   let opened = Number.NEGATIVE_INFINITY;
+  let climbed = 0;
+  let stride = 0;
   const frame = document.createElement("iframe");
   frame.className = "lit-widget";
   frame.setAttribute("sandbox", "allow-scripts");
@@ -75,7 +80,17 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
     const asked = heard(event.data);
     if (!asked) return;
     if (asked.type === "resize") {
-      frame.style.height = `${tall(asked.height)}px`;
+      const next = tall(asked.height);
+      const step = next - (Number.parseFloat(frame.style.height) || SHORTEST);
+      if (step > 0) {
+        climbed = step === stride ? climbed + 1 : 1;
+        stride = step;
+        if (climbed >= CLIMBS_AT_MOST) return;
+      } else {
+        climbed = 0;
+        stride = 0;
+      }
+      frame.style.height = `${next}px`;
       return;
     }
     const kind = openable(asked.href);
@@ -127,4 +142,18 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
       id = null;
     },
   };
+};
+
+export const besideWidget = (editor: Writing, back: boolean): boolean => {
+  const { selection, doc } = editor.state;
+  if (!selection.empty) return false;
+  const at = selection.$from;
+  if (at.parent.type.name === "codeBlock") return false;
+  if (back ? at.parentOffset !== 0 : at.parentOffset !== at.parent.content.size) return false;
+  const edge = back ? at.before() : at.after();
+  const near = back ? doc.resolve(edge).nodeBefore : doc.resolve(edge).nodeAfter;
+  if (near?.type.name !== "codeBlock" || near.attrs.language !== "widget") return false;
+  const start = back ? edge - near.nodeSize : edge;
+  editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(doc, start)));
+  return true;
 };
