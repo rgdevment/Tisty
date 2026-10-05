@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** September 22, 2026
+**Last updated:** October 5, 2026
 
 ## The short version
 
@@ -70,6 +70,11 @@ visible instead of making it for you.
   identifier itself does appear in the shared folder — it names your device's
   directory and stamps every event — because that is what tells two writers
   apart. What must never be shared is the file that binds it to this machine.
+  Beside it, in `private/`, sits the key this machine signs what it writes
+  with: its public half is written into the log so your other machines can
+  check the signatures, and the private half is never synced, backed up or put
+  in a parcel. Which of your other machines' keys you have confirmed is kept on
+  this machine alone.
   It also holds the day this copy first opened, whether it has already asked
   you to star the project, and whether it has already offered your assistant a
   door, so that each of those is asked once and never again. Which assistants
@@ -208,9 +213,17 @@ opens your browser, the way any Markdown reader does. Tisty does not follow it
 on its own, and never opens anything without a click. Worth knowing if a
 document reached you from a shared folder someone else can write to — the words
 of a link and where it goes are not obliged to agree, in Tisty or anywhere else.
+If LinkUnbound is installed, a web link is handed to it instead, so it can ask
+which browser to use; nothing else changes, and nothing leaves through Tisty.
+
+A widget in a document, or an attached `.html` page, is drawn by its own code
+in a frame that is allowed no network at all: it cannot fetch anything, load a
+picture from an address or send what it shows anywhere. A link inside it opens
+your browser only when you click it, like any other.
 
 Tisty's own screens carry a few links of their own: the repository, the pages
-for sponsorship and for a coffee, the AlternativeTo listing, and — on a copy the
+for sponsorship and for a coffee, the AlternativeTo listing, the pages of the
+author's two other tools, CopyPaste and LinkUnbound, and — on a copy the
 Microsoft Store keeps — the Store's own rating window. Where each one leads is
 fixed in the program, not fetched from anywhere, and they behave like any link
 above: nothing is requested, nothing is sent, and your browser opens only when
@@ -258,14 +271,14 @@ happens on its own:
   it is an event written into your log rather than a line in a settings file,
   so you can see when it happened and throw it out whenever you want.
 - **What it may do is bounded.** File a task, add to the journal, say a task it
-  filed is done — which marks it for you and closes nothing — write a
-  document, write one again whole, keep a copy of a file you point it at, and
-  read what is already there. It may not close or delete anything, say a task
-  you wrote is done, reach a task you hid, or take files from outside the
-  folders where a download lands. Bringing a markdown file in copies what
-  that file's text points at, and only what sits in that file's own folder or
-  below it, so what leaves your disk is bounded by the file you named rather
-  than by what its text asks for. To
+  filed or one you opened to agents is done — which marks it for you and closes
+  nothing — write a document, write one again whole, keep a copy of a file you
+  point it at, and read what is already there. It may not close or delete
+  anything, say a task you wrote and kept closed to it is done, reach a task
+  you hid, or take files from outside the folders where a download lands.
+  Bringing a markdown file in copies what that file's text points at, and only
+  what sits in that file's own folder or below it, so what leaves your disk is
+  bounded by the file you named rather than by what its text asks for. To
   replace a whole document it has to send back the print it read that document
   at, so what you wrote while it was thinking cannot be taken. What it reads
   comes back without the paths of your disk.

@@ -101,14 +101,14 @@ describe("the report a bug gets attached to", () => {
     expect(written(seen, at)).not.toContain("sandbox");
   });
 
-  it("does not ask for a backup that the shared folder already is", () => {
-    const paper = written(seen, at);
+  it("keeps the backup in the report when a folder is shared, since the folder is no backup", () => {
+    const paper = written({ ...seen, shared: true, backedUpAt: null }, at);
 
-    expect(paper).toContain("the shared folder is the backup");
-    expect(paper).not.toContain("none yet");
+    expect(paper).toMatch(/backup\s+available/);
+    expect(paper).toContain("none yet");
   });
 
-  it("says when the last copy was made where copies are this machine's job", () => {
+  it("says when the last copy was made", () => {
     const paper = written({ ...seen, shared: false, backedUpAt: "2026-08-04T10:00:00Z" }, at);
 
     expect(paper).toMatch(/backup\s+available/);

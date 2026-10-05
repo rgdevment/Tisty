@@ -52,9 +52,7 @@ export function written(facts: Facts, now = new Date()): string {
     [t("wordSyncs"), facts.syncs ? t(facts.shared ? "yesShared" : "yesLocal") : t("noSync")],
     [
       t("wordBackup"),
-      facts.shared
-        ? t("backupIsShared")
-        : `${t("backupAvailable")} · ${facts.backedUpAt ? stamped(facts.backedUpAt, now) : t("backupNever")}`,
+      `${t("backupAvailable")} · ${facts.backedUpAt ? stamped(facts.backedUpAt, now) : t("backupNever")}`,
     ],
     [t("wordNotices"), speaking(facts.quiet)],
     [t("wordCopiesUpTo"), weigh(facts.attachUpTo)],
