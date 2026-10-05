@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AXES, type Axis, banded, monthly, regrouped, shelved } from "../archive";
+import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import { useComing } from "../coming";
 import type { List, Task, Whole } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
+import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentTag, signedBy } from "../who";
@@ -81,7 +82,7 @@ export default function TaskList({
   const joining = coming?.stage === "log" && coming.joining === true;
   const [tucked, setTucked] = useState<ReadonlySet<string>>(new Set());
   const offered = axis === undefined && bands === "day";
-  const [grouped, setGrouped] = useState<Axis>(kept);
+  const grouped = useGrouped();
   const by = axis ?? (offered ? grouped : undefined);
   const rows = useMemo(
     () =>
@@ -366,15 +367,7 @@ export default function TaskList({
             </span>
           )}
         </div>
-        {offered && tasks.length > 0 && (
-          <Grouping
-            axis={grouped}
-            onChange={(one) => {
-              setGrouped(one);
-              keep(one);
-            }}
-          />
-        )}
+        {offered && tasks.length > 0 && <Grouping axis={grouped} onChange={group} />}
       </header>
 
       <div className={`shrink-0 px-5 pb-2 ${width}`}>{children}</div>
@@ -594,20 +587,3 @@ const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
   if (!next.delete(key)) next.add(key);
   return next;
 };
-
-const KEPT = "tisty.grouped";
-
-function kept(): Axis {
-  try {
-    const said = localStorage.getItem(KEPT);
-    return AXES.find((one) => one === said) ?? "time";
-  } catch {
-    return "time";
-  }
-}
-
-function keep(axis: Axis) {
-  try {
-    localStorage.setItem(KEPT, axis);
-  } catch {}
-}

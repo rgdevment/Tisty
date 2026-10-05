@@ -76,6 +76,7 @@ import { handTo, whenFilesLand } from "./dropped";
 import { deep, destinations, trail } from "./folders";
 import { todayLong } from "./format";
 import { adopt, fill, t, type Word } from "./locales";
+import { useOnly, useOnlyAlive } from "./only";
 import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
@@ -224,15 +225,8 @@ export default function App() {
   const [found, setFound] = useState<Found | null>(null);
   /// Where a tag was pressed, so leaving it goes back there rather than to a fixed screen.
   const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
-
-  useEffect(() => {
-    const wanted = chosen.lists;
-    if (!data || !wanted?.length) return;
-    const alive = wanted.filter((id) => data.lists.some((one) => one.id === id));
-    if (alive.length === wanted.length) return;
-    window.localStorage.setItem("tisty.only", JSON.stringify(alive));
-    setChosen((was) => ({ ...was, lists: alive }));
-  }, [data, chosen.lists]);
+  useOnlyAlive(data?.lists, chosen, setChosen);
+  const [seen, byList] = useOnly(chosen);
 
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
@@ -625,7 +619,7 @@ export default function App() {
 
   const { reach, further } = useReach(chosen);
   const load = useCallback(() => {
-    snapshot(asView(chosen, reach))
+    snapshot(asView(seen, reach))
       .then((fresh) => {
         adopt(fresh.locale);
         knowAgents(fresh.agents, {
@@ -639,7 +633,7 @@ export default function App() {
         acted.current = null;
       })
       .catch((e) => setError(saidPlainly(e)));
-  }, [chosen, reach]);
+  }, [seen, reach]);
 
   useEffect(() => {
     settleIn()
@@ -669,14 +663,14 @@ export default function App() {
       latest.current();
       papersAgain.current();
     };
-    const seen = () => {
+    const shownAgain = () => {
       if (document.visibilityState === "visible") again();
     };
     window.addEventListener("focus", again);
-    document.addEventListener("visibilitychange", seen);
+    document.addEventListener("visibilitychange", shownAgain);
     return () => {
       window.removeEventListener("focus", again);
-      document.removeEventListener("visibilitychange", seen);
+      document.removeEventListener("visibilitychange", shownAgain);
     };
   }, []);
 
@@ -1981,7 +1975,7 @@ export default function App() {
                     empty={
                       found?.papers.length && !shown.length
                         ? t("onlyPapers")
-                        : nothing(chosen, found !== null, data.counts.tracesHidden ?? 0)
+                        : nothing(seen, found !== null, data.counts.tracesHidden ?? 0)
                     }
                     onReach={!found && data.total > data.tasks.length ? further : undefined}
                     note={
@@ -2073,7 +2067,7 @@ export default function App() {
                             );
                           })}
                           <Only
-                            lists={data.lists}
+                            lists={byList ? [] : data.lists}
                             chosen={chosen.lists ?? []}
                             onChange={(lists) => {
                               setSelected(undefined);
@@ -2188,7 +2182,7 @@ export default function App() {
                         tags={data.tags}
                         onCapture={(written, edits) => {
                           setError(null);
-                          return capture(written, asView(chosen), edits).then((task) => {
+                          return capture(written, asView(seen), edits).then((task) => {
                             say(fill("saidFiled", task.title));
                             setCaptured(task);
                             load();

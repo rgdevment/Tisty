@@ -37,6 +37,10 @@ export default function Only({ lists, chosen, onChange }: Props) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (lists.length === 0) setOpen(false);
+  }, [lists.length]);
+
   if (lists.length === 0) return null;
 
   const some = chosen.length > 0;

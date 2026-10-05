@@ -159,11 +159,18 @@ export const noticeBehind = (fn: ((behind: boolean) => void) | null) => {
 
 export function saidPlainly(problem: unknown): string {
   const refusal = problem as Refusal | undefined;
+  if (refusal && typeof refusal.code === "string") {
+    noteTrouble(refusal.code, refusal.name).catch(() => {});
+    noticing?.(BEHIND.includes(refusal.code));
+  }
+  return plainly(problem);
+}
+
+export function plainly(problem: unknown): string {
+  const refusal = problem as Refusal | undefined;
   if (!refusal || typeof refusal.code !== "string") {
     return technical(String(problem));
   }
-  noteTrouble(refusal.code, refusal.name).catch(() => {});
-  noticing?.(BEHIND.includes(refusal.code));
   if (!isKnown(refusal.code)) {
     return technical(refusal.name ?? refusal.code);
   }
