@@ -161,6 +161,7 @@ pub(crate) async fn catching_up(
 
 #[tauri::command]
 pub async fn settle_in(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
@@ -210,8 +211,9 @@ pub async fn settle_in(
             dest.clone(),
             alive.clone(),
         );
+        let mut telling = Telling::new(app.clone(), !tisty_sync::been_here(&aside, &dest));
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry_holding(
+            let done = tisty_sync::carry_telling(
                 &data,
                 Some(&aside),
                 &device,
@@ -219,7 +221,10 @@ pub async fn settle_in(
                 tisty_sync::Way::Both,
                 &alive,
                 holds,
-            )
+                &mut |far| telling.hear(far),
+            );
+            telling.flush();
+            done
         })
         .await;
         if let Ok(Ok(done)) = &carried {
@@ -239,11 +244,17 @@ pub async fn settle_in(
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
             Ok(Ok(done)) => {
                 said_no_longer_held(&session, &done.let_go);
-                said_now_held(&session, &done.took_in);
                 still_asked(&session, &done.undecided);
                 arrived = done.arrived;
             }
         }
+        let _ = app.emit(
+            "brought",
+            stuck.as_ref().map(|why: &Refusal| Stuck {
+                code: why.code,
+                name: why.name.clone(),
+            }),
+        );
     }
 
     if brought {
