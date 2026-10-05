@@ -240,7 +240,7 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let Some(agent) = config.agent_id.clone() else {
         return Err(Refused::Tool(
             "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Agents."
+             under Assistants."
                 .into(),
         ));
     };
@@ -249,7 +249,7 @@ fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     if !state.agents.contains(&agent) {
         return Err(Refused::Tool(
             "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Agents."
+             under Assistants."
                 .into(),
         ));
     }
