@@ -425,6 +425,7 @@ pub fn patch(
         ops.push(Op::TaskMove {
             id,
             d: tisty_core::event::TaskMove {
+                part_of: None,
                 list: Some(list),
                 order: None,
             },

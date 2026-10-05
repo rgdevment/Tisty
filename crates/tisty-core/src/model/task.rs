@@ -30,6 +30,7 @@ pub enum Stays {
     Open,
     Story,
     Routine,
+    Parts,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -186,6 +187,9 @@ pub struct Task {
     pub repeat: Option<crate::model::Repeat>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after: Option<TaskId>,
+    /// The task this one is a part of: one level, and a task that holds parts is never one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part_of: Option<TaskId>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
     /// Projected from the event's `by`, never written to the log.
@@ -270,6 +274,7 @@ impl Task {
             reminders: Vec::new(),
             repeat: None,
             after: None,
+            part_of: None,
             hidden: false,
             created_by: None,
             resolved: None,

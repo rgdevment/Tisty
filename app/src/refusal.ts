@@ -27,6 +27,7 @@ const KNOWN = [
   "notATheme",
   "storyStays",
   "routineStays",
+  "partsStay",
   "onlyClosedConverts",
   "routineReadsAsRoutine",
   "notAReading",

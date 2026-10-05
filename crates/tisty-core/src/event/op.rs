@@ -498,6 +498,9 @@ pub struct TaskAdd {
     pub repeat: Option<Repeat>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub after: Option<TaskId>,
+    /// An older build reads past it and sees the part as a task of its own, which is all it is.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part_of: Option<TaskId>,
     /// What this task was written from, so the same thing is not filed twice.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
@@ -524,6 +527,7 @@ impl TaskAdd {
             reminders: Vec::new(),
             repeat: None,
             after: None,
+            part_of: None,
             source: None,
         }
     }
@@ -560,6 +564,8 @@ pub struct TaskMove {
     pub list: Option<Option<ListId>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub order: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", with = "null_clears")]
+    pub part_of: Option<Option<TaskId>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
