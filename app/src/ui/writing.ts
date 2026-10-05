@@ -1154,8 +1154,8 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         }
         const source = one.textContent ?? "";
         // Every keystroke would otherwise start a render, and a failed one leaves litter behind.
-        if (source === drew) return;
-        drew = source;
+        if (`${tongue}\n${source}` === drew) return;
+        drew = `${tongue}\n${source}`;
         if (tongue === "math") figured(source);
         else if (tongue === "widget") widgeted(source);
         else sketched(source);

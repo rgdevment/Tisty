@@ -1,6 +1,7 @@
+import { GapCursor } from "@tiptap/pm/gapcursor";
 import { NodeSelection } from "@tiptap/pm/state";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
+import { besideWidget, heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
 import { opened } from "./mounted";
 
 const ipc = vi.hoisted(() => ({
@@ -227,6 +228,22 @@ describe("the frame a widget is drawn in", () => {
     lending.drop();
   });
 
+  it("grows with each row a person adds, even when the rows are all alike", async () => {
+    const { frame, lending, from } = await mounted();
+    const told = () => Number.parseFloat(frame.style.height);
+    let clock = 1_000_000;
+    const ticking = vi.spyOn(Date, "now").mockImplementation(() => clock);
+
+    for (let n = 0; n < 4; n += 1) {
+      clock += 1000;
+      from({ type: "resize", height: told() + 40 });
+    }
+
+    expect(told()).toBe(SHORTEST + 40 * 4);
+    ticking.mockRestore();
+    lending.drop();
+  });
+
   it("gives its page back and stops listening once dropped", async () => {
     const { frame, lending, from } = await mounted();
 
@@ -297,6 +314,30 @@ describe("a widget block in a document", () => {
 
     expect(one.editor.state.selection).toBeInstanceOf(NodeSelection);
     expect(one.markdown()).toBe("antes\n\n```widget\n<p>hola</p>\n```");
+    one.shut();
+  });
+
+  it("lets Backspace pass when the caret stands between blocks, not inside one", () => {
+    const one = opened("| a |\n| --- |\n| b |");
+    one.editor.view.dispatch(
+      one.editor.state.tr.setSelection(new GapCursor(one.editor.state.doc.resolve(0))),
+    );
+    expect(one.editor.state.selection.$from.depth).toBe(0);
+
+    expect(() => besideWidget(one.editor, true)).not.toThrow();
+    expect(besideWidget(one.editor, true)).toBe(false);
+    one.shut();
+  });
+
+  it("draws it again when the block turns into a widget with the same words", async () => {
+    const one = opened("```mermaid\n<p>hola</p>\n```");
+    one.editor.commands.command(({ tr }) => {
+      tr.setNodeAttribute(0, "language", "widget");
+      return true;
+    });
+
+    await vi.waitFor(() => expect(one.dom.querySelector(".lit-drawn iframe")).toBeTruthy());
+    expect(asked("widget_lend")[0].args).toEqual({ body: "<p>hola</p>" });
     one.shut();
   });
 

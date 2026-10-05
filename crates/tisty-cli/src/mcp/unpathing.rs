@@ -29,6 +29,7 @@ fn path_end(path: &str, opened: Option<char>) -> usize {
         '/' => path.find("://").unwrap_or(path.len()),
         _ => path.len(),
     };
+    let reach = named_file_end(&path[..reach]).unwrap_or(reach);
     let marks: Vec<(usize, char)> = path[..reach].char_indices().collect();
     let last = marks
         .windows(3)
@@ -61,4 +62,28 @@ pub(super) fn absolute(line: &str) -> Option<usize> {
                 .is_some_and(|next| !next.is_ascii_whitespace());
         drive || rooted
     })
+}
+
+fn named_file_end(path: &str) -> Option<usize> {
+    let marks: Vec<(usize, char)> = path.char_indices().collect();
+    for (at, &(dot, c)) in marks.iter().enumerate() {
+        if c != '.' || at == 0 || marks[at - 1].1.is_whitespace() {
+            continue;
+        }
+        let ext = marks[at + 1..]
+            .iter()
+            .take_while(|(_, one)| one.is_ascii_alphanumeric())
+            .count();
+        if !(1..=8).contains(&ext) {
+            continue;
+        }
+        let end = at + 1 + ext;
+        let closed = marks
+            .get(end)
+            .is_none_or(|&(_, next)| next.is_whitespace() || "`\"')]>,;»".contains(next));
+        if closed && path[..dot].contains(['/', '\\']) {
+            return Some(marks.get(end).map_or(path.len(), |&(at, _)| at));
+        }
+    }
+    None
 }

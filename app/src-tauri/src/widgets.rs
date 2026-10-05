@@ -93,11 +93,9 @@ pub fn small_enough(weighs: u64) -> Answer<()> {
 
 fn kept_page(reference: String, at: finding::Where) -> Answer<Vec<u8>> {
     let found = finding::handed_over(&reference, &at)?;
-    small_enough(
-        std::fs::metadata(&found)
-            .map(|one| one.len())
-            .unwrap_or(u64::MAX),
-    )?;
+    if let Ok(told) = std::fs::metadata(&found) {
+        small_enough(told.len())?;
+    }
     crate::answers::attaching::read_out(reference, at)
 }
 
@@ -183,7 +181,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--o
 svg{max-width:100%}
 "#;
 
-const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const box=document.querySelector("main.w");const tell=()=>say({type:"resize",height:Math.ceil(Math.max(box.scrollHeight,box.getBoundingClientRect().height))});new ResizeObserver(tell).observe(box);addEventListener("load",tell);addEventListener("hashchange",()=>{const h=location.hash;if(h==="#dark"||h==="#light")document.documentElement.classList.toggle("dark",h==="#dark")});addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;e.preventDefault();say({type:"open",href:a.getAttribute("href")})})})();"##;
+const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const box=document.querySelector("main.w");const tell=()=>say({type:"resize",height:Math.ceil(Math.max(box.scrollHeight,box.getBoundingClientRect().height))});new ResizeObserver(tell).observe(box);addEventListener("load",tell);const themed=()=>{const h=location.hash;if(h==="#dark"||h==="#light")document.documentElement.classList.toggle("dark",h==="#dark")};themed();addEventListener("hashchange",themed);addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;e.preventDefault();say({type:"open",href:a.getAttribute("href")})})})();"##;
 
 #[cfg(test)]
 #[path = "widgets_test.rs"]

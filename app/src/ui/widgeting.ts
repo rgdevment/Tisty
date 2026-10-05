@@ -30,6 +30,7 @@ export const openable = (href: string): "doc" | "web" | null => {
 
 export const OPENS_EVERY = 1000;
 export const CLIMBS_AT_MOST = 3;
+export const CLIMBS_WITHIN = 250;
 
 export const clickedInto = (frame: HTMLIFrameElement): boolean => {
   const activation = (navigator as { userActivation?: { isActive: boolean } }).userActivation;
@@ -67,6 +68,7 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
   let opened = Number.NEGATIVE_INFINITY;
   let climbed = 0;
   let stride = 0;
+  let climbedAt = Number.NEGATIVE_INFINITY;
   const frame = document.createElement("iframe");
   frame.className = "lit-widget";
   frame.setAttribute("sandbox", "allow-scripts");
@@ -83,8 +85,10 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
       const next = tall(asked.height);
       const step = next - (Number.parseFloat(frame.style.height) || SHORTEST);
       if (step > 0) {
-        climbed = step === stride ? climbed + 1 : 1;
+        const now = Date.now();
+        climbed = step === stride && now - climbedAt < CLIMBS_WITHIN ? climbed + 1 : 1;
         stride = step;
+        climbedAt = now;
         if (climbed >= CLIMBS_AT_MOST) return;
       } else {
         climbed = 0;
@@ -149,7 +153,7 @@ export const besideWidget = (editor: Writing, back: boolean): boolean => {
   const { selection, doc } = editor.state;
   if (!selection.empty) return false;
   const at = selection.$from;
-  if (at.parent.type.name === "codeBlock") return false;
+  if (at.depth === 0 || at.parent.type.name === "codeBlock") return false;
   if (back ? at.parentOffset !== 0 : at.parentOffset !== at.parent.content.size) return false;
   const edge = back ? at.before() : at.after();
   const near = back ? doc.resolve(edge).nodeBefore : doc.resolve(edge).nodeAfter;

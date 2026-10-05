@@ -174,3 +174,12 @@ fn the_theme_reaches_the_page_through_its_address_and_nothing_is_posted_into_it(
         "the page listens for messages, and any window could send one"
     );
 }
+
+#[test]
+fn a_page_that_loads_again_reads_its_theme_from_its_address() {
+    let page = shell("<p>x</p>", true);
+    assert!(
+        page.contains("themed();"),
+        "a reloaded frame would keep the theme it was first served with"
+    );
+}
