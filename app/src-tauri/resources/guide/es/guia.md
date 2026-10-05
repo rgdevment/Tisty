@@ -82,6 +82,8 @@ Dos formas de ordenar que no compiten:
 
 Una tarea guarda más que su título. Ponle una descripción, apunta en su diario lo que fuiste averiguando y déjale los pasos que seguiste. Al terminarla nada de eso se borra: se archiva con su fecha.
 
+Un paso es una línea, de cien caracteres como máximo. Cuando uno necesita más —una descripción, una bitácora propia— conviértelo en tarea con **↗**, y pasa a ser una **parte** de la tarea de la que salió. Una tarea con partes es algo que termina: muestra **▣ 3/7** donde contaría sus pasos, sus partes se pliegan debajo y, en otras vistas, cada parte la nombra con **⌂**. También puedes empezar una con **Añadir partes** en **⋯**, o colgar cualquier tarea de otra con **Parte de…**. Cerrarla con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
+
 Ahí está la diferencia. La lista te dice qué falta; el archivo te dice cómo lo resolviste la última vez. Búscalo por una palabra que recuerdes y sale, aunque lo cerraras hace dos años.
 
 ---

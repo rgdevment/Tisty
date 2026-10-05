@@ -193,6 +193,7 @@ pub fn snapshot(
             .collect(),
         machine_here: session.config.device_id.0.clone(),
         clients: named_clients(&session.state),
+        wholes: crate::answers::parts::wholes(&session.state),
     })
 }
 

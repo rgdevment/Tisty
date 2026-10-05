@@ -61,6 +61,7 @@ export interface Task {
   reminders?: DateSpec[];
   repeat?: Repeat;
   after?: string;
+  part_of?: string;
   completed_at?: string;
   hidden?: boolean;
   volume?: Volume;
@@ -147,6 +148,19 @@ export interface Snapshot {
   machines?: Record<string, string>;
   machine_here?: string;
   clients?: Record<string, string>;
+  wholes?: Record<string, Whole>;
+}
+
+export interface Whole {
+  title: string;
+  open: number;
+  closed: number;
+  away?: number;
+}
+
+export interface Offered {
+  id: string;
+  title: string;
 }
 
 export type Mark = "date" | "deadline" | "list" | "tag" | "priority" | "repeat";
@@ -275,6 +289,7 @@ export interface Found {
   tasks: Task[];
   papers: Sighting[];
   total: number;
+  wholes?: Record<string, Whole>;
 }
 
 export const search = (query: string, scope?: Scope): Promise<Found> =>
@@ -323,6 +338,15 @@ export const markStep = (id: string, step: string, done: boolean): Promise<Task>
   invoke("mark_step", { id, step, done });
 export const dropStep = (id: string, step: string): Promise<Task> =>
   invoke("drop_step", { id, step });
+export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
+export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
+export const addPart = (whole: string, title: string): Promise<Task> =>
+  invoke("add_part", { whole, title });
+export const hang = (id: string, whole: string | null): Promise<Task> =>
+  invoke("hang", { id, whole });
+export const stepToPart = (id: string, step: string): Promise<Task> =>
+  invoke("step_to_part", { id, step });
+export const wholesOffered = (id: string): Promise<Offered[]> => invoke("wholes_offered", { id });
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
