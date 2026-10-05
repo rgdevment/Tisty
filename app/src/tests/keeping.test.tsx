@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adopt, t } from "../locales";
+import { adopt, fill, t } from "../locales";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
 
@@ -2286,6 +2286,32 @@ describe("the first-run assistant", () => {
 
     await waitFor(() => expect(sent("choose_sync")).toHaveLength(2));
     expect(sent("choose_sync")[1].args.dest).toBeUndefined();
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+  });
+
+  it("names the machine that is ahead", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+
+    expect(screen.getByText(fill("welcomeOlderBy", "dev_b"))).toBeTruthy();
+  });
+
+  it("forgets the history it meant to join once it stays on this machine instead", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "syncNewer", name: "dev_b" })
+        : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeBringIt") }));
+    await screen.findByText(t("welcomeOlder"));
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
+
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
   });
 

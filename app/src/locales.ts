@@ -1446,6 +1446,8 @@ const en = {
   welcomeOlder: "This Tisty is older than the one in your folder",
   welcomeOlderWhy:
     "So the two versions never mix, it stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
+  welcomeOlderBy:
+    "«{name}» writes with a newer Tisty. So the two versions never mix, this one stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
   welcomeStayHere: "Stay on this machine only",
   welcomeOtherFolder: "Choose another folder",
   welcomeFolderHolds: "This folder already holds a Tisty",
@@ -2925,6 +2927,8 @@ const es: Catalog = {
   welcomeOlder: "Este Tisty es más antiguo que el de tu carpeta",
   welcomeOlderWhy:
     "Para no mezclar versiones, por ahora queda solo en este equipo. Cuando lo actualices, vuelve a elegir la carpeta en Configuración › Sincronizar.",
+  welcomeOlderBy:
+    "«{name}» escribe con un Tisty más nuevo. Para no mezclar versiones, este queda por ahora solo en este equipo. Cuando lo actualices, vuelve a elegir la carpeta en Configuración › Sincronizar.",
   welcomeStayHere: "Seguir solo en este equipo",
   welcomeOtherFolder: "Elegir otra carpeta",
   welcomeFolderHolds: "Esta carpeta ya trae un Tisty",

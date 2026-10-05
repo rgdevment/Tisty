@@ -147,8 +147,12 @@ const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).in
 
 const BEHIND = ["storeNewer", "syncNewer", "syncShape"];
 
-export const behind = (problem: unknown): boolean =>
-  BEHIND.includes((problem as Refusal | undefined)?.code ?? "");
+export const folderAhead = (problem: unknown): { name?: string } | null => {
+  const refusal = problem as Refusal | undefined;
+  return refusal?.code === "syncNewer" || refusal?.code === "syncShape"
+    ? { name: refusal.name }
+    : null;
+};
 
 /** The offer the person clicked is off the feed: what is offered now has to be looked up again. */
 export const offerMoved = (problem: unknown): boolean =>

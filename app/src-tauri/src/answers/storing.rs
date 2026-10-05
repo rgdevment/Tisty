@@ -248,13 +248,7 @@ pub async fn settle_in(
                 arrived = done.arrived;
             }
         }
-        let _ = app.emit(
-            "brought",
-            stuck.as_ref().map(|why: &Refusal| Stuck {
-                code: why.code,
-                name: why.name.clone(),
-            }),
-        );
+        let _ = app.emit("brought", ());
     }
 
     if brought {
@@ -487,6 +481,21 @@ fn let_go_to(session: &Session) -> Option<std::path::PathBuf> {
         .filter(|_| session.config.holds() == tisty_core::config::Holds::Shared)
 }
 
+/// Only a folder that is still there, and that a round ever finished with, can hold what we let go of.
+fn stranded_by_leaving(
+    session: &Session,
+    chosen: &tisty_core::config::Sync,
+) -> Option<std::path::PathBuf> {
+    let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone() else {
+        return None;
+    };
+    (session.config.holds() != tisty_core::config::Holds::Everywhere
+        && session.config.sync.as_ref() != Some(chosen)
+        && old.is_dir()
+        && tisty_sync::been_here(session.paths.cache(), &old))
+    .then_some(old)
+}
+
 pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
     session.config.restored_at.is_some()
         && tisty_sync::theirs(at).is_some_and(|theirs| {
@@ -528,13 +537,7 @@ pub fn choose_sync(
     {
         return Err(Refusal::about("restoredApart", at.display().to_string()));
     }
-    // Leaving a folder that holds what this machine let go of takes them with it — but only while
-    // it is there to bring them back from. Gone, refusing would trap somebody with nowhere to go.
-    if session.config.holds() != tisty_core::config::Holds::Everywhere
-        && session.config.sync != Some(chosen.clone())
-        && let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone()
-        && old.is_dir()
-    {
+    if let Some(old) = stranded_by_leaving(&session, &chosen) {
         return Err(Refusal::about(
             "sharedAwayToLeave",
             old.display().to_string(),
