@@ -38,12 +38,6 @@ Pull Requests, so those routes reach the codebase without passing it. If you
 have not signed, keep such snippets to a description of the fix rather than the
 patch itself, and a maintainer will write it.
 
-**Please leave tool co-authorship out of your commits.** Assistants are welcome
-here — this project is built with them — but the credit line is for people. If
-your editor adds a trailer naming one, drop it before you push. It changes
-nothing about what you are allowed to submit; section 4 of the CLA already puts
-the responsibility for generated code on you, whichever tool helped write it.
-
 **In return, the project commits that:**
 
 - The community edition stays available under the AGPL-3.0.
@@ -178,10 +172,13 @@ breaks "by tuesday" otherwise.
 
 ## Commits
 
-Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`,
-`build:`, `ci:`, `chore:`, `style:`, `revert:`). Explain *why* in the body when
-the reason is not obvious from the diff; the *what* is already in the patch.
-Keep the subject to 120 characters at most: CI refuses a longer one.
+A commit is one line in English, `type(scope): change`, where the type is one
+of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+`chore` or `revert`, and the scope names the part it touches: `fix(sync):`,
+`feat(ui):`, `docs(architecture):`. Nothing goes under it — no body, no
+trailers, no co-authors or sign-offs. The *why* belongs in the pull request; the
+*what* is already in the patch. Keep it to 120 characters at most: CI refuses a
+longer one, a subject without a scope, and a commit with lines under it.
 
 Pull requests are squashed, and the squash keeps the pull request's title, so
 that title — with the number GitHub adds after it, `(#123)` — is the subject
@@ -189,14 +186,15 @@ that reaches `main`, and CI holds it to the same shape and the same length.
 
 `scripts/rules.sh` holds the conventions a person can break in a second: four
 lines of comment in a row, a file grown past what anybody reads through, Spanish
-where the code should be English, peninsular Spanish where a person reads it,
+where the code should be English,
 interface text written into the source instead of the locales, the core printing
 to a terminal the window inherits, a panic where the core should answer,
 anything new reaching the command line that is frozen, a test that spawns the
 binary without pinning its language, and the English and Spanish README and
 guide drifting apart in shape. `scripts/commits.sh` holds the shape and the
-length of a subject. Run either whenever you like. They also run for you:
-`npm install` or `npm ci`, at the root or in `app/`, points git at the hooks
+length of a subject, and that nothing sits under it. Run either whenever you
+like. They also run for you: `npm install` or `npm ci`, at the root or in
+`app/`, points git at the hooks
 unless git already has a hooks path of yours, and `--ignore-scripts` skips it.
 Without npm it is one line:
 

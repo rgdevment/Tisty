@@ -144,10 +144,12 @@ pub fn offered(state: &State, id: TaskId) -> Vec<Offered> {
                 && !repeats(one)
         })
         .collect();
+    let wholes: std::collections::HashSet<TaskId> =
+        state.tasks.values().filter_map(|one| one.part_of).collect();
     all.sort_by(|one, other| {
-        state
-            .holds_parts(other.id)
-            .cmp(&state.holds_parts(one.id))
+        wholes
+            .contains(&other.id)
+            .cmp(&wholes.contains(&one.id))
             .then_with(|| one.title.to_lowercase().cmp(&other.title.to_lowercase()))
     });
     all.into_iter()

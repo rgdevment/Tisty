@@ -1,27 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { useAsked } from "../asked";
-import {
-  type Change,
-  erasable,
-  type List,
-  readingOf,
-  type Task,
-  type Whole,
-  wholesOffered,
-} from "../core";
+import { type Change, erasable, type List, readingOf, type Task, type Whole } from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { composed } from "../markdown";
 import { placed, said } from "../quadrants";
 import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
+import Belongs from "./Belongs";
 import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
-import Parts from "./Parts";
 import Prose from "./Prose";
 import Routine from "./Routine";
+import Section from "./Section";
 import { saidBy } from "./Spoke";
 import Steps from "./Steps";
 import Trail from "./Trail";
@@ -94,58 +86,8 @@ export default function Detail({
   onStepToPart,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
-  const [splitting, setSplitting] = useState(false);
   const live = task.status === "open";
-  const offered =
-    useAsked(
-      () => (onHang && live ? wholesOffered(task.id) : Promise.resolve([])),
-      [task.id, task.part_of, live],
-      onError,
-    ) ?? [];
-  const hanging: Choice[] =
-    live && onHang
-      ? [
-          ...(task.part_of
-            ? [
-                {
-                  key: "loose",
-                  label: fill("letGoOf", partOf ?? ""),
-                  icon: "⌂",
-                  onPick: () => onHang(null),
-                },
-              ]
-            : []),
-          ...(!task.part_of && !whole && offered.length > 0
-            ? [
-                {
-                  key: "hang",
-                  label: t("partOfWhich"),
-                  icon: "⌂",
-                  hint: t("partOfWhy"),
-                  into: {
-                    label: t("partOfWhich"),
-                    choices: offered.map((one) => ({
-                      key: one.id,
-                      label: one.title,
-                      onPick: () => onHang(one.id),
-                    })),
-                  },
-                },
-              ]
-            : []),
-          ...(!task.part_of && !whole && !task.repeat && !task.after && onAddPart && !splitting
-            ? [
-                {
-                  key: "split",
-                  label: t("addParts"),
-                  icon: "▣",
-                  hint: t("addPartsWhy"),
-                  onPick: () => setSplitting(true),
-                },
-              ]
-            : []),
-        ]
-      : [];
+  const holding = live && !task.repeat && !task.after && !task.hidden;
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
@@ -197,15 +139,6 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.part_of && partOf && (
-        <button
-          type="button"
-          onClick={() => task.part_of && onOpenPart?.(task.part_of)}
-          className="-mt-1.5 mb-3 block text-left text-[11.5px] text-faint hover:text-accent"
-        >
-          ⌂ {fill("partOf", partOf)}
-        </button>
-      )}
       {task.status === "open" && signedBy(task.created_by, task.created_via) && (
         <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
           {signedBy(task.created_by, task.created_via)}
@@ -244,23 +177,6 @@ export default function Detail({
         onWrite={(description) => onPatch({ description })}
       />
 
-      {(whole || splitting) && onAddPart && (
-        <>
-          <Section
-            label={t("parts")}
-            note={whole ? `${whole.closed}/${whole.open + whole.closed}` : undefined}
-          />
-          <Parts
-            task={task}
-            whole={whole}
-            onAdd={onAddPart}
-            onOpen={(id) => onOpenPart?.(id)}
-            onComplete={(id, title) => onCompletePart?.(id, title)}
-            onError={onError}
-          />
-        </>
-      )}
-
       <Section
         label={t("steps")}
         note={
@@ -272,7 +188,19 @@ export default function Detail({
         onWrite={onStep}
         onMark={onMark}
         onDrop={onDropStep}
-        onTurn={live && !task.part_of && !task.repeat && !task.after ? onStepToPart : undefined}
+        onTurn={holding && !task.part_of ? onStepToPart : undefined}
+      />
+
+      <Belongs
+        task={task}
+        whole={whole}
+        partOf={partOf}
+        holding={holding}
+        onAddPart={onAddPart}
+        onHang={onHang}
+        onOpenPart={onOpenPart}
+        onCompletePart={onCompletePart}
+        onError={onError}
       />
 
       <Section
@@ -410,7 +338,6 @@ export default function Detail({
           onReadAs={onReadAs}
           onOpenToAgents={onOpenToAgents}
           left={(whole?.open ?? 0) + (whole?.away ?? 0)}
-          also={hanging}
         />
       </main>
     );
@@ -456,7 +383,6 @@ export default function Detail({
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
         left={(whole?.open ?? 0) + (whole?.away ?? 0)}
-        also={hanging}
       />
     </aside>
   );
@@ -474,12 +400,10 @@ function Settled({
   onReadAs,
   onOpenToAgents,
   left,
-  also = [],
 }: {
   task: Task;
   wide?: boolean;
   left?: number;
-  also?: Choice[];
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
@@ -522,7 +446,6 @@ function Settled({
                 onPick: () => onOpenToAgents(!task.open_to_agents),
               },
             ]),
-        ...also,
       ]
     : [
         ...(reading === "routine"
@@ -780,16 +703,6 @@ function Facts({ task, from }: { task: Task; from: string }) {
         ))}
       </dl>
     </>
-  );
-}
-
-function Section({ label, note }: { label: string; note?: string }) {
-  return (
-    <div className="mt-5 mb-1.5 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
-      <span>{label}</span>
-      <span className="h-px flex-1 bg-hair" />
-      {note && <span>{note}</span>}
-    </div>
   );
 }
 
