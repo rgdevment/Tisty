@@ -11,7 +11,7 @@ pub use held::let_go_telling;
 use held::{copy_held, left_behind, let_go_of};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
-use place::{carried_here, note_carried};
+use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
 use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -110,10 +110,27 @@ pub fn carry_leaning_on(
     carry_holding(data, aside, device, dest, way, alive, Holds::Everywhere)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Reached {
     Log,
     Papers,
+    Along {
+        stage: Stage,
+        done: usize,
+        whole: usize,
+    },
+    Kept {
+        at: String,
+        sha256: String,
+        bytes: u64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stage {
+    Log,
+    Papers,
+    Attachments,
 }
 
 pub fn carry_holding(
@@ -153,11 +170,20 @@ pub fn carry_telling(
     let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        let adopting = !been_here
+        let mut adopting = still_adopting(aside, dest);
+        if !been_here
             && tisty_core::vouched::all_confirmed(data)
                 .keys()
-                .all(|who| who.0.eq_ignore_ascii_case(device));
-        moved.brought = bring(data, &store, device, dest, adopting, &mut moved, &mut alike)?;
+                .all(|who| who.0.eq_ignore_ascii_case(device))
+        {
+            adopting.extend(names_in(dest));
+        }
+        keep_adopting(aside, dest, &adopting);
+        moved.brought = bring(
+            data, &store, device, dest, &adopting, &mut moved, &mut alike, saying,
+        )?;
+        adopting.retain(|one| moved.coming.contains(one));
+        keep_adopting(aside, dest, &adopting);
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);
@@ -250,6 +276,7 @@ pub fn carry_telling(
             None,
             Some(&mut carried),
             &told.kept,
+            &mut |_| {},
         )?;
         if holds == Holds::Shared {
             (moved.freed, moved.let_go) =
@@ -267,6 +294,7 @@ pub fn carry_telling(
             again,
             been_here,
             taking,
+            saying,
         )?;
         moved.sent += papers.sent;
         moved.brought += papers.brought;
@@ -295,6 +323,7 @@ pub fn carry_telling(
             reachable.as_ref(),
             Some(&mut moved.took_in),
             &told.kept,
+            saying,
         )?;
     }
     // Last of all, so finding it is finding a round that got to the end.
@@ -803,14 +832,16 @@ enum Answered {
     Unconfirmed,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn bring(
     data: &Path,
     store: &Path,
     device: &str,
     dest: &Path,
-    adopting: bool,
+    adopting: &std::collections::BTreeSet<String>,
     moved: &mut Moved,
     alike: &mut Alike,
+    saying: &mut dyn FnMut(Reached),
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
     let mut knew: Option<tisty_core::store::Ledger> = None;
@@ -830,14 +861,21 @@ fn bring(
         }
     };
 
-    for entry in entries.filter_map(|e| e.ok()) {
+    let entries: Vec<_> = entries
+        .filter_map(|e| e.ok())
+        .filter(|entry| entry.path().is_dir())
+        .collect();
+    let whole = entries.len();
+    for (done, entry) in entries.into_iter().enumerate() {
+        saying(Reached::Along {
+            stage: Stage::Log,
+            done,
+            whole,
+        });
         let named = entry.file_name();
         let Some(named) = named.to_str() else {
             continue;
         };
-        if !entry.path().is_dir() {
-            continue;
-        }
         // Anybody who reaches the folder can name a directory, and a name is what every memo and
         // every ledger line is keyed by. One that could not be a machine of ours never becomes one.
         if !tisty_core::store::is_device_name(named) {
@@ -879,7 +917,7 @@ fn bring(
                                 &entry.path(),
                                 named,
                                 device,
-                                adopting,
+                                adopting.contains(named),
                                 &mut knew,
                                 alike,
                             ),
@@ -916,7 +954,7 @@ fn bring(
             &entry.path(),
             named,
             device,
-            adopting,
+            adopting.contains(named),
             &mut knew,
             alike,
         ) {
@@ -995,6 +1033,11 @@ fn bring(
         }
         brought += alike.carried(named, &entry.path(), &mine, Toward::Home, false)?;
     }
+    saying(Reached::Along {
+        stage: Stage::Log,
+        done: whole,
+        whole,
+    });
 
     turned::keep(data, &away);
     if brought > 0 {
