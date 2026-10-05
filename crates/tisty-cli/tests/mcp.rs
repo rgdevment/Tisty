@@ -5961,3 +5961,28 @@ fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
     );
     assert_ne!(after["result"]["isError"], true, "{after}");
 }
+
+#[test]
+fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "propose",
+        serde_json::json!({ "title": "read the thread", "source": "sereno#1" }),
+    );
+
+    for parts in [
+        serde_json::json!([{ "title": "book the van", "source": "sereno#1" }]),
+        serde_json::json!([
+            { "title": "book the van", "source": "move#2" },
+            { "title": "pack", "source": "move#2" }
+        ]),
+    ] {
+        let said = served.call(
+            "propose",
+            serde_json::json!({ "title": "move house", "parts": parts }),
+        );
+        assert_eq!(said["result"]["isError"], true, "{said}");
+    }
+    assert!(!served.cli(&["ls", "all"]).contains("move house"));
+}

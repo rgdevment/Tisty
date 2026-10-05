@@ -3,10 +3,10 @@ use tisty_core::State;
 use tisty_core::event::Op;
 use tisty_core::model::TaskId;
 
-use super::Refused;
 use super::asked::{only_what_it_takes, short_and_plain, text};
 use super::chores::{Drafted, drafted};
 use super::order;
+use super::{Refused, already};
 
 const PARTS_AT_MOST: usize = 32;
 
@@ -83,7 +83,7 @@ pub(super) fn parts_drafted(
         })
         .unwrap_or_else(|| (None, order::first()));
 
-    let mut drafts = Vec::with_capacity(given.len());
+    let mut drafts: Vec<Drafted> = Vec::with_capacity(given.len());
     for one in given {
         if !one.is_object() {
             return Err(Refused::Tool(
@@ -107,6 +107,20 @@ pub(super) fn parts_drafted(
                 "every part needs a `title`. Nothing was written.".into(),
             ));
         };
+        if let Some(source) = text(one, "source") {
+            let twice = drafts
+                .iter()
+                .any(|drafted| drafted.source.as_deref() == Some(source.as_str()));
+            if twice || already(state, &source).is_some() {
+                return Err(Refused::Tool(format!(
+                    "the part {title:?} comes from {source:?}, which {} Nothing was written.",
+                    match twice {
+                        true => "another part in this call comes from too.",
+                        false => "was proposed already: `find` it with `source`.",
+                    }
+                )));
+            }
+        }
         let mut part = drafted(state, one, &title, Some(whole.id))?;
         place = order::after(&place);
         let its_own_list = text(one, "list").is_some();

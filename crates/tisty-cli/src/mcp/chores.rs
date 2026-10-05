@@ -159,6 +159,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .iter()
         .map(|one| json!({ "id": one.id.to_string(), "title": one.title }))
         .collect();
+    let sourced: Vec<String> = parts.iter().filter_map(|one| one.source.clone()).collect();
     let mut ops = mine.ops;
     for one in parts {
         ops.extend(one.ops);
@@ -169,10 +170,12 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     // Checked again under the lock: two agents reading the same thread at once must not
     // both get through. A closed task from that source stands aside only when `again` says so.
     let written = store
-        .append_batch_unless(ops, move |events| match &taken {
-            None => false,
-            Some(one) => {
-                let held = State::replay(events);
+        .append_batch_unless(ops, move |events| {
+            if taken.is_none() && sourced.is_empty() {
+                return false;
+            }
+            let held = State::replay(events);
+            let whole = taken.as_ref().is_some_and(|one| {
                 already(&held, one).is_some_and(|id| {
                     held.is_erased(id) && !again
                         || held
@@ -180,7 +183,8 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                             .get(&id)
                             .is_some_and(|task| task.is_open() || !again)
                 })
-            }
+            });
+            whole || sourced.iter().any(|one| already(&held, one).is_some())
         })
         .map_err(hitch)?;
 
@@ -242,6 +246,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 pub(super) struct Drafted {
     pub(super) id: TaskId,
     pub(super) title: String,
+    pub(super) source: Option<String>,
     pub(super) ops: Vec<Op>,
     pub(super) planned: usize,
 }
@@ -327,6 +332,7 @@ pub(super) fn drafted(
     Ok(Drafted {
         id,
         title: title.to_string(),
+        source: text(args, "source"),
         ops,
         planned,
     })
