@@ -12,6 +12,13 @@ const OFFLINE: u32 = 0x0000_1000;
 const REPARSE_POINT: u32 = 0x0000_0400;
 const RECALL_ON_OPEN: u32 = 0x0004_0000;
 const RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
+/// APFS flag for a file whose bytes live only in the cloud: iCloud Drive since Sonoma, and Dropbox
+/// and OneDrive through File Provider, leave no sidecar, only this.
+const SF_DATALESS: u32 = 0x4000_0000;
+
+pub fn dataless(flags: u32) -> bool {
+    flags & SF_DATALESS != 0
+}
 
 pub fn marked(attributes: u32) -> bool {
     attributes & (OFFLINE | RECALL_ON_DATA_ACCESS) != 0
@@ -54,9 +61,51 @@ fn held_away(at: &Path) -> bool {
     marked(told.file_attributes())
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn held_away(at: &Path) -> bool {
+    use std::os::macos::fs::MetadataExt;
+    std::fs::metadata(at).is_ok_and(|one| dataless(one.st_flags()))
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn held_away(_at: &Path) -> bool {
     false
+}
+
+/// What in this directory is still in the cloud, by the path it will have once it is here.
+pub fn still_away(dir: &Path) -> Vec<PathBuf> {
+    let Ok(all) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    all.filter_map(|one| one.ok())
+        .filter_map(|one| {
+            let at = one.path();
+            let name = at.file_name()?.to_str()?;
+            if marker(name) {
+                let real = &name[1..name.len() - ".icloud".len()];
+                return Some(at.with_file_name(real));
+            }
+            (at.is_file() && held_away(&at)).then_some(at)
+        })
+        .collect()
+}
+
+/// Reading a file is what makes the cloud bring it down, and that read waits for the download:
+/// done on a thread of its own, the round that found it goes on and the next one finds it here.
+pub fn ask_for(all: Vec<PathBuf>) {
+    if all.is_empty() {
+        return;
+    }
+    std::thread::spawn(move || {
+        for at in all {
+            if sidecar(&at).is_some() {
+                fetched(&at);
+            } else if let Ok(mut file) = std::fs::File::open(&at) {
+                let mut one = [0u8; 1];
+                let _ = std::io::Read::read(&mut file, &mut one);
+            }
+        }
+    });
 }
 
 pub fn can_ask(left: &Left) -> bool {

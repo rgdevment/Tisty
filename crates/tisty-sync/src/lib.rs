@@ -72,6 +72,9 @@ pub struct Moved {
     pub arrived: Vec<String>,
     pub let_go: Vec<String>,
     pub took_in: Vec<(String, String, u64)>,
+    /// Machines and documents still on their way down from the cloud: asked for, and taken up
+    /// by a later turn instead of read now, which would wait for every download in a row.
+    pub coming: Vec<String>,
 }
 
 impl Moved {
@@ -274,6 +277,7 @@ pub fn carry_telling(
         moved.joined = papers.joined;
         moved.unanswered = papers.unanswered;
         moved.arrived = papers.arrived;
+        moved.coming.extend(papers.coming);
         if papers.brought > 0 {
             saying(Reached::Papers);
         }
@@ -809,6 +813,20 @@ fn bring(
             continue;
         }
         let mine = store.join(named);
+        let pending = tisty_core::holes::still_away(&entry.path());
+        if !pending.is_empty() {
+            witness::note(
+                channel::SYNC,
+                "a machine's history is still on its way down from the cloud, so it waits for the next turn",
+                &[
+                    ("at", Fact::Id(named.to_string())),
+                    ("files", Fact::Count(pending.len())),
+                ],
+            );
+            tisty_core::holes::ask_for(pending);
+            moved.coming.push(named.to_string());
+            continue;
+        }
         if named.eq_ignore_ascii_case(device) {
             if !alike.settled(named, &entry.path(), &mine, Toward::Home)
                 && ours_went_missing(&mine, &entry.path())

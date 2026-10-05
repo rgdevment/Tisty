@@ -119,3 +119,22 @@ fn a_link_standing_where_the_attachment_goes_does_not_hide_the_hole_behind_it() 
     assert_eq!(left_in_place(&named), Left::Marked);
     assert!(a_hole(&named));
 }
+
+#[test]
+fn a_file_whose_bytes_live_only_in_the_cloud_is_told_by_its_flag_alone() {
+    assert!(dataless(0x4000_0000));
+    assert!(dataless(0x4000_0000 | 0x20));
+    assert!(!dataless(0x20));
+}
+
+#[test]
+fn what_is_still_away_is_named_by_the_path_it_will_have() {
+    let room = tempfile::tempdir().unwrap();
+    std::fs::write(room.path().join("000001.tisty"), b"here").unwrap();
+    std::fs::write(room.path().join(".000002.tisty.icloud"), b"stub").unwrap();
+
+    assert_eq!(
+        still_away(room.path()),
+        vec![room.path().join("000002.tisty")]
+    );
+}

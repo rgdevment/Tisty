@@ -23,7 +23,7 @@ fn nobody_newer(dest: &Path, device: &str) -> Result<(), Trouble> {
             continue;
         }
         let named = entry.file_name().to_string_lossy().into_owned();
-        if named == device {
+        if named == device || !tisty_core::holes::still_away(&entry.path()).is_empty() {
             continue;
         }
         let Ok(schema) = tisty_core::store::newest_schema(&entry.path()) else {
