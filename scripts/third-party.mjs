@@ -224,14 +224,24 @@ const holderOf = (pkg) =>
     ? pkg.authors.join(", ")
     : `the ${pkg.name} authors (${pkg.repository ?? `https://crates.io/crates/${pkg.name}`})`;
 
-const draftedFor = (pkg) => {
-  const parts = offered(pkg.license ?? "");
+const chosenFrom = (pkg, choice) => {
+  const parts = offered(choice);
   if (parts.includes("APACHE-2.0")) return canonical("Apache-2.0");
   if (parts.includes("BSL-1.0")) return canonical("BSL-1.0");
   if (parts.includes("MIT")) return MIT(holderOf(pkg));
   if (parts.includes("BSD-3-CLAUSE")) return BSD3(holderOf(pkg));
   if (parts.includes("ISC")) return ISC(holderOf(pkg));
   return null;
+};
+
+const draftedFor = (pkg) => {
+  const owed = String(pkg.license ?? "")
+    .split(/\bAND\b/i)
+    .map((one) => one.replace(/^[\s(]+|[\s)]+$/g, ""))
+    .filter(Boolean);
+  if (owed.length === 0) return null;
+  const all = owed.map((one) => chosenFrom(pkg, one));
+  return all.every(Boolean) ? all : null;
 };
 
 const fenced = (text) => {
@@ -271,7 +281,7 @@ for (const one of [...rs.values()].sort(inOrder)) {
   const pkg = known.get(`${one.name}@${one.version}`);
   const read = pkg ? carried(pkg) : [];
   const draft = pkg && read.length === 0 ? draftedFor(pkg) : null;
-  const all = read.length > 0 ? read : draft ? [draft] : [];
+  const all = read.length > 0 ? read : (draft ?? []);
   if (all.length === 0) bare.push(`${one.name}@${one.version} (${one.licence})`);
   for (const text of all) {
     const key = createHash("sha256").update(text).digest("hex");
