@@ -77,7 +77,10 @@ pub(crate) fn answers_for(scheme: &str) -> bool {
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
-fn associated(scheme: &str, asked: windows::Win32::UI::Shell::ASSOCSTR) -> Option<String> {
+pub(crate) fn associated(
+    scheme: &str,
+    asked: windows::Win32::UI::Shell::ASSOCSTR,
+) -> Option<String> {
     use windows::Win32::UI::Shell::{
         ASSOCF_INIT_IGNOREUNKNOWN, ASSOCF_IS_PROTOCOL, AssocQueryStringW,
     };
@@ -117,8 +120,17 @@ pub(crate) fn answered_by(executable: Option<&str>, packaged: Option<&str>) -> b
             .and_then(|leaf| leaf.to_str())
             .is_some_and(|leaf| leaf.eq_ignore_ascii_case("OpenWith.exe"))
     });
-    executable.is_some_and(|one| !one.is_empty()) && !picker
-        || packaged.is_some_and(|one| !one.is_empty())
+    if picker {
+        return false;
+    }
+    executable.is_some_and(|one| !one.is_empty()) || packaged.is_some_and(a_package)
+}
+
+#[cfg(windows)]
+fn a_package(id: &str) -> bool {
+    id.get(..4)
+        .is_some_and(|head| head.eq_ignore_ascii_case("appx"))
+        || id.contains('!')
 }
 
 #[cfg(not(target_os = "macos"))]
