@@ -153,7 +153,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let whole = super::wholes::whole_named(&state, args)?;
     let mine = drafted(&state, args, &title, whole)?;
-    let parts = super::wholes::parts_drafted(&state, args, &mine)?;
+    let parts = super::wholes::parts_drafted(&state, args, &mine, again)?;
     let (id, planned) = (mine.id, mine.planned);
     let parted: Vec<Value> = parts
         .iter()
@@ -176,28 +176,22 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 return false;
             }
             let held = State::replay(events);
-            let whole = taken.as_ref().is_some_and(|one| {
-                already(&held, one).is_some_and(|id| {
-                    held.is_erased(id) && !again
-                        || held
-                            .tasks
-                            .get(&id)
-                            .is_some_and(|task| task.is_open() || !again)
-                })
-            });
-            whole || sourced.iter().any(|one| already(&held, one).is_some())
+            taken
+                .iter()
+                .chain(sourced.iter())
+                .any(|one| standing(&held, one, again).is_some())
         })
         .map_err(hitch)?;
 
     let Some(_) = written else {
         let held = State::replay(&store.read_all().map_err(hitch)?);
-        let task = source
+        let blocking = source
             .as_deref()
-            .and_then(|one| already(&held, one))
-            .and_then(|id| held.tasks.get(&id));
-        if task.is_none()
+            .and_then(|one| standing(&held, one, again));
+        let task = blocking.and_then(|id| held.tasks.get(&id));
+        if blocking.is_none()
             && let Some((from, part)) = parts_from.iter().find_map(|one| {
-                already(&held, one)
+                standing(&held, one, again)
                     .and_then(|id| held.tasks.get(&id))
                     .map(|part| (one, part))
             })
@@ -258,6 +252,18 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         },
         Value::Object(kept),
     ))
+}
+
+/// A task from this source stands in the way when it is open, or closed or erased without
+/// `again` asking for it anew.
+pub(super) fn standing(held: &State, source: &str, again: bool) -> Option<TaskId> {
+    already(held, source).filter(|id| {
+        held.is_erased(*id) && !again
+            || held
+                .tasks
+                .get(id)
+                .is_some_and(|task| task.is_open() || !again)
+    })
 }
 
 pub(super) struct Drafted {
@@ -878,7 +884,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
     }
     let open_parts = state
         .parts_of(id)
-        .filter(|part| part.is_open() && part.resolved.is_none())
+        .filter(|part| part.is_open() && !part.folded() && part.resolved.is_none())
         .count();
     if !drop && open_parts > 0 {
         return Err(Refused::Tool(format!(

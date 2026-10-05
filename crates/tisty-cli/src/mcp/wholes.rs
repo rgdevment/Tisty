@@ -4,9 +4,9 @@ use tisty_core::event::Op;
 use tisty_core::model::TaskId;
 
 use super::asked::{only_what_it_takes, short_and_plain, text};
-use super::chores::{Drafted, drafted};
+use super::chores::{Drafted, drafted, standing};
 use super::order;
-use super::{Refused, alike, already};
+use super::{Refused, alike};
 
 const PARTS_AT_MOST: usize = 32;
 
@@ -57,6 +57,7 @@ pub(super) fn parts_drafted(
     state: &State,
     args: &Value,
     whole: &Drafted,
+    again: bool,
 ) -> Result<Vec<Drafted>, Refused> {
     let Some(given) = args.get("parts").filter(|one| !one.is_null()) else {
         return Ok(Vec::new());
@@ -114,7 +115,7 @@ pub(super) fn parts_drafted(
                 .iter()
                 .chain(drafts.iter().filter_map(|drafted| drafted.source.as_ref()))
                 .any(|other| alike(other) == spelled);
-            if twice || already(state, &source).is_some() {
+            if twice || standing(state, &source, again).is_some() {
                 return Err(Refused::Tool(format!(
                     "the part {title:?} comes from {source:?}, which {} Nothing was written.",
                     match twice {

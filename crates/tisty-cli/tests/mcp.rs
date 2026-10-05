@@ -5987,3 +5987,69 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
     }
     assert!(!served.cli(&["ls", "all"]).contains("move house"));
 }
+
+#[test]
+fn a_part_the_person_hid_does_not_hold_its_whole_back() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "move house",
+            "parts": [{ "title": "book the van" }, { "title": "pack" }]
+        }),
+    );
+    let whole = content(&said)["id"].as_str().unwrap().to_string();
+    let booked = content(&said)["parts"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let packing = content(&said)["parts"][1]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &booked, "body": "booked" }),
+    );
+    hide(&served, &packing);
+
+    let after = served.call(
+        "say_done",
+        serde_json::json!({ "task": &whole, "body": "moved" }),
+    );
+    assert_ne!(after["result"]["isError"], true, "{after}");
+}
+
+#[test]
+fn again_reaches_the_parts_of_a_whole_filed_anew() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let first = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "spring clean",
+            "source": "home#1",
+            "parts": [{ "title": "windows", "source": "home#1.1" }]
+        }),
+    );
+    let whole = content(&first)["id"].as_str().unwrap().to_string();
+    let part = content(&first)["parts"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.cli(&["done", &part]);
+    served.cli(&["done", &whole]);
+
+    let again = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "spring clean",
+            "source": "home#1",
+            "again": true,
+            "parts": [{ "title": "windows", "source": "home#1.1" }]
+        }),
+    );
+    assert_ne!(again["result"]["isError"], true, "{again}");
+    assert_eq!(content(&again)["proposed"], true, "{again}");
+}
