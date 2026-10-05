@@ -78,6 +78,7 @@ export default function TaskList({
     return out;
   }, [tasks, here]);
   const coming = useComing();
+  const joining = coming?.stage === "log" && coming.joining === true;
   const [tucked, setTucked] = useState<ReadonlySet<string>>(new Set());
   const offered = axis === undefined && bands === "day";
   const [grouped, setGrouped] = useState<Axis>(kept);
@@ -387,7 +388,7 @@ export default function TaskList({
         className={`scroller flex flex-1 flex-col gap-3.5 px-5 pt-4 pb-6 ${width}`}
       >
         {instead}
-        {!instead && tasks.length === 0 && coming?.stage === "log" && (
+        {!instead && tasks.length === 0 && joining && (
           <p
             role="status"
             className="rounded-[10px] border border-hair bg-sheet px-5 py-4 text-[12.5px] leading-relaxed text-soft shadow-lift"
@@ -396,7 +397,7 @@ export default function TaskList({
             {t("comingHistoryWhy")}
           </p>
         )}
-        {!instead && tasks.length === 0 && coming?.stage !== "log" && (
+        {!instead && tasks.length === 0 && !joining && (
           <p className="rounded-[10px] border border-hair bg-sheet px-5 py-4 text-[12.5px] leading-relaxed text-soft shadow-lift">
             {empty ?? t("nothingOpen")}
           </p>

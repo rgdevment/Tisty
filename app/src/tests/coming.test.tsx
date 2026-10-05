@@ -57,13 +57,22 @@ describe("what is coming from the folder", () => {
     render(<TaskList tasks={[]} lists={[]} title="Hoy" onSelect={vi.fn()} />);
     expect(screen.getByText(t("nothingOpen"))).toBeTruthy();
 
-    act(() => heard({ stage: "log", done: 0, whole: 3 }));
+    act(() => heard({ stage: "log", done: 0, whole: 3, joining: true }));
 
     expect(screen.getByText(t("comingHistory"))).toBeTruthy();
     expect(screen.queryByText(t("nothingOpen"))).toBeNull();
 
-    act(() => heard({ stage: "papers", done: 0, whole: 3 }));
+    act(() => heard({ stage: "papers", done: 0, whole: 3, joining: true }));
 
     expect(screen.getByText(t("nothingOpen"))).toBeTruthy();
+  });
+
+  it("leaves an empty list empty while a routine round reads a folder it already knows", () => {
+    render(<TaskList tasks={[]} lists={[]} title="Hoy" onSelect={vi.fn()} />);
+
+    act(() => heard({ stage: "log", done: 0, whole: 3, joining: false }));
+
+    expect(screen.getByText(t("nothingOpen"))).toBeTruthy();
+    expect(screen.queryByText(t("comingHistory"))).toBeNull();
   });
 });

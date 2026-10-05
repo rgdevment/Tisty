@@ -3,17 +3,15 @@ import { useSyncExternalStore } from "react";
 
 export type Stage = "log" | "papers" | "attachments";
 
-export interface Coming {
-  stage: Stage;
-  done: number;
-  whole: number;
-  since: number;
-}
-
 interface Heard {
   stage: Stage;
   done: number;
   whole: number;
+  joining?: boolean;
+}
+
+export interface Coming extends Heard {
+  since: number;
 }
 
 let now: Coming | null = null;

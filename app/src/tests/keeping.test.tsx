@@ -2279,6 +2279,8 @@ describe("the first-run assistant", () => {
     await waitFor(() => expect(done).toHaveBeenCalled());
     expect(sent("sign")).toHaveLength(0);
     expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
+    expect(sent("sow_lists"), "the history it joins already has its lists").toHaveLength(0);
+    expect(sent("guide"), "nor a second guide").toHaveLength(0);
   });
 
   it("says whose name it is taking before it takes it", async () => {
