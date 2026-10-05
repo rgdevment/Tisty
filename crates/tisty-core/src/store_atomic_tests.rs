@@ -251,14 +251,3 @@ fn a_newer_schema_names_the_machine_that_wrote_it() {
         other => panic!("the refusal has to say whose history is ahead: {other:?}"),
     }
 }
-
-#[test]
-fn a_folder_no_machine_could_be_named_is_not_read_as_one() {
-    let room = tempfile::tempdir().unwrap();
-    ahead_in(room.path(), "Not A Machine");
-
-    assert!(
-        read_all(room.path()).unwrap().is_empty(),
-        "a folder only a person or another program could have named is not a history"
-    );
-}

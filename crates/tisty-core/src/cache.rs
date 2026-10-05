@@ -693,10 +693,7 @@ pub fn fingerprint(store_root: &Path) -> String {
         return String::new();
     };
 
-    for device in devices
-        .filter_map(|e| e.ok())
-        .filter(crate::store::named_as_a_device)
-    {
+    for device in devices.filter_map(|e| e.ok()) {
         let Ok(files) = std::fs::read_dir(device.path()) else {
             continue;
         };

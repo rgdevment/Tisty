@@ -503,7 +503,7 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
 
     for device in devices {
         let device = device?;
-        if !device.file_type()?.is_dir() || !named_as_a_device(&device) {
+        if !device.file_type()?.is_dir() {
             continue;
         }
 
@@ -606,10 +606,6 @@ pub fn is_store_name(name: &str) -> bool {
         && name
             .bytes()
             .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
-}
-
-pub fn named_as_a_device(entry: &std::fs::DirEntry) -> bool {
-    entry.file_name().to_str().is_some_and(is_device_name)
 }
 
 fn written_by(segment: &Path) -> String {
