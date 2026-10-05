@@ -934,8 +934,10 @@ part is. Everything that judges a part is judged at replay, in `parts.rs`, the
 way a folder's move is, so two machines that crossed a move agree on where the
 part landed: the later move wins, a whole that is not there or is itself a
 part is refused, and something that repeats can neither hold parts nor be one
-— a routine never ends, and a whole is there to end. A part that is given a
-`repeat` leaves its whole.
+— a routine never ends, and a whole is there to end. The window and the
+terminal refuse a `repeat` on a whole or on a part before it is written
+(`State::repeat_refused`), so undo never has to put one back; one that arrives
+anyway, from a build that knew no parts, lets the whole and its parts go apart.
 
 Nothing cascades in the projection, because an older build would not cascade
 and the machines would part ways. What a whole does to its parts is written as
