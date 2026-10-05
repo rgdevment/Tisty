@@ -603,7 +603,7 @@ pub async fn sync_now(
     let done = done
         .map_err(|_| Refusal::of("internal"))
         .and_then(|carried| carried.map_err(said));
-    let stuck = done.as_ref().err().filter(|_| joining).map(|why| Stuck {
+    let stuck = done.as_ref().err().map(|why| Stuck {
         code: why.code,
         name: why.name.clone(),
     });

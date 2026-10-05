@@ -1309,9 +1309,10 @@ machines' histories, then the bodies, then the attachments — as `done` of
 `whole`, never counting back; the history is whole before a body or an
 attachment is opened, so the window can draw what it has while the rest comes
 in. The window hears it as `bringing`, at most every quarter second, and
-`brought` when the turn ends however it ends — carrying the refusal when a
-joining turn failed, so the foot of the sidebar keeps saying why after the
-welcome has already let the person in. A turn that commits what landed while
+`brought` when the turn ends however it ends — carrying the refusal when the
+turn failed, so the foot of the sidebar keeps saying why until a turn gets
+through: after the welcome has already let the person in, and on a machine
+whose rounds stop because another writes with a newer Tisty. A turn that commits what landed while
 it runs marks the session behind first, so the history it brought is projected
 rather than stamped over. Nothing in the window waits on it:
 the welcome lets the person in as soon as the first `bringing` arrives — the

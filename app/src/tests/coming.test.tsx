@@ -76,15 +76,21 @@ describe("what is coming from the folder", () => {
     expect(screen.queryByText(t("comingHistory"))).toBeNull();
   });
 
-  it("keeps saying why joining stopped once the person is already in", () => {
+  it("keeps saying why rounds stop until one gets through, not just for a moment", () => {
     render(<Coming />);
-    act(() => heard({ stage: "log", done: 0, whole: 2, joining: true }));
+    act(() => heard({ stage: "log", done: 0, whole: 2, joining: false }));
 
     act(() => ended({ code: "syncNewer", name: "dev_b" }));
 
     expect(screen.getByRole("alert").textContent).toBe(fill("syncNewer", "dev_b"));
 
-    act(() => heard({ stage: "log", done: 0, whole: 2, joining: true }));
+    act(() => heard({ stage: "log", done: 0, whole: 2, joining: false }));
+    act(() => ended({ code: "syncNewer", name: "dev_b" }));
+
+    expect(screen.getByRole("alert").textContent).toBe(fill("syncNewer", "dev_b"));
+
+    act(() => heard({ stage: "log", done: 0, whole: 2, joining: false }));
+    act(() => ended(null));
 
     expect(screen.queryByRole("alert")).toBeNull();
   });

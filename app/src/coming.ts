@@ -26,7 +26,6 @@ const tell = () => {
 
 export const heard = (step: Heard | null, at = Date.now()) => {
   now = step ? { ...step, since: now?.since ?? at } : null;
-  if (step) stuck = null;
   tell();
 };
 
