@@ -6,6 +6,20 @@ use crate::{
 };
 
 impl State {
+    pub(crate) fn task_added(&mut self, event: &Event, id: TaskId, d: &crate::event::TaskAdd) {
+        let mut task = crate::state::task_from(id, d);
+        task.part_of = d
+            .part_of
+            .filter(|whole| self.may_hold(*whole, &task, event));
+        task.created_by = Some(event.device.clone());
+        task.created_via = event.via.clone();
+        task.retally();
+        if let Some(source) = &task.source {
+            self.sourced.insert(source.clone(), id);
+        }
+        self.tasks.insert(id, task);
+    }
+
     pub(crate) fn folder_added(&mut self, id: &FolderId, d: &crate::event::FolderAdd) {
         // Naming a folder that is already here does not bring it out of the archive.
         let away = self.folders.get(id).is_some_and(|one| one.archived);
@@ -182,6 +196,9 @@ impl State {
         }
         self.tasks.remove(id);
         self.tombstones.insert(*id);
+        for part in self.tasks.values_mut().filter(|t| t.part_of == Some(*id)) {
+            part.part_of = None;
+        }
     }
 
     pub(crate) fn doc_signed(&mut self, id: &DocId, d: &str) {

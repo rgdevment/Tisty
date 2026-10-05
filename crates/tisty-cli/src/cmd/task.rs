@@ -279,6 +279,7 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
                 tisty_core::model::Stays::Open => "rm-open",
                 tisty_core::model::Stays::Story => "rm-story",
                 tisty_core::model::Stays::Routine => "rm-routine",
+                tisty_core::model::Stays::Parts => "rm-parts",
             };
             anyhow::anyhow!(
                 "{}",
@@ -337,6 +338,15 @@ pub fn set(app: &mut App, args: SetArgs, today: Date, lang: Lang) -> anyhow::Res
 
         if d == TaskPatch::default() {
             anyhow::bail!("{}", lang.get("nothing-to-change"));
+        }
+        if matches!(d.repeat, Some(Some(_)))
+            && let Some(why) = app.state.repeat_refused(id)
+        {
+            let key = match why {
+                "partRepeats" => "part-repeats",
+                _ => "whole-repeats",
+            };
+            anyhow::bail!("{}", lang.get(key));
         }
 
         app.commit(Op::TaskUpdate { id, d })?;
@@ -470,6 +480,7 @@ pub fn mv(
         app.commit(Op::TaskMove {
             id,
             d: TaskMove {
+                part_of: None,
                 list: Some(target),
                 order: None,
             },

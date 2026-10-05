@@ -427,6 +427,7 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
         Err(tisty_core::model::Stays::Open) => return Err(Refusal::of("onlyArchivedGoes")),
         Err(tisty_core::model::Stays::Story) => return Err(Refusal::of("storyStays")),
         Err(tisty_core::model::Stays::Routine) => return Err(Refusal::of("routineStays")),
+        Err(tisty_core::model::Stays::Parts) => return Err(Refusal::of("partsStay")),
     }
     session.commit(Op::TaskDelete { id })?;
     Ok(())

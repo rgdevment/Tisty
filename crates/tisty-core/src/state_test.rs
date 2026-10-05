@@ -2050,6 +2050,7 @@ fn moving_to_the_inbox_is_not_the_same_as_only_reordering() {
         Op::TaskMove {
             id,
             d: TaskMove {
+                part_of: None,
                 order: Some("a5".into()),
                 ..Default::default()
             },
@@ -2064,6 +2065,7 @@ fn moving_to_the_inbox_is_not_the_same_as_only_reordering() {
         Op::TaskMove {
             id,
             d: TaskMove {
+                part_of: None,
                 list: Some(None),
                 ..Default::default()
             },
@@ -4840,6 +4842,7 @@ fn an_archived_list_that_a_racing_writer_filed_into_stays_in_sight() {
         Op::TaskMove {
             id: open,
             d: crate::event::TaskMove {
+                part_of: None,
                 list: Some(Some(list)),
                 order: None,
             },
