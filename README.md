@@ -419,7 +419,10 @@ language it is and is coloured for it, with its lines numbered beside the text
 rather than in it, so copying takes the code and nothing else. A block can carry
 a name; one whose language is `mermaid` draws the diagram it describes
 underneath — redrawn when you turn the light on or off — and one that says
-`math` sets the formula it holds.
+`math` sets the formula it holds. One that says `widget` is drawn as a small
+page — HTML, styles and a little script if you like — sealed off from the
+network and from the window, and an `.html` file attached to a document is drawn
+the same way.
 
 **A web link on a line of its own is drawn as a card**, made from the address
 itself — the site's name and the words you wrote. Nothing is fetched to draw it.
@@ -518,13 +521,21 @@ merges them **block by block** — you edit the introduction on one, someone edi
 the closing paragraph on the other, and both land with nothing to answer. Only a
 real overlap becomes a question.
 
-**Or back up by hand.** One zip, kept wherever you like.
+**Each machine signs what it writes**, and one nobody here has answered for
+waits at the door: its card in Settings › *Maintenance* shows the key it signs
+with, you compare it with the one that machine shows on its own card, and
+confirm it — or type `tisty sync --confirm <machine>`. Until then nothing it
+writes comes in; from then on, whatever does not answer to that key is turned
+away, and Tisty says so.
+
+**And back up by hand, shared folder or not.** One zip with your whole history,
+kept wherever you like, and restored from the same place in *Your data*.
 
 **Where the big ones live is yours to say.** By default every machine carries
 every attachment, which is why any of them can open anything with the network
-off. Settings offers two other ways: keep only what this machine attached and
-fetch the rest when you open it, or — above 50 MB — leave them in the shared
-folder and nowhere else. That last one trades the copy on your disk for the
+off. For anything above 50 MB, Settings offers two other ways: keep only what
+this machine attached and fetch the rest when you open it, or leave them in the
+shared folder and nowhere else. That last one trades the copy on your disk for the
 space it took: the file is there when your provider or your NAS is, and Tisty
 says so plainly when it is not. A copy is only ever let go of after the one in
 the shared folder is found to hash the same.
@@ -563,7 +574,7 @@ But if you already use an assistant, you are probably telling it things worth
 keeping — the school group says card stock on Monday, the invoice is due on the
 30th. So Tisty leaves a door, and you decide whether to use it.
 
-Settings › Agents lists the assistants already installed on this computer and
+Settings › Assistants lists the assistants already installed on this computer and
 connects the one you pick: it writes a single line into that assistant's own
 settings, leaves the rest of that file where it was, and keeps a copy of it as
 it was before. For one it does not know, a line does it:
@@ -575,7 +586,7 @@ $ <your-assistant> mcp add tisty -- tisty mcp
 Where `<your-assistant>` is whatever yours is called. It speaks
 [MCP](https://modelcontextprotocol.io) on the same machine: no
 account, no token, nothing over the network. **You are the one who opens it.**
-The assistant appears in Settings › Agents as a device you have to let in, and
+The assistant appears in Settings › Assistants as a device you have to let in, and
 it stays a device you can throw out; until you do let it in, everything it
 tries is refused.
 
@@ -591,8 +602,9 @@ task or
 inside a document, which takes the larger file of the two — and read what is
 already there. What it may not do: close a task or delete one, say a task you
 wrote is done, move a day you set, delete a document, rename or empty a folder,
-reach a task you folded away, take files from outside the folders where a
-download lands, or file the same thing twice. A task you closed is history to
+reach a task you folded away, take files from anywhere but Downloads,
+Documents, Pictures, the desktop and the temporary folder, or file the same
+thing twice. A task you closed is history to
 it: it comes with a notice saying so, reads as it ended, takes no note, no new
 day, no bell and no file, and if the same work comes back the assistant
 proposes a new one that says how the last one ended.
@@ -799,7 +811,8 @@ local.
   for Windows and macOS.
 - **[LinkUnbound](https://rgdevment.com/linkunbound/)** — a browser
   selector for Windows and macOS: it asks which browser should open a link
-  instead of assuming.
+  instead of assuming. If it is installed, the web links you open from Tisty go
+  through it.
 
 ## Support the Project
 

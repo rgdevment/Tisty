@@ -321,7 +321,11 @@ Whoever takes that folder up and down is your provider's program, not Tisty. If 
 
 > There is no server of ours in between. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
 
-Settings can also write you a full backup whenever you want one.
+Every machine signs what it writes. One that comes to the folder after this one waits until you confirm its key: in Settings → Maintenance → The machines it shows as **Waiting**, and **Confirm** lets it through once you have checked, on that machine, that the key is the same.
+
+When both machines wrote the same part of a document, Tisty does not pick: it shows you the two side by side and you keep **This one**, **The other** or **Both**.
+
+Settings can also write you a full backup whenever you want one — even when you sync, because a shared folder is not a backup.
 
 ### 13. Completing, dropping and erasing
 
@@ -335,7 +339,7 @@ The Archive reads in three layers: the **stories**, which left something written
 
 Files you had attached do not go with it, because another document might still be using them. They stay behind as loose files, and Settings → Maintenance lists them for you to let go of when you want.
 
-Right there is **Review the store**: it counts what is spare, what is missing and what you can get back, and changes nothing on its own. Attachments nothing names any more go to the bin with thirty days to change your mind. Documents on disk the log does not name are set apart to look at first, because they may be the only copy of something that lost its event: taking one in can never be wrong.
+Right there, under **The store**, is **Review**: it counts what is spare, what is missing and what you can get back, and changes nothing on its own. Attachments nothing names any more go to the bin with thirty days to change your mind. Documents on disk the log does not name are set apart to look at first, because they may be the only copy of something that lost its event: taking one in can never be wrong.
 
 ### 14. Shortcuts
 
@@ -358,4 +362,4 @@ A link left alone in its paragraph, like that one, is drawn as a card; the same 
 [The same profile](https://github.com/rgdevment) holds two more tools, same idea and same terms: free, open, no ads, no telemetry, all on your own machine.
 
 - [**CopyPaste**](https://github.com/rgdevment/CopyPaste) — a clipboard manager for Windows and macOS.
-- [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — a browser picker for Windows and macOS: it asks which one should open a link instead of assuming.
+- [**LinkUnbound**](https://github.com/rgdevment/LinkUnbound) — a browser picker for Windows and macOS: it asks which one should open a link instead of assuming. If it is installed, the links you open from Tisty go through it.

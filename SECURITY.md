@@ -60,15 +60,35 @@ report will never be dismissed for being inconvenient.
   them. There is no Tisty-operated backend at any tier, and no transport of ours
   to attack: the code that syncs reads and writes local paths.
 - **No plugin system.** Nothing loads third-party code into the process.
-- **`unsafe` is forbidden** at the workspace level, not merely discouraged.
+- **`unsafe` is forbidden** at the workspace level, not merely discouraged. The
+  window's crate is the one exception, and a narrow one: it denies `unsafe`
+  too, and lets it in only where the operating system offers no other door — the
+  macOS webview and `sysctl`, the Windows shell and the Store's dialog — each
+  function marked one by one, in two files, and a test fails if a mark appears
+  in any other.
+- **A release is held to what CI already proved.** A tag on a commit that did
+  not pass CI on `main` is not released. The updater's signature is checked
+  against the key the build ships before anything is published, and every file
+  on the releases page comes with a `SHA256SUMS` and a build-provenance
+  attestation, so a download can be traced back to the workflow that made it.
 - **The window is fenced by a content policy.** Everything it runs is shipped
   inside the program: no script from anywhere else, no page from anywhere else,
   and the only address it may talk to is the local channel to the Rust side.
-  Two openings are worth naming because they are real. Scripts may compile
+  Three openings are worth naming because they are real. Scripts may compile
   WebAssembly, which is what draws the PDF you see before exporting it; and a
   frame may show a `blob:`, which is that PDF, built in memory on your machine
   and never fetched. Neither lets remote code in: a blob has no origin to be
   loaded from, and there is no path by which one arrives.
+
+  The third does run code that was not shipped: a widget block in a document,
+  or an attached `.html` page, is drawn live — its own HTML, CSS and script —
+  in a frame of its own. That frame is sandboxed with scripts and nothing else,
+  so it has no origin and cannot reach into the window, and it is served under
+  a policy of its own that allows no network at all: no fetch, no remote
+  picture, font or frame, no form. All it can say to the window is how tall it
+  is and which link was clicked inside it, and a link is opened only after a
+  real click there. A widget is as trustworthy as the document that carries it,
+  and a document can arrive through the shared folder or in a parcel.
 
 ## What it deliberately does not protect
 
@@ -109,18 +129,38 @@ Being explicit here matters more than sounding reassuring.
   adds no second authentication layer on top of your operating system's. On
   Unix it does narrow the permissions it controls — its directories to `0700`
   and its files to `0600`, owner only — but that stops another local account,
-  not you, and not anything running as you.
-- **Whoever can write to the shared folder can write to your history.** The
-  transport reads what it finds there. It cannot tell a genuine event from a
-  forged one, and no signature would help while the folder is shared with
-  whoever holds it.
+  not you, and not anything running as you. On Windows it changes no
+  permissions at all, the signing key included: what keeps another account out
+  is that your profile's own folders are yours.
+- **Whoever can write to the shared folder can try to write to your history.**
+  Each machine signs what it writes: an Ed25519 key of its own, kept in the
+  `private/` folder of its local configuration — never synced, never in a
+  backup — signs every segment of its log, and the signature travels beside it.
+  A machine that has said what it signs with owes a signature from then on, and
+  a history written at the signed schema or later that arrives with none is not
+  taken in at all. A machine whose key nobody here has confirmed is not trusted
+  on the folder's word: what it writes waits until you confirm its key, in the
+  window or with `tisty sync --confirm <machine>`. Those confirmations are kept
+  on this machine only, and a key once confirmed is never replaced — which also
+  means there is no rotating it. The one moment the folder is taken on its
+  word is the first time this machine reaches a folder, before it has confirmed
+  any other: the keys of the machines already writing there are adopted as
+  found, so the folder you join should be one you trust.
 
-  What it does check is narrower and worth stating: it never writes through a
-  symbolic link, into the folder or into any directory inside it; an attachment
-  must hold the bytes its own name vouches for; one that was retired is not
-  carried back in; a document body past the reader's ceiling is refused rather
-  than swapped in for one that opens; a store carrying a different name stops
-  everything until you decide; and a machine that was removed is refused
+  The signatures answer for the log, and not for everything beside it. A
+  document body that the log holds no print of is taken in as it arrives; the
+  window checks an attachment against the prefix of its digest that its name
+  carries rather than all of it, and only the sync round, when the log records
+  the full digest, demands every byte match; and `tisty.toml`, which names the
+  store, is not signed. Someone who can write to the folder can also delete
+  from it, and no signature brings back what was removed.
+
+  What it does check besides is narrower and worth stating: it never writes
+  through a symbolic link, into the folder or into any directory inside it; an
+  attachment must hold the bytes its own name vouches for; one that was retired
+  is not carried back in; a document body past the reader's ceiling is refused
+  rather than swapped in for one that opens; a store carrying a different name
+  stops everything until you decide; and a machine that was removed is refused
   outright — that removal is absorbing, so a removed identifier is never valid
   again and a machine that returns comes back as a new one.
 
@@ -211,12 +251,12 @@ the absolute paths of your disk.
 
 **What it says about work being finished only ever adds.** An assistant can mark
 a task it filed as one it has finished, with the account of what it did. It
-cannot mark a task you wrote, it cannot close anything, and the mark takes
-nothing out of your list: what is due today or overdue stays in the band you
-look for it in. Saying it twice over a mark you have not seen yet is refused, so
-a text it reads somewhere cannot fill your journal by repetition. Taking the
-mark off is yours alone — and doing so keeps the account, so you can see what it
-claimed and why you disagreed.
+cannot mark a task you wrote unless you opened that task to agents, it cannot
+close anything, and the mark takes nothing out of your list: what is due today
+or overdue stays in the band you look for it in. Saying it twice over a mark you
+have not seen yet is refused, so a text it reads somewhere cannot fill your
+journal by repetition. Taking the mark off is yours alone — and doing so keeps
+the account, so you can see what it claimed and why you disagreed.
 
 **A body it did not read is a body it cannot replace.** An assistant may write a
 whole document again, not only add to it — but only by sending back the print

@@ -39,9 +39,19 @@ matters.
 Changes travel through the folder, so the other machine has to open Tisty to
 pick them up. While it is off, your work waits up there.
 
-### 5. Check with your own eyes
+### 5. Is the other machine waiting on you?
 
-In **Settings → Data** there are two dates that do not mean the same thing:
+Every machine signs what it writes. One that came to the folder after this one
+says which key it signs with, and nothing it writes comes in here until you
+confirm that key. In **Settings → Maintenance → The machines** it shows as
+**Waiting**: open its card here and on that machine, check the key is the same
+character by character, and **Confirm**. From the terminal,
+`tisty sync --confirm <machine>` does the same. What it wrote meanwhile stays in
+the folder and arrives whole.
+
+### 6. Check with your own eyes
+
+In **Settings → Your data** there are two dates that do not mean the same thing:
 
 - **My last round** — when Tisty read and wrote in the folder. This one being
   current does **not** mean anything was uploaded.
@@ -55,7 +65,7 @@ whether they are up there too. That comparison is what answers the question.
 
 ### If all of the above is fine
 
-Try **Settings → Data → Send everything again**. It copies everything of this
+Try **Settings → Your data → Send again**. It copies everything of this
 machine's to the folder again without asking whether it is already there,
 which is exactly what you want when a cloud client skipped a file.
 
@@ -73,7 +83,8 @@ so it shows you the facts it does know instead of a verdict it cannot back.
 No. Your work is complete on the machine where you did it, and Tisty's log
 only appends: nothing is overwritten or dropped. As soon as the folder starts
 moving again, both machines catch up on their own, even if both were working
-at once.
+at once. If both wrote the same part of a document, the window shows the two
+side by side and asks which stays — **This one**, **The other** or **Both**.
 
 ## One of my machines stopped syncing after an update
 
@@ -165,9 +176,9 @@ account of what it did in the journal — the command it ran and what that
 answered, the commit, whatever holds the claim up. The task stays open until you
 decide.
 
-Those tasks gather under **Agents** at the foot of the list, with a count of how
-many wait on you, so you can go through them in one pass. What is due today or
-already overdue does not move: it stays in its own band, marked, because a thing
+Those tasks gather under **To confirm** at the foot of the list, with a count of
+how many wait on you, so you can go through them in one pass. What is due today
+or already overdue does not move: it stays in its own band, marked, because a thing
 with a date on it should be where you look for it.
 
 Tick it and it closes like any other, keeping both signatures in the archive —

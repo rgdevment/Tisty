@@ -19,4 +19,6 @@ keep honest than two.
 
 The tray icons are a different drawing, not a smaller version of this one: the
 mark is the only one with a tile, because it lands on surfaces we do not
-control. They stay with the rest of the icon work outside this repository.
+control. What the build reads of them lives in `app/src-tauri/icons/tray/`; the
+drawing they come from stays with the rest of the icon work outside this
+repository.

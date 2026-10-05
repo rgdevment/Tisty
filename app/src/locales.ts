@@ -906,7 +906,7 @@ const en = {
   ownLogUnreadable:
     "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
   someoneUnconfirmed:
-    "A machine is writing in the shared folder that nobody here has answered for, so nothing it writes has come in. Confirm it in Upkeep to let it through — what it wrote stays in the folder meanwhile and arrives whole.",
+    "A machine is writing in the shared folder that nobody here has answered for, so nothing it writes has come in. Confirm it in Maintenance to let it through — what it wrote stays in the folder meanwhile and arrives whole.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
@@ -960,7 +960,7 @@ const en = {
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig:
-    "That file is over {name}, the most a task takes. Raise it in Settings → Writing, or attach it inside a document, which takes up to 750 MB.",
+    "That file is over {name}, the most a task takes. Raise it in Settings → Your data, or attach it inside a document, which takes up to 750 MB.",
   attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
@@ -1387,7 +1387,6 @@ const en = {
   yesLocal: "yes, this machine only",
   noSync: "no",
   backupAvailable: "available",
-  backupIsShared: "the shared folder is the backup",
   inThePath: "in the PATH",
   notInThePath: "not in the PATH",
   nothingBound: "nothing bound",
@@ -2127,8 +2126,9 @@ const es: Catalog = {
   starLater: "Ahora no",
   doorTitle: "Tus asistentes",
   doorThanks: "Tus asistentes pueden trabajar contigo.",
-  doorWhy: "Documentar, leer y organizar tus documentos, y proponerte tareas. Lee más en Ajustes.",
-  doorGo: "Ver en Ajustes",
+  doorWhy:
+    "Documentar, leer y organizar tus documentos, y proponerte tareas. Lee más en Configuración.",
+  doorGo: "Ver en Configuración",
   doorNo: "No mostrar más",
   doorLater: "Ahora no",
   saidDone: "Completada: {name}",
@@ -2366,7 +2366,7 @@ const es: Catalog = {
   sameName:
     "Las dos guardan una máquina llamada {name}, y cada una escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo archivo, así que Tisty se niega. Conserva uno de los dos lados.",
   stuckApart:
-    "No se está sincronizando nada: la carpeta compartida guarda otro historial, así que esta máquina lleva todo este tiempo a solas. Dos historiales no se fusionan. En Ajustes puedes unirte a esa carpeta —esta máquina se respalda primero y queda con lo que ella guarda— o apuntarla a otro sitio.",
+    "No se está sincronizando nada: la carpeta compartida guarda otro historial, así que esta máquina lleva todo este tiempo a solas. Dos historiales no se fusionan. En Configuración puedes unirte a esa carpeta —esta máquina se respalda primero y queda con lo que ella guarda— o apuntarla a otro sitio.",
   remoteInsideStore: "{name} está dentro de la carpeta de Tisty — elige una fuera",
   apartTitle: "Esa carpeta ya guarda otro Tisty",
   apartHomeTitle: "Esa carpeta ya guarda la historia de esta máquina",
@@ -2398,7 +2398,7 @@ const es: Catalog = {
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig:
-    "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Escribir, o adjúntalo dentro de un documento, que admite hasta 750 MB.",
+    "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Tus datos, o adjúntalo dentro de un documento, que admite hasta 750 MB.",
   attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
   textTooLong:
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
@@ -2503,7 +2503,7 @@ const es: Catalog = {
   welcomeAlone: "Solo en este equipo",
   welcomeAloneWhy: "No sale nada. Puedes respaldar a mano cuando quieras.",
   welcomeTongue: "¿En qué idioma?",
-  welcomeTongueWhy: "Tomo el que usa tu equipo. Puedes cambiarlo cuando quieras en Ajustes.",
+  welcomeTongueWhy: "Tomo el que usa tu equipo. Puedes cambiarlo cuando quieras en Configuración.",
   welcomeCopies: "¿Dónde quieres tus copias?",
   welcomeGuide: "Abrir la guía",
   welcomeNext: "Siguiente",
@@ -2826,7 +2826,6 @@ const es: Catalog = {
   yesLocal: "sí, solo este equipo",
   noSync: "no",
   backupAvailable: "disponible",
-  backupIsShared: "la carpeta compartida es el respaldo",
   inThePath: "en el PATH",
   notInThePath: "fuera del PATH",
   nothingBound: "sin asignar",
@@ -2837,7 +2836,7 @@ const es: Catalog = {
   welcomeSigningHow:
     "El alias es cómo los firmas. Se guarda contigo —y viaja a tus equipos si sincronizas—. Va dentro de lo que exportas para Tisty, y en un PDF solo si lo pides al exportarlo; en un markdown suelto no viaja. Solo lo ve aquella persona con quien compartas el documento.",
   welcomeSigningNote:
-    "Nunca subimos nada a ningún servicio. Tampoco hay telemetría detrás. Es opcional y lo cambias cuando quieras desde Ajustes.",
+    "Nunca subimos nada a ningún servicio. Tampoco hay telemetría detrás. Es opcional y lo cambias cuando quieras desde Configuración.",
   welcomeSigned: "Listo",
   welcomeNotNow: "Ahora no",
   aliasLike: "tu nombre aquí",

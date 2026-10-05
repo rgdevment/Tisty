@@ -59,9 +59,13 @@ requires the agreement.
 
 ## Development setup
 
-Rust 1.97 or newer, on macOS or Windows. Everything else comes from `rustup`:
+Rust 1.97 or newer, on macOS or Windows. Everything else comes from `rustup`.
+The window carries the `tisty` binary as a sidecar, and Tauri will not compile
+the workspace until that binary is in place, so the first step builds it and
+copies it there — and again whenever you change the command line:
 
 ```sh
+bash scripts/sidecar.sh
 cargo build
 cargo nextest run --workspace   # or: cargo test
 ```
@@ -74,6 +78,18 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo nextest run --workspace
 cargo deny check
 ```
+
+and, for the window and the documents:
+
+```sh
+cd app && npm ci && npm run lint && npm run build && npm test
+npm ci && npm run lint:md
+npm run notices   # must leave THIRD-PARTY-*.md unchanged
+```
+
+The last one rewrites the third-party notices from the lockfiles. CI runs it on
+every pull request and fails if anything moved, so a dependency you add or bump
+comes with the notices it changes.
 
 CI runs the test suite on Windows and macOS. Path separators, line
 endings, case sensitivity and file locking only diverge at runtime, so a green
@@ -162,31 +178,39 @@ breaks "by tuesday" otherwise.
 
 ## Commits
 
-Conventional commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`,
-`test:`). Explain *why* in the body when the reason is not obvious from the
-diff; the *what* is already in the patch. Keep the subject under 120 characters:
-CI refuses a longer one.
+Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`,
+`build:`, `ci:`, `chore:`, `style:`, `revert:`). Explain *why* in the body when
+the reason is not obvious from the diff; the *what* is already in the patch.
+Keep the subject to 120 characters at most: CI refuses a longer one.
+
+Pull requests are squashed, and the squash keeps the pull request's title, so
+that title — with the number GitHub adds after it, `(#123)` — is the subject
+that reaches `main`, and CI holds it to the same shape and the same length.
 
 `scripts/rules.sh` holds the conventions a person can break in a second: four
 lines of comment in a row, a file grown past what anybody reads through, Spanish
-where the code should be English, the core printing to a terminal the window
-inherits, a panic where the core should answer, and anything new reaching the
-command line that is frozen. `scripts/commits.sh` holds the shape and the length
-of a subject. Run either whenever you like. They also run for you: `npm install`
-or `npm ci`, at the root or in `app/`, points git at the hooks unless git already
-has a hooks path of yours, and `--ignore-scripts` skips it. Without npm it is one
-line:
+where the code should be English, peninsular Spanish where a person reads it,
+interface text written into the source instead of the locales, the core printing
+to a terminal the window inherits, a panic where the core should answer,
+anything new reaching the command line that is frozen, a test that spawns the
+binary without pinning its language, and the English and Spanish README and
+guide drifting apart in shape. `scripts/commits.sh` holds the shape and the
+length of a subject. Run either whenever you like. They also run for you:
+`npm install` or `npm ci`, at the root or in `app/`, points git at the hooks
+unless git already has a hooks path of yours, and `--ignore-scripts` skips it.
+Without npm it is one line:
 
 ```sh
 git config core.hooksPath hooks
 ```
 
 That gives you three. `pre-commit` runs the conventions, `cargo fmt --all
---check` and biome — about two seconds, and between them they are most of what
-turns CI red. `commit-msg` weighs the subject while the fix is still an `--amend`
-rather than a rebase. `pre-push` runs the conventions again and the subjects of
-everything you are about to send. Nothing slower goes in any of them: the suite,
-the build and the markdown lint are minutes, and they belong to CI.
+--check` and biome over what is staged, not over the working tree beside it —
+about two seconds, and between them they are most of what turns CI red.
+`commit-msg` weighs the subject while the fix is still an `--amend` rather than
+a rebase. `pre-push` runs the conventions again and the subjects of everything
+you are about to send. Nothing slower goes in any of them: the suite, the build
+and the markdown lint are minutes, and they belong to CI.
 
 Two of those rules keep a written record rather than a threshold.
 `.github/oversized.txt` holds every file already past the ceiling, and what is
@@ -195,9 +219,10 @@ stands, so a new command or a new flag has to be made explicit instead of
 arriving unnoticed.
 
 **Those hooks are comfort, not enforcement.** A fresh clone does not have them
-until somebody sets that, and `--no-verify` walks straight past all three. What
-the repository actually requires is what CI refuses, which is why the workflows
-run the same two files rather than keeping their own copies of the rules.
+until `npm install` runs or somebody sets that, and `--no-verify` walks straight
+past all three. What the repository actually requires is what CI refuses, which
+is why the workflows run the same two files rather than keeping their own copies
+of the rules.
 
 ## Security
 
