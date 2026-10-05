@@ -580,3 +580,13 @@ fn the_weight_a_single_note_and_a_link_carry_is_not_a_story() {
         "this is the shape every «comprar pan» in a real archive has"
     );
 }
+
+#[test]
+fn a_step_fits_to_the_last_character_counted_as_a_person_counts_them() {
+    assert!(step_fits(&"a".repeat(STEP_AT_MOST)));
+    assert!(!step_fits(&"a".repeat(STEP_AT_MOST + 1)));
+    assert!(
+        step_fits(&"ñ".repeat(STEP_AT_MOST)),
+        "a letter with an accent is one character, not two bytes"
+    );
+}

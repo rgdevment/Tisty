@@ -282,7 +282,7 @@ pub(super) fn tools() -> Value {
                     "steps": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "A checklist, if the thing has parts"
+                        "description": "A checklist, if the thing has parts: each step at most 100 characters. What needs more is a task of its own"
                     },
                     "source": {
                         "type": "string",
@@ -342,7 +342,7 @@ pub(super) fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, one string each" }
+                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, one string each, at most 100 characters" }
                 },
                 "required": ["task", "steps"]
             }))
