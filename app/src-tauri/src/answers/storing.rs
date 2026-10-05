@@ -978,16 +978,19 @@ pub struct Joining {
     fresh: bool,
     holds: bool,
     alias: Option<String>,
+    coming: bool,
 }
 
 #[tauri::command(async)]
 pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
     let (store, dest) = folder_and_store(&session)?;
+    let signed = tisty_sync::signed_here(&dest);
     Ok(Joining {
         kin: kinned(&store, &dest),
         fresh: !tisty_core::store::inhabited(&store),
         holds: tisty_core::store::inhabited(dest.join(tisty_sync::STORE)),
-        alias: tisty_sync::signed_at(&dest),
+        alias: signed.alias,
+        coming: signed.coming,
     })
 }
 

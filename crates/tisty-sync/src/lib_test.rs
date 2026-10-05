@@ -7749,3 +7749,31 @@ fn the_name_in_the_folder_is_read_from_what_is_here_and_never_waits_on_the_cloud
 
     assert_eq!(signed_at(shared.path()).as_deref(), Some("mario"));
 }
+
+#[test]
+fn a_name_still_in_the_cloud_is_said_to_be_coming_rather_than_missing() {
+    let signer = machine("uno");
+    signs(&signer, "mario");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&signer.data, &signer.device, shared.path(), Way::Push, &[]).unwrap();
+    let up = shared.path().join(STORE).join("uno").join("active.tisty");
+    sent_up_to_the_cloud(&up);
+
+    assert_eq!(
+        signed_here(shared.path()),
+        Signed {
+            alias: None,
+            coming: true
+        }
+    );
+
+    brought_down_from_the_cloud(&up);
+
+    assert_eq!(
+        signed_here(shared.path()),
+        Signed {
+            alias: Some("mario".into()),
+            coming: false
+        }
+    );
+}

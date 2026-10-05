@@ -67,6 +67,9 @@ function Choice({
   );
 }
 
+const NAME_COMING_TRIES = 10;
+const NAME_COMING_EVERY = 3000;
+
 export default function Welcome({ onDone }: Props) {
   const [step, setStep] = useState<Step>("tongue");
   const [busy, setBusy] = useState(false);
@@ -161,9 +164,13 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
-  const settle = () =>
+  const settle = (tries = 0): Promise<void> =>
     joining()
       .then((how) => {
+        if (how.coming && tries < NAME_COMING_TRIES) {
+          window.setTimeout(() => void settle(tries + 1), NAME_COMING_EVERY);
+          return;
+        }
         setBusy(false);
         if (!how.fresh || !how.holds) return carryOn();
         setCarrying(false);
