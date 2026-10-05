@@ -151,6 +151,137 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Ok(told(said, kept));
     }
 
+    let whole = super::wholes::whole_named(&state, args)?;
+    let mine = drafted(&state, args, &title, whole)?;
+    let parts = super::wholes::parts_drafted(&state, args, &mine, again)?;
+    let (id, planned) = (mine.id, mine.planned);
+    let parted: Vec<Value> = parts
+        .iter()
+        .map(|one| json!({ "id": one.id.to_string(), "title": one.title }))
+        .collect();
+    let sourced: Vec<String> = parts.iter().filter_map(|one| one.source.clone()).collect();
+    let parts_from = sourced.clone();
+    let mut ops = mine.ops;
+    for one in parts {
+        ops.extend(one.ops);
+    }
+
+    let source = text(args, "source");
+    let taken = source.clone();
+    // Checked again under the lock: two agents reading the same thread at once must not
+    // both get through. A closed task from that source stands aside only when `again` says so.
+    let written = store
+        .append_batch_unless(ops, move |events| {
+            if taken.is_none() && sourced.is_empty() {
+                return false;
+            }
+            let held = State::replay(events);
+            taken
+                .iter()
+                .chain(sourced.iter())
+                .any(|one| standing(&held, one, again).is_some())
+        })
+        .map_err(hitch)?;
+
+    let Some(_) = written else {
+        let held = State::replay(&store.read_all().map_err(hitch)?);
+        let blocking = source
+            .as_deref()
+            .and_then(|one| standing(&held, one, again));
+        let task = blocking.and_then(|id| held.tasks.get(&id));
+        if blocking.is_none()
+            && let Some((from, part)) = parts_from.iter().find_map(|one| {
+                standing(&held, one, again)
+                    .and_then(|id| held.tasks.get(&id))
+                    .map(|part| (one, part))
+            })
+        {
+            return Ok(told(
+                format!(
+                    "A part's source, {from:?}, was proposed meanwhile, as {}: {:?}. Nothing was \
+                     written — neither the task nor any of its parts.",
+                    part.id, part.title
+                ),
+                json!({ "id": null, "proposed": false, "collided": part.id.to_string() }),
+            ));
+        }
+        return Ok(told(
+            match task {
+                Some(task) => format!(
+                    "Already proposed from that source, as {}: {:?}. Nothing was written.",
+                    task.id, task.title
+                ),
+                None => "Already proposed from that source. Nothing was written.".into(),
+            },
+            json!({
+                "id": task.map(|one| one.id.to_string()),
+                "title": task.map(|one| one.title.clone()),
+                "proposed": false,
+            }),
+        ));
+    };
+    let landed = text(args, "list");
+    let where_at = match &landed {
+        Some(name) => format!("in {name}"),
+        None => "in the inbox".to_string(),
+    };
+    let mut kept = serde_json::Map::new();
+    kept.insert("id".into(), json!(id.to_string()));
+    kept.insert("title".into(), json!(title));
+    if let Some(landed) = &landed {
+        kept.insert("list".into(), json!(landed));
+    }
+    kept.insert("proposed".into(), json!(true));
+    if planned > 0 {
+        kept.insert("steps".into(), json!(planned));
+    }
+    if !parted.is_empty() {
+        kept.insert("parts".into(), json!(parted));
+    }
+    let parts_said = match parted.len() {
+        0 => String::new(),
+        n => format!(" It holds {n} part(s), each a task of its own: `read` it to see them."),
+    };
+    Ok(told(
+        match planned {
+            0 => format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}.{parts_said}"),
+            n => format!(
+                "Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
+                 `tick` each as you do it, `say_done` when all are.{parts_said}"
+            ),
+        },
+        Value::Object(kept),
+    ))
+}
+
+/// A task from this source stands in the way when it is open, or closed or erased without
+/// `again` asking for it anew.
+pub(super) fn standing(held: &State, source: &str, again: bool) -> Option<TaskId> {
+    already(held, source).filter(|id| {
+        held.is_erased(*id) && !again
+            || held
+                .tasks
+                .get(id)
+                .is_some_and(|task| task.is_open() || !again)
+    })
+}
+
+pub(super) struct Drafted {
+    pub(super) id: TaskId,
+    pub(super) title: String,
+    pub(super) source: Option<String>,
+    pub(super) ops: Vec<Op>,
+    pub(super) planned: usize,
+}
+
+/// One task's events, written nowhere yet, so a whole and its parts land in one transaction.
+pub(super) fn drafted(
+    state: &State,
+    args: &Value,
+    title: &str,
+    part_of: Option<TaskId>,
+) -> Result<Drafted, Refused> {
+    steps_fit(&strings(args, "steps")?)?;
     let on = day(args, "date")?;
     let owed = day(args, "deadline")?;
     in_order(on.as_ref(), owed.as_ref())?;
@@ -171,7 +302,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
 
     let draft = Draft {
-        title: title.clone(),
+        title: title.to_string(),
         date: on,
         deadline: owed,
         priority: ranked(args)?,
@@ -181,7 +312,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         source: text(args, "source"),
     };
     let plan =
-        tisty_core::capture::plan(&state, draft).map_err(|e| with_the_names(refused(e), &state))?;
+        tisty_core::capture::plan(state, draft).map_err(|e| with_the_names(refused(e), state))?;
     let id = plan.task;
     let mut ops = plan.ops;
     if let Some(body) = text(args, "description") {
@@ -214,73 +345,20 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         });
         step = order::after(&step);
     }
-
-    let source = text(args, "source");
-    let taken = source.clone();
-    // Checked again under the lock: two agents reading the same thread at once must not
-    // both get through. A closed task from that source stands aside only when `again` says so.
-    let written = store
-        .append_batch_unless(ops, move |events| match &taken {
-            None => false,
-            Some(one) => {
-                let held = State::replay(events);
-                already(&held, one).is_some_and(|id| {
-                    held.is_erased(id) && !again
-                        || held
-                            .tasks
-                            .get(&id)
-                            .is_some_and(|task| task.is_open() || !again)
-                })
-            }
-        })
-        .map_err(hitch)?;
-
-    let Some(_) = written else {
-        let held = State::replay(&store.read_all().map_err(hitch)?);
-        let task = source
-            .as_deref()
-            .and_then(|one| already(&held, one))
-            .and_then(|id| held.tasks.get(&id));
-        return Ok(told(
-            match task {
-                Some(task) => format!(
-                    "Already proposed from that source, as {}: {:?}. Nothing was written.",
-                    task.id, task.title
-                ),
-                None => "Already proposed from that source. Nothing was written.".into(),
-            },
-            json!({
-                "id": task.map(|one| one.id.to_string()),
-                "title": task.map(|one| one.title.clone()),
-                "proposed": false,
-            }),
-        ));
-    };
-    let landed = text(args, "list");
-    let where_at = match &landed {
-        Some(name) => format!("in {name}"),
-        None => "in the inbox".to_string(),
-    };
-    let mut kept = serde_json::Map::new();
-    kept.insert("id".into(), json!(id.to_string()));
-    kept.insert("title".into(), json!(title));
-    if let Some(landed) = &landed {
-        kept.insert("list".into(), json!(landed));
+    for op in &mut ops {
+        if let Op::TaskAdd { id: born, d } = op
+            && *born == id
+        {
+            d.part_of = part_of;
+        }
     }
-    kept.insert("proposed".into(), json!(true));
-    if planned > 0 {
-        kept.insert("steps".into(), json!(planned));
-    }
-    Ok(told(
-        match planned {
-            0 => format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}."),
-            n => format!(
-                "Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
-                 `tick` each as you do it, `say_done` when all are."
-            ),
-        },
-        Value::Object(kept),
-    ))
+    Ok(Drafted {
+        id,
+        title: title.to_string(),
+        source: text(args, "source"),
+        ops,
+        planned,
+    })
 }
 
 pub(super) fn remind(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -802,6 +880,18 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                 "was done"
             },
             when(already.at)
+        )));
+    }
+    let open_parts = state
+        .parts_of(id)
+        .filter(|part| part.is_open() && !part.folded() && part.resolved.is_none())
+        .count();
+    if !drop && open_parts > 0 {
+        return Err(Refused::Tool(format!(
+            "{:?} still has {open_parts} part(s) open, and a whole is done only when its parts \
+             are. Say each done as you finish it; whether to let the rest go is the person's \
+             call, so say what is left with `note`.",
+            task.title
         )));
     }
     if drop && (task.repeat.is_some() || task.after.is_some()) {

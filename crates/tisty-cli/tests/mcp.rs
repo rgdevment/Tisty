@@ -5814,3 +5814,248 @@ fn the_tools_tell_the_limit_on_a_step_before_anyone_hits_it() {
         "propose and plan both say it"
     );
 }
+
+fn content(said: &serde_json::Value) -> &serde_json::Value {
+    &said["result"]["structuredContent"]
+}
+
+#[test]
+fn a_whole_and_its_parts_are_written_in_one_call() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "move house",
+            "parts": [
+                { "title": "book the van", "steps": ["compare prices"] },
+                { "title": "pack the kitchen" },
+                { "title": "change the address", "source": "move#3" }
+            ]
+        }),
+    );
+    let whole = content(&said)["id"].as_str().unwrap().to_string();
+    let parts = content(&said)["parts"].as_array().unwrap();
+    assert_eq!(parts.len(), 3, "{said}");
+
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &whole, "fields": ["parts"] }),
+    );
+    let listed: Vec<&str> = content(&read)["parts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|one| one["title"].as_str().unwrap())
+        .collect();
+    assert_eq!(listed.len(), 3, "every part answers to its whole: {read}");
+
+    let found = served.call("find", serde_json::json!({ "part_of": &whole }));
+    assert_eq!(content(&found)["total"], 3, "{found}");
+    let one = served.call(
+        "read",
+        serde_json::json!({ "task": parts[0]["id"], "fields": ["part_of"] }),
+    );
+    assert_eq!(content(&one)["part_of"], whole.as_str());
+}
+
+#[test]
+fn one_bad_part_and_nothing_at_all_is_written() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    for parts in [
+        serde_json::json!([{ "title": "book the van" }, { "steps": ["no title"] }]),
+        serde_json::json!([{ "title": "book the van", "steps": ["x".repeat(101)] }]),
+        serde_json::json!([{ "title": "book the van", "parts": [{ "title": "deeper" }] }]),
+        serde_json::json!(
+            (0..33)
+                .map(|n| serde_json::json!({ "title": format!("part {n}") }))
+                .collect::<Vec<_>>()
+        ),
+    ] {
+        let said = served.call(
+            "propose",
+            serde_json::json!({ "title": "move house", "parts": parts }),
+        );
+        assert_eq!(said["result"]["isError"], true, "{said}");
+    }
+    assert!(
+        !served.cli(&["ls", "all"]).contains("move house"),
+        "a refused part takes its whole with it"
+    );
+}
+
+#[test]
+fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
+    let served = Served::new();
+    let persons = {
+        served.cli(&["the persons own"]);
+        let found = served.cli(&["ls", "all", "--json"]);
+        let all: serde_json::Value = serde_json::from_str(&found).unwrap();
+        all.as_array()
+            .unwrap()
+            .iter()
+            .find(|one| one["title"] == "the persons own")
+            .unwrap()["id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    served.cli(&["agent", "--on"]);
+    let its_own = filed(&served, "plan the move");
+
+    let under_persons = served.call(
+        "propose",
+        serde_json::json!({ "title": "pack", "part_of": persons }),
+    );
+    assert_eq!(under_persons["result"]["isError"], true, "{under_persons}");
+    assert!(!served.cli(&["ls", "all"]).contains("pack"));
+
+    let under_its_own = served.call(
+        "propose",
+        serde_json::json!({ "title": "book the van", "part_of": &its_own }),
+    );
+    assert_ne!(under_its_own["result"]["isError"], true, "{under_its_own}");
+    let read = served.call("read", serde_json::json!({ "task": &its_own }));
+    assert_eq!(
+        content(&read)["parts"].as_array().map(Vec::len),
+        Some(1),
+        "reading the whole lists its parts: {read}"
+    );
+    let found = served.call("find", serde_json::json!({ "query": "plan the move" }));
+    assert!(
+        found.to_string().contains("\"parts\":\"0/1\""),
+        "a listing counts them instead: {found}"
+    );
+}
+
+#[test]
+fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "title": "move house", "parts": [{ "title": "book the van" }] }),
+    );
+    let whole = content(&said)["id"].as_str().unwrap().to_string();
+    let part = content(&said)["parts"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let early = served.call(
+        "say_done",
+        serde_json::json!({ "task": &whole, "body": "all moved" }),
+    );
+    assert_eq!(early["result"]["isError"], true, "{early}");
+
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &part, "body": "booked for friday" }),
+    );
+    let after = served.call(
+        "say_done",
+        serde_json::json!({ "task": &whole, "body": "all moved" }),
+    );
+    assert_ne!(after["result"]["isError"], true, "{after}");
+}
+
+#[test]
+fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    served.call(
+        "propose",
+        serde_json::json!({ "title": "read the thread", "source": "sereno#1" }),
+    );
+
+    for parts in [
+        serde_json::json!([{ "title": "book the van", "source": "sereno#1" }]),
+        serde_json::json!([
+            { "title": "book the van", "source": "move#2" },
+            { "title": "pack", "source": "Move #2" }
+        ]),
+        serde_json::json!([{ "title": "book the van", "source": "MOVE: #9" }]),
+    ] {
+        let said = served.call(
+            "propose",
+            serde_json::json!({ "title": "move house", "source": "move#9", "parts": parts }),
+        );
+        assert_eq!(said["result"]["isError"], true, "{said}");
+    }
+    assert!(!served.cli(&["ls", "all"]).contains("move house"));
+}
+
+#[test]
+fn a_part_the_person_hid_does_not_hold_its_whole_back() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "move house",
+            "parts": [{ "title": "book the van" }, { "title": "pack" }]
+        }),
+    );
+    let whole = content(&said)["id"].as_str().unwrap().to_string();
+    let booked = content(&said)["parts"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let packing = content(&said)["parts"][1]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &booked, "body": "booked" }),
+    );
+    hide(&served, &packing);
+
+    let found = served.call("find", serde_json::json!({ "query": "move house" }));
+    assert!(
+        found.to_string().contains("\"parts\":\"0/1\""),
+        "the count leaves out what the person hid, as reading does: {found}"
+    );
+
+    let after = served.call(
+        "say_done",
+        serde_json::json!({ "task": &whole, "body": "moved" }),
+    );
+    assert_ne!(after["result"]["isError"], true, "{after}");
+}
+
+#[test]
+fn again_reaches_the_parts_of_a_whole_filed_anew() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+    let first = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "spring clean",
+            "source": "home#1",
+            "parts": [{ "title": "windows", "source": "home#1.1" }]
+        }),
+    );
+    let whole = content(&first)["id"].as_str().unwrap().to_string();
+    let part = content(&first)["parts"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.cli(&["done", &part]);
+    served.cli(&["done", &whole]);
+
+    let again = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "spring clean",
+            "source": "home#1",
+            "again": true,
+            "parts": [{ "title": "windows", "source": "home#1.1" }]
+        }),
+    );
+    assert_ne!(again["result"]["isError"], true, "{again}");
+    assert_eq!(content(&again)["proposed"], true, "{again}");
+}
