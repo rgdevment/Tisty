@@ -202,6 +202,17 @@ pub fn is_the_one(kept: &str, at: &Path) -> bool {
     !path.is_empty() && as_written(Path::new(path)) == as_written(at)
 }
 
+pub fn under_windows_apps(running: &Path) -> bool {
+    running
+        .to_string_lossy()
+        .split(['/', '\\'])
+        .any(|part| part.eq_ignore_ascii_case("WindowsApps"))
+}
+
+pub fn from_the_store() -> bool {
+    std::env::current_exe().is_ok_and(|at| under_windows_apps(&at))
+}
+
 pub fn profile() -> Option<String> {
     named(&std::env::var(PROFILE_ENV).ok()?)
 }

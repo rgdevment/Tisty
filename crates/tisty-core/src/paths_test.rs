@@ -1,4 +1,4 @@
-use super::{as_written, aside, named, told_apart};
+use super::{as_written, aside, from_the_store, named, told_apart, under_windows_apps};
 use std::path::PathBuf;
 
 #[test]
@@ -161,4 +161,28 @@ fn a_folder_that_is_not_there_is_written_down_as_it_was_asked_for() {
 
     assert_eq!(as_written(&nowhere), nowhere.display().to_string());
     assert_eq!(told_apart(&nowhere), None, "nothing there to tell apart");
+}
+
+#[test]
+fn only_a_copy_kept_under_windows_apps_is_the_stores() {
+    for packaged in [
+        r"C:\Program Files\WindowsApps\rgdevment.Tisty_1.24.0.0_x64__kdjgfdc2rb3gc\cli\tisty.exe",
+        "/c/program files/windowsapps/tisty/Tisty.exe",
+    ] {
+        assert!(
+            under_windows_apps(std::path::Path::new(packaged)),
+            "{packaged}"
+        );
+    }
+    for loose in [
+        r"C:\Users\someone\AppData\Local\Programs\Tisty\tisty.exe",
+        r"C:\Tools\NotWindowsApps\tisty.exe",
+    ] {
+        assert!(!under_windows_apps(std::path::Path::new(loose)), "{loose}");
+    }
+}
+
+#[test]
+fn a_test_binary_is_no_store_copy() {
+    assert!(!from_the_store());
 }

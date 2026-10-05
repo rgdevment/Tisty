@@ -888,7 +888,7 @@ fn bring(
                 .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
             {
                 Ok(coming) => coming,
-                Err(tisty_core::Error::UnsupportedVersion(_)) => {
+                Err(tisty_core::Error::UnsupportedVersion { .. }) => {
                     witness::warn(
                         channel::SYNC,
                         "another machine writes a newer schema, so nothing was carried either way",

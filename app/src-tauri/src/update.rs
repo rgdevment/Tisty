@@ -224,12 +224,7 @@ const CASKS: [&str; 2] = ["tisty", "tisty-beta"];
 const FORMULAE: [&str; 2] = ["tisty-cli", "tisty-cli-beta"];
 
 fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Kept {
-    let packaged = running.is_some_and(|at| {
-        at.to_string_lossy()
-            .split(['/', '\\'])
-            .any(|part| part.eq_ignore_ascii_case("WindowsApps"))
-    });
-    if packaged {
+    if running.is_some_and(tisty_core::paths::under_windows_apps) {
         return Kept::plain(Route::Store);
     }
 
