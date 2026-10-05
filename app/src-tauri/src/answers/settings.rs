@@ -37,6 +37,7 @@ pub const GUIDE_ES: &str = include_str!("../../resources/guide/es/guia.md");
 pub const GUIDE_EN: &str = include_str!("../../resources/guide/en/guide.md");
 
 pub const NOTICES: &str = include_str!("../../../../THIRD-PARTY-BUNDLED.md");
+pub const LICENCES: &str = include_str!("../../../../THIRD-PARTY-LICENSES.md");
 
 use tauri::{Emitter, Manager};
 use tisty_core::Op;
@@ -302,6 +303,11 @@ pub fn guide(
 #[tauri::command]
 pub fn notices() -> &'static str {
     NOTICES
+}
+
+#[tauri::command]
+pub fn licences() -> &'static str {
+    LICENCES
 }
 
 #[tauri::command]

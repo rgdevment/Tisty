@@ -4,6 +4,7 @@ import linkunbound from "../assets/linkunbound.png";
 import {
   about,
   type About as Build,
+  licences,
   notices,
   openLink,
   type Ready,
@@ -55,6 +56,7 @@ export default function About({
   const [trouble, setTrouble] = useState<string | null>(null);
   const [asked, setAsked] = useState(false);
   const [said, setSaid] = useState<string | null>(null);
+  const [texts, setTexts] = useState<string | null>(null);
   const [looking, setLooking] = useState(false);
   const [found, setFound] = useState<Ready | "none" | null>(null);
 
@@ -340,12 +342,31 @@ export default function About({
             >
               {t("aboutNotices")}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (texts !== null) return setTexts(null);
+                licences().then(setTexts).catch(onError);
+              }}
+              aria-expanded={texts !== null}
+              className={mild}
+            >
+              {t("aboutLicences")}
+            </button>
           </div>
         )}
         {said !== null && (
           <Composed
             label={t("aboutNotices")}
             html={composed(said)}
+            onError={onError}
+            className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
+          />
+        )}
+        {texts !== null && (
+          <Composed
+            label={t("aboutLicences")}
+            html={composed(texts)}
             onError={onError}
             className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
           />

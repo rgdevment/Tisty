@@ -4,8 +4,11 @@
 
 Tisty is AGPL-3.0-only. The binary carries the work below, each under its own
 licence. Anything copied into Tisty's own source rather than bundled is in
-[THIRD-PARTY.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY.md)
-instead.
+[THIRD-PARTY.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY.md) instead.
+
+The crates are named with the licence each one declares; the licence texts they
+carry are in [THIRD-PARTY-LICENSES.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-LICENSES.md), each
+written once with the crates that carry it.
 
 ## In the window (258 packages)
 

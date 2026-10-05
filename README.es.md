@@ -853,8 +853,10 @@ sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
 [react-pdf](https://react-pdf.org) hace el PDF; [Vite](https://vite.dev) la
 construye y [Vitest](https://vitest.dev) la prueba.
 
-La lista completa, con versiones y licencias, está en `Cargo.lock` y
-`app/package-lock.json`.
+La lista completa, con versiones y licencias, está en
+[THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), y los textos de licencia que
+llevan las crates, en [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md); la
+pantalla Acerca de muestra los dos.
 
 ## Contribuir
 
