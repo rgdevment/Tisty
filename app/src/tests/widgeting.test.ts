@@ -45,7 +45,7 @@ const mounted = async (source = "<p>hola</p>") => {
   await vi.waitFor(() => expect(drawn.querySelector("iframe")).toBeTruthy());
   const frame = drawn.querySelector("iframe") as HTMLIFrameElement;
   const from = (data: unknown, source: MessageEventSource | null = frame.contentWindow) =>
-    window.dispatchEvent(new MessageEvent("message", { data, source }));
+    window.dispatchEvent(new MessageEvent("message", { data, source, origin: "null" }));
   return { drawn, frame, lending, from };
 };
 
@@ -118,6 +118,28 @@ describe("the frame a widget is drawn in", () => {
     document.documentElement.setAttribute("data-theme", "dark");
     lending.retheme();
     expect(frame.style.colorScheme).toBe("dark");
+    expect(frame.src, "the page was reloaded rather than told").toBe(
+      "http://widget.localhost/w1#dark",
+    );
+
+    document.documentElement.removeAttribute("data-theme");
+    lending.retheme();
+    expect(frame.src).toBe("http://widget.localhost/w1#light");
+    lending.drop();
+  });
+
+  it("hears its own frame only from the sealed origin it was given", async () => {
+    const { frame, lending } = await mounted();
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: { type: "resize", height: 300 },
+        source: frame.contentWindow,
+        origin: "http://widget.localhost",
+      }),
+    );
+
+    expect(frame.style.height).toBe(`${SHORTEST}px`);
     lending.drop();
   });
 

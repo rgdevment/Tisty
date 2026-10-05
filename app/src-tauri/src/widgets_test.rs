@@ -161,3 +161,16 @@ fn a_page_too_large_is_refused_by_its_size_before_a_byte_is_read() {
         "a page a document may hold, far past the ceiling, was let through to be read whole"
     );
 }
+
+#[test]
+fn the_theme_reaches_the_page_through_its_address_and_nothing_is_posted_into_it() {
+    let page = shell("<p>x</p>", false);
+    assert!(
+        page.contains("hashchange"),
+        "a theme change would need a message posted into the frame"
+    );
+    assert!(
+        !page.contains("addEventListener(\"message\""),
+        "the page listens for messages, and any window could send one"
+    );
+}

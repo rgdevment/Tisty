@@ -76,7 +76,7 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
   frame.style.colorScheme = darkNow() ? "dark" : "light";
 
   const listening = (event: MessageEvent) => {
-    if (event.source !== frame.contentWindow) return;
+    if (event.source !== frame.contentWindow || event.origin !== "null") return;
     const asked = heard(event.data);
     if (!asked) return;
     if (asked.type === "resize") {
@@ -128,7 +128,8 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
 
   const retheme = () => {
     frame.style.colorScheme = darkNow() ? "dark" : "light";
-    frame.contentWindow?.postMessage({ type: "theme", dark: darkNow() }, "*");
+    if (!frame.src) return;
+    frame.src = `${frame.src.split("#")[0]}#${darkNow() ? "dark" : "light"}`;
   };
   followed(retheme);
 
