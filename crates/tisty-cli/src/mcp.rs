@@ -7,6 +7,7 @@ mod jsonrpc;
 mod looking;
 mod papers;
 mod unpathing;
+mod wholes;
 
 use papers::editing::edit_doc;
 use papers::filing::{archive_doc, file_doc, flag_doc, folder};

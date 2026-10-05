@@ -56,7 +56,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(Refused::Tool(
             "`find` needs a `query`, a `source` to check whether it was proposed already, a \
              `doc` to look inside, or one of `tag`, `list`, `by_agent`, `said_done`, \
-             `open_to_agents`, `from_source`, `from` and `to` to sift by."
+             `open_to_agents`, `part_of`, `from_source`, `from` and `to` to sift by."
                 .into(),
         ));
     }
@@ -175,6 +175,7 @@ struct Sifted {
     by_agent: Option<bool>,
     said_done: Option<bool>,
     open_to_agents: Option<bool>,
+    part_of: Option<TaskId>,
     from_source: Option<String>,
     from: Option<jiff::civil::Date>,
     to: Option<jiff::civil::Date>,
@@ -330,6 +331,18 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
+    let parts: Vec<&Task> = state
+        .parts_of(task.id)
+        .filter(|one| !one.folded())
+        .collect();
+    if wants("parts") && !parts.is_empty() {
+        whole["parts"] = json!(
+            parts
+                .iter()
+                .map(|one| json!({ "id": one.id.to_string(), "title": one.title, "status": one.status }))
+                .collect::<Vec<_>>()
+        );
+    }
     if wants("journal") && task.journal().next().is_some() {
         whole["journal"] = json!(
             task.journal()
@@ -372,6 +385,17 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 "\n[{}] {}",
                 if one.done { 'x' } else { ' ' },
                 one.text
+            ));
+        }
+    }
+    if wants("parts") {
+        for one in &parts {
+            plainly.push_str(&format!(
+                "
+part [{}] {} — {}",
+                if one.is_open() { ' ' } else { 'x' },
+                one.id,
+                one.title
             ));
         }
     }
@@ -875,6 +899,16 @@ pub(super) fn brief(task: &Task, state: &State) -> Value {
         ),
     );
     put("open_to_agents", json!(task.open_to_agents.then_some(true)));
+    put(
+        "part_of",
+        json!(task.part_of.map(|whole| whole.to_string())),
+    );
+    let (closed, all) = state.parts_of(task.id).fold((0, 0), |(closed, all), part| {
+        (closed + usize::from(!part.is_open()), all + 1)
+    });
+    if all > 0 {
+        put("parts", json!(format!("{closed}/{all}")));
+    }
     Value::Object(kept)
 }
 
@@ -896,6 +930,14 @@ impl Sifted {
             by_agent: args.get("by_agent").and_then(Value::as_bool),
             said_done: args.get("said_done").and_then(Value::as_bool),
             open_to_agents: args.get("open_to_agents").and_then(Value::as_bool),
+            part_of: match text(args, "part_of") {
+                None => None,
+                Some(said) => Some(said.parse::<TaskId>().map_err(|_| {
+                    Refused::Tool(format!(
+                        "`part_of` takes a task id, and {said:?} is not one."
+                    ))
+                })?),
+            },
             from_source: text(args, "from_source").map(|one| alike(&one)),
             from: on("from")?,
             to: on("to")?,
@@ -908,6 +950,7 @@ impl Sifted {
             && self.by_agent.is_none()
             && self.said_done.is_none()
             && self.open_to_agents.is_none()
+            && self.part_of.is_none()
             && self.from_source.is_none()
             && self.from.is_none()
             && self.to.is_none()
@@ -935,6 +978,9 @@ impl Sifted {
             Some(true) => all.push("opened to agents".into()),
             Some(false) => all.push("kept to the person".into()),
             None => {}
+        }
+        if let Some(one) = &self.part_of {
+            all.push(format!("parts of {one}"));
         }
         if let Some(one) = &self.from_source {
             all.push(format!("out of {one}"));
@@ -991,6 +1037,11 @@ impl Sifted {
                         .created_by
                         .as_ref()
                         .is_some_and(|who| state.assistants.contains(who))))
+        {
+            return false;
+        }
+        if let Some(want) = self.part_of
+            && task.part_of != Some(want)
         {
             return false;
         }
