@@ -49,7 +49,7 @@ fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[Str
     }
 }
 
-async fn catching_up(
+pub(crate) async fn catching_up(
     session: &tauri::State<'_, Mutex<Session>>,
     paths: &tisty_core::Paths,
     said: &'static str,
@@ -234,17 +234,35 @@ pub async fn settle_in(
 
 #[tauri::command(async)]
 pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
-    let session = held(&session);
-    let config = &session.config;
-
-    let mut held: Vec<String> = session
-        .state
-        .tasks
-        .values()
-        .flat_map(|task| task.references())
-        .map(|one| one.target)
-        .collect();
-    held.extend(tisty_core::docs::referenced(&session.paths.docs()));
+    let (config, paths, mut held, open, archived, lists, let_go) = {
+        let session = held(&session);
+        let named: Vec<String> = session
+            .state
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        (
+            session.config.clone(),
+            session.paths.clone(),
+            named,
+            session.state.matching(&Filter::default(), today()).len(),
+            session
+                .state
+                .matching(
+                    &Filter {
+                        scope: Scope::Archived,
+                        ..Default::default()
+                    },
+                    today(),
+                )
+                .len(),
+            session.state.lists.len(),
+            let_go_to(&session),
+        )
+    };
+    held.extend(tisty_core::docs::referenced(&paths.docs()));
 
     let held_at = match &config.sync {
         Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
@@ -259,22 +277,13 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         asked: config.sync.is_some(),
         last: config.synced_at.map(|at| at.to_string()),
         heard: config.heard_at.map(|at| at.to_string()),
-        loose: tisty_core::attach::loose(session.paths.data(), &held).files(),
-        open: session.state.matching(&Filter::default(), today()).len(),
-        archived: session
-            .state
-            .matching(
-                &Filter {
-                    scope: Scope::Archived,
-                    ..Default::default()
-                },
-                today(),
-            )
-            .len(),
-        lists: session.state.lists.len(),
-        attachments: report::attachments(session.paths.data()).files,
-        weight: report::weighed(session.paths.data())
-            + report::also_weighed(session.paths.data(), let_go_to(&session).as_deref()),
+        loose: tisty_core::attach::loose(paths.data(), &held).files(),
+        open,
+        archived,
+        lists,
+        attachments: report::attachments(paths.data()).files,
+        weight: report::weighed(paths.data())
+            + report::also_weighed(paths.data(), let_go.as_deref()),
         carries: tisty_core::backup::AT_MOST,
         shared_was: config
             .shared_was
@@ -947,11 +956,19 @@ pub fn folder_astir(session: tauri::State<'_, Mutex<Session>>) -> Answer<String>
 
 #[tauri::command(async)]
 pub fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
-    let session = held(&session);
+    let (store, dest) = folder_and_store(&session)?;
+    Ok(kinned(&store, &dest))
+}
+
+/// Read after the lock is let go: a slow folder must not hold up every other command.
+fn folder_and_store(
+    session: &tauri::State<'_, Mutex<Session>>,
+) -> Answer<(std::path::PathBuf, std::path::PathBuf)> {
+    let session = held(session);
     let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
         return Err(Refusal::of("noRemote"));
     };
-    Ok(kinned(&session.paths.store(), &dest))
+    Ok((session.paths.store(), dest))
 }
 
 #[derive(serde::Serialize)]
@@ -965,11 +982,7 @@ pub struct Joining {
 
 #[tauri::command(async)]
 pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
-    let session = held(&session);
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
-    let store = session.paths.store();
+    let (store, dest) = folder_and_store(&session)?;
     Ok(Joining {
         kin: kinned(&store, &dest),
         fresh: !tisty_core::store::inhabited(&store),

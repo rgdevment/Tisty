@@ -399,7 +399,25 @@ pub enum Holding {
 }
 
 pub fn signed_at(dest: &Path) -> Option<String> {
-    let events = tisty_core::store::read_all(dest.join(STORE)).ok()?;
+    let mut events = Vec::new();
+    for device in std::fs::read_dir(dest.join(STORE))
+        .ok()?
+        .filter_map(|one| one.ok())
+    {
+        let at = device.path();
+        if !at.is_dir() || !tisty_core::holes::still_away(&at).is_empty() {
+            continue;
+        }
+        let Ok(segments) = tisty_core::store::segments_in(&at) else {
+            continue;
+        };
+        for segment in segments {
+            if let Ok(read) = tisty_core::store::read_tail(&segment, 0) {
+                events.extend(read);
+            }
+        }
+    }
+    events.sort_by(|one, other| one.sort_key().cmp(&other.sort_key()));
     tisty_core::State::replay(&events).signed.alias
 }
 

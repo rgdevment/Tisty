@@ -7734,3 +7734,18 @@ fn what_arrives_from_the_cloud_stirs_the_folder() {
 
     assert_ne!(before, stirring(shared.path()));
 }
+
+#[test]
+fn the_name_in_the_folder_is_read_from_what_is_here_and_never_waits_on_the_cloud() {
+    let signer = machine("uno");
+    signs(&signer, "mario");
+    let other = blank("dos");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&signer.data, &signer.device, shared.path(), Way::Push, &[]).unwrap();
+    carry(&other.data, &other.device, shared.path(), Way::Both, &[]).unwrap();
+    wrote(&other, "lo de dos".into());
+    carry(&other.data, &other.device, shared.path(), Way::Push, &[]).unwrap();
+    sent_up_to_the_cloud(&shared.path().join(STORE).join("dos").join("active.tisty"));
+
+    assert_eq!(signed_at(shared.path()).as_deref(), Some("mario"));
+}
