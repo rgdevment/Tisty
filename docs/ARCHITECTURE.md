@@ -1494,6 +1494,14 @@ the person asked for them gone; and ordering keys were minted independently, so
 lists interleave. An install that finds what an earlier one left, or a folder
 that already holds a history, plants no example lists to begin with.
 
+Twins that came before that rule, or by any other road, are put together by
+hand: the maintenance panel's **Repeated lists** names each repeated name, how
+many lists share it and how many tasks they hold (`doubled::repeated`), and
+joins them with the same `doubled` a merge runs. The choice of which list keeps
+the name reads the store as this machine sees it, so it is best done once the
+other machines have been brought in; done on two machines before they meet, a
+task can lose its list and land in the inbox, never more.
+
 **Keep this machine.** The folder is backed up, emptied, and repopulated from
 here. The other machine will be refused next time and will face the same
 question — that consequence is stated up front, because it is not obvious.

@@ -61,6 +61,7 @@ import {
   type Theme,
   type Twins,
   takeOutOfReach,
+  tidyMerged,
   twinned,
   unwireAgent,
   type Waking,
@@ -80,9 +81,11 @@ import { type Brittle, scanned } from "../scanning";
 import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
+import Card, { NAMED, type Which, type Word } from "./Card";
 import Keepers from "./Keepers";
 import { Asked, hushed, hushedName, MachineList } from "./Keys";
 import Modal from "./Modal";
+import Repeated from "./Repeated";
 
 const carried = {
   came: "syncCame",
@@ -91,31 +94,6 @@ const carried = {
   same: "syncSame",
   busy: "syncBusy",
 } as const;
-
-type Which =
-  | "sync"
-  | "backup"
-  | "restore"
-  | "review"
-  | "machines"
-  | "terminal"
-  | "quick"
-  | "waking"
-  | "settings"
-  | "notices"
-  | "attach"
-  | "holds"
-  | "tagging"
-  | "wiring"
-  | "report"
-  | "store"
-  | "brittle"
-  | "greet"
-  | "signing"
-  | "parcel"
-  | "tongue"
-  | "look";
-export type Word = { card: Which; text: string };
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
@@ -1473,6 +1451,25 @@ export default function Keeping({
               </div>
             </Card>
 
+            <Card
+              title={t("repeatedLists")}
+              which="repeated"
+              busy={busy}
+              said={said}
+              trouble={trouble}
+            >
+              <Repeated
+                held={held}
+                className={mild}
+                join={(then) =>
+                  run("repeated", tidyMerged(), () => {
+                    setSaid({ card: "repeated", text: t("repeatedDone") });
+                    then();
+                  })
+                }
+              />
+            </Card>
+
             <Group label={t("looseAre")} />
 
             <Card title={t("looseAre")} which="review" busy={busy} said={said} trouble={trouble}>
@@ -1917,40 +1914,6 @@ function Group({ label }: { label: string }) {
   );
 }
 
-interface CardProps {
-  title: string;
-  which: Which;
-  busy: Which | null;
-  said?: Word;
-  trouble?: Word;
-  children: React.ReactNode;
-}
-
-const NAMED: Record<Which, Parameters<typeof t>[0]> = {
-  sync: "syncing",
-  signing: "alias",
-  parcel: "bandParcels",
-  backup: "backup",
-  restore: "restoreTitle",
-  review: "review",
-  machines: "theMachines",
-  brittle: "brittleAre",
-  terminal: "terminal",
-  quick: "quick",
-  waking: "wake",
-  greet: "greetAgain",
-  tongue: "tongue",
-  look: "look",
-  settings: "settingsTitle",
-  notices: "bandNotices",
-  attach: "attachTitle",
-  holds: "holdsTitle",
-  tagging: "tagsRead",
-  wiring: "wiringTitle",
-  report: "reportTitle",
-  store: "aboutStore",
-};
-
 const TAIL = 300;
 const LOGS = "\n--- tisty.log ---";
 
@@ -1965,21 +1928,6 @@ function Warned({ keeper, named }: { keeper: Keeper; named?: string }) {
       <span className="block text-[12.5px] font-semibold text-ink">{warning.said}</span>
       {warning.why}
     </div>
-  );
-}
-
-function Card({ title, which, busy, said, trouble, children }: CardProps) {
-  const waiting = busy !== null && busy !== which;
-  return (
-    <section className="mb-3 rounded-[10px] border border-hair px-4 py-3.5">
-      <h3 className="mb-0.5 text-[13px] font-semibold">{title}</h3>
-      {children}
-      {waiting && (
-        <p className="mt-2 text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
-      )}
-      {trouble?.card === which && <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>}
-      {said?.card === which && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
-    </section>
   );
 }
 

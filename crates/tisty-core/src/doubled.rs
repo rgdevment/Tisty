@@ -32,6 +32,29 @@ pub fn doubled(state: &State) -> Vec<Op> {
     ops
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Repeated {
+    pub name: String,
+    pub lists: usize,
+    pub tasks: usize,
+}
+
+/// The lists `doubled` would put together, named as the one that keeps the name.
+pub fn repeated(state: &State) -> Vec<Repeated> {
+    lists_named_alike(state)
+        .into_iter()
+        .map(|group| Repeated {
+            name: state.lists[&group[0]].name.clone(),
+            lists: group.len(),
+            tasks: state
+                .tasks
+                .values()
+                .filter(|one| one.list.is_some_and(|list| group.contains(&list)))
+                .count(),
+        })
+        .collect()
+}
+
 // The list that keeps the name is the one with the most in it, then the one that came first.
 fn lists_named_alike(state: &State) -> Vec<Vec<ListId>> {
     let held = |id: &ListId| {

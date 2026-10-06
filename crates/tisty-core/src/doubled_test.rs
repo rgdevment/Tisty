@@ -113,3 +113,37 @@ fn the_guide_each_side_brought_is_kept_once() {
     assert!(state.docs[&second].archived);
     assert!(!state.docs[&other].archived);
 }
+
+#[test]
+fn what_would_be_put_together_is_told_before_anything_moves() {
+    let mut state = State::default();
+    let sample = list(&mut state, 1, "Trabajo", "a0");
+    let real = list(&mut state, 2, "trabajo ", "b0");
+    let third = list(&mut state, 3, "TRABAJO", "c0");
+    let alone = list(&mut state, 4, "Familia", "d0");
+    task_in(&mut state, 5, real);
+    task_in(&mut state, 6, real);
+    task_in(&mut state, 7, sample);
+    task_in(&mut state, 8, alone);
+
+    let told = repeated(&state);
+
+    assert_eq!(
+        told,
+        vec![Repeated {
+            name: "trabajo".into(),
+            lists: 3,
+            tasks: 3,
+        }],
+        "named as the list that keeps the name, with every task of the group counted once"
+    );
+    assert!(state.lists.contains_key(&sample) && state.lists.contains_key(&third));
+}
+
+#[test]
+fn nothing_is_told_when_no_name_repeats() {
+    let mut state = State::default();
+    list(&mut state, 1, "Trabajo", "a0");
+    list(&mut state, 2, "Personal", "b0");
+    assert!(repeated(&state).is_empty());
+}
