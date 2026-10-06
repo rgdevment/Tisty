@@ -4,7 +4,7 @@ import { fill, t } from "../locales";
 import Confirming from "./Confirming";
 
 export default function Knocking() {
-  const { waiting, quiet, asking } = useKnocking();
+  const { waiting, quiet, asking, asked } = useKnocking();
   useEffect(() => {
     void knock();
   }, []);
@@ -47,7 +47,7 @@ export default function Knocking() {
           </span>
         </div>
       )}
-      {asking && <Confirming waiting={waiting} />}
+      {asking && <Confirming key={asked} waiting={waiting} />}
     </>
   );
 }

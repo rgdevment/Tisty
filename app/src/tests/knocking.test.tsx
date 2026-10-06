@@ -230,4 +230,18 @@ describe("a computer waiting to be confirmed", () => {
     expect(knocking().asking).toBe(false);
     expect(knocking().quiet).toBe(true);
   });
+
+  it("follows a machine asked about while the dialog is already open", async () => {
+    vi.useRealTimers();
+    render(<Knocking />);
+    await act(() => knock());
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+    expect(screen.getByText(fill("confirmTitle", "MacBook Pro de Rodrigo"))).toBeTruthy();
+
+    await act(() => askAbout({ ...mac, id: "dev_imac", name: "iMac" }));
+    await flush();
+
+    expect(screen.getByText(fill("confirmTitle", "iMac"))).toBeTruthy();
+  });
 });

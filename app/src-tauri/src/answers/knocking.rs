@@ -57,9 +57,7 @@ pub fn this_machine(session: tauri::State<'_, Mutex<Session>>) -> Answer<ThisMac
     };
     let named = tisty_core::called::here();
     Ok(ThisMachine {
-        code: tisty_core::signing::shown_kept(&paths, &who)
-            .as_deref()
-            .and_then(tisty_core::signing::spoken),
+        code: super::agents::spoken_by(&paths, Some(&who)),
         id: who.0,
         name: named.as_ref().map(|one| one.name.clone()),
         os: named.and_then(|one| one.os),

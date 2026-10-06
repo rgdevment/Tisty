@@ -14,7 +14,10 @@ pub struct Agent {
 }
 
 // What another computer is asked to compare before it lets this machine's agent in.
-fn spoken_by(paths: &tisty_core::Paths, who: Option<&tisty_core::DeviceId>) -> Option<String> {
+pub(crate) fn spoken_by(
+    paths: &tisty_core::Paths,
+    who: Option<&tisty_core::DeviceId>,
+) -> Option<String> {
     tisty_core::signing::shown_kept(paths, who?)
         .as_deref()
         .and_then(tisty_core::signing::spoken)

@@ -1,5 +1,5 @@
 import type { Machine } from "../core";
-import { askAbout } from "../knocking";
+import { askAbout, shownAs } from "../knocking";
 import { fill, t } from "../locales";
 import Modal from "./Modal";
 
@@ -34,7 +34,7 @@ export const waiting = (one: Machine): boolean => one.turnedAway === "unconfirme
 
 const standing = (one: Machine): string | null => one.confirmed ?? one.signs ?? null;
 
-export const named = (one: Machine): string => one.name || one.called;
+export const named = shownAs;
 
 // The code is what both windows show; the raw key stays for a machine that has not said one.
 const spoken = (one: Machine): string => one.code ?? briefly(standing(one) ?? "");

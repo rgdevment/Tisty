@@ -5,9 +5,10 @@ export interface Knocking {
   waiting: Machine[];
   quiet: boolean;
   asking: boolean;
+  asked: number;
 }
 
-let now: Knocking = { waiting: [], quiet: false, asking: false };
+let now: Knocking = { waiting: [], quiet: false, asking: false, asked: 0 };
 const told = new Set<() => void>();
 
 const set = (next: Partial<Knocking>) => {
@@ -28,10 +29,14 @@ export const settled = () => set({ waiting: [] });
 
 export const hush = () => set({ quiet: true });
 
-export const ask = () => set({ asking: true });
+export const ask = () => set({ asking: true, asked: now.asked + 1 });
 
 export const askAbout = (one: Machine) =>
-  set({ asking: true, waiting: [one, ...now.waiting.filter((had) => had.id !== one.id)] });
+  set({
+    asking: true,
+    asked: now.asked + 1,
+    waiting: [one, ...now.waiting.filter((had) => had.id !== one.id)],
+  });
 
 export const done = () => set({ asking: false });
 
