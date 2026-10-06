@@ -8460,11 +8460,40 @@ fn removing_the_waiting_machine_puts_its_document_to_the_person() {
     let moved = turn(&one, kept.path(), shared.path());
 
     assert!(moved.waiting.is_empty(), "{moved:?}");
+    assert!(
+        !moved.unconfirmed.contains(&"dev_w".to_string()),
+        "a removed machine was still said to be waiting to be confirmed"
+    );
     assert_eq!(
         moved.undecided_ids(),
         vec!["uno-0001".to_string()],
         "a removed machine kept its document waiting with no way out"
     );
+}
+
+#[test]
+fn a_locked_document_a_waiting_machine_answers_for_is_put_to_the_person() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let (one, id) = a_document_settled_in(shared.path(), kept.path());
+    waiting_writer(
+        shared.path(),
+        id,
+        "# Notas
+
+lo que cambio el otro
+",
+        true,
+    );
+    says(&one, Op::DocLock { id });
+
+    let moved = turn(&one, kept.path(), shared.path());
+
+    assert!(
+        moved.waiting.is_empty(),
+        "a locked document was said to be waiting on a machine: {moved:?}"
+    );
+    assert_eq!(moved.undecided_ids(), vec!["uno-0001".to_string()]);
 }
 
 #[test]

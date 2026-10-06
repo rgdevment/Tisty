@@ -33,6 +33,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
         &[],
         None,
         None,
+        &|_, _| false,
         false,
         false,
         true,
@@ -53,6 +54,7 @@ pub fn carry_papers_holding(
         shut,
         None,
         None,
+        &|_, _| false,
         false,
         false,
         true,
@@ -68,6 +70,7 @@ pub(crate) fn carry_papers_leaning_on(
     shut: &[String],
     empty: Option<&[String]>,
     printed: Option<&std::collections::BTreeMap<String, Answers>>,
+    held: &dyn Fn(&str, &str) -> bool,
     again: bool,
     been_here: bool,
     taking: bool,
@@ -159,15 +162,18 @@ pub(crate) fn carry_papers_leaning_on(
 
             let how = moved(said.of(id), ours.as_deref(), yours.as_deref());
             let answer = match how {
-                Move::Bring | Move::TheyDecide if taking => {
-                    answered_for(yours.as_ref(), printed.and_then(|told| told.get(id)), id)
-                }
+                Move::Bring | Move::TheyDecide if taking => answered_for(
+                    yours.as_ref(),
+                    printed.and_then(|told| told.get(id)),
+                    id,
+                    &|print| held(id, print),
+                ),
                 _ => Answer::Yes,
             };
             let how = match how {
                 Move::Bring | Move::TheyDecide if !taking => continue,
                 // Only a body nobody here touched waits: one edited on both sides is put to the person as ever.
-                Move::Bring if answer == Answer::Waits => {
+                Move::Bring if answer == Answer::Waits && !shut.contains(id) => {
                     witness::note(
                         channel::SYNC,
                         "a body a machine still waiting to be confirmed answers for waits with it",
@@ -177,6 +183,13 @@ pub(crate) fn carry_papers_leaning_on(
                     continue;
                 }
                 Move::Bring | Move::TheyDecide if matches!(answer, Answer::No | Answer::Waits) => {
+                    if answer == Answer::Waits {
+                        witness::warn(
+                            channel::SYNC,
+                            "a body a waiting machine answers for meets a change here or a lock, so the person decides it",
+                            &[("at", Fact::Id(id.clone()))],
+                        );
+                    }
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
@@ -348,7 +361,6 @@ pub(crate) struct Answers {
     pub newest: Option<String>,
     pub own: Option<String>,
     pub others: std::collections::BTreeSet<String>,
-    pub waiting: std::collections::BTreeSet<String>,
 }
 
 impl Answers {
@@ -379,7 +391,12 @@ fn set_aside(data: &Path, id: &str, mine: &Path, left: &str) {
     }
 }
 
-fn answered_for(print: Option<&String>, says: Option<&Answers>, id: &str) -> Answer {
+fn answered_for(
+    print: Option<&String>,
+    says: Option<&Answers>,
+    id: &str,
+    held: &dyn Fn(&str) -> bool,
+) -> Answer {
     let (Some(print), Some(says)) = (print, says) else {
         return Answer::Yes;
     };
@@ -389,7 +406,7 @@ fn answered_for(print: Option<&String>, says: Option<&Answers>, id: &str) -> Ans
     if says.others.contains(print) {
         return Answer::Doubtful;
     }
-    if says.waiting.contains(print) {
+    if held(print) {
         return Answer::Waits;
     }
     witness::warn(
@@ -398,6 +415,38 @@ fn answered_for(print: Option<&String>, says: Option<&Answers>, id: &str) -> Ans
         &[("at", Fact::Id(id.to_string()))],
     );
     Answer::No
+}
+
+pub(crate) fn held_back_prints(
+    store: &Path,
+    dest: &Path,
+    waiting: &[String],
+    told: &tisty_core::State,
+) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
+    let mut held: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
+        Default::default();
+    if waiting.is_empty() {
+        return held;
+    }
+    let Ok(ledger) = tisty_core::store::ledger(store) else {
+        return held;
+    };
+    for named in waiting {
+        let who = tisty_core::DeviceId(named.clone());
+        if ledger.was_removed(&who) {
+            continue;
+        }
+        let at = dest.join(crate::STORE).join(named);
+        let known = ledger.keys.get(&who).map(String::as_str);
+        for (id, print) in
+            tisty_core::store::introduced::prints_in(&at, &who, known).unwrap_or_default()
+        {
+            if let Some(paper) = told.docs.get(&id) {
+                held.entry(paper.file.clone()).or_default().insert(print);
+            }
+        }
+    }
+    held
 }
 
 #[cfg(test)]

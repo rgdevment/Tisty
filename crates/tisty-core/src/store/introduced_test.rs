@@ -117,7 +117,7 @@ fn a_history_signed_under_another_key_than_the_one_known_here_says_nothing() {
 }
 
 #[test]
-fn only_the_last_print_a_waiting_machine_gave_a_document_counts() {
+fn every_print_a_waiting_machine_gave_a_document_counts() {
     let dir = tempfile::tempdir().unwrap();
     let (who, doc) = written(dir.path(), true);
     let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
@@ -137,8 +137,15 @@ fn only_the_last_print_a_waiting_machine_gave_a_document_counts() {
         .unwrap();
     drop(store);
 
+    let mut said = prints_in(&dir.path().join("store").join("dev_w"), &who, None).unwrap();
+    said.sort();
+
     assert_eq!(
-        prints_in(&dir.path().join("store").join("dev_w"), &who, None),
-        Some(vec![(doc, "la-huella-despues".to_string())])
+        said,
+        vec![
+            (doc, "la-huella".to_string()),
+            (doc, "la-huella-despues".to_string())
+        ],
+        "a body this machine wrote earlier and the folder still holds was put to the person"
     );
 }

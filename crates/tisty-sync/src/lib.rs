@@ -247,7 +247,9 @@ pub fn carry_telling(
         .filter(|paper| paper.bytes == Some(0))
         .map(|paper| paper.file.clone())
         .collect();
-    let held_back = held_back_prints(&store, dest, &moved.unconfirmed, &told);
+    let held_back: std::cell::OnceCell<
+        std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
+    > = Default::default();
     let printed: std::collections::BTreeMap<String, papers::Answers> = told
         .docs
         .values()
@@ -269,7 +271,6 @@ pub fn carry_telling(
                     newest: paper.print.clone(),
                     own,
                     others,
-                    waiting: held_back.get(&paper.file).cloned().unwrap_or_default(),
                 },
             )
         })
@@ -303,6 +304,14 @@ pub fn carry_telling(
             &shut,
             Some(&empty),
             Some(&printed),
+            &|file, print| {
+                held_back
+                    .get_or_init(|| {
+                        papers::held_back_prints(&store, dest, &moved.unconfirmed, &told)
+                    })
+                    .get(file)
+                    .is_some_and(|prints| prints.contains(print))
+            },
             again,
             been_here,
             taking,
@@ -713,39 +722,6 @@ fn claimed(
     Ok(told.keys.get(who).cloned())
 }
 
-// A machine the person removed is no longer waiting, so what it said stops holding anything back.
-fn held_back_prints(
-    store: &Path,
-    dest: &Path,
-    waiting: &[String],
-    told: &tisty_core::State,
-) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
-    let mut held: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
-        Default::default();
-    if waiting.is_empty() {
-        return held;
-    }
-    let Ok(ledger) = tisty_core::store::ledger(store) else {
-        return held;
-    };
-    for named in waiting {
-        let who = tisty_core::DeviceId(named.clone());
-        if ledger.was_removed(&who) {
-            continue;
-        }
-        let at = dest.join(STORE).join(named);
-        let known = ledger.keys.get(&who).map(String::as_str);
-        for (id, print) in
-            tisty_core::store::introduced::prints_in(&at, &who, known).unwrap_or_default()
-        {
-            if let Some(paper) = told.docs.get(&id) {
-                held.entry(paper.file.clone()).or_default().insert(print);
-            }
-        }
-    }
-    held
-}
-
 /// An agent is taken on the word of a host this machine trusts, for the very key the host wrote.
 fn hosted(
     data: &Path,
@@ -1094,6 +1070,10 @@ fn bring(
                 continue;
             }
             Answered::Unconfirmed => {
+                let gone = tisty_core::DeviceId(named.to_string());
+                if knew.as_ref().is_some_and(|told| told.was_removed(&gone)) {
+                    continue;
+                }
                 away.insert(named.to_string(), turned::Away::Unconfirmed);
                 moved.unconfirmed.push(named.to_string());
                 continue;
