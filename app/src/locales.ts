@@ -934,7 +934,7 @@ const en = {
   ownLogUnreadable:
     "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
   someoneUnconfirmed:
-    "A machine is writing in the shared folder that nobody here has answered for, so nothing it writes has come in. Confirm it in Maintenance to let it through — what it wrote stays in the folder meanwhile and arrives whole.",
+    "A computer is waiting for you to confirm it is yours, so nothing it writes has come in yet. Look for the notice in the sidebar — what it wrote stays in the folder meanwhile and arrives whole.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
@@ -1311,7 +1311,7 @@ const en = {
   machineKeyAsk: "What happened",
   machineKeyTitle: "Confirm the key of {name}?",
   machineKeyRead:
-    "Open this same card on {name} and read its key there. If it is the one below, character by character, confirm it.",
+    "Open Settings → Maintenance on {name} and read its code there. If it is the one below, confirm it.",
   machineKeyThen:
     "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
   machineKeyForGood:
@@ -1438,6 +1438,43 @@ const en = {
   comingPapers: "Bringing documents…",
   comingAttachments: "Bringing attachments…",
   comingOf: "{name} of {other}",
+  knockOne: "«{name}» wants to sync",
+  knockMany: "{name} machines want to sync",
+  knockWhy: "Nothing it writes comes in until you confirm it is yours.",
+  knockManyWhy: "Nothing they write comes in until you confirm they are yours.",
+  knockConfirm: "Confirm…",
+  knockLater: "Not now",
+  knockDot: "A machine is waiting for you to confirm it",
+  confirmTitle: "Is «{name}» yours?",
+  confirmCount: "{name} of {other}",
+  confirmSince: "started writing {name}",
+  confirmWhat:
+    "That is what the computer calls itself. Before letting in what it writes, check that it is yours: the same code has to show on both.",
+  confirmStep:
+    "On that computer, open Tisty → Settings → Maintenance. «Your machines» shows its name and its code.",
+  confirmCodeOf: "Code of «{name}»",
+  confirmAsk: "Is it the same one that computer shows?",
+  confirmYes: "Yes, it is the same",
+  confirmNo: "It doesn't match",
+  confirmWhyAsk: "Why do I have to do this?",
+  confirmWhyIs:
+    "Each computer signs what it writes with a mark only it can make, and the code sums that mark up. If it matches on both, what arrives really comes from that computer and not from someone who put files in your folder. You do it once per computer.",
+  confirmHere:
+    "If that computer also asks you to confirm this one, the code here («{name}») is {other}",
+  confirmNoCode: "It has not said its code yet. Sync again on that computer and come back.",
+  confirmDone: "Done. «{name}» now syncs with this computer.",
+  confirmBringing: "Bringing in what it wrote…",
+  confirmBrought: "Everything it wrote has arrived.",
+  confirmNext: "Next: «{name}»",
+  confirmClose: "Close",
+  confirmMismatch: "Don't let it in",
+  confirmMismatchWhat:
+    "If the code is not the same, what it writes is not coming from the computer you think. Nothing changed here: what it wrote stays in the folder, outside.",
+  confirmMismatchDo:
+    "Did you reinstall or replace that computer recently? Then it comes back as a new one: look for it in the list and confirm that one. If not, check who has access to your shared folder.",
+  confirmGotIt: "Got it",
+  machineCode: "code",
+  machineCarried: "accepted on update",
   comingSlow: "The cloud is slow. It keeps bringing; you can work meanwhile.",
   comingHistory: "Your history is on its way",
   comingHistoryWhy:
@@ -2414,7 +2451,7 @@ const es: Catalog = {
   ownLogUnreadable:
     "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnconfirmed:
-    "Hay una máquina escribiendo en la carpeta compartida por la que nadie ha respondido aquí, así que nada de lo que escribe ha entrado. Confírmala en Mantenimiento para dejarla pasar — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
+    "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Busca el aviso en la barra lateral — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
@@ -2792,7 +2829,7 @@ const es: Catalog = {
   machineKeyAsk: "Qué pasó",
   machineKeyTitle: "¿Confirmar la clave de {name}?",
   machineKeyRead:
-    "Abre esta misma tarjeta en {name} y lee ahí su clave. Si es la de abajo, carácter por carácter, confírmala.",
+    "Abre Configuración → Mantenimiento en {name} y lee ahí su código. Si es el de abajo, confírmalo.",
   machineKeyThen:
     "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
   machineKeyForGood:
@@ -2919,6 +2956,43 @@ const es: Catalog = {
   comingPapers: "Trayendo documentos…",
   comingAttachments: "Trayendo adjuntos…",
   comingOf: "{name} de {other}",
+  knockOne: "«{name}» quiere sincronizar",
+  knockMany: "{name} equipos quieren sincronizar",
+  knockWhy: "Lo que escribe no entra hasta que confirmes que es tuyo.",
+  knockManyWhy: "Lo que escriben no entra hasta que confirmes que son tuyos.",
+  knockConfirm: "Confirmar…",
+  knockLater: "Ahora no",
+  knockDot: "Un equipo espera que lo confirmes",
+  confirmTitle: "¿«{name}» es tuyo?",
+  confirmCount: "{name} de {other}",
+  confirmSince: "empezó a escribir {name}",
+  confirmWhat:
+    "Así se llama ese computador. Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+  confirmStep:
+    "En ese computador, abre Tisty → Configuración → Mantenimiento. En «Tus equipos» aparece su nombre y su código.",
+  confirmCodeOf: "Código de «{name}»",
+  confirmAsk: "¿Es el mismo que muestra ese computador?",
+  confirmYes: "Sí, es el mismo",
+  confirmNo: "No coincide",
+  confirmWhyAsk: "¿Por qué tengo que hacer esto?",
+  confirmWhyIs:
+    "Cada computador firma lo que escribe con una marca que solo él puede poner, y el código resume esa marca. Si coincide en los dos, lo que llega viene de verdad de ese computador y no de alguien que puso archivos en tu carpeta. Se hace una vez por computador.",
+  confirmHere:
+    "Si ese computador también te pide confirmar este, el código de aquí («{name}») es {other}",
+  confirmNoCode: "Todavía no dice su código. Sincroniza en ese computador y vuelve.",
+  confirmDone: "Listo. «{name}» ya sincroniza con este computador.",
+  confirmBringing: "Trayendo lo que escribió…",
+  confirmBrought: "Llegó todo lo que escribió.",
+  confirmNext: "Siguiente: «{name}»",
+  confirmClose: "Cerrar",
+  confirmMismatch: "No lo dejes entrar",
+  confirmMismatchWhat:
+    "Si el código no es el mismo, lo que escribe no viene del computador que crees. Aquí no cambió nada: lo que escribió sigue en la carpeta, sin entrar.",
+  confirmMismatchDo:
+    "¿Reinstalaste o cambiaste ese computador hace poco? Entonces vuelve como uno nuevo: búscalo en la lista y confirma ese. Si no, revisa quién tiene acceso a tu carpeta compartida.",
+  confirmGotIt: "Entendido",
+  machineCode: "código",
+  machineCarried: "aceptado al actualizar",
   comingSlow: "La nube va lenta. Sigue trayendo; puedes trabajar mientras.",
   comingHistory: "Tu historia viene en camino",
   comingHistoryWhy:

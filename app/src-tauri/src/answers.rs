@@ -1,6 +1,7 @@
 pub mod agents;
 pub mod attaching;
 pub mod carrying;
+pub mod knocking;
 pub mod papers;
 pub mod parts;
 pub mod reporting;

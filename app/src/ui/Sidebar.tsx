@@ -4,6 +4,7 @@ import { t } from "../locales";
 import type { Chosen, Named } from "../views";
 import Coming from "./Coming";
 import Glyph from "./Glyph";
+import Knocking, { KnockDot } from "./Knocking";
 import Tree from "./Tree";
 
 interface Props {
@@ -122,6 +123,7 @@ export default function Sidebar({
         )}
       </div>
 
+      <Knocking />
       <Coming />
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
@@ -129,7 +131,7 @@ export default function Sidebar({
           aria-label={t("keeping")}
           title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
-          className={`grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
+          className={`relative grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
             chosen.named === "keeping" ? "bg-active text-accent" : "text-soft"
           }`}
         >
@@ -137,6 +139,7 @@ export default function Sidebar({
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.62.77 1.05 1.42 1.06H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
           </Drawn>
+          <KnockDot />
         </button>
         {waiting ? (
           <button

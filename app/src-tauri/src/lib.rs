@@ -905,6 +905,8 @@ pub fn run() {
             answers::storing::folder_astir,
             answers::storing::remove_machine,
             answers::storing::confirm_machine_key,
+            answers::knocking::waiting_machines,
+            answers::knocking::this_machine,
             answers::storing::retire_attachment,
             answers::papers::settle_paper,
             answers::storing::paper_rifts,

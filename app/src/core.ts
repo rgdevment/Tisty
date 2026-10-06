@@ -485,13 +485,28 @@ export interface Twins {
 export interface Machine {
   id: string;
   called: string;
+  name?: string | null;
+  os?: string | null;
   when: number;
+  since?: number;
   mine: boolean;
   signs: string | null;
+  code?: string | null;
   confirmed: string | null;
   confirmedWhen: number;
+  carried?: boolean;
   turnedAway: "disowned" | "unreadable" | "unconfirmed" | null;
 }
+
+export interface ThisMachine {
+  id: string;
+  name: string | null;
+  os: string | null;
+  code: string | null;
+}
+
+export const waitingMachines = (): Promise<Machine[]> => invoke("waiting_machines");
+export const thisMachine = (): Promise<ThisMachine> => invoke("this_machine");
 
 export interface Stray {
   file: string;

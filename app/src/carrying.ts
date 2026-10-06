@@ -1,4 +1,5 @@
 import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
+import { knock, settled } from "./knocking";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 
@@ -62,7 +63,10 @@ export function carrying(
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is
         // the one nobody is watching: saying nothing here is how it goes unnoticed for months.
-        const amiss = whatWentAmiss(answer);
+        if (answer.unconfirmed?.length) void knock();
+        else if (answer.carried !== "busy") settled();
+        const said = whatWentAmiss(answer);
+        const amiss = said === "someoneUnconfirmed" ? null : said;
         awry(
           answer.carried === "busy"
             ? { why: "busy" }
