@@ -13,8 +13,7 @@ impl State {
             .filter(move |task| task.part_of == Some(id))
     }
 
-    /// Judged at replay rather than where the event is written, so two machines that crossed a
-    /// move agree on where the part landed, and a build that wrote it differently cannot nest.
+    /// Judged at replay, so two machines that crossed a move agree on where the part landed.
     pub(crate) fn may_hold(&self, whole: TaskId, part: &Task, event: &Event) -> bool {
         let Some(holder) = self.tasks.get(&whole) else {
             return false;
@@ -40,8 +39,7 @@ impl State {
         }
     }
 
-    /// Written by a build that knew no parts, or crossing a move on another machine: the
-    /// windows refuse it before it is written.
+    /// Reachable only from a build that knew no parts, or a move crossed on another machine.
     pub(crate) fn turned_routine(&mut self, id: TaskId) {
         if !self.tasks.get(&id).is_some_and(repeats) {
             return;
@@ -55,8 +53,7 @@ impl State {
         }
     }
 
-    /// Why a repeat cannot be set here, if it cannot: what comes back never ends, and a whole
-    /// is there to end.
+    /// What comes back never ends, and a whole is there to end.
     pub fn repeat_refused(&self, id: TaskId) -> Option<&'static str> {
         let task = self.tasks.get(&id)?;
         match () {

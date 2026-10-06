@@ -48,6 +48,14 @@ pub fn settle(roots: &Roots) -> Settled {
     };
     swept(parent, &roots.new);
 
+    let needs: u64 = sources.iter().map(|source| weighed(source)).sum();
+    if let Ok(free) = fs4::available_space(parent)
+        && free < needs
+    {
+        return Settled::Failed(format!(
+            "there is not enough room to move it: it needs {needs} bytes and {free} are free"
+        ));
+    }
     let part = parent.join(format!("{}.part-{}", leaf(&roots.new), std::process::id()));
     let made = gathered(&part, &sources).and_then(|()| {
         let said: Vec<String> = sources
@@ -131,6 +139,32 @@ fn moved_note(new: &Path) -> String {
         "Tisty keeps this machine's tasks and documents in {} now.\nThis folder is a copy from before, left as it was.\n",
         new.display()
     )
+}
+
+fn weighed(root: &Path) -> u64 {
+    fn walked(at: &Path, seen: &mut std::collections::HashSet<PathBuf>) -> u64 {
+        let Ok(settled) = at.canonicalize() else {
+            return 0;
+        };
+        if !seen.insert(settled) {
+            return 0;
+        }
+        let Ok(entries) = std::fs::read_dir(at) else {
+            return 0;
+        };
+        entries
+            .filter_map(|one| one.ok())
+            .map(|one| match std::fs::metadata(one.path()) {
+                Ok(meta) if meta.is_dir() => walked(&one.path(), seen),
+                Ok(meta) => meta.len(),
+                Err(_) => 0,
+            })
+            .sum()
+    }
+    let mut seen = std::collections::HashSet::new();
+    KEPT.iter()
+        .map(|under| walked(&root.join(under), &mut seen))
+        .sum()
 }
 
 fn swept(parent: &Path, new: &Path) {

@@ -51,8 +51,6 @@ pub(super) fn whole_named(state: &State, args: &Value) -> Result<Option<TaskId>,
     }
 }
 
-/// Each part follows the one before it, so they read in the order they came, and lands in the
-/// whole's list unless it names its own.
 pub(super) fn parts_drafted(
     state: &State,
     args: &Value,

@@ -2367,6 +2367,33 @@ describe("the first-run assistant", () => {
     expect(await screen.findByText(t("welcomeOlder"))).toBeTruthy();
   });
 
+  it("says so when there is no newer Tisty to update to", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "update_ready" ? Promise.resolve(null) : answered(cmd, args);
+
+    await userEvent.click(screen.getByRole("button", { name: t("updateInstall") }));
+
+    expect(await screen.findByText(t("lookNowNone"))).toBeTruthy();
+    expect(sent("update_install")).toHaveLength(0);
+  });
+
+  it("updates from where it stands when this copy can update itself", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "update_ready"
+        ? Promise.resolve({ version: "1.24.0", route: "download", package: null, installs: true })
+        : answered(cmd, args);
+
+    await userEvent.click(screen.getByRole("button", { name: t("updateInstall") }));
+
+    await waitFor(() => expect(sent("update_install")).toHaveLength(1));
+  });
+
   it("goes back to the folders when another one is wanted instead", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await olderThanTheFolder();

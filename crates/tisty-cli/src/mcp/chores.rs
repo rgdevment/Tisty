@@ -168,8 +168,7 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let source = text(args, "source");
     let taken = source.clone();
-    // Checked again under the lock: two agents reading the same thread at once must not
-    // both get through. A closed task from that source stands aside only when `again` says so.
+    // Checked again under the lock: two agents reading one thread must not both get through.
     let written = store
         .append_batch_unless(ops, move |events| {
             if taken.is_none() && sourced.is_empty() {
@@ -254,8 +253,6 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-/// A task from this source stands in the way when it is open, or closed or erased without
-/// `again` asking for it anew.
 pub(super) fn standing(held: &State, source: &str, again: bool) -> Option<TaskId> {
     already(held, source).filter(|id| {
         held.is_erased(*id) && !again

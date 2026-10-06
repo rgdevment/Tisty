@@ -104,6 +104,19 @@ pub fn takes_itself_there() -> bool {
     update::self_installs(update::route().route) && !update::from_a_mount()
 }
 
+pub fn not_moved_words(spanish: bool, why: &str) -> String {
+    let said = if spanish {
+        "Tisty no pudo mover tus datos fuera de AppData, así que no abrió para no arriesgar la copia que ya tenías. Nada se perdió.
+
+Cierra cualquier otro Tisty que esté abierto y vuelve a abrirlo. Si sigue pasando, esto es lo que respondió el equipo: "
+    } else {
+        "Tisty could not move your data out of AppData, so it stayed closed rather than risk the copy you already had. Nothing was lost.
+
+Close any other Tisty that is open and start it again. If it keeps happening, this is what the computer answered: "
+    };
+    format!("{said}{why}")
+}
+
 pub fn behind_here(written_by: &str) -> (String, &'static str, &'static str) {
     behind_words(Behind {
         spanish: speaks_spanish(),
