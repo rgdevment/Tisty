@@ -31,6 +31,7 @@ export const openable = (href: string): "doc" | "web" | null => {
 export const OPENS_EVERY = 1000;
 export const CLIMBS_AT_MOST = 3;
 export const CLIMBS_WITHIN = 250;
+export const STUCK_FOR = 10_000;
 
 export const clickedInto = (frame: HTMLIFrameElement): boolean => {
   const activation = (navigator as { userActivation?: { isActive: boolean } }).userActivation;
@@ -71,6 +72,7 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
   let stride = 0;
   let climbedAt = Number.NEGATIVE_INFINITY;
   let stuck = 0;
+  let stuckAt = Number.NEGATIVE_INFINITY;
   const frame = document.createElement("iframe");
   frame.className = "lit-widget";
   frame.setAttribute("sandbox", "allow-scripts");
@@ -87,14 +89,18 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
       const next = tall(asked.height);
       const step = next - (Number.parseFloat(frame.style.height) || SHORTEST);
       if (step > 0) {
-        if (step === stuck) return;
         const now = Date.now();
+        if (step === stuck && now - stuckAt < STUCK_FOR) {
+          stuckAt = now;
+          return;
+        }
         climbed = step === stride && now - climbedAt < CLIMBS_WITHIN ? climbed + 1 : 1;
         stride = step;
         climbedAt = now;
         if (climbed >= CLIMBS_AT_MOST) {
-          // A page sized by its own frame climbs again at every later change, so that step stays refused.
+          // A page sized by its own frame climbs again at every later change, so that step stays refused while it keeps trying.
           stuck = step;
+          stuckAt = now;
           return;
         }
       } else {

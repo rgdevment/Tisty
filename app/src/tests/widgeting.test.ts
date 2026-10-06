@@ -1,7 +1,16 @@
 import { GapCursor } from "@tiptap/pm/gapcursor";
 import { NodeSelection } from "@tiptap/pm/state";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { besideWidget, heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
+import {
+  besideWidget,
+  heard,
+  lend,
+  openable,
+  SHORTEST,
+  STUCK_FOR,
+  TALLEST,
+  tall,
+} from "../ui/widgeting";
 import { opened } from "./mounted";
 
 const ipc = vi.hoisted(() => ({
@@ -244,6 +253,24 @@ describe("the frame a widget is drawn in", () => {
     );
     from({ type: "resize", height: 900 });
     expect(told(), "real growth of another size is still followed").toBe(900);
+    ticking.mockRestore();
+    lending.drop();
+  });
+
+  it("follows a step it once refused after the page has been quiet for a while", async () => {
+    const { frame, lending, from } = await mounted();
+    const told = () => Number.parseFloat(frame.style.height);
+    let clock = 1_000_000;
+    const ticking = vi.spyOn(Date, "now").mockImplementation(() => clock);
+
+    for (let n = 0; n < 3; n += 1) from({ type: "resize", height: told() + 24 });
+    const settled = told();
+    expect(settled).toBe(SHORTEST + 24 * 2);
+
+    clock += STUCK_FOR + 1;
+    from({ type: "resize", height: told() + 24 });
+
+    expect(told(), "a row added long after the first burst was cut off").toBe(settled + 24);
     ticking.mockRestore();
     lending.drop();
   });
