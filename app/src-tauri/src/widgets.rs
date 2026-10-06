@@ -14,7 +14,7 @@ style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: 
 connect-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'";
 
 // An attached page unpacks itself into blobs and frames of its own, so it may reach those, never the network.
-pub const PAGED: &str = "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; \
+pub const PAGED: &str = "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; \
 style-src 'unsafe-inline' blob:; img-src data: blob:; font-src data: blob:; media-src data: blob:; \
 connect-src data: blob:; frame-src blob:; worker-src blob:; form-action 'none'; base-uri 'none'";
 

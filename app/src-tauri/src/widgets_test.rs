@@ -371,7 +371,7 @@ fn a_page_is_measured_by_its_loose_text_and_its_closing_margins() {
 fn the_page_policy_lets_it_unpack_itself_but_reach_no_one() {
     for wanted in [
         "default-src 'none'",
-        "script-src 'unsafe-inline' 'unsafe-eval' blob:",
+        "script-src 'unsafe-inline' 'unsafe-eval' blob: data:;",
         "connect-src data: blob:",
         "frame-src blob:;",
         "form-action 'none'",
