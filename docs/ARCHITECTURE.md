@@ -1948,7 +1948,9 @@ document — it opens with `<!doctype` or `<html` — is served as itself instea
 because nesting one document inside another breaks it, and many such pages are
 bundles that unpack their own scripts and frames from `blob:` and `data:` at
 load. Its policy lets it make and use those, and run what it unpacks, but still
-names no address: nothing it does reaches the network. It is measured from the
+names no address: nothing it does reaches the network. Its frames may only be
+`blob:` it made, never `data:`, since an engine is not bound to carry the page's
+policy into a `data:` frame. It is measured from the
 window by what flows in its body, leaving out what is fixed to the screen, since
 a page may fill the whole viewport or swap its document while it unpacks.
 

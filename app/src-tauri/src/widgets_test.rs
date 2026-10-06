@@ -264,6 +264,37 @@ fn a_page_that_rewrites_itself_gets_its_link_and_size_listeners_back() {
 }
 
 #[test]
+fn a_page_frames_only_what_it_made_itself() {
+    let frames = PAGED
+        .split(';')
+        .find(|one| one.trim().starts_with("frame-src"))
+        .unwrap();
+    assert_eq!(
+        frames.trim(),
+        "frame-src blob:",
+        "a data: frame may not inherit the page's policy on every engine, and could reach the network"
+    );
+}
+
+#[test]
+fn a_page_held_inside_a_viewport_high_wrapper_is_measured_by_what_overflows_it() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains("r.top+Math.max(r.height,one.scrollHeight)"),
+        "a #app at 100vh is exactly as tall as the frame, so the frame never grew past 40px"
+    );
+}
+
+#[test]
+fn a_javascript_link_is_left_to_the_page() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains("/^javascript:/i.test(href)"),
+        "a javascript: link was cancelled and sent to a window that cannot open it"
+    );
+}
+
+#[test]
 fn a_page_handles_its_own_links_before_the_window_opens_any() {
     let page = paged("<html><body></body></html>");
     assert!(
@@ -309,7 +340,7 @@ fn the_page_policy_lets_it_unpack_itself_but_reach_no_one() {
         "default-src 'none'",
         "script-src 'unsafe-inline' 'unsafe-eval' blob:",
         "connect-src data: blob:",
-        "frame-src blob: data:",
+        "frame-src blob:;",
         "form-action 'none'",
         "base-uri 'none'",
     ] {
