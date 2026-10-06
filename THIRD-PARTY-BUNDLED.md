@@ -202,7 +202,7 @@ written once with the crates that carry it.
 | `is-url` | 1.2.4 | MIT |
 | `jay-peg` | 1.1.1 | MIT |
 | `js-tokens` | 4.0.0 | MIT |
-| `katex` | 0.18.9 | MIT |
+| `katex` | 0.18.10 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `linebreak` | 1.1.0 | MIT |

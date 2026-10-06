@@ -68,7 +68,8 @@
   "overrides": {
     "typed-rest-client": {
       "qs": "^6.15.2"
-    }
+    },
+    "katex": "$katex"
   },
   "description": "Notes, documents and tasks, all local. No subscription, no telemetry",
   "license": "AGPL-3.0-only"
