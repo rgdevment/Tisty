@@ -264,6 +264,19 @@ fn a_page_that_rewrites_itself_gets_its_link_and_size_listeners_back() {
 }
 
 #[test]
+fn a_page_held_to_the_viewport_is_measured_again_when_what_it_holds_grows() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains("seen.observe(b);for(const one of b.children)seen.observe(one)"),
+        "with html{{height:100%}} the root never changes size, so growth inside the body went unseen"
+    );
+    assert!(
+        page.contains("document.addEventListener(\"load\",tell,true)"),
+        "an image's load does not bubble to the window, so a late picture went unmeasured"
+    );
+}
+
+#[test]
 fn a_page_is_measured_by_its_loose_text_and_its_closing_margins() {
     let page = paged("<html><body></body></html>");
     for wanted in [
