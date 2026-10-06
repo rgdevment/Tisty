@@ -143,3 +143,21 @@ fn what_a_later_build_wrote_stays_at_the_top_beside_the_remembered_computers() {
     );
     assert_eq!(back.homes, config.homes, "{written}");
 }
+
+#[test]
+fn reading_a_moved_configuration_writes_the_switch_down_once() {
+    let Some(this) = here() else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("config.toml");
+    let config = configured(Some("another-computer"));
+    std::fs::write(&file, toml::to_string(&config).unwrap()).unwrap();
+
+    let first = Config::load(&file).unwrap().unwrap();
+    let second = Config::load(&file).unwrap().unwrap();
+
+    assert_eq!(first.inst.as_deref(), Some(this.as_str()));
+    assert_ne!(first.device_id, config.device_id);
+    assert_eq!(second, first, "the second read finds it already settled");
+}

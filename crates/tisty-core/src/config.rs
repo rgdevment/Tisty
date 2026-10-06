@@ -188,21 +188,12 @@ pub struct Config {
 
 impl Config {
     pub fn load_or_init(paths: &Paths) -> Result<Self> {
-        if let Some(mut existing) = Self::read(&paths.config_file())? {
+        if let Some(existing) = Self::load(&paths.config_file())? {
             if !store::is_device_name(&existing.device_id.0) && said_once(&existing.device_id.0) {
                 witness::error(
                     channel::CONFIG,
                     "this machine is named in a way a device directory cannot be, so its history travels nowhere",
                     &[("at", Fact::Id(existing.device_id.0.clone()))],
-                );
-            }
-            if crate::machine::settled(&mut existing, crate::machine::here().as_deref())
-                && let Err(why) = existing.save(paths)
-            {
-                witness::warn(
-                    channel::CONFIG,
-                    "this computer's name could not be saved, and is worked out again next time",
-                    &[("why", Fact::Why(why.to_string()))],
                 );
             }
             return Ok(existing);
@@ -244,8 +235,17 @@ impl Config {
 
     pub fn load(file: &Path) -> Result<Option<Self>> {
         let mut read = Self::read(file)?;
-        if let Some(config) = read.as_mut() {
-            crate::machine::settled(config, crate::machine::here().as_deref());
+        if let Some(config) = read.as_mut()
+            && crate::machine::settled(config, crate::machine::here().as_deref())
+            && let Err(why) = toml::to_string_pretty(config)
+                .map_err(Error::from)
+                .and_then(|text| store::write_atomic(file, text.as_bytes()))
+        {
+            witness::warn(
+                channel::CONFIG,
+                "this computer's name could not be saved, and is worked out again next time",
+                &[("why", Fact::Why(why.to_string()))],
+            );
         }
         Ok(read)
     }
