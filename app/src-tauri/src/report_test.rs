@@ -15,6 +15,7 @@ fn listed(
             assistants,
             keys: &Default::default(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &tisty_core::Paths::new(nowhere.path().join("data"), nowhere.path().join("config")),
         None,
@@ -204,6 +205,7 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
             assistants: &Default::default(),
             keys: &keys,
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         None,
@@ -222,6 +224,7 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
             assistants: &Default::default(),
             keys: &keys,
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         None,
@@ -267,6 +270,7 @@ fn this_machine_shows_the_key_it_really_signs_with_not_the_one_the_log_froze() {
             assistants: &Default::default(),
             keys: &[(who.clone(), stale.clone())].into(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         None,
@@ -312,6 +316,7 @@ fn a_machine_waiting_in_the_folder_is_listed_with_the_key_it_says_it_signs_with(
             assistants: &Default::default(),
             keys: &Default::default(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         Some(folder.path()),
@@ -348,6 +353,7 @@ fn a_machine_the_person_removed_is_not_offered_back_because_it_kept_writing() {
             assistants: &Default::default(),
             keys: &Default::default(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         None,
@@ -403,6 +409,7 @@ fn a_machine_that_wrote_here_before_it_signed_can_still_be_confirmed() {
             assistants: &Default::default(),
             keys: &Default::default(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         Some(folder.path()),
@@ -432,6 +439,7 @@ fn an_agent_waiting_to_be_answered_for_is_offered_like_any_machine() {
             assistants: &assistants,
             keys: &Default::default(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         Some(folder.path()),
@@ -482,6 +490,7 @@ fn a_waiting_machine_is_shown_by_the_name_it_gave_itself_and_its_code() {
             assistants: &Default::default(),
             keys: &Default::default(),
             named: &Default::default(),
+            hosts: &Default::default(),
         },
         &paths,
         Some(folder.path()),
@@ -495,4 +504,45 @@ fn a_waiting_machine_is_shown_by_the_name_it_gave_itself_and_its_code() {
         one.since > 0,
         "when it started writing helps tell which computer it is"
     );
+}
+
+#[test]
+fn a_waiting_assistant_names_the_computer_it_runs_on() {
+    let (_room, folder, paths, _said) = waiting_in_folder("dev_agent");
+    let who = tisty_core::DeviceId("dev_agent".into());
+    let host = tisty_core::DeviceId("dev_host".into());
+    let mut store =
+        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+    store
+        .append(tisty_core::Op::DeviceHost {
+            d: who,
+            of: host.clone(),
+        })
+        .unwrap();
+    drop(store);
+    let named = [(
+        host,
+        tisty_core::Named {
+            name: "ESCRITORIO-MARIO".into(),
+            os: Some("Windows".into()),
+        },
+    )]
+    .into();
+
+    let all = machines(
+        &[wrote("mac0", 0)],
+        "mac0",
+        &Known {
+            gone: &Default::default(),
+            assistants: &Default::default(),
+            keys: &Default::default(),
+            named: &named,
+            hosts: &Default::default(),
+        },
+        &paths,
+        Some(folder.path()),
+    );
+
+    let one = all.iter().find(|one| one.id == "dev_agent").unwrap();
+    assert_eq!(one.host.as_deref(), Some("ESCRITORIO-MARIO"));
 }

@@ -43,3 +43,34 @@ fn nobody_names_a_machine_but_the_machine_itself() {
 fn this_computer_has_a_name() {
     assert!(here().is_some_and(|one| !one.name.is_empty()));
 }
+
+#[test]
+fn a_long_name_is_kept_the_way_it_is_read_so_it_is_not_said_again() {
+    let long = "MacBook Pro de Rodrigo ".repeat(6);
+    let who = DeviceId("dev_a".into());
+    let mut state = State::default();
+    let first = told(
+        &state,
+        &who,
+        Some(Named {
+            name: cleaned(&long),
+            os: Some("macOS".into()),
+        }),
+    )
+    .unwrap();
+    state.apply(&Event::new(who.clone(), jiff::Timestamp::now(), first));
+
+    assert!(cleaned(&long).chars().count() <= AT_MOST);
+    assert!(
+        told(
+            &state,
+            &who,
+            Some(Named {
+                name: cleaned(&long),
+                os: Some("macOS".into()),
+            }),
+        )
+        .is_none(),
+        "every round would write the name again"
+    );
+}

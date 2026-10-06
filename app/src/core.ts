@@ -394,6 +394,7 @@ export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 export interface Agent {
   on: boolean;
   called?: string;
+  code?: string;
 }
 
 export const agentState = (): Promise<Agent> => invoke("agent");

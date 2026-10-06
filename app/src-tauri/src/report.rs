@@ -117,6 +117,8 @@ pub struct Machine {
     pub confirmed: Option<String>,
     pub confirmed_when: u64,
     pub carried: bool,
+    /// The computer an assistant runs on, so a person knows where to read its code.
+    pub host: Option<String>,
     /// What the last round did with its history. Only the round knows this; the two keys above
     /// can agree while the folder is being refused.
     pub turned_away: Option<String>,
@@ -127,6 +129,7 @@ pub struct Known<'a> {
     pub assistants: &'a std::collections::BTreeSet<tisty_core::DeviceId>,
     pub keys: &'a std::collections::BTreeMap<tisty_core::DeviceId, String>,
     pub named: &'a std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::Named>,
+    pub hosts: &'a std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::DeviceId>,
 }
 
 pub fn machines(
@@ -171,6 +174,13 @@ pub fn machines(
             false => known.keys.get(who).cloned().or(said.key),
         };
         let named = known.named.get(who).cloned().or(said.named);
+        let host = said
+            .host
+            .or_else(|| known.hosts.get(who).cloned())
+            .map(|of| match known.named.get(&of) {
+                Some(one) => one.name.clone(),
+                None => tisty_core::config::nicknamed(&of.0),
+            });
         Machine {
             id: who.0.clone(),
             called: tisty_core::config::nicknamed(&who.0),
@@ -184,6 +194,7 @@ pub fn machines(
             confirmed: stood.get(who).map(|one| one.key.clone()),
             confirmed_when: stood.get(who).map_or(0, |one| one.when),
             carried: stood.get(who).is_some_and(|one| one.carried),
+            host,
             turned_away: away.get(&who.0).map(|one| match one {
                 tisty_sync::turned::Away::Disowned => "disowned".to_string(),
                 tisty_sync::turned::Away::Unreadable => "unreadable".to_string(),

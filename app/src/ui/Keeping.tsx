@@ -1204,7 +1204,7 @@ export default function Keeping({
                   </span>
                   {agent?.on && (
                     <span className="block text-[12.5px] text-soft">
-                      {fill("agentsSignsAs", agent.called ?? "")}
+                      {fill("agentsSignsAs", agent.called ?? "", agent.code ?? "—")}
                     </span>
                   )}
                 </span>

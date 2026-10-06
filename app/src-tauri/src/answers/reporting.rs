@@ -90,6 +90,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
                 assistants: &session.state.assistants,
                 keys: &session.state.keys,
                 named: &session.state.named,
+                hosts: &session.state.hosts,
             },
             &session.paths,
             match &session.config.sync {

@@ -14,22 +14,34 @@ pub struct ThisMachine {
 /// Only the machines a round left waiting, without the whole store read the audit needs.
 #[tauri::command(async)]
 pub fn waiting_machines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<report::Machine>> {
-    let session = held(&session);
-    let dest = match &session.config.sync {
-        Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-        _ => None,
+    // Read out under the lock and let go of it: the folder may be a slow cloud mount.
+    let (paths, dest, mine, gone, assistants, keys, named, hosts) = {
+        let session = held(&session);
+        (
+            session.paths.clone(),
+            match &session.config.sync {
+                Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
+                _ => None,
+            },
+            session.config.device_id.0.clone(),
+            session.state.dropped.clone(),
+            session.state.assistants.clone(),
+            session.state.keys.clone(),
+            session.state.named.clone(),
+            session.state.hosts.clone(),
+        )
     };
-    let mine = session.config.device_id.0.clone();
     Ok(report::machines(
         &[],
         &mine,
         &report::Known {
-            gone: &session.state.dropped,
-            assistants: &session.state.assistants,
-            keys: &session.state.keys,
-            named: &session.state.named,
+            gone: &gone,
+            assistants: &assistants,
+            keys: &keys,
+            named: &named,
+            hosts: &hosts,
         },
-        &session.paths,
+        &paths,
         dest.as_deref(),
     )
     .into_iter()
@@ -39,11 +51,13 @@ pub fn waiting_machines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec
 
 #[tauri::command(async)]
 pub fn this_machine(session: tauri::State<'_, Mutex<Session>>) -> Answer<ThisMachine> {
-    let session = held(&session);
-    let who = session.config.device_id.clone();
+    let (paths, who) = {
+        let session = held(&session);
+        (session.paths.clone(), session.config.device_id.clone())
+    };
     let named = tisty_core::called::here();
     Ok(ThisMachine {
-        code: tisty_core::signing::shown_kept(&session.paths, &who)
+        code: tisty_core::signing::shown_kept(&paths, &who)
             .as_deref()
             .and_then(tisty_core::signing::spoken),
         id: who.0,

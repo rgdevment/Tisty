@@ -5,8 +5,6 @@ use crate::{
     state::{here, same_name},
 };
 
-const NAMED_AT_MOST: usize = 64;
-
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Named {
     pub name: String,
@@ -78,21 +76,11 @@ impl State {
 
     // Only a machine's own word: anybody else's name for it would be a label the folder made up.
     pub(crate) fn device_named(&mut self, event: &Event, d: &DeviceId, n: &str, os: Option<&str>) {
-        let name: String = crate::text::plainly(n)
-            .chars()
-            .take(NAMED_AT_MOST)
-            .collect();
-        if event.device != *d || name.trim().is_empty() {
+        let name = crate::called::cleaned(n);
+        if event.device != *d || name.is_empty() {
             return;
         }
-        let os = os
-            .map(|one| {
-                crate::text::plainly(one)
-                    .chars()
-                    .take(NAMED_AT_MOST)
-                    .collect()
-            })
-            .filter(|one: &String| !one.trim().is_empty());
+        let os = os.map(crate::called::cleaned).filter(|one| !one.is_empty());
         self.named.insert(d.clone(), Named { name, os });
     }
 

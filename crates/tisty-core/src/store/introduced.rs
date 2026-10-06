@@ -8,6 +8,8 @@ pub struct Introduced {
     pub key: Option<String>,
     pub named: Option<Named>,
     pub since: Option<jiff::Timestamp>,
+    /// The machine an assistant runs on, by its own word.
+    pub host: Option<DeviceId>,
 }
 
 /// What a machine says about itself in the folder, for one waiting where nothing of it came in.
@@ -29,11 +31,19 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
         }),
         named: events.iter().rev().find_map(|one| match &one.op {
             Op::DeviceNamed { d, name, os } if d == who => Some(Named {
-                name: crate::text::plainly(name),
-                os: os.clone(),
+                name: crate::called::cleaned(name),
+                os: os.as_deref().map(crate::called::cleaned),
             }),
             _ => None,
         }),
         since: events.first().map(|one| one.timestamp),
+        host: events.iter().find_map(|one| match &one.op {
+            Op::DeviceHost { d, of } if d == who => Some(of.clone()),
+            _ => None,
+        }),
     }
 }
+
+#[cfg(test)]
+#[path = "introduced_test.rs"]
+mod tests;

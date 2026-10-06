@@ -1,13 +1,29 @@
 use crate::event::{DeviceId, Op};
 use crate::{Named, State};
 
+pub const AT_MOST: usize = 64;
+
+// Read once per run: a window asks after every round, and on a Mac that is a process each time.
 pub fn here() -> Option<Named> {
-    let name = computer_name()?;
-    let name = crate::text::plainly(name.trim());
-    (!name.is_empty()).then(|| Named {
-        name,
-        os: Some(SYSTEM.to_string()),
+    static ONCE: std::sync::OnceLock<Option<Named>> = std::sync::OnceLock::new();
+    ONCE.get_or_init(|| {
+        let name = cleaned(&computer_name()?);
+        (!name.is_empty()).then(|| Named {
+            name,
+            os: Some(SYSTEM.to_string()),
+        })
     })
+    .clone()
+}
+
+/// One shape for a name wherever it is read, or a long one would never match what was kept.
+pub fn cleaned(said: &str) -> String {
+    crate::text::plainly(said.trim())
+        .chars()
+        .take(AT_MOST)
+        .collect::<String>()
+        .trim()
+        .to_string()
 }
 
 /// What to write so the others learn this machine's name, when they do not know it yet.
@@ -41,14 +57,9 @@ fn computer_name() -> Option<String> {
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-#[cfg(windows)]
+#[cfg(not(target_os = "macos"))]
 fn computer_name() -> Option<String> {
-    std::env::var("COMPUTERNAME").ok()
-}
-
-#[cfg(not(any(target_os = "macos", windows)))]
-fn computer_name() -> Option<String> {
-    std::fs::read_to_string("/etc/hostname").ok()
+    sysinfo::System::host_name()
 }
 
 #[cfg(test)]
