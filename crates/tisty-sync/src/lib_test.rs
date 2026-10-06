@@ -8073,3 +8073,41 @@ fn a_signed_history_that_has_not_said_its_key_waits_instead_of_coming_in_uncheck
         "a signed history nobody can check came home on the folder's word"
     );
 }
+
+#[test]
+fn a_reinstall_that_kept_the_cache_meets_the_folder_as_a_new_machine() {
+    let kept = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    super::place::note_carried(Some(kept.path()), shared.path(), "dev_a");
+
+    assert!(super::place::carried_here(
+        Some(kept.path()),
+        shared.path(),
+        Some("dev_a")
+    ));
+    assert!(
+        !super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_z")),
+        "another identity's memo stopped this one from taking the folder up"
+    );
+    assert!(super::place::carried_here(
+        Some(kept.path()),
+        shared.path(),
+        None
+    ));
+}
+
+#[test]
+fn a_memo_from_before_it_named_its_machine_still_reads_as_having_been_here() {
+    let kept = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    std::fs::write(
+        kept.path().join(super::place::CARRIED_TO),
+        tisty_core::paths::told_of(shared.path()),
+    )
+    .unwrap();
+
+    assert!(
+        super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_a")),
+        "every machine would take its folder up again, answering for every key in it"
+    );
+}

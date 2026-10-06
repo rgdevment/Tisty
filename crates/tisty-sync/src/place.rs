@@ -7,19 +7,35 @@ use tisty_core::paths::{is_the_one, told_of};
 pub(crate) const CARRIED_TO: &str = "carried-to";
 const ADOPTING: &str = "adopting";
 
-pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path) -> bool {
+/// A memo another identity left behind, as a reinstall that kept the cache does, is not this
+/// machine having been here: it meets the folder for the first time.
+pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path, device: Option<&str>) -> bool {
     let Some(aside) = aside else {
         return false;
     };
-    std::fs::read_to_string(aside.join(CARRIED_TO)).is_ok_and(|last| is_the_one(&last, dest))
+    let Ok(last) = std::fs::read_to_string(aside.join(CARRIED_TO)) else {
+        return false;
+    };
+    let (at, by) = match last.rsplit_once("\nby ") {
+        Some((at, by)) => (at, Some(by.trim())),
+        None => (last.as_str(), None),
+    };
+    is_the_one(at, dest)
+        && match (by, device) {
+            (Some(by), Some(device)) => by.eq_ignore_ascii_case(device),
+            _ => true,
+        }
 }
 
-pub(crate) fn note_carried(aside: Option<&Path>, dest: &Path) {
+pub(crate) fn note_carried(aside: Option<&Path>, dest: &Path, device: &str) {
     let Some(aside) = aside else {
         return;
     };
     if std::fs::create_dir_all(aside).is_ok() {
-        let _ = written(&aside.join(CARRIED_TO), told_of(dest).as_bytes());
+        let _ = written(
+            &aside.join(CARRIED_TO),
+            format!("{}\nby {device}", told_of(dest)).as_bytes(),
+        );
     }
 }
 

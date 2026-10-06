@@ -158,7 +158,10 @@ pub fn machines(
             mine: who.0 == mine,
             signs: match who.0 == mine {
                 true => ours.clone().or_else(|| keys.get(who).cloned()),
-                false => keys.get(who).cloned().or_else(|| in_folder(who)),
+                false => keys
+                    .get(who)
+                    .cloned()
+                    .or_else(|| waiting(who).then(|| in_folder(who)).flatten()),
             },
             confirmed: stood.get(who).map(|one| one.key.clone()),
             confirmed_when: stood.get(who).map_or(0, |one| one.when),

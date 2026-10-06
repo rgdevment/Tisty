@@ -91,7 +91,7 @@ impl Moved {
 }
 
 pub fn been_here(aside: &Path, dest: &Path) -> bool {
-    carried_here(Some(aside), dest)
+    carried_here(Some(aside), dest, None)
 }
 
 pub fn carry(
@@ -165,7 +165,7 @@ pub fn carry_telling(
     shape::before_reading(data, dest)?;
     let store = data.join(STORE);
     let again = matches!(way, Way::Again);
-    let been_here = carried_here(aside, dest);
+    let been_here = carried_here(aside, dest, Some(device));
     let ours = settled(&store, dest, been_here && !again)?;
 
     let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
@@ -335,7 +335,7 @@ pub fn carry_telling(
     if giving {
         shape::stamp(data, dest);
     }
-    note_carried(aside, dest);
+    note_carried(aside, dest, device);
     Ok(moved)
 }
 
