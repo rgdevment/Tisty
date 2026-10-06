@@ -557,17 +557,19 @@ fn a_retired_attachment_put_back_in_the_folder_is_taken_out_again() {
     let mut state = State::default();
     state.retired.insert(at.into());
     let mut done = Already::default();
-
-    assert_eq!(
-        attachments(&paths, &state.retired, Some(&shared), Vec::new, &mut done),
-        1
-    );
+    attachments(&paths, &state.retired, Some(&shared), Vec::new, &mut done);
     assert!(done.attachments_up.contains(at));
 
     std::fs::write(shared.join(at), b"unos bytes").unwrap();
+    done.forget_returned(
+        &state.retired,
+        &BTreeSet::new(),
+        paths.data(),
+        Some(&shared),
+    );
 
     assert!(
-        Sweeping::of(&paths, &state, None, Some(&shared), false).owed,
+        !done.attachments_up.contains(at),
         "a machine that had not heard of the retirement put it back, and the walk thought it done"
     );
     assert_eq!(
@@ -590,7 +592,32 @@ fn a_retired_attachment_that_stays_gone_is_not_walked_again() {
     attachments(&paths, &state.retired, None, Vec::new, &mut done);
     attachments(&paths, &state.retired, Some(&shared), Vec::new, &mut done);
 
-    done.forget_returned(&state.retired, paths.data(), Some(&shared));
+    done.forget_returned(
+        &state.retired,
+        &BTreeSet::new(),
+        paths.data(),
+        Some(&shared),
+    );
 
     assert!(done.attachments.contains(at) && done.attachments_up.contains(at));
+}
+
+#[test]
+fn a_retired_attachment_a_task_names_again_is_not_owed_on_every_walk() {
+    let (room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(shared.join("attachments/ab")).unwrap();
+    std::fs::write(shared.join(at), b"unos bytes").unwrap();
+    let mut done = Already::default();
+    done.attachments_up.insert(at.into());
+    let retired: BTreeSet<String> = [at.to_string()].into();
+    let held: BTreeSet<String> = [at.to_string()].into();
+
+    done.forget_returned(&retired, &held, paths.data(), Some(&shared));
+
+    assert!(
+        done.attachments_up.contains(at),
+        "a file a task points at again would be owed for good, and every walk would read every document"
+    );
 }

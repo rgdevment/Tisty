@@ -553,12 +553,7 @@ pub fn names_an_attachment(reference: &str) -> bool {
     reference.starts_with("attachments/")
 }
 
-pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
-    set_aside_from(root, root, reference, now)
-}
-
-/// Into this machine's bin from wherever the copy lies, the shared folder included, so a copy that
-/// was only ever there still has its thirty days.
+/// Into this machine's bin from wherever the copy lies, so one only ever in the shared folder keeps its thirty days.
 pub fn set_aside_from(lies: &Path, root: &Path, reference: &str, now: i64) -> Result<()> {
     if !names_an_attachment(reference) {
         return Err(Error::OutsideTheStore(reference.to_string()));
@@ -569,10 +564,16 @@ pub fn set_aside_from(lies: &Path, root: &Path, reference: &str, now: i64) -> Re
     }
     let rest = reference.trim_start_matches("attachments/");
     let into = bin(root).join(rest);
+    // Its name carries its print, so what the bin already holds under it is this very file.
+    if into.is_file() {
+        std::fs::remove_file(&from)?;
+        return Ok(());
+    }
     if let Some(folder) = into.parent() {
         std::fs::create_dir_all(folder)?;
         let _ = crate::paths::ours_alone(folder);
     }
+    moved(&from, &into)?;
 
     let line = serde_json::to_string(&Binned {
         at: reference.to_string(),
@@ -581,23 +582,45 @@ pub fn set_aside_from(lies: &Path, root: &Path, reference: &str, now: i64) -> Re
     .map_err(|e| Error::Io(std::io::Error::other(e)))?;
     let ledger = bin_ledger(root);
     let whole = if tailed(&ledger) {
-        format!("{line}\n")
+        format!(
+            "{line}
+"
+        )
     } else {
-        format!("\n{line}\n")
+        format!(
+            "
+{line}
+"
+        )
     };
-    std::fs::OpenOptions::new()
+    let told = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&ledger)
-        .and_then(|mut file| std::io::Write::write_all(&mut file, whole.as_bytes()))?;
-    let _ = crate::paths::ours_alone(&ledger);
-
-    if std::fs::rename(&from, &into).is_err() {
-        // The shared folder is often another drive, where a rename cannot reach.
-        std::fs::copy(&from, &into)?;
-        std::fs::remove_file(&from)?;
+        .and_then(|mut file| std::io::Write::write_all(&mut file, whole.as_bytes()));
+    if let Err(e) = told {
+        let _ = moved(&into, &from);
+        return Err(e.into());
     }
+    let _ = crate::paths::ours_alone(&ledger);
     Ok(())
+}
+
+fn moved(from: &Path, into: &Path) -> std::io::Result<()> {
+    match std::fs::rename(from, into) {
+        Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {
+            if let Err(e) = std::fs::copy(from, into).and_then(|_| std::fs::remove_file(from)) {
+                let _ = std::fs::remove_file(into);
+                return Err(e);
+            }
+            Ok(())
+        }
+        done => done,
+    }
+}
+
+pub fn lies_in(reference: &str, root: &Path) -> bool {
+    resolve(reference, root).is_ok_and(|at| at.is_file())
 }
 
 pub fn empty_the_bin(root: &Path, now: i64) -> usize {

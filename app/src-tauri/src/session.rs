@@ -362,13 +362,11 @@ impl Session {
                 }
                 continue;
             }
-            let lies_in = |root: &std::path::Path| {
-                tisty_core::attach::resolve(reference, root).is_ok_and(|at| at.is_file())
-            };
-            let lies = if lies_in(self.paths.data()) {
+            let lies = if tisty_core::attach::lies_in(reference, self.paths.data()) {
                 Some(self.paths.data().to_path_buf())
             } else {
-                self.dest().filter(|dest| lies_in(dest))
+                self.dest()
+                    .filter(|dest| tisty_core::attach::lies_in(reference, dest))
             };
             if let Some(lies) = lies
                 && let Err(e) =

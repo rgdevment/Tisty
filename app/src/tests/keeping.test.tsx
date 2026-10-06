@@ -1371,7 +1371,9 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
 
-    expect(await screen.findByText(/the ones kept only in the folder you share too/i)).toBeTruthy();
+    expect(
+      await screen.findByText(/those kept only in the folder you share as well/i),
+    ).toBeTruthy();
   });
 
   it("breaks the weight down, so the size has somewhere to come from", async () => {

@@ -49,9 +49,15 @@ impl Already {
     }
 
     // A machine that had not yet heard of the retirement can put the file back after it was taken out.
-    fn forget_returned(&mut self, retired: &BTreeSet<String>, data: &Path, dest: Option<&Path>) {
+    fn forget_returned(
+        &mut self,
+        retired: &BTreeSet<String>,
+        held: &BTreeSet<String>,
+        data: &Path,
+        dest: Option<&Path>,
+    ) {
         let back = |root: &Path, one: &String| {
-            retired.contains(one) && crate::attach::resolve(one, root).is_ok_and(|at| at.is_file())
+            retired.contains(one) && !held.contains(one) && crate::attach::lies_in(one, root)
         };
         self.attachments.retain(|one| !back(data, one));
         if let Some(dest) = dest.filter(|at| at.is_dir()) {
@@ -112,7 +118,13 @@ impl Sweeping {
     ) -> Self {
         let mut done = cache.map(|one| one.already()).unwrap_or_default();
         done.facing(dest);
-        done.forget_returned(&state.retired, paths.data(), dest);
+        let held: BTreeSet<String> = state
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        done.forget_returned(&state.retired, &held, paths.data(), dest);
         let reach = dest.is_some_and(Path::is_dir);
         Self {
             paths: paths.clone(),
@@ -266,7 +278,6 @@ pub fn attachments(
     done: &mut Already,
 ) -> usize {
     let reach = dest.filter(|at| at.is_dir());
-    done.forget_returned(retired, paths.data(), reach);
     let owed = done.owed_here(retired, true);
     let owed_up = done.owed_up(retired, reach.is_some(), true);
     if owed.is_empty() && owed_up.is_empty() {

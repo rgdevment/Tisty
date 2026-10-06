@@ -1350,7 +1350,7 @@ const en = {
   machineAstrayOnly:
     "A machine whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
   looseWhat:
-    "No task and no document references these. Taking them out puts them in this computer's bin, the ones kept only in the folder you share too, and you have thirty days to bring them back.",
+    "No task and no document references these. Taking them out puts every one in this computer's bin, those kept only in the folder you share as well, and you have 30 days to bring them back.",
   looseWait:
     "Some machines have not written here in a while, and may still reference these. Take that into account before deciding what is left over.",
   looseNone: "Nothing loose",
