@@ -190,7 +190,15 @@ fn prelude(body: &str) -> (usize, bool) {
 pub fn whole(body: &str) -> bool {
     let (at, declared) = prelude(body);
     let rest = &body[at..];
-    declared || opens_with(rest, "<html") || opens_with(rest, "<head")
+    declared || opens_tag(rest, "<html") || opens_tag(rest, "<head")
+}
+
+fn opens_tag(text: &str, tag: &str) -> bool {
+    opens_with(text, tag)
+        && text[tag.len()..]
+            .chars()
+            .next()
+            .is_some_and(|after| after == '>' || after == '/' || after.is_whitespace())
 }
 
 // Before anything the page holds, so no script or string of its own can swallow the measurer.
@@ -247,7 +255,7 @@ svg{max-width:100%}
 const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const box=document.querySelector("main.w");const tell=()=>say({type:"resize",height:Math.ceil(Math.max(box.scrollHeight,box.getBoundingClientRect().height))});new ResizeObserver(tell).observe(box);addEventListener("load",tell);const themed=()=>{const h=location.hash;if(h==="#dark"||h==="#light")document.documentElement.classList.toggle("dark",h==="#dark")};themed();addEventListener("hashchange",themed);addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;e.preventDefault();say({type:"open",href:a.getAttribute("href")})})})();"##;
 
 // A page may replace its whole document while it unpacks, so it is measured from the window, by what flows in its body.
-const MEASURER: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let queued=false;const px=(v)=>Number.parseFloat(v)||0;const span=document.createRange();const reach=()=>{const b=document.body;if(!b)return 0;let low=0;for(const one of b.childNodes){let bottom=0;if(one.nodeType===1){const s=getComputedStyle(one);if(s.position==="fixed"||s.display==="none")continue;const r=one.getBoundingClientRect();if(r.height<=0&&r.width<=0)continue;bottom=r.bottom+px(s.marginBottom)}else if(one.nodeType===3&&one.textContent.trim()){span.selectNodeContents(one);bottom=span.getBoundingClientRect().bottom}low=Math.max(low,bottom)}if(low<=0)return 0;const s=getComputedStyle(b);return Math.ceil(low+scrollY+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom))};const tell=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;const h=reach();if(h>0)say({type:"resize",height:h})})};let root=null;const seen=new ResizeObserver(tell);const watch=()=>{if(document.documentElement!==root){root=document.documentElement;seen.disconnect();seen.observe(root)}tell()};new MutationObserver(watch).observe(document,{childList:true,subtree:true});addEventListener("load",tell,true);addEventListener("resize",tell);watch();addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;const href=a.getAttribute("href")||"";if(href.startsWith("#"))return;e.preventDefault();say({type:"open",href})},true)})();"##;
+const MEASURER: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let queued=false;const px=(v)=>Number.parseFloat(v)||0;const span=document.createRange();const reach=()=>{const b=document.body;if(!b)return 0;let low=0;for(const one of b.childNodes){let bottom=0;if(one.nodeType===1){const s=getComputedStyle(one);if(s.position==="fixed"||s.display==="none")continue;const r=one.getBoundingClientRect();if(r.height<=0&&r.width<=0)continue;bottom=r.bottom+px(s.marginBottom)}else if(one.nodeType===3&&one.textContent.trim()){span.selectNodeContents(one);bottom=span.getBoundingClientRect().bottom}low=Math.max(low,bottom)}if(low<=0)return 0;const s=getComputedStyle(b);return Math.ceil(low+scrollY+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom))};const tell=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;const h=reach();if(h>0)say({type:"resize",height:h})})};const clicked=(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;const href=a.getAttribute("href")||"";if(href.startsWith("#"))return;e.preventDefault();say({type:"open",href})};const hooked=()=>{addEventListener("load",tell,true);addEventListener("resize",tell);addEventListener("click",clicked,true)};let root=null;const seen=new ResizeObserver(tell);const watch=()=>{if(document.documentElement!==root){root=document.documentElement;seen.disconnect();seen.observe(root);hooked()}tell()};new MutationObserver(watch).observe(document,{childList:true,subtree:true});watch()})();"##;
 
 #[cfg(test)]
 #[path = "widgets_test.rs"]
