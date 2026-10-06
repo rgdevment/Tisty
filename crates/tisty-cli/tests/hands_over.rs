@@ -227,7 +227,7 @@ fn a_replacement_that_starts_but_never_answers_leaves_the_old_door_serving() {
     let silent = if cfg!(windows) {
         PathBuf::from(std::env::var("SystemRoot").unwrap()).join("System32/whoami.exe")
     } else {
-        PathBuf::from("/bin/true")
+        PathBuf::from("/usr/bin/true")
     };
 
     door.laid_anew(&silent);
