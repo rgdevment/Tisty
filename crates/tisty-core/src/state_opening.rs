@@ -354,3 +354,125 @@ fn what_no_door_ever_lets_an_assistant_do_is_let_go_on_every_task() {
     ));
     assert_eq!(state.tasks[&mine].log.len(), 2);
 }
+
+fn step_written(state: &mut State, ms: i64, who: &str, id: TaskId, text: &str) -> StepId {
+    let step = Ulid::generate();
+    state.apply(&ev(
+        ms,
+        who,
+        Op::StepAdd {
+            id,
+            d: StepAdd {
+                step,
+                text: text.into(),
+                order: format!("a{ms}"),
+            },
+        },
+    ));
+    step
+}
+
+fn reworded(id: TaskId, step: StepId, text: &str) -> Op {
+    Op::StepText {
+        id,
+        d: crate::event::StepText {
+            step,
+            text: text.into(),
+        },
+    }
+}
+
+fn note_edited(id: TaskId, entry: crate::model::LogId, body: &str) -> Op {
+    Op::TaskLogEdit {
+        id,
+        d: crate::event::LogEdit {
+            entry,
+            body: body.into(),
+        },
+    }
+}
+
+#[test]
+fn an_opened_task_lets_an_assistant_mend_its_open_steps_and_its_journal() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    state.apply(&ev(3, "dev_laptop", opened(id, true)));
+    let pay = step_written(&mut state, 4, "dev_laptop", id, "pay");
+    let keep = step_written(&mut state, 5, "dev_laptop", id, "keep the receipt");
+    let entry = Ulid::generate();
+    state.apply(&ev(
+        6,
+        "dev_laptop",
+        Op::TaskLog {
+            id,
+            d: LogAdd::new(entry, "asked for the quote"),
+        },
+    ));
+
+    state.apply(&ev(10, "dev_agent", reworded(id, pay, "pay the renewal")));
+    state.apply(&ev(
+        11,
+        "dev_agent",
+        Op::StepRemove {
+            id,
+            d: StepRef { step: keep },
+        },
+    ));
+    state.apply(&ev(
+        12,
+        "dev_agent",
+        note_edited(id, entry, "asked for the yearly quote"),
+    ));
+
+    let task = &state.tasks[&id];
+    assert_eq!(task.step(pay).unwrap().text, "pay the renewal");
+    assert!(task.step(keep).is_none());
+    assert_eq!(task.log[0].body, "asked for the yearly quote");
+}
+
+#[test]
+fn a_closed_step_an_emptied_note_and_a_kept_task_are_never_the_assistants_to_mend() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    state.apply(&ev(3, "dev_laptop", opened(id, true)));
+    let pay = step_written(&mut state, 4, "dev_laptop", id, "pay");
+    state.apply(&ev(
+        5,
+        "dev_laptop",
+        Op::StepDone {
+            id,
+            d: StepRef { step: pay },
+        },
+    ));
+    let entry = Ulid::generate();
+    state.apply(&ev(
+        6,
+        "dev_laptop",
+        Op::TaskLog {
+            id,
+            d: LogAdd::new(entry, "asked for the quote"),
+        },
+    ));
+    let kept = written(&mut state, 7, "dev_laptop", "call the bank");
+    let call = step_written(&mut state, 8, "dev_laptop", kept, "call");
+
+    state.apply(&ev(10, "dev_agent", reworded(id, pay, "paid twice")));
+    state.apply(&ev(
+        11,
+        "dev_agent",
+        Op::StepRemove {
+            id,
+            d: StepRef { step: pay },
+        },
+    ));
+    state.apply(&ev(12, "dev_agent", note_edited(id, entry, " ")));
+    state.apply(&ev(13, "dev_agent", reworded(kept, call, "call twice")));
+
+    let task = &state.tasks[&id];
+    assert_eq!(task.step(pay).unwrap().text, "pay", "a closed step stays");
+    assert_eq!(
+        task.log[0].body, "asked for the quote",
+        "emptying is erasing"
+    );
+    assert_eq!(state.tasks[&kept].step(call).unwrap().text, "call");
+}
