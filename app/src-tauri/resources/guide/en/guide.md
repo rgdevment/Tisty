@@ -311,7 +311,7 @@ If you use an assistant, it can file documents and propose tasks of its own acco
 
 When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
-A task of your own you can open to it: in the detail, **Allow agents**. From there an assistant may say it is done, or that it should not be done — for you to confirm — describe it if it has no description, plan its steps and tick them off as it goes, which is the one thing it does without asking; a tick it gave by mistake it can take back, never one you gave. The day, the title, the list and the closing stay yours. **No agents** shuts the door and keeps what it managed to fill in.
+A task of your own you can open to it: in the detail, **Allow agents**. From there an assistant may say it is done, or that it should not be done — for you to confirm — describe it, plan its steps and tick them off as it goes, which is the one thing it does without asking, and correct its open steps and its notes; a tick it gave by mistake it can take back, never one you gave. The day, the title, the list and the closing stay yours. **No agents** shuts the door and keeps what it managed to fill in.
 
 To rewrite a whole document it is handed a print of the exact text it read, and it has to send that print back when it writes. If you wrote in between, the print no longer matches: nothing is written and it is told to read the document again. The window tells you when something wrote in the document you have open, and where what it wrote over is still kept, that same bar offers to put the document back to what it said before. What it says now is kept in its place, so you can come back to it. The offer only appears when what is kept is exactly the one write back — after anything else it stays quiet rather than putting you somewhere you did not mean.
 
@@ -323,7 +323,7 @@ Whoever takes that folder up and down is your provider's program, not Tisty. If 
 
 > There is no server of ours in between. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
 
-Every machine signs what it writes. One that comes to the folder after this one waits until you confirm its key: in Settings → Maintenance → The machines it shows as **Waiting**, and **Confirm** lets it through once you have checked, on that machine, that the key is the same.
+Every machine signs what it writes. One you already knew is recognised on its own when it updates. A new one — just installed or reinstalled — waits until you confirm it is yours: a notice in the sidebar names that computer, and **Confirm…** shows its twenty-digit code. Open it on that machine, in Settings → Maintenance: if the code is the same, **Yes, it is the same** lets it through and brings in what it wrote. You do it once per machine.
 
 When both machines wrote the same part of a document, Tisty does not pick: it shows you the two side by side and you keep **This one**, **The other** or **Both**.
 
