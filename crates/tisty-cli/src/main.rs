@@ -405,11 +405,13 @@ fn leaving(paths: &tisty_core::Paths, yes: bool, lang: Lang) -> anyhow::Result<E
 
 fn run() -> anyhow::Result<ExitCode> {
     let cli = Cli::parse_from(normalise(std::env::args()));
+    let settled = tisty_core::paths::settle_home();
     let paths = tisty_core::Paths::resolve()?;
     tisty_core::witness::keeps(
         tisty_core::witness::file(&paths),
         tisty_core::witness::wants_all(),
     );
+    tisty_core::moving::told(settled.as_ref());
     tisty_core::witness::catches(tisty_core::witness::channel::TERMINAL);
     tisty_core::store::brought_home(&paths);
     tisty_core::witness::note(

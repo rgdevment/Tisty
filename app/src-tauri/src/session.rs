@@ -47,11 +47,13 @@ pub struct Relayed;
 
 impl Session {
     pub fn open() -> tisty_core::Result<Self> {
+        let settled = tisty_core::paths::settle_home();
         let paths = Paths::resolve()?;
         tisty_core::witness::keeps(
             tisty_core::witness::file(&paths),
             tisty_core::witness::wants_all(),
         );
+        tisty_core::moving::told(settled.as_ref());
         static RELAY: Relayed = Relayed;
         if log::set_logger(&RELAY).is_ok() {
             log::set_max_level(log::LevelFilter::Warn);

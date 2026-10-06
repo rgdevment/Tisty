@@ -16,6 +16,7 @@ pub mod keepers;
 pub mod lately;
 pub mod merge;
 pub mod model;
+pub mod moving;
 pub mod order;
 pub mod parcel;
 pub mod parting;

@@ -21,19 +21,11 @@ impl Paths {
         let under = profile();
 
         let told = |key| env_path(key).is_some();
+        let (data, config, cache) = defaults(&dirs);
         Ok(Self {
-            data: aside(
-                env_path(DATA_ENV).unwrap_or_else(|| dirs.data_local_dir().to_path_buf()),
-                under.as_deref(),
-            ),
-            config: aside(
-                env_path(CONFIG_ENV).unwrap_or_else(|| local_config(&dirs)),
-                under.as_deref(),
-            ),
-            cache: aside(
-                env_path(CACHE_ENV).unwrap_or_else(|| dirs.cache_dir().to_path_buf()),
-                under.as_deref(),
-            ),
+            data: aside(env_path(DATA_ENV).unwrap_or(data), under.as_deref()),
+            config: aside(env_path(CONFIG_ENV).unwrap_or(config), under.as_deref()),
+            cache: aside(env_path(CACHE_ENV).unwrap_or(cache), under.as_deref()),
             paired: !told(DATA_ENV) || told(CONFIG_ENV),
         })
     }
@@ -46,7 +38,7 @@ impl Paths {
             return false;
         };
         let settled = |at: &Path| at.canonicalize().unwrap_or_else(|_| at.to_path_buf());
-        settled(&self.data) == settled(dirs.data_local_dir())
+        settled(&self.data) == settled(&defaults(&dirs).0)
     }
 
     pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
@@ -125,6 +117,69 @@ impl Paths {
     pub fn docs(&self) -> PathBuf {
         self.data.join("docs")
     }
+}
+
+const STORE_PACKAGE: &str = "rgdevment.Tisty_kdjgfdc2rb3gc";
+const STORE_PACKAGE_PREFIX: &str = "rgdevment.Tisty_";
+
+fn defaults(dirs: &directories::ProjectDirs) -> (PathBuf, PathBuf, PathBuf) {
+    if let Some(root) = home_root(dirs) {
+        return (root.join("data"), root.join("config"), root.join("cache"));
+    }
+    (
+        dirs.data_local_dir().to_path_buf(),
+        local_config(dirs),
+        dirs.cache_dir().to_path_buf(),
+    )
+}
+
+/// The Store keeps `AppData` in a copy it deletes on uninstall; the profile root it leaves alone.
+fn home_root(dirs: &directories::ProjectDirs) -> Option<PathBuf> {
+    if !cfg!(windows) {
+        return None;
+    }
+    let new = directories::UserDirs::new()?.home_dir().join(".tisty");
+    let legacy = dirs.data_local_dir().parent()?;
+    (new.exists() || !legacy.exists()).then_some(new)
+}
+
+/// Run once per process before `resolve`, never from what only sweeps or reads a setting.
+pub fn settle_home() -> Option<crate::moving::Settled> {
+    if !cfg!(windows)
+        || [DATA_ENV, CONFIG_ENV, CACHE_ENV, PROFILE_ENV]
+            .iter()
+            .any(|key| env_path(key).is_some())
+    {
+        return None;
+    }
+    let dirs = directories::ProjectDirs::from("", "", "tisty")?;
+    let real = dirs.data_local_dir().parent()?.to_path_buf();
+    let private = store_package(real.parent()?);
+    let new = directories::UserDirs::new()?.home_dir().join(".tisty");
+    Some(crate::moving::settle(&crate::moving::Roots {
+        new,
+        real,
+        private,
+    }))
+}
+
+fn store_package(local: &Path) -> Option<PathBuf> {
+    let inside = |package: PathBuf| package.join("LocalCache").join("Local").join("tisty");
+    let packages = local.join("Packages");
+    let exact = inside(packages.join(STORE_PACKAGE));
+    if exact.is_dir() {
+        return Some(exact);
+    }
+    std::fs::read_dir(&packages)
+        .ok()?
+        .filter_map(|one| one.ok())
+        .filter(|one| {
+            one.file_name()
+                .to_string_lossy()
+                .starts_with(STORE_PACKAGE_PREFIX)
+        })
+        .map(|one| inside(one.path()))
+        .find(|at| at.is_dir())
 }
 
 fn local_config(dirs: &directories::ProjectDirs) -> PathBuf {

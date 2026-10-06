@@ -2104,9 +2104,28 @@ document under `<data>/docs/` and its images under
 deletable the same way. Nothing is downloaded: the words and the images travel
 inside the program.
 
-`<data>`, `<config>` and `<cache>` are the platform's own directories.
-`TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override them, and exist for
-tests.
+`<data>`, `<config>` and `<cache>` are the platform's own directories, except
+on Windows, where all three live under `%USERPROFILE%\.tisty`. The Store
+version is packaged, and a packaged app's `AppData` is a private copy Windows
+deletes when the app is uninstalled; the profile root is not virtualized, so
+every install — Store, loose, the command line and the assistant's door —
+shares one real store that outlives any of them. `TISTY_DATA`, `TISTY_CONFIG`
+and `TISTY_CACHE` override them, and exist for tests.
+
+The move from `%LOCALAPPDATA%\tisty` happens once, from the window, the command
+line or the assistant's door, before the paths are resolved — never from what
+only sweeps on uninstall or reads a setting, and never while an override or a
+profile is set. One process does it, behind a lock beside the new root. It
+rebuilds what each install saw: the packaged app read the real folder with its
+own private copy laid over it file by file, so that overlay is the Store's view,
+and the real folder alone is the loose install's. Whichever holds this machine's
+newest active segment becomes the store; the other is copied whole into
+`aside/`. Everything is copied into a `.part` folder and renamed into place, so
+a move cut short leaves nothing half-made, and until it lands the old place
+stays in use. The old folders are left as they were, with a `MOVED.txt`, except
+for one line appended to each active segment there: an event at a version no
+build will ever reach, so an older Tisty still installed refuses that store
+instead of writing a second history for the same machine.
 
 The **configuration** never syncs, and that is what matters: if two machines
 shared a device id they would write to the same file and every guarantee above
