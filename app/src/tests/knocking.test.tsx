@@ -1,17 +1,19 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Machine } from "../core";
-import { askAbout, done, knock, settled } from "../knocking";
+import { askAbout, done, knock, knocking, settled } from "../knocking";
 import { fill, t } from "../locales";
-import Knocking from "../ui/Knocking";
+import Knocking, { KnockDot } from "../ui/Knocking";
 
 const calls: { cmd: string; args: unknown }[] = [];
 let waiting: Machine[] = [];
 let carried = "came";
+let refused = false;
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
     calls.push({ cmd, args });
+    if (cmd === "confirm_machine_key" && refused) return Promise.reject({ code: "keyMoved" });
     if (cmd === "waiting_machines") return Promise.resolve(waiting);
     if (cmd === "this_machine")
       return Promise.resolve({
@@ -56,6 +58,7 @@ beforeEach(() => {
   calls.length = 0;
   waiting = [mac];
   carried = "came";
+  refused = false;
 });
 
 afterEach(() =>
@@ -189,5 +192,42 @@ describe("a computer waiting to be confirmed", () => {
     await flush();
 
     expect(screen.getByText(fill("confirmTitle", "iMac"))).toBeTruthy();
+  });
+
+  it("marks the gear while a machine waits, and says why", async () => {
+    render(<KnockDot />);
+    expect(screen.queryByRole("img")).toBeNull();
+
+    await act(() => knock());
+
+    expect(screen.getByRole("img", { name: t("knockDot") })).toBeTruthy();
+  });
+
+  it("keeps the machine waiting and says so when confirming is refused", async () => {
+    vi.useRealTimers();
+    refused = true;
+    render(<Knocking />);
+    await act(() => knock());
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+    fireEvent.click(screen.getByText(t("confirmYes")));
+    await flush();
+
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByText(t("confirmYes"))).toBeTruthy();
+  });
+
+  it("closes and steps aside on «Not now» inside the dialog", async () => {
+    vi.useRealTimers();
+    render(<Knocking />);
+    await act(() => knock());
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+    fireEvent.click(
+      screen.getAllByText(t("knockLater"))[screen.getAllByText(t("knockLater")).length - 1],
+    );
+
+    expect(knocking().asking).toBe(false);
+    expect(knocking().quiet).toBe(true);
   });
 });
