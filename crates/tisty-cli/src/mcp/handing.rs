@@ -7,33 +7,28 @@ use std::time::{Duration, SystemTime};
 use tisty_core::witness::{self, Fact};
 
 const GREETED_WITHIN: Duration = Duration::from_secs(10);
+const PROBE: &str = r#"{"jsonrpc":"2.0","id":"tisty-handover","method":"ping"}"#;
 
 type Mark = (u64, SystemTime);
 
-/// The binary this door was started from, as it was then, so an update that lays a new one in
-/// its place is noticed and the client is carried over instead of cut off.
+/// The binary this door started from, as it was then, so one laid in its place is noticed.
 pub(super) struct Born {
-    at: Option<PathBuf>,
-    was: Option<Mark>,
+    from: Option<(PathBuf, Mark)>,
     failed: Option<Mark>,
 }
 
 impl Born {
     pub(super) fn now() -> Self {
-        let at = std::env::current_exe().ok();
-        let was = at.as_deref().and_then(mark);
-        Self {
-            at,
-            was,
-            failed: None,
-        }
+        let from = std::env::current_exe()
+            .ok()
+            .and_then(|at| mark(&at).map(|was| (at, was)));
+        Self { from, failed: None }
     }
 
     fn replaced(&self) -> Option<(&Path, Mark)> {
-        let at = self.at.as_deref()?;
+        let (at, was) = self.from.as_ref()?;
         let now = mark(at)?;
-        (self.was.is_some() && Some(now) != self.was && Some(now) != self.failed)
-            .then_some((at, now))
+        (now != *was && Some(now) != self.failed).then_some((at.as_path(), now))
     }
 
     pub(super) fn hand_over(
@@ -75,17 +70,17 @@ fn greeted(
     at: &Path,
     greeting: Option<&str>,
 ) -> Option<(Child, ChildStdin, BufReader<ChildStdout>)> {
-    let mut child = Command::new(at)
+    let mut command = Command::new(at);
+    command
         .arg("mcp")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .ok()?;
+        .stderr(Stdio::inherit());
+    #[cfg(windows)]
+    std::os::windows::process::CommandExt::creation_flags(&mut command, 0x0800_0000);
+    let mut child = command.spawn().ok()?;
     let (mut into, out) = (child.stdin.take()?, child.stdout.take()?);
-    let Some(greeting) = greeting else {
-        return Some((child, into, BufReader::new(out)));
-    };
+    let greeting = greeting.unwrap_or(PROBE);
     let (tell, heard) = mpsc::channel();
     let asked = greeting.to_string();
     std::thread::spawn(move || {
@@ -137,8 +132,12 @@ fn relay(
 }
 
 pub(super) fn greets(line: &str) -> bool {
-    serde_json::from_str::<serde_json::Value>(line)
-        .is_ok_and(|asked| asked.get("method").and_then(|m| m.as_str()) == Some("initialize"))
+    serde_json::from_str::<serde_json::Value>(line).is_ok_and(|asked| {
+        matches!(
+            asked.get("method").and_then(|m| m.as_str()),
+            Some("initialize" | "server/discover")
+        )
+    })
 }
 
 fn answers(asked: &str, said: &str) -> bool {

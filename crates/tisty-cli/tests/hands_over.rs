@@ -219,18 +219,60 @@ fn a_replacement_that_will_not_run_leaves_the_old_door_serving_and_is_tried_once
     assert!(child.wait().unwrap().success());
 }
 
+fn silent() -> PathBuf {
+    if cfg!(windows) {
+        PathBuf::from(std::env::var("SystemRoot").unwrap()).join("System32/whoami.exe")
+    } else {
+        PathBuf::from("/usr/bin/true")
+    }
+}
+
+#[test]
+fn a_client_that_greeted_by_discovering_keeps_its_name_through_the_update() {
+    let door = Door::new();
+    let (mut child, mut into, mut from) = door.open();
+    said(
+        &mut into,
+        &mut from,
+        serde_json::json!({ "jsonrpc": "2.0", "id": 1, "method": "server/discover",
+                            "params": { "_meta": { "io.modelcontextprotocol/clientInfo":
+                                                   { "name": "codex", "version": "1" } } } }),
+    );
+
+    door.laid_anew(Path::new(env!("CARGO_BIN_EXE_tisty")));
+    propose(&mut into, &mut from, 2, "after the update");
+
+    let added = door.added();
+    assert!(
+        added.len() == 1 && added[0].contains("\"via\":\"codex\""),
+        "the new door wrote without knowing which client spoke: {added:?}"
+    );
+    drop(into);
+    assert!(child.wait().unwrap().success());
+}
+
+#[test]
+fn a_client_that_never_greeted_is_not_handed_to_a_binary_that_never_answers() {
+    let door = Door::new();
+    let (mut child, mut into, mut from) = door.open();
+    assert_eq!(ask(&mut into, &mut from, 1, "ping")["id"], 1);
+
+    door.laid_anew(&silent());
+    let said = ask(&mut into, &mut from, 2, "tools/list");
+
+    assert!(listed(&said), "{said}");
+    assert!(door.log().contains("serves on"), "{}", door.log());
+    drop(into);
+    assert!(child.wait().unwrap().success());
+}
+
 #[test]
 fn a_replacement_that_starts_but_never_answers_leaves_the_old_door_serving() {
     let door = Door::new();
     let (mut child, mut into, mut from) = door.open();
     ask(&mut into, &mut from, 1, "initialize");
-    let silent = if cfg!(windows) {
-        PathBuf::from(std::env::var("SystemRoot").unwrap()).join("System32/whoami.exe")
-    } else {
-        PathBuf::from("/usr/bin/true")
-    };
 
-    door.laid_anew(&silent);
+    door.laid_anew(&silent());
     let said = ask(&mut into, &mut from, 2, "tools/list");
 
     assert!(listed(&said), "{said}");

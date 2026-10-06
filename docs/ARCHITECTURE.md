@@ -487,16 +487,19 @@ throws away does not open the person's own store to the check's exemption.
 not start it again when it dies, so an update that closed it left every
 assistant without Tisty until the person reconnected it by hand. The Windows
 installer no longer closes a running `tisty.exe`: it moves it aside under a
-`.old` name, which Windows allows for a running binary, and removes those
+name of its own, which Windows allows for a running binary, and removes those
 left from earlier updates once nothing runs them. Only a move that fails falls
-back to closing it. The door, for its part, keeps what its binary looked like
-when it started, and before each message it checks whether a new one was laid
-in its place, by an installer or by a bundle swap on macOS. When one was, it
-starts that one, greets it with the client's own `initialize`, drops the
-answer, and from then on passes every line through. The client keeps talking
-to the same process and is served by the new version. A new binary that will
-not start or answer within ten seconds is left alone and the old door serves
-on.
+back to closing it. An auto-update never runs the old uninstaller, which still
+closes everything: uninstalling means the program goes. The door, for its part,
+keeps what its binary looked like when it started, and before each message it
+checks whether a new one was laid in its place, by an installer or by a bundle
+swap on macOS. When one was, it starts that one, greets it with the client's
+own `initialize` or `server/discover` — or a `ping` when the client never
+greeted — waits for the answer to that same id, drops it, and from then on
+passes every line through. The client keeps talking to the same process and is
+served by the new version, so each update adds one link to that session's
+chain until the client closes it. A new binary that will not start or answer
+within ten seconds is left alone and the old door serves on.
 
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a

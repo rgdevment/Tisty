@@ -18,12 +18,8 @@
     SetOutPath $INSTDIR
   ${EndIf}
 
-  ; A running tisty.exe cannot be written over, and closing it would cut off every
-  ; assistant's door. Windows lets a running binary be moved, so it is set aside
-  ; under a name of its own and the door hands over to the new one by itself.
-  ; Copies set aside before, no longer running, go now. Only if the move fails is
-  ; it closed: a locked binary leaves the install half done.
-  Delete "$INSTDIR\*.old"
+  ; Moved aside rather than closed, so no assistant's door is cut; the door hands over by itself.
+  Delete "$INSTDIR\ns*.tmp.old"
   ${If} ${FileExists} "$INSTDIR\tisty.exe"
     Push $R9
     GetTempFileName $R9 "$INSTDIR"
@@ -64,7 +60,7 @@
   ${If} $UpdateMode <> 1
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
-    Delete "$INSTDIR\*.old"
+    Delete "$INSTDIR\ns*.tmp.old"
     RMDir "$INSTDIR"
   ${EndIf}
 !macroend
