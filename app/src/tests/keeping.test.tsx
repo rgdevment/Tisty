@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { adopt, t } from "../locales";
+import { adopt, fill, t } from "../locales";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
 
@@ -2263,6 +2263,117 @@ describe("the first-run assistant", () => {
     await underway();
 
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+  });
+
+  const olderThanTheFolder = async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "syncNewer", name: "dev_b" })
+        : answered(cmd, args);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await screen.findByText(t("welcomeOlder"));
+  };
+
+  it("offers to stay on this machine when the folder runs a newer Tisty, not to go in anyway", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+
+    expect(screen.queryByRole("button", { name: t("welcomeAnyway") })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
+
+    await waitFor(() => expect(sent("choose_sync")).toHaveLength(2));
+    expect(sent("choose_sync")[1].args.dest).toBeUndefined();
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+  });
+
+  it("names the machine that is ahead", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+
+    expect(screen.getByText(fill("welcomeOlderBy", "dev_b"))).toBeTruthy();
+  });
+
+  it("forgets the history it meant to join once it stays on this machine instead", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.reject({ code: "syncNewer", name: "dev_b" })
+        : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeBringIt") }));
+    await screen.findByText(t("welcomeOlder"));
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
+
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+  });
+
+  it("says why staying on this machine did not go through", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "choose_sync" && args.dest === undefined
+        ? Promise.reject({ code: "sharedAwayToLeave", name: "G:/x" })
+        : answered(cmd, args);
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
+
+    expect(await screen.findByText(fill("sharedAwayToLeave", "G:/x"))).toBeTruthy();
+  });
+
+  it("says nothing moved when the other folder is not picked after all", async () => {
+    asked.folder = null;
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
+
+    expect(await screen.findByText(t("wouldReset"))).toBeTruthy();
+  });
+
+  it("meets a newer folder picked from the doors the same way", async () => {
+    asked.folder = "D:/Otra";
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "sync_kin") return Promise.resolve("strangers");
+      if (cmd === "choose_sync" && args.dest === "D:/Otra")
+        return Promise.reject({ code: "syncNewer", name: "dev_b" });
+      return answered(cmd, args);
+    };
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
+
+    expect(await screen.findByText(t("welcomeOlder"))).toBeTruthy();
+  });
+
+  it("goes back to the folders when another one is wanted instead", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeOtherFolder") }));
+
+    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
   });
 
   it("takes the name the folder already signs with, and does not ask for one", async () => {

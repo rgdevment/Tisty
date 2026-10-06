@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
+  chooseSync,
   guide,
   type Joining,
   joining,
@@ -16,10 +17,11 @@ import {
   wakeFor,
 } from "../core";
 import { adopt, fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
+import { folderAhead, saidPlainly } from "../refusal";
 import Apart, { type Door } from "./Apart";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
+import Older from "./Older";
 
 interface Props {
   onDone: (paper?: string) => void;
@@ -78,13 +80,14 @@ export default function Welcome({ onDone }: Props) {
   const [alias, setAlias] = useState("");
   const [deciding, setDeciding] = useState(false);
   const [carrying, setCarrying] = useState(false);
-  const [stuck, setStuck] = useState<string>();
+  const [stuck, setStuck] = useState<{ said: string; by?: unknown }>();
   const [kin, setKin] = useState<Kin>();
   const [offer, setOffer] = useState<Joining>();
   const [named, setNamed] = useState<string>();
   const went = useRef(false);
   const joined = useRef(false);
 
+  const ahead = folderAhead(stuck?.by);
   const path = named ? STEPS.filter((one) => one !== "signing") : STEPS;
   const at = Math.min(path.indexOf(step), path.length - 1);
 
@@ -153,13 +156,13 @@ export default function Welcome({ onDone }: Props) {
       .then((how) => {
         if (how !== "busy") return next(name);
         setCarrying(false);
-        setStuck(t("syncBusy"));
+        setStuck({ said: t("syncBusy") });
         return Promise.resolve();
       })
       .catch((e) => {
         if (went.current) return;
         setCarrying(false);
-        if (!stillApart(e)) return setStuck(saidPlainly(e));
+        if (!stillApart(e)) return setStuck({ said: saidPlainly(e), by: e });
         void syncKin()
           .catch(() => "unsure" as const)
           .then(setKin);
@@ -195,6 +198,18 @@ export default function Welcome({ onDone }: Props) {
     void settle();
   };
 
+  const stayHere = () => {
+    setBusy(true);
+    chooseSync()
+      .then(() => {
+        joined.current = false;
+        setNamed(undefined);
+        chose();
+      })
+      .catch((e) => setTrouble(saidPlainly(e)))
+      .finally(() => setBusy(false));
+  };
+
   const takeItAll = () => {
     joined.current = true;
     const name = offer?.alias ?? undefined;
@@ -205,17 +220,18 @@ export default function Welcome({ onDone }: Props) {
 
   const closed = (door: Door | "else" | null) => {
     setKin(undefined);
-    if (door === null) return setStuck(t("wouldReset"));
+    if (door === null) return setStuck({ said: t("wouldReset") });
     joined.current = door === "merge" || door === "theirs";
     setCarrying(true);
     walkThrough(door)
       .then((gone) => {
-        if (!gone) return setStuck(t("wouldReset"));
+        if (!gone) return setStuck({ said: t("wouldReset") });
         if (door === "else") return settle();
         return round().then(() => next());
       })
       .catch((e) => {
-        if (!went.current) setStuck(saidPlainly(e));
+        if (went.current) return;
+        setStuck({ said: saidPlainly(e), by: e });
       })
       .finally(() => {
         if (!went.current) setCarrying(false);
@@ -349,6 +365,17 @@ export default function Welcome({ onDone }: Props) {
               onPick={() => speak(one.code)}
             />
           ))
+        ) : stuck && ahead ? (
+          <Older
+            name={ahead.name}
+            busy={busy}
+            onStay={stayHere}
+            onOther={() => {
+              joined.current = false;
+              setNamed(undefined);
+              setStuck(undefined);
+            }}
+          />
         ) : stuck ? (
           <div className="flex flex-col gap-3">
             <div
@@ -358,7 +385,7 @@ export default function Welcome({ onDone }: Props) {
               <span className="block text-[12.5px] font-semibold text-ink">
                 {t("welcomeCarryStuck")}
               </span>
-              {stuck}
+              {stuck.said}
             </div>
             <button
               type="button"

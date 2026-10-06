@@ -42,3 +42,26 @@ fn a_store_restored_apart_from_its_folder_says_so() {
 
     assert!(stuck_after(Some(&why), &folder("G:/shared"), &folder("G:/shared")).is_some());
 }
+
+#[test]
+fn a_folder_no_round_ever_finished_with_can_be_left_freely() {
+    let kept = tempfile::tempdir().unwrap();
+    let away = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+    session.config.sync = Some(Sync::Folder(away.path().to_path_buf()));
+
+    assert_eq!(stranded_by_leaving(&session, &Sync::Local), None);
+
+    std::fs::create_dir_all(session.paths.cache()).unwrap();
+    std::fs::write(
+        session.paths.cache().join("carried-to"),
+        tisty_core::paths::told_of(away.path()),
+    )
+    .unwrap();
+
+    assert_eq!(
+        stranded_by_leaving(&session, &Sync::Local),
+        Some(away.path().to_path_buf())
+    );
+}
