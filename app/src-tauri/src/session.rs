@@ -727,16 +727,23 @@ impl Session {
             tisty_core::vouched::confirm_each(self.paths.data(), &self.state.keys);
         }
         if self.state.devices.contains(&who) {
-            return match shown.filter(|_| starting) {
-                Some(shown) => self.commit(Op::DeviceKey { d: who, p: shown }),
-                None => Ok(()),
-            };
+            if let Some(shown) = shown.filter(|_| starting) {
+                self.commit(Op::DeviceKey {
+                    d: who.clone(),
+                    p: shown,
+                })?;
+            }
+        } else {
+            self.commit(Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(tisty_core::DeviceKind::Machine),
+                p: shown,
+            })?;
         }
-        self.commit(Op::DeviceJoin {
-            d: who,
-            k: Some(tisty_core::DeviceKind::Machine),
-            p: shown,
-        })
+        match tisty_core::called::told(&self.state, &who, tisty_core::called::here()) {
+            Some(named) => self.commit(named),
+            None => Ok(()),
+        }
     }
 
     pub fn commit(&mut self, op: Op) -> tisty_core::Result<()> {

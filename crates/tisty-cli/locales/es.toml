@@ -110,6 +110,7 @@ machines-unconfirmed = "estas máquinas dicen con qué firman y aquí nadie ha r
 not-a-machine = "«{id}» no es un nombre que pueda llevar una máquina nuestra"
 machine-signs-with-nothing = "{id} no dice con qué firma, así que aquí no hay nada por lo que responder"
 machine-signs-with = "{id} dice que firma con esta clave. Compárala con la que muestra esa máquina antes de responder por ella:"
+machine-code = "o su código, como lo muestra la ventana: {code}"
 confirm-key = "¿Respondes por esta clave como la de {id}?"
 key-not-answered-for = "no se pudo responder por la clave que publica {id}, así que no cambió nada"
 key-answered-for = "respondiste por {id}: desde ahora solo entra lo que firme con {key}"

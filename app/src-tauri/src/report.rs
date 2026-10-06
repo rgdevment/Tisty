@@ -106,22 +106,33 @@ pub fn attachments(root: &Path) -> Held {
 pub struct Machine {
     pub id: String,
     pub called: String,
+    /// What the computer calls itself, said by that machine; the tree nickname stands in otherwise.
+    pub name: Option<String>,
+    pub os: Option<String>,
     pub when: i64,
+    pub since: i64,
     pub mine: bool,
     pub signs: Option<String>,
+    pub code: Option<String>,
     pub confirmed: Option<String>,
     pub confirmed_when: u64,
+    pub carried: bool,
     /// What the last round did with its history. Only the round knows this; the two keys above
     /// can agree while the folder is being refused.
     pub turned_away: Option<String>,
 }
 
+pub struct Known<'a> {
+    pub gone: &'a std::collections::BTreeSet<tisty_core::DeviceId>,
+    pub assistants: &'a std::collections::BTreeSet<tisty_core::DeviceId>,
+    pub keys: &'a std::collections::BTreeMap<tisty_core::DeviceId, String>,
+    pub named: &'a std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::Named>,
+}
+
 pub fn machines(
     told: &[tisty_core::event::Event],
     mine: &str,
-    gone: &std::collections::BTreeSet<tisty_core::DeviceId>,
-    assistants: &std::collections::BTreeSet<tisty_core::DeviceId>,
-    keys: &std::collections::BTreeMap<tisty_core::DeviceId, String>,
+    known: &Known,
     paths: &tisty_core::Paths,
     dest: Option<&std::path::Path>,
 ) -> Vec<Machine> {
@@ -131,67 +142,73 @@ pub fn machines(
     // The log keeps the first key a machine published and never another, so for this machine the
     // claim can be years stale while the key on disk is what it actually signs with.
     let ours = tisty_core::signing::shown_kept(paths, &tisty_core::DeviceId(mine.to_string()));
-    // The key a waiting machine published sits in the very history that waits, never in the state.
-    let in_folder = |who: &tisty_core::DeviceId| {
-        dest.and_then(|at| {
-            tisty_core::store::key_said_in(&at.join(tisty_sync::STORE).join(&who.0), who)
-        })
-    };
+    // What a waiting machine says of itself sits in the very history that waits, never in the state.
     let waiting = |who: &tisty_core::DeviceId| {
         away.get(&who.0) == Some(&tisty_sync::turned::Away::Unconfirmed)
     };
-    let mut last: std::collections::BTreeMap<&tisty_core::DeviceId, i64> = Default::default();
+    let introduced = |who: &tisty_core::DeviceId| match (waiting(who), dest) {
+        (true, Some(at)) => tisty_core::store::introduced::introduced_in(
+            &at.join(tisty_sync::STORE).join(&who.0),
+            who,
+        ),
+        _ => Default::default(),
+    };
+    let mut span: std::collections::BTreeMap<&tisty_core::DeviceId, (i64, i64)> =
+        Default::default();
     for one in told {
         let when = one.timestamp.as_second();
-        last.entry(&one.device)
-            .and_modify(|held| *held = (*held).max(when))
-            .or_insert(when);
+        span.entry(&one.device)
+            .and_modify(|(first, last)| {
+                *first = (*first).min(when);
+                *last = (*last).max(when);
+            })
+            .or_insert((when, when));
     }
-
-    let mut all: Vec<Machine> = last
-        .into_iter()
-        .filter(|(who, _)| !gone.contains(*who) && (!assistants.contains(*who) || waiting(who)))
-        .map(|(who, when)| Machine {
+    let seen = |who: &tisty_core::DeviceId, when: i64, since: i64| {
+        let said = introduced(who);
+        let signs = match who.0 == mine {
+            true => ours.clone().or_else(|| known.keys.get(who).cloned()),
+            false => known.keys.get(who).cloned().or(said.key),
+        };
+        let named = known.named.get(who).cloned().or(said.named);
+        Machine {
             id: who.0.clone(),
             called: tisty_core::config::nicknamed(&who.0),
+            name: named.as_ref().map(|one| one.name.clone()),
+            os: named.and_then(|one| one.os),
             when,
+            since: said.since.map_or(since, |at| at.as_second()),
             mine: who.0 == mine,
-            signs: match who.0 == mine {
-                true => ours.clone().or_else(|| keys.get(who).cloned()),
-                false => keys
-                    .get(who)
-                    .cloned()
-                    .or_else(|| waiting(who).then(|| in_folder(who)).flatten()),
-            },
+            code: signs.as_deref().and_then(tisty_core::signing::spoken),
+            signs,
             confirmed: stood.get(who).map(|one| one.key.clone()),
             confirmed_when: stood.get(who).map_or(0, |one| one.when),
+            carried: stood.get(who).is_some_and(|one| one.carried),
             turned_away: away.get(&who.0).map(|one| match one {
                 tisty_sync::turned::Away::Disowned => "disowned".to_string(),
                 tisty_sync::turned::Away::Unreadable => "unreadable".to_string(),
                 tisty_sync::turned::Away::Unconfirmed => "unconfirmed".to_string(),
             }),
+        }
+    };
+
+    let mut all: Vec<Machine> = span
+        .iter()
+        .filter(|(who, _)| {
+            !known.gone.contains(**who) && (!known.assistants.contains(**who) || waiting(who))
         })
+        .map(|(who, (first, last))| seen(who, *last, *first))
         .collect();
     for (whose, away) in &away {
         let who = tisty_core::DeviceId(whose.clone());
         if *away != tisty_sync::turned::Away::Unconfirmed
             || all.iter().any(|one| &one.id == whose)
             || !tisty_core::store::is_device_name(whose)
-            || gone.contains(&who)
+            || known.gone.contains(&who)
         {
             continue;
         }
-        let says = in_folder(&who);
-        all.push(Machine {
-            id: whose.clone(),
-            called: tisty_core::config::nicknamed(whose),
-            when: 0,
-            mine: false,
-            signs: says,
-            confirmed: None,
-            confirmed_when: 0,
-            turned_away: Some("unconfirmed".to_string()),
-        });
+        all.push(seen(&who, 0, 0));
     }
     all.sort_by(|a, b| b.when.cmp(&a.when).then_with(|| a.id.cmp(&b.id)));
     all
