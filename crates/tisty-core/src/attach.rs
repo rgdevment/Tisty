@@ -554,10 +554,16 @@ pub fn names_an_attachment(reference: &str) -> bool {
 }
 
 pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
+    set_aside_from(root, root, reference, now)
+}
+
+/// Into this machine's bin from wherever the copy lies, the shared folder included, so a copy that
+/// was only ever there still has its thirty days.
+pub fn set_aside_from(lies: &Path, root: &Path, reference: &str, now: i64) -> Result<()> {
     if !names_an_attachment(reference) {
         return Err(Error::OutsideTheStore(reference.to_string()));
     }
-    let from = resolve(reference, root)?;
+    let from = resolve(reference, lies)?;
     if !from.is_file() {
         return Err(Error::OutsideTheStore(reference.to_string()));
     }
@@ -586,7 +592,11 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
         .and_then(|mut file| std::io::Write::write_all(&mut file, whole.as_bytes()))?;
     let _ = crate::paths::ours_alone(&ledger);
 
-    std::fs::rename(&from, &into)?;
+    if std::fs::rename(&from, &into).is_err() {
+        // The shared folder is often another drive, where a rename cannot reach.
+        std::fs::copy(&from, &into)?;
+        std::fs::remove_file(&from)?;
+    }
     Ok(())
 }
 

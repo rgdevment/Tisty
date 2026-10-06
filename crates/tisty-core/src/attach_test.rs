@@ -1520,3 +1520,30 @@ fn what_was_kept_says_its_name_its_digest_and_its_weight() {
         "what it tells does not answer for the name it kept"
     );
 }
+
+#[test]
+fn a_copy_only_in_the_shared_folder_goes_to_this_machines_bin_with_its_thirty_days() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path().join("data");
+    let shared = room.path().join("shared");
+    let at = "attachments/ab/solo-alla-a3f90001.png";
+    std::fs::create_dir_all(shared.join("attachments/ab")).unwrap();
+    std::fs::write(shared.join(at), b"solo en la carpeta").unwrap();
+
+    set_aside_from(&shared, &data, at, 1_000).unwrap();
+
+    assert!(
+        !shared.join(at).exists(),
+        "the folder's copy stayed where it was"
+    );
+    assert_eq!(
+        std::fs::read(bin(&data).join("ab/solo-alla-a3f90001.png")).unwrap(),
+        b"solo en la carpeta"
+    );
+    assert!(
+        std::fs::read_to_string(bin_ledger(&data))
+            .unwrap()
+            .contains(at),
+        "set aside with no line in the bin's ledger, so it could never come back"
+    );
+}

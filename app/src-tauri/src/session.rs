@@ -362,9 +362,17 @@ impl Session {
                 }
                 continue;
             }
-            let here = tisty_core::attach::resolve(reference, self.paths.data())
-                .is_ok_and(|at| at.is_file());
-            if here && let Err(e) = tisty_core::attach::set_aside(self.paths.data(), reference, now)
+            let lies_in = |root: &std::path::Path| {
+                tisty_core::attach::resolve(reference, root).is_ok_and(|at| at.is_file())
+            };
+            let lies = if lies_in(self.paths.data()) {
+                Some(self.paths.data().to_path_buf())
+            } else {
+                self.dest().filter(|dest| lies_in(dest))
+            };
+            if let Some(lies) = lies
+                && let Err(e) =
+                    tisty_core::attach::set_aside_from(&lies, self.paths.data(), reference, now)
             {
                 witness::warn(
                     channel::ATTACH,

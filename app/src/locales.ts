@@ -1350,7 +1350,7 @@ const en = {
   machineAstrayOnly:
     "A machine whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
   looseWhat:
-    "No task and no document on this machine references these. Documents do not travel between machines yet, so another one may still reference them. Emptying is by hand, from the folder.",
+    "No task and no document references these. Taking them out puts them in this computer's bin, the ones kept only in the folder you share too, and you have thirty days to bring them back.",
   looseWait:
     "Some machines have not written here in a while, and may still reference these. Take that into account before deciding what is left over.",
   looseNone: "Nothing loose",
@@ -2895,7 +2895,7 @@ const es: Catalog = {
   machineAstrayOnly:
     "Una máquina cuya clave nadie confirmó nunca no llega a esto: la primera clave que publica se toma por buena. Esto solo aparece donde alguien dijo «esta es».",
   looseWhat:
-    "Ninguna tarea ni documento de esta máquina los referencia. Los documentos todavía no viajan entre máquinas, así que otra podría seguir referenciándolos. Vaciar es a mano, desde la carpeta.",
+    "Ninguna tarea ni documento los referencia. Al sacarlos van a la papelera de este equipo, también los que estaban solo en la carpeta compartida, y tienes 30 días para recuperarlos.",
   looseWait:
     "Hay equipos que llevan tiempo sin escribir aquí y podrían seguir referenciándolos. Tenlo en cuenta antes de decidir qué sobra.",
   looseNone: "Nada suelto",
