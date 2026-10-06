@@ -1,4 +1,3 @@
-mod grandfathered;
 mod guarding;
 mod held;
 mod papers;
@@ -90,8 +89,8 @@ impl Moved {
     }
 }
 
-pub fn been_here(aside: &Path, dest: &Path) -> bool {
-    carried_here(Some(aside), dest, None)
+pub fn been_here(aside: &Path, dest: &Path, device: &str) -> bool {
+    carried_here(Some(aside), dest, Some(device))
 }
 
 pub fn carry(
@@ -739,8 +738,13 @@ fn answers_for_itself(
                 stood = Some(says);
             }
             Some(says)
-                if grandfathered::wrote_here_before_signing(&store.join(named), theirs)
-                    && tisty_core::store::key_said_in(theirs, &who).as_deref()
+                if store.join(named).is_dir()
+                    && tisty_core::store::before::first_key_past(
+                        &store.join(named),
+                        theirs,
+                        &who,
+                    )
+                    .as_deref()
                         == Some(says.as_str()) =>
             {
                 carried = Some(says.clone());
@@ -754,7 +758,7 @@ fn answers_for_itself(
                 );
                 return Answered::Unconfirmed;
             }
-            None if adopting => {}
+            None if adopting => return Answered::Unsaid,
             None => {
                 witness::note(
                     channel::SYNC,
@@ -830,6 +834,14 @@ fn answers_for_itself(
             );
             Answered::Unreadable
         }
+        Err(Adrift::Disowned(_)) if carried.is_some() => {
+            witness::note(
+                channel::SYNC,
+                "a machine held from before it signed does not answer to the key it says, so a person decides",
+                &[("at", Fact::Id(named.to_string()))],
+            );
+            Answered::Unconfirmed
+        }
         Err(Adrift::Disowned(segment)) => {
             // Read again from the first line next round, but never give up knowing it signed:
             // that latch is what tells a signature taken away from a history written before one.
@@ -857,6 +869,8 @@ fn answers_for_itself(
 
 enum Answered {
     Yes,
+    /// Taken on the first folder's word before it said its key, so adopting waits for that key.
+    Unsaid,
     Unreadable,
     Disowned,
     Unconfirmed,
@@ -989,6 +1003,7 @@ fn bring(
             alike,
         ) {
             Answered::Yes => {}
+            Answered::Unsaid => moved.coming.push(named.to_string()),
             Answered::Unreadable => {
                 away.insert(named.to_string(), turned::Away::Unreadable);
                 moved.unreadable.push(named.to_string());

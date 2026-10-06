@@ -7,8 +7,7 @@ use tisty_core::paths::{is_the_one, told_of};
 pub(crate) const CARRIED_TO: &str = "carried-to";
 const ADOPTING: &str = "adopting";
 
-/// A memo another identity left behind, as a reinstall that kept the cache does, is not this
-/// machine having been here: it meets the folder for the first time.
+// A memo another identity left, as a reinstall that kept the cache does, is not being here.
 pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path, device: Option<&str>) -> bool {
     let Some(aside) = aside else {
         return false;

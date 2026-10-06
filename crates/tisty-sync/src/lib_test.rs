@@ -7941,8 +7941,6 @@ fn a_machine_still_in_the_cloud_when_the_folder_was_taken_up_is_taken_up_when_it
     );
 }
 
-/// What the folder holds for `whose` after it upgrades: its unsigned history from before the fence,
-/// and the same file carried on under its key, with that key said in it.
 fn upgraded_in_place(whose: &Machine, shared: &Path, older: &str, next: &str) -> String {
     let there = whose.store.join(&whose.device);
     std::fs::create_dir_all(&there).unwrap();

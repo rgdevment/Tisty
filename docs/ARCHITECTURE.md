@@ -144,11 +144,11 @@ claims, and only a person decides what is believed. A machine that never said
 what it signs with is not held this way — there is nothing to answer for.
 
 A machine this store already held from before signing existed is the one
-exception, taken once and on narrow terms (`grandfathered.rs`): its first key is
+exception, taken once and on narrow terms (`store::before`): its first key is
 believed without asking when the copy held here has lines from before the fence
-and every one of its segments is still there, byte for byte, at the start of the
-folder's copy, the key is the one that history says itself, and the whole of it
-verifies under that key. That is exactly what the folder could already do to it
+and the folder's copy, read whole and in order however its segments were renamed
+since, begins with it byte for byte, the key is the first one said after it, and
+the whole of it verifies under that key. That is exactly what the folder could already do to it
 before signing, for one moment, and then the door closes; a key planted first
 leaves the real machine showing as one that changed its key, which nobody can
 miss. It is kept with `carried` beside it in `.keys-confirmed`, so what nobody
