@@ -272,7 +272,7 @@ const en = {
   upkeepNothing: "Nothing to get back",
   upkeepSafeAll: "Take them all out",
   upkeepSafeAllSure:
-    "Take out {name} attachments nothing names? They go to the bin, and you have 30 days to bring them back.",
+    "Take out {name} attachments nothing names? Those on this computer go to the bin for 30 days; those kept only in the folder you share are deleted from it, and your cloud keeps them in its own bin.",
   upkeepLook: "Worth a look first",
   upkeepLookWhat:
     "Documents on disk the log does not name. They may be the only copy of something that lost its event. Taking one in gives it back to Tisty, and can never be wrong.",
@@ -1350,7 +1350,7 @@ const en = {
   machineAstrayOnly:
     "A machine whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
   looseWhat:
-    "No task and no document on this machine references these. Documents do not travel between machines yet, so another one may still reference them. Emptying is by hand, from the folder.",
+    "No task and no document references these. Taking them out puts this computer's copies in the bin for 30 days; a copy kept only in the folder you share is deleted from it, and your cloud keeps it in its own bin.",
   looseWait:
     "Some machines have not written here in a while, and may still reference these. Take that into account before deciding what is left over.",
   looseNone: "Nothing loose",
@@ -1811,7 +1811,7 @@ const es: Catalog = {
   upkeepNothing: "Nada que recuperar",
   upkeepSafeAll: "Sacarlos todos",
   upkeepSafeAllSure:
-    "¿Sacar {name} adjuntos que nadie nombra? Van a la papelera, y tienes 30 días para recuperarlos.",
+    "¿Sacar {name} adjuntos que nadie nombra? Los de este equipo van a la papelera por 30 días; los que están solo en la carpeta compartida se borran de ella y tu nube los guarda en su propia papelera.",
   upkeepLook: "Míralos tú",
   upkeepLookWhat:
     "Documentos en el disco que el registro no nombra. Pueden ser la única copia de algo que perdió su evento. Adoptarlos los devuelve a Tisty y nunca puede estar mal.",
@@ -2895,7 +2895,7 @@ const es: Catalog = {
   machineAstrayOnly:
     "Una máquina cuya clave nadie confirmó nunca no llega a esto: la primera clave que publica se toma por buena. Esto solo aparece donde alguien dijo «esta es».",
   looseWhat:
-    "Ninguna tarea ni documento de esta máquina los referencia. Los documentos todavía no viajan entre máquinas, así que otra podría seguir referenciándolos. Vaciar es a mano, desde la carpeta.",
+    "Ninguna tarea ni documento los referencia. Al sacarlos, las copias de este equipo van a la papelera por 30 días; la que está solo en la carpeta compartida se borra de ella y tu nube la guarda en su propia papelera.",
   looseWait:
     "Hay equipos que llevan tiempo sin escribir aquí y podrían seguir referenciándolos. Tenlo en cuenta antes de decidir qué sobra.",
   looseNone: "Nada suelto",

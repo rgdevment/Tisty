@@ -1356,7 +1356,7 @@ describe("the maintenance panel", () => {
     expect(await screen.findByText(/nothing is kept twice/i)).toBeTruthy();
   });
 
-  it("says plainly that another machine may still be using them", async () => {
+  it("says plainly where taken-out files go, the shared folder's too", async () => {
     render(
       <Keeping
         onPack={() => {}}
@@ -1371,7 +1371,7 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
 
-    expect(await screen.findByText(/another one may still reference them/i)).toBeTruthy();
+    expect(await screen.findByText(/your cloud keeps it in its own bin/i)).toBeTruthy();
   });
 
   it("breaks the weight down, so the size has somewhere to come from", async () => {

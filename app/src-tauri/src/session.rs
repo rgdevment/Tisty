@@ -386,9 +386,20 @@ impl Session {
         if told.is_empty() {
             return Ok(0);
         }
+        let gone: std::collections::BTreeSet<String> = told
+            .iter()
+            .filter_map(|op| match op {
+                Op::AttachRetire { d } => Some(d.clone()),
+                _ => None,
+            })
+            .collect();
         let many = told.len();
         self.commit_all(told)
             .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
+        // Asked for by name, so the shared folder's copy goes now; the cloud keeps it in its own bin.
+        if let Some(dest) = self.dest() {
+            tisty_core::attach::sweep(&dest, &gone, &std::collections::BTreeSet::new());
+        }
         self.tidy_up(false);
         self.reproject().map_err(|e| {
             blamed(
