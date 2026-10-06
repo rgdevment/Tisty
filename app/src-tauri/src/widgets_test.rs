@@ -286,6 +286,16 @@ fn a_page_held_inside_a_viewport_high_wrapper_is_measured_by_what_overflows_it()
 }
 
 #[test]
+fn a_box_that_grows_with_the_frame_is_measured_by_what_it_holds() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains("Math.abs(r.height-was-(innerHeight-view))<1)fluid.add(one)"),
+        "a #app at min-height:100vh grew with every frame it was given, a few pixels more each time"
+    );
+    assert!(page.contains("if(fluid.has(one)&&depth<6){const low=within(one,depth+1)"));
+}
+
+#[test]
 fn a_javascript_link_is_left_to_the_page() {
     let page = paged("<html><body></body></html>");
     assert!(
@@ -324,7 +334,7 @@ fn a_page_held_to_the_viewport_is_measured_again_when_what_it_holds_grows() {
 fn a_page_is_measured_by_its_loose_text_and_its_closing_margins() {
     let page = paged("<html><body></body></html>");
     for wanted in [
-        "b.childNodes",
+        "within(b,0)",
         "nodeType===3",
         "px(s.marginBottom)",
         "px(s.paddingBottom)",
