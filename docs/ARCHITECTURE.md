@@ -2198,6 +2198,14 @@ confirmed; its agent stays off until the person turns it on, because minting
 one is theirs. Saving the result is best effort: a configuration that cannot be
 written is worked out the same way next time.
 
+`inst` is not the computer's name, and the two stay apart. The name
+(`called.rs`) is for people: the person can change it, and it travels to the
+other machines in `device.named` so a machine waiting to be confirmed is found by
+it. `inst` is for this computer alone: it never leaves the configuration, never
+changes when the computer is renamed, and is a digest nobody reads. Two
+computers can share a name; only a cloned disk, below, makes them share an
+`inst`.
+
 What it cannot catch: a configuration written before `inst` existed takes the
 computer it wakes on as its own, so a copy made before this check shipped goes
 unnoticed; and a Windows or Linux disk cloned without sysprep or a fresh
