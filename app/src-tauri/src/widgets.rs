@@ -24,6 +24,12 @@ enum Kind {
     Page,
 }
 
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+pub struct Borrowed {
+    pub id: String,
+    pub whole: bool,
+}
+
 #[derive(Default)]
 pub struct Lent(Mutex<VecDeque<(String, String, Kind)>>);
 
@@ -35,17 +41,17 @@ impl Lent {
         Ok(self.held(body, Kind::Fenced))
     }
 
-    pub fn lend_kept(&self, body: Vec<u8>) -> Answer<String> {
+    pub fn lend_kept(&self, body: Vec<u8>) -> Answer<Borrowed> {
         if body.len() > KEPT_AT_MOST {
             return Err(too_big_a_page());
         }
         let body = String::from_utf8_lossy(&body).into_owned();
-        let kind = if whole(&body) {
-            Kind::Page
-        } else {
-            Kind::Fenced
-        };
-        Ok(self.held(body, kind))
+        let whole = whole(&body);
+        let kind = if whole { Kind::Page } else { Kind::Fenced };
+        Ok(Borrowed {
+            id: self.held(body, kind),
+            whole,
+        })
     }
 
     fn held(&self, body: String, kind: Kind) -> String {
@@ -131,7 +137,7 @@ pub async fn widget_lend_kept(
     session: tauri::State<'_, Mutex<Session>>,
     lent: tauri::State<'_, Lent>,
     reference: String,
-) -> Answer<String> {
+) -> Answer<Borrowed> {
     if !a_page(&reference) {
         return Err(Refusal::of("notAllowed"));
     }
@@ -154,23 +160,43 @@ pub fn shell(body: &str, dark: bool) -> String {
     )
 }
 
-pub fn whole(body: &str) -> bool {
-    let start = body.trim_start_matches('\u{feff}').trim_start();
-    let opening: String = start
-        .chars()
-        .take(9)
-        .collect::<String>()
-        .to_ascii_lowercase();
-    opening.starts_with("<!doctype") || opening.starts_with("<html")
+fn opens_with(text: &str, word: &str) -> bool {
+    text.get(..word.len())
+        .is_some_and(|start| start.eq_ignore_ascii_case(word))
 }
 
-pub fn paged(body: &str) -> String {
-    let bridge = format!("<script>{MEASURER}</script>");
-    let lower = body.to_ascii_lowercase();
-    match lower.rfind("</body>") {
-        Some(at) => format!("{}{bridge}{}", &body[..at], &body[at..]),
-        None => format!("{body}{bridge}"),
+fn prelude(body: &str) -> (usize, bool) {
+    let mut at = 0;
+    let mut declared = false;
+    loop {
+        let rest = &body[at..];
+        let bare = rest.trim_start_matches(|c: char| c == '\u{feff}' || c.is_whitespace());
+        at += rest.len() - bare.len();
+        let closing = if bare.starts_with("<!--") {
+            "-->"
+        } else if opens_with(bare, "<!doctype") {
+            declared = true;
+            ">"
+        } else {
+            return (at, declared);
+        };
+        match bare.find(closing) {
+            Some(end) => at += end + closing.len(),
+            None => return (body.len(), declared),
+        }
     }
+}
+
+pub fn whole(body: &str) -> bool {
+    let (at, declared) = prelude(body);
+    let rest = &body[at..];
+    declared || opens_with(rest, "<html") || opens_with(rest, "<head")
+}
+
+// Before anything the page holds, so no script or string of its own can swallow the measurer.
+pub fn paged(body: &str) -> String {
+    let (at, _) = prelude(body);
+    format!("{}<script>{MEASURER}</script>{}", &body[..at], &body[at..])
 }
 
 const KIT: &str = r#"
@@ -221,7 +247,7 @@ svg{max-width:100%}
 const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const box=document.querySelector("main.w");const tell=()=>say({type:"resize",height:Math.ceil(Math.max(box.scrollHeight,box.getBoundingClientRect().height))});new ResizeObserver(tell).observe(box);addEventListener("load",tell);const themed=()=>{const h=location.hash;if(h==="#dark"||h==="#light")document.documentElement.classList.toggle("dark",h==="#dark")};themed();addEventListener("hashchange",themed);addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;e.preventDefault();say({type:"open",href:a.getAttribute("href")})})})();"##;
 
 // A page may replace its whole document while it unpacks, so it is measured from the window, by what flows in its body.
-const MEASURER: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let queued=false;const reach=()=>{const b=document.body;if(!b)return 0;let low=0;for(const one of b.children){if(getComputedStyle(one).position==="fixed")continue;const r=one.getBoundingClientRect();if(r.height>0)low=Math.max(low,r.bottom+scrollY)}return Math.ceil(low)};const tell=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;const h=reach();if(h>0)say({type:"resize",height:h})})};let root=null;const seen=new ResizeObserver(tell);const watch=()=>{if(document.documentElement!==root){root=document.documentElement;seen.disconnect();seen.observe(root)}tell()};new MutationObserver(watch).observe(document,{childList:true,subtree:true});addEventListener("load",tell,true);addEventListener("resize",tell);watch();addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;const href=a.getAttribute("href")||"";if(href.startsWith("#"))return;e.preventDefault();say({type:"open",href})},true)})();"##;
+const MEASURER: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let queued=false;const px=(v)=>Number.parseFloat(v)||0;const span=document.createRange();const reach=()=>{const b=document.body;if(!b)return 0;let low=0;for(const one of b.childNodes){let bottom=0;if(one.nodeType===1){const s=getComputedStyle(one);if(s.position==="fixed"||s.display==="none")continue;const r=one.getBoundingClientRect();if(r.height<=0&&r.width<=0)continue;bottom=r.bottom+px(s.marginBottom)}else if(one.nodeType===3&&one.textContent.trim()){span.selectNodeContents(one);bottom=span.getBoundingClientRect().bottom}low=Math.max(low,bottom)}if(low<=0)return 0;const s=getComputedStyle(b);return Math.ceil(low+scrollY+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom))};const tell=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;const h=reach();if(h>0)say({type:"resize",height:h})})};let root=null;const seen=new ResizeObserver(tell);const watch=()=>{if(document.documentElement!==root){root=document.documentElement;seen.disconnect();seen.observe(root)}tell()};new MutationObserver(watch).observe(document,{childList:true,subtree:true});addEventListener("load",tell,true);addEventListener("resize",tell);watch();addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;const href=a.getAttribute("href")||"";if(href.startsWith("#"))return;e.preventDefault();say({type:"open",href})},true)})();"##;
 
 #[cfg(test)]
 #[path = "widgets_test.rs"]
