@@ -5,8 +5,10 @@ use tisty_core::State;
 use tisty_core::event::{LogEdit, Op, StepRef, StepText, TaskPatch};
 use tisty_core::model::{StepId, Task};
 
-use super::asked::{strings, text};
-use super::chores::{already_said_done, filling, steps_fit, steps_named, still_filling};
+use super::asked::text;
+use super::chores::{
+    already_said_done, filling, steps_asked, steps_fit, steps_named, still_filling,
+};
 use super::jsonrpc::told;
 use super::{Refused, hitch, moved, opened};
 
@@ -114,20 +116,7 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
 }
 
 pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(said) = text(args, "task") else {
-        return Err(Refused::Tool("unplanning needs a `task` id.".into()));
-    };
-    let mut wanted = strings(args, "steps")?;
-    if let Some(one) = text(args, "step") {
-        wanted.push(one);
-    }
-    if wanted.is_empty() {
-        return Err(Refused::Tool(
-            "unplanning needs `steps`: the text of each step to take off, as `read` shows it \
-             (`step` for one)."
-                .into(),
-        ));
-    }
+    let (said, wanted) = steps_asked(args, "unplanning", "each step to take off")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
     if let Some(why) = already_said_done(task, "taking a step off") {

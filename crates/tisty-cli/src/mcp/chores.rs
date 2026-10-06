@@ -604,20 +604,7 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(said) = text(args, "task") else {
-        return Err(Refused::Tool("ticking needs a `task` id.".into()));
-    };
-    let mut wanted = strings(args, "steps")?;
-    if let Some(one) = text(args, "step") {
-        wanted.push(one);
-    }
-    if wanted.is_empty() {
-        return Err(Refused::Tool(
-            "ticking needs `steps`: the text of each step you did, as `read` shows it \
-             (`step` for one)."
-                .into(),
-        ));
-    }
+    let (said, wanted) = steps_asked(args, "ticking", "each step you did")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
     if let Some(refusal) = already_said_done(task, "ticking") {
@@ -678,20 +665,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(said) = text(args, "task") else {
-        return Err(Refused::Tool("unticking needs a `task` id.".into()));
-    };
-    let mut wanted = strings(args, "steps")?;
-    if let Some(one) = text(args, "step") {
-        wanted.push(one);
-    }
-    if wanted.is_empty() {
-        return Err(Refused::Tool(
-            "unticking needs `steps`: the text of each step an agent ticked by mistake, as \
-             `read` shows it (`step` for one)."
-                .into(),
-        ));
-    }
+    let (said, wanted) = steps_asked(args, "unticking", "each step an agent ticked by mistake")?;
     let (state, mut store) = opened(paths)?;
     let (id, task) = filling(&state, &store, &said)?;
     if let Some(refusal) = already_said_done(task, "unticking") {
@@ -946,6 +920,27 @@ pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> 
         ));
     }
     proposed(paths, one)
+}
+
+/// The task and the steps a call names, `step` standing for a list of one.
+pub(super) fn steps_asked(
+    args: &Value,
+    doing: &str,
+    which: &str,
+) -> Result<(String, Vec<String>), Refused> {
+    let Some(said) = text(args, "task") else {
+        return Err(Refused::Tool(format!("{doing} needs a `task` id.")));
+    };
+    let mut wanted = strings(args, "steps")?;
+    if let Some(one) = text(args, "step") {
+        wanted.push(one);
+    }
+    if wanted.is_empty() {
+        return Err(Refused::Tool(format!(
+            "{doing} needs `steps`: the text of {which}, as `read` shows it (`step` for one)."
+        )));
+    }
+    Ok((said, wanted))
 }
 
 pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {

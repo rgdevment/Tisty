@@ -356,13 +356,10 @@ pub(super) fn tools() -> Value {
                             to agents: what it is, in markdown. One already there is written \
                             over whole, so `read` it first and keep what still holds; what you \
                             learnt on the way goes in `note`.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "body": { "type": "string", "description": "What the task is, in markdown" }
-                },
-                "required": ["task", "body"]
-            }))
+            "inputSchema": on_a_task(
+                json!({ "body": { "type": "string", "description": "What the task is, in markdown" } }),
+                &["body"],
+            )
         },
         {
             "name": "plan",
@@ -370,13 +367,10 @@ pub(super) fn tools() -> Value {
             "description": "Add a checklist, or more of one, to a task you filed or one the \
                             person opened to agents. Steps go after the ones already there; \
                             `read` shows them.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, one string each, at most 100 characters" }
-                },
-                "required": ["task", "steps"]
-            }))
+            "inputSchema": on_a_task(
+                json!({ "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to add, in order, one string each, at most 100 characters" } }),
+                &["steps"],
+            )
         },
         {
             "name": "tick",
@@ -388,14 +382,7 @@ pub(super) fn tools() -> Value {
                             ticks the next one still open. No confirmation waits on it: a step \
                             is not the task, and the task stays open until `say_done` and the \
                             person.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps you did, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call" },
-                    "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
-                },
-                "required": ["task"]
-            }))
+            "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
             "name": "untick",
@@ -405,27 +392,17 @@ pub(super) fn tools() -> Value {
                             gave can be taken back: one the person gave is theirs, and naming \
                             it unticks nothing. Name each step by its text as `read` shows it. \
                             Unticking closes and opens nothing; the task stays as it was.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to untick, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call" },
-                    "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
-                },
-                "required": ["task"]
-            }))
+            "inputSchema": on_a_task(steps_by_text("to untick"), &[])
         },
         {
             "name": "rename",
             "title": "Rename a task an agent filed",
             "description": "Give a better title to a task an agent filed. A task the person \
                             wrote keeps its title, opened to agents or not.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "title": { "type": "string", "description": "The new title" }
-                },
-                "required": ["task", "title"]
-            }))
+            "inputSchema": on_a_task(
+                json!({ "title": { "type": "string", "description": "The new title" } }),
+                &["title"],
+            )
         },
         {
             "name": "reword_step",
@@ -433,14 +410,13 @@ pub(super) fn tools() -> Value {
             "description": "Rewrite a step that is not ticked, on a task you filed or one the \
                             person opened to agents. A ticked step is refused: `untick` it first \
                             if the tick was yours by mistake.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "step": { "type": "string", "description": "The step, by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing" },
+            "inputSchema": on_a_task(
+                json!({
+                    "step": { "type": "string", "description": "The step, by its text as `read` shows it" },
                     "text": { "type": "string", "description": "What the step says now, at most 100 characters" }
-                },
-                "required": ["task", "step", "text"]
-            }))
+                }),
+                &["step", "text"],
+            )
         },
         {
             "name": "unplan",
@@ -448,14 +424,7 @@ pub(super) fn tools() -> Value {
             "description": "Take off steps that are not ticked, on a task you filed or one the \
                             person opened to agents: a step that no longer applies, or one \
                             written twice. One ticked step among them and nothing is taken off.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
-                    "steps": { "type": "array", "items": { "type": "string" }, "description": "The steps to take off, each by its text as `read` shows it. One of `steps` or `step` has to come with the call" },
-                    "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
-                },
-                "required": ["task"]
-            }))
+            "inputSchema": on_a_task(steps_by_text("to take off"), &[])
         },
         {
             "name": "reword_note",
@@ -463,14 +432,13 @@ pub(super) fn tools() -> Value {
             "description": "Rewrite a note in the journal of a task you filed or one the person \
                             opened to agents, named by the id `read` shows beside it. The new \
                             body replaces the old one whole; a note cannot be emptied.",
-            "inputSchema": shaped(json!({
-                "properties": {
-                    "task": { "type": "string", "description": "The task id" },
+            "inputSchema": on_a_task(
+                json!({
                     "note": { "type": "string", "description": "The note's id, from `read` with `journal`" },
                     "body": { "type": "string", "description": "What the note says now, in markdown" }
-                },
-                "required": ["task", "note", "body"]
-            }))
+                }),
+                &["note", "body"],
+            )
         },
         {
             "name": "note",
@@ -1015,6 +983,31 @@ fn named_doc_field() -> Value {
     json!({
         "type": "string",
         "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title"
+    })
+}
+
+fn on_a_task(fields: Value, also_required: &[&str]) -> Value {
+    let mut properties = serde_json::Map::new();
+    properties.insert(
+        "task".into(),
+        json!({ "type": "string", "description": "The task id" }),
+    );
+    if let Value::Object(more) = fields {
+        properties.extend(more);
+    }
+    let mut required = vec!["task"];
+    required.extend_from_slice(also_required);
+    shaped(json!({ "properties": properties, "required": required }))
+}
+
+fn steps_by_text(doing: &str) -> Value {
+    json!({
+        "steps": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": format!("The steps {doing}, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call")
+        },
+        "step": { "type": "string", "description": "One step, by its text — the same as `steps` with one entry" }
     })
 }
 
