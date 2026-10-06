@@ -2104,9 +2104,39 @@ document under `<data>/docs/` and its images under
 deletable the same way. Nothing is downloaded: the words and the images travel
 inside the program.
 
-`<data>`, `<config>` and `<cache>` are the platform's own directories.
-`TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override them, and exist for
-tests.
+`<data>`, `<config>` and `<cache>` are the platform's own directories, except
+on Windows, where all three live under `%USERPROFILE%\.tisty`. The Store
+version is packaged, and a packaged app's `AppData` is a private copy Windows
+deletes when the app is uninstalled; the profile root is not virtualized, so
+every install — Store, loose, the command line and the assistant's door —
+shares one real store that outlives any of them. `TISTY_DATA`, `TISTY_CONFIG`
+and `TISTY_CACHE` override them, and exist for tests.
+
+Only the window moves the store out of `%LOCALAPPDATA%\tisty`, once, before it
+resolves its paths and never while an override or a profile is set; the
+command line and the assistant's door use whichever root exists, so nothing
+races at sign-in and nothing slow sits in front of an assistant's handshake.
+The window holds every device's write lock while it copies, so an older Tisty
+still writing makes it stop and say so instead of losing what it writes, and a
+move that fails closes the window with a message rather than open an empty
+store. Only `data` and `config` move, as one view: the real folder with the
+Store app's private copy laid over it file by file, which is exactly what the
+packaged app read — so a Store app updated in place, a loose install put in
+before the Store app is removed, and the Store app put in over a loose install
+all arrive with what the person last saw. Everything goes into a `.part` folder
+renamed into place. The old folders are left as they were, with a `MOVED.txt`,
+except for one line appended to each active segment: an event at a version no
+build will ever reach, so an older Tisty refuses that store instead of writing
+where nobody reads. That line is never copied along and never written twice.
+Since every install now shares the settings, leaving one sweeps its cache but
+keeps `config.toml`.
+
+What it costs: a Store app on 1.23 removed before a 1.24 is put in takes its
+data with it, as it always did — install the new one first. Using a loose
+install and the Store app side by side before moving keeps the Store app's copy
+of any file both touched; the loose one's stays in the old folder. And a profile
+that roams carries `.tisty` with it, which suits a person's own machines but not
+a domain that roams one profile across several.
 
 The **configuration** never syncs, and that is what matters: if two machines
 shared a device id they would write to the same file and every guarantee above

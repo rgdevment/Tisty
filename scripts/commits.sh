@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-shape='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)\([a-z0-9._-]+\): .+'
+shape='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?: .+'
 most=120
 status=0
 
@@ -27,7 +27,7 @@ weighed() {
     esac
   fi
   if ! printf '%s' "$said" | grep -qE "$shape"; then
-    amiss "$who does not read type(scope): change"
+    amiss "$who does not read type(optional scope): change"
     printf '  %s\n' "$said"
     return
   fi
@@ -43,7 +43,7 @@ weighed() {
 said_so() {
   if [ "$status" -eq 1 ]; then
     echo ""
-    echo "Expected: type(scope): change, on one line with nothing under it"
+    echo "Expected: type(optional scope): change, on one line with nothing under it"
     echo "Types:    feat fix docs style refactor perf test build ci chore revert"
     echo "Example:  feat(parser): recognise weekday names in Spanish"
   fi
