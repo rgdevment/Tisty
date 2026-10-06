@@ -42,6 +42,19 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
     Ok(who)
 }
 
+/// An agent that joined before `device.host` existed says where it lives, even with no key to vouch.
+pub fn unhosted(config: &Config, state: &crate::State) -> Option<Op> {
+    let who = config.agent_id.clone()?;
+    if state.hosts.contains_key(&who) || !state.assistants.contains(&who) {
+        return None;
+    }
+    Some(Op::DeviceHost {
+        d: who,
+        of: config.device_id.clone(),
+        p: None,
+    })
+}
+
 /// For an agent minted before hosts spoke for theirs: once, and never with a key made up on the spot.
 pub fn vouch(config: &Config, paths: &Paths, log: &[crate::event::Event]) -> Option<String> {
     let who = config.agent_id.clone()?;

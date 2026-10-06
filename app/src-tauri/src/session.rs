@@ -199,21 +199,26 @@ impl Session {
         let Ok(log) = self.log() else {
             return;
         };
-        if let Some(key) = tisty_core::agent::vouch(&config, &paths, log) {
-            let me = self.config.device_id.clone();
-            let said = tisty_core::Op::DeviceHost {
+        let said = match tisty_core::agent::vouch(&config, &paths, log) {
+            Some(key) => Some(tisty_core::Op::DeviceHost {
                 d: agent.clone(),
-                of: me,
+                of: config.device_id.clone(),
                 p: Some(key),
-            };
-            if let Err(why) = self.commit(said) {
-                witness::warn(
-                    channel::WINDOW,
-                    "this machine could not speak for the agent it runs",
-                    &[("why", Fact::Why(why.to_string()))],
-                );
-                return;
-            }
+            }),
+            None => tisty_core::agent::unhosted(&config, &self.state),
+        };
+        if let Some(said) = said
+            && let Err(why) = self.commit(said)
+        {
+            witness::warn(
+                channel::WINDOW,
+                "this machine could not speak for the agent it runs",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+            return;
+        }
+        if !self.state.assistants.contains(&agent) {
+            return;
         }
         self.config.agent_vouched = Some(agent);
         let _ = self.config.save(&self.paths);
