@@ -29,6 +29,7 @@ ed25519-dalek.workspace = true
 zip.workspace = true
 unicode-normalization.workspace = true
 sys-locale.workspace = true
+machine-uid.workspace = true
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 sysinfo.workspace = true
