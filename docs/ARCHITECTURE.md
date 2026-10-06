@@ -148,15 +148,15 @@ exception, taken once and on narrow terms (`store::before`): its first key is
 believed without asking when the copy held here has lines from before the fence
 and the folder's copy, read whole and in order however its segments were renamed
 since, begins with it byte for byte, the key is the first one said after it, and
-the whole of it verifies under that key. That is exactly what the folder could already do to it
-before signing, for one moment, and then the door closes; a key planted first
-leaves the real machine showing as one that changed its key, which nobody can
-miss. It is kept with `carried` beside it in `.keys-confirmed`, so what nobody
-compared can be told from what somebody did. A signed history that has not yet
-said what it signs with waits like any other, except in the first folder a
-machine takes up whole. The memo that says a machine has been to a folder before
-names that machine, so a reinstall that kept the cache meets the folder as the
-new machine it is.
+the whole of it verifies under that key. That is exactly what the folder could
+already do to it before signing, for one moment, and then the door closes; a key
+planted first leaves the real machine showing as one that changed its key, which
+nobody can miss. It is kept with `carried` beside it in `.keys-confirmed`, so
+what nobody compared can be told from what somebody did. A signed history that
+has not yet said what it signs with waits like any other, except in the first
+folder a machine takes up whole. The memo that says a machine has been to a
+folder before names that machine, so a reinstall that kept the cache meets the
+folder as the new machine it is.
 
 ### What a power cut leaves behind
 
