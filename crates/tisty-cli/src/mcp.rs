@@ -67,7 +67,7 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
         if let Some(ended) = born.hand_over(greeting.as_deref(), &line, &mut stdin) {
             return ended;
         }
-        if greeting.is_none() && handing::greets(&line) {
+        if handing::greets(&line) {
             greeting = Some(line.clone());
         }
         let Some(said) = answer(&paths, &line) else {

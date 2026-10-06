@@ -87,10 +87,11 @@ fn greeted(
         return Some((child, into, BufReader::new(out)));
     };
     let (tell, heard) = mpsc::channel();
+    let asked = greeting.to_string();
     std::thread::spawn(move || {
         let mut from = BufReader::new(out);
         let mut first = String::new();
-        let read = from.read_line(&mut first).is_ok_and(|n| n > 0);
+        let read = from.read_line(&mut first).is_ok() && answers(&asked, &first);
         let _ = tell.send(read.then_some(from));
     });
     let sent = writeln!(into, "{}", greeting.trim_end()).and_then(|_| into.flush());
@@ -138,4 +139,14 @@ fn relay(
 pub(super) fn greets(line: &str) -> bool {
     serde_json::from_str::<serde_json::Value>(line)
         .is_ok_and(|asked| asked.get("method").and_then(|m| m.as_str()) == Some("initialize"))
+}
+
+fn answers(asked: &str, said: &str) -> bool {
+    let (Ok(asked), Ok(said)) = (
+        serde_json::from_str::<serde_json::Value>(asked),
+        serde_json::from_str::<serde_json::Value>(said),
+    ) else {
+        return false;
+    };
+    said.get("id") == asked.get("id")
 }
