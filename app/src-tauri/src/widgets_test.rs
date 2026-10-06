@@ -296,6 +296,29 @@ fn a_box_that_grows_with_the_frame_is_measured_by_what_it_holds() {
 }
 
 #[test]
+fn the_window_hears_a_link_after_the_page_routers_registered_first() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains(
+            "const last=()=>{removeEventListener(\"click\",clicked);addEventListener(\"click\",clicked)}"
+        ),
+        "injected first, the measurer heard a window click before the page's router and took it"
+    );
+    assert!(page.contains(
+        "document.addEventListener(\"DOMContentLoaded\",last);addEventListener(\"load\",last)"
+    ));
+}
+
+#[test]
+fn a_box_with_display_contents_is_measured_by_what_it_holds() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains("if(s.display===\"contents\")return depth<6?within(one,depth+1):0;"),
+        "a wrapper with no box of its own measured 0x0 and left the frame at 40px"
+    );
+}
+
+#[test]
 fn a_javascript_link_is_left_to_the_page() {
     let page = paged("<html><body></body></html>");
     assert!(
