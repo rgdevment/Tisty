@@ -121,6 +121,8 @@ pub enum Holds {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub device_id: DeviceId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inst: Option<String>,
     /// A second writer on this machine, for whatever files tasks on your behalf. Its own
     /// directory keeps undo apart: this machine never undoes what the agent wrote.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -192,11 +194,16 @@ impl Config {
                     &[("at", Fact::Id(existing.device_id.0.clone()))],
                 );
             }
+            let mut existing = existing;
+            if crate::machine::settled(&mut existing, crate::machine::here().as_deref()) {
+                existing.save(paths)?;
+            }
             return Ok(existing);
         }
 
         let config = Self {
             device_id: DeviceId(new_device_id()),
+            inst: crate::machine::here(),
             agent_id: None,
             locale: None,
             editor: None,

@@ -2181,3 +2181,18 @@ must never travel is the file that says *«this machine is that id»*. That file
 lives in the local config directory, never a roaming one: a Windows domain
 profile copies `%APPDATA%` to a company server at logoff, and it would take the
 device id and the `private/` folder with it.
+
+Since the Windows store moved to `%USERPROFILE%\.tisty`, a roaming profile, a
+restored backup or a disk cloned onto a new computer can still carry that file
+along, so the configuration also keeps `inst`: a digest of what the operating
+system calls this computer — `MachineGuid` on Windows, `IOPlatformUUID` on
+macOS, `/etc/machine-id` on Linux — never the identifier itself (`machine.rs`).
+It is read again every time the configuration loads. When it no longer matches,
+the configuration was written on another computer, and this one stops speaking
+as the machine it came from: it takes a device id of its own, derived from the
+new `inst` and the old id so that the window and the terminal waking at once
+agree on it, joins like any new machine and waits to be confirmed by the
+others. The agent's id is dropped rather than renamed, because minting one is
+the person's act. A configuration written before `inst` existed takes the
+computer it wakes on as its own, and a computer that will not say what it is
+changes nothing.

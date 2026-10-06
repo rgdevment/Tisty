@@ -191,6 +191,7 @@ fn a_missing_config_is_not_an_error() {
 fn a_table_valued_field_does_not_swallow_what_follows_it() {
     let config = Config {
         device_id: DeviceId("dev_a".into()),
+        inst: None,
         agent_id: None,
         candidates: None,
         locale: Some("es".into()),
@@ -246,6 +247,7 @@ fn the_look_follows_the_computer_until_one_is_chosen() {
 fn bare() -> Config {
     Config {
         device_id: DeviceId(new_device_id()),
+        inst: None,
         agent_id: None,
         candidates: None,
         sown: None,
