@@ -191,6 +191,7 @@ fn a_missing_config_is_not_an_error() {
 fn a_table_valued_field_does_not_swallow_what_follows_it() {
     let config = Config {
         device_id: DeviceId("dev_a".into()),
+        inst: None,
         agent_id: None,
         candidates: None,
         locale: Some("es".into()),
@@ -215,6 +216,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         here_since: Some(jiff::Timestamp::from_second(1_700_000_000).unwrap()),
         asked_for_a_star: Some(true),
         asked_to_wire: Some(true),
+        homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     };
 
@@ -246,6 +248,7 @@ fn the_look_follows_the_computer_until_one_is_chosen() {
 fn bare() -> Config {
     Config {
         device_id: DeviceId(new_device_id()),
+        inst: None,
         agent_id: None,
         candidates: None,
         sown: None,
@@ -270,6 +273,7 @@ fn bare() -> Config {
         here_since: None,
         asked_for_a_star: None,
         asked_to_wire: None,
+        homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     }
 }
