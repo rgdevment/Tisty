@@ -692,7 +692,7 @@ export const whatWentAmiss = (said: Settled) =>
   (said.unprojected && "ownLogUnreadable") ||
   (said.astray?.length && "someDocsAstray") ||
   (said.disowned?.length && "someoneDisowned") ||
-  (said.unconfirmed?.length && said.waiting?.length && "someoneUnconfirmedHolds") ||
+  (said.waiting?.length && "someoneUnconfirmedHolds") ||
   (said.unconfirmed?.length && "someoneUnconfirmed") ||
   (said.unreadable?.length && "someoneUnreadable") ||
   null;

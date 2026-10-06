@@ -75,7 +75,7 @@ pub struct Moved {
     pub coming: Vec<String>,
     /// Taken in while adopting before it said its key, so adopting waits on it without saying so.
     pub unsaid: Vec<String>,
-    /// Documents whose body a machine still waiting to be confirmed answers for, held with it.
+    /// Not undecided: confirming or removing the machine that answers for them settles them.
     pub waiting: Vec<String>,
 }
 
@@ -725,14 +725,19 @@ fn held_back_prints(
     if waiting.is_empty() {
         return held;
     }
-    let ledger = tisty_core::store::ledger(store).unwrap_or_default();
+    let Ok(ledger) = tisty_core::store::ledger(store) else {
+        return held;
+    };
     for named in waiting {
         let who = tisty_core::DeviceId(named.clone());
         if ledger.was_removed(&who) {
             continue;
         }
         let at = dest.join(STORE).join(named);
-        for (id, print) in tisty_core::store::introduced::prints_in(&at, &who).unwrap_or_default() {
+        let known = ledger.keys.get(&who).map(String::as_str);
+        for (id, print) in
+            tisty_core::store::introduced::prints_in(&at, &who, known).unwrap_or_default()
+        {
             if let Some(paper) = told.docs.get(&id) {
                 held.entry(paper.file.clone()).or_default().insert(print);
             }

@@ -24,6 +24,12 @@ describe("what a sync says went amiss", () => {
     expect(t("someoneUnconfirmedHolds")).toMatch(/Maintenance/);
   });
 
+  it("says it on a background sync too, which leaves the waiting machines to the sidebar", () => {
+    expect(whatWentAmiss(settled({ unconfirmed: [], waiting: ["uno-0001"] }))).toBe(
+      "someoneUnconfirmedHolds",
+    );
+  });
+
   it("keeps the plain notice when nothing of it is held back", () => {
     expect(whatWentAmiss(settled({ unconfirmed: ["dev_w"] }))).toBe("someoneUnconfirmed");
   });

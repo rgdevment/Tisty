@@ -80,7 +80,7 @@ fn a_waiting_history_that_holds_up_under_its_own_key_says_its_prints() {
     let (who, doc) = written(dir.path(), true);
 
     assert_eq!(
-        prints_in(&dir.path().join("store").join("dev_w"), &who),
+        prints_in(&dir.path().join("store").join("dev_w"), &who, None),
         Some(vec![(doc, "la-huella".to_string())])
     );
 }
@@ -91,8 +91,54 @@ fn a_waiting_history_that_does_not_hold_up_says_nothing() {
     let (who, _) = written(dir.path(), false);
 
     assert_eq!(
-        prints_in(&dir.path().join("store").join("dev_w"), &who),
+        prints_in(&dir.path().join("store").join("dev_w"), &who, None),
         None,
         "an unsigned history claiming a key vouched for a body"
+    );
+}
+
+#[test]
+fn a_history_signed_under_another_key_than_the_one_known_here_says_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let (who, _) = written(dir.path(), true);
+    let other = crate::signing::shown(
+        &crate::signing::mine(
+            &crate::Paths::new(dir.path().join("otra"), dir.path().join("otra-config")),
+            &who,
+        )
+        .unwrap(),
+    );
+
+    assert_eq!(
+        prints_in(&dir.path().join("store").join("dev_w"), &who, Some(&other)),
+        None,
+        "a history replaced under a fresh key held up because it vouched for itself"
+    );
+}
+
+#[test]
+fn only_the_last_print_a_waiting_machine_gave_a_document_counts() {
+    let dir = tempfile::tempdir().unwrap();
+    let (who, doc) = written(dir.path(), true);
+    let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let mut store = crate::Store::open(dir.path().join("store"), who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    store
+        .append(Op::DocSaid {
+            id: doc,
+            d: crate::event::Said {
+                title: "El expediente".into(),
+                print: Some("la-huella-despues".into()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    drop(store);
+
+    assert_eq!(
+        prints_in(&dir.path().join("store").join("dev_w"), &who, None),
+        Some(vec![(doc, "la-huella-despues".to_string())])
     );
 }

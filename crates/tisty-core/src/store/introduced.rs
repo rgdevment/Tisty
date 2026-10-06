@@ -14,13 +14,15 @@ pub struct Introduced {
     pub agent: bool,
 }
 
-fn events_of(device_dir: &Path, who: &DeviceId) -> Vec<Event> {
+fn events_of(device_dir: &Path, who: &DeviceId, loud: bool) -> Vec<Event> {
     let Ok(segments) = super::segments_in(device_dir) else {
         return Vec::new();
     };
     let mut events: Vec<Event> = Vec::new();
     for segment in &segments {
-        if let Err(why) = super::read_segment(segment, &mut events) {
+        if let Err(why) = super::read_segment(segment, &mut events)
+            && loud
+        {
             crate::witness::warn(
                 crate::witness::channel::SYNC,
                 "a waiting history could not be read whole from the folder",
@@ -31,14 +33,24 @@ fn events_of(device_dir: &Path, who: &DeviceId) -> Vec<Event> {
             );
         }
     }
-    events.retain(|one| one.device.0.eq_ignore_ascii_case(&who.0));
+    events.retain(|one| &one.device == who);
     events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     events
 }
 
+fn marks(device_dir: &Path) -> Option<Vec<(std::path::PathBuf, u64, std::time::SystemTime)>> {
+    let mut all = Vec::new();
+    for entry in std::fs::read_dir(device_dir).ok()?.flatten() {
+        let told = entry.metadata().ok()?;
+        all.push((entry.path(), told.len(), told.modified().ok()?));
+    }
+    all.sort();
+    Some(all)
+}
+
 /// What a machine says about itself in the folder, for one waiting where nothing of it came in.
 pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
-    let events = events_of(device_dir, who);
+    let events = events_of(device_dir, who, false);
     Introduced {
         key: events.iter().find_map(|one| match &one.op {
             Op::DeviceKey { d, p } if d == who => Some(p.clone()),
@@ -63,25 +75,45 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
     }
 }
 
-// Only a history that holds up whole under the key it says may vouch for a body, or anyone who can write the folder could silence the question.
-pub fn prints_in(device_dir: &Path, who: &DeviceId) -> Option<Vec<(crate::model::DocId, String)>> {
-    let said = super::key_said_in(device_dir, who)?;
+// Only a history that holds up under the key this machine knows for it, or failing that the one it says, may vouch for a body.
+pub fn prints_in(
+    device_dir: &Path,
+    who: &DeviceId,
+    known: Option<&str>,
+) -> Option<Vec<(crate::model::DocId, String)>> {
+    let before = marks(device_dir)?;
+    let said = match known {
+        Some(key) => key.to_string(),
+        None => super::key_said_in(device_dir, who)?,
+    };
     let by = crate::signing::read(&said)?;
     let reached =
         crate::answering::answers(device_dir, who, &by, Default::default(), &|_| false).ok()?;
     if !reached.signing {
         return None;
     }
-    Some(
-        events_of(device_dir, who)
-            .into_iter()
-            .filter_map(|one| match one.op {
-                Op::DocSaid { id, d } => d.print.map(|print| (id, print)),
-                Op::DocAdd { id, d } => d.said.and_then(|said| said.print).map(|print| (id, print)),
-                _ => None,
-            })
-            .collect(),
-    )
+    let events = events_of(device_dir, who, true);
+    // What was read must be what was checked: a folder that moved in between vouches for nothing.
+    if marks(device_dir)? != before {
+        return None;
+    }
+    let mut latest: std::collections::BTreeMap<crate::model::DocId, String> = Default::default();
+    for one in events {
+        match one.op {
+            Op::DocSaid { id, d } => {
+                if let Some(print) = d.print {
+                    latest.insert(id, print);
+                }
+            }
+            Op::DocAdd { id, d } => {
+                if let Some(print) = d.said.and_then(|said| said.print) {
+                    latest.insert(id, print);
+                }
+            }
+            _ => {}
+        }
+    }
+    Some(latest.into_iter().collect())
 }
 
 #[cfg(test)]

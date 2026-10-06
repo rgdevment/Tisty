@@ -698,6 +698,7 @@ async fn carried_round(
         + done.unreadable.len()
         + done.disowned.len()
         + done.unconfirmed.len()
+        + done.waiting.len()
         + done.astray.len();
     let facts = [
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
@@ -708,6 +709,7 @@ async fn carried_round(
         ("unreadable", Fact::Count(done.unreadable.len())),
         ("disowned", Fact::Count(done.disowned.len())),
         ("unconfirmed", Fact::Count(done.unconfirmed.len())),
+        ("waiting", Fact::Count(done.waiting.len())),
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
