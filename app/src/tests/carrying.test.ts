@@ -371,3 +371,68 @@ describe("carrying on its own", () => {
     expect(brought).not.toHaveBeenCalled();
   });
 });
+
+describe("a machine waiting to be confirmed", () => {
+  const mac = {
+    id: "dev_mac",
+    called: "pino 17",
+    name: "MacBook",
+    when: 0,
+    mine: false,
+    signs: "ab",
+    confirmed: null,
+    confirmedWhen: 0,
+    turnedAway: "unconfirmed",
+  };
+
+  afterEach(async () => (await import("../knocking")).settled());
+
+  it("stays on the card through a round that only sent, and other troubles are still said", async () => {
+    const { knocking } = await import("../knocking");
+    const said: (Awry | null)[] = [];
+    ipc.answer = (cmd, args) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "waiting_machines") return Promise.resolve([mac]);
+      if (cmd === "sync_now" && args.way === "push")
+        return Promise.resolve({ carried: "sent", undecided: [], unconfirmed: [] });
+      return Promise.resolve({
+        carried: "came",
+        undecided: [],
+        unconfirmed: ["dev_mac"],
+        unreadable: ["dev_other"],
+      });
+    };
+    carried = carrying(
+      () => {},
+      () => {},
+      (why) => said.push(why),
+    );
+    await settle();
+    await settle();
+    expect(knocking().waiting.map((one) => one.id)).toEqual(["dev_mac"]);
+    expect(said[said.length - 1]).toEqual({ why: "amiss", said: t("someoneUnreadable") });
+
+    carried.changed();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(sent("sync_now").some((one) => one.args.way === "push")).toBe(true);
+    expect(knocking().waiting.map((one) => one.id)).toEqual(["dev_mac"]);
+  });
+
+  it("goes away once a round that read the folder finds nobody waiting", async () => {
+    const { knock, knocking } = await import("../knocking");
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "waiting_machines") return Promise.resolve([mac]);
+      return Promise.resolve({ carried: "same", undecided: [], unconfirmed: [] });
+    };
+    await knock();
+    expect(knocking().waiting).toHaveLength(1);
+
+    carried = carrying(() => {});
+    await settle();
+    await settle();
+
+    expect(knocking().waiting).toHaveLength(0);
+  });
+});

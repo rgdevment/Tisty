@@ -1307,18 +1307,18 @@ const en = {
   machineKeyStands: "confirmed {name}",
   machineKeyAstray: "signs with a key that is not the confirmed one",
   machineKeyConfirm: "Confirm",
-  machineKeySee: "See the key",
+  machineKeySee: "See the code",
   machineKeyAsk: "What happened",
-  machineKeyTitle: "Confirm the key of {name}?",
+  machineKeyTitle: "Confirm the code of {name}?",
   machineKeyRead:
     "Open Settings → Maintenance on {name} and read its code there. If it is the one below, confirm it.",
   machineKeyThen:
     "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
   machineKeyForGood:
     "This is not changed later. A machine that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
-  machineKeyDone: "That key is now the one it answers for",
+  machineKeyDone: "Confirmed: it syncs with this machine now",
   machineKeyMine:
-    "This is the key the others have for this machine. Read it out when one of them asks.",
+    "This is the code your other machines see for this one. Read it out when one of them asks.",
   machineKeyNone: "It has not said what it signs with. Nothing it writes is checked.",
   machineAstrayStood: "the one you confirmed {name}",
   machineAstrayNow: "the one it signs with now",
@@ -1439,6 +1439,7 @@ const en = {
   comingAttachments: "Bringing attachments…",
   comingOf: "{name} of {other}",
   knockOne: "«{name}» wants to sync",
+  knockUnnamed: "A new machine wants to sync",
   knockMany: "{name} machines want to sync",
   knockWhy: "Nothing it writes comes in until you confirm it is yours.",
   knockManyWhy: "Nothing they write comes in until you confirm they are yours.",
@@ -1446,6 +1447,15 @@ const en = {
   knockLater: "Not now",
   knockDot: "A machine is waiting for you to confirm it",
   confirmTitle: "Is «{name}» yours?",
+  confirmTitleUnnamed: "Is this new machine yours?",
+  confirmUnnamed:
+    "It has not said its name yet — it does once it opens the latest Tisty. Here it goes by «{name}». Before letting in what it writes, check that it is yours: the same code has to show on both.",
+  confirmAgent:
+    "It is the assistant (Claude, Codex…) of «{name}». Before letting in what it writes, check that it is yours: the same code has to show on both.",
+  confirmAgentStep:
+    "On that computer, open Tisty → Settings → Assistants: its code shows next to the name it signs with.",
+  confirmLater: "Confirmed. What it wrote comes in with the next sync.",
+  confirmElsewhere: "If you have another machine, it will ask you there too.",
   confirmCount: "{name} of {other}",
   confirmSince: "started writing {name}",
   confirmWhat:
@@ -1458,22 +1468,23 @@ const en = {
   confirmNo: "It doesn't match",
   confirmWhyAsk: "Why do I have to do this?",
   confirmWhyIs:
-    "Each computer signs what it writes with a mark only it can make, and the code sums that mark up. If it matches on both, what arrives really comes from that computer and not from someone who put files in your folder. You do it once per computer.",
+    "Each computer signs what it writes with a mark only it can make, and the code sums that mark up. If it matches on both, what arrives really comes from that computer and not from someone who put files in your folder. You do it once on each of your other machines.",
   confirmHere:
     "If that computer also asks you to confirm this one, the code here («{name}») is {other}",
   confirmNoCode: "It has not said its code yet. Sync again on that computer and come back.",
-  confirmDone: "Done. «{name}» now syncs with this computer.",
+  confirmDone: "Done. «{name}» now syncs with this machine.",
   confirmBringing: "Bringing in what it wrote…",
   confirmBrought: "Everything it wrote has arrived.",
   confirmNext: "Next: «{name}»",
   confirmClose: "Close",
-  confirmMismatch: "Don't let it in",
+  confirmMismatch: "The code is not the same",
   confirmMismatchWhat:
     "If the code is not the same, what it writes is not coming from the computer you think. Nothing changed here: what it wrote stays in the folder, outside.",
   confirmMismatchDo:
     "Did you reinstall or replace that computer recently? Then it comes back as a new one: look for it in the list and confirm that one. If not, check who has access to your shared folder.",
   confirmGotIt: "Got it",
   machineCode: "code",
+  machineSince: "writing since {name}",
   machineCarried: "accepted on update",
   comingSlow: "The cloud is slow. It keeps bringing; you can work meanwhile.",
   comingHistory: "Your history is on its way",
@@ -2825,18 +2836,18 @@ const es: Catalog = {
   machineKeyStands: "confirmada {name}",
   machineKeyAstray: "firma con una clave que no es la confirmada",
   machineKeyConfirm: "Confirmar",
-  machineKeySee: "Ver la clave",
+  machineKeySee: "Ver el código",
   machineKeyAsk: "Qué pasó",
-  machineKeyTitle: "¿Confirmar la clave de {name}?",
+  machineKeyTitle: "¿Confirmar el código de {name}?",
   machineKeyRead:
     "Abre Configuración → Mantenimiento en {name} y lee ahí su código. Si es el de abajo, confírmalo.",
   machineKeyThen:
     "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
   machineKeyForGood:
     "Esto no se cambia después. Una máquina que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
-  machineKeyDone: "Esa clave es ahora la que responde por ella",
+  machineKeyDone: "Confirmado: ya sincroniza con este equipo",
   machineKeyMine:
-    "Esta es la clave que las demás tienen para esta máquina. Léela en voz alta cuando alguna la pida.",
+    "Este es el código que tus otros equipos ven de este. Léelo en voz alta cuando alguno lo pida.",
   machineKeyNone: "No ha dicho con qué firma. Nada de lo que escribe se comprueba.",
   machineAstrayStood: "la que confirmaste {name}",
   machineAstrayNow: "la que usa ahora",
@@ -2957,6 +2968,7 @@ const es: Catalog = {
   comingAttachments: "Trayendo adjuntos…",
   comingOf: "{name} de {other}",
   knockOne: "«{name}» quiere sincronizar",
+  knockUnnamed: "Un equipo nuevo quiere sincronizar",
   knockMany: "{name} equipos quieren sincronizar",
   knockWhy: "Lo que escribe no entra hasta que confirmes que es tuyo.",
   knockManyWhy: "Lo que escriben no entra hasta que confirmes que son tuyos.",
@@ -2964,6 +2976,15 @@ const es: Catalog = {
   knockLater: "Ahora no",
   knockDot: "Un equipo espera que lo confirmes",
   confirmTitle: "¿«{name}» es tuyo?",
+  confirmTitleUnnamed: "¿Este equipo nuevo es tuyo?",
+  confirmUnnamed:
+    "Todavía no dijo su nombre; lo dirá cuando abra la última versión de Tisty. Aquí lo llamamos «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+  confirmAgent:
+    "Es el asistente (Claude, Codex…) de «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+  confirmAgentStep:
+    "En ese computador, abre Tisty → Configuración → Asistentes: su código aparece junto al nombre con que firma.",
+  confirmLater: "Confirmado. Lo que escribió llega en la próxima sincronización.",
+  confirmElsewhere: "Si tienes otro equipo, también te lo preguntará ahí.",
   confirmCount: "{name} de {other}",
   confirmSince: "empezó a escribir {name}",
   confirmWhat:
@@ -2976,22 +2997,23 @@ const es: Catalog = {
   confirmNo: "No coincide",
   confirmWhyAsk: "¿Por qué tengo que hacer esto?",
   confirmWhyIs:
-    "Cada computador firma lo que escribe con una marca que solo él puede poner, y el código resume esa marca. Si coincide en los dos, lo que llega viene de verdad de ese computador y no de alguien que puso archivos en tu carpeta. Se hace una vez por computador.",
+    "Cada computador firma lo que escribe con una marca que solo él puede poner, y el código resume esa marca. Si coincide en los dos, lo que llega viene de verdad de ese computador y no de alguien que puso archivos en tu carpeta. Se hace una vez en cada uno de tus otros equipos.",
   confirmHere:
     "Si ese computador también te pide confirmar este, el código de aquí («{name}») es {other}",
   confirmNoCode: "Todavía no dice su código. Sincroniza en ese computador y vuelve.",
-  confirmDone: "Listo. «{name}» ya sincroniza con este computador.",
+  confirmDone: "Listo. «{name}» ya sincroniza con este equipo.",
   confirmBringing: "Trayendo lo que escribió…",
   confirmBrought: "Llegó todo lo que escribió.",
   confirmNext: "Siguiente: «{name}»",
   confirmClose: "Cerrar",
-  confirmMismatch: "No lo dejes entrar",
+  confirmMismatch: "No es el mismo código",
   confirmMismatchWhat:
     "Si el código no es el mismo, lo que escribe no viene del computador que crees. Aquí no cambió nada: lo que escribió sigue en la carpeta, sin entrar.",
   confirmMismatchDo:
     "¿Reinstalaste o cambiaste ese computador hace poco? Entonces vuelve como uno nuevo: búscalo en la lista y confirma ese. Si no, revisa quién tiene acceso a tu carpeta compartida.",
   confirmGotIt: "Entendido",
   machineCode: "código",
+  machineSince: "escribe desde {name}",
   machineCarried: "aceptado al actualizar",
   comingSlow: "La nube va lenta. Sigue trayendo; puedes trabajar mientras.",
   comingHistory: "Tu historia viene en camino",

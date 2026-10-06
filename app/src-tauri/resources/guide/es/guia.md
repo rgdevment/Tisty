@@ -322,7 +322,7 @@ Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no es
 
 > No hay servidor nuestro por medio. Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.
 
-Cada equipo firma lo que escribe. Uno que ya conocías se reconoce solo cuando se actualiza. Uno nuevo —recién instalado o reinstalado— espera a que confirmes que es tuyo: aparece un aviso en la barra lateral con el nombre de ese computador, y **Confirmar…** te muestra su código de veinte números. Ábrelo en ese equipo, en Configuración → Mantenimiento: si el código es el mismo, **Sí, es el mismo** lo deja pasar y trae lo que escribió. Se hace una vez por equipo.
+Cada equipo firma lo que escribe. Uno que ya conocías se reconoce solo cuando se actualiza. Uno nuevo —recién instalado o reinstalado— espera a que confirmes que es tuyo: aparece un aviso en la barra lateral con el nombre de ese computador, y **Confirmar…** te muestra su código de veinte números. Ábrelo en ese equipo, en Configuración → Mantenimiento → **Las máquinas**: si el código es el mismo, **Sí, es el mismo** lo deja pasar y trae lo que escribió; si no, **No coincide** lo deja fuera. Se hace una vez en cada uno de tus otros equipos. Si quien espera es el asistente de otro computador, su código está en ese computador, en Configuración → Asistentes.
 
 Cuando los dos equipos escribieron la misma parte de un documento, Tisty no elige: te muestra las dos versiones una junto a otra y te quedas con **Esta**, **La otra** o **Las dos**.
 

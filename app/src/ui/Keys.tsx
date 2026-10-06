@@ -1,13 +1,17 @@
 import type { Machine } from "../core";
+import { askAbout } from "../knocking";
 import { fill, t } from "../locales";
 import Modal from "./Modal";
 
 const HUSHED = 7 * 24 * 60 * 60;
 
 export const hushed = (one: Machine): boolean =>
-  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
+  !one.mine && !waiting(one) && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
 
-export const hushedName = (all: Machine[]): string | null => all.find(hushed)?.called ?? null;
+export const hushedName = (all: Machine[]): string | null => {
+  const one = all.find(hushed);
+  return one ? named(one) : null;
+};
 
 export const briefly = (key: string): string => `${key.slice(0, 8)} … ${key.slice(-8)}`;
 
@@ -132,7 +136,7 @@ export function KeyAstray({
 }) {
   return (
     <Modal title={t("machineKeyAstray")} wide onClose={onClose}>
-      <p className="text-[13px] font-semibold">{one.called}</p>
+      <p className="text-[13px] font-semibold">{named(one)}</p>
       <div className="mt-3 flex flex-wrap gap-7 text-[12.5px]">
         <span>
           <span className="block text-soft">
@@ -195,7 +199,13 @@ export function MachineList({
             one={one}
             busy={busy}
             quiet={hushed(one)}
-            wrote={one.when === 0 ? t("machineNever") : (dated(one.when) ?? "")}
+            wrote={
+              one.when === 0
+                ? one.since
+                  ? fill("machineSince", dated(one.since) ?? "")
+                  : t("machineNever")
+                : (dated(one.when) ?? "")
+            }
             stood={dated(one.confirmedWhen)}
             onKey={onKey}
             onAstray={onAstray}
@@ -306,7 +316,7 @@ function MachineRow({
           <button
             type="button"
             disabled={busy}
-            onClick={() => onKey(one)}
+            onClick={() => (waiting(one) ? askAbout(one) : onKey(one))}
             className="rounded-md border border-accent px-2.5 py-0.5 text-[12.5px] text-accent disabled:border-hair disabled:text-faint"
           >
             {t("machineKeyConfirm")}

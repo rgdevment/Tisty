@@ -1,9 +1,13 @@
-import { ask, hush, shownAs, useKnocking } from "../knocking";
+import { useEffect } from "react";
+import { ask, hush, knock, shownAs, useKnocking } from "../knocking";
 import { fill, t } from "../locales";
 import Confirming from "./Confirming";
 
 export default function Knocking() {
   const { waiting, quiet, asking } = useKnocking();
+  useEffect(() => {
+    void knock();
+  }, []);
   if (waiting.length === 0 && !asking) return null;
   const one = waiting.length === 1 ? waiting[0] : null;
 
@@ -16,7 +20,11 @@ export default function Knocking() {
         >
           <span className="flex items-center gap-2 text-[12.5px] font-semibold">
             <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-hue-amber" />
-            {one ? fill("knockOne", shownAs(one)) : fill("knockMany", String(waiting.length))}
+            {one
+              ? one.name
+                ? fill("knockOne", shownAs(one))
+                : t("knockUnnamed")
+              : fill("knockMany", String(waiting.length))}
           </span>
           <span className="text-[11.5px] leading-relaxed text-soft">
             {t(one ? "knockWhy" : "knockManyWhy")}

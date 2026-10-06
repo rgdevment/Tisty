@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Filed, Folded, List, Papers } from "../core";
+import { useKnocking } from "../knocking";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
 import Coming from "./Coming";
@@ -56,6 +57,7 @@ export default function Sidebar({
   onHereMenu,
 }: Props) {
   const [openDocs, setOpenDocs] = useState(true);
+  const knocked = useKnocking().waiting.length > 0;
 
   return (
     <aside className="flex flex-col overflow-hidden">
@@ -128,7 +130,7 @@ export default function Sidebar({
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"
-          aria-label={t("keeping")}
+          aria-label={knocked ? `${t("keeping")} · ${t("knockDot")}` : t("keeping")}
           title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
           className={`relative grid size-7 place-items-center rounded-[10px] hover:bg-hover ${

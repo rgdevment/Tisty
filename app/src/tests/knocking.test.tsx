@@ -1,12 +1,13 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Machine } from "../core";
-import { done, knock, settled } from "../knocking";
+import { askAbout, done, knock, settled } from "../knocking";
 import { fill, t } from "../locales";
 import Knocking from "../ui/Knocking";
 
 const calls: { cmd: string; args: unknown }[] = [];
 let waiting: Machine[] = [];
+let carried = "came";
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
@@ -21,7 +22,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       });
     if (cmd === "sync_now")
       return Promise.resolve({
-        carried: "came",
+        carried,
         undecided: [],
         unreadable: [],
         disowned: [],
@@ -54,6 +55,7 @@ const flush = () => act(() => new Promise((ready) => setTimeout(ready, 0)));
 beforeEach(() => {
   calls.length = 0;
   waiting = [mac];
+  carried = "came";
 });
 
 afterEach(() =>
@@ -119,5 +121,73 @@ describe("a computer waiting to be confirmed", () => {
     waiting = [mac, { ...mac, id: "dev_other", name: "iMac" }];
     await act(() => knock());
     expect(screen.getByText(fill("knockMany", "2"))).toBeTruthy();
+  });
+
+  it("does not say everything arrived when another round held the folder", async () => {
+    vi.useRealTimers();
+    carried = "busy";
+    render(<Knocking />);
+    await act(() => knock());
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+    fireEvent.click(screen.getByText(t("confirmYes")));
+    await flush();
+    await flush();
+
+    expect(screen.queryByText(t("confirmBrought"))).toBeNull();
+    expect(screen.getByText(t("confirmLater"))).toBeTruthy();
+  });
+
+  it("says a machine that has not given its name is new, not what it is called", async () => {
+    vi.useRealTimers();
+    waiting = [{ ...mac, name: null, os: null }];
+    render(<Knocking />);
+    await act(() => knock());
+
+    expect(screen.getByText(t("knockUnnamed"))).toBeTruthy();
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+    expect(screen.getByText(fill("confirmUnnamed", "pino 17"))).toBeTruthy();
+  });
+
+  it("tells an assistant apart and where its code is", async () => {
+    vi.useRealTimers();
+    waiting = [{ ...mac, name: null, host: "ESCRITORIO-MARIO" }];
+    render(<Knocking />);
+    await act(() => knock());
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+
+    expect(screen.getByText(fill("confirmAgent", "ESCRITORIO-MARIO"))).toBeTruthy();
+    expect(screen.getByText(t("confirmAgentStep"))).toBeTruthy();
+  });
+
+  it("moves on to the next machine after a code that does not match", async () => {
+    vi.useRealTimers();
+    waiting = [mac, { ...mac, id: "dev_imac", name: "iMac" }];
+    render(<Knocking />);
+    await act(() => knock());
+    fireEvent.click(screen.getByText(t("knockConfirm")));
+    await flush();
+    fireEvent.click(screen.getByText(t("confirmNo")));
+    fireEvent.click(screen.getByText(fill("confirmNext", "iMac")));
+
+    expect(screen.getByText(fill("confirmTitle", "iMac"))).toBeTruthy();
+  });
+
+  it("looks for waiting machines as soon as it is shown", async () => {
+    render(<Knocking />);
+    await flush();
+
+    expect(calls.some((one) => one.cmd === "waiting_machines")).toBe(true);
+  });
+
+  it("opens on the machine Maintenance asked about", async () => {
+    vi.useRealTimers();
+    render(<Knocking />);
+    await act(() => askAbout({ ...mac, id: "dev_imac", name: "iMac" }));
+    await flush();
+
+    expect(screen.getByText(fill("confirmTitle", "iMac"))).toBeTruthy();
   });
 });

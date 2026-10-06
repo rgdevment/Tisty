@@ -30,6 +30,9 @@ export const hush = () => set({ quiet: true });
 
 export const ask = () => set({ asking: true });
 
+export const askAbout = (one: Machine) =>
+  set({ asking: true, waiting: [one, ...now.waiting.filter((had) => had.id !== one.id)] });
+
 export const done = () => set({ asking: false });
 
 const subscribe = (change: () => void) => {
@@ -39,6 +42,8 @@ const subscribe = (change: () => void) => {
   };
 };
 
-export const useKnocking = (): Knocking => useSyncExternalStore(subscribe, () => now);
+export const knocking = (): Knocking => now;
+
+export const useKnocking = (): Knocking => useSyncExternalStore(subscribe, knocking);
 
 export const shownAs = (one: Machine): string => one.name || one.called;

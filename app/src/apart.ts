@@ -8,6 +8,7 @@ import {
   syncNow,
   takeOver,
 } from "./core";
+import { settled } from "./knocking";
 import type { Door } from "./ui/Apart";
 
 const NAMED: Record<Door, string> = {
@@ -46,10 +47,16 @@ export const walkThrough = async (door: Door | "else"): Promise<boolean> => {
 
 // Large attachments kept only in the folder come home first, so turning it off leaves nothing behind.
 export const turnedOff = (kept: Settings | null): Promise<void> =>
-  chooseSync(undefined).catch((problem) => {
-    if (!kept || (problem as { code?: string } | undefined)?.code !== "sharedAwayToLeave")
-      throw problem;
-    return keepSettings({ ...kept, holds: "everywhere" })
-      .then(() => syncNow("pull"))
-      .then(() => chooseSync(undefined));
-  });
+  chooseSync(undefined)
+    .catch((problem) => {
+      if (!kept || (problem as { code?: string } | undefined)?.code !== "sharedAwayToLeave")
+        throw problem;
+      return keepSettings({ ...kept, holds: "everywhere" })
+        .then(() => syncNow("pull"))
+        .then((said) => {
+          if (said.carried === "busy") throw problem;
+          return chooseSync(undefined);
+        })
+        .catch((again) => keepSettings(kept).then(() => Promise.reject(again)));
+    })
+    .then(settled);

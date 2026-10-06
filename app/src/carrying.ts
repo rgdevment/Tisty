@@ -64,9 +64,8 @@ export function carrying(
         // A history turned away is the whole point of signing it, and the round that finds it is
         // the one nobody is watching: saying nothing here is how it goes unnoticed for months.
         if (answer.unconfirmed?.length) void knock();
-        else if (answer.carried !== "busy") settled();
-        const said = whatWentAmiss(answer);
-        const amiss = said === "someoneUnconfirmed" ? null : said;
+        else if (answer.carried !== "busy" && way !== "push") settled();
+        const amiss = whatWentAmiss({ ...answer, unconfirmed: [] });
         awry(
           answer.carried === "busy"
             ? { why: "busy" }
