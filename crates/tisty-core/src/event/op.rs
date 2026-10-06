@@ -201,8 +201,14 @@ pub enum Op {
     DeviceRemove { d: DeviceId },
     /// The machine an agent device is hosted on: the join itself is written as the agent, and
     /// said nothing about where. Optional, so a build that predates it skips it.
+    /// With `p`, written by the host: its word for its agent's key.
     #[serde(rename = "device.host")]
-    DeviceHost { d: DeviceId, of: DeviceId },
+    DeviceHost {
+        d: DeviceId,
+        of: DeviceId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        p: Option<String>,
+    },
     /// Said apart from the join, which every machine in a log took before keys travelled with it
     /// and which a second one would read as a machine seating itself again.
     #[serde(rename = "device.key")]

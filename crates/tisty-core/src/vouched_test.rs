@@ -151,3 +151,33 @@ fn answering_for_a_list_turns_away_what_is_not_a_key() {
     assert_eq!(confirm_each(&data, &keys), 0);
     assert!(all_confirmed(&data).is_empty());
 }
+
+#[test]
+fn a_key_taken_on_a_hosts_word_says_whose_word_it_was() {
+    let (_room, data, paths) = a_place();
+    let agent = DeviceId("dev_agent".into());
+    let host = DeviceId("dev_host".into());
+    let key = a_key(&paths, &agent);
+
+    assert!(through(&data, &agent, &key, &host));
+
+    let stood = confirmed(&data, &agent).unwrap();
+    assert_eq!(stood.key, key);
+    assert_eq!(stood.host, Some(host));
+    assert!(!stood.carried);
+}
+
+#[test]
+fn a_host_that_is_no_machine_name_vouches_for_nobody() {
+    let (_room, data, paths) = a_place();
+    let agent = DeviceId("dev_agent".into());
+    let key = a_key(&paths, &agent);
+
+    assert!(!through(
+        &data,
+        &agent,
+        &key,
+        &DeviceId("../../nadie".into())
+    ));
+    assert!(confirmed(&data, &agent).is_none());
+}

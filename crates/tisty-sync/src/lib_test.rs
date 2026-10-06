@@ -2606,6 +2606,7 @@ fn being_named_once_and_dropped_is_not_the_same_as_never_being_named() {
         allowed: [DeviceId("dev_b".into())].into(),
         named: [DeviceId("dev_a".into()), DeviceId("dev_b".into())].into(),
         keys: Default::default(),
+        vouched: Default::default(),
     };
 
     assert!(!said.may_write(&DeviceId("dev_a".into())));
@@ -2621,6 +2622,7 @@ fn two_machines_removing_each_other_at_once_do_not_brick_the_store() {
         allowed: Default::default(),
         named: [DeviceId("dev_a".into()), DeviceId("dev_b".into())].into(),
         keys: Default::default(),
+        vouched: Default::default(),
     };
 
     assert!(
@@ -8107,5 +8109,232 @@ fn a_memo_from_before_it_named_its_machine_still_reads_as_having_been_here() {
     assert!(
         super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_a")),
         "every machine would take its folder up again, answering for every key in it"
+    );
+}
+
+struct Hosted {
+    host: Machine,
+    agent: DeviceId,
+    host_key: String,
+}
+
+fn hosted(shared: &Path, agent_speaks_for_itself: bool) -> Hosted {
+    hosted_as(
+        shared,
+        agent_speaks_for_itself,
+        tisty_core::event::DeviceKind::Agent,
+    )
+}
+
+fn hosted_as(
+    shared: &Path,
+    agent_speaks_for_itself: bool,
+    kind: tisty_core::event::DeviceKind,
+) -> Hosted {
+    let host = blank("dev_h");
+    std::fs::create_dir_all(&host.data).unwrap();
+    let paths = tisty_core::Paths::new(host.data.clone(), host.data.join("config"));
+    let me = DeviceId(host.device.clone());
+    let agent = DeviceId("dev_g".into());
+    let host_key = tisty_core::signing::mine(&paths, &me).expect("a key");
+    let agent_key = tisty_core::signing::mine(&paths, &agent).expect("a key");
+    let agent_said = tisty_core::signing::shown(&agent_key);
+
+    let mut mine = Store::open(&host.store, me.clone())
+        .unwrap()
+        .signing_with(Some(host_key.clone()));
+    mine.append(Op::DeviceKey {
+        d: me.clone(),
+        p: tisty_core::signing::shown(&host_key),
+    })
+    .unwrap();
+    if !agent_speaks_for_itself {
+        mine.append(Op::DeviceHost {
+            d: agent.clone(),
+            of: me.clone(),
+            p: Some(agent_said.clone()),
+        })
+        .unwrap();
+    }
+    drop(mine);
+
+    let mut theirs = Store::open(&host.store, agent.clone())
+        .unwrap()
+        .signing_with(Some(agent_key));
+    theirs
+        .append_batch(vec![
+            Op::DeviceJoin {
+                d: agent.clone(),
+                k: Some(kind),
+                p: Some(agent_said.clone()),
+            },
+            Op::DeviceHost {
+                d: agent.clone(),
+                of: me.clone(),
+                p: agent_speaks_for_itself.then(|| agent_said.clone()),
+            },
+        ])
+        .unwrap();
+    theirs
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("lo que escribió el agente", "a0"),
+        })
+        .unwrap();
+    drop(theirs);
+
+    std::fs::copy(
+        shared.join(STORE).join(".store-id"),
+        host.store.join(".store-id"),
+    )
+    .unwrap();
+    carry(&host.data, &host.device, shared, Way::Push, &[]).unwrap();
+    Hosted {
+        host,
+        agent,
+        host_key: tisty_core::signing::shown(&host_key),
+    }
+}
+
+/// Already settled in the folder before the host arrives, so nothing comes in on a first visit's terms.
+fn settled_in(shared: &Path, aside: &Path) -> Machine {
+    let other = machine("dev_b");
+    carry_leaning_on(
+        &other.data,
+        Some(aside),
+        &other.device,
+        shared,
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+    other
+}
+
+#[test]
+fn an_agent_comes_in_on_the_word_of_a_host_already_confirmed_here() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let other = settled_in(shared.path(), kept.path());
+    let seen = hosted(shared.path(), false);
+    assert!(tisty_core::vouched::confirm(
+        &other.data,
+        &DeviceId(seen.host.device.clone()),
+        &seen.host_key
+    ));
+
+    let round = || {
+        carry_leaning_on(
+            &other.data,
+            Some(kept.path()),
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap()
+    };
+    round();
+    let after = round();
+
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(
+        home_of(&other, &seen.agent.0).contains("lo que escribió el agente"),
+        "an agent of a confirmed computer still waited to be confirmed on its own"
+    );
+    let stood = tisty_core::vouched::confirmed(&other.data, &seen.agent).unwrap();
+    assert_eq!(stood.host, Some(DeviceId(seen.host.device.clone())));
+    assert!(!stood.carried);
+}
+
+#[test]
+fn an_agent_whose_host_nobody_here_confirmed_still_waits() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let other = settled_in(shared.path(), kept.path());
+    let seen = hosted(shared.path(), false);
+
+    let round = || {
+        carry_leaning_on(
+            &other.data,
+            Some(kept.path()),
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap()
+    };
+    round();
+    let after = round();
+
+    assert!(
+        after.unconfirmed.contains(&seen.agent.0),
+        "{:?}",
+        after.unconfirmed
+    );
+    assert!(tisty_core::vouched::confirmed(&other.data, &seen.agent).is_none());
+}
+
+#[test]
+fn an_agent_that_vouches_for_itself_is_not_taken_on_its_own_word() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let other = settled_in(shared.path(), kept.path());
+    let seen = hosted(shared.path(), true);
+    assert!(tisty_core::vouched::confirm(
+        &other.data,
+        &DeviceId(seen.host.device.clone()),
+        &seen.host_key
+    ));
+
+    let round = || {
+        carry_leaning_on(
+            &other.data,
+            Some(kept.path()),
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap()
+    };
+    round();
+    let after = round();
+
+    assert!(
+        after.unconfirmed.contains(&seen.agent.0),
+        "an agent's word about its own key stood in for its host's"
+    );
+}
+
+#[test]
+fn a_whole_machine_is_never_taken_on_another_machines_word() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let other = settled_in(shared.path(), kept.path());
+    let seen = hosted_as(shared.path(), false, tisty_core::event::DeviceKind::Machine);
+    assert!(tisty_core::vouched::confirm(
+        &other.data,
+        &DeviceId(seen.host.device.clone()),
+        &seen.host_key
+    ));
+    let round = || {
+        carry_leaning_on(
+            &other.data,
+            Some(kept.path()),
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap()
+    };
+    round();
+    let after = round();
+
+    assert!(
+        after.unconfirmed.contains(&seen.agent.0),
+        "a confirmed machine seated a whole other machine nobody compared"
     );
 }

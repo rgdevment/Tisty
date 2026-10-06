@@ -396,6 +396,7 @@ fn undo_walks_past_the_machine_saying_where_its_agent_lives() {
         .append(tisty_core::Op::DeviceHost {
             d: config.agent_id.clone().unwrap(),
             of: config.device_id.clone(),
+            p: None,
         })
         .unwrap();
 

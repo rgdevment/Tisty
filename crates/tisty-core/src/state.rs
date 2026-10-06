@@ -376,7 +376,7 @@ impl State {
             Op::DeviceKey { d, p } => self.key_published(event, d, p),
             Op::DeviceNamed { d, name, os } => self.device_named(event, d, name, os.as_deref()),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
-            Op::DeviceHost { d, of } => {
+            Op::DeviceHost { d, of, .. } => {
                 if (event.device == *d || event.device == *of)
                     && self.assistants.contains(d)
                     && !self.assistants.contains(of)

@@ -517,6 +517,7 @@ fn a_waiting_assistant_names_the_computer_it_runs_on() {
         .append(tisty_core::Op::DeviceHost {
             d: who,
             of: host.clone(),
+            p: None,
         })
         .unwrap();
     drop(store);
