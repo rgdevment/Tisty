@@ -405,7 +405,8 @@ export const attach = (path: string, label?: string, roomy?: boolean): Promise<s
 
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 export const widgetLend = (body: string): Promise<string> => invoke("widget_lend", { body });
-export const widgetLendKept = (reference: string): Promise<string> =>
+export type Borrowed = { id: string; whole: boolean };
+export const widgetLendKept = (reference: string): Promise<Borrowed> =>
   invoke("widget_lend_kept", { reference });
 export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take_back", { id });
 
