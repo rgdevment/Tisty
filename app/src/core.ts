@@ -682,7 +682,7 @@ export interface Settled {
   unreadable: string[];
   disowned: string[];
   unconfirmed: string[];
-  waiting?: string[];
+  waiting: string[];
   astray: string[];
   unprojected: boolean;
   joined: string[];

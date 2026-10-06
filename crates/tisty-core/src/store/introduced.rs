@@ -14,7 +14,7 @@ pub struct Introduced {
     pub agent: bool,
 }
 
-fn events_of(device_dir: &Path, who: &DeviceId, loud: bool) -> Vec<Event> {
+pub(super) fn events_of(device_dir: &Path, who: &DeviceId, loud: bool) -> Vec<Event> {
     let Ok(segments) = super::segments_in(device_dir) else {
         return Vec::new();
     };
@@ -52,9 +52,13 @@ impl Snapshot {
             whole,
         };
         std::fs::create_dir_all(&taken.at).ok()?;
-        for entry in std::fs::read_dir(device_dir).ok()?.flatten() {
-            if entry.file_type().ok()?.is_file() {
-                std::fs::copy(entry.path(), taken.at.join(entry.file_name())).ok()?;
+        for segment in super::segments_in(device_dir).ok()? {
+            let named = segment.file_name()?;
+            std::fs::copy(&segment, taken.at.join(named)).ok()?;
+            let sig = segment.with_extension(crate::signing::SIG);
+            match std::fs::copy(&sig, taken.at.join(sig.file_name()?)) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return None,
+                _ => {}
             }
         }
         Some(taken)
@@ -90,7 +94,7 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
     }
 }
 
-fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
+pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
     events.iter().find_map(|one| match &one.op {
         Op::DeviceKey { d, p } if d == who => Some(p.clone()),
         Op::DeviceJoin { d, p: Some(p), .. } if d == who => Some(p.clone()),

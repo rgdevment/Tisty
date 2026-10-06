@@ -76,7 +76,7 @@ pub(crate) fn carry_papers_leaning_on(
     taking: bool,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
-    use tisty_core::docs::{Carried, Move, Prints, Seen, moved, print_of};
+    use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
 
     let here = data.join(PAPERS);
     let there = dest.join(PAPERS);
@@ -116,47 +116,12 @@ pub(crate) fn carry_papers_leaning_on(
                 continue;
             }
             let told_empty = empty.is_none_or(|told| told.contains(id));
-            let (ours, yours, mine_holds, theirs_holds) =
-                match (prints.seen(&mine), prints.seen(&theirs)) {
-                    (_, Ok(Seen::Linked)) => {
-                        pointed_away(&theirs);
-                        done.astray.push(id.clone());
-                        continue;
-                    }
-                    (Ok(Seen::Linked), _) => {
-                        pointed_away(&mine);
-                        done.astray.push(id.clone());
-                        continue;
-                    }
-                    (
-                        Ok(Seen::Held {
-                            print: ours,
-                            weighs: mine_weighs,
-                        }),
-                        Ok(Seen::Held {
-                            print: yours,
-                            weighs: theirs_weighs,
-                        }),
-                    ) => (ours, yours, mine_weighs > 0, theirs_weighs > 0),
-                    (here, there) => {
-                        let why = here.err().or(there.err());
-                        witness::warn(
-                            channel::SYNC,
-                            "a document could not be read, so this turn leaves it alone",
-                            &[
-                                ("at", Fact::Id(id.clone())),
-                                (
-                                    "why",
-                                    Fact::Why(
-                                        why.map(|e| e.to_string()).unwrap_or_else(|| "?".into()),
-                                    ),
-                                ),
-                            ],
-                        );
-                        done.astray.push(id.clone());
-                        continue;
-                    }
-                };
+            let Some((ours, yours, mine_holds, theirs_holds)) =
+                both_seen(&mut prints, &mine, &theirs, id)
+            else {
+                done.astray.push(id.clone());
+                continue;
+            };
 
             let yours = a_body(yours, told_empty || !mine_holds, theirs_holds, id);
 
@@ -356,6 +321,53 @@ fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option
     None
 }
 
+type Both = (Option<String>, Option<String>, bool, bool);
+
+// Either side unreadable or pointing away leaves the document astray for this turn.
+fn both_seen(
+    prints: &mut tisty_core::docs::Prints,
+    mine: &Path,
+    theirs: &Path,
+    id: &str,
+) -> Option<Both> {
+    use tisty_core::docs::Seen;
+    match (prints.seen(mine), prints.seen(theirs)) {
+        (_, Ok(Seen::Linked)) => {
+            pointed_away(theirs);
+            None
+        }
+        (Ok(Seen::Linked), _) => {
+            pointed_away(mine);
+            None
+        }
+        (
+            Ok(Seen::Held {
+                print: ours,
+                weighs: mine_weighs,
+            }),
+            Ok(Seen::Held {
+                print: yours,
+                weighs: theirs_weighs,
+            }),
+        ) => Some((ours, yours, mine_weighs > 0, theirs_weighs > 0)),
+        (here, there) => {
+            let why = here.err().or(there.err());
+            witness::warn(
+                channel::SYNC,
+                "a document could not be read, so this turn leaves it alone",
+                &[
+                    ("at", Fact::Id(id.to_string())),
+                    (
+                        "why",
+                        Fact::Why(why.map(|e| e.to_string()).unwrap_or_else(|| "?".into())),
+                    ),
+                ],
+            );
+            None
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Answers {
     pub newest: Option<String>,
@@ -433,9 +445,6 @@ pub(crate) fn held_back_prints(
     };
     for named in waiting {
         let who = tisty_core::DeviceId(named.clone());
-        if ledger.was_removed(&who) {
-            continue;
-        }
         let at = dest.join(crate::STORE).join(named);
         let known = ledger.keys.get(&who).map(String::as_str);
         for (id, print) in

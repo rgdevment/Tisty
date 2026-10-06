@@ -950,7 +950,7 @@ const en = {
   ownLogUnreadable:
     "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
   someoneUnconfirmedHolds:
-    "A computer is waiting for you to confirm it is yours, and documents it changed wait with it, untouched. Confirm it from the sidebar and they settle on the next sync; if you do not know it, remove it in Settings → Maintenance and you will be asked about them.",
+    "A computer not yet confirmed as yours changed documents, and they wait with it, untouched. Confirm it from the sidebar only if you recognise it, and they settle on the next sync. If you do not, remove it in Settings → Maintenance and you will be asked about them.",
   someoneUnconfirmed:
     "A computer is waiting for you to confirm it is yours, so nothing it writes has come in yet. Look for the notice in the sidebar — what it wrote stays in the folder meanwhile and arrives whole.",
   someoneUnreadable:
@@ -2496,7 +2496,7 @@ const es: Catalog = {
   ownLogUnreadable:
     "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnconfirmedHolds:
-    "Un computador espera que confirmes que es tuyo, y documentos que cambió esperan con él, sin tocarse. Confírmalo desde la barra lateral y se asientan en la próxima sincronización; si no lo conoces, quítalo en Configuración → Mantenimiento y te preguntaremos por ellos.",
+    "Un computador que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Mantenimiento y te preguntaremos por ellos.",
   someoneUnconfirmed:
     "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Busca el aviso en la barra lateral — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
   someoneUnreadable:

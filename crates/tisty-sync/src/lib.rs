@@ -722,6 +722,14 @@ fn claimed(
     Ok(told.keys.get(who).cloned())
 }
 
+fn removed(store: &Path, named: &str, knew: &mut Option<tisty_core::store::Ledger>) -> bool {
+    if knew.is_none() {
+        *knew = tisty_core::store::ledger(store).ok();
+    }
+    knew.as_ref()
+        .is_some_and(|told| told.was_removed(&tisty_core::DeviceId(named.to_string())))
+}
+
 /// An agent is taken on the word of a host this machine trusts, for the very key the host wrote.
 fn hosted(
     data: &Path,
@@ -1046,7 +1054,7 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        match answers_for_itself(
+        let answered = answers_for_itself(
             data,
             store,
             dest,
@@ -1056,7 +1064,13 @@ fn bring(
             adopting.contains(named),
             &mut knew,
             alike,
-        ) {
+        );
+        // Removed by the person, so nothing of it is theirs to hear about any more.
+        if !matches!(answered, Answered::Yes | Answered::Unsaid) && removed(store, named, &mut knew)
+        {
+            continue;
+        }
+        match answered {
             Answered::Yes => {}
             Answered::Unsaid => moved.unsaid.push(named.to_string()),
             Answered::Unreadable => {
@@ -1070,10 +1084,6 @@ fn bring(
                 continue;
             }
             Answered::Unconfirmed => {
-                let gone = tisty_core::DeviceId(named.to_string());
-                if knew.as_ref().is_some_and(|told| told.was_removed(&gone)) {
-                    continue;
-                }
                 away.insert(named.to_string(), turned::Away::Unconfirmed);
                 moved.unconfirmed.push(named.to_string());
                 continue;

@@ -10,6 +10,7 @@ const settled = (over: Partial<Settled>): Settled => ({
   unreadable: [],
   disowned: [],
   unconfirmed: [],
+  waiting: [],
   astray: [],
   unprojected: false,
   joined: [],
