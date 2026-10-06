@@ -262,3 +262,39 @@ fn leaving_one_install_keeps_the_settings_the_others_share() {
 
     assert!(!shared.swept_on_leaving().contains(&shared.config_file()));
 }
+
+#[test]
+fn a_fence_that_did_not_hold_is_written_at_the_next_start() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    settle(&home.roots);
+    let active = home.roots.real.join("data/store/dev_a/active.tisty");
+    std::fs::remove_file(home.roots.real.join("MOVED.txt")).unwrap();
+    let body = std::fs::read_to_string(&active).unwrap();
+    let unfenced: String = body
+        .lines()
+        .take(body.lines().count() - 1)
+        .map(|one| format!("{one}\n"))
+        .collect();
+    std::fs::write(&active, unfenced).unwrap();
+    assert!(readable(&home.roots.real));
+
+    assert_eq!(settle(&home.roots), Settled::AlreadyThere);
+
+    assert!(!readable(&home.roots.real), "the old store was left open");
+    assert!(home.roots.real.join("MOVED.txt").is_file());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_that_points_back_up_the_tree_is_followed_once() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    std::os::unix::fs::symlink(
+        home.roots.real.join("data"),
+        home.roots.real.join("data/docs"),
+    )
+    .unwrap();
+
+    assert_eq!(settle(&home.roots), Settled::Moved);
+}

@@ -6,6 +6,7 @@ const KEPT: [&str; 2] = ["data", "config"];
 pub const FENCE_VERSION: u32 = u32::MAX;
 const FENCE_OP: &str = "storeMoved";
 const MOVED_NOTE: &str = "MOVED.txt";
+const MOVED_FROM: &str = ".moved-from";
 const RETRIES: u32 = 10;
 const POLL: std::time::Duration = std::time::Duration::from_millis(200);
 
@@ -26,6 +27,7 @@ pub enum Settled {
 
 pub fn settle(roots: &Roots) -> Settled {
     if roots.new.exists() {
+        fence_left(&roots.new);
         return Settled::AlreadyThere;
     }
     let real = held(&roots.real).then(|| roots.real.clone());
@@ -47,7 +49,21 @@ pub fn settle(roots: &Roots) -> Settled {
     swept(parent, &roots.new);
 
     let part = parent.join(format!("{}.part-{}", leaf(&roots.new), std::process::id()));
-    if let Err(why) = gathered(&part, &sources) {
+    let made = gathered(&part, &sources).and_then(|()| {
+        let said: Vec<String> = sources
+            .iter()
+            .map(|one| one.display().to_string())
+            .collect();
+        std::fs::write(
+            part.join(MOVED_FROM),
+            said.join(
+                "
+",
+            ) + "
+",
+        )
+    });
+    if let Err(why) = made {
         let _ = std::fs::remove_dir_all(&part);
         return Settled::Failed(why.to_string());
     }
@@ -58,12 +74,46 @@ pub fn settle(roots: &Roots) -> Settled {
             false => Settled::Failed(why.to_string()),
         };
     }
-    for source in &sources {
-        if fenced(source, &roots.new).is_ok() {
-            let _ = std::fs::write(source.join(MOVED_NOTE), moved_note(&roots.new));
+    fenced_all(&sources, &roots.new);
+    Settled::Moved
+}
+
+/// A fence that could not be written is retried at every start until it holds.
+fn fence_left(new: &Path) {
+    let Ok(from) = std::fs::read_to_string(new.join(MOVED_FROM)) else {
+        return;
+    };
+    let left: Vec<PathBuf> = from
+        .lines()
+        .filter(|one| !one.trim().is_empty())
+        .map(PathBuf::from)
+        .filter(|root| held(root) && !root.join(MOVED_NOTE).exists())
+        .collect();
+    if left.is_empty() {
+        return;
+    }
+    let sources: Vec<&Path> = left.iter().map(PathBuf::as_path).collect();
+    if let Some(_quiet) = quieted(&sources) {
+        fenced_all(&sources, new);
+    }
+}
+
+fn fenced_all(sources: &[&Path], new: &Path) {
+    for source in sources {
+        match fenced(source, new) {
+            Ok(()) => {
+                let _ = std::fs::write(source.join(MOVED_NOTE), moved_note(new));
+            }
+            Err(why) => crate::witness::warn(
+                crate::witness::channel::STORE,
+                "the old store could not be fenced yet, so the next start tries again",
+                &[
+                    ("at", crate::witness::Fact::Path(source.to_path_buf())),
+                    ("why", crate::witness::Fact::Why(why.to_string())),
+                ],
+            ),
         }
     }
-    Settled::Moved
 }
 
 fn held(root: &Path) -> bool {
@@ -118,14 +168,23 @@ fn gathered(part: &Path, sources: &[&Path]) -> std::io::Result<()> {
         for under in KEPT {
             let at = source.join(under);
             if at.is_dir() {
-                copied(&at, &part.join(under), false)?;
+                let mut seen = std::collections::HashSet::new();
+                copied(&at, &part.join(under), false, &mut seen)?;
             }
         }
     }
     Ok(())
 }
 
-fn copied(from: &Path, into: &Path, attachments: bool) -> std::io::Result<()> {
+fn copied(
+    from: &Path,
+    into: &Path,
+    attachments: bool,
+    seen: &mut std::collections::HashSet<PathBuf>,
+) -> std::io::Result<()> {
+    if !seen.insert(from.canonicalize()?) {
+        return Ok(());
+    }
     std::fs::create_dir_all(into)?;
     for entry in std::fs::read_dir(from)? {
         let entry = entry?;
@@ -138,6 +197,7 @@ fn copied(from: &Path, into: &Path, attachments: bool) -> std::io::Result<()> {
                 &at,
                 &into.join(&name),
                 attachments || named == "attachments",
+                seen,
             )?;
         } else if kind.is_file() && !passing(&named, attachments) {
             if named == "active.tisty" {
