@@ -1,5 +1,13 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { chooseSync, joinThem, mergeStores, takeOver } from "./core";
+import {
+  chooseSync,
+  joinThem,
+  keepSettings,
+  mergeStores,
+  type Settings,
+  syncNow,
+  takeOver,
+} from "./core";
 import type { Door } from "./ui/Apart";
 
 const NAMED: Record<Door, string> = {
@@ -35,3 +43,13 @@ export const walkThrough = async (door: Door | "else"): Promise<boolean> => {
   else await joinThem(at);
   return true;
 };
+
+// Large attachments kept only in the folder come home first, so turning it off leaves nothing behind.
+export const turnedOff = (kept: Settings | null): Promise<void> =>
+  chooseSync(undefined).catch((problem) => {
+    if (!kept || (problem as { code?: string } | undefined)?.code !== "sharedAwayToLeave")
+      throw problem;
+    return keepSettings({ ...kept, holds: "everywhere" })
+      .then(() => syncNow("pull"))
+      .then(() => chooseSync(undefined));
+  });

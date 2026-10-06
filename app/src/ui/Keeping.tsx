@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { stillApart, walkThrough } from "../apart";
+import { stillApart, turnedOff, walkThrough } from "../apart";
 import {
   type About,
   type Agent,
@@ -992,7 +992,7 @@ export default function Keeping({
                     <button
                       type="button"
                       disabled={held}
-                      onClick={() => run("sync", chooseSync(undefined), () => {})}
+                      onClick={() => run("sync", turnedOff(kept), () => {})}
                       className={mild}
                     >
                       {t("syncOffNow")}
