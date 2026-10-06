@@ -20,7 +20,6 @@ pub struct Session {
     /// was committed here is counted rather than measured.
     writes: u64,
     behind: bool,
-    vouched: bool,
 }
 
 pub struct Projected {
@@ -111,7 +110,6 @@ impl Session {
             log: None,
             writes: 0,
             behind: false,
-            vouched: false,
         };
         session.tidy_up(true);
         session.vouch_for_agent();
@@ -186,34 +184,39 @@ impl Session {
             return Ok(false);
         }
         self.reproject()?;
-        self.vouch_for_agent();
         Ok(true)
     }
 
-    /// An agent can be born while this window is open, so its host speaks for it whenever the store moves.
+    /// An agent minted before hosts spoke for theirs gets its host's word once, then never looks again.
     fn vouch_for_agent(&mut self) {
         let Some(agent) = self.config.agent_id.clone() else {
             return;
         };
-        if self.vouched {
+        if self.config.agent_vouched.as_ref() == Some(&agent) {
             return;
         }
         let (config, paths) = (self.config.clone(), self.paths.clone());
         let Ok(log) = self.log() else {
             return;
         };
-        let Some(op) = tisty_core::agent::vouch(&config, &paths, log) else {
-            self.vouched = self.state.assistants.contains(&agent);
-            return;
-        };
-        match self.commit(op) {
-            Ok(_) => self.vouched = true,
-            Err(why) => witness::warn(
-                channel::WINDOW,
-                "this machine could not speak for the agent it runs",
-                &[("why", Fact::Why(why.to_string()))],
-            ),
+        if let Some(key) = tisty_core::agent::vouch(&config, &paths, log) {
+            let me = self.config.device_id.clone();
+            let said = tisty_core::Op::DeviceHost {
+                d: agent.clone(),
+                of: me,
+                p: Some(key),
+            };
+            if let Err(why) = self.commit(said) {
+                witness::warn(
+                    channel::WINDOW,
+                    "this machine could not speak for the agent it runs",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
+                return;
+            }
         }
+        self.config.agent_vouched = Some(agent);
+        let _ = self.config.save(&self.paths);
     }
 
     pub fn log(&mut self) -> tisty_core::Result<&[Event]> {

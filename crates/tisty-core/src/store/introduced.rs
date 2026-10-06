@@ -10,6 +10,8 @@ pub struct Introduced {
     pub since: Option<jiff::Timestamp>,
     /// The machine an assistant runs on, by its own word.
     pub host: Option<DeviceId>,
+    /// Whether it joined as an agent, by its own word.
+    pub agent: bool,
 }
 
 /// What a machine says about itself in the folder, for one waiting where nothing of it came in.
@@ -40,6 +42,9 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
         host: events.iter().find_map(|one| match &one.op {
             Op::DeviceHost { d, of, .. } if d == who => Some(of.clone()),
             _ => None,
+        }),
+        agent: events.iter().any(|one| {
+            matches!(&one.op, Op::DeviceJoin { d, k: Some(crate::event::DeviceKind::Agent), .. } if d == who)
         }),
     }
 }

@@ -160,19 +160,23 @@ folder before names that machine, so a reinstall that kept the cache meets the
 folder as the new machine it is.
 
 An agent is the other exception. It is minted on the computer it runs on, which
-holds its key, so that computer writes `device.host` in its **own** signed
-history with `p`, the agent's key. A machine that already answered for that
-computer takes the agent on its word (`store::Ledger::vouched`): the key the
-agent says must be the very one its host wrote, the line must be the host's
-(an agent's word about itself, or about another agent, counts for nothing), the
-host must be a machine and not an agent, and the first such line stands. It is
-kept with `host:` and the host's name beside it in `.keys-confirmed`, and the
-row in Maintenance says «confirmed through its computer». What this trusts is
-exactly what the person already trusted: whoever holds that computer's key could
-mint an agent there anyway. Without it every agent waited on every machine, and
-while it waited the bodies it wrote reached the folder ahead of any line a
-trusted history held for them, so the person was asked to settle documents that
-were only waiting.
+holds its key, so at that moment the computer also writes `device.host` in its
+**own** signed history with `p`, the agent's key (`agent::register`); an agent
+minted before this is spoken for once, the next time the window opens, and
+`agent_vouched` in the local configuration keeps it from being said or looked
+for again. A machine that already answered for that computer takes the agent on
+its word (`store::Ledger::vouched`, `hosted` in the round): the line must be the
+host's own, the host a machine and neither an agent nor removed, the key the one
+the agent says, and the agent's history must join as an agent under that very
+key, which the round then verifies before anything comes in — a whole machine is
+never seated this way, and an agent's word about itself or another counts for
+nothing. The first such line stands. It is kept with `host:` and the host's name
+in `.keys-confirmed`. What this trusts is what the person already trusted:
+whoever holds that computer's key could mint an agent there anyway. An agent
+whose host's line arrives in the same round can wait that one round. Without it
+every agent waited on every machine, and meanwhile the bodies it wrote reached
+the folder ahead of any line a trusted history held for them, so the person was
+asked to settle documents that were only waiting.
 
 ### What a power cut leaves behind
 

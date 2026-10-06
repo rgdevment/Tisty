@@ -200,8 +200,8 @@ pub enum Op {
     #[serde(rename = "device.remove")]
     DeviceRemove { d: DeviceId },
     /// The machine an agent device is hosted on: the join itself is written as the agent, and
-    /// said nothing about where. Optional, so a build that predates it skips it. Written by the
-    /// host with `p`, the agent's key, it is the host's own word for the agent it runs.
+    /// said nothing about where. Optional, so a build that predates it skips it.
+    /// With `p`, written by the host: its word for its agent's key.
     #[serde(rename = "device.host")]
     DeviceHost {
         d: DeviceId,

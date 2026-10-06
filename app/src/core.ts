@@ -497,7 +497,6 @@ export interface Machine {
   confirmed: string | null;
   confirmedWhen: number;
   carried?: boolean;
-  throughHost?: boolean;
   host?: string | null;
   turnedAway: "disowned" | "unreadable" | "unconfirmed" | null;
 }

@@ -28,9 +28,7 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(DeviceKind::Agent),
-            p: crate::signing::mine(paths, &who)
-                .as_ref()
-                .map(crate::signing::shown),
+            p: crate::signing::shown_kept(paths, &who),
         },
         Op::DeviceHost {
             d: who.clone(),
@@ -38,12 +36,14 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
             p: None,
         },
     ])?;
+    if let Some(key) = crate::signing::shown_kept(paths, &who) {
+        speak_for(paths, &mut config, key)?;
+    }
     Ok(who)
 }
 
-/// The host's own word for the agent it runs, with that agent's key, written once from the host's
-/// history so a machine that already confirmed the host can take the agent without asking again.
-pub fn vouch(config: &Config, paths: &Paths, log: &[crate::event::Event]) -> Option<Op> {
+/// For an agent minted before hosts spoke for theirs: once, and never with a key made up on the spot.
+pub fn vouch(config: &Config, paths: &Paths, log: &[crate::event::Event]) -> Option<String> {
     let who = config.agent_id.clone()?;
     let me = &config.device_id;
     let joined = log
@@ -56,14 +56,24 @@ pub fn vouch(config: &Config, paths: &Paths, log: &[crate::event::Event]) -> Opt
     if !joined || said {
         return None;
     }
-    let key = crate::signing::mine(paths, &who)
-        .as_ref()
-        .map(crate::signing::shown)?;
-    Some(Op::DeviceHost {
-        d: who,
-        of: me.clone(),
+    crate::signing::shown_kept(paths, &who)
+}
+
+/// Written as the host, in the host's own history, which is what a machine that confirmed it trusts.
+pub fn speak_for(paths: &Paths, config: &mut Config, key: String) -> Result<()> {
+    let Some(who) = config.agent_id.clone() else {
+        return Ok(());
+    };
+    let me = config.device_id.clone();
+    let mut mine =
+        Store::open(paths.store(), me.clone())?.signing_with(crate::signing::mine(paths, &me));
+    mine.append(Op::DeviceHost {
+        d: who.clone(),
+        of: me,
         p: Some(key),
-    })
+    })?;
+    config.agent_vouched = Some(who);
+    config.save(paths)
 }
 
 /// What the MCP client called itself, made fit to keep: one line, composed, forty characters.

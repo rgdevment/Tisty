@@ -708,11 +708,11 @@ fn claimed(
     Ok(told.keys.get(who).cloned())
 }
 
-/// An agent's key is taken on its host's word only when the host wrote that very key in its own
-/// signed history and the host is this machine or one a person here already answered for.
+/// An agent is taken on the word of a host this machine trusts, for the very key the host wrote.
 fn hosted(
     data: &Path,
     device: &str,
+    theirs: &Path,
     who: &tisty_core::DeviceId,
     says: &str,
     knew: &mut Option<tisty_core::store::Ledger>,
@@ -724,7 +724,8 @@ fn hosted(
     else {
         return false;
     };
-    if key != says {
+    // Its join is checked under this very key before anything comes in, so the claim cannot be borrowed.
+    if key != says || !tisty_core::store::introduced::introduced_in(theirs, who).agent {
         return false;
     }
     let trusted = host.0.eq_ignore_ascii_case(device)
@@ -779,7 +780,7 @@ fn answers_for_itself(
                 carried = Some(says.clone());
                 stood = Some(says);
             }
-            Some(says) if hosted(data, device, &who, &says, knew) => {
+            Some(says) if hosted(data, device, theirs, &who, &says, knew) => {
                 witness::note(
                     channel::SYNC,
                     "an agent was answered for by the host it runs on, already confirmed here",

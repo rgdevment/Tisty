@@ -8119,6 +8119,18 @@ struct Hosted {
 }
 
 fn hosted(shared: &Path, agent_speaks_for_itself: bool) -> Hosted {
+    hosted_as(
+        shared,
+        agent_speaks_for_itself,
+        tisty_core::event::DeviceKind::Agent,
+    )
+}
+
+fn hosted_as(
+    shared: &Path,
+    agent_speaks_for_itself: bool,
+    kind: tisty_core::event::DeviceKind,
+) -> Hosted {
     let host = blank("dev_h");
     std::fs::create_dir_all(&host.data).unwrap();
     let paths = tisty_core::Paths::new(host.data.clone(), host.data.join("config"));
@@ -8153,7 +8165,7 @@ fn hosted(shared: &Path, agent_speaks_for_itself: bool) -> Hosted {
         .append_batch(vec![
             Op::DeviceJoin {
                 d: agent.clone(),
-                k: Some(tisty_core::event::DeviceKind::Agent),
+                k: Some(kind),
                 p: Some(agent_said.clone()),
             },
             Op::DeviceHost {
@@ -8293,5 +8305,36 @@ fn an_agent_that_vouches_for_itself_is_not_taken_on_its_own_word() {
     assert!(
         after.unconfirmed.contains(&seen.agent.0),
         "an agent's word about its own key stood in for its host's"
+    );
+}
+
+#[test]
+fn a_whole_machine_is_never_taken_on_another_machines_word() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let other = settled_in(shared.path(), kept.path());
+    let seen = hosted_as(shared.path(), false, tisty_core::event::DeviceKind::Machine);
+    assert!(tisty_core::vouched::confirm(
+        &other.data,
+        &DeviceId(seen.host.device.clone()),
+        &seen.host_key
+    ));
+    let round = || {
+        carry_leaning_on(
+            &other.data,
+            Some(kept.path()),
+            &other.device,
+            shared.path(),
+            Way::Both,
+            &[],
+        )
+        .unwrap()
+    };
+    round();
+    let after = round();
+
+    assert!(
+        after.unconfirmed.contains(&seen.agent.0),
+        "a confirmed machine seated a whole other machine nobody compared"
     );
 }

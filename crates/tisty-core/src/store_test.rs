@@ -1791,3 +1791,69 @@ fn an_agents_key_is_known_on_its_hosts_word_only_when_the_host_wrote_it() {
         "an agent vouched for another, and one confirmed agent could seat any number"
     );
 }
+
+#[test]
+fn a_host_cannot_speak_for_another_whole_machine() {
+    let here = tempfile::tempdir().unwrap();
+    let host = DeviceId("dev_host".into());
+    let other = DeviceId("dev_other".into());
+    seated(
+        here.path(),
+        "dev_host",
+        vec![Op::DeviceHost {
+            d: other.clone(),
+            of: host.clone(),
+            p: Some("la clave de otro equipo".into()),
+        }],
+    );
+    seated(
+        here.path(),
+        "dev_other",
+        vec![Op::DeviceJoin {
+            d: other.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: Some("la clave de otro equipo".into()),
+        }],
+    );
+
+    let said = ledger(here.path()).unwrap();
+
+    assert!(
+        !said.vouched.contains_key(&other),
+        "a confirmed machine seated a whole other machine nobody compared"
+    );
+}
+
+#[test]
+fn a_host_that_was_removed_speaks_for_nobody_anymore() {
+    let here = tempfile::tempdir().unwrap();
+    let host = DeviceId("dev_host".into());
+    let agent = DeviceId("dev_agent".into());
+    seated(
+        here.path(),
+        "dev_host",
+        vec![Op::DeviceHost {
+            d: agent.clone(),
+            of: host.clone(),
+            p: Some("la clave del agente".into()),
+        }],
+    );
+    seated(
+        here.path(),
+        "dev_agent",
+        vec![Op::DeviceJoin {
+            d: agent.clone(),
+            k: Some(crate::event::DeviceKind::Agent),
+            p: Some("la clave del agente".into()),
+        }],
+    );
+    seated(
+        here.path(),
+        "dev_keeper",
+        vec![Op::DeviceRemove { d: host.clone() }],
+    );
+
+    let said = ledger(here.path()).unwrap();
+
+    assert!(!said.vouched.contains_key(&agent));
+}

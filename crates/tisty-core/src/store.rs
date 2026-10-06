@@ -572,6 +572,18 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
             told.push(one);
         }
     }
+    // Known as whole machines by their own join, so no host's word can seat one.
+    let machines: std::collections::BTreeSet<&DeviceId> = told
+        .iter()
+        .filter_map(|one| match &one.op {
+            Op::DeviceJoin { d, k, .. }
+                if d == &one.device && k != &Some(crate::event::DeviceKind::Agent) =>
+            {
+                Some(d)
+            }
+            _ => None,
+        })
+        .collect();
     let gone: std::collections::BTreeSet<&DeviceId> = told
         .iter()
         .filter_map(|one| match &one.op {
@@ -600,7 +612,10 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
                 said.allowed.remove(d);
             }
             Op::DeviceHost { d, of, p: Some(p) }
-                if &event.device == of && d != of && !assistants.contains(of) =>
+                if &event.device == of
+                    && !machines.contains(d)
+                    && !assistants.contains(of)
+                    && !gone.contains(of) =>
             {
                 said.vouched
                     .entry(d.clone())
