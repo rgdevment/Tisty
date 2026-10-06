@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import type { Editor as Writing } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
-import { openLink, widgetLend, widgetLendKept, widgetTakeBack } from "../core";
+import { type Borrowed, openLink, widgetLend, widgetLendKept, widgetTakeBack } from "../core";
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { saidPlainly } from "../refusal";
@@ -57,13 +57,14 @@ const followed = (retheme: () => void) => {
 export type Lending = { retheme: () => void; drop: () => void };
 
 export const lend = (drawn: HTMLElement, source: string): Lending =>
-  drawnFrom(drawn, () => widgetLend(source));
+  drawnFrom(drawn, () => widgetLend(source).then((id) => ({ id, whole: false })));
 
 export const lendKept = (drawn: HTMLElement, reference: string): Lending =>
   drawnFrom(drawn, () => widgetLendKept(reference));
 
-const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending => {
+const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lending => {
   let id: string | null = null;
+  let whole = false;
   let gone = false;
   let opened = Number.NEGATIVE_INFINITY;
   let climbed = 0;
@@ -114,11 +115,12 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
   borrowed()
     .then((lent) => {
       if (gone) {
-        widgetTakeBack(lent).catch(() => {});
+        widgetTakeBack(lent.id).catch(() => {});
         return;
       }
-      id = lent;
-      frame.src = `${convertFileSrc(lent, "widget")}${darkNow() ? "?dark=1" : ""}`;
+      id = lent.id;
+      whole = lent.whole;
+      frame.src = `${convertFileSrc(lent.id, "widget")}${darkNow() && !whole ? "?dark=1" : ""}`;
       drawn.replaceChildren(frame);
     })
     .catch((problem) => {
@@ -132,7 +134,8 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<string>): Lending
 
   const retheme = () => {
     frame.style.colorScheme = darkNow() ? "dark" : "light";
-    if (!frame.src) return;
+    // A whole page may route by its own hash, so the theme never travels through its address.
+    if (!frame.src || whole) return;
     frame.src = `${frame.src.split("#")[0]}#${darkNow() ? "dark" : "light"}`;
   };
   followed(retheme);

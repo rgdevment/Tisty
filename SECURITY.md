@@ -85,10 +85,14 @@ report will never be dismissed for being inconvenient.
   in a frame of its own. That frame is sandboxed with scripts and nothing else,
   so it has no origin and cannot reach into the window, and it is served under
   a policy of its own that allows no network at all: no fetch, no remote
-  picture, font or frame, no form. All it can say to the window is how tall it
-  is and which link was clicked inside it, and a link is opened only after a
-  real click there. A widget is as trustworthy as the document that carries it,
-  and a document can arrive through the shared folder or in a parcel.
+  picture, font or frame, no form. An attached page that is a whole document
+  may also build scripts out of `blob:` and `data:` it makes itself, and frames
+  out of `blob:` only, which bundled pages need in order to unpack, and still
+  reaches no address.
+  All it can say to the window is how tall it is and which link was clicked
+  inside it, and a link is opened only after a real click there. A widget is as
+  trustworthy as the document that carries it, and a document can arrive
+  through the shared folder or in a parcel.
 
 ## What it deliberately does not protect
 

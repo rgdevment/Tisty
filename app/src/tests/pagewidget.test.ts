@@ -2,6 +2,7 @@ import { Editor } from "@tiptap/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import { AS_FILE, asPaged, previewing, type Reach } from "../ui/previewing";
+import { lendKept } from "../ui/widgeting";
 import { asMarkdown, written } from "../ui/writing";
 
 const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args?: Record<string, unknown> }[] }));
@@ -9,13 +10,16 @@ const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args?: Record<string
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args });
-    return Promise.resolve(cmd === "widget_lend_kept" ? "p1" : null);
+    if (cmd !== "widget_lend_kept") return Promise.resolve(null);
+    const whole = args?.reference === "attachments/ab/entera-12345678.html";
+    return Promise.resolve(whole ? { id: "p2", whole } : { id: "p1", whole });
   },
   convertFileSrc: (path: string, scheme: string) => `http://${scheme}.localhost/${path}`,
 }));
 
 beforeEach(() => {
   ipc.calls = [];
+  document.documentElement.removeAttribute("data-theme");
 });
 
 const PAGE = "attachments/ab/informe-12345678.html";
@@ -112,6 +116,36 @@ describe("a page attached to a document", () => {
     expect(asPaged(image("attachments/ab/foto-12345678.png"))).toBeNull();
     expect(asPaged(image("https://example.com/a.html"))).toBeNull();
     expect(asPaged(image("docs/a.html"))).toBeNull();
+  });
+
+  it("leaves a whole page's address alone when the theme changes, so its own routes hold", async () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    const drawn = document.createElement("span");
+    document.body.append(drawn);
+    const lending = lendKept(drawn, "attachments/ab/entera-12345678.html");
+    await vi.waitFor(() => expect(drawn.querySelector("iframe")).toBeTruthy());
+    const frame = drawn.querySelector("iframe") as HTMLIFrameElement;
+    expect(frame.src).toBe("http://widget.localhost/p2");
+
+    document.documentElement.removeAttribute("data-theme");
+    lending.retheme();
+
+    expect(frame.style.colorScheme).toBe("light");
+    expect(frame.src).toBe("http://widget.localhost/p2");
+    lending.drop();
+  });
+
+  it("still themes an attached fragment through its address", async () => {
+    const drawn = document.createElement("span");
+    document.body.append(drawn);
+    const lending = lendKept(drawn, PAGE);
+    await vi.waitFor(() => expect(drawn.querySelector("iframe")).toBeTruthy());
+
+    document.documentElement.setAttribute("data-theme", "dark");
+    lending.retheme();
+
+    expect(drawn.querySelector("iframe")?.src).toBe("http://widget.localhost/p1#dark");
+    lending.drop();
   });
 
   it("names the way back in the window's language", () => {

@@ -13,31 +13,54 @@ pub const FENCED: &str = "default-src 'none'; script-src 'unsafe-inline'; \
 style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src data: blob:; \
 connect-src 'none'; frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'";
 
+// An attached page unpacks itself into blobs and frames of its own, so it may reach those, never the network.
+pub const PAGED: &str = "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; \
+style-src 'unsafe-inline' blob:; img-src data: blob:; font-src data: blob:; media-src data: blob:; \
+connect-src data: blob:; frame-src blob:; worker-src blob:; form-action 'none'; base-uri 'none'";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    Fenced,
+    Page,
+}
+
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+pub struct Borrowed {
+    pub id: String,
+    pub whole: bool,
+}
+
 #[derive(Default)]
-pub struct Lent(Mutex<VecDeque<(String, String)>>);
+pub struct Lent(Mutex<VecDeque<(String, String, Kind)>>);
 
 impl Lent {
     pub fn lend(&self, body: String) -> Answer<String> {
         if body.len() > LENT_AT_MOST {
             return Err(Refusal::about("widgetTooBig", weighed(LENT_AT_MOST as u64)));
         }
-        Ok(self.held(body))
+        Ok(self.held(body, Kind::Fenced))
     }
 
-    pub fn lend_kept(&self, body: Vec<u8>) -> Answer<String> {
+    pub fn lend_kept(&self, body: Vec<u8>) -> Answer<Borrowed> {
         if body.len() > KEPT_AT_MOST {
             return Err(too_big_a_page());
         }
-        Ok(self.held(String::from_utf8_lossy(&body).into_owned()))
+        let body = String::from_utf8_lossy(&body).into_owned();
+        let whole = whole(&body);
+        let kind = if whole { Kind::Page } else { Kind::Fenced };
+        Ok(Borrowed {
+            id: self.held(body, kind),
+            whole,
+        })
     }
 
-    fn held(&self, body: String) -> String {
+    fn held(&self, body: String, kind: Kind) -> String {
         let id = ulid::Ulid::generate().to_string().to_lowercase();
         let mut out = self.0.lock().unwrap_or_else(|e| e.into_inner());
         while out.len() >= OUT_AT_ONCE {
             out.pop_front();
         }
-        out.push_back((id.clone(), body));
+        out.push_back((id.clone(), body, kind));
         id
     }
 
@@ -45,7 +68,7 @@ impl Lent {
         self.0
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .retain(|(one, _)| one != id);
+            .retain(|(one, _, _)| one != id);
     }
 
     pub fn shown(&self, uri: &Uri) -> Response<Vec<u8>> {
@@ -53,21 +76,22 @@ impl Lent {
         let dark = uri
             .query()
             .is_some_and(|asked| asked.split('&').any(|one| one == "dark=1"));
-        let body = self
+        let found = self
             .0
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .iter()
-            .find(|(one, _)| one == id)
-            .map(|(_, body)| body.clone());
-        let (status, page) = match body {
-            Some(body) => (StatusCode::OK, shell(&body, dark)),
-            None => (StatusCode::NOT_FOUND, String::new()),
+            .find(|(one, _, _)| one == id)
+            .map(|(_, body, kind)| (body.clone(), *kind));
+        let (status, page, policy) = match found {
+            Some((body, Kind::Fenced)) => (StatusCode::OK, shell(&body, dark), FENCED),
+            Some((body, Kind::Page)) => (StatusCode::OK, paged(&body), PAGED),
+            None => (StatusCode::NOT_FOUND, String::new(), FENCED),
         };
         Response::builder()
             .status(status)
             .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
-            .header(header::CONTENT_SECURITY_POLICY, FENCED)
+            .header(header::CONTENT_SECURITY_POLICY, policy)
             .header(header::CACHE_CONTROL, "no-store")
             .header("X-Content-Type-Options", "nosniff")
             .body(page.into_bytes())
@@ -113,7 +137,7 @@ pub async fn widget_lend_kept(
     session: tauri::State<'_, Mutex<Session>>,
     lent: tauri::State<'_, Lent>,
     reference: String,
-) -> Answer<String> {
+) -> Answer<Borrowed> {
     if !a_page(&reference) {
         return Err(Refusal::of("notAllowed"));
     }
@@ -134,6 +158,53 @@ pub fn shell(body: &str, dark: bool) -> String {
 <meta name=\"color-scheme\" content=\"light dark\"><style>{KIT}</style></head>\
 <body><main class=\"w\">{body}</main><script>{BRIDGE}</script></body></html>"
     )
+}
+
+fn opens_with(text: &str, word: &str) -> bool {
+    text.get(..word.len())
+        .is_some_and(|start| start.eq_ignore_ascii_case(word))
+}
+
+fn prelude(body: &str) -> (usize, bool) {
+    let mut at = 0;
+    let mut declared = false;
+    loop {
+        let rest = &body[at..];
+        let bare = rest.trim_start_matches(|c: char| c == '\u{feff}' || c.is_whitespace());
+        at += rest.len() - bare.len();
+        let closing = if bare.starts_with("<!--") {
+            "-->"
+        } else if opens_with(bare, "<!doctype") {
+            declared = true;
+            ">"
+        } else {
+            return (at, declared);
+        };
+        match bare.find(closing) {
+            Some(end) => at += end + closing.len(),
+            None => return (body.len(), declared),
+        }
+    }
+}
+
+pub fn whole(body: &str) -> bool {
+    let (at, declared) = prelude(body);
+    let rest = &body[at..];
+    declared || opens_tag(rest, "<html") || opens_tag(rest, "<head")
+}
+
+fn opens_tag(text: &str, tag: &str) -> bool {
+    opens_with(text, tag)
+        && text[tag.len()..]
+            .chars()
+            .next()
+            .is_some_and(|after| after == '>' || after == '/' || after.is_whitespace())
+}
+
+// Before anything the page holds, so no script or string of its own can swallow the measurer.
+pub fn paged(body: &str) -> String {
+    let (at, _) = prelude(body);
+    format!("{}<script>{MEASURER}</script>{}", &body[..at], &body[at..])
 }
 
 const KIT: &str = r#"
@@ -182,6 +253,9 @@ svg{max-width:100%}
 "#;
 
 const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const box=document.querySelector("main.w");const tell=()=>say({type:"resize",height:Math.ceil(Math.max(box.scrollHeight,box.getBoundingClientRect().height))});new ResizeObserver(tell).observe(box);addEventListener("load",tell);const themed=()=>{const h=location.hash;if(h==="#dark"||h==="#light")document.documentElement.classList.toggle("dark",h==="#dark")};themed();addEventListener("hashchange",themed);addEventListener("click",(e)=>{const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;e.preventDefault();say({type:"open",href:a.getAttribute("href")})})})();"##;
+
+// A page may replace its whole document while it unpacks, so it is measured from the window, by what flows in its body.
+const MEASURER: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let queued=false;const px=(v)=>Number.parseFloat(v)||0;const span=document.createRange();let view=innerHeight;const sizes=new WeakMap();const fluid=new WeakSet();const within=(one,depth)=>{let low=0;for(const inner of one.childNodes)low=Math.max(low,edge(inner,depth));return low};const edge=(one,depth)=>{if(one.nodeType===3&&one.textContent.trim()){span.selectNodeContents(one);return span.getBoundingClientRect().bottom}if(one.nodeType!==1)return 0;const s=getComputedStyle(one);if(s.position==="fixed"||s.display==="none")return 0;if(s.display==="contents")return depth<6?within(one,depth+1):0;const r=one.getBoundingClientRect();if(r.height<=0&&r.width<=0)return 0;const was=sizes.get(one);if(was!==undefined&&innerHeight!==view&&Math.abs(r.height-was-(innerHeight-view))<1)fluid.add(one);sizes.set(one,r.height);if(fluid.has(one)&&depth<6){const low=within(one,depth+1);if(low>0)return low+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom)}return r.top+Math.max(r.height,one.scrollHeight)+px(s.marginBottom)};const reach=()=>{const b=document.body;if(!b)return 0;const low=within(b,0);view=innerHeight;if(low<=0)return 0;const s=getComputedStyle(b);return Math.ceil(low+scrollY+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom))};const tell=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;const h=reach();if(h>0)say({type:"resize",height:h})})};const clicked=(e)=>{if(e.defaultPrevented)return;const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;const href=(a.getAttribute("href")||"").trim();if(href.startsWith("#")||/^javascript:/i.test(href))return;e.preventDefault();say({type:"open",href})};const last=()=>{removeEventListener("click",clicked);addEventListener("click",clicked)};const hooked=()=>{document.addEventListener("load",tell,true);addEventListener("load",tell);addEventListener("resize",tell);document.addEventListener("DOMContentLoaded",last);addEventListener("load",last);last()};let root=null;const seen=new ResizeObserver(tell);const watch=()=>{if(document.documentElement!==root){root=document.documentElement;seen.disconnect();seen.observe(root);hooked()}const b=document.body;if(b){seen.observe(b);for(const one of b.children)seen.observe(one)}tell()};new MutationObserver(watch).observe(document,{childList:true,subtree:true});watch()})();"##;
 
 #[cfg(test)]
 #[path = "widgets_test.rs"]
