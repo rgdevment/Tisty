@@ -70,3 +70,12 @@ fn a_store_copy_is_told_another_install_on_this_computer_may_have_written_ahead(
         );
     }
 }
+
+#[test]
+fn a_move_that_did_not_go_through_is_told_in_the_persons_language_and_says_nothing_was_lost() {
+    let spanish = crate::refusing::not_moved_words(true, "access denied");
+    let english = crate::refusing::not_moved_words(false, "access denied");
+
+    assert!(spanish.contains("Nada se perdió") && spanish.ends_with("access denied"));
+    assert!(english.contains("Nothing was lost") && english.ends_with("access denied"));
+}

@@ -298,3 +298,17 @@ fn a_link_that_points_back_up_the_tree_is_followed_once() {
 
     assert_eq!(settle(&home.roots), Settled::Moved);
 }
+
+#[test]
+fn the_room_a_move_needs_counts_only_what_moves() {
+    let home = home(false);
+    put(&home.roots.real, "data/docs/one.md", "12345");
+    put(&home.roots.real, "config/config.toml", "123");
+    put(
+        &home.roots.real,
+        "cache/read.db",
+        "a cache that stays behind",
+    );
+
+    assert_eq!(weighed(&home.roots.real), 8);
+}

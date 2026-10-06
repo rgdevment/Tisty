@@ -23,8 +23,6 @@ pub struct Offered {
     pub title: String,
 }
 
-/// Every task that holds parts, with what a row needs to show it, and what a part needs to name
-/// the whole it belongs to even when the whole is not in the view.
 pub fn wholes(state: &State) -> BTreeMap<String, Whole> {
     let mut all: BTreeMap<TaskId, Whole> = BTreeMap::new();
     for part in state.tasks.values() {
@@ -124,7 +122,6 @@ pub fn step_turned(state: &State, id: TaskId, step: &str) -> Result<Vec<Op>, Ref
     Ok(ops)
 }
 
-/// The open tasks this one could be a part of: none of them a part, none that repeats.
 pub fn offered(state: &State, id: TaskId) -> Vec<Offered> {
     let Some(task) = state.tasks.get(&id) else {
         return Vec::new();
@@ -201,7 +198,6 @@ fn task_id(raw: &str) -> Result<TaskId, Refusal> {
     raw.parse().map_err(|_| Refusal::of("notATaskId"))
 }
 
-/// A part or a whole can be opened from a detail even when the view never listed it.
 #[tauri::command]
 pub fn task_of(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = task_id(&id)?;

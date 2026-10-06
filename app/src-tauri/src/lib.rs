@@ -636,9 +636,12 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             };
             let said = app
                 .dialog()
-                .message(match &behind {
-                    Some((told, ..)) => told.clone(),
-                    None => why.to_string(),
+                .message(match (&behind, &why) {
+                    (Some((told, ..)), _) => told.clone(),
+                    (None, tisty_core::Error::StoreNotMoved(said)) => {
+                        refusing::not_moved_words(refusing::speaks_spanish(), said)
+                    }
+                    (None, _) => why.to_string(),
                 })
                 .kind(MessageDialogKind::Error)
                 .title("Tisty");
