@@ -260,7 +260,20 @@ fn a_page_that_rewrites_itself_gets_its_link_and_size_listeners_back() {
         page.contains("seen.observe(root);hooked()"),
         "document.open() drops the window's listeners, and a rewritten page's links would open inside the frame"
     );
-    assert!(page.contains("addEventListener(\"click\",clicked,true)"));
+    assert!(page.contains("addEventListener(\"click\",clicked)"));
+}
+
+#[test]
+fn a_page_handles_its_own_links_before_the_window_opens_any() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        !page.contains("addEventListener(\"click\",clicked,true)"),
+        "caught on the way down, a click never reached the page's own router"
+    );
+    assert!(
+        page.contains("const clicked=(e)=>{if(e.defaultPrevented)return;"),
+        "a link the page already handled would open the browser as well"
+    );
 }
 
 #[test]
