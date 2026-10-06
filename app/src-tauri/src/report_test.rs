@@ -340,3 +340,97 @@ fn a_machine_the_person_removed_is_not_offered_back_because_it_kept_writing() {
         "a machine the person dropped was offered back as one waiting to be let in"
     );
 }
+
+fn waiting_in_folder(
+    name: &str,
+) -> (
+    tempfile::TempDir,
+    tempfile::TempDir,
+    tisty_core::Paths,
+    String,
+) {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path().join("data");
+    std::fs::create_dir_all(&data).unwrap();
+    let paths = tisty_core::Paths::new(data.clone(), room.path().join("config"));
+    let folder = tempfile::tempdir().unwrap();
+    let who = tisty_core::DeviceId(name.into());
+    let said = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &who).unwrap());
+    let mut store =
+        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+    store
+        .append(tisty_core::Op::DeviceKey {
+            d: who.clone(),
+            p: said.clone(),
+        })
+        .unwrap();
+    drop(store);
+    tisty_sync::turned::keep(
+        &data,
+        &[(name.to_string(), tisty_sync::turned::Away::Unconfirmed)].into(),
+    );
+    (room, folder, paths, said)
+}
+
+#[test]
+fn a_machine_that_wrote_here_before_it_signed_can_still_be_confirmed() {
+    let (_room, folder, paths, said) = waiting_in_folder("dev_x");
+    let told = [wrote("mac0", 0), wrote("dev_x", 5)];
+
+    let all = machines(
+        &told,
+        "mac0",
+        &Default::default(),
+        &Default::default(),
+        &Default::default(),
+        &paths,
+        Some(folder.path()),
+    );
+
+    let one = all.iter().find(|one| one.id == "dev_x").unwrap();
+    assert_eq!(
+        one.signs.as_deref(),
+        Some(said.as_str()),
+        "its key waits with the rest of its history, so only the folder can show it"
+    );
+    assert_eq!(one.turned_away.as_deref(), Some("unconfirmed"));
+}
+
+#[test]
+fn an_agent_waiting_to_be_answered_for_is_offered_like_any_machine() {
+    let (_room, folder, paths, said) = waiting_in_folder("dev_agent");
+    let assistants: std::collections::BTreeSet<tisty_core::DeviceId> =
+        [tisty_core::DeviceId("dev_agent".into())].into();
+    let told = [wrote("mac0", 0), wrote("dev_agent", 5)];
+
+    let all = machines(
+        &told,
+        "mac0",
+        &Default::default(),
+        &assistants,
+        &Default::default(),
+        &paths,
+        Some(folder.path()),
+    );
+
+    let one = all
+        .iter()
+        .find(|one| one.id == "dev_agent")
+        .expect("an agent nobody can confirm keeps everything it wrote out for good");
+    assert_eq!(one.signs.as_deref(), Some(said.as_str()));
+}
+
+#[test]
+fn an_agent_nothing_waits_on_stays_out_of_the_machines() {
+    let assistants: std::collections::BTreeSet<tisty_core::DeviceId> =
+        [tisty_core::DeviceId("dev_agent".into())].into();
+
+    let all = listed(
+        &[wrote("mac0", 0), wrote("dev_agent", 5)],
+        "mac0",
+        &Default::default(),
+        &assistants,
+    );
+
+    assert!(all.iter().all(|one| one.id != "dev_agent"));
+}
