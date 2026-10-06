@@ -89,8 +89,8 @@ impl Moved {
     }
 }
 
-pub fn been_here(aside: &Path, dest: &Path) -> bool {
-    carried_here(Some(aside), dest)
+pub fn been_here(aside: &Path, dest: &Path, device: &str) -> bool {
+    carried_here(Some(aside), dest, Some(device))
 }
 
 pub fn carry(
@@ -164,7 +164,7 @@ pub fn carry_telling(
     shape::before_reading(data, dest)?;
     let store = data.join(STORE);
     let again = matches!(way, Way::Again);
-    let been_here = carried_here(aside, dest);
+    let been_here = carried_here(aside, dest, Some(device));
     let ours = settled(&store, dest, been_here && !again)?;
 
     let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
@@ -334,7 +334,7 @@ pub fn carry_telling(
     if giving {
         shape::stamp(data, dest);
     }
-    note_carried(aside, dest);
+    note_carried(aside, dest, device);
     Ok(moved)
 }
 
@@ -721,10 +721,10 @@ fn answers_for_itself(
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
+    let mut carried = None;
     if stood.is_none() && !ours && signed {
         let says = match claimed(store, &who, knew) {
             Ok(Some(claim)) => Some(claim),
-            Ok(None) if store.join(named).is_dir() => None,
             Ok(None) => tisty_core::store::key_said_in(theirs, &who),
             Err(()) => return Answered::Unreadable,
         };
@@ -737,6 +737,19 @@ fn answers_for_itself(
                 );
                 stood = Some(says);
             }
+            Some(says)
+                if store.join(named).is_dir()
+                    && tisty_core::store::before::first_key_past(
+                        &store.join(named),
+                        theirs,
+                        &who,
+                    )
+                    .as_deref()
+                        == Some(says.as_str()) =>
+            {
+                carried = Some(says.clone());
+                stood = Some(says);
+            }
             Some(_) => {
                 witness::note(
                     channel::SYNC,
@@ -745,7 +758,15 @@ fn answers_for_itself(
                 );
                 return Answered::Unconfirmed;
             }
-            None => {}
+            None if adopting => return Answered::Unsaid,
+            None => {
+                witness::note(
+                    channel::SYNC,
+                    "a machine signs what it writes and has not yet said with what, so what it writes waits",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+                return Answered::Unconfirmed;
+            }
         }
     }
     if !signed {
@@ -794,6 +815,15 @@ fn answers_for_itself(
     match answers {
         Ok(held) => {
             verified::keep(data, dest, named, held);
+            if let Some(said) = carried
+                && tisty_core::vouched::carried(data, &who, &said)
+            {
+                witness::note(
+                    channel::SYNC,
+                    "a machine this store held from before it signed was answered for by the history already here",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+            }
             Answered::Yes
         }
         Err(Adrift::Unreadable(why)) => {
@@ -803,6 +833,14 @@ fn answers_for_itself(
                 &[("at", Fact::Id(named.to_string())), ("why", Fact::Why(why))],
             );
             Answered::Unreadable
+        }
+        Err(Adrift::Disowned(_)) if carried.is_some() => {
+            witness::note(
+                channel::SYNC,
+                "a machine held from before it signed does not answer to the key it says, so a person decides",
+                &[("at", Fact::Id(named.to_string()))],
+            );
+            Answered::Unconfirmed
         }
         Err(Adrift::Disowned(segment)) => {
             // Read again from the first line next round, but never give up knowing it signed:
@@ -831,6 +869,8 @@ fn answers_for_itself(
 
 enum Answered {
     Yes,
+    /// Taken on the first folder's word before it said its key, so adopting waits for that key.
+    Unsaid,
     Unreadable,
     Disowned,
     Unconfirmed,
@@ -963,6 +1003,7 @@ fn bring(
             alike,
         ) {
             Answered::Yes => {}
+            Answered::Unsaid => moved.coming.push(named.to_string()),
             Answered::Unreadable => {
                 away.insert(named.to_string(), turned::Away::Unreadable);
                 moved.unreadable.push(named.to_string());

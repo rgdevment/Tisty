@@ -211,7 +211,7 @@ pub async fn settle_in(
             dest.clone(),
             alive.clone(),
         );
-        let mut telling = Telling::new(app.clone(), !tisty_sync::been_here(&aside, &dest));
+        let mut telling = Telling::new(app.clone(), !tisty_sync::been_here(&aside, &dest, &device));
         let carried = tauri::async_runtime::spawn_blocking(move || {
             let done = tisty_sync::carry_telling(
                 &data,
@@ -492,7 +492,7 @@ fn stranded_by_leaving(
     (session.config.holds() != tisty_core::config::Holds::Everywhere
         && session.config.sync.as_ref() != Some(chosen)
         && old.is_dir()
-        && tisty_sync::been_here(session.paths.cache(), &old))
+        && tisty_sync::been_here(session.paths.cache(), &old, &session.config.device_id.0))
     .then_some(old)
 }
 
@@ -623,7 +623,7 @@ async fn carried_round(
         _ => tisty_sync::Way::Both,
     };
 
-    let joining = !tisty_sync::been_here(&aside, &dest);
+    let joining = !tisty_sync::been_here(&aside, &dest, &device);
     let mut telling = Telling::new(app.clone(), joining);
     let pushing = (
         data.clone(),

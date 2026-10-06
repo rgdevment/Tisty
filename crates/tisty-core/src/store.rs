@@ -8,6 +8,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
+pub mod before;
 pub(crate) mod identity;
 
 pub use identity::{

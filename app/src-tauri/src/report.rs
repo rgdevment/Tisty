@@ -131,6 +131,15 @@ pub fn machines(
     // The log keeps the first key a machine published and never another, so for this machine the
     // claim can be years stale while the key on disk is what it actually signs with.
     let ours = tisty_core::signing::shown_kept(paths, &tisty_core::DeviceId(mine.to_string()));
+    // The key a waiting machine published sits in the very history that waits, never in the state.
+    let in_folder = |who: &tisty_core::DeviceId| {
+        dest.and_then(|at| {
+            tisty_core::store::key_said_in(&at.join(tisty_sync::STORE).join(&who.0), who)
+        })
+    };
+    let waiting = |who: &tisty_core::DeviceId| {
+        away.get(&who.0) == Some(&tisty_sync::turned::Away::Unconfirmed)
+    };
     let mut last: std::collections::BTreeMap<&tisty_core::DeviceId, i64> = Default::default();
     for one in told {
         let when = one.timestamp.as_second();
@@ -141,7 +150,7 @@ pub fn machines(
 
     let mut all: Vec<Machine> = last
         .into_iter()
-        .filter(|(who, _)| !gone.contains(*who) && !assistants.contains(*who))
+        .filter(|(who, _)| !gone.contains(*who) && (!assistants.contains(*who) || waiting(who)))
         .map(|(who, when)| Machine {
             id: who.0.clone(),
             called: tisty_core::config::nicknamed(&who.0),
@@ -149,7 +158,10 @@ pub fn machines(
             mine: who.0 == mine,
             signs: match who.0 == mine {
                 true => ours.clone().or_else(|| keys.get(who).cloned()),
-                false => keys.get(who).cloned(),
+                false => keys
+                    .get(who)
+                    .cloned()
+                    .or_else(|| waiting(who).then(|| in_folder(who)).flatten()),
             },
             confirmed: stood.get(who).map(|one| one.key.clone()),
             confirmed_when: stood.get(who).map_or(0, |one| one.when),
@@ -166,13 +178,10 @@ pub fn machines(
             || all.iter().any(|one| &one.id == whose)
             || !tisty_core::store::is_device_name(whose)
             || gone.contains(&who)
-            || assistants.contains(&who)
         {
             continue;
         }
-        let says = dest.and_then(|at| {
-            tisty_core::store::key_said_in(&at.join(tisty_sync::STORE).join(whose), &who)
-        });
+        let says = in_folder(&who);
         all.push(Machine {
             id: whose.clone(),
             called: tisty_core::config::nicknamed(whose),

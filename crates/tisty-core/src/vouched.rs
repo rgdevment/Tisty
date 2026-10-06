@@ -8,6 +8,8 @@ const KEPT: &str = ".keys-confirmed";
 pub struct Confirmed {
     pub key: String,
     pub when: u64,
+    /// True when nobody here compared it: the key a machine already held here published itself.
+    pub carried: bool,
 }
 
 /// What a machine published is a claim; this is what the person at this machine accepted. The
@@ -30,13 +32,22 @@ pub fn all_confirmed(data: &Path) -> std::collections::BTreeMap<DeviceId, Confir
 /// Kept once and never moved: a key confirmed is the one that machine answers for from then on,
 /// and letting a later write replace it would give back the door this exists to close.
 pub fn confirm(data: &Path, who: &DeviceId, said: &str) -> bool {
+    kept(data, who, said, "")
+}
+
+/// The first key of a machine this store already held from before signing, taken without asking.
+pub fn carried(data: &Path, who: &DeviceId, said: &str) -> bool {
+    kept(data, who, said, "\tcarried")
+}
+
+fn kept(data: &Path, who: &DeviceId, said: &str, how: &str) -> bool {
     if crate::signing::read(said).is_none() || !crate::store::is_device_name(&who.0) {
         return false;
     }
     if let Some(stood) = confirmed(data, who) {
         return stood.key == said;
     }
-    let mut kept = vec![format!("{}\t{said}\t{}", who.0, crate::lately::now())];
+    let mut kept = vec![format!("{}\t{said}\t{}{how}", who.0, crate::lately::now())];
     kept.extend(lines(data));
     crate::store::write_atomic(&data.join(KEPT), kept.join("\n").as_bytes()).is_ok()
 }
@@ -54,12 +65,14 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
     let whose = said.next()?;
     let key = said.next()?.trim();
     let when = said.next()?.trim().parse().ok()?;
+    let carried = said.next().is_some_and(|how| how.trim() == "carried");
     (crate::store::is_device_name(whose) && crate::signing::read(key).is_some()).then(|| {
         (
             DeviceId(whose.to_string()),
             Confirmed {
                 key: key.to_string(),
                 when,
+                carried,
             },
         )
     })
