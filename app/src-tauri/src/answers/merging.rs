@@ -4,6 +4,13 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{Answer, Session, blamed, held};
 
+#[tauri::command]
+pub fn repeated_lists(
+    session: tauri::State<'_, Mutex<Session>>,
+) -> Answer<Vec<tisty_core::doubled::Repeated>> {
+    Ok(tisty_core::doubled::repeated(&held(&session).state))
+}
+
 /// Run after the round that brought the other side in: before it, nothing is twice yet.
 #[tauri::command]
 pub fn tidy_merged(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {

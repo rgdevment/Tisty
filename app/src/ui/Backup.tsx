@@ -1,7 +1,8 @@
 import type { Carrying } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
-import { Band, Line, mild, risky, type Word } from "./Keeping";
+import type { Word } from "./Card";
+import { Band, Line, mild, risky } from "./Keeping";
 
 interface Props {
   state: Carrying;

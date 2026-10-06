@@ -908,6 +908,7 @@ pub fn run() {
             answers::knocking::waiting_machines,
             answers::knocking::this_machine,
             answers::merging::tidy_merged,
+            answers::merging::repeated_lists,
             answers::storing::retire_attachment,
             answers::papers::settle_paper,
             answers::storing::paper_rifts,
