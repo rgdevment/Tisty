@@ -61,7 +61,6 @@ import {
   type Theme,
   type Twins,
   takeOutOfReach,
-  tidyMerged,
   twinned,
   unwireAgent,
   type Waking,
@@ -85,7 +84,7 @@ import Card, { NAMED, type Which, type Word } from "./Card";
 import Keepers from "./Keepers";
 import { Asked, hushed, hushedName, MachineList } from "./Keys";
 import Modal from "./Modal";
-import Repeated from "./Repeated";
+import Tidying from "./Tidying";
 
 const carried = {
   came: "syncCame",
@@ -1451,24 +1450,14 @@ export default function Keeping({
               </div>
             </Card>
 
-            <Card
-              title={t("repeatedLists")}
-              which="repeated"
+            <Tidying
               busy={busy}
               said={said}
               trouble={trouble}
-            >
-              <Repeated
-                held={held}
-                className={mild}
-                join={(then) =>
-                  run("repeated", tidyMerged(), () => {
-                    setSaid({ card: "repeated", text: t("repeatedDone") });
-                    then();
-                  })
-                }
-              />
-            </Card>
+              run={run}
+              tell={setSaid}
+              mild={mild}
+            />
 
             <Group label={t("looseAre")} />
 

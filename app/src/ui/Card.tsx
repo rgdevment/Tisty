@@ -16,6 +16,7 @@ export type Which =
   | "holds"
   | "tagging"
   | "repeated"
+  | "unvouched"
   | "wiring"
   | "report"
   | "store"
@@ -48,6 +49,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   holds: "holdsTitle",
   tagging: "tagsRead",
   repeated: "repeatedLists",
+  unvouched: "unvouchedTitle",
   wiring: "wiringTitle",
   report: "reportTitle",
   store: "aboutStore",

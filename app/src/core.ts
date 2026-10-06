@@ -513,6 +513,10 @@ export const thisMachine = (): Promise<ThisMachine> => invoke("this_machine");
 export const tidyMerged = (): Promise<number> => invoke("tidy_merged");
 export type Repeated = { name: string; lists: number; tasks: number };
 export const repeatedLists = (): Promise<Repeated[]> => invoke("repeated_lists");
+export type Unvouched = { at: string; bytes: number };
+export type Vouched = { kept: number; unlike: string[]; gone: string[] };
+export const unvouchedAttachments = (): Promise<Unvouched[]> => invoke("unvouched_attachments");
+export const vouchAttachments = (): Promise<Vouched> => invoke("vouch_attachments");
 
 export interface Stray {
   file: string;

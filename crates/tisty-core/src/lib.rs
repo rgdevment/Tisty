@@ -37,6 +37,7 @@ pub mod tagging;
 pub mod text;
 pub mod tidy;
 pub mod undo;
+pub mod unvouched;
 pub mod view;
 pub mod vouched;
 pub mod witness;

@@ -11,4 +11,5 @@ pub mod shelves;
 pub mod storing;
 pub mod tasks;
 pub mod updating;
+pub mod vouching;
 pub mod wired;
