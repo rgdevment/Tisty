@@ -172,6 +172,7 @@ pub(crate) fn copy_held(
 ) -> Result<usize, Trouble> {
     let mut done = 0;
     let mut left = 0;
+    let mut retired_there = 0;
     let mut asked_for = Vec::new();
     let mut carried = carried;
     let mut written_down = ledger.map(tisty_core::attach::digests).unwrap_or_default();
@@ -260,11 +261,7 @@ pub(crate) fn copy_held(
             }
             let reference = format!("attachments/{under}/{named}");
             if buried.contains(&reference) {
-                witness::note(
-                    channel::SYNC,
-                    "a retired attachment was left where it was instead of coming back",
-                    &[("at", Fact::Id(reference))],
-                );
+                retired_there += 1;
                 continue;
             }
             if reachable.is_some_and(|named| !named.contains(&reference)) {
@@ -349,6 +346,14 @@ pub(crate) fn copy_held(
             }
             done += 1;
         }
+    }
+    // Said once a round: one line per file, every round, buried everything else the log had to say.
+    if retired_there > 0 {
+        witness::note(
+            channel::SYNC,
+            "retired attachments were left where they were instead of coming back",
+            &[("count", Fact::Count(retired_there))],
+        );
     }
     if left > 0 {
         witness::note(
