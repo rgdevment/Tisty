@@ -931,7 +931,7 @@ fn what_is_let_go_waits_in_the_bin_instead_of_vanishing() {
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
 
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
 
     assert!(!root.path().join(&at).exists(), "it is still in the way");
     let rest = at.trim_start_matches("attachments/");
@@ -947,7 +947,7 @@ fn attaching_again_what_was_retired_does_not_hand_it_to_the_sweeper() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
     let retired: std::collections::BTreeSet<String> = [at.clone()].into();
     sweep(root.path(), &retired, &Default::default());
 
@@ -980,9 +980,9 @@ fn what_the_bin_holds_is_not_taken_twice_when_it_is_retired_again() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
 
-    let why = set_aside_from(root.path(), root.path(), &at, 2_000);
+    let why = set_aside(root.path(), &at, 2_000);
 
     assert!(why.is_err(), "it wrote a second word about the same file");
     let said = std::fs::read_to_string(root.path().join("bin.jsonl")).unwrap();
@@ -998,7 +998,7 @@ fn nothing_lands_in_the_bin_without_the_ledger_knowing() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
 
     let said = std::fs::read_to_string(root.path().join("bin.jsonl")).unwrap();
 
@@ -1014,7 +1014,7 @@ fn the_bin_is_not_counted_as_something_adrift() {
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
 
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
 
     assert_eq!(
         loose(root.path(), &[]),
@@ -1028,7 +1028,7 @@ fn the_bin_holds_for_thirty_days_and_not_a_day_less() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
     let rest = at.trim_start_matches("attachments/").to_string();
     let held = root.path().join("bin").join(&rest);
 
@@ -1046,8 +1046,8 @@ fn emptying_the_bin_leaves_what_is_still_within_its_time() {
     let root = tempfile::tempdir().unwrap();
     let Kept { at: old, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
     let Kept { at: fresh, .. } = keep(&two, root.path(), COPIED_UP_TO).unwrap();
-    set_aside_from(root.path(), root.path(), &old, 1_000).unwrap();
-    set_aside_from(root.path(), root.path(), &fresh, 1_000 + BIN_HOLDS_FOR).unwrap();
+    set_aside(root.path(), &old, 1_000).unwrap();
+    set_aside(root.path(), &fresh, 1_000 + BIN_HOLDS_FOR).unwrap();
 
     let gone = empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR);
 
@@ -1068,7 +1068,7 @@ fn emptying_the_bin_twice_says_nothing_the_second_time() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    set_aside_from(root.path(), root.path(), &at, 1_000).unwrap();
+    set_aside(root.path(), &at, 1_000).unwrap();
 
     assert_eq!(empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR), 1);
     assert_eq!(empty_the_bin(root.path(), 1_000 + BIN_HOLDS_FOR), 0);
@@ -1518,57 +1518,5 @@ fn what_was_kept_says_its_name_its_digest_and_its_weight() {
     assert!(
         vouched(&d.at[12..14], &d.at[15..], &d.sha256),
         "what it tells does not answer for the name it kept"
-    );
-}
-
-#[test]
-fn a_copy_only_in_the_shared_folder_goes_to_this_machines_bin_with_its_thirty_days() {
-    let room = tempfile::tempdir().unwrap();
-    let data = room.path().join("data");
-    let shared = room.path().join("shared");
-    let at = "attachments/ab/solo-alla-a3f90001.png";
-    std::fs::create_dir_all(shared.join("attachments/ab")).unwrap();
-    std::fs::write(shared.join(at), b"solo en la carpeta").unwrap();
-
-    set_aside_from(&shared, &data, at, 1_000).unwrap();
-
-    assert!(
-        !shared.join(at).exists(),
-        "the folder's copy stayed where it was"
-    );
-    assert_eq!(
-        std::fs::read(bin(&data).join("ab/solo-alla-a3f90001.png")).unwrap(),
-        b"solo en la carpeta"
-    );
-    assert!(
-        std::fs::read_to_string(bin_ledger(&data))
-            .unwrap()
-            .contains(at),
-        "set aside with no line in the bin's ledger, so it could never come back"
-    );
-}
-
-#[test]
-fn a_copy_put_back_in_the_folder_after_it_was_binned_keeps_its_first_thirty_days() {
-    let room = tempfile::tempdir().unwrap();
-    let data = room.path().join("data");
-    let shared = room.path().join("shared");
-    let at = "attachments/ab/vuelta-a3f90001.png";
-    std::fs::create_dir_all(shared.join("attachments/ab")).unwrap();
-    std::fs::write(shared.join(at), b"la misma foto").unwrap();
-    set_aside_from(&shared, &data, at, 1_000).unwrap();
-
-    std::fs::write(shared.join(at), b"la misma foto").unwrap();
-    set_aside_from(&shared, &data, at, 2_000).unwrap();
-
-    assert!(
-        !shared.join(at).exists(),
-        "the copy put back stayed in the folder"
-    );
-    let said = std::fs::read_to_string(bin_ledger(&data)).unwrap();
-    assert_eq!(
-        said.matches("vuelta").count(),
-        1,
-        "a second line would empty the bin by the first and leave itself pointing at nothing"
     );
 }

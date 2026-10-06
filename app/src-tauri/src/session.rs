@@ -362,15 +362,9 @@ impl Session {
                 }
                 continue;
             }
-            let lies = if tisty_core::attach::lies_in(reference, self.paths.data()) {
-                Some(self.paths.data().to_path_buf())
-            } else {
-                self.dest()
-                    .filter(|dest| tisty_core::attach::lies_in(reference, dest))
-            };
-            if let Some(lies) = lies
-                && let Err(e) =
-                    tisty_core::attach::set_aside_from(&lies, self.paths.data(), reference, now)
+            let here = tisty_core::attach::resolve(reference, self.paths.data())
+                .is_ok_and(|at| at.is_file());
+            if here && let Err(e) = tisty_core::attach::set_aside(self.paths.data(), reference, now)
             {
                 witness::warn(
                     channel::ATTACH,
@@ -392,9 +386,20 @@ impl Session {
         if told.is_empty() {
             return Ok(0);
         }
+        let gone: std::collections::BTreeSet<String> = told
+            .iter()
+            .filter_map(|op| match op {
+                Op::AttachRetire { d } => Some(d.clone()),
+                _ => None,
+            })
+            .collect();
         let many = told.len();
         self.commit_all(told)
             .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
+        // Asked for by name, so the shared folder's copy goes now; the cloud keeps it in its own bin.
+        if let Some(dest) = self.dest() {
+            tisty_core::attach::sweep(&dest, &gone, &std::collections::BTreeSet::new());
+        }
         self.tidy_up(false);
         self.reproject().map_err(|e| {
             blamed(
