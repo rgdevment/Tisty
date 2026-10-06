@@ -375,6 +375,7 @@ export default function Welcome({ onDone }: Props) {
               setNamed(undefined);
               setStuck(undefined);
             }}
+            onError={(e) => setTrouble(saidPlainly(e))}
           />
         ) : stuck ? (
           <div className="flex flex-col gap-3">
