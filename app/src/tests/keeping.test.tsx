@@ -870,7 +870,7 @@ describe("the maintenance panel", () => {
 
     await screen.findByText(/win1-0002/);
     expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
-    expect(screen.getByRole("button", { name: /see the key/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /see the code/i })).toBeTruthy();
   });
 
   it("says a machine signs with another key than the one confirmed, and offers no way to accept it", async () => {
@@ -893,7 +893,7 @@ describe("the maintenance panel", () => {
     await screen.findByText(/win1-0002/);
     expect(screen.getByText("its own")).toBeTruthy();
     expect(screen.queryByText(/unconfirmed/i)).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: /see the key/i }));
+    await userEvent.click(screen.getByRole("button", { name: /see the code/i }));
 
     expect(await screen.findByText(/read it out when one of them asks/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
@@ -915,7 +915,7 @@ describe("the maintenance panel", () => {
     await screen.findByText(/win1-0002/);
     expect(screen.queryByText(/has not said what it signs with/i)).toBeNull();
     expect(screen.getByText(/5c2a9d37/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: /see the key/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /see the code/i })).toBeTruthy();
   });
 
   it("never dates a confirmation it has no day for", async () => {
@@ -1044,7 +1044,7 @@ describe("the maintenance panel", () => {
     await screen.findByText(/win1-0002/);
     expect(screen.getByText(/has not said what it signs with/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^confirm$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /see the key/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /see the code/i })).toBeNull();
   });
 
   it("keeps quiet about machines when every one of them is up to date", async () => {
@@ -1822,7 +1822,8 @@ describe("the maintenance panel", () => {
     expect(sent("merge_stores")[0].args.into).toBe("C:/keep/tisty-before-joining-both.zip");
     expect(sent("join_them")).toHaveLength(0);
     expect(sent("take_over")).toHaveLength(0);
-    expect(sent("sync_now")).toHaveLength(2);
+    expect(sent("sync_now")).toHaveLength(3);
+    expect(sent("tidy_merged")).toHaveLength(1);
   });
 
   it("says what merging costs before it is taken, not after", async () => {
@@ -1831,7 +1832,7 @@ describe("the maintenance panel", () => {
 
     const said = (await screen.findByRole("dialog")).textContent ?? "";
     expect(said).toMatch(/without losing anything/i);
-    expect(said).toMatch(/two lists by the same name stay as two/i);
+    expect(said).toMatch(/two lists by the same name become one/i);
   });
 
   it("empties nothing when there is nowhere to put the backup for a merge", async () => {

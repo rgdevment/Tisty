@@ -30,6 +30,9 @@ zip.workspace = true
 unicode-normalization.workspace = true
 sys-locale.workspace = true
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+sysinfo.workspace = true
+
 [target.'cfg(windows)'.dependencies]
 same-file.workspace = true
 winapi-util.workspace = true

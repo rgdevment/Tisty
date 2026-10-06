@@ -2847,7 +2847,8 @@ fn hide(served: &Served, id: &str) {
         .filter_map(|one| one["ts"].as_str()?.parse::<jiff::Timestamp>().ok())
         .max()
         .unwrap();
-    let ts = last + jiff::SignedDuration::from_secs(1);
+    // After everything any machine wrote, or a slow runner puts the hide before the task it hides.
+    let ts = jiff::Timestamp::now().max(last + jiff::SignedDuration::from_secs(1));
     held.push_str(&format!(
         r#"{{"v":7,"ts":"{ts}","by":"{by}","op":"task.hide","id":"{id}"}}"#
     ));

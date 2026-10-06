@@ -5,6 +5,13 @@ use crate::{
     state::{here, same_name},
 };
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Named {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub os: Option<String>,
+}
+
 impl State {
     pub(crate) fn task_added(&mut self, event: &Event, id: TaskId, d: &crate::event::TaskAdd) {
         let mut task = crate::state::task_from(id, d);
@@ -67,10 +74,21 @@ impl State {
         }
     }
 
+    // Only a machine's own word: anybody else's name for it would be a label the folder made up.
+    pub(crate) fn device_named(&mut self, event: &Event, d: &DeviceId, n: &str, os: Option<&str>) {
+        let name = crate::called::cleaned(n);
+        if event.device != *d || name.is_empty() {
+            return;
+        }
+        let os = os.map(crate::called::cleaned).filter(|one| !one.is_empty());
+        self.named.insert(d.clone(), Named { name, os });
+    }
+
     pub(crate) fn device_removed(&mut self, d: &DeviceId) {
         self.devices.remove(d);
         self.agents.remove(d);
         self.hosts.remove(d);
+        self.named.remove(d);
         self.dropped.insert(d.clone());
         self.holders.retain(|_, who| {
             who.remove(d);

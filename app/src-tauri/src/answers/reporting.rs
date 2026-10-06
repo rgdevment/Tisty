@@ -85,9 +85,13 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         machines: report::machines(
             &told,
             session.config.device_id.0.as_str(),
-            &session.state.dropped,
-            &session.state.assistants,
-            &session.state.keys,
+            &report::Known {
+                gone: &session.state.dropped,
+                assistants: &session.state.assistants,
+                keys: &session.state.keys,
+                named: &session.state.named,
+                hosts: &session.state.hosts,
+            },
             &session.paths,
             match &session.config.sync {
                 Some(tisty_core::config::Sync::Folder(at)) => Some(at.as_path()),

@@ -76,6 +76,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.remove",
     "device.host",
     "device.key",
+    "device.named",
     "person.signed",
     "attach.kept",
     "attach.let_go",
@@ -206,6 +207,14 @@ pub enum Op {
     /// and which a second one would read as a machine seating itself again.
     #[serde(rename = "device.key")]
     DeviceKey { d: DeviceId, p: String },
+    /// What the person calls that computer, so a machine waiting to be confirmed can be found.
+    #[serde(rename = "device.named")]
+    DeviceNamed {
+        d: DeviceId,
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        os: Option<String>,
+    },
 
     #[serde(rename = "person.signed")]
     Signed { d: Signature },
@@ -267,6 +276,7 @@ impl Op {
                 | Op::DocSigned { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceKey { .. }
+                | Op::DeviceNamed { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,
@@ -281,7 +291,11 @@ impl Op {
     pub fn is_optional(&self) -> bool {
         matches!(
             self,
-            Op::Signed { .. } | Op::DeviceHost { .. } | Op::DocFlag { .. } | Op::DocUnflag { .. }
+            Op::Signed { .. }
+                | Op::DeviceHost { .. }
+                | Op::DeviceNamed { .. }
+                | Op::DocFlag { .. }
+                | Op::DocUnflag { .. }
         )
     }
 
@@ -334,6 +348,7 @@ impl Op {
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
+            | Op::DeviceNamed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
@@ -468,6 +483,7 @@ impl Op {
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
+            | Op::DeviceNamed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }

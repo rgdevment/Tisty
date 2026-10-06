@@ -30,6 +30,7 @@ pub struct State {
     pub agents: BTreeSet<DeviceId>,
     pub assistants: BTreeSet<DeviceId>,
     pub hosts: BTreeMap<DeviceId, DeviceId>,
+    pub named: BTreeMap<DeviceId, crate::applying::Named>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub kept: BTreeMap<String, (String, u64)>,
@@ -373,6 +374,7 @@ impl State {
             }
             Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
             Op::DeviceKey { d, p } => self.key_published(event, d, p),
+            Op::DeviceNamed { d, name, os } => self.device_named(event, d, name, os.as_deref()),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of } => {
                 if (event.device == *d || event.device == *of)

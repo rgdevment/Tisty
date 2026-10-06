@@ -259,7 +259,14 @@ fn answered_for(
         "\n  {}",
         style::dim(&lang.fill("machine-signs-with", &[("id", whose)]))
     );
-    println!("  {says}\n");
+    println!("  {says}");
+    if let Some(code) = tisty_core::signing::spoken(&says) {
+        println!(
+            "  {}",
+            style::dim(&lang.fill("machine-code", &[("code", &code)]))
+        );
+    }
+    println!();
     if !crate::cmd::confirm(&lang.fill("confirm-key", &[("id", whose)]), force, lang)? {
         return Ok(ExitCode::SUCCESS);
     }

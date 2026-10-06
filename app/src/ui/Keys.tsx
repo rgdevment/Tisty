@@ -1,13 +1,17 @@
 import type { Machine } from "../core";
+import { askAbout, shownAs } from "../knocking";
 import { fill, t } from "../locales";
 import Modal from "./Modal";
 
 const HUSHED = 7 * 24 * 60 * 60;
 
 export const hushed = (one: Machine): boolean =>
-  !one.mine && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
+  !one.mine && !waiting(one) && (one.when === 0 || Date.now() / 1000 - one.when > HUSHED);
 
-export const hushedName = (all: Machine[]): string | null => all.find(hushed)?.called ?? null;
+export const hushedName = (all: Machine[]): string | null => {
+  const one = all.find(hushed);
+  return one ? named(one) : null;
+};
 
 export const briefly = (key: string): string => `${key.slice(0, 8)} … ${key.slice(-8)}`;
 
@@ -29,6 +33,11 @@ export const astrayKey = (one: Machine): boolean =>
 export const waiting = (one: Machine): boolean => one.turnedAway === "unconfirmed";
 
 const standing = (one: Machine): string | null => one.confirmed ?? one.signs ?? null;
+
+export const named = shownAs;
+
+// The code is what both windows show; the raw key stays for a machine that has not said one.
+const spoken = (one: Machine): string => one.code ?? briefly(standing(one) ?? "");
 
 const dated = (when: number): string | null => {
   if (when === 0) return null;
@@ -71,22 +80,22 @@ export function KeyOf({
 }) {
   return (
     <Modal
-      title={one.mine ? t("theMachines") : fill("machineKeyTitle", one.called)}
+      title={one.mine ? t("theMachines") : fill("machineKeyTitle", named(one))}
       wide
       onClose={onClose}
     >
       <p className="text-[12.5px] leading-relaxed text-soft">
-        {one.mine ? t("machineKeyMine") : fill("machineKeyRead", one.called)}
+        {one.mine ? t("machineKeyMine") : fill("machineKeyRead", named(one))}
       </p>
       <div className="mt-3 rounded-[10px] border border-hair bg-panel px-3.5 py-3">
         <span className="block font-mono text-[13px] leading-[1.9] tracking-[0.04em] break-all whitespace-pre-line">
-          {grouped(standing(one) ?? "")}
+          {one.code ?? grouped(standing(one) ?? "")}
         </span>
       </div>
       {!one.mine && (
         <>
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
-            {fill("machineKeyThen", one.called)}
+            {fill("machineKeyThen", named(one))}
           </p>
           <p className="mt-2 text-[12.5px] leading-relaxed text-hue-amber">
             {t("machineKeyForGood")}
@@ -127,7 +136,7 @@ export function KeyAstray({
 }) {
   return (
     <Modal title={t("machineKeyAstray")} wide onClose={onClose}>
-      <p className="text-[13px] font-semibold">{one.called}</p>
+      <p className="text-[13px] font-semibold">{named(one)}</p>
       <div className="mt-3 flex flex-wrap gap-7 text-[12.5px]">
         <span>
           <span className="block text-soft">
@@ -190,7 +199,13 @@ export function MachineList({
             one={one}
             busy={busy}
             quiet={hushed(one)}
-            wrote={one.when === 0 ? t("machineNever") : (dated(one.when) ?? "")}
+            wrote={
+              one.when === 0
+                ? one.since
+                  ? fill("machineSince", dated(one.since) ?? "")
+                  : t("machineNever")
+                : (dated(one.when) ?? "")
+            }
             stood={dated(one.confirmedWhen)}
             onKey={onKey}
             onAstray={onAstray}
@@ -236,7 +251,7 @@ function MachineRow({
     >
       <span className="min-w-0">
         <span className="block text-[13px] font-semibold">
-          {one.called}
+          {named(one)}
           {one.mine && (
             <span className="ml-2 rounded-full border border-accent px-1.5 py-px align-[1px] text-[10.5px] font-semibold tracking-wide text-accent uppercase">
               {t("machineHere")}
@@ -248,7 +263,9 @@ function MachineRow({
             </span>
           )}
         </span>
-        <span className={`block text-[12.5px] ${quiet ? "text-ink" : "text-soft"}`}>{wrote}</span>
+        <span className={`block text-[12.5px] ${quiet ? "text-ink" : "text-soft"}`}>
+          {[one.os, wrote].filter(Boolean).join(" · ")}
+        </span>
         <span className="block font-mono text-[10.5px] break-all text-faint">{one.id}</span>
         {astrayKey(one) ? (
           <span className="mt-0.5 block text-[11.5px] font-semibold text-urgent">
@@ -260,8 +277,7 @@ function MachineRow({
               <span className="mt-0.5 block text-[11.5px] text-faint">{t("machineKeyNone")}</span>
             ) : (
               <span className="mt-0.5 block text-[11.5px] text-soft">
-                {t("machineSigns")}{" "}
-                <span className="font-mono text-ink">{briefly(standing(one) ?? "")}</span>
+                {t("machineCode")} <span className="font-mono text-ink">{spoken(one)}</span>
               </span>
             )}
             <span className="mt-0.5 block text-[11.5px] font-semibold text-hue-amber">
@@ -272,10 +288,11 @@ function MachineRow({
           <span className="mt-0.5 block text-[11.5px] text-faint">{t("machineKeyNone")}</span>
         ) : (
           <span className="mt-0.5 block text-[11.5px] text-soft">
-            {t("machineSigns")}{" "}
-            <span className="font-mono text-ink">{briefly(standing(one) ?? "")}</span>{" "}
+            {t("machineCode")} <span className="font-mono text-ink">{spoken(one)}</span>{" "}
             {one.mine ? (
               <span className="text-faint">{t("machineKeyOurs")}</span>
+            ) : one.carried ? (
+              <span className="text-soft">{t("machineCarried")}</span>
             ) : one.confirmed ? (
               <span className="font-semibold text-hue-teal">
                 {stood === null ? t("machineKeyStandsEver") : fill("machineKeyStands", stood)}
@@ -299,7 +316,7 @@ function MachineRow({
           <button
             type="button"
             disabled={busy}
-            onClick={() => onKey(one)}
+            onClick={() => (waiting(one) ? askAbout(one) : onKey(one))}
             className="rounded-md border border-accent px-2.5 py-0.5 text-[12.5px] text-accent disabled:border-hair disabled:text-faint"
           >
             {t("machineKeyConfirm")}
