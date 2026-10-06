@@ -1487,6 +1487,22 @@ answers for is not taken in and not written over either: it is left undecided,
 and the person chooses mine, theirs or both. Settling «mine» is refused when the
 folder moved since the person was asked, the same as weaving.
 
+The one body that waits instead is one whose print a machine still waiting to
+be confirmed wrote down, and only when nothing here changed it. That history is
+in the folder unread, so its answer is on the way rather than missing: the
+round reads every print it gave (`store::introduced::prints_in`), from one copy
+of it, and only if that copy is signed whole under the key known here for that
+machine, or failing one, the key it says. Its own signature cannot prove the
+machine is ours, which is the confirmation still missing, so a history planted
+in the folder can make a document wait and never more: nothing comes in, the
+notice names the computer, and removing it puts the document to the person
+again, with that computer no longer listed as waiting. The document stays as it
+is, the round reports it in `waiting` and the window says so with the way out —
+confirm the machine and it settles on the next round, or remove it in
+Maintenance. One edited here as well, or locked, is never held: it is put to the
+person, so their own changes do not wait on someone else's. The history is read
+only when some document needs it.
+
 The engine refuses rather than guess, and every refusal lands on the same tested
 road: the merge returns nothing, the document is left undecided, and **the
 person decides**, with «keep both» offered first because it is the only answer

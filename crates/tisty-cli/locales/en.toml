@@ -105,6 +105,7 @@ stitched       = "joined: {was} is now {now}. Nothing was lost; two lists by the
 same-lineage   = "that folder already held this same history: its identity was adopted and nothing was lost"
 papers-joined      = "changes from both machines were put together in: {names}"
 papers-undecided   = "written in both places and waiting on you, from the window: {names}"
+papers-waiting     = "changed by a machine still waiting to be confirmed, so they wait with it: {names}. Confirm it, or remove it to be asked about them"
 papers-astray      = "could not be read, so they did not travel: {names}"
 own-log-unreadable = "this machine's own log could not be read, so nothing travelled either way"
 machines-unreadable = "these machines' histories could not be read and were left out: {names}"

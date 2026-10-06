@@ -215,6 +215,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     for (many, word) in [
         (&moved.joined, "papers-joined"),
         (&moved.undecided_ids(), "papers-undecided"),
+        (&moved.waiting, "papers-waiting"),
         (&moved.astray, "papers-astray"),
         (&moved.unreadable, "machines-unreadable"),
         (&moved.disowned, "machines-disowned"),

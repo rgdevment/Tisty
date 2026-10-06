@@ -75,6 +75,8 @@ pub struct Moved {
     pub coming: Vec<String>,
     /// Taken in while adopting before it said its key, so adopting waits on it without saying so.
     pub unsaid: Vec<String>,
+    /// Not undecided: confirming or removing the machine that answers for them settles them.
+    pub waiting: Vec<String>,
 }
 
 impl Moved {
@@ -245,6 +247,9 @@ pub fn carry_telling(
         .filter(|paper| paper.bytes == Some(0))
         .map(|paper| paper.file.clone())
         .collect();
+    let held_back: std::cell::OnceCell<
+        std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
+    > = Default::default();
     let printed: std::collections::BTreeMap<String, papers::Answers> = told
         .docs
         .values()
@@ -299,6 +304,14 @@ pub fn carry_telling(
             &shut,
             Some(&empty),
             Some(&printed),
+            &|file, print| {
+                held_back
+                    .get_or_init(|| {
+                        papers::held_back_prints(&store, dest, &moved.unconfirmed, &told)
+                    })
+                    .get(file)
+                    .is_some_and(|prints| prints.contains(print))
+            },
             again,
             been_here,
             taking,
@@ -307,6 +320,7 @@ pub fn carry_telling(
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
+        moved.waiting = papers.waiting;
         moved.astray = papers.astray;
         moved.joined = papers.joined;
         moved.unanswered = papers.unanswered;
@@ -708,6 +722,14 @@ fn claimed(
     Ok(told.keys.get(who).cloned())
 }
 
+fn removed(store: &Path, named: &str, knew: &mut Option<tisty_core::store::Ledger>) -> bool {
+    if knew.is_none() {
+        *knew = tisty_core::store::ledger(store).ok();
+    }
+    knew.as_ref()
+        .is_some_and(|told| told.was_removed(&tisty_core::DeviceId(named.to_string())))
+}
+
 /// An agent is taken on the word of a host this machine trusts, for the very key the host wrote.
 fn hosted(
     data: &Path,
@@ -1032,7 +1054,7 @@ fn bring(
             continue;
         }
         plainly(&mine)?;
-        match answers_for_itself(
+        let answered = answers_for_itself(
             data,
             store,
             dest,
@@ -1042,7 +1064,13 @@ fn bring(
             adopting.contains(named),
             &mut knew,
             alike,
-        ) {
+        );
+        // Removed by the person, so nothing of it is theirs to hear about any more.
+        if !matches!(answered, Answered::Yes | Answered::Unsaid) && removed(store, named, &mut knew)
+        {
+            continue;
+        }
+        match answered {
             Answered::Yes => {}
             Answered::Unsaid => moved.unsaid.push(named.to_string()),
             Answered::Unreadable => {

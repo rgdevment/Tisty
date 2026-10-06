@@ -8338,3 +8338,182 @@ fn a_whole_machine_is_never_taken_on_another_machines_word() {
         "a confirmed machine seated a whole other machine nobody compared"
     );
 }
+
+/// A machine nobody here confirmed, which changed `file` to `body` in the folder.
+fn waiting_writer(shared: &Path, id: tisty_core::model::DocId, body: &str, signed: bool) {
+    let w = blank("dev_w");
+    std::fs::create_dir_all(&w.data).unwrap();
+    let paths = tisty_core::Paths::new(w.data.clone(), w.data.join("config"));
+    let who = DeviceId(w.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&w.store, who.clone())
+        .unwrap()
+        .signing_with(signed.then(|| key.clone()));
+    held.append(Op::DeviceJoin {
+        d: who.clone(),
+        k: Some(tisty_core::DeviceKind::Machine),
+        p: Some(tisty_core::signing::shown(&key)),
+    })
+    .unwrap();
+    held.append(Op::DocSaid {
+        id,
+        d: tisty_core::event::Said::of(body),
+    })
+    .unwrap();
+    drop(held);
+    let there = shared.join(STORE).join(&w.device);
+    std::fs::create_dir_all(&there).unwrap();
+    for found in std::fs::read_dir(w.store.join(&w.device)).unwrap() {
+        let found = found.unwrap().path();
+        std::fs::copy(&found, there.join(found.file_name().unwrap())).unwrap();
+    }
+    wrote_body(&shared.join(PAPERS), "uno-0001", body);
+}
+
+fn a_document_settled_in(shared: &Path, aside: &Path) -> (Machine, tisty_core::model::DocId) {
+    let one = machine("uno");
+    keyed(&one);
+    let body = "# Notas\n\nlo que escribi\n";
+    filed(&one, "uno-0001", body);
+    edited(&one, "uno-0001", body);
+    let id = doc_named(&one, "uno-0001");
+    carry_leaning_on(&one.data, Some(aside), &one.device, shared, Way::Both, &[]).unwrap();
+    carry_leaning_on(&one.data, Some(aside), &one.device, shared, Way::Both, &[]).unwrap();
+    (one, id)
+}
+
+fn turn(one: &Machine, aside: &Path, shared: &Path) -> Moved {
+    let alive = vec!["uno-0001".to_string()];
+    carry_leaning_on(
+        &one.data,
+        Some(aside),
+        &one.device,
+        shared,
+        Way::Both,
+        &alive,
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_body_a_waiting_machine_answers_for_waits_with_it_instead_of_asking() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let (one, id) = a_document_settled_in(shared.path(), kept.path());
+    waiting_writer(
+        shared.path(),
+        id,
+        "# Notas\n\nlo que cambio el otro\n",
+        true,
+    );
+
+    let moved = turn(&one, kept.path(), shared.path());
+
+    assert!(
+        moved.unconfirmed.contains(&"dev_w".to_string()),
+        "{moved:?}"
+    );
+    assert!(
+        moved.undecided_ids().is_empty(),
+        "the person was asked about a body whose answer was only waiting"
+    );
+    assert_eq!(moved.waiting, vec!["uno-0001".to_string()]);
+    assert_eq!(
+        body(&one.data, "uno-0001"),
+        "# Notas\n\nlo que escribi\n",
+        "a waiting body came in before the machine that wrote it was confirmed"
+    );
+}
+
+#[test]
+fn a_forged_waiting_history_never_silences_the_question() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let (one, id) = a_document_settled_in(shared.path(), kept.path());
+    waiting_writer(shared.path(), id, "algo que nadie firmo\n", false);
+
+    let moved = turn(&one, kept.path(), shared.path());
+
+    assert!(moved.waiting.is_empty(), "{moved:?}");
+    assert_eq!(moved.undecided_ids(), vec!["uno-0001".to_string()]);
+}
+
+#[test]
+fn removing_the_waiting_machine_puts_its_document_to_the_person() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let (one, id) = a_document_settled_in(shared.path(), kept.path());
+    waiting_writer(
+        shared.path(),
+        id,
+        "# Notas\n\nlo que cambio el otro\n",
+        true,
+    );
+    assert_eq!(turn(&one, kept.path(), shared.path()).waiting.len(), 1);
+
+    says(
+        &one,
+        Op::DeviceRemove {
+            d: DeviceId("dev_w".into()),
+        },
+    );
+    let moved = turn(&one, kept.path(), shared.path());
+
+    assert!(moved.waiting.is_empty(), "{moved:?}");
+    assert!(
+        !moved.unconfirmed.contains(&"dev_w".to_string()),
+        "a removed machine was still said to be waiting to be confirmed"
+    );
+    assert_eq!(
+        moved.undecided_ids(),
+        vec!["uno-0001".to_string()],
+        "a removed machine kept its document waiting with no way out"
+    );
+}
+
+#[test]
+fn a_locked_document_a_waiting_machine_answers_for_is_put_to_the_person() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let (one, id) = a_document_settled_in(shared.path(), kept.path());
+    waiting_writer(
+        shared.path(),
+        id,
+        "# Notas
+
+lo que cambio el otro
+",
+        true,
+    );
+    says(&one, Op::DocLock { id });
+
+    let moved = turn(&one, kept.path(), shared.path());
+
+    assert!(
+        moved.waiting.is_empty(),
+        "a locked document was said to be waiting on a machine: {moved:?}"
+    );
+    assert_eq!(moved.undecided_ids(), vec!["uno-0001".to_string()]);
+}
+
+#[test]
+fn a_document_edited_here_as_well_is_put_to_the_person_and_never_held() {
+    let shared = tempfile::tempdir().unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    let (one, id) = a_document_settled_in(shared.path(), kept.path());
+    waiting_writer(
+        shared.path(),
+        id,
+        "# Notas\n\nlo que cambio el otro\n",
+        true,
+    );
+    edited(&one, "uno-0001", "# Notas\n\nlo que cambie yo\n");
+
+    let moved = turn(&one, kept.path(), shared.path());
+
+    assert!(
+        moved.waiting.is_empty(),
+        "the person's own edits were held back with someone else's"
+    );
+    assert_eq!(moved.undecided_ids(), vec!["uno-0001".to_string()]);
+}
