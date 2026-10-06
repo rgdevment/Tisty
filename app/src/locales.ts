@@ -1451,7 +1451,7 @@ const en = {
   confirmWhat:
     "That is what the computer calls itself. Before letting in what it writes, check that it is yours: the same code has to show on both.",
   confirmStep:
-    "On that computer, open Tisty → Settings → Maintenance. «Your machines» shows its name and its code.",
+    "On that computer, open Tisty → Settings → Maintenance. «The machines» shows its name and its code.",
   confirmCodeOf: "Code of «{name}»",
   confirmAsk: "Is it the same one that computer shows?",
   confirmYes: "Yes, it is the same",
@@ -2969,7 +2969,7 @@ const es: Catalog = {
   confirmWhat:
     "Así se llama ese computador. Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
   confirmStep:
-    "En ese computador, abre Tisty → Configuración → Mantenimiento. En «Tus equipos» aparece su nombre y su código.",
+    "En ese computador, abre Tisty → Configuración → Mantenimiento. En «Las máquinas» aparece su nombre y su código.",
   confirmCodeOf: "Código de «{name}»",
   confirmAsk: "¿Es el mismo que muestra ese computador?",
   confirmYes: "Sí, es el mismo",
