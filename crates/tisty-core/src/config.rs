@@ -177,11 +177,11 @@ pub struct Config {
     pub asked_for_a_star: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_to_wire: Option<bool>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
     /// and `save` writes the struct whole, so without this one run of an older build erases it.
     /// Last, because a table in TOML swallows every key that follows it.
-    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
-    pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     #[serde(flatten)]
     pub rest: toml::Table,
 }

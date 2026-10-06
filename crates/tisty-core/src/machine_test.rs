@@ -124,3 +124,22 @@ fn the_inst_is_a_digest_and_never_the_raw_identifier() {
 fn this_computer_answers_the_same_twice() {
     assert_eq!(here(), here());
 }
+
+#[test]
+fn what_a_later_build_wrote_stays_at_the_top_beside_the_remembered_computers() {
+    let mut config = configured(Some("aaaa"));
+    config
+        .rest
+        .insert("from_later".into(), toml::Value::Boolean(true));
+    settled(&mut config, Some("bbbb"));
+
+    let written = toml::to_string(&config).unwrap();
+    let back: Config = toml::from_str(&written).unwrap();
+
+    assert_eq!(
+        back.rest.get("from_later"),
+        Some(&toml::Value::Boolean(true)),
+        "{written}"
+    );
+    assert_eq!(back.homes, config.homes, "{written}");
+}
