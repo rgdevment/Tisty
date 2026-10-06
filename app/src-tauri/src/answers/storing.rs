@@ -562,6 +562,7 @@ pub async fn sync_now(
             unreadable: Vec::new(),
             disowned: Vec::new(),
             unconfirmed: Vec::new(),
+            waiting: Vec::new(),
             astray: Vec::new(),
             unprojected: false,
             joined: Vec::new(),
@@ -697,6 +698,7 @@ async fn carried_round(
         + done.unreadable.len()
         + done.disowned.len()
         + done.unconfirmed.len()
+        + done.waiting.len()
         + done.astray.len();
     let facts = [
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
@@ -707,6 +709,7 @@ async fn carried_round(
         ("unreadable", Fact::Count(done.unreadable.len())),
         ("disowned", Fact::Count(done.disowned.len())),
         ("unconfirmed", Fact::Count(done.unconfirmed.len())),
+        ("waiting", Fact::Count(done.waiting.len())),
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
@@ -750,6 +753,7 @@ async fn carried_round(
         unreadable: done.unreadable,
         disowned: done.disowned,
         unconfirmed: done.unconfirmed,
+        waiting: done.waiting,
         astray: done.astray,
         unprojected: done.unprojected,
         joined: done.joined,
@@ -764,6 +768,7 @@ pub struct Settled {
     unreadable: Vec<String>,
     disowned: Vec<String>,
     unconfirmed: Vec<String>,
+    waiting: Vec<String>,
     astray: Vec<String>,
     unprojected: bool,
     joined: Vec<String>,

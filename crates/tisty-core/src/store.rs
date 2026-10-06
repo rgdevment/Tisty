@@ -701,19 +701,7 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
 }
 
 pub fn key_said_in(device_dir: &Path, who: &DeviceId) -> Option<String> {
-    let segments = segments_in(device_dir).ok()?;
-    let mut events = Vec::new();
-    for segment in &segments {
-        let _ = read_segment(segment, &mut events);
-    }
-    events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-    events
-        .iter()
-        .find_map(|one| match (&one.op, &one.device == who) {
-            (Op::DeviceKey { d, p }, true) if d == who => Some(p.clone()),
-            (Op::DeviceJoin { d, p: Some(p), .. }, true) if d == who => Some(p.clone()),
-            _ => None,
-        })
+    introduced::key_of(&introduced::events_of(device_dir, who, false), who)
 }
 
 pub fn distinct_in(device_dir: &Path) -> Result<usize> {

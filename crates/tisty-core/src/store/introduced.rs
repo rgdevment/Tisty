@@ -14,23 +14,68 @@ pub struct Introduced {
     pub agent: bool,
 }
 
-/// What a machine says about itself in the folder, for one waiting where nothing of it came in.
-pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
+pub(super) fn events_of(device_dir: &Path, who: &DeviceId, loud: bool) -> Vec<Event> {
     let Ok(segments) = super::segments_in(device_dir) else {
-        return Introduced::default();
+        return Vec::new();
     };
     let mut events: Vec<Event> = Vec::new();
     for segment in &segments {
-        let _ = super::read_segment(segment, &mut events);
+        if let Err(why) = super::read_segment(segment, &mut events)
+            && loud
+        {
+            crate::witness::warn(
+                crate::witness::channel::SYNC,
+                "a waiting history could not be read whole from the folder",
+                &[
+                    ("at", crate::witness::Fact::Id(who.0.clone())),
+                    ("why", crate::witness::Fact::Why(why.to_string())),
+                ],
+            );
+        }
     }
     events.retain(|one| &one.device == who);
     events.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+    events
+}
+
+struct Snapshot {
+    whole: std::path::PathBuf,
+    at: std::path::PathBuf,
+}
+
+impl Snapshot {
+    // Kept under the machine's own name, which is what its lines are read as.
+    fn of(device_dir: &Path, who: &DeviceId) -> Option<Self> {
+        let whole = std::env::temp_dir().join(format!("tisty-waiting-{}", ulid::Ulid::generate()));
+        let taken = Self {
+            at: whole.join(&who.0),
+            whole,
+        };
+        std::fs::create_dir_all(&taken.at).ok()?;
+        for segment in super::segments_in(device_dir).ok()? {
+            let named = segment.file_name()?;
+            std::fs::copy(&segment, taken.at.join(named)).ok()?;
+            let sig = segment.with_extension(crate::signing::SIG);
+            match std::fs::copy(&sig, taken.at.join(sig.file_name()?)) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return None,
+                _ => {}
+            }
+        }
+        Some(taken)
+    }
+}
+
+impl Drop for Snapshot {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.whole);
+    }
+}
+
+/// What a machine says about itself in the folder, for one waiting where nothing of it came in.
+pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
+    let events = events_of(device_dir, who, false);
     Introduced {
-        key: events.iter().find_map(|one| match &one.op {
-            Op::DeviceKey { d, p } if d == who => Some(p.clone()),
-            Op::DeviceJoin { d, p: Some(p), .. } if d == who => Some(p.clone()),
-            _ => None,
-        }),
+        key: key_of(&events, who),
         named: events.iter().rev().find_map(|one| match &one.op {
             Op::DeviceNamed { d, name, os } if d == who => Some(Named {
                 name: crate::called::cleaned(name),
@@ -47,6 +92,54 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
             matches!(&one.op, Op::DeviceJoin { d, k: Some(crate::event::DeviceKind::Agent), .. } if d == who)
         }),
     }
+}
+
+pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
+    events.iter().find_map(|one| match &one.op {
+        Op::DeviceKey { d, p } if d == who => Some(p.clone()),
+        Op::DeviceJoin { d, p: Some(p), .. } if d == who => Some(p.clone()),
+        _ => None,
+    })
+}
+
+// Read from one copy, so the prints come from the very bytes whose signatures were checked.
+pub fn prints_in(
+    device_dir: &Path,
+    who: &DeviceId,
+    known: Option<&str>,
+) -> Option<Vec<(crate::model::DocId, String)>> {
+    if !super::is_device_name(&who.0) {
+        return None;
+    }
+    let copy = Snapshot::of(device_dir, who)?;
+    let events = events_of(&copy.at, who, true);
+    let said = match known {
+        Some(key) => key.to_string(),
+        None => key_of(&events, who)?,
+    };
+    let by = crate::signing::read(&said)?;
+    let reached =
+        crate::answering::answers(&copy.at, who, &by, Default::default(), &|_| false).ok()?;
+    if !reached.signing {
+        return None;
+    }
+    let mut prints: std::collections::BTreeSet<(crate::model::DocId, String)> = Default::default();
+    for one in events {
+        match one.op {
+            Op::DocSaid { id, d } => {
+                if let Some(print) = d.print {
+                    prints.insert((id, print));
+                }
+            }
+            Op::DocAdd { id, d } => {
+                if let Some(print) = d.said.and_then(|said| said.print) {
+                    prints.insert((id, print));
+                }
+            }
+            _ => {}
+        }
+    }
+    Some(prints.into_iter().collect())
 }
 
 #[cfg(test)]
