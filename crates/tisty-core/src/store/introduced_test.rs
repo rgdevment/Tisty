@@ -45,3 +45,54 @@ fn a_folder_with_nothing_of_it_says_nothing() {
         Introduced::default()
     );
 }
+
+fn written(dir: &Path, signed: bool) -> (DeviceId, crate::model::DocId) {
+    let who = DeviceId("dev_w".into());
+    let paths = crate::Paths::new(dir.join("data"), dir.join("config"));
+    let key = crate::signing::mine(&paths, &who).unwrap();
+    let doc = ulid::Ulid::generate();
+    let mut store = crate::Store::open(dir.join("store"), who.clone())
+        .unwrap()
+        .signing_with(signed.then(|| key.clone()));
+    store
+        .append(Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(crate::event::DeviceKind::Machine),
+            p: Some(crate::signing::shown(&key)),
+        })
+        .unwrap();
+    store
+        .append(Op::DocSaid {
+            id: doc,
+            d: crate::event::Said {
+                title: "El expediente".into(),
+                print: Some("la-huella".into()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    (who, doc)
+}
+
+#[test]
+fn a_waiting_history_that_holds_up_under_its_own_key_says_its_prints() {
+    let dir = tempfile::tempdir().unwrap();
+    let (who, doc) = written(dir.path(), true);
+
+    assert_eq!(
+        prints_in(&dir.path().join("store").join("dev_w"), &who),
+        Some(vec![(doc, "la-huella".to_string())])
+    );
+}
+
+#[test]
+fn a_waiting_history_that_does_not_hold_up_says_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let (who, _) = written(dir.path(), false);
+
+    assert_eq!(
+        prints_in(&dir.path().join("store").join("dev_w"), &who),
+        None,
+        "an unsigned history claiming a key vouched for a body"
+    );
+}

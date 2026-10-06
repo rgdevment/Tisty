@@ -166,7 +166,17 @@ pub(crate) fn carry_papers_leaning_on(
             };
             let how = match how {
                 Move::Bring | Move::TheyDecide if !taking => continue,
-                Move::Bring | Move::TheyDecide if answer == Answer::No => {
+                // Only a body nobody here touched waits: one edited on both sides is put to the person as ever.
+                Move::Bring if answer == Answer::Waits => {
+                    witness::note(
+                        channel::SYNC,
+                        "a body a machine still waiting to be confirmed answers for waits with it",
+                        &[("at", Fact::Id(id.clone()))],
+                    );
+                    done.waiting.push(id.clone());
+                    continue;
+                }
+                Move::Bring | Move::TheyDecide if matches!(answer, Answer::No | Answer::Waits) => {
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
@@ -338,6 +348,7 @@ pub(crate) struct Answers {
     pub newest: Option<String>,
     pub own: Option<String>,
     pub others: std::collections::BTreeSet<String>,
+    pub waiting: std::collections::BTreeSet<String>,
 }
 
 impl Answers {
@@ -351,6 +362,7 @@ impl Answers {
 enum Answer {
     Yes,
     Doubtful,
+    Waits,
     No,
 }
 
@@ -377,6 +389,9 @@ fn answered_for(print: Option<&String>, says: Option<&Answers>, id: &str) -> Ans
     if says.others.contains(print) {
         return Answer::Doubtful;
     }
+    if says.waiting.contains(print) {
+        return Answer::Waits;
+    }
     witness::warn(
         channel::SYNC,
         "the folder holds a body the log does not answer for, so the person decides it",
@@ -384,3 +399,7 @@ fn answered_for(print: Option<&String>, says: Option<&Answers>, id: &str) -> Ans
     );
     Answer::No
 }
+
+#[cfg(test)]
+#[path = "papers_test.rs"]
+mod tests;

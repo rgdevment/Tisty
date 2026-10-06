@@ -102,6 +102,7 @@ stitched       = "unidos: {was} pasa a ser {now}. Nada se perdió; dos listas co
 same-lineage   = "esa carpeta ya guardaba esta misma historia: se adoptó su identidad y no se perdió nada"
 papers-joined      = "se juntaron los cambios de las dos máquinas en: {names}"
 papers-undecided   = "se escribieron en los dos sitios y hay que decidir a mano, desde la ventana: {names}"
+papers-waiting     = "los cambió una máquina que espera confirmación, así que esperan con ella: {names}. Confírmala, o quítala para que te pregunten por ellos"
 papers-astray      = "no se pudieron leer, así que no viajaron: {names}"
 own-log-unreadable = "no se pudo leer el registro de esta máquina, así que no viajó nada en ninguna dirección"
 machines-unreadable = "el historial de estas máquinas no se pudo leer y se dejó fuera: {names}"

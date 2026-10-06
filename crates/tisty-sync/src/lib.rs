@@ -75,6 +75,8 @@ pub struct Moved {
     pub coming: Vec<String>,
     /// Taken in while adopting before it said its key, so adopting waits on it without saying so.
     pub unsaid: Vec<String>,
+    /// Documents whose body a machine still waiting to be confirmed answers for, held with it.
+    pub waiting: Vec<String>,
 }
 
 impl Moved {
@@ -245,6 +247,7 @@ pub fn carry_telling(
         .filter(|paper| paper.bytes == Some(0))
         .map(|paper| paper.file.clone())
         .collect();
+    let held_back = held_back_prints(&store, dest, &moved.unconfirmed, &told);
     let printed: std::collections::BTreeMap<String, papers::Answers> = told
         .docs
         .values()
@@ -266,6 +269,7 @@ pub fn carry_telling(
                     newest: paper.print.clone(),
                     own,
                     others,
+                    waiting: held_back.get(&paper.file).cloned().unwrap_or_default(),
                 },
             )
         })
@@ -307,6 +311,7 @@ pub fn carry_telling(
         moved.sent += papers.sent;
         moved.brought += papers.brought;
         moved.undecided = papers.undecided;
+        moved.waiting = papers.waiting;
         moved.astray = papers.astray;
         moved.joined = papers.joined;
         moved.unanswered = papers.unanswered;
@@ -706,6 +711,34 @@ fn claimed(
         },
     };
     Ok(told.keys.get(who).cloned())
+}
+
+// A machine the person removed is no longer waiting, so what it said stops holding anything back.
+fn held_back_prints(
+    store: &Path,
+    dest: &Path,
+    waiting: &[String],
+    told: &tisty_core::State,
+) -> std::collections::BTreeMap<String, std::collections::BTreeSet<String>> {
+    let mut held: std::collections::BTreeMap<String, std::collections::BTreeSet<String>> =
+        Default::default();
+    if waiting.is_empty() {
+        return held;
+    }
+    let ledger = tisty_core::store::ledger(store).unwrap_or_default();
+    for named in waiting {
+        let who = tisty_core::DeviceId(named.clone());
+        if ledger.was_removed(&who) {
+            continue;
+        }
+        let at = dest.join(STORE).join(named);
+        for (id, print) in tisty_core::store::introduced::prints_in(&at, &who).unwrap_or_default() {
+            if let Some(paper) = told.docs.get(&id) {
+                held.entry(paper.file.clone()).or_default().insert(print);
+            }
+        }
+    }
+    held
 }
 
 /// An agent is taken on the word of a host this machine trusts, for the very key the host wrote.
