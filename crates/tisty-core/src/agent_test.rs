@@ -427,3 +427,47 @@ fn the_places_an_assistant_may_reach_are_real_and_named() {
     }
     assert!(roots.contains(&std::env::temp_dir().canonicalize().unwrap()));
 }
+
+#[test]
+fn the_host_speaks_for_its_agent_once_with_the_agents_key() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let who = register(&paths).unwrap();
+    let config = Config::load_or_init(&paths).unwrap();
+    let log = crate::store::read_all(paths.store()).unwrap();
+
+    let Some(Op::DeviceHost { d, of, p: Some(p) }) = vouch(&config, &paths, &log) else {
+        panic!("a host that runs an agent said nothing for it");
+    };
+    assert_eq!(d, who);
+    assert_eq!(of, config.device_id);
+    assert_eq!(
+        Some(p.clone()),
+        crate::signing::mine(&paths, &who)
+            .as_ref()
+            .map(crate::signing::shown)
+    );
+
+    let mut mine = Store::open(paths.store(), config.device_id.clone())
+        .unwrap()
+        .signing_with(crate::signing::mine(&paths, &config.device_id));
+    mine.append(Op::DeviceHost {
+        d: who,
+        of: config.device_id.clone(),
+        p: Some(p),
+    })
+    .unwrap();
+    let log = crate::store::read_all(paths.store()).unwrap();
+    assert!(
+        vouch(&config, &paths, &log).is_none(),
+        "the host would say it again on every reload"
+    );
+}
+
+#[test]
+fn a_machine_with_no_agent_speaks_for_nobody() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let config = Config::load_or_init(&paths).unwrap();
+    assert!(vouch(&config, &paths, &[]).is_none());
+}

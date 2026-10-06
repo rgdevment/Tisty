@@ -39,6 +39,7 @@ fn a_client_is_one_row_whatever_it_called_itself_and_a_join_is_not_writing() {
             Op::DeviceHost {
                 d: agent.clone(),
                 of: DeviceId("dev_laptop".into()),
+                p: None,
             },
         ),
         wrote("dev_agent", Some("codex-mcp-client"), 10, task("one")),

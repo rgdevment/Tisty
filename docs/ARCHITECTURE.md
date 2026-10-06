@@ -81,7 +81,7 @@ Some payload fields carry more than their name says:
 |---|---|---|
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `p` | `device.join` | the machine's public signing key, 32 bytes in hex. Only a machine's own word for its own key counts, and the first one published stands: a later join naming another key is refused, not believed. Anything that is not a key is dropped and the join lands without it |
-| `d`, `of` | `device.host` | the machine an agent device is hosted on. The join is written as the agent and said nothing about where; this says it, marked `opt`, and only the agent's own word or its host's counts — `d` an agent, `of` a machine. The window writes it as the machine, so it settles like `doc.said`: `undo` walks past it |
+| `d`, `of`, `p` | `device.host` | the machine an agent device is hosted on. The join is written as the agent and said nothing about where; this says it, marked `opt`, and only the agent's own word or its host's counts — `d` an agent, `of` a machine. Written by the host with `p`, the agent's key, it is what lets a machine that confirmed the host take the agent without asking. The window writes it as the machine, so it settles like `doc.said`: `undo` walks past it |
 | `d`, `name`, `os` | `device.named` | what the computer calls itself and the system it runs, so a machine waiting to be confirmed is found by a name the person knows. Marked `opt`, and only the machine's own word counts; the window writes it when it takes its seat and the name changed. Its `name` is not `n`, which every event already uses for its sequence |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
@@ -158,6 +158,21 @@ has not yet said what it signs with waits like any other, except in the first
 folder a machine takes up whole. The memo that says a machine has been to a
 folder before names that machine, so a reinstall that kept the cache meets the
 folder as the new machine it is.
+
+An agent is the other exception. It is minted on the computer it runs on, which
+holds its key, so that computer writes `device.host` in its **own** signed
+history with `p`, the agent's key. A machine that already answered for that
+computer takes the agent on its word (`store::Ledger::vouched`): the key the
+agent says must be the very one its host wrote, the line must be the host's
+(an agent's word about itself, or about another agent, counts for nothing), the
+host must be a machine and not an agent, and the first such line stands. It is
+kept with `host:` and the host's name beside it in `.keys-confirmed`, and the
+row in Maintenance says «confirmed through its computer». What this trusts is
+exactly what the person already trusted: whoever holds that computer's key could
+mint an agent there anyway. Without it every agent waited on every machine, and
+while it waited the bodies it wrote reached the folder ahead of any line a
+trusted history held for them, so the person was asked to settle documents that
+were only waiting.
 
 ### What a power cut leaves behind
 

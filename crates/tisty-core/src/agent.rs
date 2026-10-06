@@ -35,21 +35,34 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
         Op::DeviceHost {
             d: who.clone(),
             of: config.device_id.clone(),
+            p: None,
         },
     ])?;
     Ok(who)
 }
 
-/// An agent that joined before `device.host` existed says where it lives the next time the
-/// machine that hosts it opens the store with a build that knows to ask.
-pub fn unhosted(config: &Config, state: &crate::State) -> Option<Op> {
+/// The host's own word for the agent it runs, with that agent's key, written once from the host's
+/// history so a machine that already confirmed the host can take the agent without asking again.
+pub fn vouch(config: &Config, paths: &Paths, log: &[crate::event::Event]) -> Option<Op> {
     let who = config.agent_id.clone()?;
-    if state.hosts.contains_key(&who) || !state.assistants.contains(&who) {
+    let me = &config.device_id;
+    let joined = log
+        .iter()
+        .any(|one| one.device == who && matches!(&one.op, Op::DeviceJoin { d, .. } if d == &who));
+    let said = log.iter().any(|one| {
+        &one.device == me
+            && matches!(&one.op, Op::DeviceHost { d, of, p: Some(_) } if d == &who && of == me)
+    });
+    if !joined || said {
         return None;
     }
+    let key = crate::signing::mine(paths, &who)
+        .as_ref()
+        .map(crate::signing::shown)?;
     Some(Op::DeviceHost {
         d: who,
-        of: config.device_id.clone(),
+        of: me.clone(),
+        p: Some(key),
     })
 }
 

@@ -293,6 +293,8 @@ function MachineRow({
               <span className="text-faint">{t("machineKeyOurs")}</span>
             ) : one.carried ? (
               <span className="text-soft">{t("machineCarried")}</span>
+            ) : one.throughHost ? (
+              <span className="text-soft">{t("machineThroughHost")}</span>
             ) : one.confirmed ? (
               <span className="font-semibold text-hue-teal">
                 {stood === null ? t("machineKeyStandsEver") : fill("machineKeyStands", stood)}

@@ -20,6 +20,7 @@ pub struct Session {
     /// was committed here is counted rather than measured.
     writes: u64,
     behind: bool,
+    vouched: bool,
 }
 
 pub struct Projected {
@@ -110,17 +111,10 @@ impl Session {
             log: None,
             writes: 0,
             behind: false,
+            vouched: false,
         };
         session.tidy_up(true);
-        if let Some(host) = tisty_core::agent::unhosted(&session.config, &session.state)
-            && let Err(why) = session.commit(host)
-        {
-            witness::warn(
-                channel::WINDOW,
-                "the agent could not say which machine hosts it",
-                &[("why", Fact::Why(why.to_string()))],
-            );
-        }
+        session.vouch_for_agent();
         if session.config.sync.is_some() {
             session.sow_if_due();
         }
@@ -192,7 +186,34 @@ impl Session {
             return Ok(false);
         }
         self.reproject()?;
+        self.vouch_for_agent();
         Ok(true)
+    }
+
+    /// An agent can be born while this window is open, so its host speaks for it whenever the store moves.
+    fn vouch_for_agent(&mut self) {
+        let Some(agent) = self.config.agent_id.clone() else {
+            return;
+        };
+        if self.vouched {
+            return;
+        }
+        let (config, paths) = (self.config.clone(), self.paths.clone());
+        let Ok(log) = self.log() else {
+            return;
+        };
+        let Some(op) = tisty_core::agent::vouch(&config, &paths, log) else {
+            self.vouched = self.state.assistants.contains(&agent);
+            return;
+        };
+        match self.commit(op) {
+            Ok(_) => self.vouched = true,
+            Err(why) => witness::warn(
+                channel::WINDOW,
+                "this machine could not speak for the agent it runs",
+                &[("why", Fact::Why(why.to_string()))],
+            ),
+        }
     }
 
     pub fn log(&mut self) -> tisty_core::Result<&[Event]> {

@@ -49,6 +49,20 @@ describe("the machines in Maintenance", () => {
     expect(screen.getByText(t("machineCarried"))).toBeTruthy();
   });
 
+  it("say when an agent was taken on the word of the computer it runs on", () => {
+    listed([
+      one({
+        id: "dev_agent",
+        confirmed: "ab".repeat(32),
+        throughHost: true,
+        host: "dev_mac",
+      }),
+    ]);
+
+    expect(screen.getByText(t("machineThroughHost"))).toBeTruthy();
+    expect(screen.queryByText(t("machineCarried"))).toBeNull();
+  });
+
   it("show a waiting machine as writing since it began, never as dormant", () => {
     const waiting = one({ when: 0, turnedAway: "unconfirmed" });
     listed([waiting]);

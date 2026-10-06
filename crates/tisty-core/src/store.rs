@@ -540,6 +540,8 @@ pub struct Ledger {
     pub named: std::collections::BTreeSet<DeviceId>,
     /// What each machine said it signs with, read in the same pass that says who may write.
     pub keys: std::collections::BTreeMap<DeviceId, String>,
+    /// An agent's key as its host wrote it in the host's own history: agent to (host, key).
+    pub vouched: std::collections::BTreeMap<DeviceId, (DeviceId, String)>,
 }
 
 impl Ledger {
@@ -596,6 +598,13 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
             Op::DeviceRemove { d } => {
                 said.named.insert(d.clone());
                 said.allowed.remove(d);
+            }
+            Op::DeviceHost { d, of, p: Some(p) }
+                if &event.device == of && d != of && !assistants.contains(of) =>
+            {
+                said.vouched
+                    .entry(d.clone())
+                    .or_insert_with(|| (of.clone(), p.clone()));
             }
             _ => {}
         }

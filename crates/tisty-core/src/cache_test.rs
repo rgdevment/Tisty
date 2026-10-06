@@ -1022,6 +1022,7 @@ fn a_cache_remembers_where_each_agent_lives() {
             Op::DeviceHost {
                 d: agent.clone(),
                 of: DeviceId("dev_a".into()),
+                p: None,
             },
         ])
         .unwrap();
@@ -1050,6 +1051,7 @@ fn a_host_said_in_a_tail_is_still_known_at_the_next_open() {
         .append(Op::DeviceHost {
             d: agent.clone(),
             of: DeviceId("dev_a".into()),
+            p: None,
         })
         .unwrap();
     store

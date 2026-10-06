@@ -38,7 +38,7 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
         }),
         since: events.first().map(|one| one.timestamp),
         host: events.iter().find_map(|one| match &one.op {
-            Op::DeviceHost { d, of } if d == who => Some(of.clone()),
+            Op::DeviceHost { d, of, .. } if d == who => Some(of.clone()),
             _ => None,
         }),
     }

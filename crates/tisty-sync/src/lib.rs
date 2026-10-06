@@ -708,6 +708,30 @@ fn claimed(
     Ok(told.keys.get(who).cloned())
 }
 
+/// An agent's key is taken on its host's word only when the host wrote that very key in its own
+/// signed history and the host is this machine or one a person here already answered for.
+fn hosted(
+    data: &Path,
+    device: &str,
+    who: &tisty_core::DeviceId,
+    says: &str,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> bool {
+    let Some((host, key)) = knew
+        .as_ref()
+        .and_then(|told| told.vouched.get(who))
+        .cloned()
+    else {
+        return false;
+    };
+    if key != says {
+        return false;
+    }
+    let trusted = host.0.eq_ignore_ascii_case(device)
+        || tisty_core::vouched::confirmed(data, &host).is_some();
+    trusted && tisty_core::vouched::through(data, who, says, &host)
+}
+
 /// Checked before any of it is taken in, and only from where the last round left off.
 #[allow(clippy::too_many_arguments)]
 fn answers_for_itself(
@@ -753,6 +777,14 @@ fn answers_for_itself(
                         == Some(says.as_str()) =>
             {
                 carried = Some(says.clone());
+                stood = Some(says);
+            }
+            Some(says) if hosted(data, device, &who, &says, knew) => {
+                witness::note(
+                    channel::SYNC,
+                    "an agent was answered for by the host it runs on, already confirmed here",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
                 stood = Some(says);
             }
             Some(_) => {

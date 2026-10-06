@@ -10,6 +10,8 @@ pub struct Confirmed {
     pub when: u64,
     /// True when nobody here compared it: the key a machine already held here published itself.
     pub carried: bool,
+    /// The machine whose word this was taken on: an agent's host, already confirmed here.
+    pub host: Option<DeviceId>,
 }
 
 /// What a machine published is a claim; this is what the person at this machine accepted. The
@@ -40,6 +42,11 @@ pub fn carried(data: &Path, who: &DeviceId, said: &str) -> bool {
     kept(data, who, said, "\tcarried")
 }
 
+/// An agent's key taken on its host's word, the host being confirmed here already.
+pub fn through(data: &Path, who: &DeviceId, said: &str, host: &DeviceId) -> bool {
+    crate::store::is_device_name(&host.0) && kept(data, who, said, &format!("\thost:{}", host.0))
+}
+
 fn kept(data: &Path, who: &DeviceId, said: &str, how: &str) -> bool {
     if crate::signing::read(said).is_none() || !crate::store::is_device_name(&who.0) {
         return false;
@@ -65,7 +72,12 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
     let whose = said.next()?;
     let key = said.next()?.trim();
     let when = said.next()?.trim().parse().ok()?;
-    let carried = said.next().is_some_and(|how| how.trim() == "carried");
+    let how = said.next().map(str::trim).unwrap_or_default();
+    let carried = how == "carried";
+    let host = how
+        .strip_prefix("host:")
+        .filter(|host| crate::store::is_device_name(host))
+        .map(|host| DeviceId(host.to_string()));
     (crate::store::is_device_name(whose) && crate::signing::read(key).is_some()).then(|| {
         (
             DeviceId(whose.to_string()),
@@ -73,6 +85,7 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
                 key: key.to_string(),
                 when,
                 carried,
+                host,
             },
         )
     })
