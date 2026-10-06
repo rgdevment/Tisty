@@ -1,3 +1,4 @@
+mod grandfathered;
 mod guarding;
 mod held;
 mod papers;
@@ -721,10 +722,10 @@ fn answers_for_itself(
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
+    let mut carried = None;
     if stood.is_none() && !ours && signed {
         let says = match claimed(store, &who, knew) {
             Ok(Some(claim)) => Some(claim),
-            Ok(None) if store.join(named).is_dir() => None,
             Ok(None) => tisty_core::store::key_said_in(theirs, &who),
             Err(()) => return Answered::Unreadable,
         };
@@ -737,6 +738,14 @@ fn answers_for_itself(
                 );
                 stood = Some(says);
             }
+            Some(says)
+                if grandfathered::wrote_here_before_signing(&store.join(named), theirs)
+                    && tisty_core::store::key_said_in(theirs, &who).as_deref()
+                        == Some(says.as_str()) =>
+            {
+                carried = Some(says.clone());
+                stood = Some(says);
+            }
             Some(_) => {
                 witness::note(
                     channel::SYNC,
@@ -745,7 +754,15 @@ fn answers_for_itself(
                 );
                 return Answered::Unconfirmed;
             }
-            None => {}
+            None if adopting => {}
+            None => {
+                witness::note(
+                    channel::SYNC,
+                    "a machine signs what it writes and has not yet said with what, so what it writes waits",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+                return Answered::Unconfirmed;
+            }
         }
     }
     if !signed {
@@ -794,6 +811,15 @@ fn answers_for_itself(
     match answers {
         Ok(held) => {
             verified::keep(data, dest, named, held);
+            if let Some(said) = carried
+                && tisty_core::vouched::carried(data, &who, &said)
+            {
+                witness::note(
+                    channel::SYNC,
+                    "a machine this store held from before it signed was answered for by the history already here",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+            }
             Answered::Yes
         }
         Err(Adrift::Unreadable(why)) => {
