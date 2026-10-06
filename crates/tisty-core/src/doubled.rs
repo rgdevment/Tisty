@@ -73,10 +73,11 @@ fn guides_twice(state: &State) -> Vec<DocId> {
     guides.sort_by(|a, b| a.made.cmp(&b.made).then(a.file.cmp(&b.file)));
     for one in guides {
         let title = crate::text::folded(one.title.as_deref().unwrap_or_default().trim());
-        if first.contains_key(&title) {
-            later.push(one.id);
-        } else {
-            first.insert(title, one.id);
+        match first.entry(title) {
+            std::collections::btree_map::Entry::Occupied(_) => later.push(one.id),
+            std::collections::btree_map::Entry::Vacant(free) => {
+                free.insert(one.id);
+            }
         }
     }
     later
