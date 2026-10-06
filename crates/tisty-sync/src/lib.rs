@@ -91,6 +91,8 @@ impl Moved {
     }
 }
 
+const BROUGHT_WITHIN: std::time::Duration = std::time::Duration::from_secs(15);
+
 pub fn been_here(aside: &Path, dest: &Path, device: &str) -> bool {
     carried_here(Some(aside), dest, Some(device))
 }
@@ -454,7 +456,8 @@ pub fn signed_here(dest: &Path) -> Signed {
         if !at.is_dir() {
             continue;
         }
-        let pending = tisty_core::holes::still_away(&at);
+        let pending =
+            tisty_core::holes::brought_down(tisty_core::holes::still_away(&at), BROUGHT_WITHIN);
         if !pending.is_empty() {
             away.extend(pending);
             continue;
@@ -933,7 +936,10 @@ fn bring(
             continue;
         }
         let mine = store.join(named);
-        let pending = tisty_core::holes::still_away(&entry.path());
+        let pending = tisty_core::holes::brought_down(
+            tisty_core::holes::still_away(&entry.path()),
+            BROUGHT_WITHIN,
+        );
         if !pending.is_empty() {
             witness::note(
                 channel::SYNC,

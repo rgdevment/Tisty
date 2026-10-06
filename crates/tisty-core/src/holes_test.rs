@@ -147,3 +147,51 @@ fn a_file_named_only_icloud_names_nothing_and_breaks_nothing() {
     assert_eq!(named_away(".icloud"), None);
     assert!(still_away(room.path()).is_empty());
 }
+
+#[test]
+fn a_file_already_here_is_brought_down_at_once() {
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join("active.tisty");
+    std::fs::write(&at, "{}\n").unwrap();
+
+    let left = brought_down(vec![at], Duration::from_secs(5));
+
+    assert!(left.is_empty());
+}
+
+#[test]
+fn a_file_only_a_sidecar_names_is_left_to_be_asked_for() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join(".active.tisty.icloud"), "").unwrap();
+    let at = dir.path().join("active.tisty");
+
+    let left = brought_down(vec![at.clone()], Duration::from_millis(50));
+
+    assert_eq!(left, vec![at]);
+}
+
+#[test]
+fn nothing_away_waits_for_nothing() {
+    let started = std::time::Instant::now();
+
+    assert!(brought_down(Vec::new(), Duration::from_secs(30)).is_empty());
+    assert!(started.elapsed() < Duration::from_secs(1));
+}
+
+#[test]
+fn a_file_already_being_read_is_not_read_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join("active.tisty");
+    std::fs::write(&at, "{}\n").unwrap();
+    in_flight().lock().unwrap().insert(at.clone());
+
+    let started = std::time::Instant::now();
+    let left = brought_down(vec![at.clone()], Duration::from_secs(5));
+
+    assert!(left.is_empty(), "it is here, so nothing is left");
+    assert!(
+        started.elapsed() < Duration::from_secs(1),
+        "it waited on a read it never started"
+    );
+    in_flight().lock().unwrap().remove(&at);
+}
