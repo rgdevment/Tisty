@@ -153,6 +153,99 @@ fn the_frame_is_measured_by_what_the_widget_holds_not_by_the_frame_itself() {
 }
 
 #[test]
+fn an_attached_whole_page_is_served_as_itself_under_the_page_policy() {
+    let lent = Lent::default();
+    let id = lent
+        .lend_kept(
+            b"<!DOCTYPE html><html><head><title>t</title></head><body><p>hola</p></body></html>"
+                .to_vec(),
+        )
+        .unwrap();
+
+    let answer = lent.shown(&asked(&format!("/{id}?dark=1")));
+
+    assert_eq!(answer.status(), StatusCode::OK);
+    assert_eq!(answer.headers()[header::CONTENT_SECURITY_POLICY], PAGED);
+    let page = said(&answer);
+    assert!(
+        page.starts_with("<!DOCTYPE html><html><head>"),
+        "a whole page wrapped inside the widget kit nests one document in another"
+    );
+    assert!(!page.contains("<main class=\"w\">"));
+    assert!(
+        page.contains("<p>hola</p><script>") && page.ends_with("</script></body></html>"),
+        "the measurer goes last in the body, after what it measures"
+    );
+}
+
+#[test]
+fn an_attached_fragment_keeps_the_widget_fence() {
+    let lent = Lent::default();
+    let id = lent
+        .lend_kept(b"<div class=\"card\">x</div>".to_vec())
+        .unwrap();
+
+    let answer = lent.shown(&asked(&format!("/{id}")));
+
+    assert_eq!(answer.headers()[header::CONTENT_SECURITY_POLICY], FENCED);
+    assert!(said(&answer).contains("<main class=\"w\"><div class=\"card\">x</div></main>"));
+}
+
+#[test]
+fn a_whole_page_is_told_by_how_it_opens() {
+    for one in [
+        "<!doctype html><p>x</p>",
+        "  \n<!DOCTYPE HTML>",
+        "\u{feff}<html lang=\"es\">",
+        "<HTML>",
+    ] {
+        assert!(whole(one), "{one:?} was not taken for a whole page");
+    }
+    for one in ["<div>x</div>", "<p>&lt;html&gt;</p>", "", "texto"] {
+        assert!(!whole(one), "{one:?} was taken for a whole page");
+    }
+}
+
+#[test]
+fn a_page_without_a_body_still_gets_its_measurer() {
+    let page = paged("<p>sin cuerpo</p>");
+    assert!(page.starts_with("<p>sin cuerpo</p><script>"));
+}
+
+#[test]
+fn the_page_policy_lets_it_unpack_itself_but_reach_no_one() {
+    for wanted in [
+        "default-src 'none'",
+        "script-src 'unsafe-inline' 'unsafe-eval' blob:",
+        "connect-src data: blob:",
+        "frame-src blob: data:",
+        "form-action 'none'",
+        "base-uri 'none'",
+    ] {
+        assert!(PAGED.contains(wanted), "the page policy lost {wanted}");
+    }
+    for never in ["http", "'self'", "*", "ws:", "wss:"] {
+        assert!(
+            !PAGED.contains(never),
+            "the page policy lets a page reach out through {never}"
+        );
+    }
+}
+
+#[test]
+fn a_page_is_measured_by_what_flows_in_its_body_even_after_it_replaces_itself() {
+    let page = paged("<html><body></body></html>");
+    assert!(
+        page.contains("position===\"fixed\""),
+        "a fixed overlay as tall as the frame would keep the frame from ever shrinking"
+    );
+    assert!(
+        page.contains("document.documentElement!==root"),
+        "a page that swaps its document would be measured through the one it threw away"
+    );
+}
+
+#[test]
 fn a_page_too_large_is_refused_by_its_size_before_a_byte_is_read() {
     assert!(small_enough(KEPT_AT_MOST as u64).is_ok());
     assert_eq!(

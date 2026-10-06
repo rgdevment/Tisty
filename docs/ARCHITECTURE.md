@@ -1942,6 +1942,16 @@ attached `.html` the same way — in a sealed frame served over `widget://` unde
 its own policy: no network, no reach into the window, and a link opened only on
 a click inside it.
 
+A widget is a fragment: it is wrapped in the kit that makes plain HTML look like
+Tisty and measured by the box that holds it. An attached page that is a whole
+document — it opens with `<!doctype` or `<html` — is served as itself instead,
+because nesting one document inside another breaks it, and many such pages are
+bundles that unpack their own scripts and frames from `blob:` and `data:` at
+load. Its policy lets it make and use those, and run what it unpacks, but still
+names no address: nothing it does reaches the network. It is measured from the
+window by what flows in its body, leaving out what is fixed to the screen, since
+a page may fill the whole viewport or swap its document while it unpacks.
+
 Text alignment used to be the second exception and no longer is. It wrote
 `<p style="text-align: center">` into the file to say something no Markdown
 syntax says, and a document full of that is a document that has stopped being
