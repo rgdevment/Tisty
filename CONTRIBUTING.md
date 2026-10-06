@@ -174,11 +174,11 @@ breaks "by tuesday" otherwise.
 
 A commit is one line in English, `type(scope): change`, where the type is one
 of `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
-`chore` or `revert`, and the scope names the part it touches: `fix(sync):`,
-`feat(ui):`, `docs(architecture):`. Nothing goes under it — no body, no
+`chore` or `revert`, and the scope, when it helps, names the part it touches:
+`fix(sync):`, `feat(ui):`, `docs:`. Nothing goes under it — no body, no
 trailers, no co-authors or sign-offs. The *why* belongs in the pull request; the
 *what* is already in the patch. Keep it to 120 characters at most: CI refuses a
-longer one, a subject without a scope, and a commit with lines under it.
+longer one, and a commit with lines under it.
 
 Pull requests are squashed, and the squash keeps the pull request's title, so
 that title — with the number GitHub adds after it, `(#123)` — is the subject
