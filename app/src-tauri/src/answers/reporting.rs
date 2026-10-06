@@ -40,14 +40,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             Refusal::of("internal")
         })?;
 
-    let mut held: Vec<String> = session
-        .state
-        .tasks
-        .values()
-        .flat_map(|task| task.references())
-        .map(|one| one.target)
-        .collect();
-    held.extend(tisty_core::docs::referenced(&session.paths.docs()));
+    let held = session.pointed_at();
     let adrift = session.adrift(&held);
 
     let kept = report::attachments(session.paths.data());
@@ -143,14 +136,7 @@ pub fn facts(
     let store = session.paths.store();
     let audit = tisty_core::cache::audit(&store, session.paths.cache());
 
-    let mut referenced: Vec<String> = session
-        .state
-        .tasks
-        .values()
-        .flat_map(|task| task.references())
-        .map(|one| one.target)
-        .collect();
-    referenced.extend(tisty_core::docs::referenced(&session.paths.docs()));
+    let referenced = session.pointed_at();
     let adrift = session.adrift(&referenced);
     let kept = report::attachments(session.paths.data());
 

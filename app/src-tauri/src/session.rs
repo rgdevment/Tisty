@@ -306,6 +306,19 @@ impl Session {
         }
     }
 
+    /// What the tasks and the documents point at, as written.
+    pub fn pointed_at(&self) -> Vec<String> {
+        let mut named: Vec<String> = self
+            .state
+            .tasks
+            .values()
+            .flat_map(|task| task.references())
+            .map(|one| one.target)
+            .collect();
+        named.extend(tisty_core::docs::referenced(&self.paths.docs()));
+        named
+    }
+
     pub fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {
         let mut found = tisty_core::attach::loose(self.paths.data(), held);
         let Some(dest) = self.shared_now() else {

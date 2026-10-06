@@ -1348,6 +1348,21 @@ attachment that lands is `Reached::Kept`, and the window writes `AttachKept` for
 it in handfuls as the turn goes, so a turn cut short still says this machine
 holds what it already brought.
 
+That is the only road by which a print gets written, so an attachment no machine
+ever brought home has none: one kept only in the folder because of its size, or
+one that came in before every attachment's print was written down. It opens,
+and nothing vouches for it. The maintenance panel's **Attachments with no
+print** lists what a task or a document points at, lies here or in the folder,
+and has no `attach.kept` (`unvouched.rs`), and writes them down on request: each
+is read whole and its print must match its name (`attach::vouched`) before
+anything is written, so a file that only looks right is named and left alone. A
+copy found only in the folder is written down and let go in the same breath —
+`attach.kept` then `attach.let_go` — so its print is known without this machine
+claiming a copy it does not hold, which another machine's *free up* would take
+as leave to drop its own. It is a button rather than part of the turn because
+reading means downloading: a cloud drive brings down whatever it keeps online
+only.
+
 Nothing waits on that read while holding a lock, or every other command touching
 an attachment would queue behind it. The same holds for the folder and the
 store as a whole: `joining`, `sync_kin` and `sync_state` take what they need
