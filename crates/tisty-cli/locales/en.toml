@@ -113,6 +113,7 @@ machines-unconfirmed = "these machines say what they sign with and nobody here h
 not-a-machine = "«{id}» is not a name a machine of ours could carry"
 machine-signs-with-nothing = "{id} does not say what it signs with, so there is nothing here to answer for"
 machine-signs-with = "{id} says it signs with this key. Compare it with what that machine shows before answering for it:"
+machine-code = "or its code, as the window shows it: {code}"
 confirm-key = "Answer for this key as {id}'s?"
 key-not-answered-for = "the key {id} publishes could not be answered for, so nothing changed"
 key-answered-for = "answered for {id}: from now on only what it signs with {key} comes in"

@@ -250,3 +250,24 @@ fn a_key_truncated_on_disk_does_not_mute_the_machine_for_good() {
     assert_ne!(after.to_bytes(), first.to_bytes());
     assert_eq!(mine(&paths, &who).unwrap().to_bytes(), after.to_bytes());
 }
+
+#[test]
+fn a_key_reads_as_twenty_digits_in_four_groups_and_always_the_same() {
+    let key = SigningKey::from_bytes(&[7u8; 32]);
+    let said = shown(&key);
+
+    let code = spoken(&said).unwrap();
+
+    assert_eq!(code.len(), 23);
+    assert_eq!(code.split(' ').count(), 4);
+    assert!(
+        code.split(' ')
+            .all(|five| five.len() == 5 && five.bytes().all(|b| b.is_ascii_digit()))
+    );
+    assert_eq!(Some(code), spoken(&said));
+    assert_ne!(
+        spoken(&said),
+        spoken(&shown(&SigningKey::from_bytes(&[8u8; 32])))
+    );
+    assert_eq!(spoken("not a key"), None);
+}

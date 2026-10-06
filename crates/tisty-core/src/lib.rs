@@ -5,10 +5,12 @@ pub mod arriving;
 pub mod attach;
 pub mod backup;
 pub mod cache;
+pub mod called;
 pub mod capture;
 pub mod config;
 pub mod counting;
 pub mod docs;
+pub mod doubled;
 pub mod event;
 pub mod herald;
 pub mod holes;
@@ -38,6 +40,7 @@ pub mod view;
 pub mod vouched;
 pub mod witness;
 
+pub use applying::Named;
 pub use config::Config;
 pub use event::{DeviceId, DeviceKind, Event, Op};
 pub use model::{

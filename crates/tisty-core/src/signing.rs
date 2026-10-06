@@ -183,6 +183,30 @@ pub(crate) fn unhexed<const N: usize>(said: &str) -> Option<[u8; N]> {
     Some(out)
 }
 
+/// About 66 bits of the key, too many for anyone to mint another key that reads the same.
+pub fn spoken(said: &str) -> Option<String> {
+    use sha2::{Digest, Sha256};
+    let key = read(said)?;
+    let mut over = Sha256::new();
+    over.update(b"tisty-code-v1\0");
+    over.update(key.as_bytes());
+    let digest: [u8; 32] = over.finalize().into();
+    let mut wide = [0u8; 16];
+    wide[7..].copy_from_slice(&digest[..9]);
+    let digits = format!(
+        "{:020}",
+        u128::from_be_bytes(wide) % 100_000_000_000_000_000_000
+    );
+    Some(
+        digits
+            .as_bytes()
+            .chunks(5)
+            .map(|five| std::str::from_utf8(five).unwrap_or_default())
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
 #[cfg(test)]
 #[path = "signing_test.rs"]
 mod tests;

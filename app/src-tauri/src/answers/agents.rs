@@ -10,6 +10,17 @@ use crate::{Answer, Session, blamed, held, wiring};
 pub struct Agent {
     on: bool,
     called: Option<String>,
+    code: Option<String>,
+}
+
+// What another computer is asked to compare before it lets this machine's agent in.
+pub(crate) fn spoken_by(
+    paths: &tisty_core::Paths,
+    who: Option<&tisty_core::DeviceId>,
+) -> Option<String> {
+    tisty_core::signing::shown_kept(paths, who?)
+        .as_deref()
+        .and_then(tisty_core::signing::spoken)
 }
 
 /// One assistant as the person meets it: a client Tisty can wire, and what a hand of that name
@@ -106,6 +117,7 @@ pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     let who = session.config.agent_id.clone();
     Ok(Agent {
         on: who.is_some(),
+        code: spoken_by(&session.paths, who.as_ref()),
         called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
     })
 }

@@ -82,6 +82,7 @@ Some payload fields carry more than their name says:
 | `k` | `device.join` | `agent` or `machine`. Absent is not a claim of either: an event written before the field existed must not demote an agent |
 | `p` | `device.join` | the machine's public signing key, 32 bytes in hex. Only a machine's own word for its own key counts, and the first one published stands: a later join naming another key is refused, not believed. Anything that is not a key is dropped and the join lands without it |
 | `d`, `of` | `device.host` | the machine an agent device is hosted on. The join is written as the agent and said nothing about where; this says it, marked `opt`, and only the agent's own word or its host's counts — `d` an agent, `of` a machine. The window writes it as the machine, so it settles like `doc.said`: `undo` walks past it |
+| `d`, `name`, `os` | `device.named` | what the computer calls itself and the system it runs, so a machine waiting to be confirmed is found by a name the person knows. Marked `opt`, and only the machine's own word counts; the window writes it when it takes its seat and the name changed. Its `name` is not `n`, which every event already uses for its sequence |
 | `source` | `task.add` | what the task was written from, so the same thing is not filed twice |
 | `filled` | `task.done` | closed in bulk by the backfill, so its stamp is the hour of the marking rather than its own |
 | `read_as` | `task.update` | `story` or `trace`, the layer the person converted the task to; `null` reads it by what it holds again — what undo writes, and what `tisty set --read-as auto` asks for; the window only moves between the two |
@@ -1486,9 +1487,12 @@ none can be undone from the app.
 syncing works — merging is concatenating — and nothing collides: entities are
 ULIDs, documents are named `<device>-NNNN.md`, attachments are named after their
 own contents. What it costs is said plainly beforehand: two lists by the same
-name stay two lists, because joining them by name is a guess, and a wrong guess
-there goes unnoticed; and ordering keys were minted independently, so lists
-interleave.
+name become one once the other side has come in, the one holding more keeping
+the name and taking the other's tasks, and the guide each side brought stays
+once (`doubled.rs`) — a fresh install's example lists are the usual twin, and
+the person asked for them gone; and ordering keys were minted independently, so
+lists interleave. An install that finds what an earlier one left, or a folder
+that already holds a history, plants no example lists to begin with.
 
 **Keep this machine.** The folder is backed up, emptied, and repopulated from
 here. The other machine will be refused next time and will face the same

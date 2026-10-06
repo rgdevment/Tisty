@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 12;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 13;
 
 pub struct Cache {
     db: Connection,
@@ -196,6 +196,10 @@ impl Cache {
             .meta("hosts")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.named = self
+            .meta("named")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -357,7 +361,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -372,6 +376,7 @@ impl Cache {
                     serde_json::to_string(&state.assistants).unwrap_or_default(),
                     serde_json::to_string(&state.forebears).unwrap_or_default(),
                     serde_json::to_string(&state.hosts).unwrap_or_default(),
+                    serde_json::to_string(&state.named).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -806,6 +811,7 @@ fn reached(
                 | crate::Op::DeviceJoin { .. }
                 | crate::Op::DeviceHost { .. }
                 | crate::Op::DeviceKey { .. }
+                | crate::Op::DeviceNamed { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachKept { .. }
                 | crate::Op::AttachLetGo { .. }

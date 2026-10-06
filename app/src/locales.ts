@@ -934,7 +934,7 @@ const en = {
   ownLogUnreadable:
     "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
   someoneUnconfirmed:
-    "A machine is writing in the shared folder that nobody here has answered for, so nothing it writes has come in. Confirm it in Maintenance to let it through — what it wrote stays in the folder meanwhile and arrives whole.",
+    "A computer is waiting for you to confirm it is yours, so nothing it writes has come in yet. Look for the notice in the sidebar — what it wrote stays in the folder meanwhile and arrives whole.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
@@ -973,7 +973,7 @@ const en = {
   apartMerge: "Merge the two",
   apartMergeWhy: "Everything you have here and everything that is there, together.",
   apartMergeHow:
-    "You keep the tasks and the documents of both, without losing anything.\n\nTwo lists by the same name stay as two lists: Tisty does not join them by name, because getting that wrong goes unnoticed. The order of your lists interleaves and will not be as you left it in either one.",
+    "You keep the tasks and the documents of both, without losing anything.\n\nTwo lists by the same name become one, holding the tasks of both, and the example guide stays once. The order of your lists interleaves and will not be as you left it in either one.",
   apartMine: "Keep this machine",
   apartMineWhy: "The folder becomes this machine's.",
   apartMineHow:
@@ -1214,7 +1214,7 @@ const en = {
     "None, and none is going in: the natural language it reads is rules running on this machine, with no model and no cloud. But if you already use an assistant and it works for you, here is a door for it. It can file what you tell it — the card stock the school group wants on Monday, the thing you were tagged about on Slack — through a program already on this machine. Nothing reaches the network and Tisty still calls nobody. You decide whether to open it, and you can close it whenever you like.",
   agentsOff: "No assistant can file work here",
   agentsOn: "An assistant can file work here",
-  agentsSignsAs: "This machine's agent signs the log as «{name}»",
+  agentsSignsAs: "This machine's agent signs the log as «{name}» · code {other}",
   assistantFiled: "{name} filed",
   assistantWrote: "{name} writes in all",
   assistantLast: "the last {name}",
@@ -1307,18 +1307,18 @@ const en = {
   machineKeyStands: "confirmed {name}",
   machineKeyAstray: "signs with a key that is not the confirmed one",
   machineKeyConfirm: "Confirm",
-  machineKeySee: "See the key",
+  machineKeySee: "See the code",
   machineKeyAsk: "What happened",
-  machineKeyTitle: "Confirm the key of {name}?",
+  machineKeyTitle: "Confirm the code of {name}?",
   machineKeyRead:
-    "Open this same card on {name} and read its key there. If it is the one below, character by character, confirm it.",
+    "Open Settings → Maintenance on {name} and read its code there. If it is the one below, confirm it.",
   machineKeyThen:
     "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
   machineKeyForGood:
     "This is not changed later. A machine that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
-  machineKeyDone: "That key is now the one it answers for",
+  machineKeyDone: "Confirmed: it syncs with this machine now",
   machineKeyMine:
-    "This is the key the others have for this machine. Read it out when one of them asks.",
+    "This is the code your other machines see for this one. Read it out when one of them asks.",
   machineKeyNone: "It has not said what it signs with. Nothing it writes is checked.",
   machineAstrayStood: "the one you confirmed {name}",
   machineAstrayNow: "the one it signs with now",
@@ -1438,6 +1438,54 @@ const en = {
   comingPapers: "Bringing documents…",
   comingAttachments: "Bringing attachments…",
   comingOf: "{name} of {other}",
+  knockOne: "«{name}» wants to sync",
+  knockUnnamed: "A new machine wants to sync",
+  knockMany: "{name} machines want to sync",
+  knockWhy: "Nothing it writes comes in until you confirm it is yours.",
+  knockManyWhy: "Nothing they write comes in until you confirm they are yours.",
+  knockConfirm: "Confirm…",
+  knockLater: "Not now",
+  knockDot: "A machine is waiting for you to confirm it",
+  confirmTitle: "Is «{name}» yours?",
+  confirmTitleUnnamed: "Is this new machine yours?",
+  confirmUnnamed:
+    "It has not said its name yet — it does once it opens the latest Tisty. Here it goes by «{name}». Before letting in what it writes, check that it is yours: the same code has to show on both.",
+  confirmAgent:
+    "It is the assistant (Claude, Codex…) of «{name}». Before letting in what it writes, check that it is yours: the same code has to show on both.",
+  confirmAgentStep:
+    "On that computer, open Tisty → Settings → Assistants: its code shows next to the name it signs with.",
+  confirmLater: "Confirmed. What it wrote comes in with the next sync.",
+  confirmElsewhere: "If you have another machine, it will ask you there too.",
+  confirmCount: "{name} of {other}",
+  confirmSince: "started writing {name}",
+  confirmWhat:
+    "That is what the computer calls itself. Before letting in what it writes, check that it is yours: the same code has to show on both.",
+  confirmStep:
+    "On that computer, open Tisty → Settings → Maintenance. «The machines» shows its name and its code.",
+  confirmCodeOf: "Code of «{name}»",
+  confirmAsk: "Is it the same one that computer shows?",
+  confirmYes: "Yes, it is the same",
+  confirmNo: "It doesn't match",
+  confirmWhyAsk: "Why do I have to do this?",
+  confirmWhyIs:
+    "Each computer signs what it writes with a mark only it can make, and the code sums that mark up. If it matches on both, what arrives really comes from that computer and not from someone who put files in your folder. You do it once on each of your other machines.",
+  confirmHere:
+    "If that computer also asks you to confirm this one, the code here («{name}») is {other}",
+  confirmNoCode: "It has not said its code yet. Sync again on that computer and come back.",
+  confirmDone: "Done. «{name}» now syncs with this machine.",
+  confirmBringing: "Bringing in what it wrote…",
+  confirmBrought: "Everything it wrote has arrived.",
+  confirmNext: "Next: «{name}»",
+  confirmClose: "Close",
+  confirmMismatch: "The code is not the same",
+  confirmMismatchWhat:
+    "If the code is not the same, what it writes is not coming from the computer you think. Nothing changed here: what it wrote stays in the folder, outside.",
+  confirmMismatchDo:
+    "Did you reinstall or replace that computer recently? Then it comes back as a new one: look for it in the list and confirm that one. If not, check who has access to your shared folder.",
+  confirmGotIt: "Got it",
+  machineCode: "code",
+  machineSince: "writing since {name}",
+  machineCarried: "accepted on update",
   comingSlow: "The cloud is slow. It keeps bringing; you can work meanwhile.",
   comingHistory: "Your history is on its way",
   comingHistoryWhy:
@@ -2414,7 +2462,7 @@ const es: Catalog = {
   ownLogUnreadable:
     "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnconfirmed:
-    "Hay una máquina escribiendo en la carpeta compartida por la que nadie ha respondido aquí, así que nada de lo que escribe ha entrado. Confírmala en Mantenimiento para dejarla pasar — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
+    "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Busca el aviso en la barra lateral — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
@@ -2453,7 +2501,7 @@ const es: Catalog = {
   apartMerge: "Fusionar las dos",
   apartMergeWhy: "Lo que tienes aquí y lo que hay allí, todo junto.",
   apartMergeHow:
-    "Quedas con las tareas y los documentos de las dos, sin perder nada.\n\nDos listas que se llamen igual quedan como dos listas: Tisty no las junta por el nombre, porque equivocarse ahí no se nota. El orden de tus listas se entrelaza y no queda como estaba en ninguna de las dos.",
+    "Quedas con las tareas y los documentos de las dos, sin perder nada.\n\nDos listas que se llamen igual se juntan en una, con las tareas de ambas, y la guía de ejemplo queda una sola vez. El orden de tus listas se entrelaza y no queda como estaba en ninguna de las dos.",
   apartMine: "Conservar esta máquina",
   apartMineWhy: "La carpeta pasa a ser de aquí.",
   apartMineHow:
@@ -2694,7 +2742,7 @@ const es: Catalog = {
     "Ninguna, y no se la vamos a poner: el lenguaje natural que lee son reglas corriendo en esta máquina, sin modelo y sin nube. Pero si ya usas un asistente y te sirve, aquí tiene una puerta. Puede anotar lo que tú le cuentes —las cartulinas que el grupo del colegio pide para el lunes, aquello por lo que te mencionaron en Slack— a través de un programa que ya está en este equipo. Nada sale a la red y Tisty sigue sin llamar a nadie. Tú decides si la abres, y puedes cerrarla cuando quieras.",
   agentsOff: "Ningún asistente puede anotar aquí",
   agentsOn: "Un asistente puede anotar aquí",
-  agentsSignsAs: "El agente de este equipo firma el registro como «{name}»",
+  agentsSignsAs: "El agente de este equipo firma el registro como «{name}» · código {other}",
   assistantFiled: "{name} anotadas",
   assistantWrote: "{name} escrituras en total",
   assistantLast: "la última {name}",
@@ -2788,18 +2836,18 @@ const es: Catalog = {
   machineKeyStands: "confirmada {name}",
   machineKeyAstray: "firma con una clave que no es la confirmada",
   machineKeyConfirm: "Confirmar",
-  machineKeySee: "Ver la clave",
+  machineKeySee: "Ver el código",
   machineKeyAsk: "Qué pasó",
-  machineKeyTitle: "¿Confirmar la clave de {name}?",
+  machineKeyTitle: "¿Confirmar el código de {name}?",
   machineKeyRead:
-    "Abre esta misma tarjeta en {name} y lee ahí su clave. Si es la de abajo, carácter por carácter, confírmala.",
+    "Abre Configuración → Mantenimiento en {name} y lee ahí su código. Si es el de abajo, confírmalo.",
   machineKeyThen:
     "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
   machineKeyForGood:
     "Esto no se cambia después. Una máquina que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
-  machineKeyDone: "Esa clave es ahora la que responde por ella",
+  machineKeyDone: "Confirmado: ya sincroniza con este equipo",
   machineKeyMine:
-    "Esta es la clave que las demás tienen para esta máquina. Léela en voz alta cuando alguna la pida.",
+    "Este es el código que tus otros equipos ven de este. Léelo en voz alta cuando alguno lo pida.",
   machineKeyNone: "No ha dicho con qué firma. Nada de lo que escribe se comprueba.",
   machineAstrayStood: "la que confirmaste {name}",
   machineAstrayNow: "la que usa ahora",
@@ -2919,6 +2967,54 @@ const es: Catalog = {
   comingPapers: "Trayendo documentos…",
   comingAttachments: "Trayendo adjuntos…",
   comingOf: "{name} de {other}",
+  knockOne: "«{name}» quiere sincronizar",
+  knockUnnamed: "Un equipo nuevo quiere sincronizar",
+  knockMany: "{name} equipos quieren sincronizar",
+  knockWhy: "Lo que escribe no entra hasta que confirmes que es tuyo.",
+  knockManyWhy: "Lo que escriben no entra hasta que confirmes que son tuyos.",
+  knockConfirm: "Confirmar…",
+  knockLater: "Ahora no",
+  knockDot: "Un equipo espera que lo confirmes",
+  confirmTitle: "¿«{name}» es tuyo?",
+  confirmTitleUnnamed: "¿Este equipo nuevo es tuyo?",
+  confirmUnnamed:
+    "Todavía no dijo su nombre; lo dirá cuando abra la última versión de Tisty. Aquí lo llamamos «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+  confirmAgent:
+    "Es el asistente (Claude, Codex…) de «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+  confirmAgentStep:
+    "En ese computador, abre Tisty → Configuración → Asistentes: su código aparece junto al nombre con que firma.",
+  confirmLater: "Confirmado. Lo que escribió llega en la próxima sincronización.",
+  confirmElsewhere: "Si tienes otro equipo, también te lo preguntará ahí.",
+  confirmCount: "{name} de {other}",
+  confirmSince: "empezó a escribir {name}",
+  confirmWhat:
+    "Así se llama ese computador. Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+  confirmStep:
+    "En ese computador, abre Tisty → Configuración → Mantenimiento. En «Las máquinas» aparece su nombre y su código.",
+  confirmCodeOf: "Código de «{name}»",
+  confirmAsk: "¿Es el mismo que muestra ese computador?",
+  confirmYes: "Sí, es el mismo",
+  confirmNo: "No coincide",
+  confirmWhyAsk: "¿Por qué tengo que hacer esto?",
+  confirmWhyIs:
+    "Cada computador firma lo que escribe con una marca que solo él puede poner, y el código resume esa marca. Si coincide en los dos, lo que llega viene de verdad de ese computador y no de alguien que puso archivos en tu carpeta. Se hace una vez en cada uno de tus otros equipos.",
+  confirmHere:
+    "Si ese computador también te pide confirmar este, el código de aquí («{name}») es {other}",
+  confirmNoCode: "Todavía no dice su código. Sincroniza en ese computador y vuelve.",
+  confirmDone: "Listo. «{name}» ya sincroniza con este equipo.",
+  confirmBringing: "Trayendo lo que escribió…",
+  confirmBrought: "Llegó todo lo que escribió.",
+  confirmNext: "Siguiente: «{name}»",
+  confirmClose: "Cerrar",
+  confirmMismatch: "No es el mismo código",
+  confirmMismatchWhat:
+    "Si el código no es el mismo, lo que escribe no viene del computador que crees. Aquí no cambió nada: lo que escribió sigue en la carpeta, sin entrar.",
+  confirmMismatchDo:
+    "¿Reinstalaste o cambiaste ese computador hace poco? Entonces vuelve como uno nuevo: búscalo en la lista y confirma ese. Si no, revisa quién tiene acceso a tu carpeta compartida.",
+  confirmGotIt: "Entendido",
+  machineCode: "código",
+  machineSince: "escribe desde {name}",
+  machineCarried: "aceptado al actualizar",
   comingSlow: "La nube va lenta. Sigue trayendo; puedes trabajar mientras.",
   comingHistory: "Tu historia viene en camino",
   comingHistoryWhy:

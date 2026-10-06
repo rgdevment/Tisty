@@ -394,6 +394,7 @@ export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 export interface Agent {
   on: boolean;
   called?: string;
+  code?: string;
 }
 
 export const agentState = (): Promise<Agent> => invoke("agent");
@@ -485,13 +486,30 @@ export interface Twins {
 export interface Machine {
   id: string;
   called: string;
+  name?: string | null;
+  os?: string | null;
   when: number;
+  since?: number;
   mine: boolean;
   signs: string | null;
+  code?: string | null;
   confirmed: string | null;
   confirmedWhen: number;
+  carried?: boolean;
+  host?: string | null;
   turnedAway: "disowned" | "unreadable" | "unconfirmed" | null;
 }
+
+export interface ThisMachine {
+  id: string;
+  name: string | null;
+  os: string | null;
+  code: string | null;
+}
+
+export const waitingMachines = (): Promise<Machine[]> => invoke("waiting_machines");
+export const thisMachine = (): Promise<ThisMachine> => invoke("this_machine");
+export const tidyMerged = (): Promise<number> => invoke("tidy_merged");
 
 export interface Stray {
   file: string;

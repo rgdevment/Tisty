@@ -73,6 +73,8 @@ pub struct Moved {
     pub let_go: Vec<String>,
     pub took_in: Vec<(String, String, u64)>,
     pub coming: Vec<String>,
+    /// Taken in while adopting before it said its key, so adopting waits on it without saying so.
+    pub unsaid: Vec<String>,
 }
 
 impl Moved {
@@ -186,7 +188,7 @@ pub fn carry_telling(
         moved.brought = bring(
             data, &store, device, dest, &adopting, &mut moved, &mut alike, saying,
         )?;
-        adopting.retain(|one| moved.coming.contains(one));
+        adopting.retain(|one| moved.coming.contains(one) || moved.unsaid.contains(one));
         keep_adopting(aside, dest, &adopting);
         said = as_told(&store, aside);
         if moved.brought > 0 {
@@ -1003,7 +1005,7 @@ fn bring(
             alike,
         ) {
             Answered::Yes => {}
-            Answered::Unsaid => moved.coming.push(named.to_string()),
+            Answered::Unsaid => moved.unsaid.push(named.to_string()),
             Answered::Unreadable => {
                 away.insert(named.to_string(), turned::Away::Unreadable);
                 moved.unreadable.push(named.to_string());
