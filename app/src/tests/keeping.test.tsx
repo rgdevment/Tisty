@@ -2315,6 +2315,58 @@ describe("the first-run assistant", () => {
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
   });
 
+  it("says why staying on this machine did not go through", async () => {
+    render(<Welcome onDone={vi.fn()} />);
+    await olderThanTheFolder();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "choose_sync" && args.dest === undefined
+        ? Promise.reject({ code: "sharedAwayToLeave", name: "G:/x" })
+        : answered(cmd, args);
+
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
+
+    expect(await screen.findByText(fill("sharedAwayToLeave", "G:/x"))).toBeTruthy();
+  });
+
+  it("says nothing moved when the other folder is not picked after all", async () => {
+    asked.folder = null;
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
+
+    expect(await screen.findByText(t("wouldReset"))).toBeTruthy();
+  });
+
+  it("meets a newer folder picked from the doors the same way", async () => {
+    asked.folder = "D:/Otra";
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "sync_kin") return Promise.resolve("strangers");
+      if (cmd === "choose_sync" && args.dest === "D:/Otra")
+        return Promise.reject({ code: "syncNewer", name: "dev_b" });
+      return answered(cmd, args);
+    };
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
+
+    expect(await screen.findByText(t("welcomeOlder"))).toBeTruthy();
+  });
+
   it("goes back to the folders when another one is wanted instead", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await olderThanTheFolder();
