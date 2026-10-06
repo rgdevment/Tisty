@@ -242,7 +242,8 @@ mislabel, never open a door. Where an agent lives is said once by
 
 Filling a task in is the one thing an agent does on a task it did not file, and
 only where the person let it. `say_done`, `say_not_doing`, `describe`, `plan`,
-`tick` and `untick` reach a task an assistant filed, or one the person opened
+`tick`, `untick`, `reword_step`, `unplan` and `reword_note` reach a task an
+assistant filed, or one the person opened
 with `open_to_agents` — a verb of the window, on an open task of their own,
 never part of an edit and never the terminal's. Opened, the task stays theirs:
 its day, its title, its list and its closing are as out of reach as before,
@@ -250,12 +251,18 @@ its day, its title, its list and its closing are as out of reach as before,
 dropped rather than closed — confirming it drops, and nothing is dropped until
 the person does — `tick` marks a step, `untick` takes back only a tick an
 assistant gave — the step remembers whose hand ticked it, and a tick the person
-gave is theirs — `describe` writes a description where there was none and
-refuses to write over one, and `plan` adds steps under whatever is there. The
-core judges it again at replay — `TaskResolve`, `TaskDescribe`, `StepAdd` and
-`StepDone` from an assistant on a task nobody opened to them are let go, and so
-is a `StepUndone` on a step whose tick was not an assistant's, whatever the
-server that wrote them believed — so a fill-in written on one machine before the
+gave is theirs — `describe` writes the description anew, and `plan` adds steps
+under whatever is there. Mending reaches what is still open: `reword_step` and
+`unplan` rewrite or take off a step that is not ticked, whoever wrote it, and
+`reword_note` rewrites a note but never empties one, since an empty note is a
+note taken out. `rename` is the one mend that needs the task filed by an
+assistant: a title the person wrote stays theirs, opened or not. A part has its
+own door — opening the whole opens none of its parts. The core judges it again
+at replay — `TaskResolve`, `TaskDescribe`, `StepAdd`, `StepDone` and
+`TaskLogEdit` from an assistant on a task nobody opened to them are let go, and
+so is a `StepUndone` on a step whose tick was not an assistant's, a `StepText` or
+`StepRemove` on a ticked step, and a `TaskLogEdit` that empties a note, whatever
+the server that wrote them believed — so a fill-in written on one machine before the
 person shut the door on another projects the same everywhere. Shutting it keeps
 what was filled in; it is not an unsaying.
 

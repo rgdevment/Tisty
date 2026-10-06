@@ -528,17 +528,7 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(why) = already_said_done(task, "writing a description") {
         return Err(why);
     }
-    if task
-        .description
-        .as_deref()
-        .is_some_and(|had| !had.trim().is_empty())
-    {
-        return Err(Refused::Tool(format!(
-            "{:?} is already described, and a description is not yours to write over. Add what \
-             you have learnt with `note`.",
-            task.title
-        )));
-    }
+    let had = task.description.clone();
     let written = store
         .append_batch_unless(
             vec![Op::TaskDescribe {
@@ -548,11 +538,7 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now)
-                        || now
-                            .description
-                            .as_deref()
-                            .is_some_and(|had| !had.trim().is_empty())
+                    !still_filling(&held, now) || now.resolved.is_some() || now.description != had
                 })
             },
         )
@@ -962,7 +948,7 @@ pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> 
     proposed(paths, one)
 }
 
-fn steps_fit(steps: &[String]) -> Result<(), Refused> {
+pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {
     match steps.iter().find(|one| !tisty_core::model::step_fits(one)) {
         Some(long) => Err(Refused::Tool(format!(
             "a step is at most {} characters, and {long:?} is longer. Nothing was written. A step \
@@ -976,7 +962,11 @@ fn steps_fit(steps: &[String]) -> Result<(), Refused> {
 
 /// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
 /// and not folded away. The refusal says which of the three it is not.
-fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &'a Task), Refused> {
+pub(super) fn filling<'a>(
+    state: &'a State,
+    store: &Store,
+    said: &str,
+) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(format!(
             "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
@@ -1001,11 +991,11 @@ fn filling<'a>(state: &'a State, store: &Store, said: &str) -> Result<(TaskId, &
 }
 
 /// Still open, in sight, and open to this hand: what every fill-in checks again under the lock.
-fn still_filling(held: &State, now: &Task) -> bool {
+pub(super) fn still_filling(held: &State, now: &Task) -> bool {
     now.is_open() && !now.folded() && held.attended_by_agents(now)
 }
 
-fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
+pub(super) fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
     task.resolved.as_ref().map(|said| {
         Refused::Tool(format!(
             "{:?} has already been said {}, so {doing} now would speak over a mark nobody has \
@@ -1062,7 +1052,7 @@ fn marked_as(said: &tisty_core::model::Resolved) -> &'static str {
 }
 
 /// Steps written alike are a repeated line: naming one reaches the next that `fits`.
-fn steps_named<'a>(
+pub(super) fn steps_named<'a>(
     task: &'a Task,
     wanted: &[String],
     doing: &str,

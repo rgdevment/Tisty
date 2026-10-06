@@ -211,16 +211,7 @@ impl State {
         if self.assistants.contains(&event.device)
             && let Some(id) = event.op.about_whom()
             && let Some(task) = self.tasks.get(&id)
-            && !match &event.op {
-                Op::TaskLog { .. } => true,
-                Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
-                Op::TaskResolve { .. }
-                | Op::TaskDescribe { .. }
-                | Op::StepAdd { .. }
-                | Op::StepDone { .. } => self.attended_by_agents(task),
-                Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
-                _ => false,
-            }
+            && !self.lets_agents(task, &event.op)
         {
             crate::witness::warn(
                 crate::witness::channel::STORE,
@@ -470,8 +461,28 @@ impl State {
         }
     }
 
+    fn lets_agents(&self, task: &Task, op: &Op) -> bool {
+        match op {
+            Op::TaskLog { .. } => true,
+            Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
+            Op::TaskResolve { .. }
+            | Op::TaskDescribe { .. }
+            | Op::StepAdd { .. }
+            | Op::StepDone { .. } => self.attended_by_agents(task),
+            Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
+            Op::StepText { d, .. } => self.mendable_by_agents(task, d.step),
+            Op::StepRemove { d, .. } => self.mendable_by_agents(task, d.step),
+            Op::TaskLogEdit { d, .. } => self.attended_by_agents(task) && !d.body.trim().is_empty(),
+            _ => false,
+        }
+    }
+
     fn untickable_by_agents(&self, task: &Task, step: StepId) -> bool {
         self.attended_by_agents(task) && task.step(step).is_some_and(|one| one.by_agent)
+    }
+
+    fn mendable_by_agents(&self, task: &Task, step: StepId) -> bool {
+        self.attended_by_agents(task) && task.step(step).is_some_and(|one| !one.done)
     }
 
     fn step_marked(&mut self, event: &Event, task: TaskId, step: StepId, done: bool) {
