@@ -3,7 +3,7 @@ use crate::config::new_device_id;
 
 fn configured(inst: Option<&str>) -> Config {
     let mut config: Config = toml::from_str(&format!(
-        "device_id = \"{}\"\nagent_id = \"dev_agent01\"\n",
+        "device_id = \"{}\"\nagent_id = \"dev_agent01\"\nsynced_at = \"2026-10-01T00:00:00Z\"\n",
         new_device_id()
     ))
     .unwrap();
@@ -49,6 +49,34 @@ fn a_configuration_copied_to_another_computer_does_not_write_as_the_same_machine
         config.agent_id.is_none(),
         "turning the agent on again is the person's"
     );
+    assert!(
+        config.synced_at.is_none(),
+        "the new machine has not synced yet"
+    );
+}
+
+#[test]
+fn a_profile_that_roams_back_and_forth_keeps_each_computer_its_own_name_and_agent() {
+    let mut config = configured(Some("aaaa"));
+    let first = config.device_id.clone();
+    let first_agent = config.agent_id.clone();
+
+    settled(&mut config, Some("bbbb"));
+    let second = config.device_id.clone();
+    config.agent_id = Some(DeviceId("dev_agentb1".into()));
+    settled(&mut config, Some("aaaa"));
+
+    assert_eq!(config.device_id, first);
+    assert_eq!(config.agent_id, first_agent);
+
+    settled(&mut config, Some("bbbb"));
+    assert_eq!(config.device_id, second);
+    assert_eq!(config.agent_id, Some(DeviceId("dev_agentb1".into())));
+    assert_eq!(
+        config.homes.len(),
+        1,
+        "only the other computer is remembered"
+    );
 }
 
 #[test]
@@ -69,6 +97,17 @@ fn a_computer_that_will_not_say_what_it_is_changes_nothing() {
 
     assert!(!settled(&mut config, None));
     assert_eq!(config, was);
+}
+
+#[test]
+fn what_is_remembered_survives_being_written_and_read_back() {
+    let mut config = configured(Some("aaaa"));
+    settled(&mut config, Some("bbbb"));
+
+    let back: Config = toml::from_str(&toml::to_string(&config).unwrap()).unwrap();
+
+    assert_eq!(back.homes, config.homes);
+    assert_eq!(back.inst, config.inst);
 }
 
 #[test]

@@ -180,13 +180,15 @@ pub struct Config {
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
     /// and `save` writes the struct whole, so without this one run of an older build erases it.
     /// Last, because a table in TOML swallows every key that follows it.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     #[serde(flatten)]
     pub rest: toml::Table,
 }
 
 impl Config {
     pub fn load_or_init(paths: &Paths) -> Result<Self> {
-        if let Some(existing) = Self::load(&paths.config_file())? {
+        if let Some(mut existing) = Self::read(&paths.config_file())? {
             if !store::is_device_name(&existing.device_id.0) && said_once(&existing.device_id.0) {
                 witness::error(
                     channel::CONFIG,
@@ -194,9 +196,14 @@ impl Config {
                     &[("at", Fact::Id(existing.device_id.0.clone()))],
                 );
             }
-            let mut existing = existing;
-            if crate::machine::settled(&mut existing, crate::machine::here().as_deref()) {
-                existing.save(paths)?;
+            if crate::machine::settled(&mut existing, crate::machine::here().as_deref())
+                && let Err(why) = existing.save(paths)
+            {
+                witness::warn(
+                    channel::CONFIG,
+                    "this computer's name could not be saved, and is worked out again next time",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
             }
             return Ok(existing);
         }
@@ -228,6 +235,7 @@ impl Config {
             here_since: Some(jiff::Timestamp::now()),
             asked_for_a_star: None,
             asked_to_wire: None,
+            homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };
         config.save(paths)?;
@@ -235,6 +243,14 @@ impl Config {
     }
 
     pub fn load(file: &Path) -> Result<Option<Self>> {
+        let mut read = Self::read(file)?;
+        if let Some(config) = read.as_mut() {
+            crate::machine::settled(config, crate::machine::here().as_deref());
+        }
+        Ok(read)
+    }
+
+    fn read(file: &Path) -> Result<Option<Self>> {
         match std::fs::read_to_string(file) {
             Ok(text) => {
                 let mut config: Self = toml::from_str(&text)?;

@@ -2182,17 +2182,24 @@ lives in the local config directory, never a roaming one: a Windows domain
 profile copies `%APPDATA%` to a company server at logoff, and it would take the
 device id and the `private/` folder with it.
 
-Since the Windows store moved to `%USERPROFILE%\.tisty`, a roaming profile, a
-restored backup or a disk cloned onto a new computer can still carry that file
-along, so the configuration also keeps `inst`: a digest of what the operating
-system calls this computer — `MachineGuid` on Windows, `IOPlatformUUID` on
-macOS, `/etc/machine-id` on Linux — never the identifier itself (`machine.rs`).
-It is read again every time the configuration loads. When it no longer matches,
-the configuration was written on another computer, and this one stops speaking
-as the machine it came from: it takes a device id of its own, derived from the
-new `inst` and the old id so that the window and the terminal waking at once
-agree on it, joins like any new machine and waits to be confirmed by the
-others. The agent's id is dropped rather than renamed, because minting one is
-the person's act. A configuration written before `inst` existed takes the
-computer it wakes on as its own, and a computer that will not say what it is
-changes nothing.
+Since the Windows store moved to `%USERPROFILE%\.tisty`, a roaming profile or
+a home copied to a new computer can still carry that file along, so the
+configuration also keeps `inst`: a digest of what the operating system calls
+this computer — `MachineGuid` on Windows, `IOPlatformUUID` on macOS,
+`/etc/machine-id` on Linux — never the identifier itself (`machine.rs`). It is
+read again every time the configuration loads. When it no longer matches, the
+configuration was last used on another computer, and this one stops speaking as
+that machine. A computer it has woken on before takes back the device id and
+the agent it had there, kept in `homes`, so a profile roaming between two
+desks does not mint a name at every logon. One it has never seen takes a device
+id derived from the new `inst` and the old id, so that the window and the
+terminal waking at once agree on it, joins like any new machine and waits to be
+confirmed; its agent stays off until the person turns it on, because minting
+one is theirs. Saving the result is best effort: a configuration that cannot be
+written is worked out the same way next time.
+
+What it cannot catch: a configuration written before `inst` existed takes the
+computer it wakes on as its own, so a copy made before this check shipped goes
+unnoticed; and a Windows or Linux disk cloned without sysprep or a fresh
+`machine-id` carries its identifier with it, so both computers answer the same.
+A Mac's identifier belongs to the hardware and does not travel.

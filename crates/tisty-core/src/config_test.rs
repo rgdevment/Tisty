@@ -216,6 +216,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         here_since: Some(jiff::Timestamp::from_second(1_700_000_000).unwrap()),
         asked_for_a_star: Some(true),
         asked_to_wire: Some(true),
+        homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     };
 
@@ -272,6 +273,7 @@ fn bare() -> Config {
         here_since: None,
         asked_for_a_star: None,
         asked_to_wire: None,
+        homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     }
 }
