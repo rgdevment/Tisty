@@ -121,6 +121,38 @@ pub fn ask_for(all: Vec<PathBuf>) {
     });
 }
 
+// A file another machine rewrites all day is back in the cloud by the next round: read it now.
+pub fn brought_down(pending: Vec<PathBuf>, most: Duration) -> Vec<PathBuf> {
+    let (readable, asked): (Vec<PathBuf>, Vec<PathBuf>) =
+        pending.into_iter().partition(|at| sidecar(at).is_none());
+    if readable.is_empty() {
+        return asked;
+    }
+    let (told, heard) = std::sync::mpsc::channel();
+    for at in readable.clone() {
+        let told = told.clone();
+        std::thread::spawn(move || {
+            if let Ok(mut file) = std::fs::File::open(&at) {
+                let _ = std::io::copy(&mut file, &mut std::io::sink());
+            }
+            let _ = told.send(());
+        });
+    }
+    drop(told);
+    let until = std::time::Instant::now() + most;
+    for _ in 0..readable.len() {
+        let left = until.saturating_duration_since(std::time::Instant::now());
+        if heard.recv_timeout(left).is_err() {
+            break;
+        }
+    }
+    readable
+        .into_iter()
+        .filter(|at| held_away(at))
+        .chain(asked)
+        .collect()
+}
+
 fn in_flight() -> &'static std::sync::Mutex<std::collections::BTreeSet<PathBuf>> {
     static ASKED: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeSet<PathBuf>>> =
         std::sync::OnceLock::new();
