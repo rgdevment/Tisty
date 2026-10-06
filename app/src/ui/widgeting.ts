@@ -70,6 +70,7 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
   let climbed = 0;
   let stride = 0;
   let climbedAt = Number.NEGATIVE_INFINITY;
+  let stuck = 0;
   const frame = document.createElement("iframe");
   frame.className = "lit-widget";
   frame.setAttribute("sandbox", "allow-scripts");
@@ -86,11 +87,16 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
       const next = tall(asked.height);
       const step = next - (Number.parseFloat(frame.style.height) || SHORTEST);
       if (step > 0) {
+        if (step === stuck) return;
         const now = Date.now();
         climbed = step === stride && now - climbedAt < CLIMBS_WITHIN ? climbed + 1 : 1;
         stride = step;
         climbedAt = now;
-        if (climbed >= CLIMBS_AT_MOST) return;
+        if (climbed >= CLIMBS_AT_MOST) {
+          // A page sized by its own frame climbs again at every later change, so that step stays refused.
+          stuck = step;
+          return;
+        }
       } else {
         climbed = 0;
         stride = 0;

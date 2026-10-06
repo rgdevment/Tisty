@@ -228,6 +228,26 @@ describe("the frame a widget is drawn in", () => {
     lending.drop();
   });
 
+  it("stays stopped when a page that fills its frame climbs again at every later change", async () => {
+    const { frame, lending, from } = await mounted();
+    const told = () => Number.parseFloat(frame.style.height);
+    let clock = 1_000_000;
+    const ticking = vi.spyOn(Date, "now").mockImplementation(() => clock);
+
+    for (let second = 0; second < 20; second += 1) {
+      clock += 1000;
+      for (let n = 0; n < 3; n += 1) from({ type: "resize", height: told() + 16 });
+    }
+
+    expect(told(), "a clock ticking in a full-height page walked the frame to the ceiling").toBe(
+      SHORTEST + 16 * 2,
+    );
+    from({ type: "resize", height: 900 });
+    expect(told(), "real growth of another size is still followed").toBe(900);
+    ticking.mockRestore();
+    lending.drop();
+  });
+
   it("grows with each row a person adds, even when the rows are all alike", async () => {
     const { frame, lending, from } = await mounted();
     const told = () => Number.parseFloat(frame.style.height);
