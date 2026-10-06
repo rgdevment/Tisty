@@ -46,3 +46,48 @@ fn the_window_says_where_an_older_agent_lives_once() {
     Session::at(paths.clone()).unwrap();
     assert_eq!(lines(), 1, "said once");
 }
+
+#[test]
+fn the_window_speaks_for_an_older_agent_with_its_key_once_and_remembers_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.docs()).unwrap();
+    Session::at(paths.clone()).unwrap();
+    let mut config = Config::load_or_init(&paths).unwrap();
+    let agent = DeviceId("dev_agent".into());
+    let key = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &agent).unwrap());
+    config.agent_id = Some(agent.clone());
+    config.save(&paths).unwrap();
+    Store::open(paths.store(), agent.clone())
+        .unwrap()
+        .append(Op::DeviceJoin {
+            d: agent.clone(),
+            k: Some(tisty_core::event::DeviceKind::Agent),
+            p: Some(key.clone()),
+        })
+        .unwrap();
+    let keyed = || {
+        tisty_core::store::read_all(paths.store())
+            .unwrap()
+            .into_iter()
+            .filter(|one| {
+                one.device == config.device_id
+                    && matches!(&one.op, Op::DeviceHost { p: Some(p), .. } if p == &key)
+            })
+            .count()
+    };
+
+    Session::at(paths.clone()).unwrap();
+    assert_eq!(
+        keyed(),
+        1,
+        "the host did not speak for its agent with its key"
+    );
+    assert_eq!(
+        Config::load_or_init(&paths).unwrap().agent_vouched,
+        Some(agent)
+    );
+
+    Session::at(paths.clone()).unwrap();
+    assert_eq!(keyed(), 1, "said again on the next opening");
+}

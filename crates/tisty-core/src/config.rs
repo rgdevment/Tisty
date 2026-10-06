@@ -127,6 +127,9 @@ pub struct Config {
     /// directory keeps undo apart: this machine never undoes what the agent wrote.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_id: Option<DeviceId>,
+    /// The agent this machine has already spoken for in its own history, so it is said once.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_vouched: Option<DeviceId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -203,6 +206,7 @@ impl Config {
             device_id: DeviceId(new_device_id()),
             inst: crate::machine::here(),
             agent_id: None,
+            agent_vouched: None,
             locale: None,
             editor: None,
             quiet: None,

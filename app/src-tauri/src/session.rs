@@ -112,15 +112,7 @@ impl Session {
             behind: false,
         };
         session.tidy_up(true);
-        if let Some(host) = tisty_core::agent::unhosted(&session.config, &session.state)
-            && let Err(why) = session.commit(host)
-        {
-            witness::warn(
-                channel::WINDOW,
-                "the agent could not say which machine hosts it",
-                &[("why", Fact::Why(why.to_string()))],
-            );
-        }
+        session.vouch_for_agent();
         if session.config.sync.is_some() {
             session.sow_if_due();
         }
@@ -193,6 +185,43 @@ impl Session {
         }
         self.reproject()?;
         Ok(true)
+    }
+
+    /// An agent minted before hosts spoke for theirs gets its host's word once, then never looks again.
+    fn vouch_for_agent(&mut self) {
+        let Some(agent) = self.config.agent_id.clone() else {
+            return;
+        };
+        if self.config.agent_vouched.as_ref() == Some(&agent) {
+            return;
+        }
+        let (config, paths) = (self.config.clone(), self.paths.clone());
+        let Ok(log) = self.log() else {
+            return;
+        };
+        let said = match tisty_core::agent::vouch(&config, &paths, log) {
+            Some(key) => Some(tisty_core::Op::DeviceHost {
+                d: agent.clone(),
+                of: config.device_id.clone(),
+                p: Some(key),
+            }),
+            None => tisty_core::agent::unhosted(&config, &self.state),
+        };
+        if let Some(said) = said
+            && let Err(why) = self.commit(said)
+        {
+            witness::warn(
+                channel::WINDOW,
+                "this machine could not speak for the agent it runs",
+                &[("why", Fact::Why(why.to_string()))],
+            );
+            return;
+        }
+        if !self.state.assistants.contains(&agent) {
+            return;
+        }
+        self.config.agent_vouched = Some(agent);
+        let _ = self.config.save(&self.paths);
     }
 
     pub fn log(&mut self) -> tisty_core::Result<&[Event]> {

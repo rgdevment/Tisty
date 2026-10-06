@@ -280,6 +280,7 @@ fn where_an_agent_lives_is_a_line_an_older_build_and_undo_both_walk_past() {
     let op = tisty_core::Op::DeviceHost {
         d: tisty_core::DeviceId("dev_agent".into()),
         of: tisty_core::DeviceId("dev_laptop".into()),
+        p: None,
     };
 
     assert!(op.is_optional(), "un lector viejo se atragantaria con ella");
@@ -447,6 +448,7 @@ fn the_note_goes_out_unmarked_so_an_older_build_stops_rather_than_guesses() {
     open.append(tisty_core::Op::DeviceHost {
         d: tisty_core::DeviceId("dev_agent".into()),
         of: tisty_core::DeviceId("uno".into()),
+        p: None,
     })
     .unwrap();
 

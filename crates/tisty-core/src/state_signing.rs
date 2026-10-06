@@ -114,6 +114,7 @@ fn where_an_agent_lives_is_its_own_word_or_its_hosts_and_nobody_elses() {
         Op::DeviceHost {
             d: agent.clone(),
             of: host.clone(),
+            p: None,
         },
     ));
     assert!(
@@ -128,6 +129,7 @@ fn where_an_agent_lives_is_its_own_word_or_its_hosts_and_nobody_elses() {
         Op::DeviceHost {
             d: agent.clone(),
             of: host.clone(),
+            p: None,
         },
     ));
     assert_eq!(state.hosts.get(&agent), Some(&host));
@@ -140,6 +142,7 @@ fn where_an_agent_lives_is_its_own_word_or_its_hosts_and_nobody_elses() {
         Op::DeviceHost {
             d: agent.clone(),
             of: other.clone(),
+            p: None,
         },
     ));
     assert_eq!(
@@ -155,6 +158,7 @@ fn where_an_agent_lives_is_its_own_word_or_its_hosts_and_nobody_elses() {
         Op::DeviceHost {
             d: agent.clone(),
             of: agent.clone(),
+            p: None,
         },
     ));
     assert_eq!(
@@ -170,6 +174,7 @@ fn where_an_agent_lives_is_its_own_word_or_its_hosts_and_nobody_elses() {
         Op::DeviceHost {
             d: host.clone(),
             of: other.clone(),
+            p: None,
         },
     ));
     assert!(

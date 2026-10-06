@@ -16,6 +16,7 @@ fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
         .append(Op::DeviceHost {
             d: agent.clone(),
             of: DeviceId("dev_host".into()),
+            p: None,
         })
         .unwrap();
     store

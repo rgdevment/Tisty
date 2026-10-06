@@ -427,3 +427,94 @@ fn the_places_an_assistant_may_reach_are_real_and_named() {
     }
     assert!(roots.contains(&std::env::temp_dir().canonicalize().unwrap()));
 }
+
+#[test]
+fn minting_an_agent_has_its_host_speak_for_it_in_the_hosts_own_history() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+
+    let who = register(&paths).unwrap();
+
+    let config = Config::load_or_init(&paths).unwrap();
+    let log = crate::store::read_all(paths.store()).unwrap();
+    let said = log.iter().find_map(|one| match &one.op {
+        Op::DeviceHost { d, of, p: Some(p) } if one.device == config.device_id => {
+            Some((d.clone(), of.clone(), p.clone()))
+        }
+        _ => None,
+    });
+    assert_eq!(
+        said,
+        Some((
+            who.clone(),
+            config.device_id.clone(),
+            crate::signing::shown_kept(&paths, &who).unwrap()
+        )),
+        "the host did not write its agent's key in its own history"
+    );
+    assert_eq!(config.agent_vouched, Some(who));
+    assert!(
+        vouch(&config, &paths, &log).is_none(),
+        "a window opening later would say it a second time"
+    );
+}
+
+#[test]
+fn an_agent_from_before_hosts_spoke_is_spoken_for_once_with_the_key_it_already_has() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let mut config = Config::load_or_init(&paths).unwrap();
+    let who = DeviceId(crate::config::new_device_id());
+    let key = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+    let mut theirs = Store::open(paths.store(), who.clone())
+        .unwrap()
+        .signing_with(crate::signing::mine(&paths, &who));
+    theirs
+        .append(Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(DeviceKind::Agent),
+            p: Some(key.clone()),
+        })
+        .unwrap();
+    config.agent_id = Some(who.clone());
+
+    let log = crate::store::read_all(paths.store()).unwrap();
+    assert_eq!(vouch(&config, &paths, &log), Some(key.clone()));
+
+    speak_for(&paths, &mut config, key).unwrap();
+    let log = crate::store::read_all(paths.store()).unwrap();
+    assert!(vouch(&config, &paths, &log).is_none());
+    assert_eq!(config.agent_vouched, Some(who));
+}
+
+#[test]
+fn speaking_for_an_agent_never_makes_up_a_key_it_lost() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let mut config = Config::load_or_init(&paths).unwrap();
+    let who = DeviceId(crate::config::new_device_id());
+    let mut theirs = Store::open(paths.store(), who.clone()).unwrap();
+    theirs
+        .append(Op::DeviceJoin {
+            d: who.clone(),
+            k: Some(DeviceKind::Agent),
+            p: None,
+        })
+        .unwrap();
+    config.agent_id = Some(who.clone());
+
+    let log = crate::store::read_all(paths.store()).unwrap();
+    assert!(vouch(&config, &paths, &log).is_none());
+    assert!(
+        crate::signing::shown_kept(&paths, &who).is_none(),
+        "asking what the agent signs with minted it a key"
+    );
+}
+
+#[test]
+fn a_machine_with_no_agent_speaks_for_nobody() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let config = Config::load_or_init(&paths).unwrap();
+    assert!(vouch(&config, &paths, &[]).is_none());
+}
