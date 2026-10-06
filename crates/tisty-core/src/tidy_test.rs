@@ -546,3 +546,51 @@ fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
         .insert("attachments/ab/una-a3f90001.png".into());
     assert!(!done.owes_any(&all, true, true));
 }
+
+#[test]
+fn a_retired_attachment_put_back_in_the_folder_is_taken_out_again() {
+    let (room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(shared.join("attachments/ab")).unwrap();
+    std::fs::write(shared.join(at), b"unos bytes").unwrap();
+    let mut state = State::default();
+    state.retired.insert(at.into());
+    let mut done = Already::default();
+
+    assert_eq!(
+        attachments(&paths, &state.retired, Some(&shared), Vec::new, &mut done),
+        1
+    );
+    assert!(done.attachments_up.contains(at));
+
+    std::fs::write(shared.join(at), b"unos bytes").unwrap();
+
+    assert!(
+        Sweeping::of(&paths, &state, None, Some(&shared), false).owed,
+        "a machine that had not heard of the retirement put it back, and the walk thought it done"
+    );
+    assert_eq!(
+        attachments(&paths, &state.retired, Some(&shared), Vec::new, &mut done),
+        1
+    );
+    assert!(!shared.join(at).exists());
+}
+
+#[test]
+fn a_retired_attachment_that_stays_gone_is_not_walked_again() {
+    let (room, paths) = desk();
+    let at = "attachments/ab/una-a3f90001.png";
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(shared.join("attachments/ab")).unwrap();
+    std::fs::write(shared.join(at), b"unos bytes").unwrap();
+    let mut state = State::default();
+    state.retired.insert(at.into());
+    let mut done = Already::default();
+    attachments(&paths, &state.retired, None, Vec::new, &mut done);
+    attachments(&paths, &state.retired, Some(&shared), Vec::new, &mut done);
+
+    done.forget_returned(&state.retired, paths.data(), Some(&shared));
+
+    assert!(done.attachments.contains(at) && done.attachments_up.contains(at));
+}
