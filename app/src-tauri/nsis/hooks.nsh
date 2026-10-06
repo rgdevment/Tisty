@@ -18,11 +18,23 @@
     SetOutPath $INSTDIR
   ${EndIf}
 
-  ; The template waits for the window but not for the command line beside it, and
-  ; a locked tisty.exe leaves the install half done with no version left to offer
-  ; the update again. Closing it costs nothing: every write is a whole line or a
-  ; rename.
-  !insertmacro CheckIfAppIsRunning "tisty.exe" "${PRODUCTNAME}"
+  ; A running tisty.exe cannot be written over, and closing it would cut off every
+  ; assistant's door. Windows lets a running binary be moved, so it is set aside
+  ; under a name of its own and the door hands over to the new one by itself.
+  ; Copies set aside before, no longer running, go now. Only if the move fails is
+  ; it closed: a locked binary leaves the install half done.
+  Delete "$INSTDIR\*.old"
+  ${If} ${FileExists} "$INSTDIR\tisty.exe"
+    Push $R9
+    GetTempFileName $R9 "$INSTDIR"
+    Delete $R9
+    ClearErrors
+    Rename "$INSTDIR\tisty.exe" "$R9.old"
+    ${If} ${Errors}
+      !insertmacro CheckIfAppIsRunning "tisty.exe" "${PRODUCTNAME}"
+    ${EndIf}
+    Pop $R9
+  ${EndIf}
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
@@ -52,6 +64,7 @@
   ${If} $UpdateMode <> 1
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
+    Delete "$INSTDIR\*.old"
     RMDir "$INSTDIR"
   ${EndIf}
 !macroend

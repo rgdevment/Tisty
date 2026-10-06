@@ -3,6 +3,7 @@ mod attaching;
 mod catalogue;
 mod chores;
 mod door;
+mod handing;
 mod jsonrpc;
 mod looking;
 mod mending;
@@ -52,7 +53,8 @@ const LISTED_AT_MOST: usize = 200;
 
 pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
     let mut stdin = std::io::stdin().lock();
-    let mut out = std::io::stdout().lock();
+    let mut born = handing::Born::now();
+    let mut greeting: Option<String> = None;
 
     // Bytes, not lines: one stray non-UTF-8 byte would end the session and every request behind.
     let mut raw = Vec::new();
@@ -62,9 +64,16 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
         if line.trim().is_empty() {
             continue;
         }
+        if let Some(ended) = born.hand_over(greeting.as_deref(), &line, &mut stdin) {
+            return ended;
+        }
+        if greeting.is_none() && handing::greets(&line) {
+            greeting = Some(line.clone());
+        }
         let Some(said) = answer(&paths, &line) else {
             continue;
         };
+        let mut out = std::io::stdout().lock();
         writeln!(out, "{said}")?;
         out.flush()?;
     }

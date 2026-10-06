@@ -483,6 +483,21 @@ store the person did not choose asks nobody, which is what lets the tests turn
 an agent on — read the way `Paths::resolve` reads it, so a profile name it
 throws away does not open the person's own store to the check's exemption.
 
+**An update never cuts the door.** A client starts `tisty mcp` once and does
+not start it again when it dies, so an update that closed it left every
+assistant without Tisty until the person reconnected it by hand. The Windows
+installer no longer closes a running `tisty.exe`: it moves it aside under a
+`.old` name, which Windows allows for a running binary, and removes those
+left from earlier updates once nothing runs them. Only a move that fails falls
+back to closing it. The door, for its part, keeps what its binary looked like
+when it started, and before each message it checks whether a new one was laid
+in its place, by an installer or by a bundle swap on macOS. When one was, it
+starts that one, greets it with the client's own `initialize`, drops the
+answer, and from then on passes every line through. The client keeps talking
+to the same process and is served by the new version. A new binary that will
+not start or answer within ten seconds is left alone and the old door serves
+on.
+
 **No assistant ever deletes, and that is the design rather than an omission.** The
 MCP has no tool that writes any of the deletions — not a task, not a list, not a
 folder, not a document. Finishing is the person's, and so is unmaking; an agent
