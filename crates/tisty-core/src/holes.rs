@@ -128,19 +128,31 @@ pub fn brought_down(pending: Vec<PathBuf>, most: Duration) -> Vec<PathBuf> {
     if readable.is_empty() {
         return asked;
     }
+    let fresh: Vec<PathBuf> = match in_flight().lock() {
+        Ok(mut asked) => readable
+            .iter()
+            .filter(|at| asked.insert((*at).clone()))
+            .cloned()
+            .collect(),
+        Err(_) => Vec::new(),
+    };
     let (told, heard) = std::sync::mpsc::channel();
-    for at in readable.clone() {
+    let many = fresh.len();
+    for at in fresh {
         let told = told.clone();
         std::thread::spawn(move || {
             if let Ok(mut file) = std::fs::File::open(&at) {
                 let _ = std::io::copy(&mut file, &mut std::io::sink());
+            }
+            if let Ok(mut asked) = in_flight().lock() {
+                asked.remove(&at);
             }
             let _ = told.send(());
         });
     }
     drop(told);
     let until = std::time::Instant::now() + most;
-    for _ in 0..readable.len() {
+    for _ in 0..many {
         let left = until.saturating_duration_since(std::time::Instant::now());
         if heard.recv_timeout(left).is_err() {
             break;

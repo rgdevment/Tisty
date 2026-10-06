@@ -177,3 +177,21 @@ fn nothing_away_waits_for_nothing() {
     assert!(brought_down(Vec::new(), Duration::from_secs(30)).is_empty());
     assert!(started.elapsed() < Duration::from_secs(1));
 }
+
+#[test]
+fn a_file_already_being_read_is_not_read_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join("active.tisty");
+    std::fs::write(&at, "{}\n").unwrap();
+    in_flight().lock().unwrap().insert(at.clone());
+
+    let started = std::time::Instant::now();
+    let left = brought_down(vec![at.clone()], Duration::from_secs(5));
+
+    assert!(left.is_empty(), "it is here, so nothing is left");
+    assert!(
+        started.elapsed() < Duration::from_secs(1),
+        "it waited on a read it never started"
+    );
+    in_flight().lock().unwrap().remove(&at);
+}
