@@ -2112,29 +2112,31 @@ every install — Store, loose, the command line and the assistant's door —
 shares one real store that outlives any of them. `TISTY_DATA`, `TISTY_CONFIG`
 and `TISTY_CACHE` override them, and exist for tests.
 
-The move from `%LOCALAPPDATA%\tisty` happens once per process, from the window,
-the command line or the assistant's door, before the paths are resolved — never
-from what only sweeps on uninstall or reads a setting, and never while an
-override or a profile is set. One process does it, behind a lock beside the new
-root that it gives up on after thirty seconds, and it holds every device's write
-lock while it copies, so an older Tisty still running makes it wait for the next
-start instead of losing what it writes. Only `data` and `config` move. It
-rebuilds what each install saw: the packaged app read the real folder with its
-own private copy laid over it file by file, so that overlay is the Store's view,
-and the real folder alone is the loose install's. Whichever holds this machine's
-own newest active segment becomes the store; the other is copied whole into
-`aside/`. Everything goes into a `.part` folder renamed into place, and until it
-lands the old place stays in use. The new root records what it was gathered
-from, and only those folders are fenced: one line appended to each active
-segment, an event at a version no build will ever reach, so an older Tisty
-refuses that store instead of writing a second history for the same machine. A
-fence is never copied along, and never written twice. Since every install now
-shares the settings, leaving one sweeps its cache but keeps `config.toml`.
+Only the window moves the store out of `%LOCALAPPDATA%\tisty`, once, before it
+resolves its paths and never while an override or a profile is set; the
+command line and the assistant's door use whichever root exists, so nothing
+races at sign-in and nothing slow sits in front of an assistant's handshake.
+The window holds every device's write lock while it copies, so an older Tisty
+still writing makes it stop and say so instead of losing what it writes, and a
+move that fails closes the window with a message rather than open an empty
+store. Only `data` and `config` move, as one view: the real folder with the
+Store app's private copy laid over it file by file, which is exactly what the
+packaged app read — so a Store app updated in place, a loose install put in
+before the Store app is removed, and the Store app put in over a loose install
+all arrive with what the person last saw. Everything goes into a `.part` folder
+renamed into place. The old folders are left as they were, with a `MOVED.txt`,
+except for one line appended to each active segment: an event at a version no
+build will ever reach, so an older Tisty refuses that store instead of writing
+where nobody reads. That line is never copied along and never written twice.
+Since every install now shares the settings, leaving one sweeps its cache but
+keeps `config.toml`.
 
 What it costs: a Store app on 1.23 removed before a 1.24 is put in takes its
-data with it, as it always did — install the new one first. And a profile that
-roams carries `.tisty` with it, which suits a person's own machines but not a
-domain that roams one profile across several.
+data with it, as it always did — install the new one first. Using a loose
+install and the Store app side by side before moving keeps the Store app's copy
+of any file both touched; the loose one's stays in the old folder. And a profile
+that roams carries `.tisty` with it, which suits a person's own machines but not
+a domain that roams one profile across several.
 
 The **configuration** never syncs, and that is what matters: if two machines
 shared a device id they would write to the same file and every guarantee above

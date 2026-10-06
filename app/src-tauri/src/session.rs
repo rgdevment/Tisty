@@ -48,12 +48,21 @@ pub struct Relayed;
 impl Session {
     pub fn open() -> tisty_core::Result<Self> {
         let settled = tisty_core::paths::settle_home();
+        if let Some(tisty_core::moving::Settled::Failed(why)) = settled {
+            return Err(tisty_core::Error::StoreNotMoved(why));
+        }
         let paths = Paths::resolve()?;
         tisty_core::witness::keeps(
             tisty_core::witness::file(&paths),
             tisty_core::witness::wants_all(),
         );
-        tisty_core::moving::told(settled.as_ref());
+        if settled == Some(tisty_core::moving::Settled::Moved) {
+            tisty_core::witness::note(
+                tisty_core::witness::channel::STORE,
+                "this machine's store moved out of AppData, where the Store would delete it",
+                &[],
+            );
+        }
         static RELAY: Relayed = Relayed;
         if log::set_logger(&RELAY).is_ok() {
             log::set_max_level(log::LevelFilter::Warn);

@@ -1,16 +1,13 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
 
 const STORE: &str = "store";
 const KEPT: [&str; 2] = ["data", "config"];
 pub const FENCE_VERSION: u32 = u32::MAX;
 const FENCE_OP: &str = "storeMoved";
 const MOVED_NOTE: &str = "MOVED.txt";
-const MOVED_FROM: &str = ".moved-from";
 const RETRIES: u32 = 10;
-const GATE_WAIT: Duration = Duration::from_secs(30);
-const POLL: Duration = Duration::from_millis(200);
+const POLL: std::time::Duration = std::time::Duration::from_millis(200);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Roots {
@@ -23,13 +20,12 @@ pub struct Roots {
 pub enum Settled {
     Fresh,
     AlreadyThere,
-    Moved { aside: Option<PathBuf> },
+    Moved,
     Failed(String),
 }
 
 pub fn settle(roots: &Roots) -> Settled {
     if roots.new.exists() {
-        fence_moved(&roots.new);
         return Settled::AlreadyThere;
     }
     let real = held(&roots.real).then(|| roots.real.clone());
@@ -40,35 +36,21 @@ pub fn settle(roots: &Roots) -> Settled {
     let Some(parent) = roots.new.parent() else {
         return Settled::Failed("the new root has no parent".into());
     };
-    let gate = match gated(parent, &roots.new) {
-        Ok(gate) => gate,
-        Err(why) => return Settled::Failed(why.to_string()),
-    };
-    if roots.new.exists() {
-        drop(gate);
-        fence_moved(&roots.new);
-        return Settled::AlreadyThere;
-    }
-    swept(parent, &roots.new);
-
     let sources: Vec<&Path> = real
         .iter()
         .chain(private.iter())
         .map(PathBuf::as_path)
         .collect();
     let Some(_quiet) = quieted(&sources) else {
-        return Settled::Failed("a store being moved is still being written".into());
+        return Settled::Failed("another Tisty is still writing the old store".into());
     };
+    swept(parent, &roots.new);
+
     let part = parent.join(format!("{}.part-{}", leaf(&roots.new), std::process::id()));
-    let made = gathered(&part, real.as_deref(), private.as_deref())
-        .and_then(|aside| noted_from(&part, &sources).map(|()| aside));
-    let aside = match made {
-        Ok(aside) => aside,
-        Err(why) => {
-            let _ = std::fs::remove_dir_all(&part);
-            return Settled::Failed(why.to_string());
-        }
-    };
+    if let Err(why) = gathered(&part, &sources) {
+        let _ = std::fs::remove_dir_all(&part);
+        return Settled::Failed(why.to_string());
+    }
     if let Err(why) = landed(&part, &roots.new) {
         let _ = std::fs::remove_dir_all(&part);
         return match roots.new.exists() {
@@ -76,12 +58,12 @@ pub fn settle(roots: &Roots) -> Settled {
             false => Settled::Failed(why.to_string()),
         };
     }
-    fence_moved(&roots.new);
-    drop(gate);
-    let _ = std::fs::remove_file(gate_file(parent, &roots.new));
-    Settled::Moved {
-        aside: aside.map(|one| roots.new.join(one)),
+    for source in &sources {
+        if fenced(source, &roots.new).is_ok() {
+            let _ = std::fs::write(source.join(MOVED_NOTE), moved_note(&roots.new));
+        }
     }
+    Settled::Moved
 }
 
 fn held(root: &Path) -> bool {
@@ -94,31 +76,11 @@ fn leaf(at: &Path) -> String {
         .unwrap_or_else(|| "root".into())
 }
 
-fn gate_file(parent: &Path, new: &Path) -> PathBuf {
-    parent.join(format!("{}.migrating.lock", leaf(new)))
-}
-
-fn gated(parent: &Path, new: &Path) -> std::io::Result<std::fs::File> {
-    std::fs::create_dir_all(parent)?;
-    let gate = std::fs::OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(false)
-        .open(gate_file(parent, new))?;
-    let mut waited = Duration::ZERO;
-    loop {
-        match gate.try_lock() {
-            Ok(()) => return Ok(gate),
-            Err(std::fs::TryLockError::WouldBlock) if waited < GATE_WAIT => {
-                std::thread::sleep(POLL);
-                waited += POLL;
-            }
-            Err(std::fs::TryLockError::WouldBlock) => {
-                return Err(std::io::Error::other("another process is moving the store"));
-            }
-            Err(std::fs::TryLockError::Error(why)) => return Err(why),
-        }
-    }
+fn moved_note(new: &Path) -> String {
+    format!(
+        "Tisty keeps this machine's tasks and documents in {} now.\nThis folder is a copy from before, left as it was.\n",
+        new.display()
+    )
 }
 
 fn swept(parent: &Path, new: &Path) {
@@ -133,7 +95,7 @@ fn swept(parent: &Path, new: &Path) {
     }
 }
 
-/// Holding every device's write lock is what keeps an older Tisty from writing mid-copy.
+/// Holding every device's write lock keeps an older Tisty from writing mid-copy.
 fn quieted(sources: &[&Path]) -> Option<Vec<crate::store::Alone>> {
     let mut held = Vec::new();
     for source in sources {
@@ -150,63 +112,14 @@ fn quieted(sources: &[&Path]) -> Option<Vec<crate::store::Alone>> {
 }
 
 /// The packaged app read the real folder with its own private copy laid over it, file by file.
-fn gathered(
-    part: &Path,
-    real: Option<&Path>,
-    private: Option<&Path>,
-) -> std::io::Result<Option<PathBuf>> {
+fn gathered(part: &Path, sources: &[&Path]) -> std::io::Result<()> {
     std::fs::create_dir_all(part)?;
-    let stamp = jiff::Zoned::now().strftime("%Y-%m-%d").to_string();
-    let private_leads = match (real, private) {
-        (_, None) => false,
-        (None, Some(_)) => true,
-        (Some(real), Some(private)) => newest_own(private) >= newest_own(real),
-    };
-    if let Some(real) = real {
-        kept(real, part)?;
-    }
-    let aside = match (private_leads, real, private) {
-        (true, real, Some(private)) => {
-            kept(private, part)?;
-            match real {
-                Some(real) => {
-                    let at = PathBuf::from("aside").join(format!("localappdata-{stamp}"));
-                    kept(real, &part.join(&at))?;
-                    Some(at)
-                }
-                None => None,
+    for source in sources {
+        for under in KEPT {
+            let at = source.join(under);
+            if at.is_dir() {
+                copied(&at, &part.join(under), false)?;
             }
-        }
-        (false, Some(_), Some(private)) => {
-            let at = PathBuf::from("aside").join(format!("store-package-{stamp}"));
-            kept(private, &part.join(&at))?;
-            Some(at)
-        }
-        _ => None,
-    };
-    Ok(aside)
-}
-
-fn newest_own(root: &Path) -> SystemTime {
-    let config = root.join("config").join("config.toml");
-    let Ok(Some(said)) = crate::config::Config::load(&config) else {
-        return SystemTime::UNIX_EPOCH;
-    };
-    let active = root
-        .join("data")
-        .join(STORE)
-        .join(&said.device_id.0)
-        .join("active.tisty");
-    std::fs::metadata(active)
-        .and_then(|meta| meta.modified())
-        .unwrap_or(SystemTime::UNIX_EPOCH)
-}
-
-fn kept(from: &Path, into: &Path) -> std::io::Result<()> {
-    for under in KEPT {
-        let at = from.join(under);
-        if at.is_dir() {
-            copied(&at, &into.join(under), false)?;
         }
     }
     Ok(())
@@ -219,14 +132,14 @@ fn copied(from: &Path, into: &Path, attachments: bool) -> std::io::Result<()> {
         let name = entry.file_name();
         let named = name.to_string_lossy();
         let at = entry.path();
-        let meta = std::fs::metadata(&at)?;
-        if meta.is_dir() {
+        let kind = std::fs::metadata(&at)?;
+        if kind.is_dir() {
             copied(
                 &at,
                 &into.join(&name),
                 attachments || named == "attachments",
             )?;
-        } else if meta.is_file() && !passing(&named, attachments) {
+        } else if kind.is_file() && !passing(&named, attachments) {
             if named == "active.tisty" {
                 unfenced(&at, &into.join(&name))?;
             } else {
@@ -246,7 +159,7 @@ fn passing(named: &str, attachments: bool) -> bool {
         }
 }
 
-/// A store moved once and then copied again must not carry the fence that retired it.
+/// A store copied again after its new home was lost must not carry the fence that retired it.
 fn unfenced(from: &Path, into: &Path) -> std::io::Result<()> {
     let body = std::fs::read(from)?;
     if !body
@@ -269,14 +182,6 @@ fn is_fence(line: &[u8]) -> bool {
         .is_some_and(|said| said.get("op").and_then(|op| op.as_str()) == Some(FENCE_OP))
 }
 
-fn noted_from(part: &Path, sources: &[&Path]) -> std::io::Result<()> {
-    let said: Vec<String> = sources
-        .iter()
-        .map(|one| one.display().to_string())
-        .collect();
-    std::fs::write(part.join(MOVED_FROM), said.join("\n") + "\n")
-}
-
 fn landed(part: &Path, new: &Path) -> std::io::Result<()> {
     let mut last = None;
     for _ in 0..RETRIES {
@@ -295,31 +200,7 @@ fn landed(part: &Path, new: &Path) -> std::io::Result<()> {
     Err(last.unwrap_or_else(|| std::io::Error::other("the rename never ran")))
 }
 
-/// Only what this root was gathered from is fenced: anything else was never copied here.
-pub fn fence_moved(new: &Path) {
-    let Ok(from) = std::fs::read_to_string(new.join(MOVED_FROM)) else {
-        return;
-    };
-    for root in from
-        .lines()
-        .filter(|one| !one.trim().is_empty())
-        .map(PathBuf::from)
-    {
-        if !held(&root) || root.join(MOVED_NOTE).exists() {
-            continue;
-        }
-        if fenced(&root, new).is_ok() {
-            let _ = std::fs::write(
-                root.join(MOVED_NOTE),
-                format!(
-                    "Tisty keeps this machine's tasks and documents in {} now.\nThis folder is a copy from before, left untouched.\n",
-                    new.display()
-                ),
-            );
-        }
-    }
-}
-
+/// An older Tisty still pointed at the old store must refuse it rather than write where nobody reads.
 fn fenced(root: &Path, new: &Path) -> std::io::Result<()> {
     let devices = match std::fs::read_dir(root.join("data").join(STORE)) {
         Ok(devices) => devices,
@@ -370,26 +251,6 @@ fn last_line(file: &mut std::fs::File) -> std::io::Result<Vec<u8>> {
         .rposition(|byte| *byte == b'\n')
         .map_or(0, |at| at + 1);
     Ok(tail[start..].to_vec())
-}
-
-pub fn told(settled: Option<&Settled>) {
-    use crate::witness::{self, Fact, channel};
-    match settled {
-        Some(Settled::Moved { aside }) => witness::note(
-            channel::STORE,
-            "this machine's store moved out of AppData, where the Store would delete it",
-            &[(
-                "aside",
-                Fact::Word(if aside.is_some() { "kept" } else { "none" }),
-            )],
-        ),
-        Some(Settled::Failed(why)) => witness::warn(
-            channel::STORE,
-            "the store could not move out of AppData, so this run keeps the old place",
-            &[("why", Fact::Why(why.clone()))],
-        ),
-        _ => {}
-    }
 }
 
 #[cfg(test)]

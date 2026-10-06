@@ -56,6 +56,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub enum Error {
     #[error("i/o error: {0}")]
     Io(#[from] std::io::Error),
+    #[error(
+        "Tisty could not move your data out of AppData, so it stayed closed to keep the old copy safe: {0}. Close every other Tisty and open it again."
+    )]
+    StoreNotMoved(String),
     #[error("{0} points outside the store")]
     OutsideTheStore(String),
     #[error("{0} does not hold what its name says it holds")]
@@ -127,6 +131,7 @@ impl Error {
     pub fn coded(&self) -> &'static str {
         match self {
             Error::Io(_) => "io",
+            Error::StoreNotMoved(_) => "storeNotMoved",
             Error::OutsideTheStore(_) => "outsideTheStore",
             Error::NotForAnAgent(_) => "notForAnAgent",
             Error::NotAParcel(_) => "notAParcel",
@@ -161,6 +166,7 @@ impl Error {
         let mut facts = vec![("code", Fact::Code(self.coded()))];
         match self {
             Error::Io(e) => facts.push(("why", Fact::Why(e.to_string()))),
+            Error::StoreNotMoved(why) => facts.push(("why", Fact::Why(why.clone()))),
             Error::ConfigParse(e) => facts.push(("why", Fact::Why(e.to_string()))),
             Error::ConfigWrite(e) => facts.push(("why", Fact::Why(e.to_string()))),
             Error::OtherStore { theirs } => facts.push(("theirs", Fact::Id(theirs.clone()))),

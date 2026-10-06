@@ -156,7 +156,7 @@ fn shared_home() -> Option<PathBuf> {
     Some(directories::UserDirs::new()?.home_dir().join(".tisty"))
 }
 
-/// Run once per process before `resolve`, never from what only sweeps or reads a setting.
+/// Only the window moves the store; the command line uses whichever root exists.
 pub fn settle_home() -> Option<crate::moving::Settled> {
     static ONCE: std::sync::OnceLock<Option<crate::moving::Settled>> = std::sync::OnceLock::new();
     ONCE.get_or_init(settled_home).clone()
