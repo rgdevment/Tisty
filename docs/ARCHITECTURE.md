@@ -262,9 +262,9 @@ at replay — `TaskResolve`, `TaskDescribe`, `StepAdd`, `StepDone` and
 `TaskLogEdit` from an assistant on a task nobody opened to them are let go, and
 so is a `StepUndone` on a step whose tick was not an assistant's, a `StepText` or
 `StepRemove` on a ticked step, and a `TaskLogEdit` that empties a note, whatever
-the server that wrote them believed — so a fill-in written on one machine before the
-person shut the door on another projects the same everywhere. Shutting it keeps
-what was filled in; it is not an unsaying.
+the server that wrote them believed — so a fill-in written on one machine before
+the person shut the door on another projects the same everywhere. Shutting it
+keeps what was filled in; it is not an unsaying.
 
 A task the person closed is history to an agent. It comes back from `read`
 and `find` with `closed` set to the moment it ended and, from `read`, a
