@@ -161,6 +161,7 @@ pub(crate) async fn catching_up(
 
 #[tauri::command]
 pub async fn settle_in(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
@@ -210,8 +211,9 @@ pub async fn settle_in(
             dest.clone(),
             alive.clone(),
         );
+        let mut telling = Telling::new(app.clone(), !tisty_sync::been_here(&aside, &dest));
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            tisty_sync::carry_holding(
+            let done = tisty_sync::carry_telling(
                 &data,
                 Some(&aside),
                 &device,
@@ -219,7 +221,10 @@ pub async fn settle_in(
                 tisty_sync::Way::Both,
                 &alive,
                 holds,
-            )
+                &mut |far| telling.hear(far),
+            );
+            telling.flush();
+            done
         })
         .await;
         if let Ok(Ok(done)) = &carried {
@@ -239,11 +244,11 @@ pub async fn settle_in(
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
             Ok(Ok(done)) => {
                 said_no_longer_held(&session, &done.let_go);
-                said_now_held(&session, &done.took_in);
                 still_asked(&session, &done.undecided);
                 arrived = done.arrived;
             }
         }
+        let _ = app.emit("brought", ());
     }
 
     if brought {
@@ -476,6 +481,21 @@ fn let_go_to(session: &Session) -> Option<std::path::PathBuf> {
         .filter(|_| session.config.holds() == tisty_core::config::Holds::Shared)
 }
 
+/// Only a folder that is still there, and that a round ever finished with, can hold what we let go of.
+fn stranded_by_leaving(
+    session: &Session,
+    chosen: &tisty_core::config::Sync,
+) -> Option<std::path::PathBuf> {
+    let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone() else {
+        return None;
+    };
+    (session.config.holds() != tisty_core::config::Holds::Everywhere
+        && session.config.sync.as_ref() != Some(chosen)
+        && old.is_dir()
+        && tisty_sync::been_here(session.paths.cache(), &old))
+    .then_some(old)
+}
+
 pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
     session.config.restored_at.is_some()
         && tisty_sync::theirs(at).is_some_and(|theirs| {
@@ -517,13 +537,7 @@ pub fn choose_sync(
     {
         return Err(Refusal::about("restoredApart", at.display().to_string()));
     }
-    // Leaving a folder that holds what this machine let go of takes them with it — but only while
-    // it is there to bring them back from. Gone, refusing would trap somebody with nowhere to go.
-    if session.config.holds() != tisty_core::config::Holds::Everywhere
-        && session.config.sync != Some(chosen.clone())
-        && let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone()
-        && old.is_dir()
-    {
+    if let Some(old) = stranded_by_leaving(&session, &chosen) {
         return Err(Refusal::about(
             "sharedAwayToLeave",
             old.display().to_string(),

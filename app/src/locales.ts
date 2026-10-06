@@ -1443,6 +1443,13 @@ const en = {
     "Tasks show up here as they arrive from the folder. If you close Tisty, it picks up where it left off next time.",
   welcomeCarryStuck: "The folder's writing could not be brought here",
   welcomeAnyway: "Go in anyway",
+  welcomeOlder: "This Tisty is older than the one in your folder",
+  welcomeOlderWhy:
+    "So the two versions never mix, it stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
+  welcomeOlderBy:
+    "«{name}» writes with a newer Tisty. So the two versions never mix, this one stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
+  welcomeStayHere: "Stay on this machine only",
+  welcomeOtherFolder: "Choose another folder",
   welcomeFolderHolds: "This folder already holds a Tisty",
   welcomeFolderHoldsWhy: "It looks like the history of another machine of yours. Bring it here?",
   welcomeFolderHoldsHow:
@@ -2917,6 +2924,13 @@ const es: Catalog = {
     "Las tareas aparecen aquí en cuanto llegan desde la carpeta. Si cierras Tisty, sigue donde quedó la próxima vez.",
   welcomeCarryStuck: "No se pudo traer lo que hay en la carpeta",
   welcomeAnyway: "Entrar de todos modos",
+  welcomeOlder: "Este Tisty es más antiguo que el de tu carpeta",
+  welcomeOlderWhy:
+    "Para no mezclar versiones, por ahora queda solo en este equipo. Cuando lo actualices, vuelve a elegir la carpeta en Configuración › Sincronizar.",
+  welcomeOlderBy:
+    "«{name}» escribe con un Tisty más nuevo. Para no mezclar versiones, este queda por ahora solo en este equipo. Cuando lo actualices, vuelve a elegir la carpeta en Configuración › Sincronizar.",
+  welcomeStayHere: "Seguir solo en este equipo",
+  welcomeOtherFolder: "Elegir otra carpeta",
   welcomeFolderHolds: "Esta carpeta ya trae un Tisty",
   welcomeFolderHoldsWhy: "Parece la historia de otra máquina tuya. ¿La traemos aquí?",
   welcomeFolderHoldsHow:

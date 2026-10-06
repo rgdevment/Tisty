@@ -235,7 +235,10 @@ pub(super) fn tools() -> Value {
             "description": "Propose a task. Reading a thread that holds several, send them \
                             together in `tasks` rather than one call each: each one is judged on \
                             its own and told apart in the answer, so a bad one does not take the \
-                            good ones with it.",
+                            good ones with it. Size the work first: a step is one line of a \
+                            checklist, a part is a task of its own with its steps, day and \
+                            journal. Work that is several tasks with one end — a move, a release, \
+                            a plan — goes in `parts`, one level only, not packed into steps.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": {
