@@ -134,6 +134,7 @@ impl Session {
         if self.config.sown == Some(true)
             || !self.state.lists.is_empty()
             || !self.state.tasks.is_empty()
+            || self.left_behind()
         {
             return;
         }
@@ -147,6 +148,21 @@ impl Session {
             return;
         }
         let _ = self.keep(|config| config.sown = Some(true));
+    }
+
+    // What an earlier install left, or a folder's history, is on its way: examples would be twice.
+    fn left_behind(&self) -> bool {
+        let holds = |at: &std::path::Path| {
+            std::fs::read_dir(at).is_ok_and(|mut entries| entries.next().is_some())
+        };
+        holds(&self.paths.attachments())
+            || holds(&self.paths.docs())
+            || match &self.config.sync {
+                Some(tisty_core::config::Sync::Folder(at)) => {
+                    tisty_core::store::inhabited(at.join(tisty_sync::STORE))
+                }
+                _ => false,
+            }
     }
 
     pub fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {

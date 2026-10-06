@@ -973,7 +973,7 @@ const en = {
   apartMerge: "Merge the two",
   apartMergeWhy: "Everything you have here and everything that is there, together.",
   apartMergeHow:
-    "You keep the tasks and the documents of both, without losing anything.\n\nTwo lists by the same name stay as two lists: Tisty does not join them by name, because getting that wrong goes unnoticed. The order of your lists interleaves and will not be as you left it in either one.",
+    "You keep the tasks and the documents of both, without losing anything.\n\nTwo lists by the same name become one, holding the tasks of both, and the example guide stays once. The order of your lists interleaves and will not be as you left it in either one.",
   apartMine: "Keep this machine",
   apartMineWhy: "The folder becomes this machine's.",
   apartMineHow:
@@ -2501,7 +2501,7 @@ const es: Catalog = {
   apartMerge: "Fusionar las dos",
   apartMergeWhy: "Lo que tienes aquí y lo que hay allí, todo junto.",
   apartMergeHow:
-    "Quedas con las tareas y los documentos de las dos, sin perder nada.\n\nDos listas que se llamen igual quedan como dos listas: Tisty no las junta por el nombre, porque equivocarse ahí no se nota. El orden de tus listas se entrelaza y no queda como estaba en ninguna de las dos.",
+    "Quedas con las tareas y los documentos de las dos, sin perder nada.\n\nDos listas que se llamen igual se juntan en una, con las tareas de ambas, y la guía de ejemplo queda una sola vez. El orden de tus listas se entrelaza y no queda como estaba en ninguna de las dos.",
   apartMine: "Conservar esta máquina",
   apartMineWhy: "La carpeta pasa a ser de aquí.",
   apartMineHow:

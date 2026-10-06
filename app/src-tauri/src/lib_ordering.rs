@@ -70,6 +70,22 @@ fn the_lists_arrive_once_the_welcome_is_through_and_never_a_second_time() {
 }
 
 #[test]
+fn an_install_that_finds_what_an_earlier_one_left_brings_no_example_lists() {
+    let desk = desk();
+    let held = desk.paths.attachments().join("ab");
+    std::fs::create_dir_all(&held).unwrap();
+    std::fs::write(held.join("foto.png"), b"x").unwrap();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+
+    session.sow_if_due();
+
+    assert!(
+        session.state.lists.is_empty(),
+        "the lists of the earlier install are on their way, and these would be twice"
+    );
+}
+
+#[test]
 fn a_folder_that_already_holds_a_store_is_the_meeting_place_itself() {
     let desk = desk();
     let shared = desk.paths.data().join("shared");

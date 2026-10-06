@@ -509,6 +509,7 @@ export interface ThisMachine {
 
 export const waitingMachines = (): Promise<Machine[]> => invoke("waiting_machines");
 export const thisMachine = (): Promise<ThisMachine> => invoke("this_machine");
+export const tidyMerged = (): Promise<number> => invoke("tidy_merged");
 
 export interface Stray {
   file: string;

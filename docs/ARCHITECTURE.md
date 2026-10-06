@@ -1487,9 +1487,12 @@ none can be undone from the app.
 syncing works — merging is concatenating — and nothing collides: entities are
 ULIDs, documents are named `<device>-NNNN.md`, attachments are named after their
 own contents. What it costs is said plainly beforehand: two lists by the same
-name stay two lists, because joining them by name is a guess, and a wrong guess
-there goes unnoticed; and ordering keys were minted independently, so lists
-interleave.
+name become one once the other side has come in, the one holding more keeping
+the name and taking the other's tasks, and the guide each side brought stays
+once (`doubled.rs`) — a fresh install's example lists are the usual twin, and
+the person asked for them gone; and ordering keys were minted independently, so
+lists interleave. An install that finds what an earlier one left, or a folder
+that already holds a history, plants no example lists to begin with.
 
 **Keep this machine.** The folder is backed up, emptied, and repopulated from
 here. The other machine will be refused next time and will face the same

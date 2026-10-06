@@ -10,6 +10,7 @@ pub mod capture;
 pub mod config;
 pub mod counting;
 pub mod docs;
+pub mod doubled;
 pub mod event;
 pub mod herald;
 pub mod holes;

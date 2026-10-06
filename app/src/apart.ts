@@ -7,6 +7,7 @@ import {
   type Settings,
   syncNow,
   takeOver,
+  tidyMerged,
 } from "./core";
 import { settled } from "./knocking";
 import type { Door } from "./ui/Apart";
@@ -39,8 +40,12 @@ export const walkThrough = async (door: Door | "else"): Promise<boolean> => {
     filters: [{ name: "Tisty", extensions: ["zip"] }],
   });
   if (typeof at !== "string") return false;
-  if (door === "merge") await mergeStores(at);
-  else if (door === "mine") await takeOver(at);
+  if (door === "merge") {
+    await mergeStores(at);
+    // Only once the other side has come in is anything there twice.
+    await syncNow("pull").catch(() => undefined);
+    await tidyMerged().catch(() => undefined);
+  } else if (door === "mine") await takeOver(at);
   else await joinThem(at);
   return true;
 };

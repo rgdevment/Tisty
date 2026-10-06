@@ -1822,7 +1822,8 @@ describe("the maintenance panel", () => {
     expect(sent("merge_stores")[0].args.into).toBe("C:/keep/tisty-before-joining-both.zip");
     expect(sent("join_them")).toHaveLength(0);
     expect(sent("take_over")).toHaveLength(0);
-    expect(sent("sync_now")).toHaveLength(2);
+    expect(sent("sync_now")).toHaveLength(3);
+    expect(sent("tidy_merged")).toHaveLength(1);
   });
 
   it("says what merging costs before it is taken, not after", async () => {
@@ -1831,7 +1832,7 @@ describe("the maintenance panel", () => {
 
     const said = (await screen.findByRole("dialog")).textContent ?? "";
     expect(said).toMatch(/without losing anything/i);
-    expect(said).toMatch(/two lists by the same name stay as two/i);
+    expect(said).toMatch(/two lists by the same name become one/i);
   });
 
   it("empties nothing when there is nowhere to put the backup for a merge", async () => {
