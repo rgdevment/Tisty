@@ -18,8 +18,8 @@ fn home(private: bool) -> Home {
     Home { _dir: dir, roots }
 }
 
-fn wrote(root: &Path, title: &str) {
-    let mut store = Store::open(root.join("data").join("store"), DeviceId("dev_a".into())).unwrap();
+fn wrote_as(root: &Path, device: &str, title: &str) {
+    let mut store = Store::open(root.join("data").join("store"), DeviceId(device.into())).unwrap();
     store
         .append(Op::TaskAdd {
             id: ulid::Ulid::generate(),
@@ -28,14 +28,19 @@ fn wrote(root: &Path, title: &str) {
         .unwrap();
 }
 
+fn wrote(root: &Path, title: &str) {
+    wrote_as(root, "dev_a", title);
+    put(root, "config/config.toml", "device_id = \"dev_a\"\n");
+}
+
 fn put(root: &Path, at: &str, body: &str) {
     let at = root.join(at);
     std::fs::create_dir_all(at.parent().unwrap()).unwrap();
     std::fs::write(at, body).unwrap();
 }
 
-fn aged(root: &Path, by: Duration) {
-    let active = root.join("data/store/dev_a/active.tisty");
+fn aged(root: &Path, device: &str, by: Duration) {
+    let active = root.join(format!("data/store/{device}/active.tisty"));
     let file = std::fs::OpenOptions::new()
         .write(true)
         .open(active)
@@ -45,6 +50,10 @@ fn aged(root: &Path, by: Duration) {
 
 fn read(root: &Path, at: &str) -> Option<String> {
     std::fs::read_to_string(root.join(at)).ok()
+}
+
+fn readable(root: &Path) -> bool {
+    crate::store::read_all(root.join("data/store")).is_ok()
 }
 
 #[test]
@@ -77,6 +86,19 @@ fn a_loose_install_moves_whole_and_leaves_its_folder_as_it_was() {
 }
 
 #[test]
+fn only_the_data_and_the_settings_move_never_the_cache_nor_a_program_beside_them() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    put(&home.roots.real, "cache/read.db", "rebuilt anyway");
+    put(&home.roots.real, "Tisty.exe", "an old install lived here");
+
+    settle(&home.roots);
+
+    assert!(!home.roots.new.join("cache").exists());
+    assert!(!home.roots.new.join("Tisty.exe").exists());
+}
+
+#[test]
 fn the_store_copy_is_laid_over_the_real_one_file_by_file() {
     let home = home(true);
     let private = home.roots.private.clone().unwrap();
@@ -87,7 +109,7 @@ fn the_store_copy_is_laid_over_the_real_one_file_by_file() {
         "the key nobody rewrote",
     );
     put(&home.roots.real, "data/docs/both.md", "old body");
-    aged(&home.roots.real, Duration::from_secs(3600));
+    aged(&home.roots.real, "dev_a", Duration::from_secs(3600));
     wrote(&private, "written by the store app");
     put(&private, "data/docs/both.md", "new body");
 
@@ -120,7 +142,7 @@ fn a_real_folder_written_after_the_store_one_leads_and_the_store_copy_is_kept_as
     let home = home(true);
     let private = home.roots.private.clone().unwrap();
     wrote(&private, "from the store app");
-    aged(&private, Duration::from_secs(3600));
+    aged(&private, "dev_a", Duration::from_secs(3600));
     wrote(&home.roots.real, "from the loose install, later");
 
     let Settled::Moved { aside: Some(aside) } = settle(&home.roots) else {
@@ -140,6 +162,25 @@ fn a_real_folder_written_after_the_store_one_leads_and_the_store_copy_is_kept_as
 }
 
 #[test]
+fn another_machine_just_carried_in_does_not_decide_which_copy_leads() {
+    let home = home(true);
+    let private = home.roots.private.clone().unwrap();
+    wrote(&home.roots.real, "this machine, a while ago");
+    aged(&home.roots.real, "dev_a", Duration::from_secs(3600));
+    wrote_as(&home.roots.real, "dev_laptop", "carried in a moment ago");
+    wrote(&private, "this machine, in the store app");
+    aged(&private, "dev_a", Duration::from_secs(60));
+
+    settle(&home.roots);
+
+    assert!(
+        read(&home.roots.new, "data/store/dev_a/active.tisty")
+            .unwrap()
+            .contains("this machine, in the store app")
+    );
+}
+
+#[test]
 fn an_older_tisty_refuses_the_folder_that_was_left_behind() {
     let home = home(false);
     wrote(&home.roots.real, "pay the bill");
@@ -150,33 +191,72 @@ fn an_older_tisty_refuses_the_folder_that_was_left_behind() {
         crate::store::read_all(home.roots.real.join("data/store")),
         Err(Error::UnsupportedVersion { .. })
     ));
-    assert!(crate::store::read_all(home.roots.new.join("data/store")).is_ok());
+    assert!(readable(&home.roots.new));
 }
 
 #[test]
-fn a_second_start_finds_the_move_done_and_fences_what_was_missed() {
+fn a_root_that_was_made_without_moving_fences_nothing_it_never_copied() {
     let home = home(false);
     wrote(&home.roots.real, "pay the bill");
     std::fs::create_dir_all(&home.roots.new).unwrap();
 
     assert_eq!(settle(&home.roots), Settled::AlreadyThere);
-    assert!(home.roots.real.join("MOVED.txt").is_file());
-    assert!(read(&home.roots.new, "data/store/dev_a/active.tisty").is_none());
 
-    let fenced = read(&home.roots.real, "data/store/dev_a/active.tisty").unwrap();
+    assert!(
+        readable(&home.roots.real),
+        "a store nobody copied was fenced off"
+    );
+    assert!(!home.roots.real.join("MOVED.txt").exists());
+}
+
+#[test]
+fn the_fence_is_written_once_however_often_it_is_asked_for() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
     settle(&home.roots);
+    let fenced = read(&home.roots.real, "data/store/dev_a/active.tisty").unwrap();
+    std::fs::remove_file(home.roots.real.join("MOVED.txt")).unwrap();
+
+    fence_moved(&home.roots.new);
+
     assert_eq!(
         read(&home.roots.real, "data/store/dev_a/active.tisty").unwrap(),
-        fenced,
-        "the fence was written twice"
+        fenced
     );
+}
+
+#[test]
+fn a_store_moved_again_after_its_new_home_was_lost_comes_back_readable() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    settle(&home.roots);
+    std::fs::remove_dir_all(&home.roots.new).unwrap();
+    std::fs::remove_file(home.roots.real.join("MOVED.txt")).unwrap();
+
+    assert!(matches!(settle(&home.roots), Settled::Moved { .. }));
+
+    assert!(
+        readable(&home.roots.new),
+        "the fence came along and locked the copy"
+    );
+}
+
+#[test]
+fn a_store_still_being_written_waits_for_the_next_start() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    let _writing = crate::store::alone(&home.roots.real.join("data/store/dev_a")).unwrap();
+
+    assert!(matches!(settle(&home.roots), Settled::Failed(_)));
+
+    assert!(!home.roots.new.exists());
+    assert!(readable(&home.roots.real));
 }
 
 #[test]
 fn what_a_cut_short_move_left_is_swept_and_never_copied() {
     let home = home(false);
     wrote(&home.roots.real, "pay the bill");
-    put(&home.roots.real, "data/store/dev_a/.lock", "");
     put(&home.roots.real, "data/docs/half.md.tmp", "half");
     let parent = home.roots.new.parent().unwrap().to_path_buf();
     std::fs::create_dir_all(parent.join(".keep.part-1")).unwrap();
@@ -186,4 +266,99 @@ fn what_a_cut_short_move_left_is_swept_and_never_copied() {
     assert!(!parent.join(".keep.part-1").exists());
     assert!(!home.roots.new.join("data/store/dev_a/.lock").exists());
     assert!(!home.roots.new.join("data/docs/half.md.tmp").exists());
+}
+
+#[test]
+fn an_attachment_keeps_its_own_extension_whatever_it_is() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    put(
+        &home.roots.real,
+        "data/attachments/ab/0123-report.tmp",
+        "a real file",
+    );
+    put(
+        &home.roots.real,
+        "data/attachments/ab/.0123-half.part",
+        "half",
+    );
+
+    settle(&home.roots);
+
+    assert!(
+        home.roots
+            .new
+            .join("data/attachments/ab/0123-report.tmp")
+            .is_file()
+    );
+    assert!(
+        !home
+            .roots
+            .new
+            .join("data/attachments/ab/.0123-half.part")
+            .exists()
+    );
+}
+
+#[test]
+fn a_store_app_updated_in_place_carries_its_own_copy_out_of_the_package() {
+    let home = home(true);
+    let private = home.roots.private.clone().unwrap();
+    wrote(&private, "only ever in the store app");
+
+    assert_eq!(settle(&home.roots), Settled::Moved { aside: None });
+
+    assert!(
+        read(&home.roots.new, "data/store/dev_a/active.tisty")
+            .unwrap()
+            .contains("only ever in the store app")
+    );
+    assert!(readable(&home.roots.new));
+}
+
+#[test]
+fn a_loose_install_put_in_before_the_store_app_is_removed_takes_its_copy_first() {
+    let home = home(true);
+    let private = home.roots.private.clone().unwrap();
+    wrote(&private, "written in the store app");
+    put(&private, "config/private/key", "the store app's key");
+
+    assert!(matches!(settle(&home.roots), Settled::Moved { .. }));
+    std::fs::remove_dir_all(private.parent().unwrap()).unwrap();
+
+    assert!(
+        read(&home.roots.new, "data/store/dev_a/active.tisty")
+            .unwrap()
+            .contains("written in the store app")
+    );
+    assert_eq!(
+        read(&home.roots.new, "config/private/key").as_deref(),
+        Some("the store app's key")
+    );
+}
+
+#[test]
+fn the_store_app_put_in_over_a_loose_install_takes_what_the_loose_one_wrote() {
+    let home = home(true);
+    wrote(&home.roots.real, "written by the loose install");
+
+    assert_eq!(settle(&home.roots), Settled::Moved { aside: None });
+
+    assert!(
+        read(&home.roots.new, "data/store/dev_a/active.tisty")
+            .unwrap()
+            .contains("written by the loose install")
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn leaving_one_install_keeps_the_settings_the_others_share() {
+    let root = directories::UserDirs::new()
+        .unwrap()
+        .home_dir()
+        .join(".tisty");
+    let shared = crate::Paths::new(root.join("data"), root.join("config"));
+
+    assert!(!shared.swept_on_leaving().contains(&shared.config_file()));
 }

@@ -1,12 +1,16 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 const STORE: &str = "store";
+const KEPT: [&str; 2] = ["data", "config"];
 pub const FENCE_VERSION: u32 = u32::MAX;
 const FENCE_OP: &str = "storeMoved";
 const MOVED_NOTE: &str = "MOVED.txt";
+const MOVED_FROM: &str = ".moved-from";
 const RETRIES: u32 = 10;
+const GATE_WAIT: Duration = Duration::from_secs(30);
+const POLL: Duration = Duration::from_millis(200);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Roots {
@@ -25,7 +29,7 @@ pub enum Settled {
 
 pub fn settle(roots: &Roots) -> Settled {
     if roots.new.exists() {
-        fence_behind(roots);
+        fence_moved(&roots.new);
         return Settled::AlreadyThere;
     }
     let real = held(&roots.real).then(|| roots.real.clone());
@@ -42,13 +46,22 @@ pub fn settle(roots: &Roots) -> Settled {
     };
     if roots.new.exists() {
         drop(gate);
-        fence_behind(roots);
+        fence_moved(&roots.new);
         return Settled::AlreadyThere;
     }
     swept(parent, &roots.new);
 
+    let sources: Vec<&Path> = real
+        .iter()
+        .chain(private.iter())
+        .map(PathBuf::as_path)
+        .collect();
+    let Some(_quiet) = quieted(&sources) else {
+        return Settled::Failed("a store being moved is still being written".into());
+    };
     let part = parent.join(format!("{}.part-{}", leaf(&roots.new), std::process::id()));
-    let made = gathered(&part, real.as_deref(), private.as_deref());
+    let made = gathered(&part, real.as_deref(), private.as_deref())
+        .and_then(|aside| noted_from(&part, &sources).map(|()| aside));
     let aside = match made {
         Ok(aside) => aside,
         Err(why) => {
@@ -63,8 +76,9 @@ pub fn settle(roots: &Roots) -> Settled {
             false => Settled::Failed(why.to_string()),
         };
     }
+    fence_moved(&roots.new);
     drop(gate);
-    fence_behind(roots);
+    let _ = std::fs::remove_file(gate_file(parent, &roots.new));
     Settled::Moved {
         aside: aside.map(|one| roots.new.join(one)),
     }
@@ -80,15 +94,31 @@ fn leaf(at: &Path) -> String {
         .unwrap_or_else(|| "root".into())
 }
 
+fn gate_file(parent: &Path, new: &Path) -> PathBuf {
+    parent.join(format!("{}.migrating.lock", leaf(new)))
+}
+
 fn gated(parent: &Path, new: &Path) -> std::io::Result<std::fs::File> {
     std::fs::create_dir_all(parent)?;
     let gate = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(false)
-        .open(parent.join(format!("{}.migrating.lock", leaf(new))))?;
-    gate.lock()?;
-    Ok(gate)
+        .open(gate_file(parent, new))?;
+    let mut waited = Duration::ZERO;
+    loop {
+        match gate.try_lock() {
+            Ok(()) => return Ok(gate),
+            Err(std::fs::TryLockError::WouldBlock) if waited < GATE_WAIT => {
+                std::thread::sleep(POLL);
+                waited += POLL;
+            }
+            Err(std::fs::TryLockError::WouldBlock) => {
+                return Err(std::io::Error::other("another process is moving the store"));
+            }
+            Err(std::fs::TryLockError::Error(why)) => return Err(why),
+        }
+    }
 }
 
 fn swept(parent: &Path, new: &Path) {
@@ -103,6 +133,22 @@ fn swept(parent: &Path, new: &Path) {
     }
 }
 
+/// Holding every device's write lock is what keeps an older Tisty from writing mid-copy.
+fn quieted(sources: &[&Path]) -> Option<Vec<crate::store::Alone>> {
+    let mut held = Vec::new();
+    for source in sources {
+        let Ok(devices) = std::fs::read_dir(source.join("data").join(STORE)) else {
+            continue;
+        };
+        for device in devices.filter_map(|one| one.ok()) {
+            if device.path().is_dir() {
+                held.push(crate::store::alone(&device.path())?);
+            }
+        }
+    }
+    Some(held)
+}
+
 /// The packaged app read the real folder with its own private copy laid over it, file by file.
 fn gathered(
     part: &Path,
@@ -114,69 +160,121 @@ fn gathered(
     let private_leads = match (real, private) {
         (_, None) => false,
         (None, Some(_)) => true,
-        (Some(real), Some(private)) => newest(private) >= newest(real),
+        (Some(real), Some(private)) => newest_own(private) >= newest_own(real),
     };
     if let Some(real) = real {
-        copied(real, part)?;
+        kept(real, part)?;
     }
-    let mut aside = None;
-    match (private_leads, real, private) {
+    let aside = match (private_leads, real, private) {
         (true, real, Some(private)) => {
-            copied(private, part)?;
-            if let Some(real) = real {
-                let at = PathBuf::from("aside").join(format!("localappdata-{stamp}"));
-                copied(real, &part.join(&at))?;
-                aside = Some(at);
+            kept(private, part)?;
+            match real {
+                Some(real) => {
+                    let at = PathBuf::from("aside").join(format!("localappdata-{stamp}"));
+                    kept(real, &part.join(&at))?;
+                    Some(at)
+                }
+                None => None,
             }
         }
         (false, Some(_), Some(private)) => {
             let at = PathBuf::from("aside").join(format!("store-package-{stamp}"));
-            copied(private, &part.join(&at))?;
-            aside = Some(at);
+            kept(private, &part.join(&at))?;
+            Some(at)
         }
-        _ => {}
-    }
+        _ => None,
+    };
     Ok(aside)
 }
 
-fn newest(root: &Path) -> SystemTime {
-    let Ok(devices) = std::fs::read_dir(root.join("data").join(STORE)) else {
+fn newest_own(root: &Path) -> SystemTime {
+    let config = root.join("config").join("config.toml");
+    let Ok(Some(said)) = crate::config::Config::load(&config) else {
         return SystemTime::UNIX_EPOCH;
     };
-    devices
-        .filter_map(|one| one.ok())
-        .filter_map(|one| std::fs::metadata(one.path().join("active.tisty")).ok())
-        .filter_map(|meta| meta.modified().ok())
-        .max()
+    let active = root
+        .join("data")
+        .join(STORE)
+        .join(&said.device_id.0)
+        .join("active.tisty");
+    std::fs::metadata(active)
+        .and_then(|meta| meta.modified())
         .unwrap_or(SystemTime::UNIX_EPOCH)
 }
 
-fn copied(from: &Path, into: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(into)?;
-    for entry in std::fs::read_dir(from)? {
-        let entry = entry?;
-        let name = entry.file_name();
-        let named = name.to_string_lossy();
-        if passing(&named) {
-            continue;
-        }
-        let at = entry.path();
-        let kind = entry.file_type()?;
-        if kind.is_dir() {
-            copied(&at, &into.join(&name))?;
-        } else if kind.is_file() {
-            std::fs::copy(&at, into.join(&name))?;
+fn kept(from: &Path, into: &Path) -> std::io::Result<()> {
+    for under in KEPT {
+        let at = from.join(under);
+        if at.is_dir() {
+            copied(&at, &into.join(under), false)?;
         }
     }
     Ok(())
 }
 
-fn passing(named: &str) -> bool {
+fn copied(from: &Path, into: &Path, attachments: bool) -> std::io::Result<()> {
+    std::fs::create_dir_all(into)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let named = name.to_string_lossy();
+        let at = entry.path();
+        let meta = std::fs::metadata(&at)?;
+        if meta.is_dir() {
+            copied(
+                &at,
+                &into.join(&name),
+                attachments || named == "attachments",
+            )?;
+        } else if meta.is_file() && !passing(&named, attachments) {
+            if named == "active.tisty" {
+                unfenced(&at, &into.join(&name))?;
+            } else {
+                std::fs::copy(&at, into.join(&name))?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn passing(named: &str, attachments: bool) -> bool {
     named == ".lock"
-        || named.ends_with(".part")
-        || named.ends_with(".tmp")
-        || named.ends_with(".migrating.lock")
         || crate::holes::marker(named)
+        || match attachments {
+            true => named.starts_with('.') && named.ends_with(".part"),
+            false => named.ends_with(".part") || named.ends_with(".tmp"),
+        }
+}
+
+/// A store moved once and then copied again must not carry the fence that retired it.
+fn unfenced(from: &Path, into: &Path) -> std::io::Result<()> {
+    let body = std::fs::read(from)?;
+    if !body
+        .windows(FENCE_OP.len())
+        .any(|one| one == FENCE_OP.as_bytes())
+    {
+        std::fs::copy(from, into)?;
+        return Ok(());
+    }
+    let kept: Vec<&[u8]> = body
+        .split_inclusive(|byte| *byte == b'\n')
+        .filter(|line| !is_fence(line))
+        .collect();
+    std::fs::write(into, kept.concat())
+}
+
+fn is_fence(line: &[u8]) -> bool {
+    serde_json::from_slice::<serde_json::Value>(line)
+        .ok()
+        .is_some_and(|said| said.get("op").and_then(|op| op.as_str()) == Some(FENCE_OP))
+}
+
+fn noted_from(part: &Path, sources: &[&Path]) -> std::io::Result<()> {
+    let said: Vec<String> = sources
+        .iter()
+        .map(|one| one.display().to_string())
+        .collect();
+    std::fs::write(part.join(MOVED_FROM), said.join("\n") + "\n")
 }
 
 fn landed(part: &Path, new: &Path) -> std::io::Result<()> {
@@ -192,23 +290,30 @@ fn landed(part: &Path, new: &Path) -> std::io::Result<()> {
             Ok(()) => return Ok(()),
             Err(why) => last = Some(why),
         }
-        std::thread::sleep(std::time::Duration::from_millis(200));
+        std::thread::sleep(POLL);
     }
     Err(last.unwrap_or_else(|| std::io::Error::other("the rename never ran")))
 }
 
-/// An older Tisty must refuse the folder it left rather than keep writing a second history.
-pub fn fence_behind(roots: &Roots) {
-    for root in std::iter::once(&roots.real).chain(roots.private.iter()) {
-        if !held(root) || root.join(MOVED_NOTE).exists() {
+/// Only what this root was gathered from is fenced: anything else was never copied here.
+pub fn fence_moved(new: &Path) {
+    let Ok(from) = std::fs::read_to_string(new.join(MOVED_FROM)) else {
+        return;
+    };
+    for root in from
+        .lines()
+        .filter(|one| !one.trim().is_empty())
+        .map(PathBuf::from)
+    {
+        if !held(&root) || root.join(MOVED_NOTE).exists() {
             continue;
         }
-        if fenced(root, &roots.new).is_ok() {
+        if fenced(&root, new).is_ok() {
             let _ = std::fs::write(
                 root.join(MOVED_NOTE),
                 format!(
                     "Tisty keeps this machine's tasks and documents in {} now.\nThis folder is a copy from before, left untouched.\n",
-                    roots.new.display()
+                    new.display()
                 ),
             );
         }
@@ -216,16 +321,21 @@ pub fn fence_behind(roots: &Roots) {
 }
 
 fn fenced(root: &Path, new: &Path) -> std::io::Result<()> {
-    let Ok(devices) = std::fs::read_dir(root.join("data").join(STORE)) else {
-        return Ok(());
+    let devices = match std::fs::read_dir(root.join("data").join(STORE)) {
+        Ok(devices) => devices,
+        Err(why) if why.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(why) => return Err(why),
     };
-    let line = serde_json::json!({
-        "v": FENCE_VERSION,
-        "op": FENCE_OP,
-        "d": { "to": new.display().to_string() },
-    });
-    for device in devices.filter_map(|one| one.ok()) {
-        let active = device.path().join("active.tisty");
+    let line = format!(
+        "{}\n",
+        serde_json::json!({
+            "v": FENCE_VERSION,
+            "op": FENCE_OP,
+            "d": { "to": new.display().to_string() },
+        })
+    );
+    for device in devices {
+        let active = device?.path().join("active.tisty");
         if !active.is_file() {
             continue;
         }
@@ -233,23 +343,33 @@ fn fenced(root: &Path, new: &Path) -> std::io::Result<()> {
             .read(true)
             .append(true)
             .open(&active)?;
-        if !ends_clean(&mut file)? {
-            file.write_all(b"\n")?;
+        let last = last_line(&mut file)?;
+        if is_fence(&last) {
+            continue;
         }
-        writeln!(file, "{line}")?;
+        let lead = if last.is_empty() || last.ends_with(b"\n") {
+            ""
+        } else {
+            "\n"
+        };
+        file.write_all(format!("{lead}{line}").as_bytes())?;
+        file.sync_all()?;
     }
     Ok(())
 }
 
-fn ends_clean(file: &mut std::fs::File) -> std::io::Result<bool> {
+fn last_line(file: &mut std::fs::File) -> std::io::Result<Vec<u8>> {
     use std::io::{Read, Seek, SeekFrom};
-    if file.metadata()?.len() == 0 {
-        return Ok(true);
-    }
-    file.seek(SeekFrom::End(-1))?;
-    let mut last = [0u8; 1];
-    file.read_exact(&mut last)?;
-    Ok(last[0] == b'\n')
+    let len = file.metadata()?.len();
+    file.seek(SeekFrom::Start(len.saturating_sub(512)))?;
+    let mut tail = Vec::new();
+    file.read_to_end(&mut tail)?;
+    let trimmed = tail.strip_suffix(b"\n").unwrap_or(&tail);
+    let start = trimmed
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map_or(0, |at| at + 1);
+    Ok(tail[start..].to_vec())
 }
 
 pub fn told(settled: Option<&Settled>) {

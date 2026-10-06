@@ -42,7 +42,11 @@ impl Paths {
     }
 
     pub fn swept_on_leaving(&self) -> Vec<PathBuf> {
-        let mut swept = vec![self.config_file(), self.cache.clone()];
+        let shared = shared_home().is_some_and(|root| self.config.starts_with(root));
+        let mut swept = match shared {
+            true => vec![self.cache.clone()],
+            false => vec![self.config_file(), self.cache.clone()],
+        };
         swept.extend(crate::witness::kept_files(self));
         swept
     }
@@ -135,27 +139,43 @@ fn defaults(dirs: &directories::ProjectDirs) -> (PathBuf, PathBuf, PathBuf) {
 
 /// The Store keeps `AppData` in a copy it deletes on uninstall; the profile root it leaves alone.
 fn home_root(dirs: &directories::ProjectDirs) -> Option<PathBuf> {
+    let new = shared_home()?;
+    if new.exists() {
+        return Some(new);
+    }
+    let legacy = dirs.data_local_dir().parent()?;
+    let left = legacy.exists() || legacy.parent().and_then(store_package).is_some();
+    (!left).then_some(new)
+}
+
+/// Every Windows install shares it, so leaving one must not take another's settings with it.
+fn shared_home() -> Option<PathBuf> {
     if !cfg!(windows) {
         return None;
     }
-    let new = directories::UserDirs::new()?.home_dir().join(".tisty");
-    let legacy = dirs.data_local_dir().parent()?;
-    (new.exists() || !legacy.exists()).then_some(new)
+    Some(directories::UserDirs::new()?.home_dir().join(".tisty"))
 }
 
 /// Run once per process before `resolve`, never from what only sweeps or reads a setting.
 pub fn settle_home() -> Option<crate::moving::Settled> {
-    if !cfg!(windows)
-        || [DATA_ENV, CONFIG_ENV, CACHE_ENV, PROFILE_ENV]
-            .iter()
-            .any(|key| env_path(key).is_some())
+    static ONCE: std::sync::OnceLock<Option<crate::moving::Settled>> = std::sync::OnceLock::new();
+    ONCE.get_or_init(settled_home).clone()
+}
+
+fn settled_home() -> Option<crate::moving::Settled> {
+    if [DATA_ENV, CONFIG_ENV, CACHE_ENV, PROFILE_ENV]
+        .iter()
+        .any(|key| env_path(key).is_some())
     {
         return None;
     }
+    let new = shared_home()?;
     let dirs = directories::ProjectDirs::from("", "", "tisty")?;
     let real = dirs.data_local_dir().parent()?.to_path_buf();
-    let private = store_package(real.parent()?);
-    let new = directories::UserDirs::new()?.home_dir().join(".tisty");
+    let private = match new.exists() {
+        true => None,
+        false => store_package(real.parent()?),
+    };
     Some(crate::moving::settle(&crate::moving::Roots {
         new,
         real,
