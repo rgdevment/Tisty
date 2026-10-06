@@ -5,6 +5,7 @@ mod chores;
 mod door;
 mod jsonrpc;
 mod looking;
+mod mending;
 mod papers;
 mod unpathing;
 mod wholes;
@@ -25,6 +26,7 @@ use chores::{
 };
 pub(crate) use door::turn;
 use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
+use mending::{rename, reword_note, reword_step, unplan};
 
 use jsonrpc::{
     discovered, fault, introduced, legacy_greeting, named_tool, reply, speaking_through, told,
@@ -162,6 +164,10 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "plan" => plan(paths, &args),
         "tick" => tick(paths, &args),
         "untick" => untick(paths, &args),
+        "rename" => rename(paths, &args),
+        "reword_step" => reword_step(paths, &args),
+        "unplan" => unplan(paths, &args),
+        "reword_note" => reword_note(paths, &args),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
         "write_doc" => write_doc(paths, &args),

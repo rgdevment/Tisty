@@ -346,7 +346,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if wants("journal") && task.journal().next().is_some() {
         whole["journal"] = json!(
             task.journal()
-                .map(|one| json!({ "at": one.at.to_string(), "body": kept_here(&one.body) }))
+                .map(|one| json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept_here(&one.body) }))
                 .collect::<Vec<_>>()
         );
     }
@@ -370,7 +370,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         whole["notice"] = json!(notice);
     } else if task.open_to_agents {
         plainly.push_str(
-            " (open to agents: yours to describe, plan, tick, untick and say done or not doing)",
+            " (open to agents: yours to describe, plan, tick, untick, reword or unplan an open step, \n             reword a note, and say done or not doing)",
         );
     }
     if let Some(body) = &task.description
@@ -401,7 +401,12 @@ part [{}] {} — {}",
     }
     if wants("journal") {
         for one in task.journal() {
-            plainly.push_str(&format!("\n\n({}) {}", one.at, kept_here(&one.body)));
+            plainly.push_str(&format!(
+                "\n\n({}, note {}) {}",
+                one.at,
+                one.id,
+                kept_here(&one.body)
+            ));
         }
     }
     Ok(told(plainly, whole))

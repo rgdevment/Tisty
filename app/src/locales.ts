@@ -160,7 +160,8 @@ const en = {
     "Let an assistant work on this task: say it is done — for you to confirm — describe it, plan its steps and tick them. Its day, title and closing stay yours",
   keepToMyself: "No agents",
   keepToMyselfWhy: "Take the permission back. What the agent filled in stays",
-  openToAgents: "Open to agents: one may say it is done, describe it, plan its steps and tick them",
+  openToAgents:
+    "Open to agents: one may describe it, plan, reword and tick its open steps, correct its notes and say it is done",
   wasOpenToAgents: "was open to agents",
   eraseWritten: "It carries {name} journal entries, and they go with it.",
   traceHidden: "The trace is hidden: {name} under «hidden», and search still reaches them.",
@@ -1633,7 +1634,7 @@ const es: Catalog = {
   keepToMyself: "Sin agentes",
   keepToMyselfWhy: "Retira el permiso. Lo que el agente completó se queda",
   openToAgents:
-    "Abierta a los agentes: uno puede darla por hecha, describirla, planear sus pasos y marcarlos",
+    "Abierta a los agentes: uno puede describirla, planear, reescribir y marcar sus pasos abiertos, corregir sus notas y darla por hecha",
   wasOpenToAgents: "estuvo abierta a los agentes",
   eraseWritten: "Lleva {name} entradas de bitácora, y se van con ella.",
   traceHidden: "El rastro está oculto: {name} bajo «ocultas», y la búsqueda sigue alcanzándolos.",

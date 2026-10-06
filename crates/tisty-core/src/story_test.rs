@@ -708,3 +708,50 @@ fn an_entry_taken_out_is_not_quoted_back_from_the_trail() {
         chapters(&told)
     );
 }
+
+#[test]
+fn the_trail_mends_what_the_replay_mends_and_leaves_a_closed_step_alone() {
+    let (id, step) = (Ulid::generate(), Ulid::generate());
+    let mut log = an_agent_filed(id, step);
+    log.push(by_agent(
+        4,
+        Op::StepText {
+            id,
+            d: crate::event::StepText {
+                step,
+                text: "read the old reader".into(),
+            },
+        },
+    ));
+    log.push(event(
+        5,
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    log.push(by_agent(
+        6,
+        Op::StepRemove {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    let told = story(&log, id);
+
+    assert!(
+        chapters(&told)
+            .iter()
+            .any(|one| matches!(one, Chapter::Reworded { .. })),
+        "{:?}",
+        chapters(&told)
+    );
+    assert!(
+        !chapters(&told)
+            .iter()
+            .any(|one| matches!(one, Chapter::Unplanned { .. })),
+        "{:?}",
+        chapters(&told)
+    );
+}

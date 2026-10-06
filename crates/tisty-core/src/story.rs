@@ -123,8 +123,15 @@ fn lets(op: &Op, standing: &Standing) -> bool {
         Op::StepUndone { d, .. } => {
             attended && standing.ticked_by_agent.get(&d.step) == Some(&true)
         }
+        Op::StepText { d, .. } => attended && mendable(standing, d.step),
+        Op::StepRemove { d, .. } => attended && mendable(standing, d.step),
+        Op::TaskLogEdit { d, .. } => attended && !d.body.trim().is_empty(),
         _ => false,
     }
+}
+
+fn mendable(standing: &Standing, step: StepId) -> bool {
+    standing.steps.contains_key(&step) && !standing.ticked_by_agent.contains_key(&step)
 }
 
 pub fn story(events: &[Event], id: TaskId) -> Story {
