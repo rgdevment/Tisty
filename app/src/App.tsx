@@ -42,12 +42,11 @@ import { useOnly, useOnlyAlive } from "./only";
 import { offerMoved, saidPlainly } from "./refusal";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
-import Axis from "./ui/Axis";
 import { Alarm, Progress } from "./ui/Banners";
+import { ArchiveBar, SliceBar } from "./ui/Bars";
 import BringingBack from "./ui/BringingBack";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
-import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
 import Door from "./ui/Door";
@@ -58,7 +57,6 @@ import Matrix from "./ui/Matrix";
 import Menu, { type Choice } from "./ui/Menu";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
-import Only from "./ui/Only";
 import Owed from "./ui/Owed";
 import { useParcels } from "./ui/Parcels";
 import Pulse from "./ui/Pulse";
@@ -72,7 +70,6 @@ import Spread from "./ui/Spread";
 import Star from "./ui/Star";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
-import Tally from "./ui/Tally";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
@@ -83,11 +80,7 @@ import {
   type Chosen,
   headerCount,
   invite,
-  LAYERS,
-  layerCount,
-  layerWord,
   nothing,
-  SLICES,
   type Slice,
   title,
   useReach,
@@ -878,117 +871,23 @@ export default function App() {
                     }
                     above={
                       chosen.named === "tasks" ? (
-                        <div className="flex gap-1 px-2.5 pb-1">
-                          {SLICES.map((slice) => {
-                            const on = (chosen.slice ?? "today") === slice;
-                            const many = data.counts[slice === "today" ? "tasks" : slice];
-                            return (
-                              <button
-                                key={slice}
-                                type="button"
-                                aria-pressed={on}
-                                onClick={() => {
-                                  setSelected(undefined);
-                                  window.localStorage.setItem("tisty.slice", slice);
-                                  setChosen({ named: "tasks", slice, lists: chosen.lists });
-                                }}
-                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                                  on
-                                    ? "border-ink bg-ink text-bg"
-                                    : "border-line text-faint hover:text-soft"
-                                }`}
-                              >
-                                {t(sliceWord(slice))}
-                                {many ? (
-                                  <span className="ml-1 tabular-nums opacity-70">{many}</span>
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                          <Only
-                            lists={byList ? [] : data.lists}
-                            chosen={chosen.lists ?? []}
-                            onChange={(lists) => {
-                              setSelected(undefined);
-                              window.localStorage.setItem("tisty.only", JSON.stringify(lists));
-                              setChosen({ ...chosen, named: "tasks", lists });
-                            }}
-                          />
-                        </div>
+                        <SliceBar
+                          chosen={chosen}
+                          counts={data.counts}
+                          lists={byList ? [] : data.lists}
+                          setChosen={setChosen}
+                          setSelected={setSelected}
+                        />
                       ) : chosen.named === "archive" ? (
-                        <>
-                          {found === null && !chosen.folded && (
-                            <Cover onError={(e) => setError(saidPlainly(e))} />
-                          )}
-                          {found === null && !chosen.folded && (
-                            <Tally counts={data.counts} onError={(e) => setError(saidPlainly(e))} />
-                          )}
-                          <fieldset className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
-                            <legend className="sr-only">{t("archiveShowing")}</legend>
-                            {LAYERS.map((layer) => {
-                              const on = !chosen.folded && (chosen.layer ?? "story") === layer;
-                              const many = data.counts[layerCount(layer)];
-                              return (
-                                <button
-                                  key={layer}
-                                  type="button"
-                                  aria-pressed={on}
-                                  onClick={() => {
-                                    setSelected(undefined);
-                                    setFound(null);
-                                    setChosen({ named: "archive", layer });
-                                  }}
-                                  className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                                    on
-                                      ? "border-ink bg-ink text-bg"
-                                      : "border-line text-faint hover:text-soft"
-                                  }`}
-                                >
-                                  {t(layerWord(layer))}
-                                  {many ? (
-                                    <span className="ml-1 tabular-nums opacity-70">{many}</span>
-                                  ) : null}
-                                </button>
-                              );
-                            })}
-                            {data.counts.folded || chosen.folded ? (
-                              <button
-                                type="button"
-                                aria-pressed={chosen.folded === true}
-                                title={chosen.folded ? t("backToArchive") : undefined}
-                                onClick={() => {
-                                  setSelected(undefined);
-                                  setFound(null);
-                                  setChosen({ named: "archive", folded: !chosen.folded });
-                                }}
-                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                                  chosen.folded
-                                    ? "border-ink bg-ink text-bg"
-                                    : "border-line text-faint hover:text-soft"
-                                }`}
-                              >
-                                {t("hiddenOnes")}
-                                {data.counts.folded ? (
-                                  <span className="ml-1 tabular-nums opacity-70">
-                                    {data.counts.folded}
-                                  </span>
-                                ) : null}
-                              </button>
-                            ) : null}
-                            {!chosen.folded && (chosen.layer ?? "story") !== "routine" && (
-                              <>
-                                <span className="mx-1.5 h-3.5 w-px bg-hair" />
-                                <Axis
-                                  axis={chosen.axis ?? "time"}
-                                  onChange={(axis) => {
-                                    setSelected(undefined);
-                                    setChosen({ ...chosen, named: "archive", axis, folded: false });
-                                  }}
-                                />
-                              </>
-                            )}
-                          </fieldset>
-                        </>
+                        <ArchiveBar
+                          chosen={chosen}
+                          counts={data.counts}
+                          found={found}
+                          setChosen={setChosen}
+                          setSelected={setSelected}
+                          setFound={setFound}
+                          fail={(e) => setError(saidPlainly(e))}
+                        />
                       ) : chosen.named === "tags" || chosen.tags?.length ? (
                         <Tags
                           tags={data.tags}
@@ -1105,12 +1004,3 @@ export default function App() {
     </div>
   );
 }
-
-const sliceWord = (slice: Slice) =>
-  slice === "today"
-    ? ("today" as const)
-    : slice === "upcoming"
-      ? ("upcoming" as const)
-      : slice === "repeating"
-        ? ("repeating" as const)
-        : ("sliceAll" as const);
