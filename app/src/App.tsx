@@ -5,9 +5,7 @@ import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import {
   type Afoot,
-  addPart,
   attach,
-  type Change,
   capture,
   complete,
   DEEPEST,
@@ -21,8 +19,6 @@ import {
   docs,
   docsCatchUp,
   doorDue,
-  dropStep,
-  erase,
   type Filed,
   FOLDER_NAME_AT_MOST,
   type Folded,
@@ -33,10 +29,7 @@ import {
   folderFile,
   folderLook,
   folderRename,
-  hang,
-  markStep,
   noteTrouble,
-  openToAgents,
   owed,
   type Papers,
   type Pick,
@@ -44,30 +37,24 @@ import {
   patch,
   type Ready,
   type Rift,
-  readAs,
-  reopen,
   type Snapshot,
   settleIn,
   snapshot,
   sow,
   starDue,
-  stepToPart,
-  stillOpen,
   syncState,
   type Task,
-  taskOf,
   type Underway,
   updateInstall,
   updateReady,
-  writeLog,
-  writeStep,
 } from "./core";
 import { decideAll, decidesByBlock } from "./deciding";
+import { detailOf, erasing } from "./detailing";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { handTo, whenFilesLand } from "./dropped";
 import { deep } from "./folders";
 import { todayLong } from "./format";
-import { AT_A_GLANCE, SHOWN } from "./glance";
+import { AT_A_GLANCE, SHOWN, useNote } from "./glance";
 import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
 import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
@@ -221,8 +208,7 @@ export default function App() {
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [waited, setWaited] = useState(false);
+  const { note, setNote, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
   const [menu, setMenu] = useState<{
@@ -269,33 +255,6 @@ export default function App() {
         setChosen({ named: "docs", doc: made.id });
       })
       .catch((e) => setError(saidPlainly(e)));
-
-  const said = (text: string, since: number) => {
-    const long = Date.now() - since >= AT_A_GLANCE;
-    setNote(text);
-    setWaited(long);
-    if (!long) setTimeout(() => setNote(null), SHOWN);
-  };
-
-  useEffect(() => {
-    if (!waited) return;
-    let ready = false;
-    const soon = setTimeout(() => {
-      ready = true;
-    }, SHOWN);
-    const gone = () => {
-      if (!ready) return;
-      setNote(null);
-      setWaited(false);
-    };
-    window.addEventListener("pointerdown", gone);
-    window.addEventListener("keydown", gone);
-    return () => {
-      clearTimeout(soon);
-      window.removeEventListener("pointerdown", gone);
-      window.removeEventListener("keydown", gone);
-    };
-  }, [waited]);
 
   const dropFolder = (folder: Folded) =>
     ask(fill("dropFolderSure", folder.name), { kind: "warning" })
@@ -515,7 +474,7 @@ export default function App() {
     );
     carries.current = carrier;
     return () => carrier.stop();
-  }, []);
+  }, [setNote]);
 
   useEffect(() => {
     syncState()
@@ -666,25 +625,18 @@ export default function App() {
     setMode(next);
   };
 
-  const wipe = (task: Task) => {
-    const entries = task.volume?.journal ?? 0;
-    const sure = entries
-      ? `${fill("eraseSure", task.title)} ${fill("eraseWritten", String(entries))}`
-      : fill("eraseSure", task.title);
-    ask(sure, { kind: "warning" })
-      .then((yes) => {
-        if (!yes) return;
-        setError(null);
-        return erase(task.id).then(() => {
-          setSelected(undefined);
-          setFound(null);
-          say(t("erased"));
-          load();
-          carries.current?.changed();
-        });
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  };
+  const wipe = (task: Task) =>
+    erasing(task, {
+      clear: () => setError(null),
+      gone: () => {
+        setSelected(undefined);
+        setFound(null);
+        say(t("erased"));
+        load();
+        carries.current?.changed();
+      },
+      fail: (e) => setError(saidPlainly(e)),
+    });
 
   const marking = (id: string, title: string) => {
     setError(null);
@@ -803,43 +755,20 @@ export default function App() {
   };
 
   const wholes = { ...found?.wholes, ...data.wholes };
-  const detailing = (one: Task) => ({
-    task: one,
-    lists: data.every ?? data.lists,
-    known: data.tags.map((tag) => tag.tag),
-    onPatch: (change: Change) => act(patch(one.id, change)),
-    onStep: (text: string, step?: string) => act(writeStep(one.id, text, step)),
-    onMark: (step: string, done: boolean) => act(markStep(one.id, step, done)),
-    onDropStep: (step: string) => act(dropStep(one.id, step)),
-    onLog: (body: string, entry?: string) => act(writeLog(one.id, body, entry)),
-    onComplete: () => {
-      marking(one.id, one.title);
-      setSelected(undefined);
-    },
-    onDiscard: () => {
-      act(discard(one.id));
-      setSelected(undefined);
-    },
-    onReopen: () => act(reopen(one.id)),
-    onStillOpen: () => act(stillOpen(one.id)),
-    onErase: () => wipe(one),
-    onFold: (away: boolean) => act(fold(one.id, away)),
-    onReadAs: (how: "story" | "trace") => act(readAs(one.id, how)),
-    onOpenToAgents: (open: boolean) => act(openToAgents(one.id, open)),
-    onClose: shut,
-    onError: (e: unknown) => setError(saidPlainly(e)),
-    onDoc: openDoc,
-    whole: wholes[one.id],
-    partOf: one.part_of ? wholes[one.part_of]?.title : undefined,
-    onAddPart: (title: string) => act(addPart(one.id, title).then(() => taskOf(one.id))),
-    onOpenPart: (id: string) => taskOf(id).then(opening, (e) => setError(saidPlainly(e))),
-    onCompletePart: (id: string, title: string) => {
-      say(fill("saidDone", title));
-      act(complete(id).then(() => taskOf(one.id)));
-    },
-    onHang: (whole: string | null) => act(hang(one.id, whole)),
-    onStepToPart: (step: string) => act(stepToPart(one.id, step)),
-  });
+  const detailing = (one: Task) =>
+    detailOf(one, {
+      data,
+      wholes,
+      act,
+      marking,
+      wipe,
+      shut,
+      close: () => setSelected(undefined),
+      openDoc,
+      opening,
+      say,
+      fail: (e) => setError(saidPlainly(e)),
+    });
 
   const opening = (one: Task) => {
     setHeld(one);
