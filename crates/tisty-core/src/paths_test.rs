@@ -291,6 +291,10 @@ fn the_home_set_aside_is_hidden_inherits_nothing_and_is_looked_at_once() {
         .unwrap_or_default();
     assert!(dacl.starts_with('P'), "the home still inherits: {said}");
     assert!(
+        dacl.contains(";;;SY)"),
+        "a backup running as the system account lost the store: {said}"
+    );
+    assert!(
         !dacl.contains("ID;"),
         "something is still inherited: {said}"
     );

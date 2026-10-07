@@ -242,14 +242,18 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
 // Through icacls rather than the security API, which would need the unsafe code the workspace forbids.
 #[cfg(windows)]
 pub fn key_alone(at: &Path) -> std::io::Result<()> {
+    kept_for(at, &[])
+}
+
+#[cfg(windows)]
+fn kept_for(at: &Path, also: &[&str]) -> std::io::Result<()> {
     let system = system32()?;
-    let sid = account_sid()?;
-    windowless(
-        &system,
-        "icacls.exe",
-        at,
-        &["/grant:r", &format!("*{sid}:(OI)(CI)F")],
-    )?;
+    let mine = format!("*{}:(OI)(CI)F", account_sid()?);
+    let granted: Vec<&str> = ["/grant:r", mine.as_str()]
+        .into_iter()
+        .chain(also.iter().copied())
+        .collect();
+    windowless(&system, "icacls.exe", at, &granted)?;
     windowless(&system, "icacls.exe", at, &["/inheritance:r"])
 }
 
@@ -293,8 +297,9 @@ fn tucked(home: &Path) -> std::io::Result<()> {
         .arg(home)
         .stdout(std::process::Stdio::piped())
         .output()?;
+    // The system account keeps its way in, so a backup that runs as a service still copies the store.
     if !said.status.success() || String::from_utf8_lossy(&said.stdout).contains("(I)") {
-        key_alone(home)?;
+        kept_for(home, &["*S-1-5-18:(OI)(CI)F"])?;
     }
     if std::fs::metadata(home)?.file_attributes() & HIDDEN != 0 {
         return Ok(());

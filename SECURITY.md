@@ -138,10 +138,11 @@ Being explicit here matters more than sounding reassuring.
   would inherit, and your account is given full control of it. The whole
   `.tisty` folder in your profile is treated the same way and hidden, so
   other accounts on the computer cannot open it and it does not sit in plain
-  sight where it could be moved or deleted by mistake. That takes away the
-  access the system account and administrators inherit from your profile too,
-  so a backup tool that runs as the system account no longer reads it; an
-  administrator can still take ownership of it, as of any folder. On other systems,
+  sight where it could be moved or deleted by mistake. The system account
+  keeps its access, so a backup tool that runs as a service still copies it;
+  administrators lose the access they inherit from your profile, but can still
+  take ownership of it, as of any folder. The key folder inside it stays yours
+  alone. On other systems,
   what keeps another account out is that your profile's own folders are
   yours.
 - **Whoever can write to the shared folder can try to write to your history.**

@@ -2442,7 +2442,8 @@ every install — Store, loose, the command line and the assistant's door —
 shares one real store that outlives any of them. A name that starts with a dot
 hides nothing on Windows, so the window sets that home aside on every start
 (`paths::home_set_aside`): cut off from what it would inherit and kept to this
-account, as the key folder is, and hidden. Every start reads the root's own
+account and the system account, so a backup running as a service still reads
+it, and hidden. Every start reads the root's own
 permissions, never the tree below it, and keeps it again only when it still
 inherits, so a home somebody hid by hand is kept all the same and the long walk
 through the store happens once. A failure is said and tried again on the next
