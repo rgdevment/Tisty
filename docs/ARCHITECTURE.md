@@ -1518,6 +1518,8 @@ when it was also edited here or is locked, it is left undecided and the person
 chooses mine, theirs or both. Settling «mine» is refused when the folder moved
 since the person was asked, the same as weaving, and the window says the
 document changed again while they decided rather than calling it locked.
+Keeping both leaves no copy when what arrived is the text here already, or a
+copy kept beside it before, so being asked again never piles up twins.
 
 The other body that waits is one whose print a machine still waiting to
 be confirmed wrote down, and only when nothing here changed it. That history is
