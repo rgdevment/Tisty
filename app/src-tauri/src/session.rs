@@ -92,6 +92,8 @@ impl Session {
         tisty_core::store::brought_home(&paths);
         let store = Store::open(paths.store(), config.device_id.clone())?
             .signing_with(tisty_core::signing::mine(&paths, &config.device_id));
+        let guarding = paths.clone();
+        std::thread::spawn(move || tisty_core::store::keys_guarded(&guarding));
         let state = tisty_core::cache::project(&paths.store(), paths.cache())?;
         let cache = tisty_core::cache::Cache::open(paths.cache())?;
         let print = tisty_core::cache::fingerprint(&paths.store());

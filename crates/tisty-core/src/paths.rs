@@ -224,7 +224,7 @@ pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
+#[cfg(not(windows))]
 pub fn key_alone(at: &Path) -> std::io::Result<()> {
     ours_alone(at)
 }
@@ -232,27 +232,50 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
 // Through icacls rather than the security API, which would need the unsafe code the workspace forbids.
 #[cfg(windows)]
 pub fn key_alone(at: &Path) -> std::io::Result<()> {
-    let user = std::env::var("USERNAME").map_err(std::io::Error::other)?;
-    let who = match std::env::var("USERDOMAIN") {
-        Ok(domain) if !domain.is_empty() => format!("{domain}\\{user}"),
-        _ => user,
-    };
-    let done = std::process::Command::new("icacls")
-        .arg(at)
-        .args(["/inheritance:r", "/grant:r", &format!("{who}:(OI)(CI)F")])
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()?;
+    let system = std::env::var_os("SystemRoot")
+        .map(|root| std::path::PathBuf::from(root).join("System32"))
+        .ok_or_else(|| std::io::Error::other("the system folder could not be found"))?;
+    let sid = account_sid(&system)?;
+    windowless(
+        &system,
+        "icacls.exe",
+        at,
+        &["/grant:r", &format!("*{sid}:(OI)(CI)F")],
+    )?;
+    windowless(&system, "icacls.exe", at, &["/inheritance:r"])
+}
+
+// The account the process runs as, never the name the environment claims.
+#[cfg(windows)]
+fn account_sid(system: &Path) -> std::io::Result<String> {
+    let out = quiet(system, "whoami.exe")
+        .args(["/user", "/fo", "csv", "/nh"])
+        .output()?;
+    String::from_utf8_lossy(&out.stdout)
+        .split(',')
+        .map(|one| one.trim().trim_matches('"').to_string())
+        .find(|one| one.starts_with("S-1-") && one.len() > 4)
+        .ok_or_else(|| std::io::Error::other("this account's SID could not be read"))
+}
+
+#[cfg(windows)]
+fn windowless(system: &Path, tool: &str, at: &Path, args: &[&str]) -> std::io::Result<()> {
+    let done = quiet(system, tool).arg(at).args(args).status()?;
     match done.success() {
         true => Ok(()),
-        false => Err(std::io::Error::other(format!("icacls ended with {done}"))),
+        false => Err(std::io::Error::other(format!("{tool} ended with {done}"))),
     }
 }
 
-#[cfg(not(any(unix, windows)))]
-pub fn key_alone(at: &Path) -> std::io::Result<()> {
-    ours_alone(at)
+#[cfg(windows)]
+fn quiet(system: &Path, tool: &str) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    let mut command = std::process::Command::new(system.join(tool));
+    command
+        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .creation_flags(0x0800_0000);
+    command
 }
 
 pub fn as_written(at: &Path) -> String {
