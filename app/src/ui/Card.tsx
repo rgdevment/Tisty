@@ -25,8 +25,11 @@ export type Which =
   | "signing"
   | "parcel"
   | "tongue"
-  | "look";
+  | "look"
+  | "closing";
 export type Word = { card: Which; text: string };
+
+export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
 
 export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
@@ -42,6 +45,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   waking: "wake",
   greet: "greetAgain",
   tongue: "tongue",
+  closing: "closingSetting",
   look: "look",
   settings: "settingsTitle",
   notices: "bandNotices",

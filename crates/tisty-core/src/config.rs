@@ -131,6 +131,8 @@ pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_vouched: Option<DeviceId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub called: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor: Option<String>,
@@ -207,6 +209,7 @@ impl Config {
             inst: crate::machine::here(),
             agent_id: None,
             agent_vouched: None,
+            called: None,
             locale: None,
             editor: None,
             quiet: None,

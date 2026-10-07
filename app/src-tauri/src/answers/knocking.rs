@@ -51,15 +51,28 @@ pub fn waiting_machines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec
 
 #[tauri::command(async)]
 pub fn this_machine(session: tauri::State<'_, Mutex<Session>>) -> Answer<ThisMachine> {
-    let (paths, who) = {
+    let (paths, who, given) = {
         let session = held(&session);
-        (session.paths.clone(), session.config.device_id.clone())
+        (
+            session.paths.clone(),
+            session.config.device_id.clone(),
+            session.config.called.clone(),
+        )
     };
-    let named = tisty_core::called::here();
+    let named = tisty_core::called::chosen(given.as_deref());
     Ok(ThisMachine {
         code: super::agents::spoken_by(&paths, Some(&who)),
         id: who.0,
         name: named.as_ref().map(|one| one.name.clone()),
         os: named.and_then(|one| one.os),
     })
+}
+
+#[tauri::command(async)]
+pub fn rename_machine(
+    session: tauri::State<'_, Mutex<Session>>,
+    name: String,
+) -> Answer<ThisMachine> {
+    held(&session).rename(&name)?;
+    this_machine(session)
 }
