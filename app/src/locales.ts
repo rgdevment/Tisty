@@ -960,6 +960,8 @@ const en = {
   noBase: "There is nothing to compare against yet, so this one is decided whole",
   cannotWeave: "That document changed while you were deciding — look again",
   movedUnderfoot: "That document changed while you were deciding — look again",
+  changedWhileDeciding:
+    "«{name}» changed again on another machine while you were deciding, so it was not settled. You will be asked again once it holds still.",
   riftTitle: "Two versions of «{name}»",
   riftWhy:
     "Everything the two machines did not both touch is already together. What is below is the part each wrote differently, and only you know which one is right.",
@@ -2521,6 +2523,8 @@ const es: Catalog = {
   noBase: "Todavía no hay con qué comparar, así que este se decide entero",
   cannotWeave: "Ese documento cambió mientras decidías — míralo otra vez",
   movedUnderfoot: "Ese documento cambió mientras decidías — míralo otra vez",
+  changedWhileDeciding:
+    "«{name}» cambió otra vez en otra máquina mientras decidías, así que no quedó resuelto. Te lo volveremos a preguntar cuando se quede quieto.",
   riftTitle: "Dos versiones de «{name}»",
   riftWhy:
     "Todo lo que las dos máquinas no tocaron a la vez ya está junto. Lo de abajo es la parte que cada una escribió distinta, y solo tú sabes cuál vale.",
@@ -3132,5 +3136,5 @@ export const t = (key: Word): string => spoken[key] ?? en[key] ?? key;
 
 export const fill = (key: keyof Catalog, name: string, other?: string): string =>
   t(key)
-    .replace(/\{name\}/g, name)
-    .replace(/\{other\}/g, other ?? "");
+    .replace(/\{name\}/g, () => name)
+    .replace(/\{other\}/g, () => other ?? "");

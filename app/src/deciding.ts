@@ -1,6 +1,7 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { docs, type Pick, paperRifts, type Rift, settlePaper, weavePaper } from "./core";
 import { fill, t } from "./locales";
+import { type Refusal, saidPlainly } from "./refusal";
 
 const settling = new Set<string>();
 
@@ -43,19 +44,39 @@ export const decide = async (id: string, called?: string): Promise<void> => {
   }
 };
 
-export const decideAll = async (ids: string[]): Promise<string[]> => {
-  if (!ids.length) return [];
-  const found = await docs().catch(() => null);
-  if (!found) return ids;
-  const titled = new Map(found.docs.map((one) => [one.file, one.title]));
+export interface Decided {
+  shut: string[];
+  said: string | null;
+}
+
+export const decideAll = async (ids: string[]): Promise<Decided> => {
+  if (!ids.length) return { shut: [], said: null };
+  const told = new Set<string>();
+  const found = await docs().catch((problem: unknown) => {
+    told.add(saidPlainly(problem));
+    return null;
+  });
+  if (!found) return { shut: [], said: [...told].join(" ") };
+  const named = (id: string) =>
+    found.docs.find((one) => one.file === id)?.title?.trim() || t("untitledDoc");
   const shut = new Set(found.docs.filter((one) => one.locked).map((one) => one.file));
   for (const id of ids) {
     if (shut.has(id)) continue;
     try {
-      await decide(id, titled.get(id));
-    } catch {
-      shut.add(id);
+      await decide(id, named(id));
+    } catch (problem) {
+      const code = (problem as Refusal | undefined)?.code;
+      if (code === "documentLocked") {
+        shut.add(id);
+        continue;
+      }
+      const plain = saidPlainly(problem);
+      told.add(code === "movedUnderfoot" ? fill("changedWhileDeciding", named(id)) : plain);
     }
   }
-  return ids.filter((id) => shut.has(id));
+  const locked = ids.filter((id) => shut.has(id));
+  const lockedSaid = locked.length
+    ? [fill("someLockedAtOdds", locked.map((id) => `«${named(id)}»`).join(", "))]
+    : [];
+  return { shut: locked, said: [...lockedSaid, ...told].join(" ") || null };
 };

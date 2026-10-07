@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Pick, Rift } from "../core";
 import { decideAll, decidesByBlock } from "../deciding";
+import { fill, t } from "../locales";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -9,6 +10,7 @@ const ipc = vi.hoisted(() => ({
 const torn = vi.hoisted(() => ({
   said: { rifts: [] as Rift[], print: "" },
   refuses: false,
+  moved: false,
   locked: false,
   blind: false,
   shut: false,
@@ -42,6 +44,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "paper_rifts") {
       return torn.shut ? Promise.reject({ code: "documentLocked" }) : Promise.resolve(torn.said);
     }
+    if (cmd === "settle_paper" && torn.moved) return Promise.reject({ code: "movedUnderfoot" });
     if (cmd === "weave_paper" && torn.refuses) return Promise.reject(new Error("cannotWeave"));
     return Promise.resolve(null);
   },
@@ -59,6 +62,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 beforeEach(() => {
   torn.said = { rifts: [], print: "" };
   torn.refuses = false;
+  torn.moved = false;
   torn.locked = false;
   torn.blind = false;
   torn.shut = false;
@@ -158,7 +162,7 @@ describe("a document the person locked, at odds with another machine", () => {
     torn.locked = true;
     torn.said = { rifts: [{ was: ["antes"], mine: ["lo mio"], theirs: ["lo suyo"] }], print: "h" };
 
-    const shut = await decideAll(["dev_a-0001"]);
+    const { shut } = await decideAll(["dev_a-0001"]);
 
     expect(shut).toEqual(["dev_a-0001"]);
     expect(asked.said).toEqual([]);
@@ -166,12 +170,13 @@ describe("a document the person locked, at odds with another machine", () => {
     expect(woven()).toEqual([]);
   });
 
-  it("decides nothing at all when it cannot find out what is locked", async () => {
+  it("decides nothing at all when it cannot find out what is locked, and never calls it locked", async () => {
     torn.blind = true;
 
-    const shut = await decideAll(["dev_a-0001", "dev_a-0002"]);
+    const { shut, said } = await decideAll(["dev_a-0001", "dev_a-0002"]);
 
-    expect(shut).toEqual(["dev_a-0001", "dev_a-0002"]);
+    expect(shut).toEqual([]);
+    expect(said).toBeTruthy();
     expect(asked.said).toEqual([]);
     expect(settled()).toEqual([]);
   });
@@ -189,9 +194,41 @@ describe("a document the person locked, at odds with another machine", () => {
   });
 
   it("still settles the ones that are not locked", async () => {
-    const shut = await decideAll(["dev_a-0002"]);
+    const { shut } = await decideAll(["dev_a-0002"]);
 
     expect(shut).toEqual([]);
     expect(settled().length).toBe(1);
+  });
+});
+
+describe("a document that moved again while the person decided", () => {
+  it("says it changed underfoot, never that it is locked", async () => {
+    torn.moved = true;
+
+    const { shut, said } = await decideAll(["dev_a-0001"]);
+
+    expect(shut).toEqual([]);
+    expect(said).toBe(fill("changedWhileDeciding", "Kit de transmisión"));
+  });
+});
+
+describe("a locked document and another that failed, in one round", () => {
+  it("says both, never only the lock", async () => {
+    torn.locked = true;
+    torn.moved = true;
+
+    const { shut, said } = await decideAll(["dev_a-0001", "dev_a-0002"]);
+
+    expect(shut).toEqual(["dev_a-0001"]);
+    expect(said).toContain(fill("someLockedAtOdds", "«Kit de transmisión»"));
+    expect(said).toContain(fill("changedWhileDeciding", t("untitledDoc")));
+  });
+});
+
+describe("a title that carries a dollar sign", () => {
+  it("is said as it is written", () => {
+    expect(fill("changedWhileDeciding", "Gastos $$ 2026 $& $'")).toContain(
+      "«Gastos $$ 2026 $& $'»",
+    );
   });
 });

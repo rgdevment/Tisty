@@ -153,7 +153,6 @@ export default function App() {
   useListening({
     latest,
     lookPapers,
-    docs: papers.docs,
     chosen,
     greeted,
     returning,

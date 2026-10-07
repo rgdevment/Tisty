@@ -1,6 +1,6 @@
 use super::segments::{Alike, hand_on, ours_reaches_further, ours_went_missing, same};
 use super::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tisty_core::event::{DeviceId, TaskAdd};
 use tisty_core::{Op, Store};
 use ulid::Ulid;
@@ -6453,6 +6453,7 @@ fn a_body_the_log_does_not_answer_for_is_left_for_the_person_to_decide() {
         b"algo que nadie escribio\n",
     )
     .unwrap();
+    waited_long(&one.data, "uno-0001");
 
     let moved = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
@@ -6472,6 +6473,66 @@ fn a_body_the_log_does_not_answer_for_is_left_for_the_person_to_decide() {
         std::fs::read_to_string(shared.path().join(PAPERS).join("uno-0001.md")).unwrap(),
         "algo que nadie escribio\n",
         "the side the person has not seen yet was written over"
+    );
+}
+
+fn waited_long(data: &Path, id: &str) {
+    std::fs::write(data.join("awaited"), format!("{id} 0\n")).unwrap();
+}
+
+#[test]
+fn a_body_that_lands_ahead_of_its_history_waits_for_it_and_then_comes_in() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let body = "# Notas\n\nlo que escribi\n";
+    filed(&one, "uno-0001", body);
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == "uno-0001")
+        .map(|paper| paper.id)
+        .expect("the document is in the log");
+    says(
+        &one,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(body),
+        },
+    );
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let theirs = "# Notas\n\nlo que escribio el otro\n";
+    std::fs::write(shared.path().join(PAPERS).join("uno-0001.md"), theirs).unwrap();
+
+    let early = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        early.undecided_ids().is_empty(),
+        "the person was asked about a body whose history was still on its way"
+    );
+    assert!(early.coming.contains(&"uno-0001".to_string()), "{early:?}");
+    assert_eq!(
+        std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        body
+    );
+
+    says(
+        &one,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(theirs),
+        },
+    );
+    let landed = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(landed.undecided_ids().is_empty(), "{landed:?}");
+    assert_eq!(
+        std::fs::read_to_string(one.data.join(PAPERS).join("uno-0001.md")).unwrap(),
+        theirs,
+        "the body did not come in once its history arrived"
+    );
+    assert!(
+        !one.data.join("awaited").exists(),
+        "what arrived is still remembered as awaited"
     );
 }
 
@@ -8431,6 +8492,7 @@ fn a_forged_waiting_history_never_silences_the_question() {
     let kept = tempfile::tempdir().unwrap();
     let (one, id) = a_document_settled_in(shared.path(), kept.path());
     waiting_writer(shared.path(), id, "algo que nadie firmo\n", false);
+    waited_long(&one.data, "uno-0001");
 
     let moved = turn(&one, kept.path(), shared.path());
 
@@ -8457,6 +8519,7 @@ fn removing_the_waiting_machine_puts_its_document_to_the_person() {
             d: DeviceId("dev_w".into()),
         },
     );
+    waited_long(&one.data, "uno-0001");
     let moved = turn(&one, kept.path(), shared.path());
 
     assert!(moved.waiting.is_empty(), "{moved:?}");

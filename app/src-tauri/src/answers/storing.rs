@@ -710,6 +710,7 @@ async fn carried_round(
         ("disowned", Fact::Count(done.disowned.len())),
         ("unconfirmed", Fact::Count(done.unconfirmed.len())),
         ("waiting", Fact::Count(done.waiting.len())),
+        ("coming", Fact::Count(done.coming.len())),
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];

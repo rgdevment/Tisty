@@ -2,6 +2,7 @@ use std::path::Path;
 
 use tisty_core::witness::{self, Fact, channel};
 
+use crate::awaited::Awaited;
 use crate::{
     Holding, Moved, PAPERS, Reached, STORE, Stage, Trouble, Undecided, copy_onto, docs_lock, io,
     joined, pointed_away, straight, write,
@@ -90,6 +91,8 @@ pub(crate) fn carry_papers_leaning_on(
     let asked = prints.clone();
     let mut done = Moved::default();
     let mut asked_for = Vec::new();
+    let mut awaited = Awaited::read(data);
+    let now = tisty_core::lately::now();
 
     let whole = alive.len();
     let outcome = (|| -> Result<(), Trouble> {
@@ -130,11 +133,11 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::Bring | Move::TheyDecide if taking => answered_for(
                     yours.as_ref(),
                     printed.and_then(|told| told.get(id)),
-                    id,
                     &|print| held(id, print),
                 ),
                 _ => Answer::Yes,
             };
+            let landing = landing(&mut awaited, id, how, answer, shut.contains(id), now);
             let how = match how {
                 Move::Bring | Move::TheyDecide if !taking => continue,
                 // Only a body nobody here touched waits: one edited on both sides is put to the person as ever.
@@ -147,14 +150,27 @@ pub(crate) fn carry_papers_leaning_on(
                     done.waiting.push(id.clone());
                     continue;
                 }
-                Move::Bring | Move::TheyDecide if matches!(answer, Answer::No | Answer::Waits) => {
-                    if answer == Answer::Waits {
-                        witness::warn(
+                Move::Bring if landing.is_some() => {
+                    if landing == Some(true) {
+                        witness::note(
                             channel::SYNC,
-                            "a body a waiting machine answers for meets a change here or a lock, so the person decides it",
+                            "a body landed ahead of the history that answers for it, so it waits for that history",
                             &[("at", Fact::Id(id.clone()))],
                         );
                     }
+                    done.coming.push(id.clone());
+                    continue;
+                }
+                Move::Bring | Move::TheyDecide if matches!(answer, Answer::No | Answer::Waits) => {
+                    let why = match answer {
+                        Answer::No => {
+                            "the folder holds a body the log does not answer for, so the person decides it"
+                        }
+                        _ => {
+                            "a body a waiting machine answers for meets a change here or a lock, so the person decides it"
+                        }
+                    };
+                    witness::warn(channel::SYNC, why, &[("at", Fact::Id(id.clone()))]);
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
@@ -275,6 +291,11 @@ pub(crate) fn carry_papers_leaning_on(
         Ok(())
     })();
     tisty_core::holes::ask_for(asked_for);
+    awaited.arrived(&done.arrived);
+    if taking && outcome.is_ok() {
+        awaited.forget_settled(alive, now);
+    }
+    awaited.save(data);
 
     if said != was {
         said.save(data)
@@ -403,10 +424,26 @@ fn set_aside(data: &Path, id: &str, mine: &Path, left: &str) {
     }
 }
 
+// Locked or held bodies are timed too, so unlocking or removing the machine asks at once.
+fn landing(
+    awaited: &mut Awaited,
+    id: &str,
+    how: tisty_core::docs::Move,
+    answer: Answer,
+    shut: bool,
+    now: u64,
+) -> Option<bool> {
+    if how != tisty_core::docs::Move::Bring || !matches!(answer, Answer::No | Answer::Waits) {
+        return None;
+    }
+    let first_sight = !awaited.knows(id);
+    let waits = awaited.still_landing(id, now);
+    (waits && answer == Answer::No && !shut).then_some(first_sight)
+}
+
 fn answered_for(
     print: Option<&String>,
     says: Option<&Answers>,
-    id: &str,
     held: &dyn Fn(&str) -> bool,
 ) -> Answer {
     let (Some(print), Some(says)) = (print, says) else {
@@ -421,11 +458,6 @@ fn answered_for(
     if held(print) {
         return Answer::Waits;
     }
-    witness::warn(
-        channel::SYNC,
-        "the folder holds a body the log does not answer for, so the person decides it",
-        &[("at", Fact::Id(id.to_string()))],
-    );
     Answer::No
 }
 
