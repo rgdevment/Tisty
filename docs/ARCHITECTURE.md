@@ -1359,7 +1359,8 @@ history, a document body or an attachment is read from the shared folder,
 is not stays out of the turn, is reported in `Moved::coming` — on its way, not
 unreadable — and is asked for with `holes::ask_for`, which reads one byte of it
 on a thread of its own so the cloud starts bringing it down. The next turn finds
-it here. A store of thousands of files arriving on a new machine therefore comes
+it here. A body that is here while its history is not yet is on its way in the
+same sense, and is reported the same way (see the documents' merge, below). A store of thousands of files arriving on a new machine therefore comes
 in over several turns that each finish, instead of one turn that waits for every
 download in a row.
 
@@ -1489,8 +1490,10 @@ question; two adjacent ones are simply both taken.
 
 A body reaches the folder only after the log that answers for it. A merge is
 written here alone, and so is a body changed with another editor; the window or
-the CLI writes its print down and pushes, and only then does the body leave, so
-the other machine never meets a body its log cannot vouch for. What the folder
+the CLI writes its print down and pushes, and only then does the body leave.
+What the cloud does with the two is its own affair: a provider uploads and
+brings down files in whichever order it likes, so the other machine can meet a
+body before the history that vouches for it. What the folder
 holds is taken in if it matches the newest print or the last one another machine
 wrote down — clocks decide which is newest, and a laptop can be an hour out — but
 a body that is only another machine's last word is set aside here before it
@@ -1501,11 +1504,21 @@ saving, settling, converting and weaving a document, a file kept in one from the
 CLI or an assistant, a parcel whose references were rewritten on the way in. A
 body here that the log does not answer for — edited outside Tisty — is
 `unanswered` and held back rather than sent. One the folder holds that no log
-answers for is not taken in and not written over either: it is left undecided,
-and the person chooses mine, theirs or both. Settling «mine» is refused when the
-folder moved since the person was asked, the same as weaving.
+answers for is not taken in and not written over either. When only the other
+machine changed it, its history is most likely still on the way, so it waits,
+reported in `Moved::coming`, for up to an hour (`awaited::LANDING`) from when
+this machine first saw it, and comes in on the round its print arrives. The hour
+is counted on this machine's clock and kept in `awaited` in the data folder, by
+document rather than by body, so whoever writes the folder can delay the question
+by an hour and never more: rewriting the body does not start the wait over, and
+it is forgotten once a body comes in, or a day after it last waited, so a body
+planted again soon after is asked about at once. Past that hour, or at once when it was
+also edited here or is locked, it is left undecided and the person chooses mine,
+theirs or both. Settling «mine» is refused when the folder moved since the person
+was asked, the same as weaving, and the window says the document changed again
+while they decided rather than calling it locked.
 
-The one body that waits instead is one whose print a machine still waiting to
+The other body that waits is one whose print a machine still waiting to
 be confirmed wrote down, and only when nothing here changed it. That history is
 in the folder unread, so its answer is on the way rather than missing: the
 round reads every print it gave (`store::introduced::prints_in`), from one copy
@@ -2245,7 +2258,9 @@ that other machines read:
 - A `device.join` written at 17 carries `p`: from then on no machine is
   without a key.
 - Every document body written at 17 has its print in `doc.said`, so a body that
-  arrives before the log that answers for it waits instead of coming in.
+  arrives before the log that answers for it waits instead of coming in. Today
+  it waits an hour and is then put to the person; under 17 every body has a
+  print, so the wait can only end in its history arriving or the question.
 
 **Migration.** `SCHEMA_VERSION` becomes 17 with `SEALED_FROM = 17`. The first
 write at 17 rotates the active v16 segment the old way, with its `.sig` and

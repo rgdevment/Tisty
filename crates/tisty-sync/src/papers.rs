@@ -90,6 +90,9 @@ pub(crate) fn carry_papers_leaning_on(
     let asked = prints.clone();
     let mut done = Moved::default();
     let mut asked_for = Vec::new();
+    let mut awaited = crate::awaited::Awaited::read(data);
+    let first_awaited = awaited.clone();
+    let now = crate::awaited::now();
 
     let whole = alive.len();
     let outcome = (|| -> Result<(), Trouble> {
@@ -130,11 +133,15 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::Bring | Move::TheyDecide if taking => answered_for(
                     yours.as_ref(),
                     printed.and_then(|told| told.get(id)),
-                    id,
                     &|print| held(id, print),
                 ),
                 _ => Answer::Yes,
             };
+            let first_sight = !awaited.knows(id);
+            let landing = how == Move::Bring
+                && answer == Answer::No
+                && !shut.contains(id)
+                && awaited.still_landing(id, now);
             let how = match how {
                 Move::Bring | Move::TheyDecide if !taking => continue,
                 // Only a body nobody here touched waits: one edited on both sides is put to the person as ever.
@@ -147,7 +154,25 @@ pub(crate) fn carry_papers_leaning_on(
                     done.waiting.push(id.clone());
                     continue;
                 }
+                Move::Bring if landing => {
+                    if first_sight {
+                        witness::note(
+                            channel::SYNC,
+                            "a body landed ahead of the history that answers for it, so it waits for that history",
+                            &[("at", Fact::Id(id.clone()))],
+                        );
+                    }
+                    done.coming.push(id.clone());
+                    continue;
+                }
                 Move::Bring | Move::TheyDecide if matches!(answer, Answer::No | Answer::Waits) => {
+                    if answer == Answer::No {
+                        witness::warn(
+                            channel::SYNC,
+                            "the folder holds a body the log does not answer for, so the person decides it",
+                            &[("at", Fact::Id(id.clone()))],
+                        );
+                    }
                     if answer == Answer::Waits {
                         witness::warn(
                             channel::SYNC,
@@ -231,6 +256,7 @@ pub(crate) fn carry_papers_leaning_on(
                     copy_onto(&theirs, &mine)?;
                     done.brought += 1;
                     done.arrived.push(id.clone());
+                    awaited.arrived(id);
                     if let Some(print) = yours {
                         settled_body(data, id, &mine, &theirs);
                         said.keep(id, &print);
@@ -247,6 +273,7 @@ pub(crate) fn carry_papers_leaning_on(
                             done.brought += 1;
                             done.joined.push(id.clone());
                             done.arrived.push(id.clone());
+                            awaited.arrived(id);
                             match (print_of(&theirs), yours) {
                                 (Ok(Some(now)), Some(print)) if now == print => {
                                     settled_body(data, id, &theirs, &mine);
@@ -275,6 +302,10 @@ pub(crate) fn carry_papers_leaning_on(
         Ok(())
     })();
     tisty_core::holes::ask_for(asked_for);
+    awaited.forget_settled(alive, now);
+    if awaited != first_awaited {
+        awaited.save(data);
+    }
 
     if said != was {
         said.save(data)
@@ -406,7 +437,6 @@ fn set_aside(data: &Path, id: &str, mine: &Path, left: &str) {
 fn answered_for(
     print: Option<&String>,
     says: Option<&Answers>,
-    id: &str,
     held: &dyn Fn(&str) -> bool,
 ) -> Answer {
     let (Some(print), Some(says)) = (print, says) else {
@@ -421,11 +451,6 @@ fn answered_for(
     if held(print) {
         return Answer::Waits;
     }
-    witness::warn(
-        channel::SYNC,
-        "the folder holds a body the log does not answer for, so the person decides it",
-        &[("at", Fact::Id(id.to_string()))],
-    );
     Answer::No
 }
 

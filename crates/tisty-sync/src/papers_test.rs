@@ -19,7 +19,6 @@ fn a_body_held_by_a_waiting_machine_waits() {
         answered_for(
             Some(&"la-del-otro".to_string()),
             Some(&says),
-            "doc-0001",
             &held_of(&["la-del-otro"])
         ),
         Answer::Waits
@@ -33,7 +32,6 @@ fn a_body_nobody_answers_for_is_still_put_to_the_person() {
         answered_for(
             Some(&"de-nadie".to_string()),
             Some(&says),
-            "doc-0001",
             &held_of(&["la-del-otro"])
         ),
         Answer::No
@@ -45,21 +43,11 @@ fn what_a_trusted_history_says_comes_first_and_the_waiting_one_is_never_read() {
     let says = said("la-ultima", &["una-vieja"]);
     let untouched = |_: &str| -> bool { panic!("the waiting history was read") };
     assert_eq!(
-        answered_for(
-            Some(&"la-ultima".to_string()),
-            Some(&says),
-            "doc-0001",
-            &untouched
-        ),
+        answered_for(Some(&"la-ultima".to_string()), Some(&says), &untouched),
         Answer::Yes
     );
     assert_eq!(
-        answered_for(
-            Some(&"una-vieja".to_string()),
-            Some(&says),
-            "doc-0001",
-            &untouched
-        ),
+        answered_for(Some(&"una-vieja".to_string()), Some(&says), &untouched),
         Answer::Doubtful
     );
 }

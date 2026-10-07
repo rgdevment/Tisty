@@ -154,7 +154,10 @@ Being explicit here matters more than sounding reassuring.
   found, so the folder you join should be one you trust.
 
   The signatures answer for the log, and not for everything beside it. A
-  document body that the log holds no print of is taken in as it arrives; the
+  document body that matches none of the prints the log holds for it is never
+  taken in: when only another machine changed it, it waits up to an hour on
+  this machine's clock for its history, and then you are asked. A document
+  body that the log holds no print of at all is taken in as it arrives; the
   window checks an attachment against the prefix of its digest that its name
   carries rather than all of it, and only the sync round, when the log records
   the full digest, demands every byte match; and `tisty.toml`, which names the

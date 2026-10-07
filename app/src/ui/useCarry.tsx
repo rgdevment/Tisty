@@ -52,12 +52,14 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
         fail({ card: "sync", text: t("wouldReset") });
         return "declined";
       }
-      const shut = await decideAll(answer.undecided);
+      const { shut, said } = await decideAll(answer.undecided);
       const amiss = whatWentAmiss(answer);
       if (amiss) {
         fail({ card: "sync", text: t(amiss) });
       } else if (shut.length) {
         fail({ card: "sync", text: fill("someLockedAtOdds", await namedDocs(shut)) });
+      } else if (said) {
+        fail({ card: "sync", text: said });
       } else if (answer.joined?.length) {
         tell({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
       } else {

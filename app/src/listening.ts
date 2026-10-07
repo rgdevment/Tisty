@@ -89,8 +89,11 @@ export function useListening({
       },
       (ids) => {
         decideAll(ids)
-          .then((shut) => {
-            if (!shut.length) return;
+          .then(({ shut, said }) => {
+            if (!shut.length) {
+              if (said) setError(said);
+              return;
+            }
             const named = shut
               .map((one) => papersNow.current.find((doc) => doc.file === one))
               .map((one) => `«${one?.title?.trim() || t("untitledDoc")}»`)

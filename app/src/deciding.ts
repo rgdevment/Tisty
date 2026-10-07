@@ -1,6 +1,7 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { docs, type Pick, paperRifts, type Rift, settlePaper, weavePaper } from "./core";
 import { fill, t } from "./locales";
+import { type Refusal, saidPlainly } from "./refusal";
 
 const settling = new Set<string>();
 
@@ -43,19 +44,37 @@ export const decide = async (id: string, called?: string): Promise<void> => {
   }
 };
 
-export const decideAll = async (ids: string[]): Promise<string[]> => {
-  if (!ids.length) return [];
-  const found = await docs().catch(() => null);
-  if (!found) return ids;
+/** What deciding left: the documents locked here, and the plain reason anything else failed. */
+export interface Decided {
+  shut: string[];
+  said: string | null;
+}
+
+export const decideAll = async (ids: string[]): Promise<Decided> => {
+  if (!ids.length) return { shut: [], said: null };
+  let said: string | null = null;
+  const found = await docs().catch((problem: unknown) => {
+    said = saidPlainly(problem);
+    return null;
+  });
+  if (!found) return { shut: [], said };
   const titled = new Map(found.docs.map((one) => [one.file, one.title]));
   const shut = new Set(found.docs.filter((one) => one.locked).map((one) => one.file));
   for (const id of ids) {
     if (shut.has(id)) continue;
     try {
       await decide(id, titled.get(id));
-    } catch {
-      shut.add(id);
+    } catch (problem) {
+      const code = (problem as Refusal | undefined)?.code;
+      if (code === "documentLocked") {
+        shut.add(id);
+        continue;
+      }
+      said = saidPlainly(problem);
+      if (code === "movedUnderfoot") {
+        said = fill("changedWhileDeciding", titled.get(id)?.trim() || t("untitledDoc"));
+      }
     }
   }
-  return ids.filter((id) => shut.has(id));
+  return { shut: ids.filter((id) => shut.has(id)), said };
 };
