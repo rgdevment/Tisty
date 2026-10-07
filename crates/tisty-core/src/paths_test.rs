@@ -282,6 +282,7 @@ fn the_home_set_aside_is_hidden_inherits_nothing_and_is_looked_at_once() {
 
     let hidden = std::fs::metadata(&home).unwrap().file_attributes() & 0x2;
     assert_ne!(hidden, 0, "the home is still in plain sight");
+    assert!(home.join(".kept").exists(), "a finished walk left no mark");
     let said = sddl_of(&home, room.path());
     let dacl = said
         .lines()
@@ -325,5 +326,22 @@ fn a_home_somebody_hid_by_hand_is_still_kept_to_this_account() {
     assert!(
         dacl.starts_with('P'),
         "a hidden home was taken as kept: {said}"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_walk_cut_short_is_walked_again_though_the_home_itself_is_kept() {
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().join(".tisty");
+    std::fs::create_dir_all(&home).unwrap();
+    tucked(&home).unwrap();
+    std::fs::remove_file(home.join(".kept")).unwrap();
+
+    tucked(&home).unwrap();
+
+    assert!(
+        home.join(".kept").exists(),
+        "a home with no mark of a finished walk was taken as kept"
     );
 }

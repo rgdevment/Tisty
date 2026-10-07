@@ -297,9 +297,13 @@ fn tucked(home: &Path) -> std::io::Result<()> {
         .arg(home)
         .stdout(std::process::Stdio::piped())
         .output()?;
-    // The system account keeps its way in, so a backup that runs as a service still copies the store.
-    if !said.status.success() || String::from_utf8_lossy(&said.stdout).contains("(I)") {
+    // Written only once every file under the home was walked, so a walk cut short is walked again.
+    let walked = home.join(".kept");
+    let inherits = !said.status.success() || String::from_utf8_lossy(&said.stdout).contains("(I)");
+    if inherits || !walked.exists() {
+        // The system account keeps its way in, so a backup that runs as a service still copies the store.
         kept_for(home, &["*S-1-5-18:(OI)(CI)F"])?;
+        std::fs::write(&walked, b"")?;
     }
     if std::fs::metadata(home)?.file_attributes() & HIDDEN != 0 {
         return Ok(());
