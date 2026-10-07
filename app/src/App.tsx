@@ -2,17 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { carrying } from "./carrying";
 import {
   type Afoot,
-  complete,
   DEEPEST,
   docFile,
   type Filed,
   type Folded,
   type Found,
   folderFile,
-  owed,
-  type Snapshot,
-  settleIn,
-  snapshot,
   starDue,
   type Task,
 } from "./core";
@@ -21,23 +16,24 @@ import { detailOf, erasing } from "./detailing";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { deep } from "./folders";
 import { useNote } from "./glance";
+import { layoutOf } from "./layout";
 import { useListening } from "./listening";
-import { adopt, fill, t } from "./locales";
+import { t } from "./locales";
+import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
+import { useSnapshot } from "./snapshotting";
 import { WEEK } from "./ui/Ahead";
 import Layers, { type MenuOpen, type Torn } from "./ui/Layers";
 import Margins from "./ui/Margins";
-import Owed from "./ui/Owed";
 import { useParcels } from "./ui/Parcels";
 import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
 import { usePapers } from "./usePapers";
-import { asView, type Chosen, type Slice, useReach } from "./views";
+import { type Chosen, type Slice, useReach } from "./views";
 import { useAloud, useTight, useUpdates } from "./watching";
-import { knowAgents } from "./who";
 
 type Mode = "columns" | "sheet";
 
@@ -51,7 +47,6 @@ export const kept = (key: string): string[] => {
 };
 
 export default function App() {
-  const [data, setData] = useState<Snapshot | null>(null);
   const { ready, lookAgain, underway, setUnderway, behind, setBehind } = useUpdates();
   const tight = useTight();
   const { aloud, say } = useAloud();
@@ -74,7 +69,6 @@ export default function App() {
   const [found, setFound] = useState<Found | null>(null);
   /// Where a tag was pressed, so leaving it goes back there rather than to a fixed screen.
   const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
-  useOnlyAlive(data?.lists, chosen, setChosen);
   const [seen, byList] = useOnly(chosen);
 
   const [makingFolder, setMakingFolder] = useState(false);
@@ -112,8 +106,6 @@ export default function App() {
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
-  const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
-  const asked = useRef(0);
 
   const lookForAStar = () => {
     starDue()
@@ -131,8 +123,6 @@ export default function App() {
   const [offering, setOffering] = useState(false);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const [settling, setSettling] = useState(true);
-  const [stuck, setStuck] = useState(false);
   const [torn, setTorn] = useState<Torn | null>(null);
 
   useEffect(() => {
@@ -143,50 +133,22 @@ export default function App() {
 
   const parcels = useParcels({ afoot, setAfoot, setError, noted, said, papersChanged });
 
-  useEffect(() => {
-    /// A slow answer must not open a strip over the view the person moved on to.
-    asked.current += 1;
-    setAsking(null);
-  }, [chosen]);
-
+  const { asking, marking, strip } = useMarking({
+    chosen,
+    act: (work) => act(work),
+    say,
+    setError,
+    lookForAStar: () => lookForAStar(),
+  });
   const { reach, further } = useReach(chosen);
-  const load = useCallback(() => {
-    snapshot(asView(seen, reach))
-      .then((fresh) => {
-        adopt(fresh.locale);
-        knowAgents(fresh.agents, {
-          tag: fresh.agent_tag,
-          hosts: fresh.hosts,
-          machines: fresh.machines,
-          here: fresh.machine_here,
-          clients: fresh.clients,
-        });
-        setData(fresh);
-        acted.current = null;
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  }, [seen, reach]);
+  const { data, load, latest, settling, stuck, setStuck } = useSnapshot({
+    seen,
+    reach,
+    acted,
+    setError,
+  });
+  useOnlyAlive(data?.lists, chosen, setChosen);
 
-  useEffect(() => {
-    settleIn()
-      .then((done) => {
-        if (done.stuck) {
-          const apart = done.stuck.code === "wouldReset" || done.stuck.code === "otherStore";
-          setError(apart ? t("stuckApart") : saidPlainly(done.stuck));
-          setStuck(apart);
-        }
-        return done.brought && latest.current();
-      })
-      .catch((problem) => setError(saidPlainly(problem)))
-      .finally(() => setSettling(false));
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const latest = useRef(load);
-  latest.current = load;
   const papersAgain = useRef(lookPapers);
   papersAgain.current = lookPapers;
 
@@ -235,32 +197,13 @@ export default function App() {
       )
     : [];
 
-  const outside =
-    chosen.named === "docs" || chosen.named === "keeping" || chosen.named === "aboutScreen";
-  const sheet = open && !outside && (mode === "sheet" || tight);
-  const beside = open && !outside && !sheet;
-  const aside =
-    (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) && !sheet;
-  const quiet =
-    !asking && !greet && !open && !leaving && !torn && !afoot && !error && !parcels.asking;
-  const papered =
-    chosen.named === "tasks" ||
-    chosen.named === "tags" ||
-    chosen.named === "archive" ||
-    chosen.named === "lists" ||
-    chosen.named === "spread" ||
-    chosen.list !== undefined ||
-    sheet;
-  const lane =
-    chosen.named === "spread"
-      ? ""
-      : beside
-        ? aside
-          ? "@min-[964px]:pr-[404px] @min-[1536px]:pr-[716px]"
-          : "@min-[964px]:pr-[404px]"
-        : aside
-          ? "@min-[884px]:pr-[324px]"
-          : "";
+  const { sheet, beside, aside, quiet, papered, lane } = layoutOf({
+    chosen,
+    open,
+    mode,
+    tight,
+    calm: !asking && !greet && !leaving && !torn && !afoot && !error && !parcels.asking,
+  });
 
   const remember = (next: Mode) => {
     localStorage.setItem("detail", next);
@@ -279,36 +222,6 @@ export default function App() {
       },
       fail: (e) => setError(saidPlainly(e)),
     });
-
-  const marking = (id: string, title: string) => {
-    setError(null);
-    const mine = ++asked.current;
-    owed(id)
-      .then((days) => {
-        // A slow answer must not open a strip over the task the person moved on to.
-        if (mine !== asked.current) return;
-        if (!days.length) {
-          say(fill("saidDone", title));
-          act(complete(id));
-          lookForAStar();
-          return;
-        }
-        setAsking({ id, title, days });
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  };
-
-  const strip = asking ? (
-    <Owed
-      days={asking.days}
-      onConfirm={(days) => {
-        say(fill("saidDone", asking.title));
-        act(complete(asking.id, days));
-        setAsking(null);
-        lookForAStar();
-      }}
-    />
-  ) : null;
 
   const hands: Hands = {
     papers,
