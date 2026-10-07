@@ -1,51 +1,30 @@
-import type { Papers, Snapshot, Task } from "../core";
-import type { detailOf } from "../detailing";
+import { useDesk } from "../desk";
 import { saidPlainly } from "../refusal";
-import type { Chosen } from "../views";
 import Detail from "./Detail";
 import Door from "./Door";
 import Pulse from "./Pulse";
 import Star from "./Star";
 
-interface Props {
-  aside: boolean;
-  beside: boolean;
-  dealing: boolean;
-  task: Task | undefined;
-  detailing: (one: Task) => ReturnType<typeof detailOf>;
-  remember: (next: "columns" | "sheet") => void;
-  data: Snapshot;
-  papers: Papers;
-  chosen: Chosen;
-  setChosen: (chosen: Chosen) => void;
-  setSelected: (id: string | undefined) => void;
-  offering: boolean;
-  setOffering: (offering: boolean) => void;
-  starring: boolean;
-  setStarring: (starring: boolean) => void;
-  quiet: boolean;
-  setError: (text: string | null) => void;
-}
-
-export default function Margins({
-  aside,
-  beside,
-  dealing,
-  task,
-  detailing,
-  remember,
-  data,
-  papers,
-  chosen,
-  setChosen,
-  setSelected,
-  offering,
-  setOffering,
-  starring,
-  setStarring,
-  quiet,
-  setError,
-}: Props) {
+export default function Margins() {
+  const {
+    aside,
+    beside,
+    dealing,
+    task,
+    detailing,
+    remember,
+    data,
+    papers,
+    chosen,
+    setChosen,
+    setSelected,
+    offering,
+    setOffering,
+    starring,
+    setStarring,
+    quiet,
+    setError,
+  } = useDesk();
   return (
     <>
       {beside && task && (

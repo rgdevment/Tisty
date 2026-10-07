@@ -167,7 +167,12 @@ pub fn sow<R: Runtime>(app: &AppHandle<R>, priority: Option<String>) {
 }
 
 pub fn surface<R: Runtime>(app: &AppHandle<R>) {
-    let Some(window) = app.get_webview_window("main") else {
+    // While the store is still moving no session stands behind the main window, so the move shows.
+    let label = match app.try_state::<crate::Perched>() {
+        Some(_) => "main",
+        None => "moving",
+    };
+    let Some(window) = app.get_webview_window(label) else {
         return;
     };
     let _ = window.show();

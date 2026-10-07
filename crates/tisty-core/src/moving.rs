@@ -25,7 +25,31 @@ pub enum Settled {
     Failed(String),
 }
 
+/// How far a move has come: bytes copied and bytes it will copy in all.
+pub type Telling<'a> = &'a mut dyn FnMut(u64, u64);
+
+struct Tally<'a> {
+    done: u64,
+    whole: u64,
+    telling: Telling<'a>,
+}
+
+impl Tally<'_> {
+    fn add(&mut self, bytes: u64) {
+        self.done = (self.done + bytes).min(self.whole);
+        (self.telling)(self.done, self.whole);
+    }
+}
+
+pub fn moves(roots: &Roots) -> bool {
+    !roots.new.exists() && (held(&roots.real) || roots.private.as_deref().is_some_and(held))
+}
+
 pub fn settle(roots: &Roots) -> Settled {
+    settle_telling(roots, &mut |_, _| {})
+}
+
+pub fn settle_telling(roots: &Roots, telling: Telling) -> Settled {
     if roots.new.exists() {
         fence_left(&roots.new);
         return Settled::AlreadyThere;
@@ -57,7 +81,13 @@ pub fn settle(roots: &Roots) -> Settled {
         ));
     }
     let part = parent.join(format!("{}.part-{}", leaf(&roots.new), std::process::id()));
-    let made = gathered(&part, &sources).and_then(|()| {
+    let mut tally = Tally {
+        done: 0,
+        whole: needs,
+        telling,
+    };
+    tally.add(0);
+    let made = gathered(&part, &sources, &mut tally).and_then(|()| {
         let said: Vec<String> = sources
             .iter()
             .map(|one| one.display().to_string())
@@ -75,6 +105,9 @@ pub fn settle(roots: &Roots) -> Settled {
         let _ = std::fs::remove_dir_all(&part);
         return Settled::Failed(why.to_string());
     }
+    // What was weighed includes files a move leaves behind, so the end is said outright.
+    let whole = tally.whole;
+    tally.add(whole);
     if let Err(why) = landed(&part, &roots.new) {
         let _ = std::fs::remove_dir_all(&part);
         return match roots.new.exists() {
@@ -196,14 +229,14 @@ fn quieted(sources: &[&Path]) -> Option<Vec<crate::store::Alone>> {
 }
 
 /// The packaged app read the real folder with its own private copy laid over it, file by file.
-fn gathered(part: &Path, sources: &[&Path]) -> std::io::Result<()> {
+fn gathered(part: &Path, sources: &[&Path], tally: &mut Tally) -> std::io::Result<()> {
     std::fs::create_dir_all(part)?;
     for source in sources {
         for under in KEPT {
             let at = source.join(under);
             if at.is_dir() {
                 let mut seen = std::collections::HashSet::new();
-                copied(&at, &part.join(under), false, &mut seen)?;
+                copied(&at, &part.join(under), false, &mut seen, tally)?;
             }
         }
     }
@@ -215,6 +248,7 @@ fn copied(
     into: &Path,
     attachments: bool,
     seen: &mut std::collections::HashSet<PathBuf>,
+    tally: &mut Tally,
 ) -> std::io::Result<()> {
     if !seen.insert(from.canonicalize()?) {
         return Ok(());
@@ -232,6 +266,7 @@ fn copied(
                 &into.join(&name),
                 attachments || named == "attachments",
                 seen,
+                tally,
             )?;
         } else if kind.is_file() && !passing(&named, attachments) {
             if named == "active.tisty" {
@@ -239,6 +274,7 @@ fn copied(
             } else {
                 std::fs::copy(&at, into.join(&name))?;
             }
+            tally.add(kind.len());
         }
     }
     Ok(())

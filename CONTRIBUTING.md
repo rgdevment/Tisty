@@ -64,7 +64,9 @@ cargo build
 cargo nextest run --workspace   # or: cargo test
 ```
 
-Before opening a pull request, run what CI runs:
+Before opening a pull request, run what CI runs. `npm run check` does all of it
+in one go, stopping at the first thing that fails; `npm run check:quick` leaves
+the tests to CI. Step by step, it is:
 
 ```sh
 cargo fmt --all --check

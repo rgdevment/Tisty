@@ -1,24 +1,11 @@
 import { ask } from "@tauri-apps/plugin-dialog";
-import type { MutableRefObject, ReactNode } from "react";
-import type { carrying } from "../carrying";
-import {
-  discard,
-  docPage,
-  type Filed,
-  type Folded,
-  type Papers,
-  patch,
-  type Ready,
-  type Snapshot,
-  sow,
-  type Task,
-  type Underway,
-} from "../core";
-import type { detailOf } from "../detailing";
+import { discard, docPage, patch, sow } from "../core";
+import { useDesk } from "../desk";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
-import { type Chosen, title } from "../views";
+import { title } from "../views";
 import About from "./About";
+import Board from "./Board";
 import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
@@ -27,93 +14,49 @@ import Lists from "./Lists";
 import Matrix from "./Matrix";
 import Spread from "./Spread";
 
-interface Props {
-  board: ReactNode;
-  act: (work: Promise<Task>) => void;
-  beside: boolean;
-  bringBack: (doc: Filed) => void;
-  carried: number;
-  carries: MutableRefObject<ReturnType<typeof carrying> | null>;
-  chosen: Chosen;
-  data: Snapshot;
-  detailing: (one: Task) => ReturnType<typeof detailOf>;
-  docMenu: (doc: Filed, at: { x: number; y: number }) => void;
-  dropDoc: (doc: Filed) => unknown;
-  folderMenu: (folder: Folded, at: { x: number; y: number }) => void;
-  greeted: number;
-  here: string | null | undefined;
-  hereMenu: (at: { x: number; y: number }) => void;
-  load: () => void;
-  lookPapers: () => void;
-  openDoc: (paper: string) => void;
-  paging: MutableRefObject<((page: Filed) => boolean) | null>;
-  papers: Papers;
-  papersChanged: () => void;
-  parcels: { packUp: (which: string[], named: string) => unknown; takeParcel: () => unknown };
-  ready: Ready | null;
-  remember: (next: "columns" | "sheet") => void;
-  setCameFrom: (from: Chosen | null) => void;
-  setChosen: (chosen: Chosen) => void;
-  setDealing: (dealing: boolean) => void;
-  setError: (text: string | null) => void;
-  setGreet: (greet: boolean) => void;
-  setHere: (here: string | null | undefined) => void;
-  setSelected: (id: string | undefined) => void;
-  setShowing: (file: string | null) => void;
-  setUnderway: (underway: Underway | null) => void;
-  sheet: boolean;
-  shut: () => void;
-  standing: Folded | undefined;
-  strip: ReactNode;
-  task: Task | undefined;
-  tight: boolean;
-  told: (problem: unknown) => void;
-  underway: Underway | null;
-}
-
-export default function Stage({
-  board,
-  act,
-  beside,
-  bringBack,
-  carried,
-  carries,
-  chosen,
-  data,
-  detailing,
-  docMenu,
-  dropDoc,
-  folderMenu,
-  greeted,
-  here,
-  hereMenu,
-  load,
-  lookPapers,
-  openDoc,
-  paging,
-  papers,
-  papersChanged,
-  parcels,
-  ready,
-  remember,
-  setCameFrom,
-  setChosen,
-  setDealing,
-  setError,
-  setGreet,
-  setHere,
-  setSelected,
-  setShowing,
-  setUnderway,
-  sheet,
-  shut,
-  standing,
-  strip,
-  task,
-  tight,
-  told,
-  underway,
-}: Props) {
+export default function Stage() {
+  const {
+    act,
+    beside,
+    bringBack,
+    carried,
+    carries,
+    chosen,
+    data,
+    detailing,
+    docMenu,
+    dropDoc,
+    folderMenu,
+    greeted,
+    here,
+    hereMenu,
+    load,
+    lookPapers,
+    openDoc,
+    paging,
+    papers,
+    papersChanged,
+    parcels,
+    ready,
+    remember,
+    setCameFrom,
+    setChosen,
+    setDealing,
+    setError,
+    setGreet,
+    setHere,
+    setSelected,
+    setShowing,
+    setUnderway,
+    sheet,
+    shut,
+    standing,
+    strip,
+    task,
+    tight,
+    told,
+    underway,
+  } = useDesk();
   return chosen.named === "aboutScreen" ? (
     <About
       ready={ready}
@@ -234,6 +177,6 @@ export default function Stage({
       onCollapse={() => (tight ? shut() : remember("columns"))}
     />
   ) : (
-    board
+    <Board />
   );
 }

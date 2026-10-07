@@ -346,6 +346,11 @@ const en = {
   newDoc: "New document",
   noDocsYet: "No documents yet",
   untitledDoc: "Untitled",
+  movingTitle: "Moving your data somewhere safer",
+  movingWhy:
+    "Tisty is moving your tasks and documents out of the app's own folder, where uninstalling could delete them. It happens once, and nothing is lost if it stops halfway.",
+  movingAlong: "{name} of {other}",
+  movingStarting: "Getting ready…",
   pickADoc: "Pick a document, or make one",
   opening: "Opening…",
   saving: "Saving…",
@@ -1904,6 +1909,11 @@ const es: Catalog = {
   newDoc: "Documento nuevo",
   noDocsYet: "Ningún documento todavía",
   untitledDoc: "Sin título",
+  movingTitle: "Llevando tus datos a un lugar más seguro",
+  movingWhy:
+    "Tisty está sacando tus tareas y documentos de la carpeta propia de la app, donde desinstalarla podría borrarlos. Pasa una sola vez, y no se pierde nada si se corta a la mitad.",
+  movingAlong: "{name} de {other}",
+  movingStarting: "Preparando…",
   pickADoc: "Elige un documento, o crea uno",
   opening: "Abriendo…",
   saving: "Guardando…",

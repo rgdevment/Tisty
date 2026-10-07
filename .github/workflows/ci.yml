@@ -18,13 +18,18 @@ env:
 
 jobs:
   test:
-    name: test / ${{ matrix.os }}
+    name: test / ${{ matrix.os }}${{ matrix.part && format(' {0}', matrix.part) || '' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            part: 1/2
+          - os: windows-latest
+            part: 2/2
+          - os: macos-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -42,7 +47,7 @@ jobs:
           tool: nextest
       # Clippy runs where the cache is written, or the next job pays to rebuild what it needs.
       - run: cargo clippy --workspace --all-targets
-      - run: cargo nextest run --workspace --no-tests=pass
+      - run: cargo nextest run --workspace --no-tests=pass ${{ matrix.part && format('--partition count:{0}', matrix.part) || '' }}
       # Compiling the doc tests is most of what they cost, and macOS is the job with time to spare.
       - if: runner.os == 'macOS'
         run: cargo test --doc --workspace

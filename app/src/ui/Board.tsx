@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
-import { capture, type Filed, type Found, fold, type Snapshot, type Task } from "../core";
+import { capture, fold } from "../core";
+import { useDesk } from "../desk";
 import { todayLong } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { accepts, asView, type Chosen, headerCount, invite, nothing, title } from "../views";
+import { accepts, asView, headerCount, invite, nothing, title } from "../views";
 import { ArchiveBar, SliceBar } from "./Bars";
 import CaptureField from "./CaptureField";
 import Search from "./Search";
@@ -13,63 +13,35 @@ import Tagged from "./Tagged";
 import Tags from "./Tags";
 import TaskList from "./TaskList";
 
-interface Props {
-  act: (work: Promise<Task>) => void;
-  asking: { id: string; title: string; days: string[] } | null;
-  byList: boolean;
-  cameFrom: Chosen | null;
-  captured: Task | undefined;
-  chosen: Chosen;
-  data: Snapshot;
-  found: Found | null;
-  further: () => void;
-  load: () => void;
-  marking: (id: string, title: string) => void;
-  openDoc: (paper: string) => void;
-  reveal: string | undefined;
-  say: (words: string) => void;
-  seen: Chosen;
-  selected: string | undefined;
-  setCameFrom: (from: Chosen | null) => void;
-  setCaptured: (task: Task | undefined) => void;
-  setChosen: (chosen: Chosen) => void;
-  setError: (text: string | null) => void;
-  setFound: (found: Found | null) => void;
-  setSelected: (id: string | undefined) => void;
-  shown: Task[];
-  strip: ReactNode;
-  taggedDocs: Filed[];
-  wholes: NonNullable<Snapshot["wholes"]>;
-}
-
-export default function Board({
-  act,
-  asking,
-  byList,
-  cameFrom,
-  captured,
-  chosen,
-  data,
-  found,
-  further,
-  load,
-  marking,
-  openDoc,
-  reveal,
-  say,
-  seen,
-  selected,
-  setCameFrom,
-  setCaptured,
-  setChosen,
-  setError,
-  setFound,
-  setSelected,
-  shown,
-  strip,
-  taggedDocs,
-  wholes,
-}: Props) {
+export default function Board() {
+  const {
+    act,
+    asking,
+    byList,
+    cameFrom,
+    captured,
+    chosen,
+    data,
+    found,
+    further,
+    load,
+    marking,
+    openDoc,
+    reveal,
+    say,
+    seen,
+    selected,
+    setCameFrom,
+    setCaptured,
+    setChosen,
+    setError,
+    setFound,
+    setSelected,
+    shown,
+    strip,
+    taggedDocs,
+    wholes,
+  } = useDesk();
   return (
     <div className="flex min-w-0">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

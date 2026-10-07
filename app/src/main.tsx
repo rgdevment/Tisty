@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { broke } from "./broke";
 import { locale } from "./locales";
+import Moving from "./Moving";
 import Quick from "./Quick";
 import Standing from "./Standing";
 import "./index.css";
@@ -30,11 +31,12 @@ window.addEventListener("unhandledrejection", (e) =>
   broke(e.reason?.name ?? "Rejection", e.reason?.message, e.reason?.stack),
 );
 
-const quick = getCurrentWindow().label === "quick";
+const label = getCurrentWindow().label;
+const quick = label === "quick";
 if (quick) document.documentElement.classList.add("quick");
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <Standing>{quick ? <Quick /> : <App />}</Standing>
+    <Standing>{label === "moving" ? <Moving /> : quick ? <Quick /> : <App />}</Standing>
   </React.StrictMode>,
 );

@@ -312,3 +312,36 @@ fn the_room_a_move_needs_counts_only_what_moves() {
 
     assert_eq!(weighed(&home.roots.real), 8);
 }
+
+#[test]
+fn a_move_tells_how_far_it_has_come_until_it_has_copied_everything() {
+    let home = home(false);
+    wrote(&home.roots.real, "a task to carry");
+    put(
+        &home.roots.real,
+        "data/attachments/aa/una-foto.png",
+        &"x".repeat(4096),
+    );
+    assert!(moves(&home.roots));
+    let mut told = Vec::new();
+
+    let settled = settle_telling(&home.roots, &mut |done, whole| told.push((done, whole)));
+
+    assert_eq!(settled, Settled::Moved);
+    assert!(
+        !moves(&home.roots),
+        "a store already moved still says it moves"
+    );
+    let whole = told.last().unwrap().1;
+    assert!(whole >= 4096, "{told:?}");
+    assert_eq!(told.first(), Some(&(0, whole)));
+    assert_eq!(told.last(), Some(&(whole, whole)));
+    assert!(told.windows(2).all(|two| two[0].0 <= two[1].0), "{told:?}");
+}
+
+#[test]
+fn a_machine_with_nothing_to_move_says_so_before_it_starts() {
+    let home = home(true);
+
+    assert!(!moves(&home.roots));
+}
