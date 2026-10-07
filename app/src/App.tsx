@@ -1,18 +1,14 @@
-import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { carrying } from "./carrying";
-import { heard, play } from "./chime";
+import type { carrying } from "./carrying";
 import {
   type Afoot,
-  attach,
   capture,
   complete,
   DEEPEST,
   discard,
   docFile,
   docPage,
-  doorDue,
   type Filed,
   FOLDER_NAME_AT_MOST,
   type Folded,
@@ -24,7 +20,6 @@ import {
   folderRename,
   owed,
   type Pick,
-  parted,
   patch,
   type Rift,
   type Snapshot,
@@ -32,21 +27,19 @@ import {
   snapshot,
   sow,
   starDue,
-  syncState,
   type Task,
   updateInstall,
 } from "./core";
-import { decideAll, decidesByBlock } from "./deciding";
+import { decidesByBlock } from "./deciding";
 import { detailOf, erasing } from "./detailing";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
-import { handTo, whenFilesLand } from "./dropped";
 import { deep } from "./folders";
 import { todayLong } from "./format";
 import { useNote } from "./glance";
+import { useListening } from "./listening";
 import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
 import { offerMoved, saidPlainly } from "./refusal";
-import { settled } from "./saving";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
 import Axis from "./ui/Axis";
@@ -115,8 +108,6 @@ export const kept = (key: string): string[] => {
     return [];
   }
 };
-
-const TURNS_OVER = 60 * 1000;
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -218,7 +209,6 @@ export default function App() {
     return () => decidesByBlock(null);
   }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
-  const wasAwry = useRef<string | null>(null);
 
   const parcels = useParcels({ afoot, setAfoot, setError, noted, said, papersChanged });
 
@@ -269,151 +259,25 @@ export default function App() {
   const papersAgain = useRef(lookPapers);
   papersAgain.current = lookPapers;
 
-  useEffect(() => {
-    const again = () => {
-      latest.current();
-      papersAgain.current();
-    };
-    const shownAgain = () => {
-      if (document.visibilityState === "visible") again();
-    };
-    window.addEventListener("focus", again);
-    document.addEventListener("visibilitychange", shownAgain);
-    return () => {
-      window.removeEventListener("focus", again);
-      document.removeEventListener("visibilitychange", shownAgain);
-    };
-  }, []);
-
-  useEffect(() => {
-    let day = new Date().getDate();
-    const turned = setInterval(() => {
-      const now = new Date().getDate();
-      if (now === day) return;
-      day = now;
-      latest.current();
-    }, TURNS_OVER);
-    return () => clearInterval(turned);
-  }, []);
-  const papersNow = useRef(papers.docs);
-  papersNow.current = papers.docs;
-  useEffect(() => {
-    const carrier = carrying(
-      () => {
-        setCarried((was) => was + 1);
-        latest.current();
-        papersAgain.current();
-      },
-      (ids) => {
-        decideAll(ids)
-          .then((shut) => {
-            if (!shut.length) return;
-            const named = shut
-              .map((one) => papersNow.current.find((doc) => doc.file === one))
-              .map((one) => `«${one?.title?.trim() || t("untitledDoc")}»`)
-              .join(", ");
-            setError(fill("someLockedAtOdds", named));
-          })
-          .catch((problem) => setError(saidPlainly(problem)))
-          .finally(() => latest.current());
-      },
-      (why) => {
-        const now = why?.why ?? null;
-        if (now === wasAwry.current) return;
-        wasAwry.current = now;
-        if (why?.why === "broke" || why?.why === "amiss") {
-          noted(why.said, 6000);
-        }
-      },
-    );
-    carries.current = carrier;
-    return () => carrier.stop();
-  }, [noted]);
-
-  useEffect(() => {
-    syncState()
-      .then((state) => setGreet(!state.asked))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const off = listen("parting", () => {
-      void settled().finally(() => void parted());
-    });
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!returning) return;
-    document.querySelector<HTMLElement>(`[data-task="${returning}"]`)?.focus();
-    setReturning(null);
-  }, [returning]);
-
-  useEffect(() => {
-    const stop = listen("closing", () => setLeaving(true));
-    const gone = listen("withdrawn", () => {
-      setStarring(false);
-      setOffering(false);
-    });
-    const caught = listen("captured", () => latest.current());
-    // The snapshot carries no documents, so a paper written from outside the window — by an
-    // assistant, or by the terminal — would go unseen until the next launch.
-    const stirred = listen("stirred", () => {
-      latest.current();
-      lookPapers();
-      setCarried((was) => was + 1);
-    });
-    const landed = listen<string>("carried", (far) => {
-      latest.current();
-      if (far.payload === "papers") lookPapers();
-      setCarried((was) => was + 1);
-    });
-    const sound = listen<unknown>("chime", (rung) => {
-      if (heard(rung.payload)) play(rung.payload);
-    });
-    const along = listen<Afoot>("carrying", (step) => {
-      setAfoot((was) => (was ? step.payload : was));
-    });
-    return () => {
-      stop.then((off) => off()).catch(() => {});
-      gone.then((off) => off()).catch(() => {});
-      caught.then((off) => off()).catch(() => {});
-      stirred.then((off) => off()).catch(() => {});
-      landed.then((off) => off()).catch(() => {});
-      sound.then((off) => off()).catch(() => {});
-      along.then((off) => off()).catch(() => {});
-    };
-  }, [lookPapers]);
-
-  const where = useRef(chosen);
-  where.current = chosen;
-
-  useEffect(() => {
-    setStarring(false);
-    setOffering(false);
-  }, [chosen]);
-
-  useEffect(() => {
-    doorDue()
-      .then((due) => setOffering((was) => was || due))
-      .catch(() => {});
-  }, [greeted]);
-
-  useEffect(
-    () =>
-      whenFilesLand((target, paths, at) => {
-        setError(null);
-        Promise.all(paths.map((one) => attach(one, undefined, where.current.named === "docs")))
-          .then((written) => {
-            const put = handTo(target, written.join("\n\n"), at);
-            if (!put) setError(t("attachmentLost"));
-          })
-          .catch((e) => setError(saidPlainly(e)));
-      }),
-    [],
-  );
+  useListening({
+    latest,
+    papersAgain,
+    lookPapers,
+    docs: papers.docs,
+    chosen,
+    greeted,
+    returning,
+    setReturning,
+    setCarried,
+    setError,
+    noted,
+    carries,
+    setGreet,
+    setLeaving,
+    setStarring,
+    setOffering,
+    setAfoot,
+  });
 
   if (!data) {
     return (
