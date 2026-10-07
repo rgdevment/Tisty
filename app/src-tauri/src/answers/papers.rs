@@ -568,10 +568,22 @@ pub fn settle_paper(
         .values()
         .find(|one| one.file == id)
         .map(|one| (one.folder, one.page_of, one.order.clone()));
+    let same_as_mine = tisty_core::docs::read(&session.paths.docs(), &id)
+        .is_ok_and(|mine| tisty_core::docs::unchanged(&mine, &body));
     let body = match &marked {
         Some(said) => tisty_core::docs::marked(&body, said),
         None => body,
     };
+    // Asked again about the same arrival, keeping both must not leave one more copy each time.
+    let twin = match same_as_mine {
+        true => Some(None),
+        false => twin_of(&session, beside.as_ref(), &body).map(Some),
+    };
+    if let Some(twin) = twin {
+        tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
+        session.mind(&id);
+        return Ok(twin);
+    }
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
     let file = made.id.clone();
@@ -603,6 +615,30 @@ pub fn settle_paper(
     tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
     session.mind(&id);
     Ok(Some(file))
+}
+
+fn twin_of(session: &Session, beside: Option<&crate::Placing>, body: &str) -> Option<String> {
+    let (folder, page_of, _) = beside?;
+    let docs = session.paths.docs();
+    let weighs = tisty_core::docs::settled(body).len() as u64;
+    // The size is read before any body, so a crowded folder costs one look per document.
+    let alike = |file: &str| {
+        tisty_core::docs::resolve(&docs, file)
+            .ok()
+            .and_then(|at| std::fs::metadata(at).ok())
+            .is_some_and(|told| told.len() == weighs)
+    };
+    session
+        .state
+        .docs
+        .values()
+        .filter(|one| !one.archived && one.folder == *folder && one.page_of == *page_of)
+        .map(|one| one.file.clone())
+        .filter(|file| alike(file))
+        .find(|file| {
+            tisty_core::docs::read(&docs, file)
+                .is_ok_and(|kept| tisty_core::docs::unchanged(&kept, body))
+        })
 }
 
 /// The person's reading of a closed task, story or trace; a routine reads as a routine and
@@ -953,3 +989,7 @@ pub fn doc_order(
 ) -> Answer<bool> {
     Ok(held(&session).retell(&id, &body, None))
 }
+
+#[cfg(test)]
+#[path = "papers_test.rs"]
+mod tests;
