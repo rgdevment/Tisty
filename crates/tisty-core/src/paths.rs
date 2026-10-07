@@ -242,18 +242,83 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
 // Through icacls rather than the security API, which would need the unsafe code the workspace forbids.
 #[cfg(windows)]
 pub fn key_alone(at: &Path) -> std::io::Result<()> {
-    let system = env_path("SystemRoot")
+    kept_for(at, &[])
+}
+
+#[cfg(windows)]
+fn kept_for(at: &Path, also: &[&str]) -> std::io::Result<()> {
+    let system = system32()?;
+    let mine = format!("*{}:(OI)(CI)F", account_sid()?);
+    let granted: Vec<&str> = ["/grant:r", mine.as_str()]
+        .into_iter()
+        .chain(also.iter().copied())
+        .collect();
+    windowless(&system, "icacls.exe", at, &granted)?;
+    windowless(&system, "icacls.exe", at, &["/inheritance:r"])
+}
+
+#[cfg(windows)]
+fn system32() -> std::io::Result<PathBuf> {
+    env_path("SystemRoot")
         .filter(|root| root.is_absolute())
         .map(|root| root.join("System32"))
-        .ok_or_else(|| std::io::Error::other("the system folder could not be found"))?;
-    let sid = account_sid()?;
-    windowless(
-        &system,
-        "icacls.exe",
-        at,
-        &["/grant:r", &format!("*{sid}:(OI)(CI)F")],
-    )?;
-    windowless(&system, "icacls.exe", at, &["/inheritance:r"])
+        .ok_or_else(|| std::io::Error::other("the system folder could not be found"))
+}
+
+/// The shared Windows home is kept to this account and hidden, once; a failure is said and retried.
+pub fn home_set_aside(paths: &Paths) {
+    let Some(home) = shared_home().filter(|home| paths.data().starts_with(home)) else {
+        return;
+    };
+    if let Err(why) = tucked(&home) {
+        not_set_aside(home, why);
+    }
+}
+
+fn not_set_aside(home: PathBuf, why: std::io::Error) {
+    crate::witness::warn(
+        crate::witness::channel::STORE,
+        "the folder holding this machine's store could not be hidden and kept to this account",
+        &[
+            ("at", crate::witness::Fact::Path(home)),
+            ("why", crate::witness::Fact::Why(why.to_string())),
+        ],
+    );
+}
+
+#[cfg(not(windows))]
+fn tucked(_home: &Path) -> std::io::Result<()> {
+    Ok(())
+}
+
+// What is on the home itself decides, so a home somebody hid by hand is still kept; only the root is read.
+#[cfg(windows)]
+fn tucked(home: &Path) -> std::io::Result<()> {
+    use std::os::windows::fs::MetadataExt;
+    const HIDDEN: u32 = 0x2;
+    let system = system32()?;
+    let said = quiet(&system, "icacls.exe")
+        .arg(home)
+        .stdout(std::process::Stdio::piped())
+        .output()?;
+    // Written only once every file under the home was walked, so a walk cut short is walked again.
+    let walked = home.join(".kept");
+    let inherits = !said.status.success() || String::from_utf8_lossy(&said.stdout).contains("(I)");
+    if inherits || !walked.exists() {
+        // The system account keeps its way in, so a backup that runs as a service still copies the store.
+        kept_for(home, &["*S-1-5-18:(OI)(CI)F"])?;
+        std::fs::write(&walked, b"")?;
+    }
+    if std::fs::metadata(home)?.file_attributes() & HIDDEN != 0 {
+        return Ok(());
+    }
+    let done = quiet(&system, "attrib.exe").arg("+h").arg(home).status()?;
+    match done.success() {
+        true => Ok(()),
+        false => Err(std::io::Error::other(format!(
+            "attrib.exe ended with {done}"
+        ))),
+    }
 }
 
 // The account the process runs as, never the name the environment claims.

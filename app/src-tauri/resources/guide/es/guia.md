@@ -330,6 +330,8 @@ Cuando los dos equipos escribieron la misma parte de un documento, Tisty no elig
 
 En Configuración puedes además guardar un respaldo completo cuando quieras, también si sincronizas, porque una carpeta compartida no es un respaldo.
 
+Desinstalar Tisty quita el programa y deja tus tareas y documentos donde están, así que al reinstalarlo los encuentra tal como los dejaste. En Windows viven en `.tisty`, dentro de tu carpeta de usuario, oculta y cerrada para las demás cuentas del equipo; en un Mac, en `Library/Application Support/tisty` y `Library/Caches/tisty`, dentro de tu carpeta personal. Para irte del todo, borra esa carpeta tú mismo; en Windows, activa antes **Elementos ocultos** en el menú **Ver** del Explorador de archivos para verla.
+
 ### 13. Terminar, descartar y borrar
 
 - **Terminar** una tarea la marca hecha y la manda al Archivo.
