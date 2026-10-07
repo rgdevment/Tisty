@@ -161,3 +161,21 @@ fn reading_a_moved_configuration_writes_the_switch_down_once() {
     assert_ne!(first.device_id, config.device_id);
     assert_eq!(second, first, "the second read finds it already settled");
 }
+
+#[test]
+fn the_name_the_person_gave_stays_with_its_computer_when_the_profile_roams() {
+    let mut config = configured(Some("aaaa"));
+    config.called = Some("Roble 42".into());
+
+    settled(&mut config, Some("bbbb"));
+    assert_eq!(
+        config.called, None,
+        "the new computer took the other one's name"
+    );
+
+    config.called = Some("Pino 17".into());
+    settled(&mut config, Some("aaaa"));
+    assert_eq!(config.called.as_deref(), Some("Roble 42"));
+    settled(&mut config, Some("bbbb"));
+    assert_eq!(config.called.as_deref(), Some("Pino 17"));
+}

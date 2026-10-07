@@ -354,6 +354,7 @@ beforeEach(() => {
           holds: "everywhere",
           shares: true,
           onlySharedAbove: 50 * 1024 * 1024,
+          onClose: "quit",
         });
       case "docs":
         return Promise.resolve({
@@ -1962,6 +1963,28 @@ describe("the maintenance panel", () => {
 
     await waitFor(() => expect(sent("keep_locale").length).toBe(1));
     expect(sent("keep_locale")[0].args.locale).toBe("es");
+  });
+
+  it("shows the close choice the person once remembered, and lets it be asked again", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+    const choice = (await screen.findByLabelText(
+      /^when you close the window$/i,
+    )) as HTMLSelectElement;
+    expect(choice.value).toBe("quit");
+
+    await userEvent.selectOptions(choice, "ask");
+
+    await waitFor(() => expect(sent("keep_closing").length).toBe(1));
+    expect(sent("keep_closing")[0].args.how).toBe("ask");
   });
 
   it("holds a look of its own, and lets it go back to the computer's", async () => {

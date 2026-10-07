@@ -907,6 +907,7 @@ pub fn run() {
             answers::storing::confirm_machine_key,
             answers::knocking::waiting_machines,
             answers::knocking::this_machine,
+            answers::knocking::rename_machine,
             answers::merging::tidy_merged,
             answers::merging::repeated_lists,
             answers::vouching::unvouched_attachments,
@@ -1035,6 +1036,10 @@ mod doors;
 #[cfg(test)]
 #[path = "lib_hosting.rs"]
 mod hosting;
+
+#[cfg(test)]
+#[path = "lib_naming.rs"]
+mod naming;
 
 #[cfg(test)]
 #[path = "lib_letting_go.rs"]

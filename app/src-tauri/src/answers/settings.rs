@@ -72,6 +72,8 @@ pub struct Settings {
     /// Whether the choice means anything here: without a shared folder there is nowhere else.
     shares: bool,
     only_shared_above: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    on_close: Option<tisty_core::config::Closing>,
 }
 
 #[tauri::command]
@@ -89,6 +91,7 @@ fn as_settings(session: &Session) -> Settings {
         holds: session.config.holds.unwrap_or_default(),
         shares: session.config.shares(),
         only_shared_above: session.config.only_shared_above(),
+        on_close: session.config.on_close,
     }
 }
 
@@ -387,11 +390,12 @@ pub fn appearance<R: tauri::Runtime>(
 #[tauri::command]
 pub fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> Answer<()> {
     let how = match how.as_str() {
-        "hide" => tisty_core::config::Closing::Hide,
-        "quit" => tisty_core::config::Closing::Quit,
+        "hide" => Some(tisty_core::config::Closing::Hide),
+        "quit" => Some(tisty_core::config::Closing::Quit),
+        "ask" => None,
         _ => return Err(Refusal::of("notAClosing")),
     };
-    held(&session).keep(|config| config.on_close = Some(how))?;
+    held(&session).keep(|config| config.on_close = how)?;
     Ok(())
 }
 

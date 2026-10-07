@@ -1,10 +1,8 @@
 import { tidyMerged, type Vouched, vouchAttachments } from "../core";
 import { fill, t } from "../locales";
-import Card, { type Which, type Word } from "./Card";
+import Card, { type Run, type Which, type Word } from "./Card";
 import Repeated from "./Repeated";
 import Unvouched from "./Unvouched";
-
-type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
 
 interface Props {
   busy: Which | null;

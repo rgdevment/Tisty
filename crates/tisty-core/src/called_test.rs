@@ -74,3 +74,17 @@ fn a_long_name_is_kept_the_way_it_is_read_so_it_is_not_said_again() {
         "every round would write the name again"
     );
 }
+
+#[test]
+fn the_name_the_person_gave_comes_before_the_systems_and_an_empty_one_gives_it_back() {
+    assert_eq!(
+        chosen(Some("  Roble 42 ")).map(|one| one.name),
+        Some("Roble 42".to_string())
+    );
+    assert_eq!(
+        chosen(Some(SYSTEM)).and_then(|one| one.os),
+        Some(SYSTEM.to_string())
+    );
+    assert_eq!(chosen(Some("   ")), here());
+    assert_eq!(chosen(None), here());
+}

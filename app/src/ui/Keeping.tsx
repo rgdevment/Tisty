@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { stillApart, turnedOff, walkThrough } from "../apart";
+import { stillApart, walkThrough } from "../apart";
 import {
   type About,
   type Agent,
@@ -23,18 +23,15 @@ import {
   docLetGo,
   docs,
   type Freeing,
-  facts,
   freeUp,
   type Gone,
   guide,
   type Holds,
-  type Keeper,
   type Kin,
+  keepClosing,
   keepLocale,
-  keepReport,
   keepSettings,
   keepTheme,
-  logs,
   type Machine,
   type Reach,
   type Reviewed,
@@ -59,9 +56,7 @@ import {
   syncNow,
   syncState,
   type Theme,
-  type Twins,
   takeOutOfReach,
-  twinned,
   unwireAgent,
   type Waking,
   type Wired,
@@ -71,28 +66,22 @@ import {
   wireAgent,
 } from "../core";
 import { decideAll } from "../deciding";
-import { daysFrom, stamped, weigh } from "../format";
-import { warningOf } from "../keepers";
+import { stamped, weigh } from "../format";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { written } from "../report";
-import { type Brittle, scanned } from "../scanning";
+import { syncSaid } from "../syncSaid";
 import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
 import Card, { NAMED, type Which, type Word } from "./Card";
 import Keepers from "./Keepers";
-import { Asked, hushed, hushedName, MachineList } from "./Keys";
+import { Asked, MachineList } from "./Keys";
+import Leftovers from "./Leftovers";
 import Modal from "./Modal";
+import Reporting from "./Reporting";
+import { Ask, Band, dated, Group, Knob, Line, mild, ON_MAC, off, strong } from "./Rows";
+import Syncing from "./Syncing";
 import Tidying from "./Tidying";
-
-const carried = {
-  came: "syncCame",
-  sent: "syncSent",
-  both: "syncBoth",
-  same: "syncSame",
-  busy: "syncBusy",
-} as const;
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
@@ -130,8 +119,6 @@ export default function Keeping({
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [keyOf, setKeyOf] = useState<Machine | null>(null);
   const [astray, setAstray] = useState<Machine | null>(null);
-  const [brittle, setBrittle] = useState<Brittle[] | null>(null);
-  const [alike, setAlike] = useState<Twins[] | null>(null);
   const [reach, setReach] = useState<Reach | null>(null);
   const [wake, setWake] = useState<Waking | null>(null);
   const [keys, setKeys] = useState<string | null>(null);
@@ -148,14 +135,12 @@ export default function Keeping({
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
-  const [told, setTold] = useState({ names: false, paths: false, logs: true });
   const [alias, setAlias] = useState("");
   const signed_as = useRef("");
   const [aliases, setAliases] = useState<string[]>([]);
   const [mine, setMine] = useState(0);
   const [asking, setAsking] = useState<string | null>(null);
   const before = aliases.filter((one) => one !== alias);
-  const [paper, setPaper] = useState<string | null>(null);
 
   const look = useCallback(() => {
     signed()
@@ -275,7 +260,6 @@ export default function Keeping({
     );
   }
 
-  const carrying = busy === "sync";
   const held = busy !== null;
 
   const namedDocs = async (files: string[]): Promise<string> => {
@@ -313,7 +297,7 @@ export default function Keeping({
       } else if (answer.joined?.length) {
         setSaid({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
       } else {
-        setSaid({ card: "sync", text: t(carried[answer.carried]) });
+        setSaid({ card: "sync", text: syncSaid(answer) });
       }
       look();
       onChanged();
@@ -488,53 +472,6 @@ export default function Keeping({
       .catch((e) => setTrouble({ card: "restore", text: saidPlainly(e) }));
   };
 
-  const compose = () => facts(told.names, told.paths).then(written);
-
-  const showReport = () => {
-    if (held || paper !== null) return;
-    quietly(
-      "report",
-      Promise.all([compose(), told.logs ? logs(TAIL) : Promise.resolve(null)]).then(
-        ([text, kept]) => (kept ? `${text}\n${LOGS}\n${kept.lines.join("\n")}\n` : text),
-      ),
-      setPaper,
-    );
-  };
-
-  const changeTold = (next: typeof told) => {
-    setTold(next);
-    setPaper(null);
-  };
-
-  const saveReport = () => {
-    if (held) return;
-    setSaid(undefined);
-    setTrouble(undefined);
-    Promise.all([
-      save({ defaultPath: "tisty-report.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] }),
-      paper !== null ? Promise.resolve(paper) : compose(),
-    ])
-      .then(([at, text]) => {
-        setPaper(text);
-        if (typeof at !== "string") return;
-        quietly("report", keepReport(at, text, told.logs), () =>
-          setSaid({ card: "report", text: fill("reportKept", at) }),
-        );
-      })
-      .catch((e) => setTrouble({ card: "report", text: saidPlainly(e) }));
-  };
-
-  const copyReport = () => {
-    if (held) return;
-    (paper !== null ? Promise.resolve(paper) : compose())
-      .then((text) => {
-        setPaper(text);
-        return copied(text);
-      })
-      .then(() => setSaid({ card: "report", text: t("reportCopied") }))
-      .catch(() => setTrouble({ card: "report", text: t("reportNoClipboard") }));
-  };
-
   const holds = [
     fill("openTasks", String(state.open)),
     fill("archivedTasks", String(state.archived)),
@@ -690,6 +627,33 @@ export default function Keeping({
                     <option value="">{t("lookTheirs")}</option>
                     <option value="light">{t("lookLight")}</option>
                     <option value="dark">{t("lookDark")}</option>
+                  </select>
+                </Line>
+              )}
+
+              {kept && (
+                <Line
+                  title={t("closingSetting")}
+                  why={t("closingSettingWhy")}
+                  which="closing"
+                  said={said}
+                  trouble={trouble}
+                >
+                  <select
+                    aria-label={t("closingSetting")}
+                    value={kept.onClose ?? "ask"}
+                    disabled={held}
+                    onChange={(e) => {
+                      const how = e.target.value as "hide" | "quit" | "ask";
+                      run("closing", keepClosing(how), () =>
+                        setKept({ ...kept, onClose: how === "ask" ? undefined : how }),
+                      );
+                    }}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="ask">{t("closingAsk")}</option>
+                    <option value="hide">{t(ON_MAC ? "closingHideBar" : "closingHide")}</option>
+                    <option value="quit">{t("closingQuit")}</option>
                   </select>
                 </Line>
               )}
@@ -900,99 +864,17 @@ export default function Keeping({
 
         {tab === "data" && (
           <>
-            <Band label={t("syncing")} />
-            <section className="rounded-[10px] border border-hair px-4 py-3.5">
-              <p className="text-[12.5px] leading-relaxed text-soft">
-                {state.chosen
-                  ? fill("syncOn", state.chosen)
-                  : state.sharedWas
-                    ? fill("syncOffRestored", state.sharedWas)
-                    : t("syncOff")}
-              </p>
-              {state.chosen && state.keeper && (
-                <Warned keeper={state.keeper} named={state.keptBy} />
-              )}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                {state.chosen ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() => carryNow()}
-                      className={strong}
-                    >
-                      {carrying ? t("syncing_") : t("syncNow")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() =>
-                        state.chosen &&
-                        revealed(state.chosen).catch((e) =>
-                          setTrouble({ card: "sync", text: saidPlainly(e) }),
-                        )
-                      }
-                      className={mild}
-                    >
-                      {t("revealFolder")}
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" disabled={held} onClick={pickFolder} className={strong}>
-                    {t("turnSyncOn")}
-                  </button>
-                )}
-                <span className="ml-auto text-[11.5px] text-faint">
-                  {state.chosen
-                    ? fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))
-                    : t("noDestination")}
-                </span>
-              </div>
-              {state.chosen && (
-                <>
-                  <p className="mt-2 text-[12.5px] text-soft">
-                    {state.heard ? fill("syncHeard", stamped(state.heard)) : t("syncHeardNever")}
-                  </p>
-                  {state.heard && -daysFrom(state.heard) >= QUIET_DAYS && (
-                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink">
-                      {t("syncNothingSince")}
-                    </p>
-                  )}
-                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">
-                    {t("syncOnlyFolder")}
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
-                    <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
-                    <button type="button" disabled={held} onClick={pickFolder} className={mild}>
-                      {t("changeFolder")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() => run("sync", turnedOff(kept), () => {})}
-                      className={mild}
-                    >
-                      {t("syncOffNow")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      title={t("syncAgainWhy")}
-                      onClick={() => carryNow("again")}
-                      className={mild}
-                    >
-                      {t("syncAgain")}
-                    </button>
-                  </div>
-                </>
-              )}
-              {trouble?.card === "sync" && (
-                <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
-              )}
-              {said?.card === "sync" && (
-                <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>
-              )}
-            </section>
+            <Syncing
+              state={state}
+              kept={kept}
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              run={run}
+              fail={setTrouble}
+              carry={(way) => void carryNow(way)}
+              pickFolder={pickFolder}
+            />
 
             <Band label={t("attachTitle")} />
             <div className="border-t border-hair">
@@ -1459,325 +1341,36 @@ export default function Keeping({
               mild={mild}
             />
 
-            <Group label={t("looseAre")} />
-
-            <Card title={t("looseAre")} which="review" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("looseWhat")}</p>
-              {audit?.machines.some(hushed) && (
-                <p className="mt-1.5 text-[12.5px] leading-relaxed text-soft">{t("looseWait")}</p>
-              )}
-              {audit && audit.loose === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("looseNone")}</p>
-              )}
-              {audit && audit.loose > 0 && (
-                <>
-                  <p className="mt-2 text-[12.5px] tabular-nums text-soft">
-                    {`${fill("looseTotal", String(audit.loose))} · ${weigh(audit.looseBytes)}`}
-                  </p>
-                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
-                    {audit.astray.map((one) => (
-                      <li key={one.at} className="flex items-baseline justify-between gap-4">
-                        <span className="font-mono text-[11.5px] break-all text-soft">
-                          {one.at.split("/").pop()}
-                        </span>
-                        <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
-                          <span className="text-faint">
-                            {`${weigh(one.bytes)} · ${dated(one.when)}${
-                              one.shared ? ` · ${t("looseShared")}` : ""
-                            }`}
-                          </span>
-                          <button
-                            type="button"
-                            disabled={held}
-                            onClick={() => letGo(one.at, one.shared)}
-                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
-                          >
-                            {t("looseDrop")}
-                          </button>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-2.5 flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      disabled={held || audit.loose === 0}
-                      onClick={() => letGoOfAll(audit.astray)}
-                      className="rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-hover disabled:border-hair disabled:text-faint"
-                    >
-                      {t("upkeepSafeAll")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!build}
-                      onClick={() =>
-                        build &&
-                        revealed(build.store).catch((e) =>
-                          setTrouble({ card: "review", text: saidPlainly(e) }),
-                        )
-                      }
-                      className={mild}
-                    >
-                      {t("aboutReveal")}
-                    </button>
-                  </div>
-                </>
-              )}
-            </Card>
-
-            <Group label={t("upkeepLook")} />
-
-            <Card title={t("upkeepLook")} which="review" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("upkeepLookWhat")}</p>
-              {audit && audit.stranded.length === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("upkeepNothing")}</p>
-              )}
-              {audit && audit.stranded.length > 0 && (
-                <>
-                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
-                    {audit.stranded.map((one) => (
-                      <li key={one.file} className="flex items-baseline justify-between gap-4">
-                        <span className="min-w-0">
-                          <span className="block truncate">{one.title || t("untitledDoc")}</span>
-                          <span className="block font-mono text-[10.5px] text-faint">
-                            {`${one.file} · ${weigh(one.bytes)} · ${dated(one.when)}`}
-                          </span>
-                        </span>
-                        <span className="flex shrink-0 items-baseline gap-2.5">
-                          <button
-                            type="button"
-                            disabled={held}
-                            onClick={() => takeIn(one.file)}
-                            className="text-[11.5px] text-accent hover:underline disabled:text-soft"
-                          >
-                            {t("upkeepTakeIn")}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={held}
-                            onClick={() => letGoOfPaper(one)}
-                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
-                          >
-                            {t("upkeepDropIt")}
-                          </button>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-2.5">
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() => takeInAll(audit.stranded)}
-                      className="rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:border-hair disabled:text-faint"
-                    >
-                      {t("upkeepTakeInAll")}
-                    </button>
-                  </div>
-                </>
-              )}
-            </Card>
-
-            <Group
-              label={fill("upkeepWaiting", hushedName(audit?.machines ?? []) ?? t("theMachines"))}
-            />
-
-            <Card
-              title={fill("upkeepWaiting", hushedName(audit?.machines ?? []) ?? t("theMachines"))}
-              which="review"
+            <Leftovers
+              audit={audit}
+              build={build}
               busy={busy}
               said={said}
               trouble={trouble}
-            >
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("upkeepWaitingWhat")}</p>
-              {audit && audit.missing.length === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("upkeepNothing")}</p>
-              )}
-              {audit && audit.missing.length > 0 && (
-                <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
-                  {audit.missing.map((one) => (
-                    <li key={one.file} className="flex items-baseline justify-between gap-4">
-                      <span className="min-w-0">
-                        <span className="block truncate">{one.title || t("untitledDoc")}</span>
-                        <span className="block font-mono text-[10.5px] text-faint">{one.file}</span>
-                      </span>
-                      <span className="flex shrink-0 items-baseline gap-2.5">
-                        {hushedName(audit?.machines ?? []) ? (
-                          <span className="text-[11.5px] text-faint">
-                            {fill("upkeepForgetWaits", hushedName(audit?.machines ?? []) ?? "")}
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={held}
-                            onClick={() => forgetMissing(one)}
-                            className="text-[11.5px] text-urgent hover:underline disabled:text-soft"
-                          >
-                            {t("upkeepForget")}
-                          </button>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
+              run={run}
+              fail={setTrouble}
+              letGo={letGo}
+              letGoOfAll={letGoOfAll}
+              takeIn={takeIn}
+              takeInAll={takeInAll}
+              letGoOfPaper={letGoOfPaper}
+              forgetMissing={forgetMissing}
+            />
 
-            <Group label={t("twinsAre")} />
-
-            <Card title={t("twinsAre")} which="review" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("twinsWhat")}</p>
-              {alike?.length === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("twinsNone")}</p>
-              )}
-              {alike && alike.length > 0 && (
-                <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-2 overflow-y-auto text-[12.5px]">
-                  {alike.map((one) => (
-                    <li key={one.at.join("|")}>
-                      <span className="tabular-nums text-faint">{weigh(one.bytes)}</span>
-                      {one.at.map((named) => (
-                        <span
-                          key={named}
-                          className="block font-mono text-[11.5px] break-all text-soft"
-                        >
-                          {named.replace("attachments/", "")}
-                        </span>
-                      ))}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-2.5 flex items-center gap-2.5">
-                <button
-                  type="button"
-                  disabled={held}
-                  onClick={() => run("review", twinned(), setAlike)}
-                  className={mild}
-                >
-                  {t(alike ? "twinsAgain" : "twinsRun")}
-                </button>
-              </div>
-            </Card>
-
-            <Group label={t("brittleAre")} />
-
-            <Card title={t("brittleAre")} which="brittle" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("brittleWhat")}</p>
-              {brittle?.length === 0 && (
-                <p className="mt-2 text-[12.5px] text-faint">{t("brittleNone")}</p>
-              )}
-              {brittle && brittle.length > 0 && (
-                <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1.5 overflow-y-auto text-[12.5px]">
-                  {brittle.map((one) => (
-                    <li key={one.file}>
-                      <span className="text-soft">{one.title || one.file}</span>
-                      <span className="block text-[11.5px] text-faint">
-                        {one.brings.map((what) => t(what as Parameters<typeof t>[0])).join(" · ")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="mt-2.5 flex items-center gap-2.5">
-                <button
-                  type="button"
-                  disabled={held}
-                  onClick={() => run("brittle", scanned(), setBrittle)}
-                  className={mild}
-                >
-                  {t(brittle ? "brittleAgain" : "brittleRun")}
-                </button>
-              </div>
-            </Card>
-
-            <Group label={t("reportTitle")} />
-
-            <Card title={t("reportTitle")} which="report" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">
-                {t("reportWhat")} <span className="text-ink">{t("reportNeverSent")}</span>{" "}
-                {t("reportYours")}
-              </p>
-
-              <div className="mt-2.5 flex flex-col gap-2">
-                <label className="flex items-start gap-2 text-[12.5px]">
-                  <input
-                    type="checkbox"
-                    checked={told.logs}
-                    disabled={held}
-                    onChange={(e) => changeTold({ ...told, logs: e.target.checked })}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    {t("reportLogs")}
-                    <span className="block text-[11.5px] text-faint">{t("reportLogsWhy")}</span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-2 text-[12.5px]">
-                  <input
-                    type="checkbox"
-                    checked={told.names}
-                    disabled={held}
-                    onChange={(e) => changeTold({ ...told, names: e.target.checked })}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    {t("reportNames")}
-                    <span className="block text-[11.5px] text-faint">{t("reportNamesWhy")}</span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-2 text-[12.5px]">
-                  <input
-                    type="checkbox"
-                    checked={told.paths}
-                    disabled={held}
-                    onChange={(e) => changeTold({ ...told, paths: e.target.checked })}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    {t("reportPaths")}
-                    <span className="block text-[11.5px] text-faint">{t("reportPathsWhy")}</span>
-                  </span>
-                </label>
-              </div>
-
-              <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("reportNever")}</p>
-
-              <details className="mt-2.5" onToggle={showReport}>
-                <summary className="cursor-pointer text-[12.5px] text-accent">
-                  {t("reportShow")}
-                </summary>
-                <pre className="scroller mt-2 max-h-[22rem] overflow-x-auto rounded-[10px] bg-hover px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-soft">
-                  {paper ?? "…"}
-                </pre>
-              </details>
-
-              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                <button type="button" disabled={held} onClick={saveReport} className={strong}>
-                  {t("reportSave")}
-                </button>
-                <button type="button" disabled={held} onClick={copyReport} className={mild}>
-                  {t("reportCopy")}
-                </button>
-              </div>
-            </Card>
+            <Reporting
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              tell={setSaid}
+              fail={setTrouble}
+              quietly={quietly}
+            />
           </>
         )}
       </div>
     </main>
   );
 }
-
-const QUIET_DAYS = 3;
-
-const dated = (when: number): string => {
-  const at = new Date(when * 1000);
-  return Number.isNaN(at.getTime()) ? "—" : stamped(at.toISOString());
-};
-
-const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
-export const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
-const strong = `rounded-[10px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
-export const risky = `rounded-[10px] border border-urgent/40 px-2.5 py-1 text-[12.5px] text-urgent hover:bg-urgent/10 ${off}`;
 
 const wroteSaid = (hand: Assistant | undefined): string => {
   if (!hand || hand.wrote === 0) return t("assistantNothing");
@@ -1796,128 +1389,5 @@ const wiring = (at?: string) =>
 
 const oneLine = (at?: string, agent = "agent") =>
   `${agent} mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
-
-export function Band({ label }: { label: string }) {
-  return (
-    <div className="mt-5 mb-1.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
-      {label}
-    </div>
-  );
-}
-
-function Ask({ said }: { said: string }) {
-  return (
-    <span className="relative inline-flex">
-      <button
-        type="button"
-        aria-label={said}
-        className="peer flex h-[15px] w-[15px] items-center justify-center rounded-md text-[11.5px] leading-none text-faint hover:bg-line hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-      >
-        ?
-      </button>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute top-6 left-0 z-20 w-[300px] rounded-[10px] border border-line bg-bg p-3 text-[12.5px] leading-relaxed font-normal whitespace-pre-line text-soft opacity-0 shadow-lift transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 motion-reduce:transition-none"
-      >
-        {said}
-      </span>
-    </span>
-  );
-}
-
-export function Line({
-  title,
-  why,
-  which,
-  said,
-  trouble,
-  children,
-  more,
-}: {
-  title: React.ReactNode;
-  why?: React.ReactNode;
-  which: Which;
-  said?: Word;
-  trouble?: Word;
-  children?: React.ReactNode;
-  more?: React.ReactNode;
-}) {
-  return (
-    <div className="border-b border-hair py-2.5">
-      <div className="flex items-center gap-4">
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium">{title}</span>
-          {why && <span className="mt-px block text-[12.5px] leading-snug text-faint">{why}</span>}
-        </span>
-        {children && (
-          <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">{children}</span>
-        )}
-      </div>
-      {more}
-      {trouble?.card === which && (
-        <p className="mt-1.5 text-[11.5px] text-urgent">{trouble.text}</p>
-      )}
-      {said?.card === which && <p className="mt-1.5 text-[11.5px] text-faint">{said.text}</p>}
-    </div>
-  );
-}
-
-function Knob({
-  on,
-  label,
-  disabled,
-  onPress,
-}: {
-  on: boolean;
-  label: string;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onPress}
-      className={`relative h-5 w-[34px] shrink-0 rounded-full transition-colors motion-reduce:transition-none disabled:opacity-50 ${
-        on ? "bg-accent" : "bg-hair"
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 block size-4 rounded-full bg-bg shadow-sm transition-[left] motion-reduce:transition-none ${
-          on ? "left-[16px]" : "left-0.5"
-        }`}
-      />
-    </button>
-  );
-}
-
-function Group({ label }: { label: string }) {
-  return (
-    <div className="mt-5 mb-2 flex items-center gap-2.5 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase">
-      <span>{label}</span>
-      <span className="h-px flex-1 bg-hair" />
-    </div>
-  );
-}
-
-const TAIL = 300;
-const LOGS = "\n--- tisty.log ---";
-
-function Warned({ keeper, named }: { keeper: Keeper; named?: string }) {
-  const warning = warningOf(keeper, named);
-  return (
-    <div
-      className={`mt-2 rounded-[10px] px-3 py-2 text-[12.5px] leading-relaxed text-soft ${
-        warning.mild ? "bg-accent-soft" : "border border-hue-amber/40"
-      }`}
-    >
-      <span className="block text-[12.5px] font-semibold text-ink">{warning.said}</span>
-      {warning.why}
-    </div>
-  );
-}
 
 const SIZES = [256 * 1024, 1024 * 1024, 5 * 1024 * 1024, 20 * 1024 * 1024, 50 * 1024 * 1024];
