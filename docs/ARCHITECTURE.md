@@ -2443,12 +2443,12 @@ shares one real store that outlives any of them. A name that starts with a dot
 hides nothing on Windows, so the window sets that home aside on every start
 (`paths::home_set_aside`): cut off from what it would inherit and kept to this
 account and the system account, so a backup running as a service still reads
-it, and hidden. Every start reads the root's own
-permissions, never the tree below it, and keeps it again when it still inherits
-or when no `.kept` says a walk through every file under it finished, so a home
-somebody hid by hand is kept all the same, a walk cut short by a locked file is
-walked again, and the long walk through the store happens once. A failure is said and tried again on the next
-start, and never keeps the window from opening.
+it, and hidden. Every start reads the root's own permissions, never the tree
+below it, and keeps it again when it still inherits or when no `.kept` says a
+walk through every file under it finished, so a home somebody hid by hand is
+kept all the same, a walk cut short by a locked file is walked again, and the
+long walk through the store happens once. A failure is said and tried again on
+the next start, and never keeps the window from opening.
 `TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override them, and exist for
 tests.
 
