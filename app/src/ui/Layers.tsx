@@ -1,25 +1,16 @@
-import type { MutableRefObject, ReactNode } from "react";
-import type { carrying } from "../carrying";
+import type { ReactNode } from "react";
 import {
-  type Afoot,
-  type Filed,
   FOLDER_NAME_AT_MOST,
-  type Folded,
   folderAdd,
   folderLook,
   folderRename,
-  type Papers,
   type Pick,
-  type Ready,
   type Rift,
-  type Snapshot,
-  type Task,
-  type Underway,
   updateInstall,
 } from "../core";
+import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
-import type { Chosen } from "../views";
 import { Alarm, Progress } from "./Banners";
 import BringingBack from "./BringingBack";
 import Closing from "./Closing";
@@ -43,101 +34,52 @@ export interface MenuOpen {
   on?: string;
 }
 
-type Setter<T> = (next: T | ((was: T) => T)) => void;
-
-interface Props {
-  afoot: Afoot | null;
-  aloud: string;
-  backing: Filed | null;
-  behind: boolean;
-  captured: Task | undefined;
-  carries: MutableRefObject<ReturnType<typeof carrying> | null>;
-  data: Snapshot;
-  dismiss: () => void;
-  error: string | null;
-  greet: boolean;
-  here: string | null | undefined;
-  leaving: boolean;
-  load: () => void;
-  lookAgain: () => void;
-  lookPapers: () => void;
-  makingFolder: boolean;
-  menu: MenuOpen | null;
-  note: string | null;
-  openDoc: (paper: string) => void;
-  opening: (one: Task) => void;
-  papers: Papers;
-  papersChanged: () => void;
-  parcels: ReactNode;
-  ready: Ready | null;
-  renaming: Folded | null;
-  roomBelow: boolean;
-  setBacking: (doc: Filed | null) => void;
-  setBehind: (behind: boolean) => void;
-  setChosen: (chosen: Chosen) => void;
-  setError: (text: string | null) => void;
-  setGreet: (greet: boolean) => void;
-  setGreeted: Setter<number>;
-  setLeaving: (leaving: boolean) => void;
-  setMakingFolder: (making: boolean) => void;
-  setMenu: (menu: MenuOpen | null) => void;
-  setRenaming: (folder: Folded | null) => void;
-  setReveal: (id: string | undefined) => void;
-  setStuck: (stuck: boolean) => void;
-  setTorn: (torn: Torn | null) => void;
-  setUnderway: (underway: Underway | null) => void;
-  settling: boolean;
-  stuck: boolean;
-  torn: Torn | null;
-  underway: Underway | null;
-}
-
-export default function Layers({
-  afoot,
-  aloud,
-  backing,
-  behind,
-  captured,
-  carries,
-  data,
-  dismiss,
-  error,
-  greet,
-  here,
-  leaving,
-  load,
-  lookAgain,
-  lookPapers,
-  makingFolder,
-  menu,
-  note,
-  openDoc,
-  opening,
-  papers,
-  papersChanged,
-  parcels,
-  ready,
-  renaming,
-  roomBelow,
-  setBacking,
-  setBehind,
-  setChosen,
-  setError,
-  setGreet,
-  setGreeted,
-  setLeaving,
-  setMakingFolder,
-  setMenu,
-  setRenaming,
-  setReveal,
-  setStuck,
-  setTorn,
-  setUnderway,
-  settling,
-  stuck,
-  torn,
-  underway,
-}: Props) {
+export default function Layers({ parcels }: { parcels: ReactNode }) {
+  const {
+    afoot,
+    aloud,
+    backing,
+    behind,
+    captured,
+    carries,
+    data,
+    dismiss,
+    error,
+    greet,
+    here,
+    leaving,
+    load,
+    lookAgain,
+    lookPapers,
+    makingFolder,
+    menu,
+    note,
+    openDoc,
+    opening,
+    papers,
+    papersChanged,
+    ready,
+    renaming,
+    roomBelow,
+    setBacking,
+    setBehind,
+    setChosen,
+    setError,
+    setGreet,
+    setGreeted,
+    setLeaving,
+    setMakingFolder,
+    setMenu,
+    setRenaming,
+    setReveal,
+    setStuck,
+    setTorn,
+    setUnderway,
+    settling,
+    stuck,
+    torn,
+    underway,
+  } = useDesk();
   return (
     <>
       {backing !== null && (
@@ -189,7 +131,7 @@ export default function Layers({
               setUnderway(null);
               setError(saidPlainly(problem));
               if (offerMoved(problem)) {
-                lookAgain();
+                void lookAgain();
               }
             });
           }}

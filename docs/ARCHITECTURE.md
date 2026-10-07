@@ -2454,7 +2454,12 @@ Store app's private copy laid over it file by file, which is exactly what the
 packaged app read — so a Store app updated in place, a loose install put in
 before the Store app is removed, and the Store app put in over a loose install
 all arrive with what the person last saw. Everything goes into a `.part` folder
-renamed into place. The old folders are left as they were, with a `MOVED.txt`,
+renamed into place. A start that has a store to move (`paths::home_moves`) opens
+a small `moving` window first and copies on a thread of its own, telling the
+window the bytes carried against the bytes weighed, so a large store never looks
+like a window that will not open; only once the move has settled does the
+session open, and the main and quick windows, which loaded with nothing to
+answer them, start over. The old folders are left as they were, with a `MOVED.txt`,
 except for one line appended to each active segment: an event at a version no
 build will ever reach, so an older Tisty refuses that store instead of writing
 where nobody reads. That line is never copied along and never written twice.
