@@ -1,9 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
-import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
+import { ask, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
-import { asPlain } from "./copying";
 import {
   type Afoot,
   addPart,
@@ -14,19 +13,13 @@ import {
   DEEPEST,
   discard,
   docAway,
-  docCopy,
   docDrop,
-  docExport,
   docFile,
   docImport,
-  docLock,
   docNew,
   docPage,
   docs,
   docsCatchUp,
-  docsPack,
-  docsTakeOut,
-  docsUnpack,
   doorDue,
   dropStep,
   erase,
@@ -36,7 +29,6 @@ import {
   type Found,
   fold,
   folderAdd,
-  folderAway,
   folderDrop,
   folderFile,
   folderLook,
@@ -58,7 +50,6 @@ import {
   settleIn,
   snapshot,
   sow,
-  spelled,
   starDue,
   stepToPart,
   stillOpen,
@@ -72,21 +63,24 @@ import {
   writeStep,
 } from "./core";
 import { decideAll, decidesByBlock } from "./deciding";
+import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { handTo, whenFilesLand } from "./dropped";
-import { deep, destinations, trail } from "./folders";
+import { deep } from "./folders";
 import { todayLong } from "./format";
-import { adopt, fill, t, type Word } from "./locales";
+import { AT_A_GLANCE, SHOWN } from "./glance";
+import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
 import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
 import Axis from "./ui/Axis";
+import { Alarm, Progress } from "./ui/Banners";
+import BringingBack from "./ui/BringingBack";
 import CaptureField from "./ui/CaptureField";
 import Closing from "./ui/Closing";
 import Cover from "./ui/Cover";
 import Detail from "./ui/Detail";
-import Digits, { HOW_MANY } from "./ui/Digits";
 import Docs from "./ui/Docs";
 import Door from "./ui/Door";
 import Folder from "./ui/Folder";
@@ -94,11 +88,11 @@ import Keeping from "./ui/Keeping";
 import Lists from "./ui/Lists";
 import Matrix from "./ui/Matrix";
 import Menu, { type Choice } from "./ui/Menu";
-import Modal from "./ui/Modal";
 import Naming from "./ui/Naming";
 import Notice from "./ui/Notice";
 import Only from "./ui/Only";
 import Owed from "./ui/Owed";
+import { useParcels } from "./ui/Parcels";
 import Pulse from "./ui/Pulse";
 import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
@@ -149,11 +143,7 @@ const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 const TURNS_OVER = 60 * 1000;
 const TIGHT = 1308;
 
-const PARCEL = "tistyx";
-// Long enough to have walked away from: past this, the notice waits rather than fading.
-export const AT_A_GLANCE = 20_000;
-
-export const SHOWN = 3_200;
+export { AT_A_GLANCE, SHOWN };
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -234,13 +224,7 @@ export default function App() {
   const [note, setNote] = useState<string | null>(null);
   const [waited, setWaited] = useState(false);
   const [afoot, setAfoot] = useState<Afoot | null>(null);
-  const [whoFor, setWhoFor] = useState<string | null>(null);
-  const [movingTo, setMovingTo] = useState<string | null>(null);
-  const [locked, setLocked] = useState<string | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
-  const [backTo, setBackTo] = useState<string>("same");
-  const [number, setNumber] = useState("");
-  const [wrong, setWrong] = useState(false);
   const [menu, setMenu] = useState<{
     at: { x: number; y: number };
     label: string;
@@ -286,17 +270,6 @@ export default function App() {
       })
       .catch((e) => setError(saidPlainly(e)));
 
-  // One at a time: starting a second one paints over the first one's progress and the backend
-  // refuses it anyway, leaving the bar gone and the first one's success unsaid.
-  // Everything at once is the one that may be a move rather than a hand-over, so it asks first;
-  // a single document is always somebody else's to keep.
-  const packUp = (which: string[], named: string) => {
-    if (afoot) return Promise.resolve();
-    if (which.length) return packing(which, named);
-    setWhoFor(named);
-    return Promise.resolve();
-  };
-
   const said = (text: string, since: number) => {
     const long = Date.now() - since >= AT_A_GLANCE;
     setNote(text);
@@ -323,132 +296,6 @@ export default function App() {
       window.removeEventListener("keydown", gone);
     };
   }, [waited]);
-
-  const packing = (which: string[], named: string, number?: string) => {
-    const since = Date.now();
-    return spelled(named)
-      .catch(() => "tisty")
-      .then((safe) =>
-        intoFile({
-          defaultPath: `${safe}.${PARCEL}`,
-          filters: [{ name: "Tisty", extensions: [PARCEL] }],
-        }),
-      )
-      .then((at) => {
-        if (typeof at !== "string") return null;
-        setAfoot({ stage: "packing", far: 0, done: 0, whole: 0 });
-        return docsPack(which, at, number);
-      })
-      .then((packed) => {
-        setAfoot(null);
-        if (!packed) return;
-        const many = packed.docs + packed.pages;
-        if (packed.missed > 0 || packed.left > 0) {
-          setError(
-            packed.missed > 0
-              ? fill("packedShort", String(many), String(packed.missed))
-              : fill("packedLess", String(many), String(packed.left)),
-          );
-          return;
-        }
-        said(
-          many === 1 ? t("packedOne") : many ? fill("packed", String(many)) : t("packedAlone"),
-          since,
-        );
-      })
-      .catch((e) => {
-        setAfoot(null);
-        setError(saidPlainly(e));
-      });
-  };
-
-  const takeOutAll = () =>
-    afoot
-      ? Promise.resolve()
-      : pick({ directory: true })
-          .then((at) => {
-            if (typeof at !== "string") return null;
-            setAfoot({ stage: "takingOut", far: 0, done: 0, whole: 0 });
-            return docsTakeOut([], at);
-          })
-          .then((took) => {
-            setAfoot(null);
-            if (!took) return;
-            const many = took.docs;
-            if (took.missed > 0 || took.left > 0) {
-              setError(
-                took.missed > 0
-                  ? fill("packedShort", String(many), String(took.missed))
-                  : fill("packedLess", String(many), String(took.left)),
-              );
-              return;
-            }
-            setNote(
-              many === 1
-                ? t("tookOutOne")
-                : took.folders
-                  ? fill("tookOutAll", String(many), String(took.folders))
-                  : fill("tookOutAllFlat", String(many)),
-            );
-            setTimeout(() => setNote(null), SHOWN);
-          })
-          .catch((e) => {
-            setAfoot(null);
-            setError(saidPlainly(e));
-          });
-
-  const takeParcel = () =>
-    afoot
-      ? Promise.resolve()
-      : pick({ multiple: false, filters: [{ name: "Tisty", extensions: [PARCEL] }] }).then((at) =>
-          typeof at === "string" ? landing(at) : undefined,
-        );
-
-  const landing = (at: string, number?: string) => {
-    const since = Date.now();
-    return Promise.resolve()
-      .then(() => {
-        setAfoot({ stage: "landing", far: 0, done: 0, whole: 0 });
-        return docsUnpack(at, number);
-      })
-      .then((landed) => {
-        setAfoot(null);
-        if (!landed) return;
-        papersChanged();
-        const many = landed.docs + landed.pages;
-        if (landed.missed > 0 && many > 0) {
-          setError(fill("landedShort", String(landed.missed)));
-          return;
-        }
-        if (many === 0) {
-          setError(
-            landed.missed > 0 ? fill("landedNoneOfIt", String(landed.missed)) : t("landedNone"),
-          );
-          return;
-        }
-        said(
-          many === 1
-            ? t("landedOne")
-            : landed.folders
-              ? fill("landedIn", String(many), String(landed.folders))
-              : fill("landedAlone", String(many)),
-          since,
-        );
-      })
-      .catch((e) => {
-        setAfoot(null);
-        // Locked is not a failure: it is the parcel asking whether this is the machine it was
-        // packed for, and only the number answers that.
-        const why = (e as { code?: string } | undefined)?.code;
-        if (why === "parcelLocked" || why === "wrongNumber") {
-          setWrong(why === "wrongNumber");
-          setNumber("");
-          setLocked(at);
-          return;
-        }
-        setError(saidPlainly(e));
-      });
-  };
 
   const dropFolder = (folder: Folded) =>
     ask(fill("dropFolderSure", folder.name), { kind: "warning" })
@@ -487,59 +334,7 @@ export default function App() {
         .catch((e) => setError(saidPlainly(e)));
       return;
     }
-    setBackTo("same");
     setBacking(doc);
-  };
-
-  const backHome = (doc: Filed): string | null => {
-    if (doc.folder && papers.folders.some((one) => one.id === doc.folder)) return doc.folder;
-    const was = (doc.folderWas ?? []).join(" / ");
-    const again = was
-      ? papers.folders.find((one) => !one.away && trail(papers.folders, one.id) === was)
-      : undefined;
-    return again?.id ?? null;
-  };
-
-  const backFrom = (doc: Filed): string | null => {
-    const home = backHome(doc);
-    if (home) return trail(papers.folders, home);
-    const was = doc.folderWas ?? [];
-    return was.length ? was.join(" / ") : null;
-  };
-
-  const madeAgain = async (way: string[]): Promise<string | null> => {
-    let parent: string | null = null;
-    for (const name of way) {
-      const here = papers.folders.find(
-        (one) => !one.away && one.name === name && (one.parent ?? null) === parent,
-      );
-      parent = here ? here.id : await folderAdd(name, parent ?? undefined);
-    }
-    return parent;
-  };
-
-  const putBack = () => {
-    const doc = backing;
-    if (!doc) return;
-    setBacking(null);
-    const home = backHome(doc);
-    const lands = (): Promise<string | null> =>
-      backTo === "none"
-        ? Promise.resolve(null)
-        : backTo !== "same"
-          ? Promise.resolve(backTo)
-          : home
-            ? Promise.resolve(home)
-            : doc.folderWas?.length
-              ? madeAgain(doc.folderWas)
-              : Promise.resolve(null);
-    docAway(doc.id, false)
-      .then(lands)
-      .then((folder) =>
-        folder === (doc.folder ?? null) ? undefined : docFile(doc.id, folder ?? undefined),
-      )
-      .then(papersChanged)
-      .catch((e) => setError(saidPlainly(e)));
   };
 
   const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
@@ -610,6 +405,8 @@ export default function App() {
     lookPapers();
     carries.current?.changed();
   }, [lookPapers]);
+
+  const parcels = useParcels({ afoot, setAfoot, setError, setNote, said, papersChanged });
 
   useEffect(() => {
     /// A slow answer must not open a strip over the view the person moved on to.
@@ -844,16 +641,7 @@ export default function App() {
   const aside =
     (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) && !sheet;
   const quiet =
-    !asking &&
-    !greet &&
-    !open &&
-    !leaving &&
-    !torn &&
-    !afoot &&
-    !error &&
-    !whoFor &&
-    !movingTo &&
-    !locked;
+    !asking && !greet && !open && !leaving && !torn && !afoot && !error && !parcels.asking;
   const papered =
     chosen.named === "tasks" ||
     chosen.named === "tags" ||
@@ -928,125 +716,6 @@ export default function App() {
     />
   ) : null;
 
-  const hereMenu = (at: { x: number; y: number }) =>
-    setMenu({
-      at,
-      label: t("docsActions"),
-      choices: [
-        { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(undefined) },
-        {
-          key: "newFolder",
-          icon: "+",
-          label: t("newFolder"),
-          onPick: () => setMakingFolder(true),
-        },
-        {
-          key: "import",
-          icon: "↧",
-          label: t("importDoc"),
-          apart: true,
-          onPick: () => bringIn(undefined),
-        },
-        { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
-        {
-          key: "packAll",
-          icon: "⇪",
-          label: t("packAll"),
-          onPick: () => packUp([], "tisty"),
-        },
-        { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
-      ],
-    });
-
-  const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
-    setMenu({
-      at,
-      on: folder.id,
-      label: t("folderActions"),
-      choices: [
-        {
-          key: "newDoc",
-          icon: "+",
-          label: t("newDoc"),
-          off: folder.away,
-          onPick: () => newDoc(folder.id),
-        },
-        {
-          key: "newFolder",
-          icon: "+",
-          label: t("newFolder"),
-          off: folder.away || deep(papers.folders, folder.id) >= DEEPEST,
-          onPick: () => {
-            setHere(folder.id);
-            setMakingFolder(true);
-          },
-        },
-        {
-          key: "rename",
-          icon: "✎",
-          label: t("rename"),
-          off: folder.away,
-          apart: true,
-          onPick: () => setRenaming(folder),
-        },
-        {
-          key: "move",
-          icon: "⇢",
-          label: t("moveTo"),
-          off: folder.away,
-          into: {
-            label: t("moveHere"),
-            choices: destinations(
-              papers.folders,
-              folder.id,
-              (parent) =>
-                folderFile(folder.id, parent)
-                  .then(papersChanged)
-                  .catch((e) => setError(saidPlainly(e))),
-              folder,
-            ),
-          },
-        },
-        {
-          key: "import",
-          icon: "↧",
-          label: t("importDoc"),
-          off: folder.away,
-          onPick: () => bringIn(folder.id),
-        },
-        {
-          key: "unpack",
-          icon: "↧",
-          label: t("unpackIt"),
-          off: folder.away,
-          onPick: () => takeParcel(),
-        },
-        { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
-        { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
-        {
-          // Only the folder that was shelved answers for itself; one below it comes back with it.
-          key: "away",
-          icon: folder.archived ? "▢" : "▣",
-          label: folder.archived ? t("bringBack") : t("putAway"),
-          off: folder.away && !folder.archived,
-          apart: true,
-          onPick: () =>
-            folderAway(folder.id, !folder.archived)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "drop",
-          icon: "✕",
-          label: t("deleteIt"),
-          off: folder.away,
-          danger: true,
-          apart: true,
-          onPick: () => dropFolder(folder),
-        },
-      ],
-    });
-
   const hangIt = async (doc: string, pageOf: string) => {
     const named = (id: string) =>
       papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
@@ -1067,174 +736,45 @@ export default function App() {
       .catch((e) => setError(saidPlainly(e)));
   };
 
-  const byAnother = (doc: Filed) => doc.away && !doc.archived;
+  const hands: Hands = {
+    papers,
+    showing,
+    newDoc,
+    bringIn,
+    makeFolder: () => setMakingFolder(true),
+    makeFolderIn: (folder) => {
+      setHere(folder);
+      setMakingFolder(true);
+    },
+    rename: setRenaming,
+    parcels,
+    changed: papersChanged,
+    fail: (e) => setError(saidPlainly(e)),
+    failWith: setError,
+    noted: (text) => {
+      setNote(text);
+      setTimeout(() => setNote(null), SHOWN);
+    },
+    open: (doc) => setChosen({ named: "docs", doc }),
+    dropFolder,
+    dropDoc,
+    bringBack,
+    hangIt,
+  };
 
-  const docMenu = (doc: Filed, at: { x: number; y: number }) =>
+  const hereMenu = (at: { x: number; y: number }) =>
+    setMenu({ at, label: t("docsActions"), choices: hereChoices(hands) });
+
+  const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
     setMenu({
       at,
-      on: doc.id,
-      label: t("docActions"),
-      choices: [
-        {
-          key: "newPage",
-          icon: "+",
-          label: t("newPage"),
-          off: doc.away || !!doc.pageOf,
-          onPick: () => newDoc(undefined, doc.id),
-        },
-        {
-          key: "pageOf",
-          icon: "⇥",
-          label: t("pageOf"),
-          off:
-            doc.away ||
-            doc.locked ||
-            !!doc.pageOf ||
-            papers.docs.some((one) => one.pageOf === doc.id),
-          into: {
-            label: t("pageOfWhich"),
-            choices: papers.docs
-              .filter((one) => one.id !== doc.id && !one.pageOf && !one.away && !one.locked)
-              .map((one) => ({
-                key: one.id,
-                icon: "▤",
-                label: one.title || t("untitledDoc"),
-                onPick: () => hangIt(doc.id, one.id),
-              })),
-          },
-        },
-        {
-          key: "ownDoc",
-          icon: "⇤",
-          label: t("ownDoc"),
-          off: !doc.pageOf || byAnother(doc),
-          onPick: () =>
-            docPage(doc.id)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "move",
-          icon: "⇢",
-          label: t("moveTo"),
-          off: byAnother(doc) || !!doc.pageOf,
-          into: {
-            label: t("moveHere"),
-            choices: destinations(papers.folders, doc.folder, (folder) =>
-              docFile(doc.id, folder)
-                .then(papersChanged)
-                .catch((e) => setError(saidPlainly(e))),
-            ),
-          },
-        },
-        {
-          key: "asPlain",
-          icon: "⌘",
-          label: t("copyPlain"),
-          apart: true,
-          onPick: () =>
-            asPlain(doc.file)
-              .then(() => {
-                setNote(t("copied"));
-                setTimeout(() => setNote(null), SHOWN);
-              })
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "takeOut",
-          icon: "⇪",
-          label: t("takeOut"),
-          onPick: () =>
-            pick({ directory: true })
-              .then((at) => (typeof at === "string" ? docExport(doc.file, at) : null))
-              .then((took) => {
-                if (took === null) return;
-                if (took.missed > 0) {
-                  setError(
-                    took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)),
-                  );
-                  return;
-                }
-                if (took.left > 0) {
-                  setError(
-                    took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)),
-                  );
-                  return;
-                }
-                setNote(took.files ? fill("takenOut", String(took.files)) : t("takenOutAlone"));
-                setTimeout(() => setNote(null), SHOWN);
-              })
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "packIt",
-          icon: "⇪",
-          label: t("packIt"),
-          onPick: () => packUp([doc.file], doc.title || doc.file),
-        },
-        {
-          key: "seePdf",
-          icon: "▤",
-          label: t("seePdf"),
-          off: showing !== doc.file,
-          onPick: () => window.dispatchEvent(new CustomEvent("tisty:see-pdf")),
-        },
-        {
-          key: "asPdf",
-          icon: "⇩",
-          label: t("toPdf"),
-          off: showing !== doc.file,
-          onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
-        },
-        {
-          key: "copy",
-          icon: "⧉",
-          label: t("duplicate"),
-          apart: true,
-          onPick: () =>
-            docCopy(doc.id)
-              .then((made) => {
-                papersChanged();
-                if (!doc.away) setChosen({ named: "docs", doc: made.id });
-              })
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "lock",
-          icon: doc.locked ? "◉" : "○",
-          label: doc.locked ? t("unlockIt") : t("lockIt"),
-          off: !!doc.pageOf || byAnother(doc),
-          apart: true,
-          onPick: () =>
-            docLock(doc.id, !doc.locked)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          // What the folder put away has no door of its own: only the folder comes back, and
-          // its own mark is what it recovers when it does.
-          key: "away",
-          icon: doc.archived ? "▢" : "▣",
-          label: doc.archived ? t("bringBack") : t("putAway"),
-          off: byAnother(doc),
-          apart: true,
-          onPick: () => {
-            if (doc.archived) return bringBack(doc);
-            docAway(doc.id, true)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e)));
-          },
-        },
-        {
-          key: "drop",
-          icon: "✕",
-          label: t("deleteIt"),
-          off: doc.locked || byAnother(doc),
-          danger: true,
-          onPick: () => dropDoc(doc),
-        },
-      ],
+      on: folder.id,
+      label: t("folderActions"),
+      choices: folderChoices(folder, hands),
     });
+
+  const docMenu = (doc: Filed, at: { x: number; y: number }) =>
+    setMenu({ at, on: doc.id, label: t("docActions"), choices: docChoices(doc, hands) });
 
   const act = (work: Promise<Task>) => {
     setError(null);
@@ -1306,249 +846,21 @@ export default function App() {
     setSelected(one.id);
   };
 
-  const lockAndPack = () => {
-    if (movingTo === null || number.length < HOW_MANY) return;
-    const named = movingTo;
-    const said = number;
-    setMovingTo(null);
-    setNumber("");
-    void packing([], named, said);
-  };
-
-  const openLocked = () => {
-    if (locked === null || number.length < HOW_MANY) return;
-    const at = locked;
-    const said = number;
-    setLocked(null);
-    setNumber("");
-    void landing(at, said);
-  };
-
   return (
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
 
       {backing !== null && (
-        <Modal
-          title={fill("backWhere", backing.title || t("untitledDoc"))}
+        <BringingBack
+          doc={backing}
+          papers={papers}
           onClose={() => setBacking(null)}
-        >
-          <p id="back-why" className="mt-3 text-[12.5px] leading-relaxed text-soft">
-            {backFrom(backing) === null
-              ? t("backFromNowhere")
-              : fill(backHome(backing) ? "backFrom" : "backFromGone", backFrom(backing) as string)}
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              putBack();
-            }}
-          >
-            <fieldset
-              aria-describedby="back-why"
-              className="scroller mt-4 flex max-h-[248px] flex-col gap-0.5"
-            >
-              <legend className="sr-only">{t("backWhere").replace("{name}", "")}</legend>
-              <Where
-                name="where-back"
-                value="same"
-                chosen={backTo}
-                onPick={setBackTo}
-                label={
-                  backFrom(backing) === null
-                    ? t("backToNone")
-                    : backHome(backing)
-                      ? fill("backToSame", backFrom(backing) as string)
-                      : fill("backToMade", (backing.folderWas ?? []).join(" / "))
-                }
-                hint={backFrom(backing) === null ? t("backWasHere") : undefined}
-              />
-              {backFrom(backing) !== null && (
-                <Where
-                  name="where-back"
-                  value="none"
-                  chosen={backTo}
-                  onPick={setBackTo}
-                  label={t("backToNone")}
-                  hint={t("backAtRoot")}
-                />
-              )}
-              {papers.folders.some((one) => !one.away && one.id !== backHome(backing)) && (
-                <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
-                  <input
-                    type="radio"
-                    name="where-back"
-                    value="other"
-                    checked={backTo !== "same" && backTo !== "none"}
-                    onChange={() => {
-                      const first = papers.folders.find(
-                        (one) => !one.away && one.id !== backHome(backing),
-                      );
-                      if (first) setBackTo(first.id);
-                    }}
-                    className="accent-accent"
-                  />
-                  <span className="shrink-0">{t("backToOther")}</span>
-                  <select
-                    value={backTo !== "same" && backTo !== "none" ? backTo : ""}
-                    onChange={(e) => setBackTo(e.target.value)}
-                    className="ml-auto min-w-0 max-w-[60%] truncate rounded-md border border-line bg-bg px-2 py-1 text-[12.5px] text-ink"
-                  >
-                    <option value="" disabled>
-                      {t("backToOther")}
-                    </option>
-                    {papers.folders
-                      .filter((one) => !one.away && one.id !== backHome(backing))
-                      .map((one) => (
-                        <option key={one.id} value={one.id}>
-                          {trail(papers.folders, one.id)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              )}
-            </fieldset>
-            <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-              <button
-                type="button"
-                onClick={() => setBacking(null)}
-                className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="submit"
-                className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
-              >
-                {t("bringBack")}
-              </button>
-            </div>
-          </form>
-        </Modal>
+          onDone={papersChanged}
+          fail={(e) => setError(saidPlainly(e))}
+        />
       )}
 
-      {whoFor !== null && (
-        <Modal title={t("packWho")} onClose={() => setWhoFor(null)}>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("packWhoWhy")}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => setWhoFor(null)}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const named = whoFor;
-                setWhoFor(null);
-                void packing([], named);
-              }}
-              className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
-            >
-              {t("packToShare")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setNumber("");
-                setMovingTo(whoFor);
-                setWhoFor(null);
-              }}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
-            >
-              {t("packToMove")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {movingTo !== null && (
-        <Modal
-          title={t("packToMove")}
-          onClose={() => {
-            setMovingTo(null);
-            setNumber("");
-          }}
-        >
-          <p className="mt-3 text-[12.5px] text-soft">{t("packNumber")}</p>
-          <Digits
-            label={t("packNumber")}
-            value={number}
-            onChange={setNumber}
-            onDone={lockAndPack}
-          />
-          <p className="mt-3 text-[11.5px] leading-relaxed text-faint">{t("packNumberWhy")}</p>
-          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => {
-                setMovingTo(null);
-                setNumber("");
-              }}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              disabled={number.length < HOW_MANY}
-              onClick={lockAndPack}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("packLockIt")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {locked !== null && (
-        <Modal
-          title={t("parcelShut")}
-          onClose={() => {
-            setLocked(null);
-            setNumber("");
-          }}
-        >
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("parcelLocked")}</p>
-          <p className="mt-4 text-[12.5px] text-soft">{t("openNumber")}</p>
-          <Digits
-            label={t("openNumber")}
-            value={number}
-            onChange={(said) => {
-              setWrong(false);
-              setNumber(said);
-            }}
-            onDone={openLocked}
-          />
-          {wrong && (
-            <p role="alert" className="mt-3 text-[11.5px] text-urgent">
-              {t("wrongNumber")}
-            </p>
-          )}
-          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => {
-                setLocked(null);
-                setNumber("");
-              }}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              disabled={number.length < HOW_MANY}
-              onClick={openLocked}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("openLocked")}
-            </button>
-          </div>
-        </Modal>
-      )}
+      {parcels.shown}
 
       <p role="status" aria-live="polite" className="sr-only">
         {aloud}
@@ -1570,98 +882,36 @@ export default function App() {
       )}
 
       {error && (
-        <div
-          role="alert"
-          className="shadow-lift fixed inset-x-0 top-11 z-[60] mx-auto flex w-fit max-w-[70%] items-start gap-2.5 rounded-[10px] border border-urgent/40 bg-bg px-3.5 py-2 text-[12.5px] leading-snug text-urgent"
-        >
-          <span className="select-text">{error}</span>
-          {stuck && (
-            <button
-              type="button"
-              onClick={() => {
-                setStuck(false);
-                setError(null);
-                setChosen({ named: "keeping" });
-              }}
-              className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
-            >
-              {t("stuckTakeMe")}
-            </button>
-          )}
-          {behind && ready?.installs && (
-            <button
-              type="button"
-              disabled={!!underway}
-              onClick={() => {
-                setUnderway({ stage: "getting", far: 0 });
-                updateInstall().catch((problem) => {
-                  setUnderway(null);
-                  setError(saidPlainly(problem));
-                  if (offerMoved(problem)) {
-                    updateReady(true)
-                      .then(setReady)
-                      .catch(() => {});
-                  }
-                });
-              }}
-              className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
-            >
-              {t(
-                underway
-                  ? ready?.route === "store"
-                    ? "updateInstallingStore"
-                    : "updateInstalling"
-                  : "updateInstall",
-              )}
-            </button>
-          )}
-          <button
-            type="button"
-            aria-label={t("close")}
-            onClick={() => {
-              setError(null);
-              setBehind(false);
-            }}
-            className="-mr-1 shrink-0 rounded-md px-1 hover:bg-urgent/10"
-          >
-            ✕
-          </button>
-        </div>
+        <Alarm
+          error={error}
+          stuck={stuck}
+          offer={behind ? ready : null}
+          underway={underway}
+          onTakeMe={() => {
+            setStuck(false);
+            setError(null);
+            setChosen({ named: "keeping" });
+          }}
+          onInstall={() => {
+            setUnderway({ stage: "getting", far: 0 });
+            updateInstall().catch((problem) => {
+              setUnderway(null);
+              setError(saidPlainly(problem));
+              if (offerMoved(problem)) {
+                updateReady(true)
+                  .then(setReady)
+                  .catch(() => {});
+              }
+            });
+          }}
+          onClose={() => {
+            setError(null);
+            setBehind(false);
+          }}
+        />
       )}
 
-      {settling && !error && (
-        <p className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-[11.5px] text-accent">
-          {t("settlingIn")}
-        </p>
-      )}
-
-      {note && !error && !afoot && (
-        <p
-          role="status"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-fit -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-[11.5px] text-ink shadow-xl"
-        >
-          {note}
-        </p>
-      )}
-
-      {afoot && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-64 -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-[11.5px] text-ink shadow-xl"
-        >
-          <span className="block">
-            {fill(`${afoot.stage}On` as Word, afoot.far ? `${afoot.far} %` : "").trim()}
-          </span>
-          <span className="mt-0.5 block text-[11.5px] text-soft">{t("aWhileYet")}</span>
-          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-desk">
-            <span
-              className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
-              style={{ width: `${afoot.far}%` }}
-            />
-          </span>
-        </p>
-      )}
+      <Progress settling={settling && !error} note={!error && !afoot ? note : null} afoot={afoot} />
 
       {leaving && (
         <Closing onDismiss={() => setLeaving(false)} onError={(e) => setError(saidPlainly(e))} />
@@ -1804,9 +1054,24 @@ export default function App() {
                 apart: true,
                 onPick: () => bringIn(here ?? undefined),
               },
-              { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
-              { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
-              { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
+              {
+                key: "unpack",
+                icon: "↧",
+                label: t("unpackIt"),
+                onPick: () => parcels.takeParcel(),
+              },
+              {
+                key: "packAll",
+                icon: "⇪",
+                label: t("packAll"),
+                onPick: () => parcels.packUp([], "tisty"),
+              },
+              {
+                key: "takeOutAll",
+                icon: "⇪",
+                label: t("takeOutAll"),
+                onPick: () => parcels.takeOutAll(),
+              },
             ],
           })
         }
@@ -1928,8 +1193,8 @@ export default function App() {
               <Keeping
                 greeted={greeted}
                 start={chosen.tab}
-                onPack={() => packUp([], "tisty")}
-                onUnpack={takeParcel}
+                onPack={() => parcels.packUp([], "tisty")}
+                onUnpack={parcels.takeParcel}
                 onGreet={() => setGreet(true)}
                 onDoc={openDoc}
                 onChanged={() => {
@@ -2264,37 +1529,6 @@ export default function App() {
         )}
       </div>
     </div>
-  );
-}
-
-function Where({
-  name,
-  value,
-  chosen,
-  label,
-  hint,
-  onPick,
-}: {
-  name: string;
-  value: string;
-  chosen: string;
-  label: string;
-  hint?: string;
-  onPick: (value: string) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={chosen === value}
-        onChange={() => onPick(value)}
-        className="accent-accent"
-      />
-      <span className="min-w-0 truncate">{label}</span>
-      {hint && <span className="ml-auto shrink-0 text-[11.5px] text-faint">{hint}</span>}
-    </label>
   );
 }
 
