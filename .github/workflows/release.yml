@@ -114,6 +114,7 @@ jobs:
   version:
     name: Resolve the version
     needs: [gate]
+    environment: ${{ github.event_name == 'push' && 'release' || '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -422,6 +423,7 @@ jobs:
   bundle-windows:
     name: tisty-windows-installer
     needs: [version, tested]
+    environment: ${{ github.event_name == 'push' && 'release' || '' }}
     runs-on: windows-latest
     timeout-minutes: 60
     outputs:
@@ -666,6 +668,7 @@ jobs:
   bundle-macos:
     name: tisty-macos-installer (${{ matrix.arch }})
     needs: [version, tested]
+    environment: ${{ github.event_name == 'push' && 'release' || '' }}
     if: needs.version.outputs.macos == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
@@ -982,6 +985,7 @@ jobs:
         bundle-macos,
         bundle-msix,
       ]
+    environment: ${{ github.event_name == 'push' && 'release' || '' }}
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
       && needs.tested.result == 'success'
