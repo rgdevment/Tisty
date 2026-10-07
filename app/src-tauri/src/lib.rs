@@ -8,6 +8,7 @@ mod finding;
 mod glimpse;
 mod herald;
 mod linking;
+mod moving;
 mod refusing;
 mod report;
 mod session;
@@ -622,6 +623,14 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    if tisty_core::paths::home_moves() {
+        moving::begin(app.handle().clone());
+        return Ok(());
+    }
+    opened(app.handle())
+}
+
+pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let session = match Session::open() {
         Ok(session) => session,
         Err(why) => {
@@ -680,8 +689,7 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             ],
         );
     }
-    app.handle()
-        .asset_protocol_scope()
+    app.asset_protocol_scope()
         .allow_directory(as_asked_for(&attachments), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
@@ -698,15 +706,15 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // with the session comes back hidden — looking, to whoever pressed the button, like it
     // never came back at all.
     let came_back = session.config.found_version.as_deref() == Some(HERE);
-    answers::settings::appearance(app.handle(), session.config.theme);
+    answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
-    app.manage(herald::Speaking::new(app.handle(), telling, &quiet));
-    herald::watch(app.handle().clone(), watched);
+    app.manage(herald::Speaking::new(app, telling, &quiet));
+    herald::watch(app.clone(), watched);
 
     app.manage(answers::storing::Stopping::default());
-    let perched = tray::raise(app.handle(), &words).is_some();
+    let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
-    app.manage(Bound(listen_for(app.handle())));
+    app.manage(Bound(listen_for(app)));
 
     {
         let held = app.state::<Mutex<Session>>();
@@ -735,7 +743,7 @@ fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "macos")]
     {
         let locale = held(&app.state::<Mutex<Session>>()).locale.clone();
-        match desktop::menued(app.handle(), &locale) {
+        match desktop::menued(app, &locale) {
             Ok(menu) => {
                 let _ = app.set_menu(menu);
                 app.on_menu_event(|app, event| {

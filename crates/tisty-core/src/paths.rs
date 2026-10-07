@@ -158,11 +158,25 @@ fn shared_home() -> Option<PathBuf> {
 
 /// Only the window moves the store; the command line uses whichever root exists.
 pub fn settle_home() -> Option<crate::moving::Settled> {
-    static ONCE: std::sync::OnceLock<Option<crate::moving::Settled>> = std::sync::OnceLock::new();
-    ONCE.get_or_init(settled_home).clone()
+    settle_home_telling(&mut |_, _| {})
 }
 
-fn settled_home() -> Option<crate::moving::Settled> {
+static SETTLED: std::sync::OnceLock<Option<crate::moving::Settled>> = std::sync::OnceLock::new();
+
+pub fn settle_home_telling(telling: crate::moving::Telling) -> Option<crate::moving::Settled> {
+    if let Some(done) = SETTLED.get() {
+        return done.clone();
+    }
+    let done = home_roots().map(|roots| crate::moving::settle_telling(&roots, telling));
+    SETTLED.get_or_init(|| done).clone()
+}
+
+/// Whether this start has a store to move, so the window can say so while it does.
+pub fn home_moves() -> bool {
+    SETTLED.get().is_none() && home_roots().is_some_and(|roots| crate::moving::moves(&roots))
+}
+
+fn home_roots() -> Option<crate::moving::Roots> {
     if [DATA_ENV, CONFIG_ENV, CACHE_ENV, PROFILE_ENV]
         .iter()
         .any(|key| env_path(key).is_some())
@@ -176,11 +190,7 @@ fn settled_home() -> Option<crate::moving::Settled> {
         true => None,
         false => store_package(real.parent()?),
     };
-    Some(crate::moving::settle(&crate::moving::Roots {
-        new,
-        real,
-        private,
-    }))
+    Some(crate::moving::Roots { new, real, private })
 }
 
 fn store_package(local: &Path) -> Option<PathBuf> {
