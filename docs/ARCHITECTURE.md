@@ -119,6 +119,16 @@ over the chain that segment really closes. A signature already in place is left
 exactly as it stands, whether it answers or not, because writing another over
 it would bless bytes that history never covered.
 
+What is checked is what comes in. A machine's history that holds something new
+is first copied aside, into a place of the round's own under `<data>/.bringing`,
+taking what both sides already hold the same from this side and the rest from
+the folder; the signatures, the schema and the count are read from that copy,
+and that copy is what is installed. Whoever can write in the folder can no
+longer change a file between the check and the copy, and a history with nothing
+new is not copied at all. The window and the command line can be in a round at
+once, so neither touches the other's place; each round's goes when the round
+ends, however it ends, and what a round cut short leaves is swept a day later.
+
 What it does not catch, and is not meant to: a segment rolled back **whole** to
 an earlier state together with the signature that answered for it then. Both
 agree, and nothing outside them says which of the two is the later one. What
