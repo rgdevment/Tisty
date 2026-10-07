@@ -224,6 +224,37 @@ pub fn ours_alone(at: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+#[cfg(unix)]
+pub fn key_alone(at: &Path) -> std::io::Result<()> {
+    ours_alone(at)
+}
+
+// Through icacls rather than the security API, which would need the unsafe code the workspace forbids.
+#[cfg(windows)]
+pub fn key_alone(at: &Path) -> std::io::Result<()> {
+    let user = std::env::var("USERNAME").map_err(std::io::Error::other)?;
+    let who = match std::env::var("USERDOMAIN") {
+        Ok(domain) if !domain.is_empty() => format!("{domain}\\{user}"),
+        _ => user,
+    };
+    let done = std::process::Command::new("icacls")
+        .arg(at)
+        .args(["/inheritance:r", "/grant:r", &format!("{who}:(OI)(CI)F")])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()?;
+    match done.success() {
+        true => Ok(()),
+        false => Err(std::io::Error::other(format!("icacls ended with {done}"))),
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+pub fn key_alone(at: &Path) -> std::io::Result<()> {
+    ours_alone(at)
+}
+
 pub fn as_written(at: &Path) -> String {
     std::fs::canonicalize(at)
         .unwrap_or_else(|_| at.to_path_buf())

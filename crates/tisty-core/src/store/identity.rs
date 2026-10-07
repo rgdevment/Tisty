@@ -106,7 +106,7 @@ pub(crate) fn minted(paths: &crate::Paths, at: &Path) -> Option<[u8; 32]> {
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
     std::fs::create_dir_all(paths.private()).ok()?;
-    let _ = crate::paths::ours_alone(&paths.private());
+    let _ = crate::paths::key_alone(&paths.private());
     match made(at) {
         Ok(mut file) => {
             if file
@@ -154,7 +154,7 @@ pub fn kept_before_the_store_goes(paths: &crate::Paths) {
     let named = peek_identity(paths.store()).unwrap_or_default();
     let at = kept_at(paths, &named).unwrap_or_else(|| paths.private().join(KEEP));
     let _ = std::fs::create_dir_all(paths.private());
-    let _ = crate::paths::ours_alone(&paths.private());
+    let _ = crate::paths::key_alone(&paths.private());
     set_aside(
         paths,
         &at,
@@ -232,7 +232,7 @@ pub fn brought_home(paths: &crate::Paths) {
     }
 
     let _ = std::fs::create_dir_all(paths.private());
-    let _ = crate::paths::ours_alone(&paths.private());
+    let _ = crate::paths::key_alone(&paths.private());
     if write_atomic(&now, &held).is_err() {
         witness::warn(
             channel::STORE,

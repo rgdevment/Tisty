@@ -186,3 +186,44 @@ fn only_a_copy_kept_under_windows_apps_is_the_stores() {
 fn a_test_binary_is_no_store_copy() {
     assert!(!from_the_store());
 }
+
+#[cfg(windows)]
+#[test]
+fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
+    let room = tempfile::tempdir().unwrap();
+    let private = room.path().join("private");
+    std::fs::create_dir_all(&private).unwrap();
+
+    key_alone(&private).unwrap();
+
+    let said = std::process::Command::new("icacls")
+        .arg(&private)
+        .output()
+        .unwrap();
+    let said = String::from_utf8_lossy(&said.stdout).to_string();
+    let user = std::env::var("USERNAME").unwrap();
+    assert!(said.contains(&user), "{said}");
+    assert!(
+        !said.contains("(I)"),
+        "something is still inherited: {said}"
+    );
+    assert_eq!(
+        said.lines().filter(|line| line.contains(":(")).count(),
+        1,
+        "more than this user can reach the key: {said}"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn the_key_folder_answers_to_this_user_alone() {
+    use std::os::unix::fs::PermissionsExt;
+    let room = tempfile::tempdir().unwrap();
+    let private = room.path().join("private");
+    std::fs::create_dir_all(&private).unwrap();
+
+    key_alone(&private).unwrap();
+
+    let mode = std::fs::metadata(&private).unwrap().permissions().mode();
+    assert_eq!(mode & 0o777, 0o700);
+}
