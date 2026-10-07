@@ -196,28 +196,54 @@ fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
 
     key_alone(&private).unwrap();
 
-    let said = std::process::Command::new("icacls")
+    let saved = room.path().join("acl");
+    let done = std::process::Command::new("icacls")
         .arg(&private)
+        .arg("/save")
+        .arg(&saved)
         .output()
         .unwrap();
-    let said = String::from_utf8_lossy(&said.stdout).to_string();
-    let user = std::env::var("USERNAME").unwrap();
-    let granted =
-        said.lines()
-            .next()
-            .unwrap_or_default()
-            .replacen(&private.display().to_string(), "", 1);
+    assert!(done.status.success(), "{done:?}");
+    let raw = std::fs::read(&saved).unwrap();
+    let words: Vec<u16> = raw
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|two| u16::from_le_bytes(*two))
+        .collect();
+    let said = String::from_utf16_lossy(&words);
+    let dacl = said
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split_once("D:"))
+        .map(|(_, dacl)| dacl.to_string())
+        .unwrap_or_default();
+    let aces: Vec<&str> = dacl
+        .split('(')
+        .skip(1)
+        .map(|ace| ace.trim_end_matches(|c: char| c == ')' || c.is_whitespace() || c == '\0'))
+        .collect();
+    let who = |ace: &str| ace.rsplit(';').next().unwrap_or_default().to_string();
+    let sid = account_sid().unwrap();
+
     assert!(
-        granted.contains(&user),
-        "the folder went to someone else: {said}"
-    );
-    assert!(
-        !said.contains("(I)"),
+        dacl.starts_with('P'),
         "something is still inherited: {said}"
     );
-    assert_eq!(
-        said.lines().filter(|line| line.contains(":(")).count(),
-        1,
+    assert!(
+        aces.iter()
+            .all(|ace| !ace.split(';').nth(1).unwrap_or_default().contains("ID")),
+        "something is still inherited: {said}"
+    );
+    assert!(
+        aces.iter()
+            .any(|ace| who(ace) == sid && ace.split(';').nth(2) == Some("FA")),
+        "the folder went to someone else: {said}"
+    );
+    // Windows itself and its administrators can always take any folder, so the key is kept from everyone else.
+    assert!(
+        aces.iter()
+            .all(|ace| who(ace) == sid || who(ace) == "SY" || who(ace) == "BA"),
         "more than this user can reach the key: {said}"
     );
 }
