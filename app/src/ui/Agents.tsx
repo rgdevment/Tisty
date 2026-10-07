@@ -25,17 +25,16 @@ interface Props {
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   binary?: string;
+  known: Known;
 }
 
-export default function Agents({ busy, said, trouble, quietly, tell, fail, binary }: Props) {
-  const held = busy !== null;
+export function useAgents(shown: boolean, fail: (word?: Word) => void) {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [agents, setAgents] = useState<Wired[] | null>(null);
   const [hands, setHands] = useState<Assistant[] | null>(null);
-  const [wired, setWired] = useState(false);
-  const [typed, setTyped] = useState(false);
 
   useEffect(() => {
+    if (!shown) return;
     agentState()
       .then((fresh) => setAgent(fresh))
       .catch((e) => fail({ card: "settings", text: saidPlainly(e) }));
@@ -45,7 +44,18 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
     assistants()
       .then(setHands)
       .catch((e) => fail({ card: "wiring", text: saidPlainly(e) }));
-  }, [fail]);
+  }, [shown, fail]);
+
+  return { agent, setAgent, agents, setAgents, hands };
+}
+
+export type Known = ReturnType<typeof useAgents>;
+
+export default function Agents({ busy, said, trouble, quietly, tell, fail, binary, known }: Props) {
+  const held = busy !== null;
+  const { agent, setAgent, agents, setAgents, hands } = known;
+  const [wired, setWired] = useState(false);
+  const [typed, setTyped] = useState(false);
 
   const join = (one: Wired) => {
     const out = one.wired && !one.astray;

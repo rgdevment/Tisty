@@ -24,6 +24,7 @@ import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
 import { useSnapshot } from "./snapshotting";
 import { WEEK } from "./ui/Ahead";
+import Board from "./ui/Board";
 import Layers, { type MenuOpen, type Torn } from "./ui/Layers";
 import Margins from "./ui/Margins";
 import { useParcels } from "./ui/Parcels";
@@ -149,12 +150,8 @@ export default function App() {
   });
   useOnlyAlive(data?.lists, chosen, setChosen);
 
-  const papersAgain = useRef(lookPapers);
-  papersAgain.current = lookPapers;
-
   useListening({
     latest,
-    papersAgain,
     lookPapers,
     docs: papers.docs,
     chosen,
@@ -307,6 +304,37 @@ export default function App() {
     setSelected(one.id);
   };
 
+  const board = (
+    <Board
+      act={act}
+      asking={asking}
+      byList={byList}
+      cameFrom={cameFrom}
+      captured={captured}
+      chosen={chosen}
+      data={data}
+      found={found}
+      further={further}
+      load={load}
+      marking={marking}
+      openDoc={openDoc}
+      reveal={reveal}
+      say={say}
+      seen={seen}
+      selected={selected}
+      setCameFrom={setCameFrom}
+      setCaptured={setCaptured}
+      setChosen={setChosen}
+      setError={setError}
+      setFound={setFound}
+      setSelected={setSelected}
+      shown={shown}
+      strip={strip}
+      taggedDocs={taggedDocs}
+      wholes={wholes}
+    />
+  );
+
   return (
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
@@ -406,13 +434,10 @@ export default function App() {
             className={`grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden motion-safe:transition-[padding] motion-safe:duration-150 ${lane}`}
           >
             <Stage
+              board={board}
               act={act}
-              asking={asking}
               beside={beside}
               bringBack={bringBack}
-              byList={byList}
-              cameFrom={cameFrom}
-              captured={captured}
               carried={carried}
               carries={carries}
               chosen={chosen}
@@ -421,14 +446,11 @@ export default function App() {
               docMenu={docMenu}
               dropDoc={dropDoc}
               folderMenu={folderMenu}
-              found={found}
-              further={further}
               greeted={greeted}
               here={here}
               hereMenu={hereMenu}
               load={load}
               lookPapers={lookPapers}
-              marking={marking}
               openDoc={openDoc}
               paging={paging}
               papers={papers}
@@ -436,32 +458,23 @@ export default function App() {
               parcels={parcels}
               ready={ready}
               remember={remember}
-              reveal={reveal}
-              say={say}
-              seen={seen}
-              selected={selected}
               setCameFrom={setCameFrom}
-              setCaptured={setCaptured}
               setChosen={setChosen}
               setDealing={setDealing}
               setError={setError}
-              setFound={setFound}
               setGreet={setGreet}
               setHere={setHere}
               setSelected={setSelected}
               setShowing={setShowing}
               setUnderway={setUnderway}
               sheet={sheet}
-              shown={shown}
               shut={shut}
               standing={standing}
               strip={strip}
-              taggedDocs={taggedDocs}
               task={task}
               tight={tight}
               told={told}
               underway={underway}
-              wholes={wholes}
             />
           </div>
 

@@ -13,7 +13,7 @@ import {
 import { adopt, fill, t } from "../locales";
 import type { Run, Which, Word } from "./Card";
 import { Band, Knob, Line, mild, ON_MAC, off } from "./Rows";
-import Signing from "./Signing";
+import Signing, { type Signs } from "./Signing";
 
 interface Props {
   kept: Settings | null;
@@ -29,7 +29,7 @@ interface Props {
   run: Run;
   tell: (word?: Word) => void;
   remember: (next: Settings, card: Which) => void;
-  greeted?: number;
+  signs: Signs;
   onChanged: () => void;
   onGreet: () => void;
   onDoc: (paper: string) => void;
@@ -49,7 +49,7 @@ export default function General({
   run,
   tell,
   remember,
-  greeted,
+  signs,
   onChanged,
   onGreet,
   onDoc,
@@ -182,7 +182,7 @@ export default function General({
         />
       </div>
 
-      <Signing busy={busy} said={said} trouble={trouble} run={run} tell={tell} greeted={greeted} />
+      <Signing busy={busy} said={said} trouble={trouble} run={run} tell={tell} signs={signs} />
 
       <Band label={t("bandNotices")} />
       <div className="border-t border-hair">

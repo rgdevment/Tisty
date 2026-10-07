@@ -28,15 +28,14 @@ export function useMarking({ chosen, act, say, setError, lookForAStar }: Hands) 
     const mine = ++asked.current;
     owed(id)
       .then((days) => {
-        // A slow answer must not open a strip over the task the person moved on to.
-        if (mine !== asked.current) return;
         if (!days.length) {
           say(fill("saidDone", title));
           act(complete(id));
           lookForAStar();
           return;
         }
-        setAsking({ id, title, days });
+        // A slow answer must not open a strip over the task the person moved on to.
+        if (mine === asked.current) setAsking({ id, title, days });
       })
       .catch((e) => setError(saidPlainly(e)));
   };

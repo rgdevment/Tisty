@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ALIAS_AT_MOST, sign, signed, signTheRest } from "../core";
+import { useCallback, useRef, useState } from "react";
+import { ALIAS_AT_MOST, type Signed, sign, signed, signTheRest } from "../core";
 import { fill, t } from "../locales";
 import type { Run, Which, Word } from "./Card";
 import Modal from "./Modal";
@@ -11,28 +11,40 @@ interface Props {
   trouble?: Word;
   run: Run;
   tell: (word?: Word) => void;
-  greeted?: number;
+  signs: Signs;
 }
 
-export default function Signing({ busy, said, trouble, run, tell, greeted }: Props) {
-  const held = busy !== null;
+export function useSigning() {
   const [alias, setAlias] = useState("");
-  const signed_as = useRef("");
+  const signedAs = useRef("");
   const [aliases, setAliases] = useState<string[]>([]);
   const [mine, setMine] = useState(0);
   const [asking, setAsking] = useState<string | null>(null);
-  const before = aliases.filter((one) => one !== alias);
 
-  useEffect(() => {
+  const took = useCallback((now: Signed) => {
+    const fresh = now.alias ?? "";
+    // A name still being typed is the person's until they leave the field.
+    setAlias((typed) => (typed === signedAs.current ? fresh : typed));
+    signedAs.current = fresh;
+    setAliases(now.before);
+    setMine(now.mine);
+  }, []);
+
+  const lookSigned = useCallback(() => {
     signed()
-      .then((one) => {
-        setAlias(one.alias ?? "");
-        signed_as.current = one.alias ?? "";
-        setAliases(one.before);
-        setMine(one.mine);
-      })
+      .then(took)
       .catch(() => {});
-  }, [greeted]);
+  }, [took]);
+
+  return { alias, setAlias, signedAs, aliases, mine, setMine, asking, setAsking, took, lookSigned };
+}
+
+export type Signs = ReturnType<typeof useSigning>;
+
+export default function Signing({ busy, said, trouble, run, tell, signs }: Props) {
+  const held = busy !== null;
+  const { alias, setAlias, signedAs, aliases, mine, setMine, asking, setAsking, took } = signs;
+  const before = aliases.filter((one) => one !== alias);
 
   return (
     <>
@@ -95,18 +107,17 @@ export default function Signing({ busy, said, trouble, run, tell, greeted }: Pro
             onBlur={() => {
               const said = alias.trim();
               if (
-                said.localeCompare(signed_as.current, undefined, {
+                said.localeCompare(signedAs.current, undefined, {
                   sensitivity: "accent",
                 }) === 0
               ) {
-                setAlias(signed_as.current);
+                setAlias(signedAs.current);
                 return;
               }
               run("signing", sign(said || undefined), (now) => {
                 setAlias(now.alias ?? "");
-                setAliases(now.before);
-                setMine(now.mine);
-                signed_as.current = now.alias ?? "";
+                signedAs.current = now.alias ?? "";
+                took(now);
                 tell({
                   card: "signing",
                   text: now.alias ? fill("aliasKept", now.alias) : t("aliasGone"),

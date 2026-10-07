@@ -202,7 +202,15 @@ fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
         .unwrap();
     let said = String::from_utf8_lossy(&said.stdout).to_string();
     let user = std::env::var("USERNAME").unwrap();
-    assert!(said.contains(&user), "{said}");
+    let granted =
+        said.lines()
+            .next()
+            .unwrap_or_default()
+            .replacen(&private.display().to_string(), "", 1);
+    assert!(
+        granted.contains(&user),
+        "the folder went to someone else: {said}"
+    );
     assert!(
         !said.contains("(I)"),
         "something is still inherited: {said}"

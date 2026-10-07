@@ -232,8 +232,9 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
 // Through icacls rather than the security API, which would need the unsafe code the workspace forbids.
 #[cfg(windows)]
 pub fn key_alone(at: &Path) -> std::io::Result<()> {
-    let system = std::env::var_os("SystemRoot")
-        .map(|root| std::path::PathBuf::from(root).join("System32"))
+    let system = env_path("SystemRoot")
+        .filter(|root| root.is_absolute())
+        .map(|root| root.join("System32"))
         .ok_or_else(|| std::io::Error::other("the system folder could not be found"))?;
     let sid = account_sid(&system)?;
     windowless(
@@ -260,7 +261,11 @@ fn account_sid(system: &Path) -> std::io::Result<String> {
 
 #[cfg(windows)]
 fn windowless(system: &Path, tool: &str, at: &Path, args: &[&str]) -> std::io::Result<()> {
-    let done = quiet(system, tool).arg(at).args(args).status()?;
+    let done = quiet(system, tool)
+        .arg(at)
+        .args(args)
+        .stdout(std::process::Stdio::null())
+        .status()?;
     match done.success() {
         true => Ok(()),
         false => Err(std::io::Error::other(format!("{tool} ended with {done}"))),
@@ -273,7 +278,6 @@ fn quiet(system: &Path, tool: &str) -> std::process::Command {
     let mut command = std::process::Command::new(system.join(tool));
     command
         .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .creation_flags(0x0800_0000);
     command

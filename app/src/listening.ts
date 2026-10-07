@@ -16,7 +16,6 @@ type Setter<T> = (next: T | ((was: T) => T)) => void;
 
 interface Hands {
   latest: MutableRefObject<() => void>;
-  papersAgain: MutableRefObject<() => void>;
   lookPapers: () => void;
   docs: Filed[];
   chosen: Chosen;
@@ -36,7 +35,6 @@ interface Hands {
 
 export function useListening({
   latest,
-  papersAgain,
   lookPapers,
   docs,
   chosen,
@@ -57,7 +55,7 @@ export function useListening({
   useEffect(() => {
     const again = () => {
       latest.current();
-      papersAgain.current();
+      lookPapers();
     };
     const shownAgain = () => {
       if (document.visibilityState === "visible") again();
@@ -68,7 +66,7 @@ export function useListening({
       window.removeEventListener("focus", again);
       document.removeEventListener("visibilitychange", shownAgain);
     };
-  }, [latest, papersAgain]);
+  }, [latest, lookPapers]);
 
   useEffect(() => {
     let day = new Date().getDate();
@@ -87,7 +85,7 @@ export function useListening({
       () => {
         setCarried((was) => was + 1);
         latest.current();
-        papersAgain.current();
+        lookPapers();
       },
       (ids) => {
         decideAll(ids)
@@ -113,7 +111,7 @@ export function useListening({
     );
     carries.current = carrier;
     return () => carrier.stop();
-  }, [noted, setCarried, latest, papersAgain, carries, setError]);
+  }, [noted, setCarried, latest, lookPapers, carries, setError]);
 
   useEffect(() => {
     syncState()
@@ -132,7 +130,9 @@ export function useListening({
 
   useEffect(() => {
     if (!returning) return;
-    document.querySelector<HTMLElement>(`[data-task="${returning}"]`)?.focus();
+    document
+      .querySelector<HTMLElement>(`[data-task="${returning}"], [data-row="${returning}"]`)
+      ?.focus();
     setReturning(null);
   }, [returning, setReturning]);
 

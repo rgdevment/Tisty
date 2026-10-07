@@ -6,7 +6,6 @@ import {
   docPage,
   type Filed,
   type Folded,
-  type Found,
   type Papers,
   patch,
   type Ready,
@@ -20,7 +19,6 @@ import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
 import { type Chosen, title } from "../views";
 import About from "./About";
-import Board from "./Board";
 import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
@@ -30,13 +28,10 @@ import Matrix from "./Matrix";
 import Spread from "./Spread";
 
 interface Props {
+  board: ReactNode;
   act: (work: Promise<Task>) => void;
-  asking: { id: string; title: string; days: string[] } | null;
   beside: boolean;
   bringBack: (doc: Filed) => void;
-  byList: boolean;
-  cameFrom: Chosen | null;
-  captured: Task | undefined;
   carried: number;
   carries: MutableRefObject<ReturnType<typeof carrying> | null>;
   chosen: Chosen;
@@ -45,14 +40,11 @@ interface Props {
   docMenu: (doc: Filed, at: { x: number; y: number }) => void;
   dropDoc: (doc: Filed) => unknown;
   folderMenu: (folder: Folded, at: { x: number; y: number }) => void;
-  found: Found | null;
-  further: () => void;
   greeted: number;
   here: string | null | undefined;
   hereMenu: (at: { x: number; y: number }) => void;
   load: () => void;
   lookPapers: () => void;
-  marking: (id: string, title: string) => void;
   openDoc: (paper: string) => void;
   paging: MutableRefObject<((page: Filed) => boolean) | null>;
   papers: Papers;
@@ -60,42 +52,30 @@ interface Props {
   parcels: { packUp: (which: string[], named: string) => unknown; takeParcel: () => unknown };
   ready: Ready | null;
   remember: (next: "columns" | "sheet") => void;
-  reveal: string | undefined;
-  say: (words: string) => void;
-  seen: Chosen;
-  selected: string | undefined;
   setCameFrom: (from: Chosen | null) => void;
-  setCaptured: (task: Task | undefined) => void;
   setChosen: (chosen: Chosen) => void;
   setDealing: (dealing: boolean) => void;
   setError: (text: string | null) => void;
-  setFound: (found: Found | null) => void;
   setGreet: (greet: boolean) => void;
   setHere: (here: string | null | undefined) => void;
   setSelected: (id: string | undefined) => void;
   setShowing: (file: string | null) => void;
   setUnderway: (underway: Underway | null) => void;
   sheet: boolean;
-  shown: Task[];
   shut: () => void;
   standing: Folded | undefined;
   strip: ReactNode;
-  taggedDocs: Filed[];
   task: Task | undefined;
   tight: boolean;
   told: (problem: unknown) => void;
   underway: Underway | null;
-  wholes: NonNullable<Snapshot["wholes"]>;
 }
 
 export default function Stage({
+  board,
   act,
-  asking,
   beside,
   bringBack,
-  byList,
-  cameFrom,
-  captured,
   carried,
   carries,
   chosen,
@@ -104,14 +84,11 @@ export default function Stage({
   docMenu,
   dropDoc,
   folderMenu,
-  found,
-  further,
   greeted,
   here,
   hereMenu,
   load,
   lookPapers,
-  marking,
   openDoc,
   paging,
   papers,
@@ -119,32 +96,23 @@ export default function Stage({
   parcels,
   ready,
   remember,
-  reveal,
-  say,
-  seen,
-  selected,
   setCameFrom,
-  setCaptured,
   setChosen,
   setDealing,
   setError,
-  setFound,
   setGreet,
   setHere,
   setSelected,
   setShowing,
   setUnderway,
   sheet,
-  shown,
   shut,
   standing,
   strip,
-  taggedDocs,
   task,
   tight,
   told,
   underway,
-  wholes,
 }: Props) {
   return chosen.named === "aboutScreen" ? (
     <About
@@ -266,33 +234,6 @@ export default function Stage({
       onCollapse={() => (tight ? shut() : remember("columns"))}
     />
   ) : (
-    <Board
-      act={act}
-      asking={asking}
-      byList={byList}
-      cameFrom={cameFrom}
-      captured={captured}
-      chosen={chosen}
-      data={data}
-      found={found}
-      further={further}
-      load={load}
-      marking={marking}
-      openDoc={openDoc}
-      reveal={reveal}
-      say={say}
-      seen={seen}
-      selected={selected}
-      setCameFrom={setCameFrom}
-      setCaptured={setCaptured}
-      setChosen={setChosen}
-      setError={setError}
-      setFound={setFound}
-      setSelected={setSelected}
-      shown={shown}
-      strip={strip}
-      taggedDocs={taggedDocs}
-      wholes={wholes}
-    />
+    board
   );
 }

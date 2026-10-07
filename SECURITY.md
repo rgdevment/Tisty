@@ -134,8 +134,8 @@ Being explicit here matters more than sounding reassuring.
   Unix it does narrow the permissions it controls — its directories to `0700`
   and its files to `0600`, owner only — but that stops another local account,
   not you, and not anything running as you. On Windows the folder that holds
-  the signing key and the store's secret answers to your account alone: Tisty
-  cuts it off from the permissions it would inherit and grants only you. For
+  the signing key and the store's secret is cut off from the permissions it
+  would inherit, and your account is given full control of it. For
   everything else, what keeps another account out is that your profile's own
   folders are yours.
 - **Whoever can write to the shared folder can try to write to your history.**

@@ -20,12 +20,13 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Tab } from "../views";
-import Agents from "./Agents";
+import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which, type Word } from "./Card";
 import General from "./General";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
 import { strong } from "./Rows";
+import { useSigning } from "./Signing";
 import Upkeep from "./Upkeep";
 import { useCarry } from "./useCarry";
 import Yours from "./Yours";
@@ -75,15 +76,19 @@ export default function Keeping({
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
+  const signs = useSigning();
+  const { lookSigned } = signs;
+  const known = useAgents(tab === "agents", setTrouble);
 
   const look = useCallback(() => {
+    lookSigned();
     syncState()
       .then(setState)
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
     readSettings()
       .then(setKept)
       .catch(() => {});
-  }, []);
+  }, [lookSigned]);
 
   useEffect(look, [look]);
 
@@ -254,7 +259,7 @@ export default function Keeping({
             run={run}
             tell={setSaid}
             remember={remember}
-            greeted={greeted}
+            signs={signs}
             onChanged={onChanged}
             onGreet={onGreet}
             onDoc={onDoc}
@@ -292,6 +297,7 @@ export default function Keeping({
             tell={setSaid}
             fail={setTrouble}
             binary={reach?.binary}
+            known={known}
           />
         )}
 
