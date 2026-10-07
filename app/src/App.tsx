@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { carrying } from "./carrying";
 import {
   type Afoot,
-  capture,
   complete,
   DEEPEST,
   discard,
@@ -12,7 +11,6 @@ import {
   type Filed,
   type Folded,
   type Found,
-  fold,
   folderFile,
   owed,
   patch,
@@ -27,7 +25,6 @@ import { decidesByBlock } from "./deciding";
 import { detailOf, erasing } from "./detailing";
 import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { deep } from "./folders";
-import { todayLong } from "./format";
 import { useNote } from "./glance";
 import { useListening } from "./listening";
 import { adopt, fill, t } from "./locales";
@@ -35,8 +32,7 @@ import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
-import { ArchiveBar, SliceBar } from "./ui/Bars";
-import CaptureField from "./ui/CaptureField";
+import Board from "./ui/Board";
 import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
 import Door from "./ui/Door";
@@ -48,34 +44,15 @@ import Matrix from "./ui/Matrix";
 import Owed from "./ui/Owed";
 import { useParcels } from "./ui/Parcels";
 import Pulse from "./ui/Pulse";
-import Search from "./ui/Search";
-import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
-import Sightings from "./ui/Sightings";
 import Spine from "./ui/Spine";
 import Spread from "./ui/Spread";
 import Star from "./ui/Star";
-import Tagged from "./ui/Tagged";
-import Tags from "./ui/Tags";
-import TaskList from "./ui/TaskList";
 import WindowChrome from "./ui/WindowChrome";
 import { usePapers } from "./usePapers";
-import {
-  accepts,
-  asView,
-  type Chosen,
-  headerCount,
-  invite,
-  nothing,
-  type Slice,
-  title,
-  useReach,
-} from "./views";
+import { asView, type Chosen, type Slice, title, useReach } from "./views";
 import { useAloud, useTight, useUpdates } from "./watching";
 import { knowAgents } from "./who";
-
-export const steady = <T,>(was: T, found: T): T =>
-  JSON.stringify(was) === JSON.stringify(found) ? was : found;
 
 type Mode = "columns" | "sheet";
 
@@ -651,158 +628,34 @@ export default function App() {
                 onCollapse={() => (tight ? shut() : remember("columns"))}
               />
             ) : (
-              <div className="flex min-w-0">
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                  <TaskList
-                    tasks={shown}
-                    lists={data.every ?? data.lists}
-                    wholes={wholes}
-                    title={title(chosen, data.lists)}
-                    when={chosen.named === "tasks" ? todayLong() : undefined}
-                    count={headerCount(chosen, found, data.counts, data.total)}
-                    onBack={
-                      chosen.list
-                        ? () => {
-                            setChosen({ named: "lists" });
-                            setSelected(undefined);
-                          }
-                        : chosen.named === "tags"
-                          ? () => {
-                              setChosen(cameFrom ?? { named: "tasks" });
-                              setCameFrom(null);
-                              setSelected(undefined);
-                            }
-                          : undefined
-                    }
-                    empty={
-                      found?.papers.length && !shown.length
-                        ? t("onlyPapers")
-                        : nothing(seen, found !== null, data.counts.tracesHidden ?? 0)
-                    }
-                    onReach={!found && data.total > data.tasks.length ? further : undefined}
-                    note={
-                      found && found.total > found.tasks.length
-                        ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
-                        : undefined
-                    }
-                    selected={selected}
-                    fresh={captured?.id}
-                    reveal={reveal}
-                    bands={
-                      found !== null ||
-                      chosen.list ||
-                      chosen.named === "tags" ||
-                      chosen.tags?.length
-                        ? undefined
-                        : chosen.named === "archive"
-                          ? "month"
-                          : "day"
-                    }
-                    axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
-                    dense={
-                      found === null &&
-                      chosen.named === "archive" &&
-                      !chosen.folded &&
-                      chosen.layer === "trace"
-                    }
-                    onSelect={setSelected}
-                    onComplete={
-                      chosen.named === "archive"
-                        ? undefined
-                        : (id) => {
-                            const one = shown.find((task) => task.id === id);
-                            marking(id, one?.title ?? "");
-                            if (id === selected) setSelected(undefined);
-                          }
-                    }
-                    onFold={
-                      chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
-                    }
-                    closing={asking?.id}
-                    ask={(id) => (asking?.id === id ? strip : null)}
-                    below={
-                      found?.papers.length ? (
-                        <Sightings papers={found.papers} onOpen={openDoc} />
-                      ) : chosen.tags?.length ? (
-                        <Tagged docs={taggedDocs} onOpen={openDoc} />
-                      ) : undefined
-                    }
-                    instead={
-                      chosen.named === "archive" &&
-                      !chosen.folded &&
-                      chosen.layer === "routine" &&
-                      found === null ? (
-                        <Shelf
-                          lists={data.lists}
-                          onOpen={setSelected}
-                          onError={(e) => setError(saidPlainly(e))}
-                        />
-                      ) : undefined
-                    }
-                    above={
-                      chosen.named === "tasks" ? (
-                        <SliceBar
-                          chosen={chosen}
-                          counts={data.counts}
-                          lists={byList ? [] : data.lists}
-                          setChosen={setChosen}
-                          setSelected={setSelected}
-                        />
-                      ) : chosen.named === "archive" ? (
-                        <ArchiveBar
-                          chosen={chosen}
-                          counts={data.counts}
-                          found={found}
-                          setChosen={setChosen}
-                          setSelected={setSelected}
-                          setFound={setFound}
-                          fail={(e) => setError(saidPlainly(e))}
-                        />
-                      ) : chosen.named === "tags" || chosen.tags?.length ? (
-                        <Tags
-                          tags={data.tags}
-                          chosen={chosen.tags ?? []}
-                          onToggle={(tag) => {
-                            const now = chosen.tags ?? [];
-                            const next = now.includes(tag)
-                              ? now.filter((t) => t !== tag)
-                              : [...now, tag];
-                            setChosen({ named: "tags", tags: next });
-                            setSelected(undefined);
-                          }}
-                        />
-                      ) : undefined
-                    }
-                  >
-                    {chosen.named === "search" ? (
-                      <Search key="search" onFound={setFound} onError={setError} />
-                    ) : chosen.named === "archive" ? (
-                      <Search
-                        key="archive"
-                        fixed="archived"
-                        onFound={setFound}
-                        onError={setError}
-                      />
-                    ) : accepts(chosen) ? (
-                      <CaptureField
-                        invite={invite(chosen, data.lists)}
-                        lists={data.lists}
-                        tags={data.tags}
-                        onCapture={(written, edits) => {
-                          setError(null);
-                          return capture(written, asView(seen), edits).then((task) => {
-                            say(fill("saidFiled", task.title));
-                            setCaptured(task);
-                            load();
-                            return task;
-                          });
-                        }}
-                        onError={setError}
-                      />
-                    ) : null}
-                  </TaskList>
-                </div>
-              </div>
+              <Board
+                act={act}
+                asking={asking}
+                byList={byList}
+                cameFrom={cameFrom}
+                captured={captured}
+                chosen={chosen}
+                data={data}
+                found={found}
+                further={further}
+                load={load}
+                marking={marking}
+                openDoc={openDoc}
+                reveal={reveal}
+                say={say}
+                seen={seen}
+                selected={selected}
+                setCameFrom={setCameFrom}
+                setCaptured={setCaptured}
+                setChosen={setChosen}
+                setError={setError}
+                setFound={setFound}
+                setSelected={setSelected}
+                shown={shown}
+                strip={strip}
+                taggedDocs={taggedDocs}
+                wholes={wholes}
+              />
             )}
           </div>
 
