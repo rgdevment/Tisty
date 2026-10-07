@@ -28,6 +28,7 @@ import {
   guide,
   type Holds,
   type Kin,
+  keepClosing,
   keepLocale,
   keepSettings,
   keepTheme,
@@ -78,7 +79,7 @@ import { Asked, MachineList } from "./Keys";
 import Leftovers from "./Leftovers";
 import Modal from "./Modal";
 import Reporting from "./Reporting";
-import { Ask, Band, dated, Group, Knob, Line, mild, off, strong } from "./Rows";
+import { Ask, Band, dated, Group, Knob, Line, mild, ON_MAC, off, strong } from "./Rows";
 import Syncing from "./Syncing";
 import Tidying from "./Tidying";
 
@@ -626,6 +627,33 @@ export default function Keeping({
                     <option value="">{t("lookTheirs")}</option>
                     <option value="light">{t("lookLight")}</option>
                     <option value="dark">{t("lookDark")}</option>
+                  </select>
+                </Line>
+              )}
+
+              {kept && (
+                <Line
+                  title={t("closingSetting")}
+                  why={t("closingSettingWhy")}
+                  which="closing"
+                  said={said}
+                  trouble={trouble}
+                >
+                  <select
+                    aria-label={t("closingSetting")}
+                    value={kept.onClose ?? "ask"}
+                    disabled={held}
+                    onChange={(e) => {
+                      const how = e.target.value as "hide" | "quit" | "ask";
+                      run("closing", keepClosing(how), () =>
+                        setKept({ ...kept, onClose: how === "ask" ? undefined : how }),
+                      );
+                    }}
+                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                  >
+                    <option value="ask">{t("closingAsk")}</option>
+                    <option value="hide">{t(ON_MAC ? "closingHideBar" : "closingHide")}</option>
+                    <option value="quit">{t("closingQuit")}</option>
                   </select>
                 </Line>
               )}

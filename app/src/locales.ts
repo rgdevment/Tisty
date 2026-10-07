@@ -1155,6 +1155,10 @@ const en = {
   closingQuitWhy: "Nothing keeps running. Your tasks are on disk either way.",
   closingRemember: "Remember my choice",
   closingStay: "Stay open",
+  closingSetting: "When you close the window",
+  closingSettingWhy: "What the window's close button does",
+  closingAsk: "Ask each time",
+  closingHideBar: "Leave it in the menu bar",
   terminal: "Command line",
   terminalOn: "Your terminal finds «tisty», through {name}",
   terminalRetiring:
@@ -2713,6 +2717,10 @@ const es: Catalog = {
   closingQuitWhy: "No queda nada corriendo. Tus tareas siguen guardadas en tu disco.",
   closingRemember: "Recordar mi elección",
   closingStay: "Seguir aquí",
+  closingSetting: "Al cerrar la ventana",
+  closingSettingWhy: "Lo que hace el botón de cerrar la ventana",
+  closingAsk: "Preguntar cada vez",
+  closingHideBar: "Dejarlo en la barra de menús",
   terminal: "Línea de comandos",
   terminalOn: "Tu terminal encuentra «tisty», desde {name}",
   terminalRetiring:

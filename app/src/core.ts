@@ -615,6 +615,7 @@ export interface Settings {
   holds: Holds;
   shares: boolean;
   onlySharedAbove: number;
+  onClose?: "hide" | "quit";
 }
 
 export interface Logs {
@@ -789,7 +790,8 @@ export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<
 export const keepLocale = (locale?: string): Promise<string | null> =>
   invoke("keep_locale", { locale });
 export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_theme", { theme });
-export const keepClosing = (how: "hide" | "quit"): Promise<void> => invoke("keep_closing", { how });
+export const keepClosing = (how: "hide" | "quit" | "ask"): Promise<void> =>
+  invoke("keep_closing", { how });
 export const guide = (): Promise<Doc> => invoke("guide");
 export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>

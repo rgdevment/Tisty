@@ -8,6 +8,8 @@ export const dated = (when: number): string => {
   return Number.isNaN(at.getTime()) ? "—" : stamped(at.toISOString());
 };
 
+export const ON_MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Macintosh");
+
 export const off = "disabled:border-hair disabled:bg-hair disabled:text-soft";
 export const mild = `rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover ${off}`;
 export const strong = `rounded-[10px] bg-accent px-2.5 py-1 text-[12.5px] text-bg ${off}`;
