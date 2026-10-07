@@ -421,7 +421,7 @@ jobs:
 
   bundle-windows:
     name: tisty-windows-installer
-    needs: version
+    needs: [version, tested]
     runs-on: windows-latest
     timeout-minutes: 60
     outputs:
@@ -430,8 +430,8 @@ jobs:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      # Only a tag is signed for the updater, and the key reaches nothing but the step that signs.
+      UPDATER_SIGNS: ${{ github.event_name == 'push' && secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -495,17 +495,19 @@ jobs:
           } } } } | ConvertTo-Json -Depth 8 | Set-Content -Path app/sign.json -Encoding utf8
           Write-Host "the bundler signs with $($cert.Thumbprint)"
 
-      # A public key in the config makes the private one a build requirement, so a run without
-      # the secret has to say so rather than fail on a line about an environment variable.
+      # The updater's signature is made below, over the bytes that ship, so the build never needs
+      # the key: every dependency and build script runs here.
       - name: Bundle
         working-directory: app
         shell: bash
         run: |
-          sign=""
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
-          packs=""
-          if [ -f sign.json ]; then packs="--config sign.json"; fi
-          npm run tauri build -- --bundles nsis $sign $packs
+          echo '{"bundle":{"createUpdaterArtifacts":false}}' > unsigned.json
+          if [ -f sign.json ]; then
+            jq -s '.[0] * .[1]' unsigned.json sign.json > bundle.json
+          else
+            cp unsigned.json bundle.json
+          fi
+          npm run tauri build -- --bundles nsis --config bundle.json
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
@@ -639,9 +641,12 @@ jobs:
       # The bundler signed the installer it built, and signtool then rewrote those bytes. The
       # signature the updater checks has to be made against what actually ships, so it is made last.
       - name: Sign it for the updater
-        if: env.TAURI_SIGNING_PRIVATE_KEY != ''
+        if: env.UPDATER_SIGNS == 'true'
         working-directory: app
         shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           v="${{ needs.version.outputs.version }}"
           exe="../dist/tisty-installer-$v-windows-x86_64.exe"
@@ -660,7 +665,7 @@ jobs:
   # and both halves notarised side by side instead of one universal bundle after the other.
   bundle-macos:
     name: tisty-macos-installer (${{ matrix.arch }})
-    needs: version
+    needs: [version, tested]
     if: needs.version.outputs.macos == 'true'
     runs-on: macos-latest
     timeout-minutes: 60
@@ -679,8 +684,8 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      # Only a tag is signed for the updater, and the key reaches nothing but the step that signs.
+      UPDATER_SIGNS: ${{ github.event_name == 'push' && secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -724,7 +729,9 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: npm run tauri build -- --target "$TARGET" --bundles app,dmg
+        run: >-
+          npm run tauri build -- --target "$TARGET" --bundles app,dmg
+          --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
       - name: The app is one architecture
         run: |
@@ -783,8 +790,11 @@ jobs:
           xcrun stapler validate "$RUNNER_TEMP/rt/Tisty.app"
 
       - name: Sign it for the updater
-        if: env.TAURI_SIGNING_PRIVATE_KEY != '' && env.APPLE_ID != ''
+        if: env.UPDATER_SIGNS == 'true' && env.APPLE_ID != ''
         working-directory: app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           out="../target/$TARGET/release/bundle/macos"
           npm run tauri -- signer sign "$out/Tisty.app.tar.gz"
