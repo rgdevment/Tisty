@@ -35,7 +35,6 @@ import {
   type Pick,
   parted,
   patch,
-  type Ready,
   type Rift,
   type Snapshot,
   settleIn,
@@ -44,9 +43,7 @@ import {
   starDue,
   syncState,
   type Task,
-  type Underway,
   updateInstall,
-  updateReady,
 } from "./core";
 import { decideAll, decidesByBlock } from "./deciding";
 import { detailOf, erasing } from "./detailing";
@@ -57,7 +54,7 @@ import { todayLong } from "./format";
 import { useNote } from "./glance";
 import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
-import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
+import { offerMoved, saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
@@ -110,6 +107,7 @@ import {
   title,
   useReach,
 } from "./views";
+import { useAloud, useTight, useUpdates } from "./watching";
 import { knowAgents } from "./who";
 
 export const steady = <T,>(was: T, found: T): T =>
@@ -126,67 +124,19 @@ export const kept = (key: string): string[] => {
   }
 };
 
-const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 const TURNS_OVER = 60 * 1000;
-const TIGHT = 1308;
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
+  const { ready, lookAgain, underway, setUnderway, behind, setBehind } = useUpdates();
+  const tight = useTight();
+  const { aloud, say } = useAloud();
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
-  const [aloud, setAloud] = useState("");
-  const [ready, setReady] = useState<Ready | null>(null);
-  const [underway, setUnderway] = useState<Underway | null>(null);
 
-  const [behind, setBehind] = useState(false);
-
-  const looked = useRef(false);
-
-  const going = useRef(false);
-  useEffect(() => {
-    going.current = !!underway;
-  }, [underway]);
-
-  useEffect(() => {
-    // An update already under way owns what About shows; looking again could take the offer out
-    // from under its own progress bar.
-    if (going.current) return;
-    const first = !looked.current;
-    looked.current = true;
-    updateReady(behind || first)
-      .then(setReady)
-      .catch(() => {});
-  }, [behind]);
-
-  useEffect(() => {
-    const again = setInterval(() => {
-      if (going.current) return;
-      updateReady()
-        .then(setReady)
-        .catch(() => {});
-    }, LOOKS_AGAIN);
-    return () => clearInterval(again);
-  }, []);
-
-  useEffect(() => {
-    noticeBehind(setBehind);
-    return () => noticeBehind(null);
-  }, []);
-
-  const [tight, setTight] = useState(() => window.innerWidth < TIGHT);
   const [dealing, setDealing] = useState(false);
 
-  useEffect(() => {
-    const look = () => setTight(window.innerWidth < TIGHT);
-    window.addEventListener("resize", look);
-    return () => window.removeEventListener("resize", look);
-  }, []);
-  const twice = useRef(0);
-  const say = (words: string) => {
-    twice.current += 1;
-    setAloud(words + "\u200b".repeat(twice.current % 2));
-  };
   const [reveal, setReveal] = useState<string | undefined>();
   const [returning, setReturning] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(
@@ -483,13 +433,6 @@ export default function App() {
     const off = listen("parting", () => {
       void settled().finally(() => void parted());
     });
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, []);
-
-  useEffect(() => {
-    const off = listen<Underway>("updating", (said) => setUnderway(said.payload));
     return () => {
       void off.then((stop) => stop());
     };
@@ -822,9 +765,7 @@ export default function App() {
               setUnderway(null);
               setError(saidPlainly(problem));
               if (offerMoved(problem)) {
-                updateReady(true)
-                  .then(setReady)
-                  .catch(() => {});
+                lookAgain();
               }
             });
           }}
