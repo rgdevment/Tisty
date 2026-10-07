@@ -4,20 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
 import {
   type About,
-  type Agent,
   ALIAS_AT_MOST,
-  type Assistant,
   type Astray,
   about,
-  agentState,
-  agentTurn,
-  assistants,
   backUp,
   type Carrying,
   checked,
   chooseSync,
   confirmMachineKey,
-  copied,
   docAdopt,
   docDrop,
   docLetGo,
@@ -46,7 +40,6 @@ import {
   revealed,
   type Settings,
   type Stray,
-  seenAgents,
   shortcut,
   sign,
   signed,
@@ -57,20 +50,18 @@ import {
   syncState,
   type Theme,
   takeOutOfReach,
-  unwireAgent,
   type Waking,
-  type Wired,
   wakeFor,
   waking,
   whatWentAmiss,
-  wireAgent,
 } from "../core";
 import { decideAll } from "../deciding";
-import { stamped, weigh } from "../format";
+import { weigh } from "../format";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { syncSaid } from "../syncSaid";
 import type { Tab } from "../views";
+import Agents from "./Agents";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
 import Card, { NAMED, type Which, type Word } from "./Card";
@@ -110,11 +101,6 @@ export default function Keeping({
   start,
 }: Props) {
   const [tab, setTab] = useState<Tab>(start ?? "general");
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [agents, setAgents] = useState<Wired[] | null>(null);
-  const [hands, setHands] = useState<Assistant[] | null>(null);
-  const [wired, setWired] = useState(false);
-  const [typed, setTyped] = useState(false);
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [keyOf, setKeyOf] = useState<Machine | null>(null);
@@ -159,19 +145,6 @@ export default function Keeping({
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (tab !== "agents") return;
-    agentState()
-      .then((fresh) => setAgent(fresh))
-      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
-    seenAgents()
-      .then(setAgents)
-      .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
-    assistants()
-      .then(setHands)
-      .catch((e) => setTrouble({ card: "wiring", text: saidPlainly(e) }));
-  }, [tab]);
-
   useEffect(look, [look]);
 
   useEffect(() => {
@@ -212,14 +185,6 @@ export default function Keeping({
       .then(then)
       .catch((e) => setTrouble({ card, text: saidPlainly(e) }))
       .finally(() => setBusy(null));
-  };
-
-  const join = (one: Wired) => {
-    const out = one.wired && !one.astray;
-    quietly("wiring", out ? unwireAgent(one.id) : wireAgent(one.id), (now) => {
-      setAgents(now);
-      setSaid({ card: "wiring", text: t(out ? "wiringGone" : "wiringFresh") });
-    });
   };
 
   const [picking, setPicking] = useState(false);
@@ -1044,198 +1009,15 @@ export default function Keeping({
         )}
 
         {tab === "agents" && (
-          <>
-            <Group label={t("tabAgents")} />
-
-            <Card
-              title={t("agentsTitle")}
-              which="settings"
-              busy={busy}
-              said={said}
-              trouble={trouble}
-            >
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsWhat")}</p>
-
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-hair px-3 py-2.5">
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold">
-                    {agent?.on ? t("agentsOn") : t("agentsOff")}
-                  </span>
-                  {agent?.on && (
-                    <span className="block text-[12.5px] text-soft">
-                      {fill("agentsSignsAs", agent.called ?? "", agent.code ?? "—")}
-                    </span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  disabled={held}
-                  onClick={() => {
-                    agentTurn(!agent?.on)
-                      .then((fresh) => setAgent(fresh))
-                      .catch((e) => setTrouble({ card: "settings", text: saidPlainly(e) }));
-                  }}
-                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
-                    agent?.on
-                      ? "border-line text-soft hover:border-urgent hover:text-urgent"
-                      : "border-accent text-accent"
-                  }`}
-                >
-                  {agent?.on ? t("agentsTurnOff") : t("agentsTurnOn")}
-                </button>
-              </div>
-
-              <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("agentsUndo")}</p>
-            </Card>
-
-            <Card title={t("wiringTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("wiringWhat")}</p>
-
-              {agents?.length === 0 && (
-                <p className="mt-3 text-[12.5px] leading-relaxed text-faint">{t("wiringNone")}</p>
-              )}
-
-              {agents && agents.length > 0 && (
-                <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
-                  {agents.map((one) => (
-                    <div
-                      key={one.id}
-                      className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[13px] font-semibold">{one.name}</span>
-                        <span className="block text-[12.5px] text-soft">
-                          {wroteSaid(hands?.find((hand) => hand.via === one.id))}
-                        </span>
-                        <span className="block truncate font-mono text-[10.5px] text-faint">
-                          {one.at}
-                        </span>
-                        {one.astray && (
-                          <span className="block text-[11.5px] text-high">{t("wiringAstray")}</span>
-                        )}
-                      </span>
-                      {one.wired && !one.astray && (
-                        <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
-                          {t("wiringOn")}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        disabled={held}
-                        onClick={() => join(one)}
-                        className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
-                          one.wired && !one.astray
-                            ? "border-line text-soft hover:border-urgent hover:text-urgent"
-                            : "border-accent text-accent"
-                        }`}
-                      >
-                        {one.astray
-                          ? t("wiringAgain")
-                          : one.wired
-                            ? t("wiringOut")
-                            : t("wiringJoin")}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {hands
-                ?.filter((hand) => !agents?.some((one) => one.id === hand.via))
-                .map((hand) => (
-                  <div
-                    key={hand.via ?? "unnamed"}
-                    className="mt-2 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
-                    title={hand.via ? undefined : t("assistantUnnamedWhy")}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold">
-                        {hand.named || t("assistantUnnamed")}
-                      </span>
-                      <span className="block text-[12.5px] text-soft">{wroteSaid(hand)}</span>
-                    </span>
-                  </div>
-                ))}
-
-              {agents && agents.length > 0 && (
-                <>
-                  {agent?.on === false && (
-                    <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">
-                      {t("wiringMute")}
-                    </p>
-                  )}
-                  <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">
-                    {t("wiringBefore")}
-                  </p>
-                </>
-              )}
-            </Card>
-
-            <Card
-              title={t("agentsCanTitle")}
-              which="settings"
-              busy={busy}
-              said={said}
-              trouble={trouble}
-            >
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCan")}</p>
-            </Card>
-
-            <Card
-              title={t("agentsCannotTitle")}
-              which="settings"
-              busy={busy}
-              said={said}
-              trouble={trouble}
-            >
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCannot")}</p>
-            </Card>
-
-            <Card
-              title={t("agentsHowTitle")}
-              which="settings"
-              busy={busy}
-              said={said}
-              trouble={trouble}
-            >
-              <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsHow")}</p>
-
-              <p className="mt-3 text-[12.5px] font-semibold">{t("agentsByFile")}</p>
-              <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
-                {wiring(reach?.binary)}
-              </pre>
-              <button
-                type="button"
-                onClick={() => {
-                  void copied(wiring(reach?.binary)).then(() => {
-                    setWired(true);
-                    window.setTimeout(() => setWired(false), 1500);
-                  });
-                }}
-                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent"
-              >
-                {wired ? t("agentsCopied") : t("agentsCopy")}
-              </button>
-
-              <p className="mt-4 text-[12.5px] font-semibold">{t("agentsByLine")}</p>
-              <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
-                {oneLine(reach?.binary, t("agentsCalled"))}
-              </pre>
-              <p className="mt-1 text-[11.5px] text-faint">{t("agentsWhichever")}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  void copied(oneLine(reach?.binary, t("agentsCalled"))).then(() => {
-                    setTyped(true);
-                    window.setTimeout(() => setTyped(false), 1500);
-                  });
-                }}
-                className="mt-2 rounded-md border border-line px-2.5 py-0.5 text-[12.5px] text-soft hover:border-accent hover:text-accent"
-              >
-                {typed ? t("agentsCopied") : t("agentsCopy")}
-              </button>
-            </Card>
-          </>
+          <Agents
+            busy={busy}
+            said={said}
+            trouble={trouble}
+            quietly={quietly}
+            tell={setSaid}
+            fail={setTrouble}
+            binary={reach?.binary}
+          />
         )}
 
         {tab === "upkeep" && (
@@ -1371,23 +1153,5 @@ export default function Keeping({
     </main>
   );
 }
-
-const wroteSaid = (hand: Assistant | undefined): string => {
-  if (!hand || hand.wrote === 0) return t("assistantNothing");
-  const said = [fill("assistantFiled", String(hand.filed))];
-  if (hand.wrote > hand.filed) said.push(fill("assistantWrote", String(hand.wrote)));
-  if (hand.last) said.push(fill("assistantLast", stamped(hand.last)));
-  return said.join(" · ");
-};
-
-const wiring = (at?: string) =>
-  `{
-  "mcpServers": {
-    "tisty": { "command": ${JSON.stringify(at ?? "tisty")}, "args": ["mcp"] }
-  }
-}`;
-
-const oneLine = (at?: string, agent = "agent") =>
-  `${agent} mcp add tisty -- ${JSON.stringify(at ?? "tisty")} mcp`;
 
 const SIZES = [256 * 1024, 1024 * 1024, 5 * 1024 * 1024, 20 * 1024 * 1024, 50 * 1024 * 1024];
