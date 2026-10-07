@@ -114,6 +114,8 @@ jobs:
   version:
     name: Resolve the version
     needs: [gate]
+    # On a tag it sees the release environment, so a missing updater key stops the run before any build.
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -163,9 +165,6 @@ jobs:
           fi
           if [ "$HAS_UPDATER_KEY" = "true" ] && [ "$HAS_UPDATER_PASSWORD" != "true" ]; then
             fail "TAURI_SIGNING_PRIVATE_KEY is set but its password is empty"
-          fi
-          if [ "$HAS_UPDATER_KEY" != "true" ]; then
-            echo "::warning::no updater key; this release cannot be installed by an existing copy"
           fi
 
           # A dispatch may go unsigned, it publishes nothing. A tag is what people install, and
@@ -430,8 +429,6 @@ jobs:
       TARGET: x86_64-pc-windows-msvc
       PFX_BASE64: ${{ secrets.PFX_BASE64 }}
       PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -495,17 +492,13 @@ jobs:
           } } } } | ConvertTo-Json -Depth 8 | Set-Content -Path app/sign.json -Encoding utf8
           Write-Host "the bundler signs with $($cert.Thumbprint)"
 
-      # A public key in the config makes the private one a build requirement, so a run without
-      # the secret has to say so rather than fail on a line about an environment variable.
       - name: Bundle
         working-directory: app
         shell: bash
         run: |
-          sign=""
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then sign="--no-sign"; fi
           packs=""
           if [ -f sign.json ]; then packs="--config sign.json"; fi
-          npm run tauri build -- --bundles nsis $sign $packs
+          npm run tauri build -- --bundles nsis $packs
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
@@ -636,23 +629,17 @@ jobs:
           cp "$setup" "dist/tisty-installer-$v-windows-x86_64.exe"
           ls -l dist
 
-      # The bundler signed the installer it built, and signtool then rewrote those bytes. The
-      # signature the updater checks has to be made against what actually ships, so it is made last.
-      - name: Sign it for the updater
-        if: env.TAURI_SIGNING_PRIVATE_KEY != ''
-        working-directory: app
-        shell: bash
-        run: |
-          v="${{ needs.version.outputs.version }}"
-          exe="../dist/tisty-installer-$v-windows-x86_64.exe"
-          rm -f "$exe.sig"
-          npm run tauri -- signer sign "$exe"
-          test -s "$exe.sig" || { echo "::error::no updater signature was written"; exit 1; }
-
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-windows
           path: dist/*
+          retention-days: 7
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: updater-windows
+          path: dist/tisty-installer-*-windows-x86_64.exe
           retention-days: 7
           if-no-files-found: error
 
@@ -679,8 +666,6 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -758,10 +743,8 @@ jobs:
             --team-id "$APPLE_TEAM_ID" --wait --timeout 900
           xcrun stapler staple "$dmg"
 
-      # The updater replaces the .app, not the disk image, and the bundler tars it long before any
-      # of the above. Left alone that tarball carries an app with no ticket stapled to it, and every
-      # launch after an update would wait on Gatekeeper asking Apple over the network.
-      - name: Staple the app itself, and tar it again
+      # The updater replaces the .app, so it is tarred only once the ticket is stapled to it.
+      - name: Staple the app itself, and tar it
         if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
         run: |
           out="target/$TARGET/release/bundle/macos"
@@ -772,7 +755,6 @@ jobs:
           xcrun stapler staple "$app"
           xcrun stapler validate "$app"
 
-          rm -f "$out"/*.app.tar.gz "$out"/*.app.tar.gz.sig
           COPYFILE_DISABLE=1 tar --no-xattrs -czf "$out/Tisty.app.tar.gz" -C "$out" "$(basename "$app")"
 
           # The tarball is what a copy out there will unpack over itself. If the ticket did not
@@ -782,30 +764,17 @@ jobs:
           codesign --verify --deep --strict "$RUNNER_TEMP/rt/Tisty.app"
           xcrun stapler validate "$RUNNER_TEMP/rt/Tisty.app"
 
-      - name: Sign it for the updater
-        if: env.TAURI_SIGNING_PRIVATE_KEY != '' && env.APPLE_ID != ''
-        working-directory: app
-        run: |
-          out="../target/$TARGET/release/bundle/macos"
-          npm run tauri -- signer sign "$out/Tisty.app.tar.gz"
-          test -s "$out/Tisty.app.tar.gz.sig"
-
       - name: Name it after the release
         run: |
           v="${{ needs.version.outputs.version }}"
           mkdir -p dist
           out="target/$TARGET/release/bundle/macos"
-          # The bundler leaves a tarball of its own during the build, before any of the stapling.
-          # Publishing that one would replace a notarised app with an unnotarised one, so it only
-          # travels when the ticket is on it.
           app=$(ls -d "$out"/*.app 2>/dev/null | head -1)
-          if [ -n "$app" ] && xcrun stapler validate "$app" >/dev/null 2>&1 \
-            && [ -s "$out/Tisty.app.tar.gz.sig" ]; then
+          if [ -s "$out/Tisty.app.tar.gz" ] && [ -n "$app" ] \
+            && xcrun stapler validate "$app" >/dev/null 2>&1; then
             cp "$out/Tisty.app.tar.gz" "dist/tisty-$v-macos-$ARCH.app.tar.gz"
-            cp "$out/Tisty.app.tar.gz.sig" "dist/tisty-$v-macos-$ARCH.app.tar.gz.sig"
           else
-            echo "::warning::no stapled, signed tarball; macOS $ARCH gets no self-update this release"
-            rm -f "$out/Tisty.app.tar.gz" "$out/Tisty.app.tar.gz.sig"
+            echo "::warning::no stapled tarball; macOS $ARCH gets no self-update this release"
           fi
           dmg=$(ls "target/$TARGET/release/bundle/dmg"/*.dmg | head -1)
           if [ -z "$dmg" ]; then
@@ -821,6 +790,13 @@ jobs:
           path: dist/*
           retention-days: 7
           if-no-files-found: error
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: updater-macos-${{ matrix.arch }}
+          path: dist/*.app.tar.gz
+          retention-days: 7
+          if-no-files-found: ignore
 
   bundle-msix:
     name: tisty-windows-msix
@@ -960,6 +936,92 @@ jobs:
           if-no-files-found: error
           retention-days: 5
 
+  # The only job that holds the updater key: it builds nothing and runs nobody else's scripts.
+  sign-updater:
+    name: Signed for the updater
+    needs: [version, tested, bundle-windows, bundle-macos]
+    if: >-
+      !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.tested.result == 'success'
+      && needs.bundle-windows.result == 'success'
+      && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
+    environment: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: app/package-lock.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: updater-*
+          path: dist
+          merge-multiple: true
+
+      - name: The signer the app was built with, and nothing else
+        run: |
+          lock=app/package-lock.json
+          v=$(jq -r '.packages["node_modules/@tauri-apps/cli"].version // ""' "$lock")
+          if [ -z "$v" ]; then
+            echo "::error::the lockfile names no @tauri-apps/cli"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/signer"
+          npm install --prefix "$RUNNER_TEMP/signer" --ignore-scripts --no-audit --no-fund \
+            "@tauri-apps/cli@$v"
+          for pkg in @tauri-apps/cli @tauri-apps/cli-linux-x64-gnu; do
+            want=$(jq -r --arg k "node_modules/$pkg" '.packages[$k].integrity // ""' "$lock")
+            got=$(jq -r --arg k "node_modules/$pkg" '.packages[$k].integrity // ""' \
+              "$RUNNER_TEMP/signer/package-lock.json")
+            if [ -z "$want" ] || [ "$want" != "$got" ]; then
+              echo "::error::$pkg is not the one the lockfile names"
+              exit 1
+            fi
+          done
+
+      - name: Sign what ships
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ] || [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+            echo "::error::the release environment holds no updater key and password"
+            exit 1
+          fi
+          v="${{ needs.version.outputs.version }}"
+          ships="dist/tisty-installer-$v-windows-x86_64.exe"
+          if [ "${{ needs.version.outputs.macos }}" = "true" ]; then
+            ships="$ships dist/tisty-$v-macos-aarch64.app.tar.gz dist/tisty-$v-macos-x86_64.app.tar.gz"
+          fi
+          mkdir -p signatures
+          for f in $ships; do
+            if [ ! -s "$f" ]; then
+              echo "::error::$f was not built, so nothing out there could update to it"
+              exit 1
+            fi
+            "$RUNNER_TEMP/signer/node_modules/.bin/tauri" signer sign "$f"
+            test -s "$f.sig" || { echo "::error::no signature for $f"; exit 1; }
+            mv "$f.sig" signatures/
+          done
+          ls -l signatures
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-signatures
+          path: signatures/*
+          retention-days: 7
+          if-no-files-found: error
+
   publish:
     name: GitHub Release
     needs:
@@ -971,6 +1033,7 @@ jobs:
         bundle-windows,
         bundle-macos,
         bundle-msix,
+        sign-updater,
       ]
     if: >-
       !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -982,6 +1045,7 @@ jobs:
       && needs.bundle-windows.result == 'success'
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
+      && needs.sign-updater.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     # One tag at a time: every tag rewrites the same manifest branch and the Latest flag. A third
@@ -1024,8 +1088,6 @@ jobs:
         run: cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS
 
       - name: Verify every artifact to attest is present
-        env:
-          HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
         run: |
           v="${{ needs.version.outputs.version }}"
           status=0
@@ -1044,13 +1106,11 @@ jobs:
             for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
-          if [ "${HAS_UPDATER_KEY}" = "true" ]; then
-            want="$want tisty-installer-$v-windows-x86_64.exe.sig"
-            if [ "${BUILD_MACOS}" = "true" ]; then
-              for arch in aarch64 x86_64; do
-                want="$want tisty-$v-macos-$arch.app.tar.gz tisty-$v-macos-$arch.app.tar.gz.sig"
-              done
-            fi
+          want="$want tisty-installer-$v-windows-x86_64.exe.sig"
+          if [ "${BUILD_MACOS}" = "true" ]; then
+            for arch in aarch64 x86_64; do
+              want="$want tisty-$v-macos-$arch.app.tar.gz tisty-$v-macos-$arch.app.tar.gz.sig"
+            done
           fi
           for f in $want; do
             if [ -s "dist/$f" ]; then
@@ -1064,13 +1124,7 @@ jobs:
 
       # After publishing, this could only turn red once every copy had been offered the update.
       - name: The signature answers to the key this build ships
-        env:
-          HAS_UPDATER_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
         run: |
-          if [ "${HAS_UPDATER_KEY}" != "true" ]; then
-            echo "::notice::no updater key, so there is no signature to check"
-            exit 0
-          fi
           for attempt in 1 2 3; do
             sudo apt-get update -qq && sudo apt-get install -y -qq minisign && break
             echo "minisign would not install (${attempt}/3)"
@@ -1207,36 +1261,26 @@ jobs:
           intel="tisty-$v-macos-x86_64.app.tar.gz"
 
           # Composed before the checkout below swaps the working tree out from under us.
-          if [ -s "dist/$win.sig" ]; then
-            ws=$(cat "dist/$win.sig")
-            as=$(cat "dist/$arm.sig" 2>/dev/null || true)
-            is=$(cat "dist/$intel.sig" 2>/dev/null || true)
-            # Windows missing stops the release below; a Mac missing used to drop out of the
-            # channel without a word, and every Mac out there would be told there is nothing.
-            if [ "${{ needs.version.outputs.macos }}" = "true" ] \
-               && { [ -z "$as" ] || [ -z "$is" ]; }; then
-              echo "::error::no updater signature for a Mac, so no Mac would be offered $v"
-              exit 1
-            fi
-            jq -n --arg v "$v" \
-                  --arg n "https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF_NAME}" \
-                  --arg wu "$base/$win" --arg ws "$ws" \
-                  --arg au "$base/$arm" --arg as "$as" \
-                  --arg iu "$base/$intel" --arg is "$is" \
-              '{version: $v, notes: $n, platforms:
-                 ({"windows-x86_64": {url: $wu, signature: $ws}}
-                  + (if $as == "" then {} else {"darwin-aarch64": {url: $au, signature: $as}} end)
-                  + (if $is == "" then {} else {"darwin-x86_64": {url: $iu, signature: $is}} end))}' \
-              > "$RUNNER_TEMP/channel.json"
-            cat "$RUNNER_TEMP/channel.json"
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            # The notice feed and the update feed have to move together. Advertising a version the
-            # updater cannot then find leaves every copy pressing a button that answers "gone".
-            echo "::error::no updater signature for $v; the release would offer an update nobody can take"
+          ws=$(cat "dist/$win.sig")
+          as=$(cat "dist/$arm.sig" 2>/dev/null || true)
+          is=$(cat "dist/$intel.sig" 2>/dev/null || true)
+          # A Mac missing from the channel would leave every Mac out there told there is nothing.
+          if [ "${{ needs.version.outputs.macos }}" = "true" ] \
+             && { [ -z "$as" ] || [ -z "$is" ]; }; then
+            echo "::error::no updater signature for a Mac, so no Mac would be offered $v"
             exit 1
-          else
-            echo "::warning::no updater signature; the channel file is left as it was"
           fi
+          jq -n --arg v "$v" \
+                --arg n "https://github.com/${{ github.repository }}/releases/tag/${GITHUB_REF_NAME}" \
+                --arg wu "$base/$win" --arg ws "$ws" \
+                --arg au "$base/$arm" --arg as "$as" \
+                --arg iu "$base/$intel" --arg is "$is" \
+            '{version: $v, notes: $n, platforms:
+               ({"windows-x86_64": {url: $wu, signature: $ws}}
+                + (if $as == "" then {} else {"darwin-aarch64": {url: $au, signature: $as}} end)
+                + (if $is == "" then {} else {"darwin-x86_64": {url: $iu, signature: $is}} end))}' \
+            > "$RUNNER_TEMP/channel.json"
+          cat "$RUNNER_TEMP/channel.json"
 
           if git fetch origin manifest --depth 1 2>/dev/null; then
             git checkout -B manifest FETCH_HEAD
