@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { ask, open as pick } from "@tauri-apps/plugin-dialog";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
@@ -10,14 +10,8 @@ import {
   complete,
   DEEPEST,
   discard,
-  docAway,
-  docDrop,
   docFile,
-  docImport,
-  docNew,
   docPage,
-  docs,
-  docsCatchUp,
   doorDue,
   type Filed,
   FOLDER_NAME_AT_MOST,
@@ -25,13 +19,10 @@ import {
   type Found,
   fold,
   folderAdd,
-  folderDrop,
   folderFile,
   folderLook,
   folderRename,
-  noteTrouble,
   owed,
-  type Papers,
   type Pick,
   parted,
   patch,
@@ -92,6 +83,7 @@ import Tally from "./ui/Tally";
 import TaskList from "./ui/TaskList";
 import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
+import { usePapers } from "./usePapers";
 import {
   accepts,
   asView,
@@ -153,7 +145,6 @@ export default function App() {
   useOnlyAlive(data?.lists, chosen, setChosen);
   const [seen, byList] = useOnly(chosen);
 
-  const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const { note, noted, said } = useNote();
@@ -167,6 +158,31 @@ export default function App() {
     on?: string;
   } | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
+  const carries = useRef<ReturnType<typeof carrying>>(null);
+  const paging = useRef<((page: Filed) => boolean) | null>(null);
+  const {
+    papers,
+    lookPapers,
+    papersChanged,
+    newDoc,
+    bringIn,
+    dropFolder,
+    dropDoc,
+    bringBack,
+    openDoc,
+    hangIt,
+  } = usePapers({
+    chosen,
+    setChosen,
+    here,
+    setHere,
+    setReturning,
+    setBacking,
+    setError,
+    lookForAStar: () => lookForAStar(),
+    carries,
+    paging,
+  });
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
@@ -179,111 +195,9 @@ export default function App() {
       .catch(() => {});
   };
 
-  const newDoc = (folder?: string, pageOf?: string) =>
-    docNew(folder, pageOf)
-      .then((made) => {
-        papersChanged();
-        setChosen({ named: "docs", doc: made.id });
-        if (!pageOf) lookForAStar();
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const bringIn = (folder?: string) =>
-    pick({
-      multiple: false,
-      filters: [
-        { name: "Markdown", extensions: ["md", "markdown", "txt"] },
-        { name: t("anyFile"), extensions: ["*"] },
-      ],
-    })
-      .then((at) => (typeof at === "string" ? docImport(at, folder) : null))
-      .then((made) => {
-        if (!made) return;
-        papersChanged();
-        setChosen({ named: "docs", doc: made.id });
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const dropFolder = (folder: Folded) =>
-    ask(fill("dropFolderSure", folder.name), { kind: "warning" })
-      .then((yes) => {
-        if (!yes) return;
-        if (here === folder.id) setHere(undefined);
-        setReturning(folder.parent ?? "unfiled");
-        return folderDrop(folder.id).then(papersChanged);
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const dropDoc = (doc: Filed) =>
-    ask(
-      fill(
-        papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
-        doc.title || t("untitledDoc"),
-      ),
-      { kind: "warning" },
-    )
-      .then((yes) => {
-        if (!yes) return;
-        const going = [
-          doc.file,
-          ...papers.docs.filter((one) => one.pageOf === doc.id).map((one) => one.file),
-        ];
-        if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
-        setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
-        return docDrop(doc.id).then(papersChanged);
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const bringBack = (doc: Filed) => {
-    if (doc.pageOf) {
-      docAway(doc.id, false)
-        .then(papersChanged)
-        .catch((e) => setError(saidPlainly(e)));
-      return;
-    }
-    setBacking(doc);
-  };
-
   const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
-  const openDoc = (paper: string) => {
-    if (papers.docs.some((one) => one.file === paper)) {
-      return setChosen({ named: "docs", doc: paper });
-    }
-    docs()
-      .then((found) => {
-        setPapers((was) => steady(was, found ?? { folders: [], docs: [] }));
-        if (found?.docs.some((one) => one.file === paper)) {
-          setChosen({ named: "docs", doc: paper });
-        } else {
-          void noteTrouble("goneDoc", paper);
-          setError(t("goneDoc"));
-        }
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  };
-
   const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);
 
-  const caught = useRef(false);
-  const lookPapers = useCallback(() => {
-    docs()
-      .then((found) => {
-        const now = found ?? { folders: [], docs: [] };
-        setPapers((was) => steady(was, now));
-        if (caught.current || now.docs.every((one) => one.told !== false)) return;
-        caught.current = true;
-        return docsCatchUp()
-          .then((all) => {
-            setPapers((was) => steady(was, { folders: was.folders, docs: all }));
-            if (all.some((one) => one.told === false && !one.gone)) caught.current = false;
-          })
-          .catch(() => {
-            caught.current = false;
-          });
-      })
-      .catch(() => {});
-  }, []);
-  useEffect(lookPapers, [lookPapers]);
   const [held, setHeld] = useState<Task | undefined>();
   const acted = useRef<string | null>(null);
   const [greet, setGreet] = useState(false);
@@ -304,14 +218,7 @@ export default function App() {
     return () => decidesByBlock(null);
   }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
-  const carries = useRef<ReturnType<typeof carrying>>(null);
-  const paging = useRef<((page: Filed) => boolean) | null>(null);
   const wasAwry = useRef<string | null>(null);
-
-  const papersChanged = useCallback(() => {
-    lookPapers();
-    carries.current?.changed();
-  }, [lookPapers]);
 
   const parcels = useParcels({ afoot, setAfoot, setError, noted, said, papersChanged });
 
@@ -607,26 +514,6 @@ export default function App() {
       }}
     />
   ) : null;
-
-  const hangIt = async (doc: string, pageOf: string) => {
-    const named = (id: string) =>
-      papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
-    if (!(await ask(fill("pageOfSure", named(doc), named(pageOf)), { kind: "warning" }))) return;
-    const under = papers.docs.find((one) => one.id === pageOf);
-    const page = papers.docs.find((one) => one.id === doc);
-    docPage(doc, pageOf)
-      .then(() => {
-        // The line goes in through the editor that holds the book, so its own save carries it and
-        // nothing is written behind it. A book that is not open leaves the page in the loose half.
-        if (page && under && chosen.doc === under.file) {
-          const put = paging.current;
-          if (!put) setError(t("leafWaitsInIndex"));
-          else if (put(page) === false) setError(t("leafNeedsTitle"));
-        }
-      })
-      .then(papersChanged)
-      .catch((e) => setError(saidPlainly(e)));
-  };
 
   const hands: Hands = {
     papers,

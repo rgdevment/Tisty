@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { steady } from "../App";
+import { steady } from "../usePapers";
 
 describe("keeping the same list when nothing about it changed", () => {
   it("hands back what it was given before, so nobody sees a new list", () => {
