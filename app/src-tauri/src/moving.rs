@@ -21,6 +21,7 @@ pub fn begin(app: tauri::AppHandle) {
     .resizable(false)
     .maximizable(false)
     .minimizable(false)
+    .closable(false)
     .center()
     .build();
     if let Err(why) = shown {
