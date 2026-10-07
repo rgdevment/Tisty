@@ -1,11 +1,10 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { type Afoot, docsPack, docsTakeOut, docsUnpack, spelled } from "../core";
-import { SHOWN } from "../glance";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import Digits, { HOW_MANY } from "./Digits";
-import Modal from "./Modal";
+import { HOW_MANY } from "./Digits";
+import ParcelAsks from "./ParcelAsks";
 
 const PARCEL = "tistyx";
 
@@ -13,22 +12,19 @@ interface Hands {
   afoot: Afoot | null;
   setAfoot: (afoot: Afoot | null) => void;
   setError: (text: string) => void;
-  setNote: (text: string | null) => void;
+  noted: (text: string) => void;
   said: (text: string, since: number) => void;
   papersChanged: () => void;
 }
 
-export function useParcels({ afoot, setAfoot, setError, setNote, said, papersChanged }: Hands) {
+export function useParcels({ afoot, setAfoot, setError, noted, said, papersChanged }: Hands) {
   const [whoFor, setWhoFor] = useState<string | null>(null);
   const [movingTo, setMovingTo] = useState<string | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
   const [number, setNumber] = useState("");
   const [wrong, setWrong] = useState(false);
 
-  // One at a time: starting a second one paints over the first one's progress and the backend
-  // refuses it anyway, leaving the bar gone and the first one's success unsaid.
-  // Everything at once is the one that may be a move rather than a hand-over, so it asks first;
-  // a single document is always somebody else's to keep.
+  // One at a time, and only everything at once may be a move, so only that one asks first.
   const packUp = (which: string[], named: string) => {
     if (afoot) return Promise.resolve();
     if (which.length) return packing(which, named);
@@ -95,14 +91,13 @@ export function useParcels({ afoot, setAfoot, setError, setNote, said, papersCha
               );
               return;
             }
-            setNote(
+            noted(
               many === 1
                 ? t("tookOutOne")
                 : took.folders
                   ? fill("tookOutAll", String(many), String(took.folders))
                   : fill("tookOutAllFlat", String(many)),
             );
-            setTimeout(() => setNote(null), SHOWN);
           })
           .catch((e) => {
             setAfoot(null);
@@ -149,8 +144,7 @@ export function useParcels({ afoot, setAfoot, setError, setNote, said, papersCha
       })
       .catch((e) => {
         setAfoot(null);
-        // Locked is not a failure: it is the parcel asking whether this is the machine it was
-        // packed for, and only the number answers that.
+        // Locked is the parcel asking whether this is its machine, which only the number answers.
         const why = (e as { code?: string } | undefined)?.code;
         if (why === "parcelLocked" || why === "wrongNumber") {
           setWrong(why === "wrongNumber");
@@ -181,137 +175,23 @@ export function useParcels({ afoot, setAfoot, setError, setNote, said, papersCha
   };
 
   const shown = (
-    <>
-      {whoFor !== null && (
-        <Modal title={t("packWho")} onClose={() => setWhoFor(null)}>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("packWhoWhy")}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => setWhoFor(null)}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const named = whoFor;
-                setWhoFor(null);
-                void packing([], named);
-              }}
-              className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
-            >
-              {t("packToShare")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setNumber("");
-                setMovingTo(whoFor);
-                setWhoFor(null);
-              }}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
-            >
-              {t("packToMove")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {movingTo !== null && (
-        <Modal
-          title={t("packToMove")}
-          onClose={() => {
-            setMovingTo(null);
-            setNumber("");
-          }}
-        >
-          <p className="mt-3 text-[12.5px] text-soft">{t("packNumber")}</p>
-          <Digits
-            label={t("packNumber")}
-            value={number}
-            onChange={setNumber}
-            onDone={lockAndPack}
-          />
-          <p className="mt-3 text-[11.5px] leading-relaxed text-faint">{t("packNumberWhy")}</p>
-          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => {
-                setMovingTo(null);
-                setNumber("");
-              }}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              disabled={number.length < HOW_MANY}
-              onClick={lockAndPack}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("packLockIt")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {locked !== null && (
-        <Modal
-          title={t("parcelShut")}
-          onClose={() => {
-            setLocked(null);
-            setNumber("");
-          }}
-        >
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("parcelLocked")}</p>
-          <p className="mt-4 text-[12.5px] text-soft">{t("openNumber")}</p>
-          <Digits
-            label={t("openNumber")}
-            value={number}
-            onChange={(said) => {
-              setWrong(false);
-              setNumber(said);
-            }}
-            onDone={openLocked}
-          />
-          {wrong && (
-            <p role="alert" className="mt-3 text-[11.5px] text-urgent">
-              {t("wrongNumber")}
-            </p>
-          )}
-          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => {
-                setLocked(null);
-                setNumber("");
-              }}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              disabled={number.length < HOW_MANY}
-              onClick={openLocked}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("openLocked")}
-            </button>
-          </div>
-        </Modal>
-      )}
-    </>
+    <ParcelAsks
+      asks={{ whoFor, movingTo, locked, number, wrong }}
+      onWho={setWhoFor}
+      onMoving={setMovingTo}
+      onLocked={setLocked}
+      onNumber={setNumber}
+      onWrong={setWrong}
+      onShare={(named) => void packing([], named)}
+      onLockAndPack={lockAndPack}
+      onOpenLocked={openLocked}
+    />
   );
 
   return {
     packUp,
     takeOutAll,
     takeParcel,
-    landing,
     asking: whoFor !== null || movingTo !== null || locked !== null,
     shown,
   };

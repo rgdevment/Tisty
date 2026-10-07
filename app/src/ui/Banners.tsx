@@ -1,7 +1,5 @@
 import type { Afoot as Going, Ready, Underway } from "../core";
-import { fill, t } from "../locales";
-
-type Word = Parameters<typeof t>[0];
+import { fill, t, type Word } from "../locales";
 
 interface Alarming {
   error: string;

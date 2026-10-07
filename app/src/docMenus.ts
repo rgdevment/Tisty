@@ -44,8 +44,8 @@ export interface Hands {
 
 const byAnother = (doc: Filed) => doc.away && !doc.archived;
 
-export const hereChoices = (h: Hands): Choice[] => [
-  { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => h.newDoc(undefined) },
+export const hereChoices = (h: Hands, folder?: string): Choice[] => [
+  { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => h.newDoc(folder) },
   {
     key: "newFolder",
     icon: "+",
@@ -57,7 +57,7 @@ export const hereChoices = (h: Hands): Choice[] => [
     icon: "↧",
     label: t("importDoc"),
     apart: true,
-    onPick: () => h.bringIn(undefined),
+    onPick: () => h.bringIn(folder),
   },
   { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => h.parcels.takeParcel() },
   {
@@ -280,8 +280,7 @@ export const docChoices = (doc: Filed, h: Hands): Choice[] => [
     onPick: () => docLock(doc.id, !doc.locked).then(h.changed).catch(h.fail),
   },
   {
-    // What the folder put away has no door of its own: only the folder comes back, and
-    // its own mark is what it recovers when it does.
+    // Only the folder comes back for what it put away, and its own mark is what it recovers.
     key: "away",
     icon: doc.archived ? "▢" : "▣",
     label: doc.archived ? t("bringBack") : t("putAway"),

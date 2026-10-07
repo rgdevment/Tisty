@@ -54,7 +54,7 @@ import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { handTo, whenFilesLand } from "./dropped";
 import { deep } from "./folders";
 import { todayLong } from "./format";
-import { AT_A_GLANCE, SHOWN, useNote } from "./glance";
+import { useNote } from "./glance";
 import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
 import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
@@ -129,8 +129,6 @@ export const kept = (key: string): string[] => {
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
 const TURNS_OVER = 60 * 1000;
 const TIGHT = 1308;
-
-export { AT_A_GLANCE, SHOWN };
 
 export default function App() {
   const [data, setData] = useState<Snapshot | null>(null);
@@ -208,7 +206,7 @@ export default function App() {
   const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
-  const { note, setNote, said } = useNote();
+  const { note, noted, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
   const [menu, setMenu] = useState<{
@@ -365,7 +363,7 @@ export default function App() {
     carries.current?.changed();
   }, [lookPapers]);
 
-  const parcels = useParcels({ afoot, setAfoot, setError, setNote, said, papersChanged });
+  const parcels = useParcels({ afoot, setAfoot, setError, noted, said, papersChanged });
 
   useEffect(() => {
     /// A slow answer must not open a strip over the view the person moved on to.
@@ -467,14 +465,13 @@ export default function App() {
         if (now === wasAwry.current) return;
         wasAwry.current = now;
         if (why?.why === "broke" || why?.why === "amiss") {
-          setNote(why.said);
-          setTimeout(() => setNote(null), 6000);
+          noted(why.said, 6000);
         }
       },
     );
     carries.current = carrier;
     return () => carrier.stop();
-  }, [setNote]);
+  }, [noted]);
 
   useEffect(() => {
     syncState()
@@ -703,10 +700,7 @@ export default function App() {
     changed: papersChanged,
     fail: (e) => setError(saidPlainly(e)),
     failWith: setError,
-    noted: (text) => {
-      setNote(text);
-      setTimeout(() => setNote(null), SHOWN);
-    },
+    noted: (text) => noted(text),
     open: (doc) => setChosen({ named: "docs", doc }),
     dropFolder,
     dropDoc,
@@ -781,6 +775,7 @@ export default function App() {
 
       {backing !== null && (
         <BringingBack
+          key={backing.id}
           doc={backing}
           papers={papers}
           onClose={() => setBacking(null)}
@@ -960,49 +955,7 @@ export default function App() {
         onDocMenu={docMenu}
         onHereMenu={hereMenu}
         onDocsMenu={(at) =>
-          setMenu({
-            at,
-            label: t("docsActions"),
-            choices: [
-              {
-                key: "newDoc",
-                icon: "+",
-                label: t("newDoc"),
-                onPick: () => newDoc(here ?? undefined),
-              },
-              {
-                key: "newFolder",
-                icon: "+",
-                label: t("newFolder"),
-                onPick: () => setMakingFolder(true),
-              },
-              {
-                key: "import",
-                icon: "↧",
-                label: t("importDoc"),
-                apart: true,
-                onPick: () => bringIn(here ?? undefined),
-              },
-              {
-                key: "unpack",
-                icon: "↧",
-                label: t("unpackIt"),
-                onPick: () => parcels.takeParcel(),
-              },
-              {
-                key: "packAll",
-                icon: "⇪",
-                label: t("packAll"),
-                onPick: () => parcels.packUp([], "tisty"),
-              },
-              {
-                key: "takeOutAll",
-                icon: "⇪",
-                label: t("takeOutAll"),
-                onPick: () => parcels.takeOutAll(),
-              },
-            ],
-          })
+          setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
         }
         onChoose={(next) => {
           setChosen(next);

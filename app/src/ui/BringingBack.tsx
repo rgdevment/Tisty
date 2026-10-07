@@ -64,12 +64,15 @@ export default function BringingBack({ doc, papers, onClose, onDone, fail }: Pro
       .catch((e) => fail(e));
   };
 
+  const home = backHome(doc);
+  const from = backFrom(doc);
+
   return (
     <Modal title={fill("backWhere", doc.title || t("untitledDoc"))} onClose={onClose}>
       <p id="back-why" className="mt-3 text-[12.5px] leading-relaxed text-soft">
-        {backFrom(doc) === null
+        {from === null
           ? t("backFromNowhere")
-          : fill(backHome(doc) ? "backFrom" : "backFromGone", backFrom(doc) as string)}
+          : fill(home ? "backFrom" : "backFromGone", from as string)}
       </p>
       <form
         onSubmit={(e) => {
@@ -88,15 +91,15 @@ export default function BringingBack({ doc, papers, onClose, onDone, fail }: Pro
             chosen={backTo}
             onPick={setBackTo}
             label={
-              backFrom(doc) === null
+              from === null
                 ? t("backToNone")
-                : backHome(doc)
-                  ? fill("backToSame", backFrom(doc) as string)
+                : home
+                  ? fill("backToSame", from as string)
                   : fill("backToMade", (doc.folderWas ?? []).join(" / "))
             }
-            hint={backFrom(doc) === null ? t("backWasHere") : undefined}
+            hint={from === null ? t("backWasHere") : undefined}
           />
-          {backFrom(doc) !== null && (
+          {from !== null && (
             <Where
               name="where-back"
               value="none"
@@ -106,7 +109,7 @@ export default function BringingBack({ doc, papers, onClose, onDone, fail }: Pro
               hint={t("backAtRoot")}
             />
           )}
-          {papers.folders.some((one) => !one.away && one.id !== backHome(doc)) && (
+          {papers.folders.some((one) => !one.away && one.id !== home) && (
             <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
               <input
                 type="radio"
@@ -114,7 +117,7 @@ export default function BringingBack({ doc, papers, onClose, onDone, fail }: Pro
                 value="other"
                 checked={backTo !== "same" && backTo !== "none"}
                 onChange={() => {
-                  const first = papers.folders.find((one) => !one.away && one.id !== backHome(doc));
+                  const first = papers.folders.find((one) => !one.away && one.id !== home);
                   if (first) setBackTo(first.id);
                 }}
                 className="accent-accent"
@@ -129,7 +132,7 @@ export default function BringingBack({ doc, papers, onClose, onDone, fail }: Pro
                   {t("backToOther")}
                 </option>
                 {papers.folders
-                  .filter((one) => !one.away && one.id !== backHome(doc))
+                  .filter((one) => !one.away && one.id !== home)
                   .map((one) => (
                     <option key={one.id} value={one.id}>
                       {trail(papers.folders, one.id)}
