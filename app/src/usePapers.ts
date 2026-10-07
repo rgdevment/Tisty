@@ -154,7 +154,7 @@ export function usePapers({
   const papersChanged = useCallback(() => {
     lookPapers();
     carries.current?.changed();
-  }, [lookPapers, carries.current?.changed]);
+  }, [lookPapers, carries]);
 
   const hangIt = async (doc: string, pageOf: string) => {
     const named = (id: string) =>

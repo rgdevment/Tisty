@@ -273,6 +273,7 @@ fn quiet(system: &Path, tool: &str) -> std::process::Command {
     let mut command = std::process::Command::new(system.join(tool));
     command
         .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .creation_flags(0x0800_0000);
     command

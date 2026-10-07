@@ -68,7 +68,7 @@ export function useListening({
       window.removeEventListener("focus", again);
       document.removeEventListener("visibilitychange", shownAgain);
     };
-  }, [papersAgain.current, latest.current]);
+  }, [latest, papersAgain]);
 
   useEffect(() => {
     let day = new Date().getDate();
@@ -79,7 +79,7 @@ export function useListening({
       latest.current();
     }, TURNS_OVER);
     return () => clearInterval(turned);
-  }, [latest.current]);
+  }, [latest]);
   const papersNow = useRef(docs);
   papersNow.current = docs;
   useEffect(() => {
@@ -113,7 +113,7 @@ export function useListening({
     );
     carries.current = carrier;
     return () => carrier.stop();
-  }, [noted, setCarried, latest.current, papersAgain.current, carries, setError]);
+  }, [noted, setCarried, latest, papersAgain, carries, setError]);
 
   useEffect(() => {
     syncState()
@@ -169,7 +169,7 @@ export function useListening({
       sound.then((off) => off()).catch(() => {});
       along.then((off) => off()).catch(() => {});
     };
-  }, [lookPapers, setLeaving, setAfoot, setOffering, setStarring, setCarried, latest.current]);
+  }, [lookPapers, setLeaving, setAfoot, setOffering, setStarring, setCarried, latest]);
 
   const where = useRef(chosen);
   where.current = chosen;

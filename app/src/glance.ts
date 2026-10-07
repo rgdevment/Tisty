@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Long enough to have walked away from: past this, the notice waits rather than fading.
 export const AT_A_GLANCE = 20_000;
@@ -10,22 +10,29 @@ export function useNote() {
   const [waited, setWaited] = useState(false);
   const fading = useRef<number | undefined>(undefined);
 
-  const showing = (text: string | null, fades: number | null) => {
+  const showing = useCallback((text: string | null, fades: number | null) => {
     window.clearTimeout(fading.current);
     setNote(text);
     if (fades !== null) fading.current = window.setTimeout(() => setNote(null), fades);
-  };
+  }, []);
 
-  const noted = (text: string, fades = SHOWN) => {
-    setWaited(false);
-    showing(text, fades);
-  };
+  // Stable, because what listens for the round depends on it and would start over on every render.
+  const noted = useCallback(
+    (text: string, fades = SHOWN) => {
+      setWaited(false);
+      showing(text, fades);
+    },
+    [showing],
+  );
 
-  const said = (text: string, since: number) => {
-    const long = Date.now() - since >= AT_A_GLANCE;
-    setWaited(long);
-    showing(text, long ? null : SHOWN);
-  };
+  const said = useCallback(
+    (text: string, since: number) => {
+      const long = Date.now() - since >= AT_A_GLANCE;
+      setWaited(long);
+      showing(text, long ? null : SHOWN);
+    },
+    [showing],
+  );
 
   useEffect(() => {
     if (!waited) return;
