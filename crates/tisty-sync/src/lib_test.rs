@@ -8580,3 +8580,50 @@ fn a_document_edited_here_as_well_is_put_to_the_person_and_never_held() {
     );
     assert_eq!(moved.undecided_ids(), vec!["uno-0001".to_string()]);
 }
+
+#[test]
+fn a_round_leaves_nothing_copied_aside_behind() {
+    let one = machine("dev_a");
+    let other = blank("dev_b");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    joined(&other, shared.path());
+    wrote(&other, "lo de dev_b".into());
+    carry(&other.data, &other.device, shared.path(), Way::Both, &[]).unwrap();
+    let running = one.data.join(".bringing").join("1-another-round");
+    std::fs::create_dir_all(&running).unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        running.is_dir(),
+        "a round swept away the place another round was still using"
+    );
+    let left: Vec<_> = std::fs::read_dir(one.data.join(".bringing"))
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name())
+        .collect();
+    assert_eq!(
+        left.len(),
+        1,
+        "what was copied aside stayed after the round: {left:?}"
+    );
+    let mine = titles(&one.store);
+    assert!(mine.contains(&"lo de dev_b".to_string()), "{mine:?}");
+}
+
+#[test]
+fn a_round_cut_short_still_leaves_nothing_copied_aside() {
+    let room = tempfile::tempdir().unwrap();
+    let aside = crate::bringing::Aside::taken(room.path());
+    std::fs::create_dir_all(aside.at().join("dev_b")).unwrap();
+    std::fs::write(aside.at().join("dev_b").join("active.tisty"), "x").unwrap();
+
+    drop(aside);
+
+    assert!(
+        !room.path().join(".bringing").exists(),
+        "a round that ended early left its copies behind"
+    );
+}
