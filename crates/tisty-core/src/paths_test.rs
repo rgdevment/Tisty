@@ -225,6 +225,8 @@ fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
         .collect();
     let who = |ace: &str| ace.rsplit(';').next().unwrap_or_default().to_string();
     let sid = account_sid().unwrap();
+    // SDDL writes the built-in administrator's own SID as LA.
+    let mine = |ace: &str| who(ace) == sid || (who(ace) == "LA" && sid.ends_with("-500"));
 
     assert!(
         dacl.starts_with('P'),
@@ -237,13 +239,13 @@ fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
     );
     assert!(
         aces.iter()
-            .any(|ace| who(ace) == sid && ace.split(';').nth(2) == Some("FA")),
+            .any(|ace| mine(ace) && ace.split(';').nth(2) == Some("FA")),
         "the folder went to someone else: {said}"
     );
     // Windows itself and its administrators can always take any folder, so the key is kept from everyone else.
     assert!(
         aces.iter()
-            .all(|ace| who(ace) == sid || who(ace) == "SY" || who(ace) == "BA"),
+            .all(|ace| mine(ace) || who(ace) == "SY" || who(ace) == "BA"),
         "more than this user can reach the key: {said}"
     );
 }
