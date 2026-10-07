@@ -6,7 +6,7 @@ mod papers;
 mod place;
 mod segments;
 mod shape;
-pub mod turned;
+pub use tisty_core::turned;
 mod verified;
 
 use bringing::{bring, seats};
