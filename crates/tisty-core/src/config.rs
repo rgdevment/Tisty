@@ -130,6 +130,9 @@ pub struct Config {
     /// The agent this machine has already spoken for in its own history, so it is said once.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_vouched: Option<DeviceId>,
+    /// The name the person gave this computer, over the one its system reports.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub called: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -207,6 +210,7 @@ impl Config {
             inst: crate::machine::here(),
             agent_id: None,
             agent_vouched: None,
+            called: None,
             locale: None,
             editor: None,
             quiet: None,

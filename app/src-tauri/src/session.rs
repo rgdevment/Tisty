@@ -809,7 +809,22 @@ impl Session {
                 p: shown,
             })?;
         }
-        match tisty_core::called::told(&self.state, &who, tisty_core::called::here()) {
+        self.say_name()
+    }
+
+    /// Kept only while it differs from the system's own name, so a rename back follows the system again.
+    pub fn rename(&mut self, name: &str) -> Answer<()> {
+        let name = tisty_core::called::cleaned(name);
+        let system = tisty_core::called::here().map(|one| one.name);
+        let given = (!name.is_empty() && Some(&name) != system.as_ref()).then_some(name);
+        self.keep(|config| config.called = given.clone())?;
+        Ok(self.say_name()?)
+    }
+
+    pub fn say_name(&mut self) -> tisty_core::Result<()> {
+        let who = self.config.device_id.clone();
+        let now = tisty_core::called::chosen(self.config.called.as_deref());
+        match tisty_core::called::told(&self.state, &who, now) {
             Some(named) => self.commit(named),
             None => Ok(()),
         }

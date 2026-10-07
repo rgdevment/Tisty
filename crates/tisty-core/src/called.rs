@@ -16,6 +16,18 @@ pub fn here() -> Option<Named> {
     .clone()
 }
 
+/// The person's name for this machine when they gave one, else its system's.
+pub fn chosen(given: Option<&str>) -> Option<Named> {
+    given
+        .map(cleaned)
+        .filter(|name| !name.is_empty())
+        .map(|name| Named {
+            name,
+            os: Some(SYSTEM.to_string()),
+        })
+        .or_else(here)
+}
+
 /// One shape for a name wherever it is read, or a long one would never match what was kept.
 pub fn cleaned(said: &str) -> String {
     crate::text::plainly(said.trim())

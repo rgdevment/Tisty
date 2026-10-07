@@ -55,11 +55,20 @@ pub fn this_machine(session: tauri::State<'_, Mutex<Session>>) -> Answer<ThisMac
         let session = held(&session);
         (session.paths.clone(), session.config.device_id.clone())
     };
-    let named = tisty_core::called::here();
+    let named = tisty_core::called::chosen(held(&session).config.called.as_deref());
     Ok(ThisMachine {
         code: super::agents::spoken_by(&paths, Some(&who)),
         id: who.0,
         name: named.as_ref().map(|one| one.name.clone()),
         os: named.and_then(|one| one.os),
     })
+}
+
+#[tauri::command(async)]
+pub fn rename_machine(
+    session: tauri::State<'_, Mutex<Session>>,
+    name: String,
+) -> Answer<ThisMachine> {
+    held(&session).rename(&name)?;
+    this_machine(session)
 }

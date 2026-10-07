@@ -510,6 +510,8 @@ export interface ThisMachine {
 
 export const waitingMachines = (): Promise<Machine[]> => invoke("waiting_machines");
 export const thisMachine = (): Promise<ThisMachine> => invoke("this_machine");
+export const renameMachine = (name: string): Promise<ThisMachine> =>
+  invoke("rename_machine", { name });
 export const tidyMerged = (): Promise<number> => invoke("tidy_merged");
 export type Repeated = { name: string; lists: number; tasks: number };
 export const repeatedLists = (): Promise<Repeated[]> => invoke("repeated_lists");
@@ -678,6 +680,8 @@ export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {
   carried: Carried;
+  came: number;
+  went: number;
   undecided: string[];
   unreadable: string[];
   disowned: string[];

@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { stillApart, turnedOff, walkThrough } from "../apart";
+import { stillApart, walkThrough } from "../apart";
 import {
   type About,
   type Agent,
@@ -65,9 +65,10 @@ import {
   wireAgent,
 } from "../core";
 import { decideAll } from "../deciding";
-import { daysFrom, stamped, weigh } from "../format";
+import { stamped, weigh } from "../format";
 import { adopt, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { syncSaid } from "../syncSaid";
 import type { Tab } from "../views";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
@@ -77,16 +78,9 @@ import { Asked, MachineList } from "./Keys";
 import Leftovers from "./Leftovers";
 import Modal from "./Modal";
 import Reporting from "./Reporting";
-import { Ask, Band, dated, Group, Knob, Line, mild, off, strong, Warned } from "./Rows";
+import { Ask, Band, dated, Group, Knob, Line, mild, off, strong } from "./Rows";
+import Syncing from "./Syncing";
 import Tidying from "./Tidying";
-
-const carried = {
-  came: "syncCame",
-  sent: "syncSent",
-  both: "syncBoth",
-  same: "syncSame",
-  busy: "syncBusy",
-} as const;
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
@@ -265,7 +259,6 @@ export default function Keeping({
     );
   }
 
-  const carrying = busy === "sync";
   const held = busy !== null;
 
   const namedDocs = async (files: string[]): Promise<string> => {
@@ -300,11 +293,11 @@ export default function Keeping({
         setTrouble({ card: "sync", text: t(amiss) });
       } else if (shut.length) {
         setTrouble({ card: "sync", text: fill("someLockedAtOdds", await namedDocs(shut)) });
-      } else if (answer.joined?.length) {
-        setSaid({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
-      } else {
-        setSaid({ card: "sync", text: t(carried[answer.carried]) });
       }
+      const joined = answer.joined?.length
+        ? fill("someJoined", await namedDocs(answer.joined))
+        : "";
+      setSaid({ card: "sync", text: [syncSaid(answer), joined].filter(Boolean).join(". ") });
       look();
       onChanged();
       return "done";
@@ -843,99 +836,18 @@ export default function Keeping({
 
         {tab === "data" && (
           <>
-            <Band label={t("syncing")} />
-            <section className="rounded-[10px] border border-hair px-4 py-3.5">
-              <p className="text-[12.5px] leading-relaxed text-soft">
-                {state.chosen
-                  ? fill("syncOn", state.chosen)
-                  : state.sharedWas
-                    ? fill("syncOffRestored", state.sharedWas)
-                    : t("syncOff")}
-              </p>
-              {state.chosen && state.keeper && (
-                <Warned keeper={state.keeper} named={state.keptBy} />
-              )}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-                {state.chosen ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() => carryNow()}
-                      className={strong}
-                    >
-                      {carrying ? t("syncing_") : t("syncNow")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() =>
-                        state.chosen &&
-                        revealed(state.chosen).catch((e) =>
-                          setTrouble({ card: "sync", text: saidPlainly(e) }),
-                        )
-                      }
-                      className={mild}
-                    >
-                      {t("revealFolder")}
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" disabled={held} onClick={pickFolder} className={strong}>
-                    {t("turnSyncOn")}
-                  </button>
-                )}
-                <span className="ml-auto text-[11.5px] text-faint">
-                  {state.chosen
-                    ? fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))
-                    : t("noDestination")}
-                </span>
-              </div>
-              {state.chosen && (
-                <>
-                  <p className="mt-2 text-[12.5px] text-soft">
-                    {state.heard ? fill("syncHeard", stamped(state.heard)) : t("syncHeardNever")}
-                  </p>
-                  {state.heard && -daysFrom(state.heard) >= QUIET_DAYS && (
-                    <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink">
-                      {t("syncNothingSince")}
-                    </p>
-                  )}
-                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">
-                    {t("syncOnlyFolder")}
-                  </p>
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
-                    <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
-                    <button type="button" disabled={held} onClick={pickFolder} className={mild}>
-                      {t("changeFolder")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      onClick={() => run("sync", turnedOff(kept), () => {})}
-                      className={mild}
-                    >
-                      {t("syncOffNow")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={held}
-                      title={t("syncAgainWhy")}
-                      onClick={() => carryNow("again")}
-                      className={mild}
-                    >
-                      {t("syncAgain")}
-                    </button>
-                  </div>
-                </>
-              )}
-              {trouble?.card === "sync" && (
-                <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
-              )}
-              {said?.card === "sync" && (
-                <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>
-              )}
-            </section>
+            <Syncing
+              state={state}
+              kept={kept}
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              run={run}
+              fail={setTrouble}
+              tell={setSaid}
+              carry={(way) => void carryNow(way)}
+              pickFolder={pickFolder}
+            />
 
             <Band label={t("attachTitle")} />
             <div className="border-t border-hair">
@@ -1432,8 +1344,6 @@ export default function Keeping({
     </main>
   );
 }
-
-const QUIET_DAYS = 3;
 
 const wroteSaid = (hand: Assistant | undefined): string => {
   if (!hand || hand.wrote === 0) return t("assistantNothing");
