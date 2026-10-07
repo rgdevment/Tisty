@@ -1,10 +1,9 @@
 import { listen } from "@tauri-apps/api/event";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
 import {
   type About,
-  ALIAS_AT_MOST,
   type Astray,
   about,
   backUp,
@@ -19,13 +18,9 @@ import {
   type Freeing,
   freeUp,
   type Gone,
-  guide,
   type Holds,
   type Kin,
-  keepClosing,
-  keepLocale,
   keepSettings,
-  keepTheme,
   type Machine,
   type Reach,
   type Reviewed,
@@ -41,23 +36,17 @@ import {
   type Settings,
   type Stray,
   shortcut,
-  sign,
-  signed,
-  signTheRest,
   stopFreeing,
   syncKin,
   syncNow,
   syncState,
-  type Theme,
-  takeOutOfReach,
   type Waking,
-  wakeFor,
   waking,
   whatWentAmiss,
 } from "../core";
 import { decideAll } from "../deciding";
 import { weigh } from "../format";
-import { adopt, fill, t } from "../locales";
+import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { syncSaid } from "../syncSaid";
 import type { Tab } from "../views";
@@ -65,12 +54,13 @@ import Agents from "./Agents";
 import Apart, { type Door } from "./Apart";
 import Backup from "./Backup";
 import Card, { NAMED, type Which, type Word } from "./Card";
+import General from "./General";
 import Keepers from "./Keepers";
 import { Asked, MachineList } from "./Keys";
 import Leftovers from "./Leftovers";
 import Modal from "./Modal";
 import Reporting from "./Reporting";
-import { Ask, Band, dated, Group, Knob, Line, mild, ON_MAC, off, strong } from "./Rows";
+import { Band, dated, Group, Line, mild, off, strong } from "./Rows";
 import Syncing from "./Syncing";
 import Tidying from "./Tidying";
 
@@ -121,22 +111,8 @@ export default function Keeping({
   const [busy, setBusy] = useState<Which | null>(null);
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
-  const [alias, setAlias] = useState("");
-  const signed_as = useRef("");
-  const [aliases, setAliases] = useState<string[]>([]);
-  const [mine, setMine] = useState(0);
-  const [asking, setAsking] = useState<string | null>(null);
-  const before = aliases.filter((one) => one !== alias);
 
   const look = useCallback(() => {
-    signed()
-      .then((one) => {
-        setAlias(one.alias ?? "");
-        signed_as.current = one.alias ?? "";
-        setAliases(one.before);
-        setMine(one.mine);
-      })
-      .catch(() => {});
     syncState()
       .then(setState)
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
@@ -446,40 +422,6 @@ export default function Keeping({
 
   return (
     <main className="flex flex-col overflow-hidden">
-      {asking && (
-        <Modal title={fill("aliasNow", asking)} onClose={() => setAsking(null)}>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">
-            {mine === 1 ? t("aliasRestAskOne") : fill("aliasRestAsk", String(mine))}
-          </p>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("aliasRestNever")}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => setAsking(null)}
-              className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("aliasRestNo")}
-            </button>
-            <button
-              type="button"
-              disabled={held}
-              onClick={() => {
-                setAsking(null);
-                run("signing", signTheRest(), (many) => {
-                  setMine(0);
-                  setSaid({
-                    card: "signing",
-                    text: many === 1 ? t("aliasRestDoneOne") : fill("aliasRestDone", String(many)),
-                  });
-                });
-              }}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("aliasRestYes")}
-            </button>
-          </div>
-        </Modal>
-      )}
       <Asked
         keyOf={keyOf}
         astray={astray}
@@ -536,295 +478,25 @@ export default function Keeping({
         )}
 
         {tab === "general" && (
-          <>
-            <Band label={t("bandWindow")} />
-            <div className="border-t border-hair">
-              {kept && (
-                <Line
-                  title={t("tongue")}
-                  why={t("tongueWhy")}
-                  which="tongue"
-                  said={said}
-                  trouble={trouble}
-                >
-                  <select
-                    aria-label={t("tongue")}
-                    value={kept.locale ?? ""}
-                    disabled={held}
-                    onChange={(e) => {
-                      const wanted = e.target.value || undefined;
-                      run("tongue", keepLocale(wanted), (now) => {
-                        adopt(now ?? undefined);
-                        setKept({ ...kept, locale: now ?? undefined });
-                        onChanged();
-                      });
-                    }}
-                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                  >
-                    <option value="">{t("tongueTheirs")}</option>
-                    <option value="es">Español</option>
-                    <option value="en">English</option>
-                  </select>
-                </Line>
-              )}
-
-              {kept && (
-                <Line
-                  title={t("look")}
-                  why={t("lookWhy")}
-                  which="look"
-                  said={said}
-                  trouble={trouble}
-                >
-                  <select
-                    aria-label={t("look")}
-                    value={kept.theme ?? ""}
-                    disabled={held}
-                    onChange={(e) => {
-                      const wanted = (e.target.value || undefined) as Theme | undefined;
-                      run("look", keepTheme(wanted), (now) => {
-                        setKept({ ...kept, theme: now ?? undefined });
-                        onChanged();
-                      });
-                    }}
-                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                  >
-                    <option value="">{t("lookTheirs")}</option>
-                    <option value="light">{t("lookLight")}</option>
-                    <option value="dark">{t("lookDark")}</option>
-                  </select>
-                </Line>
-              )}
-
-              {kept && (
-                <Line
-                  title={t("closingSetting")}
-                  why={t("closingSettingWhy")}
-                  which="closing"
-                  said={said}
-                  trouble={trouble}
-                >
-                  <select
-                    aria-label={t("closingSetting")}
-                    value={kept.onClose ?? "ask"}
-                    disabled={held}
-                    onChange={(e) => {
-                      const how = e.target.value as "hide" | "quit" | "ask";
-                      run("closing", keepClosing(how), () =>
-                        setKept({ ...kept, onClose: how === "ask" ? undefined : how }),
-                      );
-                    }}
-                    className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                  >
-                    <option value="ask">{t("closingAsk")}</option>
-                    <option value="hide">{t(ON_MAC ? "closingHideBar" : "closingHide")}</option>
-                    <option value="quit">{t("closingQuit")}</option>
-                  </select>
-                </Line>
-              )}
-
-              {wake?.offered && (
-                <Line
-                  title={t("wake")}
-                  why={t(wake.wakes ? "wakeOn" : "wakeOff")}
-                  which="waking"
-                  said={said}
-                  trouble={trouble}
-                  more={
-                    wake.theirs &&
-                    !wake.wakes && (
-                      <div className="mt-2 rounded-[10px] bg-mark-priority px-3 py-2.5">
-                        <p className="text-[12.5px] leading-relaxed text-ink">{t("wakeTheirs")}</p>
-                      </div>
-                    )
-                  }
-                >
-                  <Knob
-                    on={wake.wakes}
-                    label={t("wakeAdd")}
-                    disabled={held}
-                    onPress={() =>
-                      run("waking", wakeFor(!wake.wakes), (now) => {
-                        setWake(now);
-                        if (now.wakes === wake.wakes) {
-                          return;
-                        }
-                        setSaid({
-                          card: "waking",
-                          text: t(now.wakes ? "wakeFresh" : "wakeGone"),
-                        });
-                      })
-                    }
-                  />
-                </Line>
-              )}
-
-              <Line
-                title={t("quick")}
-                why={keys ? fill("quickOn", keys) : t("quickNone")}
-                which="quick"
-                said={said}
-                trouble={trouble}
-              />
-            </div>
-
-            <Band label={t("bandSigning")} />
-            <div className="border-t border-hair">
-              <Line
-                title={
-                  <span className="flex items-center gap-1.5">
-                    {t("alias")}
-                    <Ask said={t("aliasWhy")} />
-                  </span>
-                }
-                why={t("aliasShort")}
-                which="signing"
-                said={said}
-                trouble={trouble}
-              >
-                <input
-                  type="text"
-                  aria-label={t("alias")}
-                  value={alias}
-                  disabled={held}
-                  maxLength={ALIAS_AT_MOST}
-                  placeholder={t("aliasNone")}
-                  onChange={(e) => setAlias(e.target.value)}
-                  onBlur={() => {
-                    const said = alias.trim();
-                    if (
-                      said.localeCompare(signed_as.current, undefined, {
-                        sensitivity: "accent",
-                      }) === 0
-                    ) {
-                      setAlias(signed_as.current);
-                      return;
-                    }
-                    run("signing", sign(said || undefined), (now) => {
-                      setAlias(now.alias ?? "");
-                      setAliases(now.before);
-                      setMine(now.mine);
-                      signed_as.current = now.alias ?? "";
-                      setSaid({
-                        card: "signing",
-                        text: now.alias ? fill("aliasKept", now.alias) : t("aliasGone"),
-                      });
-                      if (now.alias && now.mine > 0) setAsking(now.alias);
-                    });
-                  }}
-                  list={before.length > 0 ? "signed-before" : undefined}
-                  className={`w-40 rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-                />
-                {mine > 0 && (
-                  <button
-                    type="button"
-                    disabled={held}
-                    onClick={() => setAsking(alias)}
-                    className="rounded-[10px] border border-line px-2 py-1 text-[12.5px] hover:bg-hover disabled:opacity-60"
-                  >
-                    {t("aliasRest")}
-                  </button>
-                )}
-                {before.length > 0 && (
-                  <datalist id="signed-before">
-                    {before.map((one) => (
-                      <option key={one} value={one} />
-                    ))}
-                  </datalist>
-                )}
-              </Line>
-            </div>
-
-            <Band label={t("bandNotices")} />
-            <div className="border-t border-hair">
-              {kept &&
-                (["screen", "chime"] as const).map((channel) => (
-                  <Line
-                    key={channel}
-                    title={t(channel === "screen" ? "noticeScreen" : "noticeChime")}
-                    why={channel === "screen" ? t("noticesWhy") : undefined}
-                    which="notices"
-                    said={said}
-                    trouble={trouble}
-                  >
-                    <Knob
-                      on={!kept.quiet.includes(channel)}
-                      label={t(channel === "screen" ? "noticeScreen" : "noticeChime")}
-                      disabled={held}
-                      onPress={() =>
-                        remember(
-                          {
-                            ...kept,
-                            quiet: kept.quiet.includes(channel)
-                              ? kept.quiet.filter((one) => one !== channel)
-                              : [...kept.quiet, channel],
-                          },
-                          "notices",
-                        )
-                      }
-                    />
-                  </Line>
-                ))}
-            </div>
-            <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("noticesMore")}</p>
-
-            <Band label={t("bandOutside")} />
-            <div className="border-t border-hair">
-              {reach?.shipped && reach.withinReach && (
-                <Line
-                  title={t("terminal")}
-                  why={fill("terminalOn", reach.through ?? reach.at ?? "")}
-                  which="terminal"
-                  said={said}
-                  trouble={trouble}
-                  more={
-                    <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
-                      {t("terminalRetiring")}
-                    </p>
-                  }
-                >
-                  <button
-                    type="button"
-                    disabled={held}
-                    onClick={() =>
-                      run("terminal", takeOutOfReach(), (now) => {
-                        setReach(now);
-                        setSaid({ card: "terminal", text: t("terminalGone") });
-                      })
-                    }
-                    className={mild}
-                  >
-                    {t("terminalRemove")}
-                  </button>
-                </Line>
-              )}
-
-              <Line
-                title={t("greetAgain")}
-                why={t("greetAgainWhy")}
-                which="greet"
-                said={said}
-                trouble={trouble}
-              >
-                <button type="button" onClick={onGreet} className={mild}>
-                  {t("greetAgainDo")}
-                </button>
-                <button
-                  type="button"
-                  disabled={held}
-                  onClick={() =>
-                    run("greet", guide(), (paper) => {
-                      onChanged();
-                      onDoc(paper.id);
-                    })
-                  }
-                  className={mild}
-                >
-                  {t("welcomeGuide")}
-                </button>
-              </Line>
-            </div>
-          </>
+          <General
+            kept={kept}
+            setKept={setKept}
+            wake={wake}
+            setWake={setWake}
+            keys={keys}
+            reach={reach}
+            setReach={setReach}
+            busy={busy}
+            said={said}
+            trouble={trouble}
+            run={run}
+            tell={setSaid}
+            remember={remember}
+            greeted={greeted}
+            onChanged={onChanged}
+            onGreet={onGreet}
+            onDoc={onDoc}
+          />
         )}
 
         {tab === "data" && (
