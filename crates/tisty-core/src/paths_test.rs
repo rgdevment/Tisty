@@ -196,22 +196,7 @@ fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
 
     key_alone(&private).unwrap();
 
-    let saved = room.path().join("acl");
-    let done = std::process::Command::new("icacls")
-        .arg(&private)
-        .arg("/save")
-        .arg(&saved)
-        .output()
-        .unwrap();
-    assert!(done.status.success(), "{done:?}");
-    let raw = std::fs::read(&saved).unwrap();
-    let words: Vec<u16> = raw
-        .as_chunks::<2>()
-        .0
-        .iter()
-        .map(|two| u16::from_le_bytes(*two))
-        .collect();
-    let said = String::from_utf16_lossy(&words);
+    let said = sddl_of(&private, room.path());
     let dacl = said
         .lines()
         .nth(1)
@@ -262,4 +247,141 @@ fn the_key_folder_answers_to_this_user_alone() {
 
     let mode = std::fs::metadata(&private).unwrap().permissions().mode();
     assert_eq!(mode & 0o777, 0o700);
+}
+
+#[cfg(windows)]
+fn sddl_of(at: &Path, room: &Path) -> String {
+    let saved = room.join("acl");
+    let done = std::process::Command::new("icacls")
+        .arg(at)
+        .arg("/save")
+        .arg(&saved)
+        .output()
+        .unwrap();
+    assert!(done.status.success(), "{done:?}");
+    let raw = std::fs::read(&saved).unwrap();
+    let words: Vec<u16> = raw
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|two| u16::from_le_bytes(*two))
+        .collect();
+    String::from_utf16_lossy(&words)
+}
+
+#[cfg(windows)]
+#[test]
+fn the_home_set_aside_is_hidden_inherits_nothing_and_is_looked_at_once() {
+    use std::os::windows::fs::MetadataExt;
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().join(".tisty");
+    std::fs::create_dir_all(home.join("data")).unwrap();
+
+    tucked(&home).unwrap();
+    tucked(&home).unwrap();
+
+    let hidden = std::fs::metadata(&home).unwrap().file_attributes() & 0x2;
+    assert_ne!(hidden, 0, "the home is still in plain sight");
+    assert!(home.join(".kept").exists(), "a finished walk left no mark");
+    let said = sddl_of(&home, room.path());
+    let dacl = said
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split_once("D:"))
+        .map(|(_, dacl)| dacl.to_string())
+        .unwrap_or_default();
+    assert!(dacl.starts_with('P'), "the home still inherits: {said}");
+    assert!(
+        dacl.contains(";;;SY)"),
+        "a backup running as the system account lost the store: {said}"
+    );
+    assert!(
+        !dacl.contains("ID;"),
+        "something is still inherited: {said}"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_home_somebody_hid_by_hand_is_still_kept_to_this_account() {
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().join(".tisty");
+    std::fs::create_dir_all(&home).unwrap();
+    let hid = std::process::Command::new("attrib")
+        .arg("+h")
+        .arg(&home)
+        .status()
+        .unwrap();
+    assert!(hid.success());
+
+    tucked(&home).unwrap();
+
+    let said = sddl_of(&home, room.path());
+    let dacl = said
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split_once("D:"))
+        .map(|(_, dacl)| dacl.to_string())
+        .unwrap_or_default();
+    assert!(
+        dacl.starts_with('P'),
+        "a hidden home was taken as kept: {said}"
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn a_walk_cut_short_is_walked_again_though_the_home_itself_is_kept() {
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().join(".tisty");
+    std::fs::create_dir_all(&home).unwrap();
+    tucked(&home).unwrap();
+    std::fs::remove_file(home.join(".kept")).unwrap();
+
+    tucked(&home).unwrap();
+
+    assert!(
+        home.join(".kept").exists(),
+        "a home with no mark of a finished walk was taken as kept"
+    );
+}
+
+#[test]
+fn a_store_kept_anywhere_else_leaves_the_shared_home_untouched() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = Paths::new(room.path().join("data"), room.path().join("config"));
+
+    home_set_aside(&paths);
+
+    assert!(!room.path().join(".kept").exists());
+    assert!(!room.path().join("data").join(".kept").exists());
+}
+
+#[test]
+fn a_home_that_could_not_be_set_aside_is_said_and_not_kept_quiet() {
+    let _alone = crate::witness::ALONE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let room = tempfile::tempdir().unwrap();
+    let log = room.path().join("tisty.log");
+    crate::witness::keeps(log.clone(), true);
+
+    not_set_aside(
+        room.path().join(".tisty"),
+        std::io::Error::other("a file was locked"),
+    );
+
+    crate::witness::stops();
+    let said = std::fs::read_to_string(&log).unwrap_or_default();
+    assert!(said.contains("could not be hidden"), "{said}");
+    assert!(said.contains("a file was locked"), "{said}");
+}
+
+#[cfg(not(windows))]
+#[test]
+fn only_windows_has_a_home_to_hide() {
+    let room = tempfile::tempdir().unwrap();
+
+    assert!(tucked(room.path()).is_ok());
+    assert!(!room.path().join(".kept").exists());
 }
