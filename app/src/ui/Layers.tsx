@@ -131,7 +131,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
               setUnderway(null);
               setError(saidPlainly(problem));
               if (offerMoved(problem)) {
-                lookAgain();
+                void lookAgain();
               }
             });
           }}
