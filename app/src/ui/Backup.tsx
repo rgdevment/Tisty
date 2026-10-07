@@ -2,7 +2,7 @@ import type { Carrying } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import type { Word } from "./Card";
-import { Band, Line, mild, risky } from "./Keeping";
+import { Band, Line, mild, risky } from "./Rows";
 
 interface Props {
   state: Carrying;
