@@ -271,15 +271,19 @@ pub fn home_set_aside(paths: &Paths) {
         return;
     };
     if let Err(why) = tucked(&home) {
-        crate::witness::warn(
-            crate::witness::channel::STORE,
-            "the folder holding this machine's store could not be hidden and kept to this account",
-            &[
-                ("at", crate::witness::Fact::Path(home)),
-                ("why", crate::witness::Fact::Why(why.to_string())),
-            ],
-        );
+        not_set_aside(home, why);
     }
+}
+
+fn not_set_aside(home: PathBuf, why: std::io::Error) {
+    crate::witness::warn(
+        crate::witness::channel::STORE,
+        "the folder holding this machine's store could not be hidden and kept to this account",
+        &[
+            ("at", crate::witness::Fact::Path(home)),
+            ("why", crate::witness::Fact::Why(why.to_string())),
+        ],
+    );
 }
 
 #[cfg(not(windows))]

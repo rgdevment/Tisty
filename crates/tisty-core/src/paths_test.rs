@@ -345,3 +345,43 @@ fn a_walk_cut_short_is_walked_again_though_the_home_itself_is_kept() {
         "a home with no mark of a finished walk was taken as kept"
     );
 }
+
+#[test]
+fn a_store_kept_anywhere_else_leaves_the_shared_home_untouched() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = Paths::new(room.path().join("data"), room.path().join("config"));
+
+    home_set_aside(&paths);
+
+    assert!(!room.path().join(".kept").exists());
+    assert!(!room.path().join("data").join(".kept").exists());
+}
+
+#[test]
+fn a_home_that_could_not_be_set_aside_is_said_and_not_kept_quiet() {
+    let _alone = crate::witness::ALONE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let room = tempfile::tempdir().unwrap();
+    let log = room.path().join("tisty.log");
+    crate::witness::keeps(log.clone(), true);
+
+    not_set_aside(
+        room.path().join(".tisty"),
+        std::io::Error::other("a file was locked"),
+    );
+
+    crate::witness::stops();
+    let said = std::fs::read_to_string(&log).unwrap_or_default();
+    assert!(said.contains("could not be hidden"), "{said}");
+    assert!(said.contains("a file was locked"), "{said}");
+}
+
+#[cfg(not(windows))]
+#[test]
+fn only_windows_has_a_home_to_hide() {
+    let room = tempfile::tempdir().unwrap();
+
+    assert!(tucked(room.path()).is_ok());
+    assert!(!room.path().join(".kept").exists());
+}
