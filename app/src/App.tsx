@@ -1,23 +1,18 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { carrying } from "./carrying";
 import {
   type Afoot,
   complete,
   DEEPEST,
-  discard,
   docFile,
-  docPage,
   type Filed,
   type Folded,
   type Found,
   folderFile,
   owed,
-  patch,
   type Snapshot,
   settleIn,
   snapshot,
-  sow,
   starDue,
   type Task,
 } from "./core";
@@ -30,27 +25,20 @@ import { useListening } from "./listening";
 import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
-import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
-import Board from "./ui/Board";
 import Detail from "./ui/Detail";
-import Docs from "./ui/Docs";
 import Door from "./ui/Door";
-import Folder from "./ui/Folder";
-import Keeping from "./ui/Keeping";
 import Layers, { type MenuOpen, type Torn } from "./ui/Layers";
-import Lists from "./ui/Lists";
-import Matrix from "./ui/Matrix";
 import Owed from "./ui/Owed";
 import { useParcels } from "./ui/Parcels";
 import Pulse from "./ui/Pulse";
 import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
-import Spread from "./ui/Spread";
+import Stage from "./ui/Stage";
 import Star from "./ui/Star";
 import WindowChrome from "./ui/WindowChrome";
 import { usePapers } from "./usePapers";
-import { asView, type Chosen, type Slice, title, useReach } from "./views";
+import { asView, type Chosen, type Slice, useReach } from "./views";
 import { useAloud, useTight, useUpdates } from "./watching";
 import { knowAgents } from "./who";
 
@@ -507,156 +495,64 @@ export default function App() {
           <div
             className={`grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden motion-safe:transition-[padding] motion-safe:duration-150 ${lane}`}
           >
-            {chosen.named === "aboutScreen" ? (
-              <About
-                ready={ready}
-                step={underway}
-                onGaveUp={() => setUnderway(null)}
-                onError={(e) => setError(saidPlainly(e))}
-              />
-            ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
-              <Folder
-                folder={standing ?? null}
-                folders={papers.folders}
-                docs={papers.docs}
-                onOpen={(doc) => setChosen({ named: "docs", doc: doc.file })}
-                onHere={(folder) => setHere(folder ?? null)}
-                onMenu={folderMenu}
-                onHereMenu={hereMenu}
-                onDocMenu={docMenu}
-              />
-            ) : chosen.named === "docs" ? (
-              <Docs
-                open={chosen.doc}
-                onPaging={(put) => {
-                  paging.current = put;
-                }}
-                known={papers.docs}
-                folders={papers.folders}
-                onFolder={(id) => {
-                  setHere(id);
-                  setChosen({ named: "docs" });
-                }}
-                onKept={papersChanged}
-                onTag={(tag) => {
-                  setSelected(undefined);
-                  setCameFrom(chosen);
-                  setChosen({ named: "tags", tags: [tag] });
-                }}
-                onError={told}
-                onShown={setShowing}
-                onDoc={openDoc}
-                onOwned={(id) =>
-                  docPage(id)
-                    .then(papersChanged)
-                    .catch((e) => setError(saidPlainly(e)))
-                }
-                onDrop={dropDoc}
-                onBack={bringBack}
-                fresh={carried}
-              />
-            ) : chosen.named === "lists" && !chosen.list ? (
-              <Lists
-                lists={data.every ?? data.lists}
-                counts={data.counts}
-                soonest={data.soonest}
-                onOpen={(id) => setChosen({ named: "lists", list: id })}
-                onChanged={load}
-                onError={(e) => setError(saidPlainly(e))}
-              />
-            ) : chosen.named === "quadrants" && !sheet ? (
-              // One child, one track: a fragment of two would push the board into the next column,
-              // which is nought pixels wide whenever nothing is open beside it.
-              <div className="flex min-w-0 flex-col overflow-hidden">
-                {strip && <div className="shrink-0 px-5 pt-2">{strip}</div>}
-                <Matrix
-                  tasks={data.tasks}
-                  counts={data.counts}
-                  lists={data.lists}
-                  beside={beside}
-                  onPlace={(id, where) => act(patch(id, { priority: where }))}
-                  onOpen={(one) => setSelected(one.id)}
-                  onSow={(where) => {
-                    sow(where).catch((e: unknown) => setError(saidPlainly(e)));
-                  }}
-                  onDiscardAll={(ids) => {
-                    ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
-                      .then((yes) => {
-                        if (!yes) return;
-                        setError(null);
-                        return Promise.all(ids.map((id) => discard(id))).then(() => {
-                          load();
-                          carries.current?.changed();
-                        });
-                      })
-                      .catch((e) => setError(saidPlainly(e)));
-                  }}
-                />
-              </div>
-            ) : chosen.named === "spread" && !sheet ? (
-              <div className="flex min-w-0 flex-col overflow-hidden">
-                <Spread
-                  onCarrying={setDealing}
-                  tasks={data.tasks}
-                  counts={data.counts}
-                  onPlace={(id, on) => act(patch(id, on ? { date: on } : { noDate: true }))}
-                  onOpen={(one) => setSelected(one.id)}
-                />
-              </div>
-            ) : chosen.named === "keeping" ? (
-              <Keeping
-                greeted={greeted}
-                start={chosen.tab}
-                onPack={() => parcels.packUp([], "tisty")}
-                onUnpack={parcels.takeParcel}
-                onGreet={() => setGreet(true)}
-                onDoc={openDoc}
-                onChanged={() => {
-                  load();
-                  lookPapers();
-                  carries.current?.recheck();
-                  carries.current?.changed();
-                }}
-              />
-            ) : sheet ? (
-              <Detail
-                key={task.id}
-                {...detailing(task)}
-                expanded
-                from={title(chosen, data.lists)}
-                onExpand={() => remember("sheet")}
-                onCollapse={() => (tight ? shut() : remember("columns"))}
-              />
-            ) : (
-              <Board
-                act={act}
-                asking={asking}
-                byList={byList}
-                cameFrom={cameFrom}
-                captured={captured}
-                chosen={chosen}
-                data={data}
-                found={found}
-                further={further}
-                load={load}
-                marking={marking}
-                openDoc={openDoc}
-                reveal={reveal}
-                say={say}
-                seen={seen}
-                selected={selected}
-                setCameFrom={setCameFrom}
-                setCaptured={setCaptured}
-                setChosen={setChosen}
-                setError={setError}
-                setFound={setFound}
-                setSelected={setSelected}
-                shown={shown}
-                strip={strip}
-                taggedDocs={taggedDocs}
-                wholes={wholes}
-              />
-            )}
+            <Stage
+              act={act}
+              asking={asking}
+              beside={beside}
+              bringBack={bringBack}
+              byList={byList}
+              cameFrom={cameFrom}
+              captured={captured}
+              carried={carried}
+              carries={carries}
+              chosen={chosen}
+              data={data}
+              detailing={detailing}
+              docMenu={docMenu}
+              dropDoc={dropDoc}
+              folderMenu={folderMenu}
+              found={found}
+              further={further}
+              greeted={greeted}
+              here={here}
+              hereMenu={hereMenu}
+              load={load}
+              lookPapers={lookPapers}
+              marking={marking}
+              openDoc={openDoc}
+              paging={paging}
+              papers={papers}
+              papersChanged={papersChanged}
+              parcels={parcels}
+              ready={ready}
+              remember={remember}
+              reveal={reveal}
+              say={say}
+              seen={seen}
+              selected={selected}
+              setCameFrom={setCameFrom}
+              setCaptured={setCaptured}
+              setChosen={setChosen}
+              setDealing={setDealing}
+              setError={setError}
+              setFound={setFound}
+              setGreet={setGreet}
+              setHere={setHere}
+              setSelected={setSelected}
+              setShowing={setShowing}
+              setUnderway={setUnderway}
+              sheet={sheet}
+              shown={shown}
+              shut={shut}
+              standing={standing}
+              strip={strip}
+              taggedDocs={taggedDocs}
+              task={task}
+              tight={tight}
+              told={told}
+              underway={underway}
+              wholes={wholes}
+            />
           </div>
 
           {beside && (
