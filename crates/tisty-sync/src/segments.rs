@@ -179,6 +179,23 @@ fn beside_this(found: &Kinds, segment: &std::ffi::OsStr) -> std::collections::BT
     kinds
 }
 
+// A signature or a count changed beside segments held the same is still something new to check.
+pub(crate) fn beside_differs(theirs: &Path, mine: &Path) -> bool {
+    let Ok(segments) = tisty_core::store::segments_in(theirs) else {
+        return false;
+    };
+    let found = beside_each(theirs);
+    segments
+        .iter()
+        .filter_map(|at| at.file_name())
+        .any(|named| {
+            beside_this(&found, named).into_iter().any(|kind| {
+                let there = theirs.join(named).with_extension(&kind);
+                there.is_file() && !same(&there, &mine.join(named).with_extension(&kind))
+            })
+        })
+}
+
 // Checked and installed from this copy, so the folder changing in between changes nothing taken in.
 pub(crate) fn staged(
     theirs: &Path,

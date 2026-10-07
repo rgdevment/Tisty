@@ -455,7 +455,8 @@ pub(crate) fn bring(
             continue;
         }
         plainly(&mine)?;
-        let settled = alike.settled(named, &entry.path(), &mine, Toward::Home);
+        let settled = alike.settled(named, &entry.path(), &mine, Toward::Home)
+            && !crate::segments::beside_differs(&entry.path(), &mine);
         let theirs = match settled {
             true => entry.path(),
             false => match staging(alike, named, &entry.path(), &mine, &aside) {
@@ -559,7 +560,10 @@ pub(crate) fn bring(
                 continue;
             }
         }
-        brought += alike.carried(named, &theirs, &mine, Toward::Home, false)?;
+        // Held the same in every byte, so nothing is copied from a folder that could change under us.
+        if !settled {
+            brought += alike.carried(named, &theirs, &mine, Toward::Home, false)?;
+        }
     }
     saying(Reached::Along {
         stage: Stage::Log,

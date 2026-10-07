@@ -71,3 +71,18 @@ fn only_plain_files_are_copied_aside_and_an_old_copy_is_cleared_first() {
     assert!(!aside.join("un-directorio").exists());
     assert!(!aside.join("de-antes.tisty").exists());
 }
+
+#[test]
+fn a_signature_changed_beside_segments_held_the_same_is_something_new() {
+    let room = tempfile::tempdir().unwrap();
+    let (theirs, mine) = (room.path().join("theirs"), room.path().join("mine"));
+    put(&theirs, "active.tisty", "lo mismo\n");
+    put(&mine, "active.tisty", "lo mismo\n");
+    put(&theirs, "active.sig", "la firma de allá\n");
+    put(&mine, "active.sig", "la firma de acá\n");
+
+    assert!(beside_differs(&theirs, &mine));
+
+    put(&mine, "active.sig", "la firma de allá\n");
+    assert!(!beside_differs(&theirs, &mine));
+}
