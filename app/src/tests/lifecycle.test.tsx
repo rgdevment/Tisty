@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App, { AT_A_GLANCE, SHOWN } from "../App";
+import App from "../App";
 import type { Papers } from "../core";
+import { AT_A_GLANCE, SHOWN } from "../glance";
 import { fill, t } from "../locales";
 import Docs from "../ui/Docs";
 import Tree from "../ui/Tree";

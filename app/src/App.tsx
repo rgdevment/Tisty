@@ -1,138 +1,40 @@
-import { listen } from "@tauri-apps/api/event";
-import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { carrying } from "./carrying";
-import { heard, play } from "./chime";
-import { asPlain } from "./copying";
+import type { carrying } from "./carrying";
 import {
   type Afoot,
-  addPart,
-  attach,
-  type Change,
-  capture,
-  complete,
   DEEPEST,
-  discard,
-  docAway,
-  docCopy,
-  docDrop,
-  docExport,
   docFile,
-  docImport,
-  docLock,
-  docNew,
-  docPage,
-  docs,
-  docsCatchUp,
-  docsPack,
-  docsTakeOut,
-  docsUnpack,
-  doorDue,
-  dropStep,
-  erase,
   type Filed,
-  FOLDER_NAME_AT_MOST,
   type Folded,
   type Found,
-  fold,
-  folderAdd,
-  folderAway,
-  folderDrop,
   folderFile,
-  folderLook,
-  folderRename,
-  hang,
-  markStep,
-  noteTrouble,
-  openToAgents,
-  owed,
-  type Papers,
-  type Pick,
-  parted,
-  patch,
-  type Ready,
-  type Rift,
-  readAs,
-  reopen,
-  type Snapshot,
-  settleIn,
-  snapshot,
-  sow,
-  spelled,
   starDue,
-  stepToPart,
-  stillOpen,
-  syncState,
   type Task,
-  taskOf,
-  type Underway,
-  updateInstall,
-  updateReady,
-  writeLog,
-  writeStep,
 } from "./core";
-import { decideAll, decidesByBlock } from "./deciding";
-import { handTo, whenFilesLand } from "./dropped";
-import { deep, destinations, trail } from "./folders";
-import { todayLong } from "./format";
-import { adopt, fill, t, type Word } from "./locales";
+import { decidesByBlock } from "./deciding";
+import { detailOf, erasing } from "./detailing";
+import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
+import { deep } from "./folders";
+import { useNote } from "./glance";
+import { layoutOf } from "./layout";
+import { useListening } from "./listening";
+import { t } from "./locales";
+import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
-import { noticeBehind, offerMoved, saidPlainly } from "./refusal";
-import { settled } from "./saving";
-import About from "./ui/About";
+import { saidPlainly } from "./refusal";
+import { useSnapshot } from "./snapshotting";
 import { WEEK } from "./ui/Ahead";
-import Axis from "./ui/Axis";
-import CaptureField from "./ui/CaptureField";
-import Closing from "./ui/Closing";
-import Cover from "./ui/Cover";
-import Detail from "./ui/Detail";
-import Digits, { HOW_MANY } from "./ui/Digits";
-import Docs from "./ui/Docs";
-import Door from "./ui/Door";
-import Folder from "./ui/Folder";
-import Keeping from "./ui/Keeping";
-import Lists from "./ui/Lists";
-import Matrix from "./ui/Matrix";
-import Menu, { type Choice } from "./ui/Menu";
-import Modal from "./ui/Modal";
-import Naming from "./ui/Naming";
-import Notice from "./ui/Notice";
-import Only from "./ui/Only";
-import Owed from "./ui/Owed";
-import Pulse from "./ui/Pulse";
-import Rifts from "./ui/Rifts";
-import Search from "./ui/Search";
-import Shelf from "./ui/Shelf";
+import Board from "./ui/Board";
+import Layers, { type MenuOpen, type Torn } from "./ui/Layers";
+import Margins from "./ui/Margins";
+import { useParcels } from "./ui/Parcels";
 import Sidebar from "./ui/Sidebar";
-import Sightings from "./ui/Sightings";
 import Spine from "./ui/Spine";
-import Spread from "./ui/Spread";
-import Star from "./ui/Star";
-import Tagged from "./ui/Tagged";
-import Tags from "./ui/Tags";
-import Tally from "./ui/Tally";
-import TaskList from "./ui/TaskList";
-import Welcome from "./ui/Welcome";
+import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
-import {
-  accepts,
-  asView,
-  type Chosen,
-  headerCount,
-  invite,
-  LAYERS,
-  layerCount,
-  layerWord,
-  nothing,
-  SLICES,
-  type Slice,
-  title,
-  useReach,
-} from "./views";
-import { knowAgents } from "./who";
-
-export const steady = <T,>(was: T, found: T): T =>
-  JSON.stringify(was) === JSON.stringify(found) ? was : found;
+import { usePapers } from "./usePapers";
+import { type Chosen, type Slice, useReach } from "./views";
+import { useAloud, useTight, useUpdates } from "./watching";
 
 type Mode = "columns" | "sheet";
 
@@ -145,73 +47,16 @@ export const kept = (key: string): string[] => {
   }
 };
 
-const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
-const TURNS_OVER = 60 * 1000;
-const TIGHT = 1308;
-
-const PARCEL = "tistyx";
-// Long enough to have walked away from: past this, the notice waits rather than fading.
-export const AT_A_GLANCE = 20_000;
-
-export const SHOWN = 3_200;
-
 export default function App() {
-  const [data, setData] = useState<Snapshot | null>(null);
+  const { ready, lookAgain, underway, setUnderway, behind, setBehind } = useUpdates();
+  const tight = useTight();
+  const { aloud, say } = useAloud();
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
-  const [aloud, setAloud] = useState("");
-  const [ready, setReady] = useState<Ready | null>(null);
-  const [underway, setUnderway] = useState<Underway | null>(null);
 
-  const [behind, setBehind] = useState(false);
-
-  const looked = useRef(false);
-
-  const going = useRef(false);
-  useEffect(() => {
-    going.current = !!underway;
-  }, [underway]);
-
-  useEffect(() => {
-    // An update already under way owns what About shows; looking again could take the offer out
-    // from under its own progress bar.
-    if (going.current) return;
-    const first = !looked.current;
-    looked.current = true;
-    updateReady(behind || first)
-      .then(setReady)
-      .catch(() => {});
-  }, [behind]);
-
-  useEffect(() => {
-    const again = setInterval(() => {
-      if (going.current) return;
-      updateReady()
-        .then(setReady)
-        .catch(() => {});
-    }, LOOKS_AGAIN);
-    return () => clearInterval(again);
-  }, []);
-
-  useEffect(() => {
-    noticeBehind(setBehind);
-    return () => noticeBehind(null);
-  }, []);
-
-  const [tight, setTight] = useState(() => window.innerWidth < TIGHT);
   const [dealing, setDealing] = useState(false);
 
-  useEffect(() => {
-    const look = () => setTight(window.innerWidth < TIGHT);
-    window.addEventListener("resize", look);
-    return () => window.removeEventListener("resize", look);
-  }, []);
-  const twice = useRef(0);
-  const say = (words: string) => {
-    twice.current += 1;
-    setAloud(words + "\u200b".repeat(twice.current % 2));
-  };
   const [reveal, setReveal] = useState<string | undefined>();
   const [returning, setReturning] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(
@@ -225,35 +70,43 @@ export default function App() {
   const [found, setFound] = useState<Found | null>(null);
   /// Where a tag was pressed, so leaving it goes back there rather than to a fixed screen.
   const [cameFrom, setCameFrom] = useState<Chosen | null>(null);
-  useOnlyAlive(data?.lists, chosen, setChosen);
   const [seen, byList] = useOnly(chosen);
 
-  const [papers, setPapers] = useState<Papers>({ folders: [], docs: [] });
   const [makingFolder, setMakingFolder] = useState(false);
   const [renaming, setRenaming] = useState<Folded | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [waited, setWaited] = useState(false);
+  const { note, noted, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
-  const [whoFor, setWhoFor] = useState<string | null>(null);
-  const [movingTo, setMovingTo] = useState<string | null>(null);
-  const [locked, setLocked] = useState<string | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
-  const [backTo, setBackTo] = useState<string>("same");
-  const [number, setNumber] = useState("");
-  const [wrong, setWrong] = useState(false);
-  const [menu, setMenu] = useState<{
-    at: { x: number; y: number };
-    label: string;
-    choices: Choice[];
-    /// Which row it was opened on, so the tree can say so while it stands.
-    on?: string;
-  } | null>(null);
+  const [menu, setMenu] = useState<MenuOpen | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
+  const carries = useRef<ReturnType<typeof carrying>>(null);
+  const paging = useRef<((page: Filed) => boolean) | null>(null);
+  const {
+    papers,
+    lookPapers,
+    papersChanged,
+    newDoc,
+    bringIn,
+    dropFolder,
+    dropDoc,
+    bringBack,
+    openDoc,
+    hangIt,
+  } = usePapers({
+    chosen,
+    setChosen,
+    here,
+    setHere,
+    setReturning,
+    setBacking,
+    setError,
+    lookForAStar: () => lookForAStar(),
+    carries,
+    paging,
+  });
   const standing = here ? papers.folders.find((one) => one.id === here) : undefined;
   const [showing, setShowing] = useState<string | null>(null);
   const [carried, setCarried] = useState(0);
-  const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
-  const asked = useRef(0);
 
   const lookForAStar = () => {
     starDue()
@@ -261,327 +114,9 @@ export default function App() {
       .catch(() => {});
   };
 
-  const newDoc = (folder?: string, pageOf?: string) =>
-    docNew(folder, pageOf)
-      .then((made) => {
-        papersChanged();
-        setChosen({ named: "docs", doc: made.id });
-        if (!pageOf) lookForAStar();
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const bringIn = (folder?: string) =>
-    pick({
-      multiple: false,
-      filters: [
-        { name: "Markdown", extensions: ["md", "markdown", "txt"] },
-        { name: t("anyFile"), extensions: ["*"] },
-      ],
-    })
-      .then((at) => (typeof at === "string" ? docImport(at, folder) : null))
-      .then((made) => {
-        if (!made) return;
-        papersChanged();
-        setChosen({ named: "docs", doc: made.id });
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  // One at a time: starting a second one paints over the first one's progress and the backend
-  // refuses it anyway, leaving the bar gone and the first one's success unsaid.
-  // Everything at once is the one that may be a move rather than a hand-over, so it asks first;
-  // a single document is always somebody else's to keep.
-  const packUp = (which: string[], named: string) => {
-    if (afoot) return Promise.resolve();
-    if (which.length) return packing(which, named);
-    setWhoFor(named);
-    return Promise.resolve();
-  };
-
-  const said = (text: string, since: number) => {
-    const long = Date.now() - since >= AT_A_GLANCE;
-    setNote(text);
-    setWaited(long);
-    if (!long) setTimeout(() => setNote(null), SHOWN);
-  };
-
-  useEffect(() => {
-    if (!waited) return;
-    let ready = false;
-    const soon = setTimeout(() => {
-      ready = true;
-    }, SHOWN);
-    const gone = () => {
-      if (!ready) return;
-      setNote(null);
-      setWaited(false);
-    };
-    window.addEventListener("pointerdown", gone);
-    window.addEventListener("keydown", gone);
-    return () => {
-      clearTimeout(soon);
-      window.removeEventListener("pointerdown", gone);
-      window.removeEventListener("keydown", gone);
-    };
-  }, [waited]);
-
-  const packing = (which: string[], named: string, number?: string) => {
-    const since = Date.now();
-    return spelled(named)
-      .catch(() => "tisty")
-      .then((safe) =>
-        intoFile({
-          defaultPath: `${safe}.${PARCEL}`,
-          filters: [{ name: "Tisty", extensions: [PARCEL] }],
-        }),
-      )
-      .then((at) => {
-        if (typeof at !== "string") return null;
-        setAfoot({ stage: "packing", far: 0, done: 0, whole: 0 });
-        return docsPack(which, at, number);
-      })
-      .then((packed) => {
-        setAfoot(null);
-        if (!packed) return;
-        const many = packed.docs + packed.pages;
-        if (packed.missed > 0 || packed.left > 0) {
-          setError(
-            packed.missed > 0
-              ? fill("packedShort", String(many), String(packed.missed))
-              : fill("packedLess", String(many), String(packed.left)),
-          );
-          return;
-        }
-        said(
-          many === 1 ? t("packedOne") : many ? fill("packed", String(many)) : t("packedAlone"),
-          since,
-        );
-      })
-      .catch((e) => {
-        setAfoot(null);
-        setError(saidPlainly(e));
-      });
-  };
-
-  const takeOutAll = () =>
-    afoot
-      ? Promise.resolve()
-      : pick({ directory: true })
-          .then((at) => {
-            if (typeof at !== "string") return null;
-            setAfoot({ stage: "takingOut", far: 0, done: 0, whole: 0 });
-            return docsTakeOut([], at);
-          })
-          .then((took) => {
-            setAfoot(null);
-            if (!took) return;
-            const many = took.docs;
-            if (took.missed > 0 || took.left > 0) {
-              setError(
-                took.missed > 0
-                  ? fill("packedShort", String(many), String(took.missed))
-                  : fill("packedLess", String(many), String(took.left)),
-              );
-              return;
-            }
-            setNote(
-              many === 1
-                ? t("tookOutOne")
-                : took.folders
-                  ? fill("tookOutAll", String(many), String(took.folders))
-                  : fill("tookOutAllFlat", String(many)),
-            );
-            setTimeout(() => setNote(null), SHOWN);
-          })
-          .catch((e) => {
-            setAfoot(null);
-            setError(saidPlainly(e));
-          });
-
-  const takeParcel = () =>
-    afoot
-      ? Promise.resolve()
-      : pick({ multiple: false, filters: [{ name: "Tisty", extensions: [PARCEL] }] }).then((at) =>
-          typeof at === "string" ? landing(at) : undefined,
-        );
-
-  const landing = (at: string, number?: string) => {
-    const since = Date.now();
-    return Promise.resolve()
-      .then(() => {
-        setAfoot({ stage: "landing", far: 0, done: 0, whole: 0 });
-        return docsUnpack(at, number);
-      })
-      .then((landed) => {
-        setAfoot(null);
-        if (!landed) return;
-        papersChanged();
-        const many = landed.docs + landed.pages;
-        if (landed.missed > 0 && many > 0) {
-          setError(fill("landedShort", String(landed.missed)));
-          return;
-        }
-        if (many === 0) {
-          setError(
-            landed.missed > 0 ? fill("landedNoneOfIt", String(landed.missed)) : t("landedNone"),
-          );
-          return;
-        }
-        said(
-          many === 1
-            ? t("landedOne")
-            : landed.folders
-              ? fill("landedIn", String(many), String(landed.folders))
-              : fill("landedAlone", String(many)),
-          since,
-        );
-      })
-      .catch((e) => {
-        setAfoot(null);
-        // Locked is not a failure: it is the parcel asking whether this is the machine it was
-        // packed for, and only the number answers that.
-        const why = (e as { code?: string } | undefined)?.code;
-        if (why === "parcelLocked" || why === "wrongNumber") {
-          setWrong(why === "wrongNumber");
-          setNumber("");
-          setLocked(at);
-          return;
-        }
-        setError(saidPlainly(e));
-      });
-  };
-
-  const dropFolder = (folder: Folded) =>
-    ask(fill("dropFolderSure", folder.name), { kind: "warning" })
-      .then((yes) => {
-        if (!yes) return;
-        if (here === folder.id) setHere(undefined);
-        setReturning(folder.parent ?? "unfiled");
-        return folderDrop(folder.id).then(papersChanged);
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const dropDoc = (doc: Filed) =>
-    ask(
-      fill(
-        papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
-        doc.title || t("untitledDoc"),
-      ),
-      { kind: "warning" },
-    )
-      .then((yes) => {
-        if (!yes) return;
-        const going = [
-          doc.file,
-          ...papers.docs.filter((one) => one.pageOf === doc.id).map((one) => one.file),
-        ];
-        if (chosen.doc && going.includes(chosen.doc)) setChosen({ named: "docs" });
-        setReturning(doc.pageOf ?? doc.folder ?? "unfiled");
-        return docDrop(doc.id).then(papersChanged);
-      })
-      .catch((e) => setError(saidPlainly(e)));
-
-  const bringBack = (doc: Filed) => {
-    if (doc.pageOf) {
-      docAway(doc.id, false)
-        .then(papersChanged)
-        .catch((e) => setError(saidPlainly(e)));
-      return;
-    }
-    setBackTo("same");
-    setBacking(doc);
-  };
-
-  const backHome = (doc: Filed): string | null => {
-    if (doc.folder && papers.folders.some((one) => one.id === doc.folder)) return doc.folder;
-    const was = (doc.folderWas ?? []).join(" / ");
-    const again = was
-      ? papers.folders.find((one) => !one.away && trail(papers.folders, one.id) === was)
-      : undefined;
-    return again?.id ?? null;
-  };
-
-  const backFrom = (doc: Filed): string | null => {
-    const home = backHome(doc);
-    if (home) return trail(papers.folders, home);
-    const was = doc.folderWas ?? [];
-    return was.length ? was.join(" / ") : null;
-  };
-
-  const madeAgain = async (way: string[]): Promise<string | null> => {
-    let parent: string | null = null;
-    for (const name of way) {
-      const here = papers.folders.find(
-        (one) => !one.away && one.name === name && (one.parent ?? null) === parent,
-      );
-      parent = here ? here.id : await folderAdd(name, parent ?? undefined);
-    }
-    return parent;
-  };
-
-  const putBack = () => {
-    const doc = backing;
-    if (!doc) return;
-    setBacking(null);
-    const home = backHome(doc);
-    const lands = (): Promise<string | null> =>
-      backTo === "none"
-        ? Promise.resolve(null)
-        : backTo !== "same"
-          ? Promise.resolve(backTo)
-          : home
-            ? Promise.resolve(home)
-            : doc.folderWas?.length
-              ? madeAgain(doc.folderWas)
-              : Promise.resolve(null);
-    docAway(doc.id, false)
-      .then(lands)
-      .then((folder) =>
-        folder === (doc.folder ?? null) ? undefined : docFile(doc.id, folder ?? undefined),
-      )
-      .then(papersChanged)
-      .catch((e) => setError(saidPlainly(e)));
-  };
-
   const roomBelow = here != null && deep(papers.folders, here) < DEEPEST;
-  const openDoc = (paper: string) => {
-    if (papers.docs.some((one) => one.file === paper)) {
-      return setChosen({ named: "docs", doc: paper });
-    }
-    docs()
-      .then((found) => {
-        setPapers((was) => steady(was, found ?? { folders: [], docs: [] }));
-        if (found?.docs.some((one) => one.file === paper)) {
-          setChosen({ named: "docs", doc: paper });
-        } else {
-          void noteTrouble("goneDoc", paper);
-          setError(t("goneDoc"));
-        }
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  };
-
   const told = useCallback((problem: unknown) => setError(saidPlainly(problem)), []);
 
-  const caught = useRef(false);
-  const lookPapers = useCallback(() => {
-    docs()
-      .then((found) => {
-        const now = found ?? { folders: [], docs: [] };
-        setPapers((was) => steady(was, now));
-        if (caught.current || now.docs.every((one) => one.told !== false)) return;
-        caught.current = true;
-        return docsCatchUp()
-          .then((all) => {
-            setPapers((was) => steady(was, { folders: was.folders, docs: all }));
-            if (all.some((one) => one.told === false && !one.gone)) caught.current = false;
-          })
-          .catch(() => {
-            caught.current = false;
-          });
-      })
-      .catch(() => {});
-  }, []);
-  useEffect(lookPapers, [lookPapers]);
   const [held, setHeld] = useState<Task | undefined>();
   const acted = useRef<string | null>(null);
   const [greet, setGreet] = useState(false);
@@ -589,228 +124,50 @@ export default function App() {
   const [offering, setOffering] = useState(false);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const [settling, setSettling] = useState(true);
-  const [stuck, setStuck] = useState(false);
-  const [torn, setTorn] = useState<{
-    named: string;
-    rifts: Rift[];
-    answer: (picks: Pick[] | null) => void;
-  } | null>(null);
+  const [torn, setTorn] = useState<Torn | null>(null);
 
   useEffect(() => {
     decidesByBlock((named, rifts) => new Promise((answer) => setTorn({ named, rifts, answer })));
     return () => decidesByBlock(null);
   }, []);
   const dismiss = useCallback(() => setCaptured(undefined), []);
-  const carries = useRef<ReturnType<typeof carrying>>(null);
-  const paging = useRef<((page: Filed) => boolean) | null>(null);
-  const wasAwry = useRef<string | null>(null);
 
-  const papersChanged = useCallback(() => {
-    lookPapers();
-    carries.current?.changed();
-  }, [lookPapers]);
+  const parcels = useParcels({ afoot, setAfoot, setError, noted, said, papersChanged });
 
-  useEffect(() => {
-    /// A slow answer must not open a strip over the view the person moved on to.
-    asked.current += 1;
-    setAsking(null);
-  }, [chosen]);
-
+  const { asking, marking, strip } = useMarking({
+    chosen,
+    act: (work) => act(work),
+    say,
+    setError,
+    lookForAStar: () => lookForAStar(),
+  });
   const { reach, further } = useReach(chosen);
-  const load = useCallback(() => {
-    snapshot(asView(seen, reach))
-      .then((fresh) => {
-        adopt(fresh.locale);
-        knowAgents(fresh.agents, {
-          tag: fresh.agent_tag,
-          hosts: fresh.hosts,
-          machines: fresh.machines,
-          here: fresh.machine_here,
-          clients: fresh.clients,
-        });
-        setData(fresh);
-        acted.current = null;
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  }, [seen, reach]);
+  const { data, load, latest, settling, stuck, setStuck } = useSnapshot({
+    seen,
+    reach,
+    acted,
+    setError,
+  });
+  useOnlyAlive(data?.lists, chosen, setChosen);
 
-  useEffect(() => {
-    settleIn()
-      .then((done) => {
-        if (done.stuck) {
-          const apart = done.stuck.code === "wouldReset" || done.stuck.code === "otherStore";
-          setError(apart ? t("stuckApart") : saidPlainly(done.stuck));
-          setStuck(apart);
-        }
-        return done.brought && latest.current();
-      })
-      .catch((problem) => setError(saidPlainly(problem)))
-      .finally(() => setSettling(false));
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const latest = useRef(load);
-  latest.current = load;
-  const papersAgain = useRef(lookPapers);
-  papersAgain.current = lookPapers;
-
-  useEffect(() => {
-    const again = () => {
-      latest.current();
-      papersAgain.current();
-    };
-    const shownAgain = () => {
-      if (document.visibilityState === "visible") again();
-    };
-    window.addEventListener("focus", again);
-    document.addEventListener("visibilitychange", shownAgain);
-    return () => {
-      window.removeEventListener("focus", again);
-      document.removeEventListener("visibilitychange", shownAgain);
-    };
-  }, []);
-
-  useEffect(() => {
-    let day = new Date().getDate();
-    const turned = setInterval(() => {
-      const now = new Date().getDate();
-      if (now === day) return;
-      day = now;
-      latest.current();
-    }, TURNS_OVER);
-    return () => clearInterval(turned);
-  }, []);
-  const papersNow = useRef(papers.docs);
-  papersNow.current = papers.docs;
-  useEffect(() => {
-    const carrier = carrying(
-      () => {
-        setCarried((was) => was + 1);
-        latest.current();
-        papersAgain.current();
-      },
-      (ids) => {
-        decideAll(ids)
-          .then((shut) => {
-            if (!shut.length) return;
-            const named = shut
-              .map((one) => papersNow.current.find((doc) => doc.file === one))
-              .map((one) => `«${one?.title?.trim() || t("untitledDoc")}»`)
-              .join(", ");
-            setError(fill("someLockedAtOdds", named));
-          })
-          .catch((problem) => setError(saidPlainly(problem)))
-          .finally(() => latest.current());
-      },
-      (why) => {
-        const now = why?.why ?? null;
-        if (now === wasAwry.current) return;
-        wasAwry.current = now;
-        if (why?.why === "broke" || why?.why === "amiss") {
-          setNote(why.said);
-          setTimeout(() => setNote(null), 6000);
-        }
-      },
-    );
-    carries.current = carrier;
-    return () => carrier.stop();
-  }, []);
-
-  useEffect(() => {
-    syncState()
-      .then((state) => setGreet(!state.asked))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const off = listen("parting", () => {
-      void settled().finally(() => void parted());
-    });
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, []);
-
-  useEffect(() => {
-    const off = listen<Underway>("updating", (said) => setUnderway(said.payload));
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!returning) return;
-    document.querySelector<HTMLElement>(`[data-task="${returning}"]`)?.focus();
-    setReturning(null);
-  }, [returning]);
-
-  useEffect(() => {
-    const stop = listen("closing", () => setLeaving(true));
-    const gone = listen("withdrawn", () => {
-      setStarring(false);
-      setOffering(false);
-    });
-    const caught = listen("captured", () => latest.current());
-    // The snapshot carries no documents, so a paper written from outside the window — by an
-    // assistant, or by the terminal — would go unseen until the next launch.
-    const stirred = listen("stirred", () => {
-      latest.current();
-      lookPapers();
-      setCarried((was) => was + 1);
-    });
-    const landed = listen<string>("carried", (far) => {
-      latest.current();
-      if (far.payload === "papers") lookPapers();
-      setCarried((was) => was + 1);
-    });
-    const sound = listen<unknown>("chime", (rung) => {
-      if (heard(rung.payload)) play(rung.payload);
-    });
-    const along = listen<Afoot>("carrying", (step) => {
-      setAfoot((was) => (was ? step.payload : was));
-    });
-    return () => {
-      stop.then((off) => off()).catch(() => {});
-      gone.then((off) => off()).catch(() => {});
-      caught.then((off) => off()).catch(() => {});
-      stirred.then((off) => off()).catch(() => {});
-      landed.then((off) => off()).catch(() => {});
-      sound.then((off) => off()).catch(() => {});
-      along.then((off) => off()).catch(() => {});
-    };
-  }, [lookPapers]);
-
-  const where = useRef(chosen);
-  where.current = chosen;
-
-  useEffect(() => {
-    setStarring(false);
-    setOffering(false);
-  }, [chosen]);
-
-  useEffect(() => {
-    doorDue()
-      .then((due) => setOffering((was) => was || due))
-      .catch(() => {});
-  }, [greeted]);
-
-  useEffect(
-    () =>
-      whenFilesLand((target, paths, at) => {
-        setError(null);
-        Promise.all(paths.map((one) => attach(one, undefined, where.current.named === "docs")))
-          .then((written) => {
-            const put = handTo(target, written.join("\n\n"), at);
-            if (!put) setError(t("attachmentLost"));
-          })
-          .catch((e) => setError(saidPlainly(e)));
-      }),
-    [],
-  );
+  useListening({
+    latest,
+    lookPapers,
+    docs: papers.docs,
+    chosen,
+    greeted,
+    returning,
+    setReturning,
+    setCarried,
+    setError,
+    noted,
+    carries,
+    setGreet,
+    setLeaving,
+    setStarring,
+    setOffering,
+    setAfoot,
+  });
 
   if (!data) {
     return (
@@ -837,404 +194,68 @@ export default function App() {
       )
     : [];
 
-  const outside =
-    chosen.named === "docs" || chosen.named === "keeping" || chosen.named === "aboutScreen";
-  const sheet = open && !outside && (mode === "sheet" || tight);
-  const beside = open && !outside && !sheet;
-  const aside =
-    (chosen.named === "tasks" || chosen.named === "tags" || chosen.list !== undefined) && !sheet;
-  const quiet =
-    !asking &&
-    !greet &&
-    !open &&
-    !leaving &&
-    !torn &&
-    !afoot &&
-    !error &&
-    !whoFor &&
-    !movingTo &&
-    !locked;
-  const papered =
-    chosen.named === "tasks" ||
-    chosen.named === "tags" ||
-    chosen.named === "archive" ||
-    chosen.named === "lists" ||
-    chosen.named === "spread" ||
-    chosen.list !== undefined ||
-    sheet;
-  const lane =
-    chosen.named === "spread"
-      ? ""
-      : beside
-        ? aside
-          ? "@min-[964px]:pr-[404px] @min-[1536px]:pr-[716px]"
-          : "@min-[964px]:pr-[404px]"
-        : aside
-          ? "@min-[884px]:pr-[324px]"
-          : "";
+  const { sheet, beside, aside, quiet, papered, lane } = layoutOf({
+    chosen,
+    open,
+    mode,
+    tight,
+    calm: !asking && !greet && !leaving && !torn && !afoot && !error && !parcels.asking,
+  });
 
   const remember = (next: Mode) => {
     localStorage.setItem("detail", next);
     setMode(next);
   };
 
-  const wipe = (task: Task) => {
-    const entries = task.volume?.journal ?? 0;
-    const sure = entries
-      ? `${fill("eraseSure", task.title)} ${fill("eraseWritten", String(entries))}`
-      : fill("eraseSure", task.title);
-    ask(sure, { kind: "warning" })
-      .then((yes) => {
-        if (!yes) return;
-        setError(null);
-        return erase(task.id).then(() => {
-          setSelected(undefined);
-          setFound(null);
-          say(t("erased"));
-          load();
-          carries.current?.changed();
-        });
-      })
-      .catch((e) => setError(saidPlainly(e)));
-  };
+  const wipe = (task: Task) =>
+    erasing(task, {
+      clear: () => setError(null),
+      gone: () => {
+        setSelected(undefined);
+        setFound(null);
+        say(t("erased"));
+        load();
+        carries.current?.changed();
+      },
+      fail: (e) => setError(saidPlainly(e)),
+    });
 
-  const marking = (id: string, title: string) => {
-    setError(null);
-    const mine = ++asked.current;
-    owed(id)
-      .then((days) => {
-        // A slow answer must not open a strip over the task the person moved on to.
-        if (mine !== asked.current) return;
-        if (!days.length) {
-          say(fill("saidDone", title));
-          act(complete(id));
-          lookForAStar();
-          return;
-        }
-        setAsking({ id, title, days });
-      })
-      .catch((e) => setError(saidPlainly(e)));
+  const hands: Hands = {
+    papers,
+    showing,
+    newDoc,
+    bringIn,
+    makeFolder: () => setMakingFolder(true),
+    makeFolderIn: (folder) => {
+      setHere(folder);
+      setMakingFolder(true);
+    },
+    rename: setRenaming,
+    parcels,
+    changed: papersChanged,
+    fail: (e) => setError(saidPlainly(e)),
+    failWith: setError,
+    noted: (text) => noted(text),
+    open: (doc) => setChosen({ named: "docs", doc }),
+    dropFolder,
+    dropDoc,
+    bringBack,
+    hangIt,
   };
-
-  const strip = asking ? (
-    <Owed
-      days={asking.days}
-      onConfirm={(days) => {
-        say(fill("saidDone", asking.title));
-        act(complete(asking.id, days));
-        setAsking(null);
-        lookForAStar();
-      }}
-    />
-  ) : null;
 
   const hereMenu = (at: { x: number; y: number }) =>
-    setMenu({
-      at,
-      label: t("docsActions"),
-      choices: [
-        { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => newDoc(undefined) },
-        {
-          key: "newFolder",
-          icon: "+",
-          label: t("newFolder"),
-          onPick: () => setMakingFolder(true),
-        },
-        {
-          key: "import",
-          icon: "↧",
-          label: t("importDoc"),
-          apart: true,
-          onPick: () => bringIn(undefined),
-        },
-        { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
-        {
-          key: "packAll",
-          icon: "⇪",
-          label: t("packAll"),
-          onPick: () => packUp([], "tisty"),
-        },
-        { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
-      ],
-    });
+    setMenu({ at, label: t("docsActions"), choices: hereChoices(hands) });
 
   const folderMenu = (folder: Folded, at: { x: number; y: number }) =>
     setMenu({
       at,
       on: folder.id,
       label: t("folderActions"),
-      choices: [
-        {
-          key: "newDoc",
-          icon: "+",
-          label: t("newDoc"),
-          off: folder.away,
-          onPick: () => newDoc(folder.id),
-        },
-        {
-          key: "newFolder",
-          icon: "+",
-          label: t("newFolder"),
-          off: folder.away || deep(papers.folders, folder.id) >= DEEPEST,
-          onPick: () => {
-            setHere(folder.id);
-            setMakingFolder(true);
-          },
-        },
-        {
-          key: "rename",
-          icon: "✎",
-          label: t("rename"),
-          off: folder.away,
-          apart: true,
-          onPick: () => setRenaming(folder),
-        },
-        {
-          key: "move",
-          icon: "⇢",
-          label: t("moveTo"),
-          off: folder.away,
-          into: {
-            label: t("moveHere"),
-            choices: destinations(
-              papers.folders,
-              folder.id,
-              (parent) =>
-                folderFile(folder.id, parent)
-                  .then(papersChanged)
-                  .catch((e) => setError(saidPlainly(e))),
-              folder,
-            ),
-          },
-        },
-        {
-          key: "import",
-          icon: "↧",
-          label: t("importDoc"),
-          off: folder.away,
-          onPick: () => bringIn(folder.id),
-        },
-        {
-          key: "unpack",
-          icon: "↧",
-          label: t("unpackIt"),
-          off: folder.away,
-          onPick: () => takeParcel(),
-        },
-        { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
-        { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
-        {
-          // Only the folder that was shelved answers for itself; one below it comes back with it.
-          key: "away",
-          icon: folder.archived ? "▢" : "▣",
-          label: folder.archived ? t("bringBack") : t("putAway"),
-          off: folder.away && !folder.archived,
-          apart: true,
-          onPick: () =>
-            folderAway(folder.id, !folder.archived)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "drop",
-          icon: "✕",
-          label: t("deleteIt"),
-          off: folder.away,
-          danger: true,
-          apart: true,
-          onPick: () => dropFolder(folder),
-        },
-      ],
+      choices: folderChoices(folder, hands),
     });
-
-  const hangIt = async (doc: string, pageOf: string) => {
-    const named = (id: string) =>
-      papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
-    if (!(await ask(fill("pageOfSure", named(doc), named(pageOf)), { kind: "warning" }))) return;
-    const under = papers.docs.find((one) => one.id === pageOf);
-    const page = papers.docs.find((one) => one.id === doc);
-    docPage(doc, pageOf)
-      .then(() => {
-        // The line goes in through the editor that holds the book, so its own save carries it and
-        // nothing is written behind it. A book that is not open leaves the page in the loose half.
-        if (page && under && chosen.doc === under.file) {
-          const put = paging.current;
-          if (!put) setError(t("leafWaitsInIndex"));
-          else if (put(page) === false) setError(t("leafNeedsTitle"));
-        }
-      })
-      .then(papersChanged)
-      .catch((e) => setError(saidPlainly(e)));
-  };
-
-  const byAnother = (doc: Filed) => doc.away && !doc.archived;
 
   const docMenu = (doc: Filed, at: { x: number; y: number }) =>
-    setMenu({
-      at,
-      on: doc.id,
-      label: t("docActions"),
-      choices: [
-        {
-          key: "newPage",
-          icon: "+",
-          label: t("newPage"),
-          off: doc.away || !!doc.pageOf,
-          onPick: () => newDoc(undefined, doc.id),
-        },
-        {
-          key: "pageOf",
-          icon: "⇥",
-          label: t("pageOf"),
-          off:
-            doc.away ||
-            doc.locked ||
-            !!doc.pageOf ||
-            papers.docs.some((one) => one.pageOf === doc.id),
-          into: {
-            label: t("pageOfWhich"),
-            choices: papers.docs
-              .filter((one) => one.id !== doc.id && !one.pageOf && !one.away && !one.locked)
-              .map((one) => ({
-                key: one.id,
-                icon: "▤",
-                label: one.title || t("untitledDoc"),
-                onPick: () => hangIt(doc.id, one.id),
-              })),
-          },
-        },
-        {
-          key: "ownDoc",
-          icon: "⇤",
-          label: t("ownDoc"),
-          off: !doc.pageOf || byAnother(doc),
-          onPick: () =>
-            docPage(doc.id)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "move",
-          icon: "⇢",
-          label: t("moveTo"),
-          off: byAnother(doc) || !!doc.pageOf,
-          into: {
-            label: t("moveHere"),
-            choices: destinations(papers.folders, doc.folder, (folder) =>
-              docFile(doc.id, folder)
-                .then(papersChanged)
-                .catch((e) => setError(saidPlainly(e))),
-            ),
-          },
-        },
-        {
-          key: "asPlain",
-          icon: "⌘",
-          label: t("copyPlain"),
-          apart: true,
-          onPick: () =>
-            asPlain(doc.file)
-              .then(() => {
-                setNote(t("copied"));
-                setTimeout(() => setNote(null), SHOWN);
-              })
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "takeOut",
-          icon: "⇪",
-          label: t("takeOut"),
-          onPick: () =>
-            pick({ directory: true })
-              .then((at) => (typeof at === "string" ? docExport(doc.file, at) : null))
-              .then((took) => {
-                if (took === null) return;
-                if (took.missed > 0) {
-                  setError(
-                    took.missed === 1 ? t("takenShort") : fill("takenShorter", String(took.missed)),
-                  );
-                  return;
-                }
-                if (took.left > 0) {
-                  setError(
-                    took.left === 1 ? t("takenLess") : fill("takenLesser", String(took.left)),
-                  );
-                  return;
-                }
-                setNote(took.files ? fill("takenOut", String(took.files)) : t("takenOutAlone"));
-                setTimeout(() => setNote(null), SHOWN);
-              })
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "packIt",
-          icon: "⇪",
-          label: t("packIt"),
-          onPick: () => packUp([doc.file], doc.title || doc.file),
-        },
-        {
-          key: "seePdf",
-          icon: "▤",
-          label: t("seePdf"),
-          off: showing !== doc.file,
-          onPick: () => window.dispatchEvent(new CustomEvent("tisty:see-pdf")),
-        },
-        {
-          key: "asPdf",
-          icon: "⇩",
-          label: t("toPdf"),
-          off: showing !== doc.file,
-          onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
-        },
-        {
-          key: "copy",
-          icon: "⧉",
-          label: t("duplicate"),
-          apart: true,
-          onPick: () =>
-            docCopy(doc.id)
-              .then((made) => {
-                papersChanged();
-                if (!doc.away) setChosen({ named: "docs", doc: made.id });
-              })
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          key: "lock",
-          icon: doc.locked ? "◉" : "○",
-          label: doc.locked ? t("unlockIt") : t("lockIt"),
-          off: !!doc.pageOf || byAnother(doc),
-          apart: true,
-          onPick: () =>
-            docLock(doc.id, !doc.locked)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e))),
-        },
-        {
-          // What the folder put away has no door of its own: only the folder comes back, and
-          // its own mark is what it recovers when it does.
-          key: "away",
-          icon: doc.archived ? "▢" : "▣",
-          label: doc.archived ? t("bringBack") : t("putAway"),
-          off: byAnother(doc),
-          apart: true,
-          onPick: () => {
-            if (doc.archived) return bringBack(doc);
-            docAway(doc.id, true)
-              .then(papersChanged)
-              .catch((e) => setError(saidPlainly(e)));
-          },
-        },
-        {
-          key: "drop",
-          icon: "✕",
-          label: t("deleteIt"),
-          off: doc.locked || byAnother(doc),
-          danger: true,
-          onPick: () => dropDoc(doc),
-        },
-      ],
-    });
+    setMenu({ at, on: doc.id, label: t("docActions"), choices: docChoices(doc, hands) });
 
   const act = (work: Promise<Task>) => {
     setError(null);
@@ -1263,496 +284,107 @@ export default function App() {
   };
 
   const wholes = { ...found?.wholes, ...data.wholes };
-  const detailing = (one: Task) => ({
-    task: one,
-    lists: data.every ?? data.lists,
-    known: data.tags.map((tag) => tag.tag),
-    onPatch: (change: Change) => act(patch(one.id, change)),
-    onStep: (text: string, step?: string) => act(writeStep(one.id, text, step)),
-    onMark: (step: string, done: boolean) => act(markStep(one.id, step, done)),
-    onDropStep: (step: string) => act(dropStep(one.id, step)),
-    onLog: (body: string, entry?: string) => act(writeLog(one.id, body, entry)),
-    onComplete: () => {
-      marking(one.id, one.title);
-      setSelected(undefined);
-    },
-    onDiscard: () => {
-      act(discard(one.id));
-      setSelected(undefined);
-    },
-    onReopen: () => act(reopen(one.id)),
-    onStillOpen: () => act(stillOpen(one.id)),
-    onErase: () => wipe(one),
-    onFold: (away: boolean) => act(fold(one.id, away)),
-    onReadAs: (how: "story" | "trace") => act(readAs(one.id, how)),
-    onOpenToAgents: (open: boolean) => act(openToAgents(one.id, open)),
-    onClose: shut,
-    onError: (e: unknown) => setError(saidPlainly(e)),
-    onDoc: openDoc,
-    whole: wholes[one.id],
-    partOf: one.part_of ? wholes[one.part_of]?.title : undefined,
-    onAddPart: (title: string) => act(addPart(one.id, title).then(() => taskOf(one.id))),
-    onOpenPart: (id: string) => taskOf(id).then(opening, (e) => setError(saidPlainly(e))),
-    onCompletePart: (id: string, title: string) => {
-      say(fill("saidDone", title));
-      act(complete(id).then(() => taskOf(one.id)));
-    },
-    onHang: (whole: string | null) => act(hang(one.id, whole)),
-    onStepToPart: (step: string) => act(stepToPart(one.id, step)),
-  });
+  const detailing = (one: Task) =>
+    detailOf(one, {
+      data,
+      wholes,
+      act,
+      marking,
+      wipe,
+      shut,
+      close: () => setSelected(undefined),
+      openDoc,
+      opening,
+      say,
+      fail: (e) => setError(saidPlainly(e)),
+    });
 
   const opening = (one: Task) => {
     setHeld(one);
     setSelected(one.id);
   };
 
-  const lockAndPack = () => {
-    if (movingTo === null || number.length < HOW_MANY) return;
-    const named = movingTo;
-    const said = number;
-    setMovingTo(null);
-    setNumber("");
-    void packing([], named, said);
-  };
-
-  const openLocked = () => {
-    if (locked === null || number.length < HOW_MANY) return;
-    const at = locked;
-    const said = number;
-    setLocked(null);
-    setNumber("");
-    void landing(at, said);
-  };
+  const board = (
+    <Board
+      act={act}
+      asking={asking}
+      byList={byList}
+      cameFrom={cameFrom}
+      captured={captured}
+      chosen={chosen}
+      data={data}
+      found={found}
+      further={further}
+      load={load}
+      marking={marking}
+      openDoc={openDoc}
+      reveal={reveal}
+      say={say}
+      seen={seen}
+      selected={selected}
+      setCameFrom={setCameFrom}
+      setCaptured={setCaptured}
+      setChosen={setChosen}
+      setError={setError}
+      setFound={setFound}
+      setSelected={setSelected}
+      shown={shown}
+      strip={strip}
+      taggedDocs={taggedDocs}
+      wholes={wholes}
+    />
+  );
 
   return (
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
 
-      {backing !== null && (
-        <Modal
-          title={fill("backWhere", backing.title || t("untitledDoc"))}
-          onClose={() => setBacking(null)}
-        >
-          <p id="back-why" className="mt-3 text-[12.5px] leading-relaxed text-soft">
-            {backFrom(backing) === null
-              ? t("backFromNowhere")
-              : fill(backHome(backing) ? "backFrom" : "backFromGone", backFrom(backing) as string)}
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              putBack();
-            }}
-          >
-            <fieldset
-              aria-describedby="back-why"
-              className="scroller mt-4 flex max-h-[248px] flex-col gap-0.5"
-            >
-              <legend className="sr-only">{t("backWhere").replace("{name}", "")}</legend>
-              <Where
-                name="where-back"
-                value="same"
-                chosen={backTo}
-                onPick={setBackTo}
-                label={
-                  backFrom(backing) === null
-                    ? t("backToNone")
-                    : backHome(backing)
-                      ? fill("backToSame", backFrom(backing) as string)
-                      : fill("backToMade", (backing.folderWas ?? []).join(" / "))
-                }
-                hint={backFrom(backing) === null ? t("backWasHere") : undefined}
-              />
-              {backFrom(backing) !== null && (
-                <Where
-                  name="where-back"
-                  value="none"
-                  chosen={backTo}
-                  onPick={setBackTo}
-                  label={t("backToNone")}
-                  hint={t("backAtRoot")}
-                />
-              )}
-              {papers.folders.some((one) => !one.away && one.id !== backHome(backing)) && (
-                <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
-                  <input
-                    type="radio"
-                    name="where-back"
-                    value="other"
-                    checked={backTo !== "same" && backTo !== "none"}
-                    onChange={() => {
-                      const first = papers.folders.find(
-                        (one) => !one.away && one.id !== backHome(backing),
-                      );
-                      if (first) setBackTo(first.id);
-                    }}
-                    className="accent-accent"
-                  />
-                  <span className="shrink-0">{t("backToOther")}</span>
-                  <select
-                    value={backTo !== "same" && backTo !== "none" ? backTo : ""}
-                    onChange={(e) => setBackTo(e.target.value)}
-                    className="ml-auto min-w-0 max-w-[60%] truncate rounded-md border border-line bg-bg px-2 py-1 text-[12.5px] text-ink"
-                  >
-                    <option value="" disabled>
-                      {t("backToOther")}
-                    </option>
-                    {papers.folders
-                      .filter((one) => !one.away && one.id !== backHome(backing))
-                      .map((one) => (
-                        <option key={one.id} value={one.id}>
-                          {trail(papers.folders, one.id)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              )}
-            </fieldset>
-            <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-              <button
-                type="button"
-                onClick={() => setBacking(null)}
-                className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-              >
-                {t("cancel")}
-              </button>
-              <button
-                type="submit"
-                className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
-              >
-                {t("bringBack")}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {whoFor !== null && (
-        <Modal title={t("packWho")} onClose={() => setWhoFor(null)}>
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("packWhoWhy")}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => setWhoFor(null)}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const named = whoFor;
-                setWhoFor(null);
-                void packing([], named);
-              }}
-              className="cursor-pointer rounded-[10px] border border-line px-3 py-1.5 text-ink hover:bg-line/40"
-            >
-              {t("packToShare")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setNumber("");
-                setMovingTo(whoFor);
-                setWhoFor(null);
-              }}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
-            >
-              {t("packToMove")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {movingTo !== null && (
-        <Modal
-          title={t("packToMove")}
-          onClose={() => {
-            setMovingTo(null);
-            setNumber("");
-          }}
-        >
-          <p className="mt-3 text-[12.5px] text-soft">{t("packNumber")}</p>
-          <Digits
-            label={t("packNumber")}
-            value={number}
-            onChange={setNumber}
-            onDone={lockAndPack}
-          />
-          <p className="mt-3 text-[11.5px] leading-relaxed text-faint">{t("packNumberWhy")}</p>
-          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => {
-                setMovingTo(null);
-                setNumber("");
-              }}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              disabled={number.length < HOW_MANY}
-              onClick={lockAndPack}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("packLockIt")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {locked !== null && (
-        <Modal
-          title={t("parcelShut")}
-          onClose={() => {
-            setLocked(null);
-            setNumber("");
-          }}
-        >
-          <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("parcelLocked")}</p>
-          <p className="mt-4 text-[12.5px] text-soft">{t("openNumber")}</p>
-          <Digits
-            label={t("openNumber")}
-            value={number}
-            onChange={(said) => {
-              setWrong(false);
-              setNumber(said);
-            }}
-            onDone={openLocked}
-          />
-          {wrong && (
-            <p role="alert" className="mt-3 text-[11.5px] text-urgent">
-              {t("wrongNumber")}
-            </p>
-          )}
-          <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
-            <button
-              type="button"
-              onClick={() => {
-                setLocked(null);
-                setNumber("");
-              }}
-              className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              disabled={number.length < HOW_MANY}
-              onClick={openLocked}
-              className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg disabled:opacity-60"
-            >
-              {t("openLocked")}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      <p role="status" aria-live="polite" className="sr-only">
-        {aloud}
-      </p>
-
-      {torn && (
-        <Rifts
-          named={torn.named}
-          rifts={torn.rifts}
-          onDone={(picks) => {
-            torn.answer(picks);
-            setTorn(null);
-          }}
-          onClose={() => {
-            torn.answer(null);
-            setTorn(null);
-          }}
-        />
-      )}
-
-      {error && (
-        <div
-          role="alert"
-          className="shadow-lift fixed inset-x-0 top-11 z-[60] mx-auto flex w-fit max-w-[70%] items-start gap-2.5 rounded-[10px] border border-urgent/40 bg-bg px-3.5 py-2 text-[12.5px] leading-snug text-urgent"
-        >
-          <span className="select-text">{error}</span>
-          {stuck && (
-            <button
-              type="button"
-              onClick={() => {
-                setStuck(false);
-                setError(null);
-                setChosen({ named: "keeping" });
-              }}
-              className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
-            >
-              {t("stuckTakeMe")}
-            </button>
-          )}
-          {behind && ready?.installs && (
-            <button
-              type="button"
-              disabled={!!underway}
-              onClick={() => {
-                setUnderway({ stage: "getting", far: 0 });
-                updateInstall().catch((problem) => {
-                  setUnderway(null);
-                  setError(saidPlainly(problem));
-                  if (offerMoved(problem)) {
-                    updateReady(true)
-                      .then(setReady)
-                      .catch(() => {});
-                  }
-                });
-              }}
-              className="shrink-0 rounded-md border border-urgent/40 px-1.5 py-0.5 hover:bg-urgent/10"
-            >
-              {t(
-                underway
-                  ? ready?.route === "store"
-                    ? "updateInstallingStore"
-                    : "updateInstalling"
-                  : "updateInstall",
-              )}
-            </button>
-          )}
-          <button
-            type="button"
-            aria-label={t("close")}
-            onClick={() => {
-              setError(null);
-              setBehind(false);
-            }}
-            className="-mr-1 shrink-0 rounded-md px-1 hover:bg-urgent/10"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {settling && !error && (
-        <p className="pointer-events-none fixed inset-x-0 top-11 z-[60] mx-auto w-fit rounded-md bg-accent-soft px-3 py-1.5 text-[11.5px] text-accent">
-          {t("settlingIn")}
-        </p>
-      )}
-
-      {note && !error && !afoot && (
-        <p
-          role="status"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-fit -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-[11.5px] text-ink shadow-xl"
-        >
-          {note}
-        </p>
-      )}
-
-      {afoot && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="pointer-events-none fixed bottom-5 left-1/2 z-[60] w-64 -translate-x-1/2 rounded-[10px] border border-hair bg-rail px-3.5 py-2 text-[11.5px] text-ink shadow-xl"
-        >
-          <span className="block">
-            {fill(`${afoot.stage}On` as Word, afoot.far ? `${afoot.far} %` : "").trim()}
-          </span>
-          <span className="mt-0.5 block text-[11.5px] text-soft">{t("aWhileYet")}</span>
-          <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-desk">
-            <span
-              className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
-              style={{ width: `${afoot.far}%` }}
-            />
-          </span>
-        </p>
-      )}
-
-      {leaving && (
-        <Closing onDismiss={() => setLeaving(false)} onError={(e) => setError(saidPlainly(e))} />
-      )}
-
-      {makingFolder && (
-        <Naming
-          title={
-            roomBelow
-              ? fill("newFolderIn", papers.folders.find((one) => one.id === here)?.name ?? "")
-              : t("newFolder")
-          }
-          invite={t("folderName")}
-          most={FOLDER_NAME_AT_MOST}
-          onClose={() => setMakingFolder(false)}
-          onName={(name, icon, colour) =>
-            folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon, colour)
-              .then(() => {
-                setMakingFolder(false);
-                papersChanged();
-              })
-              .catch((e) => setError(saidPlainly(e)))
-          }
-        />
-      )}
-
-      {renaming && (
-        <Naming
-          title={t("renameIt")}
-          invite={t("folderName")}
-          most={FOLDER_NAME_AT_MOST}
-          called={renaming.name}
-          drawn={renaming.icon ?? undefined}
-          painted={renaming.color ?? undefined}
-          action={t("renameIt")}
-          onClose={() => setRenaming(null)}
-          onName={(name, icon, colour) =>
-            Promise.all([
-              folderRename(renaming.id, name),
-              icon === (renaming.icon ?? undefined) && colour === (renaming.color ?? undefined)
-                ? Promise.resolve()
-                : folderLook(renaming.id, icon, colour),
-            ])
-              .then(() => {
-                setRenaming(null);
-                papersChanged();
-              })
-              .catch((e) => setError(saidPlainly(e)))
-          }
-        />
-      )}
-
-      {menu && (
-        <Menu
-          at={menu.at}
-          choices={menu.choices}
-          label={menu.label}
-          onClose={() => setMenu(null)}
-        />
-      )}
-
-      {greet && (
-        <Welcome
-          onDone={(paper) => {
-            setGreet(false);
-            setGreeted((n) => n + 1);
-            load();
-            lookPapers();
-            carries.current?.recheck();
-            if (paper) openDoc(paper);
-          }}
-        />
-      )}
-
-      {captured && (
-        <Notice
-          key={captured.id}
-          task={captured}
-          lists={data.lists}
-          elsewhere={!data.tasks.some((one) => one.id === captured.id)}
-          onOpen={() => {
-            if (!data.tasks.some((one) => one.id === captured.id)) {
-              setChosen({ named: "tasks", slice: "all" });
-            }
-            opening(captured);
-            setReveal(captured.id);
-            dismiss();
-          }}
-          onDismiss={dismiss}
-        />
-      )}
+      <Layers
+        afoot={afoot}
+        aloud={aloud}
+        backing={backing}
+        behind={behind}
+        captured={captured}
+        carries={carries}
+        data={data}
+        dismiss={dismiss}
+        error={error}
+        greet={greet}
+        here={here}
+        leaving={leaving}
+        load={load}
+        lookAgain={lookAgain}
+        lookPapers={lookPapers}
+        makingFolder={makingFolder}
+        menu={menu}
+        note={note}
+        openDoc={openDoc}
+        opening={opening}
+        papers={papers}
+        papersChanged={papersChanged}
+        parcels={parcels.shown}
+        ready={ready}
+        renaming={renaming}
+        roomBelow={roomBelow}
+        setBacking={setBacking}
+        setBehind={setBehind}
+        setChosen={setChosen}
+        setError={setError}
+        setGreet={setGreet}
+        setGreeted={setGreeted}
+        setLeaving={setLeaving}
+        setMakingFolder={setMakingFolder}
+        setMenu={setMenu}
+        setRenaming={setRenaming}
+        setReveal={setReveal}
+        setStuck={setStuck}
+        setTorn={setTorn}
+        setUnderway={setUnderway}
+        settling={settling}
+        stuck={stuck}
+        torn={torn}
+        underway={underway}
+      />
 
       <Sidebar
         lists={data.lists}
@@ -1781,34 +413,7 @@ export default function App() {
         onDocMenu={docMenu}
         onHereMenu={hereMenu}
         onDocsMenu={(at) =>
-          setMenu({
-            at,
-            label: t("docsActions"),
-            choices: [
-              {
-                key: "newDoc",
-                icon: "+",
-                label: t("newDoc"),
-                onPick: () => newDoc(here ?? undefined),
-              },
-              {
-                key: "newFolder",
-                icon: "+",
-                label: t("newFolder"),
-                onPick: () => setMakingFolder(true),
-              },
-              {
-                key: "import",
-                icon: "↧",
-                label: t("importDoc"),
-                apart: true,
-                onPick: () => bringIn(here ?? undefined),
-              },
-              { key: "unpack", icon: "↧", label: t("unpackIt"), onPick: () => takeParcel() },
-              { key: "packAll", icon: "⇪", label: t("packAll"), onPick: () => packUp([], "tisty") },
-              { key: "takeOutAll", icon: "⇪", label: t("takeOutAll"), onPick: () => takeOutAll() },
-            ],
-          })
+          setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
         }
         onChoose={(next) => {
           setChosen(next);
@@ -1828,428 +433,70 @@ export default function App() {
           <div
             className={`grid min-h-0 min-w-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden motion-safe:transition-[padding] motion-safe:duration-150 ${lane}`}
           >
-            {chosen.named === "aboutScreen" ? (
-              <About
-                ready={ready}
-                step={underway}
-                onGaveUp={() => setUnderway(null)}
-                onError={(e) => setError(saidPlainly(e))}
-              />
-            ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
-              <Folder
-                folder={standing ?? null}
-                folders={papers.folders}
-                docs={papers.docs}
-                onOpen={(doc) => setChosen({ named: "docs", doc: doc.file })}
-                onHere={(folder) => setHere(folder ?? null)}
-                onMenu={folderMenu}
-                onHereMenu={hereMenu}
-                onDocMenu={docMenu}
-              />
-            ) : chosen.named === "docs" ? (
-              <Docs
-                open={chosen.doc}
-                onPaging={(put) => {
-                  paging.current = put;
-                }}
-                known={papers.docs}
-                folders={papers.folders}
-                onFolder={(id) => {
-                  setHere(id);
-                  setChosen({ named: "docs" });
-                }}
-                onKept={papersChanged}
-                onTag={(tag) => {
-                  setSelected(undefined);
-                  setCameFrom(chosen);
-                  setChosen({ named: "tags", tags: [tag] });
-                }}
-                onError={told}
-                onShown={setShowing}
-                onDoc={openDoc}
-                onOwned={(id) =>
-                  docPage(id)
-                    .then(papersChanged)
-                    .catch((e) => setError(saidPlainly(e)))
-                }
-                onDrop={dropDoc}
-                onBack={bringBack}
-                fresh={carried}
-              />
-            ) : chosen.named === "lists" && !chosen.list ? (
-              <Lists
-                lists={data.every ?? data.lists}
-                counts={data.counts}
-                soonest={data.soonest}
-                onOpen={(id) => setChosen({ named: "lists", list: id })}
-                onChanged={load}
-                onError={(e) => setError(saidPlainly(e))}
-              />
-            ) : chosen.named === "quadrants" && !sheet ? (
-              // One child, one track: a fragment of two would push the board into the next column,
-              // which is nought pixels wide whenever nothing is open beside it.
-              <div className="flex min-w-0 flex-col overflow-hidden">
-                {strip && <div className="shrink-0 px-5 pt-2">{strip}</div>}
-                <Matrix
-                  tasks={data.tasks}
-                  counts={data.counts}
-                  lists={data.lists}
-                  beside={beside}
-                  onPlace={(id, where) => act(patch(id, { priority: where }))}
-                  onOpen={(one) => setSelected(one.id)}
-                  onSow={(where) => {
-                    sow(where).catch((e: unknown) => setError(saidPlainly(e)));
-                  }}
-                  onDiscardAll={(ids) => {
-                    ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
-                      .then((yes) => {
-                        if (!yes) return;
-                        setError(null);
-                        return Promise.all(ids.map((id) => discard(id))).then(() => {
-                          load();
-                          carries.current?.changed();
-                        });
-                      })
-                      .catch((e) => setError(saidPlainly(e)));
-                  }}
-                />
-              </div>
-            ) : chosen.named === "spread" && !sheet ? (
-              <div className="flex min-w-0 flex-col overflow-hidden">
-                <Spread
-                  onCarrying={setDealing}
-                  tasks={data.tasks}
-                  counts={data.counts}
-                  onPlace={(id, on) => act(patch(id, on ? { date: on } : { noDate: true }))}
-                  onOpen={(one) => setSelected(one.id)}
-                />
-              </div>
-            ) : chosen.named === "keeping" ? (
-              <Keeping
-                greeted={greeted}
-                start={chosen.tab}
-                onPack={() => packUp([], "tisty")}
-                onUnpack={takeParcel}
-                onGreet={() => setGreet(true)}
-                onDoc={openDoc}
-                onChanged={() => {
-                  load();
-                  lookPapers();
-                  carries.current?.recheck();
-                  carries.current?.changed();
-                }}
-              />
-            ) : sheet ? (
-              <Detail
-                key={task.id}
-                {...detailing(task)}
-                expanded
-                from={title(chosen, data.lists)}
-                onExpand={() => remember("sheet")}
-                onCollapse={() => (tight ? shut() : remember("columns"))}
-              />
-            ) : (
-              <div className="flex min-w-0">
-                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                  <TaskList
-                    tasks={shown}
-                    lists={data.every ?? data.lists}
-                    wholes={wholes}
-                    title={title(chosen, data.lists)}
-                    when={chosen.named === "tasks" ? todayLong() : undefined}
-                    count={headerCount(chosen, found, data.counts, data.total)}
-                    onBack={
-                      chosen.list
-                        ? () => {
-                            setChosen({ named: "lists" });
-                            setSelected(undefined);
-                          }
-                        : chosen.named === "tags"
-                          ? () => {
-                              setChosen(cameFrom ?? { named: "tasks" });
-                              setCameFrom(null);
-                              setSelected(undefined);
-                            }
-                          : undefined
-                    }
-                    empty={
-                      found?.papers.length && !shown.length
-                        ? t("onlyPapers")
-                        : nothing(seen, found !== null, data.counts.tracesHidden ?? 0)
-                    }
-                    onReach={!found && data.total > data.tasks.length ? further : undefined}
-                    note={
-                      found && found.total > found.tasks.length
-                        ? fill("someOfMany", `${found.tasks.length}/${found.total}`)
-                        : undefined
-                    }
-                    selected={selected}
-                    fresh={captured?.id}
-                    reveal={reveal}
-                    bands={
-                      found !== null ||
-                      chosen.list ||
-                      chosen.named === "tags" ||
-                      chosen.tags?.length
-                        ? undefined
-                        : chosen.named === "archive"
-                          ? "month"
-                          : "day"
-                    }
-                    axis={found === null && chosen.named === "archive" ? chosen.axis : undefined}
-                    dense={
-                      found === null &&
-                      chosen.named === "archive" &&
-                      !chosen.folded &&
-                      chosen.layer === "trace"
-                    }
-                    onSelect={setSelected}
-                    onComplete={
-                      chosen.named === "archive"
-                        ? undefined
-                        : (id) => {
-                            const one = shown.find((task) => task.id === id);
-                            marking(id, one?.title ?? "");
-                            if (id === selected) setSelected(undefined);
-                          }
-                    }
-                    onFold={
-                      chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined
-                    }
-                    closing={asking?.id}
-                    ask={(id) => (asking?.id === id ? strip : null)}
-                    below={
-                      found?.papers.length ? (
-                        <Sightings papers={found.papers} onOpen={openDoc} />
-                      ) : chosen.tags?.length ? (
-                        <Tagged docs={taggedDocs} onOpen={openDoc} />
-                      ) : undefined
-                    }
-                    instead={
-                      chosen.named === "archive" &&
-                      !chosen.folded &&
-                      chosen.layer === "routine" &&
-                      found === null ? (
-                        <Shelf
-                          lists={data.lists}
-                          onOpen={setSelected}
-                          onError={(e) => setError(saidPlainly(e))}
-                        />
-                      ) : undefined
-                    }
-                    above={
-                      chosen.named === "tasks" ? (
-                        <div className="flex gap-1 px-2.5 pb-1">
-                          {SLICES.map((slice) => {
-                            const on = (chosen.slice ?? "today") === slice;
-                            const many = data.counts[slice === "today" ? "tasks" : slice];
-                            return (
-                              <button
-                                key={slice}
-                                type="button"
-                                aria-pressed={on}
-                                onClick={() => {
-                                  setSelected(undefined);
-                                  window.localStorage.setItem("tisty.slice", slice);
-                                  setChosen({ named: "tasks", slice, lists: chosen.lists });
-                                }}
-                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                                  on
-                                    ? "border-ink bg-ink text-bg"
-                                    : "border-line text-faint hover:text-soft"
-                                }`}
-                              >
-                                {t(sliceWord(slice))}
-                                {many ? (
-                                  <span className="ml-1 tabular-nums opacity-70">{many}</span>
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                          <Only
-                            lists={byList ? [] : data.lists}
-                            chosen={chosen.lists ?? []}
-                            onChange={(lists) => {
-                              setSelected(undefined);
-                              window.localStorage.setItem("tisty.only", JSON.stringify(lists));
-                              setChosen({ ...chosen, named: "tasks", lists });
-                            }}
-                          />
-                        </div>
-                      ) : chosen.named === "archive" ? (
-                        <>
-                          {found === null && !chosen.folded && (
-                            <Cover onError={(e) => setError(saidPlainly(e))} />
-                          )}
-                          {found === null && !chosen.folded && (
-                            <Tally counts={data.counts} onError={(e) => setError(saidPlainly(e))} />
-                          )}
-                          <fieldset className="flex flex-wrap items-center gap-1 px-2.5 pb-1">
-                            <legend className="sr-only">{t("archiveShowing")}</legend>
-                            {LAYERS.map((layer) => {
-                              const on = !chosen.folded && (chosen.layer ?? "story") === layer;
-                              const many = data.counts[layerCount(layer)];
-                              return (
-                                <button
-                                  key={layer}
-                                  type="button"
-                                  aria-pressed={on}
-                                  onClick={() => {
-                                    setSelected(undefined);
-                                    setFound(null);
-                                    setChosen({ named: "archive", layer });
-                                  }}
-                                  className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                                    on
-                                      ? "border-ink bg-ink text-bg"
-                                      : "border-line text-faint hover:text-soft"
-                                  }`}
-                                >
-                                  {t(layerWord(layer))}
-                                  {many ? (
-                                    <span className="ml-1 tabular-nums opacity-70">{many}</span>
-                                  ) : null}
-                                </button>
-                              );
-                            })}
-                            {data.counts.folded || chosen.folded ? (
-                              <button
-                                type="button"
-                                aria-pressed={chosen.folded === true}
-                                title={chosen.folded ? t("backToArchive") : undefined}
-                                onClick={() => {
-                                  setSelected(undefined);
-                                  setFound(null);
-                                  setChosen({ named: "archive", folded: !chosen.folded });
-                                }}
-                                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                                  chosen.folded
-                                    ? "border-ink bg-ink text-bg"
-                                    : "border-line text-faint hover:text-soft"
-                                }`}
-                              >
-                                {t("hiddenOnes")}
-                                {data.counts.folded ? (
-                                  <span className="ml-1 tabular-nums opacity-70">
-                                    {data.counts.folded}
-                                  </span>
-                                ) : null}
-                              </button>
-                            ) : null}
-                            {!chosen.folded && (chosen.layer ?? "story") !== "routine" && (
-                              <>
-                                <span className="mx-1.5 h-3.5 w-px bg-hair" />
-                                <Axis
-                                  axis={chosen.axis ?? "time"}
-                                  onChange={(axis) => {
-                                    setSelected(undefined);
-                                    setChosen({ ...chosen, named: "archive", axis, folded: false });
-                                  }}
-                                />
-                              </>
-                            )}
-                          </fieldset>
-                        </>
-                      ) : chosen.named === "tags" || chosen.tags?.length ? (
-                        <Tags
-                          tags={data.tags}
-                          chosen={chosen.tags ?? []}
-                          onToggle={(tag) => {
-                            const now = chosen.tags ?? [];
-                            const next = now.includes(tag)
-                              ? now.filter((t) => t !== tag)
-                              : [...now, tag];
-                            setChosen({ named: "tags", tags: next });
-                            setSelected(undefined);
-                          }}
-                        />
-                      ) : undefined
-                    }
-                  >
-                    {chosen.named === "search" ? (
-                      <Search key="search" onFound={setFound} onError={setError} />
-                    ) : chosen.named === "archive" ? (
-                      <Search
-                        key="archive"
-                        fixed="archived"
-                        onFound={setFound}
-                        onError={setError}
-                      />
-                    ) : accepts(chosen) ? (
-                      <CaptureField
-                        invite={invite(chosen, data.lists)}
-                        lists={data.lists}
-                        tags={data.tags}
-                        onCapture={(written, edits) => {
-                          setError(null);
-                          return capture(written, asView(seen), edits).then((task) => {
-                            say(fill("saidFiled", task.title));
-                            setCaptured(task);
-                            load();
-                            return task;
-                          });
-                        }}
-                        onError={setError}
-                      />
-                    ) : null}
-                  </TaskList>
-                </div>
-              </div>
-            )}
+            <Stage
+              board={board}
+              act={act}
+              beside={beside}
+              bringBack={bringBack}
+              carried={carried}
+              carries={carries}
+              chosen={chosen}
+              data={data}
+              detailing={detailing}
+              docMenu={docMenu}
+              dropDoc={dropDoc}
+              folderMenu={folderMenu}
+              greeted={greeted}
+              here={here}
+              hereMenu={hereMenu}
+              load={load}
+              lookPapers={lookPapers}
+              openDoc={openDoc}
+              paging={paging}
+              papers={papers}
+              papersChanged={papersChanged}
+              parcels={parcels}
+              ready={ready}
+              remember={remember}
+              setCameFrom={setCameFrom}
+              setChosen={setChosen}
+              setDealing={setDealing}
+              setError={setError}
+              setGreet={setGreet}
+              setHere={setHere}
+              setSelected={setSelected}
+              setShowing={setShowing}
+              setUnderway={setUnderway}
+              sheet={sheet}
+              shut={shut}
+              standing={standing}
+              strip={strip}
+              task={task}
+              tight={tight}
+              told={told}
+              underway={underway}
+            />
           </div>
 
-          {beside && (
-            <Detail
-              apart={`${aside ? "right-3 @min-[1536px]:right-[324px]" : "right-3"} ${
-                dealing ? "pointer-events-none opacity-10" : ""
-              }`}
-              key={task.id}
-              {...detailing(task)}
-              expanded={false}
-              onExpand={() => remember("sheet")}
-              onCollapse={() => remember("columns")}
-            />
-          )}
-          {aside && (
-            <Pulse
-              apart={beside ? "hidden @min-[1536px]:flex" : "hidden @min-[884px]:flex"}
-              counts={data.counts}
-              lists={data.lists}
-              ahead={data.ahead ?? []}
-              routines={data.routines ?? []}
-              papers={papers.docs.filter((one) => !one.pageOf).length}
-              onOpen={(id) => setSelected(id)}
-              onList={(id) => {
-                setSelected(undefined);
-                setChosen({ named: "lists", list: id });
-              }}
-              onQuadrants={() => {
-                setSelected(undefined);
-                setChosen({ named: "quadrants" });
-              }}
-            />
-          )}
-
-          {offering && quiet && (aside || chosen.named === "docs") && (
-            <Door
-              apart={
-                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
-              }
-              onSettled={() => setOffering(false)}
-              onOpen={() => setChosen({ named: "keeping", tab: "agents" })}
-              onError={(problem) => setError(saidPlainly(problem))}
-            />
-          )}
-
-          {starring && !offering && quiet && (aside || chosen.named === "docs") && (
-            <Star
-              apart={
-                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
-              }
-              onSettled={() => setStarring(false)}
-              onError={(problem) => setError(saidPlainly(problem))}
-            />
-          )}
+          <Margins
+            aside={aside}
+            beside={beside}
+            dealing={dealing}
+            task={task}
+            detailing={detailing}
+            remember={remember}
+            data={data}
+            papers={papers}
+            chosen={chosen}
+            setChosen={setChosen}
+            setSelected={setSelected}
+            offering={offering}
+            setOffering={setOffering}
+            starring={starring}
+            setStarring={setStarring}
+            quiet={quiet}
+            setError={setError}
+          />
         </div>
 
         {aside && (
@@ -2266,43 +513,3 @@ export default function App() {
     </div>
   );
 }
-
-function Where({
-  name,
-  value,
-  chosen,
-  label,
-  hint,
-  onPick,
-}: {
-  name: string;
-  value: string;
-  chosen: string;
-  label: string;
-  hint?: string;
-  onPick: (value: string) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[12.5px] hover:bg-hover">
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={chosen === value}
-        onChange={() => onPick(value)}
-        className="accent-accent"
-      />
-      <span className="min-w-0 truncate">{label}</span>
-      {hint && <span className="ml-auto shrink-0 text-[11.5px] text-faint">{hint}</span>}
-    </label>
-  );
-}
-
-const sliceWord = (slice: Slice) =>
-  slice === "today"
-    ? ("today" as const)
-    : slice === "upcoming"
-      ? ("upcoming" as const)
-      : slice === "repeating"
-        ? ("repeating" as const)
-        : ("sliceAll" as const);

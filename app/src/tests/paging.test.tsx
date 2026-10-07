@@ -126,8 +126,8 @@ describe("the smallest the window may be", () => {
   });
 
   it("opens wide enough for the panel to stand beside the list", () => {
-    const app = readFileSync("src/App.tsx", "utf8");
-    const needed = /@min-\[(\d+)px\]:pr-\[324px\]/.exec(app)?.[1];
+    const layout = readFileSync("src/layout.ts", "utf8");
+    const needed = /@min-\[(\d+)px\]:pr-\[324px\]/.exec(layout)?.[1];
     expect(needed).toBeTruthy();
 
     const rail = 380;

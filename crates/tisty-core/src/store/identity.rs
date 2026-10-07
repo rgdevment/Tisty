@@ -322,3 +322,15 @@ pub fn peek_identity(store_root: impl AsRef<Path>) -> Option<String> {
     let held = held.trim().to_string();
     is_store_name(&held).then_some(held)
 }
+
+/// Once a process, at its start: the keys' folder answers to this account alone, and a failure is said.
+pub fn guarded(paths: &crate::Paths) {
+    let _ = std::fs::create_dir_all(paths.private());
+    if let Err(why) = crate::paths::key_alone(&paths.private()) {
+        witness::warn(
+            channel::STORE,
+            "the folder holding the keys could not be kept to this account alone",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+    }
+}
