@@ -10,25 +10,18 @@ import {
   docFile,
   docPage,
   type Filed,
-  FOLDER_NAME_AT_MOST,
   type Folded,
   type Found,
   fold,
-  folderAdd,
   folderFile,
-  folderLook,
-  folderRename,
   owed,
-  type Pick,
   patch,
-  type Rift,
   type Snapshot,
   settleIn,
   snapshot,
   sow,
   starDue,
   type Task,
-  updateInstall,
 } from "./core";
 import { decidesByBlock } from "./deciding";
 import { detailOf, erasing } from "./detailing";
@@ -39,28 +32,22 @@ import { useNote } from "./glance";
 import { useListening } from "./listening";
 import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
-import { offerMoved, saidPlainly } from "./refusal";
+import { saidPlainly } from "./refusal";
 import About from "./ui/About";
 import { WEEK } from "./ui/Ahead";
-import { Alarm, Progress } from "./ui/Banners";
 import { ArchiveBar, SliceBar } from "./ui/Bars";
-import BringingBack from "./ui/BringingBack";
 import CaptureField from "./ui/CaptureField";
-import Closing from "./ui/Closing";
 import Detail from "./ui/Detail";
 import Docs from "./ui/Docs";
 import Door from "./ui/Door";
 import Folder from "./ui/Folder";
 import Keeping from "./ui/Keeping";
+import Layers, { type MenuOpen, type Torn } from "./ui/Layers";
 import Lists from "./ui/Lists";
 import Matrix from "./ui/Matrix";
-import Menu, { type Choice } from "./ui/Menu";
-import Naming from "./ui/Naming";
-import Notice from "./ui/Notice";
 import Owed from "./ui/Owed";
 import { useParcels } from "./ui/Parcels";
 import Pulse from "./ui/Pulse";
-import Rifts from "./ui/Rifts";
 import Search from "./ui/Search";
 import Shelf from "./ui/Shelf";
 import Sidebar from "./ui/Sidebar";
@@ -71,7 +58,6 @@ import Star from "./ui/Star";
 import Tagged from "./ui/Tagged";
 import Tags from "./ui/Tags";
 import TaskList from "./ui/TaskList";
-import Welcome from "./ui/Welcome";
 import WindowChrome from "./ui/WindowChrome";
 import { usePapers } from "./usePapers";
 import {
@@ -134,13 +120,7 @@ export default function App() {
   const { note, noted, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
   const [backing, setBacking] = useState<Filed | null>(null);
-  const [menu, setMenu] = useState<{
-    at: { x: number; y: number };
-    label: string;
-    choices: Choice[];
-    /// Which row it was opened on, so the tree can say so while it stands.
-    on?: string;
-  } | null>(null);
+  const [menu, setMenu] = useState<MenuOpen | null>(null);
   const [here, setHere] = useState<string | null | undefined>(undefined);
   const carries = useRef<ReturnType<typeof carrying>>(null);
   const paging = useRef<((page: Filed) => boolean) | null>(null);
@@ -191,11 +171,7 @@ export default function App() {
   const [leaving, setLeaving] = useState(false);
   const [settling, setSettling] = useState(true);
   const [stuck, setStuck] = useState(false);
-  const [torn, setTorn] = useState<{
-    named: string;
-    rifts: Rift[];
-    answer: (picks: Pick[] | null) => void;
-  } | null>(null);
+  const [torn, setTorn] = useState<Torn | null>(null);
 
   useEffect(() => {
     decidesByBlock((named, rifts) => new Promise((answer) => setTorn({ named, rifts, answer })));
@@ -460,158 +436,52 @@ export default function App() {
     <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
       <WindowChrome />
 
-      {backing !== null && (
-        <BringingBack
-          key={backing.id}
-          doc={backing}
-          papers={papers}
-          onClose={() => setBacking(null)}
-          onDone={papersChanged}
-          fail={(e) => setError(saidPlainly(e))}
-        />
-      )}
-
-      {parcels.shown}
-
-      <p role="status" aria-live="polite" className="sr-only">
-        {aloud}
-      </p>
-
-      {torn && (
-        <Rifts
-          named={torn.named}
-          rifts={torn.rifts}
-          onDone={(picks) => {
-            torn.answer(picks);
-            setTorn(null);
-          }}
-          onClose={() => {
-            torn.answer(null);
-            setTorn(null);
-          }}
-        />
-      )}
-
-      {error && (
-        <Alarm
-          error={error}
-          stuck={stuck}
-          offer={behind ? ready : null}
-          underway={underway}
-          onTakeMe={() => {
-            setStuck(false);
-            setError(null);
-            setChosen({ named: "keeping" });
-          }}
-          onInstall={() => {
-            setUnderway({ stage: "getting", far: 0 });
-            updateInstall().catch((problem) => {
-              setUnderway(null);
-              setError(saidPlainly(problem));
-              if (offerMoved(problem)) {
-                lookAgain();
-              }
-            });
-          }}
-          onClose={() => {
-            setError(null);
-            setBehind(false);
-          }}
-        />
-      )}
-
-      <Progress settling={settling && !error} note={!error && !afoot ? note : null} afoot={afoot} />
-
-      {leaving && (
-        <Closing onDismiss={() => setLeaving(false)} onError={(e) => setError(saidPlainly(e))} />
-      )}
-
-      {makingFolder && (
-        <Naming
-          title={
-            roomBelow
-              ? fill("newFolderIn", papers.folders.find((one) => one.id === here)?.name ?? "")
-              : t("newFolder")
-          }
-          invite={t("folderName")}
-          most={FOLDER_NAME_AT_MOST}
-          onClose={() => setMakingFolder(false)}
-          onName={(name, icon, colour) =>
-            folderAdd(name, roomBelow ? (here ?? undefined) : undefined, icon, colour)
-              .then(() => {
-                setMakingFolder(false);
-                papersChanged();
-              })
-              .catch((e) => setError(saidPlainly(e)))
-          }
-        />
-      )}
-
-      {renaming && (
-        <Naming
-          title={t("renameIt")}
-          invite={t("folderName")}
-          most={FOLDER_NAME_AT_MOST}
-          called={renaming.name}
-          drawn={renaming.icon ?? undefined}
-          painted={renaming.color ?? undefined}
-          action={t("renameIt")}
-          onClose={() => setRenaming(null)}
-          onName={(name, icon, colour) =>
-            Promise.all([
-              folderRename(renaming.id, name),
-              icon === (renaming.icon ?? undefined) && colour === (renaming.color ?? undefined)
-                ? Promise.resolve()
-                : folderLook(renaming.id, icon, colour),
-            ])
-              .then(() => {
-                setRenaming(null);
-                papersChanged();
-              })
-              .catch((e) => setError(saidPlainly(e)))
-          }
-        />
-      )}
-
-      {menu && (
-        <Menu
-          at={menu.at}
-          choices={menu.choices}
-          label={menu.label}
-          onClose={() => setMenu(null)}
-        />
-      )}
-
-      {greet && (
-        <Welcome
-          onDone={(paper) => {
-            setGreet(false);
-            setGreeted((n) => n + 1);
-            load();
-            lookPapers();
-            carries.current?.recheck();
-            if (paper) openDoc(paper);
-          }}
-        />
-      )}
-
-      {captured && (
-        <Notice
-          key={captured.id}
-          task={captured}
-          lists={data.lists}
-          elsewhere={!data.tasks.some((one) => one.id === captured.id)}
-          onOpen={() => {
-            if (!data.tasks.some((one) => one.id === captured.id)) {
-              setChosen({ named: "tasks", slice: "all" });
-            }
-            opening(captured);
-            setReveal(captured.id);
-            dismiss();
-          }}
-          onDismiss={dismiss}
-        />
-      )}
+      <Layers
+        afoot={afoot}
+        aloud={aloud}
+        backing={backing}
+        behind={behind}
+        captured={captured}
+        carries={carries}
+        data={data}
+        dismiss={dismiss}
+        error={error}
+        greet={greet}
+        here={here}
+        leaving={leaving}
+        load={load}
+        lookAgain={lookAgain}
+        lookPapers={lookPapers}
+        makingFolder={makingFolder}
+        menu={menu}
+        note={note}
+        openDoc={openDoc}
+        opening={opening}
+        papers={papers}
+        papersChanged={papersChanged}
+        parcels={parcels.shown}
+        ready={ready}
+        renaming={renaming}
+        roomBelow={roomBelow}
+        setBacking={setBacking}
+        setBehind={setBehind}
+        setChosen={setChosen}
+        setError={setError}
+        setGreet={setGreet}
+        setGreeted={setGreeted}
+        setLeaving={setLeaving}
+        setMakingFolder={setMakingFolder}
+        setMenu={setMenu}
+        setRenaming={setRenaming}
+        setReveal={setReveal}
+        setStuck={setStuck}
+        setTorn={setTorn}
+        setUnderway={setUnderway}
+        settling={settling}
+        stuck={stuck}
+        torn={torn}
+        underway={underway}
+      />
 
       <Sidebar
         lists={data.lists}
