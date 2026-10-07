@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Pick, Rift } from "../core";
 import { decideAll, decidesByBlock } from "../deciding";
-import { fill } from "../locales";
+import { fill, t } from "../locales";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -209,5 +209,26 @@ describe("a document that moved again while the person decided", () => {
 
     expect(shut).toEqual([]);
     expect(said).toBe(fill("changedWhileDeciding", "Kit de transmisión"));
+  });
+});
+
+describe("a locked document and another that failed, in one round", () => {
+  it("says both, never only the lock", async () => {
+    torn.locked = true;
+    torn.moved = true;
+
+    const { shut, said } = await decideAll(["dev_a-0001", "dev_a-0002"]);
+
+    expect(shut).toEqual(["dev_a-0001"]);
+    expect(said).toContain(fill("someLockedAtOdds", "«Kit de transmisión»"));
+    expect(said).toContain(fill("changedWhileDeciding", t("untitledDoc")));
+  });
+});
+
+describe("a title that carries a dollar sign", () => {
+  it("is said as it is written", () => {
+    expect(fill("changedWhileDeciding", "Gastos $$ 2026 $& $'")).toContain(
+      "«Gastos $$ 2026 $& $'»",
+    );
   });
 });

@@ -2,10 +2,10 @@ import { listen } from "@tauri-apps/api/event";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
-import { type Afoot, attach, doorDue, type Filed, parted, syncState } from "./core";
+import { type Afoot, attach, doorDue, parted, syncState } from "./core";
 import { decideAll } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
-import { fill, t } from "./locales";
+import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import type { Chosen } from "./views";
@@ -17,7 +17,6 @@ type Setter<T> = (next: T | ((was: T) => T)) => void;
 interface Hands {
   latest: MutableRefObject<() => void>;
   lookPapers: () => void;
-  docs: Filed[];
   chosen: Chosen;
   greeted: number;
   returning: string | null;
@@ -36,7 +35,6 @@ interface Hands {
 export function useListening({
   latest,
   lookPapers,
-  docs,
   chosen,
   greeted,
   returning,
@@ -78,8 +76,6 @@ export function useListening({
     }, TURNS_OVER);
     return () => clearInterval(turned);
   }, [latest]);
-  const papersNow = useRef(docs);
-  papersNow.current = docs;
   useEffect(() => {
     const carrier = carrying(
       () => {
@@ -89,16 +85,8 @@ export function useListening({
       },
       (ids) => {
         decideAll(ids)
-          .then(({ shut, said }) => {
-            if (!shut.length) {
-              if (said) setError(said);
-              return;
-            }
-            const named = shut
-              .map((one) => papersNow.current.find((doc) => doc.file === one))
-              .map((one) => `«${one?.title?.trim() || t("untitledDoc")}»`)
-              .join(", ");
-            setError(fill("someLockedAtOdds", named));
+          .then(({ said }) => {
+            if (said) setError(said);
           })
           .catch((problem) => setError(saidPlainly(problem)))
           .finally(() => latest.current());

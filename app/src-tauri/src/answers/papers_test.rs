@@ -55,3 +55,15 @@ fn keeping_both_again_finds_the_copy_it_already_made_instead_of_another() {
         "a different arrival was taken for one already kept"
     );
 }
+
+#[test]
+fn a_copy_written_with_its_closing_line_is_still_the_same_arrival() {
+    let (_tmp, mut session) = session();
+    let copy = filed(&mut session, "# Idea (otra versión)\n\nlo suyo");
+    let beside = (None, None, "a0".to_string());
+
+    assert_eq!(
+        twin_of(&session, Some(&beside), "# Idea (otra versión)\n\nlo suyo"),
+        Some(copy)
+    );
+}

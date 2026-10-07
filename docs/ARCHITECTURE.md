@@ -1510,14 +1510,19 @@ machine changed it, its history is most likely still on the way, so it waits,
 reported in `Moved::coming`, for up to an hour (`awaited::LANDING`) from when
 this machine first saw it, and comes in on the round its print arrives. The hour
 is counted on this machine's clock and kept in `awaited` in the data folder, by
-document rather than by body, so whoever writes the folder can delay the question
-by an hour and never more: rewriting the body does not start the wait over, and
-it is forgotten once a body comes in, or a day after it last waited, so a body
-planted again soon after is asked about at once. Past that hour, or at once
-when it was also edited here or is locked, it is left undecided and the person
-chooses mine, theirs or both. Settling «mine» is refused when the folder moved
-since the person was asked, the same as weaving, and the window says the
-document changed again while they decided rather than calling it locked.
+document rather than by body, with the first and the last time it waited.
+Rewriting the body does not start the wait over; a body locked here, or held by
+a machine waiting to be confirmed, is timed all the same, so unlocking it or
+removing that machine puts it to the person at once. The wait is forgotten once
+a body comes in, or a day after it last waited, so a body planted again soon
+after is asked about at once, and only a round that takes in and finishes
+forgets anything. Whoever writes the folder can delay the question by an hour
+at a time, and only by putting a body the log answers for in between: nothing
+unanswered ever comes in. Past that hour, or at once when it was also edited
+here or is locked, it is left undecided and the person chooses mine, theirs or
+both. Settling «mine» is refused when the folder moved since the person was
+asked, the same as weaving, and the window says the document changed again
+while they decided rather than calling it locked.
 Keeping both leaves no copy when what arrived is the text here already, or a
 copy kept beside it before, so being asked again never piles up twins.
 

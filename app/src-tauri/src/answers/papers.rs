@@ -568,8 +568,8 @@ pub fn settle_paper(
         .values()
         .find(|one| one.file == id)
         .map(|one| (one.folder, one.page_of, one.order.clone()));
-    let same_as_mine =
-        tisty_core::docs::read(&session.paths.docs(), &id).is_ok_and(|mine| mine == body);
+    let same_as_mine = tisty_core::docs::read(&session.paths.docs(), &id)
+        .is_ok_and(|mine| tisty_core::docs::unchanged(&mine, &body));
     let body = match &marked {
         Some(said) => tisty_core::docs::marked(&body, said),
         None => body,
@@ -619,14 +619,25 @@ pub fn settle_paper(
 
 fn twin_of(session: &Session, beside: Option<&crate::Placing>, body: &str) -> Option<String> {
     let (folder, page_of, _) = beside?;
+    let docs = session.paths.docs();
+    let weighs = tisty_core::docs::settled(body).len() as u64;
+    // The size is read before any body, so a crowded folder costs one look per document.
+    let alike = |file: &str| {
+        tisty_core::docs::resolve(&docs, file)
+            .ok()
+            .and_then(|at| std::fs::metadata(at).ok())
+            .is_some_and(|told| told.len() == weighs)
+    };
     session
         .state
         .docs
         .values()
-        .filter(|one| one.folder == *folder && one.page_of == *page_of)
+        .filter(|one| !one.archived && one.folder == *folder && one.page_of == *page_of)
         .map(|one| one.file.clone())
+        .filter(|file| alike(file))
         .find(|file| {
-            tisty_core::docs::read(&session.paths.docs(), file).is_ok_and(|kept| kept == body)
+            tisty_core::docs::read(&docs, file)
+                .is_ok_and(|kept| tisty_core::docs::unchanged(&kept, body))
         })
 }
 

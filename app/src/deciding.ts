@@ -44,7 +44,6 @@ export const decide = async (id: string, called?: string): Promise<void> => {
   }
 };
 
-/** What deciding left: the documents locked here, and the plain reason anything else failed. */
 export interface Decided {
   shut: string[];
   said: string | null;
@@ -52,29 +51,32 @@ export interface Decided {
 
 export const decideAll = async (ids: string[]): Promise<Decided> => {
   if (!ids.length) return { shut: [], said: null };
-  let said: string | null = null;
+  const told = new Set<string>();
   const found = await docs().catch((problem: unknown) => {
-    said = saidPlainly(problem);
+    told.add(saidPlainly(problem));
     return null;
   });
-  if (!found) return { shut: [], said };
-  const titled = new Map(found.docs.map((one) => [one.file, one.title]));
+  if (!found) return { shut: [], said: [...told].join(" ") };
+  const named = (id: string) =>
+    found.docs.find((one) => one.file === id)?.title?.trim() || t("untitledDoc");
   const shut = new Set(found.docs.filter((one) => one.locked).map((one) => one.file));
   for (const id of ids) {
     if (shut.has(id)) continue;
     try {
-      await decide(id, titled.get(id));
+      await decide(id, named(id));
     } catch (problem) {
       const code = (problem as Refusal | undefined)?.code;
       if (code === "documentLocked") {
         shut.add(id);
         continue;
       }
-      said = saidPlainly(problem);
-      if (code === "movedUnderfoot") {
-        said = fill("changedWhileDeciding", titled.get(id)?.trim() || t("untitledDoc"));
-      }
+      const plain = saidPlainly(problem);
+      told.add(code === "movedUnderfoot" ? fill("changedWhileDeciding", named(id)) : plain);
     }
   }
-  return { shut: ids.filter((id) => shut.has(id)), said };
+  const locked = ids.filter((id) => shut.has(id));
+  const lockedSaid = locked.length
+    ? [fill("someLockedAtOdds", locked.map((id) => `«${named(id)}»`).join(", "))]
+    : [];
+  return { shut: locked, said: [...lockedSaid, ...told].join(" ") || null };
 };
