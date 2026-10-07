@@ -2190,6 +2190,199 @@ Delete a task and the deletion travels. Going back for everyone would have to be
 an event of its own — a `store.rewind` the projection honours — which is written
 down as an idea and not built.
 
+## Schema 17: the segment that seals itself
+
+Designed, not built: this is what the 1.25 writes, and the one break with
+everything before it. It is written here before the cloud's code so that the
+format is shaped by the contract below rather than the other way round.
+
+**Why the `.sig` has to go.** A segment and its `.sig` are two files that have
+to arrive together, and nothing promises that. A folder client copies them
+when it likes; an API promises that one file lands whole or not at all, and
+nothing about two. A round cut between them leaves a segment with no signature
+or a signature over the wrong bytes, and a machine marked as signing is then
+read as disowned when it was only half carried. Worse, renaming `active.tisty`
+to `000002.tisty` on one side while the other still holds the old `active`
+pair chains two copies that never followed each other.
+
+**The seal.** Every write appends, in the same append and the same `fsync`, one
+more line after its events:
+
+```json
+{"v":17,"op":"seal","seg":3,"at":40960,"tip":"…","n":212,"inst":"…","sig":"…"}
+```
+
+- `seg` is the segment's number, not its file name, so renaming `active.tisty`
+  to `000003.tisty` does not touch what was signed.
+- `at` is how many bytes came before the seal, `tip` the SHA-256 chain folded
+  across this machine's whole history up to there, `n` how many events it
+  holds. The last seal of a segment that rotates says `"closed":true`.
+- `inst` is the installation that wrote it: `machine::here()`, the digest of
+  the computer's own identifier that #153 already keeps in `config.inst`. It
+  sits inside what is signed, so two installations writing as one machine — a
+  configuration copied to another computer, two packages of one build — are
+  told apart by the very lines they write, and it can never be added later.
+- `sig` signs everything above it with the machine's key.
+
+A segment and its signature are now one object. The seal is always the last
+line, which also makes the newest schema of a history readable from its tail.
+Reading follows from that:
+
+- Bytes after the last seal are on their way, never tampering: the history is
+  `Unreadable` this round, and whoever wrote them seals them again on opening
+  its store.
+- An `active.tisty` whose seal names a segment at or below the last closed one
+  is a leftover of a rotation carried halfway, and is skipped.
+- Closed segments are uploaded only if they do not exist; the live one is a
+  single object rewritten whole each round, against its revision where the
+  provider has one. The size at which a segment rotates becomes the writer's to
+  choose, about 1 MiB through an API, because the reader counts from the seal.
+- `.count` goes with `.sig`: the count lives in the seal.
+
+**What else the 17 requires**, because each changes bytes that are signed or
+that other machines read:
+
+- A `device.join` written at 17 carries `p`: from then on no machine is
+  without a key.
+- Every document body written at 17 has its print in `doc.said`, so a body that
+  arrives before the log that answers for it waits instead of coming in.
+
+**Migration.** `SCHEMA_VERSION` becomes 17 with `SEALED_FROM = 17`. The first
+write at 17 rotates the active v16 segment the old way, with its `.sig` and
+`.count`, and carries the same hash chain on with seals in line. Segments
+without a seal are still read by their `.sig`. Once a machine has sealed, a
+later segment of its own without seals is disowned. A build that only knows 16
+stops at the first line with `"v":17`, as it already does for any newer schema.
+
+### Changing a machine's key without asking again
+
+A key is meant to outlive the computer's software, not to last forever. Until
+the 17, changing it meant reinstalling: the machine came back under a new name
+and every other machine had to confirm it again with its twenty digits. The 17
+lets a machine move to a new key **on the word of the old one**.
+
+- The machine makes a new key and writes `device.rotate { d, p }`, `p` being
+  the new key, in a batch sealed by the **old** key. That is the last seal the
+  old key ever makes.
+- The next seal is made by the new key. A seal by the old key after its
+  rotation, or a seal by the new key before the rotation that names it, is
+  disowned: there is one switch, in one direction, at one place in the chain.
+- A machine that had confirmed the old key takes the new one without asking,
+  because the old key, which the person answered for, is what vouches for it.
+  It is kept in `.keys-confirmed` with `rotated:` and the old key's code, so
+  what the person compared can be told from what followed from it, the same
+  way `carried` and `host:` are kept.
+- A machine that had **not** confirmed the old key gains nothing: it still
+  waits for the person, now with the new key's code.
+- Agents keep their own road: a host vouches for its agent's new key exactly
+  as it vouched for the first.
+
+What it is for: a planned change, such as moving the key to the system's
+keychain, or retiring a key that may have been seen while it is still in this
+machine's hands. What it is not for: a key already stolen. Whoever holds the
+old key can rotate it too, so recovering from a theft is still removing the
+machine and confirming a fresh one, which the person does by looking.
+
+## The cloud: one carrier, chosen once
+
+Designed, not built. Syncing through an API — Google Drive first, then OneDrive
+and Dropbox — reaches computers without the provider's client and, later, a
+phone. Nothing about it is required: Tisty works whole without it, and taking
+it away gives back a complete application.
+
+**The pattern is the one notices already use.** `herald::Channel` is a trait
+with sibling implementations (`Screen`, `Chime`) and `Heralds` picks them once;
+nothing else asks which ones exist. Carrying gets the same shape with a
+cardinality of one:
+
+| Level | Trait | Implementations |
+| --- | --- | --- |
+| Notice (several at once) | `herald::Channel` | `Screen`, `Chime`, later a phone |
+| Carry (exactly one) | `Carrier`, picked by `chosen()` | none, `Folder`, `Cloud` |
+| Speak to a provider | `Remote`, inside `Cloud` | Drive, OneDrive, Dropbox |
+
+`chosen()` is the only `match` on the way of syncing. Today the folder is asked
+about in some thirty places; they move behind `Carrier` first, with no change
+in behaviour, and only then does a second carrier exist. A rule in `rules.sh`
+keeps `Sync::Folder` and `Sync::Cloud` from being named anywhere else.
+
+**The cloud is the same folder, reached through an API.** The same
+`tisty.toml`, `store/`, `docs/`, `attachments/` and `.store-id`: one format,
+one engine, and the folder as the reference every test is checked against.
+The configuration says `Sync::Cloud { provider, account }`; a build without
+that variant reads it as `Unknown` and leaves it exactly as it found it.
+Folder and cloud are never mixed over the same store, in any provider: moving
+between them is the only road, and it is cheap because the format is the same.
+
+**A hybrid mirror.** History, documents and `tisty.toml` go through a local
+mirror of the remote tree, so the round keeps reading files as it does today: a
+quiet round is one request for changes and no content at all. Closed segments
+never change and every machine writes only its own directory, so the mirror is
+cheap. Attachments go straight to the provider instead: mirroring them would
+copy a large file onto the same disk and then let the original go on the
+strength of a copy that never left it. The mirror lives outside the cache a
+restore empties, outside a backup's walk and outside what Maintenance weighs.
+
+**Nothing installed that was not checked.** The carrier downloads once into the
+mirror, checks what it downloaded, and installs exactly those bytes. The round
+never checks one read and copies from another.
+
+**The behaviour lives once, in `Cloud`.** The mirror, the rounds, deferral,
+budgets, caps, moving in stages, reconnecting, Maintenance and `tisty doctor`
+are written and tested once. A `Remote` only translates verbs and declares its
+numbers, so the three providers behave the same and the same suite runs against
+all three, changing nothing but the numbers.
+
+- **Class 1**, which every provider has: `list`, `fetch` from an offset, `put`
+  with an `Expect` (`Absent`, a revision, or anything), `delete`, and `hash_of`,
+  the provider's own fingerprint computed locally — `content_hash`,
+  `quickXorHash`, MD5 — so a landing is checked without downloading it.
+- **Class 2**, which defaults to class 1: `about`, `changes` since a cursor, and
+  `append`.
+- **Class 3**, optional: hearing changes pushed, and lending a link.
+- **`limits()`**: the daily budget of requests and bytes, the shortest polling
+  interval, the chunk size and the provider's own cap per file. `Cloud`
+  enforces them; the `Remote` only states them.
+
+**A refusal says which one it is.** A `Hitch` is the provider's limit (with how
+long to wait), this installation's own budget spent, the person's storage full,
+authorization lost (reconnect) or a different account than the one chosen. Each
+has its own place in Maintenance, because each asks the person for something
+different. A provider's 403 or 429 is waited out, with `Retry-After` where it
+is given.
+
+**Deferred is not failed.** `Moved` gains what was left for later and when it
+is tried again, apart from `Trouble`. A round that stops at a budget has
+written everything locally, lost nothing and asks nothing of the person.
+
+**Budgets, because a quota is shared.** In Google the quota belongs to the
+project, so every person spends from the same pool, and nobody's round may
+spend everyone else's. Each installation keeps its own daily budget of
+requests and bytes, counted locally and shown by `tisty doctor`; reaching it
+stops the round with a notice, and the local store carries on. The caps a
+person sees — per attachment and per store — are the same in all three
+providers. Their numbers are still to be decided (C-1 to C-3); the mechanism is
+not.
+
+**Moving in stages.** Leaving a carrier is `backs_up`, which also downloads the
+attachments this machine does not have; entering one is `adopt`. Both take a
+budget, keep their progress locally per file, and accept «carry on from here»,
+so a move larger than a day's budget goes over several days and survives a cut.
+The new destination does not replace the old until it holds everything: copy
+first, then switch. In the cloud `adopt` is a single creation of the root
+`tisty.toml`, written only if absent; if another machine adopted first, its
+file is read instead.
+
+**What the person asks for goes first.** Opening an attachment that lives only
+in the cloud (`held`) goes ahead of a move and of polling.
+
+**Drive works by id.** It allows two files with one name and has no
+create-if-absent, so its `Remote` keeps a map from name to id and emulates
+`Expect::Absent`, for example by reserving ids before creating. Whether that
+holds, and whether `drive.file` is shared between the desktop and phone
+clients of one project, is checked against Google itself before the format is
+closed.
+
 ## Where things live
 
 | | Location | Synced |
