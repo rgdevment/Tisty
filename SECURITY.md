@@ -135,9 +135,13 @@ Being explicit here matters more than sounding reassuring.
   and its files to `0600`, owner only — but that stops another local account,
   not you, and not anything running as you. On Windows the folder that holds
   the signing key and the store's secret is cut off from the permissions it
-  would inherit, and your account is given full control of it. For
-  everything else, what keeps another account out is that your profile's own
-  folders are yours.
+  would inherit, and your account is given full control of it. The whole
+  `.tisty` folder in your profile is treated the same way and hidden, so
+  other accounts on the computer cannot open it and it does not sit in plain
+  sight where it could be moved or deleted by mistake. Windows itself and its
+  administrators can still reach it, as they can any folder. On other systems,
+  what keeps another account out is that your profile's own folders are
+  yours.
 - **Whoever can write to the shared folder can try to write to your history.**
   Each machine signs what it writes: an Ed25519 key of its own, kept in the
   `private/` folder of its local configuration — never synced, never in a

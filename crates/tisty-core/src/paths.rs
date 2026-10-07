@@ -242,10 +242,7 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
 // Through icacls rather than the security API, which would need the unsafe code the workspace forbids.
 #[cfg(windows)]
 pub fn key_alone(at: &Path) -> std::io::Result<()> {
-    let system = env_path("SystemRoot")
-        .filter(|root| root.is_absolute())
-        .map(|root| root.join("System32"))
-        .ok_or_else(|| std::io::Error::other("the system folder could not be found"))?;
+    let system = system32()?;
     let sid = account_sid()?;
     windowless(
         &system,
@@ -254,6 +251,57 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
         &["/grant:r", &format!("*{sid}:(OI)(CI)F")],
     )?;
     windowless(&system, "icacls.exe", at, &["/inheritance:r"])
+}
+
+#[cfg(windows)]
+fn system32() -> std::io::Result<PathBuf> {
+    env_path("SystemRoot")
+        .filter(|root| root.is_absolute())
+        .map(|root| root.join("System32"))
+        .ok_or_else(|| std::io::Error::other("the system folder could not be found"))
+}
+
+/// The shared Windows home is kept to this account and hidden, once; a failure is said and retried.
+pub fn home_set_aside(paths: &Paths) {
+    let Some(home) = shared_home().filter(|home| paths.data().starts_with(home)) else {
+        return;
+    };
+    if let Err(why) = tucked(&home) {
+        crate::witness::warn(
+            crate::witness::channel::STORE,
+            "the folder holding this machine's store could not be hidden and kept to this account",
+            &[
+                ("at", crate::witness::Fact::Path(home)),
+                ("why", crate::witness::Fact::Why(why.to_string())),
+            ],
+        );
+    }
+}
+
+#[cfg(not(windows))]
+fn tucked(_home: &Path) -> std::io::Result<()> {
+    Ok(())
+}
+
+// Kept first and hidden last, so a hidden home is one already kept and every start after is a look.
+#[cfg(windows)]
+fn tucked(home: &Path) -> std::io::Result<()> {
+    use std::os::windows::fs::MetadataExt;
+    const HIDDEN: u32 = 0x2;
+    if std::fs::metadata(home)?.file_attributes() & HIDDEN != 0 {
+        return Ok(());
+    }
+    key_alone(home)?;
+    let done = quiet(&system32()?, "attrib.exe")
+        .arg("+h")
+        .arg(home)
+        .status()?;
+    match done.success() {
+        true => Ok(()),
+        false => Err(std::io::Error::other(format!(
+            "attrib.exe ended with {done}"
+        ))),
+    }
 }
 
 // The account the process runs as, never the name the environment claims.

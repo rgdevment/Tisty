@@ -2439,8 +2439,14 @@ on Windows, where all three live under `%USERPROFILE%\.tisty`. The Store
 version is packaged, and a packaged app's `AppData` is a private copy Windows
 deletes when the app is uninstalled; the profile root is not virtualized, so
 every install — Store, loose, the command line and the assistant's door —
-shares one real store that outlives any of them. `TISTY_DATA`, `TISTY_CONFIG`
-and `TISTY_CACHE` override them, and exist for tests.
+shares one real store that outlives any of them. A name that starts with a dot
+hides nothing on Windows, so the window sets that home aside on every start
+(`paths::home_set_aside`): cut off from what it would inherit and kept to this
+account first, as the key folder is, and hidden last, so a hidden home is one
+already kept and every start after the first only looks. A failure is said and
+tried again on the next start, and never keeps the window from opening.
+`TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override them, and exist for
+tests.
 
 Only the window moves the store out of `%LOCALAPPDATA%\tisty`, once, before it
 resolves its paths and never while an override or a profile is set; the

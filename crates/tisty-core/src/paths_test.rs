@@ -196,22 +196,7 @@ fn the_key_folder_answers_to_this_user_alone_and_inherits_nothing() {
 
     key_alone(&private).unwrap();
 
-    let saved = room.path().join("acl");
-    let done = std::process::Command::new("icacls")
-        .arg(&private)
-        .arg("/save")
-        .arg(&saved)
-        .output()
-        .unwrap();
-    assert!(done.status.success(), "{done:?}");
-    let raw = std::fs::read(&saved).unwrap();
-    let words: Vec<u16> = raw
-        .as_chunks::<2>()
-        .0
-        .iter()
-        .map(|two| u16::from_le_bytes(*two))
-        .collect();
-    let said = String::from_utf16_lossy(&words);
+    let said = sddl_of(&private, room.path());
     let dacl = said
         .lines()
         .nth(1)
@@ -262,4 +247,51 @@ fn the_key_folder_answers_to_this_user_alone() {
 
     let mode = std::fs::metadata(&private).unwrap().permissions().mode();
     assert_eq!(mode & 0o777, 0o700);
+}
+
+#[cfg(windows)]
+fn sddl_of(at: &Path, room: &Path) -> String {
+    let saved = room.join("acl");
+    let done = std::process::Command::new("icacls")
+        .arg(at)
+        .arg("/save")
+        .arg(&saved)
+        .output()
+        .unwrap();
+    assert!(done.status.success(), "{done:?}");
+    let raw = std::fs::read(&saved).unwrap();
+    let words: Vec<u16> = raw
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|two| u16::from_le_bytes(*two))
+        .collect();
+    String::from_utf16_lossy(&words)
+}
+
+#[cfg(windows)]
+#[test]
+fn the_home_set_aside_is_hidden_inherits_nothing_and_is_looked_at_once() {
+    use std::os::windows::fs::MetadataExt;
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().join(".tisty");
+    std::fs::create_dir_all(home.join("data")).unwrap();
+
+    tucked(&home).unwrap();
+    tucked(&home).unwrap();
+
+    let hidden = std::fs::metadata(&home).unwrap().file_attributes() & 0x2;
+    assert_ne!(hidden, 0, "the home is still in plain sight");
+    let said = sddl_of(&home, room.path());
+    let dacl = said
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split_once("D:"))
+        .map(|(_, dacl)| dacl.to_string())
+        .unwrap_or_default();
+    assert!(dacl.starts_with('P'), "the home still inherits: {said}");
+    assert!(
+        !dacl.contains("ID;"),
+        "something is still inherited: {said}"
+    );
 }
