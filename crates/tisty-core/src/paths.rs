@@ -283,19 +283,23 @@ fn tucked(_home: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-// Kept first and hidden last, so a hidden home is one already kept and every start after is a look.
+// What is on the home itself decides, so a home somebody hid by hand is still kept; only the root is read.
 #[cfg(windows)]
 fn tucked(home: &Path) -> std::io::Result<()> {
     use std::os::windows::fs::MetadataExt;
     const HIDDEN: u32 = 0x2;
+    let system = system32()?;
+    let said = quiet(&system, "icacls.exe")
+        .arg(home)
+        .stdout(std::process::Stdio::piped())
+        .output()?;
+    if !said.status.success() || String::from_utf8_lossy(&said.stdout).contains("(I)") {
+        key_alone(home)?;
+    }
     if std::fs::metadata(home)?.file_attributes() & HIDDEN != 0 {
         return Ok(());
     }
-    key_alone(home)?;
-    let done = quiet(&system32()?, "attrib.exe")
-        .arg("+h")
-        .arg(home)
-        .status()?;
+    let done = quiet(&system, "attrib.exe").arg("+h").arg(home).status()?;
     match done.success() {
         true => Ok(()),
         false => Err(std::io::Error::other(format!(

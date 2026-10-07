@@ -295,3 +295,31 @@ fn the_home_set_aside_is_hidden_inherits_nothing_and_is_looked_at_once() {
         "something is still inherited: {said}"
     );
 }
+
+#[cfg(windows)]
+#[test]
+fn a_home_somebody_hid_by_hand_is_still_kept_to_this_account() {
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().join(".tisty");
+    std::fs::create_dir_all(&home).unwrap();
+    let hid = std::process::Command::new("attrib")
+        .arg("+h")
+        .arg(&home)
+        .status()
+        .unwrap();
+    assert!(hid.success());
+
+    tucked(&home).unwrap();
+
+    let said = sddl_of(&home, room.path());
+    let dacl = said
+        .lines()
+        .nth(1)
+        .and_then(|line| line.split_once("D:"))
+        .map(|(_, dacl)| dacl.to_string())
+        .unwrap_or_default();
+    assert!(
+        dacl.starts_with('P'),
+        "a hidden home was taken as kept: {said}"
+    );
+}
