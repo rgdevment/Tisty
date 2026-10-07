@@ -26,16 +26,13 @@ import { adopt, fill, t } from "./locales";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
-import Detail from "./ui/Detail";
-import Door from "./ui/Door";
 import Layers, { type MenuOpen, type Torn } from "./ui/Layers";
+import Margins from "./ui/Margins";
 import Owed from "./ui/Owed";
 import { useParcels } from "./ui/Parcels";
-import Pulse from "./ui/Pulse";
 import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
-import Star from "./ui/Star";
 import WindowChrome from "./ui/WindowChrome";
 import { usePapers } from "./usePapers";
 import { asView, type Chosen, type Slice, useReach } from "./views";
@@ -555,58 +552,25 @@ export default function App() {
             />
           </div>
 
-          {beside && (
-            <Detail
-              apart={`${aside ? "right-3 @min-[1536px]:right-[324px]" : "right-3"} ${
-                dealing ? "pointer-events-none opacity-10" : ""
-              }`}
-              key={task.id}
-              {...detailing(task)}
-              expanded={false}
-              onExpand={() => remember("sheet")}
-              onCollapse={() => remember("columns")}
-            />
-          )}
-          {aside && (
-            <Pulse
-              apart={beside ? "hidden @min-[1536px]:flex" : "hidden @min-[884px]:flex"}
-              counts={data.counts}
-              lists={data.lists}
-              ahead={data.ahead ?? []}
-              routines={data.routines ?? []}
-              papers={papers.docs.filter((one) => !one.pageOf).length}
-              onOpen={(id) => setSelected(id)}
-              onList={(id) => {
-                setSelected(undefined);
-                setChosen({ named: "lists", list: id });
-              }}
-              onQuadrants={() => {
-                setSelected(undefined);
-                setChosen({ named: "quadrants" });
-              }}
-            />
-          )}
-
-          {offering && quiet && (aside || chosen.named === "docs") && (
-            <Door
-              apart={
-                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
-              }
-              onSettled={() => setOffering(false)}
-              onOpen={() => setChosen({ named: "keeping", tab: "agents" })}
-              onError={(problem) => setError(saidPlainly(problem))}
-            />
-          )}
-
-          {starring && !offering && quiet && (aside || chosen.named === "docs") && (
-            <Star
-              apart={
-                aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
-              }
-              onSettled={() => setStarring(false)}
-              onError={(problem) => setError(saidPlainly(problem))}
-            />
-          )}
+          <Margins
+            aside={aside}
+            beside={beside}
+            dealing={dealing}
+            task={task}
+            detailing={detailing}
+            remember={remember}
+            data={data}
+            papers={papers}
+            chosen={chosen}
+            setChosen={setChosen}
+            setSelected={setSelected}
+            offering={offering}
+            setOffering={setOffering}
+            starring={starring}
+            setStarring={setStarring}
+            quiet={quiet}
+            setError={setError}
+          />
         </div>
 
         {aside && (
