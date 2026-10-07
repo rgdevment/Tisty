@@ -236,7 +236,7 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
         .filter(|root| root.is_absolute())
         .map(|root| root.join("System32"))
         .ok_or_else(|| std::io::Error::other("the system folder could not be found"))?;
-    let sid = account_sid(&system)?;
+    let sid = account_sid()?;
     windowless(
         &system,
         "icacls.exe",
@@ -248,24 +248,26 @@ pub fn key_alone(at: &Path) -> std::io::Result<()> {
 
 // The account the process runs as, never the name the environment claims.
 #[cfg(windows)]
-fn account_sid(system: &Path) -> std::io::Result<String> {
-    let out = quiet(system, "whoami.exe")
-        .args(["/user", "/fo", "csv", "/nh"])
-        .output()?;
-    String::from_utf8_lossy(&out.stdout)
-        .split(',')
-        .map(|one| one.trim().trim_matches('"').to_string())
-        .find(|one| one.starts_with("S-1-") && one.len() > 4)
+fn account_sid() -> std::io::Result<String> {
+    use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+    let me = Pid::from_u32(std::process::id());
+    let mut system = System::new();
+    system.refresh_processes_specifics(
+        ProcessesToUpdate::Some(&[me]),
+        false,
+        ProcessRefreshKind::nothing().with_user(UpdateKind::Always),
+    );
+    system
+        .process(me)
+        .and_then(|one| one.user_id())
+        .map(|uid| uid.to_string())
+        .filter(|sid| sid.starts_with("S-1-") && sid.len() > 4)
         .ok_or_else(|| std::io::Error::other("this account's SID could not be read"))
 }
 
 #[cfg(windows)]
 fn windowless(system: &Path, tool: &str, at: &Path, args: &[&str]) -> std::io::Result<()> {
-    let done = quiet(system, tool)
-        .arg(at)
-        .args(args)
-        .stdout(std::process::Stdio::null())
-        .status()?;
+    let done = quiet(system, tool).arg(at).args(args).status()?;
     match done.success() {
         true => Ok(()),
         false => Err(std::io::Error::other(format!("{tool} ended with {done}"))),
@@ -278,6 +280,7 @@ fn quiet(system: &Path, tool: &str) -> std::process::Command {
     let mut command = std::process::Command::new(system.join(tool));
     command
         .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .creation_flags(0x0800_0000);
     command
