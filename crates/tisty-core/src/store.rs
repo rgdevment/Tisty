@@ -10,6 +10,7 @@ use crate::{
 
 pub mod before;
 pub(crate) mod identity;
+pub use identity::guarded as keys_guarded;
 pub mod introduced;
 
 pub use identity::{

@@ -133,9 +133,11 @@ Being explicit here matters more than sounding reassuring.
   adds no second authentication layer on top of your operating system's. On
   Unix it does narrow the permissions it controls — its directories to `0700`
   and its files to `0600`, owner only — but that stops another local account,
-  not you, and not anything running as you. On Windows it changes no
-  permissions at all, the signing key included: what keeps another account out
-  is that your profile's own folders are yours.
+  not you, and not anything running as you. On Windows the folder that holds
+  the signing key and the store's secret is cut off from the permissions it
+  would inherit, and your account is given full control of it. For
+  everything else, what keeps another account out is that your profile's own
+  folders are yours.
 - **Whoever can write to the shared folder can try to write to your history.**
   Each machine signs what it writes: an Ed25519 key of its own, kept in the
   `private/` folder of its local configuration — never synced, never in a

@@ -84,7 +84,10 @@ impl Session {
                 ),
             ],
         );
-        Self::at(paths)
+        let guarding = paths.clone();
+        let session = Self::at(paths)?;
+        std::thread::spawn(move || tisty_core::store::keys_guarded(&guarding));
+        Ok(session)
     }
 
     pub fn at(paths: Paths) -> tisty_core::Result<Self> {

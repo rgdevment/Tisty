@@ -1,11 +1,13 @@
 pub mod agents;
 pub mod attaching;
 pub mod carrying;
+pub mod joining;
 pub mod knocking;
 pub mod merging;
 pub mod papers;
 pub mod parts;
 pub mod reporting;
+pub mod rifts;
 pub mod settings;
 pub mod shelves;
 pub mod storing;
