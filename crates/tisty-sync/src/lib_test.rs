@@ -8580,3 +8580,24 @@ fn a_document_edited_here_as_well_is_put_to_the_person_and_never_held() {
     );
     assert_eq!(moved.undecided_ids(), vec!["uno-0001".to_string()]);
 }
+
+#[test]
+fn a_round_leaves_nothing_copied_aside_behind() {
+    let one = machine("dev_a");
+    let other = blank("dev_b");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    joined(&other, shared.path());
+    wrote(&other, "lo de dev_b".into());
+    carry(&other.data, &other.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::create_dir_all(one.data.join(".bringing").join("dev_z")).unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        !one.data.join(".bringing").exists(),
+        "what was copied aside to be checked stayed after the round"
+    );
+    let mine = titles(&one.store);
+    assert!(mine.contains(&"lo de dev_b".to_string()), "{mine:?}");
+}

@@ -251,6 +251,36 @@ fn answers_for_itself(
     }
 }
 
+const BRINGING: &str = ".bringing";
+
+// Unread or half copied, the history is left out this turn the same as one that cannot be read.
+fn staging(
+    alike: &mut Alike,
+    named: &str,
+    theirs: &Path,
+    mine: &Path,
+    bringing: &Path,
+    moved: &mut Moved,
+) -> Option<std::path::PathBuf> {
+    let into = bringing.join(named);
+    let known = alike.of(named, theirs, mine).clone();
+    match crate::segments::staged(theirs, mine, &known, &into) {
+        Ok(()) => Some(into),
+        Err(why) => {
+            witness::warn(
+                channel::SYNC,
+                "a machine's history could not be copied aside to be checked, so it was left out",
+                &[
+                    ("at", Fact::Id(named.to_string())),
+                    ("why", Fact::Why(why.to_string())),
+                ],
+            );
+            moved.unreadable.push(named.to_string());
+            None
+        }
+    }
+}
+
 enum Answered {
     Yes,
     /// Taken on the first folder's word before it said its key, so adopting waits for that key.
@@ -272,6 +302,8 @@ pub(crate) fn bring(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
+    let bringing = data.join(BRINGING);
+    let _ = std::fs::remove_dir_all(&bringing);
     let mut knew: Option<tisty_core::store::Ledger> = None;
     let mut away: std::collections::BTreeMap<String, turned::Away> = Default::default();
     let at = dest.join(STORE);
@@ -336,6 +368,10 @@ pub(crate) fn bring(
             if !alike.settled(named, &entry.path(), &mine, Toward::Home)
                 && ours_went_missing(&mine, &entry.path())
             {
+                let Some(theirs) = staging(alike, named, &entry.path(), &mine, &bringing, moved)
+                else {
+                    continue;
+                };
                 match tisty_core::store::alone(&mine) {
                     // Our own name is the one worth wearing: what comes back under it is checked
                     // like anybody else's, or the next thing we write would sign it as ours.
@@ -345,7 +381,7 @@ pub(crate) fn bring(
                                 data,
                                 store,
                                 dest,
-                                &entry.path(),
+                                &theirs,
                                 named,
                                 device,
                                 adopting.contains(named),
@@ -357,15 +393,14 @@ pub(crate) fn bring(
                     {
                         moved.disowned.push(named.to_string());
                     }
-                    Some(_held) if ours_went_missing(&mine, &entry.path()) => {
+                    Some(_held) if ours_went_missing(&mine, &theirs) => {
                         witness::warn(
                             channel::SYNC,
                             "this machine's own history was shorter here than in the shared folder, so it was taken back",
                             &[("at", Fact::Id(named.to_string()))],
                         );
                         plainly(&mine)?;
-                        brought +=
-                            alike.carried(named, &entry.path(), &mine, Toward::Home, false)?;
+                        brought += alike.carried(named, &theirs, &mine, Toward::Home, false)?;
                     }
                     Some(_) => {}
                     None => witness::warn(
@@ -378,11 +413,19 @@ pub(crate) fn bring(
             continue;
         }
         plainly(&mine)?;
+        let settled = alike.settled(named, &entry.path(), &mine, Toward::Home);
+        let theirs = match settled {
+            true => entry.path(),
+            false => match staging(alike, named, &entry.path(), &mine, &bringing, moved) {
+                Some(theirs) => theirs,
+                None => continue,
+            },
+        };
         let answered = answers_for_itself(
             data,
             store,
             dest,
-            &entry.path(),
+            &theirs,
             named,
             device,
             adopting.contains(named),
@@ -413,9 +456,9 @@ pub(crate) fn bring(
                 continue;
             }
         }
-        if !alike.settled(named, &entry.path(), &mine, Toward::Home) {
-            let coming = match tisty_core::store::check_device(&entry.path())
-                .and_then(|_| tisty_core::store::distinct_in(&entry.path()))
+        if !settled {
+            let coming = match tisty_core::store::check_device(&theirs)
+                .and_then(|_| tisty_core::store::distinct_in(&theirs))
             {
                 Ok(coming) => coming,
                 Err(tisty_core::Error::UnsupportedVersion { .. }) => {
@@ -455,7 +498,7 @@ pub(crate) fn bring(
                 }
             };
             if coming < held {
-                if !matches!(one_grew_from_the_other(&mine, &entry.path()), Grew::Yes) {
+                if !matches!(one_grew_from_the_other(&mine, &theirs), Grew::Yes) {
                     witness::warn(
                         channel::SYNC,
                         "a shorter history for a machine was left where it was",
@@ -469,8 +512,9 @@ pub(crate) fn bring(
                 continue;
             }
         }
-        brought += alike.carried(named, &entry.path(), &mine, Toward::Home, false)?;
+        brought += alike.carried(named, &theirs, &mine, Toward::Home, false)?;
     }
+    let _ = std::fs::remove_dir_all(&bringing);
     saying(Reached::Along {
         stage: Stage::Log,
         done: whole,

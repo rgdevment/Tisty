@@ -179,6 +179,30 @@ fn beside_this(found: &Kinds, segment: &std::ffi::OsStr) -> std::collections::BT
     kinds
 }
 
+// Checked and installed from this copy, so the folder changing in between changes nothing taken in.
+pub(crate) fn staged(
+    theirs: &Path,
+    mine: &Path,
+    known: &Named,
+    into: &Path,
+) -> std::io::Result<()> {
+    let _ = std::fs::remove_dir_all(into);
+    std::fs::create_dir_all(into)?;
+    for entry in std::fs::read_dir(theirs)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let named = entry.file_name();
+        let from = match known.contains(&named) && mine.join(&named).is_file() {
+            true => mine.join(&named),
+            false => entry.path(),
+        };
+        std::fs::copy(&from, into.join(&named))?;
+    }
+    Ok(())
+}
+
 pub(crate) fn sweep(dir: &Path) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
@@ -353,3 +377,7 @@ pub(crate) fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
     };
     ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
 }
+
+#[cfg(test)]
+#[path = "segments_test.rs"]
+mod tests;
