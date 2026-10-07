@@ -806,7 +806,12 @@ pub fn run() {
             };
 
             let app = window.app_handle();
-            if !app.state::<Perched>().0 {
+            let Some(perched) = app.try_state::<Perched>() else {
+                api.prevent_close();
+                let _ = window.hide();
+                return;
+            };
+            if !perched.0 {
                 api.prevent_close();
                 desktop::parting(app);
                 return;
