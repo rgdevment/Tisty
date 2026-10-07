@@ -558,8 +558,6 @@ pub async fn sync_now(
     let Some(_done) = alone.inner().claim() else {
         return Ok(Settled {
             carried: "busy",
-            came: 0,
-            went: 0,
             undecided: Vec::new(),
             unreadable: Vec::new(),
             disowned: Vec::new(),
@@ -751,8 +749,6 @@ async fn carried_round(
             (false, true) => "came",
             (false, false) => "same",
         },
-        came: done.brought,
-        went: done.sent,
         undecided: done.undecided.into_iter().map(|one| one.id).collect(),
         unreadable: done.unreadable,
         disowned: done.disowned,
@@ -768,8 +764,6 @@ async fn carried_round(
 #[serde(rename_all = "camelCase")]
 pub struct Settled {
     carried: &'static str,
-    came: usize,
-    went: usize,
     undecided: Vec<String>,
     unreadable: Vec<String>,
     disowned: Vec<String>,

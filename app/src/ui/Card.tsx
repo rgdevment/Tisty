@@ -28,6 +28,8 @@ export type Which =
   | "look";
 export type Word = { card: Which; text: string };
 
+export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
+
 export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   signing: "alias",

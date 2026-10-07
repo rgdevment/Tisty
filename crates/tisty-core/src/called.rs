@@ -16,7 +16,6 @@ pub fn here() -> Option<Named> {
     .clone()
 }
 
-/// The person's name for this machine when they gave one, else its system's.
 pub fn chosen(given: Option<&str>) -> Option<Named> {
     given
         .map(cleaned)

@@ -293,11 +293,11 @@ export default function Keeping({
         setTrouble({ card: "sync", text: t(amiss) });
       } else if (shut.length) {
         setTrouble({ card: "sync", text: fill("someLockedAtOdds", await namedDocs(shut)) });
+      } else if (answer.joined?.length) {
+        setSaid({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
+      } else {
+        setSaid({ card: "sync", text: syncSaid(answer) });
       }
-      const joined = answer.joined?.length
-        ? fill("someJoined", await namedDocs(answer.joined))
-        : "";
-      setSaid({ card: "sync", text: [syncSaid(answer), joined].filter(Boolean).join(". ") });
       look();
       onChanged();
       return "done";
@@ -844,7 +844,6 @@ export default function Keeping({
               trouble={trouble}
               run={run}
               fail={setTrouble}
-              tell={setSaid}
               carry={(way) => void carryNow(way)}
               pickFolder={pickFolder}
             />

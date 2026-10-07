@@ -4,13 +4,11 @@ import { copied, facts, keepReport, logs } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
-import Card, { type Which, type Word } from "./Card";
+import Card, { type Run, type Which, type Word } from "./Card";
 import { Group, mild, strong } from "./Rows";
 
 const TAIL = 300;
 const LOGS = "\n--- tisty.log ---";
-
-type Quietly = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
 
 interface Props {
   busy: Which | null;
@@ -18,7 +16,7 @@ interface Props {
   trouble?: Word;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
-  quietly: Quietly;
+  quietly: Run;
 }
 
 export default function Reporting({ busy, said, trouble, tell, fail, quietly }: Props) {

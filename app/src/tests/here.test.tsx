@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Settled } from "../core";
 import { fill, t } from "../locales";
 import { syncSaid } from "../syncSaid";
-import type { Which } from "../ui/Card";
 import Here from "../ui/Here";
 
 const calls: { cmd: string; args: unknown }[] = [];
@@ -25,14 +24,8 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const flush = () => act(() => new Promise((ready) => setTimeout(ready, 0)));
 
-const run = <T,>(_card: Which, work: Promise<T>, then: (answer: T) => void) => {
-  void work.then(then);
-};
-
 const settled = (over: Partial<Settled>): Settled => ({
   carried: "same",
-  came: 0,
-  went: 0,
   undecided: [],
   unreadable: [],
   disowned: [],
@@ -50,7 +43,7 @@ beforeEach(() => {
 
 describe("this computer in Syncing", () => {
   it("says its name and its code", async () => {
-    render(<Here busy={null} run={run} tell={() => {}} />);
+    render(<Here held={false} />);
     await flush();
 
     expect(screen.getByText(fill("thisMachineIs", "ESCRITORIO"))).toBeTruthy();
@@ -58,7 +51,7 @@ describe("this computer in Syncing", () => {
   });
 
   it("shows the code large, to be read from the other computer", async () => {
-    render(<Here busy={null} run={run} tell={() => {}} />);
+    render(<Here held={false} />);
     await flush();
 
     fireEvent.click(screen.getByText(t("showBig")));
@@ -70,8 +63,7 @@ describe("this computer in Syncing", () => {
   });
 
   it("renames this computer and says so", async () => {
-    const told: string[] = [];
-    render(<Here busy={null} run={run} tell={(word) => word && told.push(word.text)} />);
+    render(<Here held={false} />);
     await flush();
 
     fireEvent.click(screen.getByText(t("renameMachine")));
@@ -81,11 +73,11 @@ describe("this computer in Syncing", () => {
 
     expect(calls).toContainEqual({ cmd: "rename_machine", args: { name: "Roble 42" } });
     expect(screen.getByText(fill("thisMachineIs", "Roble 42"))).toBeTruthy();
-    expect(told).toEqual([fill("renamed", "Roble 42")]);
+    expect(screen.getByText(fill("renamed", "Roble 42"))).toBeTruthy();
   });
 
   it("leaves the name alone when renaming is cancelled", async () => {
-    render(<Here busy={null} run={run} tell={() => {}} />);
+    render(<Here held={false} />);
     await flush();
 
     fireEvent.click(screen.getByText(t("renameMachine")));
@@ -98,37 +90,19 @@ describe("this computer in Syncing", () => {
 
 describe("what a sync says it did", () => {
   const at = new Date(2026, 9, 6, 14, 32);
-  const when = (said: string) => said.slice(said.indexOf(": ") + 2);
 
-  it("counts what came, what went and what waits", () => {
-    const said = syncSaid(
-      settled({ came: 12, went: 1, unconfirmed: ["dev_w"], waiting: ["a", "b"] }),
-      at,
-    );
+  it("says when it ran and what moved", () => {
+    const said = syncSaid(settled({ carried: "both" }), at);
 
-    expect(when(said)).toBe(
-      [
-        fill("syncResultCame", "12"),
-        t("syncResultWentOne"),
-        t("syncResultMachineWaits"),
-        fill("syncResultDocsWait", "2"),
-      ].join(", "),
-    );
     expect(said.startsWith(fill("syncResultAt", ""))).toBe(true);
+    expect(said.endsWith(t("syncBoth"))).toBe(true);
   });
 
   it("says nothing new when nothing moved", () => {
-    expect(when(syncSaid(settled({}), at))).toBe(t("syncSame"));
+    expect(syncSaid(settled({}), at).endsWith(t("syncSame"))).toBe(true);
   });
 
   it("says it was busy when another round was already running", () => {
     expect(syncSaid(settled({ carried: "busy" }), at)).toBe(t("syncBusy"));
-  });
-});
-
-describe("what a sync says when it counted nothing", () => {
-  it("still says something moved when the round says it did", () => {
-    const said = syncSaid(settled({ carried: "came" }), new Date(2026, 9, 6, 14, 32));
-    expect(said.endsWith(t("syncCame"))).toBe(true);
   });
 });

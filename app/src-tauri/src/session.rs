@@ -816,6 +816,10 @@ impl Session {
     pub fn rename(&mut self, name: &str) -> Answer<()> {
         let name = tisty_core::called::cleaned(name);
         let system = tisty_core::called::here().map(|one| one.name);
+        // With no system name to fall back to, an empty one would leave the old name standing elsewhere.
+        if name.is_empty() && system.is_none() {
+            return Ok(());
+        }
         let given = (!name.is_empty() && Some(&name) != system.as_ref()).then_some(name);
         self.keep(|config| config.called = given.clone())?;
         Ok(self.say_name()?)

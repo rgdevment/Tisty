@@ -325,7 +325,7 @@ Whoever takes that folder up and down is your provider's program, not Tisty. If 
 
 Every machine signs what it writes. One you already knew is recognised on its own when it updates. A new one — just installed or reinstalled — waits until you confirm it is yours: a notice in the sidebar names that computer, and **Confirm…** shows its twenty-digit code. Open it on that machine, in Settings → Your data → **Syncing**, where **Show large** makes it easy to read from across the desk: if the code is the same, **Yes, it is the same** lets it through and brings in what it wrote; if not, **It doesn't match** keeps it out. You do it once on each of your other machines. If what waits is another computer's assistant, its code is on that computer, in Settings → Assistants.
 
-Right there, **Rename** chooses how your other machines will show this one; left empty, it goes back to the system's name. And every **Sync now** says when it ran, how many changes came in, how many were written to the folder and what still waits.
+Right there, **Rename** chooses how your other machines will show this one; left empty, it goes back to the system's name. And every **Sync now** says when it ran and whether something came back or was written to the folder.
 
 When both machines wrote the same part of a document, Tisty does not pick: it shows you the two side by side and you keep **This one**, **The other** or **Both**.
 

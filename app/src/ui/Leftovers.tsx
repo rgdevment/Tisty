@@ -13,11 +13,9 @@ import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { type Brittle, scanned } from "../scanning";
-import Card, { type Which, type Word } from "./Card";
+import Card, { type Run, type Which, type Word } from "./Card";
 import { hushed, hushedName } from "./Keys";
 import { dated, Group, mild } from "./Rows";
-
-type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
 
 interface Props {
   audit: Reviewed | null;

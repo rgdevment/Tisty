@@ -1,23 +1,16 @@
 import { useEffect, useState } from "react";
 import { renameMachine, type ThisMachine, thisMachine } from "../core";
 import { fill, t } from "../locales";
-import type { Which, Word } from "./Card";
+import { saidPlainly } from "../refusal";
 import Modal from "./Modal";
 import { mild, strong } from "./Rows";
 
 const NAMED_AT_MOST = 64;
 
-type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
-
-interface Props {
-  busy: Which | null;
-  run: Run;
-  tell: (word?: Word) => void;
-}
-
-export default function Here({ busy, run, tell }: Props) {
-  const held = busy !== null;
+export default function Here({ held }: { held: boolean }) {
   const [here, setHere] = useState<ThisMachine | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  const [told, setTold] = useState<{ text: string; wrong: boolean } | null>(null);
   const [big, setBig] = useState(false);
   const [naming, setNaming] = useState<string | null>(null);
 
@@ -31,12 +24,17 @@ export default function Here({ busy, run, tell }: Props) {
   const name = here.name ?? t("machineHere");
 
   const save = () => {
-    if (naming === null) return;
-    run("sync", renameMachine(naming), (now) => {
-      setHere(now);
-      setNaming(null);
-      tell({ card: "sync", text: fill("renamed", now.name ?? t("machineHere")) });
-    });
+    if (naming === null || renaming) return;
+    setRenaming(true);
+    setTold(null);
+    renameMachine(naming)
+      .then((now) => {
+        setHere(now);
+        setNaming(null);
+        setTold({ text: fill("renamed", now.name ?? t("machineHere")), wrong: false });
+      })
+      .catch((e) => setTold({ text: saidPlainly(e), wrong: true }))
+      .finally(() => setRenaming(false));
   };
 
   return (
@@ -80,7 +78,7 @@ export default function Here({ busy, run, tell }: Props) {
           />
           <p className="mt-1 text-[11.5px] text-faint">{t("renameMachineWhat")}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2.5">
-            <button type="submit" disabled={held} className={strong}>
+            <button type="submit" disabled={held || renaming} className={strong}>
               {t("saveIt")}
             </button>
             <button type="button" onClick={() => setNaming(null)} className={mild}>
@@ -89,10 +87,15 @@ export default function Here({ busy, run, tell }: Props) {
           </div>
         </form>
       )}
+      {told && (
+        <p className={`mt-2 text-[11.5px] ${told.wrong ? "text-urgent" : "text-faint"}`}>
+          {told.text}
+        </p>
+      )}
       {big && here.code && (
         <Modal title={fill("showBigTitle", name)} wide onClose={() => setBig(false)}>
           <p className="text-[13px] leading-relaxed text-soft">{t("showBigWhat")}</p>
-          <p className="mt-4 text-center font-mono text-[34px] tracking-[0.08em] [word-spacing:0.4em] tabular-nums">
+          <p className="mt-4 text-center font-mono text-[21px] tracking-[0.08em] [word-spacing:0.4em] tabular-nums">
             {here.code}
           </p>
           <div className="mt-5 flex justify-end">

@@ -3,13 +3,11 @@ import { type Carrying, revealed, type Settings } from "../core";
 import { daysFrom, stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import type { Which, Word } from "./Card";
+import type { Run, Which, Word } from "./Card";
 import Here from "./Here";
 import { Band, mild, strong, Warned } from "./Rows";
 
 const QUIET_DAYS = 3;
-
-type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
 
 interface Props {
   state: Carrying;
@@ -19,7 +17,6 @@ interface Props {
   trouble?: Word;
   run: Run;
   fail: (word?: Word) => void;
-  tell: (word?: Word) => void;
   carry: (way?: "again") => void;
   pickFolder: () => void;
 }
@@ -32,7 +29,6 @@ export default function Syncing({
   trouble,
   run,
   fail,
-  tell,
   carry,
   pickFolder,
 }: Props) {
@@ -115,7 +111,7 @@ export default function Syncing({
             </div>
           </>
         )}
-        {state.chosen && <Here run={run} tell={tell} busy={busy} />}
+        {state.chosen && <Here held={held} />}
         {trouble?.card === "sync" && (
           <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
         )}

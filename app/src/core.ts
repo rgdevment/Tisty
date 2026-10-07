@@ -680,8 +680,6 @@ export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {
   carried: Carried;
-  came: number;
-  went: number;
   undecided: string[];
   unreadable: string[];
   disowned: string[];

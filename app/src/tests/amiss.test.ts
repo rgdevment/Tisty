@@ -6,8 +6,6 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }))
 
 const settled = (over: Partial<Settled>): Settled => ({
   carried: "same",
-  came: 0,
-  went: 0,
   undecided: [],
   unreadable: [],
   disowned: [],

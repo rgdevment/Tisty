@@ -12,6 +12,8 @@ pub struct Home {
     pub device: DeviceId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<DeviceId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub called: Option<String>,
 }
 
 // Never stored as read: the configuration travels, so only what this computer says now can tell.
@@ -37,14 +39,17 @@ pub fn settled(config: &mut Config, here: Option<&str>) -> bool {
     let leaving = Home {
         device: config.device_id.clone(),
         agent: config.agent_id.clone(),
+        called: config.called.clone(),
     };
     config.homes.insert(was, leaving.clone());
     let home = config.homes.remove(here).unwrap_or_else(|| Home {
         device: successor(&leaving.device, here),
         agent: None,
+        called: None,
     });
     config.device_id = home.device;
     config.agent_id = home.agent;
+    config.called = home.called;
     config.synced_at = None;
     config.heard_at = None;
     witness::warn(
