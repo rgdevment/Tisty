@@ -252,17 +252,62 @@ fn answers_for_itself(
 }
 
 const BRINGING: &str = ".bringing";
+const LEFT_FOR: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
 
-// Unread or half copied, the history is left out this turn the same as one that cannot be read.
+pub(crate) struct Aside(std::path::PathBuf);
+
+impl Aside {
+    // The window and the command line may both be in a round, so each takes a place of its own.
+    pub(crate) fn taken(data: &Path) -> Self {
+        let all = data.join(BRINGING);
+        swept_aside(&all);
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_nanos());
+        Self(all.join(format!("{}-{stamp}", std::process::id())))
+    }
+
+    pub(crate) fn at(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for Aside {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+        if let Some(all) = self.0.parent() {
+            let _ = std::fs::remove_dir(all);
+        }
+    }
+}
+
+// Only what a round cut short a day ago left: a round still running keeps its place.
+fn swept_aside(all: &Path) {
+    let Ok(entries) = std::fs::read_dir(all) else {
+        return;
+    };
+    for entry in entries.filter_map(|one| one.ok()) {
+        let stale = entry
+            .metadata()
+            .and_then(|told| told.modified())
+            .ok()
+            .and_then(|when| when.elapsed().ok())
+            .is_some_and(|age| age > LEFT_FOR);
+        if stale {
+            let _ = std::fs::remove_dir_all(entry.path());
+        }
+    }
+}
+
+// Unread or half copied, the history is left out this turn; the caller says how.
 fn staging(
     alike: &mut Alike,
     named: &str,
     theirs: &Path,
     mine: &Path,
-    bringing: &Path,
-    moved: &mut Moved,
+    aside: &Aside,
 ) -> Option<std::path::PathBuf> {
-    let into = bringing.join(named);
+    let into = aside.at().join(named);
     let known = alike.of(named, theirs, mine).clone();
     match crate::segments::staged(theirs, mine, &known, &into) {
         Ok(()) => Some(into),
@@ -275,7 +320,6 @@ fn staging(
                     ("why", Fact::Why(why.to_string())),
                 ],
             );
-            moved.unreadable.push(named.to_string());
             None
         }
     }
@@ -302,8 +346,7 @@ pub(crate) fn bring(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<usize, Trouble> {
     let mut brought = 0;
-    let bringing = data.join(BRINGING);
-    let _ = std::fs::remove_dir_all(&bringing);
+    let aside = Aside::taken(data);
     let mut knew: Option<tisty_core::store::Ledger> = None;
     let mut away: std::collections::BTreeMap<String, turned::Away> = Default::default();
     let at = dest.join(STORE);
@@ -368,8 +411,7 @@ pub(crate) fn bring(
             if !alike.settled(named, &entry.path(), &mine, Toward::Home)
                 && ours_went_missing(&mine, &entry.path())
             {
-                let Some(theirs) = staging(alike, named, &entry.path(), &mine, &bringing, moved)
-                else {
+                let Some(theirs) = staging(alike, named, &entry.path(), &mine, &aside) else {
                     continue;
                 };
                 match tisty_core::store::alone(&mine) {
@@ -416,9 +458,14 @@ pub(crate) fn bring(
         let settled = alike.settled(named, &entry.path(), &mine, Toward::Home);
         let theirs = match settled {
             true => entry.path(),
-            false => match staging(alike, named, &entry.path(), &mine, &bringing, moved) {
+            false => match staging(alike, named, &entry.path(), &mine, &aside) {
                 Some(theirs) => theirs,
-                None => continue,
+                None => {
+                    if !removed(store, named, &mut knew) {
+                        moved.unreadable.push(named.to_string());
+                    }
+                    continue;
+                }
             },
         };
         let answered = answers_for_itself(
@@ -514,7 +561,6 @@ pub(crate) fn bring(
         }
         brought += alike.carried(named, &theirs, &mine, Toward::Home, false)?;
     }
-    let _ = std::fs::remove_dir_all(&bringing);
     saying(Reached::Along {
         stage: Stage::Log,
         done: whole,
