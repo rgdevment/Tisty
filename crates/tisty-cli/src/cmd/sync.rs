@@ -1,7 +1,6 @@
 use std::process::ExitCode;
 
-use tisty_core::config::Sync;
-use tisty_sync as carrier;
+use tisty_carrier::{self as carrier, Round};
 
 use crate::{EXIT_ERROR, app::App, i18n::Lang, style};
 
@@ -27,12 +26,14 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         confirm,
         force,
     } = asked;
-    let Some(Sync::Folder(dest)) = app.config().sync.clone() else {
+    let Some(via) = carrier::chosen(app.config().sync.as_ref()).carrier else {
+        anyhow::bail!("{}", lang.get("no-remote"));
+    };
+    let Some(dest) = via.place().map(std::path::Path::to_path_buf) else {
         anyhow::bail!("{}", lang.get("no-remote"));
     };
 
     let data = app.paths.data().to_path_buf();
-    let mut device = app.config().device_id.0.clone();
 
     if let Some(whose) = confirm {
         return answered_for(app, &dest, &whose, force, lang);
@@ -58,7 +59,6 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             ))
         );
         *app = App::at(app.paths.clone())?;
-        device = app.config().device_id.0.clone();
     }
 
     if let Some(into) = take_over {
@@ -83,7 +83,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         }
         let aside = app.paths.cache().to_path_buf();
         tisty_core::backup::write(&data, &into, &aside, Some(&dest))?;
-        let done = match carrier::stitch(&data, &device, &dest, app.signs()) {
+        let done = match via.stitch(&app.here(), app.signs()) {
             Ok(done) => done,
             Err(trouble) => return Ok(said(&trouble, lang)),
         };
@@ -106,13 +106,18 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         .values()
         .map(|one| one.file.clone())
         .collect();
-    let aside = app.paths.cache().to_path_buf();
     let holds = app.config().holds();
-    let moved =
-        match carrier::carry_holding(&data, Some(&aside), &device, &dest, way, &alive, holds) {
-            Ok(moved) => moved,
-            Err(trouble) => return Ok(said(&trouble, lang)),
-        };
+    let mut quiet = |_: carrier::Reached| {};
+    let round = Round {
+        way,
+        alive: &alive,
+        holds,
+        saying: &mut quiet,
+    };
+    let moved = match via.carry(&app.here(), round) {
+        Ok(moved) => moved,
+        Err(trouble) => return Ok(said(&trouble, lang)),
+    };
     for at in &moved.let_go {
         app.commit(tisty_core::Op::AttachLetGo { d: at.clone() })?;
     }
@@ -138,18 +143,14 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             tisty_core::docs::read(&docs, file).is_ok_and(|body| app.retell(file, &body, None))
         })
         .count();
-    if wrote > 0
-        && carrier::carry_holding(
-            &data,
-            Some(&aside),
-            &device,
-            &dest,
-            carrier::Way::Push,
-            &alive,
-            holds,
-        )
-        .is_err()
-    {
+    let mut quiet = |_: carrier::Reached| {};
+    let handed_on = Round {
+        way: carrier::Way::Push,
+        alive: &alive,
+        holds,
+        saying: &mut quiet,
+    };
+    if wrote > 0 && via.carry(&app.here(), handed_on).is_err() {
         tisty_core::witness::warn(
             tisty_core::witness::channel::SYNC,
             "a document was written down but not handed on yet",

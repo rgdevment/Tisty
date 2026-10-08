@@ -92,11 +92,12 @@ impl App {
         Ok(())
     }
 
+    pub fn here(&self) -> tisty_carrier::Here {
+        tisty_carrier::Here::of(&self.paths, &self.config)
+    }
+
     pub fn tidy_up(&mut self, bin: bool) {
-        let dest = match self.config.sync.clone() {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at),
-            _ => None,
-        };
+        let dest = tisty_carrier::place_of(self.config.sync.as_ref());
         tisty_core::tidy::all_of_it(
             &self.paths,
             &self.state,

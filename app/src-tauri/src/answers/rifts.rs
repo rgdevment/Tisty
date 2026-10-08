@@ -12,13 +12,11 @@ pub struct Torn {
 }
 
 fn three_bodies(session: &Session, id: &str) -> Answer<Option<(String, String, String)>> {
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
+    let carrier = session.carrying()?;
     let Some(base) = tisty_core::docs::read_carried(session.paths.data(), id) else {
         return Ok(None);
     };
-    match tisty_sync::both_papers(session.paths.data(), &dest, id) {
+    match carrier.both_papers(&session.here(), id) {
         Ok((mine, theirs)) => Ok(Some((base, mine, theirs))),
         Err(_) => Ok(None),
     }

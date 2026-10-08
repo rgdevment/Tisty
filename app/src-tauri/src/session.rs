@@ -155,12 +155,9 @@ impl Session {
         };
         holds(&self.paths.attachments())
             || holds(&self.paths.docs())
-            || match &self.config.sync {
-                Some(tisty_core::config::Sync::Folder(at)) => {
-                    tisty_core::store::inhabited(at.join(tisty_sync::STORE))
-                }
-                _ => false,
-            }
+            || self
+                .place()
+                .is_some_and(|at| tisty_core::store::inhabited(at.join(tisty_carrier::STORE)))
     }
 
     pub fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
@@ -267,6 +264,23 @@ impl Session {
         self.log = None;
     }
 
+    pub fn carrier(&self) -> Option<tisty_carrier::Shared> {
+        tisty_carrier::chosen(self.config.sync.as_ref()).carrier
+    }
+
+    pub fn place(&self) -> Option<std::path::PathBuf> {
+        tisty_carrier::place_of(self.config.sync.as_ref())
+    }
+
+    pub fn here(&self) -> tisty_carrier::Here {
+        tisty_carrier::Here::of(&self.paths, &self.config)
+    }
+
+    /// The way of carrying this machine chose, or the refusal every command that needs one gives.
+    pub fn carrying(&self) -> Result<tisty_carrier::Shared, Refusal> {
+        self.carrier().ok_or_else(|| Refusal::of("noRemote"))
+    }
+
     pub fn alive(&self) -> Vec<String> {
         self.state
             .docs
@@ -331,14 +345,8 @@ impl Session {
     /// Here and in the shared folder both, or a machine that holds none of them sees none astray.
     /// The shared folder, but only while this machine leaves anything in it.
     pub fn shared_now(&self) -> Option<std::path::PathBuf> {
-        match (&self.config.sync, self.config.holds()) {
-            (Some(tisty_core::config::Sync::Folder(dest)), holds)
-                if holds != tisty_core::config::Holds::Everywhere =>
-            {
-                Some(dest.clone())
-            }
-            _ => None,
-        }
+        self.place()
+            .filter(|_| self.config.holds() != tisty_core::config::Holds::Everywhere)
     }
 
     /// What the tasks and the documents point at, as written.
@@ -690,8 +698,8 @@ impl Session {
                     ],
                 );
             }
-            if let Some(tisty_core::config::Sync::Folder(dest)) = self.config.sync.clone() {
-                tisty_sync::forget_paper(&dest, file);
+            if let Some(carrier) = self.carrier() {
+                carrier.forget_paper(file);
             }
             said.forget(file);
             tisty_core::docs::forget_carried(self.paths.data(), file);
@@ -742,10 +750,7 @@ impl Session {
     }
 
     pub fn dest(&self) -> Option<std::path::PathBuf> {
-        match self.config.sync.clone() {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at),
-            _ => None,
-        }
+        self.place()
     }
 
     pub fn tidy_up(&mut self, bin: bool) {

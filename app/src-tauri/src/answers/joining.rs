@@ -62,7 +62,7 @@ pub async fn take_over(
     }
     let (dest, aside, ours) = {
         let session = held(&session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
+        let Some(dest) = session.place() else {
             return Err(Refusal::of("noRemote"));
         };
         let ours = tisty_core::store::identity(session.paths.store())
@@ -92,12 +92,12 @@ pub async fn take_over(
     Ok(made.bytes)
 }
 
-fn kinned(store: &std::path::Path, dest: &std::path::Path) -> &'static str {
-    match tisty_sync::kinship(store, dest) {
-        tisty_sync::Kin::SameLineage => "sameLineage",
-        tisty_sync::Kin::Clash(_) => "clash",
-        tisty_sync::Kin::Unsure(_) => "unsure",
-        tisty_sync::Kin::Strangers => "strangers",
+fn kinned(kin: tisty_carrier::Kin) -> &'static str {
+    match kin {
+        tisty_carrier::Kin::SameLineage => "sameLineage",
+        tisty_carrier::Kin::Clash(_) => "clash",
+        tisty_carrier::Kin::Unsure(_) => "unsure",
+        tisty_carrier::Kin::Strangers => "strangers",
     }
 }
 
@@ -105,31 +105,22 @@ fn kinned(store: &std::path::Path, dest: &std::path::Path) -> &'static str {
 /// other command waits behind whoever holds it.
 #[tauri::command(async)]
 pub fn folder_astir(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
-    let dest = {
-        let session = held(&session);
-        match session.config.sync.clone() {
-            Some(tisty_core::config::Sync::Folder(dest)) => dest,
-            _ => return Err(Refusal::of("noRemote")),
-        }
-    };
-    Ok(tisty_sync::stirring(&dest).to_string())
+    let carrier = held(&session).carrying()?;
+    Ok(carrier.stirring().to_string())
 }
 
 #[tauri::command(async)]
 pub fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static str> {
-    let (store, dest) = folder_and_store(&session)?;
-    Ok(kinned(&store, &dest))
+    let (carrier, here) = carrier_and_here(&session)?;
+    Ok(kinned(carrier.kin(&here)))
 }
 
 /// Read after the lock is let go: a slow folder must not hold up every other command.
-fn folder_and_store(
+fn carrier_and_here(
     session: &tauri::State<'_, Mutex<Session>>,
-) -> Answer<(std::path::PathBuf, std::path::PathBuf)> {
+) -> Answer<(tisty_carrier::Shared, tisty_carrier::Here)> {
     let session = held(session);
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
-    Ok((session.paths.store(), dest))
+    Ok((session.carrying()?, session.here()))
 }
 
 #[derive(serde::Serialize)]
@@ -144,12 +135,15 @@ pub struct Joining {
 
 #[tauri::command(async)]
 pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
-    let (store, dest) = folder_and_store(&session)?;
-    let signed = tisty_sync::signed_here(&dest);
+    let (carrier, here) = carrier_and_here(&session)?;
+    let signed = carrier.signed();
+    let store = here.data.join(tisty_carrier::STORE);
     Ok(Joining {
-        kin: kinned(&store, &dest),
+        kin: kinned(carrier.kin(&here)),
         fresh: !tisty_core::store::inhabited(&store),
-        holds: tisty_core::store::inhabited(dest.join(tisty_sync::STORE)),
+        holds: carrier
+            .place()
+            .is_some_and(|dest| tisty_core::store::inhabited(dest.join(tisty_carrier::STORE))),
         alias: signed.alias,
         coming: signed.coming,
     })
@@ -165,24 +159,19 @@ pub async fn merge_stores(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (data, dest, aside, device, also, key) = {
+    let (carrier, here, also, key) = {
         let session = held(&session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-            return Err(Refusal::of("noRemote"));
-        };
         (
-            session.paths.data().to_path_buf(),
-            dest,
-            session.paths.cache().to_path_buf(),
-            session.config.device_id.0.clone(),
+            session.carrying()?,
+            session.here(),
             let_go_to(&session),
             session.store.signs(),
         )
     };
 
     let at = std::path::PathBuf::from(&into);
-    let seam = tauri::async_runtime::spawn_blocking(move || -> Answer<tisty_sync::Stitched> {
-        tisty_core::backup::write(&data, &at, &aside, also.as_deref()).map_err(|e| {
+    let seam = tauri::async_runtime::spawn_blocking(move || -> Answer<tisty_carrier::Stitched> {
+        tisty_core::backup::write(&here.data, &at, &here.aside, also.as_deref()).map_err(|e| {
             witness::error(
                 channel::BACKUP,
                 "nothing was joined because the backup did not land",
@@ -193,7 +182,7 @@ pub async fn merge_stores(
                 _ => Refusal::about("cannotWrite", into),
             }
         })?;
-        tisty_sync::stitch(&data, &device, &dest, key).map_err(|trouble| {
+        carrier.stitch(&here, key).map_err(|trouble| {
             let refusal = said(trouble);
             witness::warn(
                 channel::SYNC,

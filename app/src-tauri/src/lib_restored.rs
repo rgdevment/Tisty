@@ -33,7 +33,10 @@ fn a_store_that_went_back_on_a_copy_does_not_carry_to_the_folder_it_went_back_fr
     sharing_the_same_store(&desk, &session);
 
     assert!(
-        !went_back_on(&session, &desk.shared),
+        !went_back_on(
+            &session,
+            tisty_carrier::considering(desk.shared.clone()).theirs()
+        ),
         "nothing was restored, so the folder is just a folder"
     );
 
@@ -42,7 +45,10 @@ fn a_store_that_went_back_on_a_copy_does_not_carry_to_the_folder_it_went_back_fr
         .unwrap();
 
     assert!(
-        went_back_on(&session, &desk.shared),
+        went_back_on(
+            &session,
+            tisty_carrier::considering(desk.shared.clone()).theirs()
+        ),
         "carrying would bring back the very history the copy went back on"
     );
 }
@@ -61,7 +67,10 @@ fn a_folder_holding_somebody_elses_store_is_not_what_this_one_went_back_from() {
         .unwrap();
 
     assert!(
-        !went_back_on(&session, &desk.shared),
+        !went_back_on(
+            &session,
+            tisty_carrier::considering(desk.shared.clone()).theirs()
+        ),
         "another store has its own door, and this one is not it"
     );
 }
@@ -75,7 +84,10 @@ fn an_empty_folder_is_open_to_a_store_that_went_back() {
         .unwrap();
 
     assert!(
-        !went_back_on(&session, &desk.shared),
+        !went_back_on(
+            &session,
+            tisty_carrier::considering(desk.shared.clone()).theirs()
+        ),
         "a folder that holds nothing has nothing to bring back"
     );
 }

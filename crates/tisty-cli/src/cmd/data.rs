@@ -98,10 +98,9 @@ fn value(app: &App, key: &str) -> anyhow::Result<Option<String>> {
         "device_id" => Ok(Some(config.device_id.0.clone())),
         "locale" => Ok(config.locale.clone()),
         "editor" => Ok(config.editor.clone()),
-        "remote" => Ok(match &config.sync {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at.display().to_string()),
-            _ => None,
-        }),
+        "remote" => {
+            Ok(tisty_carrier::place_of(config.sync.as_ref()).map(|at| at.display().to_string()))
+        }
         "data_dir" => Ok(Some(app.paths.data().display().to_string())),
         _ => Ok(None),
     }

@@ -15,7 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 tisty-core.workspace = true
-tisty-sync.workspace = true
+tisty-carrier.workspace = true
 tisty-nl.workspace = true
 clap.workspace = true
 dialoguer.workspace = true

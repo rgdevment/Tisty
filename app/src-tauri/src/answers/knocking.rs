@@ -19,10 +19,7 @@ pub fn waiting_machines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec
         let session = held(&session);
         (
             session.paths.clone(),
-            match &session.config.sync {
-                Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-                _ => None,
-            },
+            session.place(),
             session.config.device_id.0.clone(),
             session.state.dropped.clone(),
             session.state.assistants.clone(),

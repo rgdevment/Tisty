@@ -124,5 +124,5 @@ jobs:
       - name: Twenty turns of the suite
         run: |
           for _ in $(seq 1 20); do
-            cargo test -p tisty-core -p tisty-nl -p tisty-sync --quiet || exit 1
+            cargo test -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier --quiet || exit 1
           done
