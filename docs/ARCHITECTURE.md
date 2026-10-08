@@ -2344,8 +2344,9 @@ cardinality of one:
 | Speak to a provider | `Remote`, inside `Cloud` | Drive, OneDrive, Dropbox |
 
 `chosen()` is the only place that builds a carrier out of the way of syncing, and
-the type answers every other question itself: `place`, `shares`, `leaving` and
-`remembered` are the only code that looks inside it. Today the folder is asked
+the type answers every other question itself, through `place`, `shares`,
+`leaving` and `remembered`, and what a restore put away answers through `folder`
+and `is_later`. Today the folder is asked
 about in some thirty places; they move behind `Carrier` first, with no change
 in behaviour, and only then does a second carrier exist. A rule in `rules.sh`
 keeps any variant of `Sync` from being named outside `config.rs`, where the type
@@ -2373,7 +2374,17 @@ was read (`Unknown`), and then:
 - a restore puts it away as it found it, in `shared_was_later` and never in
   `shared_was`, which every build since 1.24 reads as a path, and the card says
   that what it let go was a way it cannot name. A second restore keeps what the
-  first put away, unless the person chose not to share in between.
+  first put away, unless the person chose not to share in between. The way is
+  stamped with the restore that put it away, so a build that restores later and
+  does not know the key leaves it standing and this one no longer believes it.
+
+Two more rules keep the settings of a newer build safe from this one. A folder
+with anything in it besides `how` and `at` is a way this build does not read,
+and is kept whole rather than shaved to what it knows. And when the settings on
+disk say something this build cannot read, nothing is written over them from
+the window or the command line: it refuses with `settingsUnreadable` and says to
+update. A new value of an existing setting, such as another `holds`, is a format
+change in the same sense: older builds stop rather than guess.
 
 A backup made while a way is unknown leaves out the attachments that live only
 there, and opening one says it cannot be read. Both wait for the cloud's own

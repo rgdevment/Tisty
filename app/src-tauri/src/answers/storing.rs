@@ -367,14 +367,10 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         weight: report::weighed(paths.data())
             + report::also_weighed(paths.data(), let_go.as_deref()),
         carries: tisty_core::backup::AT_MOST,
-        shared_was: match config.once_shared() {
-            Some(tisty_core::config::Was::Folder(at)) => Some(at.display().to_string()),
-            Some(tisty_core::config::Was::Later(_)) | None => None,
-        },
-        shared_was_later: matches!(
-            config.once_shared(),
-            Some(tisty_core::config::Was::Later(_))
-        ),
+        shared_was: config
+            .once_shared()
+            .and_then(|was| was.folder().map(|at| at.display().to_string())),
+        shared_was_later: config.once_shared().is_some_and(|was| was.is_later()),
         later: tisty_carrier::chosen(config.sync.as_ref()).chosen == tisty_carrier::Chosen::Later,
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
@@ -525,7 +521,13 @@ pub fn choose_sync(
     session: tauri::State<'_, Mutex<Session>>,
     dest: Option<String>,
 ) -> Answer<()> {
-    let mut session = held(&session);
+    choose(&mut held(&session), dest)?;
+    let _ = app.emit("unstuck", ());
+    Ok(())
+}
+
+pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> {
+    session.refresh_settings();
     let chosen = match dest
         .map(|one| one.trim().to_string())
         .filter(|one| !one.is_empty())
@@ -548,16 +550,14 @@ pub fn choose_sync(
         None => tisty_core::config::Sync::alone(),
     };
     if let Some(at) = chosen.place()
-        && went_back_on(&session, tisty_carrier::considering(at).theirs())
+        && went_back_on(session, tisty_carrier::considering(at).theirs())
     {
         return Err(Refusal::about("restoredApart", at.display().to_string()));
     }
-    if let Some(refusal) = stranded_by_leaving(&session, &chosen) {
+    if let Some(refusal) = stranded_by_leaving(session, &chosen) {
         return Err(refusal);
     }
-    session.keep_unless(choosing(chosen))?;
-    let _ = app.emit("unstuck", ());
-    Ok(())
+    session.keep_unless(choosing(chosen))
 }
 
 #[tauri::command]

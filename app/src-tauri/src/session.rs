@@ -160,18 +160,27 @@ impl Session {
                 .is_some_and(|at| tisty_core::store::inhabited(at.join(tisty_carrier::STORE)))
     }
 
-    fn settings_on_disk(&self) -> Config {
+    /// A file that says something this build cannot read is somebody else's, most likely a newer
+    /// build's: it is neither adopted nor written over.
+    fn settings_on_disk(&self) -> Option<Config> {
         match Config::load(&self.paths.config_file()) {
-            Ok(Some(kept)) => kept,
-            Ok(None) => self.config.clone(),
+            Ok(Some(kept)) => Some(kept),
+            Ok(None) => Some(self.config.clone()),
             Err(why) => {
                 witness::warn(
                     channel::CONFIG,
-                    "the settings could not be read before saving",
+                    "the settings on disk could not be read, so nothing was written over them",
                     &[("why", Fact::Why(why.to_string()))],
                 );
-                self.config.clone()
+                None
             }
+        }
+    }
+
+    /// What another install or the command line wrote since this window opened.
+    pub fn refresh_settings(&mut self) {
+        if let Some(on_disk) = self.settings_on_disk() {
+            self.config = on_disk;
         }
     }
 
@@ -188,7 +197,9 @@ impl Session {
         &mut self,
         change: impl FnOnce(&mut Config) -> Option<Refusal>,
     ) -> Answer<()> {
-        let mut fresh = self.settings_on_disk();
+        let Some(mut fresh) = self.settings_on_disk() else {
+            return Err(Refusal::of("settingsUnreadable"));
+        };
         if let Some(refusal) = change(&mut fresh) {
             self.config = fresh;
             return Err(refusal);

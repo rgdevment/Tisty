@@ -139,6 +139,74 @@ fn a_way_a_newer_build_wrote_after_this_window_opened_is_not_replaced() {
     );
 }
 
+fn written_since_the_window_opened(paths: &tisty_core::Paths, way: Option<Sync>) {
+    let mut written = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    written.sync = way;
+    written.save(paths).unwrap();
+}
+
+#[test]
+fn choosing_a_folder_over_a_way_a_newer_build_wrote_meanwhile_is_refused_and_writes_nothing() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths.clone()).unwrap();
+    session
+        .keep(|c| c.sync = Some(Sync::folder("G:/compartida")))
+        .unwrap();
+    written_since_the_window_opened(&paths, Some(later()));
+
+    let stopped = choose(&mut session, Some("G:/otra".to_string())).expect_err("replaced");
+
+    assert_eq!(stopped.code, "syncLaterToLeave");
+    let on_disk = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    assert_eq!(on_disk.sync, Some(later()));
+    assert_eq!(session.config.sync, Some(later()));
+}
+
+#[test]
+fn a_window_that_still_believes_in_a_later_way_is_not_stuck_on_it() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths.clone()).unwrap();
+    session.keep(|c| c.sync = Some(later())).unwrap();
+    written_since_the_window_opened(&paths, None);
+
+    choose(&mut session, Some("G:/otra".to_string()))
+        .expect("a way that is no longer written refused the change");
+
+    let on_disk = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    assert_eq!(on_disk.sync, Some(Sync::folder("G:/otra")));
+    assert_eq!(session.config.sync, Some(Sync::folder("G:/otra")));
+}
+
+#[test]
+fn settings_this_version_cannot_read_are_never_written_over() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths.clone()).unwrap();
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+    let unreadable = format!("holds = \"cloudonly\"\n{said}");
+    std::fs::write(paths.config_file(), &unreadable).unwrap();
+
+    let stopped = session
+        .keep(|c| c.locale = Some("es".into()))
+        .expect_err("settings written by a newer build were overwritten");
+    let chosen = choose(&mut session, Some("G:/otra".to_string())).expect_err("overwritten");
+
+    assert_eq!(stopped.code, "settingsUnreadable");
+    assert_eq!(chosen.code, "settingsUnreadable");
+    assert_eq!(
+        std::fs::read_to_string(paths.config_file()).unwrap(),
+        unreadable
+    );
+}
+
 #[test]
 fn a_change_that_is_not_refused_is_written_onto_what_is_on_disk() {
     let kept = tempfile::tempdir().unwrap();

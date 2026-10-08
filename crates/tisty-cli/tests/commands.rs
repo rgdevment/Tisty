@@ -1662,7 +1662,7 @@ fn syncing_a_way_a_newer_build_chose(cli: &Cli) {
     cli.ok(&["a task so the settings exist"]);
     let file = cli.home.path().join("config").join("config.toml");
     let mut said = std::fs::read_to_string(&file).unwrap();
-    said.push_str("\n[sync]\nhow = \"nube\"\n");
+    said.push_str("\n# written by a newer build\n[sync]\nhow = 'nube'\n");
     std::fs::write(&file, said).unwrap();
 }
 

@@ -925,6 +925,8 @@ const en = {
     "This copy syncs a way a newer Tisty chose, and this version does not know it. Update Tisty to carry on; nothing was changed.",
   syncLaterToLeave:
     "A newer Tisty chose how this copy syncs, and this version cannot tell what it left there. Update Tisty before changing it; nothing was changed.",
+  settingsUnreadable:
+    "The settings file says something this version cannot read, most likely written by a newer Tisty. Nothing was written; update Tisty before changing settings.",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
   emptiedPlace:
     "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
@@ -2501,6 +2503,8 @@ const es: Catalog = {
     "Esta copia sincroniza de una manera que eligió un Tisty más nuevo, y esta versión no la conoce. Actualiza Tisty para seguir; no se cambió nada.",
   syncLaterToLeave:
     "Un Tisty más nuevo eligió cómo sincroniza esta copia, y esta versión no puede saber qué dejó allá. Actualiza Tisty antes de cambiarla; no se cambió nada.",
+  settingsUnreadable:
+    "El archivo de ajustes dice algo que esta versión no sabe leer, seguramente escrito por un Tisty más nuevo. No se escribió nada; actualiza Tisty antes de cambiar ajustes.",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
   emptiedPlace:
     "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",

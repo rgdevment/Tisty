@@ -561,7 +561,7 @@ fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
             .get("a_scalar_of_a_newer_build")
             .and_then(toml::Value::as_integer),
         Some(7),
-        "a key written after the tables was swallowed by one of them: {said}"
+        "a key of a newer build did not survive the file: {said}"
     );
     assert_eq!(
         read.rest.get("a_table_of_a_newer_build"),
@@ -575,6 +575,76 @@ fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
     assert!(
         !said.contains("shared_was = "),
         "what an older build reads as a path was written as something else: {said}"
+    );
+}
+
+#[test]
+fn a_folder_with_more_than_a_folder_in_it_is_kept_whole_as_a_way_nobody_here_reads() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    std::fs::create_dir_all(paths.config_file().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.config_file(),
+        "device_id = \"dev_a\"\n\n[sync]\nhow = \"folder\"\nat = \"G:/compartida\"\nmirror = \"G:/espejo\"\n",
+    )
+    .unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync.as_ref().map(Sync::leaving), Some(Leaving::Later));
+    assert!(!read.shares());
+    read.save(&paths).unwrap();
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+    assert!(said.contains("mirror = \"G:/espejo\""), "{said}");
+}
+
+#[test]
+fn a_plain_folder_is_still_a_folder() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    std::fs::create_dir_all(paths.config_file().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.config_file(),
+        "device_id = \"dev_a\"\n\n[sync]\nhow = \"folder\"\nat = \"G:/compartida\"\n",
+    )
+    .unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync, Some(Sync::folder("G:/compartida")));
+}
+
+#[test]
+fn a_way_put_away_is_forgotten_once_another_restore_happened_without_knowing_it() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+    config.restored_at = Some("2026-10-01T10:00:00Z".parse().unwrap());
+    config.remember_shared(Some(Was::Later(later())));
+    assert_eq!(config.once_shared(), Some(Was::Later(later())));
+
+    config.restored_at = Some("2026-10-05T10:00:00Z".parse().unwrap());
+
+    assert_eq!(
+        config.once_shared(),
+        None,
+        "a build that restored later and did not know the key left a stale memory standing"
+    );
+}
+
+#[test]
+fn a_way_put_away_keeps_the_stamp_of_the_restore_that_wrote_it_through_the_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.restored_at = Some("2026-10-01T10:00:00Z".parse().unwrap());
+    config.remember_shared(Some(Was::Later(later())));
+    config.save(&paths).unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.once_shared(), Some(Was::Later(later())));
+    assert_eq!(
+        read.shared_was_later.and_then(|put| put.restored_at),
+        read.restored_at
     );
 }
 

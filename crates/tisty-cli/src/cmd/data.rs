@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use jiff::civil::Date;
 
-use crate::app::App;
+use crate::app::{App, Edited};
 use crate::filter::Filter;
 use crate::i18n::Lang;
 use crate::{ConfigAction, EXIT_NOT_FOUND, render, style};
@@ -41,7 +41,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                     Ok(ExitCode::SUCCESS)
                 }
                 None if key == "remote" && later(app) => {
-                    eprintln!("{}", lang.get("sync-later"));
+                    eprintln!("{}", lang.get("remote-later"));
                     Ok(ExitCode::from(EXIT_NOT_FOUND))
                 }
                 None => {
@@ -71,7 +71,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 }
             }
 
-            let changed = app.edit_config_if(|c| match key.as_str() {
+            let edited = app.edit_config_if(|c| match key.as_str() {
                 "locale" => {
                     c.locale = Some(value.clone());
                     true
@@ -82,16 +82,14 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                     true
                 }
             })?;
-            if !changed {
-                anyhow::bail!("{}", lang.get("sync-later-to-leave"));
-            }
+            refused(edited, lang)?;
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
             Ok(ExitCode::SUCCESS)
         }
 
         Some(ConfigAction::Unset { key }) => {
             check(&key, lang)?;
-            let changed = app.edit_config_if(|c| match key.as_str() {
+            let edited = app.edit_config_if(|c| match key.as_str() {
                 "locale" => {
                     c.locale = None;
                     true
@@ -102,9 +100,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                     true
                 }
             })?;
-            if !changed {
-                anyhow::bail!("{}", lang.get("sync-later-to-leave"));
-            }
+            refused(edited, lang)?;
             println!("  {} {key}", style::dim("✕"));
             Ok(ExitCode::SUCCESS)
         }
@@ -122,6 +118,14 @@ fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sy
         config.sync = Some(to);
     }
     !held
+}
+
+fn refused(edited: Edited, lang: Lang) -> anyhow::Result<()> {
+    match edited {
+        Edited::Saved => Ok(()),
+        Edited::Refused => anyhow::bail!("{}", lang.get("sync-later-to-leave")),
+        Edited::Unreadable => anyhow::bail!("{}", lang.get("settings-unreadable")),
+    }
 }
 
 fn later(app: &App) -> bool {

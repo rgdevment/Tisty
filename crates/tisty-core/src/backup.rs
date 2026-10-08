@@ -250,13 +250,14 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.heard_at = None;
-    // A second restore finds the way already put away; choosing nobody on purpose clears it.
+    config.sync = None;
+    config.restored_at = Some(jiff::Timestamp::now());
+    // After the stamp, which is what the way put away is remembered by; a second restore finds
+    // it already put away, and choosing nobody on purpose clears it.
     config.remember_shared(match &was.sync {
         Some(chosen) => chosen.remembered(),
         None => was.once_shared(),
     });
-    config.sync = None;
-    config.restored_at = Some(jiff::Timestamp::now());
     config.save(paths)?;
 
     store::kept_before_the_store_goes(paths);
