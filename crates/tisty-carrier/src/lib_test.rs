@@ -124,3 +124,16 @@ fn a_folder_answers_from_its_own_place() {
     assert_eq!(folder.unclaimed(), Holding::Whole);
     assert_eq!(folder.paper("dev_a-0001"), Paper::default());
 }
+
+#[test]
+fn the_place_is_the_folders_and_nothing_else_has_one() {
+    let at = PathBuf::from("compartida");
+
+    assert_eq!(place_of(Some(&Sync::Folder(at.clone()))), Some(at));
+    assert_eq!(place_of(None), None);
+    assert_eq!(place_of(Some(&Sync::Local)), None);
+    assert_eq!(
+        place_of(Some(&Sync::Unknown(toml::Value::String("nube".into())))),
+        None
+    );
+}

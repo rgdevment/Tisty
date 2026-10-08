@@ -91,6 +91,12 @@ pub fn chosen(sync: Option<&Sync>) -> Keeping {
     }
 }
 
+pub fn place_of(sync: Option<&Sync>) -> Option<PathBuf> {
+    chosen(sync)
+        .carrier
+        .and_then(|carrier| carrier.place().map(Path::to_path_buf))
+}
+
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod tests;

@@ -5317,9 +5317,9 @@ dependencies = [
  "sys-locale",
  "sysinfo",
  "tempfile",
+ "tisty-carrier",
  "tisty-core",
  "tisty-nl",
- "tisty-sync",
  "toml 1.1.6+spec-1.1.0",
  "ulid",
 ]
