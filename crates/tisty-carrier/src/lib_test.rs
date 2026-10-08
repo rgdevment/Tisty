@@ -137,3 +137,13 @@ fn the_place_is_the_folders_and_nothing_else_has_one() {
         None
     );
 }
+
+#[test]
+fn a_folder_being_considered_answers_for_its_place_without_being_chosen() {
+    let desk = desk();
+
+    let carrier = considering(desk.shared.clone());
+
+    assert_eq!(carrier.place(), Some(desk.shared.as_path()));
+    assert_eq!(carrier.unclaimed(), Holding::Whole);
+}

@@ -91,6 +91,11 @@ pub fn chosen(sync: Option<&Sync>) -> Keeping {
     }
 }
 
+// A folder somebody is only considering: nothing is chosen, so only what a place answers for itself is asked.
+pub fn considering(at: impl Into<PathBuf>) -> Box<dyn Carrier> {
+    Box::new(Folder::at(at.into()))
+}
+
 pub fn place_of(sync: Option<&Sync>) -> Option<PathBuf> {
     chosen(sync)
         .carrier

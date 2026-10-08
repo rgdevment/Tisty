@@ -89,7 +89,7 @@ fn an_install_that_finds_what_an_earlier_one_left_brings_no_example_lists() {
 fn a_folder_that_already_holds_a_store_is_the_meeting_place_itself() {
     let desk = desk();
     let shared = desk.paths.data().join("shared");
-    std::fs::create_dir_all(shared.join(tisty_sync::STORE)).unwrap();
+    std::fs::create_dir_all(shared.join(tisty_carrier::STORE)).unwrap();
 
     assert_eq!(super::room(&shared), shared);
 }

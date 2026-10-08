@@ -118,11 +118,9 @@ pub fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
 }
 
 fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
-    let dest = match &held(session).config.sync {
-        Some(tisty_core::config::Sync::Folder(dest)) => dest.clone(),
-        _ => return false,
-    };
-    tisty_sync::paper_waiting(&dest, id)
+    held(session)
+        .carrier()
+        .is_some_and(|carrier| carrier.paper(id).waiting)
 }
 
 #[derive(serde::Serialize)]
@@ -541,23 +539,21 @@ pub fn settle_paper(
     if session.state.shut_tight(&id) {
         return Err(Refusal::of("documentLocked"));
     }
-    let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-        return Err(Refusal::of("noRemote"));
-    };
+    let carrier = session.carrying()?;
+    let here = session.here();
     let keep = match keep.as_str() {
-        "mine" => tisty_sync::Keep::Mine,
-        "theirs" => tisty_sync::Keep::Theirs,
-        _ => tisty_sync::Keep::Both,
+        "mine" => tisty_carrier::Keep::Mine,
+        "theirs" => tisty_carrier::Keep::Theirs,
+        _ => tisty_carrier::Keep::Both,
     };
 
-    if !matches!(keep, tisty_sync::Keep::Theirs)
+    if !matches!(keep, tisty_carrier::Keep::Theirs)
         && let Some(shown) = session.asked.get(&id)
-        && tisty_sync::held_there(&dest, &id).as_ref() != Some(shown)
+        && carrier.paper(&id).print.as_ref() != Some(shown)
     {
         return Err(Refusal::of("movedUnderfoot"));
     }
-    let data = session.paths.data().to_path_buf();
-    let brought = tisty_sync::settle(&data, &dest, &id, keep).map_err(said)?;
+    let brought = carrier.settle(&here, &id, keep).map_err(said)?;
     session.mind(&id);
     session.asked.remove(&id);
 
@@ -580,7 +576,9 @@ pub fn settle_paper(
         false => twin_of(&session, beside.as_ref(), &body).map(Some),
     };
     if let Some(twin) = twin {
-        tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
+        carrier
+            .settle(&here, &id, tisty_carrier::Keep::Mine)
+            .map_err(said)?;
         session.mind(&id);
         return Ok(twin);
     }
@@ -612,7 +610,9 @@ pub fn settle_paper(
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
 
-    tisty_sync::settle(&data, &dest, &id, tisty_sync::Keep::Mine).map_err(said)?;
+    carrier
+        .settle(&here, &id, tisty_carrier::Keep::Mine)
+        .map_err(said)?;
     session.mind(&id);
     Ok(Some(file))
 }

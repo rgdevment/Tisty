@@ -294,7 +294,7 @@ fn a_machine_waiting_in_the_folder_is_listed_with_the_key_it_says_it_signs_with(
     let who = tisty_core::DeviceId("dev_x".into());
     let said = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &who).unwrap());
     let mut store =
-        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+        tisty_core::Store::open(folder.path().join(tisty_carrier::STORE), who.clone()).unwrap();
     store
         .append(tisty_core::Op::DeviceKey {
             d: who.clone(),
@@ -302,9 +302,13 @@ fn a_machine_waiting_in_the_folder_is_listed_with_the_key_it_says_it_signs_with(
         })
         .unwrap();
     drop(store);
-    tisty_sync::turned::keep(
+    tisty_carrier::turned::keep(
         &data,
-        &[("dev_x".to_string(), tisty_sync::turned::Away::Unconfirmed)].into(),
+        &[(
+            "dev_x".to_string(),
+            tisty_carrier::turned::Away::Unconfirmed,
+        )]
+        .into(),
     );
     let told = [wrote("mac0", 0)];
 
@@ -339,9 +343,13 @@ fn a_machine_the_person_removed_is_not_offered_back_because_it_kept_writing() {
     let paths = tisty_core::Paths::new(data.clone(), room.path().join("config"));
     let gone: std::collections::BTreeSet<tisty_core::DeviceId> =
         [tisty_core::DeviceId("dev_x".into())].into();
-    tisty_sync::turned::keep(
+    tisty_carrier::turned::keep(
         &data,
-        &[("dev_x".to_string(), tisty_sync::turned::Away::Unconfirmed)].into(),
+        &[(
+            "dev_x".to_string(),
+            tisty_carrier::turned::Away::Unconfirmed,
+        )]
+        .into(),
     );
     let told = [wrote("mac0", 0)];
 
@@ -381,7 +389,7 @@ fn waiting_in_folder(
     let who = tisty_core::DeviceId(name.into());
     let said = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &who).unwrap());
     let mut store =
-        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+        tisty_core::Store::open(folder.path().join(tisty_carrier::STORE), who.clone()).unwrap();
     store
         .append(tisty_core::Op::DeviceKey {
             d: who.clone(),
@@ -389,9 +397,9 @@ fn waiting_in_folder(
         })
         .unwrap();
     drop(store);
-    tisty_sync::turned::keep(
+    tisty_carrier::turned::keep(
         &data,
-        &[(name.to_string(), tisty_sync::turned::Away::Unconfirmed)].into(),
+        &[(name.to_string(), tisty_carrier::turned::Away::Unconfirmed)].into(),
     );
     (room, folder, paths, said)
 }
@@ -472,7 +480,7 @@ fn a_waiting_machine_is_shown_by_the_name_it_gave_itself_and_its_code() {
     let (_room, folder, paths, said) = waiting_in_folder("dev_x");
     let who = tisty_core::DeviceId("dev_x".into());
     let mut store =
-        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+        tisty_core::Store::open(folder.path().join(tisty_carrier::STORE), who.clone()).unwrap();
     store
         .append(tisty_core::Op::DeviceNamed {
             d: who,
@@ -512,7 +520,7 @@ fn a_waiting_assistant_names_the_computer_it_runs_on() {
     let who = tisty_core::DeviceId("dev_agent".into());
     let host = tisty_core::DeviceId("dev_host".into());
     let mut store =
-        tisty_core::Store::open(folder.path().join(tisty_sync::STORE), who.clone()).unwrap();
+        tisty_core::Store::open(folder.path().join(tisty_carrier::STORE), who.clone()).unwrap();
     store
         .append(tisty_core::Op::DeviceHost {
             d: who,

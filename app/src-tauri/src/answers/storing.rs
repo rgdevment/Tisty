@@ -70,19 +70,19 @@ impl Telling {
         }
     }
 
-    fn hear(&mut self, far: tisty_sync::Reached) {
+    fn hear(&mut self, far: tisty_carrier::Reached) {
         match far {
-            tisty_sync::Reached::Log => {
+            tisty_carrier::Reached::Log => {
                 let _ = self.app.emit("carried", "log");
             }
-            tisty_sync::Reached::Papers => {
+            tisty_carrier::Reached::Papers => {
                 let _ = self.app.emit("carried", "papers");
             }
-            tisty_sync::Reached::Along { stage, done, whole } => {
+            tisty_carrier::Reached::Along { stage, done, whole } => {
                 let stage = match stage {
-                    tisty_sync::Stage::Log => "log",
-                    tisty_sync::Stage::Papers => "papers",
-                    tisty_sync::Stage::Attachments => "attachments",
+                    tisty_carrier::Stage::Log => "log",
+                    tisty_carrier::Stage::Papers => "papers",
+                    tisty_carrier::Stage::Attachments => "attachments",
                 };
                 let quiet = self
                     .said
@@ -101,7 +101,7 @@ impl Telling {
                     },
                 );
             }
-            tisty_sync::Reached::Kept { at, sha256, bytes } => {
+            tisty_carrier::Reached::Kept { at, sha256, bytes } => {
                 self.kept.push((at, sha256, bytes));
                 if self.kept.len() >= KEPT_AT_MOST || self.kept_at.elapsed() >= KEPT_EVERY {
                     self.flush();
@@ -166,7 +166,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, dest, paths, data, store, aside, device, alive, holds) = {
+    let (was, carriers, paths, home, store, alive, holds) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -178,18 +178,12 @@ pub async fn settle_in(
                 stuck: None,
             });
         }
-        let dest = match &session.config.sync {
-            Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-            _ => None,
-        };
         (
             was,
-            dest,
+            session.carrier().zip(session.carrier()),
             session.paths.clone(),
-            session.paths.data().to_path_buf(),
+            session.here(),
             session.paths.store(),
-            session.paths.cache().to_path_buf(),
-            session.config.device_id.0.clone(),
             session.alive(),
             session.config.holds(),
         )
@@ -198,30 +192,24 @@ pub async fn settle_in(
     let mut brought = false;
     let mut stuck = None;
     let mut arrived = Vec::new();
-    let mut carried = dest.is_none();
-    if let Some(dest) = dest
+    let mut carried = carriers.is_none();
+    if let Some((carrier, pusher)) = carriers
         && let Some(_done) = alone.inner().claim()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
-        let pushing = (
-            data.clone(),
-            aside.clone(),
-            device.clone(),
-            dest.clone(),
-            alive.clone(),
-        );
-        let mut telling = Telling::new(app.clone(), !tisty_sync::been_here(&aside, &dest, &device));
+        let pushing = (home.clone(), pusher, alive.clone());
+        let mut telling = Telling::new(app.clone(), !carrier.been_here(&home));
         let carried = tauri::async_runtime::spawn_blocking(move || {
-            let done = tisty_sync::carry_telling(
-                &data,
-                Some(&aside),
-                &device,
-                &dest,
-                tisty_sync::Way::Both,
-                &alive,
-                holds,
-                &mut |far| telling.hear(far),
+            let mut saying = |far| telling.hear(far);
+            let done = carrier.carry(
+                &home,
+                tisty_carrier::Round {
+                    way: tisty_carrier::Way::Both,
+                    alive: &alive,
+                    holds,
+                    saying: &mut saying,
+                },
             );
             telling.flush();
             done
@@ -358,10 +346,7 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
     };
     held.extend(tisty_core::docs::referenced(&paths.docs()));
 
-    let held_at = match &config.sync {
-        Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-        _ => None,
-    };
+    let held_at = tisty_carrier::place_of(config.sync.as_ref());
     let said = held_at.as_deref().map(told);
 
     Ok(Carrying {
@@ -424,13 +409,13 @@ pub fn keeper_of(at: String) -> Told {
 
 #[tauri::command(async)]
 pub fn strays_at(at: String) -> Strays {
-    match tisty_sync::unclaimed(&std::path::PathBuf::from(at)) {
-        tisty_sync::Holding::Whole => Strays::default(),
-        tisty_sync::Holding::Strays(adrift) => Strays {
+    match tisty_carrier::considering(at).unclaimed() {
+        tisty_carrier::Holding::Whole => Strays::default(),
+        tisty_carrier::Holding::Strays(adrift) => Strays {
             adrift,
             unreadable: false,
         },
-        tisty_sync::Holding::Unreadable => Strays {
+        tisty_carrier::Holding::Unreadable => Strays {
             adrift: 0,
             unreadable: true,
         },
@@ -486,22 +471,23 @@ fn stranded_by_leaving(
     session: &Session,
     chosen: &tisty_core::config::Sync,
 ) -> Option<std::path::PathBuf> {
-    let Some(tisty_core::config::Sync::Folder(old)) = session.config.sync.clone() else {
-        return None;
-    };
+    let carrier = session.carrier()?;
+    let old = carrier.place()?.to_path_buf();
     (session.config.holds() != tisty_core::config::Holds::Everywhere
         && session.config.sync.as_ref() != Some(chosen)
         && old.is_dir()
-        && tisty_sync::been_here(session.paths.cache(), &old, &session.config.device_id.0))
+        && carrier.been_here(&session.here()))
     .then_some(old)
 }
 
 pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
     session.config.restored_at.is_some()
-        && tisty_sync::theirs(at).is_some_and(|theirs| {
-            tisty_core::store::peek_identity(session.paths.store())
-                .is_some_and(|ours| ours.trim() == theirs.trim())
-        })
+        && tisty_carrier::considering(at)
+            .theirs()
+            .is_some_and(|theirs| {
+                tisty_core::store::peek_identity(session.paths.store())
+                    .is_some_and(|ours| ours.trim() == theirs.trim())
+            })
 }
 
 #[tauri::command]
@@ -596,21 +582,20 @@ async fn carried_round(
     session: &tauri::State<'_, Mutex<Session>>,
     way: Option<String>,
 ) -> Answer<Settled> {
-    let (dest, paths, data, store, aside, device, alive, holds) = {
+    let (carrier, pusher, paths, home, store, alive, holds) = {
         let session = held(session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-            return Err(Refusal::of("noRemote"));
-        };
-        if went_back_on(&session, &dest) {
+        let carrier = session.carrying()?;
+        if let Some(dest) = carrier.place()
+            && went_back_on(&session, dest)
+        {
             return Err(Refusal::about("restoredApart", dest.display().to_string()));
         }
         (
-            dest,
+            carrier,
+            session.carrying()?,
             session.paths.clone(),
-            session.paths.data().to_path_buf(),
+            session.here(),
             session.paths.store(),
-            session.paths.cache().to_path_buf(),
-            session.config.device_id.0.clone(),
             session.alive(),
             session.config.holds(),
         )
@@ -618,31 +603,25 @@ async fn carried_round(
 
     let before = tisty_core::cache::fingerprint(&store);
     let way = match way.as_deref() {
-        Some("push") => tisty_sync::Way::Push,
-        Some("pull") => tisty_sync::Way::Pull,
-        Some("again") => tisty_sync::Way::Again,
-        _ => tisty_sync::Way::Both,
+        Some("push") => tisty_carrier::Way::Push,
+        Some("pull") => tisty_carrier::Way::Pull,
+        Some("again") => tisty_carrier::Way::Again,
+        _ => tisty_carrier::Way::Both,
     };
 
-    let joining = !tisty_sync::been_here(&aside, &dest, &device);
+    let joining = !carrier.been_here(&home);
     let mut telling = Telling::new(app.clone(), joining);
-    let pushing = (
-        data.clone(),
-        aside.clone(),
-        device.clone(),
-        dest.clone(),
-        alive.clone(),
-    );
+    let pushing = (home.clone(), pusher, alive.clone());
     let done = tauri::async_runtime::spawn_blocking(move || {
-        let done = tisty_sync::carry_telling(
-            &data,
-            Some(&aside),
-            &device,
-            &dest,
-            way,
-            &alive,
-            holds,
-            &mut |far| telling.hear(far),
+        let mut saying = |far| telling.hear(far);
+        let done = carrier.carry(
+            &home,
+            tisty_carrier::Round {
+                way,
+                alive: &alive,
+                holds,
+                saying: &mut saying,
+            },
         );
         telling.flush();
         done
@@ -869,10 +848,8 @@ pub fn confirm_machine_key(
     let session = held(&session);
     let who = tisty_core::event::DeviceId(id.clone());
     let says = session.state.keys.get(&who).cloned().or_else(|| {
-        let Some(tisty_core::config::Sync::Folder(at)) = &session.config.sync else {
-            return None;
-        };
-        tisty_core::store::key_said_in(&at.join(tisty_sync::STORE).join(&id), &who)
+        let at = session.place()?;
+        tisty_core::store::key_said_in(&at.join(tisty_carrier::STORE).join(&id), &who)
     });
     if says.as_deref() != Some(key.as_str()) {
         return Err(Refusal::of("keyMoved"));
@@ -881,7 +858,7 @@ pub fn confirm_machine_key(
         return Err(Refusal::of("keyNotConfirmed"));
     }
 
-    tisty_sync::turned::let_through(session.paths.data(), &id);
+    tisty_carrier::turned::let_through(session.paths.data(), &id);
 
     witness::note(
         channel::SYNC,
@@ -944,10 +921,7 @@ pub fn revealed(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answ
         (
             session.paths.data().to_path_buf(),
             session.paths.config().to_path_buf(),
-            match &session.config.sync {
-                Some(tisty_core::config::Sync::Folder(at)) => Some(at.clone()),
-                _ => None,
-            },
+            session.place(),
         )
     };
     let ours: Vec<std::path::PathBuf> = [Some(data), Some(config), shared]
@@ -1008,11 +982,9 @@ pub async fn free_up(
     stopping
         .0
         .store(false, std::sync::atomic::Ordering::Relaxed);
-    let (data, dest, above, held_away) = {
+    let (carrier, home, above, held_away) = {
         let session = held(&session);
-        let Some(tisty_core::config::Sync::Folder(dest)) = session.config.sync.clone() else {
-            return Err(Refusal::of("noRemote"));
-        };
+        let carrier = session.carrying()?;
         let mine = session.store.device().clone();
         let held_away: std::collections::BTreeSet<String> = session
             .state
@@ -1022,8 +994,8 @@ pub async fn free_up(
             .map(|(at, _)| at.clone())
             .collect();
         (
-            session.paths.data().to_path_buf(),
-            dest,
+            carrier,
+            session.here(),
             session.config.only_shared_above(),
             held_away,
         )
@@ -1033,7 +1005,7 @@ pub async fn free_up(
     let done = tauri::async_runtime::spawn_blocking(move || {
         let mut said = 0;
         let elsewhere = |at: &str| held_away.contains(at);
-        tisty_sync::let_go_telling(&data, &dest, above, &elsewhere, &mut |far| {
+        carrier.let_go(&home, above, &elsewhere, &mut |far| {
             if far.gone != said {
                 said = far.gone;
                 let _ = telling.emit(
@@ -1079,17 +1051,15 @@ pub fn stop_freeing(stopping: tauri::State<'_, Stopping>) {
 }
 
 type Pushing = (
-    std::path::PathBuf,
-    std::path::PathBuf,
-    String,
-    std::path::PathBuf,
+    tisty_carrier::Here,
+    Box<dyn tisty_carrier::Carrier>,
     Vec<String>,
 );
 
 async fn answering(
     session: &tauri::State<'_, Mutex<Session>>,
     files: &[String],
-    (data, aside, device, dest, alive): Pushing,
+    (home, pusher, alive): Pushing,
     holds: tisty_core::config::Holds,
 ) {
     if files.is_empty() {
@@ -1110,14 +1080,15 @@ async fn answering(
         return;
     }
     let pushed = tauri::async_runtime::spawn_blocking(move || {
-        tisty_sync::carry_holding(
-            &data,
-            Some(&aside),
-            &device,
-            &dest,
-            tisty_sync::Way::Push,
-            &alive,
-            holds,
+        let mut quiet = |_: tisty_carrier::Reached| {};
+        pusher.carry(
+            &home,
+            tisty_carrier::Round {
+                way: tisty_carrier::Way::Push,
+                alive: &alive,
+                holds,
+                saying: &mut quiet,
+            },
         )
     })
     .await;
@@ -1130,7 +1101,7 @@ async fn answering(
     }
 }
 
-fn still_asked(session: &tauri::State<'_, Mutex<Session>>, undecided: &[tisty_sync::Undecided]) {
+fn still_asked(session: &tauri::State<'_, Mutex<Session>>, undecided: &[tisty_carrier::Undecided]) {
     held(session).asked.extend(
         undecided
             .iter()
