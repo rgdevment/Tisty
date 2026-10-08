@@ -79,9 +79,12 @@ impl Carrier for Folder {
     }
 
     fn paper(&self, id: &str) -> Paper {
+        let waiting = tisty_sync::paper_waiting(&self.at, id);
         Paper {
-            waiting: tisty_sync::paper_waiting(&self.at, id),
-            print: tisty_sync::held_there(&self.at, id),
+            waiting,
+            print: waiting
+                .then(|| tisty_sync::held_there(&self.at, id))
+                .flatten(),
         }
     }
 

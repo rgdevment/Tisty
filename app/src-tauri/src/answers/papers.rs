@@ -118,9 +118,8 @@ pub fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
 }
 
 fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
-    held(session)
-        .carrier()
-        .is_some_and(|carrier| carrier.paper(id).waiting)
+    let carrier = held(session).carrier();
+    carrier.is_some_and(|carrier| carrier.paper(id).waiting)
 }
 
 #[derive(serde::Serialize)]
