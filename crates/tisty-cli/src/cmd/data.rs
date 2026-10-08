@@ -18,7 +18,11 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             show("device_id", Some(&config.device_id.0));
             show("locale", config.locale.as_deref());
             show("editor", config.editor.as_deref());
-            show("remote", value(app, "remote")?.as_deref());
+            let remote = match later(app) {
+                true => Some(lang.get("remote-later").to_string()),
+                false => value(app, "remote")?,
+            };
+            show("remote", remote.as_deref());
             show("data_dir", Some(&app.paths.data().display().to_string()));
             println!();
             Ok(ExitCode::SUCCESS)
@@ -35,6 +39,10 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 Some(value) => {
                     println!("{value}");
                     Ok(ExitCode::SUCCESS)
+                }
+                None if key == "remote" && later(app) => {
+                    eprintln!("{}", lang.get("sync-later"));
+                    Ok(ExitCode::from(EXIT_NOT_FOUND))
                 }
                 None => {
                     eprintln!("{}", lang.fill("unset-key", &[("key", &key)]));
@@ -63,13 +71,18 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 }
             }
 
-            let mut kept = false;
-            app.edit_config(|c| match key.as_str() {
-                "locale" => c.locale = Some(value.clone()),
-                "remote" => kept = !replacing_the_way(c, tisty_core::config::Sync::folder(&value)),
-                _ => c.editor = Some(value.clone()),
+            let changed = app.edit_config_if(|c| match key.as_str() {
+                "locale" => {
+                    c.locale = Some(value.clone());
+                    true
+                }
+                "remote" => replacing_the_way(c, tisty_core::config::Sync::folder(&value)),
+                _ => {
+                    c.editor = Some(value.clone());
+                    true
+                }
             })?;
-            if kept {
+            if !changed {
                 anyhow::bail!("{}", lang.get("sync-later-to-leave"));
             }
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
@@ -78,13 +91,18 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
 
         Some(ConfigAction::Unset { key }) => {
             check(&key, lang)?;
-            let mut kept = false;
-            app.edit_config(|c| match key.as_str() {
-                "locale" => c.locale = None,
-                "remote" => kept = !replacing_the_way(c, tisty_core::config::Sync::alone()),
-                _ => c.editor = None,
+            let changed = app.edit_config_if(|c| match key.as_str() {
+                "locale" => {
+                    c.locale = None;
+                    true
+                }
+                "remote" => replacing_the_way(c, tisty_core::config::Sync::alone()),
+                _ => {
+                    c.editor = None;
+                    true
+                }
             })?;
-            if kept {
+            if !changed {
                 anyhow::bail!("{}", lang.get("sync-later-to-leave"));
             }
             println!("  {} {key}", style::dim("✕"));
@@ -104,6 +122,10 @@ fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sy
         config.sync = Some(to);
     }
     !held
+}
+
+fn later(app: &App) -> bool {
+    tisty_carrier::chosen(app.config().sync.as_ref()).chosen == tisty_carrier::Chosen::Later
 }
 
 fn show(key: &str, value: Option<&str>) {

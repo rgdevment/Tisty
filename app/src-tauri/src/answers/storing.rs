@@ -371,6 +371,10 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             Some(tisty_core::config::Was::Folder(at)) => Some(at.display().to_string()),
             Some(tisty_core::config::Was::Later(_)) | None => None,
         },
+        shared_was_later: matches!(
+            config.once_shared(),
+            Some(tisty_core::config::Was::Later(_))
+        ),
         later: tisty_carrier::chosen(config.sync.as_ref()).chosen == tisty_carrier::Chosen::Later,
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
@@ -497,6 +501,24 @@ pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
         })
 }
 
+/// Read on the settings as they are written: what a newer build chose meanwhile is never replaced.
+fn choosing(
+    chosen: tisty_core::config::Sync,
+) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {
+    move |config| {
+        let kept = config.sync.as_ref().is_some_and(|was| {
+            *was != chosen && was.leaving() == tisty_core::config::Leaving::Later
+        });
+        match kept {
+            true => Some(Refusal::of("syncLaterToLeave")),
+            false => {
+                config.sync = Some(chosen);
+                None
+            }
+        }
+    }
+}
+
 #[tauri::command]
 pub fn choose_sync(
     app: tauri::AppHandle,
@@ -533,7 +555,7 @@ pub fn choose_sync(
     if let Some(refusal) = stranded_by_leaving(&session, &chosen) {
         return Err(refusal);
     }
-    session.keep(|c| c.sync = Some(chosen))?;
+    session.keep_unless(choosing(chosen))?;
     let _ = app.emit("unstuck", ());
     Ok(())
 }

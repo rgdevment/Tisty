@@ -1061,6 +1061,8 @@ const en = {
   syncOff: "Off. Your tasks live only on this machine.",
   syncLaterCard:
     "Syncing a way a newer Tisty chose, which this version does not know. Your tasks are safe here; update Tisty to sync again.",
+  syncOffRestoredLater:
+    "Not sharing since you restored. Before that it synced a way a newer Tisty chose, which this version cannot name; update Tisty to see it.",
   syncOffRestored:
     "Not sharing since you restored. It was «{name}»; choosing it again asks you which side wins.",
   syncOn: "Leaving copies in {name}",
@@ -2636,6 +2638,8 @@ const es: Catalog = {
   syncOff: "Desactivada. Tus tareas viven solo en este equipo.",
   syncLaterCard:
     "Sincronizando de una manera que eligió un Tisty más nuevo y esta versión no conoce. Tus tareas están a salvo aquí; actualiza Tisty para volver a sincronizar.",
+  syncOffRestoredLater:
+    "Sin compartir desde que restauraste. Antes sincronizaba de una manera que eligió un Tisty más nuevo y esta versión no sabe nombrar; actualiza Tisty para verla.",
   syncOffRestored:
     "Sin compartir desde que restauraste. Compartías con «{name}»; al volver a elegirla te preguntará qué lado manda.",
   syncOn: "Dejando copias en {name}",

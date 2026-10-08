@@ -160,8 +160,8 @@ impl Session {
                 .is_some_and(|at| tisty_core::store::inhabited(at.join(tisty_carrier::STORE)))
     }
 
-    pub fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
-        let mut fresh = match Config::load(&self.paths.config_file()) {
+    fn settings_on_disk(&self) -> Config {
+        match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => kept,
             Ok(None) => self.config.clone(),
             Err(why) => {
@@ -172,8 +172,27 @@ impl Session {
                 );
                 self.config.clone()
             }
-        };
-        change(&mut fresh);
+        }
+    }
+
+    pub fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
+        self.keep_unless(|config| {
+            change(config);
+            None
+        })
+    }
+
+    /// The change reads the settings where they are written, not where this window loaded them,
+    /// and a refusal writes nothing: another build may have chosen since.
+    pub fn keep_unless(
+        &mut self,
+        change: impl FnOnce(&mut Config) -> Option<Refusal>,
+    ) -> Answer<()> {
+        let mut fresh = self.settings_on_disk();
+        if let Some(refusal) = change(&mut fresh) {
+            self.config = fresh;
+            return Err(refusal);
+        }
         fresh
             .save(&self.paths)
             .map_err(|e| blamed(channel::CONFIG, "the settings could not be saved", e))?;

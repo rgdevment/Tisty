@@ -543,12 +543,58 @@ fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
     let mut config = Config::load_or_init(&paths).unwrap();
     config.sync = Some(Sync::Unknown(later()));
     config.remember_shared(Some(Was::Later(later())));
-    config.opened_by = Some("1.25.0".into());
+    config
+        .rest
+        .insert("a_scalar_of_a_newer_build".into(), 7.into());
+    config
+        .rest
+        .insert("a_table_of_a_newer_build".into(), later());
     config.save(&paths).unwrap();
+
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync, Some(Sync::Unknown(later())), "{said}");
+    assert_eq!(read.once_shared(), Some(Was::Later(later())), "{said}");
+    assert_eq!(
+        read.rest
+            .get("a_scalar_of_a_newer_build")
+            .and_then(toml::Value::as_integer),
+        Some(7),
+        "a key written after the tables was swallowed by one of them: {said}"
+    );
+    assert_eq!(
+        read.rest.get("a_table_of_a_newer_build"),
+        Some(&later()),
+        "{said}"
+    );
+    assert!(
+        said.contains("[shared_was_later]"),
+        "an older build only keeps it if it is a key of its own: {said}"
+    );
+    assert!(
+        !said.contains("shared_was = "),
+        "what an older build reads as a path was written as something else: {said}"
+    );
+}
+
+#[test]
+fn a_file_written_by_hand_before_the_later_key_existed_still_reads() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    std::fs::create_dir_all(paths.config_file().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.config_file(),
+        "device_id = \"dev_a\"\nshared_was = \"G:/compartida\"\n\n[sync]\nhow = \"folder\"\nat = \"G:/otra\"\n",
+    )
+    .unwrap();
 
     let read = Config::load(&paths.config_file()).unwrap().unwrap();
 
-    assert_eq!(read.sync, Some(Sync::Unknown(later())));
-    assert_eq!(read.once_shared(), Some(Was::Later(later())));
-    assert_eq!(read.opened_by.as_deref(), Some("1.25.0"));
+    assert_eq!(
+        read.once_shared(),
+        Some(Was::Folder("G:/compartida".into()))
+    );
+    assert_eq!(read.sync, Some(Sync::folder("G:/otra")));
+    assert_eq!(read.shared_was_later, None);
 }

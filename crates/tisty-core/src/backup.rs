@@ -250,13 +250,11 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.heard_at = None;
-    // A second restore finds the way already put away, and must not write nothing over it.
-    config.remember_shared(
-        was.sync
-            .as_ref()
-            .and_then(crate::config::Sync::remembered)
-            .or_else(|| was.once_shared()),
-    );
+    // A second restore finds the way already put away; choosing nobody on purpose clears it.
+    config.remember_shared(match &was.sync {
+        Some(chosen) => chosen.remembered(),
+        None => was.once_shared(),
+    });
     config.sync = None;
     config.restored_at = Some(jiff::Timestamp::now());
     config.save(paths)?;

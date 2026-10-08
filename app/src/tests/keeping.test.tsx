@@ -110,6 +110,7 @@ const carrying = {
   weight: 1_000,
   carries: 8 * 1024 * 1024 * 1024,
   sharedWas: undefined as string | undefined,
+  sharedWasLater: undefined as boolean | undefined,
   later: undefined as boolean | undefined,
 };
 
@@ -162,6 +163,7 @@ beforeEach(() => {
     last: undefined,
     loose: 0,
     sharedWas: undefined,
+    sharedWasLater: undefined,
     later: undefined,
   });
   holders.offers = [
@@ -3343,6 +3345,24 @@ describe("taking every loose attachment out at once", () => {
 
     expect(screen.getByText(/not sharing since you restored/i)).toBeTruthy();
     expect(screen.getByText(/G:\/My Drive\/tisty/)).toBeTruthy();
+  });
+
+  it("says what a restore let go was a way it cannot name, without naming a folder", async () => {
+    carrying.sharedWasLater = true;
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+    await data();
+
+    expect(screen.getByText(t("syncOffRestoredLater"))).toBeTruthy();
+    expect(screen.queryByText(t("syncOff"))).toBeNull();
   });
 
   it("says a way a newer version chose is not known here, and offers no way to replace it", async () => {

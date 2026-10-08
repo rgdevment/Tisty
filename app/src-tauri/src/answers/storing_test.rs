@@ -109,6 +109,53 @@ fn leaving_nothing_is_always_free() {
 }
 
 #[test]
+fn a_way_a_newer_build_wrote_after_this_window_opened_is_not_replaced() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths.clone()).unwrap();
+    session.config.sync = Some(Sync::folder("G:/compartida"));
+    session
+        .keep(|c| c.sync = Some(Sync::folder("G:/compartida")))
+        .unwrap();
+    let mut written = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    written.sync = Some(later());
+    written.save(&paths).unwrap();
+
+    let stopped = session
+        .keep_unless(choosing(Sync::folder("G:/otra")))
+        .expect_err("what a newer build wrote was written over");
+
+    assert_eq!(stopped.code, "syncLaterToLeave");
+    let on_disk = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    assert_eq!(on_disk.sync, Some(later()));
+    assert_eq!(
+        session.config.sync,
+        Some(later()),
+        "the window went on believing in a way that is no longer written"
+    );
+}
+
+#[test]
+fn a_change_that_is_not_refused_is_written_onto_what_is_on_disk() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths.clone()).unwrap();
+
+    session
+        .keep_unless(choosing(Sync::folder("G:/compartida")))
+        .unwrap();
+
+    let on_disk = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    assert_eq!(on_disk.sync, Some(Sync::folder("G:/compartida")));
+}
+
+#[test]
 fn a_way_a_later_build_chose_pins_no_stop_on_the_window() {
     let why = Refusal::of("syncLater");
 

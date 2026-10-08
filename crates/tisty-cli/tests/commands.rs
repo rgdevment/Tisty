@@ -1685,6 +1685,9 @@ fn a_way_a_newer_build_chose_is_not_replaced_from_here() {
     let elsewhere = tempfile::tempdir().unwrap();
     let to = elsewhere.path().display().to_string();
 
+    let file = cli.home.path().join("config").join("config.toml");
+    let before = std::fs::read(&file).unwrap();
+
     let set = cli.run(&["config", "set", "remote", &to]);
     let unset = cli.run(&["config", "unset", "remote"]);
 
@@ -1692,8 +1695,25 @@ fn a_way_a_newer_build_chose_is_not_replaced_from_here() {
         assert_ne!(run.code, 0);
         assert!(run.err.contains("newer Tisty"), "{}", run.err);
     }
-    let kept = std::fs::read_to_string(cli.home.path().join("config").join("config.toml")).unwrap();
-    assert!(kept.contains("how = \"nube\""), "{kept}");
+    assert_eq!(
+        std::fs::read(&file).unwrap(),
+        before,
+        "a refused change still rewrote what a newer build wrote"
+    );
+}
+
+#[test]
+fn a_way_a_newer_build_chose_is_not_reported_as_unset() {
+    let cli = Cli::new();
+    syncing_a_way_a_newer_build_chose(&cli);
+
+    let got = cli.run(&["config", "get", "remote"]);
+    let listed = cli.ok(&["config"]);
+
+    assert_ne!(got.code, 0);
+    assert!(got.err.contains("newer Tisty"), "{}", got.err);
+    assert!(!got.err.contains("is not set"), "{}", got.err);
+    assert!(listed.contains("a way a newer Tisty chose"), "{listed}");
 }
 
 #[test]

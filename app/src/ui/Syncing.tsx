@@ -45,7 +45,9 @@ export default function Syncing({
               ? t("syncLaterCard")
               : state.sharedWas
                 ? fill("syncOffRestored", state.sharedWas)
-                : t("syncOff")}
+                : state.sharedWasLater
+                  ? t("syncOffRestoredLater")
+                  : t("syncOff")}
         </p>
         {state.chosen && state.keeper && <Warned keeper={state.keeper} named={state.keptBy} />}
         <div className="mt-2.5 flex flex-wrap items-center gap-2.5">

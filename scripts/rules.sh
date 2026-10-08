@@ -227,26 +227,35 @@ both_languages_carry_the_same_documents() {
 
 # Only the type and the factory may name a way of syncing, so no match on it can grow back.
 modes_named_outside() {
-  local test_modules
+  local test_modules found naming
+  naming='(^|[^[:alnum:]_])Sync[[:space:]]*::[[:space:]]*[A-Z{*]|(^|[^[:alnum:]_])Sync[[:space:]]+as[[:space:]]'
+  naming="$naming|impl[[:space:]]+(<[^>]*>[[:space:]]*)?Sync[[:space:]]*[{<]|for[[:space:]]+([A-Za-z_]+::)*Sync[[:space:]]*[{<]"
+  naming="$naming|=[[:space:]]*([A-Za-z_]+::)*Sync[[:space:]]*;"
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' "$@" --include='*.rs' \
     | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u)
-  grep -rnE '(^|[^[:alnum:]_])Sync[[:space:]]*::[[:space:]]*[A-Z{*]|(^|[^[:alnum:]_])Sync[[:space:]]+as[[:space:]]' "$@" --include='*.rs' \
-    | awk -v names="$test_modules" '
-        BEGIN { count = split(names, list, "\n"); for (i = 1; i <= count; i++) skip[list[i]] = 1 }
-        {
-          file = $0
-          sub(/:[0-9]+:.*/, "", file)
-          parts = split(file, at, "/")
-          base = at[parts]
-          if (file ~ /(^|\/)tests\// || base ~ /_tests?\.rs$/ || (base in skip)) next
-          if (file == "crates/tisty-core/src/config.rs" || file == "crates/tisty-carrier/src/lib.rs") next
-          print
-        }'
+  found=$(grep -rnE "$naming" "$@" --include='*.rs')
+  case $? in 0 | 1) ;; *) return 2 ;; esac
+  [ -n "$found" ] || return 0
+  printf '%s\n' "$found" | NAMES="$test_modules" awk '
+    BEGIN { count = split(ENVIRON["NAMES"], list, "\n"); for (i = 1; i <= count; i++) skip[list[i]] = 1 }
+    {
+      file = $0
+      sub(/:[0-9]+:.*/, "", file)
+      parts = split(file, at, "/")
+      base = at[parts]
+      if (file ~ /(^|\/)tests\// || base ~ /_tests?\.rs$/ || (base in skip)) next
+      if (file == "crates/tisty-core/src/config.rs" || file == "crates/tisty-carrier/src/lib.rs") next
+      print
+    }'
 }
 
 the_way_of_syncing_is_named_once() {
   local found
   found=$(modes_named_outside crates app/src-tauri/src)
+  case $? in
+    0) ;;
+    *) amiss "the sources could not be looked through for a way of syncing named outside its place"; return ;;
+  esac
   if [ -n "$found" ]; then
     printf '%s\n' "$found"
     amiss "a way of syncing is named only in config.rs and in chosen(): ask the carrier, or add a method to Sync"
@@ -256,16 +265,21 @@ the_way_of_syncing_is_named_once() {
 }
 
 the_rule_on_the_way_of_syncing_can_fail() {
-  local room broke allowed
+  local room out broke allowed
   room=$(mktemp -d)
   mkdir -p "$room/crates/other/src" "$room/crates/tisty-carrier/src"
-  printf 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }\n' > "$room/crates/other/src/lib.rs"
-  printf 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }\n' > "$room/crates/tisty-carrier/src/lib.rs"
-  broke=$(cd "$room" && modes_named_outside crates | grep -c 'crates/other/src/lib.rs')
-  allowed=$(cd "$room" && modes_named_outside crates | grep -c 'crates/tisty-carrier/src/lib.rs')
+  printf '%s\n' 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' \
+    '#[cfg(test)]' '#[path = "checks.rs"]' 'mod checks;' > "$room/crates/other/src/lib.rs"
+  printf '%s\n' 'fn g(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' > "$room/crates/other/src/checks.rs"
+  printf '%s\n' 'impl Sync {' '    fn is_folder(&self) -> bool { matches!(self, Self::Folder(_)) }' '}' > "$room/crates/other/src/more.rs"
+  printf '%s\n' 'type Way = Sync;' > "$room/crates/other/src/alias.rs"
+  printf '%s\n' 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' > "$room/crates/tisty-carrier/src/lib.rs"
+  out=$(cd "$room" && modes_named_outside crates)
   rm -rf "$room"
-  if [ "$broke" != 1 ] || [ "$allowed" != 0 ]; then
-    amiss "the rule on the way of syncing no longer tells a match outside the factory from the factory"
+  broke=$(printf '%s\n' "$out" | grep -cE 'crates/other/src/(lib|more|alias)\.rs')
+  allowed=$(printf '%s\n' "$out" | grep -cE 'crates/(other/src/checks|tisty-carrier/src/lib)\.rs')
+  if [ "$broke" != 3 ] || [ "$allowed" != 0 ]; then
+    amiss "the rule on the way of syncing no longer tells what breaks it from a test or the factory"
   else
     went_well "the rule on the way of syncing fails on a match outside the factory"
   fi

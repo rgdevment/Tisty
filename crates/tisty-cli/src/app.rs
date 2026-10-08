@@ -74,6 +74,18 @@ impl App {
     }
 
     pub fn edit_config(&mut self, f: impl FnOnce(&mut Config)) -> tisty_core::Result<()> {
+        self.edit_config_if(|config| {
+            f(config);
+            true
+        })
+        .map(|_| ())
+    }
+
+    /// Nothing is written when the change says no: the file stays exactly as whoever wrote it left it.
+    pub fn edit_config_if(
+        &mut self,
+        f: impl FnOnce(&mut Config) -> bool,
+    ) -> tisty_core::Result<bool> {
         let mut fresh = match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => kept,
             Ok(None) => self.config.clone(),
@@ -86,10 +98,13 @@ impl App {
                 self.config.clone()
             }
         };
-        f(&mut fresh);
+        if !f(&mut fresh) {
+            self.config = fresh;
+            return Ok(false);
+        }
         fresh.save(&self.paths)?;
         self.config = fresh;
-        Ok(())
+        Ok(true)
     }
 
     pub fn here(&self) -> tisty_carrier::Here {

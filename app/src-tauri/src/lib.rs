@@ -195,6 +195,8 @@ struct Carrying {
     weight: u64,
     carries: u64,
     shared_was: Option<String>,
+    /// What it shared with before a restore was a way a later build chose, so there is no name to give.
+    shared_was_later: bool,
     /// Chosen by a later build: nothing here can carry it, and nothing here may replace it.
     later: bool,
     backed_up_at: Option<String>,
