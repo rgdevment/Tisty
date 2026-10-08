@@ -132,7 +132,7 @@ nothing_that_takes_the_window_down() {
   local -a files
   test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' crates/*/src --include='*.rs' \
     | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u | paste -sd'|' -)
-  looked=$(find crates/tisty-core/src crates/tisty-sync/src -name '*.rs' \
+  looked=$(find crates/tisty-core/src crates/tisty-sync/src crates/tisty-carrier/src -name '*.rs' \
     | grep -vE "_tests?\.rs$|${test_modules:-^$}")
   if [ -z "$looked" ]; then
     amiss "the core and the round could not be looked through for what panics"

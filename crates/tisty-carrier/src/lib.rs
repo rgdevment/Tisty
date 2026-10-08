@@ -1,0 +1,96 @@
+use std::path::{Path, PathBuf};
+
+use tisty_core::config::{Holds, Sync};
+use tisty_core::signing::SigningKey;
+
+pub use tisty_core::turned;
+pub use tisty_sync::{
+    Holding, Keep, Kin, LetGo, Moved, Reached, STORE, Signed, Stage, Stitched, Trouble, Undecided,
+    Way,
+};
+
+mod folder;
+
+pub use folder::Folder;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Here {
+    pub data: PathBuf,
+    pub aside: PathBuf,
+    pub device: String,
+}
+
+pub struct Round<'a> {
+    pub way: Way,
+    pub alive: &'a [String],
+    pub holds: Holds,
+    pub saying: &'a mut dyn FnMut(Reached),
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Paper {
+    pub waiting: bool,
+    pub print: Option<String>,
+}
+
+pub type Elsewhere<'a> = &'a dyn Fn(&str) -> bool;
+pub type Told<'a> = &'a mut dyn FnMut(&LetGo) -> bool;
+
+pub trait Carrier: Send + std::marker::Sync {
+    fn place(&self) -> Option<&Path>;
+    fn reachable(&self) -> bool;
+    fn theirs(&self) -> Option<String>;
+    fn been_here(&self, here: &Here) -> bool;
+    fn kin(&self, here: &Here) -> Kin;
+    fn signed(&self) -> Signed;
+    fn stirring(&self) -> u64;
+    fn unclaimed(&self) -> Holding;
+    fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
+    fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble>;
+    fn let_go(
+        &self,
+        here: &Here,
+        above: u64,
+        elsewhere: Elsewhere,
+        told: Told,
+    ) -> Result<LetGo, Trouble>;
+    fn paper(&self, id: &str) -> Paper;
+    fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble>;
+    fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble>;
+    fn forget_paper(&self, id: &str);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Chosen {
+    Alone,
+    Folder,
+    Later,
+}
+
+pub struct Keeping {
+    pub carrier: Option<Box<dyn Carrier>>,
+    pub chosen: Chosen,
+}
+
+// The one match on the way of syncing: everything else asks the carrier it was handed.
+pub fn chosen(sync: Option<&Sync>) -> Keeping {
+    match sync {
+        None | Some(Sync::Local) => Keeping {
+            carrier: None,
+            chosen: Chosen::Alone,
+        },
+        Some(Sync::Folder(at)) => Keeping {
+            carrier: Some(Box::new(Folder::at(at.clone()))),
+            chosen: Chosen::Folder,
+        },
+        // A way a later build knows: nothing is carried, and the choice is left as it was read.
+        Some(Sync::Unknown(_)) => Keeping {
+            carrier: None,
+            chosen: Chosen::Later,
+        },
+    }
+}
+
+#[cfg(test)]
+#[path = "lib_test.rs"]
+mod tests;

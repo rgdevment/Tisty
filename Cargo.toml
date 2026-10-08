@@ -11,6 +11,7 @@ license = "AGPL-3.0-only"
 publish = false
 
 [workspace.dependencies]
+tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-core = { path = "crates/tisty-core" }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-sync = { path = "crates/tisty-sync" }
