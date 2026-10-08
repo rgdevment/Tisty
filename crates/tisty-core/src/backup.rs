@@ -252,8 +252,7 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.heard_at = None;
     config.sync = None;
     config.restored_at = Some(jiff::Timestamp::now());
-    // After the stamp, which is what the way put away is remembered by; a second restore finds
-    // it already put away, and choosing nobody on purpose clears it.
+    // Remembered by the stamp above, so it comes after it; choosing nobody on purpose clears it.
     config.remember_shared(match &was.sync {
         Some(chosen) => chosen.remembered(),
         None => was.once_shared(),

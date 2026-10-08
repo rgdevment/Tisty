@@ -38,7 +38,6 @@ impl Sync {
         }
     }
 
-    /// A way this build cannot read has no place to look in, so nothing is offered for it.
     pub fn shares(&self) -> bool {
         self.place().is_some()
     }
@@ -63,21 +62,17 @@ impl Sync {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Leaving {
     Free,
-    /// What was let go of may live there, so the setting, the place and a finished round decide.
     Place,
-    /// Whatever it holds, this build cannot bring it home to check.
     Later,
 }
 
-/// What a machine shared with before a restore put it back to sharing with nobody.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Was {
     Folder(std::path::PathBuf),
     Later(toml::Value),
 }
 
-/// A way put away by a restore, stamped with that restore: a build that restores later and does
-/// not know this key leaves it standing, and the stamp no longer matching is how it is told apart.
+/// Stamped by its restore, so one a later restore left standing no longer matches.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PutAway {
     #[serde(default, skip_serializing_if = "Option::is_none")]

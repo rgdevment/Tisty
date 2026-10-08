@@ -107,7 +107,6 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
     }
 }
 
-/// Read where it is written, not where it was loaded: a way a newer build chose is never replaced.
 fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sync) -> bool {
     use tisty_core::config::Leaving;
     let held = config

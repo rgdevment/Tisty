@@ -92,7 +92,6 @@ impl App {
         }
     }
 
-    /// Nothing is written when the change says no: the file stays exactly as whoever wrote it left it.
     pub fn edit_config_if(
         &mut self,
         f: impl FnOnce(&mut Config) -> bool,

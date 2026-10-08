@@ -470,8 +470,7 @@ pub(crate) fn let_go_to(session: &Session) -> Option<std::path::PathBuf> {
         .filter(|_| session.config.holds() == tisty_core::config::Holds::Shared)
 }
 
-/// A folder that is still there, and that a round ever finished with, may hold what we let go of;
-/// a way this build cannot read may too, and nothing here can bring it home to check.
+/// A folder still there that a round finished with may hold what we let go of, and so may a way we cannot read.
 fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> Option<Refusal> {
     use tisty_core::config::Leaving;
     let was = session.config.sync.as_ref().filter(|was| *was != chosen)?;
@@ -497,7 +496,6 @@ pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
         })
 }
 
-/// Read on the settings as they are written: what a newer build chose meanwhile is never replaced.
 fn choosing(
     chosen: tisty_core::config::Sync,
 ) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {

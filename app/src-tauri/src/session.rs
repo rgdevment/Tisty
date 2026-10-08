@@ -160,8 +160,7 @@ impl Session {
                 .is_some_and(|at| tisty_core::store::inhabited(at.join(tisty_carrier::STORE)))
     }
 
-    /// A file that says something this build cannot read is somebody else's, most likely a newer
-    /// build's: it is neither adopted nor written over.
+    /// A file this build cannot read is a newer build's: neither adopted nor written over.
     fn settings_on_disk(&self) -> Option<Config> {
         match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => Some(kept),
@@ -177,7 +176,6 @@ impl Session {
         }
     }
 
-    /// What another install or the command line wrote since this window opened.
     pub fn refresh_settings(&mut self) {
         if let Some(on_disk) = self.settings_on_disk() {
             self.config = on_disk;
@@ -191,8 +189,7 @@ impl Session {
         })
     }
 
-    /// The change reads the settings where they are written, not where this window loaded them,
-    /// and a refusal writes nothing: another build may have chosen since.
+    /// Reads the settings where they are written, since another install may have chosen meanwhile.
     pub fn keep_unless(
         &mut self,
         change: impl FnOnce(&mut Config) -> Option<Refusal>,
