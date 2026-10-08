@@ -102,6 +102,49 @@ jobs:
           path: mutants.out/
           retention-days: 14
 
+  tisty-carrier:
+    name: tisty-carrier / every mutant
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          shared-key: workspace
+          save-if: false
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: nextest
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: cargo-mutants
+
+      - name: Every mutant in the way of carrying
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-carrier -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-carrier
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mutants-tisty-carrier
+          path: mutants.out/
+          retention-days: 14
+
   tisty-cli:
     name: tisty-cli / shard ${{ matrix.shard }} of 4
     runs-on: ubuntu-24.04
@@ -254,7 +297,7 @@ jobs:
   score:
     name: what the whole sweep came to
     if: always() && !cancelled()
-    needs: [tisty-nl, tisty-sync, tisty-cli, tisty-core, window]
+    needs: [tisty-nl, tisty-sync, tisty-carrier, tisty-cli, tisty-core, window]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use tisty_core::config::{Holds, Sync};
 use tisty_core::signing::SigningKey;
@@ -20,17 +21,23 @@ pub struct Here {
     pub device: String,
 }
 
+impl Here {
+    pub fn of(paths: &tisty_core::Paths, config: &tisty_core::Config) -> Self {
+        Self {
+            data: paths.data().to_path_buf(),
+            aside: paths.cache().to_path_buf(),
+            device: config.device_id.0.clone(),
+        }
+    }
+}
+
+pub type Shared = Arc<dyn Carrier>;
+
 pub struct Round<'a> {
     pub way: Way,
     pub alive: &'a [String],
     pub holds: Holds,
     pub saying: &'a mut dyn FnMut(Reached),
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Paper {
-    pub waiting: bool,
-    pub print: Option<String>,
 }
 
 pub type Elsewhere<'a> = &'a dyn Fn(&str) -> bool;
@@ -54,7 +61,8 @@ pub trait Carrier: Send + std::marker::Sync {
         elsewhere: Elsewhere,
         told: Told,
     ) -> Result<LetGo, Trouble>;
-    fn paper(&self, id: &str) -> Paper;
+    fn paper_waiting(&self, id: &str) -> bool;
+    fn paper_print(&self, id: &str) -> Option<String>;
     fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble>;
     fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble>;
     fn forget_paper(&self, id: &str);
@@ -68,7 +76,7 @@ pub enum Chosen {
 }
 
 pub struct Keeping {
-    pub carrier: Option<Box<dyn Carrier>>,
+    pub carrier: Option<Shared>,
     pub chosen: Chosen,
 }
 
@@ -80,7 +88,7 @@ pub fn chosen(sync: Option<&Sync>) -> Keeping {
             chosen: Chosen::Alone,
         },
         Some(Sync::Folder(at)) => Keeping {
-            carrier: Some(Box::new(Folder::at(at.clone()))),
+            carrier: Some(Arc::new(Folder::at(at.clone()))),
             chosen: Chosen::Folder,
         },
         // A way a later build knows: nothing is carried, and the choice is left as it was read.
@@ -89,6 +97,17 @@ pub fn chosen(sync: Option<&Sync>) -> Keeping {
             chosen: Chosen::Later,
         },
     }
+}
+
+// A folder somebody is only considering: nothing is chosen, so only what a place answers for itself is asked.
+pub fn considering(at: impl Into<PathBuf>) -> Shared {
+    Arc::new(Folder::at(at.into()))
+}
+
+pub fn place_of(sync: Option<&Sync>) -> Option<PathBuf> {
+    chosen(sync)
+        .carrier
+        .and_then(|carrier| carrier.place().map(Path::to_path_buf))
 }
 
 #[cfg(test)]

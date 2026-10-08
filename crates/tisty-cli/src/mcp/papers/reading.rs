@@ -44,10 +44,12 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
         .iter()
         .map(|one| one.file.clone())
         .collect();
-    let beside = match tisty_core::Config::load_or_init(paths).map_err(hitch)?.sync {
-        Some(tisty_core::config::Sync::Folder(at)) => Some(at),
-        _ => None,
-    };
+    let beside = tisty_carrier::place_of(
+        tisty_core::Config::load_or_init(paths)
+            .map_err(hitch)?
+            .sync
+            .as_ref(),
+    );
     let taken =
         tisty_core::docs::with_pages(paths.data(), &which, &pages, &into, beside.as_deref())
             .map_err(hitch)?;

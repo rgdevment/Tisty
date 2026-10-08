@@ -2318,13 +2318,19 @@ machine and confirming a fresh one, which the person does by looking.
 
 ## The cloud: one carrier, chosen once
 
-Designed, and being built from the bottom. The first piece is in place:
+Designed, and being built from the bottom. The first pieces are in place:
 `tisty-carrier` holds `Here`, `Round`, the `Carrier` trait, `chosen()` and
-`Folder`, which hands every call to `tisty-sync` unchanged; nothing calls it
-yet. Syncing through an API — Google Drive first, then OneDrive
-and Dropbox — reaches computers without the provider's client and, later, a
-phone. Nothing about it is required: Tisty works whole without it, and taking
-it away gives back a complete application.
+`Folder`, which hands every call to `tisty-sync` unchanged, and the window, the
+command line and the assistant's door reach syncing only through it, so
+`tisty-sync` is no longer a dependency of either. A carrier is shared, not
+cloned, within a round (`Shared` is an `Arc`), and its methods take `&self`
+with `Send + Sync`: a carrier that keeps tokens, a cursor or a budget keeps
+them behind interior mutability, once.
+
+Syncing through an API — Google Drive first, then OneDrive and Dropbox —
+reaches computers without the provider's client and, later, a phone. Nothing
+about it is required: Tisty works whole without it, and taking it away gives
+back a complete application.
 
 **The pattern is the one notices already use.** `herald::Channel` is a trait
 with sibling implementations (`Screen`, `Chime`) and `Heralds` picks them once;

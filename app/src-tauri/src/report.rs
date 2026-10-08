@@ -141,17 +141,17 @@ pub fn machines(
 ) -> Vec<Machine> {
     let data = paths.data();
     let stood = tisty_core::vouched::all_confirmed(data);
-    let away = tisty_sync::turned::of(data);
+    let away = tisty_carrier::turned::of(data);
     // The log keeps the first key a machine published and never another, so for this machine the
     // claim can be years stale while the key on disk is what it actually signs with.
     let ours = tisty_core::signing::shown_kept(paths, &tisty_core::DeviceId(mine.to_string()));
     // What a waiting machine says of itself sits in the very history that waits, never in the state.
     let waiting = |who: &tisty_core::DeviceId| {
-        away.get(&who.0) == Some(&tisty_sync::turned::Away::Unconfirmed)
+        away.get(&who.0) == Some(&tisty_carrier::turned::Away::Unconfirmed)
     };
     let introduced = |who: &tisty_core::DeviceId| match (waiting(who), dest) {
         (true, Some(at)) => tisty_core::store::introduced::introduced_in(
-            &at.join(tisty_sync::STORE).join(&who.0),
+            &at.join(tisty_carrier::STORE).join(&who.0),
             who,
         ),
         _ => Default::default(),
@@ -196,9 +196,9 @@ pub fn machines(
             carried: stood.get(who).is_some_and(|one| one.carried),
             host,
             turned_away: away.get(&who.0).map(|one| match one {
-                tisty_sync::turned::Away::Disowned => "disowned".to_string(),
-                tisty_sync::turned::Away::Unreadable => "unreadable".to_string(),
-                tisty_sync::turned::Away::Unconfirmed => "unconfirmed".to_string(),
+                tisty_carrier::turned::Away::Disowned => "disowned".to_string(),
+                tisty_carrier::turned::Away::Unreadable => "unreadable".to_string(),
+                tisty_carrier::turned::Away::Unconfirmed => "unconfirmed".to_string(),
             }),
         }
     };
@@ -212,7 +212,7 @@ pub fn machines(
         .collect();
     for (whose, away) in &away {
         let who = tisty_core::DeviceId(whose.clone());
-        if *away != tisty_sync::turned::Away::Unconfirmed
+        if *away != tisty_carrier::turned::Away::Unconfirmed
             || all.iter().any(|one| &one.id == whose)
             || !tisty_core::store::is_device_name(whose)
             || known.gone.contains(&who)

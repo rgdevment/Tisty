@@ -356,7 +356,7 @@ fn take_out_of_reach() -> Answer<command::Reach> {
 /// A folder that already holds a store is the meeting place itself; anywhere else we hang ours
 /// inside, so pointing at Documents does not scatter the store through it.
 fn room(at: &std::path::Path) -> std::path::PathBuf {
-    if tisty_sync::theirs(at).is_some() || at.join(tisty_sync::STORE).is_dir() {
+    if tisty_carrier::considering(at).theirs().is_some() || at.join(tisty_carrier::STORE).is_dir() {
         return at.to_path_buf();
     }
     tisty_core::keepers::suggested(at)
@@ -371,20 +371,20 @@ fn placed(beside: Option<Placing>, fresh: &str) -> Placing {
     }
 }
 
-fn said(trouble: tisty_sync::Trouble) -> Refusal {
+fn said(trouble: tisty_carrier::Trouble) -> Refusal {
     match trouble {
-        tisty_sync::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
-        tisty_sync::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
-        tisty_sync::Trouble::Newer(who) => Refusal::about("syncNewer", who),
-        tisty_sync::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
-        tisty_sync::Trouble::Refused(why) => Refusal::about("syncRefused", why),
-        tisty_sync::Trouble::Broke(why) => Refusal::about("syncBroke", why),
-        tisty_sync::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
-        tisty_sync::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
-        tisty_sync::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
-        tisty_sync::Trouble::Shape(at) => Refusal::about("syncShape", at),
-        tisty_sync::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
-        tisty_sync::Trouble::SameName(who) => {
+        tisty_carrier::Trouble::NotThere(at) => Refusal::about("noMeetingPlace", at),
+        tisty_carrier::Trouble::OtherStore { theirs } => Refusal::about("otherStore", theirs),
+        tisty_carrier::Trouble::Newer(who) => Refusal::about("syncNewer", who),
+        tisty_carrier::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
+        tisty_carrier::Trouble::Refused(why) => Refusal::about("syncRefused", why),
+        tisty_carrier::Trouble::Broke(why) => Refusal::about("syncBroke", why),
+        tisty_carrier::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
+        tisty_carrier::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
+        tisty_carrier::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
+        tisty_carrier::Trouble::Shape(at) => Refusal::about("syncShape", at),
+        tisty_carrier::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
+        tisty_carrier::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }
     }
@@ -721,10 +721,11 @@ pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
         let held = crate::held(&held);
         let seen = app.asset_protocol_scope();
         // Its attachments and no more of it: the rest of that folder is not ours to read.
-        let shared = match &held.config.sync {
-            Some(tisty_core::config::Sync::Folder(dest)) => vec![dest.join("attachments")],
-            _ => Vec::new(),
-        };
+        let shared: Vec<_> = held
+            .place()
+            .map(|dest| dest.join("attachments"))
+            .into_iter()
+            .collect();
         let _ = std::fs::create_dir_all(held.paths.docs());
         for at in [held.paths.attachments(), held.paths.docs()]
             .into_iter()

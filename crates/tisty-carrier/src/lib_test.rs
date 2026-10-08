@@ -122,5 +122,29 @@ fn a_folder_answers_from_its_own_place() {
     assert_eq!(folder.theirs(), tisty_sync::theirs(&desk.shared));
     assert_eq!(folder.kin(&desk.here), Kin::SameLineage);
     assert_eq!(folder.unclaimed(), Holding::Whole);
-    assert_eq!(folder.paper("dev_a-0001"), Paper::default());
+    assert!(!folder.paper_waiting("dev_a-0001"));
+    assert_eq!(folder.paper_print("dev_a-0001"), None);
+}
+
+#[test]
+fn the_place_is_the_folders_and_nothing_else_has_one() {
+    let at = PathBuf::from("compartida");
+
+    assert_eq!(place_of(Some(&Sync::Folder(at.clone()))), Some(at));
+    assert_eq!(place_of(None), None);
+    assert_eq!(place_of(Some(&Sync::Local)), None);
+    assert_eq!(
+        place_of(Some(&Sync::Unknown(toml::Value::String("nube".into())))),
+        None
+    );
+}
+
+#[test]
+fn a_folder_being_considered_answers_for_its_place_without_being_chosen() {
+    let desk = desk();
+
+    let carrier = considering(desk.shared.clone());
+
+    assert_eq!(carrier.place(), Some(desk.shared.as_path()));
+    assert_eq!(carrier.unclaimed(), Holding::Whole);
 }

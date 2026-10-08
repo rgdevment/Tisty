@@ -22,8 +22,8 @@ fn asked(session: &tauri::State<'_, Mutex<Session>>) -> (Vec<String>, Vec<PathBu
         .filter(|at| !session.state.kept.contains_key(at))
         .collect();
     let mut places = vec![session.paths.data().to_path_buf()];
-    if let Some(tisty_core::config::Sync::Folder(dest)) = &session.config.sync {
-        places.push(dest.clone());
+    if let Some(dest) = session.place() {
+        places.push(dest);
     }
     (wanted, places)
 }

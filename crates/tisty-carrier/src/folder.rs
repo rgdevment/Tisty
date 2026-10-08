@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use tisty_core::signing::SigningKey;
 
 use crate::{
-    Carrier, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Paper, Round, STORE, Signed,
-    Stitched, Told, Trouble,
+    Carrier, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Round, STORE, Signed, Stitched,
+    Told, Trouble,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,11 +78,12 @@ impl Carrier for Folder {
         tisty_sync::let_go_telling(&here.data, &self.at, above, elsewhere, told)
     }
 
-    fn paper(&self, id: &str) -> Paper {
-        Paper {
-            waiting: tisty_sync::paper_waiting(&self.at, id),
-            print: tisty_sync::held_there(&self.at, id),
-        }
+    fn paper_waiting(&self, id: &str) -> bool {
+        tisty_sync::paper_waiting(&self.at, id)
+    }
+
+    fn paper_print(&self, id: &str) -> Option<String> {
+        tisty_sync::held_there(&self.at, id)
     }
 
     fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble> {
