@@ -569,7 +569,7 @@ fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
         "{said}"
     );
     assert!(
-        said.contains("[shared_was_later]"),
+        said.contains("[shared_was_later.way]"),
         "an older build only keeps it if it is a key of its own: {said}"
     );
     assert!(
