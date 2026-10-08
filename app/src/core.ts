@@ -469,6 +469,7 @@ export interface Carrying {
   weight: number;
   carries: number;
   sharedWas?: string;
+  later?: boolean;
   backedUpAt?: string;
 }
 

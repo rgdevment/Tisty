@@ -264,8 +264,12 @@ impl Session {
         self.log = None;
     }
 
+    pub fn keeping(&self) -> tisty_carrier::Keeping {
+        tisty_carrier::chosen(self.config.sync.as_ref())
+    }
+
     pub fn carrier(&self) -> Option<tisty_carrier::Shared> {
-        tisty_carrier::chosen(self.config.sync.as_ref()).carrier
+        self.keeping().carrier
     }
 
     pub fn place(&self) -> Option<std::path::PathBuf> {
@@ -278,7 +282,13 @@ impl Session {
 
     /// The way of carrying this machine chose, or the refusal every command that needs one gives.
     pub fn carrying(&self) -> Result<tisty_carrier::Shared, Refusal> {
-        self.carrier().ok_or_else(|| Refusal::of("noRemote"))
+        let keeping = self.keeping();
+        keeping.carrier.ok_or_else(|| {
+            Refusal::of(match keeping.chosen {
+                tisty_carrier::Chosen::Later => "syncLater",
+                _ => "noRemote",
+            })
+        })
     }
 
     pub fn alive(&self) -> Vec<String> {

@@ -41,9 +41,11 @@ export default function Syncing({
         <p className="text-[12.5px] leading-relaxed text-soft">
           {state.chosen
             ? fill("syncOn", state.chosen)
-            : state.sharedWas
-              ? fill("syncOffRestored", state.sharedWas)
-              : t("syncOff")}
+            : state.later
+              ? t("syncLaterCard")
+              : state.sharedWas
+                ? fill("syncOffRestored", state.sharedWas)
+                : t("syncOff")}
         </p>
         {state.chosen && state.keeper && <Warned keeper={state.keeper} named={state.keptBy} />}
         <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
@@ -65,14 +67,18 @@ export default function Syncing({
               </button>
             </>
           ) : (
-            <button type="button" disabled={held} onClick={pickFolder} className={strong}>
-              {t("turnSyncOn")}
-            </button>
+            !state.later && (
+              <button type="button" disabled={held} onClick={pickFolder} className={strong}>
+                {t("turnSyncOn")}
+              </button>
+            )
           )}
           <span className="ml-auto text-[11.5px] text-faint">
             {state.chosen
               ? fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))
-              : t("noDestination")}
+              : state.later
+                ? ""
+                : t("noDestination")}
           </span>
         </div>
         {state.chosen && (

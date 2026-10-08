@@ -2,7 +2,7 @@ use super::*;
 use tisty_core::config::Sync;
 
 fn folder(at: &str) -> Option<Sync> {
-    Some(Sync::Folder(at.into()))
+    Some(Sync::folder(at))
 }
 
 #[test]
@@ -49,9 +49,9 @@ fn a_folder_no_round_ever_finished_with_can_be_left_freely() {
     let away = tempfile::tempdir().unwrap();
     let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
     let mut session = Session::at(paths).unwrap();
-    session.config.sync = Some(Sync::Folder(away.path().to_path_buf()));
+    session.config.sync = Some(Sync::folder(away.path().to_path_buf()));
 
-    assert_eq!(stranded_by_leaving(&session, &Sync::Local), None);
+    assert!(stranded_by_leaving(&session, &Sync::alone()).is_none());
 
     std::fs::create_dir_all(session.paths.cache()).unwrap();
     std::fs::write(
@@ -60,8 +60,76 @@ fn a_folder_no_round_ever_finished_with_can_be_left_freely() {
     )
     .unwrap();
 
+    let stopped = stranded_by_leaving(&session, &Sync::alone())
+        .expect("a folder holding what was let go was left");
     assert_eq!(
-        stranded_by_leaving(&session, &Sync::Local),
-        Some(away.path().to_path_buf())
+        (stopped.code, stopped.name),
+        ("sharedAwayToLeave", Some(away.path().display().to_string()))
     );
+}
+
+fn later() -> Sync {
+    Sync::Unknown(toml::from_str("how = \"nube\"").unwrap())
+}
+
+#[test]
+fn a_way_a_later_build_chose_is_never_left_from_here() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+    session.config.sync = Some(later());
+    session.config.holds = Some(tisty_core::config::Holds::Everywhere);
+
+    for toward in [Sync::alone(), Sync::folder("G:/otra")] {
+        let stopped = stranded_by_leaving(&session, &toward)
+            .expect("a choice a later build made was replaced, whatever the setting says");
+        assert_eq!(stopped.code, "syncLaterToLeave");
+    }
+}
+
+#[test]
+fn staying_on_the_way_a_later_build_chose_is_not_leaving_it() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+    session.config.sync = Some(later());
+
+    assert!(stranded_by_leaving(&session, &later()).is_none());
+}
+
+#[test]
+fn leaving_nothing_is_always_free() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+
+    assert!(stranded_by_leaving(&session, &Sync::folder("G:/otra")).is_none());
+    session.config.sync = Some(Sync::alone());
+    assert!(stranded_by_leaving(&session, &Sync::folder("G:/otra")).is_none());
+}
+
+#[test]
+fn a_way_a_later_build_chose_pins_no_stop_on_the_window() {
+    let why = Refusal::of("syncLater");
+
+    assert!(stuck_after(Some(&why), &Some(later()), &Some(later())).is_none());
+}
+
+#[test]
+fn a_command_that_needs_a_carrier_says_why_there_is_none() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let mut session = Session::at(paths).unwrap();
+
+    assert_eq!(
+        session.carrying().err().map(|one| one.code),
+        Some("noRemote")
+    );
+    session.config.sync = Some(later());
+    assert_eq!(
+        session.carrying().err().map(|one| one.code),
+        Some("syncLater")
+    );
+    session.config.sync = Some(Sync::folder("G:/compartida"));
+    assert!(session.carrying().is_ok());
 }

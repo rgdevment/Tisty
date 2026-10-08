@@ -166,7 +166,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, carrier, paths, home, store, alive, holds) = {
+    let (was, keeping, paths, home, store, alive, holds) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -180,7 +180,7 @@ pub async fn settle_in(
         }
         (
             was,
-            session.carrier(),
+            session.keeping(),
             session.paths.clone(),
             session.here(),
             session.paths.store(),
@@ -192,8 +192,11 @@ pub async fn settle_in(
     let mut brought = false;
     let mut stuck = None;
     let mut arrived = Vec::new();
-    let mut carried = carrier.is_none();
-    if let Some(carrier) = carrier
+    if keeping.chosen == tisty_carrier::Chosen::Later {
+        stuck = Some(Refusal::of("syncLater"));
+    }
+    let mut carried = keeping.carrier.is_none();
+    if let Some(carrier) = keeping.carrier
         && let Some(_done) = alone.inner().claim()
     {
         carried = true;
@@ -364,10 +367,11 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         weight: report::weighed(paths.data())
             + report::also_weighed(paths.data(), let_go.as_deref()),
         carries: tisty_core::backup::AT_MOST,
-        shared_was: config
-            .shared_was
-            .as_ref()
-            .map(|at| at.display().to_string()),
+        shared_was: match config.once_shared() {
+            Some(tisty_core::config::Was::Folder(at)) => Some(at.display().to_string()),
+            Some(tisty_core::config::Was::Later(_)) | None => None,
+        },
+        later: tisty_carrier::chosen(config.sync.as_ref()).chosen == tisty_carrier::Chosen::Later,
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
     })
 }
@@ -466,18 +470,23 @@ pub(crate) fn let_go_to(session: &Session) -> Option<std::path::PathBuf> {
         .filter(|_| session.config.holds() == tisty_core::config::Holds::Shared)
 }
 
-/// Only a folder that is still there, and that a round ever finished with, can hold what we let go of.
-fn stranded_by_leaving(
-    session: &Session,
-    chosen: &tisty_core::config::Sync,
-) -> Option<std::path::PathBuf> {
-    let carrier = session.carrier()?;
-    let old = carrier.place()?.to_path_buf();
-    (session.config.holds() != tisty_core::config::Holds::Everywhere
-        && session.config.sync.as_ref() != Some(chosen)
-        && old.is_dir()
-        && carrier.been_here(&session.here()))
-    .then_some(old)
+/// A folder that is still there, and that a round ever finished with, may hold what we let go of;
+/// a way this build cannot read may too, and nothing here can bring it home to check.
+fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> Option<Refusal> {
+    use tisty_core::config::Leaving;
+    let was = session.config.sync.as_ref().filter(|was| *was != chosen)?;
+    match was.leaving() {
+        Leaving::Free => None,
+        Leaving::Later => Some(Refusal::of("syncLaterToLeave")),
+        Leaving::Place => {
+            let carrier = session.carrier()?;
+            let old = carrier.place()?;
+            (session.config.holds() != tisty_core::config::Holds::Everywhere
+                && carrier.reachable()
+                && carrier.been_here(&session.here()))
+            .then(|| Refusal::about("sharedAwayToLeave", old.display().to_string()))
+        }
+    }
 }
 
 pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
@@ -512,20 +521,17 @@ pub fn choose_sync(
             if tangled {
                 return Err(Refusal::about("remoteInsideStore", dest));
             }
-            tisty_core::config::Sync::Folder(at)
+            tisty_core::config::Sync::folder(at)
         }
-        None => tisty_core::config::Sync::Local,
+        None => tisty_core::config::Sync::alone(),
     };
-    if let tisty_core::config::Sync::Folder(at) = &chosen
-        && went_back_on(&session, tisty_carrier::considering(at.clone()).theirs())
+    if let Some(at) = chosen.place()
+        && went_back_on(&session, tisty_carrier::considering(at).theirs())
     {
         return Err(Refusal::about("restoredApart", at.display().to_string()));
     }
-    if let Some(old) = stranded_by_leaving(&session, &chosen) {
-        return Err(Refusal::about(
-            "sharedAwayToLeave",
-            old.display().to_string(),
-        ));
+    if let Some(refusal) = stranded_by_leaving(&session, &chosen) {
+        return Err(refusal);
     }
     session.keep(|c| c.sync = Some(chosen))?;
     let _ = app.emit("unstuck", ());
@@ -568,7 +574,7 @@ fn stuck_after(
     was: &Option<tisty_core::config::Sync>,
     now: &Option<tisty_core::config::Sync>,
 ) -> Option<Stuck> {
-    why.filter(|one| one.code != "noRemote" && was == now)
+    why.filter(|one| !matches!(one.code, "noRemote" | "syncLater") && was == now)
         .map(|why| Stuck {
             code: why.code,
             name: why.name.clone(),

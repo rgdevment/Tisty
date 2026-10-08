@@ -62,7 +62,8 @@ pub async fn take_over(
     }
     let (dest, aside, ours) = {
         let session = held(&session);
-        let Some(dest) = session.place() else {
+        let carrier = session.carrying()?;
+        let Some(dest) = carrier.place().map(std::path::Path::to_path_buf) else {
             return Err(Refusal::of("noRemote"));
         };
         let ours = tisty_core::store::identity(session.paths.store())

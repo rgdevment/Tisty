@@ -63,26 +63,47 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 }
             }
 
+            let mut kept = false;
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = Some(value.clone()),
-                "remote" => c.sync = Some(tisty_core::config::Sync::Folder(value.clone().into())),
+                "remote" => kept = !replacing_the_way(c, tisty_core::config::Sync::folder(&value)),
                 _ => c.editor = Some(value.clone()),
             })?;
+            if kept {
+                anyhow::bail!("{}", lang.get("sync-later-to-leave"));
+            }
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
             Ok(ExitCode::SUCCESS)
         }
 
         Some(ConfigAction::Unset { key }) => {
             check(&key, lang)?;
+            let mut kept = false;
             app.edit_config(|c| match key.as_str() {
                 "locale" => c.locale = None,
-                "remote" => c.sync = Some(tisty_core::config::Sync::Local),
+                "remote" => kept = !replacing_the_way(c, tisty_core::config::Sync::alone()),
                 _ => c.editor = None,
             })?;
+            if kept {
+                anyhow::bail!("{}", lang.get("sync-later-to-leave"));
+            }
             println!("  {} {key}", style::dim("✕"));
             Ok(ExitCode::SUCCESS)
         }
     }
+}
+
+/// Read where it is written, not where it was loaded: a way a newer build chose is never replaced.
+fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sync) -> bool {
+    use tisty_core::config::Leaving;
+    let held = config
+        .sync
+        .as_ref()
+        .is_some_and(|was| *was != to && was.leaving() == Leaving::Later);
+    if !held {
+        config.sync = Some(to);
+    }
+    !held
 }
 
 fn show(key: &str, value: Option<&str>) {
