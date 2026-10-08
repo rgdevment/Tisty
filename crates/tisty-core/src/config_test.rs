@@ -204,6 +204,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         backed_up_at: None,
         restored_at: None,
         shared_was: None,
+        shared_was_later: None,
         sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
         synced_at: None,
         heard_at: None,
@@ -270,6 +271,7 @@ fn bare() -> Config {
         backed_up_at: None,
         restored_at: None,
         shared_was: None,
+        shared_was_later: None,
         sync: None,
         synced_at: None,
         heard_at: None,
@@ -456,4 +458,97 @@ fn a_key_this_build_cannot_name_survives_a_sync_folder_being_set() {
         "the folder to sync with did not survive:
 {again}"
     );
+}
+
+fn later() -> toml::Value {
+    toml::from_str("how = \"nube\"\nat = { cuenta = \"yo\" }").unwrap()
+}
+
+#[test]
+fn a_folder_places_itself_and_a_way_nobody_here_reads_does_not() {
+    let folder = Sync::folder("G:/Mi unidad/compartida");
+
+    assert_eq!(folder.place(), Some(Path::new("G:/Mi unidad/compartida")));
+    assert!(folder.shares());
+    assert_eq!(folder.leaving(), Leaving::Place);
+    for nobody in [Sync::alone(), Sync::Unknown(later())] {
+        assert_eq!(nobody.place(), None);
+        assert!(
+            !nobody.shares(),
+            "a way this build cannot read offered its settings"
+        );
+    }
+    assert_eq!(Sync::alone().leaving(), Leaving::Free);
+    assert_eq!(Sync::Unknown(later()).leaving(), Leaving::Later);
+}
+
+#[test]
+fn only_a_folder_makes_the_holds_setting_count() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+    config.holds = Some(Holds::Mine);
+
+    for sync in [None, Some(Sync::alone()), Some(Sync::Unknown(later()))] {
+        config.sync = sync;
+        assert_eq!(config.holds(), Holds::Everywhere);
+        assert!(!config.shares());
+    }
+    config.sync = Some(Sync::folder("compartida"));
+    assert_eq!(config.holds(), Holds::Mine);
+    assert!(config.shares());
+}
+
+#[test]
+fn a_way_put_away_by_a_restore_is_read_from_the_old_key_or_the_new_one() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+    assert_eq!(config.once_shared(), None);
+
+    config.remember_shared(Some(Was::Folder("G:/compartida".into())));
+    assert_eq!(
+        config.once_shared(),
+        Some(Was::Folder("G:/compartida".into()))
+    );
+    assert_eq!(config.shared_was_later, None);
+
+    config.remember_shared(Some(Was::Later(later())));
+    assert_eq!(config.once_shared(), Some(Was::Later(later())));
+    assert_eq!(config.shared_was, None);
+
+    config.remember_shared(None);
+    assert_eq!(config.once_shared(), None);
+}
+
+#[test]
+fn a_file_from_before_the_later_key_reads_and_writes_back_the_same() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.remember_shared(Some(Was::Folder("G:/compartida".into())));
+    config.save(&paths).unwrap();
+
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+    assert!(said.contains("shared_was = "), "{said}");
+    assert!(!said.contains("shared_was_later"), "{said}");
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(
+        read.once_shared(),
+        Some(Was::Folder("G:/compartida".into()))
+    );
+}
+
+#[test]
+fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(Sync::Unknown(later()));
+    config.remember_shared(Some(Was::Later(later())));
+    config.opened_by = Some("1.25.0".into());
+    config.save(&paths).unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync, Some(Sync::Unknown(later())));
+    assert_eq!(read.once_shared(), Some(Was::Later(later())));
+    assert_eq!(read.opened_by.as_deref(), Some("1.25.0"));
 }

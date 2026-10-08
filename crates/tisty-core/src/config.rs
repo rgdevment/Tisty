@@ -22,6 +22,60 @@ pub enum Sync {
     Unknown(toml::Value),
 }
 
+impl Sync {
+    pub fn folder(at: impl Into<std::path::PathBuf>) -> Self {
+        Self::Folder(at.into())
+    }
+
+    pub fn alone() -> Self {
+        Self::Local
+    }
+
+    pub fn place(&self) -> Option<&Path> {
+        match self {
+            Self::Folder(at) => Some(at),
+            Self::Local | Self::Unknown(_) => None,
+        }
+    }
+
+    /// A way this build cannot read has no place to look in, so nothing is offered for it.
+    pub fn shares(&self) -> bool {
+        self.place().is_some()
+    }
+
+    pub fn leaving(&self) -> Leaving {
+        match self {
+            Self::Local => Leaving::Free,
+            Self::Folder(_) => Leaving::Place,
+            Self::Unknown(_) => Leaving::Later,
+        }
+    }
+
+    pub fn remembered(&self) -> Option<Was> {
+        match self {
+            Self::Local => None,
+            Self::Folder(at) => Some(Was::Folder(at.clone())),
+            Self::Unknown(raw) => Some(Was::Later(raw.clone())),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Leaving {
+    Free,
+    /// What was let go of may live there, so the setting, the place and a finished round decide.
+    Place,
+    /// Whatever it holds, this build cannot bring it home to check.
+    Later,
+}
+
+/// What a machine shared with before a restore put it back to sharing with nobody.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Was {
+    Folder(std::path::PathBuf),
+    Later(toml::Value),
+}
+
 /// A way this build has a name for and cannot make sense of is broken, not new, and saying so
 /// out loud is the old behaviour worth keeping: only a name it has never heard is kept aside.
 impl<'de> Deserialize<'de> for Sync {
@@ -65,9 +119,9 @@ impl Config {
 
     /// Without a shared folder there is nowhere else, whatever the setting says.
     pub fn holds(&self) -> Holds {
-        match self.sync {
-            Some(Sync::Folder(_)) => self.holds.unwrap_or_default(),
-            _ => Holds::Everywhere,
+        match self.sync.as_ref().is_some_and(Sync::shares) {
+            true => self.holds.unwrap_or_default(),
+            false => Holds::Everywhere,
         }
     }
 
@@ -76,8 +130,24 @@ impl Config {
         crate::attach::COPIED_UP_TO
     }
 
+    pub fn once_shared(&self) -> Option<Was> {
+        match (&self.shared_was, &self.shared_was_later) {
+            (Some(at), _) => Some(Was::Folder(at.clone())),
+            (None, Some(raw)) => Some(Was::Later(raw.clone())),
+            (None, None) => None,
+        }
+    }
+
+    pub fn remember_shared(&mut self, was: Option<Was>) {
+        (self.shared_was, self.shared_was_later) = match was {
+            Some(Was::Folder(at)) => (Some(at), None),
+            Some(Was::Later(raw)) => (None, Some(raw)),
+            None => (None, None),
+        };
+    }
+
     pub fn shares(&self) -> bool {
-        matches!(self.sync, Some(Sync::Folder(_)))
+        self.sync.as_ref().is_some_and(Sync::shares)
     }
 }
 
@@ -148,6 +218,9 @@ pub struct Config {
     pub restored_at: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub shared_was: Option<std::path::PathBuf>,
+    /// Beside `shared_was`, never in it: every build since 1.24 reads that key as a path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shared_was_later: Option<toml::Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sync: Option<Sync>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -224,6 +297,7 @@ impl Config {
             backed_up_at: None,
             restored_at: None,
             shared_was: None,
+            shared_was_later: None,
             sync: None,
             synced_at: None,
             heard_at: None,
