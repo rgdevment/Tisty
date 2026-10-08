@@ -264,7 +264,7 @@ impl Session {
         self.log = None;
     }
 
-    pub fn carrier(&self) -> Option<Box<dyn tisty_carrier::Carrier>> {
+    pub fn carrier(&self) -> Option<tisty_carrier::Shared> {
         tisty_carrier::chosen(self.config.sync.as_ref()).carrier
     }
 
@@ -273,15 +273,11 @@ impl Session {
     }
 
     pub fn here(&self) -> tisty_carrier::Here {
-        tisty_carrier::Here {
-            data: self.paths.data().to_path_buf(),
-            aside: self.paths.cache().to_path_buf(),
-            device: self.config.device_id.0.clone(),
-        }
+        tisty_carrier::Here::of(&self.paths, &self.config)
     }
 
     /// The way of carrying this machine chose, or the refusal every command that needs one gives.
-    pub fn carrying(&self) -> Result<Box<dyn tisty_carrier::Carrier>, Refusal> {
+    pub fn carrying(&self) -> Result<tisty_carrier::Shared, Refusal> {
         self.carrier().ok_or_else(|| Refusal::of("noRemote"))
     }
 

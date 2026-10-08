@@ -93,11 +93,7 @@ impl App {
     }
 
     pub fn here(&self) -> tisty_carrier::Here {
-        tisty_carrier::Here {
-            data: self.paths.data().to_path_buf(),
-            aside: self.paths.cache().to_path_buf(),
-            device: self.config.device_id.0.clone(),
-        }
+        tisty_carrier::Here::of(&self.paths, &self.config)
     }
 
     pub fn tidy_up(&mut self, bin: bool) {

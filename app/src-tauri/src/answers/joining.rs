@@ -118,7 +118,7 @@ pub fn sync_kin(session: tauri::State<'_, Mutex<Session>>) -> Answer<&'static st
 /// Read after the lock is let go: a slow folder must not hold up every other command.
 fn carrier_and_here(
     session: &tauri::State<'_, Mutex<Session>>,
-) -> Answer<(Box<dyn tisty_carrier::Carrier>, tisty_carrier::Here)> {
+) -> Answer<(tisty_carrier::Shared, tisty_carrier::Here)> {
     let session = held(session);
     Ok((session.carrying()?, session.here()))
 }

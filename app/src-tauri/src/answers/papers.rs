@@ -119,7 +119,7 @@ pub fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
 
 fn still_coming(session: &tauri::State<'_, Mutex<Session>>, id: &str) -> bool {
     let carrier = held(session).carrier();
-    carrier.is_some_and(|carrier| carrier.paper(id).waiting)
+    carrier.is_some_and(|carrier| carrier.paper_waiting(id))
 }
 
 #[derive(serde::Serialize)]
@@ -548,7 +548,7 @@ pub fn settle_paper(
 
     if !matches!(keep, tisty_carrier::Keep::Theirs)
         && let Some(shown) = session.asked.get(&id)
-        && carrier.paper(&id).print.as_ref() != Some(shown)
+        && carrier.paper_print(&id).as_ref() != Some(shown)
     {
         return Err(Refusal::of("movedUnderfoot"));
     }

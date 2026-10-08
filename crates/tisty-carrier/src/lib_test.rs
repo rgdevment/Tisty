@@ -122,7 +122,8 @@ fn a_folder_answers_from_its_own_place() {
     assert_eq!(folder.theirs(), tisty_sync::theirs(&desk.shared));
     assert_eq!(folder.kin(&desk.here), Kin::SameLineage);
     assert_eq!(folder.unclaimed(), Holding::Whole);
-    assert_eq!(folder.paper("dev_a-0001"), Paper::default());
+    assert!(!folder.paper_waiting("dev_a-0001"));
+    assert_eq!(folder.paper_print("dev_a-0001"), None);
 }
 
 #[test]

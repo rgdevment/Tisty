@@ -166,7 +166,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, carriers, paths, home, store, alive, holds) = {
+    let (was, carrier, paths, home, store, alive, holds) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -180,7 +180,7 @@ pub async fn settle_in(
         }
         (
             was,
-            session.carrier().zip(session.carrier()),
+            session.carrier(),
             session.paths.clone(),
             session.here(),
             session.paths.store(),
@@ -192,13 +192,13 @@ pub async fn settle_in(
     let mut brought = false;
     let mut stuck = None;
     let mut arrived = Vec::new();
-    let mut carried = carriers.is_none();
-    if let Some((carrier, pusher)) = carriers
+    let mut carried = carrier.is_none();
+    if let Some(carrier) = carrier
         && let Some(_done) = alone.inner().claim()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
-        let pushing = (home.clone(), pusher, alive.clone());
+        let pushing = (home.clone(), carrier.clone(), alive.clone());
         let mut telling = Telling::new(app.clone(), !carrier.been_here(&home));
         let carried = tauri::async_runtime::spawn_blocking(move || {
             let mut saying = |far| telling.hear(far);
@@ -480,14 +480,12 @@ fn stranded_by_leaving(
     .then_some(old)
 }
 
-pub(crate) fn went_back_on(session: &Session, at: &std::path::Path) -> bool {
+pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
     session.config.restored_at.is_some()
-        && tisty_carrier::considering(at)
-            .theirs()
-            .is_some_and(|theirs| {
-                tisty_core::store::peek_identity(session.paths.store())
-                    .is_some_and(|ours| ours.trim() == theirs.trim())
-            })
+        && theirs.is_some_and(|theirs| {
+            tisty_core::store::peek_identity(session.paths.store())
+                .is_some_and(|ours| ours.trim() == theirs.trim())
+        })
 }
 
 #[tauri::command]
@@ -519,7 +517,7 @@ pub fn choose_sync(
         None => tisty_core::config::Sync::Local,
     };
     if let tisty_core::config::Sync::Folder(at) = &chosen
-        && went_back_on(&session, at)
+        && went_back_on(&session, tisty_carrier::considering(at.clone()).theirs())
     {
         return Err(Refusal::about("restoredApart", at.display().to_string()));
     }
@@ -582,17 +580,15 @@ async fn carried_round(
     session: &tauri::State<'_, Mutex<Session>>,
     way: Option<String>,
 ) -> Answer<Settled> {
-    let (carrier, pusher, paths, home, store, alive, holds) = {
+    let (carrier, paths, home, store, alive, holds) = {
         let session = held(session);
         let carrier = session.carrying()?;
-        if let Some(dest) = carrier.place()
-            && went_back_on(&session, dest)
-        {
-            return Err(Refusal::about("restoredApart", dest.display().to_string()));
+        if went_back_on(&session, carrier.theirs()) {
+            let named = carrier.place().map(|at| at.display().to_string());
+            return Err(Refusal::about("restoredApart", named.unwrap_or_default()));
         }
         (
             carrier,
-            session.carrying()?,
             session.paths.clone(),
             session.here(),
             session.paths.store(),
@@ -611,7 +607,7 @@ async fn carried_round(
 
     let joining = !carrier.been_here(&home);
     let mut telling = Telling::new(app.clone(), joining);
-    let pushing = (home.clone(), pusher, alive.clone());
+    let pushing = (home.clone(), carrier.clone(), alive.clone());
     let done = tauri::async_runtime::spawn_blocking(move || {
         let mut saying = |far| telling.hear(far);
         let done = carrier.carry(
@@ -1050,11 +1046,7 @@ pub fn stop_freeing(stopping: tauri::State<'_, Stopping>) {
     stopping.0.store(true, std::sync::atomic::Ordering::Relaxed);
 }
 
-type Pushing = (
-    tisty_carrier::Here,
-    Box<dyn tisty_carrier::Carrier>,
-    Vec<String>,
-);
+type Pushing = (tisty_carrier::Here, tisty_carrier::Shared, Vec<String>);
 
 async fn answering(
     session: &tauri::State<'_, Mutex<Session>>,
