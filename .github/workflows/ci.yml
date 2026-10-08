@@ -133,10 +133,10 @@ jobs:
         with:
           tool: nextest
 
-      - name: The four crates the window does not need to build
+      - name: The five crates the window does not need to build
         run: |
           cargo llvm-cov nextest \
-            -p tisty-core -p tisty-nl -p tisty-sync -p tisty-cli \
+            -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-cli \
             --lcov --output-path lcov-rust.info
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

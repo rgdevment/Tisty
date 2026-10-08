@@ -50,7 +50,7 @@ pub fn of(data: &Path) -> BTreeMap<String, Away> {
 pub fn keep(data: &Path, away: &BTreeMap<String, Away>) {
     let said: Vec<String> = away
         .iter()
-        .filter(|(whose, _)| tisty_core::store::is_device_name(whose))
+        .filter(|(whose, _)| crate::store::is_device_name(whose))
         .map(|(whose, away)| format!("{whose}\t{}", away.said()))
         .collect();
     let at = data.join(KEPT);
@@ -58,7 +58,7 @@ pub fn keep(data: &Path, away: &BTreeMap<String, Away>) {
         let _ = std::fs::remove_file(&at);
         return;
     }
-    let _ = tisty_core::store::write_atomic(&at, said.join("\n").as_bytes());
+    let _ = crate::store::write_atomic(&at, said.join("\n").as_bytes());
 }
 
 pub fn let_through(data: &Path, whose: &str) -> bool {

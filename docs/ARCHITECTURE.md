@@ -2318,7 +2318,10 @@ machine and confirming a fresh one, which the person does by looking.
 
 ## The cloud: one carrier, chosen once
 
-Designed, not built. Syncing through an API — Google Drive first, then OneDrive
+Designed, and being built from the bottom. The first piece is in place:
+`tisty-carrier` holds `Here`, `Round`, the `Carrier` trait, `chosen()` and
+`Folder`, which hands every call to `tisty-sync` unchanged; nothing calls it
+yet. Syncing through an API — Google Drive first, then OneDrive
 and Dropbox — reaches computers without the provider's client and, later, a
 phone. Nothing about it is required: Tisty works whole without it, and taking
 it away gives back a complete application.
