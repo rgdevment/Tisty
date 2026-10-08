@@ -225,6 +225,52 @@ both_languages_carry_the_same_documents() {
   [ "$bad" = 1 ] || went_well "both languages carry the same documents"
 }
 
+# Only the type and the factory may name a way of syncing, so no match on it can grow back.
+modes_named_outside() {
+  local test_modules
+  test_modules=$(grep -rhA1 '^#\[cfg(test)\]$' "$@" --include='*.rs' \
+    | grep -oE '#\[path = "[^"]+"\]' | grep -oE '"[^"]+"' | tr -d '"' | sort -u)
+  grep -rnE '(^|[^[:alnum:]_])Sync[[:space:]]*::[[:space:]]*[A-Z{*]|(^|[^[:alnum:]_])Sync[[:space:]]+as[[:space:]]' "$@" --include='*.rs' \
+    | awk -v names="$test_modules" '
+        BEGIN { count = split(names, list, "\n"); for (i = 1; i <= count; i++) skip[list[i]] = 1 }
+        {
+          file = $0
+          sub(/:[0-9]+:.*/, "", file)
+          parts = split(file, at, "/")
+          base = at[parts]
+          if (file ~ /(^|\/)tests\// || base ~ /_tests?\.rs$/ || (base in skip)) next
+          if (file == "crates/tisty-core/src/config.rs" || file == "crates/tisty-carrier/src/lib.rs") next
+          print
+        }'
+}
+
+the_way_of_syncing_is_named_once() {
+  local found
+  found=$(modes_named_outside crates app/src-tauri/src)
+  if [ -n "$found" ]; then
+    printf '%s\n' "$found"
+    amiss "a way of syncing is named only in config.rs and in chosen(): ask the carrier, or add a method to Sync"
+  else
+    went_well "the way of syncing is named only where it is chosen"
+  fi
+}
+
+the_rule_on_the_way_of_syncing_can_fail() {
+  local room broke allowed
+  room=$(mktemp -d)
+  mkdir -p "$room/crates/other/src" "$room/crates/tisty-carrier/src"
+  printf 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }\n' > "$room/crates/other/src/lib.rs"
+  printf 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }\n' > "$room/crates/tisty-carrier/src/lib.rs"
+  broke=$(cd "$room" && modes_named_outside crates | grep -c 'crates/other/src/lib.rs')
+  allowed=$(cd "$room" && modes_named_outside crates | grep -c 'crates/tisty-carrier/src/lib.rs')
+  rm -rf "$room"
+  if [ "$broke" != 1 ] || [ "$allowed" != 0 ]; then
+    amiss "the rule on the way of syncing no longer tells a match outside the factory from the factory"
+  else
+    went_well "the rule on the way of syncing fails on a match outside the factory"
+  fi
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
@@ -234,5 +280,7 @@ nothing_the_core_prints
 nothing_that_takes_the_window_down
 nothing_new_reaches_the_command_line
 every_spawn_pins_its_language
+the_way_of_syncing_is_named_once
+the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 exit $status

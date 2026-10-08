@@ -2346,7 +2346,29 @@ cardinality of one:
 `chosen()` is the only `match` on the way of syncing. Today the folder is asked
 about in some thirty places; they move behind `Carrier` first, with no change
 in behaviour, and only then does a second carrier exist. A rule in `rules.sh`
-keeps `Sync::Folder` and `Sync::Cloud` from being named anywhere else.
+keeps any variant of `Sync` from being named outside `config.rs`, where the type
+and its methods live, and `chosen()`; everything else asks a method (`place`,
+`shares`, `leaving`) or the carrier it was handed. The rule fails on a file that
+breaks it, and the check that it can fail runs with it.
+
+**A way a newer build chose is reported and never replaced.** Settings written
+by a later build can say a way this one does not know. It is kept exactly as it
+was read (`Unknown`), and then:
+
+- nothing is carried, and a command that needs a carrier refuses with
+  `syncLater` rather than `noRemote`, because «nothing is set» would be false;
+- the Syncing card says so, offers no way to turn syncing on, and the update
+  notice appears;
+- leaving it is refused from the window and from the command line, whatever the
+  attachments setting says: that setting is an intention, and this build cannot
+  bring anything home to check it. Staying on it is not leaving;
+- a restore puts it away as it found it, in `shared_was_later` and never in
+  `shared_was`, which every build since 1.24 reads as a path. A second restore
+  keeps what the first put away.
+
+A backup made while a way is unknown leaves out the attachments that live only
+there, and opening one says it cannot be read. Both wait for the cloud's own
+`backs_up` and on-demand attachments.
 
 **The cloud is the same folder, reached through an API.** The same
 `tisty.toml`, `store/`, `docs/`, `attachments/` and `.store-id`: one format,
