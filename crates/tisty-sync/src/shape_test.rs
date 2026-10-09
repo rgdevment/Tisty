@@ -74,3 +74,69 @@ fn what_says_a_shape_and_cannot_be_read_is_not_taken_for_nothing() {
         Err(Trouble::Unshaped(_))
     ));
 }
+
+fn said_in(dest: &Path) -> String {
+    std::fs::read_to_string(dest.join(NAMED)).unwrap()
+}
+
+#[test]
+fn a_folder_that_already_says_this_shape_is_not_told_again() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        format!("shape = {OURS}\n# as it was left\n"),
+    )
+    .unwrap();
+
+    stamp(&data, &dest);
+
+    assert_eq!(
+        said_in(&dest),
+        format!("shape = {OURS}\n# as it was left\n")
+    );
+}
+
+#[test]
+fn a_folder_that_says_more_than_this_build_knows_is_not_told_over() {
+    let (_room, data, dest) = a_place();
+    let more = format!("shape = {}\n", OURS + 1);
+    std::fs::write(dest.join(NAMED), &more).unwrap();
+
+    stamp(&data, &dest);
+
+    assert_eq!(said_in(&dest), more);
+}
+
+#[test]
+fn a_folder_that_says_something_unreadable_is_not_told_over() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "folders = []\n").unwrap();
+
+    stamp(&data, &dest);
+
+    assert_eq!(said_in(&dest), "folders = []\n");
+}
+
+#[test]
+fn a_folder_that_says_less_than_this_build_knows_is_told_what_shape_it_is_in() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 0\n").unwrap();
+
+    stamp(&data, &dest);
+
+    assert!(said_in(&dest).contains(&format!("shape = {OURS}")));
+}
+
+#[test]
+fn a_folder_that_was_not_told_but_already_says_its_shape_is_still_remembered() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), format!("shape = {OURS}\n")).unwrap();
+
+    stamp(&data, &dest);
+    std::fs::remove_file(dest.join(NAMED)).unwrap();
+
+    assert!(matches!(
+        before_reading(&data, &dest),
+        Err(Trouble::Unshaped(_))
+    ));
+}

@@ -80,6 +80,15 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
 
 /// Written after everything else a round writes, so finding it is finding a round that finished.
 pub(crate) fn stamp(data: &Path, dest: &Path) {
+    match told(dest) {
+        Told::Shape(OURS) => remember(data, dest, OURS),
+        Told::Shape(said) if said > OURS => {}
+        Told::Unreadable => {}
+        Told::Shape(_) | Told::Nothing => tell(data, dest),
+    }
+}
+
+fn tell(data: &Path, dest: &Path) {
     let said = format!(
         "# What this folder is, and the shape it is in. Tisty reads this before anything else here.\nshape = {OURS}\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
     );
