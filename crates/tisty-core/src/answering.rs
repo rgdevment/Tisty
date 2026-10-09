@@ -166,7 +166,6 @@ fn answered(
     }
 }
 
-// What a cut rotation leaves behind: the segment it closed holds every byte of the old live one.
 fn left_over(found: &[std::path::PathBuf], one: &Path, bytes: &[u8]) -> bool {
     let named_here = |at: &Path| at.file_name().and_then(|one| one.to_str()).map(numbered);
     if named_here(one) != Some(None) {
