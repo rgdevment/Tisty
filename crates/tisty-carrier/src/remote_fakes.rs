@@ -25,10 +25,14 @@ pub struct Counts {
 }
 
 pub trait Counting: Remote {
+    fn fail_next(&self, hitch: Hitch) {
+        self.fail_after(0, hitch);
+    }
+
     fn who(&self) -> &'static str;
     fn counts(&self) -> Counts;
     fn forget_counts(&self);
-    fn fail_next(&self, hitch: Hitch);
+    fn fail_after(&self, passing: usize, hitch: Hitch);
     fn forget_feed(&self);
     fn native_changes(&self) -> bool;
     fn hears_pushed(&self) -> bool;
@@ -48,7 +52,7 @@ struct Shelf {
     last: u64,
     floor: u64,
     touched: Vec<(u64, String)>,
-    failing: VecDeque<Hitch>,
+    failing: VecDeque<Option<Hitch>>,
     counts: Counts,
 }
 
@@ -179,7 +183,7 @@ impl Fake {
     }
 
     fn gate(&self, shelf: &mut Shelf, cost: u64) -> Result<(), Hitch> {
-        match shelf.failing.pop_front() {
+        match shelf.failing.pop_front().flatten() {
             Some(hitch) => {
                 self.spend(shelf, 1, cost);
                 Err(hitch)
@@ -475,8 +479,10 @@ impl Counting for Fake {
         self.lock().counts = Counts::default();
     }
 
-    fn fail_next(&self, hitch: Hitch) {
-        self.lock().failing.push_back(hitch);
+    fn fail_after(&self, passing: usize, hitch: Hitch) {
+        let mut shelf = self.lock();
+        shelf.failing.extend(std::iter::repeat_n(None, passing));
+        shelf.failing.push_back(Some(hitch));
     }
 
     fn forget_feed(&self) {
@@ -549,8 +555,8 @@ impl Counting for Bare {
         self.0.forget_counts();
     }
 
-    fn fail_next(&self, hitch: Hitch) {
-        self.0.fail_next(hitch);
+    fn fail_after(&self, passing: usize, hitch: Hitch) {
+        self.0.fail_after(passing, hitch);
     }
 
     fn forget_feed(&self) {}

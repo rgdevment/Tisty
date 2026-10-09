@@ -12,8 +12,8 @@ mod verified;
 
 pub use attachments::{Attachments, Beside, Given, Giving, Taken, Taking};
 use bringing::{bring, seats};
-pub use held::let_go_telling;
-use held::{copy_held, left_behind, let_go_of};
+use held::{copy_held, let_go_of};
+pub use held::{left_behind, let_go_telling};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
@@ -82,6 +82,22 @@ pub struct Moved {
     pub unsaid: Vec<String>,
     /// Not undecided: confirming or removing the machine that answers for them settles them.
     pub waiting: Vec<String>,
+    pub deferred: Option<Deferred>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Reason {
+    Limit,
+    Budget,
+    Busy,
+    Offline,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Deferred {
+    pub reason: Reason,
+    pub left: usize,
+    pub retry_after: Option<std::time::Duration>,
 }
 
 impl Moved {
