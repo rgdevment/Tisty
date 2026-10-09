@@ -6,13 +6,15 @@ use tisty_core::signing::SigningKey;
 
 pub use tisty_core::turned;
 pub use tisty_sync::{
-    Holding, Keep, Kin, LetGo, Moved, Reached, STORE, Signed, Stage, Stitched, Trouble, Undecided,
-    Way,
+    Deferred, Holding, Keep, Kin, LetGo, Moved, Reached, Reason, STORE, Signed, Stage, Stitched,
+    Trouble, Undecided, Way,
 };
 
+mod cloud;
 mod folder;
 mod remote;
 
+pub use cloud::Cloud;
 pub use folder::Folder;
 pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
 

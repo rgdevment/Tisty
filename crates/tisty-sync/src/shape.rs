@@ -4,7 +4,7 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{HELD, PAPERS, STORE, Trouble};
 
-pub(crate) const NAMED: &str = "tisty.toml";
+pub const NAMED: &str = "tisty.toml";
 const SEEN: &str = ".shape-seen";
 const KEPT_FOR: usize = 8;
 
@@ -129,6 +129,23 @@ fn remember(data: &Path, dest: &Path, said: u32) {
         );
     }
     let _ = tisty_core::store::write_atomic(&data.join(SEEN), held.join("\n").as_bytes());
+}
+
+pub fn unseen(data: &Path, dest: &Path) {
+    let looking = named(dest);
+    let Ok(kept) = std::fs::read_to_string(data.join(SEEN)) else {
+        return;
+    };
+    let held: Vec<&str> = kept
+        .lines()
+        .filter(|line| {
+            line.split_once('\t')
+                .is_none_or(|(_, whose)| whose != looking)
+        })
+        .collect();
+    if held.len() != kept.lines().count() {
+        let _ = tisty_core::store::write_atomic(&data.join(SEEN), held.join("\n").as_bytes());
+    }
 }
 
 fn named(dest: &Path) -> String {

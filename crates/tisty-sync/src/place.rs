@@ -26,6 +26,12 @@ pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path, device: Option<&st
         }
 }
 
+pub fn forget_carried_to(aside: &Path, dest: &Path) {
+    if carried_here(Some(aside), dest, None) {
+        let _ = std::fs::remove_file(aside.join(CARRIED_TO));
+    }
+}
+
 pub(crate) fn note_carried(aside: Option<&Path>, dest: &Path, device: &str) {
     let Some(aside) = aside else {
         return;

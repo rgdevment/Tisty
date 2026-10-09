@@ -150,7 +150,7 @@ pub(crate) fn twinned(
         .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
 }
 
-pub(crate) fn left_behind(holds: Holds) -> Option<u64> {
+pub fn left_behind(holds: Holds) -> Option<u64> {
     match holds {
         Holds::Everywhere => None,
         Holds::Mine | Holds::Shared => Some(tisty_core::attach::COPIED_UP_TO),

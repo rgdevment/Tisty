@@ -25,10 +25,15 @@ pub struct Counts {
 }
 
 pub trait Counting: Remote {
+    fn fail_next(&self, hitch: Hitch) {
+        self.fail_after(0, hitch);
+    }
+
     fn who(&self) -> &'static str;
     fn counts(&self) -> Counts;
     fn forget_counts(&self);
-    fn fail_next(&self, hitch: Hitch);
+    fn uploaded(&self) -> Vec<String>;
+    fn fail_after(&self, passing: usize, hitch: Hitch);
     fn forget_feed(&self);
     fn native_changes(&self) -> bool;
     fn hears_pushed(&self) -> bool;
@@ -48,7 +53,8 @@ struct Shelf {
     last: u64,
     floor: u64,
     touched: Vec<(u64, String)>,
-    failing: VecDeque<Hitch>,
+    failing: VecDeque<Option<Hitch>>,
+    uploads: Vec<String>,
     counts: Counts,
 }
 
@@ -56,6 +62,7 @@ pub struct Fake {
     kind: Kind,
     page: Option<usize>,
     chunk: Option<u64>,
+    hashless: bool,
     shelf: Arc<Mutex<Shelf>>,
 }
 
@@ -65,6 +72,7 @@ impl Fake {
             kind,
             page: None,
             chunk: None,
+            hashless: false,
             shelf: Arc::default(),
         }
     }
@@ -83,6 +91,11 @@ impl Fake {
 
     pub fn with_page(mut self, page: usize) -> Self {
         self.page = Some(page);
+        self
+    }
+
+    pub fn without_hashes(mut self) -> Self {
+        self.hashless = true;
         self
     }
 
@@ -150,6 +163,9 @@ impl Fake {
     }
 
     fn hash(&self, body: &[u8]) -> String {
+        if self.hashless {
+            return String::new();
+        }
         let kind = match self.kind {
             Kind::Drive => "md5",
             Kind::OneDrive => "quickxor",
@@ -179,7 +195,7 @@ impl Fake {
     }
 
     fn gate(&self, shelf: &mut Shelf, cost: u64) -> Result<(), Hitch> {
-        match shelf.failing.pop_front() {
+        match shelf.failing.pop_front().flatten() {
             Some(hitch) => {
                 self.spend(shelf, 1, cost);
                 Err(hitch)
@@ -210,6 +226,7 @@ impl Fake {
             }
         };
         shelf.touched.push((stamp, seen.name.clone()));
+        shelf.uploads.push(seen.name.clone());
         seen
     }
 
@@ -475,8 +492,14 @@ impl Counting for Fake {
         self.lock().counts = Counts::default();
     }
 
-    fn fail_next(&self, hitch: Hitch) {
-        self.lock().failing.push_back(hitch);
+    fn uploaded(&self) -> Vec<String> {
+        self.lock().uploads.clone()
+    }
+
+    fn fail_after(&self, passing: usize, hitch: Hitch) {
+        let mut shelf = self.lock();
+        shelf.failing.extend(std::iter::repeat_n(None, passing));
+        shelf.failing.push_back(Some(hitch));
     }
 
     fn forget_feed(&self) {
@@ -549,8 +572,12 @@ impl Counting for Bare {
         self.0.forget_counts();
     }
 
-    fn fail_next(&self, hitch: Hitch) {
-        self.0.fail_next(hitch);
+    fn uploaded(&self) -> Vec<String> {
+        self.0.uploaded()
+    }
+
+    fn fail_after(&self, passing: usize, hitch: Hitch) {
+        self.0.fail_after(passing, hitch);
     }
 
     fn forget_feed(&self) {}
