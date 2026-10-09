@@ -1323,7 +1323,10 @@ copies travel.
 ```
 
 `tisty.toml` is **read before anything else there and written after everything
-else**, so finding it is finding a round that got to the end. A number this build
+else**, so finding it is finding a round that got to the end. It is written only
+where it is missing or says less than this build knows: a quiet round leaves it
+alone, so a cloud folder is not sent the same file every round, and one that says
+more, or says something unreadable, is never written over. A number this build
 does not know means a later one arranged that folder around something this one
 cannot see, and the round stops in both directions rather than write over it —
 the same refusal a newer schema in the log already earns.
