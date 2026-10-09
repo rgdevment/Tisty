@@ -74,30 +74,42 @@ pub fn read_before(data: &Path, id: &str) -> Option<String> {
     std::fs::read_to_string(at).ok()
 }
 
-fn as_settled(mut bytes: Vec<u8>) -> Vec<u8> {
-    if !bytes.is_empty() && bytes.last() != Some(&b'\n') {
-        bytes.push(b'\n');
+fn as_settled(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+    if bytes.is_empty() || bytes.last() == Some(&b'\n') {
+        return std::borrow::Cow::Borrowed(bytes);
     }
-    bytes
+    let mut settled = bytes.to_vec();
+    settled.push(b'\n');
+    std::borrow::Cow::Owned(settled)
+}
+
+fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
+    use std::io::Read;
+
+    let file = match std::fs::File::open(at) {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e),
+    };
+    crate::counting::opened();
+    let mut bytes = Vec::new();
+    file.take(BODY_AT_MOST + 1).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > BODY_AT_MOST {
+        return Err(std::io::Error::other("a body past the ceiling"));
+    }
+    Ok(Some(bytes))
+}
+
+fn printed_body(bytes: &[u8]) -> String {
+    crate::attach::printed(&as_settled(bytes))
 }
 
 pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
-    match std::fs::metadata(at) {
-        Ok(one) if one.len() > BODY_AT_MOST => {
-            return Err(std::io::Error::other("a body past the ceiling"));
-        }
-        Ok(_) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(e),
-    }
-    match std::fs::read(at) {
-        Ok(bytes) => {
-            crate::counting::opened();
-            Ok(Some(crate::attach::printed(&as_settled(bytes))))
-        }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(e),
-    }
+    Ok(whole_of(at)?.map(|bytes| printed_body(&bytes)))
+}
+
+pub fn read_as_printed(at: &Path, print: &str) -> std::io::Result<Option<Vec<u8>>> {
+    Ok(whole_of(at)?.filter(|bytes| printed_body(bytes) == print))
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]

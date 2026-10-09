@@ -5,7 +5,7 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::awaited::Awaited;
 use crate::{
     Holding, Moved, PAPERS, Reached, STORE, Stage, Trouble, Undecided, copy_onto, docs_lock, io,
-    joined, pointed_away, straight, write,
+    joined, plainly, pointed_away, straight, write,
 };
 
 pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
@@ -242,22 +242,30 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
                     let _held = docs_lock(&here, id);
+                    let checked = yours.as_deref().unwrap_or_default();
+                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done)? else {
+                        continue;
+                    };
                     if answer == Answer::Doubtful
-                        && let Ok(left) = std::fs::read_to_string(&theirs)
+                        && let Ok(left) = std::str::from_utf8(&bytes)
                     {
-                        set_aside(data, id, &mine, &left);
+                        set_aside(data, id, &mine, left);
                     }
-                    copy_onto(&theirs, &mine)?;
+                    write(&mine, &bytes)?;
                     done.brought += 1;
                     done.arrived.push(id.clone());
-                    if let Some(print) = yours {
-                        settled_body(data, id, &mine, &theirs);
-                        said.keep(id, &print);
-                    }
+                    settled_body(data, id, &mine, &theirs);
+                    said.keep(id, checked);
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, id, &mine, &theirs, said.of(id), reaches) {
+                    let checked = yours.as_deref().unwrap_or_default();
+                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done)? else {
+                        continue;
+                    };
+                    let text = String::from_utf8(bytes).ok();
+                    match text.and_then(|text| joined(data, id, &mine, &text, said.of(id), reaches))
+                    {
                         Some(whole) => {
                             if answer == Answer::Doubtful {
                                 set_aside(data, id, &mine, &whole);
@@ -330,6 +338,29 @@ pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Hol
         0 => Holding::Whole,
         adrift => Holding::Strays(adrift),
     }
+}
+
+fn taken(
+    prints: &mut tisty_core::docs::Prints,
+    theirs: &Path,
+    checked: &str,
+    id: &str,
+    done: &mut Moved,
+) -> Result<Option<Vec<u8>>, Trouble> {
+    plainly(theirs)?;
+    let why = match tisty_core::docs::read_as_printed(theirs, checked) {
+        Ok(Some(bytes)) => return Ok(Some(bytes)),
+        Ok(None) => "it changed or went away".to_string(),
+        Err(e) => e.to_string(),
+    };
+    prints.forget(theirs);
+    witness::warn(
+        channel::SYNC,
+        "a body could not be taken as it was checked, so it waits for the next round",
+        &[("at", Fact::Id(id.to_string())), ("why", Fact::Why(why))],
+    );
+    done.coming.push(id.to_string());
+    Ok(None)
 }
 
 fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option<String> {

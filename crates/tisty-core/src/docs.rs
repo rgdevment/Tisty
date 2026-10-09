@@ -13,7 +13,7 @@ pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
 use carried::kept_still;
 pub use carried::{
     Carried, before_left_at, carried_at, carried_print, forget_carried, forget_what_was_carried,
-    keep_carried, kept_before, print_of, read_before, read_carried,
+    keep_carried, kept_before, print_of, read_as_printed, read_before, read_carried,
 };
 pub use prints::{Prints, Seen};
 use text::{Fencing, as_written, bullet, quoted, quoteless, unpictured, unspanned, wordless};

@@ -8613,6 +8613,99 @@ fn a_machine_found_on_first_reaching_a_folder_that_has_not_said_its_key_is_taken
     assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
 }
 
+fn replaced_keeping_its_time(at: &Path, body: &str) -> bool {
+    let was = std::fs::metadata(at).unwrap().modified().unwrap();
+    std::fs::write(at, body).unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(at)
+        .unwrap()
+        .set_modified(was)
+        .is_ok()
+}
+
+#[test]
+fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_b-0001";
+    theirs(shared.path(), id, "# lo comprobado\n");
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    let printed = std::collections::BTreeMap::from([(
+        id.to_string(),
+        super::papers::Answers {
+            newest: tisty_core::docs::print_of(&at).unwrap(),
+            own: None,
+            others: Default::default(),
+        },
+    )]);
+    let round = || {
+        super::papers::carry_papers_leaning_on(
+            &one.data,
+            shared.path(),
+            &[id.to_string()],
+            &[],
+            None,
+            Some(&printed),
+            &|_, _| false,
+            &|_| false,
+            false,
+            false,
+            true,
+            &mut |_| {},
+        )
+        .unwrap()
+    };
+
+    let first = round();
+    assert_eq!(first.brought, 1);
+    assert_eq!(body(&one.data, id), "# lo comprobado\n");
+
+    let here = one.data.join("docs").join(format!("{id}.md"));
+    std::fs::remove_file(&here).unwrap();
+    if !replaced_keeping_its_time(&at, "# lo adulterado\n") {
+        return;
+    }
+    let second = round();
+
+    assert_eq!(second.brought, 0);
+    assert_eq!(second.coming, vec![id.to_string()]);
+    assert!(
+        !here.exists(),
+        "a body that was not the one the log answered for was installed"
+    );
+}
+
+#[test]
+fn two_versions_are_joined_only_from_the_body_that_was_checked() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_a-0001";
+    let alive = [id.to_string()];
+    paper(&one, id, "uno\ndos\ntres\n");
+    theirs(shared.path(), id, "uno\ndos\ntres\n");
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    paper(&one, id, "UNO\ndos\ntres\n");
+    theirs(shared.path(), id, "UNO!\ndos\ntres\n");
+    let asked = carry_papers(&one.data, shared.path(), &alive).unwrap();
+    assert_eq!(asked.undecided_ids(), vec![id.to_string()]);
+
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    if !replaced_keeping_its_time(&at, "uno\ndos\nTRES.\n") {
+        return;
+    }
+    let after = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert_eq!(after.brought, 0);
+    assert_eq!(after.coming, vec![id.to_string()]);
+    assert_eq!(
+        body(&one.data, id),
+        "UNO\ndos\ntres\n",
+        "a body that was not the one checked was joined into the document"
+    );
+}
+
 #[test]
 fn a_reinstall_that_kept_the_cache_meets_the_folder_as_a_new_machine() {
     let kept = tempfile::tempdir().unwrap();

@@ -39,3 +39,32 @@ fn a_link_is_told_apart_before_anything_of_it_is_read() {
 
     assert_eq!(Prints::default().seen(&link).unwrap(), Seen::Linked);
 }
+
+#[test]
+fn a_print_kept_for_a_body_is_forgotten_when_asked() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("acta.md");
+    std::fs::write(&at, "# Uno\n").unwrap();
+    let was = std::fs::metadata(&at).unwrap().modified().unwrap();
+    let mut prints = Prints::default();
+    let first = prints.seen(&at).unwrap();
+
+    std::fs::write(&at, "# Dos\n").unwrap();
+    let set = std::fs::File::options()
+        .write(true)
+        .open(&at)
+        .unwrap()
+        .set_modified(was);
+    if set.is_err() {
+        return;
+    }
+    assert_eq!(
+        prints.seen(&at).unwrap(),
+        first,
+        "a body of the same size and time was read again"
+    );
+
+    prints.forget(&at);
+
+    assert_ne!(prints.seen(&at).unwrap(), first);
+}

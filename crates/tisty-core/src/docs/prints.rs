@@ -58,6 +58,10 @@ impl Prints {
         self.stamped_as(at, stamped(at))
     }
 
+    pub fn forget(&mut self, at: &Path) {
+        self.0.remove(&at.to_string_lossy().into_owned());
+    }
+
     pub fn seen(&mut self, at: &Path) -> std::io::Result<Seen> {
         crate::counting::looked();
         let (weighs, told) = match std::fs::symlink_metadata(at) {
