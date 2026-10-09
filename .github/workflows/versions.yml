@@ -5,16 +5,24 @@ on:
     paths:
       - "crates/tisty-core/**"
       - "crates/tisty-sync/**"
+      - "crates/tisty-carrier/**"
       - "crates/tisty-cli/**"
       - "fixtures/stores/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
       - ".github/workflows/versions.yml"
   push:
     branches: [main]
     paths:
       - "crates/tisty-core/**"
       - "crates/tisty-sync/**"
+      - "crates/tisty-carrier/**"
       - "crates/tisty-cli/**"
       - "fixtures/stores/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
       - ".github/workflows/versions.yml"
   workflow_dispatch:
 
@@ -58,7 +66,7 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          save-if: false
       - name: The earlier release, checked against what this repository built
         id: earlier
         shell: bash
@@ -74,7 +82,8 @@ jobs:
           esac
           mkdir -p earlier/unpacked
           gh release download "v$RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir earlier
-          gh attestation verify "earlier/$file" --repo "$GITHUB_REPOSITORY"
+          gh attestation verify "earlier/$file" --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
           case "$file" in
             *.zip) unzip -q "earlier/$file" -d earlier/unpacked ;;
             *) tar xzf "earlier/$file" -C earlier/unpacked ;;

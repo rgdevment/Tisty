@@ -78,7 +78,8 @@ fetch() {
   mkdir -p "$dir/unpacked"
   gh release download "v$version" --repo "$repo" --pattern "$file" --dir "$dir" \
     || fail "$file could not be downloaded"
-  gh attestation verify "$dir/$file" --repo "$repo" > /dev/null \
+  gh attestation verify "$dir/$file" --repo "$repo" \
+    --signer-workflow "$repo/.github/workflows/release.yml" > /dev/null \
     || fail "$file is not what $repo built, so nothing was run"
   case $file in
     *.zip) unzip -q "$dir/$file" -d "$dir/unpacked" || fail "$file would not unpack" ;;
@@ -124,7 +125,7 @@ write_store() {
   old "write the report"
   old "call the bank"
   old "buy bread"
-  old done bread
+  old "done" bread
   old sync
   old "renew the certificate"
   old sync

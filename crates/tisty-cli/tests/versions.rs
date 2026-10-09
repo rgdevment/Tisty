@@ -63,6 +63,16 @@ impl Cli {
     }
 }
 
+fn named(cli: &Cli) -> String {
+    let at = cli.ok(&["config", "path"]);
+    let body = std::fs::read_to_string(at.trim()).unwrap();
+    body.lines()
+        .find_map(|line| line.strip_prefix("device_id = "))
+        .unwrap()
+        .trim_matches('"')
+        .to_string()
+}
+
 fn earlier_schema() -> u32 {
     std::env::var("TISTY_PREVIOUS_SCHEMA")
         .expect("TISTY_PREVIOUS_SCHEMA says which schema the earlier release writes")
@@ -115,7 +125,7 @@ fn this_build_takes_in_what_an_earlier_release_synced() {
 
 #[test]
 #[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
-fn an_earlier_release_stops_before_it_writes_once_a_newer_build_has() {
+fn an_earlier_release_and_this_build_share_a_folder_as_far_as_their_schemas_allow() {
     let shared = tempfile::tempdir().unwrap();
     let (earlier, current) = written_in_turn(shared.path());
     current.ok(&["written by this build"]);
@@ -138,6 +148,10 @@ fn an_earlier_release_stops_before_it_writes_once_a_newer_build_has() {
         );
     } else {
         assert_eq!(run.code, 0, "{}", run.err);
+        earlier.ok(&["sync", "--confirm", &named(&current), "--force"]);
+        earlier.ok(&["sync"]);
+        let taken = earlier.ok(&["ls", "all"]);
+        assert!(taken.contains("written by this build"), "{taken}");
     }
     let kept = earlier.ok(&["ls", "all"]);
     assert!(kept.contains("written by the earlier release"), "{kept}");
