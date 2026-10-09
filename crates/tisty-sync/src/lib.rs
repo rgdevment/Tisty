@@ -947,6 +947,19 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     })
 }
 
+// Linked into place, never renamed over: whoever wrote there in the meantime keeps what they wrote.
+pub(crate) fn copy_unless_there(from: &Path, at: &Path) -> Result<bool, Trouble> {
+    let part = beside(at);
+    copy_onto(from, &part)?;
+    let linked = std::fs::hard_link(&part, at);
+    let _ = std::fs::remove_file(&part);
+    match linked {
+        Ok(()) => Ok(true),
+        Err(_) if at.exists() => Ok(false),
+        Err(_) => copy_onto(from, at).map(|()| true),
+    }
+}
+
 pub(crate) fn plainly(at: &Path) -> Result<(), Trouble> {
     tisty_core::counting::looked();
     if std::fs::symlink_metadata(at).is_ok_and(|one| one.file_type().is_symlink()) {

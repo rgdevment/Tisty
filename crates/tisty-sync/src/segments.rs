@@ -2,7 +2,7 @@ use std::path::Path;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{STORE, Trouble, copy_onto, io, plainly};
+use crate::{STORE, Trouble, copy_onto, copy_unless_there, io, plainly};
 
 pub(crate) type Named = std::collections::BTreeSet<std::ffi::OsString>;
 
@@ -344,7 +344,17 @@ pub(crate) fn hand_on(
         if alike.settled(named, &theirs, &entry.path(), Toward::Folder)
             || !ours_reaches_further(&entry.path(), &theirs)
         {
-            let put_back = restore_beside(&entry.path(), &theirs)?;
+            let put_back = restore_beside(&entry.path(), &theirs).unwrap_or_else(|why| {
+                witness::warn(
+                    channel::SYNC,
+                    "what sits beside a history this machine keeps for another could not be put back",
+                    &[
+                        ("at", Fact::Id(named.to_string())),
+                        ("why", Fact::Why(format!("{why:?}"))),
+                    ],
+                );
+                0
+            });
             if put_back > 0 {
                 witness::note(
                     channel::SYNC,
@@ -379,26 +389,31 @@ fn restore_beside(mine: &Path, theirs: &Path) -> Result<usize, Trouble> {
     let Ok(segments) = tisty_core::store::segments_in(mine) else {
         return Ok(0);
     };
-    let found = beside_each(mine);
+    let (ours, over_there) = (beside_each(mine), beside_each(theirs));
     let mut put_back = 0;
     for at in segments {
         let Some(named) = at.file_name() else {
             continue;
         };
-        let target = theirs.join(named);
-        let missing: Vec<String> = beside_this(&found, named)
+        let Some(stem) = Path::new(named).file_stem().and_then(|one| one.to_str()) else {
+            continue;
+        };
+        let holds =
+            |kinds: &Kinds, kind: &str| kinds.get(stem).is_some_and(|all| all.contains(kind));
+        let missing: Vec<String> = beside_this(&ours, named)
             .into_iter()
-            .filter(|kind| {
-                at.with_extension(kind).is_file() && !target.with_extension(kind).exists()
-            })
+            .filter(|kind| holds(&ours, kind) && !holds(&over_there, kind))
             .collect();
+        let target = theirs.join(named);
         if missing.is_empty() || !same(&at, &target) {
             continue;
         }
         plainly(theirs)?;
         for kind in missing {
-            copy_onto(&at.with_extension(&kind), &target.with_extension(&kind))?;
-            put_back += 1;
+            let beside = at.with_extension(&kind);
+            if copy_unless_there(&beside, &target.with_extension(&kind))? {
+                put_back += 1;
+            }
         }
     }
     Ok(put_back)

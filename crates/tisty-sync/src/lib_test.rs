@@ -6117,6 +6117,53 @@ fn a_signature_is_not_put_back_beside_a_segment_that_is_not_the_one_we_hold() {
 }
 
 #[test]
+fn a_count_and_a_signature_missing_beside_a_closed_segment_are_both_put_back() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let mine = one.store.join("dev_c");
+    let there = shared.path().join(STORE).join("dev_c");
+    for dir in [&mine, &there] {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("000001.tisty"), b"a closed segment\n").unwrap();
+    }
+    std::fs::write(mine.join("000001.sig"), b"its signature").unwrap();
+    std::fs::write(mine.join("000001.count"), b"1").unwrap();
+
+    let mut alike = Alike::default();
+    let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(sent, 0, "no segment moved");
+    assert_eq!(
+        std::fs::read(there.join("000001.sig")).unwrap(),
+        b"its signature"
+    );
+    assert_eq!(std::fs::read(there.join("000001.count")).unwrap(), b"1");
+}
+
+#[test]
+fn copying_unless_there_fills_what_is_not_and_leaves_what_is() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let absent = room.path().join("absent");
+    let taken = room.path().join("taken");
+    std::fs::write(&from, b"ours").unwrap();
+    std::fs::write(&taken, b"theirs").unwrap();
+
+    assert!(copy_unless_there(&from, &absent).unwrap());
+    assert!(!copy_unless_there(&from, &taken).unwrap());
+
+    assert_eq!(std::fs::read(&absent).unwrap(), b"ours");
+    assert_eq!(std::fs::read(&taken).unwrap(), b"theirs");
+    let left: Vec<_> = std::fs::read_dir(room.path())
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name())
+        .collect();
+    assert_eq!(left.len(), 3, "a part file was left behind: {left:?}");
+}
+
+#[test]
 fn a_history_taken_back_is_counted_as_it_comes() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
