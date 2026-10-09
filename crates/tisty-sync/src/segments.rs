@@ -344,6 +344,17 @@ pub(crate) fn hand_on(
         if alike.settled(named, &theirs, &entry.path(), Toward::Folder)
             || !ours_reaches_further(&entry.path(), &theirs)
         {
+            let put_back = restore_beside(&entry.path(), &theirs)?;
+            if put_back > 0 {
+                witness::note(
+                    channel::SYNC,
+                    "what sits beside a history this machine was keeping for another was put back",
+                    &[
+                        ("at", Fact::Id(named.to_string())),
+                        ("put", Fact::Count(put_back)),
+                    ],
+                );
+            }
             continue;
         }
         plainly(&theirs)?;
@@ -361,6 +372,36 @@ pub(crate) fn hand_on(
         sent += done;
     }
     Ok(sent)
+}
+
+// A sidecar that differs may be the owner's newer one, so only an absent one is put back.
+fn restore_beside(mine: &Path, theirs: &Path) -> Result<usize, Trouble> {
+    let Ok(segments) = tisty_core::store::segments_in(mine) else {
+        return Ok(0);
+    };
+    let found = beside_each(mine);
+    let mut put_back = 0;
+    for at in segments {
+        let Some(named) = at.file_name() else {
+            continue;
+        };
+        let target = theirs.join(named);
+        let missing: Vec<String> = beside_this(&found, named)
+            .into_iter()
+            .filter(|kind| {
+                at.with_extension(kind).is_file() && !target.with_extension(kind).exists()
+            })
+            .collect();
+        if missing.is_empty() || !same(&at, &target) {
+            continue;
+        }
+        plainly(theirs)?;
+        for kind in missing {
+            copy_onto(&at.with_extension(&kind), &target.with_extension(&kind))?;
+            put_back += 1;
+        }
+    }
+    Ok(put_back)
 }
 
 pub(crate) fn ours_went_missing(mine: &Path, theirs: &Path) -> bool {
