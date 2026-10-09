@@ -55,6 +55,8 @@ fn a_change_that_is_made_is_written() {
     });
 
     assert!(matches!(edited, Ok(Edited::Saved)));
-    let said = std::fs::read_to_string(paths.config_file()).unwrap();
-    assert!(said.contains("locale = \"es\""), "{said}");
+    let written = tisty_core::Config::load(&paths.config_file())
+        .unwrap()
+        .unwrap();
+    assert_eq!(written.locale.as_deref(), Some("es"));
 }

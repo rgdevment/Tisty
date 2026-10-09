@@ -525,15 +525,30 @@ fn a_file_from_before_the_later_key_reads_and_writes_back_the_same() {
     config.remember_shared(Some(Was::Folder("G:/compartida".into())));
     config.save(&paths).unwrap();
 
-    let said = std::fs::read_to_string(paths.config_file()).unwrap();
-    assert!(said.contains("shared_was = "), "{said}");
-    assert!(!said.contains("shared_was_later"), "{said}");
+    let written: toml::Table = std::fs::read_to_string(paths.config_file())
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert_eq!(
+        written.get("shared_was").and_then(toml::Value::as_str),
+        Some("G:/compartida")
+    );
+    assert!(!written.contains_key("shared_was_later"));
 
     let read = Config::load(&paths.config_file()).unwrap().unwrap();
     assert_eq!(
         read.once_shared(),
         Some(Was::Folder("G:/compartida".into()))
     );
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Before {
+    device_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    shared_was: Option<std::path::PathBuf>,
+    #[serde(flatten)]
+    rest: toml::Table,
 }
 
 #[test]
@@ -568,14 +583,28 @@ fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
         Some(&later()),
         "{said}"
     );
-    assert!(
-        said.contains("[shared_was_later.way]"),
-        "an older build only keeps it if it is a key of its own: {said}"
-    );
-    assert!(
-        !said.contains("shared_was = "),
-        "what an older build reads as a path was written as something else: {said}"
-    );
+}
+
+#[test]
+fn a_build_from_before_the_later_key_keeps_it_and_the_way_it_puts_away() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(Sync::Unknown(later()));
+    config.remember_shared(Some(Was::Later(later())));
+    config.save(&paths).unwrap();
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+
+    let before: Before = toml::from_str(&said).unwrap_or_else(|why| {
+        panic!("a build from before the key cannot read the file: {why}\n{said}")
+    });
+    assert_eq!(before.shared_was, None, "{said}");
+    assert!(before.rest.contains_key("shared_was_later"), "{said}");
+    std::fs::write(paths.config_file(), toml::to_string(&before).unwrap()).unwrap();
+
+    let back = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(back.sync, Some(Sync::Unknown(later())));
+    assert_eq!(back.once_shared(), Some(Was::Later(later())));
 }
 
 #[test]
@@ -594,8 +623,15 @@ fn a_folder_with_more_than_a_folder_in_it_is_kept_whole_as_a_way_nobody_here_rea
     assert_eq!(read.sync.as_ref().map(Sync::leaving), Some(Leaving::Later));
     assert!(!read.shares());
     read.save(&paths).unwrap();
-    let said = std::fs::read_to_string(paths.config_file()).unwrap();
-    assert!(said.contains("mirror = \"G:/espejo\""), "{said}");
+    let written: toml::Table = std::fs::read_to_string(paths.config_file())
+        .unwrap()
+        .parse()
+        .unwrap();
+    let mirror = written
+        .get("sync")
+        .and_then(|sync| sync.get("mirror"))
+        .and_then(toml::Value::as_str);
+    assert_eq!(mirror, Some("G:/espejo"));
 }
 
 #[test]
