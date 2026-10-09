@@ -4,7 +4,7 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{HELD, PAPERS, STORE, Trouble};
 
-pub(crate) const NAMED: &str = "tisty.toml";
+pub const NAMED: &str = "tisty.toml";
 const SEEN: &str = ".shape-seen";
 const KEPT_FOR: usize = 8;
 

@@ -18,6 +18,7 @@ pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
 use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
+pub use shape::NAMED;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -27,7 +28,7 @@ use tisty_core::witness::{self, Fact, channel};
 pub use tisty_core::store::MARKER;
 
 pub const STORE: &str = "store";
-const HELD: &str = "attachments";
+pub const HELD: &str = "attachments";
 const PAPERS: &str = "docs";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,6 +92,8 @@ pub enum Reason {
     Budget,
     Busy,
     Offline,
+    Changed,
+    Refused,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -350,6 +353,7 @@ pub fn carry_through(
                     .get(file)
                     .is_some_and(|prints| prints.contains(print))
             },
+            &|reference| attachments.reaches(reference),
             again,
             been_here,
             taking,
@@ -859,11 +863,11 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
 
 pub(crate) fn joined(
     data: &Path,
-    dest: &Path,
     id: &str,
     mine: &Path,
     theirs: &Path,
     stood: Option<&str>,
+    reaches: &dyn Fn(&str) -> bool,
 ) -> Option<String> {
     let gave_up = |why: &'static str| {
         witness::note(
@@ -898,7 +902,7 @@ pub(crate) fn joined(
             continue;
         }
         // The shared folder counts: a machine that leaves the big ones there still has them.
-        if !anywhere(&one, data, dest) {
+        if !held_in(&one, data) && !reaches(&one) {
             witness::warn(
                 channel::SYNC,
                 "a joined document would name an attachment nobody here can reach",
@@ -915,13 +919,10 @@ pub(crate) fn joined(
     Some(whole)
 }
 
-fn anywhere(reference: &str, data: &Path, dest: &Path) -> bool {
-    [data, dest].iter().any(|root| {
-        let held = root.join(HELD);
-        tisty_core::attach::resolve(reference, root).is_ok_and(|at| {
-            at.starts_with(&held) && (at.is_file() || tisty_core::holes::a_hole(&at))
-        })
-    })
+pub(crate) fn held_in(reference: &str, root: &Path) -> bool {
+    let held = root.join(HELD);
+    tisty_core::attach::resolve(reference, root)
+        .is_ok_and(|at| at.starts_with(&held) && (at.is_file() || tisty_core::holes::a_hole(&at)))
 }
 
 /// Unheld beats unwritten: a round that skipped a document comes back for it.

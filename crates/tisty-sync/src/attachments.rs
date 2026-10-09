@@ -38,6 +38,7 @@ pub struct Taken {
 pub trait Attachments {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble>;
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble>;
+    fn reaches(&self, reference: &str) -> bool;
 }
 
 pub struct Beside<'a> {
@@ -73,6 +74,10 @@ impl Attachments for Beside<'_> {
             freed,
             let_go,
         })
+    }
+
+    fn reaches(&self, reference: &str) -> bool {
+        crate::held_in(reference, self.dest)
     }
 
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble> {
