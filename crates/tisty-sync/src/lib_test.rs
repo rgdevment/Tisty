@@ -8374,7 +8374,7 @@ fn a_known_machine_that_names_a_key_nothing_can_read_waits_instead_of_coming_in_
 }
 
 #[test]
-fn a_key_nothing_can_read_does_not_keep_a_machine_from_the_key_a_person_can_answer_for() {
+fn a_key_nothing_can_read_does_not_keep_a_known_machine_from_its_first_key_that_reads() {
     let one = machine("dev_a");
     let kept = tempfile::tempdir().unwrap();
     let aside = Some(kept.path());
@@ -8391,20 +8391,37 @@ fn a_key_nothing_can_read_does_not_keep_a_machine_from_the_key_a_person_can_answ
         &["not a key"],
         "lo nuevo de dev_b",
     );
-    let waiting =
-        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
-    assert_eq!(waiting.unconfirmed, vec![two.device.clone()]);
-
-    assert!(tisty_core::vouched::confirm(
-        &one.data,
-        &DeviceId(two.device.clone()),
-        &shown
-    ));
     let after =
         carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
     assert!(home_of(&one, &two.device).contains("lo nuevo de dev_b"));
+    let stood = tisty_core::vouched::confirmed(&one.data, &DeviceId(two.device.clone())).unwrap();
+    assert_eq!(stood.key, shown);
+}
+
+#[test]
+fn a_key_nothing_can_read_does_not_keep_a_new_machine_from_the_key_a_person_can_answer_for() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    joined_saying("dev_c", shared.path(), &[Some("not a key"), None]);
+
+    let waiting =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(waiting.unconfirmed, vec!["dev_c".to_string()]);
+
+    let who = DeviceId("dev_c".into());
+    let shown = tisty_core::store::key_said_in(&shared.path().join(STORE).join("dev_c"), &who)
+        .expect("a person was shown no key to answer for");
+    assert!(tisty_core::vouched::confirm(&one.data, &who, &shown));
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&one, "dev_c").contains("lo de dev_c"));
 }
 
 #[test]
@@ -8520,7 +8537,7 @@ fn a_history_that_carries_its_own_key_owes_its_signature_whatever_its_lines_clai
     assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
 }
 
-fn joined_saying(named: &str, shared: &Path, said: &[&str]) -> Machine {
+fn joined_saying(named: &str, shared: &Path, said: &[Option<&str>]) -> Machine {
     let one = blank(named);
     std::fs::create_dir_all(&one.data).unwrap();
     carry(&one.data, &one.device, shared, Way::Both, &[]).unwrap();
@@ -8529,11 +8546,11 @@ fn joined_saying(named: &str, shared: &Path, said: &[&str]) -> Machine {
     let key = tisty_core::signing::mine(&paths, &who).expect("a key");
     let mut held = Store::open(&one.store, who.clone())
         .unwrap()
-        .signing_with(Some(key));
+        .signing_with(Some(key.clone()));
     for p in said {
         held.append(Op::DeviceKey {
             d: who.clone(),
-            p: p.to_string(),
+            p: p.map_or_else(|| tisty_core::signing::shown(&key), str::to_string),
         })
         .unwrap();
     }
@@ -8550,7 +8567,7 @@ fn joined_saying(named: &str, shared: &Path, said: &[&str]) -> Machine {
 #[test]
 fn a_machine_found_on_first_reaching_a_folder_whose_only_key_cannot_be_read_waits() {
     let shared = tempfile::tempdir().unwrap();
-    joined_saying("dev_c", shared.path(), &["not a key"]);
+    joined_saying("dev_c", shared.path(), &[Some("not a key")]);
     let two = blank("dev_b");
     std::fs::create_dir_all(&two.data).unwrap();
     let kept = tempfile::tempdir().unwrap();
