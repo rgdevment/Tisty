@@ -6868,6 +6868,23 @@ fn a_round_leaves_the_meeting_place_saying_what_shape_it_is_in() {
 }
 
 #[test]
+fn a_quiet_round_leaves_the_shape_it_finds_as_it_is() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let at = shared.path().join("tisty.toml");
+    std::fs::write(&at, "shape = 1\n# as it was left\n").unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(&at).unwrap(),
+        "shape = 1\n# as it was left\n",
+        "a round with nothing to tell told it again"
+    );
+}
+
+#[test]
 fn a_meeting_place_arranged_by_a_build_that_knows_more_stops_the_round() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();

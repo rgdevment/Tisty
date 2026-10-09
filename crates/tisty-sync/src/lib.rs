@@ -280,9 +280,6 @@ pub fn carry_through(
         );
         moved.astray = alive;
         moved.unprojected = true;
-        if giving {
-            shape::stamp(data, dest);
-        }
         return Ok(moved);
     };
     let shut: Vec<String> = told
