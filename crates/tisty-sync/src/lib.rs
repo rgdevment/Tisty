@@ -947,7 +947,6 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     })
 }
 
-// Never renamed over: whoever wrote there in the meantime keeps what they wrote.
 pub(crate) fn copy_unless_there(from: &Path, at: &Path) -> Result<bool, Trouble> {
     if std::fs::symlink_metadata(at).is_ok() {
         return Ok(false);
@@ -963,7 +962,6 @@ pub(crate) fn copy_unless_there(from: &Path, at: &Path) -> Result<bool, Trouble>
     }
 }
 
-// Where links are not kept, the name is claimed first and then filled.
 pub(crate) fn created_where_nothing_stands(from: &Path, at: &Path) -> Result<bool, Trouble> {
     plainly(from)?;
     let mut source = std::fs::File::open(from).map_err(io)?;
