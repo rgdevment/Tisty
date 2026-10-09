@@ -6050,6 +6050,168 @@ fn a_forced_round_leaves_alike_histories_where_they_are() {
     );
 }
 
+fn kept_for_another(one: &Machine, shared: &Path) -> (PathBuf, PathBuf) {
+    carry(&one.data, &one.device, shared, Way::Push, &[]).unwrap();
+    sown(&one.store, "dev_c", 1);
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared, false, &mut alike).unwrap();
+    (one.store.join("dev_c"), shared.join(STORE).join("dev_c"))
+}
+
+#[test]
+fn a_signature_missing_over_there_is_put_back_by_the_machine_that_keeps_the_history() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let (mine, there) = kept_for_another(&one, shared.path());
+    assert!(
+        there.join("active.sig").is_file(),
+        "the relay never sent it"
+    );
+    std::fs::remove_file(there.join("active.sig")).unwrap();
+
+    let mut alike = Alike::default();
+    let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(sent, 0, "no segment moved: only the signature was missing");
+    assert_eq!(
+        std::fs::read(there.join("active.sig")).unwrap(),
+        std::fs::read(mine.join("active.sig")).unwrap(),
+        "the signature was not put back"
+    );
+}
+
+#[test]
+fn a_signature_that_differs_over_there_is_never_replaced_by_a_relay() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let (_, there) = kept_for_another(&one, shared.path());
+    std::fs::write(there.join("active.sig"), b"the owner's newer one").unwrap();
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(
+        std::fs::read(there.join("active.sig")).unwrap(),
+        b"the owner's newer one",
+        "a relay replaced what the owner wrote"
+    );
+}
+
+#[test]
+fn a_signature_is_not_put_back_beside_a_segment_that_is_not_the_one_we_hold() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    sown(&one.store, "dev_c", 1);
+    sown(&shared.path().join(STORE), "dev_c", 2);
+    let there = shared.path().join(STORE).join("dev_c");
+    std::fs::remove_file(there.join("active.sig")).unwrap();
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert!(
+        !there.join("active.sig").exists(),
+        "a signature was put beside bytes it does not answer for"
+    );
+}
+
+#[test]
+fn a_count_and_a_signature_missing_beside_a_closed_segment_are_both_put_back() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let mine = one.store.join("dev_c");
+    let there = shared.path().join(STORE).join("dev_c");
+    for dir in [&mine, &there] {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("000001.tisty"), b"a closed segment\n").unwrap();
+    }
+    std::fs::write(mine.join("000001.sig"), b"its signature").unwrap();
+    std::fs::write(mine.join("000001.count"), b"1").unwrap();
+
+    let mut alike = Alike::default();
+    let sent = hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(sent, 0, "no segment moved");
+    assert_eq!(
+        std::fs::read(there.join("000001.sig")).unwrap(),
+        b"its signature"
+    );
+    assert_eq!(std::fs::read(there.join("000001.count")).unwrap(), b"1");
+}
+
+#[test]
+fn copying_unless_there_fills_what_is_not_and_leaves_what_is() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let absent = room.path().join("absent");
+    let taken = room.path().join("taken");
+    std::fs::write(&from, b"ours").unwrap();
+    std::fs::write(&taken, b"theirs").unwrap();
+
+    assert!(copy_unless_there(&from, &absent).unwrap());
+    assert!(!copy_unless_there(&from, &taken).unwrap());
+
+    assert_eq!(std::fs::read(&absent).unwrap(), b"ours");
+    assert_eq!(std::fs::read(&taken).unwrap(), b"theirs");
+    let left: Vec<_> = std::fs::read_dir(room.path())
+        .unwrap()
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name())
+        .collect();
+    assert_eq!(left.len(), 3, "a part file was left behind: {left:?}");
+}
+
+#[test]
+fn where_links_are_not_kept_a_name_is_claimed_before_it_is_filled() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let absent = room.path().join("absent");
+    let taken = room.path().join("taken");
+    std::fs::write(&from, b"ours").unwrap();
+    std::fs::write(&taken, b"theirs").unwrap();
+
+    assert!(created_where_nothing_stands(&from, &absent).unwrap());
+    assert!(!created_where_nothing_stands(&from, &taken).unwrap());
+
+    assert_eq!(std::fs::read(&absent).unwrap(), b"ours");
+    assert_eq!(std::fs::read(&taken).unwrap(), b"theirs");
+}
+
+#[test]
+fn a_kind_of_sidecar_a_later_build_writes_is_put_back_like_the_rest() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let (mine, there) = kept_for_another(&one, shared.path());
+    std::fs::write(mine.join("active.later"), b"what a later build keeps").unwrap();
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(
+        std::fs::read(there.join("active.later")).unwrap(),
+        b"what a later build keeps"
+    );
+}
+
+#[test]
+fn a_signature_not_yet_brought_down_by_the_cloud_is_not_put_back_beside_its_placeholder() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let (_, there) = kept_for_another(&one, shared.path());
+    std::fs::remove_file(there.join("active.sig")).unwrap();
+    std::fs::write(there.join(".active.sig.icloud"), b"placeholder").unwrap();
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert!(
+        !there.join("active.sig").exists(),
+        "a real signature was put beside the placeholder of the owner's"
+    );
+}
+
 #[test]
 fn a_history_taken_back_is_counted_as_it_comes() {
     let one = machine("uno");
