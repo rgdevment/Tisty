@@ -1782,6 +1782,60 @@ fn a_body_right_up_to_the_ceiling_still_travels() {
     assert!(print_of(&at).unwrap().is_some());
 }
 
+#[test]
+fn a_body_is_handed_over_only_as_what_was_printed() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("acta.md");
+    std::fs::write(&at, "# Uno\n").unwrap();
+    let print = print_of(&at).unwrap().unwrap();
+
+    assert_eq!(
+        read_as_printed(&at, &print).unwrap(),
+        Some(b"# Uno\n".to_vec())
+    );
+
+    std::fs::write(&at, "# Dos\n").unwrap();
+    assert_eq!(
+        read_as_printed(&at, &print).unwrap(),
+        None,
+        "a body that changed after its print was taken was handed over"
+    );
+    assert_eq!(
+        read_as_printed(&room.path().join("nada.md"), &print).unwrap(),
+        None
+    );
+}
+
+#[test]
+fn a_body_is_handed_over_as_it_is_and_printed_as_it_settles() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("acta.md");
+    std::fs::write(&at, "# Uno").unwrap();
+    let print = print_of(&at).unwrap().unwrap();
+
+    assert_eq!(
+        read_as_printed(&at, &print).unwrap(),
+        Some(b"# Uno".to_vec())
+    );
+    assert_eq!(print, crate::attach::printed(b"# Uno\n"));
+
+    std::fs::write(&at, "").unwrap();
+    assert_eq!(
+        print_of(&at).unwrap().unwrap(),
+        crate::attach::printed(b""),
+        "an empty body was printed as a line break"
+    );
+}
+
+#[test]
+fn a_body_past_the_ceiling_is_never_handed_over() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("huge.md");
+    std::fs::write(&at, vec![b'x'; (BODY_AT_MOST + 1) as usize]).unwrap();
+
+    assert!(read_as_printed(&at, "whatever").is_err());
+}
+
 #[cfg(unix)]
 fn shut(at: &Path) -> Option<std::fs::File> {
     use std::os::unix::fs::PermissionsExt;

@@ -5,18 +5,22 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::awaited::Awaited;
 use crate::{
     Holding, Moved, PAPERS, Reached, STORE, Stage, Trouble, Undecided, copy_onto, docs_lock, io,
-    joined, pointed_away, straight, write,
+    joined, plainly, pointed_away, straight, write,
 };
 
 pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
     let said = std::fs::read_to_string(mine)
         .or_else(|_| std::fs::read_to_string(theirs))
         .ok();
+    settled_text(data, id, said.as_deref());
+}
+
+fn settled_text(data: &Path, id: &str, said: Option<&str>) {
     let Some(said) = said else {
         tisty_core::docs::forget_carried(data, id);
         return;
     };
-    if tisty_core::docs::keep_carried(data, id, &said).is_err() {
+    if tisty_core::docs::keep_carried(data, id, said).is_err() {
         witness::warn(
             channel::SYNC,
             "the settled body could not be kept, so the next round has no base to lean on",
@@ -80,7 +84,7 @@ pub(crate) fn carry_papers_leaning_on(
     taking: bool,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
-    use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
+    use tisty_core::docs::{Carried, Move, Prints, moved};
 
     let here = data.join(PAPERS);
     let there = dest.join(PAPERS);
@@ -242,22 +246,31 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
                     let _held = docs_lock(&here, id);
+                    let checked = yours.as_deref().unwrap_or_default();
+                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done) else {
+                        continue;
+                    };
+                    let text = std::str::from_utf8(&bytes).ok();
                     if answer == Answer::Doubtful
-                        && let Ok(left) = std::fs::read_to_string(&theirs)
+                        && let Some(left) = text
                     {
-                        set_aside(data, id, &mine, &left);
+                        set_aside(data, id, &mine, left);
                     }
-                    copy_onto(&theirs, &mine)?;
+                    write(&mine, &bytes)?;
                     done.brought += 1;
                     done.arrived.push(id.clone());
-                    if let Some(print) = yours {
-                        settled_body(data, id, &mine, &theirs);
-                        said.keep(id, &print);
-                    }
+                    settled_text(data, id, text);
+                    said.keep(id, checked);
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, id, &mine, &theirs, said.of(id), reaches) {
+                    let checked = yours.as_deref().unwrap_or_default();
+                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done) else {
+                        continue;
+                    };
+                    let text = String::from_utf8(bytes).ok();
+                    let whole = joined(data, id, &mine, text.as_deref(), said.of(id), reaches);
+                    match whole {
                         Some(whole) => {
                             if answer == Answer::Doubtful {
                                 set_aside(data, id, &mine, &whole);
@@ -266,17 +279,8 @@ pub(crate) fn carry_papers_leaning_on(
                             done.brought += 1;
                             done.joined.push(id.clone());
                             done.arrived.push(id.clone());
-                            match (print_of(&theirs), yours) {
-                                (Ok(Some(now)), Some(print)) if now == print => {
-                                    settled_body(data, id, &theirs, &mine);
-                                    said.keep(id, &print);
-                                }
-                                _ => witness::warn(
-                                    channel::SYNC,
-                                    "another machine wrote while this one joined, so the base stays put",
-                                    &[("at", Fact::Id(id.clone()))],
-                                ),
-                            }
+                            settled_text(data, id, text.as_deref());
+                            said.keep(id, checked);
                         }
                         None => done.undecided.push(Undecided {
                             id: id.clone(),
@@ -330,6 +334,35 @@ pub(crate) fn unclaimed_leaning_on(dest: &Path, told: &tisty_core::State) -> Hol
         0 => Holding::Whole,
         adrift => Holding::Strays(adrift),
     }
+}
+
+fn taken(
+    prints: &mut tisty_core::docs::Prints,
+    theirs: &Path,
+    checked: &str,
+    id: &str,
+    done: &mut Moved,
+) -> Option<Vec<u8>> {
+    if plainly(theirs).is_err() {
+        done.astray.push(id.to_string());
+        return None;
+    }
+    let (why, vanished) = match tisty_core::docs::read_as_printed(theirs, checked) {
+        Ok(Some(bytes)) => return Some(bytes),
+        Ok(None) => ("it changed or went away".to_string(), true),
+        Err(e) => (e.to_string(), false),
+    };
+    prints.forget(theirs);
+    witness::warn(
+        channel::SYNC,
+        "a body could not be taken as it was checked, so this turn leaves it alone",
+        &[("at", Fact::Id(id.to_string())), ("why", Fact::Why(why))],
+    );
+    match vanished {
+        true => done.coming.push(id.to_string()),
+        false => done.astray.push(id.to_string()),
+    }
+    None
 }
 
 fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option<String> {
