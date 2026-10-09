@@ -14,6 +14,8 @@ const TELLS_OF_TROUBLE: &[&str] = &[
     "otherStore",
     "restoredApart",
     "wouldReset",
+    "syncLater",
+    "settingsUnreadable",
 ];
 
 pub const RELEASES: &str = "https://github.com/rgdevment/Tisty/releases/latest";
@@ -177,6 +179,9 @@ const REFUSALS: &[&str] = &[
     "cannotWrite",
     "attachmentTooBig",
     "noRemote",
+    "syncLater",
+    "syncLaterToLeave",
+    "settingsUnreadable",
     "noMeetingPlace",
     "syncUnreadable",
     "syncRefused",

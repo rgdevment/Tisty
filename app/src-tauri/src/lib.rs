@@ -195,6 +195,8 @@ struct Carrying {
     weight: u64,
     carries: u64,
     shared_was: Option<String>,
+    shared_was_later: bool,
+    later: bool,
     backed_up_at: Option<String>,
 }
 

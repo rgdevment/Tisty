@@ -1144,3 +1144,98 @@ fn a_restore_with_nothing_shared_leaves_no_folder_behind() {
         None
     );
 }
+
+#[test]
+fn a_restore_over_a_way_this_build_cannot_read_puts_it_away_whole() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+    let later: toml::Value = toml::from_str("how = \"nube\"\nat = { cuenta = \"yo\" }").unwrap();
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::Unknown(later.clone()));
+    config.save(&paths).unwrap();
+
+    read(&paths, &file).unwrap();
+
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(now.sync, None);
+    assert_eq!(now.once_shared(), Some(crate::config::Was::Later(later)));
+    assert_eq!(
+        now.shared_was, None,
+        "a shape no older build reads was written where they read a path"
+    );
+}
+
+#[test]
+fn a_second_restore_does_not_erase_what_the_first_put_away() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+    let shared = out.path().join("shared");
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::folder(shared.clone()));
+    config.save(&paths).unwrap();
+
+    read(&paths, &file).unwrap();
+    read(&paths, &file).unwrap();
+
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(now.sync, None);
+    assert_eq!(
+        now.once_shared(),
+        Some(crate::config::Was::Folder(shared)),
+        "restoring twice left the person with no way back to the folder"
+    );
+}
+
+#[test]
+fn a_second_restore_keeps_a_way_it_cannot_read_put_away_by_the_first() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+    let later: toml::Value = toml::from_str("how = \"nube\"").unwrap();
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::Unknown(later.clone()));
+    config.save(&paths).unwrap();
+
+    read(&paths, &file).unwrap();
+    read(&paths, &file).unwrap();
+
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(now.once_shared(), Some(crate::config::Was::Later(later)));
+}
+
+#[test]
+fn choosing_nobody_on_purpose_after_a_restore_clears_what_it_put_away() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(crate::config::Sync::folder(out.path().join("shared")));
+    config.save(&paths).unwrap();
+    read(&paths, &file).unwrap();
+    let mut config = Config::load(&paths.config_file()).unwrap().unwrap();
+    config.sync = Some(crate::config::Sync::alone());
+    config.save(&paths).unwrap();
+
+    read(&paths, &file).unwrap();
+
+    let now = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(
+        now.once_shared(),
+        None,
+        "a person who chose not to share was told they had been sharing"
+    );
+}

@@ -26,8 +26,15 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         confirm,
         force,
     } = asked;
-    let Some(via) = carrier::chosen(app.config().sync.as_ref()).carrier else {
-        anyhow::bail!("{}", lang.get("no-remote"));
+    let keeping = carrier::chosen(app.config().sync.as_ref());
+    let Some(via) = keeping.carrier else {
+        anyhow::bail!(
+            "{}",
+            lang.get(match keeping.chosen {
+                carrier::Chosen::Later => "sync-later",
+                _ => "no-remote",
+            })
+        );
     };
     let Some(dest) = via.place().map(std::path::Path::to_path_buf) else {
         anyhow::bail!("{}", lang.get("no-remote"));

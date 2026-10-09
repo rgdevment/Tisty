@@ -921,6 +921,12 @@ const en = {
   attachmentLost: "The file came in, but the field it was for is gone",
   cannotOpen: "Nothing on this machine opens {name}",
   noRemote: "No destination is set yet",
+  syncLater:
+    "This copy syncs a way a newer Tisty chose, and this version does not know it. Update Tisty to carry on; nothing was changed.",
+  syncLaterToLeave:
+    "A newer Tisty chose how this copy syncs, and this version cannot tell what it left there. Update Tisty before changing it; nothing was changed.",
+  settingsUnreadable:
+    "The settings file says something this version cannot read, most likely written by a newer Tisty. Nothing was written; update Tisty before changing settings.",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
   emptiedPlace:
     "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
@@ -1055,6 +1061,10 @@ const en = {
   keeping: "Settings",
   syncing: "Syncing",
   syncOff: "Off. Your tasks live only on this machine.",
+  syncLaterCard:
+    "Syncing a way a newer Tisty chose, which this version does not know. Your tasks are safe here; update Tisty to sync again.",
+  syncOffRestoredLater:
+    "Not sharing since you restored. Before that it synced a way a newer Tisty chose, which this version cannot name; update Tisty to see it.",
   syncOffRestored:
     "Not sharing since you restored. It was «{name}»; choosing it again asks you which side wins.",
   syncOn: "Leaving copies in {name}",
@@ -2489,6 +2499,12 @@ const es: Catalog = {
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",
   cannotOpen: "Nada en este equipo abre {name}",
   noRemote: "todavía no hay destino",
+  syncLater:
+    "Esta copia sincroniza de una manera que eligió un Tisty más nuevo, y esta versión no la conoce. Actualiza Tisty para seguir; no se cambió nada.",
+  syncLaterToLeave:
+    "Un Tisty más nuevo eligió cómo sincroniza esta copia, y esta versión no puede saber qué dejó allá. Actualiza Tisty antes de cambiarla; no se cambió nada.",
+  settingsUnreadable:
+    "El archivo de ajustes dice algo que esta versión no sabe leer, seguramente escrito por un Tisty más nuevo. No se escribió nada; actualiza Tisty antes de cambiar ajustes.",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
   emptiedPlace:
     "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",
@@ -2624,6 +2640,10 @@ const es: Catalog = {
   keeping: "Configuración",
   syncing: "Sincronizar",
   syncOff: "Desactivada. Tus tareas viven solo en este equipo.",
+  syncLaterCard:
+    "Sincronizando de una manera que eligió un Tisty más nuevo y esta versión no conoce. Tus tareas están a salvo aquí; actualiza Tisty para volver a sincronizar.",
+  syncOffRestoredLater:
+    "Sin compartir desde que restauraste. Antes sincronizaba de una manera que eligió un Tisty más nuevo y esta versión no sabe nombrar; actualiza Tisty para verla.",
   syncOffRestored:
     "Sin compartir desde que restauraste. Compartías con «{name}»; al volver a elegirla te preguntará qué lado manda.",
   syncOn: "Dejando copias en {name}",

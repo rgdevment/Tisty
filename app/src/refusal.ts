@@ -54,6 +54,9 @@ const KNOWN = [
   "cannotRead",
   "cannotOpen",
   "noRemote",
+  "syncLater",
+  "syncLaterToLeave",
+  "settingsUnreadable",
   "noMeetingPlace",
   "emptiedPlace",
   "syncUnreadable",
@@ -145,7 +148,14 @@ type Known = (typeof KNOWN)[number];
 
 const isKnown = (code: string): code is Known => (KNOWN as readonly string[]).includes(code);
 
-const BEHIND = ["storeNewer", "syncNewer", "syncShape"];
+const BEHIND = [
+  "storeNewer",
+  "syncNewer",
+  "syncShape",
+  "syncLater",
+  "syncLaterToLeave",
+  "settingsUnreadable",
+];
 
 export const folderAhead = (problem: unknown): { name?: string } | null => {
   const refusal = problem as Refusal | undefined;
