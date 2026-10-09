@@ -195,36 +195,29 @@ impl Store {
         if !named.is_some_and(is_closed) || at.with_extension(crate::signing::SIG).exists() {
             return;
         }
-        self.seal(at, covers);
+        if let Err(e) = self.seal(at, covers) {
+            unsigned(at, &e);
+        }
     }
 
-    fn sign(&self, at: &Path) {
+    fn sign(&self, at: &Path) -> Result<()> {
         let Some(covers) = self.covers else {
-            return;
+            return Ok(());
         };
-        self.seal(at, &covers);
+        self.seal(at, &covers)
     }
 
-    fn seal(&self, at: &Path, covers: &crate::signing::Covers) {
+    fn seal(&self, at: &Path, covers: &crate::signing::Covers) -> Result<()> {
         let Some(key) = &self.signs else {
-            return;
+            return Ok(());
         };
         let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
-            return;
+            return Ok(());
         };
-        if let Err(e) = write_atomic(
+        write_atomic(
             &at.with_extension(crate::signing::SIG),
             crate::signing::signed(key, &self.about(named), covers).as_bytes(),
-        ) {
-            witness::warn(
-                channel::STORE,
-                "what this machine wrote could not be signed, so nothing here answers for it",
-                &[
-                    ("at", Fact::Path(at.to_path_buf())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-        }
+        )
     }
 
     fn acquire(&mut self) -> Result<()> {
@@ -443,7 +436,10 @@ impl Store {
             at += lot.len();
         }
         if !events.is_empty() {
-            self.sign(&self.dir.join(ACTIVE));
+            let active = self.dir.join(ACTIVE);
+            if let Err(e) = self.sign(&active) {
+                unsigned(&active, &e);
+            }
         }
         self.seen = active_mark(&self.dir.join(ACTIVE));
         Ok(())
@@ -457,7 +453,7 @@ impl Store {
             let closed = self.dir.join(format!("{next:06}.tisty"));
             // Signed before the rename, never after: a death in between would leave a segment
             // nothing ever signs, and no later pass goes back for it.
-            self.sign(&closed);
+            self.sign(&closed)?;
             std::fs::rename(&active, &closed)?;
 
             let (lines, _, _) = tail_of(&closed)?;
@@ -1156,6 +1152,17 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
 /// Segments alone decide the next number. What sits beside one is written before the rename that
 /// makes the segment, so counting those would have an orphan sidecar skip a number, and a gap in
 /// the sequence refuses the whole store to every machine in it.
+fn unsigned(at: &Path, why: &Error) {
+    witness::warn(
+        channel::STORE,
+        "what this machine wrote could not be signed, so nothing here answers for it",
+        &[
+            ("at", Fact::Path(at.to_path_buf())),
+            ("why", Fact::Why(why.to_string())),
+        ],
+    );
+}
+
 fn next_segment_number(dir: &Path) -> Result<u32> {
     let highest = segments_in(dir)?
         .iter()

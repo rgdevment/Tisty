@@ -116,37 +116,10 @@ pub fn answers(
             device: &device.0,
             segment: named,
         };
-        let answered = match std::fs::read(one.with_extension(signing::SIG)) {
-            Ok(said) => match String::from_utf8(said) {
-                Ok(said) => match signing::holds(by, &about, &said) {
-                    // The whole segment or none of it: one answering for a prefix would let a
-                    // line appended past it in, and the next write would sign it.
-                    signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
-                        return Err(Adrift::Unreadable(named.to_string()));
-                    }
-                    signing::Holds::Covers(covers)
-                        if signing::tip_of(tip, &bytes) != covers.tip =>
-                    {
-                        return Err(Adrift::Disowned(named.to_string()));
-                    }
-                    signing::Holds::Covers(_) => true,
-                    signing::Holds::Refused => {
-                        return Err(Adrift::Disowned(named.to_string()));
-                    }
-                    signing::Holds::Unreadable => {
-                        return Err(Adrift::Unreadable(named.to_string()));
-                    }
-                },
-                // Bytes that are not text are a signature that will not read, not one taken away.
-                Err(_) => return Err(Adrift::Unreadable(named.to_string())),
-            },
-            // Only a sidecar that is not there is one taken away. A folder that would not hand it
-            // over — a lock, a permission, a directory planted in its place — is read again.
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-                return Err(Adrift::Unreadable(named.to_string()));
-            }
-            Err(_) if held.signing => return Err(Adrift::Disowned(named.to_string())),
-            Err(_) => false,
+        let answered = match answered(by, &about, one, &bytes, tip, held.signing) {
+            Ok(answered) => answered,
+            Err(_) if left_over(&found, one, &bytes) => continue,
+            Err(why) => return Err(why),
         };
         tip = signing::tip_of(tip, &bytes);
         held.signing |= answered;
@@ -156,6 +129,53 @@ pub fn answers(
         }
     }
     Ok(held)
+}
+
+fn answered(
+    by: &VerifyingKey,
+    about: &signing::About,
+    one: &Path,
+    bytes: &[u8],
+    tip: [u8; 32],
+    signing_before: bool,
+) -> Result<bool, Adrift> {
+    let named = about.segment.to_string();
+    match std::fs::read(one.with_extension(signing::SIG)) {
+        Ok(said) => match String::from_utf8(said) {
+            Ok(said) => match signing::holds(by, about, &said) {
+                // The whole segment or none of it: one answering for a prefix would let a
+                // line appended past it in, and the next write would sign it.
+                signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
+                    Err(Adrift::Unreadable(named))
+                }
+                signing::Holds::Covers(covers) if signing::tip_of(tip, bytes) != covers.tip => {
+                    Err(Adrift::Disowned(named))
+                }
+                signing::Holds::Covers(_) => Ok(true),
+                signing::Holds::Refused => Err(Adrift::Disowned(named)),
+                signing::Holds::Unreadable => Err(Adrift::Unreadable(named)),
+            },
+            // Bytes that are not text are a signature that will not read, not one taken away.
+            Err(_) => Err(Adrift::Unreadable(named)),
+        },
+        // Only a sidecar that is not there is one taken away. A folder that would not hand it
+        // over — a lock, a permission, a directory planted in its place — is read again.
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(Adrift::Unreadable(named)),
+        Err(_) if signing_before => Err(Adrift::Disowned(named)),
+        Err(_) => Ok(false),
+    }
+}
+
+// What a cut rotation leaves behind: the segment it closed holds every byte of the old live one.
+fn left_over(found: &[std::path::PathBuf], one: &Path, bytes: &[u8]) -> bool {
+    let named_here = |at: &Path| at.file_name().and_then(|one| one.to_str()).map(numbered);
+    if named_here(one) != Some(None) {
+        return false;
+    }
+    found
+        .iter()
+        .rfind(|at| named_here(at).is_some_and(|number| number.is_some()))
+        .is_some_and(|closed| std::fs::read(closed).is_ok_and(|whole| whole.starts_with(bytes)))
 }
 
 fn numbered(named: &str) -> Option<u32> {
