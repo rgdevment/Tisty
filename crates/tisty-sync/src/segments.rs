@@ -344,27 +344,7 @@ pub(crate) fn hand_on(
         if alike.settled(named, &theirs, &entry.path(), Toward::Folder)
             || !ours_reaches_further(&entry.path(), &theirs)
         {
-            let put_back = restore_beside(&entry.path(), &theirs).unwrap_or_else(|why| {
-                witness::warn(
-                    channel::SYNC,
-                    "what sits beside a history this machine keeps for another could not be put back",
-                    &[
-                        ("at", Fact::Id(named.to_string())),
-                        ("why", Fact::Why(format!("{why:?}"))),
-                    ],
-                );
-                0
-            });
-            if put_back > 0 {
-                witness::note(
-                    channel::SYNC,
-                    "what sits beside a history this machine was keeping for another was put back",
-                    &[
-                        ("at", Fact::Id(named.to_string())),
-                        ("put", Fact::Count(put_back)),
-                    ],
-                );
-            }
+            put_back_beside(named, &entry.path(), &theirs);
             continue;
         }
         plainly(&theirs)?;
@@ -384,39 +364,92 @@ pub(crate) fn hand_on(
     Ok(sent)
 }
 
+fn put_back_beside(named: &str, mine: &Path, theirs: &Path) {
+    let put_back = restore_beside(mine, theirs);
+    if put_back > 0 {
+        witness::note(
+            channel::SYNC,
+            "what sits beside a history this machine was keeping for another was put back",
+            &[
+                ("at", Fact::Id(named.to_string())),
+                ("put", Fact::Count(put_back)),
+            ],
+        );
+    }
+}
+
 // A sidecar that differs may be the owner's newer one, so only an absent one is put back.
-fn restore_beside(mine: &Path, theirs: &Path) -> Result<usize, Trouble> {
-    let Ok(segments) = tisty_core::store::segments_in(mine) else {
-        return Ok(0);
+fn restore_beside(mine: &Path, theirs: &Path) -> usize {
+    let ours = beside_each(mine);
+    let linked = std::fs::symlink_metadata(theirs).is_ok_and(|one| one.file_type().is_symlink());
+    if ours.is_empty() || linked {
+        return 0;
+    }
+    let (Ok(segments), Some(over_there)) =
+        (tisty_core::store::segments_in(mine), beside_there(theirs))
+    else {
+        return 0;
     };
-    let (ours, over_there) = (beside_each(mine), beside_each(theirs));
     let mut put_back = 0;
     for at in segments {
         let Some(named) = at.file_name() else {
             continue;
         };
-        let Some(stem) = Path::new(named).file_stem().and_then(|one| one.to_str()) else {
+        let Some(kinds) = Path::new(named)
+            .file_stem()
+            .and_then(|one| one.to_str())
+            .and_then(|stem| Some((ours.get(stem)?, over_there.get(stem))))
+        else {
             continue;
         };
-        let holds =
-            |kinds: &Kinds, kind: &str| kinds.get(stem).is_some_and(|all| all.contains(kind));
-        let missing: Vec<String> = beside_this(&ours, named)
-            .into_iter()
-            .filter(|kind| holds(&ours, kind) && !holds(&over_there, kind))
+        let missing: Vec<&String> = kinds
+            .0
+            .iter()
+            .filter(|kind| !kinds.1.is_some_and(|there| there.contains(*kind)))
             .collect();
         let target = theirs.join(named);
         if missing.is_empty() || !same(&at, &target) {
             continue;
         }
-        plainly(theirs)?;
         for kind in missing {
-            let beside = at.with_extension(&kind);
-            if copy_unless_there(&beside, &target.with_extension(&kind))? {
-                put_back += 1;
+            let from = at.with_extension(kind);
+            match copy_unless_there(&from, &target.with_extension(kind)) {
+                Ok(true) => put_back += 1,
+                Ok(false) => {}
+                Err(why) => witness::warn(
+                    channel::SYNC,
+                    "a signature or count beside a history kept for another could not be put back",
+                    &[
+                        ("at", Fact::Path(from)),
+                        ("why", Fact::Why(format!("{why:?}"))),
+                    ],
+                ),
             }
         }
     }
-    Ok(put_back)
+    put_back
+}
+
+// A file iCloud has not brought down is there under its placeholder's name, and counts as there.
+fn beside_there(dir: &Path) -> Option<Kinds> {
+    let mut found = Kinds::new();
+    for named in std::fs::read_dir(dir)
+        .ok()?
+        .filter_map(|one| one.ok())
+        .map(|one| one.file_name())
+    {
+        let Some(named) = named.to_str() else {
+            continue;
+        };
+        let real = tisty_core::holes::named_away(named).unwrap_or(named);
+        if let Some((stem, kind)) = tisty_core::store::beside_a_segment(real) {
+            found
+                .entry(stem.to_string())
+                .or_default()
+                .insert(kind.to_string());
+        }
+    }
+    Some(found)
 }
 
 pub(crate) fn ours_went_missing(mine: &Path, theirs: &Path) -> bool {

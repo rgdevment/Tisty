@@ -6164,6 +6164,55 @@ fn copying_unless_there_fills_what_is_not_and_leaves_what_is() {
 }
 
 #[test]
+fn where_links_are_not_kept_a_name_is_claimed_before_it_is_filled() {
+    let room = tempfile::tempdir().unwrap();
+    let from = room.path().join("from");
+    let absent = room.path().join("absent");
+    let taken = room.path().join("taken");
+    std::fs::write(&from, b"ours").unwrap();
+    std::fs::write(&taken, b"theirs").unwrap();
+
+    assert!(created_where_nothing_stands(&from, &absent).unwrap());
+    assert!(!created_where_nothing_stands(&from, &taken).unwrap());
+
+    assert_eq!(std::fs::read(&absent).unwrap(), b"ours");
+    assert_eq!(std::fs::read(&taken).unwrap(), b"theirs");
+}
+
+#[test]
+fn a_kind_of_sidecar_a_later_build_writes_is_put_back_like_the_rest() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let (mine, there) = kept_for_another(&one, shared.path());
+    std::fs::write(mine.join("active.later"), b"what a later build keeps").unwrap();
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert_eq!(
+        std::fs::read(there.join("active.later")).unwrap(),
+        b"what a later build keeps"
+    );
+}
+
+#[test]
+fn a_signature_not_yet_brought_down_by_the_cloud_is_not_put_back_beside_its_placeholder() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let (_, there) = kept_for_another(&one, shared.path());
+    std::fs::remove_file(there.join("active.sig")).unwrap();
+    std::fs::write(there.join(".active.sig.icloud"), b"placeholder").unwrap();
+
+    let mut alike = Alike::default();
+    hand_on(&one.store, &one.device, shared.path(), false, &mut alike).unwrap();
+
+    assert!(
+        !there.join("active.sig").exists(),
+        "a real signature was put beside the placeholder of the owner's"
+    );
+}
+
+#[test]
 fn a_history_taken_back_is_counted_as_it_comes() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
