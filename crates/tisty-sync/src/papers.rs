@@ -247,7 +247,7 @@ pub(crate) fn carry_papers_leaning_on(
                     std::fs::create_dir_all(&here).map_err(io)?;
                     let _held = docs_lock(&here, id);
                     let checked = yours.as_deref().unwrap_or_default();
-                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done)? else {
+                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done) else {
                         continue;
                     };
                     let text = std::str::from_utf8(&bytes).ok();
@@ -265,13 +265,11 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
                     let checked = yours.as_deref().unwrap_or_default();
-                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done)? else {
+                    let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done) else {
                         continue;
                     };
                     let text = String::from_utf8(bytes).ok();
-                    let whole = text
-                        .as_deref()
-                        .and_then(|text| joined(data, id, &mine, text, said.of(id), reaches));
+                    let whole = joined(data, id, &mine, text.as_deref(), said.of(id), reaches);
                     match whole {
                         Some(whole) => {
                             if answer == Answer::Doubtful {
@@ -344,21 +342,27 @@ fn taken(
     checked: &str,
     id: &str,
     done: &mut Moved,
-) -> Result<Option<Vec<u8>>, Trouble> {
-    plainly(theirs)?;
-    let why = match tisty_core::docs::read_as_printed(theirs, checked) {
-        Ok(Some(bytes)) => return Ok(Some(bytes)),
-        Ok(None) => "it changed or went away".to_string(),
-        Err(e) => e.to_string(),
+) -> Option<Vec<u8>> {
+    if plainly(theirs).is_err() {
+        done.astray.push(id.to_string());
+        return None;
+    }
+    let (why, vanished) = match tisty_core::docs::read_as_printed(theirs, checked) {
+        Ok(Some(bytes)) => return Some(bytes),
+        Ok(None) => ("it changed or went away".to_string(), true),
+        Err(e) => (e.to_string(), false),
     };
     prints.forget(theirs);
     witness::warn(
         channel::SYNC,
-        "a body could not be taken as it was checked, so it waits for the next round",
+        "a body could not be taken as it was checked, so this turn leaves it alone",
         &[("at", Fact::Id(id.to_string())), ("why", Fact::Why(why))],
     );
-    done.coming.push(id.to_string());
-    Ok(None)
+    match vanished {
+        true => done.coming.push(id.to_string()),
+        false => done.astray.push(id.to_string()),
+    }
+    None
 }
 
 fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option<String> {

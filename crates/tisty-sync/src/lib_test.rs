@@ -8685,6 +8685,36 @@ fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
         !here.exists(),
         "a body that was not the one the log answered for was installed"
     );
+
+    replaced_keeping_its_time(&at, "# lo comprobado\n");
+    let third = round();
+
+    assert_eq!(third.brought, 1);
+    assert_eq!(
+        body(&one.data, id),
+        "# lo comprobado\n",
+        "the print that was dropped kept the genuine body out"
+    );
+}
+
+#[test]
+fn a_body_that_is_not_text_is_put_to_the_person_instead_of_joined() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_a-0001";
+    let alive = [id.to_string()];
+    paper(&one, id, "uno\n\ndos\n\ntres\n");
+    theirs(shared.path(), id, "uno\n\ndos\n\ntres\n");
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    paper(&one, id, "UNO.\n\ndos\n\ntres\n");
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    std::fs::write(&at, [0xff, 0xfe, b'x', 0xff]).unwrap();
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert_eq!(done.undecided_ids(), vec![id.to_string()]);
+    assert_eq!(done.brought, 0);
+    assert_eq!(body(&one.data, id), "UNO.\n\ndos\n\ntres\n");
 }
 
 #[test]
