@@ -118,13 +118,16 @@ when two histories are compared. A write that fails part way signs what it did
 write, and no signature is left for a segment that is not there.
 
 The key itself lives in `<config>/private/`, beside the store's own secret, and
-is never carried anywhere. What it owes is decided by the copy in the folder,
-not by this machine's log: a history whose events were written at
-`SIGNED_FROM` (schema 16) or later owes a signature, and so does one that
-carries its machine's own `device.key`, whatever version its lines claim. Such a
-history arriving with no signature at all is disowned — none of it comes in —
-while one written below the fence, before that machine had a key, never could
-have carried one and still comes home. A machine that gets a key late answers
+is never carried anywhere. What it owes is decided by the copy in the folder
+and by what this machine's own log already knows of that machine: a history with
+a line written at `SIGNED_FROM` (schema 16) or later — any line, not only the
+last — owes a signature, and so does one that carries its machine's own
+`device.key`, or whose key this machine's log already holds, whatever version
+its lines claim. Such a history arriving with no signature at all is disowned —
+none of it comes in — while one written below the fence, before that machine had
+a key, never could have carried one and still comes home. A signed history whose
+key cannot be read waits for a person, like any key nobody has answered for,
+and never comes in unchecked. A machine that gets a key late answers
 for the past it wrote before: on the first write after the key exists, every
 closed segment of its own that nothing answers for gets a `.sig` of its own,
 over the chain that segment really closes. A signature already in place is left

@@ -754,6 +754,20 @@ pub fn newest_schema(device_dir: &Path) -> Result<u32> {
     Ok(0)
 }
 
+pub fn highest_schema(device_dir: &Path) -> Result<u32> {
+    let mut highest = 0;
+    for segment in segments_in(device_dir)? {
+        crate::counting::opened();
+        let whole = std::fs::read(&segment)?;
+        for line in String::from_utf8_lossy(&whole).lines() {
+            if let Ok(one) = serde_json::from_str::<Stamped>(line) {
+                highest = highest.max(one.v);
+            }
+        }
+    }
+    Ok(highest)
+}
+
 fn last_line(path: &Path) -> Result<Option<String>> {
     use std::io::{Read, Seek};
 

@@ -1238,6 +1238,40 @@ fn what_schema_a_machine_writes_under_is_read_from_its_last_line_alone() {
 }
 
 #[test]
+fn the_highest_schema_a_machine_wrote_under_is_read_from_every_line() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("dev_b");
+    std::fs::create_dir_all(&at).unwrap();
+
+    assert_eq!(highest_schema(&at).unwrap(), 0, "nothing written yet");
+
+    let line = |v: u32, id: &str| {
+        format!(
+            "{{\"v\":{v},\"ts\":\"2026-08-26T10:00:00Z\",\"by\":\"dev_b\",\"op\":\"task.add\",\"id\":\"{id}\",\"d\":{{\"title\":\"hoy\",\"order\":\"V\"}}}}\n"
+        )
+    };
+    std::fs::write(
+        at.join("000001.tisty"),
+        line(16, "01M0ZX62YMRXMABJ6Q4FEF69WT")
+            + "not json\n"
+            + &line(14, "01M0ZX62YMRXMABJ6Q4FEF69WU"),
+    )
+    .unwrap();
+    std::fs::write(
+        at.join("active.tisty"),
+        line(15, "01M0ZX62YMRXMABJ6Q4FEF69WV"),
+    )
+    .unwrap();
+
+    assert_eq!(highest_schema(&at).unwrap(), 16);
+    assert_eq!(
+        newest_schema(&at).unwrap(),
+        15,
+        "the last line alone is what the guard has always read"
+    );
+}
+
+#[test]
 fn a_machine_that_just_rotated_is_still_read_from_the_segment_behind() {
     let room = tempfile::tempdir().unwrap();
     let at = room.path().join("dev_b");

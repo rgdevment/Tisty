@@ -79,6 +79,23 @@ fn hosted(
     trusted && tisty_core::vouched::through(data, who, says, &host)
 }
 
+fn owes_a_signature(
+    store: &Path,
+    theirs: &Path,
+    who: &tisty_core::DeviceId,
+    known: bool,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> Option<bool> {
+    if known
+        || tisty_core::store::key_said_in(theirs, who).is_some()
+        || tisty_core::store::newest_schema(theirs).ok()? >= tisty_core::event::SIGNED_FROM
+        || tisty_core::store::highest_schema(theirs).ok()? >= tisty_core::event::SIGNED_FROM
+    {
+        return Some(true);
+    }
+    Some(claimed(store, who, knew).ok()?.is_some())
+}
+
 /// Checked before any of it is taken in, and only from where the last round left off.
 #[allow(clippy::too_many_arguments)]
 fn answers_for_itself(
@@ -154,11 +171,10 @@ fn answers_for_itself(
         }
     }
     if !signed {
-        let owed = from.signing
-            || stood.is_some()
-            || tisty_core::store::key_said_in(theirs, &who).is_some()
-            || tisty_core::store::newest_schema(theirs)
-                .is_ok_and(|was| was >= tisty_core::event::SIGNED_FROM);
+        let known = from.signing || stood.is_some();
+        let Some(owed) = owes_a_signature(store, theirs, &who, known, knew) else {
+            return Answered::Unreadable;
+        };
         if !owed {
             return Answered::Yes;
         }
@@ -178,10 +194,13 @@ fn answers_for_itself(
     };
     let by = said.and_then(|said| tisty_core::signing::read(&said));
     let Some(by) = by else {
-        // A machine we hold no key for has nothing to check — but our own name is not one of
-        // those: a history signed under it that we cannot answer for is not ours to take back.
         if !ours {
-            return Answered::Yes;
+            witness::warn(
+                channel::SYNC,
+                "a machine signs what it writes and the key it says cannot be read, so what it writes waits",
+                &[("at", Fact::Id(named.to_string()))],
+            );
+            return Answered::Unconfirmed;
         }
         witness::warn(
             channel::SYNC,

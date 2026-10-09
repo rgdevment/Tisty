@@ -8315,6 +8315,98 @@ fn a_signed_history_that_has_not_said_its_key_waits_instead_of_coming_in_uncheck
 }
 
 #[test]
+fn a_known_machine_that_names_a_key_nothing_can_read_waits_instead_of_coming_in_unchecked() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let older = before_the_fence(&two, shared.path());
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(home_of(&one, &two.device).contains("lo viejo de dev_b"));
+
+    let there = two.store.join(&two.device);
+    std::fs::create_dir_all(&there).unwrap();
+    std::fs::write(there.join("active.tisty"), &older).unwrap();
+    let who = DeviceId(two.device.clone());
+    let mut held = Store::open(&two.store, who.clone()).unwrap();
+    held.append(Op::DeviceKey {
+        d: who,
+        p: "not a key".into(),
+    })
+    .unwrap();
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: TaskAdd::new("lo forjado", "a0"),
+    })
+    .unwrap();
+    drop(held);
+    let folder = shared.path().join(STORE).join(&two.device);
+    std::fs::copy(there.join("active.tisty"), folder.join("active.tisty")).unwrap();
+    std::fs::write(folder.join("active.sig"), "not a signature").unwrap();
+
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.unconfirmed, vec![two.device.clone()]);
+    assert!(
+        !home_of(&one, &two.device).contains("lo forjado"),
+        "a history that names a key nobody can read came home as if it had been checked"
+    );
+}
+
+#[test]
+fn a_history_whose_last_line_says_an_older_schema_still_owes_its_signature() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let line = |v: u32, title: &str| {
+        format!(
+            "{{\"v\":{v},\"ts\":\"2026-10-01T12:00:00Z\",\"by\":\"{}\",\"op\":\"task.add\",\"id\":\"{}\",\"d\":{{\"title\":\"{title}\",\"order\":\"a0\"}}}}\n",
+            two.device,
+            Ulid::generate()
+        )
+    };
+    let folder = shared.path().join(STORE).join(&two.device);
+    std::fs::create_dir_all(&folder).unwrap();
+    let said = line(tisty_core::event::SIGNED_FROM, "lo que debia ir firmado")
+        + &line(tisty_core::event::SIGNED_FROM - 1, "lo viejo de dev_b");
+    std::fs::write(folder.join("active.tisty"), said).unwrap();
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.disowned, vec![two.device.clone()]);
+    assert!(!home_of(&one, &two.device).contains("lo que debia ir firmado"));
+}
+
+#[test]
+fn an_unsigned_history_of_a_machine_this_store_knows_signs_is_disowned() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let who = DeviceId(two.device.clone());
+    let paths = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let key = tisty_core::signing::mine(&paths, &who).unwrap();
+    let mut held = Store::open(&one.store, who.clone()).unwrap();
+    held.append(Op::DeviceJoin {
+        d: who,
+        k: Some(tisty_core::DeviceKind::Machine),
+        p: Some(tisty_core::signing::shown(&key)),
+    })
+    .unwrap();
+    drop(held);
+    before_the_fence(&two, shared.path());
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.disowned, vec![two.device.clone()]);
+    assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
+}
+
+#[test]
 fn a_reinstall_that_kept_the_cache_meets_the_folder_as_a_new_machine() {
     let kept = tempfile::tempdir().unwrap();
     let shared = tempfile::tempdir().unwrap();
