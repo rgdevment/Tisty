@@ -947,6 +947,45 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     })
 }
 
+// Never renamed over: whoever wrote there in the meantime keeps what they wrote.
+pub(crate) fn copy_unless_there(from: &Path, at: &Path) -> Result<bool, Trouble> {
+    if std::fs::symlink_metadata(at).is_ok() {
+        return Ok(false);
+    }
+    let part = beside(at);
+    copy_onto(from, &part)?;
+    let linked = std::fs::hard_link(&part, at);
+    let _ = std::fs::remove_file(&part);
+    match linked {
+        Ok(()) => Ok(true),
+        Err(_) if std::fs::symlink_metadata(at).is_ok() => Ok(false),
+        Err(_) => created_where_nothing_stands(from, at),
+    }
+}
+
+// Where links are not kept, the name is claimed first and then filled.
+pub(crate) fn created_where_nothing_stands(from: &Path, at: &Path) -> Result<bool, Trouble> {
+    plainly(from)?;
+    let mut source = std::fs::File::open(from).map_err(io)?;
+    let mut target = match std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(at)
+    {
+        Ok(target) => target,
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => return Ok(false),
+        Err(e) => return Err(io(e)),
+    };
+    match std::io::copy(&mut source, &mut target).and_then(|_| target.sync_all()) {
+        Ok(()) => Ok(true),
+        Err(e) => {
+            drop(target);
+            let _ = std::fs::remove_file(at);
+            Err(io(e))
+        }
+    }
+}
+
 pub(crate) fn plainly(at: &Path) -> Result<(), Trouble> {
     tisty_core::counting::looked();
     if std::fs::symlink_metadata(at).is_ok_and(|one| one.file_type().is_symlink()) {
