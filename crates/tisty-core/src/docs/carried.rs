@@ -83,24 +83,32 @@ fn as_settled(bytes: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     std::borrow::Cow::Owned(settled)
 }
 
-fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
+fn past_the_ceiling() -> std::io::Error {
+    std::io::Error::other("a body past the ceiling")
+}
+
+fn read_within(from: impl std::io::Read, ceiling: u64) -> std::io::Result<Vec<u8>> {
     use std::io::Read;
 
+    let mut bytes = Vec::new();
+    from.take(ceiling + 1).read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > ceiling {
+        return Err(past_the_ceiling());
+    }
+    Ok(bytes)
+}
+
+fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
     let file = match std::fs::File::open(at) {
         Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e),
     };
     if file.metadata()?.len() > BODY_AT_MOST {
-        return Err(std::io::Error::other("a body past the ceiling"));
+        return Err(past_the_ceiling());
     }
     crate::counting::opened();
-    let mut bytes = Vec::new();
-    file.take(BODY_AT_MOST + 1).read_to_end(&mut bytes)?;
-    if bytes.len() as u64 > BODY_AT_MOST {
-        return Err(std::io::Error::other("a body past the ceiling"));
-    }
-    Ok(Some(bytes))
+    read_within(file, BODY_AT_MOST).map(Some)
 }
 
 fn printed_body(bytes: &[u8]) -> String {
@@ -200,3 +208,7 @@ impl Carried {
         true
     }
 }
+
+#[cfg(test)]
+#[path = "carried_test.rs"]
+mod tests;
