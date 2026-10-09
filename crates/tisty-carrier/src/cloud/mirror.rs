@@ -66,6 +66,9 @@ fn learn(remote: &dyn Remote, tree: &Path, index: &mut Index, seen: Seen) -> Res
         index.shelf.insert(seen.name.clone(), seen);
         return Ok(());
     }
+    if !mirrored(&seen.name) {
+        return Ok(());
+    }
     if index
         .tree
         .get(&seen.name)

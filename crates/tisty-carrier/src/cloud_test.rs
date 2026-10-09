@@ -484,3 +484,34 @@ fn an_upload_the_provider_defers_keeps_the_original_and_the_next_round_sends_it(
         assert_eq!(up.bytes, big.len() as u64, "{who}");
     }
 }
+
+#[test]
+fn what_another_left_in_the_cloud_that_is_not_ours_to_mirror_is_neither_fetched_nor_removed() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let one = desk(&setting, "dev_a");
+        let litter = setting.room.path().join("litter");
+        std::fs::write(&litter, b"a half-written thing").unwrap();
+        let name = "docs/dev_x-0001.01ARZ3NDEKTSV4RRFFQ69G5FAV.3.part";
+        remote.put(name, &litter, crate::Expect::Absent).unwrap();
+        one.wrote("lo de uno");
+
+        one.round(Way::Both);
+        one.round(Way::Both);
+
+        let home = setting.room.path().join("dev_a").join("cloud");
+        assert!(
+            !home
+                .join("tree")
+                .join("docs")
+                .join("dev_x-0001.01ARZ3NDEKTSV4RRFFQ69G5FAV.3.part")
+                .exists(),
+            "{who}"
+        );
+        assert!(
+            remote.about(name).unwrap().is_some(),
+            "{who}: it is not ours to remove"
+        );
+    }
+}
