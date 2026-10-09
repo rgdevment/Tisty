@@ -50,14 +50,12 @@ fn a_print_kept_for_a_body_is_forgotten_when_asked() {
     let first = prints.seen(&at).unwrap();
 
     std::fs::write(&at, "# Dos\n").unwrap();
-    let set = std::fs::File::options()
+    std::fs::File::options()
         .write(true)
         .open(&at)
         .unwrap()
-        .set_modified(was);
-    if set.is_err() {
-        return;
-    }
+        .set_modified(was)
+        .unwrap();
     assert_eq!(
         prints.seen(&at).unwrap(),
         first,

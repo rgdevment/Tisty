@@ -8613,7 +8613,7 @@ fn a_machine_found_on_first_reaching_a_folder_that_has_not_said_its_key_is_taken
     assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
 }
 
-fn replaced_keeping_its_time(at: &Path, body: &str) -> bool {
+fn replaced_keeping_its_time(at: &Path, body: &str) {
     let was = std::fs::metadata(at).unwrap().modified().unwrap();
     std::fs::write(at, body).unwrap();
     std::fs::File::options()
@@ -8621,7 +8621,14 @@ fn replaced_keeping_its_time(at: &Path, body: &str) -> bool {
         .open(at)
         .unwrap()
         .set_modified(was)
-        .is_ok()
+        .unwrap();
+}
+
+fn print_kept_for(one: &Machine, at: &Path) -> Option<String> {
+    match tisty_core::docs::Prints::read(&one.data).seen(at).unwrap() {
+        tisty_core::docs::Seen::Held { print, .. } => print,
+        tisty_core::docs::Seen::Linked => None,
+    }
 }
 
 #[test]
@@ -8631,10 +8638,11 @@ fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
     let id = "dev_b-0001";
     theirs(shared.path(), id, "# lo comprobado\n");
     let at = shared.path().join("docs").join(format!("{id}.md"));
+    let checked = tisty_core::docs::print_of(&at).unwrap();
     let printed = std::collections::BTreeMap::from([(
         id.to_string(),
         super::papers::Answers {
-            newest: tisty_core::docs::print_of(&at).unwrap(),
+            newest: checked.clone(),
             own: None,
             others: Default::default(),
         },
@@ -8663,9 +8671,12 @@ fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
 
     let here = one.data.join("docs").join(format!("{id}.md"));
     std::fs::remove_file(&here).unwrap();
-    if !replaced_keeping_its_time(&at, "# lo adulterado\n") {
-        return;
-    }
+    replaced_keeping_its_time(&at, "# lo adulterado\n");
+    assert_eq!(
+        print_kept_for(&one, &at),
+        checked,
+        "the setup did not leave a stale print behind"
+    );
     let second = round();
 
     assert_eq!(second.brought, 0);
@@ -8682,27 +8693,42 @@ fn two_versions_are_joined_only_from_the_body_that_was_checked() {
     let shared = tempfile::tempdir().unwrap();
     let id = "dev_a-0001";
     let alive = [id.to_string()];
-    paper(&one, id, "uno\ndos\ntres\n");
-    theirs(shared.path(), id, "uno\ndos\ntres\n");
+    paper(&one, id, "uno\n\ndos\n\ntres\n");
+    theirs(shared.path(), id, "uno\n\ndos\n\ntres\n");
     carry_papers(&one.data, shared.path(), &alive).unwrap();
 
-    paper(&one, id, "UNO\ndos\ntres\n");
-    theirs(shared.path(), id, "UNO!\ndos\ntres\n");
+    paper(&one, id, "UNO.\n\ndos\n\ntres\n");
+    theirs(shared.path(), id, "UNO!\n\ndos\n\ntres\n");
     let asked = carry_papers(&one.data, shared.path(), &alive).unwrap();
     assert_eq!(asked.undecided_ids(), vec![id.to_string()]);
 
     let at = shared.path().join("docs").join(format!("{id}.md"));
-    if !replaced_keeping_its_time(&at, "uno\ndos\nTRES.\n") {
-        return;
-    }
+    let checked = tisty_core::docs::print_of(&at).unwrap();
+    replaced_keeping_its_time(&at, "uno\n\ndos\n\nTRES.\n");
+    assert_eq!(
+        print_kept_for(&one, &at),
+        checked,
+        "the setup did not leave a stale print behind"
+    );
+    let waiting = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert_eq!(waiting.brought, 0);
+    assert_eq!(waiting.coming, vec![id.to_string()]);
+    let kept_here = body(&one.data, id);
+    assert!(
+        kept_here.contains("UNO.") && !kept_here.contains("TRES."),
+        "a body that was not the one checked was joined into the document: {kept_here}"
+    );
+
     let after = carry_papers(&one.data, shared.path(), &alive).unwrap();
 
-    assert_eq!(after.brought, 0);
-    assert_eq!(after.coming, vec![id.to_string()]);
-    assert_eq!(
-        body(&one.data, id),
-        "UNO\ndos\ntres\n",
-        "a body that was not the one checked was joined into the document"
+    assert_eq!(after.brought, 1);
+    let whole = body(&one.data, id);
+    assert!(whole.contains("UNO.") && whole.contains("TRES."), "{whole}");
+    let base = tisty_core::docs::read_carried(&one.data, id).unwrap();
+    assert!(
+        base.contains("TRES.") && !base.contains("UNO"),
+        "the base kept for the next join is not what was joined from: {base}"
     );
 }
 

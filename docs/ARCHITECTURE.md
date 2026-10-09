@@ -1539,7 +1539,8 @@ replaces anything. A round that only pushes takes nothing in.
 
 What is installed is what was checked. The body is read from the folder once,
 printed as it was read, and written here from those same bytes; the text two
-versions are joined from is read the same way. A body whose print is no longer the
+versions are joined from is read the same way, and the base kept beside the
+document afterwards is that very text. A body whose print is no longer the
 one it was checked at — somebody changed it in between, or the print kept for its
 size and date was stale — is not installed and not joined: its kept print is
 dropped and it waits in `Moved::coming` for the next round.

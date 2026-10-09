@@ -12,11 +12,15 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
     let said = std::fs::read_to_string(mine)
         .or_else(|_| std::fs::read_to_string(theirs))
         .ok();
+    settled_text(data, id, said.as_deref());
+}
+
+fn settled_text(data: &Path, id: &str, said: Option<&str>) {
     let Some(said) = said else {
         tisty_core::docs::forget_carried(data, id);
         return;
     };
-    if tisty_core::docs::keep_carried(data, id, &said).is_err() {
+    if tisty_core::docs::keep_carried(data, id, said).is_err() {
         witness::warn(
             channel::SYNC,
             "the settled body could not be kept, so the next round has no base to lean on",
@@ -80,7 +84,7 @@ pub(crate) fn carry_papers_leaning_on(
     taking: bool,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
-    use tisty_core::docs::{Carried, Move, Prints, moved, print_of};
+    use tisty_core::docs::{Carried, Move, Prints, moved};
 
     let here = data.join(PAPERS);
     let there = dest.join(PAPERS);
@@ -246,15 +250,16 @@ pub(crate) fn carry_papers_leaning_on(
                     let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done)? else {
                         continue;
                     };
+                    let text = std::str::from_utf8(&bytes).ok();
                     if answer == Answer::Doubtful
-                        && let Ok(left) = std::str::from_utf8(&bytes)
+                        && let Some(left) = text
                     {
                         set_aside(data, id, &mine, left);
                     }
                     write(&mine, &bytes)?;
                     done.brought += 1;
                     done.arrived.push(id.clone());
-                    settled_body(data, id, &mine, &theirs);
+                    settled_text(data, id, text);
                     said.keep(id, checked);
                 }
                 Move::TheyDecide => {
@@ -264,8 +269,10 @@ pub(crate) fn carry_papers_leaning_on(
                         continue;
                     };
                     let text = String::from_utf8(bytes).ok();
-                    match text.and_then(|text| joined(data, id, &mine, &text, said.of(id), reaches))
-                    {
+                    let whole = text
+                        .as_deref()
+                        .and_then(|text| joined(data, id, &mine, text, said.of(id), reaches));
+                    match whole {
                         Some(whole) => {
                             if answer == Answer::Doubtful {
                                 set_aside(data, id, &mine, &whole);
@@ -274,17 +281,8 @@ pub(crate) fn carry_papers_leaning_on(
                             done.brought += 1;
                             done.joined.push(id.clone());
                             done.arrived.push(id.clone());
-                            match (print_of(&theirs), yours) {
-                                (Ok(Some(now)), Some(print)) if now == print => {
-                                    settled_body(data, id, &theirs, &mine);
-                                    said.keep(id, &print);
-                                }
-                                _ => witness::warn(
-                                    channel::SYNC,
-                                    "another machine wrote while this one joined, so the base stays put",
-                                    &[("at", Fact::Id(id.clone()))],
-                                ),
-                            }
+                            settled_text(data, id, text.as_deref());
+                            said.keep(id, checked);
                         }
                         None => done.undecided.push(Undecided {
                             id: id.clone(),

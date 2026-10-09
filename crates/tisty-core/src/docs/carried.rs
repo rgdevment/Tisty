@@ -91,6 +91,9 @@ fn whole_of(at: &Path) -> std::io::Result<Option<Vec<u8>>> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e),
     };
+    if file.metadata()?.len() > BODY_AT_MOST {
+        return Err(std::io::Error::other("a body past the ceiling"));
+    }
     crate::counting::opened();
     let mut bytes = Vec::new();
     file.take(BODY_AT_MOST + 1).read_to_end(&mut bytes)?;
