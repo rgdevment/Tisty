@@ -111,15 +111,21 @@ pub(crate) fn copy_segments(
     let found = beside_each(from);
     let mut done = 0;
     let mut beside_it = 0;
-    for at in carried {
+    for at in &carried {
         let Some(named) = at.file_name() else {
             continue;
         };
         let target = into.join(named);
         let closed = named.to_str().is_some_and(tisty_core::store::is_closed);
-        let stands = !again && ((closed && known.contains(named)) || same(&at, &target));
+        let stands = !again && ((closed && known.contains(named)) || same(at, &target));
         if !stands {
-            copy_onto(&at, &target)?;
+            let spent = !closed
+                && std::fs::read(at)
+                    .is_ok_and(|bytes| tisty_core::store::left_over(&carried, at, &bytes));
+            if spent {
+                continue;
+            }
+            copy_onto(at, &target)?;
             done += 1;
         }
 
@@ -293,10 +299,13 @@ fn whole_of(device_dir: &Path) -> Whole {
         return Whole::Unread;
     };
     let mut said = Vec::new();
-    for at in segments {
+    for at in &segments {
         let Ok(more) = std::fs::read(at) else {
             return Whole::Unread;
         };
+        if tisty_core::store::left_over(&segments, at, &more) {
+            continue;
+        }
         said.extend(more);
     }
     if said.is_empty() {
@@ -378,16 +387,16 @@ fn put_back_beside(named: &str, mine: &Path, theirs: &Path) {
     }
 }
 
-// A sidecar that differs may be the owner's newer one, so only an absent one is put back.
 fn restore_beside(mine: &Path, theirs: &Path) -> usize {
     let ours = beside_each(mine);
     let linked = std::fs::symlink_metadata(theirs).is_ok_and(|one| one.file_type().is_symlink());
     if ours.is_empty() || linked {
         return 0;
     }
-    let (Ok(segments), Some(over_there)) =
-        (tisty_core::store::segments_in(mine), beside_there(theirs))
-    else {
+    let (Ok(segments), Some(over_there)) = (
+        tisty_core::store::segments_in(mine),
+        beside_there_with_placeholders(theirs),
+    ) else {
         return 0;
     };
     let mut put_back = 0;
@@ -430,8 +439,7 @@ fn restore_beside(mine: &Path, theirs: &Path) -> usize {
     put_back
 }
 
-// A file iCloud has not brought down is there under its placeholder's name, and counts as there.
-fn beside_there(dir: &Path) -> Option<Kinds> {
+fn beside_there_with_placeholders(dir: &Path) -> Option<Kinds> {
     let mut found = Kinds::new();
     for named in std::fs::read_dir(dir)
         .ok()?

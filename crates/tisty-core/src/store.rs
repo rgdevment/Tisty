@@ -23,7 +23,7 @@ const LOCK: &str = ".lock";
 const TORN: &str = "torn";
 const LOCK_WAIT_MS: u64 = 500;
 const LOCK_POLL_MS: u64 = 5;
-const SEGMENT_MAX_EVENTS: usize = 5_000;
+pub(crate) const SEGMENT_MAX_EVENTS: usize = 5_000;
 
 #[derive(Debug)]
 pub struct Store {
@@ -191,40 +191,32 @@ impl Store {
     }
 
     fn answers_for_what_it_closed(&self, at: &Path, covers: &crate::signing::Covers) {
-        let named = at.file_name().and_then(|one| one.to_str());
-        if !named.is_some_and(is_closed) || at.with_extension(crate::signing::SIG).exists() {
+        if !closed_at(at) || at.with_extension(crate::signing::SIG).exists() {
             return;
         }
-        self.seal(at, covers);
+        if let Err(e) = self.seal(at, covers) {
+            unsigned(at, &e);
+        }
     }
 
-    fn sign(&self, at: &Path) {
+    fn sign(&self, at: &Path) -> Result<()> {
         let Some(covers) = self.covers else {
-            return;
+            return Ok(());
         };
-        self.seal(at, &covers);
+        self.seal(at, &covers)
     }
 
-    fn seal(&self, at: &Path, covers: &crate::signing::Covers) {
+    fn seal(&self, at: &Path, covers: &crate::signing::Covers) -> Result<()> {
         let Some(key) = &self.signs else {
-            return;
+            return Ok(());
         };
         let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
-            return;
+            return Ok(());
         };
-        if let Err(e) = write_atomic(
+        write_atomic(
             &at.with_extension(crate::signing::SIG),
             crate::signing::signed(key, &self.about(named), covers).as_bytes(),
-        ) {
-            witness::warn(
-                channel::STORE,
-                "what this machine wrote could not be signed, so nothing here answers for it",
-                &[
-                    ("at", Fact::Path(at.to_path_buf())),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-        }
+        )
     }
 
     fn acquire(&mut self) -> Result<()> {
@@ -412,13 +404,24 @@ impl Store {
     /// One open and one `fsync` for the whole lot: a batch is durable before this returns, but a
     /// pasted list of two hundred does not pay the wait two hundred times over.
     fn write_all(&mut self, events: &[Event]) -> Result<()> {
-        let mut at = 0;
-        while at < events.len() {
-            if self.active_events >= SEGMENT_MAX_EVENTS {
-                self.rotate()?;
+        let mut written = 0;
+        let outcome = self.write_lots(events, &mut written);
+        if written > 0 && self.active_events > 0 {
+            let active = self.dir.join(ACTIVE);
+            if let Err(e) = self.sign(&active) {
+                unsigned(&active, &e);
             }
-            let room = SEGMENT_MAX_EVENTS - self.active_events;
-            let lot = &events[at..(at + room).min(events.len())];
+        }
+        if outcome.is_ok() {
+            self.seen = active_mark(&self.dir.join(ACTIVE));
+        }
+        outcome
+    }
+
+    fn write_lots(&mut self, events: &[Event], written: &mut usize) -> Result<()> {
+        while *written < events.len() {
+            let room = self.room(events.len() - *written)?;
+            let lot = &events[*written..*written + room];
 
             let mut said = String::new();
             for event in lot {
@@ -440,53 +443,76 @@ impl Store {
             }
 
             self.active_events += lot.len();
-            at += lot.len();
+            *written += lot.len();
         }
-        if !events.is_empty() {
-            self.sign(&self.dir.join(ACTIVE));
-        }
-        self.seen = active_mark(&self.dir.join(ACTIVE));
         Ok(())
     }
 
-    pub(crate) fn rotate(&mut self) -> Result<()> {
+    fn room(&mut self, wanted: usize) -> Result<usize> {
+        if self.active_events >= SEGMENT_MAX_EVENTS && !self.rotate()? {
+            return Ok(wanted);
+        }
+        Ok(wanted.min(SEGMENT_MAX_EVENTS - self.active_events))
+    }
+
+    pub(crate) fn rotate(&mut self) -> Result<bool> {
         self.knows_where_it_stands()?;
         let active = self.dir.join(ACTIVE);
-        if active.try_exists()? {
-            let next = next_segment_number(&self.dir)?;
-            let closed = self.dir.join(format!("{next:06}.tisty"));
-            // Signed before the rename, never after: a death in between would leave a segment
-            // nothing ever signs, and no later pass goes back for it.
-            self.sign(&closed);
-            std::fs::rename(&active, &closed)?;
-
-            let (lines, _, _) = tail_of(&closed)?;
-            write_atomic(
-                &closed.with_extension("count"),
-                lines.to_string().as_bytes(),
-            )?;
-            let stale = active.with_extension(crate::signing::SIG);
-            match std::fs::remove_file(&stale) {
-                Ok(()) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => {
-                    // Left standing it would answer for whatever takes the old segment's place,
-                    // and nothing this machine writes after that could be recomputed.
-                    self.signs = None;
-                    witness::warn(
-                        channel::STORE,
-                        "a signature for the segment just closed could not be taken away, so this machine stopped signing",
-                        &[("at", Fact::Path(stale)), ("why", Fact::Why(e.to_string()))],
-                    );
-                }
-            }
+        if !active.try_exists()? {
+            self.start_over();
+            return Ok(true);
         }
+        let next = next_segment_number(&self.dir)?;
+        let closed = self.dir.join(format!("{next:06}.tisty"));
+        // Signed before the rename, never after: a death in between would leave a segment
+        // nothing ever signs, and no later pass goes back for it.
+        if let Err(e) = self.sign(&closed) {
+            witness::warn(
+                channel::STORE,
+                "a segment was not closed because its signature could not be written",
+                &[
+                    ("at", Fact::Path(closed)),
+                    ("why", Fact::Why(e.to_string())),
+                ],
+            );
+            return Ok(false);
+        }
+        std::fs::rename(&active, &closed)?;
+        self.start_over();
+        self.take_away_the_signature_of(&active);
+
+        let (lines, _, _) = tail_of(&closed)?;
+        write_atomic(
+            &closed.with_extension("count"),
+            lines.to_string().as_bytes(),
+        )?;
+        Ok(true)
+    }
+
+    fn start_over(&mut self) {
         self.active_events = 0;
         self.seen = Mark::default();
         if let Some(covers) = self.covers {
             self.covers = Some(crate::signing::Covers { at: 0, ..covers });
         }
-        Ok(())
+    }
+
+    fn take_away_the_signature_of(&mut self, active: &Path) {
+        let stale = active.with_extension(crate::signing::SIG);
+        match std::fs::remove_file(&stale) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                // Left standing it would answer for whatever takes the old segment's place,
+                // and nothing this machine writes after that could be recomputed.
+                self.signs = None;
+                witness::warn(
+                    channel::STORE,
+                    "a signature for the segment just closed could not be taken away, so this machine stopped signing",
+                    &[("at", Fact::Path(stale)), ("why", Fact::Why(e.to_string()))],
+                );
+            }
+        }
     }
 
     pub fn read_all(&self) -> Result<Vec<Event>> {
@@ -1151,6 +1177,45 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
         }
     }
     Ok((lines, head, seq))
+}
+
+fn unsigned(at: &Path, why: &Error) {
+    witness::warn(
+        channel::STORE,
+        "what this machine wrote could not be signed, so nothing here answers for it",
+        &[
+            ("at", Fact::Path(at.to_path_buf())),
+            ("why", Fact::Why(why.to_string())),
+        ],
+    );
+}
+
+pub fn left_over(segments: &[PathBuf], live: &Path, bytes: &[u8]) -> bool {
+    !bytes.is_empty()
+        && !closed_at(live)
+        && segments
+            .iter()
+            .filter(|at| closed_at(at))
+            .any(|at| opens_with(at, bytes))
+}
+
+fn closed_at(at: &Path) -> bool {
+    at.file_name()
+        .and_then(|one| one.to_str())
+        .is_some_and(is_closed)
+}
+
+fn opens_with(at: &Path, bytes: &[u8]) -> bool {
+    use std::io::Read;
+
+    let Ok(mut file) = File::open(at) else {
+        return false;
+    };
+    let mut chunk = [0u8; 8 * 1024];
+    bytes.chunks(chunk.len()).all(|expected| {
+        let read = &mut chunk[..expected.len()];
+        file.read_exact(read).is_ok() && read == expected
+    })
 }
 
 /// Segments alone decide the next number. What sits beside one is written before the rename that

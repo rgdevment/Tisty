@@ -86,3 +86,50 @@ fn a_signature_changed_beside_segments_held_the_same_is_something_new() {
     put(&mine, "active.sig", "la firma de allá\n");
     assert!(!beside_differs(&theirs, &mine));
 }
+
+#[test]
+fn a_live_segment_the_closed_one_already_holds_is_not_carried() {
+    let room = tempfile::tempdir().unwrap();
+    let (theirs, mine) = (room.path().join("theirs"), room.path().join("mine"));
+    put(&theirs, "000001.tisty", "uno\ndos\ntres\n");
+    put(&theirs, "active.tisty", "uno\ndos\n");
+    put(&theirs, "active.sig", "la firma vieja\n");
+
+    let (done, _) = copy_segments(&theirs, &mine, false, &Named::default()).unwrap();
+
+    assert_eq!(done, 1);
+    assert_eq!(read(&mine, "000001.tisty"), "uno\ndos\ntres\n");
+    assert!(
+        !mine.join("active.tisty").exists(),
+        "a leftover of a rotation became the live segment"
+    );
+}
+
+#[test]
+fn an_empty_live_segment_is_carried_all_the_same() {
+    let room = tempfile::tempdir().unwrap();
+    let (theirs, mine) = (room.path().join("theirs"), room.path().join("mine"));
+    put(&theirs, "000001.tisty", "uno\ndos\n");
+    put(&theirs, "active.tisty", "");
+
+    copy_segments(&theirs, &mine, false, &Named::default()).unwrap();
+
+    assert!(mine.join("active.tisty").is_file());
+}
+
+#[test]
+fn a_leftover_live_segment_does_not_stop_one_history_from_growing_into_the_other() {
+    let room = tempfile::tempdir().unwrap();
+    let (ours, theirs) = (room.path().join("ours"), room.path().join("theirs"));
+    put(&ours, "000001.tisty", "uno\ndos\ntres\n");
+    put(&ours, "active.tisty", "uno\ndos\n");
+    put(&theirs, "000001.tisty", "uno\ndos\ntres\n");
+    put(&theirs, "000002.tisty", "cuatro\n");
+
+    let grew = one_grew_from_the_other(&ours, &theirs);
+
+    assert!(
+        matches!(grew, Grew::Yes),
+        "a leftover was counted as part of the history"
+    );
+}

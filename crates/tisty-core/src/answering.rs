@@ -116,46 +116,54 @@ pub fn answers(
             device: &device.0,
             segment: named,
         };
-        let answered = match std::fs::read(one.with_extension(signing::SIG)) {
-            Ok(said) => match String::from_utf8(said) {
-                Ok(said) => match signing::holds(by, &about, &said) {
-                    // The whole segment or none of it: one answering for a prefix would let a
-                    // line appended past it in, and the next write would sign it.
-                    signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
-                        return Err(Adrift::Unreadable(named.to_string()));
-                    }
-                    signing::Holds::Covers(covers)
-                        if signing::tip_of(tip, &bytes) != covers.tip =>
-                    {
-                        return Err(Adrift::Disowned(named.to_string()));
-                    }
-                    signing::Holds::Covers(_) => true,
-                    signing::Holds::Refused => {
-                        return Err(Adrift::Disowned(named.to_string()));
-                    }
-                    signing::Holds::Unreadable => {
-                        return Err(Adrift::Unreadable(named.to_string()));
-                    }
-                },
-                // Bytes that are not text are a signature that will not read, not one taken away.
-                Err(_) => return Err(Adrift::Unreadable(named.to_string())),
-            },
-            // Only a sidecar that is not there is one taken away. A folder that would not hand it
-            // over — a lock, a permission, a directory planted in its place — is read again.
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-                return Err(Adrift::Unreadable(named.to_string()));
-            }
-            Err(_) if held.signing => return Err(Adrift::Disowned(named.to_string())),
-            Err(_) => false,
+        let signed = match answered(by, &about, one, &bytes, tip, held.signing) {
+            Ok(signed) => signed,
+            Err(_) if crate::store::left_over(&found, one, &bytes) => continue,
+            Err(why) => return Err(why),
         };
         tip = signing::tip_of(tip, &bytes);
-        held.signing |= answered;
-        if answered && let Some(n) = number {
+        held.signing |= signed;
+        if signed && let Some(n) = number {
             held.segment = n;
             held.tip = tip;
         }
     }
     Ok(held)
+}
+
+fn answered(
+    by: &VerifyingKey,
+    about: &signing::About,
+    one: &Path,
+    bytes: &[u8],
+    tip: [u8; 32],
+    signing_before: bool,
+) -> Result<bool, Adrift> {
+    let named = about.segment;
+    match std::fs::read(one.with_extension(signing::SIG)) {
+        Ok(said) => match String::from_utf8(said) {
+            Ok(said) => match signing::holds(by, about, &said) {
+                // The whole segment or none of it: a signature over a prefix would let a later line in.
+                signing::Holds::Covers(covers) if covers.at != bytes.len() as u64 => {
+                    Err(Adrift::Unreadable(named.to_string()))
+                }
+                signing::Holds::Covers(covers) if signing::tip_of(tip, bytes) != covers.tip => {
+                    Err(Adrift::Disowned(named.to_string()))
+                }
+                signing::Holds::Covers(_) => Ok(true),
+                signing::Holds::Refused => Err(Adrift::Disowned(named.to_string())),
+                signing::Holds::Unreadable => Err(Adrift::Unreadable(named.to_string())),
+            },
+            // Bytes that are not text are a signature that will not read, not one taken away.
+            Err(_) => Err(Adrift::Unreadable(named.to_string())),
+        },
+        // Only a sidecar that is not there is taken away; one that will not open is read again.
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+            Err(Adrift::Unreadable(named.to_string()))
+        }
+        Err(_) if signing_before => Err(Adrift::Disowned(named.to_string())),
+        Err(_) => Ok(false),
+    }
 }
 
 fn numbered(named: &str) -> Option<u32> {
