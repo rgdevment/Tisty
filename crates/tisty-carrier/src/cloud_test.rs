@@ -796,3 +796,33 @@ fn what_another_left_in_the_cloud_that_is_not_ours_to_mirror_is_neither_fetched_
         );
     }
 }
+
+#[test]
+fn the_index_survives_being_saved_and_read_back() {
+    let room = tempfile::tempdir().unwrap();
+    let mut index = super::index::Index {
+        cursor: Some("42".to_string()),
+        ..Default::default()
+    };
+    let seen = crate::Seen {
+        name: "docs/dev_a-0001.md".to_string(),
+        bytes: 7,
+        hash: "md5:abc".to_string(),
+        revision: "r9".to_string(),
+    };
+    index.tree.insert(
+        seen.name.clone(),
+        super::index::Mirrored {
+            seen: seen.clone(),
+            len: 7,
+            stamp: 1_760_000_000_123_456_789_000,
+        },
+    );
+    index
+        .shelf
+        .insert("attachments/ab/foto-1a2b3c4d.png".to_string(), seen);
+
+    index.save(room.path()).unwrap();
+
+    assert_eq!(super::index::Index::load(room.path()), index);
+}
