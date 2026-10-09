@@ -727,8 +727,25 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
     })
 }
 
+pub struct KeysSaid {
+    pub readable: Option<String>,
+    pub any: bool,
+}
+
+pub fn keys_said_in(device_dir: &Path, who: &DeviceId) -> KeysSaid {
+    let events = introduced::events_of(device_dir, who, false);
+    KeysSaid {
+        readable: introduced::key_of(&events, who),
+        any: introduced::says_a_key(&events, who),
+    }
+}
+
 pub fn key_said_in(device_dir: &Path, who: &DeviceId) -> Option<String> {
-    introduced::key_of(&introduced::events_of(device_dir, who, false), who)
+    keys_said_in(device_dir, who).readable
+}
+
+pub fn says_a_key_in(device_dir: &Path, who: &DeviceId) -> bool {
+    keys_said_in(device_dir, who).any
 }
 
 pub fn distinct_in(device_dir: &Path) -> Result<usize> {
@@ -752,6 +769,26 @@ pub fn newest_schema(device_dir: &Path) -> Result<u32> {
         }
     }
     Ok(0)
+}
+
+#[derive(serde::Deserialize)]
+struct Written {
+    v: u32,
+}
+
+pub fn written_since(device_dir: &Path, schema: u32) -> Result<bool> {
+    use std::io::BufRead;
+
+    for segment in segments_in(device_dir)?.iter().rev() {
+        let file = File::open(segment)?;
+        crate::counting::opened();
+        for line in std::io::BufReader::new(file).split(b'\n') {
+            if serde_json::from_slice::<Written>(&line?).is_ok_and(|one| one.v >= schema) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn last_line(path: &Path) -> Result<Option<String>> {

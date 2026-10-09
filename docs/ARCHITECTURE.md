@@ -118,13 +118,25 @@ when two histories are compared. A write that fails part way signs what it did
 write, and no signature is left for a segment that is not there.
 
 The key itself lives in `<config>/private/`, beside the store's own secret, and
-is never carried anywhere. What it owes is decided by the copy in the folder,
-not by this machine's log: a history whose events were written at
-`SIGNED_FROM` (schema 16) or later owes a signature, and so does one that
-carries its machine's own `device.key`, whatever version its lines claim. Such a
-history arriving with no signature at all is disowned — none of it comes in —
-while one written below the fence, before that machine had a key, never could
-have carried one and still comes home. A machine that gets a key late answers
+is never carried anywhere. What a history owes is decided by the copy in the
+folder and by what this machine already holds of that machine. It owes a
+signature when any line of it — not only the last — was written at
+`SIGNED_FROM` (schema 16) or later; when it says a key of its own, in a
+`device.key` or a `device.join`, whatever version its lines claim; when a person
+here confirmed that machine's key; when this machine has seen it sign before; or
+when this machine's own copy of its history already says a key. Such a history
+arriving with no signature at all is disowned — none of it comes in — while one
+written below the fence, before that machine had a key, never could have carried
+one and still comes home.
+
+A key that does not read is not a key: the one a machine is answered for is the
+first it says that does, and a signed history is checked under that one. Where
+nobody has answered for it yet the history waits for a person, except where the
+rules above take the machine on its first key — the folder being taken up for the
+first time, a machine this store already held from before it signed, an agent
+answered for by its host. A signed history that says only keys that do not read
+waits too, and nobody can answer for it until the machine says one that does; it
+is never taken in unchecked. A machine that gets a key late answers
 for the past it wrote before: on the first write after the key exists, every
 closed segment of its own that nothing answers for gets a `.sig` of its own,
 over the chain that segment really closes. A signature already in place is left
