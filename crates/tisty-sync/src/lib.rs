@@ -1,3 +1,4 @@
+mod attachments;
 mod awaited;
 mod bringing;
 mod guarding;
@@ -9,6 +10,7 @@ mod shape;
 pub use tisty_core::turned;
 mod verified;
 
+pub use attachments::{Attachments, Beside, Given, Giving, Taken, Taking};
 use bringing::{bring, seats};
 pub use held::let_go_telling;
 use held::{copy_held, left_behind, let_go_of};
@@ -169,6 +171,31 @@ pub fn carry_telling(
     holds: Holds,
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Moved, Trouble> {
+    carry_through(
+        data,
+        aside,
+        device,
+        dest,
+        way,
+        alive,
+        holds,
+        saying,
+        &mut Beside { dest },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn carry_through(
+    data: &Path,
+    aside: Option<&Path>,
+    device: &str,
+    dest: &Path,
+    way: Way,
+    alive: &[String],
+    holds: Holds,
+    saying: &mut dyn FnMut(Reached),
+    attachments: &mut dyn Attachments,
+) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
     shape::before_reading(data, dest)?;
     let store = data.join(STORE);
@@ -281,23 +308,15 @@ pub fn carry_telling(
     let buried = buried_now(&told, data);
     let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
     if giving {
-        let mut carried = Vec::new();
-        moved.sent += copy_held(
-            &data.join(HELD),
-            &dest.join(HELD),
-            &buried,
+        let given = attachments.give(Giving {
+            data,
+            buried: &buried,
+            avowed: &told.kept,
             again,
-            None,
-            None,
-            None,
-            Some(&mut carried),
-            &told.kept,
-            &mut |_| {},
-        )?;
-        if holds == Holds::Shared {
-            (moved.freed, moved.let_go) =
-                let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
-        }
+            holds,
+        })?;
+        moved.sent += given.sent;
+        (moved.freed, moved.let_go) = (given.freed, given.let_go);
     }
     if !alive.is_empty() {
         let papers = carry_papers_leaning_on(
@@ -335,21 +354,24 @@ pub fn carry_telling(
     }
     if taking {
         let reachable = adrift.then(|| named_now(&told, data));
-        moved.brought += copy_held(
-            &dest.join(HELD),
-            &data.join(HELD),
-            &match moved.arrived.is_empty() {
-                true => buried,
-                false => buried_now(&told, data),
-            },
-            false,
-            Some(data),
-            left_behind(holds),
-            reachable.as_ref(),
-            Some(&mut moved.took_in),
-            &told.kept,
+        let buried_again;
+        let buried = match moved.arrived.is_empty() {
+            true => &buried,
+            false => {
+                buried_again = buried_now(&told, data);
+                &buried_again
+            }
+        };
+        let taken = attachments.take(Taking {
+            data,
+            buried,
+            avowed: &told.kept,
+            reachable: reachable.as_ref(),
+            holds,
             saying,
-        )?;
+        })?;
+        moved.brought += taken.brought;
+        moved.took_in.extend(taken.took_in);
     }
     // Last of all, so finding it is finding a round that got to the end.
     if giving {
