@@ -2,7 +2,7 @@ use std::io::Write;
 use std::path::Path;
 use std::time::Duration;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Seen {
     pub name: String,
     pub bytes: u64,
@@ -28,6 +28,12 @@ pub enum Hitch {
     Elsewhere { found: String },
     Unreachable(String),
     Broke(String),
+}
+
+impl From<std::io::Error> for Hitch {
+    fn from(e: std::io::Error) -> Self {
+        Hitch::Broke(e.to_string())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

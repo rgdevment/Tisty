@@ -2411,6 +2411,28 @@ restore empties, outside a backup's walk and outside what Maintenance weighs.
 mirror, checks what it downloaded, and installs exactly those bytes. The round
 never checks one read and copies from another.
 
+**What the mirror holds, and what it never decides.** The mirror is the cloud's
+copy plus what the last round wrote and has not yet gone up, and all of it can
+be derived again from the data directory. It holds `tisty.toml`, `store/` and
+`docs/` and nothing else: any other name in the cloud is neither fetched nor
+removed, and a name that cannot be a path on this system is left alone.
+
+- The only thing a round deletes up there is a document it was asked to forget,
+  with the revision it last saw. A mirror that lost files gets them back; it
+  never deletes them from the cloud.
+- A document edited here that has not gone up is never replaced by a newer one
+  from another machine as though the two shared a base. The base is forgotten,
+  so the person is asked.
+- What the engine remembers about a place (its shape, having carried there) is
+  forgotten for as long as the cloud has never held the stamp, so a first round
+  that was deferred cannot leave this machine unable to start again. Once the
+  cloud has held it, that memory stands, and a cloud emptied afterwards is
+  refused.
+- History goes up before documents, and the stamp goes last.
+- A round that was deferred reports only what reached the cloud. A refusal after
+  part of a round went up is reported beside what did, and one before anything
+  went up is an error.
+
 **The behaviour lives once, in `Cloud`.** The mirror, the rounds, deferral,
 budgets, caps, moving in stages, reconnecting, Maintenance and `tisty doctor`
 are written and tested once. A `Remote` only translates verbs and declares its

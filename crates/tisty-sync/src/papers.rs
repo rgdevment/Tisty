@@ -35,6 +35,7 @@ pub fn carry_papers(data: &Path, dest: &Path, alive: &[String]) -> Result<Moved,
         None,
         None,
         &|_, _| false,
+        &|reference| crate::held_in(reference, dest),
         false,
         false,
         true,
@@ -56,6 +57,7 @@ pub fn carry_papers_holding(
         None,
         None,
         &|_, _| false,
+        &|reference| crate::held_in(reference, dest),
         false,
         false,
         true,
@@ -72,6 +74,7 @@ pub(crate) fn carry_papers_leaning_on(
     empty: Option<&[String]>,
     printed: Option<&std::collections::BTreeMap<String, Answers>>,
     held: &dyn Fn(&str, &str) -> bool,
+    reaches: &dyn Fn(&str) -> bool,
     again: bool,
     been_here: bool,
     taking: bool,
@@ -254,7 +257,7 @@ pub(crate) fn carry_papers_leaning_on(
                 }
                 Move::TheyDecide => {
                     let _held = docs_lock(&here, id);
-                    match joined(data, dest, id, &mine, &theirs, said.of(id)) {
+                    match joined(data, id, &mine, &theirs, said.of(id), reaches) {
                         Some(whole) => {
                             if answer == Answer::Doubtful {
                                 set_aside(data, id, &mine, &whole);

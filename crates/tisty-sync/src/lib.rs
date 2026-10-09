@@ -1,3 +1,4 @@
+mod attachments;
 mod awaited;
 mod bringing;
 mod guarding;
@@ -9,13 +10,16 @@ mod shape;
 pub use tisty_core::turned;
 mod verified;
 
+pub use attachments::{Attachments, Beside, Given, Giving, Taken, Taking};
 use bringing::{bring, seats};
-pub use held::let_go_telling;
-use held::{copy_held, left_behind, let_go_of};
+use held::{copy_held, let_go_of};
+pub use held::{left_behind, let_go_telling};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
+pub use place::forget_carried_to;
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
 use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
+pub use shape::{NAMED, unseen as forget_shape};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -25,7 +29,7 @@ use tisty_core::witness::{self, Fact, channel};
 pub use tisty_core::store::MARKER;
 
 pub const STORE: &str = "store";
-const HELD: &str = "attachments";
+pub const HELD: &str = "attachments";
 const PAPERS: &str = "docs";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +84,24 @@ pub struct Moved {
     pub unsaid: Vec<String>,
     /// Not undecided: confirming or removing the machine that answers for them settles them.
     pub waiting: Vec<String>,
+    pub deferred: Option<Deferred>,
+    pub refused: Option<Trouble>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Reason {
+    Limit,
+    Budget,
+    Busy,
+    Offline,
+    Changed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Deferred {
+    pub reason: Reason,
+    pub left: usize,
+    pub retry_after: Option<std::time::Duration>,
 }
 
 impl Moved {
@@ -168,6 +190,31 @@ pub fn carry_telling(
     alive: &[String],
     holds: Holds,
     saying: &mut dyn FnMut(Reached),
+) -> Result<Moved, Trouble> {
+    carry_through(
+        data,
+        aside,
+        device,
+        dest,
+        way,
+        alive,
+        holds,
+        saying,
+        &mut Beside { dest },
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn carry_through(
+    data: &Path,
+    aside: Option<&Path>,
+    device: &str,
+    dest: &Path,
+    way: Way,
+    alive: &[String],
+    holds: Holds,
+    saying: &mut dyn FnMut(Reached),
+    attachments: &mut dyn Attachments,
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
     shape::before_reading(data, dest)?;
@@ -281,23 +328,15 @@ pub fn carry_telling(
     let buried = buried_now(&told, data);
     let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
     if giving {
-        let mut carried = Vec::new();
-        moved.sent += copy_held(
-            &data.join(HELD),
-            &dest.join(HELD),
-            &buried,
+        let given = attachments.give(Giving {
+            data,
+            buried: &buried,
+            avowed: &told.kept,
             again,
-            None,
-            None,
-            None,
-            Some(&mut carried),
-            &told.kept,
-            &mut |_| {},
-        )?;
-        if holds == Holds::Shared {
-            (moved.freed, moved.let_go) =
-                let_go_of(data, dest, &carried, tisty_core::attach::COPIED_UP_TO);
-        }
+            holds,
+        })?;
+        moved.sent += given.sent;
+        (moved.freed, moved.let_go) = (given.freed, given.let_go);
     }
     if !alive.is_empty() {
         let papers = carry_papers_leaning_on(
@@ -315,6 +354,7 @@ pub fn carry_telling(
                     .get(file)
                     .is_some_and(|prints| prints.contains(print))
             },
+            &|reference| attachments.reaches(reference),
             again,
             been_here,
             taking,
@@ -335,21 +375,24 @@ pub fn carry_telling(
     }
     if taking {
         let reachable = adrift.then(|| named_now(&told, data));
-        moved.brought += copy_held(
-            &dest.join(HELD),
-            &data.join(HELD),
-            &match moved.arrived.is_empty() {
-                true => buried,
-                false => buried_now(&told, data),
-            },
-            false,
-            Some(data),
-            left_behind(holds),
-            reachable.as_ref(),
-            Some(&mut moved.took_in),
-            &told.kept,
+        let buried_again;
+        let buried = match moved.arrived.is_empty() {
+            true => &buried,
+            false => {
+                buried_again = buried_now(&told, data);
+                &buried_again
+            }
+        };
+        let taken = attachments.take(Taking {
+            data,
+            buried,
+            avowed: &told.kept,
+            reachable: reachable.as_ref(),
+            holds,
             saying,
-        )?;
+        })?;
+        moved.brought += taken.brought;
+        moved.took_in.extend(taken.took_in);
     }
     // Last of all, so finding it is finding a round that got to the end.
     if giving {
@@ -821,11 +864,11 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
 
 pub(crate) fn joined(
     data: &Path,
-    dest: &Path,
     id: &str,
     mine: &Path,
     theirs: &Path,
     stood: Option<&str>,
+    reaches: &dyn Fn(&str) -> bool,
 ) -> Option<String> {
     let gave_up = |why: &'static str| {
         witness::note(
@@ -860,7 +903,7 @@ pub(crate) fn joined(
             continue;
         }
         // The shared folder counts: a machine that leaves the big ones there still has them.
-        if !anywhere(&one, data, dest) {
+        if !held_in(&one, data) && !reaches(&one) {
             witness::warn(
                 channel::SYNC,
                 "a joined document would name an attachment nobody here can reach",
@@ -877,13 +920,10 @@ pub(crate) fn joined(
     Some(whole)
 }
 
-fn anywhere(reference: &str, data: &Path, dest: &Path) -> bool {
-    [data, dest].iter().any(|root| {
-        let held = root.join(HELD);
-        tisty_core::attach::resolve(reference, root).is_ok_and(|at| {
-            at.starts_with(&held) && (at.is_file() || tisty_core::holes::a_hole(&at))
-        })
-    })
+pub(crate) fn held_in(reference: &str, root: &Path) -> bool {
+    let held = root.join(HELD);
+    tisty_core::attach::resolve(reference, root)
+        .is_ok_and(|at| at.starts_with(&held) && (at.is_file() || tisty_core::holes::a_hole(&at)))
 }
 
 /// Unheld beats unwritten: a round that skipped a document comes back for it.
