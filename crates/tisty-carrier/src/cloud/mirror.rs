@@ -1,21 +1,24 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tisty_core::witness::{self, Fact, channel};
 use tisty_sync::{NAMED, STORE};
 
-use super::index::{Index, Mirrored, on_shelf, path_of, stamp_of};
+use super::index::{Index, Mirrored, digest_of, on_shelf, path_of, stamp_of};
 use crate::{Changes, Expect, Hitch, Remote, Seen};
 
 const PAPERS: &str = "docs";
 const RACY_NANOS: u128 = 2_000_000_000;
+const MIRRORED_AT_MOST: u64 = 64 * 1024 * 1024;
+const LITTER_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
 
 static TURN: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Pushed {
+    pub put: usize,
     pub left: usize,
 }
 
@@ -119,6 +122,9 @@ fn learn(
         }
         return Ok(false);
     }
+    if !mirrored(&seen.name) {
+        return Ok(false);
+    }
     let Some(at) = path_of(tree, &seen.name) else {
         witness::warn(
             channel::SYNC,
@@ -127,11 +133,18 @@ fn learn(
         );
         return Ok(false);
     };
-    if !mirrored(&seen.name)
-        || index
-            .tree
-            .get(&seen.name)
-            .is_some_and(|have| have.seen.revision == seen.revision)
+    if seen.bytes > MIRRORED_AT_MOST {
+        witness::warn(
+            channel::SYNC,
+            "the cloud holds a file too big to be history or a document, so it was left alone",
+            &[("at", Fact::Id(seen.name))],
+        );
+        return Ok(false);
+    }
+    if index
+        .tree
+        .get(&seen.name)
+        .is_some_and(|have| have.seen.revision == seen.revision)
     {
         return Ok(false);
     }
@@ -139,7 +152,7 @@ fn learn(
         note(index, seen, &at);
         return Ok(false);
     }
-    if is_doc(&seen.name) && pending(remote, index, &seen.name, &at) {
+    if is_doc(&seen.name) && pending(index, &seen.name, &at) {
         let Some(data) = data else {
             return Ok(true);
         };
@@ -148,19 +161,27 @@ fn learn(
     match download(remote, &at, &seen.name) {
         Ok(got) => note(index, got, &at),
         Err(Hitch::Missing(_)) => {}
+        Err(Hitch::Broke(why)) => {
+            witness::warn(
+                channel::SYNC,
+                "a file in the cloud could not be brought, so it was left for another round",
+                &[("at", Fact::Id(seen.name)), ("why", Fact::Why(why))],
+            );
+            return Ok(true);
+        }
         Err(other) => return Err(other),
     }
     Ok(false)
 }
 
-fn pending(remote: &dyn Remote, index: &Index, name: &str, at: &Path) -> bool {
+fn pending(index: &Index, name: &str, at: &Path) -> bool {
     let Ok(meta) = std::fs::metadata(at) else {
         return false;
     };
     match index.tree.get(name) {
         Some(kept) => {
             (kept.len, kept.stamp) != (meta.len(), stamp_of(&meta))
-                && !same_bytes(remote, at, meta.len(), &kept.seen)
+                && !(kept.len == meta.len() && digest_of(at).as_ref() == Some(&kept.digest))
         }
         None => meta.is_file(),
     }
@@ -185,11 +206,9 @@ fn forget_base(data: &Path, name: &str) {
 }
 
 fn resembles(remote: &dyn Remote, at: &Path, seen: &Seen) -> bool {
-    std::fs::metadata(at).is_ok_and(|one| one.is_file() && same_bytes(remote, at, one.len(), seen))
-}
-
-fn same_bytes(remote: &dyn Remote, at: &Path, len: u64, up: &Seen) -> bool {
-    !up.hash.is_empty() && up.bytes == len && remote.hash_of(at).is_ok_and(|hash| hash == up.hash)
+    !seen.hash.is_empty()
+        && std::fs::metadata(at).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
+        && remote.hash_of(at).is_ok_and(|hash| hash == seen.hash)
 }
 
 fn racy(stamp: u128) -> u128 {
@@ -203,14 +222,17 @@ fn racy(stamp: u128) -> u128 {
 }
 
 fn note(index: &mut Index, seen: Seen, at: &Path) {
-    if let Ok(meta) = std::fs::metadata(at) {
-        let mirrored = Mirrored {
-            len: meta.len(),
-            stamp: racy(stamp_of(&meta)),
-            seen,
-        };
-        index.tree.insert(mirrored.seen.name.clone(), mirrored);
-    }
+    let (Ok(meta), Some(digest)) = (std::fs::metadata(at), digest_of(at)) else {
+        return;
+    };
+    let mirrored = Mirrored {
+        len: meta.len(),
+        stamp: racy(stamp_of(&meta)),
+        digest,
+        seen,
+    };
+    index.confirmed |= mirrored.seen.name == NAMED;
+    index.tree.insert(mirrored.seen.name.clone(), mirrored);
 }
 
 fn download(remote: &dyn Remote, at: &Path, name: &str) -> Result<Seen, Hitch> {
@@ -248,10 +270,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     let mut done = Pushed::default();
     let mut here = Vec::new();
     let sound = walk(tree, tree, &mut here);
-    let dirty: Vec<&Found> = here
-        .iter()
-        .filter(|one| is_dirty(remote, index, one))
-        .collect();
+    let dirty: Vec<&Found> = here.iter().filter(|one| is_dirty(index, one)).collect();
     let present: BTreeSet<&str> = here.iter().map(|one| one.name.as_str()).collect();
     let gone: Vec<(String, String)> = match sound && tree.join(PAPERS).is_dir() {
         true => index
@@ -268,7 +287,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
 
     for (at, one) in rest.iter().enumerate() {
         if let Err(hitch) = upload(remote, index, one, &mut done) {
-            done.left += rest.len() - at;
+            done.left += rest.len() - at + gone.len() + stamp.len();
             return (done, Some(hitch));
         }
     }
@@ -279,28 +298,30 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
             }
             Err(Hitch::Changed(_)) => done.left += 1,
             Err(hitch) => {
-                done.left += gone.len() - at;
+                done.left += gone.len() - at + stamp.len();
                 return (done, Some(hitch));
             }
         }
     }
-    if done.left == 0 {
-        for one in stamp {
-            if let Err(hitch) = upload(remote, index, one, &mut done) {
-                done.left += 1;
-                return (done, Some(hitch));
-            }
+    if done.left > 0 {
+        done.left += stamp.len();
+        return (done, None);
+    }
+    for one in stamp {
+        if let Err(hitch) = upload(remote, index, one, &mut done) {
+            done.left += 1;
+            return (done, Some(hitch));
         }
     }
     (done, None)
 }
 
-fn is_dirty(remote: &dyn Remote, index: &mut Index, one: &Found) -> bool {
+fn is_dirty(index: &mut Index, one: &Found) -> bool {
     match index.tree.get_mut(&one.name) {
         None => true,
         Some(kept) if (kept.len, kept.stamp) == (one.len, one.stamp) => false,
-        Some(kept) if same_bytes(remote, &one.at, one.len, &kept.seen) => {
-            (kept.len, kept.stamp) = (one.len, racy(one.stamp));
+        Some(kept) if kept.len == one.len && digest_of(&one.at).as_ref() == Some(&kept.digest) => {
+            kept.stamp = racy(one.stamp);
             false
         }
         Some(_) => true,
@@ -330,14 +351,17 @@ fn upload(
     match remote.put(&one.name, &one.at, expect) {
         Ok(seen) => {
             landed(remote, one, &seen)?;
+            index.confirmed |= one.name == NAMED;
             index.tree.insert(
                 one.name.clone(),
                 Mirrored {
                     seen,
                     len: one.len,
                     stamp: racy(one.stamp),
+                    digest: digest_of(&one.at).unwrap_or_default(),
                 },
             );
+            done.put += 1;
             Ok(())
         }
         Err(Hitch::Changed(_) | Hitch::Missing(_)) => {
@@ -362,6 +386,38 @@ fn landed(remote: &dyn Remote, one: &Found, seen: &Seen) -> Result<(), Hitch> {
         )));
     }
     Ok(())
+}
+
+pub fn sweep(dir: &Path) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.filter_map(|one| one.ok()) {
+        let at = entry.path();
+        let Ok(meta) = entry.metadata() else {
+            continue;
+        };
+        if meta.is_dir() {
+            sweep(&at);
+            continue;
+        }
+        let Some(leaf) = at.file_name().and_then(|named| named.to_str()) else {
+            continue;
+        };
+        let spent = if leaf.ends_with(".part") {
+            tisty_core::parting::spent(&at, leaf)
+        } else if leaf.ends_with(".tmp") {
+            meta.modified()
+                .ok()
+                .and_then(|when| when.elapsed().ok())
+                .is_some_and(|age| age > LITTER_AFTER)
+        } else {
+            false
+        };
+        if spent {
+            let _ = std::fs::remove_file(&at);
+        }
+    }
 }
 
 fn walk(root: &Path, dir: &Path, into: &mut Vec<Found>) -> bool {
@@ -409,13 +465,18 @@ fn named(root: &Path, at: &Path) -> Option<String> {
     Some(parts?.join("/"))
 }
 
-fn is_doc(name: &str) -> bool {
-    name.strip_prefix(PAPERS)
+fn under(name: &str, top: &str) -> bool {
+    name.strip_prefix(top)
         .is_some_and(|rest| rest.starts_with('/'))
+}
+
+fn is_doc(name: &str) -> bool {
+    under(name, PAPERS)
 }
 
 fn mirrored(name: &str) -> bool {
     let leaf = name.rsplit('/').next().unwrap_or(name);
     let litter = leaf.ends_with(".part") || leaf.ends_with(".tmp") || leaf == ".lock";
-    !on_shelf(name) && !litter
+    let ours = name == NAMED || under(name, STORE) || is_doc(name);
+    ours && !litter
 }

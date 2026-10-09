@@ -1,9 +1,11 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tisty_core::signing::SigningKey;
-use tisty_sync::carry_through;
+use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
     Carrier, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason, Remote, Round,
@@ -21,16 +23,21 @@ use judge::{Judged, judge};
 use shelf::Shelf;
 
 const TREE: &str = "tree";
+const FORGOTTEN: &str = "forgotten";
+const FORGETTING: &str = "forgotten.working";
+const PATIENCE: Duration = Duration::from_secs(5);
 
 struct Done<T> {
     value: Option<T>,
     deferred: Option<Deferred>,
     stopped: Option<Trouble>,
+    uploaded: usize,
 }
 
 pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
+    tried: AtomicBool,
 }
 
 impl Cloud {
@@ -38,6 +45,7 @@ impl Cloud {
         Self {
             remote,
             home: home.into(),
+            tried: AtomicBool::new(false),
         }
     }
 
@@ -47,24 +55,38 @@ impl Cloud {
 
     fn with_mirror<T>(
         &self,
-        data: Option<&Path>,
+        here: Option<&Here>,
+        patient: bool,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
-        let _round = match lock::Round::take(&self.home) {
+        let taken = match patient {
+            true => lock::Round::wait_for(&self.home, PATIENCE),
+            false => lock::Round::take(&self.home),
+        };
+        let _round = match taken {
             Ok(Some(round)) => round,
             Ok(None) => return Ok(Done::deferred(Reason::Busy, None)),
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
         let tree = self.tree();
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
+        self.forget_asked(&tree);
+        mirror::sweep(&tree);
         let remote: &dyn Remote = &*self.remote;
         let mut index = Index::load(&self.home);
+        let data = here.map(|here| here.data.as_path());
         if let Err(hitch) = mirror::pull(remote, &tree, &mut index, data) {
             let _ = index.save(&self.home);
             return match judge(hitch) {
                 Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
                 Judged::Stop(trouble) => Err(trouble),
             };
+        }
+        if let Some(here) = here
+            && !index.confirmed
+        {
+            forget_shape(&here.data, &tree);
+            forget_carried_to(&here.aside, &tree);
         }
         let worked = work(&tree, &mut index, remote);
         let (value, held) = match worked {
@@ -74,11 +96,11 @@ impl Cloud {
                 return Err(trouble);
             }
         };
-        let (pushed, hitch) = match held {
-            Some(_) => (mirror::Pushed::default(), None),
-            None => mirror::push(remote, &tree, &mut index),
+        let rated = held.is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Budget));
+        let (pushed, hitch) = match rated {
+            true => (mirror::Pushed::default(), None),
+            false => mirror::push(remote, &tree, &mut index),
         };
-        let saved = index.save(&self.home);
         let mut deferred = held;
         let mut stopped = None;
         match hitch.map(judge) {
@@ -105,32 +127,50 @@ impl Cloud {
             }
             None => {}
         }
-        saved.map_err(|e| Trouble::Broke(e.to_string()))?;
+        if let Err(why) = index.save(&self.home) {
+            stopped = stopped.or(Some(Trouble::Broke(why.to_string())));
+        }
         Ok(Done {
             value: Some(value),
             deferred,
             stopped,
+            uploaded: pushed.put,
         })
     }
 
     fn only<T>(
         &self,
-        data: Option<&Path>,
+        here: Option<&Here>,
         work: impl FnOnce(&Path) -> Result<T, Trouble>,
     ) -> Result<T, Trouble> {
-        let done = self.with_mirror(data, |tree, _, _| Ok((work(tree)?, None)))?;
-        if let Some(trouble) = done.stopped {
-            return Err(trouble);
+        let done = self.with_mirror(here, true, |tree, _, _| Ok((work(tree)?, None)))?;
+        match done.value {
+            Some(value) => Ok(value),
+            None => Err(Trouble::Broke(unavailable(done.deferred))),
         }
-        done.value
-            .ok_or_else(|| Trouble::Broke(unavailable(done.deferred)))
     }
 
     fn fresh(&self) -> PathBuf {
-        if !Index::load(&self.home).pulled() {
-            let _ = self.with_mirror(None, |_, _, _| Ok(((), None)));
+        if !Index::load(&self.home).pulled() && !self.tried.swap(true, Ordering::Relaxed) {
+            let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
         }
         self.tree()
+    }
+
+    fn forget_asked(&self, tree: &Path) {
+        let (list, working) = (self.home.join(FORGOTTEN), self.home.join(FORGETTING));
+        for turn in 0..2 {
+            if turn == 1 {
+                let _ = std::fs::rename(&list, &working);
+            }
+            let Ok(text) = std::fs::read_to_string(&working) else {
+                continue;
+            };
+            for id in text.lines().filter(|line| !line.is_empty()) {
+                tisty_sync::forget_paper(tree, id);
+            }
+            let _ = std::fs::remove_file(&working);
+        }
     }
 }
 
@@ -144,6 +184,7 @@ impl<T> Done<T> {
                 retry_after: wait,
             }),
             stopped: None,
+            uploaded: 0,
         }
     }
 }
@@ -200,7 +241,7 @@ impl Carrier for Cloud {
     }
 
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        let done = self.with_mirror(Some(&here.data), |tree, index, remote| {
+        let done = self.with_mirror(Some(here), false, |tree, index, remote| {
             let mut shelf = Shelf::over(remote, index);
             let moved = carry_through(
                 &here.data,
@@ -213,29 +254,23 @@ impl Carrier for Cloud {
                 round.saying,
                 &mut shelf,
             )?;
-            Ok((moved, shelf.paused()))
+            Ok(((moved, shelf.sent()), shelf.paused()))
         })?;
-        let mut moved = done.value.unwrap_or_default();
-        let mut deferred = done.deferred;
+        let (mut moved, attached) = done.value.unwrap_or_default();
+        let mirrored = moved.sent.saturating_sub(attached);
+        moved.sent = attached + mirrored.min(done.uploaded);
         if let Some(trouble) = done.stopped {
             if moved == Moved::default() {
                 return Err(trouble);
             }
-            deferred = merged(
-                deferred,
-                Some(Deferred {
-                    reason: Reason::Refused,
-                    left: 0,
-                    retry_after: None,
-                }),
-            );
+            moved.refused = Some(trouble);
         }
-        moved.deferred = deferred;
+        moved.deferred = done.deferred;
         Ok(moved)
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {
-        self.only(Some(&here.data), |tree| {
+        self.only(Some(here), |tree| {
             tisty_sync::stitch(&here.data, &here.device, tree, key)
         })
     }
@@ -247,17 +282,16 @@ impl Carrier for Cloud {
         elsewhere: Elsewhere,
         told: Told,
     ) -> Result<LetGo, Trouble> {
-        let done = self.with_mirror(Some(&here.data), |_, index, remote| {
+        let done = self.with_mirror(Some(here), true, |_, index, remote| {
             Ok((
                 shelf::let_go(remote, index, &here.data, above, elsewhere, told),
                 None,
             ))
         })?;
-        if let Some(trouble) = done.stopped {
-            return Err(trouble);
+        match done.value {
+            Some(freed) => Ok(freed),
+            None => Err(Trouble::Broke(unavailable(done.deferred))),
         }
-        done.value
-            .ok_or_else(|| Trouble::Broke(unavailable(done.deferred)))
     }
 
     fn paper_waiting(&self, id: &str) -> bool {
@@ -269,20 +303,32 @@ impl Carrier for Cloud {
     }
 
     fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble> {
-        self.only(Some(&here.data), |tree| {
+        self.only(Some(here), |tree| {
             tisty_sync::both_papers(&here.data, tree, id)
         })
     }
 
     fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
-        self.only(Some(&here.data), |tree| {
+        self.only(Some(here), |tree| {
             tisty_sync::settle(&here.data, tree, id, keep)
         })
     }
 
     fn forget_paper(&self, id: &str) {
+        if tisty_core::docs::resolve(Path::new(""), id).is_err()
+            || std::fs::create_dir_all(&self.home).is_err()
+        {
+            return;
+        }
+        let asked = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(self.home.join(FORGOTTEN));
+        if let Ok(mut list) = asked {
+            let _ = writeln!(list, "{id}");
+        }
         if let Ok(Some(_round)) = lock::Round::take(&self.home) {
-            tisty_sync::forget_paper(&self.tree(), id);
+            self.forget_asked(&self.tree());
         }
     }
 }

@@ -19,6 +19,7 @@ pub struct Shelf<'a> {
     remote: &'a dyn Remote,
     index: &'a mut Index,
     paused: Option<Deferred>,
+    sent: usize,
 }
 
 struct Local {
@@ -35,11 +36,28 @@ impl<'a> Shelf<'a> {
             remote,
             index,
             paused: None,
+            sent: 0,
         }
     }
 
     pub fn paused(&self) -> Option<Deferred> {
         self.paused
+    }
+
+    pub fn sent(&self) -> usize {
+        self.sent
+    }
+
+    fn owed(&self, one: &Local, round: &Giving) -> bool {
+        !round.buried.contains(&one.reference)
+            && one.len <= COPIED_IN_DOC
+            && attach::shelved(&one.under, &one.leaf)
+            && (round.again
+                || !self
+                    .index
+                    .shelf
+                    .get(&one.reference)
+                    .is_some_and(|up| up.bytes == one.len))
     }
 
     fn refuse(&mut self, hitch: Hitch, reference: &str, remaining: usize) -> Result<(), Trouble> {
@@ -129,8 +147,7 @@ impl Attachments for Shelf<'_> {
         let mut given = Given::default();
         let mut landed = Vec::new();
         let (all, mut asked_for) = locals(round.data, round.buried);
-        let whole = all.len();
-        for (at, one) in all.into_iter().enumerate() {
+        for (at, one) in all.iter().enumerate() {
             if self.paused.is_some() {
                 break;
             }
@@ -138,16 +155,7 @@ impl Attachments for Shelf<'_> {
                 asked_for.push(one.at.clone());
                 continue;
             }
-            if round.buried.contains(&one.reference)
-                || one.len > COPIED_IN_DOC
-                || !attach::shelved(&one.under, &one.leaf)
-                || (!round.again
-                    && self
-                        .index
-                        .shelf
-                        .get(&one.reference)
-                        .is_some_and(|up| up.bytes == one.len))
-            {
+            if !self.owed(one, &round) {
                 continue;
             }
             let Ok((sha256, bytes)) = attach::hashed(&one.at) else {
@@ -163,13 +171,20 @@ impl Attachments for Shelf<'_> {
                 );
                 continue;
             }
-            match self.send(&one) {
+            match self.send(one) {
                 Ok(seen) => {
                     self.index.shelf.insert(one.reference.clone(), seen);
-                    landed.push((one.reference, bytes));
+                    landed.push((one.reference.clone(), bytes));
                     given.sent += 1;
+                    self.sent += 1;
                 }
-                Err(hitch) => self.refuse(hitch, &one.reference, whole - at)?,
+                Err(hitch) => {
+                    let remaining = all[at..]
+                        .iter()
+                        .filter(|rest| self.owed(rest, &round))
+                        .count();
+                    self.refuse(hitch, &one.reference, remaining)?;
+                }
             }
         }
         if round.holds == Holds::Shared {
@@ -217,7 +232,7 @@ impl Attachments for Shelf<'_> {
             .map(|(reference, seen)| (reference.clone(), seen.clone()))
             .collect();
         let whole = up.len();
-        for (done, (reference, seen)) in up.into_iter().enumerate() {
+        for (done, (reference, seen)) in up.iter().enumerate() {
             if self.paused.is_some() {
                 break;
             }
@@ -226,40 +241,32 @@ impl Attachments for Shelf<'_> {
                 done,
                 whole,
             });
-            let Some((under, leaf)) = reference
-                .strip_prefix("attachments/")
-                .and_then(|rest| rest.split_once('/'))
-            else {
-                continue;
-            };
-            let Ok(target) = attach::resolve(&reference, round.data) else {
-                continue;
-            };
-            let wanted = attach::shelved(under, leaf)
-                && !round.buried.contains(&reference)
-                && round
-                    .reachable
-                    .is_none_or(|named| named.contains(&reference))
-                && above.is_none_or(|most| seen.bytes <= most)
-                && seen.bytes <= COPIED_IN_DOC
-                && !std::fs::metadata(&target)
-                    .is_ok_and(|one| one.is_file() && one.len() == seen.bytes);
-            if !wanted {
+            if !wanted(&round, above, reference, seen) {
                 continue;
             }
-            let part = match self.fetch(&reference, &target) {
+            let Some((under, leaf)) = placed(reference) else {
+                continue;
+            };
+            let Ok(target) = attach::resolve(reference, round.data) else {
+                continue;
+            };
+            let part = match self.fetch(reference, &target) {
                 Ok(part) => part,
                 Err(hitch) => {
-                    self.refuse(hitch, &reference, whole - done)?;
+                    let remaining = up[done..]
+                        .iter()
+                        .filter(|(rest, said)| wanted(&round, above, rest, said))
+                        .count();
+                    self.refuse(hitch, reference, remaining)?;
                     continue;
                 }
             };
             let kept = attach::hashed(&part).is_ok_and(|(sha256, bytes)| {
                 let fits = attach::vouched(under, leaf, &sha256)
-                    && attach::as_kept(&written_down, &reference, &sha256)
+                    && attach::as_kept(&written_down, reference, &sha256)
                     && std::fs::rename(&part, &target).is_ok();
                 if fits {
-                    attach::noted(round.data, &reference, &sha256, bytes);
+                    attach::noted(round.data, reference, &sha256, bytes);
                     (round.saying)(Reached::Kept {
                         at: reference.clone(),
                         sha256: sha256.clone(),
@@ -276,7 +283,7 @@ impl Attachments for Shelf<'_> {
                 witness::warn(
                     channel::SYNC,
                     "an attachment from the cloud does not hold the bytes its name vouches for",
-                    &[("at", Fact::Id(reference))],
+                    &[("at", Fact::Id(reference.clone()))],
                 );
             }
         }
@@ -287,6 +294,29 @@ impl Attachments for Shelf<'_> {
         });
         Ok(taken)
     }
+}
+
+fn placed(reference: &str) -> Option<(&str, &str)> {
+    reference
+        .strip_prefix("attachments/")
+        .and_then(|rest| rest.split_once('/'))
+}
+
+fn wanted(round: &Taking, above: Option<u64>, reference: &str, seen: &Seen) -> bool {
+    let Some((under, leaf)) = placed(reference) else {
+        return false;
+    };
+    let Ok(target) = attach::resolve(reference, round.data) else {
+        return false;
+    };
+    attach::shelved(under, leaf)
+        && !round.buried.contains(reference)
+        && round
+            .reachable
+            .is_none_or(|named| named.contains(reference))
+        && above.is_none_or(|most| seen.bytes <= most)
+        && seen.bytes <= COPIED_IN_DOC
+        && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
 }
 
 fn sweep(data: &Path) {

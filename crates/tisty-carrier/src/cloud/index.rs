@@ -12,11 +12,15 @@ pub struct Mirrored {
     pub seen: Seen,
     pub len: u64,
     pub stamp: u128,
+    #[serde(default)]
+    pub digest: String,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Index {
     pub cursor: Option<String>,
+    #[serde(default)]
+    pub confirmed: bool,
     pub tree: BTreeMap<String, Mirrored>,
     pub shelf: BTreeMap<String, Seen>,
 }
@@ -47,6 +51,12 @@ pub fn stamp_of(meta: &std::fs::Metadata) -> u128 {
         .map_or(0, |since| since.as_nanos())
 }
 
+pub fn digest_of(at: &Path) -> Option<String> {
+    tisty_core::attach::hashed(at)
+        .ok()
+        .map(|(digest, _)| digest)
+}
+
 pub fn on_shelf(name: &str) -> bool {
     name.starts_with(&format!("{}/", tisty_sync::HELD))
 }
@@ -55,7 +65,10 @@ pub fn path_of(tree: &Path, name: &str) -> Option<PathBuf> {
     crate::named_well(name).ok()?;
     let mut at = tree.to_path_buf();
     for part in name.split('/') {
-        if part.contains(':') || tisty_core::attach::reserved(part) {
+        let odd = part.contains([':', '<', '>', '"', '|', '?', '*'])
+            || part.ends_with(['.', ' '])
+            || tisty_core::attach::reserved(part);
+        if odd {
             return None;
         }
         at.push(part);

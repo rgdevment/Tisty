@@ -449,6 +449,7 @@ fn a_limit_from_the_provider_defers_with_the_wait_it_asked_for() {
         assert_eq!(deferred.reason, Reason::Limit, "{who}");
         assert_eq!(deferred.retry_after, Some(Duration::from_secs(9)), "{who}");
         assert!(deferred.left > 0, "{who}: something was left");
+        assert_eq!(moved.sent, 0, "{who}: nothing reached the cloud");
         let later = one.round(Way::Both);
         assert_eq!(later.deferred, None, "{who}");
         two.round(Way::Both);
@@ -474,18 +475,43 @@ fn a_provider_that_will_not_let_us_in_is_a_refusal_not_a_deferral() {
 }
 
 #[test]
-fn a_refusal_while_sending_still_tells_what_the_round_did() {
+fn a_refusal_before_anything_went_up_is_an_error() {
     for setting in clouds() {
-        let who = &setting.name;
         let remote = counting(&setting);
         let (one, two) = pair(&setting);
         one.wrote("lo de uno");
         remote.fail_after(1, Hitch::Full);
 
+        let refused = one.carry(Way::Both, Holds::Everywhere);
+
+        assert!(
+            matches!(refused, Err(Trouble::Refused(_))),
+            "{}: {refused:?}",
+            setting.name
+        );
+        one.round(Way::Both);
+        two.round(Way::Pull);
+        assert_eq!(two.titles(), ["lo de uno"], "{}", setting.name);
+    }
+}
+
+#[test]
+fn a_refusal_after_part_of_the_round_went_up_still_tells_what_the_round_did() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        remote.fail_after(2, Hitch::Full);
+
         let moved = one.round(Way::Both);
 
-        assert!(moved.sent > 0, "{who}: the local side moved");
-        assert_eq!(moved.deferred.unwrap().reason, Reason::Refused, "{who}");
+        assert!(moved.sent > 0, "{who}: something did go up");
+        assert!(
+            matches!(moved.refused, Some(Trouble::Refused(_))),
+            "{who}: {:?}",
+            moved.refused
+        );
         one.round(Way::Both);
         two.round(Way::Pull);
         assert_eq!(two.titles(), ["lo de uno"], "{who}");
@@ -816,6 +842,7 @@ fn the_index_survives_being_saved_and_read_back() {
             seen: seen.clone(),
             len: 7,
             stamp: 1_760_000_000_123_456_789_000,
+            digest: "abc".to_string(),
         },
     );
     index
@@ -825,4 +852,183 @@ fn the_index_survives_being_saved_and_read_back() {
     index.save(room.path()).unwrap();
 
     assert_eq!(super::index::Index::load(room.path()), index);
+}
+
+#[test]
+fn names_that_are_not_history_or_documents_are_neither_fetched_nor_removed() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        let stray = setting.room.path().join("stray");
+        std::fs::write(&stray, b"not ours").unwrap();
+        let names = [
+            "Videos/viaje.mp4",
+            "otra/nota.md",
+            "docs/a*b.md",
+            "docs/c?.md",
+        ];
+        for name in names {
+            remote.put(name, &stray, Expect::Any).unwrap();
+        }
+        one.wrote("lo de uno");
+
+        one.round(Way::Both);
+        one.round(Way::Both);
+
+        let tree = home_of(&setting, "dev_a").join("tree");
+        assert!(
+            !tree.join("Videos").exists() && !tree.join("otra").exists(),
+            "{who}"
+        );
+        for name in names {
+            assert!(
+                remote.about(name).unwrap().is_some(),
+                "{who}: {name} was removed"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_cloud_that_never_got_the_stamp_does_not_leave_this_machine_unshaped() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        remote.fail_after(
+            1,
+            Hitch::Limited {
+                wait: Duration::from_secs(1),
+            },
+        );
+        assert!(one.round(Way::Both).deferred.is_some(), "{who}");
+        std::fs::remove_dir_all(home_of(&setting, "dev_a")).unwrap();
+
+        let again = one.carry(Way::Both, Holds::Everywhere);
+
+        assert!(again.is_ok(), "{who}: {again:?}");
+        assert!(remote.about("tisty.toml").unwrap().is_some(), "{who}");
+    }
+}
+
+#[test]
+fn an_attachment_that_fails_offline_does_not_hold_back_the_history_and_both_are_reported() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        one.kept("foto", b"los bytes de una foto");
+        one.wrote("lo de uno");
+        remote.fail_after(1, Hitch::Unreachable("sin red".into()));
+        remote.fail_next(Hitch::Limited {
+            wait: Duration::from_secs(4),
+        });
+
+        let moved = one.round(Way::Both);
+
+        let deferred = moved.deferred.unwrap();
+        assert_eq!(deferred.reason, Reason::Offline, "{who}");
+        assert_eq!(deferred.retry_after, Some(Duration::from_secs(4)), "{who}");
+        assert!(deferred.left >= 2, "{who}: {deferred:?}");
+    }
+}
+
+#[test]
+fn a_document_forgotten_while_a_round_runs_is_still_forgotten() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nuno\n");
+        one.round(Way::Both);
+        std::fs::remove_file(one.here.data.join("docs").join(format!("{DOC}.md"))).unwrap();
+        let mirrored = home_of(&setting, "dev_a").join("tree").join(doc_name());
+        let running = super::lock::Round::take(&home_of(&setting, "dev_a")).unwrap();
+
+        one.carrier.forget_paper(DOC);
+
+        assert!(mirrored.exists(), "{who}: the round has the mirror");
+        drop(running);
+        one.round(Way::Both);
+        assert!(!mirrored.exists(), "{who}");
+        assert_eq!(remote.about(&doc_name()).unwrap(), None, "{who}");
+    }
+}
+
+#[test]
+fn a_provider_that_gives_no_hashes_still_gets_each_file_once_and_a_quiet_round_sends_nothing() {
+    let room = tempfile::tempdir().unwrap();
+    let plain = Arc::new(Fake::dropbox().without_hashes());
+    let setting = Setting {
+        name: "cloud without hashes".to_string(),
+        room,
+        place: Place::Cloud(plain.clone()),
+    };
+    let (one, _) = pair(&setting);
+    one.filed(DOC, "# Plan\n\nuno\n");
+    one.wrote("lo de uno");
+
+    one.round(Way::Both);
+
+    let sent = plain.uploaded();
+    let once: std::collections::BTreeSet<&String> = sent.iter().collect();
+    assert_eq!(once.len(), sent.len(), "{sent:?}");
+    one.round(Way::Both);
+    plain.forget_counts();
+    one.round(Way::Both);
+    assert_eq!(plain.counts().sent, 0);
+}
+
+#[test]
+fn work_that_must_not_fail_waits_for_a_running_round_to_finish() {
+    let room = tempfile::tempdir().unwrap();
+    let home = room.path().to_path_buf();
+    let running = super::lock::Round::take(&home).unwrap().unwrap();
+    let short = super::lock::Round::wait_for(&home, Duration::from_millis(100)).unwrap();
+    assert!(short.is_none(), "a held lock was given away");
+    let waiter = std::thread::spawn({
+        let home = home.clone();
+        move || {
+            super::lock::Round::wait_for(&home, Duration::from_secs(10))
+                .unwrap()
+                .is_some()
+        }
+    });
+    std::thread::sleep(Duration::from_millis(200));
+
+    drop(running);
+
+    assert!(waiter.join().unwrap(), "it never got the lock");
+}
+
+#[test]
+fn what_a_dead_round_left_behind_is_swept_and_what_is_recent_is_not() {
+    let room = tempfile::tempdir().unwrap();
+    let docs = room.path().join("docs");
+    std::fs::create_dir_all(&docs).unwrap();
+    let old = std::time::SystemTime::now() - Duration::from_secs(3 * 24 * 60 * 60);
+    let part = docs.join("dev_x-0001.01ARZ3NDEKTSV4RRFFQ69G5FAV.7.part");
+    let tmp = docs.join("dev_x-0001.4242.3.tmp");
+    let recent = docs.join("dev_x-0002.01ARZ3NDEKTSV4RRFFQ69G5FAV.8.part");
+    for at in [&part, &tmp, &recent] {
+        std::fs::write(at, b"half").unwrap();
+    }
+    for at in [&part, &tmp] {
+        std::fs::File::options()
+            .write(true)
+            .open(at)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+    }
+
+    super::mirror::sweep(room.path());
+
+    assert!(!part.exists() && !tmp.exists());
+    assert!(
+        recent.exists(),
+        "a round that may still be running keeps its file"
+    );
 }

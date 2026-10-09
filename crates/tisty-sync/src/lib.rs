@@ -16,9 +16,10 @@ use held::{copy_held, let_go_of};
 pub use held::{left_behind, let_go_telling};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
+pub use place::forget_carried_to;
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
 use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
-pub use shape::NAMED;
+pub use shape::{NAMED, unseen as forget_shape};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -84,6 +85,7 @@ pub struct Moved {
     /// Not undecided: confirming or removing the machine that answers for them settles them.
     pub waiting: Vec<String>,
     pub deferred: Option<Deferred>,
+    pub refused: Option<Trouble>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,7 +95,6 @@ pub enum Reason {
     Busy,
     Offline,
     Changed,
-    Refused,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

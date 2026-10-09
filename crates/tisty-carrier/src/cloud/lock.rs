@@ -1,7 +1,9 @@
 use std::fs::TryLockError;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 const FILE: &str = "round.lock";
+const EVERY: Duration = Duration::from_millis(50);
 
 pub struct Round(std::fs::File);
 
@@ -17,6 +19,19 @@ impl Round {
             Ok(()) => Ok(Some(Self(file))),
             Err(TryLockError::WouldBlock) => Ok(None),
             Err(TryLockError::Error(why)) => Err(why),
+        }
+    }
+
+    pub fn wait_for(home: &Path, within: Duration) -> std::io::Result<Option<Self>> {
+        let started = Instant::now();
+        loop {
+            if let Some(round) = Self::take(home)? {
+                return Ok(Some(round));
+            }
+            if started.elapsed() >= within {
+                return Ok(None);
+            }
+            std::thread::sleep(EVERY);
         }
     }
 }

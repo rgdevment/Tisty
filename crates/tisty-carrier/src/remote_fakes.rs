@@ -62,6 +62,7 @@ pub struct Fake {
     kind: Kind,
     page: Option<usize>,
     chunk: Option<u64>,
+    hashless: bool,
     shelf: Arc<Mutex<Shelf>>,
 }
 
@@ -71,6 +72,7 @@ impl Fake {
             kind,
             page: None,
             chunk: None,
+            hashless: false,
             shelf: Arc::default(),
         }
     }
@@ -89,6 +91,11 @@ impl Fake {
 
     pub fn with_page(mut self, page: usize) -> Self {
         self.page = Some(page);
+        self
+    }
+
+    pub fn without_hashes(mut self) -> Self {
+        self.hashless = true;
         self
     }
 
@@ -156,6 +163,9 @@ impl Fake {
     }
 
     fn hash(&self, body: &[u8]) -> String {
+        if self.hashless {
+            return String::new();
+        }
         let kind = match self.kind {
             Kind::Drive => "md5",
             Kind::OneDrive => "quickxor",
