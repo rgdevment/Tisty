@@ -1226,9 +1226,9 @@ trusted, and its failure is a deleted task coming back.
 performs deliberately — build a fresh store from the log keeping the tombstones,
 give it a new identity, and have every other machine adopt it. The machinery
 exists (`stitch`, `take_over`, `forebears`, and the four-answer question is the
-adoption step). It is not built because 270 MB over forty years does not justify
-asking every machine you own to adopt a new store, and a machine that never
-adopts is left clashing.
+adoption step). It is not built because 130 MB over forty years, about 270 MB
+once sealed, does not justify asking every machine you own to adopt a new
+store, and a machine that never adopts is left clashing.
 
 ### The sets that only grow
 
@@ -2289,12 +2289,14 @@ more line after its events:
 - `seg` is the segment's number, not its file name, so renaming `active.tisty`
   to `000003.tisty` does not touch what was signed.
 - `at` is how many bytes came before the seal, `tip` the SHA-256 chain folded
-  across this machine's whole history up to there, `n` how many events it
-  holds. The last seal of a segment that rotates says `"closed":true`.
-- `sig` signs, with the machine's key, the exact bytes of the line that come
-  before `,"sig"`, together with the machine's name, so one signature answers
-  for one seal of one machine and no other. A reader checks the bytes it holds
-  and never writes them out again.
+  across this machine's whole history up to there — every line, earlier seals
+  included, each with its newline — `n` how many events it holds. The last seal
+  of a segment that rotates says `"closed":true`.
+- `sig` signs, with the machine's key, the exact bytes of the line up to the
+  last `,"sig":"`, together with the machine's name and a context no other
+  signature of Tisty shares, so one signature answers for one seal of one
+  machine and no other. A reader checks the bytes it holds and never writes
+  them out again.
 
 **A seal can grow without a new schema.** A reader skips the fields of a seal
 it does not know, and `sig` covers whatever stands in front of it, so a field a
@@ -2303,21 +2305,27 @@ every build that cannot read it. That is why the installation that wrote a seal
 is not in it yet: `inst`, the digest the configuration keeps in `config.inst`,
 never leaves the configuration today, and putting it in a line every machine
 reads would change that, and the privacy notes with it. It can be added later as
-one more field, by whoever decides it should travel.
+one more field, by whoever decides it should travel. The one field a seal never
+carries is `opt`, which lets a build walk past a line it cannot read: a seal
+that cannot be read has to stop whoever meets it.
 
 A segment and its signature are now one object. The seal is always the last
 line, which also makes the newest schema of a history readable from its tail.
 Reading follows from that:
 
 - Bytes after the last seal are on their way, never tampering: the history is
-  `Unreadable` this round, and whoever wrote them seals them again on opening
-  its store.
+  `Unreadable` for as long as they stay unsealed, and whoever wrote them seals
+  them again on its next write.
 - A segment that has a seal is read by its seals alone. A `.sig` or a `.count`
   beside it — one a build before the 17 left, or a rotation carried halfway —
   answers for nothing and is ignored, so an orphan can never leave a history
   `Unreadable` for good.
-- An `active.tisty` whose seal names a segment at or below the last closed one
-  is a leftover of a rotation carried halfway, and is skipped.
+- The first seal answers for every byte before it, so a closed segment written
+  before it needs no `.sig` of its own once a seal follows; where no seal
+  follows yet, its `.sig` still decides.
+- An `active.tisty` whose last seal says `"closed":true` is read as the closed
+  segment it names. One whose seal names a segment at or below the last closed
+  one is a leftover of a rotation carried halfway, and is skipped.
 - Closed segments are uploaded only if they do not exist; the live one is a
   single object rewritten whole each round, against its revision where the
   provider has one. The size at which a segment rotates becomes the writer's to
@@ -2326,14 +2334,16 @@ Reading follows from that:
 
 **What the writer promises.**
 
-- A closing seal goes down before the rename, never after, and a store that
-  opens on an `active.tisty` whose last seal says `"closed":true` finishes the
-  rotation, naming the file by the seal's `seg`.
+- A closing seal goes down before the rename, never after, and the next write
+  after a rotation that was cut between the two finishes it, naming the file by
+  the seal's `seg`.
 - A segment that has a seal never gets a `.sig` or a `.count` of its own.
-- Without its key the machine still writes, because nobody is locked out of
-  their own list, but it does not rotate: a closed segment nobody sealed would
-  be disowned for good. What it wrote waits, unsealed, and the machines that
-  read it find it on its way until the key is back and the next write seals it.
+- Without its key — blocked, say, by the system's keychain — the machine still
+  writes, because nobody is locked out of their own list, but it does not
+  rotate: a closed segment nobody sealed would be disowned for good. What it
+  wrote waits, unsealed, and the machines that read it find it on its way until
+  the key is back and the next write seals it. A key that is gone altogether is
+  not this case: that machine comes back under a new name, as it always has.
 - A last line that does not read — `mend` sets it aside — is dealt with first,
   and the segment is sealed again over what remains, so a torn seal never
   leaves events with nothing answering for them.
@@ -2356,11 +2366,14 @@ it once. The figures under *Nothing shrinks* say what that comes to.
 rotated and nothing is rewritten: the first write at 17 appends its events and a
 seal to the active segment as it stands. The seal's `tip` is the chain already
 folded across the whole history, v16 lines included, so one signature covers
-everything before it, and the `.sig` that sat beside that segment stops
-answering for it. Closed segments from before are still read by their `.sig`.
-Once a machine has sealed, a later segment of its own without seals is
-disowned. A build that only knows 16 stops at the first line with `"v":17`, as
-it already does for any newer schema.
+everything before it. The `.sig` that sat beside that segment stops answering
+for it and is left there until the rotation that closes the segment takes it
+away: an older build that met a half-written last line would otherwise read the
+history as tampered with and not merely unread. Closed segments from before are
+still read by their `.sig`, until a seal follows them. Once a machine has
+sealed, a later segment of its own without seals is disowned. A build that only
+knows 16 stops at the first line with `"v":17`, as it already does for any newer
+schema.
 
 ### Changing a machine's key without asking again
 
