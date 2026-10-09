@@ -135,7 +135,7 @@ write_store() {
   rm -rf "$target"
   mkdir -p "$target"
   cp -R "$run/data/store/." "$target/"
-  find "$target" -name '.lock' -delete
+  find "$target" \( -name '.lock' -o -name '.store-key' \) -delete
   printf '%s\n' "written by tisty $version, schema $schema" > "$target.txt"
   printf '   %s\n' "$(find "$target" -type f | wc -l | tr -d ' ') files in $target"
 }
