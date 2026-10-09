@@ -8184,6 +8184,16 @@ fn a_machine_still_in_the_cloud_when_the_folder_was_taken_up_is_taken_up_when_it
 }
 
 fn upgraded_in_place(whose: &Machine, shared: &Path, older: &str, next: &str) -> String {
+    upgraded_saying(whose, shared, older, &[], next)
+}
+
+fn upgraded_saying(
+    whose: &Machine,
+    shared: &Path,
+    older: &str,
+    nonsense: &[&str],
+    next: &str,
+) -> String {
     let there = whose.store.join(&whose.device);
     std::fs::create_dir_all(&there).unwrap();
     std::fs::write(there.join("active.tisty"), older).unwrap();
@@ -8194,6 +8204,13 @@ fn upgraded_in_place(whose: &Machine, shared: &Path, older: &str, next: &str) ->
     let mut held = Store::open(&whose.store, who.clone())
         .unwrap()
         .signing_with(Some(key));
+    for p in nonsense {
+        held.append(Op::DeviceKey {
+            d: who.clone(),
+            p: p.to_string(),
+        })
+        .unwrap();
+    }
     held.append(Op::DeviceKey {
         d: who,
         p: shown.clone(),
@@ -8357,6 +8374,40 @@ fn a_known_machine_that_names_a_key_nothing_can_read_waits_instead_of_coming_in_
 }
 
 #[test]
+fn a_key_nothing_can_read_does_not_keep_a_machine_from_the_key_a_person_can_answer_for() {
+    let one = machine("dev_a");
+    let kept = tempfile::tempdir().unwrap();
+    let aside = Some(kept.path());
+    let shared = tempfile::tempdir().unwrap();
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let older = before_the_fence(&two, shared.path());
+    carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let shown = upgraded_saying(
+        &two,
+        shared.path(),
+        &older,
+        &["not a key"],
+        "lo nuevo de dev_b",
+    );
+    let waiting =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert_eq!(waiting.unconfirmed, vec![two.device.clone()]);
+
+    assert!(tisty_core::vouched::confirm(
+        &one.data,
+        &DeviceId(two.device.clone()),
+        &shown
+    ));
+    let after =
+        carry_leaning_on(&one.data, aside, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&one, &two.device).contains("lo nuevo de dev_b"));
+}
+
+#[test]
 fn a_history_whose_last_line_says_an_older_schema_still_owes_its_signature() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
@@ -8399,6 +8450,69 @@ fn an_unsigned_history_of_a_machine_this_store_knows_signs_is_disowned() {
     .unwrap();
     drop(held);
     before_the_fence(&two, shared.path());
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.disowned, vec![two.device.clone()]);
+    assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
+}
+
+#[test]
+fn a_machine_a_person_answered_for_does_not_come_in_without_its_signature() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let who = DeviceId(two.device.clone());
+    let paths = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let key = tisty_core::signing::shown(&tisty_core::signing::mine(&paths, &who).unwrap());
+    assert!(tisty_core::vouched::confirm(&one.data, &who, &key));
+    before_the_fence(&two, shared.path());
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.disowned, vec![two.device.clone()]);
+    assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
+}
+
+#[test]
+fn a_machine_that_was_seen_signing_does_not_come_in_unsigned() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    before_the_fence(&two, shared.path());
+    super::verified::keep(
+        &one.data,
+        shared.path(),
+        &two.device,
+        tisty_core::answering::Reached {
+            signing: true,
+            ..Default::default()
+        },
+    );
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert_eq!(after.disowned, vec![two.device.clone()]);
+    assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
+}
+
+#[test]
+fn a_history_that_carries_its_own_key_owes_its_signature_whatever_its_lines_claim() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = blank("dev_b");
+    let older = before_the_fence(&two, shared.path());
+    let key = format!(
+        "{{\"v\":{},\"ts\":\"2026-10-01T12:00:01Z\",\"by\":\"{}\",\"op\":\"device.key\",\"d\":\"{}\",\"p\":\"aa\"}}\n",
+        tisty_core::event::SIGNED_FROM - 1,
+        two.device,
+        two.device
+    );
+    let at = shared.path().join(STORE).join(&two.device);
+    std::fs::write(at.join("active.tisty"), format!("{older}{key}")).unwrap();
 
     let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 

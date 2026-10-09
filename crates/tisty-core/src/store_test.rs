@@ -1238,12 +1238,12 @@ fn what_schema_a_machine_writes_under_is_read_from_its_last_line_alone() {
 }
 
 #[test]
-fn the_highest_schema_a_machine_wrote_under_is_read_from_every_line() {
+fn a_schema_written_anywhere_in_a_history_is_found_and_not_only_on_its_last_line() {
     let room = tempfile::tempdir().unwrap();
     let at = room.path().join("dev_b");
     std::fs::create_dir_all(&at).unwrap();
 
-    assert_eq!(highest_schema(&at).unwrap(), 0, "nothing written yet");
+    assert!(!written_since(&at, 16).unwrap(), "nothing written yet");
 
     let line = |v: u32, id: &str| {
         format!(
@@ -1263,7 +1263,9 @@ fn the_highest_schema_a_machine_wrote_under_is_read_from_every_line() {
     )
     .unwrap();
 
-    assert_eq!(highest_schema(&at).unwrap(), 16);
+    assert!(written_since(&at, 16).unwrap());
+    assert!(written_since(&at, 13).unwrap());
+    assert!(!written_since(&at, 17).unwrap());
     assert_eq!(
         newest_schema(&at).unwrap(),
         15,

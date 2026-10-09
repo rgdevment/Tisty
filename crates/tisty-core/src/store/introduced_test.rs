@@ -149,3 +149,38 @@ fn every_print_a_waiting_machine_gave_a_document_counts() {
         "a body this machine wrote earlier and the folder still holds was put to the person"
     );
 }
+
+#[test]
+fn the_key_a_machine_is_answered_for_is_the_first_one_that_reads() {
+    let dir = tempfile::tempdir().unwrap();
+    let who = DeviceId("dev_b".into());
+    let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+    let good = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+    let other = DeviceId("dev_c".into());
+    let theirs = crate::signing::shown(&crate::signing::mine(&paths, &other).unwrap());
+    let mut store = crate::Store::open(dir.path().join("store"), who.clone()).unwrap();
+    for (d, p) in [
+        (&who, "not a key"),
+        (&other, theirs.as_str()),
+        (&who, good.as_str()),
+    ] {
+        store
+            .append(Op::DeviceKey {
+                d: d.clone(),
+                p: p.into(),
+            })
+            .unwrap();
+    }
+    drop(store);
+    let at = dir.path().join("store").join("dev_b");
+
+    assert_eq!(
+        crate::store::readable_key_said_in(&at, &who).as_deref(),
+        Some(good.as_str())
+    );
+    assert_eq!(
+        introduced_in(&at, &who).key.as_deref(),
+        Some("not a key"),
+        "what a machine says about itself is shown as it said it"
+    );
+}

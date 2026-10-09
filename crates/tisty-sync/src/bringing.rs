@@ -80,20 +80,27 @@ fn hosted(
 }
 
 fn owes_a_signature(
-    store: &Path,
+    mine: &Path,
     theirs: &Path,
     who: &tisty_core::DeviceId,
     known: bool,
-    knew: &mut Option<tisty_core::store::Ledger>,
-) -> Option<bool> {
+) -> Result<bool, ()> {
     if known
         || tisty_core::store::key_said_in(theirs, who).is_some()
-        || tisty_core::store::newest_schema(theirs).ok()? >= tisty_core::event::SIGNED_FROM
-        || tisty_core::store::highest_schema(theirs).ok()? >= tisty_core::event::SIGNED_FROM
+        || tisty_core::store::key_said_in(mine, who).is_some()
     {
-        return Some(true);
+        return Ok(true);
     }
-    Some(claimed(store, who, knew).ok()?.is_some())
+    tisty_core::store::written_since(theirs, tisty_core::event::SIGNED_FROM).map_err(|e| {
+        witness::warn(
+            channel::SYNC,
+            "the schema a machine's history was written at could not be read, so it was left out",
+            &[
+                ("at", Fact::Path(theirs.to_path_buf())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    })
 }
 
 /// Checked before any of it is taken in, and only from where the last round left off.
@@ -118,7 +125,7 @@ fn answers_for_itself(
     if stood.is_none() && !ours && signed {
         let says = match claimed(store, &who, knew) {
             Ok(Some(claim)) => Some(claim),
-            Ok(None) => tisty_core::store::key_said_in(theirs, &who),
+            Ok(None) => tisty_core::store::readable_key_said_in(theirs, &who),
             Err(()) => return Answered::Unreadable,
         };
         match says {
@@ -172,7 +179,7 @@ fn answers_for_itself(
     }
     if !signed {
         let known = from.signing || stood.is_some();
-        let Some(owed) = owes_a_signature(store, theirs, &who, known, knew) else {
+        let Ok(owed) = owes_a_signature(&store.join(named), theirs, &who, known) else {
             return Answered::Unreadable;
         };
         if !owed {
@@ -194,17 +201,9 @@ fn answers_for_itself(
     };
     let by = said.and_then(|said| tisty_core::signing::read(&said));
     let Some(by) = by else {
-        if !ours {
-            witness::warn(
-                channel::SYNC,
-                "a machine signs what it writes and the key it says cannot be read, so what it writes waits",
-                &[("at", Fact::Id(named.to_string()))],
-            );
-            return Answered::Unconfirmed;
-        }
         witness::warn(
             channel::SYNC,
-            "a history signed under this machine's own name cannot be checked from here, so it was left in the folder",
+            "a signed history cannot be checked from here for want of a key that reads, so it was left in the folder",
             &[("at", Fact::Id(named.to_string()))],
         );
         return Answered::Unreadable;
