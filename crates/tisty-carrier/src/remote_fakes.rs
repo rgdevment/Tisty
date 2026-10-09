@@ -1,13 +1,13 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use crate::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch};
+use crate::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
 
-const PAGE: usize = 1000;
-const GIB: u64 = 1024 * 1024 * 1024;
+const MIB: u64 = 1024 * 1024;
+const GIB: u64 = 1024 * MIB;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -28,9 +28,11 @@ pub trait Counting: Remote {
     fn who(&self) -> &'static str;
     fn counts(&self) -> Counts;
     fn forget_counts(&self);
+    fn fail_next(&self, hitch: Hitch);
+    fn forget_feed(&self);
     fn native_changes(&self) -> bool;
-    fn native_append(&self) -> bool;
-    fn folds_case(&self) -> bool;
+    fn hears_pushed(&self) -> bool;
+    fn lends_links(&self) -> bool;
 }
 
 struct Entry {
@@ -44,12 +46,16 @@ struct Entry {
 struct Shelf {
     files: Vec<Entry>,
     last: u64,
+    floor: u64,
     touched: Vec<(u64, String)>,
+    failing: VecDeque<Hitch>,
     counts: Counts,
 }
 
 pub struct Fake {
     kind: Kind,
+    page: Option<usize>,
+    chunk: Option<u64>,
     shelf: Arc<Mutex<Shelf>>,
 }
 
@@ -57,6 +63,8 @@ impl Fake {
     pub fn new(kind: Kind) -> Self {
         Self {
             kind,
+            page: None,
+            chunk: None,
             shelf: Arc::default(),
         }
     }
@@ -71,6 +79,16 @@ impl Fake {
 
     pub fn dropbox() -> Self {
         Self::new(Kind::Dropbox)
+    }
+
+    pub fn with_page(mut self, page: usize) -> Self {
+        self.page = Some(page);
+        self
+    }
+
+    pub fn with_chunk(mut self, chunk: u64) -> Self {
+        self.chunk = Some(chunk);
+        self
     }
 
     fn lock(&self) -> MutexGuard<'_, Shelf> {
@@ -100,7 +118,7 @@ impl Fake {
     }
 
     fn key(&self, name: &str) -> String {
-        match self.folds_case() {
+        match self.limits().folds_case {
             true => name.to_lowercase(),
             false => name.to_string(),
         }
@@ -160,12 +178,14 @@ impl Fake {
         shelf.counts.units += requests * cost;
     }
 
-    fn pages(&self, wholes: usize, per: usize) -> u64 {
-        wholes.div_ceil(per).max(1) as u64
-    }
-
-    fn chunks(&self, bytes: u64) -> u64 {
-        bytes.div_ceil(self.limits().chunk).max(1)
+    fn gate(&self, shelf: &mut Shelf, cost: u64) -> Result<(), Hitch> {
+        match shelf.failing.pop_front() {
+            Some(hitch) => {
+                self.spend(shelf, 1, cost);
+                Err(hitch)
+            }
+            None => Ok(()),
+        }
     }
 
     fn written(&self, shelf: &mut Shelf, name: &str, body: Vec<u8>, at: Option<usize>) -> Seen {
@@ -214,52 +234,48 @@ impl Fake {
     }
 }
 
-fn named_well(name: &str) -> Result<(), Hitch> {
-    let bad = name.is_empty()
-        || name.contains('\\')
-        || name.chars().any(char::is_control)
-        || name
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..");
-    match bad {
-        true => Err(Hitch::Broke(format!("not a name: {name}"))),
-        false => Ok(()),
-    }
-}
-
 impl Remote for Fake {
     fn limits(&self) -> Limits {
-        let (chunk, most_per_file, costs) = match self.kind {
+        let (chunk, page, most_per_file, poll_every, costs) = match self.kind {
             Kind::Drive => (
-                8 * 1024 * 1024,
+                8 * MIB,
+                1000,
                 5 * 1024 * GIB,
+                300,
                 Costs {
                     list: 100,
                     fetch: 200,
                     put: 50,
                     delete: 50,
+                    about: 5,
                     changes: 100,
                 },
             ),
             Kind::OneDrive => (
-                10 * 1024 * 1024,
+                10 * MIB,
+                200,
                 250 * GIB,
+                30,
                 Costs {
                     list: 2,
                     fetch: 1,
                     put: 2,
                     delete: 2,
+                    about: 1,
                     changes: 1,
                 },
             ),
             Kind::Dropbox => (
-                4 * 1024 * 1024,
+                4 * MIB,
+                2000,
                 350 * GIB,
+                30,
                 Costs {
                     list: 1,
                     fetch: 1,
                     put: 1,
                     delete: 1,
+                    about: 1,
                     changes: 1,
                 },
             ),
@@ -267,25 +283,34 @@ impl Remote for Fake {
         Limits {
             units_a_day: 100_000,
             bytes_a_day: 5 * GIB,
-            poll_every: Duration::from_secs(30),
-            chunk,
+            poll_every: Duration::from_secs(poll_every),
+            chunk: self.chunk.unwrap_or(chunk),
+            page: self.page.unwrap_or(page),
             most_per_file,
+            folds_case: self.kind != Kind::Drive,
             costs,
         }
     }
 
     fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
+        let limits = self.limits();
         let mut shelf = self.lock();
+        self.gate(&mut shelf, limits.costs.list)?;
         let seen = self.listed(&shelf, under);
-        let requests = self.pages(seen.len(), PAGE);
-        self.spend(&mut shelf, requests, self.limits().costs.list);
+        self.spend(
+            &mut shelf,
+            limits.requests_to_list(seen.len()),
+            limits.costs.list,
+        );
         Ok(seen)
     }
 
     fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
         named_well(name)?;
+        let cost = self.limits().costs.fetch;
         let mut shelf = self.lock();
-        self.spend(&mut shelf, 1, self.limits().costs.fetch);
+        self.gate(&mut shelf, cost)?;
+        self.spend(&mut shelf, 1, cost);
         let at = self
             .winner(&shelf, name)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
@@ -304,24 +329,28 @@ impl Remote for Fake {
     fn put(&self, name: &str, from: &Path, expect: Expect) -> Result<Seen, Hitch> {
         named_well(name)?;
         let body = self.read_local(from)?;
+        let limits = self.limits();
         let mut shelf = self.lock();
-        let costs = self.limits().costs;
+        self.gate(&mut shelf, limits.costs.put)?;
         let at = match self.allowed(&shelf, name, &expect) {
             Ok(at) => at,
             Err(refused) => {
-                self.spend(&mut shelf, 1, costs.put);
+                self.spend(&mut shelf, 1, limits.costs.put);
                 return Err(refused);
             }
         };
-        self.spend(&mut shelf, self.chunks(body.len() as u64), costs.put);
+        let requests = limits.requests_to_put(body.len() as u64);
+        self.spend(&mut shelf, requests, limits.costs.put);
         shelf.counts.sent += body.len() as u64;
         Ok(self.written(&mut shelf, name, body, at))
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         named_well(name)?;
+        let cost = self.limits().costs.delete;
         let mut shelf = self.lock();
-        self.spend(&mut shelf, 1, self.limits().costs.delete);
+        self.gate(&mut shelf, cost)?;
+        self.spend(&mut shelf, 1, cost);
         let at = self
             .winner(&shelf, name)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
@@ -330,8 +359,9 @@ impl Remote for Fake {
         }
         shelf.last += 1;
         let stamp = shelf.last;
-        let gone = shelf.files.remove(at);
-        shelf.touched.push((stamp, gone.name));
+        let (key, shown) = (self.key(name), shelf.files[at].name.clone());
+        shelf.files.retain(|one| self.key(&one.name) != key);
+        shelf.touched.push((stamp, shown));
         Ok(())
     }
 
@@ -341,40 +371,50 @@ impl Remote for Fake {
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
         named_well(name)?;
+        let cost = self.limits().costs.about;
         let mut shelf = self.lock();
-        self.spend(&mut shelf, 1, self.limits().costs.list);
+        self.gate(&mut shelf, cost)?;
+        self.spend(&mut shelf, 1, cost);
         Ok(self
             .winner(&shelf, name)
             .map(|at| self.seen(&shelf.files[at])))
     }
 
     fn changes(&self, since: Option<&str>) -> Result<Changes, Hitch> {
+        let limits = self.limits();
         let mut shelf = self.lock();
+        self.gate(&mut shelf, limits.costs.changes)?;
         let cursor = shelf.last.to_string();
-        let Some(since) = since else {
+        let known = since
+            .and_then(|one| one.parse::<u64>().ok())
+            .filter(|one| (shelf.floor..=shelf.last).contains(one));
+        let Some(since) = known else {
             let seen = self.listed(&shelf, "");
-            let requests = self.pages(seen.len(), PAGE);
-            self.spend(&mut shelf, requests, self.limits().costs.changes);
+            let requests = limits.requests_to_list(seen.len());
+            self.spend(&mut shelf, requests, limits.costs.changes);
             return Ok(Changes::Whole { seen, cursor });
         };
-        let since: u64 = since
-            .parse()
-            .map_err(|_| Hitch::Broke(format!("not a cursor: {since}")))?;
-        let mut latest: BTreeMap<String, String> = BTreeMap::new();
-        for (when, name) in &shelf.touched {
-            if *when > since {
-                latest.insert(self.key(name), name.clone());
-            }
+        let mut spellings: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        for (_, name) in shelf.touched.iter().filter(|(when, _)| *when > since) {
+            spellings
+                .entry(self.key(name))
+                .or_default()
+                .insert(name.clone());
         }
         let (mut changed, mut gone) = (Vec::new(), Vec::new());
-        for name in latest.into_values() {
-            match self.winner(&shelf, &name) {
-                Some(at) => changed.push(self.seen(&shelf.files[at])),
-                None => gone.push(name),
-            }
+        for (key, names) in spellings {
+            let held = self
+                .winner(&shelf, &key)
+                .map(|at| self.seen(&shelf.files[at]));
+            gone.extend(
+                names
+                    .into_iter()
+                    .filter(|name| held.as_ref().is_none_or(|seen| seen.name != *name)),
+            );
+            changed.extend(held);
         }
-        let requests = self.pages(changed.len() + gone.len(), PAGE);
-        self.spend(&mut shelf, requests, self.limits().costs.changes);
+        let requests = limits.requests_to_list(changed.len() + gone.len());
+        self.spend(&mut shelf, requests, limits.costs.changes);
         Ok(Changes::Since {
             changed,
             gone,
@@ -382,45 +422,22 @@ impl Remote for Fake {
         })
     }
 
-    fn append(&self, name: &str, from: &Path, at: u64, expect: Expect) -> Result<Seen, Hitch> {
-        if self.kind != Kind::Dropbox {
-            return self.put(name, from, expect);
-        }
-        named_well(name)?;
-        let body = self.read_local(from)?;
-        let mut shelf = self.lock();
-        let costs = self.limits().costs;
-        let held = match self.allowed(&shelf, name, &expect) {
-            Ok(held) if held.map_or(0, |held| shelf.files[held].body.len() as u64) == at => held,
-            Ok(_) => {
-                self.spend(&mut shelf, 1, costs.put);
-                return Err(Hitch::Changed(name.to_string()));
-            }
-            Err(refused) => {
-                self.spend(&mut shelf, 1, costs.put);
-                return Err(refused);
-            }
-        };
-        let tail = (body.len() as u64).saturating_sub(at);
-        self.spend(&mut shelf, self.chunks(tail), costs.put);
-        shelf.counts.sent += tail;
-        Ok(self.written(&mut shelf, name, body, held))
-    }
-
-    fn hears(&self) -> Option<Box<dyn Watch>> {
+    fn hears(&self, since: &str) -> Option<Box<dyn Watch>> {
         if self.kind != Kind::Dropbox {
             return None;
         }
-        let last = self.lock().last;
         Some(Box::new(Told {
             shelf: Arc::clone(&self.shelf),
-            last,
+            last: since.parse().unwrap_or(0),
         }))
     }
 
     fn lends(&self, name: &str) -> Result<Option<String>, Hitch> {
+        named_well(name)?;
+        let cost = self.limits().costs.about;
         let mut shelf = self.lock();
-        self.spend(&mut shelf, 1, self.limits().costs.list);
+        self.gate(&mut shelf, cost)?;
+        self.spend(&mut shelf, 1, cost);
         Ok(self
             .winner(&shelf, name)
             .map(|_| format!("https://links.invalid/{name}")))
@@ -458,24 +475,34 @@ impl Counting for Fake {
         self.lock().counts = Counts::default();
     }
 
+    fn fail_next(&self, hitch: Hitch) {
+        self.lock().failing.push_back(hitch);
+    }
+
+    fn forget_feed(&self) {
+        let mut shelf = self.lock();
+        shelf.last += 1;
+        shelf.floor = shelf.last;
+    }
+
     fn native_changes(&self) -> bool {
         true
     }
 
-    fn native_append(&self) -> bool {
+    fn hears_pushed(&self) -> bool {
         self.kind == Kind::Dropbox
     }
 
-    fn folds_case(&self) -> bool {
-        self.kind != Kind::Drive
+    fn lends_links(&self) -> bool {
+        true
     }
 }
 
 pub struct Bare(Fake);
 
 impl Bare {
-    pub fn over_drive() -> Self {
-        Self(Fake::drive())
+    pub fn over(fake: Fake) -> Self {
+        Self(fake)
     }
 }
 
@@ -507,7 +534,11 @@ impl Remote for Bare {
 
 impl Counting for Bare {
     fn who(&self) -> &'static str {
-        "bare"
+        match self.0.kind {
+            Kind::Drive => "bare-drive",
+            Kind::OneDrive => "bare-onedrive",
+            Kind::Dropbox => "bare-dropbox",
+        }
     }
 
     fn counts(&self) -> Counts {
@@ -518,24 +549,35 @@ impl Counting for Bare {
         self.0.forget_counts();
     }
 
+    fn fail_next(&self, hitch: Hitch) {
+        self.0.fail_next(hitch);
+    }
+
+    fn forget_feed(&self) {}
+
     fn native_changes(&self) -> bool {
         false
     }
 
-    fn native_append(&self) -> bool {
+    fn hears_pushed(&self) -> bool {
         false
     }
 
-    fn folds_case(&self) -> bool {
+    fn lends_links(&self) -> bool {
         false
     }
 }
 
 pub fn every() -> Vec<Box<dyn Counting>> {
+    every_with(|fake| fake)
+}
+
+pub fn every_with(shape: impl Fn(Fake) -> Fake) -> Vec<Box<dyn Counting>> {
     vec![
-        Box::new(Fake::drive()),
-        Box::new(Fake::onedrive()),
-        Box::new(Fake::dropbox()),
-        Box::new(Bare::over_drive()),
+        Box::new(shape(Fake::drive())),
+        Box::new(shape(Fake::onedrive())),
+        Box::new(shape(Fake::dropbox())),
+        Box::new(Bare::over(shape(Fake::drive()))),
+        Box::new(Bare::over(shape(Fake::dropbox()))),
     ]
 }

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use super::fakes::{self, Counting, Fake};
 use super::*;
@@ -33,10 +34,20 @@ fn names(mut seen: Vec<Seen>) -> Vec<String> {
     seen.into_iter().map(|one| one.name).collect()
 }
 
-fn on_each(check: impl Fn(&dyn Counting, &Path)) {
-    for fake in fakes::every() {
+fn across(fakes: Vec<Box<dyn Counting>>, check: impl Fn(&dyn Counting, &Path)) {
+    for fake in fakes {
         let room = tempfile::tempdir().unwrap();
         check(fake.as_ref(), room.path());
+    }
+}
+
+fn on_each(check: impl Fn(&dyn Counting, &Path)) {
+    across(fakes::every(), check);
+}
+
+fn cursor_of(told: Changes) -> String {
+    match told {
+        Changes::Whole { cursor, .. } | Changes::Since { cursor, .. } => cursor,
     }
 }
 
@@ -113,14 +124,8 @@ fn replacing_takes_the_revision_the_caller_saw_and_nothing_older() {
     on_each(|remote, room| {
         let who = remote.who();
         let seen = put(remote, room, "x", b"uno", Expect::Absent).unwrap();
-        let next = put(
-            remote,
-            room,
-            "x",
-            b"dos",
-            Expect::Revision(seen.revision.clone()),
-        )
-        .unwrap();
+        let rev = Expect::Revision(seen.revision.clone());
+        let next = put(remote, room, "x", b"dos", rev).unwrap();
 
         let stale = put(remote, room, "x", b"tres", Expect::Revision(seen.revision));
 
@@ -137,6 +142,32 @@ fn replacing_takes_the_revision_the_caller_saw_and_nothing_older() {
             current.is_ok(),
             "{who}: the revision just given is the one to name"
         );
+    });
+}
+
+#[test]
+fn a_revision_is_never_given_twice_even_for_a_name_deleted_and_made_again() {
+    on_each(|remote, room| {
+        let who = remote.who();
+        let first = put(remote, room, "x", b"uno", Expect::Absent).unwrap();
+        remote.delete("x", None).unwrap();
+        let again = put(remote, room, "x", b"dos", Expect::Absent).unwrap();
+
+        assert_ne!(first.revision, again.revision, "{who}");
+        let old = put(
+            remote,
+            room,
+            "x",
+            b"tres",
+            Expect::Revision(first.revision.clone()),
+        );
+        assert_eq!(old, Err(Hitch::Changed("x".into())), "{who}");
+        assert_eq!(
+            remote.delete("x", Some(&first.revision)),
+            Err(Hitch::Changed("x".into())),
+            "{who}"
+        );
+        assert_eq!(body_of(remote, "x", 0).unwrap(), b"dos", "{who}");
     });
 }
 
@@ -160,6 +191,24 @@ fn anything_creates_and_replaces() {
         put(remote, room, "x", b"dos", Expect::Any).unwrap();
 
         assert_eq!(body_of(remote, "x", 0).unwrap(), b"dos", "{}", remote.who());
+    });
+}
+
+#[test]
+fn an_empty_file_is_a_file() {
+    on_each(|remote, room| {
+        let who = remote.who();
+
+        let seen = put(remote, room, "vacio", b"", Expect::Absent).unwrap();
+
+        assert_eq!(seen.bytes, 0, "{who}");
+        assert_eq!(body_of(remote, "vacio", 0).unwrap(), b"", "{who}");
+        assert_eq!(
+            remote.hash_of(&local(room, b"")).unwrap(),
+            seen.hash,
+            "{who}"
+        );
+        assert_eq!(names(remote.list("").unwrap()), ["vacio"], "{who}");
     });
 }
 
@@ -231,6 +280,28 @@ fn listing_stays_under_the_prefix_asked_and_goes_all_the_way_down() {
 }
 
 #[test]
+fn a_long_listing_costs_a_request_per_page_and_misses_nothing() {
+    across(
+        fakes::every_with(|fake| fake.with_page(10)),
+        |remote, room| {
+            let who = remote.who();
+            let wanted: Vec<String> = (0..25).map(|number| format!("f/{number:02}")).collect();
+            for name in &wanted {
+                put(remote, room, name, b"1", Expect::Absent).unwrap();
+            }
+            remote.forget_counts();
+
+            let listed = names(remote.list("").unwrap());
+
+            let spent = remote.counts();
+            assert_eq!(listed, wanted, "{who}");
+            assert_eq!(spent.requests, 3, "{who}");
+            assert_eq!(spent.units, 3 * remote.limits().costs.list, "{who}");
+        },
+    );
+}
+
+#[test]
 fn a_name_with_spaces_and_accents_comes_back_as_written() {
     on_each(|remote, room| {
         let name = "attachments/ab/fotó de playa-1a2b3c4d.png";
@@ -252,18 +323,22 @@ fn a_name_with_spaces_and_accents_comes_back_as_written() {
 }
 
 #[test]
-fn what_is_not_a_name_is_refused_and_writes_nothing() {
+fn what_is_not_a_name_is_refused_by_every_verb_and_writes_nothing() {
     on_each(|remote, room| {
+        let who = remote.who();
         for bad in ["", "/x", "x/", "a//b", "../x", "a/./b", "a\\b", "a/\u{7}"] {
-            let refused = put(remote, room, bad, b"1", Expect::Any);
-
-            assert!(
-                matches!(refused, Err(Hitch::Broke(_))),
-                "{}: {bad:?} is not a name",
-                remote.who()
-            );
+            let refused = |result: Option<Hitch>| {
+                assert!(
+                    matches!(result, Some(Hitch::Broke(_))),
+                    "{who}: {bad:?} is not a name"
+                );
+            };
+            refused(put(remote, room, bad, b"1", Expect::Any).err());
+            refused(body_of(remote, bad, 0).err());
+            refused(remote.delete(bad, None).err());
+            refused(remote.about(bad).err());
         }
-        assert!(remote.list("").unwrap().is_empty(), "{}", remote.who());
+        assert!(remote.list("").unwrap().is_empty(), "{who}");
     });
 }
 
@@ -275,36 +350,26 @@ fn the_hash_follows_the_content_and_is_the_one_the_provider_reports() {
         let same = local(room, b"mismo");
         let other = local(room, b"otro");
 
-        assert_eq!(
-            remote.hash_of(&one).unwrap(),
-            remote.hash_of(&same).unwrap(),
-            "{who}"
-        );
-        assert_ne!(
-            remote.hash_of(&one).unwrap(),
-            remote.hash_of(&other).unwrap(),
-            "{who}"
-        );
+        let hashed = remote.hash_of(&one).unwrap();
+
+        assert_eq!(hashed, remote.hash_of(&same).unwrap(), "{who}");
+        assert_ne!(hashed, remote.hash_of(&other).unwrap(), "{who}");
         let landed = remote.put("x", &one, Expect::Absent).unwrap();
-        assert_eq!(
-            landed.hash,
-            remote.hash_of(&one).unwrap(),
-            "{who}: a landing is checked without downloading"
-        );
+        assert_eq!(landed.hash, hashed, "{who}: a landing is checked unread");
         assert_eq!(listing(remote)["x"].hash, landed.hash, "{who}");
         assert!(remote.hash_of(&room.join("no-such-file")).is_err(), "{who}");
     });
 }
 
 #[test]
-fn two_names_that_differ_only_in_case_are_never_merged_in_silence() {
+fn a_second_spelling_is_refused_where_the_provider_folds_case_and_kept_apart_where_not() {
     on_each(|remote, room| {
         let who = remote.who();
         put(remote, room, "docs/Nota", b"primera", Expect::Absent).unwrap();
 
         let second = put(remote, room, "docs/nota", b"segunda", Expect::Absent);
 
-        match remote.folds_case() {
+        match remote.limits().folds_case {
             true => {
                 assert_eq!(second, Err(Hitch::Changed("docs/nota".into())), "{who}");
                 assert_eq!(names(remote.list("").unwrap()), ["docs/Nota"], "{who}");
@@ -314,24 +379,47 @@ fn two_names_that_differ_only_in_case_are_never_merged_in_silence() {
                     "{who}"
                 );
                 let found = remote.about("docs/NOTA").unwrap().unwrap();
-                assert_eq!(
-                    found.name, "docs/Nota",
-                    "{who}: it answers as it was first written"
-                );
+                assert_eq!(found.name, "docs/Nota", "{who}: as first written");
             }
             false => {
                 assert!(second.is_ok(), "{who}");
+                let both = ["docs/Nota", "docs/nota"];
+                assert_eq!(names(remote.list("").unwrap()), both, "{who}");
+                assert_eq!(remote.about("docs/NOTA").unwrap(), None, "{who}");
+            }
+        }
+    });
+}
+
+#[test]
+fn where_the_provider_folds_case_every_spelling_reaches_the_one_file() {
+    on_each(|remote, room| {
+        let who = remote.who();
+        put(remote, room, "docs/Nota", b"primera", Expect::Absent).unwrap();
+
+        let over = put(remote, room, "docs/NOTA", b"segunda", Expect::Any).unwrap();
+
+        match remote.limits().folds_case {
+            true => {
+                assert_eq!(over.name, "docs/Nota", "{who}: the spelling it holds");
+                assert_eq!(names(remote.list("").unwrap()), ["docs/Nota"], "{who}");
                 assert_eq!(
-                    names(remote.list("").unwrap()),
-                    ["docs/Nota", "docs/nota"],
+                    body_of(remote, "docs/nota", 0).unwrap(),
+                    b"segunda",
                     "{who}"
                 );
+                remote.delete("DOCS/nota", None).unwrap();
+                assert!(remote.list("").unwrap().is_empty(), "{who}");
+            }
+            false => {
+                assert_eq!(over.name, "docs/NOTA", "{who}");
                 assert_eq!(
                     body_of(remote, "docs/Nota", 0).unwrap(),
                     b"primera",
                     "{who}"
                 );
-                assert_eq!(remote.about("docs/NOTA").unwrap(), None, "{who}");
+                remote.delete("docs/NOTA", None).unwrap();
+                assert_eq!(names(remote.list("").unwrap()), ["docs/Nota"], "{who}");
             }
         }
     });
@@ -358,9 +446,9 @@ fn changes_always_leave_the_caller_knowing_what_the_remote_holds() {
     on_each(|remote, room| {
         let who = remote.who();
         let mut known = BTreeMap::new();
-        put(remote, room, "keep", b"1", Expect::Absent).unwrap();
-        put(remote, room, "edit", b"1", Expect::Absent).unwrap();
-        put(remote, room, "drop", b"1", Expect::Absent).unwrap();
+        for name in ["keep", "edit", "drop"] {
+            put(remote, room, name, b"1", Expect::Absent).unwrap();
+        }
         let cursor = known_after(&mut known, remote.changes(None).unwrap());
         assert_eq!(known, listing(remote), "{who}: the first look is the whole");
 
@@ -379,175 +467,265 @@ fn changes_always_leave_the_caller_knowing_what_the_remote_holds() {
         let next = known_after(&mut known, told);
         assert_eq!(known, listing(remote), "{who}");
 
-        let quiet = remote.changes(Some(&next)).unwrap();
-        known_after(&mut known, quiet);
+        known_after(&mut known, remote.changes(Some(&next)).unwrap());
         assert_eq!(known, listing(remote), "{who}");
     });
 }
 
 #[test]
-fn a_quiet_round_asks_once_and_moves_no_content() {
+fn changes_follow_a_name_deleted_and_made_again_under_any_spelling() {
+    on_each(|remote, room| {
+        let who = remote.who();
+        let mut known = BTreeMap::new();
+        put(remote, room, "docs/Nota", b"1", Expect::Absent).unwrap();
+        let mut cursor = known_after(&mut known, remote.changes(None).unwrap());
+
+        remote.delete("docs/Nota", None).unwrap();
+        put(remote, room, "docs/nota", b"2", Expect::Absent).unwrap();
+        cursor = known_after(&mut known, remote.changes(Some(&cursor)).unwrap());
+        assert_eq!(known, listing(remote), "{who}: another spelling");
+
+        remote.delete("docs/nota", None).unwrap();
+        put(remote, room, "docs/nota", b"3", Expect::Absent).unwrap();
+        cursor = known_after(&mut known, remote.changes(Some(&cursor)).unwrap());
+        assert_eq!(known, listing(remote), "{who}: the same spelling");
+
+        put(remote, room, "de-paso", b"4", Expect::Absent).unwrap();
+        remote.delete("de-paso", None).unwrap();
+        known_after(&mut known, remote.changes(Some(&cursor)).unwrap());
+        assert_eq!(known, listing(remote), "{who}: came and went between looks");
+    });
+}
+
+#[test]
+fn a_quiet_round_asks_once_where_changes_are_kept_and_moves_no_content() {
     on_each(|remote, room| {
         let who = remote.who();
         for number in 0..70 {
-            put(
-                remote,
-                room,
-                &format!("store/dev_a/{number:04}.jsonl"),
-                b"{}",
-                Expect::Absent,
-            )
-            .unwrap();
+            let name = format!("store/dev_a/{number:04}.jsonl");
+            put(remote, room, &name, b"{}", Expect::Absent).unwrap();
         }
-        let Changes::Whole { cursor, .. } = remote.changes(None).unwrap() else {
-            panic!("{who}: the first look is the whole");
-        };
+        let cursor = cursor_of(remote.changes(None).unwrap());
         remote.forget_counts();
 
         let told = remote.changes(Some(&cursor)).unwrap();
 
         let spent = remote.counts();
-        assert_eq!(spent.requests, 1, "{who}");
         assert_eq!((spent.sent, spent.received), (0, 0), "{who}");
-        if let Changes::Since { changed, gone, .. } = told {
-            assert!(changed.is_empty() && gone.is_empty(), "{who}");
+        match (told, remote.native_changes()) {
+            (Changes::Since { changed, gone, .. }, true) => {
+                assert!(changed.is_empty() && gone.is_empty(), "{who}");
+                assert_eq!(spent.requests, 1, "{who}");
+            }
+            (Changes::Whole { seen, .. }, false) => {
+                assert_eq!(seen.len(), 70, "{who}");
+                assert_eq!(
+                    spent.requests,
+                    remote.limits().requests_to_list(70),
+                    "{who}"
+                );
+            }
+            _ => panic!("{who}: the shape of the answer says what the provider has"),
         }
     });
 }
 
 #[test]
-fn appending_leaves_the_whole_content_and_sends_only_the_tail_where_it_can() {
+fn a_cursor_the_provider_does_not_know_gets_the_whole_listing_and_a_new_cursor() {
     on_each(|remote, room| {
         let who = remote.who();
-        let base = vec![b'a'; 1000];
-        let seen = put(
-            remote,
-            room,
-            "store/dev_a/0001.jsonl",
-            &base,
-            Expect::Absent,
-        )
-        .unwrap();
-        let grown = [base.as_slice(), &[b'b'; 40]].concat();
+        put(remote, room, "a", b"1", Expect::Absent).unwrap();
+        let old = cursor_of(remote.changes(None).unwrap());
+        put(remote, room, "b", b"1", Expect::Absent).unwrap();
+        remote.forget_feed();
+
+        for unknown in [old.as_str(), "not a cursor", "999999"] {
+            let mut known = BTreeMap::new();
+            let told = remote.changes(Some(unknown)).unwrap();
+            assert!(matches!(told, Changes::Whole { .. }), "{who}: {unknown:?}");
+            known_after(&mut known, told);
+            assert_eq!(known, listing(remote), "{who}: {unknown:?}");
+        }
+        let mut known = BTreeMap::new();
+        let fresh = known_after(&mut known, remote.changes(Some(&old)).unwrap());
+        put(remote, room, "c", b"1", Expect::Absent).unwrap();
+        known_after(&mut known, remote.changes(Some(&fresh)).unwrap());
+        assert_eq!(known, listing(remote), "{who}: the new cursor works");
+    });
+}
+
+#[test]
+fn a_read_costs_what_the_limits_say_and_moves_the_bytes_it_moves() {
+    on_each(|remote, room| {
+        let who = remote.who();
+        let costs = remote.limits().costs;
+        put(remote, room, "x", b"hola", Expect::Absent).unwrap();
+
+        let spent = || {
+            let now = remote.counts();
+            remote.forget_counts();
+            now
+        };
         remote.forget_counts();
-
-        let after = remote
-            .append(
-                "store/dev_a/0001.jsonl",
-                &local(room, &grown),
-                1000,
-                Expect::Revision(seen.revision.clone()),
-            )
-            .unwrap();
-
+        remote.list("").unwrap();
+        assert_eq!(spent().units, costs.list, "{who}: list");
+        body_of(remote, "x", 0).unwrap();
+        let fetched = spent();
         assert_eq!(
-            body_of(remote, "store/dev_a/0001.jsonl", 0).unwrap(),
-            grown,
-            "{who}"
+            (fetched.units, fetched.received),
+            (costs.fetch, 4),
+            "{who}: fetch"
         );
-        assert_eq!(after.bytes, 1040, "{who}");
-        let sent = remote.counts().sent;
-        assert_eq!(
-            sent,
-            if remote.native_append() { 40 } else { 1040 },
-            "{who}"
-        );
-        let stale = remote.append(
-            "store/dev_a/0001.jsonl",
-            &local(room, &grown),
-            1040,
-            Expect::Revision(seen.revision),
-        );
-        assert_eq!(
-            stale,
-            Err(Hitch::Changed("store/dev_a/0001.jsonl".into())),
-            "{who}"
-        );
+        remote.about("x").unwrap();
+        let asked = spent();
+        let about = if remote.native_changes() {
+            costs.about
+        } else {
+            costs.list
+        };
+        assert_eq!((asked.units, asked.received), (about, 0), "{who}: about");
+        remote.changes(None).unwrap();
+        let looked = spent();
+        let changes = if remote.native_changes() {
+            costs.changes
+        } else {
+            costs.list
+        };
+        assert_eq!((looked.units, looked.sent), (changes, 0), "{who}: changes");
     });
 }
 
 #[test]
-fn the_first_append_to_a_name_creates_it_and_a_second_one_that_thinks_so_is_refused() {
-    on_each(|remote, room| {
-        let who = remote.who();
-        let name = "store/dev_a/0002.jsonl";
-        let body = local(room, b"primera linea\n");
+fn a_write_costs_what_the_limits_say_and_a_refused_one_sends_nothing() {
+    across(
+        fakes::every_with(|fake| fake.with_chunk(1000)),
+        |remote, room| {
+            let who = remote.who();
+            let put_cost = remote.limits().costs.put;
+            let small = local(room, &[0u8; 500]);
+            let big = local(room, &[0u8; 2500]);
+            remote.forget_counts();
 
-        let made = remote.append(name, &body, 0, Expect::Absent).unwrap();
+            remote.put("small", &small, Expect::Absent).unwrap();
+            assert_eq!(remote.counts().requests, 1, "{who}: one chunk");
+            remote.put("big", &big, Expect::Absent).unwrap();
+            assert_eq!(
+                remote.counts().requests,
+                1 + 4,
+                "{who}: a session and three chunks"
+            );
+            let refused = remote.put("big", &big, Expect::Absent);
 
-        assert_eq!(made.bytes, 14, "{who}");
-        assert_eq!(
-            body_of(remote, name, 0).unwrap(),
-            b"primera linea\n",
-            "{who}"
-        );
-        assert_eq!(
-            remote.append(name, &body, 0, Expect::Absent),
-            Err(Hitch::Changed(name.into())),
-            "{who}: the name is there now, so it is not the first"
-        );
-        let anywhere = "store/dev_a/0003.jsonl";
-        assert!(
-            remote.append(anywhere, &body, 0, Expect::Any).is_ok(),
-            "{who}"
-        );
-        assert_eq!(
-            names(remote.list("store").unwrap()),
-            [name, anywhere],
-            "{who}"
-        );
-    });
+            let spent = remote.counts();
+            assert_eq!(refused, Err(Hitch::Changed("big".into())), "{who}");
+            assert_eq!(spent.requests, 1 + 4 + 1, "{who}");
+            assert_eq!(spent.sent, 3000, "{who}");
+            assert_eq!(spent.units, 6 * put_cost, "{who}");
+            remote.forget_counts();
+            remote.delete("big", None).unwrap();
+            assert_eq!(remote.counts().units, remote.limits().costs.delete, "{who}");
+        },
+    );
 }
 
 #[test]
-fn every_provider_takes_the_biggest_attachment_tisty_allows() {
+fn what_every_provider_declares_has_to_add_up() {
     on_each(|remote, _| {
+        let who = remote.who();
         let limits = remote.limits();
+        let costs = limits.costs;
 
         assert!(
             limits.most_per_file >= tisty_core::attach::COPIED_IN_DOC,
-            "{}",
-            remote.who()
+            "{who}"
         );
         assert!(
-            limits.chunk > 0 && limits.units_a_day > 0 && limits.bytes_a_day > 0,
-            "{}",
-            remote.who()
+            limits.bytes_a_day >= tisty_core::attach::COPIED_IN_DOC,
+            "{who}"
         );
-        let costs = limits.costs;
         assert!(
-            [
-                costs.list,
-                costs.fetch,
-                costs.put,
-                costs.delete,
-                costs.changes
-            ]
-            .iter()
-            .all(|cost| *cost > 0),
-            "{}: nothing is free, or it would never be counted",
-            remote.who()
+            limits.chunk > 0 && limits.page > 0 && limits.units_a_day > 0,
+            "{who}"
+        );
+        assert!(!limits.poll_every.is_zero(), "{who}");
+        let all = [
+            costs.list,
+            costs.fetch,
+            costs.put,
+            costs.delete,
+            costs.about,
+            costs.changes,
+        ];
+        assert!(all.iter().all(|cost| *cost > 0), "{who}: nothing is free");
+        let polls = 86_400 / limits.poll_every.as_secs();
+        assert!(
+            polls * costs.changes <= limits.units_a_day / 2,
+            "{who}: polling at the shortest interval leaves half the day for the work"
         );
     });
 }
 
 #[test]
-fn an_upload_costs_a_request_per_chunk_and_a_refused_one_sends_nothing() {
+fn a_refusal_comes_back_as_the_provider_gave_it_and_changes_nothing() {
     on_each(|remote, room| {
         let who = remote.who();
-        let limits = remote.limits();
-        let body = vec![0u8; usize::try_from(limits.chunk * 2 + 1).unwrap()];
-        let big = local(room, &body);
-        remote.forget_counts();
+        put(remote, room, "keep", b"1", Expect::Absent).unwrap();
+        let hitches = [
+            Hitch::Limited {
+                wait: Duration::from_secs(7),
+            },
+            Hitch::Full,
+            Hitch::Lost,
+            Hitch::Elsewhere {
+                found: "otra".into(),
+            },
+            Hitch::Unreachable("sin red".into()),
+            Hitch::Broke("raro".into()),
+        ];
+        for hitch in hitches {
+            remote.forget_counts();
+            remote.fail_next(hitch.clone());
 
-        remote.put("big", &big, Expect::Absent).unwrap();
-        let refused = remote.put("big", &big, Expect::Absent);
+            let refused = put(remote, room, "new", b"22", Expect::Absent);
 
-        let spent = remote.counts();
-        assert_eq!(refused, Err(Hitch::Changed("big".into())), "{who}");
-        assert_eq!(spent.requests, 3 + 1, "{who}");
-        assert_eq!(spent.sent, body.len() as u64, "{who}");
-        assert_eq!(spent.units, 4 * limits.costs.put, "{who}");
+            assert_eq!(refused, Err(hitch), "{who}");
+            assert_eq!(remote.counts().requests, 1, "{who}: it was asked");
+            assert_eq!(remote.counts().sent, 0, "{who}: and nothing went");
+            assert_eq!(names(remote.list("").unwrap()), ["keep"], "{who}");
+        }
+    });
+}
+
+#[test]
+fn every_verb_hears_the_refusal_once_and_works_again() {
+    on_each(|remote, room| {
+        let who = remote.who();
+        put(remote, room, "keep", b"1", Expect::Absent).unwrap();
+        let limited = Hitch::Limited {
+            wait: Duration::from_secs(7),
+        };
+        let again = |refused: Option<Hitch>, verb: &str| {
+            assert_eq!(refused, Some(limited.clone()), "{who}: {verb}");
+            remote.fail_next(limited.clone());
+        };
+        remote.fail_next(limited.clone());
+
+        again(remote.list("").err(), "list");
+        again(body_of(remote, "keep", 0).err(), "fetch");
+        again(remote.delete("keep", None).err(), "delete");
+        again(remote.about("keep").err(), "about");
+        again(remote.changes(None).err(), "changes");
+        if remote.lends_links() {
+            again(remote.lends("keep").err(), "lends");
+        }
+        remote.list("").unwrap_err();
+
+        assert_eq!(
+            names(remote.list("").unwrap()),
+            ["keep"],
+            "{who}: still there"
+        );
+        assert!(remote.about("keep").unwrap().is_some(), "{who}");
     });
 }
 
@@ -575,33 +753,48 @@ fn the_provider_that_holds_two_of_a_name_shows_one_the_same_one_every_time() {
         put(&drive, room.path(), "docs/a.md", b"y otra", Expect::Absent),
         Err(Hitch::Changed("docs/a.md".into()))
     );
+    drive.delete("docs/a.md", None).unwrap();
+    assert_eq!(
+        drive.copies_of("docs/a.md"),
+        0,
+        "a deleted name is gone, not shown again"
+    );
+    assert_eq!(drive.about("docs/a.md").unwrap(), None);
 }
 
 #[test]
-fn only_the_provider_that_can_be_told_hears_and_it_hears_once_per_change() {
+fn a_watch_hears_every_change_after_the_cursor_it_was_given_and_only_where_pushed() {
     let room = tempfile::tempdir().unwrap();
+    let quiet = Duration::from_millis(1);
     for fake in fakes::every() {
-        let hears = fake.hears();
-        assert_eq!(hears.is_some(), fake.who() == "dropbox", "{}", fake.who());
-        let Some(mut hears) = hears else { continue };
-        let quiet = std::time::Duration::from_millis(1);
+        let who = fake.who();
+        let cursor = cursor_of(fake.changes(None).unwrap());
 
-        assert!(!hears.told(quiet).unwrap());
+        let watch = fake.hears(&cursor);
+
+        assert_eq!(watch.is_some(), fake.hears_pushed(), "{who}");
+        let Some(mut watch) = watch else { continue };
+        assert!(!watch.told(quiet).unwrap(), "{who}");
         put(fake.as_ref(), room.path(), "x", b"1", Expect::Absent).unwrap();
-        assert!(hears.told(quiet).unwrap());
-        assert!(!hears.told(quiet).unwrap());
+        assert!(watch.told(quiet).unwrap(), "{who}");
+        assert!(!watch.told(quiet).unwrap(), "{who}: once per change");
+        let mut late = fake.hears(&cursor).unwrap();
+        assert!(
+            late.told(quiet).unwrap(),
+            "{who}: what came before it was made"
+        );
     }
 }
 
 #[test]
 fn a_link_is_lent_for_what_exists_and_only_where_the_provider_lends() {
-    let room = tempfile::tempdir().unwrap();
-    for fake in fakes::every() {
-        put(fake.as_ref(), room.path(), "x", b"1", Expect::Absent).unwrap();
+    on_each(|remote, room| {
+        let who = remote.who();
+        put(remote, room, "x", b"1", Expect::Absent).unwrap();
 
-        let lent = fake.lends("x").unwrap();
+        let lent = remote.lends("x").unwrap();
 
-        assert_eq!(lent.is_some(), fake.who() != "bare", "{}", fake.who());
-        assert_eq!(fake.lends("nada").unwrap(), None, "{}", fake.who());
-    }
+        assert_eq!(lent.is_some(), remote.lends_links(), "{who}");
+        assert_eq!(remote.lends("nada").unwrap(), None, "{who}");
+    });
 }

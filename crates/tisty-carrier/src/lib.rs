@@ -14,7 +14,7 @@ mod folder;
 mod remote;
 
 pub use folder::Folder;
-pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch};
+pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Here {

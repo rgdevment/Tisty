@@ -2421,42 +2421,60 @@ all three, changing nothing but the numbers.
   with an `Expect` (`Absent`, a revision, or anything), `delete`, and `hash_of`,
   the provider's own fingerprint computed locally — `content_hash`,
   `quickXorHash`, MD5 — so a landing is checked without downloading it.
-- **Class 2**, which defaults to class 1: `about`, `changes` since a cursor, and
-  `append`.
-- **Class 3**, optional: hearing changes pushed, and lending a link.
+- **Class 2**, which defaults to class 1: `about` and `changes` since a cursor.
+  No provider can add to a file that is already there, so there is no `append`:
+  a segment that grew is put again whole.
+- **Class 3**, optional: hearing changes pushed from a cursor, so nothing between
+  the last look and the listening is missed, and lending a link.
 - **`limits()`**: the daily budget of units and bytes, what each verb costs in
-  units, the shortest polling interval, the chunk size and the provider's own cap
-  per file. `Cloud` enforces them; the `Remote` only states them.
+  units, the shortest polling interval, the chunk size, the size of a page of
+  listing, whether names fold case, and the provider's own cap per file. `Cloud`
+  enforces them; the `Remote` only states them. How many requests a listing or an
+  upload takes is worked out from them in one place, so the count `Cloud` keeps
+  and the one a provider keeps are the same.
 
 **One name is one file.** Inside a `Remote`, a name is the path from the root of
 the store, with `/`, and it names exactly one file:
 
 - `list` gives each name once; `put` on a name replaces it or refuses, and never
-  adds a second one; `fetch`, `delete` and `about` speak of that one file. A name
-  that is empty, has an empty, `.` or `..` part, a backslash or a control
-  character is refused as `Broke` and writes nothing.
-- Names are compared as written. A provider that folds case (Dropbox, OneDrive)
-  never lets two names exist that differ only in it: the second `put` with
-  `Absent` is refused as `Changed`, and `about` answers for the file under the
-  spelling it was first written with.
+  adds a second one; `fetch`, `delete` and `about` speak of that one file, and a
+  deleted name is gone. A name that is empty, has an empty, `.` or `..` part, a
+  backslash or a control character is refused as `Broke` by every verb and writes
+  nothing.
+- A provider that folds case (Dropbox, OneDrive) answers to every spelling of a
+  name as the one file, under the spelling it was first written with, and says so
+  in its limits. `Absent` on another spelling is refused as `Changed`; `Any` and
+  a revision replace the file and hand back the spelling it holds, which is how
+  a caller notices. Names Tisty makes itself are lowercase, so it does not come
+  up for them; an attachment's name carries the original file name, and two
+  spellings under one stamp are the same bytes.
 - A provider that allows two files under one name (Drive) shows one of them, the
-  oldest, every time, through `list`, `about` and `fetch` alike. Removing the one
-  that is left over belongs to whoever made it, and is checked against Google
-  itself because it is a race between machines.
+  oldest, every time, through `list`, `about` and `fetch` alike, and deleting the
+  name deletes both. Removing the one that is left over by a race belongs to
+  whoever made it, and is checked against Google itself.
+- A revision names one version of one file and is never given again, not even
+  when the name is deleted and made anew.
 - `Revision` on a file that is no longer there is `Missing`, not `Changed`:
   another machine deleting a file is not another machine changing it.
+- A cursor the provider no longer knows is answered with the whole listing and a
+  new cursor, never with an error and never with an empty answer. A hash that is
+  empty means the provider reported none, and a landing is then judged by its
+  size.
 
 The same suite runs against a simulated Drive, OneDrive and Dropbox, and against
-one that has only class 1, so the defaults of class 2 are held to what a native
-implementation does. A quiet round is one request for changes and not one byte of
-content, in all four.
+a Drive and a Dropbox that have only class 1, so the defaults of class 2 are held
+to what a native implementation does, with and without folded case. A quiet round
+is one request for changes and not one byte of content wherever the provider
+keeps changes, and one listing, a request per page, where it does not.
 
 **A refusal says which one it is.** A `Hitch` is the provider's limit (with how
 long to wait), this installation's own budget spent, the person's storage full,
-authorization lost (reconnect) or a different account than the one chosen. Each
-has its own place in Maintenance, because each asks the person for something
-different. A provider's 403 or 429 is waited out, with `Retry-After` where it
-is given.
+authorization lost (reconnect), a different account than the one chosen, or the
+provider not reachable at all. The last is waited out and tried again, never
+asked of the person, and is what tells a cut connection from a mistake of the
+caller. Each of the others has its own place in Maintenance, because each asks
+the person for something different. A provider's 403 or 429 is waited out, with
+`Retry-After` where it is given.
 
 **Deferred is not failed.** `Moved` gains what was left for later and when it
 is tried again, apart from `Trouble`. A round that stops at a budget has
@@ -2484,11 +2502,13 @@ file is read instead.
 in the cloud (`held`) goes ahead of a move and of polling.
 
 **Drive works by id.** It allows two files with one name and has no
-create-if-absent, so its `Remote` keeps a map from name to id and emulates
-`Expect::Absent`, for example by reserving ids before creating. Whether that
-holds, and whether `drive.file` is shared between the desktop and phone
-clients of one project, is checked against Google itself before the format is
-closed.
+create-if-absent and, as far as is known, no conditional write either, so its
+`Remote` keeps a map from name to id and emulates `Expect::Absent`, for example
+by reserving ids before creating, and checks a `Revision` just before writing,
+which is not atomic. The format does not lean on it: each machine writes only its
+own directory and a closed segment never changes. Whether that holds, and whether
+`drive.file` is shared between the desktop and phone clients of one project, is
+checked against Google itself before the format is closed.
 
 ## Where things live
 

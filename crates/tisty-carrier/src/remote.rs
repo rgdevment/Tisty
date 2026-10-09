@@ -26,6 +26,7 @@ pub enum Hitch {
     Full,
     Lost,
     Elsewhere { found: String },
+    Unreachable(String),
     Broke(String),
 }
 
@@ -35,6 +36,7 @@ pub struct Costs {
     pub fetch: u64,
     pub put: u64,
     pub delete: u64,
+    pub about: u64,
     pub changes: u64,
 }
 
@@ -44,8 +46,23 @@ pub struct Limits {
     pub bytes_a_day: u64,
     pub poll_every: Duration,
     pub chunk: u64,
+    pub page: usize,
     pub most_per_file: u64,
+    pub folds_case: bool,
     pub costs: Costs,
+}
+
+impl Limits {
+    pub fn requests_to_list(&self, entries: usize) -> u64 {
+        entries.div_ceil(self.page.max(1)).max(1) as u64
+    }
+
+    pub fn requests_to_put(&self, bytes: u64) -> u64 {
+        match bytes <= self.chunk {
+            true => 1,
+            false => 1 + bytes.div_ceil(self.chunk.max(1)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +82,19 @@ pub trait Watch: Send {
     fn told(&mut self, within: Duration) -> Result<bool, Hitch>;
 }
 
+pub fn named_well(name: &str) -> Result<(), Hitch> {
+    let bad = name.is_empty()
+        || name.contains('\\')
+        || name.chars().any(char::is_control)
+        || name
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..");
+    match bad {
+        true => Err(Hitch::Broke(format!("not a name: {name}"))),
+        false => Ok(()),
+    }
+}
+
 pub trait Remote: Send + Sync {
     fn limits(&self) -> Limits;
     fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch>;
@@ -74,8 +104,13 @@ pub trait Remote: Send + Sync {
     fn hash_of(&self, local: &Path) -> std::io::Result<String>;
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
+        named_well(name)?;
         let under = name.rsplit_once('/').map_or("", |(parent, _)| parent);
-        Ok(self.list(under)?.into_iter().find(|one| one.name == name))
+        let same = |one: &str| match self.limits().folds_case {
+            true => one.to_lowercase() == name.to_lowercase(),
+            false => one == name,
+        };
+        Ok(self.list(under)?.into_iter().find(|one| same(&one.name)))
     }
 
     fn changes(&self, _since: Option<&str>) -> Result<Changes, Hitch> {
@@ -85,11 +120,7 @@ pub trait Remote: Send + Sync {
         })
     }
 
-    fn append(&self, name: &str, from: &Path, _at: u64, expect: Expect) -> Result<Seen, Hitch> {
-        self.put(name, from, expect)
-    }
-
-    fn hears(&self) -> Option<Box<dyn Watch>> {
+    fn hears(&self, _since: &str) -> Option<Box<dyn Watch>> {
         None
     }
 
