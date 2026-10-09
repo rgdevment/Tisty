@@ -1537,6 +1537,17 @@ wrote down — clocks decide which is newest, and a laptop can be an hour out �
 a body that is only another machine's last word is set aside here before it
 replaces anything. A round that only pushes takes nothing in.
 
+What is installed is what was checked. When a body is about to be installed it is
+read from the folder once more, printed as it was read, and written here from
+those same bytes; the text two versions are joined from is read the same way, and
+the base kept beside the document afterwards is that very text. A body whose print
+is no longer the one it was checked at — somebody changed it in between, or the
+print kept for its size and date was stale — is not installed and not joined: its
+kept print is dropped and it waits in `Moved::coming` for the next round, and one
+that cannot be read at all is left `astray`, which the person hears of. The file
+that is overwritten here is not checked again: a save made here in the instant
+between the decision and the write can be replaced.
+
 That holds only because every path that rewrites a body writes its print down:
 saving, settling, converting and weaving a document, a file kept in one from the
 CLI or an assistant, a parcel whose references were rewritten on the way in. A

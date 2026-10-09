@@ -8613,6 +8613,222 @@ fn a_machine_found_on_first_reaching_a_folder_that_has_not_said_its_key_is_taken
     assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
 }
 
+fn replaced_keeping_its_time(at: &Path, body: &str) {
+    let was = std::fs::metadata(at).unwrap().modified().unwrap();
+    std::fs::write(at, body).unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(at)
+        .unwrap()
+        .set_modified(was)
+        .unwrap();
+}
+
+fn print_kept_for(one: &Machine, at: &Path) -> Option<String> {
+    match tisty_core::docs::Prints::read(&one.data).seen(at).unwrap() {
+        tisty_core::docs::Seen::Held { print, .. } => print,
+        tisty_core::docs::Seen::Linked => None,
+    }
+}
+
+#[test]
+fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_b-0001";
+    theirs(shared.path(), id, "# lo comprobado\n");
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    let checked = tisty_core::docs::print_of(&at).unwrap();
+    let printed = std::collections::BTreeMap::from([(
+        id.to_string(),
+        super::papers::Answers {
+            newest: checked.clone(),
+            own: None,
+            others: Default::default(),
+        },
+    )]);
+    let round = || {
+        super::papers::carry_papers_leaning_on(
+            &one.data,
+            shared.path(),
+            &[id.to_string()],
+            &[],
+            None,
+            Some(&printed),
+            &|_, _| false,
+            &|_| false,
+            false,
+            false,
+            true,
+            &mut |_| {},
+        )
+        .unwrap()
+    };
+
+    let first = round();
+    assert_eq!(first.brought, 1);
+    assert_eq!(body(&one.data, id), "# lo comprobado\n");
+
+    let here = one.data.join("docs").join(format!("{id}.md"));
+    std::fs::remove_file(&here).unwrap();
+    replaced_keeping_its_time(&at, "# lo adulterado\n");
+    assert_eq!(
+        print_kept_for(&one, &at),
+        checked,
+        "the setup did not leave a stale print behind"
+    );
+    let second = round();
+
+    assert_eq!(second.brought, 0);
+    assert_eq!(second.coming, vec![id.to_string()]);
+    assert!(
+        !here.exists(),
+        "a body that was not the one the log answered for was installed"
+    );
+
+    replaced_keeping_its_time(&at, "# lo comprobado\n");
+    let third = round();
+
+    assert_eq!(third.brought, 1);
+    assert_eq!(
+        body(&one.data, id),
+        "# lo comprobado\n",
+        "the print that was dropped kept the genuine body out"
+    );
+}
+
+fn replaced_by_the_folder_under(
+    says: impl FnOnce(String) -> super::papers::Answers,
+) -> (Machine, Moved) {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_a-0001";
+    let alive = [id.to_string()];
+    paper(&one, id, "# antes\n");
+    theirs(shared.path(), id, "# antes\n");
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    theirs(shared.path(), id, "# lo de otra maquina\n");
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    let print = tisty_core::docs::print_of(&at).unwrap().unwrap();
+    let printed = std::collections::BTreeMap::from([(id.to_string(), says(print))]);
+    let done = super::papers::carry_papers_leaning_on(
+        &one.data,
+        shared.path(),
+        &alive,
+        &[],
+        None,
+        Some(&printed),
+        &|_, _| false,
+        &|_| false,
+        false,
+        false,
+        true,
+        &mut |_| {},
+    )
+    .unwrap();
+    (one, done)
+}
+
+#[test]
+fn a_body_only_another_machine_last_wrote_is_set_aside_before_it_replaces_ours() {
+    let (one, done) = replaced_by_the_folder_under(|print| super::papers::Answers {
+        newest: Some("otra cosa".to_string()),
+        own: None,
+        others: std::collections::BTreeSet::from([print]),
+    });
+
+    assert_eq!(done.brought, 1);
+    assert_eq!(body(&one.data, "dev_a-0001"), "# lo de otra maquina\n");
+    assert_eq!(
+        tisty_core::docs::read_before(&one.data, "dev_a-0001").as_deref(),
+        Some("# antes\n"),
+        "a body that was only another machine's last word replaced ours with nothing kept"
+    );
+}
+
+#[test]
+fn a_body_the_log_answers_for_replaces_ours_without_setting_ours_aside() {
+    let (one, done) = replaced_by_the_folder_under(|print| super::papers::Answers {
+        newest: Some(print),
+        own: None,
+        others: Default::default(),
+    });
+
+    assert_eq!(done.brought, 1);
+    assert_eq!(body(&one.data, "dev_a-0001"), "# lo de otra maquina\n");
+    assert_eq!(
+        tisty_core::docs::read_before(&one.data, "dev_a-0001"),
+        None,
+        "a body the log answers for was set aside as if it were in doubt"
+    );
+}
+
+#[test]
+fn a_body_that_is_not_text_is_put_to_the_person_instead_of_joined() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_a-0001";
+    let alive = [id.to_string()];
+    paper(&one, id, "uno\n\ndos\n\ntres\n");
+    theirs(shared.path(), id, "uno\n\ndos\n\ntres\n");
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    paper(&one, id, "UNO.\n\ndos\n\ntres\n");
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    std::fs::write(&at, [0xff, 0xfe, b'x', 0xff]).unwrap();
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert_eq!(done.undecided_ids(), vec![id.to_string()]);
+    assert_eq!(done.brought, 0);
+    assert_eq!(body(&one.data, id), "UNO.\n\ndos\n\ntres\n");
+}
+
+#[test]
+fn two_versions_are_joined_only_from_the_body_that_was_checked() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_a-0001";
+    let alive = [id.to_string()];
+    paper(&one, id, "uno\n\ndos\n\ntres\n");
+    theirs(shared.path(), id, "uno\n\ndos\n\ntres\n");
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    paper(&one, id, "UNO.\n\ndos\n\ntres\n");
+    theirs(shared.path(), id, "UNO!\n\ndos\n\ntres\n");
+    let asked = carry_papers(&one.data, shared.path(), &alive).unwrap();
+    assert_eq!(asked.undecided_ids(), vec![id.to_string()]);
+
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    let checked = tisty_core::docs::print_of(&at).unwrap();
+    replaced_keeping_its_time(&at, "uno\n\ndos\n\nTRES.\n");
+    assert_eq!(
+        print_kept_for(&one, &at),
+        checked,
+        "the setup did not leave a stale print behind"
+    );
+    let waiting = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert_eq!(waiting.brought, 0);
+    assert_eq!(waiting.coming, vec![id.to_string()]);
+    let kept_here = body(&one.data, id);
+    assert!(
+        kept_here.contains("UNO.") && !kept_here.contains("TRES."),
+        "a body that was not the one checked was joined into the document: {kept_here}"
+    );
+
+    let after = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert_eq!(after.brought, 1);
+    let whole = body(&one.data, id);
+    assert!(whole.contains("UNO.") && whole.contains("TRES."), "{whole}");
+    let base = tisty_core::docs::read_carried(&one.data, id).unwrap();
+    assert!(
+        base.contains("TRES.") && !base.contains("UNO"),
+        "the base kept for the next join is not what was joined from: {base}"
+    );
+}
+
 #[test]
 fn a_reinstall_that_kept_the_cache_meets_the_folder_as_a_new_machine() {
     let kept = tempfile::tempdir().unwrap();

@@ -153,3 +153,85 @@ fn only_the_first_sight_of_a_waiting_body_is_told() {
         None
     );
 }
+
+fn tried(at: &Path, checked: &str) -> (Option<Vec<u8>>, Moved) {
+    let mut done = Moved::default();
+    let mut prints = tisty_core::docs::Prints::default();
+    let got = taken(&mut prints, at, checked, "dev_a-0001", &mut done);
+    (got, done)
+}
+
+#[test]
+fn a_body_as_it_was_checked_is_handed_over_untouched() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("acta.md");
+    std::fs::write(&at, "# Uno").unwrap();
+    let checked = tisty_core::docs::print_of(&at).unwrap().unwrap();
+
+    let (got, done) = tried(&at, &checked);
+
+    assert_eq!(got, Some(b"# Uno".to_vec()));
+    assert!(done.coming.is_empty() && done.astray.is_empty());
+}
+
+#[test]
+fn a_body_that_changed_since_it_was_checked_waits_for_the_next_round() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("acta.md");
+    std::fs::write(&at, "# Uno\n").unwrap();
+    let checked = tisty_core::docs::print_of(&at).unwrap().unwrap();
+    std::fs::write(&at, "# Dos\n").unwrap();
+
+    let (got, done) = tried(&at, &checked);
+
+    assert_eq!(got, None);
+    assert_eq!(done.coming, vec!["dev_a-0001".to_string()]);
+    assert!(done.astray.is_empty());
+}
+
+#[test]
+fn a_body_that_went_away_waits_for_the_next_round() {
+    let room = tempfile::tempdir().unwrap();
+
+    let (got, done) = tried(&room.path().join("nada.md"), "whatever");
+
+    assert_eq!(got, None);
+    assert_eq!(done.coming, vec!["dev_a-0001".to_string()]);
+    assert!(done.astray.is_empty());
+}
+
+#[test]
+fn a_body_that_cannot_be_read_is_left_astray_where_the_person_hears_of_it() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("acta.md");
+    std::fs::create_dir(&at).unwrap();
+
+    let (got, done) = tried(&at, "whatever");
+
+    assert_eq!(got, None);
+    assert_eq!(done.astray, vec!["dev_a-0001".to_string()]);
+    assert!(
+        done.coming.is_empty(),
+        "a body that cannot be read was said to be coming"
+    );
+}
+
+#[test]
+fn a_body_that_turned_into_a_link_is_left_astray_instead_of_stopping_the_round() {
+    let room = tempfile::tempdir().unwrap();
+    let real = room.path().join("real.md");
+    std::fs::write(&real, "# Real\n").unwrap();
+    let checked = tisty_core::docs::print_of(&real).unwrap().unwrap();
+    let link = room.path().join("link.md");
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    #[cfg(windows)]
+    if std::os::windows::fs::symlink_file(&real, &link).is_err() {
+        return;
+    }
+
+    let (got, done) = tried(&link, &checked);
+
+    assert_eq!(got, None);
+    assert_eq!(done.astray, vec!["dev_a-0001".to_string()]);
+}

@@ -863,7 +863,7 @@ pub(crate) fn joined(
     data: &Path,
     id: &str,
     mine: &Path,
-    theirs: &Path,
+    yours: Option<&str>,
     stood: Option<&str>,
     reaches: &dyn Fn(&str) -> bool,
 ) -> Option<String> {
@@ -885,10 +885,10 @@ pub(crate) fn joined(
     let Ok(ours) = std::fs::read_to_string(mine) else {
         return gave_up("this side could not be read");
     };
-    let Ok(yours) = std::fs::read_to_string(theirs) else {
+    let Some(yours) = yours else {
         return gave_up("the other side could not be read");
     };
-    let Some(whole) = tisty_core::merge::merged(&base, &ours, &yours) else {
+    let Some(whole) = tisty_core::merge::merged(&base, &ours, yours) else {
         return gave_up("both sides changed the same lines");
     };
 
