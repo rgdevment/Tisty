@@ -248,14 +248,10 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     let mut done = Pushed::default();
     let mut here = Vec::new();
     let sound = walk(tree, tree, &mut here);
-    for one in &here {
-        if let Some(kept) = index.tree.get_mut(&one.name)
-            && (kept.len, kept.stamp) != (one.len, one.stamp)
-            && same_bytes(remote, &one.at, one.len, &kept.seen)
-        {
-            (kept.len, kept.stamp) = (one.len, racy(one.stamp));
-        }
-    }
+    let dirty: Vec<&Found> = here
+        .iter()
+        .filter(|one| is_dirty(remote, index, one))
+        .collect();
     let present: BTreeSet<&str> = here.iter().map(|one| one.name.as_str()).collect();
     let gone: Vec<(String, String)> = match sound && tree.join(PAPERS).is_dir() {
         true => index
@@ -266,15 +262,8 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
             .collect(),
         false => Vec::new(),
     };
-    let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) = here
-        .iter()
-        .filter(|one| {
-            index
-                .tree
-                .get(&one.name)
-                .is_none_or(|kept| (kept.len, kept.stamp) != (one.len, one.stamp))
-        })
-        .partition(|one| one.name == NAMED);
+    let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) =
+        dirty.into_iter().partition(|one| one.name == NAMED);
     rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
 
     for (at, one) in rest.iter().enumerate() {
@@ -304,6 +293,18 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
         }
     }
     (done, None)
+}
+
+fn is_dirty(remote: &dyn Remote, index: &mut Index, one: &Found) -> bool {
+    match index.tree.get_mut(&one.name) {
+        None => true,
+        Some(kept) if (kept.len, kept.stamp) == (one.len, one.stamp) => false,
+        Some(kept) if same_bytes(remote, &one.at, one.len, &kept.seen) => {
+            (kept.len, kept.stamp) = (one.len, racy(one.stamp));
+            false
+        }
+        Some(_) => true,
+    }
 }
 
 fn history_first(name: &str) -> u8 {
