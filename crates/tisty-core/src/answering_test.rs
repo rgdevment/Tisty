@@ -413,9 +413,9 @@ fn a_rotation_that_cannot_be_signed_leaves_the_segment_open() {
     let mut store = held.signs();
     std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
 
-    let rotated = store.rotate();
+    let closed = store.rotate().unwrap();
 
-    assert!(rotated.is_err(), "it closed a segment nothing answers for");
+    assert!(!closed, "it closed a segment nothing answers for");
     assert!(held.dir.join("active.tisty").is_file());
     assert!(!held.dir.join("000001.tisty").exists());
 }
@@ -455,25 +455,86 @@ fn a_live_segment_left_by_a_rotation_is_skipped_however_many_segments_closed_sin
 }
 
 #[test]
-fn a_batch_that_could_not_rotate_part_way_still_signs_what_it_wrote() {
+fn a_segment_that_cannot_be_closed_keeps_taking_what_is_written_and_signs_it() {
+    let max = crate::store::SEGMENT_MAX_EVENTS;
     let held = a_machine_that_wrote(0);
     let mut store = held.signs();
     store
-        .append_batch((0..4_995).map(a_line).collect())
+        .append_batch((0..max - 5).map(a_line).collect())
         .unwrap();
     std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
 
-    let refused = store.append_batch((0..20).map(a_line).collect());
-
-    assert!(
-        refused.is_err(),
-        "a batch past the end of a segment went on"
+    store.append_batch((0..20).map(a_line).collect()).expect(
+        "a batch past the end of a segment was refused for a signature it could not close with",
     );
+
     let lines = std::fs::read_to_string(held.dir.join("active.tisty"))
         .unwrap()
         .lines()
         .count();
-    assert_eq!(lines, 5_000, "the lot that fitted was not written");
+    assert_eq!(lines, max + 15, "the batch was not written whole");
     held.asked(Reached::default())
         .expect("what was written was left without a signature that covers it");
+}
+
+#[test]
+fn a_segment_that_could_not_be_closed_is_closed_once_it_can() {
+    let max = crate::store::SEGMENT_MAX_EVENTS;
+    let held = a_machine_that_wrote(0);
+    let mut store = held.signs();
+    store.append_batch((0..max).map(a_line).collect()).unwrap();
+    std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
+    store.append(a_line(max)).unwrap();
+    assert!(!held.dir.join("000001.tisty").exists());
+    std::fs::remove_dir(held.dir.join("000001.sig")).unwrap();
+
+    store.append(a_line(max + 1)).unwrap();
+
+    assert!(held.dir.join("000001.tisty").is_file());
+    let lines = std::fs::read_to_string(held.dir.join("active.tisty"))
+        .unwrap()
+        .lines()
+        .count();
+    assert_eq!(lines, 1);
+    let reached = held
+        .asked(Reached::default())
+        .expect("the segment closed late did not answer");
+    assert_eq!(reached.segment, 1);
+}
+
+#[test]
+fn a_rotation_that_fails_after_the_rename_leaves_no_signature_without_a_segment() {
+    let max = crate::store::SEGMENT_MAX_EVENTS;
+    let held = a_machine_that_wrote(0);
+    let mut store = held.signs();
+    store
+        .append_batch((0..max - 5).map(a_line).collect())
+        .unwrap();
+    std::fs::create_dir(held.dir.join("000001.count")).unwrap();
+
+    let refused = store.append_batch((0..20).map(a_line).collect());
+
+    assert!(refused.is_err());
+    assert!(!held.dir.join("active.tisty").exists());
+    assert!(
+        !held.dir.join("active.sig").exists(),
+        "a signature was left for a segment that is not there"
+    );
+}
+
+#[test]
+fn an_empty_live_segment_is_not_taken_for_a_leftover() {
+    let held = a_machine_that_wrote(2);
+    let mut store = held.signs();
+    store.rotate().unwrap();
+    store.append(a_line(2)).unwrap();
+    drop(store);
+    std::fs::write(held.dir.join("active.tisty"), b"").unwrap();
+
+    let answered = held.asked(Reached::default());
+
+    assert!(
+        matches!(answered, Err(Adrift::Unreadable(_))),
+        "an emptied live segment was passed over as a leftover: {answered:?}"
+    );
 }

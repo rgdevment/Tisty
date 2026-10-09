@@ -1857,3 +1857,26 @@ fn a_host_that_was_removed_speaks_for_nobody_anymore() {
 
     assert!(!said.vouched.contains_key(&agent));
 }
+
+#[test]
+fn a_live_segment_is_a_leftover_only_when_a_closed_one_begins_with_all_of_it() {
+    let tmp = tempfile::tempdir().unwrap();
+    let closed = tmp.path().join("000001.tisty");
+    let live = tmp.path().join("active.tisty");
+    let body = "x".repeat(20_000);
+    std::fs::write(&closed, format!("{body}more\n")).unwrap();
+    let segments = vec![closed.clone(), live.clone()];
+
+    assert!(left_over(&segments, &live, body.as_bytes()));
+
+    let mut changed = body.clone().into_bytes();
+    changed[15_000] = b'y';
+    assert!(!left_over(&segments, &live, &changed));
+    assert!(!left_over(
+        &segments,
+        &live,
+        format!("{body}more\nand more\n").as_bytes()
+    ));
+    assert!(!left_over(&segments, &live, b""));
+    assert!(!left_over(&segments, &closed, body.as_bytes()));
+}

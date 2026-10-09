@@ -106,15 +106,16 @@ chain is folded again from the last one that does. This is not the seal a
 parcel carries: that one is an HMAC over a manifest, under the store's key.
 
 A rotation that cannot write the closed segment's `.sig` does not rename: the
-live segment stays live and the write fails, because a closed segment without
-one reads as disowned on any machine that has seen this one sign. A rotation
-carried halfway is not tampering either. When a closed segment is in the
-folder and the old `active.tisty` still stands beside it, the old one is a
-byte-for-byte prefix of a closed one, holds nothing that one does not, and is
-skipped: not checked, not carried home and not counted when two histories are
-compared. Whatever the batch wrote before a rotation failed is signed all the
-same, so a refused rotation never leaves a live segment its signature does not
-cover.
+live segment stays live and keeps taking what is written, past the size at
+which it would have closed, until a later write finds the signature can be
+written and closes it. Closing it unsigned would read as disowned on any machine
+that has seen this one sign, and refusing the write would lock the person out
+of their own list. A rotation carried halfway is not tampering either. When a
+closed segment is in the folder and the old `active.tisty` still stands beside
+it, the old one is a byte-for-byte prefix of a closed one, holds nothing that
+one does not, and is skipped: not checked, not carried home and not counted
+when two histories are compared. A write that fails part way signs what it did
+write, and no signature is left for a segment that is not there.
 
 The key itself lives in `<config>/private/`, beside the store's own secret, and
 is never carried anywhere. What it owes is decided by the copy in the folder,

@@ -116,14 +116,14 @@ pub fn answers(
             device: &device.0,
             segment: named,
         };
-        let answered = match answered(by, &about, one, &bytes, tip, held.signing) {
-            Ok(answered) => answered,
+        let signed = match answered(by, &about, one, &bytes, tip, held.signing) {
+            Ok(signed) => signed,
             Err(_) if crate::store::left_over(&found, one, &bytes) => continue,
             Err(why) => return Err(why),
         };
         tip = signing::tip_of(tip, &bytes);
-        held.signing |= answered;
-        if answered && let Some(n) = number {
+        held.signing |= signed;
+        if signed && let Some(n) = number {
             held.segment = n;
             held.tip = tip;
         }
