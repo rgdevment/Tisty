@@ -1,5 +1,9 @@
 use super::*;
 
+fn a_key(seed: u8) -> String {
+    crate::signing::shown(&ed25519_dalek::SigningKey::from_bytes(&[seed; 32]))
+}
+
 #[test]
 fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
     let dir = tempfile::tempdir().unwrap();
@@ -9,7 +13,7 @@ fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
         .append(Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
-            p: Some("aa".into()),
+            p: Some(a_key(1)),
         })
         .unwrap();
     store
@@ -30,7 +34,7 @@ fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
 
     let said = introduced_in(&dir.path().join("dev_agent"), &agent);
 
-    assert_eq!(said.key.as_deref(), Some("aa"));
+    assert_eq!(said.key.as_deref(), Some(a_key(1).as_str()));
     assert_eq!(said.named.map(|one| one.name).as_deref(), Some("Claude"));
     assert_eq!(said.host, Some(DeviceId("dev_host".into())));
     assert!(said.since.is_some());
@@ -175,12 +179,14 @@ fn the_key_a_machine_is_answered_for_is_the_first_one_that_reads() {
     let at = dir.path().join("store").join("dev_b");
 
     assert_eq!(
-        crate::store::readable_key_said_in(&at, &who).as_deref(),
+        crate::store::key_said_in(&at, &who).as_deref(),
         Some(good.as_str())
     );
     assert_eq!(
         introduced_in(&at, &who).key.as_deref(),
-        Some("not a key"),
-        "what a machine says about itself is shown as it said it"
+        Some(good.as_str()),
+        "a person was shown a key they cannot answer for"
     );
+    assert!(crate::store::says_a_key_in(&at, &who));
+    assert!(!crate::store::says_a_key_in(&at, &DeviceId("dev_z".into())));
 }

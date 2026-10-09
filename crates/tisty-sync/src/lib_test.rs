@@ -8520,6 +8520,82 @@ fn a_history_that_carries_its_own_key_owes_its_signature_whatever_its_lines_clai
     assert!(!home_of(&one, &two.device).contains("lo viejo de dev_b"));
 }
 
+fn joined_saying(named: &str, shared: &Path, said: &[&str]) -> Machine {
+    let one = blank(named);
+    std::fs::create_dir_all(&one.data).unwrap();
+    carry(&one.data, &one.device, shared, Way::Both, &[]).unwrap();
+    let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
+    let who = DeviceId(one.device.clone());
+    let key = tisty_core::signing::mine(&paths, &who).expect("a key");
+    let mut held = Store::open(&one.store, who.clone())
+        .unwrap()
+        .signing_with(Some(key));
+    for p in said {
+        held.append(Op::DeviceKey {
+            d: who.clone(),
+            p: p.to_string(),
+        })
+        .unwrap();
+    }
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: TaskAdd::new(format!("lo de {named}"), "a0"),
+    })
+    .unwrap();
+    drop(held);
+    carry(&one.data, &one.device, shared, Way::Push, &[]).unwrap();
+    one
+}
+
+#[test]
+fn a_machine_found_on_first_reaching_a_folder_whose_only_key_cannot_be_read_waits() {
+    let shared = tempfile::tempdir().unwrap();
+    joined_saying("dev_c", shared.path(), &["not a key"]);
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+
+    let first = carry_leaning_on(
+        &two.data,
+        Some(kept.path()),
+        &two.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+
+    assert_eq!(first.unconfirmed, vec!["dev_c".to_string()]);
+    assert!(first.unsaid.is_empty(), "{:?}", first.unsaid);
+    assert!(
+        !home_of(&two, "dev_c").contains("lo de dev_c"),
+        "a signed history under a key nobody can read came in on taking the folder up"
+    );
+}
+
+#[test]
+fn a_machine_found_on_first_reaching_a_folder_that_has_not_said_its_key_is_taken_and_waited_on() {
+    let shared = tempfile::tempdir().unwrap();
+    joined_saying("dev_c", shared.path(), &[]);
+    let two = blank("dev_b");
+    std::fs::create_dir_all(&two.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+
+    let first = carry_leaning_on(
+        &two.data,
+        Some(kept.path()),
+        &two.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+
+    assert_eq!(first.unsaid, vec!["dev_c".to_string()]);
+    assert!(first.unconfirmed.is_empty(), "{:?}", first.unconfirmed);
+    assert!(home_of(&two, "dev_c").contains("lo de dev_c"));
+}
+
 #[test]
 fn a_reinstall_that_kept_the_cache_meets_the_folder_as_a_new_machine() {
     let kept = tempfile::tempdir().unwrap();

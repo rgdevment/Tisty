@@ -731,8 +731,8 @@ pub fn key_said_in(device_dir: &Path, who: &DeviceId) -> Option<String> {
     introduced::key_of(&introduced::events_of(device_dir, who, false), who)
 }
 
-pub fn readable_key_said_in(device_dir: &Path, who: &DeviceId) -> Option<String> {
-    introduced::readable_key_of(&introduced::events_of(device_dir, who, false), who)
+pub fn says_a_key_in(device_dir: &Path, who: &DeviceId) -> bool {
+    introduced::says_a_key(&introduced::events_of(device_dir, who, false), who)
 }
 
 pub fn distinct_in(device_dir: &Path) -> Result<usize> {
@@ -758,13 +758,14 @@ pub fn newest_schema(device_dir: &Path) -> Result<u32> {
     Ok(0)
 }
 
+#[derive(serde::Deserialize)]
+struct Written {
+    v: u32,
+}
+
 pub fn written_since(device_dir: &Path, schema: u32) -> Result<bool> {
     use std::io::BufRead;
 
-    #[derive(serde::Deserialize)]
-    struct Written {
-        v: u32,
-    }
     for segment in segments_in(device_dir)?.iter().rev() {
         let file = File::open(segment)?;
         crate::counting::opened();

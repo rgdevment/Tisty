@@ -86,8 +86,8 @@ fn owes_a_signature(
     known: bool,
 ) -> Result<bool, ()> {
     if known
-        || tisty_core::store::key_said_in(theirs, who).is_some()
-        || tisty_core::store::key_said_in(mine, who).is_some()
+        || tisty_core::store::says_a_key_in(theirs, who)
+        || tisty_core::store::says_a_key_in(mine, who)
     {
         return Ok(true);
     }
@@ -118,6 +118,7 @@ fn answers_for_itself(
 ) -> Answered {
     let who = tisty_core::DeviceId(named.to_string());
     let ours = named.eq_ignore_ascii_case(device);
+    let mine = store.join(named);
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
@@ -125,7 +126,7 @@ fn answers_for_itself(
     if stood.is_none() && !ours && signed {
         let says = match claimed(store, &who, knew) {
             Ok(Some(claim)) => Some(claim),
-            Ok(None) => tisty_core::store::readable_key_said_in(theirs, &who),
+            Ok(None) => tisty_core::store::key_said_in(theirs, &who),
             Err(()) => return Answered::Unreadable,
         };
         match says {
@@ -138,13 +139,9 @@ fn answers_for_itself(
                 stood = Some(says);
             }
             Some(says)
-                if store.join(named).is_dir()
-                    && tisty_core::store::before::first_key_past(
-                        &store.join(named),
-                        theirs,
-                        &who,
-                    )
-                    .as_deref()
+                if mine.is_dir()
+                    && tisty_core::store::before::first_key_past(&mine, theirs, &who)
+                        .as_deref()
                         == Some(says.as_str()) =>
             {
                 carried = Some(says.clone());
@@ -166,7 +163,9 @@ fn answers_for_itself(
                 );
                 return Answered::Unconfirmed;
             }
-            None if adopting => return Answered::Unsaid,
+            None if adopting && !tisty_core::store::says_a_key_in(theirs, &who) => {
+                return Answered::Unsaid;
+            }
             None => {
                 witness::note(
                     channel::SYNC,
@@ -179,7 +178,7 @@ fn answers_for_itself(
     }
     if !signed {
         let known = from.signing || stood.is_some();
-        let Ok(owed) = owes_a_signature(&store.join(named), theirs, &who, known) else {
+        let Ok(owed) = owes_a_signature(&mine, theirs, &who, known) else {
             return Answered::Unreadable;
         };
         if !owed {
@@ -209,7 +208,6 @@ fn answers_for_itself(
         return Answered::Unreadable;
     };
     use tisty_core::answering::Adrift;
-    let mine = store.join(named);
     let ours_already = alike.of(named, theirs, &mine).clone();
     let answers = tisty_core::answering::answers(theirs, &who, &by, from, &|segment| {
         ours_already.contains(std::ffi::OsStr::new(segment))

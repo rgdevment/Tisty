@@ -102,13 +102,13 @@ fn keys_of<'a>(events: &'a [Event], who: &'a DeviceId) -> impl Iterator<Item = &
 }
 
 pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
-    keys_of(events, who).next().cloned()
-}
-
-pub(super) fn readable_key_of(events: &[Event], who: &DeviceId) -> Option<String> {
     keys_of(events, who)
         .find(|one| crate::signing::read(one).is_some())
         .cloned()
+}
+
+pub(super) fn says_a_key(events: &[Event], who: &DeviceId) -> bool {
+    keys_of(events, who).next().is_some()
 }
 
 // Read from one copy, so the prints come from the very bytes whose signatures were checked.
