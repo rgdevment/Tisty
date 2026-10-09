@@ -8697,6 +8697,73 @@ fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
     );
 }
 
+fn replaced_by_the_folder_under(
+    says: impl FnOnce(String) -> super::papers::Answers,
+) -> (Machine, Moved) {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let id = "dev_a-0001";
+    let alive = [id.to_string()];
+    paper(&one, id, "# antes\n");
+    theirs(shared.path(), id, "# antes\n");
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    theirs(shared.path(), id, "# lo de otra maquina\n");
+    let at = shared.path().join("docs").join(format!("{id}.md"));
+    let print = tisty_core::docs::print_of(&at).unwrap().unwrap();
+    let printed = std::collections::BTreeMap::from([(id.to_string(), says(print))]);
+    let done = super::papers::carry_papers_leaning_on(
+        &one.data,
+        shared.path(),
+        &alive,
+        &[],
+        None,
+        Some(&printed),
+        &|_, _| false,
+        &|_| false,
+        false,
+        false,
+        true,
+        &mut |_| {},
+    )
+    .unwrap();
+    (one, done)
+}
+
+#[test]
+fn a_body_only_another_machine_last_wrote_is_set_aside_before_it_replaces_ours() {
+    let (one, done) = replaced_by_the_folder_under(|print| super::papers::Answers {
+        newest: Some("otra cosa".to_string()),
+        own: None,
+        others: std::collections::BTreeSet::from([print]),
+    });
+
+    assert_eq!(done.brought, 1);
+    assert_eq!(body(&one.data, "dev_a-0001"), "# lo de otra maquina\n");
+    assert_eq!(
+        tisty_core::docs::read_before(&one.data, "dev_a-0001").as_deref(),
+        Some("# antes\n"),
+        "a body that was only another machine's last word replaced ours with nothing kept"
+    );
+}
+
+#[test]
+fn a_body_the_log_answers_for_replaces_ours_without_setting_ours_aside() {
+    let (one, done) = replaced_by_the_folder_under(|print| super::papers::Answers {
+        newest: Some(print),
+        own: None,
+        others: Default::default(),
+    });
+
+    assert_eq!(done.brought, 1);
+    assert_eq!(body(&one.data, "dev_a-0001"), "# lo de otra maquina\n");
+    assert_eq!(
+        tisty_core::docs::read_before(&one.data, "dev_a-0001"),
+        None,
+        "a body the log answers for was set aside as if it were in doubt"
+    );
+}
+
 #[test]
 fn a_body_that_is_not_text_is_put_to_the_person_instead_of_joined() {
     let one = machine("dev_a");
