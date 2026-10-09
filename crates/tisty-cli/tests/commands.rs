@@ -1658,6 +1658,64 @@ fn syncing_without_a_folder_says_which_command_sets_one() {
     assert!(run.err.contains("config set remote"), "{}", run.err);
 }
 
+fn syncing_a_way_a_newer_build_chose(cli: &Cli) {
+    cli.ok(&["a task so the settings exist"]);
+    let file = cli.home.path().join("config").join("config.toml");
+    let mut said = std::fs::read_to_string(&file).unwrap();
+    said.push_str("\n# written by a newer build\n[sync]\nhow = 'nube'\n");
+    std::fs::write(&file, said).unwrap();
+}
+
+#[test]
+fn syncing_a_way_a_newer_build_chose_says_so_and_not_that_nothing_is_set() {
+    let cli = Cli::new();
+    syncing_a_way_a_newer_build_chose(&cli);
+
+    let run = cli.run(&["sync"]);
+
+    assert_ne!(run.code, 0);
+    assert!(run.err.contains("newer Tisty"), "{}", run.err);
+    assert!(!run.err.contains("config set remote"), "{}", run.err);
+}
+
+#[test]
+fn a_way_a_newer_build_chose_is_not_replaced_from_here() {
+    let cli = Cli::new();
+    syncing_a_way_a_newer_build_chose(&cli);
+    let elsewhere = tempfile::tempdir().unwrap();
+    let to = elsewhere.path().display().to_string();
+
+    let file = cli.home.path().join("config").join("config.toml");
+    let before = std::fs::read(&file).unwrap();
+
+    let set = cli.run(&["config", "set", "remote", &to]);
+    let unset = cli.run(&["config", "unset", "remote"]);
+
+    for run in [set, unset] {
+        assert_ne!(run.code, 0);
+        assert!(run.err.contains("newer Tisty"), "{}", run.err);
+    }
+    assert_eq!(
+        std::fs::read(&file).unwrap(),
+        before,
+        "a refused change still rewrote what a newer build wrote"
+    );
+}
+
+#[test]
+fn a_way_a_newer_build_chose_is_not_reported_as_unset() {
+    let cli = Cli::new();
+    syncing_a_way_a_newer_build_chose(&cli);
+
+    let got = cli.run(&["config", "get", "remote"]);
+    let listed = cli.ok(&["config"]);
+
+    assert_ne!(got.code, 0);
+    assert!(got.err.contains("newer Tisty"), "{}", got.err);
+    assert!(!got.err.contains("is not set"), "{}", got.err);
+    assert!(listed.contains("a way a newer Tisty chose"), "{listed}");
+}
+
 #[test]
 fn a_machine_with_nothing_of_its_own_adopts_what_the_folder_holds() {
     let shared = tempfile::tempdir().unwrap();

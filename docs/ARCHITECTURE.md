@@ -2343,10 +2343,52 @@ cardinality of one:
 | Carry (exactly one) | `Carrier`, picked by `chosen()` | none, `Folder`, `Cloud` |
 | Speak to a provider | `Remote`, inside `Cloud` | Drive, OneDrive, Dropbox |
 
-`chosen()` is the only `match` on the way of syncing. Today the folder is asked
+`chosen()` is the only place that builds a carrier out of the way of syncing, and
+the type answers every other question itself, through `place`, `shares`,
+`leaving` and `remembered`, and what a restore put away answers through `folder`
+and `is_later`. Today the folder is asked
 about in some thirty places; they move behind `Carrier` first, with no change
 in behaviour, and only then does a second carrier exist. A rule in `rules.sh`
-keeps `Sync::Folder` and `Sync::Cloud` from being named anywhere else.
+keeps any variant of `Sync` from being named outside `config.rs`, where the type
+and its methods live, and `chosen()`'s file; a second `impl` on `Sync` or an
+alias of it elsewhere counts as naming it. Everything else asks a method or the
+carrier it was handed. The rule fails on files that break it, and a check that
+it can fail runs with it.
+
+**A way a newer build chose is reported and never replaced.** Settings written
+by a later build can say a way this one does not know. It is kept exactly as it
+was read (`Unknown`), and then:
+
+- nothing is carried, and a command that needs a carrier refuses with
+  `syncLater` rather than `noRemote`, because «nothing is set» would be false;
+- the first start of each version says so with the update notice, and the
+  Syncing card always does: it offers no way to turn syncing on, and `tisty
+  config` and `config get remote` name it instead of calling it unset;
+- leaving it is refused from the window and from the command line, whatever the
+  attachments setting says: that setting is an intention, and this build cannot
+  bring anything home to check it. Staying on it is not leaving. The check reads
+  the settings where they are written, not where this window loaded them, and a
+  refusal writes nothing, so a newer build that chose meanwhile is not replaced
+  either. Builds before this one still replace it freely, and the build that
+  introduces the cloud has to live with that;
+- a restore puts it away as it found it, in `shared_was_later` and never in
+  `shared_was`, which every build since 1.24 reads as a path, and the card says
+  that what it let go was a way it cannot name. A second restore keeps what the
+  first put away, unless the person chose not to share in between. The way is
+  stamped with the restore that put it away, so a build that restores later and
+  does not know the key leaves it standing and this one no longer believes it.
+
+Two more rules keep the settings of a newer build safe from this one. A folder
+with anything in it besides `how` and `at` is a way this build does not read,
+and is kept whole rather than shaved to what it knows. And when the settings on
+disk say something this build cannot read, nothing is written over them from
+the window or the command line: it refuses with `settingsUnreadable` and says to
+update. A new value of an existing setting, such as another `holds`, is a format
+change in the same sense: older builds stop rather than guess.
+
+A backup made while a way is unknown leaves out the attachments that live only
+there, and opening one says it cannot be read. Both wait for the cloud's own
+`backs_up` and on-demand attachments.
 
 **The cloud is the same folder, reached through an API.** The same
 `tisty.toml`, `store/`, `docs/`, `attachments/` and `.store-id`: one format,

@@ -225,6 +225,71 @@ both_languages_carry_the_same_documents() {
   [ "$bad" = 1 ] || went_well "both languages carry the same documents"
 }
 
+# Only the type and the factory may name a way of syncing, so no match on it can grow back.
+modes_named_outside() {
+  local test_modules found naming
+  naming='(^|[^[:alnum:]_])Sync[[:space:]]*::[[:space:]]*[A-Z{*]|(^|[^[:alnum:]_])Sync[[:space:]]+as[[:space:]]'
+  naming="$naming|impl[[:space:]]*(<[^>]*>[[:space:]]*)?([A-Za-z_]+::)*Sync[[:space:]]*[{<]|for[[:space:]]+([A-Za-z_]+::)*Sync[[:space:]]*[{<]"
+  naming="$naming|=[[:space:]]*([A-Za-z_]+::)*Sync[[:space:]]*;"
+  test_modules=$(grep -rA1 '^#\[cfg(test)\]$' "$@" --include='*.rs' \
+    | sed -nE 's/^(.*\.rs)-#\[path = "([^"]+)"\]$/\1 \2/p' \
+    | while read -r declared module; do printf '%s/%s\n' "$(dirname "$declared")" "$module"; done | sort -u)
+  found=$(grep -rnE "$naming" "$@" --include='*.rs')
+  case $? in 0 | 1) ;; *) return 2 ;; esac
+  [ -n "$found" ] || return 0
+  printf '%s\n' "$found" | NAMES="$test_modules" awk '
+    BEGIN { count = split(ENVIRON["NAMES"], list, "\n"); for (i = 1; i <= count; i++) skip[list[i]] = 1 }
+    {
+      file = $0
+      sub(/:[0-9]+:.*/, "", file)
+      parts = split(file, at, "/")
+      base = at[parts]
+      if (file ~ /(^|\/)tests\// || base ~ /_tests?\.rs$/ || (file in skip)) next
+      if (file == "crates/tisty-core/src/config.rs" || file == "crates/tisty-carrier/src/lib.rs") next
+      print
+    }'
+}
+
+the_way_of_syncing_is_named_once() {
+  local found
+  found=$(modes_named_outside crates app/src-tauri/src)
+  case $? in
+    0) ;;
+    *) amiss "the sources could not be looked through for a way of syncing named outside its place"; return ;;
+  esac
+  if [ -n "$found" ]; then
+    printf '%s\n' "$found"
+    amiss "a way of syncing is named only in config.rs and in chosen(): ask the carrier, or add a method to Sync"
+  else
+    went_well "the way of syncing is named only where it is chosen"
+  fi
+}
+
+the_rule_on_the_way_of_syncing_can_fail() {
+  local room out broke allowed
+  room=$(mktemp -d)
+  mkdir -p "$room/crates/other/src" "$room/crates/tisty-carrier/src"
+  printf '%s\n' 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' \
+    '#[cfg(test)]' '#[path = "checks.rs"]' 'mod checks;' > "$room/crates/other/src/lib.rs"
+  printf '%s\n' 'fn g(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' > "$room/crates/other/src/checks.rs"
+  printf '%s\n' 'impl<T> Sync { }' 'impl crate::config::Sync { }' 'impl Trait for tisty_core::config::Sync { }' \
+    'use tisty_core::config::Sync as Way;' 'use tisty_core::config::Sync::*;' 'type Way = tisty_core::config::Sync;' \
+    'use tisty_core::config::Sync::{Folder, Local};' > "$room/crates/other/src/forms.rs"
+  printf '%s\n' 'unsafe impl Sync for Cell {}' 'unsafe impl<T: Send> Sync for Holder<T> {}' \
+    'fn f<T: Send + Sync>() {}' 'type Shared = Arc<dyn Carrier + Send + Sync>;' 'impl<T: Sync> Wrapper<T> {}' \
+    'trait Carrier: Send + std::marker::Sync {}' > "$room/crates/other/src/standard.rs"
+  printf '%s\n' 'fn f(s: Sync) { match s { Sync::Folder(_) => {}, _ => {} } }' > "$room/crates/tisty-carrier/src/lib.rs"
+  out=$(cd "$room" && modes_named_outside crates)
+  rm -rf "$room"
+  broke=$(printf '%s\n' "$out" | grep -cE 'crates/other/src/(lib|forms)\.rs')
+  allowed=$(printf '%s\n' "$out" | grep -cE 'crates/(other/src/(checks|standard)|tisty-carrier/src/lib)\.rs')
+  if [ "$broke" != 8 ] || [ "$allowed" != 0 ]; then
+    amiss "the rule on the way of syncing no longer tells what breaks it from a test, the standard Sync or the factory"
+  else
+    went_well "the rule on the way of syncing fails on a match outside the factory"
+  fi
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
@@ -234,5 +299,7 @@ nothing_the_core_prints
 nothing_that_takes_the_window_down
 nothing_new_reaches_the_command_line
 every_spawn_pins_its_language
+the_way_of_syncing_is_named_once
+the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 exit $status

@@ -250,12 +250,13 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
     config.heard_at = None;
-    config.shared_was = match &was.sync {
-        Some(crate::config::Sync::Folder(at)) => Some(at.clone()),
-        _ => None,
-    };
     config.sync = None;
     config.restored_at = Some(jiff::Timestamp::now());
+    // Remembered by the stamp above, so it comes after it; choosing nobody on purpose clears it.
+    config.remember_shared(match &was.sync {
+        Some(chosen) => chosen.remembered(),
+        None => was.once_shared(),
+    });
     config.save(paths)?;
 
     store::kept_before_the_store_goes(paths);
@@ -272,10 +273,12 @@ pub(crate) fn within(paths: &Paths, from: &Path, at_most: u64) -> Result<Restore
                     ("device", Fact::Id(was.device_id.0.clone())),
                     (
                         "shared",
-                        Fact::Why(match &was.sync {
-                            Some(crate::config::Sync::Folder(at)) => at.display().to_string(),
-                            _ => "none".to_string(),
-                        }),
+                        Fact::Why(
+                            was.sync
+                                .as_ref()
+                                .and_then(crate::config::Sync::place)
+                                .map_or_else(|| "none".to_string(), |at| at.display().to_string()),
+                        ),
                     ),
                 ],
             );

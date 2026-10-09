@@ -160,20 +160,47 @@ impl Session {
                 .is_some_and(|at| tisty_core::store::inhabited(at.join(tisty_carrier::STORE)))
     }
 
-    pub fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
-        let mut fresh = match Config::load(&self.paths.config_file()) {
-            Ok(Some(kept)) => kept,
-            Ok(None) => self.config.clone(),
+    /// A file this build cannot read is a newer build's: neither adopted nor written over.
+    fn settings_on_disk(&self) -> Option<Config> {
+        match Config::load(&self.paths.config_file()) {
+            Ok(Some(kept)) => Some(kept),
+            Ok(None) => Some(self.config.clone()),
             Err(why) => {
                 witness::warn(
                     channel::CONFIG,
-                    "the settings could not be read before saving",
+                    "the settings on disk could not be read, so nothing was written over them",
                     &[("why", Fact::Why(why.to_string()))],
                 );
-                self.config.clone()
+                None
             }
+        }
+    }
+
+    pub fn refresh_settings(&mut self) {
+        if let Some(on_disk) = self.settings_on_disk() {
+            self.config = on_disk;
+        }
+    }
+
+    pub fn keep(&mut self, change: impl FnOnce(&mut Config)) -> Answer<()> {
+        self.keep_unless(|config| {
+            change(config);
+            None
+        })
+    }
+
+    /// Reads the settings where they are written, since another install may have chosen meanwhile.
+    pub fn keep_unless(
+        &mut self,
+        change: impl FnOnce(&mut Config) -> Option<Refusal>,
+    ) -> Answer<()> {
+        let Some(mut fresh) = self.settings_on_disk() else {
+            return Err(Refusal::of("settingsUnreadable"));
         };
-        change(&mut fresh);
+        if let Some(refusal) = change(&mut fresh) {
+            self.config = fresh;
+            return Err(refusal);
+        }
         fresh
             .save(&self.paths)
             .map_err(|e| blamed(channel::CONFIG, "the settings could not be saved", e))?;
@@ -264,8 +291,12 @@ impl Session {
         self.log = None;
     }
 
+    pub fn keeping(&self) -> tisty_carrier::Keeping {
+        tisty_carrier::chosen(self.config.sync.as_ref())
+    }
+
     pub fn carrier(&self) -> Option<tisty_carrier::Shared> {
-        tisty_carrier::chosen(self.config.sync.as_ref()).carrier
+        self.keeping().carrier
     }
 
     pub fn place(&self) -> Option<std::path::PathBuf> {
@@ -278,7 +309,13 @@ impl Session {
 
     /// The way of carrying this machine chose, or the refusal every command that needs one gives.
     pub fn carrying(&self) -> Result<tisty_carrier::Shared, Refusal> {
-        self.carrier().ok_or_else(|| Refusal::of("noRemote"))
+        let keeping = self.keeping();
+        keeping.carrier.ok_or_else(|| {
+            Refusal::of(match keeping.chosen {
+                tisty_carrier::Chosen::Later => "syncLater",
+                _ => "noRemote",
+            })
+        })
     }
 
     pub fn alive(&self) -> Vec<String> {

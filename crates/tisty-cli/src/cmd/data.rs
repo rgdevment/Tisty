@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use jiff::civil::Date;
 
-use crate::app::App;
+use crate::app::{App, Edited};
 use crate::filter::Filter;
 use crate::i18n::Lang;
 use crate::{ConfigAction, EXIT_NOT_FOUND, render, style};
@@ -18,7 +18,11 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             show("device_id", Some(&config.device_id.0));
             show("locale", config.locale.as_deref());
             show("editor", config.editor.as_deref());
-            show("remote", value(app, "remote")?.as_deref());
+            let remote = match later(app) {
+                true => Some(lang.get("remote-later").to_string()),
+                false => value(app, "remote")?,
+            };
+            show("remote", remote.as_deref());
             show("data_dir", Some(&app.paths.data().display().to_string()));
             println!();
             Ok(ExitCode::SUCCESS)
@@ -35,6 +39,10 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 Some(value) => {
                     println!("{value}");
                     Ok(ExitCode::SUCCESS)
+                }
+                None if key == "remote" && later(app) => {
+                    eprintln!("{}", lang.get("remote-later"));
+                    Ok(ExitCode::from(EXIT_NOT_FOUND))
                 }
                 None => {
                     eprintln!("{}", lang.fill("unset-key", &[("key", &key)]));
@@ -63,26 +71,64 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 }
             }
 
-            app.edit_config(|c| match key.as_str() {
-                "locale" => c.locale = Some(value.clone()),
-                "remote" => c.sync = Some(tisty_core::config::Sync::Folder(value.clone().into())),
-                _ => c.editor = Some(value.clone()),
+            let edited = app.edit_config_if(|c| match key.as_str() {
+                "locale" => {
+                    c.locale = Some(value.clone());
+                    true
+                }
+                "remote" => replacing_the_way(c, tisty_core::config::Sync::folder(&value)),
+                _ => {
+                    c.editor = Some(value.clone());
+                    true
+                }
             })?;
+            refused(edited, lang)?;
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
             Ok(ExitCode::SUCCESS)
         }
 
         Some(ConfigAction::Unset { key }) => {
             check(&key, lang)?;
-            app.edit_config(|c| match key.as_str() {
-                "locale" => c.locale = None,
-                "remote" => c.sync = Some(tisty_core::config::Sync::Local),
-                _ => c.editor = None,
+            let edited = app.edit_config_if(|c| match key.as_str() {
+                "locale" => {
+                    c.locale = None;
+                    true
+                }
+                "remote" => replacing_the_way(c, tisty_core::config::Sync::alone()),
+                _ => {
+                    c.editor = None;
+                    true
+                }
             })?;
+            refused(edited, lang)?;
             println!("  {} {key}", style::dim("✕"));
             Ok(ExitCode::SUCCESS)
         }
     }
+}
+
+fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sync) -> bool {
+    use tisty_core::config::Leaving;
+    let held = config
+        .sync
+        .as_ref()
+        .is_some_and(|was| *was != to && was.leaving() == Leaving::Later);
+    if !held {
+        config.sync = Some(to);
+    }
+    !held
+}
+
+fn refused(edited: Edited, lang: Lang) -> anyhow::Result<()> {
+    match edited {
+        Edited::Saved => Ok(()),
+        Edited::Refused => anyhow::bail!("{}", lang.get("sync-later-to-leave")),
+        Edited::Unreadable => anyhow::bail!("{}", lang.get("settings-unreadable")),
+    }
+}
+
+fn later(app: &App) -> bool {
+    tisty_carrier::chosen(app.config().sync.as_ref()).chosen == tisty_carrier::Chosen::Later
 }
 
 fn show(key: &str, value: Option<&str>) {

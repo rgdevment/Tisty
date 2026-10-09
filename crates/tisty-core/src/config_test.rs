@@ -204,6 +204,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         backed_up_at: None,
         restored_at: None,
         shared_was: None,
+        shared_was_later: None,
         sync: Some(Sync::Folder("G:/Mi unidad/Tisty".into())),
         synced_at: None,
         heard_at: None,
@@ -270,6 +271,7 @@ fn bare() -> Config {
         backed_up_at: None,
         restored_at: None,
         shared_was: None,
+        shared_was_later: None,
         sync: None,
         synced_at: None,
         heard_at: None,
@@ -456,4 +458,249 @@ fn a_key_this_build_cannot_name_survives_a_sync_folder_being_set() {
         "the folder to sync with did not survive:
 {again}"
     );
+}
+
+fn later() -> toml::Value {
+    toml::from_str("how = \"nube\"\nat = { cuenta = \"yo\" }").unwrap()
+}
+
+#[test]
+fn a_folder_places_itself_and_a_way_nobody_here_reads_does_not() {
+    let folder = Sync::folder("G:/Mi unidad/compartida");
+
+    assert_eq!(folder.place(), Some(Path::new("G:/Mi unidad/compartida")));
+    assert!(folder.shares());
+    assert_eq!(folder.leaving(), Leaving::Place);
+    for nobody in [Sync::alone(), Sync::Unknown(later())] {
+        assert_eq!(nobody.place(), None);
+        assert!(
+            !nobody.shares(),
+            "a way this build cannot read offered its settings"
+        );
+    }
+    assert_eq!(Sync::alone().leaving(), Leaving::Free);
+    assert_eq!(Sync::Unknown(later()).leaving(), Leaving::Later);
+}
+
+#[test]
+fn only_a_folder_makes_the_holds_setting_count() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+    config.holds = Some(Holds::Mine);
+
+    for sync in [None, Some(Sync::alone()), Some(Sync::Unknown(later()))] {
+        config.sync = sync;
+        assert_eq!(config.holds(), Holds::Everywhere);
+        assert!(!config.shares());
+    }
+    config.sync = Some(Sync::folder("compartida"));
+    assert_eq!(config.holds(), Holds::Mine);
+    assert!(config.shares());
+}
+
+#[test]
+fn a_way_put_away_by_a_restore_is_read_from_the_old_key_or_the_new_one() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+    assert_eq!(config.once_shared(), None);
+
+    config.remember_shared(Some(Was::Folder("G:/compartida".into())));
+    assert_eq!(
+        config.once_shared(),
+        Some(Was::Folder("G:/compartida".into()))
+    );
+    assert_eq!(config.shared_was_later, None);
+
+    config.remember_shared(Some(Was::Later(later())));
+    assert_eq!(config.once_shared(), Some(Was::Later(later())));
+    assert_eq!(config.shared_was, None);
+
+    config.remember_shared(None);
+    assert_eq!(config.once_shared(), None);
+}
+
+#[test]
+fn a_file_from_before_the_later_key_reads_and_writes_back_the_same() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.remember_shared(Some(Was::Folder("G:/compartida".into())));
+    config.save(&paths).unwrap();
+
+    let written: toml::Table = std::fs::read_to_string(paths.config_file())
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert_eq!(
+        written.get("shared_was").and_then(toml::Value::as_str),
+        Some("G:/compartida")
+    );
+    assert!(!written.contains_key("shared_was_later"));
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(
+        read.once_shared(),
+        Some(Was::Folder("G:/compartida".into()))
+    );
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Before {
+    device_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    shared_was: Option<std::path::PathBuf>,
+    #[serde(flatten)]
+    rest: toml::Table,
+}
+
+#[test]
+fn a_later_way_survives_a_trip_through_the_file_in_both_places() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(Sync::Unknown(later()));
+    config.remember_shared(Some(Was::Later(later())));
+    config
+        .rest
+        .insert("a_scalar_of_a_newer_build".into(), 7.into());
+    config
+        .rest
+        .insert("a_table_of_a_newer_build".into(), later());
+    config.save(&paths).unwrap();
+
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync, Some(Sync::Unknown(later())), "{said}");
+    assert_eq!(read.once_shared(), Some(Was::Later(later())), "{said}");
+    assert_eq!(
+        read.rest
+            .get("a_scalar_of_a_newer_build")
+            .and_then(toml::Value::as_integer),
+        Some(7),
+        "a key of a newer build did not survive the file: {said}"
+    );
+    assert_eq!(
+        read.rest.get("a_table_of_a_newer_build"),
+        Some(&later()),
+        "{said}"
+    );
+}
+
+#[test]
+fn a_build_from_before_the_later_key_keeps_it_and_the_way_it_puts_away() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.sync = Some(Sync::Unknown(later()));
+    config.remember_shared(Some(Was::Later(later())));
+    config.save(&paths).unwrap();
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+
+    let before: Before = toml::from_str(&said).unwrap_or_else(|why| {
+        panic!("a build from before the key cannot read the file: {why}\n{said}")
+    });
+    assert_eq!(before.shared_was, None, "{said}");
+    assert!(before.rest.contains_key("shared_was_later"), "{said}");
+    std::fs::write(paths.config_file(), toml::to_string(&before).unwrap()).unwrap();
+
+    let back = Config::load(&paths.config_file()).unwrap().unwrap();
+    assert_eq!(back.sync, Some(Sync::Unknown(later())));
+    assert_eq!(back.once_shared(), Some(Was::Later(later())));
+}
+
+#[test]
+fn a_folder_with_more_than_a_folder_in_it_is_kept_whole_as_a_way_nobody_here_reads() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    std::fs::create_dir_all(paths.config_file().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.config_file(),
+        "device_id = \"dev_a\"\n\n[sync]\nhow = \"folder\"\nat = \"G:/compartida\"\nmirror = \"G:/espejo\"\n",
+    )
+    .unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync.as_ref().map(Sync::leaving), Some(Leaving::Later));
+    assert!(!read.shares());
+    read.save(&paths).unwrap();
+    let written: toml::Table = std::fs::read_to_string(paths.config_file())
+        .unwrap()
+        .parse()
+        .unwrap();
+    let mirror = written
+        .get("sync")
+        .and_then(|sync| sync.get("mirror"))
+        .and_then(toml::Value::as_str);
+    assert_eq!(mirror, Some("G:/espejo"));
+}
+
+#[test]
+fn a_plain_folder_is_still_a_folder() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    std::fs::create_dir_all(paths.config_file().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.config_file(),
+        "device_id = \"dev_a\"\n\n[sync]\nhow = \"folder\"\nat = \"G:/compartida\"\n",
+    )
+    .unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync, Some(Sync::folder("G:/compartida")));
+}
+
+#[test]
+fn a_way_put_away_is_forgotten_once_another_restore_happened_without_knowing_it() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+    config.restored_at = Some("2026-10-01T10:00:00Z".parse().unwrap());
+    config.remember_shared(Some(Was::Later(later())));
+    assert_eq!(config.once_shared(), Some(Was::Later(later())));
+
+    config.restored_at = Some("2026-10-05T10:00:00Z".parse().unwrap());
+
+    assert_eq!(
+        config.once_shared(),
+        None,
+        "a build that restored later and did not know the key left a stale memory standing"
+    );
+}
+
+#[test]
+fn a_way_put_away_keeps_the_stamp_of_the_restore_that_wrote_it_through_the_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.restored_at = Some("2026-10-01T10:00:00Z".parse().unwrap());
+    config.remember_shared(Some(Was::Later(later())));
+    config.save(&paths).unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.once_shared(), Some(Was::Later(later())));
+    assert_eq!(
+        read.shared_was_later.and_then(|put| put.restored_at),
+        read.restored_at
+    );
+}
+
+#[test]
+fn a_file_written_by_hand_before_the_later_key_existed_still_reads() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    std::fs::create_dir_all(paths.config_file().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.config_file(),
+        "device_id = \"dev_a\"\nshared_was = \"G:/compartida\"\n\n[sync]\nhow = \"folder\"\nat = \"G:/otra\"\n",
+    )
+    .unwrap();
+
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(
+        read.once_shared(),
+        Some(Was::Folder("G:/compartida".into()))
+    );
+    assert_eq!(read.sync, Some(Sync::folder("G:/otra")));
+    assert_eq!(read.shared_was_later, None);
 }

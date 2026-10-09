@@ -7,6 +7,12 @@ enum Load {
     None,
 }
 
+pub enum Edited {
+    Saved,
+    Refused,
+    Unreadable,
+}
+
 pub struct App {
     pub paths: Paths,
     pub state: State,
@@ -74,22 +80,41 @@ impl App {
     }
 
     pub fn edit_config(&mut self, f: impl FnOnce(&mut Config)) -> tisty_core::Result<()> {
+        let edited = self.edit_config_if(|config| {
+            f(config);
+            true
+        })?;
+        match edited {
+            Edited::Unreadable => Err(tisty_core::Error::Io(std::io::Error::other(
+                "the settings file says something this version cannot read, so nothing was written",
+            ))),
+            Edited::Saved | Edited::Refused => Ok(()),
+        }
+    }
+
+    pub fn edit_config_if(
+        &mut self,
+        f: impl FnOnce(&mut Config) -> bool,
+    ) -> tisty_core::Result<Edited> {
         let mut fresh = match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => kept,
             Ok(None) => self.config.clone(),
             Err(why) => {
                 witness::warn(
                     channel::CONFIG,
-                    "the settings could not be read before saving",
+                    "the settings on disk could not be read, so nothing was written over them",
                     &[("why", Fact::Why(why.to_string()))],
                 );
-                self.config.clone()
+                return Ok(Edited::Unreadable);
             }
         };
-        f(&mut fresh);
+        if !f(&mut fresh) {
+            self.config = fresh;
+            return Ok(Edited::Refused);
+        }
         fresh.save(&self.paths)?;
         self.config = fresh;
-        Ok(())
+        Ok(Edited::Saved)
     }
 
     pub fn here(&self) -> tisty_carrier::Here {
@@ -320,3 +345,7 @@ impl App {
 #[cfg(test)]
 #[path = "app_undoing.rs"]
 mod undoing;
+
+#[cfg(test)]
+#[path = "app_settings.rs"]
+mod settings;
