@@ -405,13 +405,27 @@ impl Store {
     /// One open and one `fsync` for the whole lot: a batch is durable before this returns, but a
     /// pasted list of two hundred does not pay the wait two hundred times over.
     fn write_all(&mut self, events: &[Event]) -> Result<()> {
-        let mut at = 0;
-        while at < events.len() {
+        let mut written = 0;
+        let outcome = self.write_lots(events, &mut written);
+        if written > 0 {
+            let active = self.dir.join(ACTIVE);
+            if let Err(e) = self.sign(&active) {
+                unsigned(&active, &e);
+            }
+        }
+        if outcome.is_ok() {
+            self.seen = active_mark(&self.dir.join(ACTIVE));
+        }
+        outcome
+    }
+
+    fn write_lots(&mut self, events: &[Event], written: &mut usize) -> Result<()> {
+        while *written < events.len() {
             if self.active_events >= SEGMENT_MAX_EVENTS {
                 self.rotate()?;
             }
             let room = SEGMENT_MAX_EVENTS - self.active_events;
-            let lot = &events[at..(at + room).min(events.len())];
+            let lot = &events[*written..(*written + room).min(events.len())];
 
             let mut said = String::new();
             for event in lot {
@@ -433,15 +447,8 @@ impl Store {
             }
 
             self.active_events += lot.len();
-            at += lot.len();
+            *written += lot.len();
         }
-        if !events.is_empty() {
-            let active = self.dir.join(ACTIVE);
-            if let Err(e) = self.sign(&active) {
-                unsigned(&active, &e);
-            }
-        }
-        self.seen = active_mark(&self.dir.join(ACTIVE));
         Ok(())
     }
 
@@ -453,7 +460,17 @@ impl Store {
             let closed = self.dir.join(format!("{next:06}.tisty"));
             // Signed before the rename, never after: a death in between would leave a segment
             // nothing ever signs, and no later pass goes back for it.
-            self.sign(&closed)?;
+            if let Err(e) = self.sign(&closed) {
+                witness::warn(
+                    channel::STORE,
+                    "a segment was not closed because its signature could not be written",
+                    &[
+                        ("at", Fact::Path(closed)),
+                        ("why", Fact::Why(e.to_string())),
+                    ],
+                );
+                return Err(e);
+            }
             std::fs::rename(&active, &closed)?;
 
             let (lines, _, _) = tail_of(&closed)?;
@@ -1149,9 +1166,6 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
     Ok((lines, head, seq))
 }
 
-/// Segments alone decide the next number. What sits beside one is written before the rename that
-/// makes the segment, so counting those would have an orphan sidecar skip a number, and a gap in
-/// the sequence refuses the whole store to every machine in it.
 fn unsigned(at: &Path, why: &Error) {
     witness::warn(
         channel::STORE,
@@ -1163,6 +1177,22 @@ fn unsigned(at: &Path, why: &Error) {
     );
 }
 
+pub fn left_over(segments: &[PathBuf], live: &Path, bytes: &[u8]) -> bool {
+    let closed = |at: &Path| {
+        at.file_name()
+            .and_then(|one| one.to_str())
+            .is_some_and(is_closed)
+    };
+    !closed(live)
+        && segments
+            .iter()
+            .filter(|at| closed(at))
+            .any(|at| std::fs::read(at).is_ok_and(|whole| whole.starts_with(bytes)))
+}
+
+/// Segments alone decide the next number. What sits beside one is written before the rename that
+/// makes the segment, so counting those would have an orphan sidecar skip a number, and a gap in
+/// the sequence refuses the whole store to every machine in it.
 fn next_segment_number(dir: &Path) -> Result<u32> {
     let highest = segments_in(dir)?
         .iter()

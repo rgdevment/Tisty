@@ -108,10 +108,13 @@ parcel carries: that one is an HMAC over a manifest, under the store's key.
 A rotation that cannot write the closed segment's `.sig` does not rename: the
 live segment stays live and the write fails, because a closed segment without
 one reads as disowned on any machine that has seen this one sign. A rotation
-carried halfway is not tampering either. When the closed segment is in the
+carried halfway is not tampering either. When a closed segment is in the
 folder and the old `active.tisty` still stands beside it, the old one is a
-byte-for-byte prefix of the closed one, holds nothing it does not, and is
-skipped.
+byte-for-byte prefix of a closed one, holds nothing that one does not, and is
+skipped: not checked, not carried home and not counted when two histories are
+compared. Whatever the batch wrote before a rotation failed is signed all the
+same, so a refused rotation never leaves a live segment its signature does not
+cover.
 
 The key itself lives in `<config>/private/`, beside the store's own secret, and
 is never carried anywhere. What it owes is decided by the copy in the folder,

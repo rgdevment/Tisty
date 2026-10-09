@@ -86,3 +86,21 @@ fn a_signature_changed_beside_segments_held_the_same_is_something_new() {
     put(&mine, "active.sig", "la firma de allá\n");
     assert!(!beside_differs(&theirs, &mine));
 }
+
+#[test]
+fn a_live_segment_the_closed_one_already_holds_is_not_carried() {
+    let room = tempfile::tempdir().unwrap();
+    let (theirs, mine) = (room.path().join("theirs"), room.path().join("mine"));
+    put(&theirs, "000001.tisty", "uno\ndos\ntres\n");
+    put(&theirs, "active.tisty", "uno\ndos\n");
+    put(&theirs, "active.sig", "la firma vieja\n");
+
+    let (done, _) = copy_segments(&theirs, &mine, false, &Named::default()).unwrap();
+
+    assert_eq!(done, 1);
+    assert_eq!(read(&mine, "000001.tisty"), "uno\ndos\ntres\n");
+    assert!(
+        !mine.join("active.tisty").exists(),
+        "a leftover of a rotation became the live segment"
+    );
+}

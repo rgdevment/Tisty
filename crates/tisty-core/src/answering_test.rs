@@ -419,3 +419,61 @@ fn a_rotation_that_cannot_be_signed_leaves_the_segment_open() {
     assert!(held.dir.join("active.tisty").is_file());
     assert!(!held.dir.join("000001.tisty").exists());
 }
+
+#[test]
+fn a_live_segment_left_by_a_rotation_is_skipped_however_many_segments_closed_since() {
+    let held = a_machine_that_wrote(2);
+    let old_active = std::fs::read(held.dir.join("active.tisty")).unwrap();
+    let old_sig = std::fs::read(held.dir.join("active.sig")).unwrap();
+    let mut store = held.signs();
+    store.append(a_line(2)).unwrap();
+    store.rotate().unwrap();
+    store.append(a_line(3)).unwrap();
+    store.rotate().unwrap();
+    store.append(a_line(4)).unwrap();
+    drop(store);
+    let far = tempfile::tempdir().unwrap();
+    let dir = far.path().join("dev_a");
+    std::fs::create_dir_all(&dir).unwrap();
+    for named in [
+        "000001.tisty",
+        "000001.sig",
+        "000001.count",
+        "000002.tisty",
+        "000002.sig",
+        "000002.count",
+    ] {
+        std::fs::copy(held.dir.join(named), dir.join(named)).unwrap();
+    }
+    std::fs::write(dir.join("active.tisty"), &old_active).unwrap();
+    std::fs::write(dir.join("active.sig"), &old_sig).unwrap();
+
+    let answered = answers(&dir, &held.who, &held.by(), Reached::default(), &|_| false);
+
+    let reached = answered.expect("a leftover was disowned because two segments closed after it");
+    assert_eq!(reached.segment, 2);
+}
+
+#[test]
+fn a_batch_that_could_not_rotate_part_way_still_signs_what_it_wrote() {
+    let held = a_machine_that_wrote(0);
+    let mut store = held.signs();
+    store
+        .append_batch((0..4_995).map(a_line).collect())
+        .unwrap();
+    std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
+
+    let refused = store.append_batch((0..20).map(a_line).collect());
+
+    assert!(
+        refused.is_err(),
+        "a batch past the end of a segment went on"
+    );
+    let lines = std::fs::read_to_string(held.dir.join("active.tisty"))
+        .unwrap()
+        .lines()
+        .count();
+    assert_eq!(lines, 5_000, "the lot that fitted was not written");
+    held.asked(Reached::default())
+        .expect("what was written was left without a signature that covers it");
+}
