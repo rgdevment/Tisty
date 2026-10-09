@@ -467,6 +467,39 @@ fn appending_leaves_the_whole_content_and_sends_only_the_tail_where_it_can() {
 }
 
 #[test]
+fn the_first_append_to_a_name_creates_it_and_a_second_one_that_thinks_so_is_refused() {
+    on_each(|remote, room| {
+        let who = remote.who();
+        let name = "store/dev_a/0002.jsonl";
+        let body = local(room, b"primera linea\n");
+
+        let made = remote.append(name, &body, 0, Expect::Absent).unwrap();
+
+        assert_eq!(made.bytes, 14, "{who}");
+        assert_eq!(
+            body_of(remote, name, 0).unwrap(),
+            b"primera linea\n",
+            "{who}"
+        );
+        assert_eq!(
+            remote.append(name, &body, 0, Expect::Absent),
+            Err(Hitch::Changed(name.into())),
+            "{who}: the name is there now, so it is not the first"
+        );
+        let anywhere = "store/dev_a/0003.jsonl";
+        assert!(
+            remote.append(anywhere, &body, 0, Expect::Any).is_ok(),
+            "{who}"
+        );
+        assert_eq!(
+            names(remote.list("store").unwrap()),
+            [name, anywhere],
+            "{who}"
+        );
+    });
+}
+
+#[test]
 fn every_provider_takes_the_biggest_attachment_tisty_allows() {
     on_each(|remote, _| {
         let limits = remote.limits();

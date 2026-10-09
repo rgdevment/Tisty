@@ -391,7 +391,7 @@ impl Remote for Fake {
         let mut shelf = self.lock();
         let costs = self.limits().costs;
         let held = match self.allowed(&shelf, name, &expect) {
-            Ok(Some(held)) if shelf.files[held].body.len() as u64 == at => held,
+            Ok(held) if held.map_or(0, |held| shelf.files[held].body.len() as u64) == at => held,
             Ok(_) => {
                 self.spend(&mut shelf, 1, costs.put);
                 return Err(Hitch::Changed(name.to_string()));
@@ -404,7 +404,7 @@ impl Remote for Fake {
         let tail = (body.len() as u64).saturating_sub(at);
         self.spend(&mut shelf, self.chunks(tail), costs.put);
         shelf.counts.sent += tail;
-        Ok(self.written(&mut shelf, name, body, Some(held)))
+        Ok(self.written(&mut shelf, name, body, held))
     }
 
     fn hears(&self) -> Option<Box<dyn Watch>> {
