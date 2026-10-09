@@ -1,5 +1,9 @@
 use super::*;
 
+fn a_key(seed: u8) -> String {
+    crate::signing::shown(&ed25519_dalek::SigningKey::from_bytes(&[seed; 32]))
+}
+
 #[test]
 fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
     let dir = tempfile::tempdir().unwrap();
@@ -9,7 +13,7 @@ fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
         .append(Op::DeviceJoin {
             d: agent.clone(),
             k: Some(crate::event::DeviceKind::Agent),
-            p: Some("aa".into()),
+            p: Some(a_key(1)),
         })
         .unwrap();
     store
@@ -30,7 +34,7 @@ fn a_machine_in_the_folder_says_its_key_its_name_when_it_began_and_its_host() {
 
     let said = introduced_in(&dir.path().join("dev_agent"), &agent);
 
-    assert_eq!(said.key.as_deref(), Some("aa"));
+    assert_eq!(said.key.as_deref(), Some(a_key(1).as_str()));
     assert_eq!(said.named.map(|one| one.name).as_deref(), Some("Claude"));
     assert_eq!(said.host, Some(DeviceId("dev_host".into())));
     assert!(said.since.is_some());
@@ -148,4 +152,41 @@ fn every_print_a_waiting_machine_gave_a_document_counts() {
         ],
         "a body this machine wrote earlier and the folder still holds was put to the person"
     );
+}
+
+#[test]
+fn the_key_a_machine_is_answered_for_is_the_first_one_that_reads() {
+    let dir = tempfile::tempdir().unwrap();
+    let who = DeviceId("dev_b".into());
+    let paths = crate::Paths::new(dir.path().join("data"), dir.path().join("config"));
+    let good = crate::signing::shown(&crate::signing::mine(&paths, &who).unwrap());
+    let other = DeviceId("dev_c".into());
+    let theirs = crate::signing::shown(&crate::signing::mine(&paths, &other).unwrap());
+    let mut store = crate::Store::open(dir.path().join("store"), who.clone()).unwrap();
+    for (d, p) in [
+        (&who, "not a key"),
+        (&other, theirs.as_str()),
+        (&who, good.as_str()),
+    ] {
+        store
+            .append(Op::DeviceKey {
+                d: d.clone(),
+                p: p.into(),
+            })
+            .unwrap();
+    }
+    drop(store);
+    let at = dir.path().join("store").join("dev_b");
+
+    assert_eq!(
+        crate::store::key_said_in(&at, &who).as_deref(),
+        Some(good.as_str())
+    );
+    assert_eq!(
+        introduced_in(&at, &who).key.as_deref(),
+        Some(good.as_str()),
+        "a person was shown a key they cannot answer for"
+    );
+    assert!(crate::store::says_a_key_in(&at, &who));
+    assert!(!crate::store::says_a_key_in(&at, &DeviceId("dev_z".into())));
 }

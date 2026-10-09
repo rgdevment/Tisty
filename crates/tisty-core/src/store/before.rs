@@ -14,18 +14,17 @@ pub fn first_key_past(mine: &Path, theirs: &Path, who: &DeviceId) -> Option<Stri
         .filter_map(|line| serde_json::from_slice::<Event>(line).ok())
         .filter(|one| &one.device == who)
         .find_map(|one| match one.op {
-            Op::DeviceKey { d, p } if &d == who => Some(p),
-            Op::DeviceJoin { d, p: Some(p), .. } if &d == who => Some(p),
+            Op::DeviceKey { d, p } | Op::DeviceJoin { d, p: Some(p), .. }
+                if &d == who && crate::signing::read(&p).is_some() =>
+            {
+                Some(p)
+            }
             _ => None,
         })
 }
 
 fn from_before_signing(line: &[u8]) -> bool {
-    #[derive(serde::Deserialize)]
-    struct Version {
-        v: u32,
-    }
-    serde_json::from_slice::<Version>(line).is_ok_and(|one| one.v < SIGNED_FROM)
+    serde_json::from_slice::<super::Written>(line).is_ok_and(|one| one.v < SIGNED_FROM)
 }
 
 fn whole(dir: &Path) -> Option<Vec<u8>> {

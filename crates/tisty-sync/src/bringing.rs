@@ -79,6 +79,30 @@ fn hosted(
     trusted && tisty_core::vouched::through(data, who, says, &host)
 }
 
+fn owes_a_signature(
+    mine: &Path,
+    theirs: &Path,
+    who: &tisty_core::DeviceId,
+    known: bool,
+) -> Result<bool, ()> {
+    if known
+        || tisty_core::store::says_a_key_in(theirs, who)
+        || tisty_core::store::says_a_key_in(mine, who)
+    {
+        return Ok(true);
+    }
+    tisty_core::store::written_since(theirs, tisty_core::event::SIGNED_FROM).map_err(|e| {
+        witness::warn(
+            channel::SYNC,
+            "the schema a machine's history was written at could not be read, so it was left out",
+            &[
+                ("at", Fact::Path(theirs.to_path_buf())),
+                ("why", Fact::Why(e.to_string())),
+            ],
+        );
+    })
+}
+
 /// Checked before any of it is taken in, and only from where the last round left off.
 #[allow(clippy::too_many_arguments)]
 fn answers_for_itself(
@@ -94,14 +118,20 @@ fn answers_for_itself(
 ) -> Answered {
     let who = tisty_core::DeviceId(named.to_string());
     let ours = named.eq_ignore_ascii_case(device);
+    let mine = store.join(named);
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
     let mut carried = None;
     if stood.is_none() && !ours && signed {
+        let mut said_a_key = false;
         let says = match claimed(store, &who, knew) {
             Ok(Some(claim)) => Some(claim),
-            Ok(None) => tisty_core::store::key_said_in(theirs, &who),
+            Ok(None) => {
+                let said = tisty_core::store::keys_said_in(theirs, &who);
+                said_a_key = said.any;
+                said.readable
+            }
             Err(()) => return Answered::Unreadable,
         };
         match says {
@@ -114,13 +144,9 @@ fn answers_for_itself(
                 stood = Some(says);
             }
             Some(says)
-                if store.join(named).is_dir()
-                    && tisty_core::store::before::first_key_past(
-                        &store.join(named),
-                        theirs,
-                        &who,
-                    )
-                    .as_deref()
+                if mine.is_dir()
+                    && tisty_core::store::before::first_key_past(&mine, theirs, &who)
+                        .as_deref()
                         == Some(says.as_str()) =>
             {
                 carried = Some(says.clone());
@@ -142,7 +168,7 @@ fn answers_for_itself(
                 );
                 return Answered::Unconfirmed;
             }
-            None if adopting => return Answered::Unsaid,
+            None if adopting && !said_a_key => return Answered::Unsaid,
             None => {
                 witness::note(
                     channel::SYNC,
@@ -154,11 +180,10 @@ fn answers_for_itself(
         }
     }
     if !signed {
-        let owed = from.signing
-            || stood.is_some()
-            || tisty_core::store::key_said_in(theirs, &who).is_some()
-            || tisty_core::store::newest_schema(theirs)
-                .is_ok_and(|was| was >= tisty_core::event::SIGNED_FROM);
+        let known = from.signing || stood.is_some();
+        let Ok(owed) = owes_a_signature(&mine, theirs, &who, known) else {
+            return Answered::Unreadable;
+        };
         if !owed {
             return Answered::Yes;
         }
@@ -178,20 +203,14 @@ fn answers_for_itself(
     };
     let by = said.and_then(|said| tisty_core::signing::read(&said));
     let Some(by) = by else {
-        // A machine we hold no key for has nothing to check — but our own name is not one of
-        // those: a history signed under it that we cannot answer for is not ours to take back.
-        if !ours {
-            return Answered::Yes;
-        }
         witness::warn(
             channel::SYNC,
-            "a history signed under this machine's own name cannot be checked from here, so it was left in the folder",
+            "a signed history cannot be checked from here for want of a key that reads, so it was left in the folder",
             &[("at", Fact::Id(named.to_string()))],
         );
         return Answered::Unreadable;
     };
     use tisty_core::answering::Adrift;
-    let mine = store.join(named);
     let ours_already = alike.of(named, theirs, &mine).clone();
     let answers = tisty_core::answering::answers(theirs, &who, &by, from, &|segment| {
         ours_already.contains(std::ffi::OsStr::new(segment))

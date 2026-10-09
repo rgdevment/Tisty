@@ -94,12 +94,21 @@ pub fn introduced_in(device_dir: &Path, who: &DeviceId) -> Introduced {
     }
 }
 
-pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
-    events.iter().find_map(|one| match &one.op {
-        Op::DeviceKey { d, p } if d == who => Some(p.clone()),
-        Op::DeviceJoin { d, p: Some(p), .. } if d == who => Some(p.clone()),
+fn keys_of<'a>(events: &'a [Event], who: &'a DeviceId) -> impl Iterator<Item = &'a String> {
+    events.iter().filter_map(move |one| match &one.op {
+        Op::DeviceKey { d, p } | Op::DeviceJoin { d, p: Some(p), .. } if d == who => Some(p),
         _ => None,
     })
+}
+
+pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
+    keys_of(events, who)
+        .find(|one| crate::signing::read(one).is_some())
+        .cloned()
+}
+
+pub(super) fn says_a_key(events: &[Event], who: &DeviceId) -> bool {
+    keys_of(events, who).next().is_some()
 }
 
 // Read from one copy, so the prints come from the very bytes whose signatures were checked.
