@@ -22,16 +22,10 @@ use shelf::Shelf;
 
 const TREE: &str = "tree";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Pause {
-    reason: Reason,
-    wait: Option<Duration>,
-    left: usize,
-}
-
 struct Done<T> {
     value: Option<T>,
-    pause: Option<Pause>,
+    deferred: Option<Deferred>,
+    stopped: Option<Trouble>,
 }
 
 pub struct Cloud {
@@ -53,68 +47,121 @@ impl Cloud {
 
     fn with_mirror<T>(
         &self,
-        work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Pause>), Trouble>,
+        data: Option<&Path>,
+        work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
-        let Some(_round) = lock::Round::take(&self.home) else {
-            return Ok(Done::paused(Reason::Busy, None, 0));
+        let _round = match lock::Round::take(&self.home) {
+            Ok(Some(round)) => round,
+            Ok(None) => return Ok(Done::deferred(Reason::Busy, None)),
+            Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
         let tree = self.tree();
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
         let remote: &dyn Remote = &*self.remote;
         let mut index = Index::load(&self.home);
-        if let Err(hitch) = mirror::pull(remote, &tree, &mut index) {
+        if let Err(hitch) = mirror::pull(remote, &tree, &mut index, data) {
             let _ = index.save(&self.home);
             return match judge(hitch) {
-                Judged::Pause(reason, wait) => Ok(Done::paused(reason, wait, 0)),
+                Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
                 Judged::Stop(trouble) => Err(trouble),
             };
         }
         let worked = work(&tree, &mut index, remote);
-        let (pushed, hitch) = mirror::push(remote, &tree, &mut index);
-        let saved = index.save(&self.home);
-        let (value, held) = worked?;
-        let pause = match hitch.map(judge) {
-            Some(Judged::Stop(trouble)) => return Err(trouble),
-            Some(Judged::Pause(reason, wait)) => Some(Pause {
-                reason,
-                wait,
-                left: pushed.left,
-            }),
-            None => held,
+        let (value, held) = match worked {
+            Ok(worked) => worked,
+            Err(trouble) => {
+                let _ = index.save(&self.home);
+                return Err(trouble);
+            }
         };
+        let (pushed, hitch) = match held {
+            Some(_) => (mirror::Pushed::default(), None),
+            None => mirror::push(remote, &tree, &mut index),
+        };
+        let saved = index.save(&self.home);
+        let mut deferred = held;
+        let mut stopped = None;
+        match hitch.map(judge) {
+            Some(Judged::Pause(reason, wait)) => {
+                deferred = merged(
+                    deferred,
+                    Some(Deferred {
+                        reason,
+                        left: pushed.left,
+                        retry_after: wait,
+                    }),
+                );
+            }
+            Some(Judged::Stop(trouble)) => stopped = Some(trouble),
+            None if pushed.left > 0 => {
+                deferred = merged(
+                    deferred,
+                    Some(Deferred {
+                        reason: Reason::Changed,
+                        left: pushed.left,
+                        retry_after: None,
+                    }),
+                );
+            }
+            None => {}
+        }
         saved.map_err(|e| Trouble::Broke(e.to_string()))?;
         Ok(Done {
             value: Some(value),
-            pause,
+            deferred,
+            stopped,
         })
     }
 
-    fn only<T>(&self, work: impl FnOnce(&Path) -> Result<T, Trouble>) -> Result<T, Trouble> {
-        let done = self.with_mirror(|tree, _, _| Ok((work(tree)?, None)))?;
+    fn only<T>(
+        &self,
+        data: Option<&Path>,
+        work: impl FnOnce(&Path) -> Result<T, Trouble>,
+    ) -> Result<T, Trouble> {
+        let done = self.with_mirror(data, |tree, _, _| Ok((work(tree)?, None)))?;
+        if let Some(trouble) = done.stopped {
+            return Err(trouble);
+        }
         done.value
-            .ok_or_else(|| Trouble::Broke(unavailable(done.pause)))
+            .ok_or_else(|| Trouble::Broke(unavailable(done.deferred)))
     }
 
     fn fresh(&self) -> PathBuf {
         if !Index::load(&self.home).pulled() {
-            let _ = self.with_mirror(|_, _, _| Ok(((), None)));
+            let _ = self.with_mirror(None, |_, _, _| Ok(((), None)));
         }
         self.tree()
     }
 }
 
 impl<T> Done<T> {
-    fn paused(reason: Reason, wait: Option<Duration>, left: usize) -> Self {
+    fn deferred(reason: Reason, wait: Option<Duration>) -> Self {
         Self {
             value: None,
-            pause: Some(Pause { reason, wait, left }),
+            deferred: Some(Deferred {
+                reason,
+                left: 0,
+                retry_after: wait,
+            }),
+            stopped: None,
         }
     }
 }
 
-fn unavailable(pause: Option<Pause>) -> String {
-    match pause {
-        Some(Pause { reason, .. }) => format!("the cloud cannot be used now: {reason:?}"),
+fn merged(first: Option<Deferred>, second: Option<Deferred>) -> Option<Deferred> {
+    match (first, second) {
+        (Some(one), Some(other)) => Some(Deferred {
+            reason: one.reason,
+            left: one.left + other.left,
+            retry_after: one.retry_after.max(other.retry_after),
+        }),
+        (one, other) => one.or(other),
+    }
+}
+
+fn unavailable(deferred: Option<Deferred>) -> String {
+    match deferred {
+        Some(one) => format!("the cloud cannot be used now: {:?}", one.reason),
         None => "the cloud cannot be used now".to_string(),
     }
 }
@@ -153,7 +200,7 @@ impl Carrier for Cloud {
     }
 
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        let done = self.with_mirror(|tree, index, remote| {
+        let done = self.with_mirror(Some(&here.data), |tree, index, remote| {
             let mut shelf = Shelf::over(remote, index);
             let moved = carry_through(
                 &here.data,
@@ -166,22 +213,31 @@ impl Carrier for Cloud {
                 round.saying,
                 &mut shelf,
             )?;
-            let held = shelf
-                .paused()
-                .map(|(reason, wait, left)| Pause { reason, wait, left });
-            Ok((moved, held))
+            Ok((moved, shelf.paused()))
         })?;
         let mut moved = done.value.unwrap_or_default();
-        moved.deferred = done.pause.map(|one| Deferred {
-            reason: one.reason,
-            left: one.left,
-            retry_after: one.wait,
-        });
+        let mut deferred = done.deferred;
+        if let Some(trouble) = done.stopped {
+            if moved == Moved::default() {
+                return Err(trouble);
+            }
+            deferred = merged(
+                deferred,
+                Some(Deferred {
+                    reason: Reason::Refused,
+                    left: 0,
+                    retry_after: None,
+                }),
+            );
+        }
+        moved.deferred = deferred;
         Ok(moved)
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {
-        self.only(|tree| tisty_sync::stitch(&here.data, &here.device, tree, key))
+        self.only(Some(&here.data), |tree| {
+            tisty_sync::stitch(&here.data, &here.device, tree, key)
+        })
     }
 
     fn let_go(
@@ -191,14 +247,17 @@ impl Carrier for Cloud {
         elsewhere: Elsewhere,
         told: Told,
     ) -> Result<LetGo, Trouble> {
-        let done = self.with_mirror(|_, index, remote| {
+        let done = self.with_mirror(Some(&here.data), |_, index, remote| {
             Ok((
                 shelf::let_go(remote, index, &here.data, above, elsewhere, told),
                 None,
             ))
         })?;
+        if let Some(trouble) = done.stopped {
+            return Err(trouble);
+        }
         done.value
-            .ok_or_else(|| Trouble::Broke(unavailable(done.pause)))
+            .ok_or_else(|| Trouble::Broke(unavailable(done.deferred)))
     }
 
     fn paper_waiting(&self, id: &str) -> bool {
@@ -210,18 +269,21 @@ impl Carrier for Cloud {
     }
 
     fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble> {
-        self.only(|tree| tisty_sync::both_papers(&here.data, tree, id))
+        self.only(Some(&here.data), |tree| {
+            tisty_sync::both_papers(&here.data, tree, id)
+        })
     }
 
     fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
-        self.only(|tree| tisty_sync::settle(&here.data, tree, id, keep))
+        self.only(Some(&here.data), |tree| {
+            tisty_sync::settle(&here.data, tree, id, keep)
+        })
     }
 
     fn forget_paper(&self, id: &str) {
-        let _ = self.only(|tree| {
-            tisty_sync::forget_paper(tree, id);
-            Ok(())
-        });
+        if let Ok(Some(_round)) = lock::Round::take(&self.home) {
+            tisty_sync::forget_paper(&self.tree(), id);
+        }
     }
 }
 

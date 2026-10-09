@@ -48,10 +48,17 @@ pub fn stamp_of(meta: &std::fs::Metadata) -> u128 {
 }
 
 pub fn on_shelf(name: &str) -> bool {
-    name.starts_with("attachments/")
+    name.starts_with(&format!("{}/", tisty_sync::HELD))
 }
 
-pub fn path_of(tree: &Path, name: &str) -> PathBuf {
-    name.split('/')
-        .fold(tree.to_path_buf(), |at, part| at.join(part))
+pub fn path_of(tree: &Path, name: &str) -> Option<PathBuf> {
+    crate::named_well(name).ok()?;
+    let mut at = tree.to_path_buf();
+    for part in name.split('/') {
+        if part.contains(':') || tisty_core::attach::reserved(part) {
+            return None;
+        }
+        at.push(part);
+    }
+    Some(at)
 }

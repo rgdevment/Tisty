@@ -1,19 +1,21 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use tisty_core::witness::{self, Fact, channel};
+use tisty_sync::{NAMED, STORE};
 
 use super::index::{Index, Mirrored, on_shelf, path_of, stamp_of};
 use crate::{Changes, Expect, Hitch, Remote, Seen};
 
-const NAMED: &str = "tisty.toml";
-const SHELF: &str = "attachments";
+const PAPERS: &str = "docs";
+const RACY_NANOS: u128 = 2_000_000_000;
 
 static TURN: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Pushed {
-    pub put: usize,
-    pub removed: usize,
     pub left: usize,
 }
 
@@ -24,7 +26,13 @@ struct Found {
     stamp: u128,
 }
 
-pub fn pull(remote: &dyn Remote, tree: &Path, index: &mut Index) -> Result<(), Hitch> {
+pub fn pull(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &mut Index,
+    data: Option<&Path>,
+) -> Result<(), Hitch> {
+    heal(tree, index);
     let told = remote.changes(index.cursor.as_deref())?;
     let (changed, gone, cursor) = match told {
         Changes::Whole { seen, cursor } => {
@@ -36,6 +44,9 @@ pub fn pull(remote: &dyn Remote, tree: &Path, index: &mut Index) -> Result<(), H
                 .filter(|name| !listed.contains(name.as_str()))
                 .cloned()
                 .collect();
+            if index.cursor.is_none() {
+                clear_unlisted(tree, &listed);
+            }
             (seen, gone, cursor)
         }
         Changes::Since {
@@ -47,55 +58,155 @@ pub fn pull(remote: &dyn Remote, tree: &Path, index: &mut Index) -> Result<(), H
     for name in gone {
         forget(tree, index, &name);
     }
+    let mut held_back = false;
     for seen in changed {
-        learn(remote, tree, index, seen)?;
+        held_back |= learn(remote, tree, index, data, seen)?;
     }
-    index.cursor = Some(cursor);
+    if !held_back {
+        index.cursor = Some(cursor);
+    }
     Ok(())
+}
+
+fn heal(tree: &Path, index: &mut Index) {
+    let docs_stand = tree.join(PAPERS).is_dir();
+    let missing: Vec<String> = index
+        .tree
+        .keys()
+        .filter(|name| !is_doc(name) || !docs_stand)
+        .filter(|name| !path_of(tree, name).is_some_and(|at| at.exists()))
+        .cloned()
+        .collect();
+    if missing.is_empty() {
+        return;
+    }
+    for name in missing {
+        index.tree.remove(&name);
+    }
+    index.cursor = None;
+}
+
+fn clear_unlisted(tree: &Path, listed: &BTreeSet<&str>) {
+    let mut here = Vec::new();
+    walk(tree, tree, &mut here);
+    for one in here
+        .into_iter()
+        .filter(|one| !listed.contains(one.name.as_str()))
+    {
+        let _ = std::fs::remove_file(&one.at);
+    }
 }
 
 fn forget(tree: &Path, index: &mut Index, name: &str) {
     index.shelf.remove(name);
-    if index.tree.remove(name).is_some() {
-        let _ = std::fs::remove_file(path_of(tree, name));
+    if index.tree.remove(name).is_some()
+        && let Some(at) = path_of(tree, name)
+    {
+        let _ = std::fs::remove_file(at);
     }
 }
 
-fn learn(remote: &dyn Remote, tree: &Path, index: &mut Index, seen: Seen) -> Result<(), Hitch> {
+fn learn(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &mut Index,
+    data: Option<&Path>,
+    seen: Seen,
+) -> Result<bool, Hitch> {
     if on_shelf(&seen.name) {
-        index.shelf.insert(seen.name.clone(), seen);
-        return Ok(());
+        if crate::named_well(&seen.name).is_ok() {
+            index.shelf.insert(seen.name.clone(), seen);
+        }
+        return Ok(false);
     }
-    if !mirrored(&seen.name) {
-        return Ok(());
-    }
-    if index
-        .tree
-        .get(&seen.name)
-        .is_some_and(|have| have.seen.revision == seen.revision)
-    {
-        return Ok(());
-    }
-    let at = path_of(tree, &seen.name);
-    let seen = match resembles(remote, &at, &seen) {
-        true => seen,
-        false => download(remote, &at, &seen.name)?,
+    let Some(at) = path_of(tree, &seen.name) else {
+        witness::warn(
+            channel::SYNC,
+            "the cloud holds a name that cannot be a path here, so it was left alone",
+            &[("at", Fact::Id(seen.name))],
+        );
+        return Ok(false);
     };
-    note(index, seen, &at);
-    Ok(())
+    if !mirrored(&seen.name)
+        || index
+            .tree
+            .get(&seen.name)
+            .is_some_and(|have| have.seen.revision == seen.revision)
+    {
+        return Ok(false);
+    }
+    if resembles(remote, &at, &seen) {
+        note(index, seen, &at);
+        return Ok(false);
+    }
+    if is_doc(&seen.name) && pending(remote, index, &seen.name, &at) {
+        let Some(data) = data else {
+            return Ok(true);
+        };
+        forget_base(data, &seen.name);
+    }
+    match download(remote, &at, &seen.name) {
+        Ok(got) => note(index, got, &at),
+        Err(Hitch::Missing(_)) => {}
+        Err(other) => return Err(other),
+    }
+    Ok(false)
+}
+
+fn pending(remote: &dyn Remote, index: &Index, name: &str, at: &Path) -> bool {
+    let Ok(meta) = std::fs::metadata(at) else {
+        return false;
+    };
+    match index.tree.get(name) {
+        Some(kept) => {
+            (kept.len, kept.stamp) != (meta.len(), stamp_of(&meta))
+                && !same_bytes(remote, at, meta.len(), &kept.seen)
+        }
+        None => meta.is_file(),
+    }
+}
+
+fn forget_base(data: &Path, name: &str) {
+    let id = name
+        .strip_prefix(&format!("{PAPERS}/"))
+        .and_then(|leaf| leaf.strip_suffix(".md"));
+    let Some(id) = id else {
+        return;
+    };
+    witness::warn(
+        channel::SYNC,
+        "a document changed in the cloud before a change of ours went up, so the person decides",
+        &[("at", Fact::Id(id.to_string()))],
+    );
+    let mut said = tisty_core::docs::Carried::read(data);
+    said.forget(id);
+    let _ = said.save(data);
+    tisty_core::docs::forget_carried(data, id);
 }
 
 fn resembles(remote: &dyn Remote, at: &Path, seen: &Seen) -> bool {
-    !seen.hash.is_empty()
-        && std::fs::metadata(at).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
-        && remote.hash_of(at).is_ok_and(|hash| hash == seen.hash)
+    std::fs::metadata(at).is_ok_and(|one| one.is_file() && same_bytes(remote, at, one.len(), seen))
+}
+
+fn same_bytes(remote: &dyn Remote, at: &Path, len: u64, up: &Seen) -> bool {
+    !up.hash.is_empty() && up.bytes == len && remote.hash_of(at).is_ok_and(|hash| hash == up.hash)
+}
+
+fn racy(stamp: u128) -> u128 {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |since| since.as_nanos());
+    match now.saturating_sub(stamp) < RACY_NANOS {
+        true => 0,
+        false => stamp,
+    }
 }
 
 fn note(index: &mut Index, seen: Seen, at: &Path) {
     if let Ok(meta) = std::fs::metadata(at) {
         let mirrored = Mirrored {
             len: meta.len(),
-            stamp: stamp_of(&meta),
+            stamp: racy(stamp_of(&meta)),
             seen,
         };
         index.tree.insert(mirrored.seen.name.clone(), mirrored);
@@ -136,22 +247,25 @@ fn fetch_whole(remote: &dyn Remote, name: &str, part: &Path) -> Result<Seen, Hit
 pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Option<Hitch>) {
     let mut done = Pushed::default();
     let mut here = Vec::new();
-    walk(tree, tree, &mut here);
+    let sound = walk(tree, tree, &mut here);
     for one in &here {
         if let Some(kept) = index.tree.get_mut(&one.name)
             && (kept.len, kept.stamp) != (one.len, one.stamp)
-            && same_bytes(remote, one, &kept.seen)
+            && same_bytes(remote, &one.at, one.len, &kept.seen)
         {
-            (kept.len, kept.stamp) = (one.len, one.stamp);
+            (kept.len, kept.stamp) = (one.len, racy(one.stamp));
         }
     }
     let present: BTreeSet<&str> = here.iter().map(|one| one.name.as_str()).collect();
-    let gone: Vec<(String, String)> = index
-        .tree
-        .iter()
-        .filter(|(name, _)| !present.contains(name.as_str()))
-        .map(|(name, kept)| (name.clone(), kept.seen.revision.clone()))
-        .collect();
+    let gone: Vec<(String, String)> = match sound && tree.join(PAPERS).is_dir() {
+        true => index
+            .tree
+            .iter()
+            .filter(|(name, _)| is_doc(name) && !present.contains(name.as_str()))
+            .map(|(name, kept)| (name.clone(), kept.seen.revision.clone()))
+            .collect(),
+        false => Vec::new(),
+    };
     let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) = here
         .iter()
         .filter(|one| {
@@ -161,7 +275,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
                 .is_none_or(|kept| (kept.len, kept.stamp) != (one.len, one.stamp))
         })
         .partition(|one| one.name == NAMED);
-    rest.sort_by(|one, other| one.name.cmp(&other.name));
+    rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
 
     for (at, one) in rest.iter().enumerate() {
         if let Err(hitch) = upload(remote, index, one, &mut done) {
@@ -173,7 +287,6 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
         match remote.delete(name, Some(revision)) {
             Ok(()) | Err(Hitch::Missing(_)) => {
                 index.tree.remove(name);
-                done.removed += 1;
             }
             Err(Hitch::Changed(_)) => done.left += 1,
             Err(hitch) => {
@@ -193,10 +306,14 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     (done, None)
 }
 
-fn same_bytes(remote: &dyn Remote, one: &Found, up: &Seen) -> bool {
-    !up.hash.is_empty()
-        && up.bytes == one.len
-        && remote.hash_of(&one.at).is_ok_and(|hash| hash == up.hash)
+fn history_first(name: &str) -> u8 {
+    match name
+        .strip_prefix(STORE)
+        .is_some_and(|rest| rest.starts_with('/'))
+    {
+        true => 0,
+        false => 1,
+    }
 }
 
 fn upload(
@@ -217,10 +334,9 @@ fn upload(
                 Mirrored {
                     seen,
                     len: one.len,
-                    stamp: one.stamp,
+                    stamp: racy(one.stamp),
                 },
             );
-            done.put += 1;
             Ok(())
         }
         Err(Hitch::Changed(_) | Hitch::Missing(_)) => {
@@ -247,17 +363,24 @@ fn landed(remote: &dyn Remote, one: &Found, seen: &Seen) -> Result<(), Hitch> {
     Ok(())
 }
 
-fn walk(root: &Path, dir: &Path, into: &mut Vec<Found>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
+fn walk(root: &Path, dir: &Path, into: &mut Vec<Found>) -> bool {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(why) => return why.kind() == std::io::ErrorKind::NotFound,
     };
-    for entry in entries.filter_map(|one| one.ok()) {
+    let mut sound = true;
+    for entry in entries {
+        let Ok(entry) = entry else {
+            sound = false;
+            continue;
+        };
         let at = entry.path();
         let Ok(meta) = entry.metadata() else {
+            sound = false;
             continue;
         };
         if meta.is_dir() {
-            walk(root, &at, into);
+            sound &= walk(root, &at, into);
             continue;
         }
         let Some(name) = named(root, &at) else {
@@ -272,6 +395,7 @@ fn walk(root: &Path, dir: &Path, into: &mut Vec<Found>) {
             });
         }
     }
+    sound
 }
 
 fn named(root: &Path, at: &Path) -> Option<String> {
@@ -284,8 +408,13 @@ fn named(root: &Path, at: &Path) -> Option<String> {
     Some(parts?.join("/"))
 }
 
+fn is_doc(name: &str) -> bool {
+    name.strip_prefix(PAPERS)
+        .is_some_and(|rest| rest.starts_with('/'))
+}
+
 fn mirrored(name: &str) -> bool {
     let leaf = name.rsplit('/').next().unwrap_or(name);
     let litter = leaf.ends_with(".part") || leaf.ends_with(".tmp") || leaf == ".lock";
-    !name.starts_with(&format!("{SHELF}/")) && !litter
+    !on_shelf(name) && !litter
 }

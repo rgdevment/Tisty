@@ -32,6 +32,7 @@ pub trait Counting: Remote {
     fn who(&self) -> &'static str;
     fn counts(&self) -> Counts;
     fn forget_counts(&self);
+    fn uploaded(&self) -> Vec<String>;
     fn fail_after(&self, passing: usize, hitch: Hitch);
     fn forget_feed(&self);
     fn native_changes(&self) -> bool;
@@ -53,6 +54,7 @@ struct Shelf {
     floor: u64,
     touched: Vec<(u64, String)>,
     failing: VecDeque<Option<Hitch>>,
+    uploads: Vec<String>,
     counts: Counts,
 }
 
@@ -214,6 +216,7 @@ impl Fake {
             }
         };
         shelf.touched.push((stamp, seen.name.clone()));
+        shelf.uploads.push(seen.name.clone());
         seen
     }
 
@@ -479,6 +482,10 @@ impl Counting for Fake {
         self.lock().counts = Counts::default();
     }
 
+    fn uploaded(&self) -> Vec<String> {
+        self.lock().uploads.clone()
+    }
+
     fn fail_after(&self, passing: usize, hitch: Hitch) {
         let mut shelf = self.lock();
         shelf.failing.extend(std::iter::repeat_n(None, passing));
@@ -553,6 +560,10 @@ impl Counting for Bare {
 
     fn forget_counts(&self) {
         self.0.forget_counts();
+    }
+
+    fn uploaded(&self) -> Vec<String> {
+        self.0.uploaded()
     }
 
     fn fail_after(&self, passing: usize, hitch: Hitch) {

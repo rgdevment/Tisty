@@ -1,27 +1,24 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
 
 use tisty_core::attach::{self, COPIED_IN_DOC, COPIED_UP_TO};
 use tisty_core::config::Holds;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_sync::{
-    Attachments, Given, Giving, LetGo, Reached, Stage, Taken, Taking, Trouble, left_behind,
+    Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken, Taking, Trouble, left_behind,
 };
 
 use super::index::Index;
 use super::judge::{Judged, judge};
-use crate::{Elsewhere, Expect, Hitch, Reason, Remote, Seen, Told};
-
-const HELD: &str = "attachments";
+use crate::{Deferred, Elsewhere, Expect, Hitch, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
 
 pub struct Shelf<'a> {
     remote: &'a dyn Remote,
     index: &'a mut Index,
-    paused: Option<(Reason, Option<Duration>)>,
-    left: usize,
+    paused: Option<Deferred>,
 }
 
 struct Local {
@@ -38,12 +35,11 @@ impl<'a> Shelf<'a> {
             remote,
             index,
             paused: None,
-            left: 0,
         }
     }
 
-    pub fn paused(&self) -> Option<(Reason, Option<Duration>, usize)> {
-        self.paused.map(|(reason, wait)| (reason, wait, self.left))
+    pub fn paused(&self) -> Option<Deferred> {
+        self.paused
     }
 
     fn refuse(&mut self, hitch: Hitch, reference: &str, remaining: usize) -> Result<(), Trouble> {
@@ -63,8 +59,11 @@ impl<'a> Shelf<'a> {
         }
         match judge(hitch) {
             Judged::Pause(reason, wait) => {
-                self.paused = Some((reason, wait));
-                self.left = remaining;
+                self.paused = Some(Deferred {
+                    reason,
+                    left: remaining,
+                    retry_after: wait,
+                });
                 Ok(())
             }
             Judged::Stop(trouble) => Err(trouble),
@@ -72,16 +71,21 @@ impl<'a> Shelf<'a> {
     }
 
     fn send(&self, one: &Local) -> Result<Seen, Hitch> {
-        let seen = match self.remote.put(&one.reference, &one.at, Expect::Absent) {
-            Ok(seen) => seen,
-            Err(Hitch::Changed(_)) => self
-                .remote
-                .about(&one.reference)?
-                .ok_or_else(|| Hitch::Missing(one.reference.clone()))?,
+        let (seen, ours) = match self.remote.put(&one.reference, &one.at, Expect::Absent) {
+            Ok(seen) => (seen, true),
+            Err(Hitch::Changed(_)) => (
+                self.remote
+                    .about(&one.reference)?
+                    .ok_or_else(|| Hitch::Missing(one.reference.clone()))?,
+                false,
+            ),
             Err(other) => return Err(other),
         };
         let same = seen.bytes == one.len
-            && (seen.hash.is_empty() || self.remote.hash_of(&one.at)? == seen.hash);
+            && match seen.hash.is_empty() {
+                true => ours,
+                false => self.remote.hash_of(&one.at)? == seen.hash,
+            };
         match same {
             true => Ok(seen),
             false => Err(Hitch::Broke(format!(
@@ -104,7 +108,10 @@ impl<'a> Shelf<'a> {
                 Ok(got)
             })
             .and_then(|got| match std::fs::metadata(&part)?.len() == got.bytes {
-                true => Ok(()),
+                true if got.bytes <= COPIED_IN_DOC => Ok(()),
+                true => Err(Hitch::Broke(format!(
+                    "{reference} is past what an attachment may weigh"
+                ))),
                 false => Err(Hitch::Unreachable(format!("{reference} came short"))),
             });
         match fetched {
@@ -121,16 +128,19 @@ impl Attachments for Shelf<'_> {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
         let mut given = Given::default();
         let mut landed = Vec::new();
-        let all = locals(round.data);
+        let (all, mut asked_for) = locals(round.data, round.buried);
         let whole = all.len();
         for (at, one) in all.into_iter().enumerate() {
             if self.paused.is_some() {
                 break;
             }
+            if tisty_core::holes::a_hole(&one.at) {
+                asked_for.push(one.at.clone());
+                continue;
+            }
             if round.buried.contains(&one.reference)
                 || one.len > COPIED_IN_DOC
                 || !attach::shelved(&one.under, &one.leaf)
-                || tisty_core::holes::a_hole(&one.at)
                 || (!round.again
                     && self
                         .index
@@ -175,10 +185,16 @@ impl Attachments for Shelf<'_> {
                 }
             }
         }
+        tisty_core::holes::ask_for(asked_for);
         Ok(given)
     }
 
+    fn reaches(&self, reference: &str) -> bool {
+        self.index.shelf.contains_key(reference)
+    }
+
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble> {
+        sweep(round.data);
         let mut taken = Taken::default();
         let mut written_down = attach::digests(round.data);
         for (at, one) in round.avowed {
@@ -273,10 +289,31 @@ impl Attachments for Shelf<'_> {
     }
 }
 
-fn locals(data: &Path) -> Vec<Local> {
-    let mut all = Vec::new();
+fn sweep(data: &Path) {
     let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
-        return all;
+        return;
+    };
+    for shelf in shelves.filter_map(|one| one.ok()) {
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|one| one.ok()) {
+            let spent = file
+                .file_name()
+                .to_str()
+                .is_some_and(|named| tisty_core::parting::spent(&file.path(), named));
+            if spent {
+                let _ = std::fs::remove_file(file.path());
+            }
+        }
+    }
+}
+
+fn locals(data: &Path, buried: &BTreeSet<String>) -> (Vec<Local>, Vec<PathBuf>) {
+    let mut all = Vec::new();
+    let mut asked = Vec::new();
+    let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
+        return (all, asked);
     };
     for shelf in shelves.filter_map(|one| one.ok()) {
         let Some(under) = shelf.file_name().to_str().map(str::to_string) else {
@@ -292,6 +329,16 @@ fn locals(data: &Path) -> Vec<Local> {
             ) else {
                 continue;
             };
+            if let Some(real) = tisty_core::holes::marker(&leaf)
+                .then(|| tisty_core::holes::named_away(&leaf))
+                .flatten()
+            {
+                let reference = format!("{HELD}/{under}/{real}");
+                if attach::shelved(&under, real) && !buried.contains(&reference) {
+                    asked.push(shelf.path().join(real));
+                }
+                continue;
+            }
             if meta.is_file() && !leaf.ends_with(".part") {
                 all.push(Local {
                     reference: format!("{HELD}/{under}/{leaf}"),
@@ -304,7 +351,7 @@ fn locals(data: &Path) -> Vec<Local> {
         }
     }
     all.sort_by(|one, other| one.reference.cmp(&other.reference));
-    all
+    (all, asked)
 }
 
 pub fn let_go(
@@ -316,7 +363,8 @@ pub fn let_go(
     told: Told,
 ) -> LetGo {
     let mut done = LetGo::default();
-    for one in locals(data).into_iter().filter(|one| one.len > above) {
+    let (all, _) = locals(data, &BTreeSet::new());
+    for one in all.into_iter().filter(|one| one.len > above) {
         let twin = index
             .shelf
             .get(&one.reference)
