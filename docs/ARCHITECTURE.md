@@ -2424,9 +2424,32 @@ all three, changing nothing but the numbers.
 - **Class 2**, which defaults to class 1: `about`, `changes` since a cursor, and
   `append`.
 - **Class 3**, optional: hearing changes pushed, and lending a link.
-- **`limits()`**: the daily budget of requests and bytes, the shortest polling
-  interval, the chunk size and the provider's own cap per file. `Cloud`
-  enforces them; the `Remote` only states them.
+- **`limits()`**: the daily budget of units and bytes, what each verb costs in
+  units, the shortest polling interval, the chunk size and the provider's own cap
+  per file. `Cloud` enforces them; the `Remote` only states them.
+
+**One name is one file.** Inside a `Remote`, a name is the path from the root of
+the store, with `/`, and it names exactly one file:
+
+- `list` gives each name once; `put` on a name replaces it or refuses, and never
+  adds a second one; `fetch`, `delete` and `about` speak of that one file. A name
+  that is empty, has an empty, `.` or `..` part, a backslash or a control
+  character is refused as `Broke` and writes nothing.
+- Names are compared as written. A provider that folds case (Dropbox, OneDrive)
+  never lets two names exist that differ only in it: the second `put` with
+  `Absent` is refused as `Changed`, and `about` answers for the file under the
+  spelling it was first written with.
+- A provider that allows two files under one name (Drive) shows one of them, the
+  oldest, every time, through `list`, `about` and `fetch` alike. Removing the one
+  that is left over belongs to whoever made it, and is checked against Google
+  itself because it is a race between machines.
+- `Revision` on a file that is no longer there is `Missing`, not `Changed`:
+  another machine deleting a file is not another machine changing it.
+
+The same suite runs against a simulated Drive, OneDrive and Dropbox, and against
+one that has only class 1, so the defaults of class 2 are held to what a native
+implementation does. A quiet round is one request for changes and not one byte of
+content, in all four.
 
 **A refusal says which one it is.** A `Hitch` is the provider's limit (with how
 long to wait), this installation's own budget spent, the person's storage full,

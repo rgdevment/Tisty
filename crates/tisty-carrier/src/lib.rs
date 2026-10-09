@@ -11,8 +11,10 @@ pub use tisty_sync::{
 };
 
 mod folder;
+mod remote;
 
 pub use folder::Folder;
+pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Here {
@@ -113,3 +115,11 @@ pub fn place_of(sync: Option<&Sync>) -> Option<PathBuf> {
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "remote_fakes.rs"]
+mod fakes;
+
+#[cfg(test)]
+#[path = "remote_test.rs"]
+mod remote_tests;
