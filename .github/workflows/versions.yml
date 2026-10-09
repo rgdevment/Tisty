@@ -1,0 +1,91 @@
+name: Versions
+
+on:
+  pull_request:
+    paths:
+      - "crates/tisty-core/**"
+      - "crates/tisty-sync/**"
+      - "crates/tisty-cli/**"
+      - "fixtures/stores/**"
+      - ".github/workflows/versions.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/tisty-core/**"
+      - "crates/tisty-sync/**"
+      - "crates/tisty-cli/**"
+      - "fixtures/stores/**"
+      - ".github/workflows/versions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  earlier:
+    name: ${{ matrix.release }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      attestations: read
+    strategy:
+      fail-fast: false
+      # The releases carry a command line for Windows and macOS only.
+      matrix:
+        os: [windows-latest, macos-latest]
+        release: ["1.23.1", "1.24.4"]
+        include:
+          - release: "1.23.1"
+            schema: 15
+          - release: "1.24.4"
+            schema: 16
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          shared-key: workspace
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: The earlier release, checked against what this repository built
+        id: earlier
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: ${{ matrix.release }}
+        run: |
+          set -euo pipefail
+          case "$RUNNER_OS" in
+            Windows) file="tisty-cli-$RELEASE-windows-x86_64.zip" ;;
+            macOS) file="tisty-cli-$RELEASE-macos-universal.tar.gz" ;;
+            *) echo "::error::no command line is released for $RUNNER_OS"; exit 1 ;;
+          esac
+          mkdir -p earlier/unpacked
+          gh release download "v$RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir earlier
+          gh attestation verify "earlier/$file" --repo "$GITHUB_REPOSITORY"
+          case "$file" in
+            *.zip) unzip -q "earlier/$file" -d earlier/unpacked ;;
+            *) tar xzf "earlier/$file" -C earlier/unpacked ;;
+          esac
+          bin=$(find earlier/unpacked -type f \( -name tisty -o -name tisty.exe \) | sed -n '1p')
+          [ -n "$bin" ] || { echo "::error::$file holds no tisty"; exit 1; }
+          bin="$PWD/$bin"
+          if command -v cygpath > /dev/null; then bin=$(cygpath -w "$bin"); fi
+          echo "bin=$bin" >> "$GITHUB_OUTPUT"
+      - name: What the earlier release and this build do to each other
+        env:
+          TISTY_PREVIOUS: ${{ steps.earlier.outputs.bin }}
+          TISTY_PREVIOUS_SCHEMA: ${{ matrix.schema }}
+        run: cargo test -p tisty-cli --test versions -- --ignored
