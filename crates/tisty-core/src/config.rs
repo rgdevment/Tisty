@@ -93,13 +93,13 @@ impl Was {
     }
 }
 
-/// A way this build has a name for and cannot make sense of is broken, not new, and saying so
-/// out loud is the old behaviour worth keeping: only a name it has never heard is kept aside.
 fn has_more_than_a_folder(raw: &toml::Value) -> bool {
     raw.as_table()
         .is_some_and(|table| table.keys().any(|key| key != "how" && key != "at"))
 }
 
+/// A way this build has a name for and cannot make sense of is broken, not new, and saying so
+/// out loud is the old behaviour worth keeping: only a name it has never heard is kept aside.
 impl<'de> Deserialize<'de> for Sync {
     fn deserialize<D: serde::Deserializer<'de>>(one: D) -> std::result::Result<Self, D::Error> {
         use serde::de::Error;
