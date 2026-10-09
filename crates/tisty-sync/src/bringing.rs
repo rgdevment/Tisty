@@ -124,9 +124,14 @@ fn answers_for_itself(
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
     let mut carried = None;
     if stood.is_none() && !ours && signed {
+        let mut said_a_key = false;
         let says = match claimed(store, &who, knew) {
             Ok(Some(claim)) => Some(claim),
-            Ok(None) => tisty_core::store::key_said_in(theirs, &who),
+            Ok(None) => {
+                let said = tisty_core::store::keys_said_in(theirs, &who);
+                said_a_key = said.any;
+                said.readable
+            }
             Err(()) => return Answered::Unreadable,
         };
         match says {
@@ -163,9 +168,7 @@ fn answers_for_itself(
                 );
                 return Answered::Unconfirmed;
             }
-            None if adopting && !tisty_core::store::says_a_key_in(theirs, &who) => {
-                return Answered::Unsaid;
-            }
+            None if adopting && !said_a_key => return Answered::Unsaid,
             None => {
                 witness::note(
                     channel::SYNC,

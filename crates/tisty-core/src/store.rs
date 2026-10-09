@@ -727,12 +727,25 @@ pub fn inhabited(store_root: impl AsRef<Path>) -> bool {
     })
 }
 
+pub struct KeysSaid {
+    pub readable: Option<String>,
+    pub any: bool,
+}
+
+pub fn keys_said_in(device_dir: &Path, who: &DeviceId) -> KeysSaid {
+    let events = introduced::events_of(device_dir, who, false);
+    KeysSaid {
+        readable: introduced::key_of(&events, who),
+        any: introduced::says_a_key(&events, who),
+    }
+}
+
 pub fn key_said_in(device_dir: &Path, who: &DeviceId) -> Option<String> {
-    introduced::key_of(&introduced::events_of(device_dir, who, false), who)
+    keys_said_in(device_dir, who).readable
 }
 
 pub fn says_a_key_in(device_dir: &Path, who: &DeviceId) -> bool {
-    introduced::says_a_key(&introduced::events_of(device_dir, who, false), who)
+    keys_said_in(device_dir, who).any
 }
 
 pub fn distinct_in(device_dir: &Path) -> Result<usize> {
