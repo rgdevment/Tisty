@@ -49,6 +49,7 @@ struct Entry {
     name: String,
     body: Vec<u8>,
     revision: u64,
+    shown_from: u64,
 }
 
 #[derive(Default)]
@@ -56,7 +57,9 @@ struct Shelf {
     files: Vec<Entry>,
     last: u64,
     floor: u64,
-    touched: Vec<(u64, String)>,
+    touched: Vec<(u64, String, u64)>,
+    listings: u64,
+    truncating: usize,
     failing: VecDeque<Option<Hitch>>,
     uploads: Vec<String>,
     counts: Counts,
@@ -67,6 +70,7 @@ pub struct Fake {
     page: Option<usize>,
     chunk: Option<u64>,
     hashless: bool,
+    lag: u64,
     shelf: Arc<Mutex<Shelf>>,
 }
 
@@ -77,6 +81,7 @@ impl Fake {
             page: None,
             chunk: None,
             hashless: false,
+            lag: 0,
             shelf: Arc::default(),
         }
     }
@@ -108,6 +113,46 @@ impl Fake {
         self
     }
 
+    /// A write stays out of every listing for this many listings after it, as an eventually
+    /// consistent index does; asking for it by name finds it at once.
+    pub fn lagging(mut self, listings: u64) -> Self {
+        self.lag = listings;
+        self
+    }
+
+    pub fn truncate_next(&self, fetches: usize) {
+        self.lock().truncating = fetches;
+    }
+
+    /// What a desktop client leaves when two machines wrote one file at once.
+    pub fn conflict_copy(&self, name: &str) -> String {
+        let mut shelf = self.lock();
+        let at = self.winner(&shelf, name).expect("a file to copy");
+        let (parent, leaf) = name.rsplit_once('/').unwrap_or(("", name));
+        let (stem, ext) = leaf
+            .split_once('.')
+            .map_or((leaf, String::new()), |(stem, ext)| {
+                (stem, format!(".{ext}"))
+            });
+        let copy = match parent {
+            "" => format!("{stem} (1){ext}"),
+            parent => format!("{parent}/{stem} (1){ext}"),
+        };
+        let body = shelf.files[at].body.clone();
+        let shown_from = shelf.listings + 1;
+        shelf.last += 1;
+        let id = shelf.last;
+        shelf.files.push(Entry {
+            id,
+            name: copy.clone(),
+            body,
+            revision: id,
+            shown_from,
+        });
+        shelf.touched.push((id, copy.clone(), shown_from));
+        copy
+    }
+
     fn lock(&self) -> MutexGuard<'_, Shelf> {
         self.shelf.lock().unwrap()
     }
@@ -117,13 +162,15 @@ impl Fake {
         let mut shelf = self.lock();
         shelf.last += 1;
         let id = shelf.last;
+        let shown_from = shelf.listings + 1;
         shelf.files.push(Entry {
             id,
             name: name.to_string(),
             body: body.to_vec(),
             revision: id,
+            shown_from,
         });
-        shelf.touched.push((id, name.to_string()));
+        shelf.touched.push((id, name.to_string(), shown_from));
     }
 
     pub fn copies_of(&self, name: &str) -> usize {
@@ -183,7 +230,7 @@ impl Fake {
         for one in shelf
             .files
             .iter()
-            .filter(|one| self.within(&one.name, under))
+            .filter(|one| self.within(&one.name, under) && one.shown_from <= shelf.listings)
         {
             let slot = firsts.entry(self.key(&one.name)).or_insert(one);
             if one.id < slot.id {
@@ -211,10 +258,12 @@ impl Fake {
     fn written(&self, shelf: &mut Shelf, name: &str, body: Vec<u8>, at: Option<usize>) -> Seen {
         shelf.last += 1;
         let stamp = shelf.last;
+        let shown_from = shelf.listings + 1 + self.lag;
         let seen = match at {
             Some(at) => {
                 shelf.files[at].body = body;
                 shelf.files[at].revision = stamp;
+                shelf.files[at].shown_from = shown_from;
                 self.seen(&shelf.files[at])
             }
             None => {
@@ -223,13 +272,14 @@ impl Fake {
                     name: name.to_string(),
                     body,
                     revision: stamp,
+                    shown_from,
                 };
                 let seen = self.seen(&one);
                 shelf.files.push(one);
                 seen
             }
         };
-        shelf.touched.push((stamp, seen.name.clone()));
+        shelf.touched.push((stamp, seen.name.clone(), shown_from));
         shelf.uploads.push(seen.name.clone());
         seen
     }
@@ -317,6 +367,7 @@ impl Remote for Fake {
         let limits = self.limits();
         let mut shelf = self.lock();
         shelf.counts.lists += 1;
+        shelf.listings += 1;
         self.gate(&mut shelf, limits.costs.list)?;
         let seen = self.listed(&shelf, under);
         self.spend(
@@ -337,11 +388,17 @@ impl Remote for Fake {
         let at = self
             .winner(&shelf, name)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
+        let short = shelf.truncating > 0;
+        shelf.truncating = shelf.truncating.saturating_sub(1);
         let one = &shelf.files[at];
         let tail = usize::try_from(from)
             .ok()
             .and_then(|from| one.body.get(from..))
             .ok_or_else(|| Hitch::Broke(format!("past the end of {name}")))?;
+        let tail = match short {
+            true => &tail[..tail.len() / 2],
+            false => tail,
+        };
         into.write_all(tail)
             .map_err(|e| Hitch::Broke(e.to_string()))?;
         let (seen, received) = (self.seen(one), tail.len() as u64);
@@ -386,7 +443,8 @@ impl Remote for Fake {
         let stamp = shelf.last;
         let (key, shown) = (self.key(name), shelf.files[at].name.clone());
         shelf.files.retain(|one| self.key(&one.name) != key);
-        shelf.touched.push((stamp, shown));
+        let shown_from = shelf.listings + 1;
+        shelf.touched.push((stamp, shown, shown_from));
         Ok(())
     }
 
@@ -409,11 +467,21 @@ impl Remote for Fake {
         let limits = self.limits();
         let mut shelf = self.lock();
         shelf.counts.lists += 1;
+        shelf.listings += 1;
         self.gate(&mut shelf, limits.costs.changes)?;
-        let cursor = shelf.last.to_string();
+        let now = shelf.listings;
+        // The feed stops before the first write it does not show yet, so that write is told later.
+        let shown_up_to = shelf
+            .touched
+            .iter()
+            .filter(|(_, _, from)| *from > now)
+            .map(|(when, _, _)| when - 1)
+            .min()
+            .unwrap_or(shelf.last);
+        let cursor = shown_up_to.to_string();
         let known = since
             .and_then(|one| one.parse::<u64>().ok())
-            .filter(|one| (shelf.floor..=shelf.last).contains(one));
+            .filter(|one| (shelf.floor..=shown_up_to).contains(one));
         let Some(since) = known else {
             let seen = self.listed(&shelf, "");
             let requests = limits.requests_to_list(seen.len());
@@ -421,7 +489,11 @@ impl Remote for Fake {
             return Ok(Changes::Whole { seen, cursor });
         };
         let mut spellings: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-        for (_, name) in shelf.touched.iter().filter(|(when, _)| *when > since) {
+        for (_, name, _) in shelf
+            .touched
+            .iter()
+            .filter(|(when, _, _)| *when > since && *when <= shown_up_to)
+        {
             spellings
                 .entry(self.key(name))
                 .or_default()

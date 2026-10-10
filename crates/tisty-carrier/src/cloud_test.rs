@@ -1037,3 +1037,100 @@ fn what_a_dead_round_left_behind_is_swept_and_what_is_recent_is_not() {
         "a round that may still be running keeps its file"
     );
 }
+
+fn each_kind(shape: impl Fn(Fake) -> Fake) -> Vec<(Setting, Arc<Fake>)> {
+    [Fake::drive(), Fake::onedrive(), Fake::dropbox()]
+        .into_iter()
+        .map(|fake| {
+            let fake = Arc::new(shape(fake));
+            let setting = Setting {
+                name: format!("cloud over {}", fake.who()),
+                room: tempfile::tempdir().unwrap(),
+                place: Place::Cloud(fake.clone()),
+            };
+            (setting, fake)
+        })
+        .collect()
+}
+
+#[test]
+fn a_download_that_comes_short_is_never_installed_and_the_next_round_takes_it_whole() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        fake.truncate_next(usize::MAX);
+
+        let short = two.round(Way::Pull);
+
+        assert_eq!(short.brought, 0, "{who}: {short:?}");
+        assert_eq!(two.doc(DOC), None, "{who}: half a body was installed");
+        fake.truncate_next(0);
+        two.round(Way::Pull);
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+    }
+}
+
+#[test]
+fn a_listing_that_lags_behind_loses_nothing_and_sends_nothing_twice() {
+    for (setting, fake) in each_kind(|fake| fake.lagging(2)) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+
+        for _ in 0..4 {
+            one.round(Way::Both);
+            two.round(Way::Both);
+        }
+
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+        assert!(
+            fake.about(&doc_name()).unwrap().is_some(),
+            "{who}: a write the listing did not show yet was taken for one that went away"
+        );
+        fake.forget_counts();
+        one.round(Way::Both);
+        two.round(Way::Both);
+        assert_eq!(
+            fake.counts().sent,
+            0,
+            "{who}: what was already up went up again"
+        );
+    }
+}
+
+#[test]
+fn a_conflict_copy_a_desktop_client_left_is_neither_taken_in_nor_removed() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let copies = [
+            fake.conflict_copy(&doc_name()),
+            fake.conflict_copy(&format!("{STORE}/dev_a/active.tisty")),
+        ];
+
+        two.round(Way::Both);
+        one.round(Way::Both);
+
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+        for copy in &copies {
+            assert!(
+                fake.about(copy).unwrap().is_some(),
+                "{who}: {copy} was removed"
+            );
+            assert!(
+                !home_of(&setting, "dev_b").join("tree").join(copy).exists(),
+                "{who}: {copy} was taken in"
+            );
+        }
+    }
+}
