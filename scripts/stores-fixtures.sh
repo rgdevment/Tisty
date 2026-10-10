@@ -14,9 +14,9 @@ releases, so what a test reads is what Tisty really wrote and not what a test th
 
   bash scripts/stores-fixtures.sh [--force] [--into DIR] [VERSION:SCHEMA ...]
 
-With no pairs it writes 1.23.1:15 and 1.24.4:16. Each release is downloaded, its attestation
-is checked with `gh attestation verify`, and it runs against folders of its own, never against
-the data of whoever runs this. It needs gh, and unzip on Windows or tar on macOS.
+With no pairs it writes 1.23.1:15, 1.24.4:16 and 1.25.0:17. Each release is downloaded, its
+attestation is checked with `gh attestation verify`, and it runs against folders of its own,
+never against the data of whoever runs this. It needs gh, and unzip on Windows or tar on macOS.
 EOF
 }
 
@@ -42,7 +42,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ ${#pairs[@]} -gt 0 ] || pairs=("1.23.1:15" "1.24.4:16")
+[ ${#pairs[@]} -gt 0 ] || pairs=("1.23.1:15" "1.24.4:16" "1.25.0:17")
 
 case "$(uname -s)" in
   MINGW* | MSYS* | CYGWIN*)
