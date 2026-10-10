@@ -15,6 +15,7 @@ use crate::{
 };
 
 const DOC: &str = "dev_a-0001";
+const BACKED: &str = "cloud over a folder";
 
 enum Place {
     Folder(PathBuf),
@@ -48,6 +49,13 @@ fn settings() -> Vec<Setting> {
             place: Place::Cloud(Arc::from(fake)),
         });
     }
+    let room = tempfile::tempdir().unwrap();
+    let backed = crate::folder_backed::FolderBacked::at(room.path().join("provider"));
+    all.push(Setting {
+        name: BACKED.to_string(),
+        room,
+        place: Place::Cloud(Arc::new(backed)),
+    });
     all
 }
 
@@ -394,6 +402,11 @@ fn a_quiet_cloud_round_asks_once_and_moves_no_content() {
 
         let spent = remote.counts();
         assert_eq!((spent.sent, spent.received), (0, 0), "{who}");
+        assert_eq!(
+            (spent.lists, spent.fetches, spent.puts, spent.deletes),
+            (1, 0, 0, 0),
+            "{who}: a quiet round asks for one listing and touches nothing"
+        );
         let asked = match remote.native_changes() {
             true => 1,
             false => remote.limits().requests_to_list(8),
@@ -856,7 +869,8 @@ fn the_index_survives_being_saved_and_read_back() {
 
 #[test]
 fn names_that_are_not_history_or_documents_are_neither_fetched_nor_removed() {
-    for setting in clouds() {
+    // Only a provider takes a name like «a*b.md»; a folder on Windows refuses to hold it.
+    for setting in clouds().into_iter().filter(|one| one.name != BACKED) {
         let who = &setting.name;
         let remote = counting(&setting);
         let (one, _) = pair(&setting);
@@ -1032,3 +1046,150 @@ fn what_a_dead_round_left_behind_is_swept_and_what_is_recent_is_not() {
         "a round that may still be running keeps its file"
     );
 }
+
+fn each_kind(shape: impl Fn(Fake) -> Fake) -> Vec<(Setting, Arc<Fake>)> {
+    [Fake::drive(), Fake::onedrive(), Fake::dropbox()]
+        .into_iter()
+        .map(|fake| {
+            let fake = Arc::new(shape(fake));
+            let setting = Setting {
+                name: format!("cloud over {}", fake.who()),
+                room: tempfile::tempdir().unwrap(),
+                place: Place::Cloud(fake.clone()),
+            };
+            (setting, fake)
+        })
+        .collect()
+}
+
+#[test]
+fn a_download_that_comes_short_is_never_installed_and_the_next_round_takes_it_whole() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        fake.truncate_next(usize::MAX);
+
+        let short = two.round(Way::Pull);
+
+        assert_eq!(short.brought, 0, "{who}: {short:?}");
+        assert_eq!(two.doc(DOC), None, "{who}: half a body was installed");
+        fake.truncate_next(0);
+        two.round(Way::Pull);
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+    }
+}
+
+#[test]
+fn a_listing_that_lags_behind_loses_nothing_and_sends_nothing_twice() {
+    for (setting, fake) in each_kind(|fake| fake.lagging(2)) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+
+        for _ in 0..4 {
+            one.round(Way::Both);
+            two.round(Way::Both);
+        }
+
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+        assert!(
+            fake.about(&doc_name()).unwrap().is_some(),
+            "{who}: a write the listing did not show yet was taken for one that went away"
+        );
+        fake.forget_counts();
+        one.round(Way::Both);
+        two.round(Way::Both);
+        assert_eq!(
+            fake.counts().sent,
+            0,
+            "{who}: what was already up went up again"
+        );
+    }
+}
+
+#[test]
+fn a_conflict_copy_a_desktop_client_left_is_neither_taken_in_nor_removed() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let copies = [
+            fake.conflict_copy(&doc_name()),
+            fake.conflict_copy(&format!("{STORE}/dev_a/active.tisty")),
+        ];
+
+        two.round(Way::Both);
+        one.round(Way::Both);
+
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+        for copy in &copies {
+            assert!(
+                fake.about(copy).unwrap().is_some(),
+                "{who}: {copy} was removed"
+            );
+            assert!(
+                !home_of(&setting, "dev_b").join("tree").join(copy).exists(),
+                "{who}: {copy} was taken in"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_machine_on_the_folder_and_one_on_a_cloud_over_the_same_files_keep_one_history() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    let folder = Setting {
+        name: "folder".to_string(),
+        room: tempfile::tempdir().unwrap(),
+        place: Place::Folder(shared.clone()),
+    };
+    let cloud = Setting {
+        name: BACKED.to_string(),
+        room: tempfile::tempdir().unwrap(),
+        place: Place::Cloud(Arc::new(crate::folder_backed::FolderBacked::at(&shared))),
+    };
+    let (one, two) = (desk(&folder, "dev_a"), desk(&cloud, "dev_b"));
+    one.vouches_for(&two);
+    two.vouches_for(&one);
+    one.filed(DOC, "# Plan\n\nlo escrito en la carpeta\n");
+    one.wrote("lo de uno");
+
+    one.round(Way::Both);
+    two.round(Way::Both);
+    two.wrote("lo de dos");
+    two.edited(DOC, "# Plan\n\nlo escrito en la nube\n");
+    two.round(Way::Both);
+    one.round(Way::Both);
+
+    assert_eq!(one.titles(), ["lo de dos", "lo de uno"]);
+    assert_eq!(two.titles(), one.titles());
+    assert_eq!(
+        one.doc(DOC).as_deref(),
+        Some("# Plan\n\nlo escrito en la nube\n")
+    );
+    let tree = home_of(&cloud, "dev_b").join("tree");
+    for name in [
+        "store/dev_a/active.tisty",
+        "store/dev_b/active.tisty",
+        "docs/dev_a-0001.md",
+    ] {
+        assert_eq!(
+            std::fs::read(tree.join(name)).unwrap(),
+            std::fs::read(shared.join(name)).unwrap(),
+            "the mirror of {name} is not the folder byte for byte"
+        );
+    }
+}
+
+#[path = "converge_test.rs"]
+mod converge;

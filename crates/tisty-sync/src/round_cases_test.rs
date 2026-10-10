@@ -1,0 +1,1121 @@
+struct Machine {
+    _dir: tempfile::TempDir,
+    data: PathBuf,
+    store: PathBuf,
+    device: String,
+}
+
+fn vouches(one: &Machine, other: &Machine) {
+    let whose = DeviceId(other.device.clone());
+    let paths = tisty_core::Paths::new(other.data.clone(), other.data.join("config"));
+    let shown = tisty_core::signing::mine(&paths, &whose)
+        .as_ref()
+        .map(tisty_core::signing::shown)
+        .expect("a key");
+    std::fs::create_dir_all(&one.data).unwrap();
+    tisty_core::vouched::confirm(&one.data, &whose, &shown);
+}
+
+fn paper(who: &Machine, id: &str, body: &str) {
+    let at = who.data.join("docs");
+    std::fs::create_dir_all(&at).unwrap();
+    std::fs::write(at.join(format!("{id}.md")), body).unwrap();
+}
+
+fn body(at: &Path, id: &str) -> String {
+    std::fs::read_to_string(at.join("docs").join(format!("{id}.md"))).unwrap()
+}
+
+fn blank(named: &str) -> Machine {
+    let dir = tempfile::tempdir().unwrap();
+    let data = dir.path().join("data");
+    let store = data.join("store");
+    Machine {
+        _dir: dir,
+        data,
+        store,
+        device: named.into(),
+    }
+}
+
+fn machine(named: &str) -> Machine {
+    let one = blank(named);
+    wrote(&one, format!("lo de {named}"));
+    one
+}
+
+fn filed(who: &Machine, file: &str, body: &str) {
+    let mut held = signing(who);
+    held.append(Op::DocAdd {
+        id: Ulid::generate(),
+        d: tisty_core::event::DocAdd {
+            wrote: None,
+            guest: false,
+            made: None,
+            by: None,
+            said: None,
+            file: file.to_string(),
+            order: "a0".into(),
+            folder: None,
+            page_of: None,
+        },
+    })
+    .unwrap();
+    tisty_core::docs::write(&who.data.join(PAPERS), file, body).unwrap();
+}
+
+fn planted(root: &Path, called: &str, body: &[u8]) -> String {
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join(called);
+    std::fs::write(&at, body).unwrap();
+    tisty_core::attach::keep(&at, root, tisty_core::attach::COPIED_IN_DOC)
+        .unwrap()
+        .at
+}
+
+fn rotated(who: &Machine) {
+    let at = who.store.join(&who.device).join("active.tisty");
+    let held = tisty_core::store::read_tail(&at, 0).map_or(0, |all| all.len());
+    let mut store = signing(who);
+    store
+        .append_batch(
+            (held..5_000)
+                .map(|n| Op::TaskAdd {
+                    id: Ulid::generate(),
+                    d: TaskAdd::new(format!("relleno {n}"), "a0"),
+                })
+                .collect(),
+        )
+        .unwrap();
+    store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("lo primero tras rotar", "a0"),
+        })
+        .unwrap();
+    assert!(
+        at.with_file_name("000001.tisty").is_file(),
+        "it did not rotate"
+    );
+}
+
+fn said_about(paths: &tisty_core::paths::Paths, who: &str) -> Vec<String> {
+    tisty_core::witness::recent(paths, 200)
+        .into_iter()
+        .filter(|line| line.contains("a shorter history") && line.contains(who))
+        .collect()
+}
+
+fn says(who: &Machine, op: Op) {
+    let mut held = signing(who);
+    held.append(op).unwrap();
+}
+
+fn signing(who: &Machine) -> Store {
+    let whose = DeviceId(who.device.clone());
+    let paths = tisty_core::Paths::new(who.data.clone(), who.data.join("config"));
+    let key = tisty_core::signing::mine(&paths, &whose);
+    if let Some(shown) = key.as_ref().map(tisty_core::signing::shown) {
+        std::fs::create_dir_all(&who.data).unwrap();
+        tisty_core::vouched::confirm(&who.data, &whose, &shown);
+    }
+    Store::open(&who.store, whose.clone())
+        .unwrap()
+        .signing_with(key)
+}
+
+fn signs(who: &Machine, alias: &str) {
+    says(
+        who,
+        Op::Signed {
+            d: tisty_core::event::Signature {
+                alias: Some(alias.to_string()),
+                name: None,
+                email: None,
+            },
+        },
+    );
+}
+
+fn titles(store: &Path) -> Vec<String> {
+    tisty_core::State::replay(&tisty_core::store::read_all(store).unwrap())
+        .tasks
+        .values()
+        .map(|task| task.title.clone())
+        .collect()
+}
+
+fn trailing(theirs: &Path) {
+    let at = theirs.join("active.tisty");
+    let whole = std::fs::read_to_string(&at).unwrap();
+    let first = whole.lines().next().unwrap();
+    std::fs::write(
+        &at,
+        format!(
+            "{first}
+"
+        ),
+    )
+    .unwrap();
+}
+
+fn watching(at: &Path) -> tisty_core::paths::Paths {
+    let paths = tisty_core::paths::Paths::new(at.join("data"), at.join("config"));
+    witness::keeps(tisty_core::witness::file(&paths), false);
+    paths
+}
+
+fn wrote(who: &Machine, title: String) {
+    let mut held = signing(who);
+    held.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: TaskAdd::new(title, "a0"),
+    })
+    .unwrap();
+}
+
+fn a_shorter_history_arriving_first_never_replaces_the_longer_one_we_hold(shared: &Shared) {
+    let one = machine("uno");
+    for said in ["dos", "tres", "cuatro"] {
+        wrote(&one, said.into());
+    }
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+    let held = tisty_core::store::check_device(&two.store.join(&one.device)).unwrap();
+    assert!(held >= 4);
+
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let at = theirs.join("active.tisty");
+    let whole = std::fs::read_to_string(&at).unwrap();
+    let first = whole.lines().next().unwrap();
+    std::fs::write(&at, format!("{first}\n")).unwrap();
+
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    assert_eq!(
+        tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
+        held,
+        "una historia mas corta piso la que ya teniamos"
+    );
+}
+
+fn a_shared_folder_merely_behind_ours_is_pushed_to_without_a_word(shared: &Shared) {
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let one = machine("uno");
+    for said in ["dos", "tres", "cuatro"] {
+        wrote(&one, said.into());
+    }
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+    trailing(&shared.path().join(STORE).join(&one.device));
+
+    let kept = tempfile::tempdir().unwrap();
+    let paths = watching(kept.path());
+    shared.carry(&two, Way::Both, &[]).unwrap();
+
+    assert!(said_about(&paths, &one.device).is_empty());
+    assert_eq!(
+        tisty_core::store::check_device(&shared.path().join(STORE).join(&one.device)).unwrap(),
+        tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
+    );
+}
+
+fn a_shared_folder_that_walked_off_on_its_own_is_still_reported(shared: &Shared) {
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let one = machine("uno");
+    for said in ["dos", "tres", "cuatro"] {
+        wrote(&one, said.into());
+    }
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    let apart = blank("uno");
+    wrote(&apart, "otra vida".into());
+    let theirs = shared.path().join(STORE).join(&one.device);
+    std::fs::copy(
+        apart.store.join(&apart.device).join("active.tisty"),
+        theirs.join("active.tisty"),
+    )
+    .unwrap();
+
+    let kept = tempfile::tempdir().unwrap();
+    let paths = watching(kept.path());
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    assert!(!said_about(&paths, &one.device).is_empty());
+}
+
+fn a_history_that_grew_on_the_other_side_still_comes_across(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+    let before = tisty_core::store::check_device(&two.store.join(&one.device)).unwrap();
+
+    wrote(&one, "algo mas".into());
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    assert_eq!(
+        tisty_core::store::check_device(&two.store.join(&one.device)).unwrap(),
+        before + 1
+    );
+}
+
+fn a_retired_attachment_is_never_pushed_back_up_to_the_folder(shared: &Shared) {
+    let one = machine("uno");
+    let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
+
+    says(&one, Op::AttachRetire { d: kept.clone() });
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(
+        !shared.path().join(&kept).exists(),
+        "lo retirado se subio a la carpeta compartida"
+    );
+}
+
+fn an_attachment_nobody_retired_still_goes_up(shared: &Shared) {
+    let one = machine("uno");
+    let kept = planted(&one.data, "foto.png", b"una fotografia cualquiera");
+
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(shared.path().join(&kept).is_file());
+}
+
+fn a_pull_cut_between_two_segments_does_not_wedge_the_next_one(shared: &Shared) {
+    let one = machine("uno");
+    for said in ["dos", "tres", "cuatro"] {
+        wrote(&one, said.into());
+    }
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    rotated(&one);
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let mine = two.store.join(&one.device);
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    std::fs::copy(theirs.join("000001.tisty"), mine.join("000001.tisty")).unwrap();
+
+    wrote(&one, "lo que vino despues de rotar".into());
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    assert_eq!(
+        tisty_core::store::distinct_in(&mine).unwrap(),
+        tisty_core::store::distinct_in(&theirs).unwrap(),
+        "la maquina quedo atascada y no recibe nada mas"
+    );
+}
+
+fn a_torn_local_copy_is_never_replaced_by_a_shorter_history(shared: &Shared) {
+    let one = machine("uno");
+    for said in ["dos", "tres", "cuatro"] {
+        wrote(&one, said.into());
+    }
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let two = blank("dos");
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    let mine = two.store.join(&one.device).join("active.tisty");
+    let whole = std::fs::read_to_string(&mine).unwrap();
+    std::fs::write(&mine, format!("{whole}{{\"v\":3,\"ts\"")).unwrap();
+
+    let theirs = shared
+        .path()
+        .join(STORE)
+        .join(&one.device)
+        .join("active.tisty");
+    let short = std::fs::read_to_string(&theirs).unwrap();
+    let first = short.lines().next().unwrap();
+    std::fs::write(&theirs, format!("{first}\n")).unwrap();
+
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    let after = std::fs::read_to_string(&mine).unwrap();
+    assert!(
+        after.starts_with(&whole),
+        "una historia corta piso la copia local rota"
+    );
+}
+
+fn a_clash_is_found_even_when_another_machine_already_proved_the_lineage(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let both = "compartida";
+    for at in [one.store.join(both), shared.path().join(STORE).join(both)] {
+        std::fs::create_dir_all(&at).unwrap();
+    }
+    std::fs::write(one.store.join(both).join("active.tisty"), b"lo de aqui\n").unwrap();
+    std::fs::write(
+        shared.path().join(STORE).join(both).join("active.tisty"),
+        b"lo de alli\n",
+    )
+    .unwrap();
+
+    assert_eq!(
+        shared.kin(&one),
+        Kin::Clash(both.to_string()),
+        "un choque real se perdio porque otra maquina ya habia probado el linaje"
+    );
+}
+
+fn the_base_never_travels_to_the_shared_folder(shared: &Shared) {
+    let one = machine("uno");
+    filed(&one, "uno-0001", "# Kit\n\ncuerpo\n");
+
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(!shared.path().join("carried").exists());
+    assert!(one.data.join("carried").is_dir());
+}
+
+fn two_histories_that_never_met_are_strangers(shared: &Shared) {
+    let one = machine("uno");
+    let two = machine("dos");
+    shared.carry(&two, Way::Push, &[]).unwrap();
+
+    assert_eq!(shared.kin(&one), Kin::Strangers);
+}
+
+fn a_folder_that_already_holds_everything_of_ours_is_the_same_lineage(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    assert_eq!(shared.kin(&one), Kin::SameLineage);
+}
+
+fn a_tail_we_never_sent_is_still_the_same_lineage_not_a_clash(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    wrote(&one, "algo que se quedo aqui".into());
+
+    assert_eq!(shared.kin(&one), Kin::SameLineage);
+}
+
+fn the_same_name_writing_two_different_things_is_the_clash_that_is_refused(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let file = tisty_core::store::segments_in(&theirs).unwrap().remove(0);
+    let mut said = std::fs::read(&file).unwrap();
+    said[0] ^= 0xff;
+    std::fs::write(&file, said).unwrap();
+
+    assert_eq!(shared.kin(&one), Kin::Clash(one.device.clone()));
+}
+
+fn a_folder_ahead_of_us_is_the_same_lineage_because_only_the_end_grows(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let theirs = shared.path().join(STORE).join(&one.device);
+    let file = tisty_core::store::segments_in(&theirs).unwrap().remove(0);
+    let mut said = std::fs::read(&file).unwrap();
+    said.extend_from_slice(b"{\"v\":3}\n");
+    std::fs::write(&file, said).unwrap();
+
+    assert_eq!(shared.kin(&one), Kin::SameLineage);
+}
+
+fn a_document_written_on_the_other_machine_lands_on_the_first_sync_not_the_second(shared: &Shared) {
+    let one = machine("uno");
+    let two = blank("dos");
+
+    filed(&one, "uno-0001", "# Ortografia\n\nla n con virgulilla\n");
+    shared.carry(&one, Way::Both, &["uno-0001".into()]).unwrap();
+
+    shared.carry(&two, Way::Both, &[]).unwrap();
+
+    let landed = two.data.join(PAPERS).join("uno-0001.md");
+    assert!(
+        landed.is_file(),
+        "el documento no llego en la primera vuelta"
+    );
+    assert_eq!(
+        std::fs::read_to_string(landed).unwrap(),
+        "# Ortografia\n\nla n con virgulilla\n"
+    );
+}
+
+fn a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoning(
+    shared: &Shared,
+) {
+    let one = machine("uno");
+    let two = blank("dos");
+
+    filed(&one, "uno-0001", "# Algo\n");
+    shared.carry(&one, Way::Both, &["uno-0001".into()]).unwrap();
+
+    let mut held = signing(&one);
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .next()
+        .unwrap()
+        .id;
+    held.append(Op::DocDelete { id }).unwrap();
+    drop(held);
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    shared.carry(&two, Way::Both, &[]).unwrap();
+
+    assert!(!two.data.join(PAPERS).join("uno-0001.md").exists());
+}
+
+fn a_folder_says_it_stirred_without_being_read(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let still = shared.stirring();
+    assert_eq!(still, shared.stirring(), "a folder at rest changed");
+
+    wrote(&one, "lo que vino despues".into());
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    assert_ne!(still, shared.stirring(), "the folder grew and said nothing");
+}
+
+fn a_seat_nobody_ever_wrote_in_is_not_taken_home(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Both, &[]).unwrap();
+    std::fs::create_dir_all(shared.path().join(STORE).join("dev_ghost")).unwrap();
+
+    let fresh = blank("dos");
+    shared.carry(&fresh, Way::Pull, &[]).unwrap();
+
+    assert!(
+        !fresh.store.join("dev_ghost").exists(),
+        "an empty device directory travelled as though it were a machine"
+    );
+}
+
+fn a_machine_that_wrote_nothing_takes_up_the_folder_it_is_pointed_at(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let fresh = blank("dos");
+    shared.carry(&fresh, Way::Both, &[]).unwrap();
+
+    assert_eq!(titles(&fresh.store), vec!["lo de uno".to_string()]);
+    assert_eq!(
+        shared.signed_at(),
+        None,
+        "nobody signed, so there is no name to take"
+    );
+}
+
+fn signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history(
+    shared: &Shared,
+) {
+    let one = machine("uno");
+    signs(&one, "mario");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let fresh = blank("dos");
+    signs(&fresh, "mario");
+    let outcome = shared.carry(&fresh, Way::Both, &[]);
+
+    assert!(
+        matches!(
+            outcome,
+            Err(Trouble::OtherStore { .. }) | Err(Trouble::WouldReset { .. })
+        ),
+        "a name of its own is a history of its own: {outcome:?}"
+    );
+    assert_eq!(
+        shared.signed_at().as_deref(),
+        Some("mario"),
+        "the folder carries the name, so asking for one first is asking twice"
+    );
+}
+
+fn a_store_with_no_list_yet_lets_everyone_write(shared: &Shared) {
+    let one = machine("dev_a");
+
+    let moved = shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(moved.sent > 0, "an older store must not be locked out");
+}
+
+fn a_machine_on_the_list_writes_as_it_always_did(shared: &Shared) {
+    let one = machine("dev_a");
+    says(
+        &one,
+        Op::DeviceJoin {
+            d: DeviceId("dev_a".into()),
+            k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
+        },
+    );
+
+    let moved = shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(moved.sent > 0);
+}
+
+fn the_seam_is_written_down_before_the_new_name_is_taken(shared: &Shared) {
+    let one = machine("uno");
+    let two = machine("dos");
+    shared.carry(&two, Way::Push, &[]).unwrap();
+    let was = tisty_core::store::identity(&one.store).unwrap();
+
+    shared.stitch(&one, None).unwrap();
+
+    let said = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap());
+    assert_eq!(said.forebears.len(), 2, "la costura no quedo en el log");
+    assert!(said.forebears.contains(&was));
+}
+
+fn a_machine_that_was_removed_cannot_stitch_itself_into_the_folder(shared: &Shared) {
+    let one = machine("uno");
+    let two = machine("dos");
+    says(
+        &one,
+        Op::DeviceJoin {
+            d: DeviceId("dev_otra".into()),
+            k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
+        },
+    );
+    says(
+        &one,
+        Op::DeviceRemove {
+            d: DeviceId(one.device.clone()),
+        },
+    );
+    shared.carry(&two, Way::Push, &[]).unwrap();
+    let was = tisty_core::store::identity(&one.store).unwrap();
+
+    let outcome = shared.stitch(&one, None);
+
+    assert!(
+        matches!(outcome, Err(Trouble::NotAllowed(_))),
+        "{outcome:?}"
+    );
+    assert_eq!(
+        tisty_core::store::peek_identity(&one.store).as_deref(),
+        Some(was.as_str()),
+        "adopto un nombre en el que no puede escribir"
+    );
+}
+
+fn a_segment_that_cannot_be_read_is_never_called_a_clash(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    assert_eq!(shared.kin(&one), Kin::SameLineage);
+
+    let mine = one.store.join(&one.device);
+    let file = tisty_core::store::segments_in(&mine).unwrap().remove(0);
+    std::fs::remove_file(&file).unwrap();
+    std::fs::create_dir(&file).unwrap();
+
+    assert_eq!(shared.kin(&one), Kin::Unsure(one.device.clone()));
+    assert!(matches!(
+        shared.stitch(&one, None),
+        Err(Trouble::Unreadable(_))
+    ));
+}
+
+fn stitching_twice_never_writes_a_seam_that_joins_a_history_to_itself(shared: &Shared) {
+    let one = machine("uno");
+    let two = machine("dos");
+    shared.carry(&two, Way::Push, &[]).unwrap();
+    tisty_core::store::identity(&one.store).unwrap();
+
+    shared.stitch(&one, None).unwrap();
+    let again = shared.stitch(&one, None).unwrap();
+
+    assert!(again.stitch.is_none(), "anoto una costura de si misma");
+    let seams = tisty_core::store::read_all(&one.store)
+        .unwrap()
+        .into_iter()
+        .filter(|one| matches!(one.op, Op::StoresJoined { .. }))
+        .count();
+    assert_eq!(seams, 1);
+}
+
+fn a_seam_says_which_machines_came_from_each_side(shared: &Shared) {
+    let one = machine("uno");
+    let two = machine("dos");
+    shared.carry(&two, Way::Push, &[]).unwrap();
+    tisty_core::store::identity(&one.store).unwrap();
+
+    let seam = shared.stitch(&one, None).unwrap().stitch.unwrap();
+
+    assert!(seam.ours.contains(&DeviceId(one.device.clone())));
+    assert!(seam.theirs.contains(&DeviceId(two.device.clone())));
+    assert!(!seam.ours.contains(&DeviceId(two.device.clone())));
+}
+
+fn an_attachment_whose_bytes_were_swapped_never_reaches_this_machine(shared: &Shared) {
+    let one = machine("dev_a");
+    let (_src, file) = {
+        let dir = tempfile::tempdir().unwrap();
+        let at = dir.path().join("contrato.pdf");
+        std::fs::write(&at, b"what the person really attached").unwrap();
+        (dir, at)
+    };
+    let kept =
+        tisty_core::attach::keep(&file, &one.data, tisty_core::attach::COPIED_UP_TO).unwrap();
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let theirs = shared.path().join(&kept.at);
+    std::fs::write(&theirs, b"a different file wearing the same name").unwrap();
+    std::fs::remove_file(one.data.join(&kept.at)).unwrap();
+    shared.carry(&one, Way::Pull, &[]).unwrap();
+
+    assert!(
+        !one.data.join(&kept.at).exists(),
+        "bytes nobody vouched for were taken in under a trusted name"
+    );
+}
+
+fn an_attachment_that_is_what_it_says_it_is_comes_home(shared: &Shared) {
+    let one = machine("dev_a");
+    let other = blank("dev_b");
+    let (_src, file) = {
+        let dir = tempfile::tempdir().unwrap();
+        let at = dir.path().join("contrato.pdf");
+        std::fs::write(&at, b"what the person really attached").unwrap();
+        (dir, at)
+    };
+    let kept =
+        tisty_core::attach::keep(&file, &one.data, tisty_core::attach::COPIED_UP_TO).unwrap();
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    shared.carry(&other, Way::Pull, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read(other.data.join(&kept.at)).unwrap(),
+        b"what the person really attached",
+        "an honest attachment was turned away"
+    );
+}
+
+fn a_body_travels_even_when_only_one_direction_was_asked_for(shared: &Shared) {
+    let one = machine("dev_a");
+    paper(&one, "dev_a-0001", "# Lo que dije");
+
+    shared
+        .carry(&one, Way::Push, &["dev_a-0001".to_string()])
+        .unwrap();
+
+    assert_eq!(
+        body(shared.path(), "dev_a-0001"),
+        "# Lo que dije",
+        "a document written here waited for a full round to leave"
+    );
+}
+
+fn settling_a_name_no_document_could_have_is_refused(shared: &Shared) {
+    let one = machine("dev_a");
+
+    let why = shared.settle(&one, "../../loot", Keep::Theirs);
+
+    assert!(why.is_err(), "it settled a document that cannot exist");
+}
+
+fn the_attachment_ledger_never_lands_in_the_shared_folder(shared: &Shared) {
+    let one = machine("dev_a");
+    planted(&one.data, "foto.png", b"una fotografia cualquiera");
+
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(
+        !shared.path().join("attachments.jsonl").exists(),
+        "el registro es local: en la carpeta compartida lo escriben todas y la nube saca copias de conflicto"
+    );
+    assert!(one.data.join("attachments.jsonl").exists());
+}
+
+fn an_attachment_that_came_from_elsewhere_is_written_down_like_our_own(shared: &Shared) {
+    let one = machine("uno");
+    let two = blank("dos");
+    let kept = planted(&one.data, "foto.png", b"una fotografia que viaja");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    shared.carry(&two, Way::Pull, &[]).unwrap();
+
+    let written = tisty_core::attach::digests(&two.data);
+    assert!(
+        written.contains_key(&kept),
+        "lo que llega de fuera queda sin huella larga, solo con la corta del nombre"
+    );
+}
+
+fn what_lands_in_the_shared_folder_is_dated_now_so_a_cloud_client_notices_it(shared: &Shared) {
+    let one = machine("dev_a");
+    let old = std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 3);
+    let mine = one.store.join(&one.device).join("active.tisty");
+    std::fs::File::options()
+        .write(true)
+        .open(&mine)
+        .unwrap()
+        .set_modified(old)
+        .unwrap();
+
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let landed = shared
+        .path()
+        .join(STORE)
+        .join(&one.device)
+        .join("active.tisty");
+    let when = std::fs::metadata(&landed)
+        .and_then(|m| m.modified())
+        .unwrap();
+    let apart = std::time::SystemTime::now().duration_since(when).unwrap();
+    assert!(
+        apart < std::time::Duration::from_secs(60),
+        "aterrizo con fecha de hace {apart:?}: un cliente de nube no lo ve como cambio"
+    );
+}
+
+fn a_round_that_changed_nothing_still_does_not_copy_again(shared: &Shared) {
+    let one = machine("dev_a");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    let landed = shared
+        .path()
+        .join(STORE)
+        .join(&one.device)
+        .join("active.tisty");
+    let was = std::fs::metadata(&landed)
+        .and_then(|m| m.modified())
+        .unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    let done = shared.carry(&one, Way::Push, &[]).unwrap();
+
+    assert_eq!(done.sent, 0, "volvio a copiar lo que no habia cambiado");
+    assert_eq!(
+        std::fs::metadata(&landed)
+            .and_then(|m| m.modified())
+            .unwrap(),
+        was,
+        "lo reescribio sin motivo"
+    );
+}
+
+fn asking_again_writes_what_a_plain_round_leaves_alone(shared: &Shared) {
+    let one = machine("dev_a");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    let landed = shared
+        .path()
+        .join(STORE)
+        .join(&one.device)
+        .join("active.tisty");
+    let stuck = std::time::SystemTime::now() - std::time::Duration::from_secs(60 * 60 * 24 * 3);
+    std::fs::File::options()
+        .write(true)
+        .open(&landed)
+        .unwrap()
+        .set_modified(stuck)
+        .unwrap();
+
+    let plain = shared.carry(&one, Way::Push, &[]).unwrap();
+    assert_eq!(plain.sent, 0);
+    assert_eq!(
+        std::fs::metadata(&landed)
+            .and_then(|m| m.modified())
+            .unwrap(),
+        stuck,
+        "una ronda normal deberia dejar quieto lo que ya tiene los mismos bytes"
+    );
+
+    let forced = shared.carry(&one, Way::Again, &[]).unwrap();
+
+    assert_eq!(forced.sent, 1, "pedirlo otra vez no reenvio el segmento");
+    let when = std::fs::metadata(&landed)
+        .and_then(|m| m.modified())
+        .unwrap();
+    let apart = std::time::SystemTime::now().duration_since(when).unwrap();
+    assert!(
+        apart < std::time::Duration::from_secs(60),
+        "aterrizo con fecha de hace {apart:?}: sigue atascado"
+    );
+}
+
+fn a_round_that_moved_nothing_leaves_the_marker_untouched(shared: &Shared) {
+    let one = machine("dev_a");
+    shared.carry(&one, Way::Both, &[]).unwrap();
+    let at = shared.path().join(STORE).join(MARKER);
+    let was = std::fs::metadata(&at).and_then(|m| m.modified()).unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    let now = std::fs::metadata(&at).and_then(|m| m.modified()).unwrap();
+    assert_eq!(now, was, "la carpeta de nube ve un cambio donde no lo hay");
+}
+
+fn a_machine_nobody_ever_named_is_not_locked_out_by_someone_elses_list(shared: &Shared) {
+    let one = machine("dev_a");
+    says(
+        &one,
+        Op::DeviceJoin {
+            d: DeviceId("dev_b".into()),
+            k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
+        },
+    );
+
+    let moved = shared.carry(&one, Way::Both, &[]).unwrap();
+
+    assert!(
+        moved.sent > 0,
+        "the first machine to join shut the door on the rest"
+    );
+}
+
+fn a_machine_that_was_removed_writes_nothing_at_all(shared: &Shared) {
+    let one = machine("dev_a");
+    says(
+        &one,
+        Op::DeviceJoin {
+            d: DeviceId("dev_a".into()),
+            k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
+        },
+    );
+    says(
+        &one,
+        Op::DeviceJoin {
+            d: DeviceId("dev_b".into()),
+            k: Some(tisty_core::DeviceKind::Machine),
+            p: None,
+        },
+    );
+    says(
+        &one,
+        Op::DeviceRemove {
+            d: DeviceId("dev_a".into()),
+        },
+    );
+
+    let why = shared.carry(&one, Way::Both, &[]).unwrap_err();
+
+    assert!(
+        matches!(why, Trouble::NotAllowed(_)),
+        "it went through: {why:?}"
+    );
+    assert!(
+        !shared.path().join(STORE).join("dev_a").exists(),
+        "it wrote before refusing"
+    );
+}
+
+fn nobody_ever_writes_over_their_own_directory(shared: &Shared) {
+    let one = machine("dev_a");
+    shared.carry(&one, Way::Both, &[]).unwrap();
+
+    std::fs::write(shared.path().join("store/dev_a/active.tisty"), b"").unwrap();
+
+    let _ = shared.carry(&one, Way::Pull, &[]);
+    assert_eq!(titles(&one.store).len(), 1, "the emptied copy came home");
+}
+
+fn a_directory_that_differs_only_in_case_is_still_our_own(shared: &Shared) {
+    let one = machine("dev_a");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+
+    let theirs = shared.path().join("store/DEV_A");
+    std::fs::create_dir_all(&theirs).unwrap();
+    std::fs::write(theirs.join("active.tisty"), b"").unwrap();
+
+    let _ = shared.carry(&one, Way::Pull, &[]);
+    assert_eq!(titles(&one.store).len(), 1, "our own log was overwritten");
+}
+
+fn what_is_left_behind_is_never_removed(shared: &Shared) {
+    let one = machine("dev_a");
+    let stranger = shared.path().join("store/dev_z");
+    std::fs::create_dir_all(&stranger).unwrap();
+    std::fs::write(stranger.join("keep.txt"), b"not ours").unwrap();
+
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    assert!(stranger.join("keep.txt").exists());
+}
+
+fn a_folder_of_another_store_is_refused_before_anything_moves(shared: &Shared) {
+    let one = machine("dev_a");
+    std::fs::write(one.store.join(MARKER), b"01OURS00000000000000000000").unwrap();
+    std::fs::create_dir_all(shared.path().join("store")).unwrap();
+    std::fs::write(
+        shared.path().join("store").join(MARKER),
+        b"01THEIRS000000000000000000",
+    )
+    .unwrap();
+
+    let Err(Trouble::OtherStore { theirs }) = shared.carry(&one, Way::Both, &[]) else {
+        panic!("two histories were about to be merged");
+    };
+    assert_eq!(theirs, "01THEIRS000000000000000000");
+    assert!(
+        !shared.path().join("store/dev_a").exists(),
+        "something moved"
+    );
+}
+
+fn two_histories_are_never_joined_at_all(shared: &Shared) {
+    let one = machine("dev_a");
+    std::fs::remove_file(one.store.join(MARKER)).ok();
+    let other = machine("dev_b");
+    shared.carry(&other, Way::Push, &[]).unwrap();
+
+    let Err(Trouble::WouldReset { .. }) = shared.carry(&one, Way::Both, &[]) else {
+        panic!("two histories were joined");
+    };
+
+    assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
+    assert!(
+        !shared.path().join("store/dev_a").exists(),
+        "something moved"
+    );
+
+    let again = shared.carry(&one, Way::Both, &[]);
+    assert!(
+        matches!(again, Err(Trouble::WouldReset { .. })),
+        "asking twice is not consent: {again:?}"
+    );
+    assert_eq!(titles(&one.store).len(), 1, "it joined them anyway");
+}
+
+fn a_store_with_history_and_no_marker_is_not_adopted(shared: &Shared) {
+    let one = machine("dev_a");
+    std::fs::remove_file(one.store.join(MARKER)).ok();
+    let other = machine("dev_b");
+    shared.carry(&other, Way::Push, &[]).unwrap();
+
+    let Err(Trouble::WouldReset { .. }) = shared.carry(&one, Way::Both, &[]) else {
+        panic!("an unmarked store merged into a stranger's history");
+    };
+    assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
+}
+
+fn a_folder_full_of_history_with_no_marker_is_refused(shared: &Shared) {
+    let one = machine("dev_a");
+    let other = machine("dev_b");
+    shared.carry(&other, Way::Push, &[]).unwrap();
+    std::fs::remove_file(shared.path().join("store").join(MARKER)).unwrap();
+
+    let Err(Trouble::WouldReset { .. }) = shared.carry(&one, Way::Both, &[]) else {
+        panic!("a folder with history and no marker was treated as empty");
+    };
+    assert_eq!(titles(&one.store), vec!["lo de dev_a".to_string()]);
+}
+
+fn one_direction_only_does_one_direction(shared: &Shared) {
+    let one = blank("dev_a");
+    let other = machine("dev_b");
+    shared.carry(&other, Way::Push, &[]).unwrap();
+
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    assert!(
+        titles(&one.store).is_empty(),
+        "a push brought something back"
+    );
+
+    vouches(&one, &other);
+    shared.carry(&one, Way::Pull, &[]).unwrap();
+    assert_eq!(titles(&one.store).len(), 1);
+}
+
+fn a_machine_meeting_the_folder_for_the_first_time_adopts_its_name(shared: &Shared) {
+    let one = machine("dev_a");
+    let other = machine("dev_b");
+    std::fs::remove_file(other.store.join(MARKER)).ok();
+
+    shared.carry(&one, Way::Both, &[]).unwrap();
+    std::fs::remove_dir_all(other.store.join(&other.device)).unwrap();
+    shared.carry(&other, Way::Both, &[]).unwrap();
+
+    assert_eq!(
+        tisty_core::store::peek_identity(&other.store),
+        tisty_core::store::peek_identity(&one.store)
+    );
+}
+
+fn syncing_twice_over_carries_nothing_the_second_time(shared: &Shared) {
+    let one = machine("dev_a");
+
+    let first = shared.carry(&one, Way::Push, &[]).unwrap();
+    let again = shared.carry(&one, Way::Push, &[]).unwrap();
+
+    assert!(first.sent > 0);
+    assert_eq!(again.sent, 0, "it copied what was already identical");
+}
+
+both_sides! {
+    a_shorter_history_arriving_first_never_replaces_the_longer_one_we_hold,
+    a_shared_folder_merely_behind_ours_is_pushed_to_without_a_word,
+    a_shared_folder_that_walked_off_on_its_own_is_still_reported,
+    a_history_that_grew_on_the_other_side_still_comes_across,
+    a_retired_attachment_is_never_pushed_back_up_to_the_folder,
+    an_attachment_nobody_retired_still_goes_up,
+    a_pull_cut_between_two_segments_does_not_wedge_the_next_one,
+    a_torn_local_copy_is_never_replaced_by_a_shorter_history,
+    the_base_never_travels_to_the_shared_folder,
+    two_histories_that_never_met_are_strangers,
+    a_folder_that_already_holds_everything_of_ours_is_the_same_lineage,
+    a_tail_we_never_sent_is_still_the_same_lineage_not_a_clash,
+    a_folder_ahead_of_us_is_the_same_lineage_because_only_the_end_grows,
+    a_document_written_on_the_other_machine_lands_on_the_first_sync_not_the_second,
+    a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoning,
+    a_seat_nobody_ever_wrote_in_is_not_taken_home,
+    a_machine_that_wrote_nothing_takes_up_the_folder_it_is_pointed_at,
+    signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history,
+    a_store_with_no_list_yet_lets_everyone_write,
+    a_machine_on_the_list_writes_as_it_always_did,
+    the_seam_is_written_down_before_the_new_name_is_taken,
+    a_machine_that_was_removed_cannot_stitch_itself_into_the_folder,
+    a_segment_that_cannot_be_read_is_never_called_a_clash,
+    stitching_twice_never_writes_a_seam_that_joins_a_history_to_itself,
+    a_seam_says_which_machines_came_from_each_side,
+    an_attachment_whose_bytes_were_swapped_never_reaches_this_machine,
+    an_attachment_that_is_what_it_says_it_is_comes_home,
+    a_body_travels_even_when_only_one_direction_was_asked_for,
+    settling_a_name_no_document_could_have_is_refused,
+    the_attachment_ledger_never_lands_in_the_shared_folder,
+    an_attachment_that_came_from_elsewhere_is_written_down_like_our_own,
+    what_lands_in_the_shared_folder_is_dated_now_so_a_cloud_client_notices_it,
+    a_round_that_changed_nothing_still_does_not_copy_again,
+    a_round_that_moved_nothing_leaves_the_marker_untouched,
+    a_machine_nobody_ever_named_is_not_locked_out_by_someone_elses_list,
+    a_machine_that_was_removed_writes_nothing_at_all,
+    nobody_ever_writes_over_their_own_directory,
+    a_directory_that_differs_only_in_case_is_still_our_own,
+    what_is_left_behind_is_never_removed,
+    a_folder_of_another_store_is_refused_before_anything_moves,
+    two_histories_are_never_joined_at_all,
+    a_store_with_history_and_no_marker_is_not_adopted,
+    a_folder_full_of_history_with_no_marker_is_refused,
+    one_direction_only_does_one_direction,
+    a_machine_meeting_the_folder_for_the_first_time_adopts_its_name,
+    syncing_twice_over_carries_nothing_the_second_time,
+}
+
+// A cloud reached through its API has no desktop client to nudge, so writing the same bytes again is moot.
+folder_only! {
+    asking_again_writes_what_a_plain_round_leaves_alone,
+}
+
+// The cloud answers these from its mirror until it learns to look again between rounds.
+cloud_owes! {
+    a_clash_is_found_even_when_another_machine_already_proved_the_lineage,
+    a_folder_says_it_stirred_without_being_read,
+    the_same_name_writing_two_different_things_is_the_clash_that_is_refused,
+}

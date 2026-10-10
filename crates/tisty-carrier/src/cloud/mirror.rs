@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tisty_core::witness::{self, Fact, channel};
-use tisty_sync::{NAMED, STORE};
+use tisty_sync::{MARKER, NAMED, STORE};
 
 use super::index::{Index, Mirrored, digest_of, on_shelf, path_of, stamp_of};
 use crate::{Changes, Expect, Hitch, Remote, Seen};
@@ -472,11 +472,30 @@ fn under(name: &str, top: &str) -> bool {
 
 fn is_doc(name: &str) -> bool {
     under(name, PAPERS)
+        && name[PAPERS.len() + 1..].split_once('/').is_none()
+        && tisty_core::docs::a_body(&name[PAPERS.len() + 1..])
+}
+
+// Only what the round reads: a copy a desktop client left beside a segment would be fetched for nothing.
+fn is_history(name: &str) -> bool {
+    let Some(rest) = name
+        .strip_prefix(STORE)
+        .and_then(|rest| rest.strip_prefix('/'))
+    else {
+        return false;
+    };
+    if rest == MARKER {
+        return true;
+    }
+    let Some((_, leaf)) = rest.split_once('/').filter(|(_, leaf)| !leaf.contains('/')) else {
+        return false;
+    };
+    leaf.rsplit_once('.').is_some_and(|(stem, ext)| {
+        matches!(ext, "tisty" | "sig" | "count")
+            && tisty_core::store::is_segment(&format!("{stem}.tisty"))
+    })
 }
 
 fn mirrored(name: &str) -> bool {
-    let leaf = name.rsplit('/').next().unwrap_or(name);
-    let litter = leaf.ends_with(".part") || leaf.ends_with(".tmp") || leaf == ".lock";
-    let ours = name == NAMED || under(name, STORE) || is_doc(name);
-    ours && !litter
+    name == NAMED || is_history(name) || is_doc(name)
 }
