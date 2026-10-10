@@ -131,7 +131,7 @@ pub async fn attached(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<Vec<u8>> {
-    let at = finding::where_to(&session);
+    let at = finding::where_to(&session, &reference);
     elsewhere(move || read_out(reference, at)).await?
 }
 
@@ -146,7 +146,7 @@ pub async fn served(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<String> {
-    let at = finding::where_to(&session);
+    let at = finding::where_to(&session, &reference);
     elsewhere(move || pointed_at(reference, at)).await?
 }
 
@@ -173,13 +173,13 @@ pub async fn attach_export(
     reference: String,
     into: String,
 ) -> Answer<()> {
-    let at = finding::where_to(&session);
+    let at = finding::where_to(&session, &reference);
     elsewhere(move || taken_out(reference, into, at)).await?
 }
 
 #[tauri::command(async)]
 pub fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
-    let looking = finding::where_to(&session);
+    let looking = finding::where_to(&session, &reference);
     let at = finding::where_it_lies(&reference, &looking.data, looking.shared.as_deref())
         .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
     let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
@@ -198,7 +198,7 @@ pub async fn opened(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    let looking = finding::where_to(&session);
+    let looking = finding::where_to(&session, &reference);
     let asked = reference.clone();
     let at = elsewhere(move || looked_up(asked, looking)).await??;
     if !safe_to_open(&at) {

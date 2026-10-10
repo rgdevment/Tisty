@@ -23,16 +23,16 @@ fn what_answered_for_its_name_is_remembered_past_this_launch() {
     let reference = format!("attachments/{shelf}/{leaf}");
 
     assert_eq!(
-        vouching::vouches(&file, &reference),
+        vouching::vouches(&file, &reference, None),
         Some(true),
         "the name does not answer for it"
     );
     assert!(kept.is_file(), "the answer was not written down");
 
-    let said: std::collections::HashMap<String, bool> =
+    let said: std::collections::HashMap<String, String> =
         serde_json::from_str(&std::fs::read_to_string(&kept).unwrap()).unwrap();
-    let (row, answered) = said.iter().next().expect("one row");
-    assert!(*answered, "it was written down as not answering for itself");
+    let (row, digest) = said.iter().next().expect("one row");
+    assert_eq!(digest, &sha256, "what was written down is not its digest");
     assert!(
         row.starts_with(&file.display().to_string()),
         "the row does not name the file it answered for: {row}"
@@ -51,7 +51,7 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
     std::fs::write(shelf.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
 
     // Off a Mac nothing can be asked back, but it is still told apart from what is gone.
-    let told = finding::found_in(reference, here.path(), Some(shared.path()));
+    let told = finding::found_in(reference, here.path(), Some(shared.path()), None);
     match cfg!(target_os = "macos") {
         true => assert!(matches!(
             told,
@@ -66,7 +66,8 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
         finding::found_in(
             "attachments/ab/nope-00000000.txt",
             here.path(),
-            Some(shared.path())
+            Some(shared.path()),
+            None
         ),
         finding::Sought::No
     ));
@@ -111,6 +112,7 @@ fn what_was_really_handed_over_is_written_down_and_a_refusal_is_not() {
     let reached = here.path().join("cache").join(tisty_core::lately::USED);
     let looking = || finding::Where {
         data: here.path().to_path_buf(),
+        avowed: None,
         shared: None,
         reached: reached.clone(),
     };
@@ -169,6 +171,7 @@ fn a_read_that_fails_after_the_lookup_is_not_written_down_as_reached_for() {
         reference.clone(),
         finding::Where {
             data: here.path().to_path_buf(),
+            avowed: None,
             shared: None,
             reached: reached.clone(),
         },
@@ -224,7 +227,7 @@ fn a_hole_whose_body_cannot_be_read_is_not_accused_of_being_torn() {
         .open(&at)
         .unwrap();
 
-    let told = finding::found_in(&reference, here.path(), Some(shared.path()));
+    let told = finding::found_in(&reference, here.path(), Some(shared.path()), None);
     drop(shut);
 
     assert!(
@@ -257,42 +260,123 @@ fn an_attachment_is_looked_for_here_first_and_then_where_it_is_shared() {
     let theirs = theirs.as_str();
 
     assert!(matches!(
-        finding::found_in(mine, here.path(), Some(shared.path())),
+        finding::found_in(mine, here.path(), Some(shared.path()), None),
         finding::Sought::At(_)
     ));
     assert!(
         matches!(
-            finding::found_in(theirs, here.path(), Some(shared.path())),
+            finding::found_in(theirs, here.path(), Some(shared.path()), None),
             finding::Sought::At(_)
         ),
         "what only the shared folder holds is still reachable"
     );
     assert!(
         matches!(
-            finding::found_in(theirs, here.path(), None),
+            finding::found_in(theirs, here.path(), None, None),
             finding::Sought::No
         ),
         "without a shared folder there is nowhere else to look"
     );
     assert!(matches!(
-        finding::found_in("attachments/ab/nope-00000000.txt", here.path(), None),
+        finding::found_in("attachments/ab/nope-00000000.txt", here.path(), None, None),
         finding::Sought::No
     ));
     let lying = shared.path().join(theirs);
     std::fs::write(&lying, b"other bytes entirely").unwrap();
     assert!(
         matches!(
-            finding::found_in(theirs, here.path(), Some(shared.path())),
+            finding::found_in(theirs, here.path(), Some(shared.path()), None),
             finding::Sought::Torn
         ),
         "what does not answer for its own name is not handed over"
     );
     assert!(
         matches!(
-            finding::found_in("../outside.txt", here.path(), Some(shared.path())),
+            finding::found_in("../outside.txt", here.path(), Some(shared.path()), None),
             finding::Sought::No
         ),
         "the way out is still shut"
+    );
+}
+
+fn shared_one(body: &[u8]) -> (tempfile::TempDir, tempfile::TempDir, String, String) {
+    let here = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    let loose = here.path().join("charla.mp4");
+    std::fs::write(&loose, body).unwrap();
+    let kept =
+        tisty_core::attach::keep(&loose, shared.path(), tisty_core::attach::COPIED_UP_TO).unwrap();
+    std::fs::remove_file(&loose).unwrap();
+    (here, shared, kept.at, kept.sha256)
+}
+
+#[test]
+fn a_file_that_passes_its_name_but_not_the_digest_the_log_wrote_down_is_torn() {
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let room = tempfile::tempdir().unwrap();
+    crate::vouching::vouching_kept_at(room.path().join("vouched.json"));
+    let (here, shared, reference, sha256) = shared_one(b"lo grabado");
+    let shares_its_name = format!("{}{}", &sha256[..60], "0000");
+    assert_ne!(shares_its_name, sha256);
+
+    assert!(
+        matches!(
+            finding::found_in(&reference, here.path(), Some(shared.path()), Some(&sha256)),
+            finding::Sought::At(_)
+        ),
+        "the bytes the log wrote down were not handed over"
+    );
+    assert!(
+        matches!(
+            finding::found_in(
+                &reference,
+                here.path(),
+                Some(shared.path()),
+                Some(&shares_its_name)
+            ),
+            finding::Sought::Torn
+        ),
+        "a swap under a trusted name went through on the bits of its name"
+    );
+}
+
+#[test]
+fn a_file_swapped_with_the_same_size_and_the_same_second_is_read_again() {
+    let _alone = ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let room = tempfile::tempdir().unwrap();
+    crate::vouching::vouching_kept_at(room.path().join("vouched.json"));
+    let (here, shared, reference, sha256) = shared_one(b"lo grabado");
+    let at = shared.path().join(&reference);
+    let was = std::fs::metadata(&at).unwrap().modified().unwrap();
+    let ask = || finding::found_in(&reference, here.path(), Some(shared.path()), Some(&sha256));
+    assert!(matches!(ask(), finding::Sought::At(_)));
+
+    let in_place = std::fs::OpenOptions::new().write(true).open(&at).unwrap();
+    std::io::Write::write_all(&mut &in_place, b"lo cambiad").unwrap();
+    in_place
+        .set_modified(was + std::time::Duration::from_nanos(1_000))
+        .unwrap();
+    drop(in_place);
+    assert!(
+        matches!(ask(), finding::Sought::Torn),
+        "a change inside the same second was answered from what was remembered"
+    );
+
+    let beside = shared.path().join("beside");
+    std::fs::write(&beside, b"lo grabado").unwrap();
+    std::fs::rename(&beside, &at).unwrap();
+    assert!(matches!(ask(), finding::Sought::At(_)));
+    let other = shared.path().join("other");
+    std::fs::write(&other, b"lo robado!").unwrap();
+    let swapped = std::fs::File::options().write(true).open(&other).unwrap();
+    swapped
+        .set_modified(std::fs::metadata(&at).unwrap().modified().unwrap())
+        .unwrap();
+    drop(swapped);
+    std::fs::rename(&other, &at).unwrap();
+    assert!(
+        matches!(ask(), finding::Sought::Torn),
+        "another file put in its place with the same size and date was answered from what was remembered"
     );
 }
 

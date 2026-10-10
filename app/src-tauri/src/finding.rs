@@ -35,16 +35,22 @@ pub fn under_root(at: &std::path::Path, root: &std::path::Path) -> bool {
 
 pub struct Where {
     pub data: std::path::PathBuf,
+    pub avowed: Option<String>,
     pub shared: Option<std::path::PathBuf>,
     pub reached: std::path::PathBuf,
 }
 
 /// Taken and let go of at once: what follows can wait on a cloud, and holding the session while it
 /// does would freeze the window.
-pub fn where_to(session: &tauri::State<'_, Mutex<Session>>) -> Where {
+pub fn where_to(session: &tauri::State<'_, Mutex<Session>>, reference: &str) -> Where {
     let session = held(session);
     Where {
         data: session.paths.data().to_path_buf(),
+        avowed: session
+            .state
+            .kept
+            .get(reference)
+            .map(|(sha256, _)| sha256.clone()),
         shared: session.shared_now(),
         reached: session.paths.cache().join(tisty_core::lately::USED),
     }
@@ -70,7 +76,12 @@ pub fn where_it_lies(
 }
 
 pub fn handed_over(reference: &str, at: &Where) -> Answer<std::path::PathBuf> {
-    match found_in(reference, &at.data, at.shared.as_deref()) {
+    match found_in(
+        reference,
+        &at.data,
+        at.shared.as_deref(),
+        at.avowed.as_deref(),
+    ) {
         Sought::At(found) => Ok(found),
         other => Err(unreachable(other, reference.to_string())),
     }
@@ -80,6 +91,7 @@ pub fn found_in(
     reference: &str,
     data: &std::path::Path,
     shared: Option<&std::path::Path>,
+    avowed: Option<&str>,
 ) -> Sought {
     for root in [Some(data), shared].into_iter().flatten() {
         let Ok(at) = tisty_core::attach::resolve(reference, root) else {
@@ -103,7 +115,7 @@ pub fn found_in(
             return Sought::No;
         }
         if !ours {
-            match vouching::vouches(&at, reference) {
+            match vouching::vouches(&at, reference, avowed) {
                 Some(true) => {}
                 Some(false) => return Sought::Torn,
                 None => {
