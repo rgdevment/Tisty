@@ -740,7 +740,15 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
             .into_iter()
             .filter_map(|(one, said)| {
                 let kept = held.state.docs.values().find(|kept| kept.file == one.id)?;
-                let said = said?.by(None);
+                let said = said
+                    .unwrap_or_else(|| tisty_core::event::Said {
+                        title: one.title.clone(),
+                        bytes: None,
+                        tags: Some(kept.tags.clone()),
+                        by: None,
+                        print: None,
+                    })
+                    .by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
                     id: kept.id,
                     d: said,

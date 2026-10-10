@@ -234,7 +234,7 @@ pub fn guide(
             &format!("]({marker})"),
             &format!("]({}{})", tisty_core::refs::DOC, made.id),
         );
-        leafed.push(made.id);
+        leafed.push((made.id, one));
     }
     let made = tisty_core::docs::create(&root, &device, &body)
         .map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
@@ -269,11 +269,7 @@ pub fn guide(
         .map(|one| one.id);
     if let Some(up) = held {
         let mut order = tisty_core::order::first();
-        let shelf = session.paths.docs();
-        for file in &leafed {
-            let said = tisty_core::docs::read(&shelf, file)
-                .ok()
-                .map(|body| tisty_core::event::Said::of(&body));
+        for (file, one) in &leafed {
             session.commit(Op::DocAdd {
                 id: ulid::Ulid::generate(),
                 d: tisty_core::event::DocAdd {
@@ -283,7 +279,7 @@ pub fn guide(
                     by: Some(WRITTEN_BY.into()),
                     file: file.clone(),
                     order: order.clone(),
-                    said,
+                    said: Some(tisty_core::event::Said::of(one)),
                     folder: Some(folder),
                     page_of: Some(up),
                 },
