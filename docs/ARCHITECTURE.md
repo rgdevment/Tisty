@@ -1547,7 +1547,8 @@ holds is taken in if it matches the newest print or the last one another machine
 wrote down — clocks decide which is newest, and a laptop can be an hour out — but
 a body that is only another machine's last word is set aside here before it
 replaces anything. So is one for a document the log holds no print for at all,
-from before every body had one: nothing answers for it either way. A round that only pushes takes nothing in.
+from before every body had one: nothing answers for it either way. A round
+that only pushes takes nothing in.
 
 What is installed is what was checked. When a body is about to be installed it is
 read from the folder once more, printed as it was read, and written here from
