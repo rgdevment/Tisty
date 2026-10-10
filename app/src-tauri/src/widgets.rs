@@ -141,7 +141,7 @@ pub async fn widget_lend_kept(
     if !a_page(&reference) {
         return Err(Refusal::of("notAllowed"));
     }
-    let at = finding::where_to(&session);
+    let at = finding::where_to(&session, &reference);
     let body = elsewhere(move || kept_page(reference, at)).await??;
     lent.lend_kept(body)
 }
