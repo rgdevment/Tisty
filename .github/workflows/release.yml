@@ -251,6 +251,7 @@ jobs:
     needs: version
     if: needs.version.outputs.macos == 'true' && needs.version.outputs.cli == 'true'
     runs-on: macos-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
     env:
       TARGET: universal-apple-darwin
@@ -369,6 +370,7 @@ jobs:
     needs: version
     if: needs.version.outputs.cli == 'true'
     runs-on: windows-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
     env:
       TARGET: x86_64-pc-windows-msvc
@@ -441,6 +443,7 @@ jobs:
     name: tisty-windows-installer
     needs: version
     runs-on: windows-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 60
     outputs:
       stage: ${{ steps.stage.outputs.sha }}
@@ -684,6 +687,7 @@ jobs:
     needs: version
     if: needs.version.outputs.macos == 'true'
     runs-on: macos-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -1501,6 +1505,7 @@ jobs:
       && needs.bundle-msix.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 20
     concurrency:
       group: release-msstore-${{ github.ref }}
@@ -1661,6 +1666,7 @@ jobs:
       && needs.verify.result == 'success'
       && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-24.04
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 10
     # One tag at a time: the stable and the beta cask live in the same tap.
     concurrency:
@@ -1845,6 +1851,7 @@ jobs:
       && needs.verify.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-24.04
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 15
     concurrency:
       group: release-winget-${{ github.ref }}
