@@ -1,0 +1,6 @@
+{"v":16,"ts":"2026-10-09T20:42:02.7086559Z","by":"dev_kq80pkqb","tz":"UTC","op":"task.add","id":"01M4H6DH2MA1EDYYXQVH2ACEK9","d":{"title":"write the report","order":"V"}}
+{"v":16,"ts":"2026-10-09T20:42:02.7457937Z","by":"dev_kq80pkqb","tz":"UTC","op":"task.add","id":"01M4H6DH3P29W49A3A2MCYHK6Y","d":{"title":"call the bank","order":"W"}}
+{"v":16,"ts":"2026-10-09T20:42:02.7803705Z","by":"dev_kq80pkqb","tz":"UTC","op":"task.add","id":"01M4H6DH4RB1BTJNW4WXV1MP87","d":{"title":"buy bread","order":"X"}}
+{"v":16,"ts":"2026-10-09T20:42:02.8518467Z","by":"dev_kq80pkqb","tz":"UTC","op":"task.done","id":"01M4H6DH4RB1BTJNW4WXV1MP87"}
+{"v":16,"ts":"2026-10-09T20:42:02.9007987Z","by":"dev_kq80pkqb","tz":"UTC","op":"device.join","d":"dev_kq80pkqb","k":"machine","p":"7614775749ecbf87d36767de859f762c15902fbc31b1aebd0251d8de5e9afbe1"}
+{"v":16,"ts":"2026-10-09T20:42:02.944563Z","by":"dev_kq80pkqb","tz":"UTC","op":"task.add","id":"01M4H6DH9XR9DB8FR8HV90FE77","d":{"title":"renew the certificate","order":"Y"}}
