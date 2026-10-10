@@ -1654,3 +1654,35 @@ fn a_folder_that_is_not_there_yet_is_named_as_it_was_given() {
 
     assert_eq!(crate::as_asked_for(&at), at);
 }
+
+static TURN_LET_GO: crate::OneAtATime =
+    crate::OneAtATime(std::sync::atomic::AtomicBool::new(false));
+static TURN_KEPT: crate::OneAtATime = crate::OneAtATime(std::sync::atomic::AtomicBool::new(false));
+
+#[test]
+fn a_backup_asked_for_as_the_dialog_closes_waits_out_the_round_its_focus_started() {
+    let round = TURN_LET_GO.claim().expect("the round takes the turn");
+    let finishing = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        drop(round);
+    });
+
+    let backup =
+        tauri::async_runtime::block_on(TURN_LET_GO.waited(std::time::Duration::from_secs(10)));
+
+    finishing.join().unwrap();
+    assert!(
+        backup.is_ok(),
+        "the backup lost to the round instead of waiting for it"
+    );
+}
+
+#[test]
+fn a_round_that_keeps_the_turn_past_the_wait_still_refuses_the_backup() {
+    let _round = TURN_KEPT.claim().expect("the round takes the turn");
+
+    let backup =
+        tauri::async_runtime::block_on(TURN_KEPT.waited(std::time::Duration::from_millis(250)));
+
+    assert!(backup.is_err(), "a stuck round let a backup in beside it");
+}

@@ -782,7 +782,7 @@ pub async fn back_up(
     alone: tauri::State<'_, OneAtATime>,
     into: String,
 ) -> Answer<u64> {
-    let _done = alone.inner().taken()?;
+    let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     let (data, aside, also) = {
         let session = held(&session);
         (
@@ -896,7 +896,7 @@ pub async fn restore(
     alone: tauri::State<'_, OneAtATime>,
     from: String,
 ) -> Answer<usize> {
-    let _done = alone.inner().taken()?;
+    let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     let paths = { held(&session).paths.clone() };
 
     let at = std::path::PathBuf::from(&from);

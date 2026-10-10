@@ -600,7 +600,24 @@ impl OneAtATime {
     fn taken(&self) -> Answer<Releasing<'_>> {
         self.claim().ok_or_else(|| Refusal::of("stillCarrying"))
     }
+
+    async fn waited(&self, within: std::time::Duration) -> Answer<Releasing<'_>> {
+        let began = std::time::Instant::now();
+        loop {
+            if let Some(done) = self.claim() {
+                return Ok(done);
+            }
+            if began.elapsed() >= within {
+                return Err(Refusal::of("stillCarrying"));
+            }
+            let _ =
+                tauri::async_runtime::spawn_blocking(|| std::thread::sleep(TURN_ASKED_AGAIN)).await;
+        }
+    }
 }
+
+const TURN_ASKED_AGAIN: std::time::Duration = std::time::Duration::from_millis(100);
+const ROUND_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(120);
 
 pub fn unreach() -> std::io::Result<bool> {
     let _ = waking::wake(false);
