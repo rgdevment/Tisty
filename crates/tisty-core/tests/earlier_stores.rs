@@ -133,3 +133,30 @@ fn a_store_from_before_signing_takes_what_this_build_writes_next() {
     );
     assert_eq!(newest_schema(&store.dir()).unwrap(), SCHEMA_VERSION);
 }
+
+#[test]
+fn a_store_from_before_signing_is_sealed_whole_by_the_first_write_with_a_key() {
+    let store = held(15);
+    let key = signing::SigningKey::from_bytes(&[5; 32]);
+    let mut open = Store::open(&store.root, store.who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()));
+
+    open.append(Op::TaskAdd {
+        id: Ulid::generate(),
+        d: TaskAdd::new("written by this build", "Z"),
+    })
+    .unwrap();
+    drop(open);
+
+    let reached = answers(
+        &store.dir(),
+        &store.who,
+        &key.verifying_key(),
+        Reached::default(),
+        &|_| false,
+    )
+    .expect("the first seal did not answer for what 1.23.1 wrote");
+    assert!(reached.signing);
+    assert_eq!(read_all(&store.root).unwrap().len(), 7);
+}

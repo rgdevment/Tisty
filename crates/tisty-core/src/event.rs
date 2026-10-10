@@ -9,11 +9,13 @@ pub use op::{
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-pub const SCHEMA_VERSION: u32 = 16;
+pub const SCHEMA_VERSION: u32 = 17;
 
 pub const SIGNED_FROM: u32 = 16;
 
-const _: () = assert!(SCHEMA_VERSION >= SIGNED_FROM);
+pub const SEALED_FROM: u32 = 17;
+
+const _: () = assert!(SCHEMA_VERSION >= SEALED_FROM && SEALED_FROM >= SIGNED_FROM);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -132,6 +134,7 @@ impl Event {
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
+            | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }

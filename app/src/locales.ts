@@ -1536,6 +1536,7 @@ const en = {
   machineCode: "code",
   machineSince: "writing since {name}",
   machineCarried: "accepted on update",
+  machineRotated: "followed its earlier key",
   comingSlow: "The cloud is slow. It keeps bringing; you can work meanwhile.",
   comingHistory: "Your history is on its way",
   comingHistoryWhy:
@@ -3116,6 +3117,7 @@ const es: Catalog = {
   machineCode: "código",
   machineSince: "escribe desde {name}",
   machineCarried: "aceptado al actualizar",
+  machineRotated: "siguió a su clave anterior",
   comingSlow: "La nube va lenta. Sigue trayendo; puedes trabajar mientras.",
   comingHistory: "Tu historia viene en camino",
   comingHistoryWhy:

@@ -3,6 +3,7 @@ use std::path::Path;
 use ed25519_dalek::VerifyingKey;
 
 use crate::event::DeviceId;
+use crate::seal;
 use crate::signing;
 
 /// The last closed segment whose signature answered, and the chain tip after it.
@@ -13,6 +14,9 @@ pub struct Reached {
     /// Whether this machine has ever shown a signature. Signing only ever starts: once it has,
     /// a segment arriving without one is a signature taken away, not a history from before.
     pub signing: bool,
+    /// The key that answered at `segment`, which a round resuming after it checks by.
+    pub key: Option<[u8; 32]>,
+    pub moved: Option<[u8; 32]>,
 }
 
 impl Default for Reached {
@@ -21,6 +25,8 @@ impl Default for Reached {
             segment: 0,
             tip: signing::NOTHING_BEFORE,
             signing: false,
+            key: None,
+            moved: None,
         }
     }
 }
@@ -28,20 +34,30 @@ impl Default for Reached {
 impl Reached {
     pub fn said(&self) -> String {
         let signing = u8::from(self.signing);
-        format!("{} {signing} {}", self.segment, signing::hexed(&self.tip))
+        let said = format!("{} {signing} {}", self.segment, signing::hexed(&self.tip));
+        match &self.key {
+            Some(key) => format!("{said} {}", signing::hexed(key)),
+            None => said,
+        }
     }
 
     pub fn read(said: &str) -> Option<Self> {
         let mut apart = said.split(' ');
-        let (Some(segment), Some(signing), Some(tip), None) =
-            (apart.next(), apart.next(), apart.next(), apart.next())
+        let (Some(segment), Some(signing), Some(tip)) = (apart.next(), apart.next(), apart.next())
         else {
             return None;
+        };
+        let key = match (apart.next(), apart.next()) {
+            (None, _) => None,
+            (Some(key), None) => Some(signing::unhexed::<32>(key)?),
+            (Some(_), Some(_)) => return None,
         };
         Some(Self {
             segment: segment.parse().ok()?,
             tip: signing::unhexed::<32>(tip)?,
             signing: signing == "1",
+            key,
+            moved: None,
         })
     }
 }
@@ -72,15 +88,6 @@ pub fn answers(
     if found.is_empty() {
         return Ok(from);
     }
-    if !found
-        .iter()
-        .any(|one| one.with_extension(signing::SIG).is_file())
-    {
-        return match from.signing {
-            true => Err(Adrift::Disowned(device.0.clone())),
-            false => Ok(from),
-        };
-    }
 
     // `from.tip` already holds every segment up to `from.segment`, so one of those read again
     // would be folded in twice. Where that is going to happen the memo is no use and the whole
@@ -99,8 +106,32 @@ pub fn answers(
         false => from,
     };
 
-    let mut tip = from.tip;
-    let mut held = from;
+    let last = found
+        .iter()
+        .filter_map(|one| numbered(one.file_name()?.to_str()?))
+        .max()
+        .unwrap_or(0);
+    // Past the memo the history's first word on its key is not read again, so the memo's key stands.
+    let key_now = (from.segment > 0).then(|| {
+        from.key
+            .and_then(|key| VerifyingKey::from_bytes(&key).ok())
+            .unwrap_or(*by)
+    });
+    let mut walk = Walk {
+        device,
+        by: *by,
+        trusted: vec![*by],
+        key_now,
+        rotating: None,
+        signer: None,
+        signed_in: None,
+        tip: from.tip,
+        held: from,
+        sealed: false,
+        deferred: None,
+        last_closed: None,
+        live: last + 1,
+    };
     for one in &found {
         let Some(named) = one.file_name().and_then(|one| one.to_str()) else {
             continue;
@@ -112,23 +143,202 @@ pub fn answers(
         let Ok(bytes) = std::fs::read(one) else {
             return Err(Adrift::Unreadable(named.to_string()));
         };
+        walk.segment(one, named, number, &bytes, &|| {
+            crate::store::left_over(&found, one, &bytes)
+        })?;
+    }
+    walk.end()
+}
+
+struct Walk<'a> {
+    device: &'a DeviceId,
+    by: VerifyingKey,
+    trusted: Vec<VerifyingKey>,
+    key_now: Option<VerifyingKey>,
+    rotating: Option<VerifyingKey>,
+    signer: Option<VerifyingKey>,
+    signed_in: Option<String>,
+    tip: [u8; 32],
+    held: Reached,
+    sealed: bool,
+    deferred: Option<Adrift>,
+    last_closed: Option<(u32, [u8; 32], VerifyingKey)>,
+    live: u32,
+}
+
+impl Walk<'_> {
+    fn segment(
+        &mut self,
+        one: &Path,
+        named: &str,
+        number: Option<u32>,
+        bytes: &[u8],
+        spent: &dyn Fn() -> bool,
+    ) -> Result<(), Adrift> {
+        let scan = Scan::of(bytes, self.tip, self.device);
+        let outcome = match &scan.last {
+            Some(last) => self.sealed(named, number, &scan, last),
+            None => self.unsealed(one, named, number, bytes, &scan),
+        };
+        match outcome {
+            Ok(()) => {}
+            Err(_) if spent() => return Ok(()),
+            // Answered for by the first seal that follows, if one does: its tip covers these bytes.
+            Err(why) if scan.last.is_none() && !self.sealed && !written_sealed(&scan) => {
+                self.deferred.get_or_insert(why);
+            }
+            Err(why) => return Err(why),
+        }
+        self.tip = scan.tip;
+        if let Some(n) = number {
+            self.last_closed = Some((n, self.tip, self.key_now.unwrap_or(self.by)));
+        }
+        Ok(())
+    }
+
+    fn sealed(
+        &mut self,
+        named: &str,
+        number: Option<u32>,
+        scan: &Scan,
+        last: &Last,
+    ) -> Result<(), Adrift> {
+        if scan.broken {
+            return Err(Adrift::Unreadable(named.to_string()));
+        }
+        let seg = number.unwrap_or(self.live);
+        if number.is_none() && last.read.seal.seg > seg {
+            return Err(Adrift::Unreadable(named.to_string()));
+        }
+        let mut last_checked = false;
+        for mark in &scan.marks {
+            match mark {
+                Mark::Key(said) => {
+                    self.key_now.get_or_insert(*said);
+                }
+                Mark::Rotate(next) => self.rotating = Some(*next),
+                Mark::Seal(boundary) => {
+                    let Some(next) = self.rotating.take() else {
+                        continue;
+                    };
+                    // The batch that names a new key is the last one its old key seals.
+                    let by = self.key_now.unwrap_or(self.by);
+                    self.checked(named, seg, boundary, &by)?;
+                    if self.trusted.contains(&by) && !self.trusted.contains(&next) {
+                        self.trusted.push(next);
+                    }
+                    self.key_now = Some(next);
+                    last_checked = boundary.at == last.at;
+                }
+            }
+        }
+        if !last_checked {
+            let by = self.key_now.unwrap_or(self.by);
+            self.checked(named, seg, last, &by)?;
+        }
+        if scan.after || (number.is_some() && !last.read.seal.closed) {
+            return Err(Adrift::Unreadable(named.to_string()));
+        }
+        self.sealed = true;
+        self.deferred = None;
+        self.held.signing = true;
+        let reached = match number {
+            Some(n) => Some((n, scan.tip, self.key_now.unwrap_or(self.by))),
+            None => self.last_closed,
+        };
+        if let Some((n, tip, key)) = reached {
+            self.held.segment = n;
+            self.held.tip = tip;
+            self.held.key = Some(key.to_bytes());
+        }
+        Ok(())
+    }
+
+    fn unsealed(
+        &mut self,
+        one: &Path,
+        named: &str,
+        number: Option<u32>,
+        bytes: &[u8],
+        scan: &Scan,
+    ) -> Result<(), Adrift> {
+        if self.sealed || written_sealed(scan) {
+            return Err(match number {
+                Some(_) => Adrift::Disowned(named.to_string()),
+                None => Adrift::Unreadable(named.to_string()),
+            });
+        }
+        for mark in &scan.marks {
+            if let Mark::Key(said) = mark {
+                self.key_now.get_or_insert(*said);
+            }
+        }
         let about = signing::About {
-            device: &device.0,
+            device: &self.device.0,
             segment: named,
         };
-        let signed = match answered(by, &about, one, &bytes, tip, held.signing) {
-            Ok(signed) => signed,
-            Err(_) if crate::store::left_over(&found, one, &bytes) => continue,
-            Err(why) => return Err(why),
-        };
-        tip = signing::tip_of(tip, &bytes);
-        held.signing |= signed;
-        if signed && let Some(n) = number {
-            held.segment = n;
-            held.tip = tip;
+        let by = self.key_now.unwrap_or(self.by);
+        let signed = answered(&by, &about, one, bytes, self.tip, self.held.signing)?;
+        self.held.signing |= signed;
+        if signed {
+            self.answered_by(named, &by);
         }
+        if signed
+            && self.deferred.is_none()
+            && let Some(n) = number
+        {
+            self.held.segment = n;
+            self.held.tip = scan.tip;
+            self.held.key = Some(by.to_bytes());
+        }
+        Ok(())
     }
-    Ok(held)
+
+    fn checked(
+        &mut self,
+        named: &str,
+        seg: u32,
+        last: &Last,
+        by: &VerifyingKey,
+    ) -> Result<(), Adrift> {
+        let said = &last.read.seal;
+        let answers = said.seg == seg
+            && said.at == last.at
+            && said.tip == last.tip
+            && said.n == last.n
+            && seal::holds(by, &self.device.0, &last.read);
+        if !answers {
+            return Err(Adrift::Disowned(named.to_string()));
+        }
+        self.answered_by(named, by);
+        Ok(())
+    }
+
+    fn answered_by(&mut self, named: &str, by: &VerifyingKey) {
+        self.signer = Some(*by);
+        self.signed_in = Some(named.to_string());
+        self.key_now.get_or_insert(*by);
+    }
+
+    /// What answers is a seal by the key trusted here, or by one it rotated to; never one it left.
+    fn end(self) -> Result<Reached, Adrift> {
+        if let Some(why) = self.deferred {
+            return Err(why);
+        }
+        let named = self.signed_in.clone().unwrap_or_default();
+        let now = self.key_now.unwrap_or(self.by);
+        if let Some(signer) = self.signer
+            && !self.trusted.contains(&signer)
+        {
+            return Err(match self.trusted.contains(&now) {
+                true => Adrift::Unreadable(named),
+                false => Adrift::Disowned(named),
+            });
+        }
+        let mut held = self.held;
+        held.moved = (now != self.by && self.signer.is_some()).then(|| now.to_bytes());
+        Ok(held)
+    }
 }
 
 fn answered(
@@ -164,6 +374,115 @@ fn answered(
         Err(_) if signing_before => Err(Adrift::Disowned(named.to_string())),
         Err(_) => Ok(false),
     }
+}
+
+fn written_sealed(scan: &Scan) -> bool {
+    scan.newest.is_some_and(|v| v >= crate::event::SEALED_FROM)
+}
+
+#[derive(Clone)]
+struct Last {
+    read: seal::Read,
+    at: u64,
+    tip: [u8; 32],
+    n: u64,
+}
+
+enum Mark {
+    Key(VerifyingKey),
+    Rotate(VerifyingKey),
+    Seal(Last),
+}
+
+struct Scan {
+    tip: [u8; 32],
+    last: Option<Last>,
+    marks: Vec<Mark>,
+    after: bool,
+    broken: bool,
+    newest: Option<u32>,
+}
+
+impl Scan {
+    fn of(bytes: &[u8], from: [u8; 32], device: &DeviceId) -> Self {
+        let mut scan = Scan {
+            tip: from,
+            last: None,
+            marks: Vec::new(),
+            after: false,
+            broken: false,
+            newest: None,
+        };
+        let (mut at, mut events, mut latest, mut rotating) = (0u64, 0u64, None, false);
+        for line in bytes.split_inclusive(|one| *one == b'\n') {
+            let whole = line.last() == Some(&b'\n');
+            let blank = line.iter().all(u8::is_ascii_whitespace);
+            match (whole, seal::read(line)) {
+                (true, seal::Line::Seal(read)) => {
+                    let last = Last {
+                        read: *read,
+                        at,
+                        tip: scan.tip,
+                        n: events,
+                    };
+                    if std::mem::take(&mut rotating) {
+                        scan.marks.push(Mark::Seal(last.clone()));
+                    }
+                    scan.last = Some(last);
+                    scan.after = false;
+                }
+                (true, seal::Line::Broken) => scan.broken = true,
+                _ if blank => {}
+                _ => {
+                    scan.after = true;
+                    if whole {
+                        events += 1;
+                        latest = Some(line);
+                        if let Some(mark) = said_about_its_key(line, device) {
+                            rotating |= matches!(mark, Mark::Rotate(_));
+                            scan.marks.push(mark);
+                        }
+                    }
+                }
+            }
+            scan.tip = signing::tip_of(scan.tip, line);
+            at += line.len() as u64;
+        }
+        if scan.last.is_none() {
+            scan.newest = latest.and_then(written_at);
+        }
+        scan
+    }
+}
+
+fn said_about_its_key(line: &[u8], device: &DeviceId) -> Option<Mark> {
+    use crate::event::{Event, Op};
+
+    const DEVICE: &[u8] = b"\"op\":\"device.";
+    if !line.windows(DEVICE.len()).any(|one| one == DEVICE) {
+        return None;
+    }
+    let event: Event = serde_json::from_slice(line).ok()?;
+    if &event.device != device {
+        return None;
+    }
+    match event.op {
+        Op::DeviceKey { d, p } | Op::DeviceJoin { d, p: Some(p), .. } if &d == device => {
+            signing::read(&p).map(Mark::Key)
+        }
+        Op::DeviceRotate { d, p } if &d == device => signing::read(&p).map(Mark::Rotate),
+        _ => None,
+    }
+}
+
+fn written_at(line: &[u8]) -> Option<u32> {
+    #[derive(serde::Deserialize)]
+    struct Written {
+        v: u32,
+    }
+    serde_json::from_slice::<Written>(line)
+        .ok()
+        .map(|one| one.v)
 }
 
 fn numbered(named: &str) -> Option<u32> {

@@ -94,28 +94,26 @@ Some payload fields carry more than their name says:
 `active.tisty` is closed as `NNNNNN.tisty` every 5.000 events. Closed segments
 are numbered from one without gaps.
 
-A machine that holds a signing key writes a `.sig` beside each of its own
-segments — `active.sig`, `NNNNNN.sig`. Inside is a tip and a signature over it:
-the tip is a SHA-256 chain folded line by line across this machine's whole
-history, and what is signed is the machine, the segment's name and that tip
-together, so one signature never answers for another segment, nor for the same
-segment on another machine. It is written before the segment it covers is
-renamed and carried after it is copied, never the other way round. A `.sig`
-that is missing or does not verify is not read as tampering on its own: the
-chain is folded again from the last one that does. This is not the seal a
-parcel carries: that one is an HMAC over a manifest, under the store's key.
+A machine that holds a signing key seals every write it makes: one more line
+after its events, in the same append and the same `fsync`, that signs a SHA-256
+chain folded line by line across this machine's whole history up to there
+(*Schema 17* below). The seal names the machine and the segment's number, so one
+seal never answers for another segment, nor for the same segment on another
+machine. Up to schema 16 the signature was a `.sig` beside each segment —
+`active.sig`, `NNNNNN.sig` — written before the segment it covered was renamed
+and carried after it was copied; a history from before the 17 is still read by
+those until a seal follows it. This is not the seal a parcel carries: that one is
+an HMAC over a manifest, under the store's key.
 
-A rotation that cannot write the closed segment's `.sig` does not rename: the
-live segment stays live and keeps taking what is written, past the size at
-which it would have closed, until a later write finds the signature can be
-written and closes it. Closing it unsigned would read as disowned on any machine
-that has seen this one sign, and refusing the write would lock the person out
-of their own list. A rotation carried halfway is not tampering either. When a
-closed segment is in the folder and the old `active.tisty` still stands beside
-it, the old one is a byte-for-byte prefix of a closed one, holds nothing that
-one does not, and is skipped: not checked, not carried home and not counted
-when two histories are compared. A write that fails part way signs what it did
-write, and no signature is left for a segment that is not there.
+A machine whose key it cannot reach does not close a segment: the live one stays
+live and keeps taking what is written, past the size at which it would have
+closed, until a later write with the key seals it and closes it. Closing it
+unsealed would read as disowned on any machine that has seen this one sign, and
+refusing the write would lock the person out of their own list. A rotation
+carried halfway is not tampering either. When a closed segment is in the folder
+and the old `active.tisty` still stands beside it, the old one is a byte-for-byte
+prefix of a closed one, holds nothing that one does not, and is skipped: not
+checked, not carried home and not counted when two histories are compared.
 
 The key itself lives in `<config>/private/`, beside the store's own secret, and
 is never carried anywhere. What a history owes is decided by the copy in the
@@ -136,12 +134,10 @@ rules above take the machine on its first key — the folder being taken up for 
 first time, a machine this store already held from before it signed, an agent
 answered for by its host. A signed history that says only keys that do not read
 waits too, and nobody can answer for it until the machine says one that does; it
-is never taken in unchecked. A machine that gets a key late answers
-for the past it wrote before: on the first write after the key exists, every
-closed segment of its own that nothing answers for gets a `.sig` of its own,
-over the chain that segment really closes. A signature already in place is left
-exactly as it stands, whether it answers or not, because writing another over
-it would bless bytes that history never covered.
+is never taken in unchecked. A machine that gets a key late answers for the past
+it wrote before with its first seal, whose chain runs through every byte it wrote
+until then; nothing is written beside an older segment, and a `.sig` already in
+place is left exactly as it stands.
 
 What is checked is what comes in. A machine's history that holds something new
 is first copied aside, into a place of the round's own under `<data>/.bringing`,
@@ -873,7 +869,8 @@ Reading refuses to continue, rather than returning a smaller history, when:
 
 - a closed segment is missing from the sequence,
 - a closed segment is present but empty,
-- a closed segment holds a different count of events than its `.count` declares,
+- a closed segment does not end in the seal that closes it, or holds a different
+  count of events than that seal — or, from before the 17, its `.count` — declares,
 - any line fails to parse,
 - an event declares a schema version this build does not know.
 
@@ -2266,9 +2263,9 @@ down as an idea and not built.
 
 ## Schema 17: the segment that seals itself
 
-Designed, not built: this is what the 1.25 writes, and the one break with
-everything before it. It is written here before the cloud's code so that the
-format is shaped by the contract below rather than the other way round.
+What the 1.25 writes, and the one break with everything before it. It was
+written before the cloud's code so that the format is shaped by the contract
+below rather than the other way round.
 
 **Why the `.sig` has to go.** A segment and its `.sig` are two files that have
 to arrive together, and nothing promises that. A folder client copies them
@@ -2325,7 +2322,9 @@ Reading follows from that:
   follows yet, its `.sig` still decides.
 - An `active.tisty` whose last seal says `"closed":true` is read as the closed
   segment it names. One whose seal names a segment at or below the last closed
-  one is a leftover of a rotation carried halfway, and is skipped.
+  one is a leftover of a rotation carried halfway, and is skipped. One whose
+  seals name a segment past the last closed one that arrived is waiting for that
+  one, and is on its way.
 - Closed segments are uploaded only if they do not exist; the live one is a
   single object rewritten whole each round, against its revision where the
   provider has one. The size at which a segment rotates becomes the writer's to
@@ -2337,16 +2336,21 @@ Reading follows from that:
 - A closing seal goes down before the rename, never after, and the next write
   after a rotation that was cut between the two finishes it, naming the file by
   the seal's `seg`.
-- A segment that has a seal never gets a `.sig` or a `.count` of its own.
+- A segment that has a seal never gets a `.sig` or a `.count` of its own, and a
+  build of the 17 writes neither for any segment.
+- It does not write behind a line of a newer schema in its own live segment: a
+  newer build on the same computer wrote it, and appending would mix two formats
+  under one chain.
 - Without its key — blocked, say, by the system's keychain — the machine still
   writes, because nobody is locked out of their own list, but it does not
   rotate: a closed segment nobody sealed would be disowned for good. What it
   wrote waits, unsealed, and the machines that read it find it on its way until
   the key is back and the next write seals it. A key that is gone altogether is
   not this case: that machine comes back under a new name, as it always has.
-- A last line that does not read — `mend` sets it aside — is dealt with first,
-  and the segment is sealed again over what remains, so a torn seal never
-  leaves events with nothing answering for them.
+- A last line that does not read — `mend` sets it aside — is dealt with when
+  the store opens, and the next write seals again over what remains, so a torn
+  seal never leaves events with nothing answering for them; until it does, the
+  machines that read them find them on their way.
 
 **What else the 17 requires**, because each changes bytes that are signed or
 that other machines read:
@@ -2371,9 +2375,15 @@ for it and is left there until the rotation that closes the segment takes it
 away: an older build that met a half-written last line would otherwise read the
 history as tampered with and not merely unread. Closed segments from before are
 still read by their `.sig`, until a seal follows them. Once a machine has
-sealed, a later segment of its own without seals is disowned. A build that only
-knows 16 stops at the first line with `"v":17`, as it already does for any newer
-schema.
+sealed, a later closed segment of its own without seals is disowned, and a live
+one is on its way. A build that only knows 16 stops at the first line with
+`"v":17`, as it already does for any newer schema.
+
+**What is checked.** The last seal of each segment, against the bytes before it:
+its number, where it stands, the chain and the count. The seals in between are
+folded into the chain the last one answers for, so checking each of them again
+adds nothing and would cost a signature a write on every round. A closed segment
+that does not end in the seal that closes it has not finished arriving.
 
 ### Changing a machine's key without asking again
 
@@ -2385,23 +2395,40 @@ format of the 17 lets a machine move to a new key **on the word of the old one**
 - The machine makes a new key and writes `device.rotate { d, p }`, `p` being
   the new key, in a batch sealed by the **old** key. That is the last seal the
   old key ever makes.
-- The next seal is made by the new key. A seal by the old key after its
-  rotation, or a seal by the new key before the rotation that names it, is
-  disowned: there is one switch, in one direction, at one place in the chain.
+- The next seal is made by the new key. The seal that closes the rotation's
+  batch is checked under the old key, besides the last seal of each segment, and
+  every seal checked after it under the new one. A seal by the old key after its
+  rotation, or by the new key before the rotation that names it, is disowned:
+  there is one switch, in one direction, at one place in the chain.
+- The history is read from the first key it states, so a machine that confirmed
+  the new key still reads the batches the old one sealed. A round that starts
+  where the last one left off starts from the key that answered there, which the
+  memo in `.verified-to` keeps beside the segment and the tip: what a history
+  says about its key past that point is never a reason to check by another.
+- A rotation is always from a key. One in a history that never said a key
+  changes nothing, and that history owes a signature like any that names one.
 - A machine that had confirmed the old key takes the new one without asking,
   because the old key, which the person answered for, is what vouches for it.
   It is kept in `.keys-confirmed` with `rotated:` and the old key's code, so
   what the person compared can be told from what followed from it, the same
-  way `carried` and `host:` are kept.
+  way `carried` and `host:` are kept. From then on the old key answers for
+  nothing here: a copy from before the switch, or anything it seals after, is
+  disowned. The memo moves past the rotation only once the new key is kept, so
+  no round reads on by a key this machine does not hold to.
 - A machine that had **not** confirmed the old key gains nothing: it still
   waits for the person, now with the new key's code.
-- Agents keep their own road: a host vouches for its agent's new key exactly
-  as it vouched for the first.
+- A machine that confirmed the new key, while the history's last seal is still
+  the old key's, waits: the rest is on its way.
+- Agents follow their confirmation like any other machine: a host-confirmed
+  agent that rotates is kept with `rotated:` instead of `host:`, and the host
+  is still told by the agent's own word.
 
 **What the 1.25 does about it.** It reads a rotation and honours it; nothing in
 the 1.25 writes one. The format is fixed here so that the command that does can
 come in a later build without a new schema, and so that this build is not
-surprised by a rotation another one writes.
+surprised by a rotation another one writes. That build seals once more with the
+new key in the same write as the rotation, so the old key never has the last
+word and nobody who followed it waits for the next write.
 
 What it is for: a planned change, such as moving the key to the system's
 keychain, or retiring a key that may have been seen while it is still in this

@@ -499,6 +499,7 @@ export interface Machine {
   confirmed: string | null;
   confirmedWhen: number;
   carried?: boolean;
+  rotated?: boolean;
   host?: string | null;
   turnedAway: "disowned" | "unreadable" | "unconfirmed" | null;
 }

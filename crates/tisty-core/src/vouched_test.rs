@@ -181,3 +181,36 @@ fn a_host_that_is_no_machine_name_vouches_for_nobody() {
     ));
     assert!(confirmed(&data, &agent).is_none());
 }
+
+#[test]
+fn a_rotation_takes_the_place_of_a_confirmed_key_only_while_that_key_stands() {
+    let (_room, data, paths) = a_place();
+    let who = DeviceId("dev_a".into());
+    let old = a_key(&paths, &who);
+    let new = a_key(&paths, &DeviceId("dev_b".into()));
+    let later = a_key(&paths, &DeviceId("dev_c".into()));
+    assert!(confirm(&data, &who, &old));
+
+    assert!(rotated(&data, &who, &new, &old));
+
+    let stood = confirmed(&data, &who).unwrap();
+    assert_eq!(stood.key, new);
+    assert_eq!(stood.was.as_deref(), Some(old.as_str()));
+    assert!(
+        !rotated(&data, &who, &later, &old),
+        "a key that no longer stands rotated the confirmation again"
+    );
+    assert_eq!(key_of(&data, &who).as_deref(), Some(new.as_str()));
+    assert_eq!(all_confirmed(&data).get(&who), Some(&stood));
+}
+
+#[test]
+fn a_rotation_answers_for_nobody_a_person_never_confirmed() {
+    let (_room, data, paths) = a_place();
+    let who = DeviceId("dev_a".into());
+    let old = a_key(&paths, &who);
+    let new = a_key(&paths, &DeviceId("dev_b".into()));
+
+    assert!(!rotated(&data, &who, &new, &old));
+    assert_eq!(confirmed(&data, &who), None);
+}

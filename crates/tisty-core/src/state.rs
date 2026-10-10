@@ -374,6 +374,9 @@ impl State {
             }
             Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
             Op::DeviceKey { d, p } => self.key_published(event, d, p),
+            Op::DeviceRotate { d, p } => {
+                crate::signing::rotated(&mut self.keys, &event.device, d, p);
+            }
             Op::DeviceNamed { d, name, os } => self.device_named(event, d, name, os.as_deref()),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of, .. } => {
