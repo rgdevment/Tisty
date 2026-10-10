@@ -17,10 +17,28 @@ pub(super) fn answered_at(
 }
 
 pub(super) fn holds_a_seal(one: &Path) -> bool {
-    tail_of(one).is_some_and(|(_, tail)| {
-        tail.split_inclusive(|one| *one == b'\n')
-            .any(|line| line.last() == Some(&b'\n') && matches!(seal::read(line), Line::Seal(_)))
-    })
+    let Some((start, tail)) = tail_of(one) else {
+        return false;
+    };
+    // A writer without its key goes on at 17 unsealed, past the reach of the tail.
+    any_seal(&tail)
+        || (start > 0
+            && written_sealed(&tail)
+            && std::fs::read(one).is_ok_and(|whole| any_seal(&whole)))
+}
+
+fn any_seal(bytes: &[u8]) -> bool {
+    bytes
+        .split_inclusive(|one| *one == b'\n')
+        .any(|line| line.last() == Some(&b'\n') && matches!(seal::read(line), Line::Seal(_)))
+}
+
+fn written_sealed(tail: &[u8]) -> bool {
+    tail.split(|one| *one == b'\n')
+        .rev()
+        .find(|line| !line.iter().all(u8::is_ascii_whitespace))
+        .and_then(|line| serde_json::from_slice::<super::Stamped>(line).ok())
+        .is_some_and(|said| said.v >= crate::event::SEALED_FROM)
 }
 
 fn sealed_at(one: &Path, device: &DeviceId, by: &VerifyingKey) -> Option<(u64, [u8; 32])> {

@@ -429,17 +429,8 @@ impl Store {
         }
         let mut closing = String::new();
         self.sealed(&mut closing, self.active_events, true);
-        if let Err(e) = self.appended(&closing) {
-            witness::warn(
-                channel::STORE,
-                "a segment was not closed because its seal could not be written",
-                &[
-                    ("at", Fact::Path(active)),
-                    ("why", Fact::Why(e.to_string())),
-                ],
-            );
-            return Ok(false);
-        }
+        // Whatever of it landed is folded in again before the next write, never written past.
+        self.appended(&closing)?;
         self.closed_as(self.seg)
     }
 

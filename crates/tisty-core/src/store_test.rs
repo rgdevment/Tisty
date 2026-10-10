@@ -1473,6 +1473,41 @@ fn a_machine_with_no_key_signs_nothing_rather_than_signing_badly() {
 }
 
 #[test]
+fn a_machine_that_sealed_is_known_to_seal_however_much_it_wrote_without_its_key_since() {
+    let tmp = tempfile::tempdir().unwrap();
+    let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
+    store.append(a_task("chase the invoice")).unwrap();
+    let mut keyless = Store::open(dir.parent().unwrap(), DeviceId("dev_a".into()))
+        .unwrap()
+        .signing_with(None);
+    keyless
+        .append_batch(
+            (0..600)
+                .map(|n| a_task(&format!("the {n} thing")))
+                .collect(),
+        )
+        .unwrap();
+
+    assert!(std::fs::metadata(dir.join(ACTIVE)).unwrap().len() > 64 * 1024);
+    assert!(sealed_in(&dir), "a seal past the tail was not found");
+}
+
+#[test]
+fn a_long_history_from_before_the_seal_is_not_taken_for_one_that_seals() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().join("store").join("dev_a");
+    crate::sixteen::Sixteen::at(
+        &dir,
+        &DeviceId("dev_a".into()),
+        ed25519_dalek::SigningKey::from_bytes(&[9; 32]),
+    )
+    .unsigned((0..600).map(|n| a_task(&format!("the {n} thing"))));
+
+    assert!(std::fs::metadata(dir.join(ACTIVE)).unwrap().len() > 64 * 1024);
+    assert!(!sealed_in(&dir));
+}
+
+#[test]
 fn a_machine_with_no_key_never_closes_a_segment() {
     let tmp = tempfile::tempdir().unwrap();
     let (mut store, _key, dir) = a_machine_that_signs(tmp.path());
