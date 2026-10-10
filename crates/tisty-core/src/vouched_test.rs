@@ -201,6 +201,7 @@ fn a_rotation_takes_the_place_of_a_confirmed_key_only_while_that_key_stands() {
         "a key that no longer stands rotated the confirmation again"
     );
     assert_eq!(key_of(&data, &who).as_deref(), Some(new.as_str()));
+    assert_eq!(all_confirmed(&data).get(&who), Some(&stood));
 }
 
 #[test]

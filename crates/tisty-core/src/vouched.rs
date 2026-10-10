@@ -27,10 +27,11 @@ pub fn confirmed(data: &Path, who: &DeviceId) -> Option<Confirmed> {
 }
 
 pub fn all_confirmed(data: &Path) -> std::collections::BTreeMap<DeviceId, Confirmed> {
-    lines(data)
-        .iter()
-        .filter_map(|line| read_line(line))
-        .collect()
+    let mut all = std::collections::BTreeMap::new();
+    for (who, one) in lines(data).iter().filter_map(|line| read_line(line)) {
+        all.entry(who).or_insert(one);
+    }
+    all
 }
 
 /// Kept once and never moved: a key confirmed is the one that machine answers for from then on,
