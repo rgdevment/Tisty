@@ -7,6 +7,8 @@ bash scripts/rules.sh < /dev/null || exit 1
 
 # Measured against the branch the remote being pushed to calls its own, not a name taken for granted.
 remote=${1:-origin}
+# A push straight to a URL names no remote, and is measured as it always was.
+git remote get-url "$remote" > /dev/null 2>&1 || remote=origin
 main=$(git symbolic-ref -q --short "refs/remotes/$remote/HEAD" 2> /dev/null || echo "$remote/main")
 
 nothing=0000000000000000000000000000000000000000
