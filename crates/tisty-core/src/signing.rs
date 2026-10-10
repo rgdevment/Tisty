@@ -44,7 +44,7 @@ pub fn rotated(
     whose: &DeviceId,
     said: &str,
 ) {
-    if let (true, Some(key)) = (by == whose, read(said)) {
+    if let (true, true, Some(key)) = (by == whose, into.contains_key(whose), read(said)) {
         into.insert(whose.clone(), shown_of(&key));
     }
 }

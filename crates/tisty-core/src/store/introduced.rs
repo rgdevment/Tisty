@@ -113,6 +113,9 @@ pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
 
 pub(super) fn says_a_key(events: &[Event], who: &DeviceId) -> bool {
     keys_of(events, who).next().is_some()
+        || events
+            .iter()
+            .any(|one| matches!(&one.op, Op::DeviceRotate { d, .. } if d == who))
 }
 
 // Read from one copy, so the prints come from the very bytes whose signatures were checked.

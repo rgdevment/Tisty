@@ -219,3 +219,24 @@ fn the_key_shown_for_a_machine_is_the_one_it_rotated_to() {
         "a person was shown the key the machine moved away from"
     );
 }
+
+#[test]
+fn a_rotation_from_no_key_plants_none_and_still_owes_a_signature() {
+    let dir = tempfile::tempdir().unwrap();
+    let who = DeviceId("dev_b".into());
+    let mut store = crate::Store::open(dir.path().join("store"), who.clone()).unwrap();
+    store
+        .append(Op::DeviceRotate {
+            d: who.clone(),
+            p: a_key(2),
+        })
+        .unwrap();
+    drop(store);
+    let at = dir.path().join("store").join("dev_b");
+
+    assert!(crate::store::says_a_key_in(&at, &who));
+    assert_eq!(crate::store::key_said_in(&at, &who), None);
+    let mut keys = std::collections::BTreeMap::new();
+    crate::signing::rotated(&mut keys, &who, &who, &a_key(2));
+    assert!(keys.is_empty(), "a rotation from no key planted one");
+}

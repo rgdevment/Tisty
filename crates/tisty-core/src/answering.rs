@@ -14,6 +14,8 @@ pub struct Reached {
     /// Whether this machine has ever shown a signature. Signing only ever starts: once it has,
     /// a segment arriving without one is a signature taken away, not a history from before.
     pub signing: bool,
+    /// The key that answered at `segment`, which a round resuming after it checks by.
+    pub key: Option<[u8; 32]>,
     pub moved: Option<[u8; 32]>,
 }
 
@@ -23,6 +25,7 @@ impl Default for Reached {
             segment: 0,
             tip: signing::NOTHING_BEFORE,
             signing: false,
+            key: None,
             moved: None,
         }
     }
@@ -31,20 +34,29 @@ impl Default for Reached {
 impl Reached {
     pub fn said(&self) -> String {
         let signing = u8::from(self.signing);
-        format!("{} {signing} {}", self.segment, signing::hexed(&self.tip))
+        let said = format!("{} {signing} {}", self.segment, signing::hexed(&self.tip));
+        match &self.key {
+            Some(key) => format!("{said} {}", signing::hexed(key)),
+            None => said,
+        }
     }
 
     pub fn read(said: &str) -> Option<Self> {
         let mut apart = said.split(' ');
-        let (Some(segment), Some(signing), Some(tip), None) =
-            (apart.next(), apart.next(), apart.next(), apart.next())
+        let (Some(segment), Some(signing), Some(tip)) = (apart.next(), apart.next(), apart.next())
         else {
             return None;
+        };
+        let key = match (apart.next(), apart.next()) {
+            (None, _) => None,
+            (Some(key), None) => Some(signing::unhexed::<32>(key)?),
+            (Some(_), Some(_)) => return None,
         };
         Some(Self {
             segment: segment.parse().ok()?,
             tip: signing::unhexed::<32>(tip)?,
             signing: signing == "1",
+            key,
             moved: None,
         })
     }
@@ -69,20 +81,6 @@ pub fn answers(
     from: Reached,
     ours_already: &dyn Fn(&str) -> bool,
 ) -> Result<Reached, Adrift> {
-    answers_trusting(theirs, device, &[*by], from, ours_already)
-}
-
-/// The first key is the one answered for now; any after it is one it was rotated from.
-pub fn answers_trusting(
-    theirs: &Path,
-    device: &DeviceId,
-    trusted: &[VerifyingKey],
-    from: Reached,
-    ours_already: &dyn Fn(&str) -> bool,
-) -> Result<Reached, Adrift> {
-    let Some(first) = trusted.first() else {
-        return Err(Adrift::Unreadable(device.0.clone()));
-    };
     let found = match crate::store::segments_in(theirs) {
         Ok(found) => found,
         Err(e) => return Err(Adrift::Unreadable(e.to_string())),
@@ -113,11 +111,17 @@ pub fn answers_trusting(
         .filter_map(|one| numbered(one.file_name()?.to_str()?))
         .max()
         .unwrap_or(0);
+    // Past the memo the history's first word on its key is not read again, so the memo's key stands.
+    let key_now = (from.segment > 0).then(|| {
+        from.key
+            .and_then(|key| VerifyingKey::from_bytes(&key).ok())
+            .unwrap_or(*by)
+    });
     let mut walk = Walk {
         device,
-        by: *first,
-        trusted: trusted.to_vec(),
-        key_now: None,
+        by: *by,
+        trusted: vec![*by],
+        key_now,
         rotating: None,
         signer: None,
         signed_in: None,
@@ -158,7 +162,7 @@ struct Walk<'a> {
     held: Reached,
     sealed: bool,
     deferred: Option<Adrift>,
-    last_closed: Option<(u32, [u8; 32])>,
+    last_closed: Option<(u32, [u8; 32], VerifyingKey)>,
     live: u32,
 }
 
@@ -187,7 +191,7 @@ impl Walk<'_> {
         }
         self.tip = scan.tip;
         if let Some(n) = number {
-            self.last_closed = Some((n, self.tip));
+            self.last_closed = Some((n, self.tip, self.key_now.unwrap_or(self.by)));
         }
         Ok(())
     }
@@ -203,6 +207,9 @@ impl Walk<'_> {
             return Err(Adrift::Unreadable(named.to_string()));
         }
         let seg = number.unwrap_or(self.live);
+        if number.is_none() && last.read.seal.seg > seg {
+            return Err(Adrift::Unreadable(named.to_string()));
+        }
         let mut last_checked = false;
         for mark in &scan.marks {
             match mark {
@@ -236,12 +243,13 @@ impl Walk<'_> {
         self.deferred = None;
         self.held.signing = true;
         let reached = match number {
-            Some(n) => Some((n, scan.tip)),
+            Some(n) => Some((n, scan.tip, self.key_now.unwrap_or(self.by))),
             None => self.last_closed,
         };
-        if let Some((n, tip)) = reached {
+        if let Some((n, tip, key)) = reached {
             self.held.segment = n;
             self.held.tip = tip;
+            self.held.key = Some(key.to_bytes());
         }
         Ok(())
     }
@@ -260,18 +268,28 @@ impl Walk<'_> {
                 None => Adrift::Unreadable(named.to_string()),
             });
         }
+        for mark in &scan.marks {
+            if let Mark::Key(said) = mark {
+                self.key_now.get_or_insert(*said);
+            }
+        }
         let about = signing::About {
             device: &self.device.0,
             segment: named,
         };
-        let signed = answered(&self.by, &about, one, bytes, self.tip, self.held.signing)?;
+        let by = self.key_now.unwrap_or(self.by);
+        let signed = answered(&by, &about, one, bytes, self.tip, self.held.signing)?;
         self.held.signing |= signed;
+        if signed {
+            self.answered_by(named, &by);
+        }
         if signed
             && self.deferred.is_none()
             && let Some(n) = number
         {
             self.held.segment = n;
             self.held.tip = scan.tip;
+            self.held.key = Some(by.to_bytes());
         }
         Ok(())
     }
@@ -292,32 +310,33 @@ impl Walk<'_> {
         if !answers {
             return Err(Adrift::Disowned(named.to_string()));
         }
-        self.signer = Some(*by);
-        self.signed_in = Some(named.to_string());
+        self.answered_by(named, by);
         Ok(())
     }
 
-    /// What answers is a seal by a key trusted here, or by one a trusted key rotated to.
+    fn answered_by(&mut self, named: &str, by: &VerifyingKey) {
+        self.signer = Some(*by);
+        self.signed_in = Some(named.to_string());
+        self.key_now.get_or_insert(*by);
+    }
+
+    /// What answers is a seal by the key trusted here, or by one it rotated to; never one it left.
     fn end(self) -> Result<Reached, Adrift> {
         if let Some(why) = self.deferred {
             return Err(why);
         }
         let named = self.signed_in.clone().unwrap_or_default();
+        let now = self.key_now.unwrap_or(self.by);
         if let Some(signer) = self.signer
             && !self.trusted.contains(&signer)
         {
-            return Err(
-                match self.key_now.is_some_and(|now| self.trusted.contains(&now)) {
-                    true => Adrift::Unreadable(named),
-                    false => Adrift::Disowned(named),
-                },
-            );
+            return Err(match self.trusted.contains(&now) {
+                true => Adrift::Unreadable(named),
+                false => Adrift::Disowned(named),
+            });
         }
         let mut held = self.held;
-        held.moved = self
-            .key_now
-            .filter(|now| *now != self.by && self.trusted.contains(now) && self.signer.is_some())
-            .map(|now| now.to_bytes());
+        held.moved = (now != self.by && self.signer.is_some()).then(|| now.to_bytes());
         Ok(held)
     }
 }

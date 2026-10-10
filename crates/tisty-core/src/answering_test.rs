@@ -732,11 +732,29 @@ fn rotated(held: &Wrote, from: &signing::SigningKey, to: &signing::SigningKey) {
     );
 }
 
-fn trusting(held: &Wrote, keys: &[&signing::SigningKey]) -> Result<Reached, Adrift> {
-    let trusted: Vec<VerifyingKey> = keys.iter().map(|one| one.verifying_key()).collect();
-    answers_trusting(&held.dir, &held.who, &trusted, Reached::default(), &|_| {
-        false
+fn trusting(held: &Wrote, key: &signing::SigningKey) -> Result<Reached, Adrift> {
+    answered_from(held, key, Reached::default())
+}
+
+fn answered_from(
+    held: &Wrote,
+    key: &signing::SigningKey,
+    from: Reached,
+) -> Result<Reached, Adrift> {
+    answers(&held.dir, &held.who, &key.verifying_key(), from, &|named| {
+        held.ours.borrow().contains(named)
     })
+}
+
+/// A key said, a line written, and the segment closed, so a round can start after it.
+fn a_closed_segment_under_its_key(held: &Wrote) -> signing::SigningKey {
+    let key = said_its_key(held);
+    let mut store = held.signs();
+    store.append(a_line(1)).unwrap();
+    store.rotate().unwrap();
+    drop(store);
+    held.ours_too("000001.tisty");
+    key
 }
 
 #[test]
@@ -747,7 +765,7 @@ fn a_machine_confirmed_under_its_old_key_is_answered_for_under_the_new_one() {
     rotated(&held, &old, &new);
     written_with(&held, &new, a_line(1));
 
-    let reached = trusting(&held, &[&old]).expect("a rotation its old key sealed was refused");
+    let reached = trusting(&held, &old).expect("a rotation its old key sealed was refused");
 
     assert_eq!(
         reached.moved,
@@ -764,10 +782,162 @@ fn a_rotation_kept_here_reads_the_whole_history_again_without_asking() {
     rotated(&held, &old, &new);
     written_with(&held, &new, a_line(1));
 
-    let reached = trusting(&held, &[&new, &old]).expect("the rotation already kept was refused");
+    let reached = trusting(&held, &new).expect("the rotation already kept was refused");
 
     assert_eq!(reached.moved, None);
     assert!(reached.signing);
+}
+
+#[test]
+fn a_rotation_followed_here_answers_again_from_where_the_last_round_left_off() {
+    let held = a_machine_that_wrote(0);
+    let old = a_closed_segment_under_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+    written_with(&held, &new, a_line(2));
+
+    let first = trusting(&held, &old).unwrap();
+    assert_eq!(first.moved, Some(new.verifying_key().to_bytes()));
+    assert_eq!(first.segment, 1);
+    assert_eq!(first.key, Some(old.verifying_key().to_bytes()));
+
+    let again = answered_from(
+        &held,
+        &new,
+        Reached {
+            moved: None,
+            ..first
+        },
+    );
+    assert!(
+        again.is_ok_and(|again| again.moved.is_none()),
+        "a rotation already followed here was taken for a hand on the next round"
+    );
+}
+
+#[test]
+fn a_rotation_followed_here_answers_from_a_history_the_16_began() {
+    let held = a_machine_that_wrote(0);
+    let old = signing::mine(&held.paths, &held.who).unwrap();
+    let mut sixteen = held.sixteen();
+    sixteen.signed([Op::DeviceKey {
+        d: held.who.clone(),
+        p: signing::shown(&old),
+    }]);
+    sixteen.closed();
+    written_with(&held, &old, a_line(1));
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+    written_with(&held, &new, a_line(2));
+
+    trusting(&held, &new).expect("the 16's signature was checked under the key it left");
+}
+
+#[test]
+fn the_old_key_is_no_word_once_its_rotation_was_followed() {
+    let held = a_machine_that_wrote(0);
+    let old = a_closed_segment_under_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+    written_with(&held, &new, a_line(2));
+    let followed = Reached {
+        moved: None,
+        ..trusting(&held, &old).unwrap()
+    };
+    written_with(
+        &held,
+        &old,
+        Op::DeviceKey {
+            d: held.who.clone(),
+            p: signing::shown(&old),
+        },
+    );
+
+    assert_eq!(
+        answered_from(&held, &new, followed),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+    assert_eq!(
+        trusting(&held, &new),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_copy_from_before_a_rotation_followed_here_never_moves_the_key_back() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    written_with(&held, &old, a_line(1));
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+
+    let answered = trusting(&held, &new);
+
+    assert!(
+        matches!(answered, Err(Adrift::Disowned(_))),
+        "a history only the old key sealed answered under the key it moved to: {answered:?}"
+    );
+}
+
+#[test]
+fn a_stranger_s_key_said_past_the_memo_is_no_word_on_the_key() {
+    let held = a_machine_that_wrote(0);
+    let confirmed = a_closed_segment_under_its_key(&held);
+    written_with(&held, &confirmed, a_line(2));
+    let from = trusting(&held, &confirmed).unwrap();
+    let stranger = signing::SigningKey::from_bytes(&[9; 32]);
+    written_with(
+        &held,
+        &stranger,
+        Op::DeviceKey {
+            d: held.who.clone(),
+            p: signing::shown(&stranger),
+        },
+    );
+    rotated(&held, &stranger, &confirmed);
+
+    assert_eq!(
+        answered_from(&held, &confirmed, from),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_live_segment_ahead_of_the_closed_one_it_follows_is_on_its_way() {
+    let held = a_machine_that_wrote(2);
+    let mut store = held.signs();
+    store.rotate().unwrap();
+    store.append(a_line(9)).unwrap();
+    drop(store);
+    let closed = std::fs::read(held.dir.join("000001.tisty")).unwrap();
+    std::fs::remove_file(held.dir.join("000001.tisty")).unwrap();
+
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Unreadable("active.tisty".into()))
+    );
+
+    std::fs::write(held.dir.join("000001.tisty"), closed).unwrap();
+    held.asked(Reached::default())
+        .expect("the history did not answer once the closed segment arrived");
+}
+
+#[test]
+fn the_memo_keeps_the_key_it_answered_at_and_reads_one_from_before() {
+    let key = signing::SigningKey::from_bytes(&[3; 32])
+        .verifying_key()
+        .to_bytes();
+    let kept = Reached {
+        segment: 4,
+        signing: true,
+        key: Some(key),
+        ..Default::default()
+    };
+
+    assert_eq!(Reached::read(&kept.said()), Some(kept));
+    let before = Reached { key: None, ..kept };
+    assert_eq!(Reached::read(&before.said()), Some(before));
+    assert_eq!(Reached::read(&format!("{} x", kept.said())), None);
+    assert_eq!(Reached::read("4 1"), None);
 }
 
 #[test]
@@ -777,7 +947,7 @@ fn a_rotation_with_nothing_after_it_answers_under_the_old_key() {
     let new = signing::SigningKey::from_bytes(&[7; 32]);
     rotated(&held, &old, &new);
 
-    let reached = trusting(&held, &[&old]).expect("a rotation nothing followed yet was refused");
+    let reached = trusting(&held, &old).expect("a rotation nothing followed yet was refused");
 
     assert_eq!(reached.moved, Some(new.verifying_key().to_bytes()));
 }
@@ -791,7 +961,7 @@ fn a_seal_by_the_old_key_after_its_rotation_is_disowned() {
     written_with(&held, &old, a_line(1));
 
     assert_eq!(
-        trusting(&held, &[&old]),
+        trusting(&held, &old),
         Err(Adrift::Disowned("active.tisty".into()))
     );
 }
@@ -804,7 +974,7 @@ fn a_seal_by_a_new_key_before_the_rotation_that_names_it_is_disowned() {
     written_with(&held, &new, a_line(1));
 
     assert_eq!(
-        trusting(&held, &[&old]),
+        trusting(&held, &old),
         Err(Adrift::Disowned("active.tisty".into()))
     );
 }
@@ -818,7 +988,7 @@ fn a_rotation_its_old_key_never_sealed_is_disowned() {
     written_with(&held, &new, a_line(1));
 
     assert_eq!(
-        trusting(&held, &[&old]),
+        trusting(&held, &old),
         Err(Adrift::Disowned("active.tisty".into()))
     );
 }
@@ -830,7 +1000,7 @@ fn a_key_confirmed_here_named_by_a_stranger_s_rotation_lets_nothing_in() {
     let confirmed = signing::SigningKey::from_bytes(&[7; 32]);
     rotated(&held, &stranger, &confirmed);
 
-    let answered = trusting(&held, &[&confirmed]);
+    let answered = trusting(&held, &confirmed);
 
     assert!(
         matches!(answered, Err(Adrift::Unreadable(_))),

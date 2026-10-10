@@ -9399,6 +9399,9 @@ fn a_machine_that_moves_to_a_new_key_is_followed_by_whoever_confirmed_the_old_on
     assert!(tisty_core::vouched::confirm(&one.data, &who, &old_said));
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
     assert!(home_of(&one, &two.device).contains("lo de dev_b"));
+    rotated(&two);
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     let new = tisty_core::signing::SigningKey::from_bytes(&[8; 32]);
     let new_said = tisty_core::signing::shown(&new);
