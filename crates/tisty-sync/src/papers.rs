@@ -206,7 +206,10 @@ pub(crate) fn carry_papers_leaning_on(
                     }
                 }
                 Move::Send
-                    if printed.is_some_and(|told| told.get(id).is_some_and(|says| says.behind)) =>
+                    if printed.is_some_and(|told| {
+                        told.get(id)
+                            .is_some_and(|says| says.behind && ours == says.newest)
+                    }) =>
                 {
                     witness::note(
                         channel::SYNC,

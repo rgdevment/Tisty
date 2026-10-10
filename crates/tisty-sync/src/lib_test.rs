@@ -6811,6 +6811,18 @@ lo que vino despues
         "a body reached the folder ahead of the history that answers for it"
     );
 
+    let edited = "# Notas
+
+lo que cambio otro editor
+";
+    paper(&agent, "agente-0001", edited);
+    let asked = carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+    assert!(
+        asked.unanswered.contains(&"agente-0001".to_string()),
+        "a body the stuck history does not answer for was held instead of written down: {asked:?}"
+    );
+    paper(&agent, "agente-0001", then);
+
     std::fs::remove_file(&theirs).unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
 
