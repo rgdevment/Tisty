@@ -2553,9 +2553,9 @@ interval, answers in between with what it last saw, stretches the wait up to
 four intervals while nothing moves and goes back to one when something does,
 and never brings content down to say so. What counts as moving is a revision
 the mirror has not seen, so this machine's own uploads stir nothing, and the
-wait is kept beside the mirror, since every command builds its carrier anew. Whether two histories are kin, and
-who signed the place, are asked rarely and of the cloud itself, not of the
-mirror the last round left.
+wait is kept beside the mirror, since every command builds its carrier anew.
+Whether two histories are kin, and who signed the place, are asked rarely and
+of the cloud itself, not of the mirror the last round left.
 
 **Nothing installed that was not checked.** The carrier downloads once into the
 mirror, checks what it downloaded, and installs exactly those bytes. The round
