@@ -137,11 +137,12 @@ pub(crate) fn carry_papers_leaning_on(
 
             let how = moved(said.of(id), ours.as_deref(), yours.as_deref());
             let answer = match how {
-                Move::Bring | Move::TheyDecide if taking => answered_for(
-                    yours.as_ref(),
-                    printed.and_then(|told| told.get(id)),
-                    &|print| held(id, print),
-                ),
+                Move::Bring | Move::TheyDecide if taking => match printed {
+                    Some(told) => {
+                        answered_for(yours.as_ref(), told.get(id), &|print| held(id, print))
+                    }
+                    None => Answer::Yes,
+                },
                 _ => Answer::Yes,
             };
             let landing = landing(&mut awaited, id, how, answer, shut.contains(id), now);
@@ -203,6 +204,18 @@ pub(crate) fn carry_papers_leaning_on(
                         }
                         said.keep(id, &print);
                     }
+                }
+                Move::Send
+                    if printed.is_some_and(|told| {
+                        told.get(id)
+                            .is_some_and(|says| says.behind && ours == says.newest)
+                    }) =>
+                {
+                    witness::note(
+                        channel::SYNC,
+                        "a body waits here until the history that answers for it reaches the folder",
+                        &[("at", Fact::Id(id.clone()))],
+                    );
                 }
                 Move::Send
                     if printed.is_some_and(|told| {
@@ -430,6 +443,8 @@ pub(crate) struct Answers {
     pub newest: Option<String>,
     pub own: Option<String>,
     pub others: std::collections::BTreeSet<String>,
+    /// Its newest print was written only by a history this round could not hand on.
+    pub behind: bool,
 }
 
 impl Answers {
@@ -482,10 +497,14 @@ fn answered_for(
     says: Option<&Answers>,
     held: &dyn Fn(&str) -> bool,
 ) -> Answer {
-    let (Some(print), Some(says)) = (print, says) else {
+    let Some(print) = print else {
         return Answer::Yes;
     };
-    if says.newest.as_ref() == Some(print) || (says.newest.is_none() && says.others.is_empty()) {
+    // A log with no print for it cannot answer either way: it comes in, and what was here is set aside.
+    let Some(says) = says.filter(|says| says.newest.is_some() || !says.others.is_empty()) else {
+        return Answer::Doubtful;
+    };
+    if says.newest.as_ref() == Some(print) {
         return Answer::Yes;
     }
     if says.others.contains(print) {

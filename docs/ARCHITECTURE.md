@@ -1534,14 +1534,21 @@ question; two adjacent ones are simply both taken.
 
 A body reaches the folder only after the log that answers for it. A merge is
 written here alone, and so is a body changed with another editor; the window or
-the CLI writes its print down and pushes, and only then does the body leave.
+the CLI writes its print down and pushes, and only then does the body leave. The
+same holds for a history this machine hands on for another, such as an agent's:
+when a round cannot hand it on — the folder's copy would not read, or is not the
+start of ours — the bodies only that history answers for stay here until a round
+that can, and the history left behind is said in the log rather than skipped in
+silence.
 What the cloud does with the two is its own affair: a provider uploads and
 brings down files in whichever order it likes, so the other machine can meet a
 body before the history that vouches for it. What the folder
 holds is taken in if it matches the newest print or the last one another machine
 wrote down — clocks decide which is newest, and a laptop can be an hour out — but
 a body that is only another machine's last word is set aside here before it
-replaces anything. A round that only pushes takes nothing in.
+replaces anything. So is one for a document the log holds no print for at all,
+from before every body had one: nothing answers for it either way. A round
+that only pushes takes nothing in.
 
 What is installed is what was checked. When a body is about to be installed it is
 read from the folder once more, printed as it was read, and written here from
