@@ -2322,7 +2322,9 @@ Reading follows from that:
   follows yet, its `.sig` still decides.
 - An `active.tisty` whose last seal says `"closed":true` is read as the closed
   segment it names. One whose seal names a segment at or below the last closed
-  one is a leftover of a rotation carried halfway, and is skipped.
+  one is a leftover of a rotation carried halfway, and is skipped. One whose
+  seals name a segment past the last closed one that arrived is waiting for that
+  one, and is on its way.
 - Closed segments are uploaded only if they do not exist; the live one is a
   single object rewritten whole each round, against its revision where the
   provider has one. The size at which a segment rotates becomes the writer's to
@@ -2345,9 +2347,10 @@ Reading follows from that:
   wrote waits, unsealed, and the machines that read it find it on its way until
   the key is back and the next write seals it. A key that is gone altogether is
   not this case: that machine comes back under a new name, as it always has.
-- A last line that does not read — `mend` sets it aside — is dealt with first,
-  and the segment is sealed again over what remains, so a torn seal never
-  leaves events with nothing answering for them.
+- A last line that does not read — `mend` sets it aside — is dealt with when
+  the store opens, and the next write seals again over what remains, so a torn
+  seal never leaves events with nothing answering for them; until it does, the
+  machines that read them find them on their way.
 
 **What else the 17 requires**, because each changes bytes that are signed or
 that other machines read:
@@ -2398,13 +2401,20 @@ format of the 17 lets a machine move to a new key **on the word of the old one**
   rotation, or by the new key before the rotation that names it, is disowned:
   there is one switch, in one direction, at one place in the chain.
 - The history is read from the first key it states, so a machine that confirmed
-  the new key still reads the batches the old one sealed.
+  the new key still reads the batches the old one sealed. A round that starts
+  where the last one left off starts from the key that answered there, which the
+  memo in `.verified-to` keeps beside the segment and the tip: what a history
+  says about its key past that point is never a reason to check by another.
+- A rotation is always from a key. One in a history that never said a key
+  changes nothing, and that history owes a signature like any that names one.
 - A machine that had confirmed the old key takes the new one without asking,
   because the old key, which the person answered for, is what vouches for it.
   It is kept in `.keys-confirmed` with `rotated:` and the old key's code, so
   what the person compared can be told from what followed from it, the same
-  way `carried` and `host:` are kept. The old key stays trusted for the
-  history it sealed before the switch.
+  way `carried` and `host:` are kept. From then on the old key answers for
+  nothing here: a copy from before the switch, or anything it seals after, is
+  disowned. The memo moves past the rotation only once the new key is kept, so
+  no round reads on by a key this machine does not hold to.
 - A machine that had **not** confirmed the old key gains nothing: it still
   waits for the person, now with the new key's code.
 - A machine that confirmed the new key, while the history's last seal is still
@@ -2416,7 +2426,9 @@ format of the 17 lets a machine move to a new key **on the word of the old one**
 **What the 1.25 does about it.** It reads a rotation and honours it; nothing in
 the 1.25 writes one. The format is fixed here so that the command that does can
 come in a later build without a new schema, and so that this build is not
-surprised by a rotation another one writes.
+surprised by a rotation another one writes. That build seals once more with the
+new key in the same write as the rotation, so the old key never has the last
+word and nobody who followed it waits for the next write.
 
 What it is for: a planned change, such as moving the key to the system's
 keychain, or retiring a key that may have been seen while it is still in this
