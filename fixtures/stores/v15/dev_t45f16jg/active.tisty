@@ -1,0 +1,6 @@
+{"v":15,"ts":"2026-10-09T20:41:55.1540296Z","by":"dev_t45f16jg","tz":"UTC","op":"task.add","id":"01M4H6D9PH0TPEW1N7Q8D4WAN6","d":{"title":"write the report","order":"V"}}
+{"v":15,"ts":"2026-10-09T20:41:55.1851944Z","by":"dev_t45f16jg","tz":"UTC","op":"task.add","id":"01M4H6D9QH0RCX9PD2VXBGA8C1","d":{"title":"call the bank","order":"W"}}
+{"v":15,"ts":"2026-10-09T20:41:55.2168521Z","by":"dev_t45f16jg","tz":"UTC","op":"task.add","id":"01M4H6D9RGYPN9CCA5JGAFHTEA","d":{"title":"buy bread","order":"X"}}
+{"v":15,"ts":"2026-10-09T20:41:55.2470013Z","by":"dev_t45f16jg","tz":"UTC","op":"task.done","id":"01M4H6D9RGYPN9CCA5JGAFHTEA"}
+{"v":15,"ts":"2026-10-09T20:41:55.2865029Z","by":"dev_t45f16jg","tz":"UTC","op":"device.join","d":"dev_t45f16jg","k":"machine"}
+{"v":15,"ts":"2026-10-09T20:41:55.322655Z","by":"dev_t45f16jg","tz":"UTC","op":"task.add","id":"01M4H6D9VTR0K8V942PKSF1D01","d":{"title":"renew the certificate","order":"Y"}}

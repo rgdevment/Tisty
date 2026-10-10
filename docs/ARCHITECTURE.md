@@ -1181,6 +1181,11 @@ faster rate. On that same store the log was 158 KB while the attachments were
 65 MB: **the log is 0.2% of the data directory, and attachments are four hundred
 times its size.**
 
+**Sealed, from the 17.** Every write also appends a seal of about 260 bytes (see
+*Schema 17*), which at one event a write roughly doubles those figures: 2 to 6 MB
+a year, about 270 MB after forty years, and on that same store about 320 KB — half
+a percent of the directory, with the attachments two hundred times its size.
+
 **Reading does not degrade with history.** Replaying is linear at about 6 µs an
 event — measured end to end through the CLI, 0.4 s at 50,000 events and 1.3 s at
 200,000, against a 0.1 s floor for starting the process at all. A warm read
@@ -1221,9 +1226,9 @@ trusted, and its failure is a deleted task coming back.
 performs deliberately — build a fresh store from the log keeping the tombstones,
 give it a new identity, and have every other machine adopt it. The machinery
 exists (`stitch`, `take_over`, `forebears`, and the four-answer question is the
-adoption step). It is not built because 130 MB over forty years does not justify
-asking every machine you own to adopt a new store, and a machine that never
-adopts is left clashing.
+adoption step). It is not built because 130 MB over forty years, about 270 MB
+once sealed, does not justify asking every machine you own to adopt a new
+store, and a machine that never adopts is left clashing.
 
 ### The sets that only grow
 
@@ -2278,35 +2283,70 @@ pair chains two copies that never followed each other.
 more line after its events:
 
 ```json
-{"v":17,"op":"seal","seg":3,"at":40960,"tip":"…","n":212,"inst":"…","sig":"…"}
+{"v":17,"op":"seal","seg":3,"at":40960,"tip":"…","n":212,"sig":"…"}
 ```
 
 - `seg` is the segment's number, not its file name, so renaming `active.tisty`
   to `000003.tisty` does not touch what was signed.
 - `at` is how many bytes came before the seal, `tip` the SHA-256 chain folded
-  across this machine's whole history up to there, `n` how many events it
-  holds. The last seal of a segment that rotates says `"closed":true`.
-- `inst` is the installation that wrote it: `machine::here()`, the digest of
-  the computer's own identifier that #153 already keeps in `config.inst`. It
-  sits inside what is signed, so two installations writing as one machine — a
-  configuration copied to another computer, two packages of one build — are
-  told apart by the very lines they write, and it can never be added later.
-- `sig` signs everything above it with the machine's key.
+  across this machine's whole history up to there — every line, earlier seals
+  included, each with its newline — `n` how many events it holds. The last seal
+  of a segment that rotates says `"closed":true`.
+- `sig` signs, with the machine's key, the exact bytes of the line up to the
+  last `,"sig":"`, together with the machine's name and a context no other
+  signature of Tisty shares, so one signature answers for one seal of one
+  machine and no other. A reader checks the bytes it holds and never writes
+  them out again.
+
+**A seal can grow without a new schema.** A reader skips the fields of a seal
+it does not know, and `sig` covers whatever stands in front of it, so a field a
+later build adds is signed from the first line that carries it and ignored by
+every build that cannot read it. That is why the installation that wrote a seal
+is not in it yet: `inst`, the digest the configuration keeps in `config.inst`,
+never leaves the configuration today, and putting it in a line every machine
+reads would change that, and the privacy notes with it. It can be added later as
+one more field, by whoever decides it should travel. The one field a seal never
+carries is `opt`, which lets a build walk past a line it cannot read: a seal
+that cannot be read has to stop whoever meets it.
 
 A segment and its signature are now one object. The seal is always the last
 line, which also makes the newest schema of a history readable from its tail.
 Reading follows from that:
 
 - Bytes after the last seal are on their way, never tampering: the history is
-  `Unreadable` this round, and whoever wrote them seals them again on opening
-  its store.
-- An `active.tisty` whose seal names a segment at or below the last closed one
-  is a leftover of a rotation carried halfway, and is skipped.
+  `Unreadable` for as long as they stay unsealed, and whoever wrote them seals
+  them again on its next write.
+- A segment that has a seal is read by its seals alone. A `.sig` or a `.count`
+  beside it — one a build before the 17 left, or a rotation carried halfway —
+  answers for nothing and is ignored, so an orphan can never leave a history
+  `Unreadable` for good.
+- The first seal answers for every byte before it, so a closed segment written
+  before it needs no `.sig` of its own once a seal follows; where no seal
+  follows yet, its `.sig` still decides.
+- An `active.tisty` whose last seal says `"closed":true` is read as the closed
+  segment it names. One whose seal names a segment at or below the last closed
+  one is a leftover of a rotation carried halfway, and is skipped.
 - Closed segments are uploaded only if they do not exist; the live one is a
   single object rewritten whole each round, against its revision where the
   provider has one. The size at which a segment rotates becomes the writer's to
   choose, about 1 MiB through an API, because the reader counts from the seal.
 - `.count` goes with `.sig`: the count lives in the seal.
+
+**What the writer promises.**
+
+- A closing seal goes down before the rename, never after, and the next write
+  after a rotation that was cut between the two finishes it, naming the file by
+  the seal's `seg`.
+- A segment that has a seal never gets a `.sig` or a `.count` of its own.
+- Without its key — blocked, say, by the system's keychain — the machine still
+  writes, because nobody is locked out of their own list, but it does not
+  rotate: a closed segment nobody sealed would be disowned for good. What it
+  wrote waits, unsealed, and the machines that read it find it on its way until
+  the key is back and the next write seals it. A key that is gone altogether is
+  not this case: that machine comes back under a new name, as it always has.
+- A last line that does not read — `mend` sets it aside — is dealt with first,
+  and the segment is sealed again over what remains, so a torn seal never
+  leaves events with nothing answering for them.
 
 **What else the 17 requires**, because each changes bytes that are signed or
 that other machines read:
@@ -2318,19 +2358,29 @@ that other machines read:
   it waits an hour and is then put to the person; under 17 every body has a
   print, so the wait can only end in its history arriving or the question.
 
-**Migration.** `SCHEMA_VERSION` becomes 17 with `SEALED_FROM = 17`. The first
-write at 17 rotates the active v16 segment the old way, with its `.sig` and
-`.count`, and carries the same hash chain on with seals in line. Segments
-without a seal are still read by their `.sig`. Once a machine has sealed, a
-later segment of its own without seals is disowned. A build that only knows 16
-stops at the first line with `"v":17`, as it already does for any newer schema.
+**What it costs.** A seal is about 260 bytes and every write carries one, so a
+write of a single event roughly doubles what it takes on disk while a batch pays
+it once. The figures under *Nothing shrinks* say what that comes to.
+
+**Migration.** `SCHEMA_VERSION` becomes 17 with `SEALED_FROM = 17`. Nothing is
+rotated and nothing is rewritten: the first write at 17 appends its events and a
+seal to the active segment as it stands. The seal's `tip` is the chain already
+folded across the whole history, v16 lines included, so one signature covers
+everything before it. The `.sig` that sat beside that segment stops answering
+for it and is left there until the rotation that closes the segment takes it
+away: an older build that met a half-written last line would otherwise read the
+history as tampered with and not merely unread. Closed segments from before are
+still read by their `.sig`, until a seal follows them. Once a machine has
+sealed, a later segment of its own without seals is disowned. A build that only
+knows 16 stops at the first line with `"v":17`, as it already does for any newer
+schema.
 
 ### Changing a machine's key without asking again
 
 A key is meant to outlive the computer's software, not to last forever. Until
 the 17, changing it meant reinstalling: the machine came back under a new name
-and every other machine had to confirm it again with its twenty digits. The 17
-lets a machine move to a new key **on the word of the old one**.
+and every other machine had to confirm it again with its twenty digits. The
+format of the 17 lets a machine move to a new key **on the word of the old one**.
 
 - The machine makes a new key and writes `device.rotate { d, p }`, `p` being
   the new key, in a batch sealed by the **old** key. That is the last seal the
@@ -2347,6 +2397,11 @@ lets a machine move to a new key **on the word of the old one**.
   waits for the person, now with the new key's code.
 - Agents keep their own road: a host vouches for its agent's new key exactly
   as it vouched for the first.
+
+**What the 1.25 does about it.** It reads a rotation and honours it; nothing in
+the 1.25 writes one. The format is fixed here so that the command that does can
+come in a later build without a new schema, and so that this build is not
+surprised by a rotation another one writes.
 
 What it is for: a planned change, such as moving the key to the system's
 keychain, or retiring a key that may have been seen while it is still in this
@@ -2568,7 +2623,9 @@ by reserving ids before creating, and checks a `Revision` just before writing,
 which is not atomic. The format does not lean on it: each machine writes only its
 own directory and a closed segment never changes. Whether that holds, and whether
 `drive.file` is shared between the desktop and phone clients of one project, is
-checked against Google itself before the format is closed.
+checked against Google itself before the cloud ships. The format does not wait
+for it: nothing in a seal asks a provider for a conditional write, so the 1.25
+closes the segment format without that check.
 
 ## Where things live
 

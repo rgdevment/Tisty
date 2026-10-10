@@ -8,6 +8,9 @@
 *.yml  text eol=lf
 *.json text eol=lf
 
+# Signed bytes: a conversion that touches one of them is a signature that no longer answers.
+fixtures/stores/** -text
+
 *.png binary
 *.ico binary
 *.icns binary
