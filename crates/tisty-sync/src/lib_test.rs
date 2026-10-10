@@ -6748,6 +6748,80 @@ fn a_body_that_lands_ahead_of_its_history_waits_for_it_and_then_comes_in() {
 }
 
 #[test]
+fn a_body_stays_here_while_the_history_that_answers_for_it_could_not_be_handed_on() {
+    let one = machine("uno");
+    let agent = Machine {
+        _dir: tempfile::tempdir().unwrap(),
+        data: one.data.clone(),
+        store: one.store.clone(),
+        device: "agente".into(),
+    };
+    let shared = tempfile::tempdir().unwrap();
+    let alive = ["agente-0001".to_string()];
+    let first = "# Notas
+
+lo primero
+";
+    filed(&agent, "agente-0001", first);
+    let id = tisty_core::State::replay(&tisty_core::store::read_all(&one.store).unwrap())
+        .docs
+        .values()
+        .find(|paper| paper.file == "agente-0001")
+        .map(|paper| paper.id)
+        .expect("the document is in the log");
+    says(
+        &agent,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(first),
+        },
+    );
+    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+    assert_eq!(body(shared.path(), "agente-0001"), first);
+
+    let then = "# Notas
+
+lo que vino despues
+";
+    paper(&agent, "agente-0001", then);
+    says(
+        &agent,
+        Op::DocSaid {
+            id,
+            d: tisty_core::event::Said::of(then),
+        },
+    );
+    let theirs = shared
+        .path()
+        .join(STORE)
+        .join("agente")
+        .join("active.tisty");
+    std::fs::write(
+        &theirs,
+        "not the history it was
+",
+    )
+    .unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+
+    assert_eq!(
+        body(shared.path(), "agente-0001"),
+        first,
+        "a body reached the folder ahead of the history that answers for it"
+    );
+
+    std::fs::remove_file(&theirs).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+
+    assert_eq!(
+        body(shared.path(), "agente-0001"),
+        then,
+        "the body did not follow once its history was handed on"
+    );
+}
+
+#[test]
 fn a_seal_travels_with_the_segment_it_answers_for() {
     let one = machine("dev_a");
     let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
@@ -8709,6 +8783,7 @@ fn a_body_that_changed_after_its_print_was_taken_is_not_installed() {
             newest: checked.clone(),
             own: None,
             others: Default::default(),
+            behind: false,
         },
     )]);
     let round = || {
@@ -8800,6 +8875,7 @@ fn a_body_only_another_machine_last_wrote_is_set_aside_before_it_replaces_ours()
         newest: Some("otra cosa".to_string()),
         own: None,
         others: std::collections::BTreeSet::from([print]),
+        behind: false,
     });
 
     assert_eq!(done.brought, 1);
@@ -8817,6 +8893,7 @@ fn a_body_the_log_answers_for_replaces_ours_without_setting_ours_aside() {
         newest: Some(print),
         own: None,
         others: Default::default(),
+        behind: false,
     });
 
     assert_eq!(done.brought, 1);
@@ -8825,6 +8902,31 @@ fn a_body_the_log_answers_for_replaces_ours_without_setting_ours_aside() {
         tisty_core::docs::read_before(&one.data, "dev_a-0001"),
         None,
         "a body the log answers for was set aside as if it were in doubt"
+    );
+}
+
+#[test]
+fn a_body_the_log_has_no_print_for_comes_in_with_ours_set_aside() {
+    let (one, done) = replaced_by_the_folder_under(|_| super::papers::Answers {
+        newest: None,
+        own: None,
+        others: Default::default(),
+        behind: false,
+    });
+
+    assert_eq!(done.brought, 1);
+    assert_eq!(
+        body(&one.data, "dev_a-0001"),
+        "# lo de otra maquina
+"
+    );
+    assert_eq!(
+        tisty_core::docs::read_before(&one.data, "dev_a-0001").as_deref(),
+        Some(
+            "# antes
+"
+        ),
+        "a body no print answers for replaced ours with nothing kept"
     );
 }
 

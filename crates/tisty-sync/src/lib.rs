@@ -18,7 +18,9 @@ pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
 pub use place::forget_carried_to;
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
-use segments::{Alike, Grew, Toward, hand_on, one_grew_from_the_other, ours_went_missing, sweep};
+use segments::{
+    Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
+};
 pub use shape::{NAMED, unseen as forget_shape};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -250,6 +252,7 @@ pub fn carry_through(
         }
     }
     let mut pushed = None;
+    let mut behind = std::collections::BTreeSet::new();
     if giving {
         if said.is_none() {
             pushed = as_told(&store, aside);
@@ -265,7 +268,9 @@ pub fn carry_through(
         let there = dest.join(STORE).join(device);
         plainly(&there)?;
         moved.sent = alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
-        moved.sent += hand_on(&store, device, dest, again, &mut alike)?;
+        let (handed, left) = hand_on_leaving(&store, device, dest, again, &mut alike)?;
+        moved.sent += handed;
+        behind = left;
     }
     let alive: Vec<String> = match &said {
         Some(one) => one.docs.values().map(|paper| paper.file.clone()).collect(),
@@ -315,6 +320,11 @@ pub fn carry_through(
             (
                 paper.file.clone(),
                 papers::Answers {
+                    behind: paper.print.as_ref().is_some_and(|newest| {
+                        let mut tellers = paper.told.iter().filter(|(_, print)| *print == newest);
+                        tellers.clone().next().is_some()
+                            && tellers.all(|(who, _)| behind.contains(who))
+                    }),
                     newest: paper.print.clone(),
                     own,
                     others,

@@ -5,6 +5,7 @@ fn said(newest: &str, others: &[&str]) -> Answers {
         newest: Some(newest.into()),
         own: None,
         others: others.iter().map(|one| one.to_string()).collect(),
+        behind: false,
     }
 }
 
@@ -49,6 +50,27 @@ fn what_a_trusted_history_says_comes_first_and_the_waiting_one_is_never_read() {
     assert_eq!(
         answered_for(Some(&"una-vieja".to_string()), Some(&says), &untouched),
         Answer::Doubtful
+    );
+}
+
+#[test]
+fn a_body_the_log_has_no_print_for_comes_in_with_what_was_here_set_aside() {
+    let silent = Answers {
+        newest: None,
+        own: None,
+        others: Default::default(),
+        behind: false,
+    };
+    let untouched = |_: &str| -> bool { panic!("the waiting history was read") };
+    assert_eq!(
+        answered_for(Some(&"cualquiera".to_string()), Some(&silent), &untouched),
+        Answer::Doubtful,
+        "a log with no print vouched for whatever the folder held"
+    );
+    assert_eq!(
+        answered_for(Some(&"cualquiera".to_string()), None, &untouched),
+        Answer::Doubtful,
+        "a document the log never named was vouched for"
     );
 }
 
