@@ -13,11 +13,12 @@ pub(crate) fn seats(store: &Path) -> std::collections::BTreeSet<tisty_core::even
 }
 
 fn anything_signed_in(dir: &Path) -> bool {
-    tisty_core::store::segments_in(dir).is_ok_and(|found| {
+    let signed = tisty_core::store::segments_in(dir).is_ok_and(|found| {
         found
             .iter()
             .any(|one| one.with_extension(tisty_core::signing::SIG).is_file())
-    })
+    });
+    signed || tisty_core::store::sealed_in(dir)
 }
 
 /// A machine's own word for what it signs with, read from the log only where nobody has answered

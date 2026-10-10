@@ -1,6 +1,6 @@
 use super::*;
 use crate::Store;
-use crate::event::Op;
+use crate::event::{Event, Op};
 
 struct Wrote {
     _room: tempfile::TempDir,
@@ -61,6 +61,14 @@ impl Wrote {
     fn ours_too(&self, segment: &str) {
         self.ours.borrow_mut().insert(segment.to_string());
     }
+
+    fn sixteen(&self) -> crate::sixteen::Sixteen {
+        crate::sixteen::Sixteen::at(
+            &self.dir,
+            &self.who,
+            signing::mine(&self.paths, &self.who).unwrap(),
+        )
+    }
 }
 
 #[test]
@@ -118,14 +126,14 @@ fn a_signature_made_by_somebody_else_does_not_answer() {
 }
 
 #[test]
-fn a_history_with_nothing_to_check_is_not_read_at_all() {
-    let held = a_machine_that_wrote(2);
-    std::fs::remove_file(held.dir.join("active.sig")).unwrap();
+fn a_history_from_before_signing_answers_as_one() {
+    let held = a_machine_that_wrote(0);
+    held.sixteen().unsigned((0..2).map(a_line));
 
     assert_eq!(
         held.asked(Reached::default()),
         Ok(Reached::default()),
-        "a history written before signing was folded for nothing"
+        "a history written before signing was taken for a signed one"
     );
 }
 
@@ -133,7 +141,8 @@ fn a_history_with_nothing_to_check_is_not_read_at_all() {
 /// without one has had it taken away, which is the cheapest attack there is on any of this.
 #[test]
 fn a_signature_taken_away_is_not_a_history_from_before_signing() {
-    let held = a_machine_that_wrote(2);
+    let held = a_machine_that_wrote(0);
+    held.sixteen().signed((0..2).map(a_line));
     let answered = held.asked(Reached::default()).unwrap();
     assert!(answered.signing, "it did not notice the machine signs");
 
@@ -146,12 +155,42 @@ fn a_signature_taken_away_is_not_a_history_from_before_signing() {
 }
 
 #[test]
-fn a_segment_still_being_written_may_answer_where_a_closed_one_did_not() {
+fn a_seal_taken_away_leaves_the_live_segment_on_its_way() {
+    let held = a_machine_that_wrote(2);
+    let answered = held.asked(Reached::default()).unwrap();
+    assert!(answered.signing);
+
+    unsealed(&held.dir.join("active.tisty"));
+
+    assert_eq!(
+        held.asked(answered),
+        Err(Adrift::Unreadable("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_closed_segment_that_lost_its_seals_is_disowned() {
     let held = a_machine_that_wrote(2);
     let mut store = held.signs();
     store.rotate().unwrap();
     store.append(a_line(9)).unwrap();
     drop(store);
+
+    unsealed(&held.dir.join("000001.tisty"));
+
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Disowned("000001.tisty".into()))
+    );
+}
+
+#[test]
+fn a_segment_still_being_written_may_answer_where_a_closed_one_did_not() {
+    let held = a_machine_that_wrote(0);
+    let mut old = held.sixteen();
+    old.signed((0..2).map(a_line));
+    old.closed();
+    old.signed([a_line(9)]);
     std::fs::remove_file(held.dir.join("000001.sig")).unwrap();
 
     let answered = held
@@ -163,6 +202,91 @@ fn a_segment_still_being_written_may_answer_where_a_closed_one_did_not() {
         answered.segment, 0,
         "it marked a segment that never answered"
     );
+}
+
+#[test]
+fn a_closed_segment_from_before_the_seal_is_answered_for_by_the_first_seal() {
+    let held = a_machine_that_wrote(0);
+    let mut old = held.sixteen();
+    old.signed((0..2).map(a_line));
+    old.closed();
+    std::fs::remove_file(held.dir.join("000001.sig")).unwrap();
+    held.signs().append(a_line(9)).unwrap();
+
+    let answered = held
+        .asked(Reached {
+            signing: true,
+            ..Default::default()
+        })
+        .expect("a seal did not answer for the segment written before it");
+
+    assert_eq!(answered.segment, 1);
+}
+
+#[test]
+fn a_history_the_16_signed_is_sealed_where_it_stands() {
+    let held = a_machine_that_wrote(0);
+    held.sixteen().signed((0..2).map(a_line));
+    let before = std::fs::read(held.dir.join("active.tisty")).unwrap();
+
+    held.signs().append(a_line(9)).unwrap();
+
+    let now = std::fs::read(held.dir.join("active.tisty")).unwrap();
+    assert!(
+        now.starts_with(&before),
+        "the history was rewritten to seal it"
+    );
+    assert!(
+        !held.dir.join("000001.tisty").exists(),
+        "it rotated to seal what was there"
+    );
+    let answered = held
+        .asked(Reached::default())
+        .expect("a history the 16 signed did not answer once sealed");
+    assert!(answered.signing);
+}
+
+#[test]
+fn a_history_from_before_signing_is_sealed_whole_by_the_first_write_with_a_key() {
+    let held = a_machine_that_wrote(0);
+    let mut old = held.sixteen();
+    old.unsigned((0..2).map(a_line));
+    old.closed();
+    old.unsigned([a_line(3)]);
+
+    held.signs().append(a_line(9)).unwrap();
+
+    let answered = held
+        .asked(Reached::default())
+        .expect("the first seal did not answer for the history before it");
+    assert!(answered.signing);
+    assert_eq!(answered.segment, 1);
+}
+
+#[test]
+fn what_was_written_past_the_last_seal_is_on_its_way_until_the_next_write_seals_it() {
+    let held = a_machine_that_wrote(2);
+    let event = Event::new(held.who.clone(), jiff::Timestamp::now(), a_line(7));
+    let mut active = std::fs::OpenOptions::new()
+        .append(true)
+        .open(held.dir.join("active.tisty"))
+        .unwrap();
+    std::io::Write::write_all(
+        &mut active,
+        format!("{}\n", serde_json::to_string(&event).unwrap()).as_bytes(),
+    )
+    .unwrap();
+    drop(active);
+
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Unreadable("active.tisty".into()))
+    );
+
+    held.signs().append(a_line(9)).unwrap();
+
+    held.asked(Reached::default())
+        .expect("the next write did not seal what was on its way");
 }
 
 #[test]
@@ -182,7 +306,6 @@ fn what_already_answered_is_not_read_again() {
     held.ours_too("000001.tisty");
     std::fs::remove_file(held.dir.join("000001.tisty")).unwrap();
     std::fs::create_dir(held.dir.join("000001.tisty")).unwrap();
-    std::fs::remove_file(held.dir.join("000001.sig")).unwrap();
 
     held.asked(answered)
         .expect("it read again what it had already checked");
@@ -240,7 +363,8 @@ fn a_segment_nobody_touched_is_not_disowned_for_being_read_again() {
 
 #[test]
 fn a_signature_that_does_not_verify_is_a_hand_and_never_heals() {
-    let held = a_machine_that_wrote(2);
+    let held = a_machine_that_wrote(0);
+    held.sixteen().signed((0..2).map(a_line));
     let other = DeviceId("dev_b".into());
     let theirs = signing::mine(&held.paths, &other).unwrap();
     let said = signing::signed(
@@ -268,8 +392,22 @@ fn a_signature_that_does_not_verify_is_a_hand_and_never_heals() {
 }
 
 #[test]
-fn a_signature_that_will_not_parse_can_heal() {
+fn a_seal_made_with_another_key_is_a_hand_and_never_heals() {
     let held = a_machine_that_wrote(2);
+    let other = signing::mine(&held.paths, &DeviceId("dev_b".into())).unwrap();
+
+    resealed(&held, &other);
+
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_signature_that_will_not_parse_can_heal() {
+    let held = a_machine_that_wrote(0);
+    held.sixteen().signed((0..2).map(a_line));
     let answered = held.asked(Reached::default()).unwrap();
     assert!(answered.signing);
 
@@ -281,11 +419,26 @@ fn a_signature_that_will_not_parse_can_heal() {
     );
 }
 
+#[test]
+fn a_seal_that_will_not_read_can_heal() {
+    let held = a_machine_that_wrote(2);
+    let active = held.dir.join("active.tisty");
+    let mut kept = without_the_last_line(&active);
+    kept.extend_from_slice(b"{\"v\":17,\"op\":\"seal\",\"seg\":1}\n");
+    std::fs::write(&active, kept).unwrap();
+
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Unreadable("active.tisty".into()))
+    );
+}
+
 /// A sidecar cut off mid-character, or zero-padded by the folder it travelled through, is a
 /// signature that will not read — not one somebody took away.
 #[test]
 fn a_sidecar_whose_bytes_are_not_text_can_heal() {
-    let held = a_machine_that_wrote(2);
+    let held = a_machine_that_wrote(0);
+    held.sixteen().signed((0..2).map(a_line));
     let answered = held.asked(Reached::default()).unwrap();
 
     std::fs::write(held.dir.join("active.sig"), [0xff, 0xfe, 0x41]).unwrap();
@@ -298,7 +451,11 @@ fn a_sidecar_whose_bytes_are_not_text_can_heal() {
 
 #[test]
 fn every_signature_taken_away_is_not_a_history_from_before_signing() {
-    let held = a_machine_that_wrote(2);
+    let held = a_machine_that_wrote(0);
+    let mut old = held.sixteen();
+    old.signed((0..2).map(a_line));
+    old.closed();
+    old.signed([a_line(3)]);
     let answered = held.asked(Reached::default()).unwrap();
     assert!(answered.signing);
 
@@ -315,9 +472,8 @@ fn every_signature_taken_away_is_not_a_history_from_before_signing() {
         }
     }
 
-    assert_eq!(
-        held.asked(answered),
-        Err(Adrift::Disowned(held.who.0.clone())),
+    assert!(
+        matches!(held.asked(answered), Err(Adrift::Disowned(_))),
         "every signature was stripped and the history came in anyway"
     );
     assert!(
@@ -329,7 +485,6 @@ fn every_signature_taken_away_is_not_a_history_from_before_signing() {
 struct Cut {
     far: tempfile::TempDir,
     old_active: Vec<u8>,
-    old_sig: Vec<u8>,
 }
 
 impl Cut {
@@ -341,7 +496,6 @@ impl Cut {
 fn a_rotation_cut_after_the_closed_segment_was_copied() -> (Wrote, Cut) {
     let held = a_machine_that_wrote(2);
     let old_active = std::fs::read(held.dir.join("active.tisty")).unwrap();
-    let old_sig = std::fs::read(held.dir.join("active.sig")).unwrap();
     let mut store = held.signs();
     store.append(a_line(2)).unwrap();
     store.rotate().unwrap();
@@ -351,19 +505,9 @@ fn a_rotation_cut_after_the_closed_segment_was_copied() -> (Wrote, Cut) {
     let far = tempfile::tempdir().unwrap();
     let dir = far.path().join("dev_a");
     std::fs::create_dir_all(&dir).unwrap();
-    for named in ["000001.tisty", "000001.sig", "000001.count"] {
-        std::fs::copy(held.dir.join(named), dir.join(named)).unwrap();
-    }
+    std::fs::copy(held.dir.join("000001.tisty"), dir.join("000001.tisty")).unwrap();
     std::fs::write(dir.join("active.tisty"), &old_active).unwrap();
-    std::fs::write(dir.join("active.sig"), &old_sig).unwrap();
-    (
-        held,
-        Cut {
-            far,
-            old_active,
-            old_sig,
-        },
-    )
+    (held, Cut { far, old_active })
 }
 
 #[test]
@@ -390,7 +534,6 @@ fn a_live_segment_that_is_not_what_the_closed_one_held_is_still_disowned() {
         .unwrap()
         .replace("the 1 thing", "the X thing");
     std::fs::write(cut.dir().join("active.tisty"), forged).unwrap();
-    std::fs::write(cut.dir().join("active.sig"), &cut.old_sig).unwrap();
 
     let answered = answers(
         &cut.dir(),
@@ -408,23 +551,9 @@ fn a_live_segment_that_is_not_what_the_closed_one_held_is_still_disowned() {
 }
 
 #[test]
-fn a_rotation_that_cannot_be_signed_leaves_the_segment_open() {
-    let held = a_machine_that_wrote(2);
-    let mut store = held.signs();
-    std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
-
-    let closed = store.rotate().unwrap();
-
-    assert!(!closed, "it closed a segment nothing answers for");
-    assert!(held.dir.join("active.tisty").is_file());
-    assert!(!held.dir.join("000001.tisty").exists());
-}
-
-#[test]
 fn a_live_segment_left_by_a_rotation_is_skipped_however_many_segments_closed_since() {
     let held = a_machine_that_wrote(2);
     let old_active = std::fs::read(held.dir.join("active.tisty")).unwrap();
-    let old_sig = std::fs::read(held.dir.join("active.sig")).unwrap();
     let mut store = held.signs();
     store.append(a_line(2)).unwrap();
     store.rotate().unwrap();
@@ -435,18 +564,10 @@ fn a_live_segment_left_by_a_rotation_is_skipped_however_many_segments_closed_sin
     let far = tempfile::tempdir().unwrap();
     let dir = far.path().join("dev_a");
     std::fs::create_dir_all(&dir).unwrap();
-    for named in [
-        "000001.tisty",
-        "000001.sig",
-        "000001.count",
-        "000002.tisty",
-        "000002.sig",
-        "000002.count",
-    ] {
+    for named in ["000001.tisty", "000002.tisty"] {
         std::fs::copy(held.dir.join(named), dir.join(named)).unwrap();
     }
     std::fs::write(dir.join("active.tisty"), &old_active).unwrap();
-    std::fs::write(dir.join("active.sig"), &old_sig).unwrap();
 
     let answered = answers(&dir, &held.who, &held.by(), Reached::default(), &|_| false);
 
@@ -455,47 +576,46 @@ fn a_live_segment_left_by_a_rotation_is_skipped_however_many_segments_closed_sin
 }
 
 #[test]
-fn a_segment_that_cannot_be_closed_keeps_taking_what_is_written_and_signs_it() {
+fn a_machine_without_its_key_keeps_writing_and_never_closes_a_segment() {
     let max = crate::store::SEGMENT_MAX_EVENTS;
     let held = a_machine_that_wrote(0);
-    let mut store = held.signs();
-    store
-        .append_batch((0..max - 5).map(a_line).collect())
-        .unwrap();
-    std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
+    let mut keyless = Store::open(held.paths.store(), held.who.clone()).unwrap();
 
-    store.append_batch((0..20).map(a_line).collect()).expect(
-        "a batch past the end of a segment was refused for a signature it could not close with",
-    );
+    keyless
+        .append_batch((0..max + 15).map(a_line).collect())
+        .expect("a machine without its key was kept from writing");
 
+    assert!(!held.dir.join("000001.tisty").exists());
     let lines = std::fs::read_to_string(held.dir.join("active.tisty"))
         .unwrap()
         .lines()
         .count();
     assert_eq!(lines, max + 15, "the batch was not written whole");
-    held.asked(Reached::default())
-        .expect("what was written was left without a signature that covers it");
+    assert_eq!(
+        held.asked(Reached::default()),
+        Err(Adrift::Unreadable("active.tisty".into())),
+        "what nobody sealed came in, or was called a hand"
+    );
 }
 
 #[test]
-fn a_segment_that_could_not_be_closed_is_closed_once_it_can() {
+fn a_segment_that_could_not_be_closed_is_closed_once_the_key_is_back() {
     let max = crate::store::SEGMENT_MAX_EVENTS;
     let held = a_machine_that_wrote(0);
-    let mut store = held.signs();
-    store.append_batch((0..max).map(a_line).collect()).unwrap();
-    std::fs::create_dir(held.dir.join("000001.sig")).unwrap();
-    store.append(a_line(max)).unwrap();
-    assert!(!held.dir.join("000001.tisty").exists());
-    std::fs::remove_dir(held.dir.join("000001.sig")).unwrap();
+    let mut keyless = Store::open(held.paths.store(), held.who.clone()).unwrap();
+    keyless
+        .append_batch((0..max + 1).map(a_line).collect())
+        .unwrap();
+    drop(keyless);
 
-    store.append(a_line(max + 1)).unwrap();
+    held.signs().append(a_line(max + 1)).unwrap();
 
     assert!(held.dir.join("000001.tisty").is_file());
     let lines = std::fs::read_to_string(held.dir.join("active.tisty"))
         .unwrap()
         .lines()
         .count();
-    assert_eq!(lines, 1);
+    assert_eq!(lines, 2, "one event and its seal");
     let reached = held
         .asked(Reached::default())
         .expect("the segment closed late did not answer");
@@ -503,23 +623,31 @@ fn a_segment_that_could_not_be_closed_is_closed_once_it_can() {
 }
 
 #[test]
-fn a_rotation_that_fails_after_the_rename_leaves_no_signature_without_a_segment() {
-    let max = crate::store::SEGMENT_MAX_EVENTS;
-    let held = a_machine_that_wrote(0);
-    let mut store = held.signs();
-    store
-        .append_batch((0..max - 5).map(a_line).collect())
-        .unwrap();
-    std::fs::create_dir(held.dir.join("000001.count")).unwrap();
+fn a_rotation_cut_between_its_seal_and_its_rename_is_finished_by_the_next_write() {
+    let held = a_machine_that_wrote(2);
+    let active = held.dir.join("active.tisty");
+    let bytes = std::fs::read(&active).unwrap();
+    let closing = crate::seal::Seal {
+        seg: 1,
+        at: bytes.len() as u64,
+        tip: signing::tip_of(signing::NOTHING_BEFORE, &bytes),
+        n: 2,
+        closed: true,
+    };
+    let key = signing::mine(&held.paths, &held.who).unwrap();
+    let mut cut = bytes.clone();
+    cut.extend_from_slice(crate::seal::line(&key, &held.who.0, &closing).as_bytes());
+    std::fs::write(&active, cut).unwrap();
+    held.asked(Reached::default())
+        .expect("a segment sealed closed but not yet renamed was refused");
 
-    let refused = store.append_batch((0..20).map(a_line).collect());
+    held.signs().append(a_line(9)).unwrap();
 
-    assert!(refused.is_err());
-    assert!(!held.dir.join("active.tisty").exists());
-    assert!(
-        !held.dir.join("active.sig").exists(),
-        "a signature was left for a segment that is not there"
-    );
+    assert!(held.dir.join("000001.tisty").is_file());
+    let lines = std::fs::read_to_string(&active).unwrap().lines().count();
+    assert_eq!(lines, 2, "one event and its seal");
+    let reached = held.asked(Reached::default()).unwrap();
+    assert_eq!(reached.segment, 1);
 }
 
 #[test]
@@ -537,4 +665,39 @@ fn an_empty_live_segment_is_not_taken_for_a_leftover() {
         matches!(answered, Err(Adrift::Unreadable(_))),
         "an emptied live segment was passed over as a leftover: {answered:?}"
     );
+}
+
+fn without_the_last_line(at: &std::path::Path) -> Vec<u8> {
+    let bytes = std::fs::read(at).unwrap();
+    let body = &bytes[..bytes.len() - 1];
+    let cut = body
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .map_or(0, |at| at + 1);
+    bytes[..cut].to_vec()
+}
+
+fn unsealed(at: &std::path::Path) {
+    let kept: String = std::fs::read_to_string(at)
+        .unwrap()
+        .lines()
+        .filter(|line| !line.contains("\"op\":\"seal\""))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    std::fs::write(at, kept).unwrap();
+}
+
+fn resealed(held: &Wrote, key: &signing::SigningKey) {
+    let active = held.dir.join("active.tisty");
+    let bytes = std::fs::read(&active).unwrap();
+    let last = bytes[..bytes.len() - 1]
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .map_or(0, |at| at + 1);
+    let crate::seal::Line::Seal(read) = crate::seal::read(&bytes[last..]) else {
+        panic!("the last line was not a seal");
+    };
+    let mut kept = bytes[..last].to_vec();
+    kept.extend_from_slice(crate::seal::line(key, &held.who.0, &read.seal).as_bytes());
+    std::fs::write(&active, kept).unwrap();
 }

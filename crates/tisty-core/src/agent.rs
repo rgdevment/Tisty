@@ -13,22 +13,23 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
     }
 
     let who = DeviceId(crate::config::new_device_id());
+    // Joining without a key would write what every other machine turns away from the 17 on.
+    let Some(key) = crate::signing::mine(paths, &who) else {
+        return Err(crate::Error::Io(std::io::Error::other(
+            "a key for the agent could not be kept on this machine",
+        )));
+    };
+    let shown = crate::signing::shown(&key);
     config.agent_id = Some(who.clone());
     config.save(paths)?;
 
-    if let Some(shown) = crate::signing::mine(paths, &who)
-        .as_ref()
-        .map(crate::signing::shown)
-    {
-        crate::vouched::confirm(paths.data(), &who, &shown);
-    }
-    let mut store =
-        Store::open(paths.store(), who.clone())?.signing_with(crate::signing::mine(paths, &who));
+    crate::vouched::confirm(paths.data(), &who, &shown);
+    let mut store = Store::open(paths.store(), who.clone())?.signing_with(Some(key));
     store.append_batch(vec![
         Op::DeviceJoin {
             d: who.clone(),
             k: Some(DeviceKind::Agent),
-            p: crate::signing::shown_kept(paths, &who),
+            p: Some(shown),
         },
         Op::DeviceHost {
             d: who.clone(),

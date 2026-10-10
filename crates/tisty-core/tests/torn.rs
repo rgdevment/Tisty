@@ -112,7 +112,9 @@ fn a_batch_that_crosses_a_segment_keeps_every_event_and_closes_what_it_left() {
     let root = room.path().join("store");
     let device = DeviceId("dev_a3f9".into());
 
-    let mut store = Store::open(&root, device.clone()).unwrap();
+    let mut store = Store::open(&root, device.clone())
+        .unwrap()
+        .signing_with(Some(tisty_core::signing::SigningKey::from_bytes(&[3; 32])));
     let many: Vec<Op> = (0..5_001).map(|n| list(&format!("lista {n}"))).collect();
     store.append_batch(many).unwrap();
     drop(store);
@@ -121,11 +123,13 @@ fn a_batch_that_crosses_a_segment_keeps_every_event_and_closes_what_it_left() {
     assert_eq!(held.read_all().unwrap().len(), 5_001);
 
     let dir = root.join(&device.0);
+    let closed =
+        std::fs::read_to_string(dir.join("000001.tisty")).expect("el segmento lleno se cerró");
     assert!(
-        dir.join("000001.tisty").is_file(),
-        "el segmento lleno se selló"
+        closed.lines().last().unwrap().contains("\"closed\":true"),
+        "y lo cierra su propio sello"
     );
-    assert!(dir.join("000001.count").is_file(), "y quedó con su cuenta");
+    assert!(!dir.join("000001.count").exists(), "sin una cuenta aparte");
 }
 
 #[test]

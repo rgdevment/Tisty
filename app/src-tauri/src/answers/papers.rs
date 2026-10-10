@@ -400,13 +400,7 @@ pub fn doc_new(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said {
-                title: made.title.clone(),
-                bytes: None,
-                tags: Some(Vec::new()),
-                by: None,
-                print: None,
-            }),
+            said: Some(tisty_core::event::Said::of("")),
             folder,
             page_of,
         },
@@ -597,13 +591,7 @@ pub fn settle_paper(
                 file: file.clone(),
                 folder,
                 order,
-                said: Some(tisty_core::event::Said {
-                    title: made.title.clone(),
-                    bytes: None,
-                    tags: Some(Vec::new()),
-                    by: None,
-                    print: None,
-                }),
+                said: Some(tisty_core::event::Said::of(&body)),
                 page_of,
             },
         })
@@ -752,15 +740,7 @@ pub fn docs_catch_up(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Fi
             .into_iter()
             .filter_map(|(one, said)| {
                 let kept = held.state.docs.values().find(|kept| kept.file == one.id)?;
-                let said = said
-                    .unwrap_or_else(|| tisty_core::event::Said {
-                        title: one.title.clone(),
-                        bytes: None,
-                        tags: Some(kept.tags.clone()),
-                        by: None,
-                        print: None,
-                    })
-                    .by(None);
+                let said = said?.by(None);
                 said.news_for(kept).then_some(Op::DocSaid {
                     id: kept.id,
                     d: said,

@@ -12,6 +12,7 @@ pub mod before;
 pub(crate) mod identity;
 pub use identity::guarded as keys_guarded;
 pub mod introduced;
+mod sealing;
 
 pub use identity::{
     KEEP, MARKER, brought_home, displaced, identity, kept_at, kept_before_the_store_goes,
@@ -39,6 +40,9 @@ pub struct Store {
     via: Option<String>,
     signs: Option<ed25519_dalek::SigningKey>,
     covers: Option<crate::signing::Covers>,
+    seg: u32,
+    closing: Option<u32>,
+    newest: u32,
 }
 
 impl Store {
@@ -69,13 +73,16 @@ impl Store {
         }
 
         mend(&dir);
-        let (active_events, head, seq) = tail_of(&dir.join(ACTIVE))?;
+        let tail = tail_of(&dir.join(ACTIVE))?;
         let seen = active_mark(&dir.join(ACTIVE));
 
         Ok(Self {
-            active_events,
-            head,
-            seq,
+            active_events: tail.events,
+            head: tail.head,
+            seq: tail.seq,
+            seg: next_segment_number(&dir)?,
+            closing: tail.closing,
+            newest: tail.newest,
             seen,
             overtaken: false,
             root,
@@ -111,59 +118,25 @@ impl Store {
         Ok(())
     }
 
-    /// A signature found here is only a base for what follows if this machine's own key answers
-    /// for it: `.sig` files arrive with a carry, so one in our directory is not ours to trust.
+    /// Only what our own key answers for is a base: a seal or a `.sig` that came with a carry is not.
     fn tip_now(&self) -> Option<crate::signing::Covers> {
-        let Some(key) = &self.signs else {
-            return Some(crate::signing::Covers {
-                tip: crate::signing::NOTHING_BEFORE,
-                at: 0,
-            });
-        };
-        let by = key.verifying_key();
-        let active = self.dir.join(ACTIVE);
-        let now = active_mark(&active).0;
-        if let Ok(said) = std::fs::read_to_string(active.with_extension(crate::signing::SIG))
-            && let crate::signing::Holds::Covers(held) =
-                crate::signing::holds(&by, &self.about(ACTIVE), &said)
-            && held.at <= now
-        {
-            return match read_from(&active, held.at) {
-                Ok(rest) => Some(crate::signing::Covers {
-                    tip: crate::signing::tip_of(held.tip, &rest),
-                    at: now,
-                }),
-                Err(_) => None,
-            };
-        }
-
-        let Ok(found) = segments_in(&self.dir) else {
-            return None;
-        };
-        let mut tip = crate::signing::NOTHING_BEFORE;
-        let mut onward = 0;
-        for (at, one) in found.iter().enumerate() {
-            let Some(named) = one.file_name().and_then(|one| one.to_str()) else {
-                continue;
-            };
-            if !is_closed(named) {
-                continue;
-            }
-            if let Ok(said) = std::fs::read_to_string(one.with_extension(crate::signing::SIG))
-                && let crate::signing::Holds::Covers(held) =
-                    crate::signing::holds(&by, &self.about(named), &said)
-                // A signature over a prefix leaves the rest of the segment out of the chain, and
-                // skipping it whole would sign a tip over bytes that were never folded in.
-                && std::fs::metadata(one).is_ok_and(|was| was.len() == held.at)
-            {
-                tip = held.tip;
-                onward = at + 1;
-            }
-        }
-        for one in found.iter().skip(onward) {
+        let by = self.signs.as_ref()?.verifying_key();
+        let found = segments_in(&self.dir).ok()?;
+        let (start, from, mut tip) = found
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(at, one)| {
+                let (from, tip) = sealing::answered_at(one, &self.device, &by)?;
+                Some((at, from, tip))
+            })
+            .unwrap_or((0, 0, crate::signing::NOTHING_BEFORE));
+        let mut at = 0;
+        for (index, one) in found.iter().enumerate().skip(start) {
+            let skip = if index == start { from } else { 0 };
             // Skipping one would sign a chain over bytes that are there, leaving every
             // reader that can read them to see a tip nobody can reach.
-            let Ok(said) = std::fs::read(one) else {
+            let Ok(rest) = read_from(one, skip) else {
                 witness::warn(
                     channel::STORE,
                     "a segment of this machine's own could not be read, so nothing it writes now is signed",
@@ -171,52 +144,16 @@ impl Store {
                 );
                 return None;
             };
-            tip = crate::signing::tip_of(tip, &said);
-            self.answers_for_what_it_closed(
-                one,
-                &crate::signing::Covers {
-                    tip,
-                    at: said.len() as u64,
-                },
-            );
+            tip = crate::signing::tip_of(tip, &rest);
+            at = skip + rest.len() as u64;
         }
-        Some(crate::signing::Covers { tip, at: now })
-    }
-
-    fn about<'a>(&'a self, segment: &'a str) -> crate::signing::About<'a> {
-        crate::signing::About {
-            device: &self.device.0,
-            segment,
-        }
-    }
-
-    fn answers_for_what_it_closed(&self, at: &Path, covers: &crate::signing::Covers) {
-        if !closed_at(at) || at.with_extension(crate::signing::SIG).exists() {
-            return;
-        }
-        if let Err(e) = self.seal(at, covers) {
-            unsigned(at, &e);
-        }
-    }
-
-    fn sign(&self, at: &Path) -> Result<()> {
-        let Some(covers) = self.covers else {
-            return Ok(());
-        };
-        self.seal(at, &covers)
-    }
-
-    fn seal(&self, at: &Path, covers: &crate::signing::Covers) -> Result<()> {
-        let Some(key) = &self.signs else {
-            return Ok(());
-        };
-        let Some(named) = at.file_name().and_then(|one| one.to_str()) else {
-            return Ok(());
-        };
-        write_atomic(
-            &at.with_extension(crate::signing::SIG),
-            crate::signing::signed(key, &self.about(named), covers).as_bytes(),
-        )
+        let live = found
+            .last()
+            .is_some_and(|one| one.file_name().is_some_and(|n| n == ACTIVE));
+        Some(crate::signing::Covers {
+            tip,
+            at: if live { at } else { 0 },
+        })
     }
 
     fn acquire(&mut self) -> Result<()> {
@@ -257,11 +194,14 @@ impl Store {
         // their lines and sign a chain nobody can recompute.
         self.covers = None;
         self.knows_where_it_stands()?;
-        let (events, head, seq) = tail_of(&active)?;
-        self.active_events = events;
-        if (head, seq) > (self.head, self.seq) {
-            self.head = head;
-            self.seq = seq;
+        let tail = tail_of(&active)?;
+        self.active_events = tail.events;
+        self.closing = tail.closing;
+        self.newest = tail.newest;
+        self.seg = next_segment_number(&self.dir)?;
+        if (tail.head, tail.seq) > (self.head, self.seq) {
+            self.head = tail.head;
+            self.seq = tail.seq;
         }
         self.seen = mark;
         Ok(())
@@ -406,12 +346,6 @@ impl Store {
     fn write_all(&mut self, events: &[Event]) -> Result<()> {
         let mut written = 0;
         let outcome = self.write_lots(events, &mut written);
-        if written > 0 && self.active_events > 0 {
-            let active = self.dir.join(ACTIVE);
-            if let Err(e) = self.sign(&active) {
-                unsigned(&active, &e);
-            }
-        }
         if outcome.is_ok() {
             self.seen = active_mark(&self.dir.join(ACTIVE));
         }
@@ -419,6 +353,13 @@ impl Store {
     }
 
     fn write_lots(&mut self, events: &[Event], written: &mut usize) -> Result<()> {
+        if self.newest > SCHEMA_VERSION {
+            return Err(Error::UnsupportedVersion {
+                version: self.newest,
+                device: self.device.0.clone(),
+            });
+        }
+        self.finish_a_cut_rotation()?;
         while *written < events.len() {
             let room = self.room(events.len() - *written)?;
             let lot = &events[*written..*written + room];
@@ -428,22 +369,42 @@ impl Store {
                 said.push_str(&serde_json::to_string(event)?);
                 said.push('\n');
             }
-
-            let mut file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(self.dir.join(ACTIVE))?;
-            file.write_all(said.as_bytes())?;
-            file.sync_all()?;
-            if let Some(covers) = self.covers {
-                self.covers = Some(crate::signing::Covers {
-                    tip: crate::signing::tip_of(covers.tip, said.as_bytes()),
-                    at: covers.at + said.len() as u64,
-                });
-            }
-
-            self.active_events += lot.len();
+            let n = self.active_events + lot.len();
+            self.sealed(&mut said, n, false);
+            self.appended(&said)?;
+            self.active_events = n;
             *written += lot.len();
+        }
+        Ok(())
+    }
+
+    /// The seal goes in the same append and the same `fsync` as what it answers for.
+    fn sealed(&self, said: &mut String, n: usize, closed: bool) {
+        let (Some(key), Some(covers)) = (&self.signs, self.covers) else {
+            return;
+        };
+        let seal = crate::seal::Seal {
+            seg: self.seg,
+            at: covers.at + said.len() as u64,
+            tip: crate::signing::tip_of(covers.tip, said.as_bytes()),
+            n: n as u64,
+            closed,
+        };
+        said.push_str(&crate::seal::line(key, &self.device.0, &seal));
+    }
+
+    fn appended(&mut self, said: &str) -> Result<()> {
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(self.dir.join(ACTIVE))?;
+        file.write_all(said.as_bytes())?;
+        file.sync_all()?;
+        if let Some(covers) = self.covers {
+            self.covers = Some(crate::signing::Covers {
+                tip: crate::signing::tip_of(covers.tip, said.as_bytes()),
+                at: covers.at + said.len() as u64,
+            });
         }
         Ok(())
     }
@@ -455,46 +416,57 @@ impl Store {
         Ok(wanted.min(SEGMENT_MAX_EVENTS - self.active_events))
     }
 
+    /// A segment nobody sealed would be disowned for good once closed, so without a key it stays open.
     pub(crate) fn rotate(&mut self) -> Result<bool> {
         self.knows_where_it_stands()?;
+        if self.signs.is_none() {
+            return Ok(false);
+        }
         let active = self.dir.join(ACTIVE);
         if !active.try_exists()? {
-            self.start_over();
+            self.start_over()?;
             return Ok(true);
         }
-        let next = next_segment_number(&self.dir)?;
-        let closed = self.dir.join(format!("{next:06}.tisty"));
-        // Signed before the rename, never after: a death in between would leave a segment
-        // nothing ever signs, and no later pass goes back for it.
-        if let Err(e) = self.sign(&closed) {
+        let mut closing = String::new();
+        self.sealed(&mut closing, self.active_events, true);
+        if let Err(e) = self.appended(&closing) {
             witness::warn(
                 channel::STORE,
-                "a segment was not closed because its signature could not be written",
+                "a segment was not closed because its seal could not be written",
                 &[
-                    ("at", Fact::Path(closed)),
+                    ("at", Fact::Path(active)),
                     ("why", Fact::Why(e.to_string())),
                 ],
             );
             return Ok(false);
         }
-        std::fs::rename(&active, &closed)?;
-        self.start_over();
-        self.take_away_the_signature_of(&active);
+        self.closed_as(self.seg)
+    }
 
-        let (lines, _, _) = tail_of(&closed)?;
-        write_atomic(
-            &closed.with_extension("count"),
-            lines.to_string().as_bytes(),
-        )?;
+    fn finish_a_cut_rotation(&mut self) -> Result<()> {
+        match self.closing {
+            Some(seg) => self.closed_as(seg).map(|_| ()),
+            None => Ok(()),
+        }
+    }
+
+    fn closed_as(&mut self, seg: u32) -> Result<bool> {
+        let active = self.dir.join(ACTIVE);
+        std::fs::rename(&active, self.dir.join(format!("{seg:06}.tisty")))?;
+        self.take_away_the_signature_of(&active);
+        self.start_over()?;
         Ok(true)
     }
 
-    fn start_over(&mut self) {
+    fn start_over(&mut self) -> Result<()> {
         self.active_events = 0;
         self.seen = Mark::default();
+        self.closing = None;
+        self.seg = next_segment_number(&self.dir)?;
         if let Some(covers) = self.covers {
             self.covers = Some(crate::signing::Covers { at: 0, ..covers });
         }
+        Ok(())
     }
 
     fn take_away_the_signature_of(&mut self, active: &Path) {
@@ -540,19 +512,8 @@ pub fn read_all(store_root: impl AsRef<Path>) -> Result<Vec<Event>> {
         contiguous(&segments)?;
 
         for segment in segments {
-            let closed = segment.file_name().is_some_and(|n| n != ACTIVE);
-            let found = read_segment(&segment, &mut events)?;
-
-            if closed {
-                let declared = declared_count(&segment);
-                if found == 0 || declared.is_some_and(|n| n != found) {
-                    return Err(Error::TruncatedSegment {
-                        file: segment.display().to_string(),
-                        found,
-                        declared,
-                    });
-                }
-            }
+            let read = read_segment(&segment, &mut events)?;
+            whole(&segment, &read)?;
         }
     }
 
@@ -759,6 +720,17 @@ pub fn distinct_in(device_dir: &Path) -> Result<usize> {
     Ok(events.len())
 }
 
+/// Read from the newest two segments: a live one cut short may not end in a seal yet.
+pub fn sealed_in(device_dir: &Path) -> bool {
+    segments_in(device_dir).is_ok_and(|found| {
+        found
+            .iter()
+            .rev()
+            .take(2)
+            .any(|one| sealing::holds_a_seal(one))
+    })
+}
+
 pub fn newest_schema(device_dir: &Path) -> Result<u32> {
     for segment in segments_in(device_dir)?.iter().rev() {
         let Some(line) = last_line(segment)? else {
@@ -825,19 +797,34 @@ pub fn check_device(device_dir: &Path) -> Result<usize> {
 
     let mut events = Vec::new();
     for segment in &segments {
-        let found = read_segment(segment, &mut events)?;
-        if segment.file_name().is_some_and(|n| n != ACTIVE) {
-            let declared = declared_count(segment);
-            if found == 0 || declared.is_some_and(|n| n != found) {
-                return Err(Error::TruncatedSegment {
-                    file: segment.display().to_string(),
-                    found,
-                    declared,
-                });
-            }
-        }
+        let read = read_segment(segment, &mut events)?;
+        whole(segment, &read)?;
     }
     Ok(events.len())
+}
+
+/// A closed segment counts itself in its closing seal; one that does not end in it is still arriving.
+fn whole(segment: &Path, read: &Lines) -> Result<()> {
+    if segment.file_name().is_none_or(|n| n == ACTIVE) {
+        return Ok(());
+    }
+    let found = read.events;
+    let declared = match read.sealed {
+        true => read.closing.map(|n| n as usize),
+        false => declared_count(segment),
+    };
+    let short = match read.sealed {
+        true => declared != Some(found),
+        false => declared.is_some_and(|n| n != found),
+    };
+    if found == 0 || short {
+        return Err(Error::TruncatedSegment {
+            file: segment.display().to_string(),
+            found,
+            declared,
+        });
+    }
+    Ok(())
 }
 
 fn contiguous(segments: &[PathBuf]) -> Result<()> {
@@ -887,9 +874,16 @@ struct Stamped {
     op: String,
 }
 
+#[derive(Debug)]
+struct Lines {
+    events: usize,
+    sealed: bool,
+    closing: Option<u64>,
+}
+
 /// A closed segment declares lines, not events, so a skipped one must still be counted or the
 /// count check reads it as a truncated download.
-fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<usize> {
+fn read_segment(path: &Path, out: &mut Vec<Event>) -> Result<Lines> {
     read_segment_from(path, 0, out)
 }
 
@@ -900,20 +894,23 @@ pub fn read_tail(path: &Path, from: u64) -> Result<Vec<Event>> {
     Ok(out)
 }
 
-fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usize> {
+fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lines> {
     let mut file = File::open(path)?;
     crate::counting::opened();
     if from > 0 {
         use std::io::Seek;
         file.seek(std::io::SeekFrom::Start(from))?;
     }
-    let mut lines = 0;
+    let mut lines = Lines {
+        events: 0,
+        sealed: false,
+        closing: None,
+    };
     for (i, line) in BufReader::new(file).lines().enumerate() {
         let line = line?;
         if line.trim().is_empty() {
             continue;
         }
-        lines += 1;
 
         let malformed = |source| Error::MalformedEvent {
             file: path.display().to_string(),
@@ -943,9 +940,21 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<usi
                     device: written_by(path),
                 });
             }
+            lines.events += 1;
+            lines.closing = None;
             skipped(format!("schema {}", stamp.v));
             continue;
         }
+        if crate::seal::is_seal(stamp.v, &stamp.op) {
+            lines.sealed = true;
+            lines.closing = match crate::seal::read(line.as_bytes()) {
+                crate::seal::Line::Seal(read) => read.seal.closed.then_some(read.seal.n),
+                _ => None,
+            };
+            continue;
+        }
+        lines.events += 1;
+        lines.closing = None;
 
         // Only an operation this build has never heard of is forgiven, whatever schema it came
         // under; a known one that fails to parse is corruption, and waving it through would
@@ -1178,29 +1187,49 @@ fn mend(dir: &Path) {
     );
 }
 
-fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
+struct Tail {
+    events: usize,
+    head: jiff::Timestamp,
+    seq: u64,
+    closing: Option<u32>,
+    newest: u32,
+}
+
+fn tail_of(path: &Path) -> Result<Tail> {
+    let mut tail = Tail {
+        events: 0,
+        head: jiff::Timestamp::UNIX_EPOCH,
+        seq: 0,
+        closing: None,
+        newest: 0,
+    };
     let file = match File::open(path) {
         Ok(file) => file,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Ok((0, jiff::Timestamp::UNIX_EPOCH, 0));
-        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(tail),
         Err(e) => return Err(Error::Io(e)),
     };
-
-    let mut lines = 0usize;
-    let mut head = jiff::Timestamp::UNIX_EPOCH;
-    let mut seq = 0u64;
 
     for line in BufReader::new(file).lines() {
         let line = line?;
         if line.trim().is_empty() {
             continue;
         }
-        lines += 1;
+        if let Ok(one) = serde_json::from_str::<Written>(&line) {
+            tail.newest = tail.newest.max(one.v);
+        }
+        match crate::seal::read(line.as_bytes()) {
+            crate::seal::Line::Seal(read) => {
+                tail.closing = read.seal.closed.then_some(read.seal.seg);
+                continue;
+            }
+            crate::seal::Line::Broken => continue,
+            crate::seal::Line::Other => tail.closing = None,
+        }
+        tail.events += 1;
         match serde_json::from_str::<Event>(&line) {
-            Ok(event) if (event.timestamp, event.seq) > (head, seq) => {
-                head = event.timestamp;
-                seq = event.seq;
+            Ok(event) if (event.timestamp, event.seq) > (tail.head, tail.seq) => {
+                tail.head = event.timestamp;
+                tail.seq = event.seq;
             }
             Ok(_) => {}
             Err(_) => witness::warn(
@@ -1208,23 +1237,12 @@ fn tail_of(path: &Path) -> Result<(usize, jiff::Timestamp, u64)> {
                 "segment line unreadable",
                 &[
                     ("at", Fact::Path(path.to_path_buf())),
-                    ("line", Fact::Count(lines)),
+                    ("line", Fact::Count(tail.events)),
                 ],
             ),
         }
     }
-    Ok((lines, head, seq))
-}
-
-fn unsigned(at: &Path, why: &Error) {
-    witness::warn(
-        channel::STORE,
-        "what this machine wrote could not be signed, so nothing here answers for it",
-        &[
-            ("at", Fact::Path(at.to_path_buf())),
-            ("why", Fact::Why(why.to_string())),
-        ],
-    );
+    Ok(tail)
 }
 
 pub fn left_over(segments: &[PathBuf], live: &Path, bytes: &[u8]) -> bool {
