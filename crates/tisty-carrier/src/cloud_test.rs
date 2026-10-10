@@ -1254,11 +1254,45 @@ fn a_cloud_asked_again_before_its_provider_s_interval_is_not_asked_at_all() {
         one.round(Way::Both);
         fake.forget_counts();
 
-        one.carrier.stirring();
-        one.carrier.stirring();
-        one.carrier.stirring();
+        for _ in 0..3 {
+            desk(&setting, "dev_a").carrier.stirring();
+        }
 
         assert_eq!(fake.counts().lists, 1, "{who}: every glance cost a request");
+    }
+}
+
+#[test]
+fn what_this_machine_sent_up_is_not_taken_for_a_stir_from_elsewhere() {
+    for (setting, _) in each_kind(|fake| fake.polled_every(Duration::ZERO)) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.filed(
+            DOC,
+            "# Plan
+
+uno
+",
+        );
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let still = desk(&setting, "dev_a").carrier.stirring();
+
+        one.wrote("lo nuevo de uno");
+        one.edited(
+            DOC,
+            "# Plan
+
+dos
+",
+        );
+        one.round(Way::Both);
+
+        assert_eq!(
+            still,
+            desk(&setting, "dev_a").carrier.stirring(),
+            "{who}: its own write set off another round"
+        );
     }
 }
 

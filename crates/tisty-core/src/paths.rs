@@ -131,9 +131,13 @@ impl Paths {
                 })
                 .collect()
         };
-        self.config
-            .join("cloud")
-            .join(format!("{}-{}", plain(provider), plain(account)))
+        let whole = crate::attach::printed(format!("{provider}\u{0}{account}").as_bytes());
+        self.config.join("cloud").join(format!(
+            "{}-{}-{}",
+            plain(provider),
+            plain(account),
+            &whole[..12]
+        ))
     }
 }
 

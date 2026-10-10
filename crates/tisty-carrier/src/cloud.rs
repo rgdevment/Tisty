@@ -1,15 +1,15 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
     Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason, Remote,
-    Round, STORE, Signed, Stitched, Told, Trouble,
+    Round, STORE, Seen, Signed, Stitched, Told, Trouble,
 };
 
 mod index;
@@ -27,6 +27,7 @@ const FORGOTTEN: &str = "forgotten";
 const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
 const QUIET_STRETCH: u32 = 4;
+const STIRRING: &str = "stirring.json";
 
 struct Done<T> {
     value: Option<T>,
@@ -39,13 +40,12 @@ pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
     tried: AtomicBool,
-    stir: Mutex<Stir>,
 }
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 struct Stir {
-    asked: Option<Instant>,
-    every: Duration,
+    asked_ms: u64,
+    every_ms: u64,
     mark: u64,
 }
 
@@ -55,7 +55,6 @@ impl Cloud {
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
-            stir: Mutex::default(),
         }
     }
 
@@ -167,23 +166,30 @@ impl Cloud {
 
     fn asked_again(&self) -> u64 {
         let poll = self.remote.limits().poll_every;
-        let Ok(mut stir) = self.stir.lock() else {
-            return 0;
-        };
-        if stir.asked.is_some_and(|at| at.elapsed() < stir.every) {
+        let at = self.home.join(STIRRING);
+        let mut stir: Stir = std::fs::read(&at)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .unwrap_or_default();
+        let now = now_ms();
+        if stir.asked_ms > 0 && now.saturating_sub(stir.asked_ms) < stir.every_ms {
             return stir.mark;
         }
-        stir.asked = Some(Instant::now());
-        let since = Index::load(&self.home).cursor;
-        match self.remote.changes(since.as_deref()) {
-            Ok(Changes::Since { changed, gone, .. }) if changed.is_empty() && gone.is_empty() => {
-                stir.every = (stir.every * 2).clamp(poll, poll * QUIET_STRETCH);
-            }
-            Ok(changes) => {
+        stir.asked_ms = now;
+        let every = Duration::from_millis(stir.every_ms);
+        let index = Index::load(&self.home);
+        let next = match self.remote.changes(index.cursor.as_deref()) {
+            Ok(changes) if news(&index, &changes) => {
                 stir.mark = marked(&changes);
-                stir.every = poll;
+                poll
             }
-            Err(_) => stir.every = stir.every.max(poll),
+            Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
+            Err(_) => every.max(poll),
+        };
+        stir.every_ms = u64::try_from(next.as_millis()).unwrap_or(u64::MAX);
+        if let Ok(bytes) = serde_json::to_vec(&stir) {
+            let _ = std::fs::create_dir_all(&self.home);
+            let _ = tisty_core::store::write_atomic(&at, &bytes);
         }
         stir.mark
     }
@@ -367,6 +373,39 @@ impl Carrier for Cloud {
         }
         if let Ok(Some(_round)) = lock::Round::take(&self.home) {
             self.forget_asked(&self.tree());
+        }
+    }
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |since| {
+            u64::try_from(since.as_millis()).unwrap_or(u64::MAX)
+        })
+}
+
+fn news(index: &Index, changes: &Changes) -> bool {
+    let ours = |name: &str| mirror::mirrored(name) || index::on_shelf(name);
+    let held = |name: &str| index.tree.contains_key(name) || index.shelf.contains_key(name);
+    let known = |one: &Seen| {
+        index.tree.get(&one.name).map(|was| &was.seen.revision) == Some(&one.revision)
+            || index.shelf.get(&one.name).map(|was| &was.revision) == Some(&one.revision)
+    };
+    match changes {
+        Changes::Since { changed, gone, .. } => {
+            changed.iter().any(|one| ours(&one.name) && !known(one))
+                || gone.iter().any(|name| held(name))
+        }
+        Changes::Whole { seen, .. } => {
+            let listed: std::collections::BTreeSet<&str> =
+                seen.iter().map(|one| one.name.as_str()).collect();
+            seen.iter().any(|one| ours(&one.name) && !known(one))
+                || index
+                    .tree
+                    .keys()
+                    .chain(index.shelf.keys())
+                    .any(|name| !listed.contains(name.as_str()))
         }
     }
 }

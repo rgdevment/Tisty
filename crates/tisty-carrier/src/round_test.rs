@@ -27,7 +27,7 @@ impl Shared {
     fn new() -> Self {
         let room = tempfile::tempdir().unwrap();
         let root = room.path().join("provider");
-        let remote = Arc::new(FolderBacked::at(&root));
+        let remote = Arc::new(FolderBacked::at(&root).polled_every(std::time::Duration::ZERO));
         Self { room, root, remote }
     }
 

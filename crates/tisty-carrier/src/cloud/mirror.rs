@@ -495,6 +495,6 @@ fn is_history(name: &str) -> bool {
             .is_some_and(|(stem, _)| tisty_core::store::is_segment(&format!("{stem}.tisty")))
 }
 
-fn mirrored(name: &str) -> bool {
+pub(super) fn mirrored(name: &str) -> bool {
     name == NAMED || is_history(name) || is_doc(name)
 }

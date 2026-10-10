@@ -396,6 +396,12 @@ fn a_cloud_mirror_stays_with_this_machine_s_settings_and_never_with_its_data() {
     assert!(!home.starts_with(p.cache()), "{home:?}");
     assert_ne!(home, p.cloud_home("drive", "otra@ejemplo.cl"));
     assert_ne!(home, p.cloud_home("onedrive", "ana@ejemplo.cl"));
+    assert_ne!(
+        p.cloud_home("drive", "ana.b@ejemplo.cl"),
+        p.cloud_home("drive", "ana-b@ejemplo.cl"),
+        "two accounts that read alike share one mirror"
+    );
+    assert_ne!(p.cloud_home("a-b", "c"), p.cloud_home("a", "b-c"));
     let sly = p.cloud_home("drive", "../../data/Tisty");
     assert_eq!(
         sly.parent(),
