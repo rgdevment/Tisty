@@ -2449,11 +2449,17 @@ machine and confirming a fresh one, which the person does by looking.
 
 ## The cloud: one carrier, chosen once
 
-Designed, and being built from the bottom. The first pieces are in place:
+Designed, and being built from the bottom, with no network code yet.
 `tisty-carrier` holds `Here`, `Round`, the `Carrier` trait, `chosen()` and
 `Folder`, which hands every call to `tisty-sync` unchanged, and the window, the
 command line and the assistant's door reach syncing only through it, so
-`tisty-sync` is no longer a dependency of either. A carrier is shared, not
+`tisty-sync` is no longer a dependency of either. Beside `Folder` stands
+`Cloud`, the same round over a local mirror, and the `Remote` contract it
+speaks; what answers that contract today are the test providers alone: one per
+provider with its limits, one that lags, truncates and leaves conflict copies,
+and one kept in a real folder, so that the round's own cases run once on the
+folder and again on a cloud over the very same files. `Sync` names no cloud
+yet: that waits for the first real provider. A carrier is shared, not
 cloned, within a round (`Shared` is an `Arc`), and its methods take `&self`
 with `Send + Sync`: a carrier that keeps tokens, a cursor or a budget keeps
 them behind interior mutability, once.

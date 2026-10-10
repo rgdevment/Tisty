@@ -172,11 +172,12 @@ Being explicit here matters more than sounding reassuring.
   document body that matches none of the prints the log holds for it is never
   taken in: when only another machine changed it, it waits up to an hour on
   this machine's clock for its history, and then you are asked. A document
-  body that the log holds no print of at all is taken in as it arrives; the
-  window checks an attachment against the prefix of its digest that its name
-  carries rather than all of it, and only the sync round, when the log records
-  the full digest, demands every byte match; and `tisty.toml`, which names the
-  store, is not signed. Someone who can write to the folder can also delete
+  body that the log holds no print of at all, from before every body had one,
+  is taken in with what this machine held set aside, since nothing answers for
+  it either way. An attachment is held to the full digest the log records for
+  it, by the sync round and by the window alike; one the log has no digest for
+  is held only to the prefix its name carries. And `tisty.toml`, which names
+  the store, is not signed. Someone who can write to the folder can also delete
   from it, and no signature brings back what was removed.
 
   What it does check besides is narrower and worth stating: it never writes
