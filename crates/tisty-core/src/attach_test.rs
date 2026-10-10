@@ -1520,3 +1520,17 @@ fn what_was_kept_says_its_name_its_digest_and_its_weight() {
         "what it tells does not answer for the name it kept"
     );
 }
+
+#[test]
+fn a_name_in_capitals_is_not_the_one_we_write_and_vouches_for_nothing() {
+    let sha256 = printed(b"lo grabado");
+    let (shelf, rest) = sha256.split_at(2);
+    let stamp = &rest[..8];
+
+    assert!(vouched(shelf, &format!("charla-{stamp}.mp4"), &sha256));
+    assert!(
+        !vouched(shelf, &format!("charla-{stamp}.MP4"), &sha256),
+        "a capital extension stood for the file a drive that ignores case keeps under the same name"
+    );
+    assert!(!vouched(shelf, &format!("Charla-{stamp}.mp4"), &sha256));
+}
