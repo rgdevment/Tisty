@@ -1191,5 +1191,25 @@ fn a_machine_on_the_folder_and_one_on_a_cloud_over_the_same_files_keep_one_histo
     }
 }
 
+#[test]
+fn a_sibling_of_a_kind_this_build_has_no_name_for_still_travels() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        let later = one.here.data.join(STORE).join("dev_a").join("active.later");
+        std::fs::write(&later, b"lo que escribe una version futura").unwrap();
+
+        one.round(Way::Both);
+        two.round(Way::Both);
+
+        assert_eq!(
+            std::fs::read(two.here.data.join(STORE).join("dev_a").join("active.later")).ok(),
+            Some(b"lo que escribe una version futura".to_vec()),
+            "{who}: a sibling a later build wrote was left behind"
+        );
+    }
+}
+
 #[path = "converge_test.rs"]
 mod converge;

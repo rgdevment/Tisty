@@ -50,6 +50,7 @@ struct Entry {
     body: Vec<u8>,
     revision: u64,
     shown_from: u64,
+    was: Option<(Vec<u8>, u64)>,
 }
 
 #[derive(Default)]
@@ -148,6 +149,7 @@ impl Fake {
             body,
             revision: id,
             shown_from,
+            was: None,
         });
         shelf.touched.push((id, copy.clone(), shown_from));
         copy
@@ -169,6 +171,7 @@ impl Fake {
             body: body.to_vec(),
             revision: id,
             shown_from,
+            was: None,
         });
         shelf.touched.push((id, name.to_string(), shown_from));
     }
@@ -227,17 +230,26 @@ impl Fake {
 
     fn listed(&self, shelf: &Shelf, under: &str) -> Vec<Seen> {
         let mut firsts: BTreeMap<String, &Entry> = BTreeMap::new();
-        for one in shelf
-            .files
-            .iter()
-            .filter(|one| self.within(&one.name, under) && one.shown_from <= shelf.listings)
-        {
+        for one in shelf.files.iter().filter(|one| {
+            self.within(&one.name, under) && (one.shown_from <= shelf.listings || one.was.is_some())
+        }) {
             let slot = firsts.entry(self.key(&one.name)).or_insert(one);
             if one.id < slot.id {
                 *slot = one;
             }
         }
-        firsts.values().map(|one| self.seen(one)).collect()
+        firsts
+            .values()
+            .map(|one| match (&one.was, one.shown_from <= shelf.listings) {
+                (Some((body, revision)), false) => Seen {
+                    name: one.name.clone(),
+                    bytes: body.len() as u64,
+                    hash: self.hash(body),
+                    revision: format!("r{revision}"),
+                },
+                _ => self.seen(one),
+            })
+            .collect()
     }
 
     fn spend(&self, shelf: &mut Shelf, requests: u64, cost: u64) {
@@ -261,9 +273,15 @@ impl Fake {
         let shown_from = shelf.listings + 1 + self.lag;
         let seen = match at {
             Some(at) => {
-                shelf.files[at].body = body;
-                shelf.files[at].revision = stamp;
-                shelf.files[at].shown_from = shown_from;
+                let listed_now = shelf.files[at].shown_from <= shelf.listings;
+                let one = &mut shelf.files[at];
+                // An index that lags keeps listing the revision it last showed, never nothing.
+                if listed_now {
+                    one.was = Some((std::mem::take(&mut one.body), one.revision));
+                }
+                one.body = body;
+                one.revision = stamp;
+                one.shown_from = shown_from;
                 self.seen(&shelf.files[at])
             }
             None => {
@@ -273,6 +291,7 @@ impl Fake {
                     body,
                     revision: stamp,
                     shown_from,
+                    was: None,
                 };
                 let seen = self.seen(&one);
                 shelf.files.push(one);

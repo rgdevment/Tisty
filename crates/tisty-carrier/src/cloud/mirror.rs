@@ -490,10 +490,9 @@ fn is_history(name: &str) -> bool {
     let Some((_, leaf)) = rest.split_once('/').filter(|(_, leaf)| !leaf.contains('/')) else {
         return false;
     };
-    leaf.rsplit_once('.').is_some_and(|(stem, ext)| {
-        matches!(ext, "tisty" | "sig" | "count")
-            && tisty_core::store::is_segment(&format!("{stem}.tisty"))
-    })
+    tisty_core::store::is_segment(leaf)
+        || tisty_core::store::beside_a_segment(leaf)
+            .is_some_and(|(stem, _)| tisty_core::store::is_segment(&format!("{stem}.tisty")))
 }
 
 fn mirrored(name: &str) -> bool {
