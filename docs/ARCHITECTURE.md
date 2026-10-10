@@ -2599,8 +2599,9 @@ the store, with `/`, and it names exactly one file:
   in its limits. `Absent` on another spelling is refused as `Changed`; `Any` and
   a revision replace the file and hand back the spelling it holds, which is how
   a caller notices. Names Tisty makes itself are lowercase, so it does not come
-  up for them; an attachment's name carries the original file name, and two
-  spellings under one stamp are the same bytes.
+  up for them: an attachment's name and extension are lowered when it is kept,
+  and one spelled any other way vouches for nothing, so no second spelling of a
+  name is ever taken in.
 - A provider that allows two files under one name (Drive) shows one of them, the
   oldest, every time, through `list`, `about` and `fetch` alike, and deleting the
   name deletes both. Removing the one that is left over by a race belongs to

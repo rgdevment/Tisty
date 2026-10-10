@@ -656,6 +656,8 @@ pub fn shelved(shelf: &str, leaf: &str) -> bool {
     (8..=16).contains(&stamp.len())
         && lower_hex(stamp)
         && leaf.len() <= 255
+        // A drive that ignores case would take another's name with only its extension in capitals.
+        && !leaf.chars().any(char::is_uppercase)
         && !leaf.contains('/')
         && !leaf.contains('\\')
         && leaf.chars().all(|c| !c.is_control())
