@@ -329,6 +329,7 @@ pub(crate) fn one_grew_from_the_other(here: &Path, there: &Path) -> Grew {
     if grew { Grew::Yes } else { Grew::No }
 }
 
+#[cfg(test)]
 pub(crate) fn hand_on(
     store: &Path,
     device: &str,
@@ -336,9 +337,21 @@ pub(crate) fn hand_on(
     again: bool,
     alike: &mut Alike,
 ) -> Result<usize, Trouble> {
+    hand_on_leaving(store, device, dest, again, alike).map(|(sent, _)| sent)
+}
+
+/// What was handed on, and the histories left behind that the folder holds no copy of.
+pub(crate) fn hand_on_leaving(
+    store: &Path,
+    device: &str,
+    dest: &Path,
+    again: bool,
+    alike: &mut Alike,
+) -> Result<(usize, std::collections::BTreeSet<String>), Trouble> {
     let there = dest.join(STORE);
+    let mut behind = std::collections::BTreeSet::new();
     let Ok(entries) = std::fs::read_dir(store) else {
-        return Ok(0);
+        return Ok((0, behind));
     };
     let mut sent = 0;
     for entry in entries.filter_map(|e| e.ok()) {
@@ -350,9 +363,14 @@ pub(crate) fn hand_on(
             continue;
         }
         let theirs = there.join(named);
-        if alike.settled(named, &theirs, &entry.path(), Toward::Folder)
-            || !ours_reaches_further(&entry.path(), &theirs)
-        {
+        if alike.settled(named, &theirs, &entry.path(), Toward::Folder) {
+            put_back_beside(named, &entry.path(), &theirs);
+            continue;
+        }
+        if !ours_reaches_further(&entry.path(), &theirs) {
+            if !matches!(one_grew_from_the_other(&entry.path(), &theirs), Grew::Yes) {
+                behind.insert(named.to_string());
+            }
             put_back_beside(named, &entry.path(), &theirs);
             continue;
         }
@@ -370,7 +388,7 @@ pub(crate) fn hand_on(
         }
         sent += done;
     }
-    Ok(sent)
+    Ok((sent, behind))
 }
 
 fn put_back_beside(named: &str, mine: &Path, theirs: &Path) {
@@ -475,19 +493,33 @@ pub(crate) fn ours_went_missing(mine: &Path, theirs: &Path) -> bool {
     coming > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
 }
 
+fn unmeasured(at: &Path, e: &tisty_core::Error) -> bool {
+    witness::warn(
+        channel::SYNC,
+        "a history could not be measured, so it was not handed on this round",
+        &[
+            ("at", Fact::Path(at.to_path_buf())),
+            ("why", Fact::Why(e.to_string())),
+        ],
+    );
+    false
+}
+
 pub(crate) fn ours_reaches_further(mine: &Path, theirs: &Path) -> bool {
-    let Ok(ours) = tisty_core::store::distinct_in(mine) else {
-        return false;
+    let ours = match tisty_core::store::distinct_in(mine) {
+        Ok(ours) => ours,
+        Err(e) => return unmeasured(mine, &e),
     };
     match tisty_core::store::check_device(theirs) {
         Ok(_) => {}
         Err(tisty_core::Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {
             return ours > 0;
         }
-        Err(_) => return false,
+        Err(e) => return unmeasured(theirs, &e),
     }
-    let Ok(held) = tisty_core::store::distinct_in(theirs) else {
-        return false;
+    let held = match tisty_core::store::distinct_in(theirs) {
+        Ok(held) => held,
+        Err(e) => return unmeasured(theirs, &e),
     };
     ours > held && (held == 0 || matches!(one_grew_from_the_other(mine, theirs), Grew::Yes))
 }
