@@ -1,12 +1,12 @@
 use std::path::{Path, PathBuf};
 
 use tisty_core::answering::{Reached, answers};
-use tisty_core::event::{SCHEMA_VERSION, SIGNED_FROM, TaskAdd};
-use tisty_core::store::{key_said_in, newest_schema, read_all, written_since};
+use tisty_core::event::{SCHEMA_VERSION, SEALED_FROM, SIGNED_FROM, TaskAdd};
+use tisty_core::store::{key_said_in, newest_schema, read_all, sealed_in, written_since};
 use tisty_core::{DeviceId, Op, State, Status, Store, signing};
 use ulid::Ulid;
 
-const WRITTEN_BY: [(u32, &str); 2] = [(15, "1.23.1"), (16, "1.24.4")];
+const WRITTEN_BY: [(u32, &str); 3] = [(15, "1.23.1"), (16, "1.24.4"), (17, "1.25.0")];
 
 struct Held {
     _room: tempfile::TempDir,
@@ -101,16 +101,44 @@ fn the_schema_an_earlier_release_wrote_under_is_the_one_its_history_says() {
 
 #[test]
 fn a_history_an_earlier_release_signed_still_answers_for_itself() {
-    let store = held(16);
-    let said = key_said_in(&store.dir(), &store.who).expect("the key the join carries");
-    let key = signing::read(&said).expect("a key that reads");
+    for (schema, release) in WRITTEN_BY
+        .into_iter()
+        .filter(|(schema, _)| *schema >= SIGNED_FROM)
+    {
+        let store = held(schema);
+        let said = key_said_in(&store.dir(), &store.who).expect("the key the join carries");
+        let key = signing::read(&said).expect("a key that reads");
 
-    let reached = answers(&store.dir(), &store.who, &key, Reached::default(), &|_| {
-        false
-    })
-    .expect("a signature 1.24.4 wrote did not answer");
+        let reached = answers(&store.dir(), &store.who, &key, Reached::default(), &|_| {
+            false
+        })
+        .unwrap_or_else(|why| panic!("a signature {release} wrote did not answer: {why:?}"));
 
-    assert!(reached.signing);
+        assert!(reached.signing, "{release}");
+    }
+}
+
+#[test]
+fn a_history_an_earlier_release_sealed_carries_its_signature_inside() {
+    let store = held(SEALED_FROM);
+
+    assert!(
+        sealed_in(&store.dir()),
+        "1.25.0 left no seal in its history"
+    );
+    let beside: Vec<PathBuf> = std::fs::read_dir(store.dir())
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|one| one.path())
+        .filter(|one| {
+            one.extension()
+                .is_some_and(|ext| ext == "sig" || ext == "count")
+        })
+        .collect();
+    assert!(
+        beside.is_empty(),
+        "1.25.0 wrote beside its history: {beside:?}"
+    );
 }
 
 #[test]
