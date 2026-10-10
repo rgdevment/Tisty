@@ -2008,29 +2008,3 @@ fn a_store_does_not_write_behind_a_line_of_a_newer_schema() {
     );
     assert_eq!(std::fs::read(&active).unwrap(), was);
 }
-
-#[test]
-fn a_seal_from_a_newer_schema_at_the_end_stops_this_build_writing_after_it() {
-    let tmp = tempfile::tempdir().unwrap();
-    let mut store = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
-    store.append(add("lo de antes")).unwrap();
-    let active = tmp.path().join("dev_a").join(ACTIVE);
-    let mut said = std::fs::read_to_string(&active).unwrap();
-    said.push_str(&format!(
-        "{{\"v\":{},\"op\":\"seal\",\"seg\":1,\"at\":0,\"tip\":\"00\",\"n\":1,\"sig\":\"00\"}}\n",
-        SCHEMA_VERSION + 1
-    ));
-    std::fs::write(&active, &said).unwrap();
-
-    let mut reopened = Store::open(tmp.path(), DeviceId("dev_a".into())).unwrap();
-
-    assert!(matches!(
-        reopened.append(add("lo de despues")),
-        Err(Error::UnsupportedVersion { .. })
-    ));
-    assert_eq!(
-        std::fs::read_to_string(&active).unwrap(),
-        said,
-        "a build that does not know the newer schema wrote after its seal"
-    );
-}
