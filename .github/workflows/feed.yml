@@ -44,8 +44,8 @@ jobs:
           # What GitHub calls the latest release is the one published most recently, which is not
           # the highest version: a fix published for an older series after a newer one is out would
           # be it. The feed follows the versions, so this has to as well.
-          newest=$(gh release list --limit 100 --json tagName,isPrerelease,isDraft \
-            -q '.[] | select(.isPrerelease == false and .isDraft == false) | .tagName' \
+          newest=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select(.prerelease == false and .draft == false) | .tag_name' \
             | sed 's/^v//' | sort -V | tail -1)
 
           if [ -z "$newest" ]; then

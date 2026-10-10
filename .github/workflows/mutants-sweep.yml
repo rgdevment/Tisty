@@ -338,7 +338,9 @@ jobs:
             -H "X-Api-Key: $KEY" \
             -d @window.json
 
+      # A sweep run by hand from a branch says what that branch scores; only main's is the number.
       - name: The number, on the branch that holds nothing else
+        if: github.ref == 'refs/heads/main'
         run: |
           mv mutants.json "$RUNNER_TEMP/mutants.json"
           git config user.name "github-actions[bot]"

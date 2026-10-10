@@ -67,17 +67,15 @@ listed=$(git rev-list --no-merges "$range" 2>&1) || {
 }
 
 seen=0
-while read -r sha; do
+while IFS=$'\x1f' read -r -d '' sha author subject body; do
   [ -n "$sha" ] || continue
   seen=$((seen + 1))
-  subject=$(git log -1 --format=%s "$sha")
   weighed "${sha:0:8}" "$subject"
   case $subject in "fixup! "* | "squash! "* | "amend! "*) continue ;; esac
-  if [ -n "$(git log -1 --format=%b "$sha" | tr -d '[:space:]')" ] \
-    && [ "$(git log -1 --format=%an "$sha")" != "dependabot[bot]" ]; then
+  if [ -n "$(printf '%s' "$body" | tr -d '[:space:]')" ] && [ "$author" != "dependabot[bot]" ]; then
     amiss "${sha:0:8} carries lines under its subject; a commit is one line"
   fi
-done <<< "$listed"
+done < <(git log -z --no-merges --format='%H%x1f%an%x1f%s%x1f%b' "$range")
 
 [ "$status" -eq 0 ] && [ -z "${GITHUB_ACTIONS:-}" ] && printf 'ok %s commit subject(s) well formed\n' "$seen"
 said_so

@@ -1,0 +1,7 @@
+# No retries anywhere: a test that passes on its second try is the unsteady one this hunts for.
+[profile.determinism]
+fail-fast = false
+retries = 0
+
+[profile.determinism.junit]
+path = "junit.xml"
