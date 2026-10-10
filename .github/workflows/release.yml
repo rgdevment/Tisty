@@ -1189,6 +1189,26 @@ jobs:
         with:
           subject-path: dist/tisty-*,dist/SHA256SUMS
 
+      # Read from the lockfiles; what was built is attested above, and syft would only re-read it.
+      - name: What the bill of materials looks through
+        run: |
+          printf 'exclude:\n  - ./dist/**\n  - ./target/**\n  - ./**/node_modules/**\n' \
+            > "$RUNNER_TEMP/syft.yaml"
+
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: ${{ runner.temp }}/sbom.spdx.json
+          config: ${{ runner.temp }}/syft.yaml
+          upload-artifact: false
+          upload-release-assets: false
+
+      - uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: dist/tisty-*,dist/SHA256SUMS
+          sbom-path: ${{ runner.temp }}/sbom.spdx.json
+
       - name: Notes from the tag
         id: notes
         run: |
