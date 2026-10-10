@@ -128,37 +128,11 @@ fn identity(_: &std::path::Path, told: &std::fs::Metadata) -> String {
 
 #[cfg(windows)]
 fn identity(at: &std::path::Path, told: &std::fs::Metadata) -> String {
-    format!("{}.{}", nanos(told.created()), changed(at).unwrap_or(0))
-}
-
-#[cfg(windows)]
-#[allow(unsafe_code)]
-fn changed(at: &std::path::Path) -> Option<i64> {
-    use std::os::windows::fs::OpenOptionsExt;
-    use std::os::windows::io::AsRawHandle;
-    use windows::Win32::Foundation::HANDLE;
-    use windows::Win32::Storage::FileSystem::{
-        FILE_BASIC_INFO, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
-        FILE_SHARE_WRITE, FileBasicInfo, GetFileInformationByHandleEx,
-    };
-
-    // Attributes only: opening for its bytes would bring down a body a cloud left up there.
-    let file = std::fs::OpenOptions::new()
-        .access_mode(FILE_READ_ATTRIBUTES.0)
-        .share_mode((FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE).0)
-        .open(at)
-        .ok()?;
-    let mut info = FILE_BASIC_INFO::default();
-    unsafe {
-        GetFileInformationByHandleEx(
-            HANDLE(file.as_raw_handle()),
-            FileBasicInfo,
-            (&raw mut info).cast(),
-            std::mem::size_of::<FILE_BASIC_INFO>() as u32,
-        )
-    }
-    .ok()?;
-    Some(info.ChangeTime)
+    format!(
+        "{}.{}",
+        nanos(told.created()),
+        crate::desktop::changed(at).unwrap_or(0)
+    )
 }
 
 #[cfg(not(any(unix, windows)))]
