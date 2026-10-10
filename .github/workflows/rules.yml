@@ -102,10 +102,14 @@ jobs:
   # One turn of the suite is what CI already runs on every push and pull request, so this job
   # only earns its toolchain when it runs the twenty that say whether a test is deterministic.
   determinism:
-    name: Tests are deterministic
+    name: Tests are deterministic / ${{ matrix.os }}
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,12 +121,35 @@ jobs:
         with:
           shared-key: workspace
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: nextest
 
       - name: Locales define the same keys
+        if: runner.os == 'Linux'
         run: cargo test -p tisty-cli --bin tisty i18n
 
       - name: Twenty turns of the suite
+        shell: bash
         run: |
-          for _ in $(seq 1 20); do
-            cargo test -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier --quiet || exit 1
+          mkdir -p turns
+          for turn in $(seq 1 20); do
+            cargo nextest run -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier \
+              --profile determinism --no-tests=pass || true
+            cp target/nextest/determinism/junit.xml "turns/$turn.xml"
           done
+
+      - name: Which tests failed, and in how many turns
+        shell: bash
+        run: TITLE="Unsteady tests on ${{ matrix.os }}" bash scripts/unsteady.sh
+
+      - name: A thousand seeds of machines meeting in the cloud
+        if: ${{ !cancelled() && runner.os == 'Linux' }}
+        run: PROPTEST_CASES=1000 cargo nextest run -p tisty-carrier converge --profile determinism
+
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: turns-${{ matrix.os }}
+          path: turns
+          retention-days: 14

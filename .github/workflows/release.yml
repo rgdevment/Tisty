@@ -251,6 +251,7 @@ jobs:
     needs: version
     if: needs.version.outputs.macos == 'true' && needs.version.outputs.cli == 'true'
     runs-on: macos-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
     env:
       TARGET: universal-apple-darwin
@@ -268,6 +269,11 @@ jobs:
         with:
           version: ${{ needs.version.outputs.version }}
           targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: The same deployment target as the app
+        run: |
+          floor=$(jq -r '.bundle.macOS.minimumSystemVersion' app/src-tauri/tauri.conf.json)
+          echo "MACOSX_DEPLOYMENT_TARGET=$floor" >> "$GITHUB_ENV"
 
       - name: Build
         run: |
@@ -330,9 +336,18 @@ jobs:
         run: |
           BIN="target/$TARGET/release/tisty"
           ditto -c -k --keepParent "$BIN" "$RUNNER_TEMP/tisty.zip"
-          xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
+          said=$(xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" --wait --timeout 600
+            --team-id "$APPLE_TEAM_ID" --wait --timeout 600 --output-format json)
+          # Waiting ends without an error whatever Apple decided, and a bare binary has no staple to fail.
+          status=$(jq -r '.status // ""' <<< "$said")
+          if [ "$status" != "Accepted" ]; then
+            echo "::error::notarisation came back «${status:-nothing}», not Accepted"
+            xcrun notarytool log "$(jq -r '.id // ""' <<< "$said")" \
+              --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" || true
+            exit 1
+          fi
           # A bare executable cannot be stapled, so a refusal here is expected, not a break.
           if spctl --assess --type exec -vv "$BIN" 2>&1; then
             echo "Gatekeeper accepts it"
@@ -355,6 +370,7 @@ jobs:
     needs: version
     if: needs.version.outputs.cli == 'true'
     runs-on: windows-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
     env:
       TARGET: x86_64-pc-windows-msvc
@@ -378,8 +394,18 @@ jobs:
         if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
-          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
-          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
+          try {
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            # A PFX may carry its chain; only the certificate with the private key can sign.
+            $cert = Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said |
+              Where-Object HasPrivateKey | Select-Object -First 1
+          } finally {
+            Remove-Item $pfx -ErrorAction SilentlyContinue
+          }
+          if (-not $cert) { Write-Error "the PFX holds no certificate with its private key"; exit 1 }
 
           $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
             -Recurse -Filter "signtool.exe" |
@@ -388,11 +414,9 @@ jobs:
           if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
 
           $exe = "target/$env:TARGET/release/tisty.exe"
-          & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+          & $signtool.FullName sign /sha1 $cert.Thumbprint `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 $exe
           if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
-
-          Remove-Item signingCert.pfx
 
           $sig = Get-AuthenticodeSignature $exe
           Write-Host "status:  $($sig.Status)"
@@ -422,6 +446,7 @@ jobs:
     name: tisty-windows-installer
     needs: version
     runs-on: windows-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 60
     outputs:
       stage: ${{ steps.stage.outputs.sha }}
@@ -457,6 +482,11 @@ jobs:
       - name: The CLI rides along
         shell: bash
         run: |
+          host=$(rustc -vV | sed -n 's/^host: //p')
+          if [ "$host" != "$TARGET" ]; then
+            echo "::error::the CLI is built for «$host» and would ship named for $TARGET"
+            exit 1
+          fi
           cargo build --release --locked --bin tisty
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
@@ -473,11 +503,14 @@ jobs:
           Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
           try {
             $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
-            $cert = @(Import-PfxCertificate -FilePath $pfx `
-              -CertStoreLocation Cert:\CurrentUser\My -Password $said)[0]
+            # A PFX may carry its chain; only the certificate with the private key can sign.
+            $cert = Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said |
+              Where-Object HasPrivateKey | Select-Object -First 1
           } finally {
             Remove-Item $pfx -ErrorAction SilentlyContinue
           }
+          if (-not $cert) { Write-Error "the PFX holds no certificate with its private key"; exit 1 }
 
           $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
             -Recurse -Filter "signtool.exe" |
@@ -517,22 +550,29 @@ jobs:
         if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
-          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
-          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
           try {
-            $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
-              -Recurse -Filter "signtool.exe" |
-              Where-Object { $_.FullName -like "*x64*" } |
-              Sort-Object FullName -Descending | Select-Object -First 1
-            if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
-
-            & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
-              /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
-              stage/Tisty.exe stage/cli/tisty.exe
-            if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            # A PFX may carry its chain; only the certificate with the private key can sign.
+            $cert = Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said |
+              Where-Object HasPrivateKey | Select-Object -First 1
           } finally {
-            Remove-Item signingCert.pfx -ErrorAction SilentlyContinue
+            Remove-Item $pfx -ErrorAction SilentlyContinue
           }
+          if (-not $cert) { Write-Error "the PFX holds no certificate with its private key"; exit 1 }
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+            -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -like "*x64*" } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+          & $signtool.FullName sign /sha1 $cert.Thumbprint `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+            stage/Tisty.exe stage/cli/tisty.exe
+          if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
 
       # The bundler is handed a signing command; whether it used it is only readable in the
       # installer it produced, so the installer is opened and what it carries is checked.
@@ -592,8 +632,18 @@ jobs:
         if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
-          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
-          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
+          try {
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            # A PFX may carry its chain; only the certificate with the private key can sign.
+            $cert = Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said |
+              Where-Object HasPrivateKey | Select-Object -First 1
+          } finally {
+            Remove-Item $pfx -ErrorAction SilentlyContinue
+          }
+          if (-not $cert) { Write-Error "the PFX holds no certificate with its private key"; exit 1 }
 
           $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
             -Recurse -Filter "signtool.exe" |
@@ -605,10 +655,9 @@ jobs:
             Select-Object -First 1
           if (-not $setup) { Write-Error "no installer to sign"; exit 1 }
 
-          & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+          & $signtool.FullName sign /sha1 $cert.Thumbprint `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 $setup.FullName
           if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
-          Remove-Item signingCert.pfx
 
           $sig = Get-AuthenticodeSignature $setup.FullName
           if (-not $sig.TimeStamperCertificate) {
@@ -650,6 +699,7 @@ jobs:
     needs: version
     if: needs.version.outputs.macos == 'true'
     runs-on: macos-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -699,7 +749,7 @@ jobs:
 
       - name: The CLI rides along
         run: |
-          cargo build --release --bin tisty --target "$TARGET"
+          cargo build --release --locked --bin tisty --target "$TARGET"
           mkdir -p app/src-tauri/binaries
           cp "target/$TARGET/release/tisty" "app/src-tauri/binaries/tisty-$TARGET"
 
@@ -1151,6 +1201,26 @@ jobs:
         with:
           subject-path: dist/tisty-*,dist/SHA256SUMS
 
+      # Read from the lockfiles; what was built is attested above, and syft would only re-read it.
+      - name: What the bill of materials looks through
+        run: |
+          printf 'exclude:\n  - ./dist/**\n  - ./target/**\n  - ./**/node_modules/**\n' \
+            > "$RUNNER_TEMP/syft.yaml"
+
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: .
+          format: spdx-json
+          output-file: ${{ runner.temp }}/sbom.spdx.json
+          config: ${{ runner.temp }}/syft.yaml
+          upload-artifact: false
+          upload-release-assets: false
+
+      - uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: dist/tisty-*,dist/SHA256SUMS
+          sbom-path: ${{ runner.temp }}/sbom.spdx.json
+
       - name: Notes from the tag
         id: notes
         run: |
@@ -1206,7 +1276,7 @@ jobs:
           # Born a draft: nobody is offered a release with half its files, and a rerun picks up
           # the one it left instead of making another. Only a listing that answered and lacks
           # the tag makes a new one: an error read as «not there» would leave two drafts on it.
-          tags=$(gh release list --limit 200 --json tagName --jq '.[].tagName')
+          tags=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name')
           if ! grep -qx "$tag" <<< "$tags"; then
             gh release create "$tag" --draft --verify-tag --title "$tag" \
               --prerelease="$PRERELEASE" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"
@@ -1249,7 +1319,14 @@ jobs:
             done
           done
 
-          latest=false; [ "$PRERELEASE" = "false" ] && latest=true
+          # A fix for an older series published after a newer one is out must not take «Latest» from it.
+          latest=false
+          if [ "$PRERELEASE" = "false" ]; then
+            highest=$({ gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+              --jq '.[] | select(.prerelease == false and .draft == false) | .tag_name' \
+              | sed 's/^v//'; echo "${tag#v}"; } | sort -V | tail -1)
+            [ "$highest" = "${tag#v}" ] && latest=true
+          fi
           gh release edit "$tag" --draft=false --latest="$latest"
 
       - name: Release manifest
@@ -1460,6 +1537,7 @@ jobs:
       && needs.bundle-msix.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 20
     concurrency:
       group: release-msstore-${{ github.ref }}
@@ -1620,6 +1698,7 @@ jobs:
       && needs.verify.result == 'success'
       && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-24.04
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 10
     # One tag at a time: the stable and the beta cask live in the same tap.
     concurrency:
@@ -1804,6 +1883,7 @@ jobs:
       && needs.verify.result == 'success'
       && needs.version.outputs.prerelease == 'false'
     runs-on: ubuntu-24.04
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 15
     concurrency:
       group: release-winget-${{ github.ref }}

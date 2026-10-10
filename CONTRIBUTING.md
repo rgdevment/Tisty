@@ -91,6 +91,11 @@ CI runs the test suite on Windows and macOS. Path separators, line
 endings, case sensitivity and file locking only diverge at runtime, so a green
 build on one platform proves very little.
 
+The SonarCloud analysis needs a token that a pull request from a fork, or one
+Dependabot opens, is never given. For those the job is skipped and GitHub shows
+it as passed; every other check still runs, and the analysis runs on `main`
+once the change is merged, which is where a finding is read.
+
 Building an **installer** needs nothing more than `npm run tauri build`: the
 updater's signature is made later, in the release pipeline, over what ships.
 
