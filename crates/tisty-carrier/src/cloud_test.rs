@@ -1190,3 +1190,6 @@ fn a_machine_on_the_folder_and_one_on_a_cloud_over_the_same_files_keep_one_histo
         );
     }
 }
+
+#[path = "converge_test.rs"]
+mod converge;
