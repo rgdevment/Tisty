@@ -394,6 +394,11 @@ fn a_quiet_cloud_round_asks_once_and_moves_no_content() {
 
         let spent = remote.counts();
         assert_eq!((spent.sent, spent.received), (0, 0), "{who}");
+        assert_eq!(
+            (spent.lists, spent.fetches, spent.puts, spent.deletes),
+            (1, 0, 0, 0),
+            "{who}: a quiet round asks for one listing and touches nothing"
+        );
         let asked = match remote.native_changes() {
             true => 1,
             false => remote.limits().requests_to_list(8),

@@ -22,6 +22,10 @@ pub struct Counts {
     pub units: u64,
     pub sent: u64,
     pub received: u64,
+    pub lists: u64,
+    pub fetches: u64,
+    pub puts: u64,
+    pub deletes: u64,
 }
 
 pub trait Counting: Remote {
@@ -312,6 +316,7 @@ impl Remote for Fake {
     fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
         let limits = self.limits();
         let mut shelf = self.lock();
+        shelf.counts.lists += 1;
         self.gate(&mut shelf, limits.costs.list)?;
         let seen = self.listed(&shelf, under);
         self.spend(
@@ -326,6 +331,7 @@ impl Remote for Fake {
         named_well(name)?;
         let cost = self.limits().costs.fetch;
         let mut shelf = self.lock();
+        shelf.counts.fetches += 1;
         self.gate(&mut shelf, cost)?;
         self.spend(&mut shelf, 1, cost);
         let at = self
@@ -348,6 +354,7 @@ impl Remote for Fake {
         let body = self.read_local(from)?;
         let limits = self.limits();
         let mut shelf = self.lock();
+        shelf.counts.puts += 1;
         self.gate(&mut shelf, limits.costs.put)?;
         let at = match self.allowed(&shelf, name, &expect) {
             Ok(at) => at,
@@ -366,6 +373,7 @@ impl Remote for Fake {
         named_well(name)?;
         let cost = self.limits().costs.delete;
         let mut shelf = self.lock();
+        shelf.counts.deletes += 1;
         self.gate(&mut shelf, cost)?;
         self.spend(&mut shelf, 1, cost);
         let at = self
@@ -400,6 +408,7 @@ impl Remote for Fake {
     fn changes(&self, since: Option<&str>) -> Result<Changes, Hitch> {
         let limits = self.limits();
         let mut shelf = self.lock();
+        shelf.counts.lists += 1;
         self.gate(&mut shelf, limits.costs.changes)?;
         let cursor = shelf.last.to_string();
         let known = since
