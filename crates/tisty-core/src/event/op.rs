@@ -76,6 +76,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "device.remove",
     "device.host",
     "device.key",
+    "device.rotate",
     "device.named",
     "person.signed",
     "attach.kept",
@@ -213,6 +214,8 @@ pub enum Op {
     /// and which a second one would read as a machine seating itself again.
     #[serde(rename = "device.key")]
     DeviceKey { d: DeviceId, p: String },
+    #[serde(rename = "device.rotate")]
+    DeviceRotate { d: DeviceId, p: String },
     /// What the person calls that computer, so a machine waiting to be confirmed can be found.
     #[serde(rename = "device.named")]
     DeviceNamed {
@@ -282,6 +285,7 @@ impl Op {
                 | Op::DocSigned { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceKey { .. }
+                | Op::DeviceRotate { .. }
                 | Op::DeviceNamed { .. }
                 | Op::DocMove {
                     d: Filed {
@@ -354,6 +358,7 @@ impl Op {
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
+            | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
@@ -489,6 +494,7 @@ impl Op {
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
+            | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }

@@ -12,6 +12,8 @@ pub struct Confirmed {
     pub carried: bool,
     /// The machine whose word this was taken on: an agent's host, already confirmed here.
     pub host: Option<DeviceId>,
+    /// The key this one was rotated from, so what the person compared stays told apart.
+    pub was: Option<String>,
 }
 
 /// What a machine published is a claim; this is what the person at this machine accepted. The
@@ -40,6 +42,21 @@ pub fn confirm(data: &Path, who: &DeviceId, said: &str) -> bool {
 /// The first key of a machine this store already held from before signing, taken without asking.
 pub fn carried(data: &Path, who: &DeviceId, said: &str) -> bool {
     kept(data, who, said, "\tcarried")
+}
+
+/// The key a confirmed one rotated to, sealed by it: replaced only while that key still stands.
+pub fn rotated(data: &Path, who: &DeviceId, now: &str, was: &str) -> bool {
+    let stands = confirmed(data, who).is_some_and(|stood| stood.key == was);
+    if !stands || crate::signing::read(now).is_none() {
+        return false;
+    }
+    let mut kept = vec![format!(
+        "{}\t{now}\t{}\trotated:{was}",
+        who.0,
+        crate::lately::now()
+    )];
+    kept.extend(lines(data));
+    crate::store::write_atomic(&data.join(KEPT), kept.join("\n").as_bytes()).is_ok()
 }
 
 /// An agent's key taken on its host's word, the host being confirmed here already.
@@ -78,6 +95,10 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
         .strip_prefix("host:")
         .filter(|host| crate::store::is_device_name(host))
         .map(|host| DeviceId(host.to_string()));
+    let was = how
+        .strip_prefix("rotated:")
+        .filter(|was| crate::signing::read(was).is_some())
+        .map(str::to_string);
     (crate::store::is_device_name(whose) && crate::signing::read(key).is_some()).then(|| {
         (
             DeviceId(whose.to_string()),
@@ -86,6 +107,7 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
                 when,
                 carried,
                 host,
+                was,
             },
         )
     })

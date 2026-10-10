@@ -102,9 +102,13 @@ fn keys_of<'a>(events: &'a [Event], who: &'a DeviceId) -> impl Iterator<Item = &
 }
 
 pub(super) fn key_of(events: &[Event], who: &DeviceId) -> Option<String> {
-    keys_of(events, who)
+    let first = keys_of(events, who)
         .find(|one| crate::signing::read(one).is_some())
-        .cloned()
+        .cloned()?;
+    Some(events.iter().fold(first, |now, one| match &one.op {
+        Op::DeviceRotate { d, p } if d == who && crate::signing::read(p).is_some() => p.clone(),
+        _ => now,
+    }))
 }
 
 pub(super) fn says_a_key(events: &[Event], who: &DeviceId) -> bool {

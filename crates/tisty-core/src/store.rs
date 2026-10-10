@@ -595,6 +595,9 @@ pub fn ledger(store_root: impl AsRef<Path>) -> Result<Ledger> {
             Op::DeviceKey { d, p } => {
                 crate::signing::published(&mut said.keys, &event.device, d, p);
             }
+            Op::DeviceRotate { d, p } => {
+                crate::signing::rotated(&mut said.keys, &event.device, d, p);
+            }
             Op::DeviceRemove { d } => {
                 said.named.insert(d.clone());
                 said.allowed.remove(d);

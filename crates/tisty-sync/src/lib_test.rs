@@ -9385,3 +9385,73 @@ fn a_round_cut_short_still_leaves_nothing_copied_aside() {
         "a round that ended early left its copies behind"
     );
 }
+
+#[test]
+fn a_machine_that_moves_to_a_new_key_is_followed_by_whoever_confirmed_the_old_one() {
+    let shared = tempfile::tempdir().unwrap();
+    let one = machine("dev_a");
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = joined_with_a_key("dev_b", shared.path());
+    let who = DeviceId(two.device.clone());
+    let paths = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let old = tisty_core::signing::mine(&paths, &who).unwrap();
+    let old_said = tisty_core::signing::shown(&old);
+    assert!(tisty_core::vouched::confirm(&one.data, &who, &old_said));
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(home_of(&one, &two.device).contains("lo de dev_b"));
+
+    let new = tisty_core::signing::SigningKey::from_bytes(&[8; 32]);
+    let new_said = tisty_core::signing::shown(&new);
+    let keyed = |key: &tisty_core::signing::SigningKey| {
+        Store::open(&two.store, who.clone())
+            .unwrap()
+            .signing_with(Some(key.clone()))
+    };
+    keyed(&old)
+        .append(Op::DeviceRotate {
+            d: who.clone(),
+            p: new_said.clone(),
+        })
+        .unwrap();
+    keyed(&new)
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("lo de dev_b tras la rotacion", "a0"),
+        })
+        .unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(after.disowned.is_empty(), "{:?}", after.disowned);
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&one, &two.device).contains("tras la rotacion"));
+    let stood = tisty_core::vouched::confirmed(&one.data, &who).unwrap();
+    assert_eq!(stood.key, new_said);
+    assert_eq!(stood.was.as_deref(), Some(old_said.as_str()));
+    let again = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(again.disowned.is_empty(), "{:?}", again.disowned);
+
+    let three = blank("dev_c");
+    std::fs::create_dir_all(&three.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    super::place::note_carried(Some(kept.path()), shared.path(), &three.device);
+    let waits = carry_leaning_on(
+        &three.data,
+        Some(kept.path()),
+        &three.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+    assert!(
+        waits.unconfirmed.contains(&two.device),
+        "a machine nobody here confirmed came in on the word of its own rotation: {waits:?}"
+    );
+    assert_eq!(
+        tisty_core::store::key_said_in(&shared.path().join(STORE).join(&two.device), &who),
+        Some(new_said),
+        "the person was not shown the key it signs with now"
+    );
+}

@@ -701,3 +701,139 @@ fn resealed(held: &Wrote, key: &signing::SigningKey) {
     kept.extend_from_slice(crate::seal::line(key, &held.who.0, &read.seal).as_bytes());
     std::fs::write(&active, kept).unwrap();
 }
+
+fn said_its_key(held: &Wrote) -> signing::SigningKey {
+    let key = signing::mine(&held.paths, &held.who).unwrap();
+    held.signs()
+        .append(Op::DeviceKey {
+            d: held.who.clone(),
+            p: signing::shown(&key),
+        })
+        .unwrap();
+    key
+}
+
+fn written_with(held: &Wrote, key: &signing::SigningKey, op: Op) {
+    Store::open(held.paths.store(), held.who.clone())
+        .unwrap()
+        .signing_with(Some(key.clone()))
+        .append(op)
+        .unwrap();
+}
+
+fn rotated(held: &Wrote, from: &signing::SigningKey, to: &signing::SigningKey) {
+    written_with(
+        held,
+        from,
+        Op::DeviceRotate {
+            d: held.who.clone(),
+            p: signing::shown(to),
+        },
+    );
+}
+
+fn trusting(held: &Wrote, keys: &[&signing::SigningKey]) -> Result<Reached, Adrift> {
+    let trusted: Vec<VerifyingKey> = keys.iter().map(|one| one.verifying_key()).collect();
+    answers_trusting(&held.dir, &held.who, &trusted, Reached::default(), &|_| {
+        false
+    })
+}
+
+#[test]
+fn a_machine_confirmed_under_its_old_key_is_answered_for_under_the_new_one() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+    written_with(&held, &new, a_line(1));
+
+    let reached = trusting(&held, &[&old]).expect("a rotation its old key sealed was refused");
+
+    assert_eq!(
+        reached.moved,
+        Some(new.verifying_key().to_bytes()),
+        "the key it moved to was not handed back to be kept"
+    );
+}
+
+#[test]
+fn a_rotation_kept_here_reads_the_whole_history_again_without_asking() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+    written_with(&held, &new, a_line(1));
+
+    let reached = trusting(&held, &[&new, &old]).expect("the rotation already kept was refused");
+
+    assert_eq!(reached.moved, None);
+    assert!(reached.signing);
+}
+
+#[test]
+fn a_rotation_with_nothing_after_it_answers_under_the_old_key() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+
+    let reached = trusting(&held, &[&old]).expect("a rotation nothing followed yet was refused");
+
+    assert_eq!(reached.moved, Some(new.verifying_key().to_bytes()));
+}
+
+#[test]
+fn a_seal_by_the_old_key_after_its_rotation_is_disowned() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &old, &new);
+    written_with(&held, &old, a_line(1));
+
+    assert_eq!(
+        trusting(&held, &[&old]),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_seal_by_a_new_key_before_the_rotation_that_names_it_is_disowned() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    written_with(&held, &new, a_line(1));
+
+    assert_eq!(
+        trusting(&held, &[&old]),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_rotation_its_old_key_never_sealed_is_disowned() {
+    let held = a_machine_that_wrote(0);
+    let old = said_its_key(&held);
+    let new = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &new, &new);
+    written_with(&held, &new, a_line(1));
+
+    assert_eq!(
+        trusting(&held, &[&old]),
+        Err(Adrift::Disowned("active.tisty".into()))
+    );
+}
+
+#[test]
+fn a_key_confirmed_here_named_by_a_stranger_s_rotation_lets_nothing_in() {
+    let held = a_machine_that_wrote(0);
+    let stranger = said_its_key(&held);
+    let confirmed = signing::SigningKey::from_bytes(&[7; 32]);
+    rotated(&held, &stranger, &confirmed);
+
+    let answered = trusting(&held, &[&confirmed]);
+
+    assert!(
+        matches!(answered, Err(Adrift::Unreadable(_))),
+        "a history nobody here answered for came in by naming a key somebody did: {answered:?}"
+    );
+}

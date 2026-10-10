@@ -190,3 +190,32 @@ fn the_key_a_machine_is_answered_for_is_the_first_one_that_reads() {
     assert!(crate::store::says_a_key_in(&at, &who));
     assert!(!crate::store::says_a_key_in(&at, &DeviceId("dev_z".into())));
 }
+
+#[test]
+fn the_key_shown_for_a_machine_is_the_one_it_rotated_to() {
+    let dir = tempfile::tempdir().unwrap();
+    let who = DeviceId("dev_b".into());
+    let old = a_key(1);
+    let new = a_key(2);
+    let mut store = crate::Store::open(dir.path().join("store"), who.clone()).unwrap();
+    for op in [
+        Op::DeviceKey {
+            d: who.clone(),
+            p: old.clone(),
+        },
+        Op::DeviceRotate {
+            d: who.clone(),
+            p: new.clone(),
+        },
+    ] {
+        store.append(op).unwrap();
+    }
+    drop(store);
+    let at = dir.path().join("store").join("dev_b");
+
+    assert_eq!(
+        crate::store::key_said_in(&at, &who).as_deref(),
+        Some(new.as_str()),
+        "a person was shown the key the machine moved away from"
+    );
+}

@@ -134,6 +134,7 @@ impl Event {
             Op::DeviceJoin { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceKey { .. }
+            | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }

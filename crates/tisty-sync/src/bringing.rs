@@ -122,7 +122,9 @@ fn answers_for_itself(
     let mine = store.join(named);
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
-    let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
+    let confirmed = tisty_core::vouched::confirmed(data, &who);
+    let was = confirmed.as_ref().and_then(|one| one.was.clone());
+    let mut stood = confirmed.map(|one| one.key);
     let mut carried = None;
     if stood.is_none() && !ours && signed {
         let mut said_a_key = false;
@@ -195,7 +197,7 @@ fn answers_for_itself(
         );
         return Answered::Disowned;
     }
-    let said = match stood {
+    let said = match stood.clone() {
         Some(key) => Some(key),
         None => match claimed(store, &who, knew) {
             Ok(said) => said,
@@ -213,12 +215,39 @@ fn answers_for_itself(
     };
     use tisty_core::answering::Adrift;
     let ours_already = alike.of(named, theirs, &mine).clone();
-    let answers = tisty_core::answering::answers(theirs, &who, &by, from, &|segment| {
-        ours_already.contains(std::ffi::OsStr::new(segment))
-    });
+    let trusted: Vec<_> = std::iter::once(by)
+        .chain(was.as_deref().and_then(tisty_core::signing::read))
+        .collect();
+    let answers =
+        tisty_core::answering::answers_trusting(theirs, &who, &trusted, from, &|segment| {
+            ours_already.contains(std::ffi::OsStr::new(segment))
+        });
     match answers {
         Ok(held) => {
-            verified::keep(data, dest, named, held);
+            verified::keep(
+                data,
+                dest,
+                named,
+                tisty_core::answering::Reached {
+                    moved: None,
+                    ..held
+                },
+            );
+            if let (Some(now), Some(stood)) = (held.moved, &stood)
+                && let Ok(now) = tisty_core::signing::VerifyingKey::from_bytes(&now)
+                && tisty_core::vouched::rotated(
+                    data,
+                    &who,
+                    &tisty_core::signing::shown_of(&now),
+                    stood,
+                )
+            {
+                witness::note(
+                    channel::SYNC,
+                    "a machine moved to a new key on the word of the one confirmed here, so the new one stands",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+            }
             if let Some(said) = carried
                 && tisty_core::vouched::carried(data, &who, &said)
             {

@@ -14,6 +14,7 @@ pub struct Reached {
     /// Whether this machine has ever shown a signature. Signing only ever starts: once it has,
     /// a segment arriving without one is a signature taken away, not a history from before.
     pub signing: bool,
+    pub moved: Option<[u8; 32]>,
 }
 
 impl Default for Reached {
@@ -22,6 +23,7 @@ impl Default for Reached {
             segment: 0,
             tip: signing::NOTHING_BEFORE,
             signing: false,
+            moved: None,
         }
     }
 }
@@ -43,6 +45,7 @@ impl Reached {
             segment: segment.parse().ok()?,
             tip: signing::unhexed::<32>(tip)?,
             signing: signing == "1",
+            moved: None,
         })
     }
 }
@@ -66,6 +69,20 @@ pub fn answers(
     from: Reached,
     ours_already: &dyn Fn(&str) -> bool,
 ) -> Result<Reached, Adrift> {
+    answers_trusting(theirs, device, &[*by], from, ours_already)
+}
+
+/// The first key is the one answered for now; any after it is one it was rotated from.
+pub fn answers_trusting(
+    theirs: &Path,
+    device: &DeviceId,
+    trusted: &[VerifyingKey],
+    from: Reached,
+    ours_already: &dyn Fn(&str) -> bool,
+) -> Result<Reached, Adrift> {
+    let Some(first) = trusted.first() else {
+        return Err(Adrift::Unreadable(device.0.clone()));
+    };
     let found = match crate::store::segments_in(theirs) {
         Ok(found) => found,
         Err(e) => return Err(Adrift::Unreadable(e.to_string())),
@@ -98,7 +115,12 @@ pub fn answers(
         .unwrap_or(0);
     let mut walk = Walk {
         device,
-        by,
+        by: *first,
+        trusted: trusted.to_vec(),
+        key_now: None,
+        rotating: None,
+        signer: None,
+        signed_in: None,
         tip: from.tip,
         held: from,
         sealed: false,
@@ -126,7 +148,12 @@ pub fn answers(
 
 struct Walk<'a> {
     device: &'a DeviceId,
-    by: &'a VerifyingKey,
+    by: VerifyingKey,
+    trusted: Vec<VerifyingKey>,
+    key_now: Option<VerifyingKey>,
+    rotating: Option<VerifyingKey>,
+    signer: Option<VerifyingKey>,
+    signed_in: Option<String>,
     tip: [u8; 32],
     held: Reached,
     sealed: bool,
@@ -144,7 +171,7 @@ impl Walk<'_> {
         bytes: &[u8],
         spent: &dyn Fn() -> bool,
     ) -> Result<(), Adrift> {
-        let scan = Scan::of(bytes, self.tip);
+        let scan = Scan::of(bytes, self.tip, self.device);
         let outcome = match &scan.last {
             Some(last) => self.sealed(named, number, &scan, last),
             None => self.unsealed(one, named, number, bytes, &scan),
@@ -175,16 +202,34 @@ impl Walk<'_> {
         if scan.broken {
             return Err(Adrift::Unreadable(named.to_string()));
         }
-        let said = &last.read.seal;
-        let answers = said.seg == number.unwrap_or(self.live)
-            && said.at == last.at
-            && said.tip == last.tip
-            && said.n == last.n
-            && seal::holds(self.by, &self.device.0, &last.read);
-        if !answers {
-            return Err(Adrift::Disowned(named.to_string()));
+        let seg = number.unwrap_or(self.live);
+        let mut last_checked = false;
+        for mark in &scan.marks {
+            match mark {
+                Mark::Key(said) => {
+                    self.key_now.get_or_insert(*said);
+                }
+                Mark::Rotate(next) => self.rotating = Some(*next),
+                Mark::Seal(boundary) => {
+                    let Some(next) = self.rotating.take() else {
+                        continue;
+                    };
+                    // The batch that names a new key is the last one its old key seals.
+                    let by = self.key_now.unwrap_or(self.by);
+                    self.checked(named, seg, boundary, &by)?;
+                    if self.trusted.contains(&by) && !self.trusted.contains(&next) {
+                        self.trusted.push(next);
+                    }
+                    self.key_now = Some(next);
+                    last_checked = boundary.at == last.at;
+                }
+            }
         }
-        if scan.after || (number.is_some() && !said.closed) {
+        if !last_checked {
+            let by = self.key_now.unwrap_or(self.by);
+            self.checked(named, seg, last, &by)?;
+        }
+        if scan.after || (number.is_some() && !last.read.seal.closed) {
             return Err(Adrift::Unreadable(named.to_string()));
         }
         self.sealed = true;
@@ -219,7 +264,7 @@ impl Walk<'_> {
             device: &self.device.0,
             segment: named,
         };
-        let signed = answered(self.by, &about, one, bytes, self.tip, self.held.signing)?;
+        let signed = answered(&self.by, &about, one, bytes, self.tip, self.held.signing)?;
         self.held.signing |= signed;
         if signed
             && self.deferred.is_none()
@@ -231,11 +276,49 @@ impl Walk<'_> {
         Ok(())
     }
 
-    fn end(self) -> Result<Reached, Adrift> {
-        match self.deferred {
-            Some(why) => Err(why),
-            None => Ok(self.held),
+    fn checked(
+        &mut self,
+        named: &str,
+        seg: u32,
+        last: &Last,
+        by: &VerifyingKey,
+    ) -> Result<(), Adrift> {
+        let said = &last.read.seal;
+        let answers = said.seg == seg
+            && said.at == last.at
+            && said.tip == last.tip
+            && said.n == last.n
+            && seal::holds(by, &self.device.0, &last.read);
+        if !answers {
+            return Err(Adrift::Disowned(named.to_string()));
         }
+        self.signer = Some(*by);
+        self.signed_in = Some(named.to_string());
+        Ok(())
+    }
+
+    /// What answers is a seal by a key trusted here, or by one a trusted key rotated to.
+    fn end(self) -> Result<Reached, Adrift> {
+        if let Some(why) = self.deferred {
+            return Err(why);
+        }
+        let named = self.signed_in.clone().unwrap_or_default();
+        if let Some(signer) = self.signer
+            && !self.trusted.contains(&signer)
+        {
+            return Err(
+                match self.key_now.is_some_and(|now| self.trusted.contains(&now)) {
+                    true => Adrift::Unreadable(named),
+                    false => Adrift::Disowned(named),
+                },
+            );
+        }
+        let mut held = self.held;
+        held.moved = self
+            .key_now
+            .filter(|now| *now != self.by && self.trusted.contains(now) && self.signer.is_some())
+            .map(|now| now.to_bytes());
+        Ok(held)
     }
 }
 
@@ -278,6 +361,7 @@ fn written_sealed(scan: &Scan) -> bool {
     scan.newest.is_some_and(|v| v >= crate::event::SEALED_FROM)
 }
 
+#[derive(Clone)]
 struct Last {
     read: seal::Read,
     at: u64,
@@ -285,35 +369,47 @@ struct Last {
     n: u64,
 }
 
+enum Mark {
+    Key(VerifyingKey),
+    Rotate(VerifyingKey),
+    Seal(Last),
+}
+
 struct Scan {
     tip: [u8; 32],
     last: Option<Last>,
+    marks: Vec<Mark>,
     after: bool,
     broken: bool,
     newest: Option<u32>,
 }
 
 impl Scan {
-    fn of(bytes: &[u8], from: [u8; 32]) -> Self {
+    fn of(bytes: &[u8], from: [u8; 32], device: &DeviceId) -> Self {
         let mut scan = Scan {
             tip: from,
             last: None,
+            marks: Vec::new(),
             after: false,
             broken: false,
             newest: None,
         };
-        let (mut at, mut events, mut latest) = (0u64, 0u64, None);
+        let (mut at, mut events, mut latest, mut rotating) = (0u64, 0u64, None, false);
         for line in bytes.split_inclusive(|one| *one == b'\n') {
             let whole = line.last() == Some(&b'\n');
             let blank = line.iter().all(u8::is_ascii_whitespace);
             match (whole, seal::read(line)) {
                 (true, seal::Line::Seal(read)) => {
-                    scan.last = Some(Last {
+                    let last = Last {
                         read: *read,
                         at,
                         tip: scan.tip,
                         n: events,
-                    });
+                    };
+                    if std::mem::take(&mut rotating) {
+                        scan.marks.push(Mark::Seal(last.clone()));
+                    }
+                    scan.last = Some(last);
                     scan.after = false;
                 }
                 (true, seal::Line::Broken) => scan.broken = true,
@@ -323,6 +419,10 @@ impl Scan {
                     if whole {
                         events += 1;
                         latest = Some(line);
+                        if let Some(mark) = said_about_its_key(line, device) {
+                            rotating |= matches!(mark, Mark::Rotate(_));
+                            scan.marks.push(mark);
+                        }
                     }
                 }
             }
@@ -333,6 +433,26 @@ impl Scan {
             scan.newest = latest.and_then(written_at);
         }
         scan
+    }
+}
+
+fn said_about_its_key(line: &[u8], device: &DeviceId) -> Option<Mark> {
+    use crate::event::{Event, Op};
+
+    const DEVICE: &[u8] = b"\"op\":\"device.";
+    if !line.windows(DEVICE.len()).any(|one| one == DEVICE) {
+        return None;
+    }
+    let event: Event = serde_json::from_slice(line).ok()?;
+    if &event.device != device {
+        return None;
+    }
+    match event.op {
+        Op::DeviceKey { d, p } | Op::DeviceJoin { d, p: Some(p), .. } if &d == device => {
+            signing::read(&p).map(Mark::Key)
+        }
+        Op::DeviceRotate { d, p } if &d == device => signing::read(&p).map(Mark::Rotate),
+        _ => None,
     }
 }
 
