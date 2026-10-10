@@ -123,5 +123,9 @@ mod tests;
 mod fakes;
 
 #[cfg(test)]
+#[path = "remote_folder_backed.rs"]
+mod folder_backed;
+
+#[cfg(test)]
 #[path = "remote_test.rs"]
 mod remote_tests;

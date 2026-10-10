@@ -15,6 +15,7 @@ use crate::{
 };
 
 const DOC: &str = "dev_a-0001";
+const BACKED: &str = "cloud over a folder";
 
 enum Place {
     Folder(PathBuf),
@@ -48,6 +49,13 @@ fn settings() -> Vec<Setting> {
             place: Place::Cloud(Arc::from(fake)),
         });
     }
+    let room = tempfile::tempdir().unwrap();
+    let backed = crate::folder_backed::FolderBacked::at(room.path().join("provider"));
+    all.push(Setting {
+        name: BACKED.to_string(),
+        room,
+        place: Place::Cloud(Arc::new(backed)),
+    });
     all
 }
 
@@ -861,7 +869,8 @@ fn the_index_survives_being_saved_and_read_back() {
 
 #[test]
 fn names_that_are_not_history_or_documents_are_neither_fetched_nor_removed() {
-    for setting in clouds() {
+    // Only a provider takes a name like «a*b.md»; a folder on Windows refuses to hold it.
+    for setting in clouds().into_iter().filter(|one| one.name != BACKED) {
         let who = &setting.name;
         let remote = counting(&setting);
         let (one, _) = pair(&setting);
@@ -1132,5 +1141,52 @@ fn a_conflict_copy_a_desktop_client_left_is_neither_taken_in_nor_removed() {
                 "{who}: {copy} was taken in"
             );
         }
+    }
+}
+
+#[test]
+fn a_machine_on_the_folder_and_one_on_a_cloud_over_the_same_files_keep_one_history() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    let folder = Setting {
+        name: "folder".to_string(),
+        room: tempfile::tempdir().unwrap(),
+        place: Place::Folder(shared.clone()),
+    };
+    let cloud = Setting {
+        name: BACKED.to_string(),
+        room: tempfile::tempdir().unwrap(),
+        place: Place::Cloud(Arc::new(crate::folder_backed::FolderBacked::at(&shared))),
+    };
+    let (one, two) = (desk(&folder, "dev_a"), desk(&cloud, "dev_b"));
+    one.vouches_for(&two);
+    two.vouches_for(&one);
+    one.filed(DOC, "# Plan\n\nlo escrito en la carpeta\n");
+    one.wrote("lo de uno");
+
+    one.round(Way::Both);
+    two.round(Way::Both);
+    two.wrote("lo de dos");
+    two.edited(DOC, "# Plan\n\nlo escrito en la nube\n");
+    two.round(Way::Both);
+    one.round(Way::Both);
+
+    assert_eq!(one.titles(), ["lo de dos", "lo de uno"]);
+    assert_eq!(two.titles(), one.titles());
+    assert_eq!(
+        one.doc(DOC).as_deref(),
+        Some("# Plan\n\nlo escrito en la nube\n")
+    );
+    let tree = home_of(&cloud, "dev_b").join("tree");
+    for name in [
+        "store/dev_a/active.tisty",
+        "store/dev_b/active.tisty",
+        "docs/dev_a-0001.md",
+    ] {
+        assert_eq!(
+            std::fs::read(tree.join(name)).unwrap(),
+            std::fs::read(shared.join(name)).unwrap(),
+            "the mirror of {name} is not the folder byte for byte"
+        );
     }
 }
