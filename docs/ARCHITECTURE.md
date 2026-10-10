@@ -1374,7 +1374,8 @@ attachment means reading all of it — half a gigabyte takes about six seconds, 
 that is the same cold or warm. Heavy files are exactly the ones the shared folder
 keeps and the local store does not, so the cost lands on every video and every
 recording. What is written beside the cache is the whole digest, keyed by path,
-size, date to the nanosecond and the file's own identity, so it is paid once in
+size, date to the nanosecond and the time the system last changed the file — the
+one no person or cloud client sets back, unlike the date — so it is paid once in
 the life of a file rather than once per launch; a file that changes, or another
 put in its place under the same size and date, gets a new key and is read again.
 The digest is then measured against the one the log wrote down for that

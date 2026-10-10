@@ -362,6 +362,19 @@ fn a_file_swapped_with_the_same_size_and_the_same_second_is_read_again() {
         "a change inside the same second was answered from what was remembered"
     );
 
+    std::fs::write(&at, b"lo grabado").unwrap();
+    assert!(matches!(ask(), finding::Sought::At(_)));
+    let was = std::fs::metadata(&at).unwrap().modified().unwrap();
+    let in_place = std::fs::OpenOptions::new().write(true).open(&at).unwrap();
+    std::io::Write::write_all(&mut &in_place, b"lo cambiad").unwrap();
+    in_place.set_modified(was).unwrap();
+    drop(in_place);
+    assert_eq!(std::fs::metadata(&at).unwrap().modified().unwrap(), was);
+    assert!(
+        matches!(ask(), finding::Sought::Torn),
+        "a body rewritten under its old size and date was answered from what was remembered"
+    );
+
     let beside = shared.path().join("beside");
     std::fs::write(&beside, b"lo grabado").unwrap();
     std::fs::rename(&beside, &at).unwrap();
