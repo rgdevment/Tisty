@@ -7,8 +7,9 @@ use tisty_core::witness::{self, Fact, channel};
 const VOUCHED_AT_MOST: usize = 4096;
 
 /// The sync has always made that folder answer for its bytes; opening one asks the same, once per
-/// file and again only when it changes size or date.
-type Vouched = std::collections::HashMap<String, bool>;
+/// file and again only when it changes size, date or identity. What is kept is the digest, so a
+/// print the log learns later is measured against it without reading the file again.
+type Vouched = std::collections::HashMap<String, String>;
 
 static VOUCHING: std::sync::OnceLock<Mutex<Vouching>> = std::sync::OnceLock::new();
 
@@ -34,7 +35,7 @@ pub fn vouching_kept_at(at: std::path::PathBuf) {
 }
 
 /// What was written down last time, read from disk once and then held.
-pub fn vouched_before(asked: &str) -> Option<bool> {
+pub fn vouched_before(asked: &str) -> Option<String> {
     let mut one = vouching().lock().ok()?;
     if !one.read {
         one.read = true;
@@ -47,10 +48,10 @@ pub fn vouched_before(asked: &str) -> Option<bool> {
             one.seen = said;
         }
     }
-    one.seen.get(asked).copied()
+    one.seen.get(asked).cloned()
 }
 
-pub fn vouching_kept(asked: String, said: bool) {
+pub fn vouching_kept(asked: String, said: String) {
     let Ok(mut one) = vouching().lock() else {
         return;
     };
@@ -79,27 +80,62 @@ pub fn vouching_kept(asked: String, said: bool) {
     }
 }
 
-pub fn vouches(at: &std::path::Path, reference: &str) -> Option<bool> {
+/// The whole digest the log wrote down is what answers for a file when there is one; the name's
+/// few bits are all that is left for one no machine ever brought home.
+pub fn vouches(at: &std::path::Path, reference: &str, avowed: Option<&str>) -> Option<bool> {
     let mut parts = reference.rsplit('/');
     let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
         return Some(false);
     };
     let told = std::fs::metadata(at).ok()?;
-    let when = told
-        .modified()
-        .ok()
-        .and_then(|one| one.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|one| one.as_secs())
-        .unwrap_or(0);
-    let asked = format!("{}|{}|{when}", at.display(), told.len());
+    let asked = format!(
+        "{}|{}|{}|{}",
+        at.display(),
+        told.len(),
+        nanos(told.modified()),
+        identity(at, &told)
+    );
 
-    if let Some(held) = vouched_before(&asked) {
-        return Some(held);
-    }
-    // Not while the lock is held: reading the file takes seconds, and every other window
-    // command that touches an attachment would wait behind it.
-    let (sha256, _) = tisty_core::attach::hashed(at).ok()?;
-    let said = tisty_core::attach::vouched(shelf, leaf, &sha256);
-    vouching_kept(asked, said);
-    Some(said)
+    let sha256 = match vouched_before(&asked) {
+        Some(held) => held,
+        None => {
+            // Not while the lock is held: reading the file takes seconds, and every other window
+            // command that touches an attachment would wait behind it.
+            let (sha256, _) = tisty_core::attach::hashed(at).ok()?;
+            vouching_kept(asked, sha256.clone());
+            sha256
+        }
+    };
+    Some(
+        tisty_core::attach::vouched(shelf, leaf, &sha256)
+            && avowed.is_none_or(|avowed| avowed == sha256),
+    )
+}
+
+fn nanos(when: std::io::Result<std::time::SystemTime>) -> u128 {
+    when.ok()
+        .and_then(|one| one.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |one| one.as_nanos())
+}
+
+/// What the system moves on every write and every rename, and no file time a person or a cloud
+/// client sets puts back: a body rewritten under its old size and date still gets a new key.
+#[cfg(unix)]
+fn identity(_: &std::path::Path, told: &std::fs::Metadata) -> String {
+    use std::os::unix::fs::MetadataExt;
+    format!("{}.{}", told.ctime(), told.ctime_nsec())
+}
+
+#[cfg(windows)]
+fn identity(at: &std::path::Path, told: &std::fs::Metadata) -> String {
+    format!(
+        "{}.{}",
+        nanos(told.created()),
+        crate::desktop::changed(at).unwrap_or(0)
+    )
+}
+
+#[cfg(not(any(unix, windows)))]
+fn identity(_: &std::path::Path, told: &std::fs::Metadata) -> String {
+    nanos(told.created()).to_string()
 }
