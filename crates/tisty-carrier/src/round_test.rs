@@ -8,7 +8,8 @@ use tisty_core::{Op, Store};
 use ulid::Ulid;
 
 use crate::folder_backed::FolderBacked;
-use crate::{Carrier, Cloud, Here, Kin, Moved, Round, STORE, Trouble, Way};
+use crate::{Carrier, Cloud, Here, Keep, Kin, Moved, Round, STORE, Stitched, Trouble, Way};
+use tisty_sync::MARKER;
 
 const PAPERS: &str = "docs";
 
@@ -72,6 +73,20 @@ impl Shared {
         let (cloud, _) = self.cloud("onlooker", &self.room.path().join("onlooker"));
         cloud.signed().alias
     }
+
+    fn settle(&self, who: &Machine, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
+        let (cloud, here) = self.cloud(&who.device, &who.data);
+        cloud.settle(&here, id, keep)
+    }
+
+    fn stitch(
+        &self,
+        who: &Machine,
+        key: Option<tisty_core::signing::SigningKey>,
+    ) -> Result<Stitched, Trouble> {
+        let (cloud, here) = self.cloud(&who.device, &who.data);
+        cloud.stitch(&here, key)
+    }
 }
 
 macro_rules! both_sides {
@@ -84,6 +99,13 @@ macro_rules! both_sides {
                 }
             )*
         }
+    };
+}
+
+macro_rules! folder_only {
+    ($($case:ident),* $(,)?) => {
+        #[allow(dead_code)]
+        const _: () = { $( let _ = $case; )* };
     };
 }
 
