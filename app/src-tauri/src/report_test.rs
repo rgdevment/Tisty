@@ -238,6 +238,48 @@ fn a_machine_shows_both_the_key_it_publishes_and_the_one_somebody_answered_for()
 }
 
 #[test]
+fn a_machine_that_followed_its_confirmed_key_to_a_new_one_says_so() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path().join("data");
+    std::fs::create_dir_all(&data).unwrap();
+    let paths = tisty_core::Paths::new(data.clone(), room.path().join("config"));
+    let who = tisty_core::DeviceId("win1".into());
+    let was = tisty_core::signing::shown(&tisty_core::signing::SigningKey::from_bytes(&[3; 32]));
+    let now = tisty_core::signing::shown(&tisty_core::signing::SigningKey::from_bytes(&[4; 32]));
+    let told = [wrote("mac0", 0), wrote("win1", 60)];
+    let keys = [(who.clone(), now.clone())].into();
+    let listed = || {
+        machines(
+            &told,
+            "mac0",
+            &Known {
+                gone: &Default::default(),
+                assistants: &Default::default(),
+                keys: &keys,
+                named: &Default::default(),
+                hosts: &Default::default(),
+            },
+            &paths,
+            None,
+        )
+        .into_iter()
+        .find(|one| one.id == "win1")
+        .unwrap()
+    };
+
+    assert!(tisty_core::vouched::confirm(&data, &who, &was));
+    assert!(
+        !listed().rotated,
+        "a key compared by the person was followed from nothing"
+    );
+
+    assert!(tisty_core::vouched::rotated(&data, &who, &now, &was));
+    let one = listed();
+    assert!(one.rotated);
+    assert_eq!(one.confirmed.as_deref(), Some(now.as_str()));
+}
+
+#[test]
 fn a_machine_that_published_nothing_shows_no_key_rather_than_an_empty_one() {
     let told = [wrote("mac0", 0)];
 

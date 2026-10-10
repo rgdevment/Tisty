@@ -49,6 +49,13 @@ describe("the machines in Maintenance", () => {
     expect(screen.getByText(t("machineCarried"))).toBeTruthy();
   });
 
+  it("say when a key was followed from the one confirmed before", () => {
+    listed([one({ confirmed: "ab".repeat(32), rotated: true })]);
+
+    expect(screen.getByText(t("machineRotated"))).toBeTruthy();
+    expect(screen.queryByText(t("machineCarried"))).toBeNull();
+  });
+
   it("show a waiting machine as writing since it began, never as dormant", () => {
     const waiting = one({ when: 0, turnedAway: "unconfirmed" });
     listed([waiting]);

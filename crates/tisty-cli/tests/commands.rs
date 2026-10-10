@@ -2719,6 +2719,7 @@ fn a_machine_that_joined_before_keys_existed_publishes_one_on_its_next_sync() {
     let older: Vec<String> = std::fs::read_to_string(&at)
         .unwrap()
         .lines()
+        .filter(|line| !line.contains("\"op\":\"seal\""))
         .filter_map(|line| {
             let mut event: tisty_core::Event = serde_json::from_str(line).unwrap();
             event.op = match event.op {
@@ -2759,7 +2760,7 @@ fn a_machine_that_joined_before_keys_existed_publishes_one_on_its_next_sync() {
 }
 
 #[test]
-fn what_a_machine_writes_from_the_command_line_it_signs() {
+fn what_a_machine_writes_from_the_command_line_it_seals() {
     let cli = Cli::new();
     cli.ok(&["buy bread"]);
 
@@ -2770,30 +2771,29 @@ fn what_a_machine_writes_from_the_command_line_it_signs() {
         .find(|at| at.is_dir() && at.join("active.tisty").is_file())
         .expect("a history of our own");
 
-    let said = std::fs::read_to_string(mine.join("active.sig"))
-        .expect("a machine wrote a task and nothing here answers for it");
     let whole = std::fs::read(mine.join("active.tisty")).unwrap();
+    let body = &whole[..whole.len() - 1];
+    let start = body
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .map_or(0, |at| at + 1);
+    let tisty_core::seal::Line::Seal(read) = tisty_core::seal::read(&whole[start..]) else {
+        panic!("a machine wrote a task and nothing here answers for it");
+    };
     let device = mine.file_name().unwrap().to_str().unwrap().to_string();
     let paths =
         tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
     let key = tisty_core::signing::mine(&paths, &tisty_core::DeviceId(device.clone()))
-        .expect("the key it signed with");
+        .expect("the key it sealed with");
 
-    let held = tisty_core::signing::holds(
-        &key.verifying_key(),
-        &tisty_core::signing::About {
-            device: &device,
-            segment: "active.tisty",
-        },
-        &said,
-    )
-    .covers()
-    .expect("what it wrote does not answer to the key it keeps");
-
-    assert_eq!(held.at, whole.len() as u64);
+    assert!(
+        tisty_core::seal::holds(&key.verifying_key(), &device, &read),
+        "what it wrote does not answer to the key it keeps"
+    );
+    assert_eq!(read.seal.at, start as u64);
     assert_eq!(
-        held.tip,
-        tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &whole)
+        read.seal.tip,
+        tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &whole[..start])
     );
 }
 

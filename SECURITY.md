@@ -148,14 +148,22 @@ Being explicit here matters more than sounding reassuring.
 - **Whoever can write to the shared folder can try to write to your history.**
   Each machine signs what it writes: an Ed25519 key of its own, kept in the
   `private/` folder of its local configuration — never synced, never in a
-  backup — signs every segment of its log, and the signature travels beside it.
-  A machine that has said what it signs with owes a signature from then on, and
+  backup — signs every write to its log, in the same line and the same write as
+  what it signs, so a log never travels ahead of its signature; logs written
+  before the 1.25 keep theirs in a file beside them, and the first signed write
+  answers for them too. A machine that has said what it signs with owes a
+  signature from then on, and
   a history written at the signed schema or later that arrives with none is not
   taken in at all. A machine whose key nobody here has confirmed is not trusted
   on the folder's word: what it writes waits until you confirm its key, in the
   window or with `tisty sync --confirm <machine>`. Those confirmations are kept
-  on this machine only, and a key once confirmed is never replaced — which also
-  means there is no rotating it. The one moment the folder is taken on its
+  on this machine only, and a key once confirmed is replaced only on its own
+  word: a change of key that the confirmed key itself signed is followed, and a
+  new key nobody vouched for still waits for you. Nothing in this version
+  changes a key; it only reads such a change, so that a later one can. The same
+  word does not help against a key already stolen, since whoever holds it can
+  sign a change too: that machine is removed and confirmed again by looking. The
+  one moment the folder is taken on its
   word is the first time this machine reaches a folder, before it has confirmed
   any other: the keys of the machines already writing there are adopted as
   found, so the folder you join should be one you trust.

@@ -597,13 +597,7 @@ impl Session {
                 by: signed_as.clone(),
                 file: made.id.clone(),
                 order,
-                said: Some(tisty_core::event::Said {
-                    title: made.title.clone(),
-                    bytes: None,
-                    tags: Some(kept.tags.clone()),
-                    by: None,
-                    print: None,
-                }),
+                said: Some(tisty_core::event::Said::of(&body)),
                 folder: kept.folder,
                 page_of: kept.page_of,
             },
@@ -642,13 +636,7 @@ impl Session {
                     by: signed_as.clone(),
                     file: leaf.id,
                     order,
-                    said: Some(tisty_core::event::Said {
-                        title: leaf.title,
-                        bytes: None,
-                        tags: Some(Vec::new()),
-                        by: None,
-                        print: None,
-                    }),
+                    said: Some(tisty_core::event::Said::of(&body)),
                     folder: kept.folder,
                     page_of: Some(twin),
                 },
@@ -850,12 +838,18 @@ impl Session {
                     p: shown,
                 })?;
             }
-        } else {
+        } else if let Some(shown) = shown {
             self.commit(Op::DeviceJoin {
                 d: who.clone(),
                 k: Some(tisty_core::DeviceKind::Machine),
-                p: shown,
+                p: Some(shown),
             })?;
+        } else {
+            witness::warn(
+                channel::STORE,
+                "this machine has no key to say yet, so it takes its seat on a later sync",
+                &[],
+            );
         }
         self.say_name()
     }

@@ -13,11 +13,12 @@ pub(crate) fn seats(store: &Path) -> std::collections::BTreeSet<tisty_core::even
 }
 
 fn anything_signed_in(dir: &Path) -> bool {
-    tisty_core::store::segments_in(dir).is_ok_and(|found| {
+    let signed = tisty_core::store::segments_in(dir).is_ok_and(|found| {
         found
             .iter()
             .any(|one| one.with_extension(tisty_core::signing::SIG).is_file())
-    })
+    });
+    signed || tisty_core::store::sealed_in(dir)
 }
 
 /// A machine's own word for what it signs with, read from the log only where nobody has answered
@@ -194,7 +195,7 @@ fn answers_for_itself(
         );
         return Answered::Disowned;
     }
-    let said = match stood {
+    let said = match stood.clone() {
         Some(key) => Some(key),
         None => match claimed(store, &who, knew) {
             Ok(said) => said,
@@ -217,7 +218,22 @@ fn answers_for_itself(
     });
     match answers {
         Ok(held) => {
-            verified::keep(data, dest, named, held);
+            let stands = match (held.moved, &stood) {
+                (Some(now), Some(stood)) => followed(data, &who, &now, stood),
+                _ => true,
+            };
+            // A memo past a rotation the key kept here has not followed would be read by the wrong key.
+            if stands {
+                verified::keep(
+                    data,
+                    dest,
+                    named,
+                    tisty_core::answering::Reached {
+                        moved: None,
+                        ..held
+                    },
+                );
+            }
             if let Some(said) = carried
                 && tisty_core::vouched::carried(data, &who, &said)
             {
@@ -268,6 +284,21 @@ fn answers_for_itself(
             Answered::Disowned
         }
     }
+}
+
+fn followed(data: &Path, who: &tisty_core::DeviceId, now: &[u8; 32], stood: &str) -> bool {
+    let Ok(now) = tisty_core::signing::VerifyingKey::from_bytes(now) else {
+        return false;
+    };
+    let kept = tisty_core::vouched::rotated(data, who, &tisty_core::signing::shown_of(&now), stood);
+    if kept {
+        witness::note(
+            channel::SYNC,
+            "a machine moved to a new key on the word of the one confirmed here, so the new one stands",
+            &[("at", Fact::Id(who.0.clone()))],
+        );
+    }
+    kept
 }
 
 const BRINGING: &str = ".bringing";

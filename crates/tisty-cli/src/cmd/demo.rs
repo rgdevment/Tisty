@@ -290,26 +290,23 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
         },
     }];
 
-    ops.extend(made.into_iter().enumerate().map(|(n, one)| Op::DocAdd {
-        id: ulid::Ulid::generate(),
-        d: DocAdd {
-            wrote: None,
-            guest: false,
-            made: None,
-            by: None,
-            page_of: None,
-            file: one.id,
-            order: format!("a{n}"),
-            said: Some(tisty_core::event::Said {
-                title: one.title,
-                bytes: None,
-                tags: Some(Vec::new()),
+    for (n, one) in made.into_iter().enumerate() {
+        let body = tisty_core::docs::read(&root, &one.id)?;
+        ops.push(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: DocAdd {
+                wrote: None,
+                guest: false,
+                made: None,
                 by: None,
-                print: None,
-            }),
-            folder: (n >= 2).then_some(shelf),
-        },
-    }));
+                page_of: None,
+                file: one.id,
+                order: format!("a{n}"),
+                said: Some(tisty_core::event::Said::of(&body)),
+                folder: (n >= 2).then_some(shelf),
+            },
+        });
+    }
 
     Ok(ops)
 }

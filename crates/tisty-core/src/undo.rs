@@ -311,6 +311,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         Op::DeviceJoin { .. }
         | Op::DeviceHost { .. }
         | Op::DeviceKey { .. }
+        | Op::DeviceRotate { .. }
         | Op::DeviceNamed { .. }
         | Op::DeviceRemove { .. }
         | Op::Signed { .. }

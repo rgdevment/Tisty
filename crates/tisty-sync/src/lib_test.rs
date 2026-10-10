@@ -458,13 +458,39 @@ fn an_attachment_nobody_retired_still_goes_up() {
 }
 
 fn rotated(who: &Machine) {
-    let at = who.store.join(&who.device);
-    let whole = std::fs::read_to_string(at.join("active.tisty")).unwrap();
-    let lines: Vec<&str> = whole.lines().collect();
-    let (closed, tail) = lines.split_at(lines.len() - 1);
-    std::fs::write(at.join("000001.tisty"), format!("{}\n", closed.join("\n"))).unwrap();
-    std::fs::write(at.join("000001.count"), closed.len().to_string()).unwrap();
-    std::fs::write(at.join("active.tisty"), format!("{}\n", tail.join("\n"))).unwrap();
+    let at = who.store.join(&who.device).join("active.tisty");
+    let held = tisty_core::store::read_tail(&at, 0).map_or(0, |all| all.len());
+    let mut store = signing(who);
+    store
+        .append_batch(
+            (held..5_000)
+                .map(|n| Op::TaskAdd {
+                    id: Ulid::generate(),
+                    d: TaskAdd::new(format!("relleno {n}"), "a0"),
+                })
+                .collect(),
+        )
+        .unwrap();
+    store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("lo primero tras rotar", "a0"),
+        })
+        .unwrap();
+    assert!(
+        at.with_file_name("000001.tisty").is_file(),
+        "it did not rotate"
+    );
+}
+
+fn unsealed(at: &Path) {
+    let kept: String = std::fs::read_to_string(at)
+        .unwrap()
+        .lines()
+        .filter(|line| !line.contains("\"op\":\"seal\""))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    std::fs::write(at, kept).unwrap();
 }
 
 #[test]
@@ -483,9 +509,7 @@ fn a_pull_cut_between_two_segments_does_not_wedge_the_next_one() {
     let theirs = shared.path().join(STORE).join(&one.device);
     let mine = two.store.join(&one.device);
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
-    for leaf in ["000001.tisty", "000001.count"] {
-        std::fs::copy(theirs.join(leaf), mine.join(leaf)).unwrap();
-    }
+    std::fs::copy(theirs.join("000001.tisty"), mine.join("000001.tisty")).unwrap();
 
     wrote(&one, "lo que vino despues de rotar".into());
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
@@ -3899,12 +3923,7 @@ fn handing_a_history_on_never_writes_over_one_we_cannot_read_whole() {
     let closed = theirs.join("000001.tisty");
     let whole = std::fs::read_to_string(theirs.join("active.tisty")).unwrap();
     std::fs::remove_file(theirs.join("active.tisty")).unwrap();
-    std::fs::write(
-        theirs.join("000001.count"),
-        whole.lines().count().to_string(),
-    )
-    .unwrap();
-    let cut: Vec<&str> = whole.lines().take(4).collect();
+    let cut: Vec<&str> = whole.lines().take(8).collect();
     std::fs::write(&closed, format!("{}\n", cut.join("\n"))).unwrap();
     assert_eq!(tisty_core::store::distinct_in(&theirs).unwrap(), 4);
     assert!(
@@ -6050,9 +6069,39 @@ fn a_forced_round_leaves_alike_histories_where_they_are() {
     );
 }
 
+fn sown_at_sixteen(store: &Path, device: &str, many: usize) {
+    let whose = DeviceId(device.into());
+    let paths = tisty_core::Paths::new(store.to_path_buf(), store.join("config"));
+    let key = tisty_core::signing::mine(&paths, &whose).unwrap();
+    let dir = store.join(device);
+    std::fs::create_dir_all(&dir).unwrap();
+    let said: String = (0..many)
+        .map(|n| {
+            format!(
+                "{{\"v\":16,\"ts\":\"2026-10-01T12:00:{n:02}Z\",\"by\":\"{device}\",\"op\":\"task.add\",\"id\":\"{}\",\"d\":{{\"title\":\"t{n}\",\"order\":\"a0\"}}}}\n",
+                Ulid::generate()
+            )
+        })
+        .collect();
+    std::fs::write(dir.join("active.tisty"), &said).unwrap();
+    let covers = tisty_core::signing::Covers {
+        tip: tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, said.as_bytes()),
+        at: said.len() as u64,
+    };
+    let about = tisty_core::signing::About {
+        device,
+        segment: "active.tisty",
+    };
+    std::fs::write(
+        dir.join("active.sig"),
+        tisty_core::signing::signed(&key, &about, &covers),
+    )
+    .unwrap();
+}
+
 fn kept_for_another(one: &Machine, shared: &Path) -> (PathBuf, PathBuf) {
     carry(&one.data, &one.device, shared, Way::Push, &[]).unwrap();
-    sown(&one.store, "dev_c", 1);
+    sown_at_sixteen(&one.store, "dev_c", 1);
     let mut alike = Alike::default();
     hand_on(&one.store, &one.device, shared, false, &mut alike).unwrap();
     (one.store.join("dev_c"), shared.join(STORE).join("dev_c"))
@@ -6102,8 +6151,8 @@ fn a_signature_is_not_put_back_beside_a_segment_that_is_not_the_one_we_hold() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
-    sown(&one.store, "dev_c", 1);
-    sown(&shared.path().join(STORE), "dev_c", 2);
+    sown_at_sixteen(&one.store, "dev_c", 1);
+    sown_at_sixteen(&shared.path().join(STORE), "dev_c", 2);
     let there = shared.path().join(STORE).join("dev_c");
     std::fs::remove_file(there.join("active.sig")).unwrap();
 
@@ -6699,7 +6748,7 @@ fn a_body_that_lands_ahead_of_its_history_waits_for_it_and_then_comes_in() {
 }
 
 #[test]
-fn a_signature_travels_with_the_segment_it_answers_for() {
+fn a_seal_travels_with_the_segment_it_answers_for() {
     let one = machine("dev_a");
     let paths = tisty_core::Paths::new(one.data.clone(), one.data.join("config"));
     let who = DeviceId(one.device.clone());
@@ -6718,28 +6767,31 @@ fn a_signature_travels_with_the_segment_it_answers_for() {
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
 
     let there = shared.path().join("store").join(&one.device);
-    let said = std::fs::read_to_string(there.join("active.sig"))
-        .expect("the signature stayed behind, so nothing over there can answer for the segment");
-    let tip = tisty_core::signing::holds(
-        &key.verifying_key(),
-        &tisty_core::signing::About {
-            device: &one.device,
-            segment: "active.tisty",
-        },
-        &said,
-    )
-    .covers()
-    .expect("it does not answer");
     let arrived = std::fs::read(there.join("active.tisty")).unwrap();
-    assert_eq!(
-        tip.tip,
-        tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &arrived),
-        "what arrived is not what the signature was made over"
+    let body = &arrived[..arrived.len() - 1];
+    let start = body
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .map_or(0, |at| at + 1);
+    let tisty_core::seal::Line::Seal(read) = tisty_core::seal::read(&arrived[start..]) else {
+        panic!("the seal stayed behind, so nothing over there can answer for the segment");
+    };
+    assert!(
+        tisty_core::seal::holds(&key.verifying_key(), &one.device, &read),
+        "it does not answer"
     );
     assert_eq!(
-        tip.at,
-        arrived.len() as u64,
-        "the signature answers for a different number of bytes than arrived"
+        read.seal.tip,
+        tisty_core::signing::tip_of(tisty_core::signing::NOTHING_BEFORE, &arrived[..start]),
+        "what arrived is not what the seal was made over"
+    );
+    assert_eq!(
+        read.seal.at, start as u64,
+        "the seal answers for a different number of bytes than arrived"
+    );
+    assert!(
+        !there.join("active.sig").exists(),
+        "a signature travelled beside a segment that seals itself"
     );
 }
 
@@ -7210,6 +7262,7 @@ fn a_key_somebody_answered_for_is_demanded_even_on_the_first_round() {
             std::fs::remove_file(found.path()).unwrap();
         }
     }
+    unsealed(&there.join("active.tisty"));
 
     let two = blank("dev_b");
     std::fs::create_dir_all(&two.data).unwrap();
@@ -7363,10 +7416,20 @@ fn a_history_from_before_the_fence_is_not_a_signature_taken_away() {
             .join("active.tisty"),
     )
     .unwrap();
-    let older = whole.replace(
-        &format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION),
-        &format!("\"v\":{}", tisty_core::event::SIGNED_FROM - 1),
-    );
+    let older: String = whole
+        .lines()
+        .filter(|line| !line.contains("\"op\":\"seal\""))
+        .map(|line| {
+            format!(
+                "{}
+",
+                line.replace(
+                    &format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION),
+                    &format!("\"v\":{}", tisty_core::event::SIGNED_FROM - 1),
+                )
+            )
+        })
+        .collect();
     assert_ne!(older, whole, "the history was not written at this schema");
     std::fs::write(there.join("active.tisty"), &older).unwrap();
     std::fs::copy(
@@ -7419,7 +7482,7 @@ fn a_segment_torn_to_hide_what_a_machine_signs_with_brings_nothing_home() {
     assert!(whole.contains("device.key"));
     let rest = whole
         .lines()
-        .filter(|one| !one.contains("device.key"))
+        .filter(|one| !one.contains("device.key") && !one.contains("\"op\":\"seal\""))
         .collect::<Vec<&str>>()
         .join("\n");
     std::fs::write(
@@ -7651,9 +7714,10 @@ fn a_history_from_the_fence_onward_owes_a_signature_even_saying_no_key() {
     )
     .unwrap();
     assert!(
-        whole.contains(&format!("\"v\":{}", tisty_core::event::SIGNED_FROM)),
+        whole.contains(&format!("\"v\":{}", tisty_core::event::SCHEMA_VERSION)),
         "the folder does not hold a history at the schema this is about"
     );
+    assert!(!whole.contains("\"op\":\"seal\""), "it sealed with no key");
     assert!(!whole.contains("device.key"), "it says what it signs with");
 
     let two = blank("dev_b");
@@ -9319,5 +9383,78 @@ fn a_round_cut_short_still_leaves_nothing_copied_aside() {
     assert!(
         !room.path().join(".bringing").exists(),
         "a round that ended early left its copies behind"
+    );
+}
+
+#[test]
+fn a_machine_that_moves_to_a_new_key_is_followed_by_whoever_confirmed_the_old_one() {
+    let shared = tempfile::tempdir().unwrap();
+    let one = machine("dev_a");
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    let two = joined_with_a_key("dev_b", shared.path());
+    let who = DeviceId(two.device.clone());
+    let paths = tisty_core::Paths::new(two.data.clone(), two.data.join("config"));
+    let old = tisty_core::signing::mine(&paths, &who).unwrap();
+    let old_said = tisty_core::signing::shown(&old);
+    assert!(tisty_core::vouched::confirm(&one.data, &who, &old_said));
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(home_of(&one, &two.device).contains("lo de dev_b"));
+    rotated(&two);
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    let new = tisty_core::signing::SigningKey::from_bytes(&[8; 32]);
+    let new_said = tisty_core::signing::shown(&new);
+    let keyed = |key: &tisty_core::signing::SigningKey| {
+        Store::open(&two.store, who.clone())
+            .unwrap()
+            .signing_with(Some(key.clone()))
+    };
+    keyed(&old)
+        .append(Op::DeviceRotate {
+            d: who.clone(),
+            p: new_said.clone(),
+        })
+        .unwrap();
+    keyed(&new)
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("lo de dev_b tras la rotacion", "a0"),
+        })
+        .unwrap();
+    carry(&two.data, &two.device, shared.path(), Way::Push, &[]).unwrap();
+
+    let after = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(after.disowned.is_empty(), "{:?}", after.disowned);
+    assert!(after.unconfirmed.is_empty(), "{:?}", after.unconfirmed);
+    assert!(home_of(&one, &two.device).contains("tras la rotacion"));
+    let stood = tisty_core::vouched::confirmed(&one.data, &who).unwrap();
+    assert_eq!(stood.key, new_said);
+    assert_eq!(stood.was.as_deref(), Some(old_said.as_str()));
+    let again = carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(again.disowned.is_empty(), "{:?}", again.disowned);
+
+    let three = blank("dev_c");
+    std::fs::create_dir_all(&three.data).unwrap();
+    let kept = tempfile::tempdir().unwrap();
+    super::place::note_carried(Some(kept.path()), shared.path(), &three.device);
+    let waits = carry_leaning_on(
+        &three.data,
+        Some(kept.path()),
+        &three.device,
+        shared.path(),
+        Way::Both,
+        &[],
+    )
+    .unwrap();
+    assert!(
+        waits.unconfirmed.contains(&two.device),
+        "a machine nobody here confirmed came in on the word of its own rotation: {waits:?}"
+    );
+    assert_eq!(
+        tisty_core::store::key_said_in(&shared.path().join(STORE).join(&two.device), &who),
+        Some(new_said),
+        "the person was not shown the key it signs with now"
     );
 }

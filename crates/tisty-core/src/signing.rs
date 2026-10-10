@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-pub use ed25519_dalek::SigningKey;
-use ed25519_dalek::VerifyingKey;
+pub use ed25519_dalek::{SigningKey, VerifyingKey};
 
 use crate::event::DeviceId;
 
@@ -36,6 +35,18 @@ pub fn published(
     };
     let shown = shown_of(&key);
     *into.entry(whose.clone()).or_insert(shown.clone()) == shown
+}
+
+/// Whether the old key sealed the batch that says it is a question for whoever checks the seals.
+pub fn rotated(
+    into: &mut std::collections::BTreeMap<DeviceId, String>,
+    by: &DeviceId,
+    whose: &DeviceId,
+    said: &str,
+) {
+    if let (true, true, Some(key)) = (by == whose, into.contains_key(whose), read(said)) {
+        into.insert(whose.clone(), shown_of(&key));
+    }
 }
 
 pub fn read(said: &str) -> Option<VerifyingKey> {

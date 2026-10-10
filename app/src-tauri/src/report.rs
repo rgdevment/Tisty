@@ -117,6 +117,7 @@ pub struct Machine {
     pub confirmed: Option<String>,
     pub confirmed_when: u64,
     pub carried: bool,
+    pub rotated: bool,
     /// The computer an assistant runs on, so a person knows where to read its code.
     pub host: Option<String>,
     /// What the last round did with its history. Only the round knows this; the two keys above
@@ -194,6 +195,7 @@ pub fn machines(
             confirmed: stood.get(who).map(|one| one.key.clone()),
             confirmed_when: stood.get(who).map_or(0, |one| one.when),
             carried: stood.get(who).is_some_and(|one| one.carried),
+            rotated: stood.get(who).is_some_and(|one| one.was.is_some()),
             host,
             turned_away: away.get(&who.0).map(|one| match one {
                 tisty_carrier::turned::Away::Disowned => "disowned".to_string(),

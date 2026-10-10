@@ -811,6 +811,7 @@ fn reached(
                 | crate::Op::DeviceJoin { .. }
                 | crate::Op::DeviceHost { .. }
                 | crate::Op::DeviceKey { .. }
+                | crate::Op::DeviceRotate { .. }
                 | crate::Op::DeviceNamed { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachKept { .. }

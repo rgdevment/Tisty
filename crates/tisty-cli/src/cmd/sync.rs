@@ -193,12 +193,18 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         if let Some(shown) = shown.filter(|_| starting) {
             app.commit(tisty_core::Op::DeviceKey { d: who, p: shown })?;
         }
-    } else {
+    } else if let Some(shown) = shown {
         app.commit(tisty_core::Op::DeviceJoin {
             d: who,
             k: Some(tisty_core::DeviceKind::Machine),
-            p: shown,
+            p: Some(shown),
         })?;
+    } else {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::SYNC,
+            "this machine has no key to say yet, so it takes its seat on a later sync",
+            &[],
+        );
     }
 
     let heard = moved.brought > 0;

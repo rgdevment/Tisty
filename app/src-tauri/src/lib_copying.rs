@@ -135,3 +135,26 @@ fn copying_a_document_in_the_archive_leaves_the_copy_there() {
         "the page is covered by the copy, not marked on its own"
     );
 }
+
+#[test]
+fn a_copy_and_its_pages_carry_the_print_of_what_was_written() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let book = wrote(&mut session, "Book", None);
+    wrote(&mut session, "First", Some(book));
+
+    let made = session.copy_doc(&book.to_string()).unwrap();
+    let twin = twin_of(&session, &made);
+
+    let root = desk.paths.docs();
+    for one in std::iter::once(&session.state.docs[&twin])
+        .chain(session.state.pages_of(twin).iter().copied())
+    {
+        let body = tisty_core::docs::read(&root, &one.file).unwrap();
+        assert_eq!(
+            one.print,
+            tisty_core::event::Said::of(&body).print,
+            "a body written at 17 went down without the print of what is there"
+        );
+    }
+}

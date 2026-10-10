@@ -26,6 +26,7 @@ pub mod parting;
 mod parts;
 pub mod paths;
 pub mod refs;
+pub mod seal;
 pub mod series;
 pub mod shape;
 mod shelving;
@@ -205,3 +206,7 @@ impl Error {
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "sixteen_test.rs"]
+mod sixteen;
