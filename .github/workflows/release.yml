@@ -269,6 +269,11 @@ jobs:
           version: ${{ needs.version.outputs.version }}
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
+      - name: The same deployment target as the app
+        run: |
+          floor=$(jq -r '.bundle.macOS.minimumSystemVersion' app/src-tauri/tauri.conf.json)
+          echo "MACOSX_DEPLOYMENT_TARGET=$floor" >> "$GITHUB_ENV"
+
       - name: Build
         run: |
           cargo build --release --locked --bin tisty --target aarch64-apple-darwin
@@ -330,9 +335,18 @@ jobs:
         run: |
           BIN="target/$TARGET/release/tisty"
           ditto -c -k --keepParent "$BIN" "$RUNNER_TEMP/tisty.zip"
-          xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
+          said=$(xcrun notarytool submit "$RUNNER_TEMP/tisty.zip" \
             --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" --wait --timeout 600
+            --team-id "$APPLE_TEAM_ID" --wait --timeout 600 --output-format json)
+          # Waiting ends without an error whatever Apple decided, and a bare binary has no staple to fail.
+          status=$(jq -r '.status // ""' <<< "$said")
+          if [ "$status" != "Accepted" ]; then
+            echo "::error::notarisation came back «${status:-nothing}», not Accepted"
+            xcrun notarytool log "$(jq -r '.id // ""' <<< "$said")" \
+              --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" || true
+            exit 1
+          fi
           # A bare executable cannot be stapled, so a refusal here is expected, not a break.
           if spctl --assess --type exec -vv "$BIN" 2>&1; then
             echo "Gatekeeper accepts it"
@@ -457,6 +471,11 @@ jobs:
       - name: The CLI rides along
         shell: bash
         run: |
+          host=$(rustc -vV | sed -n 's/^host: //p')
+          if [ "$host" != "$TARGET" ]; then
+            echo "::error::the CLI is built for «$host» and would ship named for $TARGET"
+            exit 1
+          fi
           cargo build --release --locked --bin tisty
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
@@ -699,7 +718,7 @@ jobs:
 
       - name: The CLI rides along
         run: |
-          cargo build --release --bin tisty --target "$TARGET"
+          cargo build --release --locked --bin tisty --target "$TARGET"
           mkdir -p app/src-tauri/binaries
           cp "target/$TARGET/release/tisty" "app/src-tauri/binaries/tisty-$TARGET"
 
@@ -1206,7 +1225,7 @@ jobs:
           # Born a draft: nobody is offered a release with half its files, and a rerun picks up
           # the one it left instead of making another. Only a listing that answered and lacks
           # the tag makes a new one: an error read as «not there» would leave two drafts on it.
-          tags=$(gh release list --limit 200 --json tagName --jq '.[].tagName')
+          tags=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name')
           if ! grep -qx "$tag" <<< "$tags"; then
             gh release create "$tag" --draft --verify-tag --title "$tag" \
               --prerelease="$PRERELEASE" --generate-notes --notes-file "$RUNNER_TEMP/notes.md"
