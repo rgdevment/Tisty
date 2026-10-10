@@ -121,6 +121,20 @@ impl Paths {
     pub fn docs(&self) -> PathBuf {
         self.data.join("docs")
     }
+
+    pub fn cloud_home(&self, provider: &str, account: &str) -> PathBuf {
+        let plain = |said: &str| -> String {
+            said.chars()
+                .map(|one| match one.is_ascii_alphanumeric() || one == '_' {
+                    true => one.to_ascii_lowercase(),
+                    false => '-',
+                })
+                .collect()
+        };
+        self.config
+            .join("cloud")
+            .join(format!("{}-{}", plain(provider), plain(account)))
+    }
 }
 
 const STORE_PACKAGE: &str = "rgdevment.Tisty_kdjgfdc2rb3gc";

@@ -109,18 +109,4 @@ macro_rules! folder_only {
     };
 }
 
-macro_rules! cloud_owes {
-    ($($case:ident),* $(,)?) => {
-        mod cloud_owes {
-            $(
-                #[test]
-                #[ignore = "a cloud answers kin and stirring from its last round's mirror"]
-                fn $case() {
-                    super::$case(&super::Shared::new());
-                }
-            )*
-        }
-    };
-}
-
 include!("../../tisty-sync/src/round_cases_test.rs");

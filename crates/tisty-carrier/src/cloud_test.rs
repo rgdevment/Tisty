@@ -1211,5 +1211,56 @@ fn a_sibling_of_a_kind_this_build_has_no_name_for_still_travels() {
     }
 }
 
+#[test]
+fn another_machine_s_write_stirs_the_cloud_without_a_byte_of_content_coming_down() {
+    for (setting, fake) in each_kind(|fake| fake.polled_every(Duration::ZERO)) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        let still = two.carrier.stirring();
+        assert_eq!(
+            still,
+            two.carrier.stirring(),
+            "{who}: a quiet cloud stirred"
+        );
+
+        one.wrote("lo nuevo de uno");
+        one.round(Way::Both);
+        fake.forget_counts();
+
+        assert_ne!(
+            still,
+            two.carrier.stirring(),
+            "{who}: a write elsewhere went unnoticed"
+        );
+        let spent = fake.counts();
+        assert_eq!(
+            (spent.received, spent.fetches),
+            (0, 0),
+            "{who}: looking brought content down"
+        );
+        assert_eq!(spent.lists, 1, "{who}");
+    }
+}
+
+#[test]
+fn a_cloud_asked_again_before_its_provider_s_interval_is_not_asked_at_all() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        fake.forget_counts();
+
+        one.carrier.stirring();
+        one.carrier.stirring();
+        one.carrier.stirring();
+
+        assert_eq!(fake.counts().lists, 1, "{who}: every glance cost a request");
+    }
+}
+
 #[path = "converge_test.rs"]
 mod converge;

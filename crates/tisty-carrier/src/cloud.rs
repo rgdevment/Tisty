@@ -1,15 +1,15 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
-    Carrier, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason, Remote, Round,
-    STORE, Signed, Stitched, Told, Trouble,
+    Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason, Remote,
+    Round, STORE, Signed, Stitched, Told, Trouble,
 };
 
 mod index;
@@ -26,6 +26,7 @@ const TREE: &str = "tree";
 const FORGOTTEN: &str = "forgotten";
 const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
+const QUIET_STRETCH: u32 = 4;
 
 struct Done<T> {
     value: Option<T>,
@@ -38,6 +39,14 @@ pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
     tried: AtomicBool,
+    stir: Mutex<Stir>,
+}
+
+#[derive(Default)]
+struct Stir {
+    asked: Option<Instant>,
+    every: Duration,
+    mark: u64,
 }
 
 impl Cloud {
@@ -46,6 +55,7 @@ impl Cloud {
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
+            stir: Mutex::default(),
         }
     }
 
@@ -150,6 +160,34 @@ impl Cloud {
         }
     }
 
+    fn looked_again(&self) -> PathBuf {
+        let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
+        self.tree()
+    }
+
+    fn asked_again(&self) -> u64 {
+        let poll = self.remote.limits().poll_every;
+        let Ok(mut stir) = self.stir.lock() else {
+            return 0;
+        };
+        if stir.asked.is_some_and(|at| at.elapsed() < stir.every) {
+            return stir.mark;
+        }
+        stir.asked = Some(Instant::now());
+        let since = Index::load(&self.home).cursor;
+        match self.remote.changes(since.as_deref()) {
+            Ok(Changes::Since { changed, gone, .. }) if changed.is_empty() && gone.is_empty() => {
+                stir.every = (stir.every * 2).clamp(poll, poll * QUIET_STRETCH);
+            }
+            Ok(changes) => {
+                stir.mark = marked(&changes);
+                stir.every = poll;
+            }
+            Err(_) => stir.every = stir.every.max(poll),
+        }
+        stir.mark
+    }
+
     fn fresh(&self) -> PathBuf {
         if !Index::load(&self.home).pulled() && !self.tried.swap(true, Ordering::Relaxed) {
             let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
@@ -225,15 +263,15 @@ impl Carrier for Cloud {
     }
 
     fn kin(&self, here: &Here) -> Kin {
-        tisty_sync::kinship(&here.data.join(STORE), &self.fresh())
+        tisty_sync::kinship(&here.data.join(STORE), &self.looked_again())
     }
 
     fn signed(&self) -> Signed {
-        tisty_sync::signed_here(&self.fresh())
+        tisty_sync::signed_here(&self.looked_again())
     }
 
     fn stirring(&self) -> u64 {
-        tisty_sync::stirring(&self.tree())
+        self.asked_again()
     }
 
     fn unclaimed(&self) -> Holding {
@@ -331,6 +369,24 @@ impl Carrier for Cloud {
             self.forget_asked(&self.tree());
         }
     }
+}
+
+fn marked(changes: &Changes) -> u64 {
+    use std::hash::{Hash, Hasher};
+
+    let mut said = std::collections::hash_map::DefaultHasher::new();
+    match changes {
+        Changes::Whole { seen, .. } => {
+            let mut all: Vec<(&str, &str)> = seen
+                .iter()
+                .map(|one| (one.name.as_str(), one.revision.as_str()))
+                .collect();
+            all.sort_unstable();
+            all.hash(&mut said);
+        }
+        Changes::Since { cursor, .. } => cursor.hash(&mut said),
+    }
+    said.finish()
 }
 
 #[cfg(test)]

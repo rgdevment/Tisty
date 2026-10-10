@@ -385,3 +385,21 @@ fn only_windows_has_a_home_to_hide() {
     assert!(tucked(room.path()).is_ok());
     assert!(!room.path().join(".kept").exists());
 }
+
+#[test]
+fn a_cloud_mirror_stays_with_this_machine_s_settings_and_never_with_its_data() {
+    let p = paths();
+    let home = p.cloud_home("drive", "ana@ejemplo.cl");
+
+    assert!(home.starts_with(p.config().join("cloud")), "{home:?}");
+    assert!(!home.starts_with(p.data()), "{home:?}");
+    assert!(!home.starts_with(p.cache()), "{home:?}");
+    assert_ne!(home, p.cloud_home("drive", "otra@ejemplo.cl"));
+    assert_ne!(home, p.cloud_home("onedrive", "ana@ejemplo.cl"));
+    let sly = p.cloud_home("drive", "../../data/Tisty");
+    assert_eq!(
+        sly.parent(),
+        Some(p.config().join("cloud").as_path()),
+        "{sly:?}"
+    );
+}
