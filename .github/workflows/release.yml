@@ -392,8 +392,15 @@ jobs:
         if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
-          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
-          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
+          try {
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            $cert = @(Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said)[0]
+          } finally {
+            Remove-Item $pfx -ErrorAction SilentlyContinue
+          }
 
           $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
             -Recurse -Filter "signtool.exe" |
@@ -402,11 +409,9 @@ jobs:
           if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
 
           $exe = "target/$env:TARGET/release/tisty.exe"
-          & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+          & $signtool.FullName sign /sha1 $cert.Thumbprint `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 $exe
           if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
-
-          Remove-Item signingCert.pfx
 
           $sig = Get-AuthenticodeSignature $exe
           Write-Host "status:  $($sig.Status)"
@@ -536,22 +541,26 @@ jobs:
         if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
-          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
-          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
           try {
-            $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
-              -Recurse -Filter "signtool.exe" |
-              Where-Object { $_.FullName -like "*x64*" } |
-              Sort-Object FullName -Descending | Select-Object -First 1
-            if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
-
-            & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
-              /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
-              stage/Tisty.exe stage/cli/tisty.exe
-            if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            $cert = @(Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said)[0]
           } finally {
-            Remove-Item signingCert.pfx -ErrorAction SilentlyContinue
+            Remove-Item $pfx -ErrorAction SilentlyContinue
           }
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
+            -Recurse -Filter "signtool.exe" |
+            Where-Object { $_.FullName -like "*x64*" } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { Write-Error "signtool not found"; exit 1 }
+
+          & $signtool.FullName sign /sha1 $cert.Thumbprint `
+            /tr http://timestamp.digicert.com /td sha256 /fd sha256 `
+            stage/Tisty.exe stage/cli/tisty.exe
+          if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
 
       # The bundler is handed a signing command; whether it used it is only readable in the
       # installer it produced, so the installer is opened and what it carries is checked.
@@ -611,8 +620,15 @@ jobs:
         if: env.PFX_BASE64 != ''
         shell: pwsh
         run: |
-          $bytes = [Convert]::FromBase64String($env:PFX_BASE64)
-          Set-Content -Path signingCert.pfx -Value $bytes -AsByteStream
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
+          try {
+            $said = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            $cert = @(Import-PfxCertificate -FilePath $pfx `
+              -CertStoreLocation Cert:\CurrentUser\My -Password $said)[0]
+          } finally {
+            Remove-Item $pfx -ErrorAction SilentlyContinue
+          }
 
           $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" `
             -Recurse -Filter "signtool.exe" |
@@ -624,10 +640,9 @@ jobs:
             Select-Object -First 1
           if (-not $setup) { Write-Error "no installer to sign"; exit 1 }
 
-          & $signtool.FullName sign /f signingCert.pfx /p $env:PFX_PASSWORD `
+          & $signtool.FullName sign /sha1 $cert.Thumbprint `
             /tr http://timestamp.digicert.com /td sha256 /fd sha256 $setup.FullName
           if ($LASTEXITCODE -ne 0) { Write-Error "signing failed"; exit 1 }
-          Remove-Item signingCert.pfx
 
           $sig = Get-AuthenticodeSignature $setup.FullName
           if (-not $sig.TimeStamperCertificate) {
