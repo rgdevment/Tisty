@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use tisty_core::signing::SigningKey;
@@ -15,6 +16,40 @@ pub struct Folder {
 impl Folder {
     pub fn at(at: PathBuf) -> Self {
         Self { at }
+    }
+
+    fn shelved(&self, reference: &str) -> Option<PathBuf> {
+        let shelved = reference
+            .strip_prefix("attachments/")
+            .and_then(|rest| rest.split_once('/'))
+            .is_some_and(|(under, leaf)| tisty_core::attach::shelved(under, leaf));
+        tisty_core::attach::resolve(reference, &self.at)
+            .ok()
+            .filter(|at| shelved && at.is_file())
+    }
+
+    fn on_the_shelf(&self) -> BTreeMap<String, u64> {
+        let mut found = BTreeMap::new();
+        let shelves = std::fs::read_dir(self.at.join("attachments"))
+            .into_iter()
+            .flatten();
+        for shelf in shelves.flatten() {
+            let under = shelf.file_name().to_string_lossy().into_owned();
+            for leaf in std::fs::read_dir(shelf.path())
+                .into_iter()
+                .flatten()
+                .flatten()
+            {
+                let named = leaf.file_name().to_string_lossy().into_owned();
+                let file = leaf.metadata().ok().filter(std::fs::Metadata::is_file);
+                if let Some(told) = file
+                    && tisty_core::attach::shelved(&under, &named)
+                {
+                    found.insert(format!("attachments/{under}/{named}"), told.len());
+                }
+            }
+        }
+        found
     }
 }
 
@@ -40,14 +75,11 @@ impl Carrier for Folder {
     }
 
     fn brought(&self, _: &Here, reference: &str) -> Result<Brought, Trouble> {
-        let shelved = reference
-            .strip_prefix("attachments/")
-            .and_then(|rest| rest.split_once('/'))
-            .is_some_and(|(under, leaf)| tisty_core::attach::shelved(under, leaf));
-        let found = tisty_core::attach::resolve(reference, &self.at)
-            .ok()
-            .filter(|at| shelved && at.is_file());
-        Ok(found.map_or(Brought::Absent, Brought::At))
+        Ok(self.shelved(reference).map_or(Brought::Absent, Brought::At))
+    }
+
+    fn shelf(&self) -> Option<BTreeMap<String, u64>> {
+        self.reachable().then(|| self.on_the_shelf())
     }
 
     fn kin(&self, here: &Here) -> Kin {
