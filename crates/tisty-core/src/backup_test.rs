@@ -1258,3 +1258,35 @@ fn a_cloud_mirror_beside_the_store_never_enters_a_copy() {
         "the cloud's mirror went out in the copy"
     );
 }
+
+#[test]
+fn an_attachment_this_machine_let_go_of_is_counted_as_left_out_of_the_copy() {
+    let (_src, data) = filled("con foto");
+    let source = data.join("foto.png");
+    std::fs::write(&source, b"los bytes de una foto que vive en otra parte").unwrap();
+    let kept = crate::attach::keep(&source, &data, crate::attach::COPIED_UP_TO).unwrap();
+    let mut store = Store::open(data.join("store"), DeviceId("dev_a".into())).unwrap();
+    store.append(kept.told()).unwrap();
+    std::fs::remove_file(data.join(&kept.at)).unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let made = write(&data, &out.path().join("tisty.zip"), tmp().path(), None).unwrap();
+
+    assert_eq!(made.left_out, 1, "{made:?}");
+    assert_eq!(made.left_out_bytes, kept.bytes, "{made:?}");
+}
+
+#[test]
+fn an_attachment_the_copy_carries_is_not_counted_as_left_out() {
+    let (_src, data) = filled("con foto");
+    let source = data.join("foto.png");
+    std::fs::write(&source, b"los bytes de una foto que vive aqui").unwrap();
+    let kept = crate::attach::keep(&source, &data, crate::attach::COPIED_UP_TO).unwrap();
+    let mut store = Store::open(data.join("store"), DeviceId("dev_a".into())).unwrap();
+    store.append(kept.told()).unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let made = write(&data, &out.path().join("tisty.zip"), tmp().path(), None).unwrap();
+
+    assert_eq!((made.left_out, made.left_out_bytes), (0, 0), "{made:?}");
+}

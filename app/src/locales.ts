@@ -1109,6 +1109,7 @@ const en = {
     "One file with your whole history, from every machine. Keep it wherever you like and come back to it after a format.",
   backupMake: "Create backup…",
   backupMade: "{name} saved",
+  backupLeftOut: "{name} saved. Attachments this machine does not hold stayed out of it: {other}",
   restored: "{name} files restored",
   restoreFailed: "Nothing was changed — the restore could not finish: {name}",
   restoreSure:
@@ -2690,6 +2691,7 @@ const es: Catalog = {
     "Un archivo con todo tu historial, de todos tus equipos. Guárdalo donde quieras y recupéralo cuando lo necesites.",
   backupMake: "Crear respaldo…",
   backupMade: "{name} guardados",
+  backupLeftOut: "{name} guardados. Quedaron fuera los adjuntos que este equipo no tiene: {other}",
   restored: "{name} archivos restaurados",
   restoreFailed: "No se cambió nada — la restauración no pudo terminar: {name}",
   restoreSure:

@@ -35,6 +35,16 @@ impl Carrier for Folder {
         tisty_sync::been_here(&here.aside, &self.at, &here.device)
     }
 
+    fn lends_from(&self) -> Option<PathBuf> {
+        Some(self.at.join("attachments"))
+    }
+
+    fn brought(&self, _: &Here, reference: &str) -> Result<Option<PathBuf>, Trouble> {
+        Ok(tisty_core::attach::resolve(reference, &self.at)
+            .ok()
+            .filter(|at| at.is_file()))
+    }
+
     fn kin(&self, here: &Here) -> Kin {
         tisty_sync::kinship(&here.data.join(STORE), &self.at)
     }

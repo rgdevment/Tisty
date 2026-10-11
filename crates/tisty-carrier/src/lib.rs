@@ -51,6 +51,8 @@ pub type Told<'a> = &'a mut dyn FnMut(&LetGo) -> bool;
 
 pub trait Carrier: Send + std::marker::Sync {
     fn place(&self) -> Option<&Path>;
+    fn lends_from(&self) -> Option<PathBuf>;
+    fn brought(&self, here: &Here, reference: &str) -> Result<Option<PathBuf>, Trouble>;
     fn reachable(&self) -> bool;
     fn theirs(&self) -> Option<String>;
     fn been_here(&self, here: &Here) -> bool;

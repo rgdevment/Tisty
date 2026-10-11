@@ -28,6 +28,7 @@ const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
+const LENT: &str = "held";
 
 struct Done<T> {
     value: Option<T>,
@@ -254,6 +255,20 @@ fn unavailable(deferred: Option<Deferred>) -> String {
 impl Carrier for Cloud {
     fn place(&self) -> Option<&Path> {
         None
+    }
+
+    fn lends_from(&self) -> Option<PathBuf> {
+        Some(self.home.join(LENT).join("attachments"))
+    }
+
+    fn brought(&self, here: &Here, reference: &str) -> Result<Option<PathBuf>, Trouble> {
+        let cache = self.home.join(LENT);
+        shelf::brought(&*self.remote, &here.data, reference, &cache).map_err(|hitch| {
+            match judge(hitch) {
+                Judged::Pause(..) => Trouble::NotThere(reference.to_string()),
+                Judged::Stop(trouble) => trouble,
+            }
+        })
     }
 
     fn reachable(&self) -> bool {

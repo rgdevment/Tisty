@@ -796,7 +796,8 @@ export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_
 export const keepClosing = (how: "hide" | "quit" | "ask"): Promise<void> =>
   invoke("keep_closing", { how });
 export const guide = (): Promise<Doc> => invoke("guide");
-export const backUp = (into: string): Promise<number> => invoke("back_up", { into });
+export type BackedUp = { bytes: number; leftOut: number; leftOutBytes: number };
+export const backUp = (into: string): Promise<BackedUp> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>
   invoke("retire_attachment", { reference });
 export const retireAttachments = (references: string[]): Promise<number> =>
