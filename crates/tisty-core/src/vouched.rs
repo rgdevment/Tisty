@@ -3,6 +3,9 @@ use std::path::Path;
 use crate::event::DeviceId;
 
 const KEPT: &str = ".keys-confirmed";
+const TURN: &str = ".keys-confirmed.lock";
+const TURN_TRIES: u32 = 500;
+const TURN_EVERY: std::time::Duration = std::time::Duration::from_millis(10);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Confirmed {
@@ -47,6 +50,9 @@ pub fn carried(data: &Path, who: &DeviceId, said: &str) -> bool {
 
 /// The key a confirmed one rotated to, sealed by it: replaced only while that key still stands.
 pub fn rotated(data: &Path, who: &DeviceId, now: &str, was: &str) -> bool {
+    let Some(_turn) = turn(data) else {
+        return false;
+    };
     let stands = confirmed(data, who).is_some_and(|stood| stood.key == was);
     if !stands || crate::signing::read(now).is_none() {
         return false;
@@ -69,12 +75,33 @@ fn kept(data: &Path, who: &DeviceId, said: &str, how: &str) -> bool {
     if crate::signing::read(said).is_none() || !crate::store::is_device_name(&who.0) {
         return false;
     }
+    let Some(_turn) = turn(data) else {
+        return false;
+    };
     if let Some(stood) = confirmed(data, who) {
         return stood.key == said;
     }
     let mut kept = vec![format!("{}\t{said}\t{}{how}", who.0, crate::lately::now())];
     kept.extend(lines(data));
     crate::store::write_atomic(&data.join(KEPT), kept.join("\n").as_bytes()).is_ok()
+}
+
+fn turn(data: &Path) -> Option<std::fs::File> {
+    std::fs::create_dir_all(data).ok()?;
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(data.join(TURN))
+        .ok()?;
+    for _ in 0..TURN_TRIES {
+        match file.try_lock() {
+            Ok(()) => return Some(file),
+            Err(std::fs::TryLockError::WouldBlock) => std::thread::sleep(TURN_EVERY),
+            Err(std::fs::TryLockError::Error(_)) => return None,
+        }
+    }
+    None
 }
 
 pub fn confirm_each(data: &Path, keys: &std::collections::BTreeMap<DeviceId, String>) -> usize {

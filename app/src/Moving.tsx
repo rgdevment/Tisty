@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { weigh } from "./format";
-import { fill, t } from "./locales";
+import { adopt, fill, t } from "./locales";
 
 interface Along {
   done: number;
@@ -9,6 +9,7 @@ interface Along {
 }
 
 export default function Moving() {
+  useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [along, setAlong] = useState<Along | null>(null);
 
   useEffect(() => {

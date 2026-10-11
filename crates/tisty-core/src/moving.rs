@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 
 const STORE: &str = "store";
 const KEPT: [&str; 2] = ["data", "config"];
+const CACHE: &str = "cache";
+const REMEMBERED: [&str; 2] = ["carried-to", "adopting"];
 pub const FENCE_VERSION: u32 = u32::MAX;
 const FENCE_OP: &str = "storeMoved";
 const MOVED_NOTE: &str = "MOVED.txt";
@@ -237,6 +239,13 @@ fn gathered(part: &Path, sources: &[&Path], tally: &mut Tally) -> std::io::Resul
             if at.is_dir() {
                 let mut seen = std::collections::HashSet::new();
                 copied(&at, &part.join(under), false, &mut seen, tally)?;
+            }
+        }
+        for named in REMEMBERED {
+            let at = source.join(CACHE).join(named);
+            if at.is_file() {
+                std::fs::create_dir_all(part.join(CACHE))?;
+                std::fs::copy(&at, part.join(CACHE).join(named))?;
             }
         }
     }

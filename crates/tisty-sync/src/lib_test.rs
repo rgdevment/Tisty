@@ -17,7 +17,17 @@ impl Shared {
     }
 
     fn carry(&self, who: &Machine, way: Way, alive: &[String]) -> Result<Moved, Trouble> {
-        carry(&who.data, &who.device, self.path(), way, alive)
+        let aside = who.data.with_file_name("cache");
+        carry_telling(
+            &who.data,
+            Some(&aside),
+            &who.device,
+            self.path(),
+            way,
+            alive,
+            Holds::Everywhere,
+            &mut |_| {},
+        )
     }
 
     fn kin(&self, who: &Machine) -> Kin {
@@ -5686,12 +5696,16 @@ lo que vino despues
     )
     .unwrap();
 
-    carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
+    let held = carry(&one.data, &one.device, shared.path(), Way::Push, &alive).unwrap();
 
     assert_eq!(
         body(shared.path(), "agente-0001"),
         first,
         "a body reached the folder ahead of the history that answers for it"
+    );
+    assert!(
+        held.coming.contains(&"agente-0001".to_string()),
+        "a body held back was told nowhere: {held:?}"
     );
 
     let edited = "# Notas
@@ -8454,4 +8468,39 @@ fn a_machine_that_moves_to_a_new_key_is_followed_by_whoever_confirmed_the_old_on
         Some(new_said),
         "the person was not shown the key it signs with now"
     );
+}
+
+#[test]
+fn a_shorter_history_of_our_own_is_never_pushed_over_the_longer_one_the_folder_holds() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let short = std::fs::read(one.store.join("uno").join("active.tisty")).unwrap();
+    wrote(&one, "lo que solo quedo en la carpeta".to_string());
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+    let folder = shared.path().join(STORE).join("uno").join("active.tisty");
+    let longer = std::fs::read(&folder).unwrap();
+    std::fs::write(one.store.join("uno").join("active.tisty"), &short).unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
+
+    assert_eq!(
+        std::fs::read(&folder).unwrap(),
+        longer,
+        "a history restored to an earlier point wrote over what the folder held of it"
+    );
+}
+
+#[test]
+fn the_print_the_folder_holds_for_a_document_is_the_print_of_its_body() {
+    let shared = tempfile::tempdir().unwrap();
+    theirs(shared.path(), "dev_a-0001", "# Plan\n\nlo de la carpeta\n");
+
+    assert_eq!(
+        held_there(shared.path(), "dev_a-0001"),
+        tisty_core::docs::print_of(&shared.path().join("docs").join("dev_a-0001.md")).unwrap(),
+    );
+    assert!(held_there(shared.path(), "dev_a-0001").is_some());
+    assert_eq!(held_there(shared.path(), "dev_a-0002"), None);
+    assert_eq!(held_there(shared.path(), "../fuera"), None);
 }

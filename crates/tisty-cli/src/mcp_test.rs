@@ -466,3 +466,15 @@ fn a_document_right_at_the_budget_is_still_handed_over_whole() {
     let over = "a".repeat(WHOLE_UP_TO + 1);
     assert!(matches!(part_asked(&over, &json!({})), Ok(Part::Outline)));
 }
+
+#[test]
+fn a_store_left_behind_by_a_move_asks_for_a_restart_not_an_update() {
+    let Refused::Tool(said) = hitch(tisty_core::Error::UnsupportedVersion {
+        version: tisty_core::moving::FENCE_VERSION,
+        device: "dev_a".into(),
+    }) else {
+        panic!("not a tool refusal");
+    };
+    assert!(said.contains("restart"), "{said}");
+    assert!(!said.contains("update Tisty"), "{said}");
+}

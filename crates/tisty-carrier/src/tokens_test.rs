@@ -163,3 +163,25 @@ fn a_rotated_refresh_token_the_keychain_would_not_take_is_held_until_it_does() {
     );
     assert_eq!(kept.read(KEY).unwrap().as_deref(), Some("r2"));
 }
+
+#[test]
+fn an_access_token_the_provider_turned_down_is_renewed_on_the_next_ask() {
+    let home = tempfile::tempdir().unwrap();
+    let renew = Arc::new(Rotating::lasting(Duration::from_secs(3600)));
+    let tokens = Tokens::new(kept_with("r0"), renew.clone(), KEY, home.path());
+    let first = tokens.access().unwrap();
+
+    tokens.spoiled(&first);
+
+    assert_eq!(tokens.access().unwrap(), "a2");
+    assert_eq!(renew.renewed.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn a_lifetime_no_clock_could_hold_does_not_bring_renewal_down() {
+    let home = tempfile::tempdir().unwrap();
+    let renew = Arc::new(Rotating::lasting(Duration::MAX));
+    let tokens = Tokens::new(kept_with("r0"), renew, KEY, home.path());
+
+    assert_eq!(tokens.access().unwrap(), "a1");
+}

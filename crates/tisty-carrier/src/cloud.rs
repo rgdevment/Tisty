@@ -12,12 +12,14 @@ use crate::{
     Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
 };
 
+mod budget;
 mod index;
 mod judge;
 pub(crate) mod lock;
 mod mirror;
 mod shelf;
 
+use budget::{Class, Metered};
 use index::Index;
 use judge::{Judged, judge};
 use shelf::Shelf;
@@ -82,12 +84,13 @@ impl Cloud {
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
         self.forget_asked(&tree);
         mirror::sweep(&tree);
-        let remote: &dyn Remote = &*self.remote;
+        let metered = Metered::over(&*self.remote, &self.home, Class::History);
+        let remote: &dyn Remote = &metered;
         let mut index = Index::load(&self.home);
         let data = here.map(|here| here.data.as_path());
         if let Err(hitch) = mirror::pull(remote, &tree, &mut index, data) {
             let _ = index.save(&self.home);
-            return match judge(hitch) {
+            return match judge(hitch, self.remote.limits().provider) {
                 Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
                 Judged::Stop(trouble) => Err(trouble),
             };
@@ -98,7 +101,9 @@ impl Cloud {
             forget_shape(&here.data, &tree);
             forget_carried_to(&here.aside, &tree);
         }
+        metered.as_class(Class::Attachments);
         let worked = work(&tree, &mut index, remote);
+        metered.as_class(Class::History);
         let (value, held) = match worked {
             Ok(worked) => worked,
             Err(trouble) => {
@@ -106,14 +111,14 @@ impl Cloud {
                 return Err(trouble);
             }
         };
-        let rated = held.is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Budget));
+        let rated = held.is_some_and(|one| one.reason == Reason::Limit);
         let (pushed, hitch) = match rated {
             true => (mirror::Pushed::default(), None),
             false => mirror::push(remote, &tree, &mut index),
         };
         let mut deferred = held;
         let mut stopped = None;
-        match hitch.map(judge) {
+        match hitch.map(|hitch| judge(hitch, remote.limits().provider)) {
             Some(Judged::Pause(reason, wait)) => {
                 deferred = merged(
                     deferred,
@@ -173,18 +178,20 @@ impl Cloud {
             .and_then(|bytes| serde_json::from_slice(&bytes).ok())
             .unwrap_or_default();
         let now = now_ms();
-        if stir.asked_ms > 0 && now.saturating_sub(stir.asked_ms) < stir.every_ms {
+        if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
         stir.asked_ms = now;
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
-        let next = match self.remote.changes(index.cursor.as_deref()) {
+        let metered = Metered::over(&*self.remote, &self.home, Class::History);
+        let next = match metered.changes(index.cursor.as_deref()) {
             Ok(changes) if news(&index, &changes) => {
                 stir.mark = marked(&changes);
                 poll
             }
             Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
+            Err(crate::Hitch::Limited { wait }) => wait.max(poll),
             Err(_) => every.max(poll),
         };
         stir.every_ms = u64::try_from(next.as_millis()).unwrap_or(u64::MAX);
@@ -263,10 +270,16 @@ impl Carrier for Cloud {
 
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
         let cache = self.home.join(LENT);
-        match shelf::brought(&*self.remote, &here.data, reference, &cache) {
+        let index = Index::load(&self.home);
+        let cached = tisty_core::attach::resolve(reference, &cache).is_ok_and(|at| at.is_file());
+        if !cached && index.pulled() && !index.shelf.contains_key(reference) {
+            return Ok(Brought::Later);
+        }
+        let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
+        match shelf::brought(&metered, &here.data, reference, &cache) {
             Ok(Some(at)) => Ok(Brought::At(at)),
             Ok(None) => Ok(Brought::Absent),
-            Err(hitch) => match judge(hitch) {
+            Err(hitch) => match judge(hitch, self.remote.limits().provider) {
                 Judged::Pause(..) => Ok(Brought::Later),
                 Judged::Stop(trouble) => Err(trouble),
             },

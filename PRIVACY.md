@@ -65,8 +65,9 @@ visible instead of making it for you.
   elsewhere takes its tags with it.
 - **Attachments** — the files themselves, unmodified.
 - **Local configuration** — including the device identifier. The *file* never
-  leaves this machine, and it lives in the local application data directory,
-  never a roaming profile, so a company logon script cannot carry it off. The
+  leaves this machine on its own: it lives outside the roaming `%APPDATA%`, and
+  should a roaming profile or a copied home carry it to another computer, Tisty
+  sees it is somewhere else and stops speaking as this machine. The
   identifier itself does appear in the shared folder — it names your device's
   directory and stamps every event — because that is what tells two writers
   apart. What must never be shared is the file that binds it to this machine.

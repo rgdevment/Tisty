@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 const ROUND: &str = "round.lock";
 pub const RENEWING: &str = "renewing.lock";
+pub const BUDGETING: &str = "budget.lock";
 const EVERY: Duration = Duration::from_millis(50);
 
 pub struct Held(std::fs::File);

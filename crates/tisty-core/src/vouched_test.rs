@@ -214,3 +214,27 @@ fn a_rotation_answers_for_nobody_a_person_never_confirmed() {
     assert!(!rotated(&data, &who, &new, &old));
     assert_eq!(confirmed(&data, &who), None);
 }
+
+#[test]
+fn machines_confirmed_from_two_places_at_once_are_both_kept() {
+    let data = tempfile::tempdir().unwrap();
+    let keys: Vec<(DeviceId, String)> = (0..8)
+        .map(|n| {
+            let key = ed25519_dalek::SigningKey::from_bytes(&[n as u8 + 1; 32]);
+            (DeviceId(format!("dev_{n}")), crate::signing::shown(&key))
+        })
+        .collect();
+
+    std::thread::scope(|scope| {
+        for (who, said) in &keys {
+            let data = data.path();
+            scope.spawn(move || assert!(confirm(data, who, said)));
+        }
+    });
+
+    assert_eq!(
+        all_confirmed(data.path()).len(),
+        keys.len(),
+        "a confirmation was written over"
+    );
+}

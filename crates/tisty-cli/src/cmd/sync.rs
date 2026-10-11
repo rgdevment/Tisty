@@ -312,6 +312,16 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::Emptied(at) => lang.fill("emptied-place", &[("at", at)]),
         carrier::Trouble::Shape(at) => lang.fill("sync-shape", &[("at", at)]),
         carrier::Trouble::Unshaped(at) => lang.fill("sync-unshaped", &[("at", at)]),
+        carrier::Trouble::CloudFull { provider } => {
+            lang.fill("cloud-full", &[("provider", provider)])
+        }
+        carrier::Trouble::CloudLost { provider } => {
+            lang.fill("cloud-lost", &[("provider", provider)])
+        }
+        carrier::Trouble::CloudElsewhere { provider, found } => lang.fill(
+            "cloud-elsewhere",
+            &[("provider", provider), ("found", found)],
+        ),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)

@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { weigh } from "../format";
-import { fill, t } from "../locales";
+import { adopt, fill, t } from "../locales";
 import Moving from "../Moving";
 
 const bus = vi.hoisted(() => ({
@@ -46,5 +46,16 @@ describe("the window that shows the store moving", () => {
     act(() => told({ done: 10, whole: 5 }));
 
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("100");
+  });
+});
+
+describe("the language of the moving window", () => {
+  it("speaks the language chosen in Tisty, not the system's", () => {
+    window.history.pushState({}, "", "/?locale=es");
+    render(<Moving />);
+
+    expect(screen.getByText("Llevando tus datos a un lugar más seguro")).toBeTruthy();
+    window.history.pushState({}, "", "/");
+    adopt("en");
   });
 });

@@ -369,6 +369,11 @@ pub(crate) fn hand_on_leaving(
         }
         if !ours_reaches_further(&entry.path(), &theirs) {
             if !matches!(one_grew_from_the_other(&entry.path(), &theirs), Grew::Yes) {
+                witness::warn(
+                    channel::SYNC,
+                    "a history this machine holds for another and the folder's copy have gone separate ways, so it was not handed on",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
                 behind.insert(named.to_string());
             }
             put_back_beside(named, &entry.path(), &theirs);

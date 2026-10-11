@@ -318,6 +318,11 @@ fn main() -> ExitCode {
             }
             let lang = Lang::detect(None);
             let said = match e.downcast_ref::<tisty_core::Error>() {
+                Some(tisty_core::Error::UnsupportedVersion { version, .. })
+                    if *version == tisty_core::moving::FENCE_VERSION =>
+                {
+                    lang.get("store-moved").to_string()
+                }
                 Some(tisty_core::Error::UnsupportedVersion { device, .. }) => {
                     let said = lang.fill("store-newer", &[("device", device)]);
                     match tisty_core::paths::from_the_store() {

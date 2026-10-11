@@ -2483,9 +2483,9 @@ cardinality of one:
 `chosen()` is the only place that builds a carrier out of the way of syncing, and
 the type answers every other question itself, through `place`, `shares`,
 `leaving` and `remembered`, and what a restore put away answers through `folder`
-and `is_later`. Today the folder is asked
-about in some thirty places; they move behind `Carrier` first, with no change
-in behaviour, and only then does a second carrier exist. A rule in `rules.sh`
+and `is_later`. The thirty places that once asked about the folder went behind
+`Carrier` with no change in behaviour before a second carrier existed. A rule
+in `rules.sh`
 keeps any variant of `Sync` from being named outside `config.rs`, where the type
 and its methods live, and `chosen()`'s file; a second `impl` on `Sync` or an
 alias of it elsewhere counts as naming it. Everything else asks a method or the
@@ -2544,7 +2544,7 @@ copy a large file onto the same disk and then let the original go on the
 strength of a copy that never left it. The mirror lives at
 `<config>/cloud/<provider>-<account>/`, beside this machine's settings: outside
 the cache a restore empties, outside a backup's walk, outside what Maintenance
-weighs, and never in a roaming profile.
+weighs, and outside the roaming `%APPDATA%`.
 
 **Looking costs a request, so the cloud is not looked at on every glance.** The
 window glances every thirty seconds; a folder answers for free, a provider
@@ -2584,10 +2584,11 @@ removed, and a name that cannot be a path on this system is left alone.
   went up is an error.
 
 **The behaviour lives once, in `Cloud`.** The mirror, the rounds, deferral,
-budgets, caps, moving in stages, reconnecting, Maintenance and `tisty doctor`
-are written and tested once. A `Remote` only translates verbs and declares its
-numbers, so the three providers behave the same and the same suite runs against
-all three, changing nothing but the numbers.
+budgets, caps, moving in stages, reconnecting, and what Maintenance and
+`tisty doctor` will show of them, are written and tested once. A `Remote` only
+translates verbs and declares its numbers, so the three providers behave the
+same and the same suite runs against all three, changing nothing but the
+numbers.
 
 - **Class 1**, which every provider has: `list`, `fetch` from an offset, `put`
   with an `Expect` (`Absent`, a revision, or anything), `delete`, and `hash_of`,
@@ -2653,14 +2654,17 @@ the person for something different. A provider's 403 or 429 is waited out, with
 is tried again, apart from `Trouble`. A round that stops at a budget has
 written everything locally, lost nothing and asks nothing of the person.
 
-**Budgets, because a quota is shared.** In Google the quota belongs to the
-project, so every person spends from the same pool, and nobody's round may
-spend everyone else's. Each installation keeps its own daily budget of
-requests and bytes, counted locally and shown by `tisty doctor`; reaching it
-stops the round with a notice, and the local store carries on. The caps a
-person sees — per attachment and per store — are the same in all three
-providers. Their numbers are still to be decided (C-1 to C-3); the mechanism is
-not.
+**Budgets, because a quota is shared.** The quota is the provider's, not
+Tisty's: in Google it belongs to the project, so every person spends from the
+same pool, and nobody's round may spend everyone else's. Each installation
+keeps its own share of it for the day — 100,000 units, and 5 GB brought down —
+counted beside the mirror as each request goes out and started again with the
+day; `tisty doctor` is to show it. History and `tisty.toml` may use all of it;
+attachments stop at nine tenths, so the last tenth always carries the history;
+what the person asks for by hand goes past it and is counted. Reaching it
+defers the round with the reason, the local store carries on, and the notice
+says it is the provider that limits. The caps a person sees — per attachment
+and per store — are the same in all three providers.
 
 **Moving in stages.** Leaving a carrier is `backs_up`, which also downloads the
 attachments this machine does not have; entering one is `adopt`. Both take a
@@ -2705,6 +2709,10 @@ closes the segment format without that check.
 | What a write replaced | `<data>/originals/`, its print in `<data>/originals-at/` | **no**, but `originals/` is in a backup |
 | Keys answered for | `<data>/.keys-confirmed` | **no** — what the person at this machine confirmed |
 | Folder shapes met | `<data>/.shape-seen` | **no** |
+| Where each history was last checked | `<data>/.verified-to` | **no** |
+| Histories set aside to be checked | `<data>/.bringing/` | **no** — swept after a day |
+| The cloud's mirror, index and budget | `<config>/cloud/<provider>-<account>/` | **no**, and never in a backup |
+| What this machine carried, and adopts | `<cache>/carried-to`, `<cache>/adopting` | **no** — moved with the store |
 | Retired attachments | `<data>/bin/` | **no** — thirty days of grace |
 | Settings and device id | `<config>/config.toml` | **no** |
 | Signing key and store secret | `<config>/private/` | **no**, and never in a backup |
@@ -2782,9 +2790,9 @@ does know and cannot make sense of is still refused out loud.
 The device id itself does travel, and has to — it is the name of the directory
 and the `by` field of every event, which is what tells the writers apart. What
 must never travel is the file that says *«this machine is that id»*. That file
-lives in the local config directory, never a roaming one: a Windows domain
-profile copies `%APPDATA%` to a company server at logoff, and it would take the
-device id and the `private/` folder with it.
+lives in the local config directory, outside `%APPDATA%`: a Windows domain
+profile copies that to a company server at logoff, and it would take the device
+id and the `private/` folder with it.
 
 Since the Windows store moved to `%USERPROFILE%\.tisty`, a roaming profile or
 a home copied to a new computer can still carry that file along, so the

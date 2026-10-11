@@ -36,7 +36,18 @@ pub fn pull(
     data: Option<&Path>,
 ) -> Result<(), Hitch> {
     heal(tree, index);
-    let told = remote.changes(index.cursor.as_deref())?;
+    let told = match remote.changes(index.cursor.as_deref()) {
+        Err(Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)) if index.cursor.is_some() => {
+            witness::warn(
+                channel::SYNC,
+                "the cloud no longer knew where this machine had read up to, so it was read whole",
+                &[],
+            );
+            index.cursor = None;
+            remote.changes(None)?
+        }
+        told => told?,
+    };
     let (changed, gone, cursor) = match told {
         Changes::Whole { seen, cursor } => {
             let listed: BTreeSet<&str> = seen.iter().map(|one| one.name.as_str()).collect();
@@ -256,7 +267,7 @@ fn fetch_whole(remote: &dyn Remote, name: &str, part: &Path) -> Result<Seen, Hit
     file.sync_all()?;
     drop(file);
     if std::fs::metadata(part)?.len() != got.bytes {
-        return Err(Hitch::Unreachable(format!("{name} came short")));
+        return Err(Hitch::Broke(format!("{name} came short")));
     }
     if !got.hash.is_empty() && remote.hash_of(part)? != got.hash {
         return Err(Hitch::Broke(format!(
