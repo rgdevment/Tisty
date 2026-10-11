@@ -14,7 +14,7 @@ use crate::{
 
 mod index;
 mod judge;
-mod lock;
+pub(crate) mod lock;
 mod mirror;
 mod shelf;
 

@@ -13,10 +13,12 @@ pub use tisty_sync::{
 mod cloud;
 mod folder;
 mod remote;
+mod tokens;
 
 pub use cloud::Cloud;
 pub use folder::Folder;
 pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
+pub use tokens::{Renew, Renewed, Secrets, Tokens};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Here {
