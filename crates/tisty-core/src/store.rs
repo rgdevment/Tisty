@@ -398,8 +398,14 @@ impl Store {
             .create(true)
             .append(true)
             .open(self.dir.join(ACTIVE))?;
-        file.write_all(said.as_bytes())?;
-        file.sync_all()?;
+        let before = file.metadata()?.len();
+        if let Err(e) = file
+            .write_all(said.as_bytes())
+            .and_then(|()| file.sync_all())
+        {
+            let _ = file.set_len(before);
+            return Err(e.into());
+        }
         if let Some(covers) = self.covers {
             self.covers = Some(crate::signing::Covers {
                 tip: crate::signing::tip_of(covers.tip, said.as_bytes()),
@@ -427,9 +433,21 @@ impl Store {
             self.start_over()?;
             return Ok(true);
         }
+        let stale = active.with_extension(crate::signing::SIG);
+        match std::fs::remove_file(&stale) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => {
+                witness::warn(
+                    channel::STORE,
+                    "the signature beside the live segment could not be taken away, so it stays open",
+                    &[("at", Fact::Path(stale)), ("why", Fact::Why(e.to_string()))],
+                );
+                return Ok(false);
+            }
+        }
         let mut closing = String::new();
         self.sealed(&mut closing, self.active_events, true);
-        // Whatever of it landed is folded in again before the next write, never written past.
         self.appended(&closing)?;
         self.closed_as(self.seg)
     }

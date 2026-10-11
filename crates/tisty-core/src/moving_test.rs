@@ -153,8 +153,25 @@ fn only_the_data_and_the_settings_move_never_the_cache_nor_a_program_beside_them
 
     settle(&home.roots);
 
-    assert!(!home.roots.new.join("cache").exists());
+    assert!(!home.roots.new.join("cache/read.db").exists());
     assert!(!home.roots.new.join("Tisty.exe").exists());
+}
+
+#[test]
+fn what_says_this_machine_has_carried_to_its_folder_moves_with_the_store() {
+    let home = home(false);
+    wrote(&home.roots.real, "pay the bill");
+    put(&home.roots.real, "cache/carried-to", "G:/Mi unidad/Tisty");
+    put(&home.roots.real, "cache/adopting", "dev_b");
+
+    settle(&home.roots);
+
+    assert_eq!(
+        std::fs::read_to_string(home.roots.new.join("cache/carried-to")).unwrap(),
+        "G:/Mi unidad/Tisty",
+        "the first round after the move would take an emptied folder for a new one"
+    );
+    assert!(home.roots.new.join("cache/adopting").is_file());
 }
 
 #[test]

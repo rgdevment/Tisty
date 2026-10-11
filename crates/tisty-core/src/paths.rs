@@ -134,8 +134,8 @@ impl Paths {
         let whole = crate::attach::printed(format!("{provider}\u{0}{account}").as_bytes());
         self.config.join("cloud").join(format!(
             "{}-{}-{}",
-            plain(provider),
-            plain(account),
+            plain(provider).chars().take(32).collect::<String>(),
+            plain(account).chars().take(64).collect::<String>(),
             &whole[..12]
         ))
     }
