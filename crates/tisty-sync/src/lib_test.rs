@@ -71,19 +71,6 @@ macro_rules! folder_only {
     };
 }
 
-macro_rules! cloud_owes {
-    ($($case:ident),* $(,)?) => {
-        mod folder_ahead_of_cloud {
-            $(
-                #[test]
-                fn $case() {
-                    super::$case(&super::Shared::new());
-                }
-            )*
-        }
-    };
-}
-
 include!("round_cases_test.rs");
 
 #[test]

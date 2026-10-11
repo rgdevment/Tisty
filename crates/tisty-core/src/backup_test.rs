@@ -1239,3 +1239,22 @@ fn choosing_nobody_on_purpose_after_a_restore_clears_what_it_put_away() {
         "a person who chose not to share was told they had been sharing"
     );
 }
+
+#[test]
+fn a_cloud_mirror_beside_the_store_never_enters_a_copy() {
+    let (src, data) = filled("lo de siempre");
+    let paths = crate::Paths::new(&data, src.path().join("config"));
+    let home = paths.cloud_home("drive", "ana");
+    std::fs::create_dir_all(home.join("tree")).unwrap();
+    std::fs::write(home.join("tree").join("espejo"), [7u8; 48]).unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("tisty.zip");
+    write(&data, &file, tmp().path(), None).unwrap();
+
+    let held = std::fs::read(&file).unwrap();
+    assert!(
+        !held.windows(48).any(|run| run == [7u8; 48]),
+        "the cloud's mirror went out in the copy"
+    );
+}

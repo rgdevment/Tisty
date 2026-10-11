@@ -27,7 +27,7 @@ impl Shared {
     fn new() -> Self {
         let room = tempfile::tempdir().unwrap();
         let root = room.path().join("provider");
-        let remote = Arc::new(FolderBacked::at(&root));
+        let remote = Arc::new(FolderBacked::at(&root).polled_every(std::time::Duration::ZERO));
         Self { room, root, remote }
     }
 
@@ -106,20 +106,6 @@ macro_rules! folder_only {
     ($($case:ident),* $(,)?) => {
         #[allow(dead_code)]
         const _: () = { $( let _ = $case; )* };
-    };
-}
-
-macro_rules! cloud_owes {
-    ($($case:ident),* $(,)?) => {
-        mod cloud_owes {
-            $(
-                #[test]
-                #[ignore = "a cloud answers kin and stirring from its last round's mirror"]
-                fn $case() {
-                    super::$case(&super::Shared::new());
-                }
-            )*
-        }
     };
 }
 

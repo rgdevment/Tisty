@@ -2541,8 +2541,21 @@ quiet round is one request for changes and no content at all. Closed segments
 never change and every machine writes only its own directory, so the mirror is
 cheap. Attachments go straight to the provider instead: mirroring them would
 copy a large file onto the same disk and then let the original go on the
-strength of a copy that never left it. The mirror lives outside the cache a
-restore empties, outside a backup's walk and outside what Maintenance weighs.
+strength of a copy that never left it. The mirror lives at
+`<config>/cloud/<provider>-<account>/`, beside this machine's settings: outside
+the cache a restore empties, outside a backup's walk, outside what Maintenance
+weighs, and never in a roaming profile.
+
+**Looking costs a request, so the cloud is not looked at on every glance.** The
+window glances every thirty seconds; a folder answers for free, a provider
+charges. The cloud asks its feed of changes at most once per the provider's own
+interval, answers in between with what it last saw, stretches the wait up to
+four intervals while nothing moves and goes back to one when something does,
+and never brings content down to say so. What counts as moving is a revision
+the mirror has not seen, so this machine's own uploads stir nothing, and the
+wait is kept beside the mirror, since every command builds its carrier anew.
+Whether two histories are kin, and who signed the place, are asked rarely and
+of the cloud itself, not of the mirror the last round left.
 
 **Nothing installed that was not checked.** The carrier downloads once into the
 mirror, checks what it downloaded, and installs exactly those bytes. The round

@@ -18,6 +18,7 @@ struct Book {
 /// cloud holds, and the folder a cloud keeps is laid out byte for byte as a shared folder is.
 pub struct FolderBacked {
     root: PathBuf,
+    poll: Duration,
     book: Mutex<Book>,
 }
 
@@ -27,8 +28,14 @@ impl FolderBacked {
         std::fs::create_dir_all(&root).unwrap();
         Self {
             root,
+            poll: Duration::from_secs(30),
             book: Mutex::default(),
         }
+    }
+
+    pub fn polled_every(mut self, poll: Duration) -> Self {
+        self.poll = poll;
+        self
     }
 
     fn at_name(&self, name: &str) -> Result<PathBuf, Hitch> {
@@ -103,7 +110,7 @@ impl Remote for FolderBacked {
         Limits {
             units_a_day: u64::MAX,
             bytes_a_day: u64::MAX,
-            poll_every: Duration::from_secs(30),
+            poll_every: self.poll,
             chunk: u64::MAX,
             page: usize::MAX,
             most_per_file: u64::MAX,

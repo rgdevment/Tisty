@@ -1106,16 +1106,12 @@ both_sides! {
     one_direction_only_does_one_direction,
     a_machine_meeting_the_folder_for_the_first_time_adopts_its_name,
     syncing_twice_over_carries_nothing_the_second_time,
+    a_clash_is_found_even_when_another_machine_already_proved_the_lineage,
+    a_folder_says_it_stirred_without_being_read,
+    the_same_name_writing_two_different_things_is_the_clash_that_is_refused,
 }
 
 // A cloud reached through its API has no desktop client to nudge, so writing the same bytes again is moot.
 folder_only! {
     asking_again_writes_what_a_plain_round_leaves_alone,
-}
-
-// The cloud answers these from its mirror until it learns to look again between rounds.
-cloud_owes! {
-    a_clash_is_found_even_when_another_machine_already_proved_the_lineage,
-    a_folder_says_it_stirred_without_being_read,
-    the_same_name_writing_two_different_things_is_the_clash_that_is_refused,
 }
