@@ -290,6 +290,12 @@ the_rule_on_the_way_of_syncing_can_fail() {
   fi
 }
 
+no_token_kept_in_the_tree() {
+  local token='ya29\.[A-Za-z0-9_-]{20,}|1//0[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|sl\.[A-Za-z0-9_-]{40,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}'
+  grep -rnIE "$token" crates app/src app/src-tauri/src scripts .github docs     --exclude='*.lock' --exclude='telling.rs' --exclude-dir=target --exclude-dir=node_modules
+  looked_through     "a provider's token or secret is in the tree; fakes make their own, and real ones live in the keychain" $?     "the tree could not be looked through for tokens"     && went_well "no provider token or secret is kept in the tree"
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 nothing_past_what_a_person_holds
@@ -302,4 +308,5 @@ every_spawn_pins_its_language
 the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
+no_token_kept_in_the_tree
 exit $status

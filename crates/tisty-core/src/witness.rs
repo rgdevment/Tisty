@@ -44,7 +44,7 @@ impl Fact {
             Fact::Id(id) => one_line(&kept_short(Path::new(id))),
             Fact::Code(code) => (*code).to_string(),
             Fact::Path(at) => format!("{:?}", hidden(&one_line(&kept_short(at)))),
-            Fact::Why(why) => format!("{:?}", hidden(&one_line(why))),
+            Fact::Why(why) => format!("{:?}", hidden(&crate::masked::masked(&one_line(why)))),
             Fact::Word(word) => (*word).to_string(),
         }
     }
@@ -61,6 +61,7 @@ pub mod channel {
     pub const TERMINAL: &str = "terminal";
     pub const AGENT: &str = "agent";
     pub const BACKUP: &str = "backup";
+    pub const CLOUD: &str = "cloud";
 }
 
 struct Kept {
