@@ -776,12 +776,20 @@ pub struct Settled {
     joined: Vec<String>,
 }
 
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BackedUp {
+    pub bytes: u64,
+    pub left_out: usize,
+    pub left_out_bytes: u64,
+}
+
 #[tauri::command]
 pub async fn back_up(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
     into: String,
-) -> Answer<u64> {
+) -> Answer<BackedUp> {
     let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     let (data, aside, also) = {
         let session = held(&session);
@@ -813,7 +821,11 @@ pub async fn back_up(
 
     let now = jiff::Timestamp::now();
     held(&session).keep(|config| config.backed_up_at = Some(now))?;
-    Ok(made.bytes)
+    Ok(BackedUp {
+        bytes: made.bytes,
+        left_out: made.left_out,
+        left_out_bytes: made.left_out_bytes,
+    })
 }
 
 #[tauri::command(async)]

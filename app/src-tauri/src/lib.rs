@@ -741,8 +741,8 @@ pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
         let seen = app.asset_protocol_scope();
         // Its attachments and no more of it: the rest of that folder is not ours to read.
         let shared: Vec<_> = held
-            .place()
-            .map(|dest| dest.join("attachments"))
+            .carrier()
+            .and_then(|carrier| carrier.lends_from())
             .into_iter()
             .collect();
         let _ = std::fs::create_dir_all(held.paths.docs());

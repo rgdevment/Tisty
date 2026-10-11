@@ -8,13 +8,13 @@ use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
-    Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason, Remote,
-    Round, STORE, Seen, Signed, Stitched, Told, Trouble,
+    Brought, Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason,
+    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
 };
 
 mod index;
 mod judge;
-mod lock;
+pub(crate) mod lock;
 mod mirror;
 mod shelf;
 
@@ -28,6 +28,7 @@ const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
+const LENT: &str = "held";
 
 struct Done<T> {
     value: Option<T>,
@@ -254,6 +255,22 @@ fn unavailable(deferred: Option<Deferred>) -> String {
 impl Carrier for Cloud {
     fn place(&self) -> Option<&Path> {
         None
+    }
+
+    fn lends_from(&self) -> Option<PathBuf> {
+        Some(self.home.join(LENT).join("attachments"))
+    }
+
+    fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
+        let cache = self.home.join(LENT);
+        match shelf::brought(&*self.remote, &here.data, reference, &cache) {
+            Ok(Some(at)) => Ok(Brought::At(at)),
+            Ok(None) => Ok(Brought::Absent),
+            Err(hitch) => match judge(hitch) {
+                Judged::Pause(..) => Ok(Brought::Later),
+                Judged::Stop(trouble) => Err(trouble),
+            },
+        }
     }
 
     fn reachable(&self) -> bool {

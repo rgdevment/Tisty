@@ -15,6 +15,8 @@ pub struct Made {
     pub files: usize,
     pub bytes: u64,
     pub store_id: String,
+    pub left_out: usize,
+    pub left_out_bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,7 +27,7 @@ pub struct Restored {
 
 pub fn write(data: &Path, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
     let store_id = store::identity(data.join("store"))?;
-    store::read_all(data.join("store"))?;
+    let told = crate::State::replay(&store::read_all(data.join("store"))?);
 
     let named = into
         .file_name()
@@ -41,7 +43,7 @@ pub fn write(data: &Path, into: &Path, aside: &Path, also: Option<&Path>) -> Res
         aside.join(&named)
     };
 
-    match fill(data, also, &part, store_id) {
+    match fill(data, also, &part, store_id, &told) {
         Ok(made) => {
             place(&part, into)?;
             let _ = std::fs::remove_file(&part);
@@ -85,7 +87,13 @@ fn place(part: &Path, into: &Path) -> std::io::Result<()> {
     done
 }
 
-fn fill(data: &Path, also: Option<&Path>, into: &Path, store_id: String) -> Result<Made> {
+fn fill(
+    data: &Path,
+    also: Option<&Path>,
+    into: &Path,
+    store_id: String,
+    told: &crate::State,
+) -> Result<Made> {
     let file = std::fs::File::create(into)?;
     let _ = crate::paths::ours_alone(into);
     let mut zip = zip::ZipWriter::new(file);
@@ -93,6 +101,8 @@ fn fill(data: &Path, also: Option<&Path>, into: &Path, store_id: String) -> Resu
         files: 0,
         bytes: 0,
         store_id,
+        left_out: 0,
+        left_out_bytes: 0,
     };
     let mut written: std::collections::BTreeSet<String> = Default::default();
 
@@ -115,6 +125,12 @@ fn fill(data: &Path, also: Option<&Path>, into: &Path, store_id: String) -> Resu
     }
 
     zip.finish().map_err(zipped)?;
+    for (reference, (_, bytes)) in &told.kept {
+        if !told.retired.contains(reference) && !written.contains(reference) {
+            made.left_out += 1;
+            made.left_out_bytes += bytes;
+        }
+    }
     Ok(made)
 }
 

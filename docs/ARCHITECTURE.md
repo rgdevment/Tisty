@@ -2672,7 +2672,13 @@ first, then switch. In the cloud `adopt` is a single creation of the root
 file is read instead.
 
 **What the person asks for goes first.** Opening an attachment that lives only
-in the cloud (`held`) goes ahead of a move and of polling.
+in the cloud (`held`) goes ahead of a move and of polling. The carrier brings
+it on demand (`brought`) into a cache beside the mirror, held to the bytes its
+name and this machine vouch for, and says which directory the window may serve
+from (`lends_from`): a folder's `attachments/`, or that cache. A backup made
+while some attachments live only up there carries what this machine holds and
+says how many it left out and how much they weigh, rather than bringing them
+all down to pack them.
 
 **Drive works by id.** It allows two files with one name and has no
 create-if-absent and, as far as is known, no conditional write either, so its

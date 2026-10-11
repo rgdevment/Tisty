@@ -68,8 +68,17 @@ export default function Yours({
       .then(
         (at) =>
           typeof at === "string" &&
-          run("backup", backUp(at), (bytes) =>
-            tell({ card: "backup", text: fill("backupMade", weigh(bytes)) }),
+          run("backup", backUp(at), (made) =>
+            tell({
+              card: "backup",
+              text: made.leftOut
+                ? fill(
+                    "backupLeftOut",
+                    weigh(made.bytes),
+                    `${made.leftOut} · ${weigh(made.leftOutBytes)}`,
+                  )
+                : fill("backupMade", weigh(made.bytes)),
+            }),
           ),
       )
       .catch((e) => fail({ card: "backup", text: saidPlainly(e) }));

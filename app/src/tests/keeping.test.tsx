@@ -308,7 +308,7 @@ beforeEach(() => {
       case "doc_drop":
         return Promise.resolve(null);
       case "back_up":
-        return Promise.resolve(4096);
+        return Promise.resolve({ bytes: 4096, leftOut: 0, leftOutBytes: 0 });
       case "facts":
         return Promise.resolve({
           version: "0.1.0",
@@ -484,6 +484,30 @@ describe("the maintenance panel", () => {
     expect(screen.getByText(/leaving copies in/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /create backup/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /restore/i })).toBeTruthy();
+  });
+
+  it("says how much a backup left out when this machine does not hold it all", async () => {
+    asked.file = "C:/keep/tisty-backup.zip";
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "back_up"
+        ? Promise.resolve({ bytes: 4096, leftOut: 3, leftOutBytes: 3 * 1024 * 1024 })
+        : otherwise(cmd, args);
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await data();
+
+    await userEvent.click(screen.getByRole("button", { name: /create backup/i }));
+
+    expect(await screen.findByText(/stayed out of it: 3 ·/i)).toBeTruthy();
+    ipc.answer = otherwise;
   });
 
   it("never restores without asking first", async () => {

@@ -114,32 +114,76 @@ impl<'a> Shelf<'a> {
     }
 
     fn fetch(&self, reference: &str, target: &Path) -> Result<PathBuf, Hitch> {
-        if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        let part = tisty_core::parting::beside(target, TURN.fetch_add(1, Ordering::Relaxed));
-        let fetched = std::fs::File::create(&part)
-            .map_err(Hitch::from)
-            .and_then(|mut file| {
-                let got = self.remote.fetch(reference, 0, &mut file)?;
-                file.sync_all()?;
-                Ok(got)
-            })
-            .and_then(|got| match std::fs::metadata(&part)?.len() == got.bytes {
-                true if got.bytes <= COPIED_IN_DOC => Ok(()),
-                true => Err(Hitch::Broke(format!(
-                    "{reference} is past what an attachment may weigh"
-                ))),
-                false => Err(Hitch::Unreachable(format!("{reference} came short"))),
-            });
-        match fetched {
-            Ok(()) => Ok(part),
-            Err(hitch) => {
-                let _ = std::fs::remove_file(&part);
-                Err(hitch)
-            }
+        fetched_part(self.remote, reference, target)
+    }
+}
+
+fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<PathBuf, Hitch> {
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let part = tisty_core::parting::beside(target, TURN.fetch_add(1, Ordering::Relaxed));
+    let fetched = std::fs::File::create(&part)
+        .map_err(Hitch::from)
+        .and_then(|mut file| {
+            let got = remote.fetch(reference, 0, &mut file)?;
+            file.sync_all()?;
+            Ok(got)
+        })
+        .and_then(|got| match std::fs::metadata(&part)?.len() == got.bytes {
+            true if got.bytes <= COPIED_IN_DOC => Ok(()),
+            true => Err(Hitch::Broke(format!(
+                "{reference} is past what an attachment may weigh"
+            ))),
+            false => Err(Hitch::Unreachable(format!("{reference} came short"))),
+        });
+    match fetched {
+        Ok(()) => Ok(part),
+        Err(hitch) => {
+            let _ = std::fs::remove_file(&part);
+            Err(hitch)
         }
     }
+}
+
+pub fn brought(
+    remote: &dyn Remote,
+    data: &Path,
+    reference: &str,
+    cache: &Path,
+) -> Result<Option<PathBuf>, Hitch> {
+    let Some((under, leaf)) =
+        placed(reference).filter(|(under, leaf)| attach::shelved(under, leaf))
+    else {
+        return Ok(None);
+    };
+    let target = attach::resolve(reference, cache).map_err(|e| Hitch::Broke(e.to_string()))?;
+    let written_down = attach::digests(data);
+    let holds = |at: &Path| {
+        attach::hashed(at).is_ok_and(|(sha256, _)| {
+            attach::vouched(under, leaf, &sha256)
+                && attach::as_kept(&written_down, reference, &sha256)
+        })
+    };
+    if target.is_file() && holds(&target) {
+        return Ok(Some(target));
+    }
+    let part = match fetched_part(remote, reference, &target) {
+        Ok(part) => part,
+        Err(Hitch::Missing(_)) => return Ok(None),
+        Err(hitch) => return Err(hitch),
+    };
+    if !holds(&part) {
+        let _ = std::fs::remove_file(&part);
+        return Err(Hitch::Broke(format!(
+            "{reference} does not hold the bytes its name and this machine vouch for"
+        )));
+    }
+    if let Err(e) = std::fs::rename(&part, &target) {
+        let _ = std::fs::remove_file(&part);
+        return Err(e.into());
+    }
+    Ok(Some(target))
 }
 
 impl Attachments for Shelf<'_> {
