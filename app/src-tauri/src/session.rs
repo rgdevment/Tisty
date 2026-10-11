@@ -165,6 +165,14 @@ impl Session {
         match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => Some(kept),
             Ok(None) => Some(self.config.clone()),
+            Err(tisty_core::Error::Io(why)) => {
+                witness::warn(
+                    channel::CONFIG,
+                    "the settings on disk could not be read just now, so this window's own were used",
+                    &[("why", Fact::Why(why.to_string()))],
+                );
+                Some(self.config.clone())
+            }
             Err(why) => {
                 witness::warn(
                     channel::CONFIG,

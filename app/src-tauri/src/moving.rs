@@ -14,7 +14,13 @@ pub fn begin(app: tauri::AppHandle) {
     let shown = tauri::WebviewWindowBuilder::new(
         &app,
         "moving",
-        tauri::WebviewUrl::App("index.html".into()),
+        tauri::WebviewUrl::App(
+            match crate::refusing::speaks_spanish() {
+                true => "index.html?locale=es",
+                false => "index.html?locale=en",
+            }
+            .into(),
+        ),
     )
     .title("Tisty")
     .inner_size(440.0, 170.0)
