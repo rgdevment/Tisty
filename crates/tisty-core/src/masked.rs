@@ -1,10 +1,13 @@
 const HIDDEN: &str = "…";
-const GIVEN_AWAY_BY: [&str; 5] = ["ya29.", "1//0", "4/0", "GOCSPX-", "sl."];
+const GIVEN_AWAY_BY: [&str; 8] = [
+    "ya29.", "1//0", "4/0", "GOCSPX-", "sl.", "EwA", "EwB", "M.C",
+];
 const SECRET_NAMES: [&str; 3] = ["token", "secret", "password"];
 
 pub(crate) fn masked(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut named_secret = false;
+    let mut bearing = false;
     let mut between = String::new();
     let mut rest = text;
     while !rest.is_empty() {
@@ -24,18 +27,20 @@ pub(crate) fn masked(text: &str) -> String {
                     out.push_str(&without_query(address));
                     rest = after;
                     named_secret = false;
+                    bearing = false;
                     between.clear();
                     continue;
                 }
                 false => (word, after),
             };
-            let told = named_secret && (between.contains('=') || between.contains(':'));
+            let told = bearing || named_secret && (between.contains('=') || between.contains(':'));
             match told || a_token(word) {
                 true => out.push_str(HIDDEN),
                 false => out.push_str(word),
             }
             let lower = word.to_lowercase();
             named_secret = SECRET_NAMES.iter().any(|one| lower.contains(one));
+            bearing = lower == "bearer" || lower == "basic";
             between.clear();
             rest = after;
         } else {
@@ -47,7 +52,7 @@ pub(crate) fn masked(text: &str) -> String {
 }
 
 fn part_of_a_word(one: char) -> bool {
-    one.is_ascii_alphanumeric() || "-_.~+/".contains(one)
+    one.is_ascii_alphanumeric() || "-_.~+/!*$".contains(one)
 }
 
 fn without_query(address: &str) -> String {

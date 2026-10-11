@@ -52,3 +52,18 @@ fn what_a_person_needs_to_read_a_failure_stays() {
         assert_eq!(masked(plain), plain);
     }
 }
+
+#[test]
+fn an_opaque_token_after_bearer_is_hidden_whatever_its_shape() {
+    let microsoft = joined(&["EwBwA8l6BAAU", "kj/Q2+x9", "Zp/7w=="]);
+    let refresh = joined(&["M.C5", "07_BAY.0.U.-Ck", "!8x*Zp$Q2"]);
+    let opaque = joined(&["a1/b2", "+c3"]);
+    for secret in [&microsoft, &opaque] {
+        let said = masked(&format!("Authorization: Bearer {secret} expired"));
+        assert!(!said.contains(secret.as_str()), "{said}");
+        assert!(said.ends_with("expired"), "{said}");
+    }
+    let said = masked(&format!("the provider refused {refresh} as stale"));
+    assert!(!said.contains("8x*Zp"), "{said}");
+    assert!(said.ends_with("as stale"), "{said}");
+}
