@@ -29,7 +29,13 @@ pub struct Tokens {
     renew: Arc<dyn Renew>,
     key: String,
     home: PathBuf,
-    held: Mutex<Option<(String, Instant)>>,
+    held: Mutex<InMemory>,
+}
+
+#[derive(Default)]
+struct InMemory {
+    access: Option<(String, Instant)>,
+    unsaved: Option<String>,
 }
 
 impl Tokens {
@@ -53,7 +59,12 @@ impl Tokens {
             .held
             .lock()
             .map_err(|_| Hitch::Broke("the access token was left half written".into()))?;
-        if let Some((access, until)) = held.as_ref()
+        if let Some(next) = held.unsaved.clone()
+            && self.secrets.write(&self.key, &next).is_ok()
+        {
+            held.unsaved = None;
+        }
+        if let Some((access, until)) = held.access.as_ref()
             && Instant::now() + RENEWED_AHEAD < *until
         {
             return Ok(access.clone());
@@ -62,12 +73,17 @@ impl Tokens {
             Held::wait_for(&self.home, RENEWING, RENEWING_WAITED_OUT)?.ok_or(Hitch::Limited {
                 wait: RENEWING_WAITED_OUT,
             })?;
-        let refresh = self.secrets.read(&self.key)?.ok_or(Hitch::Lost)?;
+        let refresh = match held.unsaved.clone() {
+            Some(unsaved) => unsaved,
+            None => self.secrets.read(&self.key)?.ok_or(Hitch::Lost)?,
+        };
         let renewed = self.renew.renew(&refresh)?;
-        if let Some(next) = renewed.refresh.as_deref() {
-            self.secrets.write(&self.key, next)?;
+        held.access = Some((renewed.access.clone(), Instant::now() + renewed.lasts));
+        if let Some(next) = renewed.refresh
+            && self.secrets.write(&self.key, &next).is_err()
+        {
+            held.unsaved = Some(next);
         }
-        *held = Some((renewed.access.clone(), Instant::now() + renewed.lasts));
         Ok(renewed.access)
     }
 }

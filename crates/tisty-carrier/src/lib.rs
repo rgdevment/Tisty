@@ -39,6 +39,13 @@ impl Here {
 
 pub type Shared = Arc<dyn Carrier>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Brought {
+    At(PathBuf),
+    Absent,
+    Later,
+}
+
 pub struct Round<'a> {
     pub way: Way,
     pub alive: &'a [String],
@@ -52,7 +59,7 @@ pub type Told<'a> = &'a mut dyn FnMut(&LetGo) -> bool;
 pub trait Carrier: Send + std::marker::Sync {
     fn place(&self) -> Option<&Path>;
     fn lends_from(&self) -> Option<PathBuf>;
-    fn brought(&self, here: &Here, reference: &str) -> Result<Option<PathBuf>, Trouble>;
+    fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble>;
     fn reachable(&self) -> bool;
     fn theirs(&self) -> Option<String>;
     fn been_here(&self, here: &Here) -> bool;

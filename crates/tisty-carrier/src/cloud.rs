@@ -8,8 +8,8 @@ use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
-    Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason, Remote,
-    Round, STORE, Seen, Signed, Stitched, Told, Trouble,
+    Brought, Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason,
+    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
 };
 
 mod index;
@@ -261,14 +261,16 @@ impl Carrier for Cloud {
         Some(self.home.join(LENT).join("attachments"))
     }
 
-    fn brought(&self, here: &Here, reference: &str) -> Result<Option<PathBuf>, Trouble> {
+    fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
         let cache = self.home.join(LENT);
-        shelf::brought(&*self.remote, &here.data, reference, &cache).map_err(|hitch| {
-            match judge(hitch) {
-                Judged::Pause(..) => Trouble::NotThere(reference.to_string()),
-                Judged::Stop(trouble) => trouble,
-            }
-        })
+        match shelf::brought(&*self.remote, &here.data, reference, &cache) {
+            Ok(Some(at)) => Ok(Brought::At(at)),
+            Ok(None) => Ok(Brought::Absent),
+            Err(hitch) => match judge(hitch) {
+                Judged::Pause(..) => Ok(Brought::Later),
+                Judged::Stop(trouble) => Err(trouble),
+            },
+        }
     }
 
     fn reachable(&self) -> bool {

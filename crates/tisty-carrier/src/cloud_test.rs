@@ -1307,7 +1307,9 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
 
         let at = two.carrier.brought(&two.here, &kept.at).unwrap();
 
-        let at = at.unwrap_or_else(|| panic!("{who}: nothing was brought"));
+        let crate::Brought::At(at) = at else {
+            panic!("{who}: nothing was brought: {at:?}");
+        };
         assert_eq!(
             std::fs::read(&at).unwrap(),
             b"los bytes de una foto",
@@ -1319,10 +1321,25 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
                 .is_some_and(|lent| at.starts_with(lent)),
             "{who}: what was brought lies outside what the window may show"
         );
+        assert_eq!(
+            two.carrier
+                .brought(&two.here, "docs/dev_a-0001.md")
+                .unwrap(),
+            crate::Brought::Absent,
+            "{who}: something that is not an attachment was handed out"
+        );
         if let Place::Cloud(remote) = &setting.place {
             remote.forget_counts();
             two.carrier.brought(&two.here, &kept.at).unwrap();
             assert_eq!(remote.counts().fetches, 0, "{who}: brought down twice");
+            let other = one.kept("otra", b"otra foto que aun no baja");
+            one.round(Way::Both);
+            remote.fail_next(Hitch::Unreachable("sin red".into()));
+            assert_eq!(
+                two.carrier.brought(&two.here, &other.at).unwrap(),
+                crate::Brought::Later,
+                "{who}: a cut connection was told as something that is not there"
+            );
         }
     }
 }
@@ -1353,7 +1370,7 @@ fn an_attachment_whose_bytes_changed_up_there_is_never_brought() {
             two.carrier
                 .brought(&two.here, "attachments/ab/nada-0123456789.png")
                 .unwrap(),
-            None,
+            crate::Brought::Absent,
             "{who}"
         );
     }

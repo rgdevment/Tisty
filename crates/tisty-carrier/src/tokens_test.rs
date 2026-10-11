@@ -8,7 +8,10 @@ use super::*;
 const KEY: &str = "drive:ana";
 
 #[derive(Default)]
-struct Kept(Mutex<BTreeMap<String, String>>);
+struct Kept(
+    Mutex<BTreeMap<String, String>>,
+    std::sync::atomic::AtomicBool,
+);
 
 impl Secrets for Kept {
     fn read(&self, key: &str) -> Result<Option<String>, Hitch> {
@@ -16,6 +19,9 @@ impl Secrets for Kept {
     }
 
     fn write(&self, key: &str, value: &str) -> Result<(), Hitch> {
+        if self.1.load(Ordering::SeqCst) {
+            return Err(Hitch::Broke("the keychain is locked".into()));
+        }
         self.0
             .lock()
             .unwrap()
@@ -132,4 +138,28 @@ fn with_no_refresh_token_kept_the_account_is_lost_until_it_is_connected_again() 
     );
 
     assert!(matches!(tokens.access(), Err(Hitch::Lost)));
+}
+
+#[test]
+fn a_rotated_refresh_token_the_keychain_would_not_take_is_held_until_it_does() {
+    let home = tempfile::tempdir().unwrap();
+    let kept = kept_with("r0");
+    let renew = Arc::new(Rotating::lasting(Duration::from_secs(1)));
+    let tokens = Tokens::new(kept.clone(), renew.clone(), KEY, home.path());
+    kept.1.store(true, Ordering::SeqCst);
+
+    assert_eq!(
+        tokens.access().unwrap(),
+        "a1",
+        "a fresh access token was thrown away"
+    );
+    assert_eq!(kept.read(KEY).unwrap().as_deref(), Some("r0"));
+
+    kept.1.store(false, Ordering::SeqCst);
+    assert_eq!(
+        tokens.access().unwrap(),
+        "a2",
+        "the next renewal used a refresh token already spent"
+    );
+    assert_eq!(kept.read(KEY).unwrap().as_deref(), Some("r2"));
 }
