@@ -2653,14 +2653,17 @@ the person for something different. A provider's 403 or 429 is waited out, with
 is tried again, apart from `Trouble`. A round that stops at a budget has
 written everything locally, lost nothing and asks nothing of the person.
 
-**Budgets, because a quota is shared.** In Google the quota belongs to the
-project, so every person spends from the same pool, and nobody's round may
-spend everyone else's. Each installation keeps its own daily budget of
-requests and bytes, counted locally and shown by `tisty doctor`; reaching it
-stops the round with a notice, and the local store carries on. The caps a
-person sees — per attachment and per store — are the same in all three
-providers. Their numbers are still to be decided (C-1 to C-3); the mechanism is
-not.
+**Budgets, because a quota is shared.** The quota is the provider's, not
+Tisty's: in Google it belongs to the project, so every person spends from the
+same pool, and nobody's round may spend everyone else's. Each installation
+keeps its own share of it for the day — 100,000 units, and 5 GB brought down —
+counted beside the mirror as each request goes out, started again with the
+day, and shown by `tisty doctor`. History and `tisty.toml` may use all of it;
+attachments stop at nine tenths, so the last tenth always carries the history;
+what the person asks for by hand goes past it and is counted. Reaching it
+defers the round with the reason, the local store carries on, and the notice
+says it is the provider that limits. The caps a person sees — per attachment
+and per store — are the same in all three providers.
 
 **Moving in stages.** Leaving a carrier is `backs_up`, which also downloads the
 attachments this machine does not have; entering one is `adopt`. Both take a

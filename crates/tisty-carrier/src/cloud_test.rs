@@ -1402,5 +1402,146 @@ fn an_attachment_whose_bytes_changed_up_there_is_never_brought() {
     }
 }
 
+fn spent_today(setting: &Setting, device: &str, units: u64) {
+    let home = home_of(setting, device);
+    let day = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        / (24 * 60 * 60);
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::write(
+        home.join("budget.json"),
+        format!("{{\"day\":{day},\"units\":{units},\"bytes\":0}}"),
+    )
+    .unwrap();
+}
+
+fn units_spent(setting: &Setting, device: &str) -> u64 {
+    let said = std::fs::read_to_string(home_of(setting, device).join("budget.json")).unwrap();
+    let said: serde_json::Value = serde_json::from_str(&said).unwrap();
+    said["units"].as_u64().unwrap()
+}
+
+#[test]
+fn history_goes_up_on_its_reserve_once_attachments_have_spent_their_share() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.kept("foto", b"los bytes de una foto");
+        one.wrote("lo de uno");
+        spent_today(&setting, "dev_a", fake.limits().units_a_day / 100 * 95);
+
+        let moved = one.round(Way::Both);
+
+        assert_eq!(
+            moved.deferred.map(|one| one.reason),
+            Some(Reason::Budget),
+            "{who}"
+        );
+        assert!(
+            fake.about(&kept.at).unwrap().is_none(),
+            "{who}: an attachment ate into what history keeps"
+        );
+        two.round(Way::Pull);
+        assert_eq!(
+            two.titles(),
+            ["lo de uno"],
+            "{who}: history waited for attachments"
+        );
+    }
+}
+
+#[test]
+fn a_day_spent_to_the_last_unit_moves_nothing_and_says_why() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        spent_today(&setting, "dev_a", fake.limits().units_a_day);
+        fake.forget_counts();
+
+        let moved = one.round(Way::Both);
+
+        assert_eq!(
+            moved.deferred.map(|one| one.reason),
+            Some(Reason::Budget),
+            "{who}"
+        );
+        assert_eq!(fake.counts().requests, 0, "{who}: a spent day still asked");
+    }
+}
+
+#[test]
+fn what_the_person_asks_for_comes_down_past_a_spent_day_and_is_counted() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.kept("foto", b"los bytes de una foto");
+        one.wrote("con foto");
+        one.round(Way::Both);
+        let all = fake.limits().units_a_day;
+        spent_today(&setting, "dev_b", all);
+
+        let brought = two.carrier.brought(&two.here, &kept.at).unwrap();
+
+        assert!(
+            matches!(brought, crate::Brought::At(_)),
+            "{who}: {brought:?}"
+        );
+        assert!(
+            units_spent(&setting, "dev_b") > all,
+            "{who}: it was not counted"
+        );
+    }
+}
+
+#[test]
+fn a_new_day_starts_with_nothing_spent() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        let home = home_of(&setting, "dev_a");
+        std::fs::create_dir_all(&home).unwrap();
+        std::fs::write(
+            home.join("budget.json"),
+            format!(
+                "{{\"day\":0,\"units\":{},\"bytes\":0}}",
+                fake.limits().units_a_day
+            ),
+        )
+        .unwrap();
+
+        let moved = one.round(Way::Both);
+
+        assert_eq!(
+            moved.deferred, None,
+            "{who}: yesterday's spending held today back"
+        );
+        two.round(Way::Pull);
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+    }
+}
+
+#[test]
+fn what_a_round_spends_is_still_counted_by_the_next_command() {
+    for (setting, _) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let first = units_spent(&setting, "dev_a");
+
+        desk(&setting, "dev_a").round(Way::Both);
+
+        assert!(first > 0, "{who}: a round spent nothing");
+        assert!(
+            units_spent(&setting, "dev_a") > first,
+            "{who}: the count started over"
+        );
+    }
+}
+
 #[path = "converge_test.rs"]
 mod converge;
