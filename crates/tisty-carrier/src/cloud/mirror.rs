@@ -39,7 +39,7 @@ pub fn pull(
     let told = match remote.changes(index.cursor.as_deref()) {
         Err(Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)) if index.cursor.is_some() => {
             witness::warn(
-                channel::SYNC,
+                channel::CLOUD,
                 "the cloud no longer knew where this machine had read up to, so it was read whole",
                 &[],
             );
@@ -138,7 +138,7 @@ fn learn(
     }
     let Some(at) = path_of(tree, &seen.name) else {
         witness::warn(
-            channel::SYNC,
+            channel::CLOUD,
             "the cloud holds a name that cannot be a path here, so it was left alone",
             &[("at", Fact::Id(seen.name))],
         );
@@ -146,7 +146,7 @@ fn learn(
     };
     if seen.bytes > MIRRORED_AT_MOST {
         witness::warn(
-            channel::SYNC,
+            channel::CLOUD,
             "the cloud holds a file too big to be history or a document, so it was left alone",
             &[("at", Fact::Id(seen.name))],
         );
@@ -174,7 +174,7 @@ fn learn(
         Err(Hitch::Missing(_)) => {}
         Err(Hitch::Broke(why)) => {
             witness::warn(
-                channel::SYNC,
+                channel::CLOUD,
                 "a file in the cloud could not be brought, so it was left for another round",
                 &[("at", Fact::Id(seen.name)), ("why", Fact::Why(why))],
             );
@@ -206,7 +206,7 @@ fn forget_base(data: &Path, name: &str) {
         return;
     };
     witness::warn(
-        channel::SYNC,
+        channel::CLOUD,
         "a document changed in the cloud before a change of ours went up, so the person decides",
         &[("at", Fact::Id(id.to_string()))],
     );

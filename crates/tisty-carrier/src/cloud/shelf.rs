@@ -66,7 +66,7 @@ impl<'a> Shelf<'a> {
             Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
         ) {
             witness::warn(
-                channel::SYNC,
+                channel::CLOUD,
                 "an attachment could not be carried to or from the cloud",
                 &[
                     ("at", Fact::Id(reference.to_string())),
@@ -206,7 +206,7 @@ impl Attachments for Shelf<'_> {
                 Ok(read) => read,
                 Err(e) => {
                     witness::warn(
-                        channel::SYNC,
+                        channel::CLOUD,
                         "an attachment could not be read to be sent",
                         &[
                             ("at", Fact::Id(one.reference.clone())),
@@ -220,7 +220,7 @@ impl Attachments for Shelf<'_> {
                 || !attach::as_kept(round.avowed, &one.reference, &sha256)
             {
                 witness::warn(
-                    channel::SYNC,
+                    channel::CLOUD,
                     "an attachment does not hold what its name or the log say, so it was not sent",
                     &[("at", Fact::Id(one.reference.clone()))],
                 );
@@ -336,7 +336,7 @@ impl Attachments for Shelf<'_> {
             } else {
                 let _ = std::fs::remove_file(&part);
                 witness::warn(
-                    channel::SYNC,
+                    channel::CLOUD,
                     "an attachment from the cloud does not hold the bytes its name vouches for",
                     &[("at", Fact::Id(reference.clone()))],
                 );

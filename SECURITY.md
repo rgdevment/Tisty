@@ -27,13 +27,19 @@ report will never be dismissed for being inconvenient.
 ## What the design protects
 
 - **The data never leaves your machine unless you tell it to.** No account, no
-  telemetry, no remote server. There is no cloud service to breach because there
-  is no cloud service. Tisty makes one request of its own — a daily GET for a
+  telemetry, no remote server. There is no service of ours to breach because we
+  run none. Tisty makes one request of its own — a daily GET for a
   version manifest, carrying nothing but the version you are running — and two
   more only if you press the button that offers you an update. A copy from the
   Microsoft Store makes neither request: it asks Windows what the Store has for
   it. It is written out in full in [PRIVACY.md](PRIVACY.md), down to the
   headers.
+- **A cloud account is reached only if you choose it.** Syncing straight with
+  your own Google Drive, OneDrive or Dropbox is being built and is in no release
+  yet. When it ships, Tisty talks only to that provider, keeps the access it was
+  given in the system keychain and never in a file, and masks tokens and signed
+  addresses in its own log. What it will ask and send is in
+  [PRIVACY.md](PRIVACY.md) before the release that carries it.
 - **An update is verified before it is installed.** What the button fetches is
   checked against a public key compiled into the copy already on your machine.
   A build signed with any other key is refused, so a release that is not the

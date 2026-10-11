@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** October 5, 2026
+**Last updated:** October 11, 2026
 
 ## The short version
 
@@ -14,6 +14,10 @@ an update, and one more only if you ask a link in a document for its preview.
 Never otherwise. A copy installed from the Microsoft Store makes none of those:
 it asks Windows what the Store has, and the Store does the rest. All of them are
 described in full below.
+
+A way of syncing that talks to your own cloud account directly is being built.
+It is in no release yet; when it is, it runs only if you choose it, and what it
+does is already written below, before it ships.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -37,15 +41,18 @@ What you can choose, and what each implies:
 |---|---|
 | **Local only** (the default) | Nobody. It never leaves the machine |
 | **A folder your cloud client keeps in step** (Google Drive, OneDrive, iCloud, Dropbox, pCloud…) | That provider, under their terms and their jurisdiction |
+| **Your own cloud account, reached by Tisty directly** (being built; in no release yet) | That provider, under their terms and their jurisdiction. Nobody else: there is no server of ours in between |
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
 | **A `.tistyx` parcel locked with a number, for another machine of yours** | Whoever has both the file and the number. Without it nothing here opens it — though six digits are six digits, and the lock only makes each guess expensive |
 
-For syncing, Tisty only ever reads and writes local paths. It has no network
+With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
 folder you named. Whatever keeps that folder in step between your machines is
-software you already installed and already trust.
+software you already installed and already trust. Reaching your cloud account
+directly is the one way that changes this, and it is described in its own
+section below.
 
 There is no option where Tisty hosts anything. There is no paid tier that
 changes this. **We never operate a server that holds your data**, so there is
@@ -138,7 +145,8 @@ defence, because the remedy barely exists.
   to any model. If you connect an assistant of your own, read "the door you can
   open" below: what it carries is its doing and your choice, never Tisty's.
 - Does not upload crash reports.
-- Does not make background network calls, except the update check below.
+- Does not make background network calls, except the update check below and,
+  only if you choose your cloud account, the requests that sync with it.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -255,6 +263,23 @@ owns the folder it lives in gets a button.
 That button is the only thing that fetches an installer, and what it does is
 described above. If you never press it, nothing is downloaded and the line just
 sits there.
+
+## Syncing with your own cloud account (being built)
+
+This way of syncing is in no release yet. It is written here first because this
+file promises that a request is described before the release that makes it.
+
+| | |
+| :--- | :--- |
+| **Why** | To keep your machines in step through your cloud account, without its desktop program installed |
+| **Who it talks to** | Only the provider you choose: Google Drive first, OneDrive and Dropbox later. Never a server of ours, because there is none |
+| **What it sends** | The files of your store — the history, the documents, `tisty.toml` and the attachments — into your own account, as they are on your disk. Tisty does not encrypt them, just as it does not encrypt a folder you sync |
+| **What it receives** | The same files, written by your other machines, and the provider's list of what changed |
+| **How you allow it** | You sign in on the provider's own page. Tisty never sees your password; it receives an access you can withdraw from your account's settings at any time, and keeps it in the system keychain, never in a file |
+| **How often** | Only while Tisty is open. It asks whether anything changed at most every few minutes, and less often while nothing does. There is no background service |
+| **Limits** | A daily allowance per person, so one copy cannot spend the shared quota the provider grants this project. The allowance comes from a small signed file published beside the version manifest, which carries numbers and nothing of yours |
+| **What it never does** | Send your data to us or to anyone but the provider you chose, or write tokens and signed addresses into its own log |
+| **Leaving** | Choose *Only on this machine* or a folder. Tisty brings home what lives only in your account before it lets go of it, and leaves the copies there until you delete them; the provider keeps what is deleted for as long as its own bin and version history do |
 
 ## The door you can open for an assistant
 

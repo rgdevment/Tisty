@@ -100,10 +100,11 @@ productivity tool** that lives on your machine and nowhere else.
 
 **Why people choose Tisty over other task managers:**
 
-- **100% local** — your tasks, your journal and your documents never leave your
-  computer. No cloud, no server, no account. If you sync two machines, you can
-  ask Tisty to leave the largest attachments in that shared folder instead of
-  carrying them onto every disk; it never does that unless you choose it.
+- **100% local** — your tasks, your journal and your documents live on your
+  computer and go only where you send them. No server of ours, no account. If
+  you sync two machines, you can ask Tisty to leave the largest attachments in
+  that shared folder instead of carrying them onto every disk; it never does
+  that unless you choose it.
 - **Truly free** — no premium tier, no feature gates, no trial. AGPL v3, and
   [commercial terms](docs/COMMERCIAL.md) only for organisations that cannot
   comply with it.

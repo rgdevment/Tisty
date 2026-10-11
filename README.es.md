@@ -101,10 +101,11 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 
 **Por qué alguien elige Tisty antes que otros gestores de tareas:**
 
-- **100% local** — tus tareas, tu bitácora y tus documentos nunca salen de tu
-  equipo. Sin nube, sin servidor, sin cuenta. Si sincronizas dos equipos, puedes
-  pedirle a Tisty que deje los adjuntos más grandes en esa carpeta compartida en
-  vez de llevarlos a cada disco; nunca lo hace si tú no lo eliges.
+- **100% local** — tus tareas, tu bitácora y tus documentos viven en tu equipo
+  y solo van adonde tú los mandes. Sin servidor nuestro, sin cuenta. Si
+  sincronizas dos equipos, puedes pedirle a Tisty que deje los adjuntos más
+  grandes en esa carpeta compartida en vez de llevarlos a cada disco; nunca lo
+  hace si tú no lo eliges.
 - **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
   período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
   para organizaciones que no puedan cumplirla.
