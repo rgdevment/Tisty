@@ -5,8 +5,8 @@ use std::time::SystemTime;
 use tisty_core::signing::SigningKey;
 
 use crate::{
-    Brought, Carrier, Elsewhere, Freed, Here, Holding, Keep, Kin, LetGo, Moved, Round, STORE,
-    Signed, Stitched, Told, Trouble,
+    Brought, Carrier, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Round, STORE, Signed,
+    Stitched, Told, Trouble,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -113,15 +113,21 @@ impl Carrier for Folder {
     }
 
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        self.carry(here, round)
+        self.carry(
+            here,
+            Round {
+                holds: tisty_core::config::Holds::Everywhere,
+                ..round
+            },
+        )
     }
 
-    fn could_free(&self, _: &Here, _: SystemTime) -> Freed {
-        Freed::default()
+    fn could_free(&self, _: &Here, _: SystemTime, _: Elsewhere) -> LetGo {
+        LetGo::default()
     }
 
-    fn set_free(&self, _: &Here, _: SystemTime) -> Freed {
-        Freed::default()
+    fn set_free(&self, _: &Here, _: SystemTime, _: Elsewhere, _: Told) -> Result<LetGo, Trouble> {
+        Ok(LetGo::default())
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {

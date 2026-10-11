@@ -178,6 +178,15 @@ fn through(
             Ok(held) if holds(&held, part, bytes) => {
                 return Ok(Kept { at, sha256, bytes });
             }
+            // Space freed here leaves the ledger line, so the same bytes go back under their name.
+            Ok(held) if !held.exists() && named_for(&at, &sha256) => {
+                if let Some(parent) = held.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::rename(part, &held)?;
+                let _ = crate::paths::ours_alone(&held);
+                return Ok(Kept { at, sha256, bytes });
+            }
             Ok(held) => witness::warn(
                 channel::ATTACH,
                 "what the ledger points at is not what it says it is",
@@ -784,6 +793,13 @@ pub fn as_kept(
         Some((sha, _)) => sha == sha256,
         None => true,
     }
+}
+
+fn named_for(reference: &str, sha256: &str) -> bool {
+    reference
+        .strip_prefix("attachments/")
+        .and_then(|rest| rest.split_once('/'))
+        .is_some_and(|(shelf, leaf)| vouched(shelf, leaf, sha256))
 }
 
 pub fn vouched(shelf: &str, leaf: &str, sha256: &str) -> bool {

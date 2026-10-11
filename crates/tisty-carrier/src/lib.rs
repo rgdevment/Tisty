@@ -43,12 +43,6 @@ impl Here {
 
 pub type Shared = Arc<dyn Carrier>;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Freed {
-    pub let_go: Vec<String>,
-    pub bytes: u64,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Brought {
     At(PathBuf),
@@ -80,8 +74,14 @@ pub trait Carrier: Send + std::marker::Sync {
     fn unclaimed(&self) -> Holding;
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
-    fn could_free(&self, here: &Here, unused_since: SystemTime) -> Freed;
-    fn set_free(&self, here: &Here, unused_since: SystemTime) -> Freed;
+    fn could_free(&self, here: &Here, unused_since: SystemTime, elsewhere: Elsewhere) -> LetGo;
+    fn set_free(
+        &self,
+        here: &Here,
+        unused_since: SystemTime,
+        elsewhere: Elsewhere,
+        told: Told,
+    ) -> Result<LetGo, Trouble>;
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble>;
     fn let_go(
         &self,

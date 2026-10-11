@@ -5,15 +5,20 @@ import { composed } from "../markdown";
 import Composed from "../ui/Composed";
 import Prose from "../ui/Prose";
 
-vi.mock("../core", () => ({
-  served: (reference: string) => Promise.resolve(`C:\\data\\${reference}`),
+const { served } = vi.hoisted(() => ({
+  served: vi.fn((reference: string) => Promise.resolve(`C:\\data\\${reference}`)),
 }));
+
+vi.mock("../core", () => ({ served }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (at: string) => `http://asset.localhost/${encodeURIComponent(at)}`,
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({ openPath: vi.fn(), openUrl: vi.fn() }));
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openPath: vi.fn(),
+  openUrl: vi.fn(),
+}));
 
 const TWO = "![one](<attachments/aa/1.png>)\n\n![two](<attachments/bb/2.png>)";
 const resolved = () => document.querySelectorAll('img[src^="http"]').length;
@@ -30,6 +35,27 @@ describe("more than one image", () => {
 
     rerender(<Composed html={composed(TWO)} className="prose" />);
     expect(resolved()).toBe(2);
+  });
+});
+
+describe("a picture the window already found", () => {
+  it("is asked for again once a day, so a window left open still says it is in use", async () => {
+    const one = "![tres](<attachments/cc/3.png>)";
+    const asked = () => served.mock.calls.filter(([at]) => at === "attachments/cc/3.png").length;
+    const first = render(<Composed html={composed(one)} className="prose" />);
+    await waitFor(() => expect(resolved()).toBe(1));
+    first.unmount();
+
+    const again = render(<Composed html={composed(one)} className="prose" />);
+    expect(resolved()).toBe(1);
+    expect(asked()).toBe(1);
+    again.unmount();
+
+    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 25 * 60 * 60 * 1000);
+    render(<Composed html={composed(one)} className="prose" />);
+    expect(resolved()).toBe(1);
+    await waitFor(() => expect(asked()).toBe(2));
+    clock.mockRestore();
   });
 });
 

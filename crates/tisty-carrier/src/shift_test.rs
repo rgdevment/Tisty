@@ -199,3 +199,73 @@ fn a_copy_of_the_wrong_size_in_a_folder_counts_as_not_there() {
         }
     );
 }
+
+#[test]
+fn leaving_a_cloud_that_cannot_be_asked_now_is_not_ready_even_with_nothing_owed() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("solo en la nube");
+        one.round(Way::Both);
+        let _round = crate::cloud::lock::Round::take(&home_of(&setting, "dev_b"))
+            .unwrap()
+            .unwrap();
+
+        let stopped = step(&two, Some(&*two.carrier), None);
+
+        let Shift::Homing { owed, deferred } = stopped else {
+            panic!("{who}: {stopped:?}");
+        };
+        assert!(owed.nothing(), "{who}");
+        assert_eq!(deferred.map(|one| one.reason), Some(Reason::Busy), "{who}");
+    }
+}
+
+#[test]
+fn leaving_a_cloud_sends_nothing_to_it_so_a_full_one_never_holds_the_person_there() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        one.round(Way::Both);
+        one.wrote("aun sin subir");
+        remote.fail_after(1, Hitch::Full);
+        assert!(one.carry(Way::Both, Holds::Everywhere).is_err(), "{who}");
+        remote.forget_counts();
+
+        let done = step(&one, Some(&*one.carrier), None);
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        assert_eq!(remote.counts().puts, 0, "{who}: leaving it sent to it");
+    }
+}
+
+#[test]
+fn an_attachment_swapped_up_there_is_never_brought_home_and_does_not_hold_the_move() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        let swapped = setting.room.path().join("swapped");
+        std::fs::write(&swapped, vec![b'x'; PHOTO.len()]).unwrap();
+        remote.put(&kept.at, &swapped, Expect::Any).unwrap();
+        two.round(Way::Pull);
+
+        let done = step(&two, Some(&*two.carrier), None);
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        assert!(
+            two.held(&kept.at).is_none(),
+            "{who}: the swapped bytes came home"
+        );
+        remote.forget_counts();
+        step(&two, Some(&*two.carrier), None);
+        assert_eq!(
+            remote.counts().fetches,
+            0,
+            "{who}: fetched again what was refused"
+        );
+    }
+}

@@ -8,6 +8,7 @@ use tisty_sync::{Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken,
 
 use super::index::Index;
 use super::judge::{Judged, judge};
+use super::mirror::resembles;
 use crate::{Deferred, Elsewhere, Expect, Hitch, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
@@ -152,22 +153,23 @@ fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<P
     }
 }
 
+pub fn named_well(reference: &str) -> bool {
+    placed(reference).is_some_and(|(under, leaf)| attach::shelved(under, leaf))
+}
+
 pub fn brought(
     remote: &dyn Remote,
     data: &Path,
     reference: &str,
+    logged: &str,
 ) -> Result<Option<PathBuf>, Hitch> {
-    let Some((under, leaf)) =
-        placed(reference).filter(|(under, leaf)| attach::shelved(under, leaf))
-    else {
+    let Some((under, leaf)) = placed(reference).filter(|_| named_well(reference)) else {
         return Ok(None);
     };
     let target = attach::resolve(reference, data).map_err(|e| Hitch::Broke(e.to_string()))?;
-    let written_down = attach::digests(data);
     let holds = |at: &Path| {
         attach::hashed(at).ok().filter(|(sha256, _)| {
-            attach::vouched(under, leaf, sha256)
-                && attach::as_kept(&written_down, reference, sha256)
+            attach::vouched(under, leaf, sha256) && sha256.eq_ignore_ascii_case(logged)
         })
     };
     if target.is_file() && holds(&target).is_some() {
@@ -181,7 +183,7 @@ pub fn brought(
     let Some((sha256, bytes)) = holds(&part) else {
         let _ = std::fs::remove_file(&part);
         return Err(Hitch::Broke(format!(
-            "{reference} does not hold the bytes its name and this machine vouch for"
+            "{reference} does not hold the bytes its name and the log vouch for"
         )));
     };
     if let Err(e) = std::fs::rename(&part, &target) {
@@ -254,12 +256,19 @@ impl Attachments for Shelf<'_> {
         self.index.shelf.contains_key(reference)
     }
 
+    fn takes(&self) -> bool {
+        self.fetching
+    }
+
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble> {
-        sweep(round.data);
         let mut taken = Taken::default();
-        if !self.fetching {
-            return Ok(taken);
-        }
+        let index = &mut *self.index;
+        index.spoiled.retain(|reference, revision| {
+            index
+                .shelf
+                .get(reference)
+                .is_some_and(|seen| &seen.revision == revision)
+        });
         let mut written_down = attach::digests(round.data);
         for (at, one) in round.avowed {
             if written_down
@@ -273,7 +282,6 @@ impl Attachments for Shelf<'_> {
                 );
             }
         }
-        let above = None;
         let up: Vec<(String, Seen)> = self
             .index
             .shelf
@@ -290,7 +298,7 @@ impl Attachments for Shelf<'_> {
                 done,
                 whole,
             });
-            if !wanted(&round, above, reference, seen) {
+            if !wanted(&round, self.index, reference, seen) {
                 continue;
             }
             let Some((under, leaf)) = placed(reference) else {
@@ -304,7 +312,7 @@ impl Attachments for Shelf<'_> {
                 Err(hitch) => {
                     let remaining = up[done..]
                         .iter()
-                        .filter(|(rest, said)| wanted(&round, above, rest, said))
+                        .filter(|(rest, said)| wanted(&round, self.index, rest, said))
                         .count();
                     self.refuse(hitch, reference, remaining)?;
                     continue;
@@ -329,6 +337,9 @@ impl Attachments for Shelf<'_> {
                 taken.brought += 1;
             } else {
                 let _ = std::fs::remove_file(&part);
+                self.index
+                    .spoiled
+                    .insert(reference.clone(), seen.revision.clone());
                 witness::warn(
                     channel::CLOUD,
                     "an attachment from the cloud does not hold the bytes its name vouches for",
@@ -351,7 +362,7 @@ fn placed(reference: &str) -> Option<(&str, &str)> {
         .and_then(|rest| rest.split_once('/'))
 }
 
-fn wanted(round: &Taking, above: Option<u64>, reference: &str, seen: &Seen) -> bool {
+fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
     let Some((under, leaf)) = placed(reference) else {
         return false;
     };
@@ -363,12 +374,12 @@ fn wanted(round: &Taking, above: Option<u64>, reference: &str, seen: &Seen) -> b
         && round
             .reachable
             .is_none_or(|named| named.contains(reference))
-        && above.is_none_or(|most| seen.bytes <= most)
+        && !index.spoiled(reference)
         && seen.bytes <= COPIED_IN_DOC
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
 }
 
-fn sweep(data: &Path) {
+pub fn sweep(data: &Path) {
     let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
         return;
     };
@@ -433,29 +444,37 @@ fn locals(data: &Path, buried: &BTreeSet<String>) -> (Vec<Local>, Vec<PathBuf>) 
     (all, asked)
 }
 
-pub fn let_go(
-    remote: &dyn Remote,
-    index: &Index,
-    data: &Path,
-    above: u64,
-    elsewhere: Elsewhere,
-    told: Told,
-) -> LetGo {
+pub struct Letting<'a> {
+    pub chosen: &'a dyn Fn(&str, u64) -> bool,
+    pub elsewhere: Elsewhere<'a>,
+    pub told: Told<'a>,
+    pub only_counting: bool,
+}
+
+pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting) -> LetGo {
+    let Letting {
+        chosen,
+        elsewhere,
+        told,
+        only_counting,
+    } = letting;
     let mut done = LetGo::default();
     let (all, _) = locals(data, &BTreeSet::new());
-    for one in all.into_iter().filter(|one| one.len > above) {
+    for one in all
+        .into_iter()
+        .filter(|one| chosen(&one.reference, one.len))
+    {
         let twin = index
             .shelf
             .get(&one.reference)
             .filter(|up| up.bytes == one.len);
-        let safe = match twin {
-            Some(up) if !up.hash.is_empty() => {
-                remote.hash_of(&one.at).is_ok_and(|hash| hash == up.hash)
-            }
-            Some(_) => elsewhere(&one.reference),
-            None => false,
-        };
-        match safe && std::fs::remove_file(&one.at).is_ok() {
+        let safe = !tisty_core::holes::a_hole(&one.at)
+            && match twin {
+                Some(up) if !up.hash.is_empty() => resembles(remote, &one.at, up),
+                Some(_) => elsewhere(&one.reference),
+                None => false,
+            };
+        match safe && (only_counting || std::fs::remove_file(&one.at).is_ok()) {
             true => {
                 done.gone += 1;
                 done.freed += one.len;

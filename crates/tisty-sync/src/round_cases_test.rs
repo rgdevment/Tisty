@@ -1085,7 +1085,6 @@ both_sides! {
     a_segment_that_cannot_be_read_is_never_called_a_clash,
     stitching_twice_never_writes_a_seam_that_joins_a_history_to_itself,
     a_seam_says_which_machines_came_from_each_side,
-    an_attachment_whose_bytes_were_swapped_never_reaches_this_machine,
     a_body_travels_even_when_only_one_direction_was_asked_for,
     settling_a_name_no_document_could_have_is_refused,
     the_attachment_ledger_never_lands_in_the_shared_folder,
@@ -1114,4 +1113,5 @@ folder_only! {
     asking_again_writes_what_a_plain_round_leaves_alone,
     an_attachment_that_is_what_it_says_it_is_comes_home,
     an_attachment_that_came_from_elsewhere_is_written_down_like_our_own,
+    an_attachment_whose_bytes_were_swapped_never_reaches_this_machine,
 }

@@ -331,6 +331,7 @@ fn an_attachment_goes_up_and_a_cloud_brings_it_down_only_once_it_is_opened() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
+        one.store().append(kept.told()).unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
 
@@ -1343,8 +1344,12 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
+        one.store().append(kept.told()).unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
+        if let Place::Cloud(_) = setting.place {
+            two.round(Way::Pull);
+        }
 
         let at = two.carrier.brought(&two.here, &kept.at).unwrap();
 
@@ -1381,7 +1386,9 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
             two.carrier.brought(&two.here, &kept.at).unwrap();
             assert_eq!(remote.counts().fetches, 0, "{who}: brought down twice");
             let other = one.kept("otra", b"otra foto que aun no baja");
+            one.store().append(other.told()).unwrap();
             one.round(Way::Both);
+            two.round(Way::Pull);
             remote.fail_next(Hitch::Unreachable("sin red".into()));
             assert_eq!(
                 two.carrier.brought(&two.here, &other.at).unwrap(),
@@ -1399,25 +1406,43 @@ fn an_attachment_whose_bytes_changed_up_there_is_never_brought() {
         let remote = counting(&setting);
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
+        one.store().append(kept.told()).unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
         let swapped = setting.room.path().join("swapped");
         std::fs::write(&swapped, b"otros bytes, otra foto").unwrap();
         remote.put(&kept.at, &swapped, Expect::Any).unwrap();
+        two.round(Way::Pull);
 
         let refused = two.carrier.brought(&two.here, &kept.at);
 
         assert!(refused.is_err(), "{who}: {refused:?}");
-        let cached =
-            tisty_core::attach::resolve(&kept.at, &home_of(&setting, "dev_b").join("held"));
+        assert!(two.held(&kept.at).is_none(), "{who}");
+        let shelf = tisty_core::attach::resolve(&kept.at, &two.here.data)
+            .unwrap()
+            .parent()
+            .unwrap()
+            .to_path_buf();
+        let left: Vec<_> = std::fs::read_dir(&shelf)
+            .map(|all| {
+                all.filter_map(|one| one.ok())
+                    .map(|one| one.file_name())
+                    .collect()
+            })
+            .unwrap_or_default();
         assert!(
-            cached.is_ok_and(|at| !at.exists()),
-            "{who}: the swapped bytes were left where the window looks"
+            left.is_empty(),
+            "{who}: {left:?} were left where the window looks"
         );
         assert_eq!(
             two.carrier
                 .brought(&two.here, "attachments/ab/nada-0123456789.png")
                 .unwrap(),
+            crate::Brought::Later,
+            "{who}: no history names it yet"
+        );
+        assert_eq!(
+            two.carrier.brought(&two.here, "../fuera.png").unwrap(),
             crate::Brought::Absent,
             "{who}"
         );
@@ -1500,8 +1525,10 @@ fn what_the_person_asks_for_comes_down_past_a_spent_day_and_is_counted() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
+        one.store().append(kept.told()).unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
+        two.round(Way::Pull);
         let all = fake.limits().units_a_day;
         spent_today(&setting, "dev_b", all);
 

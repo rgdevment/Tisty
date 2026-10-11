@@ -216,7 +216,7 @@ fn forget_base(data: &Path, name: &str) {
     tisty_core::docs::forget_carried(data, id);
 }
 
-fn resembles(remote: &dyn Remote, at: &Path, seen: &Seen) -> bool {
+pub(super) fn resembles(remote: &dyn Remote, at: &Path, seen: &Seen) -> bool {
     !seen.hash.is_empty()
         && std::fs::metadata(at).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
         && remote.hash_of(at).is_ok_and(|hash| hash == seen.hash)

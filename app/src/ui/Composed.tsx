@@ -17,7 +17,9 @@ interface Props {
   tabIndex?: number;
 }
 
-const known = new Map<string, string>();
+// Asked again once a day, so a window left open for weeks still says the picture is in use.
+const FRESH_FOR = 24 * 60 * 60 * 1000;
+const known = new Map<string, { url: string; at: number }>();
 
 export default function Composed({
   html,
@@ -55,14 +57,14 @@ export default function Composed({
 
       const cached = known.get(reference);
       if (cached) {
-        img.setAttribute("src", cached);
-        return;
+        img.setAttribute("src", cached.url);
+        if (Date.now() - cached.at < FRESH_FOR) return;
       }
       served(reference)
         .then((at) => {
           const url = convertFileSrc(at);
-          known.set(reference, url);
-          if (live) img.setAttribute("src", url);
+          known.set(reference, { url, at: Date.now() });
+          if (live && img.getAttribute("src") !== url) img.setAttribute("src", url);
         })
         .catch(() => live && img.replaceWith(missing(img.alt || reference)));
     });

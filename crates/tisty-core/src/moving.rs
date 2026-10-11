@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 const STORE: &str = "store";
 const KEPT: [&str; 2] = ["data", "config"];
 const CACHE: &str = "cache";
-const REMEMBERED: [&str; 2] = ["carried-to", "adopting"];
+const REMEMBERED: [&str; 3] = ["carried-to", "adopting", crate::lately::USED];
 pub const FENCE_VERSION: u32 = u32::MAX;
 const FENCE_OP: &str = "storeMoved";
 const MOVED_NOTE: &str = "MOVED.txt";

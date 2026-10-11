@@ -29,7 +29,7 @@ pub fn used_on(at: &Path, reference: &str, when: u64) {
     let mut seen = every(at);
     if seen
         .get(reference)
-        .is_some_and(|said| when.saturating_sub(*said) < NO_SOONER_THAN)
+        .is_some_and(|said| *said <= when && when - said < NO_SOONER_THAN)
     {
         return;
     }

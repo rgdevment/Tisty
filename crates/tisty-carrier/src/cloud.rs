@@ -1,15 +1,16 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
-    Brought, Carrier, Changes, Deferred, Elsewhere, Freed, Here, Holding, Keep, Kin, LetGo, Moved,
-    Reason, Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
+    Brought, Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason,
+    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
 };
 
 mod budget;
@@ -22,7 +23,7 @@ mod shelf;
 use budget::{Class, Metered};
 use index::Index;
 use judge::{Judged, judge};
-use shelf::Shelf;
+use shelf::{Letting, Shelf};
 
 const TREE: &str = "tree";
 const FORGOTTEN: &str = "forgotten";
@@ -68,6 +69,7 @@ impl Cloud {
         &self,
         here: Option<&Here>,
         patient: bool,
+        pushing: bool,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
         let taken = match patient {
@@ -110,7 +112,7 @@ impl Cloud {
                 return Err(trouble);
             }
         };
-        let rated = held.is_some_and(|one| one.reason == Reason::Limit);
+        let rated = !pushing || held.is_some_and(|one| one.reason == Reason::Limit);
         let (pushed, hitch) = match rated {
             true => (mirror::Pushed::default(), None),
             false => mirror::push(remote, &tree, &mut index),
@@ -157,7 +159,7 @@ impl Cloud {
         here: Option<&Here>,
         work: impl FnOnce(&Path) -> Result<T, Trouble>,
     ) -> Result<T, Trouble> {
-        let done = self.with_mirror(here, true, |tree, _, _| Ok((work(tree)?, None)))?;
+        let done = self.with_mirror(here, true, true, |tree, _, _| Ok((work(tree)?, None)))?;
         match done.value {
             Some(value) => Ok(value),
             None => Err(Trouble::Broke(unavailable(done.deferred))),
@@ -165,33 +167,23 @@ impl Cloud {
     }
 
     fn looked_again(&self) -> PathBuf {
-        let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
+        let _ = self.with_mirror(None, false, true, |_, _, _| Ok(((), None)));
         self.tree()
     }
 
-    fn freeable(&self, here: &Here, unused_since: SystemTime) -> Vec<(String, PathBuf, u64)> {
-        let index = Index::load(&self.home);
-        let opened = tisty_core::lately::every(&here.aside.join(tisty_core::lately::USED));
-        crate::shift::known(here)
-            .filter_map(|(reference, bytes)| {
-                let at = tisty_core::attach::resolve(&reference, &here.data).ok()?;
-                let last = opened
-                    .get(&reference)
-                    .map(|seconds| std::time::UNIX_EPOCH + Duration::from_secs(*seconds));
-                let arrived = std::fs::metadata(&at).and_then(|told| told.modified()).ok();
-                let idle = last.max(arrived).is_some_and(|used| used < unused_since);
-                let seen = index.shelf.get(&reference)?;
-                let same_up_there = seen.bytes == bytes
-                    && !seen.hash.is_empty()
-                    && self.remote.hash_of(&at).is_ok_and(|hash| hash == seen.hash);
-                (idle && crate::shift::whole(&at, bytes) && same_up_there)
-                    .then_some((reference, at, bytes))
-            })
-            .collect()
+    fn let_go_with(&self, here: &Here, letting: Letting) -> Result<LetGo, Trouble> {
+        let done = self.with_mirror(Some(here), true, true, |_, index, remote| {
+            Ok((shelf::let_go(remote, index, &here.data, letting), None))
+        })?;
+        match done.value {
+            Some(freed) => Ok(freed),
+            None => Err(Trouble::Broke(unavailable(done.deferred))),
+        }
     }
 
     fn rounded(&self, here: &Here, round: Round, fetching: bool) -> Result<Moved, Trouble> {
-        let done = self.with_mirror(Some(here), false, |tree, index, remote| {
+        let done = self.with_mirror(Some(here), false, !fetching, |tree, index, remote| {
+            shelf::sweep(&here.data);
             let mut shelf = match fetching {
                 true => Shelf::fetching_all(remote, index),
                 false => Shelf::over(remote, index),
@@ -256,7 +248,7 @@ impl Cloud {
 
     fn fresh(&self) -> PathBuf {
         if !Index::load(&self.home).pulled() && !self.tried.swap(true, Ordering::Relaxed) {
-            let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
+            let _ = self.with_mirror(None, false, true, |_, _, _| Ok(((), None)));
         }
         self.tree()
     }
@@ -293,6 +285,31 @@ impl<T> Done<T> {
     }
 }
 
+fn idle(here: &Here, unused_since: SystemTime) -> BTreeSet<String> {
+    let since = unused_since
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |one| one.as_secs());
+    let opened = tisty_core::lately::every(&here.aside.join(tisty_core::lately::USED));
+    let events = tisty_core::store::read_all(here.data.join(STORE)).unwrap_or_default();
+    let mut arrived: BTreeMap<&str, u64> = BTreeMap::new();
+    for event in &events {
+        if let tisty_core::Op::AttachKept { d } = &event.op {
+            let when = u64::try_from(event.timestamp.as_second()).unwrap_or(0);
+            let last = arrived.entry(d.at.as_str()).or_default();
+            *last = (*last).max(when);
+        }
+    }
+    tisty_core::State::replay(&events)
+        .kept
+        .into_keys()
+        .filter(|reference| {
+            let used = opened.get(reference).copied().unwrap_or(0);
+            let came = arrived.get(reference.as_str()).copied().unwrap_or(0);
+            used.max(came) < since
+        })
+        .collect()
+}
+
 fn merged(first: Option<Deferred>, second: Option<Deferred>) -> Option<Deferred> {
     match (first, second) {
         (Some(one), Some(other)) => Some(Deferred {
@@ -321,13 +338,21 @@ impl Carrier for Cloud {
     }
 
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
+        let state = crate::shift::logged(here);
+        let Some((logged, _)) = state.kept.get(reference) else {
+            let gone = state.retired.contains(reference) || !shelf::named_well(reference);
+            return Ok(match gone {
+                true => Brought::Absent,
+                false => Brought::Later,
+            });
+        };
         let index = Index::load(&self.home);
         let home = tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| at.is_file());
         if !home && index.pulled() && !index.shelf.contains_key(reference) {
             return Ok(Brought::Later);
         }
         let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
-        match shelf::brought(&metered, &here.data, reference) {
+        match shelf::brought(&metered, &here.data, reference, logged) {
             Ok(Some(at)) => Ok(Brought::At(at)),
             Ok(None) => Ok(Brought::Absent),
             Err(hitch) => match judge(hitch, self.remote.limits().provider) {
@@ -342,8 +367,9 @@ impl Carrier for Cloud {
         index.pulled().then(|| {
             index
                 .shelf
-                .into_iter()
-                .map(|(reference, seen)| (reference, seen.bytes))
+                .iter()
+                .filter(|(reference, _)| !index.spoiled(reference))
+                .map(|(reference, seen)| (reference.clone(), seen.bytes))
                 .collect()
         })
     }
@@ -384,26 +410,32 @@ impl Carrier for Cloud {
         self.rounded(here, round, true)
     }
 
-    fn could_free(&self, here: &Here, unused_since: SystemTime) -> Freed {
-        self.freeable(here, unused_since).into_iter().fold(
-            Freed::default(),
-            |mut freed, (reference, _, bytes)| {
-                freed.let_go.push(reference);
-                freed.bytes += bytes;
-                freed
-            },
-        )
+    fn could_free(&self, here: &Here, unused_since: SystemTime, elsewhere: Elsewhere) -> LetGo {
+        let idle = idle(here, unused_since);
+        let letting = Letting {
+            chosen: &|reference, _| idle.contains(reference),
+            elsewhere,
+            told: &mut |_| true,
+            only_counting: true,
+        };
+        shelf::let_go(&*self.remote, &Index::load(&self.home), &here.data, letting)
     }
 
-    fn set_free(&self, here: &Here, unused_since: SystemTime) -> Freed {
-        let mut freed = Freed::default();
-        for (reference, at, bytes) in self.freeable(here, unused_since) {
-            if std::fs::remove_file(&at).is_ok() {
-                freed.let_go.push(reference);
-                freed.bytes += bytes;
-            }
-        }
-        freed
+    fn set_free(
+        &self,
+        here: &Here,
+        unused_since: SystemTime,
+        elsewhere: Elsewhere,
+        told: Told,
+    ) -> Result<LetGo, Trouble> {
+        let idle = idle(here, unused_since);
+        let letting = Letting {
+            chosen: &|reference, _| idle.contains(reference),
+            elsewhere,
+            told,
+            only_counting: false,
+        };
+        self.let_go_with(here, letting)
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {
@@ -419,16 +451,13 @@ impl Carrier for Cloud {
         elsewhere: Elsewhere,
         told: Told,
     ) -> Result<LetGo, Trouble> {
-        let done = self.with_mirror(Some(here), true, |_, index, remote| {
-            Ok((
-                shelf::let_go(remote, index, &here.data, above, elsewhere, told),
-                None,
-            ))
-        })?;
-        match done.value {
-            Some(freed) => Ok(freed),
-            None => Err(Trouble::Broke(unavailable(done.deferred))),
-        }
+        let letting = Letting {
+            chosen: &|_, len| len > above,
+            elsewhere,
+            told,
+            only_counting: false,
+        };
+        self.let_go_with(here, letting)
     }
 
     fn paper_waiting(&self, id: &str) -> bool {

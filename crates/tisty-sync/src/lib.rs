@@ -392,7 +392,7 @@ pub fn carry_through(
             saying(Reached::Papers);
         }
     }
-    if taking {
+    if taking && attachments.takes() {
         let reachable = adrift.then(|| named_now(&told, data));
         let buried_again;
         let buried = match moved.arrived.is_empty() {

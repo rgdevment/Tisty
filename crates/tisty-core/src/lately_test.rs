@@ -140,3 +140,16 @@ fn the_day_it_says_is_the_day_the_clock_says() {
     assert!(said >= before, "it cannot have been reached for before now");
     assert!(said <= now(), "nor after");
 }
+
+#[test]
+fn a_day_still_to_come_is_written_over_by_the_next_use() {
+    let (_room, at) = room();
+    used_on(&at, "attachments/ab/charla-00000000.mp4", u64::MAX);
+
+    used_on(&at, "attachments/ab/charla-00000000.mp4", 1_700_000_000);
+
+    assert_eq!(
+        last(&at, "attachments/ab/charla-00000000.mp4"),
+        Some(1_700_000_000)
+    );
+}

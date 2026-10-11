@@ -53,7 +53,7 @@ pub fn shift(
             },
         )?;
         let owed = homing(from, here);
-        if !owed.nothing() {
+        if !owed.nothing() || moved.deferred.is_some() {
             return Ok(Shift::Homing {
                 owed,
                 deferred: moved.deferred,
@@ -115,21 +115,22 @@ fn carried(
     )
 }
 
-pub(crate) fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
+pub(crate) fn logged(here: &Here) -> tisty_core::State {
     let store = here.data.join(STORE);
-    let state = tisty_core::cache::project(&store, &here.aside)
+    tisty_core::cache::summarised(&store, &here.aside)
         .ok()
         .or_else(|| {
             tisty_core::store::read_all(&store)
                 .ok()
                 .map(|events| tisty_core::State::replay(&events))
         })
-        .unwrap_or_default();
-    let retired = state.retired;
-    state
+        .unwrap_or_default()
+}
+
+fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
+    logged(here)
         .kept
         .into_iter()
-        .filter(move |(reference, _)| !retired.contains(reference))
         .map(|(reference, (_, bytes))| (reference, bytes))
 }
 
@@ -137,7 +138,7 @@ fn at_home(here: &Here, reference: &str, bytes: u64) -> bool {
     tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| whole(&at, bytes))
 }
 
-pub(crate) fn whole(at: &Path, bytes: u64) -> bool {
+fn whole(at: &Path, bytes: u64) -> bool {
     std::fs::metadata(at).is_ok_and(|told| told.is_file() && told.len() == bytes)
         && !tisty_core::holes::a_hole(at)
 }
