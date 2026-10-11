@@ -2,22 +2,42 @@ use super::*;
 use crate::fakes::Fake;
 
 #[test]
-fn two_meters_spending_at_once_both_end_up_counted() {
+fn meters_spending_at_the_same_time_are_all_counted() {
     let home = tempfile::tempdir().unwrap();
     let fake = Fake::drive();
-    let round = Metered::over(&fake, home.path(), Class::History);
-    let glance = Metered::over(&fake, home.path(), Class::History);
 
-    round.list("").unwrap();
-    glance.list("").unwrap();
-    glance.list("").unwrap();
-    drop(glance);
-    drop(round);
+    std::thread::scope(|scope| {
+        for _ in 0..4 {
+            scope.spawn(|| {
+                let meter = Metered::over(&fake, home.path(), Class::History);
+                for _ in 0..25 {
+                    meter.list("").unwrap();
+                }
+            });
+        }
+    });
 
-    let per_list = fake.limits().costs.list;
     assert_eq!(
         Spent::load(home.path()).units,
-        3 * per_list,
-        "a meter that saved last wrote over what the other had spent"
+        100 * fake.limits().costs.list,
+        "a meter wrote over what another had spent"
     );
+}
+
+#[test]
+fn spending_is_counted_as_each_request_goes_out() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+
+    meter.list("").unwrap();
+
+    assert_eq!(
+        Spent::load(home.path()).units,
+        fake.limits().costs.list,
+        "a round cut short here would have spent without saying so"
+    );
+    let other = Metered::over(&fake, home.path(), Class::History);
+    other.list("").unwrap();
+    assert_eq!(Spent::load(home.path()).units, 2 * fake.limits().costs.list);
 }
