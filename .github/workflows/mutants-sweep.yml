@@ -320,7 +320,7 @@ jobs:
       - name: Every shard of the window told as one report
         env:
           WANT_WINDOW: 24
-          WANT_CRATES: 22
+          WANT_CRATES: 23
         run: bash scripts/mutants-score.sh
 
       - name: The report where a survivor can be read one by one
