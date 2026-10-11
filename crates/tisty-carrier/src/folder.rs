@@ -16,6 +16,16 @@ impl Folder {
     pub fn at(at: PathBuf) -> Self {
         Self { at }
     }
+
+    fn shelved(&self, reference: &str) -> Option<PathBuf> {
+        let shelved = reference
+            .strip_prefix("attachments/")
+            .and_then(|rest| rest.split_once('/'))
+            .is_some_and(|(under, leaf)| tisty_core::attach::shelved(under, leaf));
+        tisty_core::attach::resolve(reference, &self.at)
+            .ok()
+            .filter(|at| shelved && at.is_file())
+    }
 }
 
 impl Carrier for Folder {
@@ -40,14 +50,11 @@ impl Carrier for Folder {
     }
 
     fn brought(&self, _: &Here, reference: &str) -> Result<Brought, Trouble> {
-        let shelved = reference
-            .strip_prefix("attachments/")
-            .and_then(|rest| rest.split_once('/'))
-            .is_some_and(|(under, leaf)| tisty_core::attach::shelved(under, leaf));
-        let found = tisty_core::attach::resolve(reference, &self.at)
-            .ok()
-            .filter(|at| shelved && at.is_file());
-        Ok(found.map_or(Brought::Absent, Brought::At))
+        Ok(self.shelved(reference).map_or(Brought::Absent, Brought::At))
+    }
+
+    fn keeps(&self, reference: &str) -> Option<bool> {
+        self.reachable().then(|| self.shelved(reference).is_some())
     }
 
     fn kin(&self, here: &Here) -> Kin {

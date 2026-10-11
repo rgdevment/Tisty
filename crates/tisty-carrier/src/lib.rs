@@ -13,11 +13,13 @@ pub use tisty_sync::{
 mod cloud;
 mod folder;
 mod remote;
+mod shift;
 mod tokens;
 
 pub use cloud::Cloud;
 pub use folder::Folder;
 pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
+pub use shift::{Owed, Shift, filling, homing, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,6 +62,7 @@ pub trait Carrier: Send + std::marker::Sync {
     fn place(&self) -> Option<&Path>;
     fn lends_from(&self) -> Option<PathBuf>;
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble>;
+    fn keeps(&self, reference: &str) -> Option<bool>;
     fn reachable(&self) -> bool;
     fn theirs(&self) -> Option<String>;
     fn been_here(&self, here: &Here) -> bool;

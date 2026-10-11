@@ -286,6 +286,11 @@ impl Carrier for Cloud {
         }
     }
 
+    fn keeps(&self, reference: &str) -> Option<bool> {
+        let index = Index::load(&self.home);
+        index.pulled().then(|| index.shelf.contains_key(reference))
+    }
+
     fn reachable(&self) -> bool {
         true
     }
