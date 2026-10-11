@@ -71,9 +71,9 @@ which is exactly what you want when a cloud client skipped a file.
 
 ## Why does Tisty not warn me on its own?
 
-Because it cannot know. Tisty talks to no cloud: it has no account of yours,
-no credentials, and no idea which provider — if any — is behind the folder you
-named. It leaves the files there, and there its reach ends.
+Because it cannot know. With a folder, Tisty talks to no cloud: it has no
+account of yours, no credentials, and no idea which provider — if any — is
+behind the folder you named. It leaves the files there, and there its reach ends.
 
 It could ask your provider's program, and it may one day. Today it does not,
 so it shows you the facts it does know instead of a verdict it cannot back.
