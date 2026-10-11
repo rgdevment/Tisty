@@ -331,7 +331,7 @@ When both machines wrote the same part of a document, Tisty does not pick: it sh
 
 Settings can also write you a full backup whenever you want one — even when you sync, because a shared folder is not a backup.
 
-Uninstalling Tisty takes the program away and leaves your tasks and documents where they are, so reinstalling finds them as they were. On Windows they live in `.tisty`, in your user folder, hidden and closed to the other accounts on the computer; on a Mac, in `Library/Application Support/tisty` and `Library/Caches/tisty`, in your home folder. To leave for good, delete that folder yourself — on Windows, turn on **Hidden items** in File Explorer's **View** menu to see it first.
+Uninstalling Tisty takes the program away and leaves your tasks and documents where they are, so reinstalling finds them as they were. On Windows they live in `.tisty`, in your user folder, hidden and closed to the other accounts on the computer; on a Mac, in `Library/Application Support/tisty` and `Library/Caches/tisty`, in your home folder. To leave for good, delete that folder yourself — on Windows, turn on **Hidden items** in File Explorer's **View** menu to see it first. If Tisty moved there from an earlier version, the copy from before stays in `AppData\Local\tisty`, with a `MOVED.txt` that says so: you can delete it too.
 
 ### 13. Completing, dropping and erasing
 

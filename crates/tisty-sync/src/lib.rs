@@ -48,6 +48,9 @@ pub enum Trouble {
     Newer(String),
     Shape(String),
     Unshaped(String),
+    CloudFull { provider: String },
+    CloudLost { provider: String },
+    CloudElsewhere { provider: String, found: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -267,7 +270,16 @@ pub fn carry_through(
         }
         let there = dest.join(STORE).join(device);
         plainly(&there)?;
-        moved.sent = alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
+        if ours_went_missing(&store.join(device), &there) {
+            witness::warn(
+                channel::SYNC,
+                "the folder holds more of this machine's history than this machine does, so it was not written over",
+                &[("at", Fact::Id(device.to_string()))],
+            );
+        } else {
+            moved.sent =
+                alike.carried(device, &there, &store.join(device), Toward::Folder, again)?;
+        }
         let (handed, left) = hand_on_leaving(&store, device, dest, again, &mut alike)?;
         moved.sent += handed;
         behind = left;

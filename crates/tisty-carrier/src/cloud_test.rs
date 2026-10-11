@@ -477,13 +477,39 @@ fn a_provider_that_will_not_let_us_in_is_a_refusal_not_a_deferral() {
         let (one, _) = pair(&setting);
         one.wrote("lo de uno");
 
+        let provider = remote.limits().provider.to_string();
         remote.fail_next(Hitch::Lost);
         let lost = one.carry(Way::Both, Holds::Everywhere);
         remote.fail_next(Hitch::Full);
         let full = one.carry(Way::Both, Holds::Everywhere);
+        remote.fail_next(Hitch::Elsewhere {
+            found: "otra@ejemplo.cl".into(),
+        });
+        let elsewhere = one.carry(Way::Both, Holds::Everywhere);
 
-        assert!(matches!(lost, Err(Trouble::Refused(_))), "{}", setting.name);
-        assert!(matches!(full, Err(Trouble::Refused(_))), "{}", setting.name);
+        let who = &setting.name;
+        assert_eq!(
+            lost,
+            Err(Trouble::CloudLost {
+                provider: provider.clone()
+            }),
+            "{who}"
+        );
+        assert_eq!(
+            full,
+            Err(Trouble::CloudFull {
+                provider: provider.clone()
+            }),
+            "{who}"
+        );
+        assert_eq!(
+            elsewhere,
+            Err(Trouble::CloudElsewhere {
+                provider,
+                found: "otra@ejemplo.cl".into()
+            }),
+            "{who}"
+        );
     }
 }
 
@@ -498,7 +524,7 @@ fn a_refusal_before_anything_went_up_is_an_error() {
         let refused = one.carry(Way::Both, Holds::Everywhere);
 
         assert!(
-            matches!(refused, Err(Trouble::Refused(_))),
+            matches!(refused, Err(Trouble::CloudFull { .. })),
             "{}: {refused:?}",
             setting.name
         );
@@ -521,7 +547,7 @@ fn a_refusal_after_part_of_the_round_went_up_still_tells_what_the_round_did() {
 
         assert!(moved.sent > 0, "{who}: something did go up");
         assert!(
-            matches!(moved.refused, Some(Trouble::Refused(_))),
+            matches!(moved.refused, Some(Trouble::CloudFull { .. })),
             "{who}: {:?}",
             moved.refused
         );
@@ -1372,6 +1398,190 @@ fn an_attachment_whose_bytes_changed_up_there_is_never_brought() {
                 .unwrap(),
             crate::Brought::Absent,
             "{who}"
+        );
+    }
+}
+
+fn spent_today(setting: &Setting, device: &str, units: u64) {
+    let home = home_of(setting, device);
+    let day = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        / (24 * 60 * 60);
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::write(
+        home.join("budget.json"),
+        format!("{{\"day\":{day},\"units\":{units},\"bytes\":0}}"),
+    )
+    .unwrap();
+}
+
+fn units_spent(setting: &Setting, device: &str) -> u64 {
+    let said = std::fs::read_to_string(home_of(setting, device).join("budget.json")).unwrap();
+    let said: serde_json::Value = serde_json::from_str(&said).unwrap();
+    said["units"].as_u64().unwrap()
+}
+
+#[test]
+fn history_goes_up_on_its_reserve_once_attachments_have_spent_their_share() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.kept("foto", b"los bytes de una foto");
+        one.wrote("lo de uno");
+        spent_today(&setting, "dev_a", fake.limits().units_a_day / 100 * 95);
+
+        let moved = one.round(Way::Both);
+
+        assert_eq!(
+            moved.deferred.map(|one| one.reason),
+            Some(Reason::Budget),
+            "{who}"
+        );
+        assert!(
+            fake.about(&kept.at).unwrap().is_none(),
+            "{who}: an attachment ate into what history keeps"
+        );
+        two.round(Way::Pull);
+        assert_eq!(
+            two.titles(),
+            ["lo de uno"],
+            "{who}: history waited for attachments"
+        );
+    }
+}
+
+#[test]
+fn a_day_spent_to_the_last_unit_moves_nothing_and_says_why() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        spent_today(&setting, "dev_a", fake.limits().units_a_day);
+        fake.forget_counts();
+
+        let moved = one.round(Way::Both);
+
+        assert_eq!(
+            moved.deferred.map(|one| one.reason),
+            Some(Reason::Budget),
+            "{who}"
+        );
+        assert_eq!(fake.counts().requests, 0, "{who}: a spent day still asked");
+    }
+}
+
+#[test]
+fn what_the_person_asks_for_comes_down_past_a_spent_day_and_is_counted() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.kept("foto", b"los bytes de una foto");
+        one.wrote("con foto");
+        one.round(Way::Both);
+        let all = fake.limits().units_a_day;
+        spent_today(&setting, "dev_b", all);
+
+        let brought = two.carrier.brought(&two.here, &kept.at).unwrap();
+
+        assert!(
+            matches!(brought, crate::Brought::At(_)),
+            "{who}: {brought:?}"
+        );
+        assert!(
+            units_spent(&setting, "dev_b") > all,
+            "{who}: it was not counted"
+        );
+    }
+}
+
+#[test]
+fn a_new_day_starts_with_nothing_spent() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        let home = home_of(&setting, "dev_a");
+        std::fs::create_dir_all(&home).unwrap();
+        std::fs::write(
+            home.join("budget.json"),
+            format!(
+                "{{\"day\":0,\"units\":{},\"bytes\":0}}",
+                fake.limits().units_a_day
+            ),
+        )
+        .unwrap();
+
+        let moved = one.round(Way::Both);
+
+        assert_eq!(
+            moved.deferred, None,
+            "{who}: yesterday's spending held today back"
+        );
+        two.round(Way::Pull);
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+    }
+}
+
+#[test]
+fn what_a_round_spends_is_still_counted_by_the_next_command() {
+    for (setting, _) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let first = units_spent(&setting, "dev_a");
+
+        desk(&setting, "dev_a").round(Way::Both);
+
+        assert!(first > 0, "{who}: a round spent nothing");
+        assert!(
+            units_spent(&setting, "dev_a") > first,
+            "{who}: the count started over"
+        );
+    }
+}
+
+#[test]
+fn a_cursor_the_provider_has_expired_is_read_whole_again_instead_of_wedging_the_sync() {
+    for (setting, fake) in each_kind(|fake| fake.expiring_cursors()) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        fake.forget_feed();
+        one.wrote("lo nuevo de uno");
+        one.round(Way::Both);
+
+        let moved = two.carry(Way::Both, Holds::Everywhere);
+
+        assert!(moved.is_ok(), "{who}: {moved:?}");
+        assert_eq!(two.titles(), ["lo de uno", "lo nuevo de uno"], "{who}");
+    }
+}
+
+#[test]
+fn an_attachment_the_cloud_has_not_listed_yet_is_later_not_gone() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        fake.forget_counts();
+
+        let asked = two
+            .carrier
+            .brought(&two.here, "attachments/ab/nada-0123456789.png")
+            .unwrap();
+
+        assert_eq!(asked, crate::Brought::Later, "{who}");
+        assert_eq!(
+            fake.counts().requests,
+            0,
+            "{who}: asked the provider for what it never listed"
         );
     }
 }

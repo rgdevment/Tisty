@@ -15,9 +15,13 @@ env:
 
 jobs:
   crates-on-the-branch:
-    name: crates / the lines this branch changed
+    name: crates / part ${{ matrix.part }} of 4
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,24 +58,38 @@ jobs:
       - name: A mutant that lives on a line this branch wrote
         id: run
         if: steps.touched.outputs.any == 'yes'
+        env:
+          PART: ${{ matrix.part }}
         run: |
           set +e
-          cargo mutants --in-diff branch.diff --workspace -j 2
+          cargo mutants --in-diff branch.diff --workspace -j 2 --shard "$((PART - 1))/4"
           echo "code=$?" >> "$GITHUB_OUTPUT"
 
       - name: What survived
         if: always() && steps.touched.outputs.any == 'yes'
         env:
           CODE: ${{ steps.run.outputs.code }}
-          TITLE: The lines this branch changed
+          TITLE: The lines this branch changed, part ${{ matrix.part }} of 4
         run: bash scripts/mutants-report.sh
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && steps.touched.outputs.any == 'yes'
         with:
-          name: mutants-branch-crates
+          name: mutants-branch-crates-${{ matrix.part }}
           path: mutants.out/
           retention-days: 7
+
+  crates-summed:
+    name: crates / the lines this branch changed
+    if: always()
+    needs: crates-on-the-branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every part of the mutants passed
+        env:
+          RESULT: ${{ needs.crates-on-the-branch.result }}
+        run: '[ "$RESULT" = "success" ] || { echo "::error::the mutants ended as $RESULT"; exit 1; }'
 
   window-on-the-branch:
     name: window / the lines this branch changed

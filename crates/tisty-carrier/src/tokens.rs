@@ -54,6 +54,14 @@ impl Tokens {
         }
     }
 
+    pub fn spoiled(&self, access: &str) {
+        if let Ok(mut held) = self.held.lock()
+            && held.access.as_ref().is_some_and(|(kept, _)| kept == access)
+        {
+            held.access = None;
+        }
+    }
+
     pub fn access(&self) -> Result<String, Hitch> {
         let mut held = self
             .held
@@ -78,7 +86,10 @@ impl Tokens {
             None => self.secrets.read(&self.key)?.ok_or(Hitch::Lost)?,
         };
         let renewed = self.renew.renew(&refresh)?;
-        held.access = Some((renewed.access.clone(), Instant::now() + renewed.lasts));
+        let until = Instant::now()
+            .checked_add(renewed.lasts)
+            .unwrap_or_else(|| Instant::now() + RENEWED_AHEAD * 2);
+        held.access = Some((renewed.access.clone(), until));
         if let Some(next) = renewed.refresh
             && self.secrets.write(&self.key, &next).is_err()
         {

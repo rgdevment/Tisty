@@ -928,6 +928,12 @@ const en = {
   settingsUnreadable:
     "The settings file says something this version cannot read, most likely written by a newer Tisty. Nothing was written; update Tisty before changing settings.",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
+  cloudFull:
+    "{name} has no room left for what Tisty would send. Free up space in {name}, or get more there; until then everything you write stays safe on this machine.",
+  cloudLost:
+    "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this machine.",
+  cloudElsewhere:
+    "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
   emptiedPlace:
     "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
   syncRefused:
@@ -2508,6 +2514,12 @@ const es: Catalog = {
   settingsUnreadable:
     "El archivo de ajustes dice algo que esta versión no sabe leer, seguramente escrito por un Tisty más nuevo. No se escribió nada; actualiza Tisty antes de cambiar ajustes.",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
+  cloudFull:
+    "{name} no tiene espacio para lo que Tisty enviaría. Libera espacio en {name} o consigue más; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
+  cloudLost:
+    "{name} ya no deja entrar a Tisty: el acceso se retiró o venció. Vuelve a conectar {name}; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
+  cloudElsewhere:
+    "La nube ahora responde como otra cuenta ({name}). Tisty se detiene para no mezclar dos cuentas: conecta la que usabas antes.",
   emptiedPlace:
     "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",
   syncRefused:

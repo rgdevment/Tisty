@@ -255,11 +255,11 @@ jobs:
     timeout-minutes: 45
     env:
       TARGET: universal-apple-darwin
-      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      HAS_MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      HAS_MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
+      HAS_APPLE_ID: ${{ secrets.APPLE_ID != '' }}
+      HAS_APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD != '' }}
+      HAS_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -292,7 +292,10 @@ jobs:
           esac
 
       - name: Import signing certificate
-        if: env.MACOS_CERTIFICATE_P12 != ''
+        if: env.HAS_MACOS_CERTIFICATE_P12 == 'true'
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
@@ -313,6 +316,8 @@ jobs:
           echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
 
       - name: Sign binary
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
         run: |
           BIN="target/$TARGET/release/tisty"
           if [[ -n "$MACOS_CERTIFICATE_P12" ]]; then
@@ -332,7 +337,11 @@ jobs:
           fi
 
       - name: Notarize
-        if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        if: env.HAS_APPLE_ID == 'true' && env.HAS_MACOS_CERTIFICATE_P12 == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           BIN="target/$TARGET/release/tisty"
           ditto -c -k --keepParent "$BIN" "$RUNNER_TEMP/tisty.zip"
@@ -374,8 +383,8 @@ jobs:
     timeout-minutes: 45
     env:
       TARGET: x86_64-pc-windows-msvc
-      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
-      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+      HAS_PFX_BASE64: ${{ secrets.PFX_BASE64 != '' }}
+      HAS_PFX_PASSWORD: ${{ secrets.PFX_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -391,8 +400,11 @@ jobs:
         run: cargo build --release --locked --bin tisty --target "$TARGET"
 
       - name: Sign executable
-        if: env.PFX_BASE64 != ''
+        if: env.HAS_PFX_BASE64 == 'true'
         shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
           Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
@@ -452,8 +464,8 @@ jobs:
       stage: ${{ steps.stage.outputs.sha }}
     env:
       TARGET: x86_64-pc-windows-msvc
-      PFX_BASE64: ${{ secrets.PFX_BASE64 }}
-      PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
+      HAS_PFX_BASE64: ${{ secrets.PFX_BASE64 != '' }}
+      HAS_PFX_PASSWORD: ${{ secrets.PFX_PASSWORD != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -496,8 +508,11 @@ jobs:
       # by thumbprint: no password on a command line. Merged in, never in the config file — a
       # build without the certificate must not fail on a command it cannot run.
       - name: Teach the bundler to sign what it packs
-        if: env.PFX_BASE64 != ''
+        if: env.HAS_PFX_BASE64 == 'true'
         shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "bundler.pfx"
           Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
@@ -547,8 +562,11 @@ jobs:
       # Microsoft signs the package it ingests, not what is inside it: unsigned here is unsigned
       # on the machine that installs it.
       - name: Sign what the MSIX will carry
-        if: env.PFX_BASE64 != ''
+        if: env.HAS_PFX_BASE64 == 'true'
         shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
           Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
@@ -577,7 +595,7 @@ jobs:
       # The bundler is handed a signing command; whether it used it is only readable in the
       # installer it produced, so the installer is opened and what it carries is checked.
       - name: What the installer will put on disk is signed
-        if: env.PFX_BASE64 != ''
+        if: env.HAS_PFX_BASE64 == 'true'
         shell: pwsh
         run: |
           $setup = Get-ChildItem -Path "target/release/bundle/nsis" -Filter "*-setup.exe" |
@@ -606,10 +624,10 @@ jobs:
           foreach ($one in $mine) {
             $where = $one.FullName.Substring($peek.Length).TrimStart("\\")
             $sig = Get-AuthenticodeSignature $one.FullName
-            if ($sig.SignerCertificate) {
+            if ($sig.SignerCertificate -and $sig.Status -eq 'Valid') {
               Write-Host "$where <- $($sig.SignerCertificate.Subject)"
             } else {
-              Write-Error "$where goes out unsigned"
+              Write-Error "$where goes out unsigned or with a broken signature ($($sig.Status))"
               $status = 1
             }
           }
@@ -629,8 +647,11 @@ jobs:
           if-no-files-found: error
 
       - name: Sign the installer
-        if: env.PFX_BASE64 != ''
+        if: env.HAS_PFX_BASE64 == 'true'
         shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.PFX_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.PFX_PASSWORD }}
         run: |
           $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
           Set-Content -Path $pfx -Value ([Convert]::FromBase64String($env:PFX_BASE64)) -AsByteStream
@@ -712,10 +733,10 @@ jobs:
     env:
       TARGET: ${{ matrix.target }}
       ARCH: ${{ matrix.arch }}
-      MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      HAS_MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      HAS_APPLE_ID: ${{ secrets.APPLE_ID != '' }}
+      HAS_APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD != '' }}
+      HAS_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -775,7 +796,7 @@ jobs:
           done
 
       - name: The app is really signed
-        if: env.MACOS_CERTIFICATE_P12 != ''
+        if: env.HAS_MACOS_CERTIFICATE_P12 == 'true'
         run: |
           app=$(ls -d "target/$TARGET/release/bundle/macos"/*.app | head -1)
           codesign --verify --deep --strict --verbose=2 "$app"
@@ -785,7 +806,11 @@ jobs:
           fi
 
       - name: Notarize
-        if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        if: env.HAS_APPLE_ID == 'true' && env.HAS_MACOS_CERTIFICATE_P12 == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           dmg=$(ls "target/$TARGET/release/bundle/dmg"/*.dmg | head -1)
           xcrun notarytool submit "$dmg" \
@@ -795,7 +820,11 @@ jobs:
 
       # The updater replaces the .app, so it is tarred only once the ticket is stapled to it.
       - name: Staple the app itself, and tar it
-        if: env.APPLE_ID != '' && env.MACOS_CERTIFICATE_P12 != ''
+        if: env.HAS_APPLE_ID == 'true' && env.HAS_MACOS_CERTIFICATE_P12 == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           out="target/$TARGET/release/bundle/macos"
           app=$(ls -d "$out"/*.app | head -1)

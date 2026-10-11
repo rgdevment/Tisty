@@ -402,6 +402,16 @@ fn a_cloud_mirror_stays_with_this_machine_s_settings_and_never_with_its_data() {
         "two accounts that read alike share one mirror"
     );
     assert_ne!(p.cloud_home("a-b", "c"), p.cloud_home("a", "b-c"));
+    let long = p.cloud_home("drive", &"a".repeat(400));
+    let leaf = long.file_name().unwrap().to_string_lossy().len();
+    assert!(
+        leaf < 128,
+        "a folder name of {leaf} characters no system would make"
+    );
+    assert_ne!(
+        long,
+        p.cloud_home("drive", &format!("{}b", "a".repeat(399)))
+    );
     let sly = p.cloud_home("drive", "../../data/Tisty");
     assert_eq!(
         sly.parent(),

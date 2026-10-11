@@ -386,6 +386,11 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
         tisty_carrier::Trouble::Shape(at) => Refusal::about("syncShape", at),
         tisty_carrier::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
+        tisty_carrier::Trouble::CloudFull { provider } => Refusal::about("cloudFull", provider),
+        tisty_carrier::Trouble::CloudLost { provider } => Refusal::about("cloudLost", provider),
+        tisty_carrier::Trouble::CloudElsewhere { provider, found } => {
+            Refusal::about("cloudElsewhere", format!("{provider} · {found}"))
+        }
         tisty_carrier::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }

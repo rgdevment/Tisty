@@ -738,12 +738,12 @@ async fn carried_round(
         );
     }
     let heard = done.brought > 0;
-    session.keep(|c| {
+    let _ = session.keep(|c| {
         c.synced_at = Some(jiff::Timestamp::now());
         if heard {
             c.heard_at = c.synced_at;
         }
-    })?;
+    });
     Ok(Settled {
         carried: match (done.sent > 0, moved || done.brought > 0) {
             (true, true) => "both",
@@ -820,7 +820,7 @@ pub async fn back_up(
     })?;
 
     let now = jiff::Timestamp::now();
-    held(&session).keep(|config| config.backed_up_at = Some(now))?;
+    let _ = held(&session).keep(|config| config.backed_up_at = Some(now));
     Ok(BackedUp {
         bytes: made.bytes,
         left_out: made.left_out,
