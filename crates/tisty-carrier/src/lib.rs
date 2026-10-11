@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::SystemTime;
 
 use tisty_core::config::{Holds, Sync};
 use tisty_core::signing::SigningKey;
@@ -42,6 +43,12 @@ impl Here {
 
 pub type Shared = Arc<dyn Carrier>;
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Freed {
+    pub let_go: Vec<String>,
+    pub bytes: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Brought {
     At(PathBuf),
@@ -72,6 +79,9 @@ pub trait Carrier: Send + std::marker::Sync {
     fn stirring(&self) -> u64;
     fn unclaimed(&self) -> Holding;
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
+    fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
+    fn could_free(&self, here: &Here, unused_since: SystemTime) -> Freed;
+    fn set_free(&self, here: &Here, unused_since: SystemTime) -> Freed;
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble>;
     fn let_go(
         &self,

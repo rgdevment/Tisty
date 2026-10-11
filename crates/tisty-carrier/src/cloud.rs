@@ -2,14 +2,14 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
 
 use crate::{
-    Brought, Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason,
-    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
+    Brought, Carrier, Changes, Deferred, Elsewhere, Freed, Here, Holding, Keep, Kin, LetGo, Moved,
+    Reason, Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
 };
 
 mod budget;
@@ -30,7 +30,6 @@ const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
-const LENT: &str = "held";
 
 struct Done<T> {
     value: Option<T>,
@@ -170,6 +169,59 @@ impl Cloud {
         self.tree()
     }
 
+    fn freeable(&self, here: &Here, unused_since: SystemTime) -> Vec<(String, PathBuf, u64)> {
+        let index = Index::load(&self.home);
+        let opened = tisty_core::lately::every(&here.aside.join(tisty_core::lately::USED));
+        crate::shift::known(here)
+            .filter_map(|(reference, bytes)| {
+                let at = tisty_core::attach::resolve(&reference, &here.data).ok()?;
+                let last = opened
+                    .get(&reference)
+                    .map(|seconds| std::time::UNIX_EPOCH + Duration::from_secs(*seconds));
+                let arrived = std::fs::metadata(&at).and_then(|told| told.modified()).ok();
+                let idle = last.max(arrived).is_some_and(|used| used < unused_since);
+                let seen = index.shelf.get(&reference)?;
+                let same_up_there = seen.bytes == bytes
+                    && !seen.hash.is_empty()
+                    && self.remote.hash_of(&at).is_ok_and(|hash| hash == seen.hash);
+                (idle && crate::shift::whole(&at, bytes) && same_up_there)
+                    .then_some((reference, at, bytes))
+            })
+            .collect()
+    }
+
+    fn rounded(&self, here: &Here, round: Round, fetching: bool) -> Result<Moved, Trouble> {
+        let done = self.with_mirror(Some(here), false, |tree, index, remote| {
+            let mut shelf = match fetching {
+                true => Shelf::fetching_all(remote, index),
+                false => Shelf::over(remote, index),
+            };
+            let moved = carry_through(
+                &here.data,
+                Some(&here.aside),
+                &here.device,
+                tree,
+                round.way,
+                round.alive,
+                round.holds,
+                round.saying,
+                &mut shelf,
+            )?;
+            Ok(((moved, shelf.sent()), shelf.paused()))
+        })?;
+        let (mut moved, attached) = done.value.unwrap_or_default();
+        let mirrored = moved.sent.saturating_sub(attached);
+        moved.sent = attached + mirrored.min(done.uploaded);
+        if let Some(trouble) = done.stopped {
+            if moved == Moved::default() {
+                return Err(trouble);
+            }
+            moved.refused = Some(trouble);
+        }
+        moved.deferred = done.deferred;
+        Ok(moved)
+    }
+
     fn asked_again(&self) -> u64 {
         let poll = self.remote.limits().poll_every;
         let at = self.home.join(STIRRING);
@@ -265,18 +317,17 @@ impl Carrier for Cloud {
     }
 
     fn lends_from(&self) -> Option<PathBuf> {
-        Some(self.home.join(LENT).join("attachments"))
+        None
     }
 
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
-        let cache = self.home.join(LENT);
         let index = Index::load(&self.home);
-        let cached = tisty_core::attach::resolve(reference, &cache).is_ok_and(|at| at.is_file());
-        if !cached && index.pulled() && !index.shelf.contains_key(reference) {
+        let home = tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| at.is_file());
+        if !home && index.pulled() && !index.shelf.contains_key(reference) {
             return Ok(Brought::Later);
         }
         let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
-        match shelf::brought(&metered, &here.data, reference, &cache) {
+        match shelf::brought(&metered, &here.data, reference) {
             Ok(Some(at)) => Ok(Brought::At(at)),
             Ok(None) => Ok(Brought::Absent),
             Err(hitch) => match judge(hitch, self.remote.limits().provider) {
@@ -326,32 +377,33 @@ impl Carrier for Cloud {
     }
 
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        let done = self.with_mirror(Some(here), false, |tree, index, remote| {
-            let mut shelf = Shelf::over(remote, index);
-            let moved = carry_through(
-                &here.data,
-                Some(&here.aside),
-                &here.device,
-                tree,
-                round.way,
-                round.alive,
-                round.holds,
-                round.saying,
-                &mut shelf,
-            )?;
-            Ok(((moved, shelf.sent()), shelf.paused()))
-        })?;
-        let (mut moved, attached) = done.value.unwrap_or_default();
-        let mirrored = moved.sent.saturating_sub(attached);
-        moved.sent = attached + mirrored.min(done.uploaded);
-        if let Some(trouble) = done.stopped {
-            if moved == Moved::default() {
-                return Err(trouble);
+        self.rounded(here, round, false)
+    }
+
+    fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
+        self.rounded(here, round, true)
+    }
+
+    fn could_free(&self, here: &Here, unused_since: SystemTime) -> Freed {
+        self.freeable(here, unused_since).into_iter().fold(
+            Freed::default(),
+            |mut freed, (reference, _, bytes)| {
+                freed.let_go.push(reference);
+                freed.bytes += bytes;
+                freed
+            },
+        )
+    }
+
+    fn set_free(&self, here: &Here, unused_since: SystemTime) -> Freed {
+        let mut freed = Freed::default();
+        for (reference, at, bytes) in self.freeable(here, unused_since) {
+            if std::fs::remove_file(&at).is_ok() {
+                freed.let_go.push(reference);
+                freed.bytes += bytes;
             }
-            moved.refused = Some(trouble);
         }
-        moved.deferred = done.deferred;
-        Ok(moved)
+        freed
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {

@@ -43,7 +43,15 @@ pub fn shift(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Shift, Trouble> {
     if let Some(from) = from {
-        let moved = carried(from, here, Way::Pull, alive, saying)?;
+        let moved = from.bring_home(
+            here,
+            Round {
+                way: Way::Pull,
+                alive,
+                holds: Holds::Everywhere,
+                saying,
+            },
+        )?;
         let owed = homing(from, here);
         if !owed.nothing() {
             return Ok(Shift::Homing {
@@ -107,7 +115,7 @@ fn carried(
     )
 }
 
-fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
+pub(crate) fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
     let store = here.data.join(STORE);
     let state = tisty_core::cache::project(&store, &here.aside)
         .ok()
@@ -129,7 +137,7 @@ fn at_home(here: &Here, reference: &str, bytes: u64) -> bool {
     tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| whole(&at, bytes))
 }
 
-fn whole(at: &Path, bytes: u64) -> bool {
+pub(crate) fn whole(at: &Path, bytes: u64) -> bool {
     std::fs::metadata(at).is_ok_and(|told| told.is_file() && told.len() == bytes)
         && !tisty_core::holes::a_hole(at)
 }

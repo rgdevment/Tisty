@@ -326,7 +326,7 @@ fn a_document_travels_and_an_edit_comes_back() {
 }
 
 #[test]
-fn an_attachment_goes_up_and_comes_down() {
+fn an_attachment_goes_up_and_a_cloud_brings_it_down_only_once_it_is_opened() {
     for setting in settings() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
@@ -336,12 +336,27 @@ fn an_attachment_goes_up_and_comes_down() {
 
         let moved = two.round(Way::Both);
 
+        if let Place::Folder(_) = setting.place {
+            assert_eq!(
+                two.held(&kept.at).as_deref(),
+                Some(b"los bytes de una foto".as_slice()),
+                "{who}"
+            );
+            assert_eq!(moved.took_in.len(), 1, "{who}");
+            continue;
+        }
+        assert_eq!(two.held(&kept.at), None, "{who}: a round spent quota on it");
+        assert!(moved.took_in.is_empty(), "{who}");
+        two.carrier.brought(&two.here, &kept.at).unwrap();
         assert_eq!(
             two.held(&kept.at).as_deref(),
             Some(b"los bytes de una foto".as_slice()),
-            "{who}"
+            "{who}: opened, it was not kept here"
         );
-        assert_eq!(moved.took_in.len(), 1, "{who}");
+        assert!(
+            tisty_core::attach::digests(&two.here.data).contains_key(&kept.at),
+            "{who}: kept here without being written down"
+        );
     }
 }
 
@@ -801,7 +816,7 @@ fn a_file_rewritten_with_the_same_size_in_the_same_instant_is_still_sent() {
 }
 
 #[test]
-fn an_upload_the_provider_defers_keeps_the_original_and_the_next_round_sends_it() {
+fn an_upload_the_provider_defers_goes_with_the_next_round_and_the_original_stays() {
     for setting in clouds().into_iter().take(1) {
         let who = &setting.name;
         let remote = counting(&setting);
@@ -828,10 +843,10 @@ fn an_upload_the_provider_defers_keeps_the_original_and_the_next_round_sends_it(
 
         let sent = one.carry(Way::Both, Holds::Shared).unwrap();
 
-        assert_eq!(sent.let_go, std::slice::from_ref(&kept.at), "{who}");
+        assert_eq!(sent.let_go, Vec::<String>::new(), "{who}");
         assert!(
-            one.held(&kept.at).is_none(),
-            "{who}: it left once it was up there"
+            one.held(&kept.at).is_some(),
+            "{who}: a cloud let go of a copy this machine keeps"
         );
         let up = remote.about(&kept.at).unwrap().unwrap();
         assert_eq!(up.bytes, big.len() as u64, "{who}");
@@ -1341,12 +1356,19 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
             b"los bytes de una foto",
             "{who}"
         );
-        assert!(
-            two.carrier
-                .lends_from()
-                .is_some_and(|lent| at.starts_with(lent)),
-            "{who}: what was brought lies outside what the window may show"
-        );
+        match &setting.place {
+            Place::Folder(_) => assert!(
+                two.carrier
+                    .lends_from()
+                    .is_some_and(|lent| at.starts_with(lent)),
+                "{who}: what was brought lies outside what the window may show"
+            ),
+            Place::Cloud(_) => assert_eq!(
+                Some(at),
+                tisty_core::attach::resolve(&kept.at, &two.here.data).ok(),
+                "{who}: what was opened did not stay among this machine's attachments"
+            ),
+        }
         assert_eq!(
             two.carrier
                 .brought(&two.here, "docs/dev_a-0001.md")
@@ -1591,3 +1613,6 @@ mod converge;
 
 #[path = "shift_test.rs"]
 mod shift;
+
+#[path = "freed_test.rs"]
+mod freed;

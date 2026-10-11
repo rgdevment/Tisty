@@ -19,7 +19,7 @@ impl Desk {
 
 fn let_go_here(desk: &Desk, reference: &str) {
     let at = tisty_core::attach::resolve(reference, &desk.here.data).unwrap();
-    std::fs::remove_file(at).unwrap();
+    let _ = std::fs::remove_file(at);
 }
 
 fn origin(desk: &Desk, room: &std::path::Path) -> Folder {

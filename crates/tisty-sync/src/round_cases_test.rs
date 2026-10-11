@@ -1086,11 +1086,9 @@ both_sides! {
     stitching_twice_never_writes_a_seam_that_joins_a_history_to_itself,
     a_seam_says_which_machines_came_from_each_side,
     an_attachment_whose_bytes_were_swapped_never_reaches_this_machine,
-    an_attachment_that_is_what_it_says_it_is_comes_home,
     a_body_travels_even_when_only_one_direction_was_asked_for,
     settling_a_name_no_document_could_have_is_refused,
     the_attachment_ledger_never_lands_in_the_shared_folder,
-    an_attachment_that_came_from_elsewhere_is_written_down_like_our_own,
     what_lands_in_the_shared_folder_is_dated_now_so_a_cloud_client_notices_it,
     a_round_that_changed_nothing_still_does_not_copy_again,
     a_round_that_moved_nothing_leaves_the_marker_untouched,
@@ -1111,7 +1109,9 @@ both_sides! {
     the_same_name_writing_two_different_things_is_the_clash_that_is_refused,
 }
 
-// A cloud reached through its API has no desktop client to nudge, so writing the same bytes again is moot.
+// A cloud reached through its API has no desktop client to nudge, and brings attachments down only when opened.
 folder_only! {
     asking_again_writes_what_a_plain_round_leaves_alone,
+    an_attachment_that_is_what_it_says_it_is_comes_home,
+    an_attachment_that_came_from_elsewhere_is_written_down_like_our_own,
 }

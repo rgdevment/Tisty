@@ -2,12 +2,9 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use tisty_core::attach::{self, COPIED_IN_DOC, COPIED_UP_TO};
-use tisty_core::config::Holds;
+use tisty_core::attach::{self, COPIED_IN_DOC};
 use tisty_core::witness::{self, Fact, channel};
-use tisty_sync::{
-    Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken, Taking, Trouble, left_behind,
-};
+use tisty_sync::{Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken, Taking, Trouble};
 
 use super::index::Index;
 use super::judge::{Judged, judge};
@@ -20,6 +17,7 @@ pub struct Shelf<'a> {
     index: &'a mut Index,
     paused: Option<Deferred>,
     sent: usize,
+    fetching: bool,
 }
 
 struct Local {
@@ -37,6 +35,14 @@ impl<'a> Shelf<'a> {
             index,
             paused: None,
             sent: 0,
+            fetching: false,
+        }
+    }
+
+    pub fn fetching_all(remote: &'a dyn Remote, index: &'a mut Index) -> Self {
+        Self {
+            fetching: true,
+            ..Self::over(remote, index)
         }
     }
 
@@ -150,22 +156,21 @@ pub fn brought(
     remote: &dyn Remote,
     data: &Path,
     reference: &str,
-    cache: &Path,
 ) -> Result<Option<PathBuf>, Hitch> {
     let Some((under, leaf)) =
         placed(reference).filter(|(under, leaf)| attach::shelved(under, leaf))
     else {
         return Ok(None);
     };
-    let target = attach::resolve(reference, cache).map_err(|e| Hitch::Broke(e.to_string()))?;
+    let target = attach::resolve(reference, data).map_err(|e| Hitch::Broke(e.to_string()))?;
     let written_down = attach::digests(data);
     let holds = |at: &Path| {
-        attach::hashed(at).is_ok_and(|(sha256, _)| {
-            attach::vouched(under, leaf, &sha256)
-                && attach::as_kept(&written_down, reference, &sha256)
+        attach::hashed(at).ok().filter(|(sha256, _)| {
+            attach::vouched(under, leaf, sha256)
+                && attach::as_kept(&written_down, reference, sha256)
         })
     };
-    if target.is_file() && holds(&target) {
+    if target.is_file() && holds(&target).is_some() {
         return Ok(Some(target));
     }
     let part = match fetched_part(remote, reference, &target) {
@@ -173,23 +178,23 @@ pub fn brought(
         Err(Hitch::Missing(_)) => return Ok(None),
         Err(hitch) => return Err(hitch),
     };
-    if !holds(&part) {
+    let Some((sha256, bytes)) = holds(&part) else {
         let _ = std::fs::remove_file(&part);
         return Err(Hitch::Broke(format!(
             "{reference} does not hold the bytes its name and this machine vouch for"
         )));
-    }
+    };
     if let Err(e) = std::fs::rename(&part, &target) {
         let _ = std::fs::remove_file(&part);
         return Err(e.into());
     }
+    attach::noted(data, reference, &sha256, bytes);
     Ok(Some(target))
 }
 
 impl Attachments for Shelf<'_> {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
         let mut given = Given::default();
-        let mut landed = Vec::new();
         let (all, mut asked_for) = locals(round.data, round.buried);
         for (at, one) in all.iter().enumerate() {
             if self.paused.is_some() {
@@ -202,7 +207,7 @@ impl Attachments for Shelf<'_> {
             if !self.owed(one, &round) {
                 continue;
             }
-            let (sha256, bytes) = match attach::hashed(&one.at) {
+            let (sha256, _) = match attach::hashed(&one.at) {
                 Ok(read) => read,
                 Err(e) => {
                     witness::warn(
@@ -229,7 +234,6 @@ impl Attachments for Shelf<'_> {
             match self.send(one) {
                 Ok(seen) => {
                     self.index.shelf.insert(one.reference.clone(), seen);
-                    landed.push((one.reference.clone(), bytes));
                     given.sent += 1;
                     self.sent += 1;
                 }
@@ -239,19 +243,6 @@ impl Attachments for Shelf<'_> {
                         .filter(|rest| self.owed(rest, &round))
                         .count();
                     self.refuse(hitch, &one.reference, remaining)?;
-                }
-            }
-        }
-        if round.holds == Holds::Shared {
-            for (reference, bytes) in landed
-                .into_iter()
-                .filter(|(_, bytes)| *bytes > COPIED_UP_TO)
-            {
-                let freed = attach::resolve(&reference, round.data)
-                    .is_ok_and(|at| std::fs::remove_file(at).is_ok());
-                if freed {
-                    given.freed += bytes;
-                    given.let_go.push(reference);
                 }
             }
         }
@@ -266,6 +257,9 @@ impl Attachments for Shelf<'_> {
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble> {
         sweep(round.data);
         let mut taken = Taken::default();
+        if !self.fetching {
+            return Ok(taken);
+        }
         let mut written_down = attach::digests(round.data);
         for (at, one) in round.avowed {
             if written_down
@@ -279,7 +273,7 @@ impl Attachments for Shelf<'_> {
                 );
             }
         }
-        let above = left_behind(round.holds);
+        let above = None;
         let up: Vec<(String, Seen)> = self
             .index
             .shelf
