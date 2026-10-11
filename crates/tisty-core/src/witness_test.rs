@@ -272,3 +272,23 @@ fn a_torn_character_does_not_blank_the_whole_file() {
     );
     stops();
 }
+
+#[test]
+fn a_hostile_round_leaves_neither_its_token_nor_its_signed_address_in_the_log() {
+    let token = ["ya29", ".a0AfH6SMBx7kq2Lw9ZpQ4rT8vYc1"].concat();
+    let why = format!(
+        "GET https://www.googleapis.com/drive/v3/files/x?alt=media&sig=Zx9 with Bearer {token}: 401"
+    );
+
+    let line = lined(
+        now(),
+        Gravity::Warn,
+        channel::CLOUD,
+        "the provider turned the token down",
+        &[("why", Fact::Why(why))],
+    );
+
+    assert!(!line.contains(&token), "{line}");
+    assert!(!line.contains("sig=Zx9"), "{line}");
+    assert!(line.contains("401"), "{line}");
+}

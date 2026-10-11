@@ -1102,10 +1102,12 @@ from a round maps to a code in `said`. In `tisty-core`, `Error::coded` gives a
 stable code for each error.
 
 Diagnostics go through `witness`: five levels (`trace` to `fatal`), a channel per
-area (`store`, `sync`, `window`, `agent`, …) and typed facts (`Fact::Count`,
-`Id`, `Path`, …) instead of free text. Lines are appended to
+area (`store`, `sync`, `cloud`, `window`, `agent`, …) and typed facts
+(`Fact::Count`, `Id`, `Path`, …) instead of free text. Lines are appended to
 `<config>/private/tisty.log`; `trace` is kept only under `TISTY_LOG=all`; the
-system user name is masked; a panic hook records a `fatal` line. The window shows
+system user name is masked, and so is anything in a `Fact::Why` that looks like
+a provider's token, a value named as a token, secret or password, or the query
+of an address (`masked.rs`); a panic hook records a `fatal` line. The window shows
 the log to the person, and nothing is sent anywhere.
 
 Interface text is English and Spanish. The window has catalogs in `locales.ts`
