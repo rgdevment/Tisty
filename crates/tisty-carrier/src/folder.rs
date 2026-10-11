@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use tisty_core::signing::SigningKey;
 
 use crate::{
-    Carrier, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Round, STORE, Signed, Stitched,
-    Told, Trouble,
+    Brought, Carrier, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Round, STORE, Signed,
+    Stitched, Told, Trouble,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,6 +33,21 @@ impl Carrier for Folder {
 
     fn been_here(&self, here: &Here) -> bool {
         tisty_sync::been_here(&here.aside, &self.at, &here.device)
+    }
+
+    fn lends_from(&self) -> Option<PathBuf> {
+        Some(self.at.join("attachments"))
+    }
+
+    fn brought(&self, _: &Here, reference: &str) -> Result<Brought, Trouble> {
+        let shelved = reference
+            .strip_prefix("attachments/")
+            .and_then(|rest| rest.split_once('/'))
+            .is_some_and(|(under, leaf)| tisty_core::attach::shelved(under, leaf));
+        let found = tisty_core::attach::resolve(reference, &self.at)
+            .ok()
+            .filter(|at| shelved && at.is_file());
+        Ok(found.map_or(Brought::Absent, Brought::At))
     }
 
     fn kin(&self, here: &Here) -> Kin {
