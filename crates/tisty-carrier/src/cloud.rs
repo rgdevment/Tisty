@@ -87,7 +87,7 @@ impl Cloud {
         let data = here.map(|here| here.data.as_path());
         if let Err(hitch) = mirror::pull(remote, &tree, &mut index, data) {
             let _ = index.save(&self.home);
-            return match judge(hitch) {
+            return match judge(hitch, self.remote.limits().provider) {
                 Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
                 Judged::Stop(trouble) => Err(trouble),
             };
@@ -113,7 +113,7 @@ impl Cloud {
         };
         let mut deferred = held;
         let mut stopped = None;
-        match hitch.map(judge) {
+        match hitch.map(|hitch| judge(hitch, remote.limits().provider)) {
             Some(Judged::Pause(reason, wait)) => {
                 deferred = merged(
                     deferred,
@@ -266,7 +266,7 @@ impl Carrier for Cloud {
         match shelf::brought(&*self.remote, &here.data, reference, &cache) {
             Ok(Some(at)) => Ok(Brought::At(at)),
             Ok(None) => Ok(Brought::Absent),
-            Err(hitch) => match judge(hitch) {
+            Err(hitch) => match judge(hitch, self.remote.limits().provider) {
                 Judged::Pause(..) => Ok(Brought::Later),
                 Judged::Stop(trouble) => Err(trouble),
             },

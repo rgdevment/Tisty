@@ -75,7 +75,7 @@ impl<'a> Shelf<'a> {
             );
             return Ok(());
         }
-        match judge(hitch) {
+        match judge(hitch, self.remote.limits().provider) {
             Judged::Pause(reason, wait) => {
                 self.paused = Some(Deferred {
                     reason,

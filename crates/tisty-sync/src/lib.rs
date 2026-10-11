@@ -48,6 +48,9 @@ pub enum Trouble {
     Newer(String),
     Shape(String),
     Unshaped(String),
+    CloudFull { provider: String },
+    CloudLost { provider: String },
+    CloudElsewhere { provider: String, found: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -477,13 +477,39 @@ fn a_provider_that_will_not_let_us_in_is_a_refusal_not_a_deferral() {
         let (one, _) = pair(&setting);
         one.wrote("lo de uno");
 
+        let provider = remote.limits().provider.to_string();
         remote.fail_next(Hitch::Lost);
         let lost = one.carry(Way::Both, Holds::Everywhere);
         remote.fail_next(Hitch::Full);
         let full = one.carry(Way::Both, Holds::Everywhere);
+        remote.fail_next(Hitch::Elsewhere {
+            found: "otra@ejemplo.cl".into(),
+        });
+        let elsewhere = one.carry(Way::Both, Holds::Everywhere);
 
-        assert!(matches!(lost, Err(Trouble::Refused(_))), "{}", setting.name);
-        assert!(matches!(full, Err(Trouble::Refused(_))), "{}", setting.name);
+        let who = &setting.name;
+        assert_eq!(
+            lost,
+            Err(Trouble::CloudLost {
+                provider: provider.clone()
+            }),
+            "{who}"
+        );
+        assert_eq!(
+            full,
+            Err(Trouble::CloudFull {
+                provider: provider.clone()
+            }),
+            "{who}"
+        );
+        assert_eq!(
+            elsewhere,
+            Err(Trouble::CloudElsewhere {
+                provider,
+                found: "otra@ejemplo.cl".into()
+            }),
+            "{who}"
+        );
     }
 }
 
@@ -498,7 +524,7 @@ fn a_refusal_before_anything_went_up_is_an_error() {
         let refused = one.carry(Way::Both, Holds::Everywhere);
 
         assert!(
-            matches!(refused, Err(Trouble::Refused(_))),
+            matches!(refused, Err(Trouble::CloudFull { .. })),
             "{}: {refused:?}",
             setting.name
         );
@@ -521,7 +547,7 @@ fn a_refusal_after_part_of_the_round_went_up_still_tells_what_the_round_did() {
 
         assert!(moved.sent > 0, "{who}: something did go up");
         assert!(
-            matches!(moved.refused, Some(Trouble::Refused(_))),
+            matches!(moved.refused, Some(Trouble::CloudFull { .. })),
             "{who}: {:?}",
             moved.refused
         );

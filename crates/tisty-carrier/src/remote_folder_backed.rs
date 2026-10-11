@@ -108,6 +108,7 @@ impl FolderBacked {
 impl Remote for FolderBacked {
     fn limits(&self) -> Limits {
         Limits {
+            provider: "a folder",
             units_a_day: u64::MAX,
             bytes_a_day: u64::MAX,
             poll_every: self.poll,

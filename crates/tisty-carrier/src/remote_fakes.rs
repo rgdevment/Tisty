@@ -378,6 +378,11 @@ impl Remote for Fake {
             ),
         };
         Limits {
+            provider: match self.kind {
+                Kind::Drive => "Google Drive",
+                Kind::OneDrive => "OneDrive",
+                Kind::Dropbox => "Dropbox",
+            },
             units_a_day: 100_000,
             bytes_a_day: 5 * GIB,
             poll_every: self.poll.unwrap_or(Duration::from_secs(poll_every)),

@@ -48,6 +48,7 @@ pub struct Costs {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
+    pub provider: &'static str,
     pub units_a_day: u64,
     pub bytes_a_day: u64,
     pub poll_every: Duration,
