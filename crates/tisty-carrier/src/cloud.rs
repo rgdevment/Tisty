@@ -271,8 +271,9 @@ impl Carrier for Cloud {
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
         let cache = self.home.join(LENT);
         let index = Index::load(&self.home);
-        if index.pulled() && !index.shelf.contains_key(reference) {
-            return Ok(Brought::Absent);
+        let cached = tisty_core::attach::resolve(reference, &cache).is_ok_and(|at| at.is_file());
+        if !cached && index.pulled() && !index.shelf.contains_key(reference) {
+            return Ok(Brought::Later);
         }
         let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
         match shelf::brought(&metered, &here.data, reference, &cache) {

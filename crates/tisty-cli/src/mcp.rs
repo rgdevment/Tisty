@@ -313,7 +313,9 @@ fn hitch(e: tisty_core::Error) -> Refused {
         tisty_core::Error::UnsupportedVersion { version, .. }
             if version == tisty_core::moving::FENCE_VERSION =>
         {
-            "Tisty moved the person's data to a new place while this server was running, and              what is left here is the copy from before. Nothing was read or written: restart              this server so it finds the new place, and stop."
+            "Tisty moved the person's data to a new place while this server was running, and \
+             what is left here is the copy from before. Nothing was read or written: restart \
+             this server so it finds the new place, and stop."
                 .into()
         }
         tisty_core::Error::UnsupportedVersion { device, .. } => {

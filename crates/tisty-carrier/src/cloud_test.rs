@@ -1562,5 +1562,29 @@ fn a_cursor_the_provider_has_expired_is_read_whole_again_instead_of_wedging_the_
     }
 }
 
+#[test]
+fn an_attachment_the_cloud_has_not_listed_yet_is_later_not_gone() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        fake.forget_counts();
+
+        let asked = two
+            .carrier
+            .brought(&two.here, "attachments/ab/nada-0123456789.png")
+            .unwrap();
+
+        assert_eq!(asked, crate::Brought::Later, "{who}");
+        assert_eq!(
+            fake.counts().requests,
+            0,
+            "{who}: asked the provider for what it never listed"
+        );
+    }
+}
+
 #[path = "converge_test.rs"]
 mod converge;
