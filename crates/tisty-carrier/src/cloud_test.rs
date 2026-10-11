@@ -1588,3 +1588,6 @@ fn an_attachment_the_cloud_has_not_listed_yet_is_later_not_gone() {
 
 #[path = "converge_test.rs"]
 mod converge;
+
+#[path = "shift_test.rs"]
+mod shift;
