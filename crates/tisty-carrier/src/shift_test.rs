@@ -155,3 +155,47 @@ fn a_new_place_whose_history_waits_for_tomorrow_is_not_ready() {
         );
     }
 }
+
+#[test]
+fn history_only_the_old_place_holds_comes_along_even_with_nothing_owed_home() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("solo en el lugar viejo");
+        one.round(Way::Both);
+        let new = Folder::at(setting.room.path().join("new"));
+        std::fs::create_dir_all(setting.room.path().join("new")).unwrap();
+
+        let done = step(&two, Some(&*two.carrier), Some(&new));
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        assert_eq!(two.titles(), ["solo en el lugar viejo"], "{who}");
+    }
+}
+
+#[test]
+fn a_copy_of_the_wrong_size_in_a_folder_counts_as_not_there() {
+    let room = tempfile::tempdir().unwrap();
+    let setting = Setting {
+        name: "folder".to_string(),
+        place: Place::Folder(room.path().join("shared")),
+        room,
+    };
+    std::fs::create_dir_all(setting.room.path().join("shared")).unwrap();
+    let (one, two) = pair(&setting);
+    let kept = one.attached(PHOTO);
+    one.round(Way::Both);
+    two.round(Way::Pull);
+    let_go_here(&two, &kept.at);
+    let there = tisty_core::attach::resolve(&kept.at, &setting.room.path().join("shared")).unwrap();
+    std::fs::write(&there, b"corta").unwrap();
+
+    assert!(crate::homing(&*two.carrier, &two.here).nothing());
+    assert_eq!(
+        crate::filling(&*one.carrier, &one.here),
+        Owed {
+            files: 1,
+            bytes: PHOTO.len() as u64
+        }
+    );
+}

@@ -738,7 +738,7 @@ classDiagram
     stitch()
     settle()
     brought()
-    keeps()
+    shelf()
     lends_from()
   }
   class Folder
@@ -779,7 +779,7 @@ cache directory (where memos live) and this machine's device id.
 | `signed`, `unclaimed`, `stirring` | The alias in the histories there; files there no log claims; a cheap mark that changes when something there moved |
 | `let_go` | Release local copies of large attachments that verifiably live there |
 | `lends_from`, `brought` | The directory the window may serve attachments from; fetch one attachment on demand (`Brought::{At, Absent, Later}`). The window serves from `lends_from` but looks for attachments itself (`finding.rs`) and does not call `brought` |
-| `keeps` | Whether the place holds one attachment; `None` when it cannot tell (a folder out of reach, a cloud not yet listed) |
+| `shelf` | Every attachment the place holds, with its size, read once; `None` when it cannot tell (a folder out of reach, a cloud not yet listed) |
 | `paper_waiting`, `paper_print`, `both_papers`, `settle`, `forget_paper` | Look at, compare, settle and delete one document's body there |
 
 ### `Folder`
@@ -860,12 +860,13 @@ A move is one step at a time: `shift(from, to, here, alive, saying)` returns
 files, bytes }`) and why the step stopped. It has no download or upload of its
 own: it runs ordinary rounds with `Holds::Everywhere`, which go file by file and
 stop with the budget, so the next step carries on where the last one stopped.
+Every step pulls from the old place first, so history only it holds comes
+along even when no attachment is owed.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Homing: the old place holds what this machine does not
-  [*] --> Filling: nothing owed home
-  Homing --> Homing: pull round, still owed
+  [*] --> Homing: pull round from the old place
+  Homing --> Homing: still owed home
   Homing --> Filling: everything home
   Filling --> Filling: push round, the new place lacks some, or deferred
   Filling --> Ready: the new place holds all
@@ -873,10 +874,11 @@ stateDiagram-v2
 ```
 
 - **Homing** (`homing(from, here)`): attachments the log keeps, not retired,
-  not whole here, and not known to be missing from the old place. One that no
+  not whole here, and held in the old place at their size (a place that cannot
+  tell counts as holding them). One that no
   place ever held (another machine kept it to itself) does not hold a move back.
 - **Filling** (`filling(to, here)`): attachments whole here that the new place
-  does not say it keeps. A deferred push round also leaves the move in
+  does not hold at their size. A deferred push round also leaves the move in
   `Filling`.
 - The old place stays chosen until `Ready`, and nothing in it is deleted. Only
   the crate does this so far: no window or command offers a move yet.

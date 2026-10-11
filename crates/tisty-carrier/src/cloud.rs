@@ -286,9 +286,15 @@ impl Carrier for Cloud {
         }
     }
 
-    fn keeps(&self, reference: &str) -> Option<bool> {
+    fn shelf(&self) -> Option<std::collections::BTreeMap<String, u64>> {
         let index = Index::load(&self.home);
-        index.pulled().then(|| index.shelf.contains_key(reference))
+        index.pulled().then(|| {
+            index
+                .shelf
+                .into_iter()
+                .map(|(reference, seen)| (reference, seen.bytes))
+                .collect()
+        })
     }
 
     fn reachable(&self) -> bool {

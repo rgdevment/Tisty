@@ -42,9 +42,7 @@ pub fn shift(
     alive: &[String],
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Shift, Trouble> {
-    if let Some(from) = from
-        && !homing(from, here).nothing()
-    {
+    if let Some(from) = from {
         let moved = carried(from, here, Way::Pull, alive, saying)?;
         let owed = homing(from, here);
         if !owed.nothing() {
@@ -68,17 +66,25 @@ pub fn shift(
 }
 
 pub fn homing(from: &dyn Carrier, here: &Here) -> Owed {
+    let there = from.shelf();
     known(here)
         .filter(|(reference, bytes)| {
-            !at_home(here, reference, *bytes) && from.keeps(reference) != Some(false)
+            !at_home(here, reference, *bytes)
+                && there
+                    .as_ref()
+                    .is_none_or(|there| there.get(reference) == Some(bytes))
         })
         .fold(Owed::default(), |owed, (_, bytes)| owed.add(bytes))
 }
 
 pub fn filling(to: &dyn Carrier, here: &Here) -> Owed {
+    let there = to.shelf();
     known(here)
         .filter(|(reference, bytes)| {
-            at_home(here, reference, *bytes) && to.keeps(reference) != Some(true)
+            at_home(here, reference, *bytes)
+                && there
+                    .as_ref()
+                    .is_none_or(|there| there.get(reference) != Some(bytes))
         })
         .fold(Owed::default(), |owed, (_, bytes)| owed.add(bytes))
 }

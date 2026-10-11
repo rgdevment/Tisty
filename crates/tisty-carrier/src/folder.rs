@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use tisty_core::signing::SigningKey;
@@ -26,6 +27,30 @@ impl Folder {
             .ok()
             .filter(|at| shelved && at.is_file())
     }
+
+    fn on_the_shelf(&self) -> BTreeMap<String, u64> {
+        let mut found = BTreeMap::new();
+        let shelves = std::fs::read_dir(self.at.join("attachments"))
+            .into_iter()
+            .flatten();
+        for shelf in shelves.flatten() {
+            let under = shelf.file_name().to_string_lossy().into_owned();
+            for leaf in std::fs::read_dir(shelf.path())
+                .into_iter()
+                .flatten()
+                .flatten()
+            {
+                let named = leaf.file_name().to_string_lossy().into_owned();
+                let file = leaf.metadata().ok().filter(std::fs::Metadata::is_file);
+                if let Some(told) = file
+                    && tisty_core::attach::shelved(&under, &named)
+                {
+                    found.insert(format!("attachments/{under}/{named}"), told.len());
+                }
+            }
+        }
+        found
+    }
 }
 
 impl Carrier for Folder {
@@ -53,8 +78,8 @@ impl Carrier for Folder {
         Ok(self.shelved(reference).map_or(Brought::Absent, Brought::At))
     }
 
-    fn keeps(&self, reference: &str) -> Option<bool> {
-        self.reachable().then(|| self.shelved(reference).is_some())
+    fn shelf(&self) -> Option<BTreeMap<String, u64>> {
+        self.reachable().then(|| self.on_the_shelf())
     }
 
     fn kin(&self, here: &Here) -> Kin {

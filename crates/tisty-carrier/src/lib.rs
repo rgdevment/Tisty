@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -62,7 +63,7 @@ pub trait Carrier: Send + std::marker::Sync {
     fn place(&self) -> Option<&Path>;
     fn lends_from(&self) -> Option<PathBuf>;
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble>;
-    fn keeps(&self, reference: &str) -> Option<bool>;
+    fn shelf(&self) -> Option<BTreeMap<String, u64>>;
     fn reachable(&self) -> bool;
     fn theirs(&self) -> Option<String>;
     fn been_here(&self, here: &Here) -> bool;
