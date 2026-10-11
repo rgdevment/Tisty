@@ -72,6 +72,7 @@ pub struct Fake {
     chunk: Option<u64>,
     hashless: bool,
     lag: u64,
+    poll: Option<Duration>,
     shelf: Arc<Mutex<Shelf>>,
 }
 
@@ -83,6 +84,7 @@ impl Fake {
             chunk: None,
             hashless: false,
             lag: 0,
+            poll: None,
             shelf: Arc::default(),
         }
     }
@@ -118,6 +120,11 @@ impl Fake {
     /// consistent index does; asking for it by name finds it at once.
     pub fn lagging(mut self, listings: u64) -> Self {
         self.lag = listings;
+        self
+    }
+
+    pub fn polled_every(mut self, poll: Duration) -> Self {
+        self.poll = Some(poll);
         self
     }
 
@@ -373,7 +380,7 @@ impl Remote for Fake {
         Limits {
             units_a_day: 100_000,
             bytes_a_day: 5 * GIB,
-            poll_every: Duration::from_secs(poll_every),
+            poll_every: self.poll.unwrap_or(Duration::from_secs(poll_every)),
             chunk: self.chunk.unwrap_or(chunk),
             page: self.page.unwrap_or(page),
             most_per_file,
