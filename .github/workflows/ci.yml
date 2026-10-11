@@ -59,6 +59,18 @@ jobs:
       - if: runner.os == 'macOS' && matrix.part == '1/3'
         run: cargo test --doc --workspace
 
+  tests:
+    name: tests
+    if: always()
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every part of the tests passed
+        env:
+          RESULT: ${{ needs.test.result }}
+        run: '[ "$RESULT" = "success" ] || { echo "::error::the tests ended as $RESULT"; exit 1; }'
+
   lint:
     name: fmt
     runs-on: ubuntu-24.04
