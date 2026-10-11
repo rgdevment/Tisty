@@ -1543,5 +1543,24 @@ fn what_a_round_spends_is_still_counted_by_the_next_command() {
     }
 }
 
+#[test]
+fn a_cursor_the_provider_has_expired_is_read_whole_again_instead_of_wedging_the_sync() {
+    for (setting, fake) in each_kind(|fake| fake.expiring_cursors()) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        fake.forget_feed();
+        one.wrote("lo nuevo de uno");
+        one.round(Way::Both);
+
+        let moved = two.carry(Way::Both, Holds::Everywhere);
+
+        assert!(moved.is_ok(), "{who}: {moved:?}");
+        assert_eq!(two.titles(), ["lo de uno", "lo nuevo de uno"], "{who}");
+    }
+}
+
 #[path = "converge_test.rs"]
 mod converge;

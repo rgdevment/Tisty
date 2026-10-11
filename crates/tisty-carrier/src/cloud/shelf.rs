@@ -135,7 +135,7 @@ fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<P
             true => Err(Hitch::Broke(format!(
                 "{reference} is past what an attachment may weigh"
             ))),
-            false => Err(Hitch::Unreachable(format!("{reference} came short"))),
+            false => Err(Hitch::Broke(format!("{reference} came short"))),
         });
     match fetched {
         Ok(()) => Ok(part),

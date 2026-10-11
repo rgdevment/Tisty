@@ -72,6 +72,7 @@ pub struct Fake {
     chunk: Option<u64>,
     hashless: bool,
     lag: u64,
+    expires_cursors: bool,
     poll: Option<Duration>,
     shelf: Arc<Mutex<Shelf>>,
 }
@@ -84,6 +85,7 @@ impl Fake {
             chunk: None,
             hashless: false,
             lag: 0,
+            expires_cursors: false,
             poll: None,
             shelf: Arc::default(),
         }
@@ -118,6 +120,11 @@ impl Fake {
 
     /// A write stays out of every listing for this many listings after it, as an eventually
     /// consistent index does; asking for it by name finds it at once.
+    pub fn expiring_cursors(mut self) -> Self {
+        self.expires_cursors = true;
+        self
+    }
+
     pub fn lagging(mut self, listings: u64) -> Self {
         self.lag = listings;
         self
@@ -513,6 +520,9 @@ impl Remote for Fake {
         let known = since
             .and_then(|one| one.parse::<u64>().ok())
             .filter(|one| (shelf.floor..=shown_up_to).contains(one));
+        if self.expires_cursors && since.is_some() && known.is_none() {
+            return Err(Hitch::Broke("that cursor has expired".into()));
+        }
         let Some(since) = known else {
             let seen = self.listed(&shelf, "");
             let requests = limits.requests_to_list(seen.len());

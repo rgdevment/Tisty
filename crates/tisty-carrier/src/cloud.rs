@@ -178,7 +178,7 @@ impl Cloud {
             .and_then(|bytes| serde_json::from_slice(&bytes).ok())
             .unwrap_or_default();
         let now = now_ms();
-        if stir.asked_ms > 0 && now.saturating_sub(stir.asked_ms) < stir.every_ms {
+        if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
         stir.asked_ms = now;
@@ -191,6 +191,7 @@ impl Cloud {
                 poll
             }
             Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
+            Err(crate::Hitch::Limited { wait }) => wait.max(poll),
             Err(_) => every.max(poll),
         };
         stir.every_ms = u64::try_from(next.as_millis()).unwrap_or(u64::MAX);
@@ -269,6 +270,10 @@ impl Carrier for Cloud {
 
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
         let cache = self.home.join(LENT);
+        let index = Index::load(&self.home);
+        if index.pulled() && !index.shelf.contains_key(reference) {
+            return Ok(Brought::Absent);
+        }
         let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
         match shelf::brought(&metered, &here.data, reference, &cache) {
             Ok(Some(at)) => Ok(Brought::At(at)),
