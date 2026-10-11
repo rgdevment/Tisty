@@ -202,8 +202,19 @@ impl Attachments for Shelf<'_> {
             if !self.owed(one, &round) {
                 continue;
             }
-            let Ok((sha256, bytes)) = attach::hashed(&one.at) else {
-                continue;
+            let (sha256, bytes) = match attach::hashed(&one.at) {
+                Ok(read) => read,
+                Err(e) => {
+                    witness::warn(
+                        channel::SYNC,
+                        "an attachment could not be read to be sent",
+                        &[
+                            ("at", Fact::Id(one.reference.clone())),
+                            ("why", Fact::Why(e.to_string())),
+                        ],
+                    );
+                    continue;
+                }
             };
             if !attach::vouched(&one.under, &one.leaf, &sha256)
                 || !attach::as_kept(round.avowed, &one.reference, &sha256)

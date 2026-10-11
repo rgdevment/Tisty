@@ -211,11 +211,12 @@ pub(crate) fn carry_papers_leaning_on(
                             .is_some_and(|says| says.behind && ours == says.newest)
                     }) =>
                 {
-                    witness::note(
+                    witness::warn(
                         channel::SYNC,
                         "a body waits here until the history that answers for it reaches the folder",
                         &[("at", Fact::Id(id.clone()))],
                     );
+                    done.coming.push(id.clone());
                 }
                 Move::Send
                     if printed.is_some_and(|told| {
