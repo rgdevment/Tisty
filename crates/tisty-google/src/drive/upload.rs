@@ -1,18 +1,16 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
-use std::time::Duration;
 
 use reqwest::Method;
 use tisty_carrier::Hitch;
 
 use super::tree::{FILE_FIELDS, File};
-use super::wire::{json, judged};
+use super::wire::{given, json, judged};
 use super::{ASKED_WITHIN, Drive};
 use crate::told;
 
 // Google takes a multipart upload up to 5 MB; anything larger goes through a session.
 const WHOLE_AT_MOST: u64 = 5 * 1000 * 1000;
-const PART_WITHIN: Duration = Duration::from_secs(10 * 60);
 const TRIES: u32 = 3;
 
 impl Drive {
@@ -57,7 +55,8 @@ impl Drive {
         .into_bytes();
         body.extend(std::fs::read(from)?);
         body.extend(format!("\r\n--{boundary}--\r\n").into_bytes());
-        json(self.call(PART_WITHIN, |http| {
+        let weighs = body.len() as u64;
+        json(self.call(Some(given(weighs)), |http| {
             http.request(method.clone(), url)
                 .query(&[("uploadType", "multipart"), ("fields", FILE_FIELDS)])
                 .header(
@@ -76,7 +75,7 @@ impl Drive {
         from: &Path,
         bytes: u64,
     ) -> Result<File, Hitch> {
-        let opened = self.call(ASKED_WITHIN, |http| {
+        let opened = self.call(Some(ASKED_WITHIN), |http| {
             http.request(method.clone(), url)
                 .query(&[("uploadType", "resumable"), ("fields", FILE_FIELDS)])
                 .header("X-Upload-Content-Length", bytes.to_string())
@@ -100,28 +99,33 @@ impl Drive {
             let sent = self
                 .http
                 .put(&session)
-                .timeout(PART_WITHIN)
+                .timeout(given(take))
                 .header(
                     reqwest::header::CONTENT_RANGE,
                     format!("bytes {at}-{}/{bytes}", at + take - 1),
                 )
                 .body(part)
                 .send();
-            let answer = match sent {
-                Ok(answer) => answer,
-                Err(_) if failed + 1 < TRIES => {
-                    failed += 1;
-                    match self.kept_so_far(&session, bytes)? {
-                        Kept::At(next) => at = next,
-                        Kept::Done(file) => return Ok(file),
-                    }
-                    continue;
-                }
-                Err(e) => return Err(Hitch::Unreachable(told(&e.without_url()))),
+            // A cut or a 5xx asks Google how much it kept; only failures in a row give the session up.
+            let broke = match &sent {
+                Ok(answer) => answer.status().is_server_error(),
+                Err(_) => true,
             };
+            if broke && failed + 1 < TRIES {
+                failed += 1;
+                match self.kept_so_far(&session, bytes)? {
+                    Kept::At(next) => at = next,
+                    Kept::Done(file) => return Ok(file),
+                }
+                continue;
+            }
+            let answer = sent.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
             match answer.status().as_u16() {
                 200 | 201 => return json(answer),
-                308 => at = stored(&answer),
+                308 => {
+                    at = stored(&answer);
+                    failed = 0;
+                }
                 _ => {
                     return Err(judged(answer)
                         .err()

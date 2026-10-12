@@ -14,12 +14,11 @@ mod upload;
 mod wire;
 
 use tree::{FILE_FIELDS, FOLDER, File, Page, Tree, planted, seen, split, within};
-use wire::{json, quoted, transfer_http};
+use wire::{given, json, quoted, transfer_http};
 
 const ROOT: &str = "Tisty";
 const MIB: u64 = 1024 * 1024;
 const ASKED_WITHIN: Duration = Duration::from_secs(30);
-const FETCHED_WITHIN: Duration = Duration::from_secs(60 * 60);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DriveAt {
@@ -89,7 +88,7 @@ impl Drive {
             user: User,
         }
         let url = format!("{}/about", self.at.api);
-        let about: About = json(self.call(ASKED_WITHIN, |http| {
+        let about: About = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url)
                 .query(&[("fields", "user(emailAddress,permissionId)")])
         })?)?;
@@ -118,7 +117,7 @@ impl Drive {
         let asked = format!(
             "name = '{ROOT}' and mimeType = '{FOLDER}' and 'root' in parents and trashed = false"
         );
-        let found: Page = json(self.call(ASKED_WITHIN, |http| {
+        let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
@@ -143,7 +142,7 @@ impl Drive {
     fn folder(&self, name: &str, parent: &str) -> Result<String, Hitch> {
         let url = format!("{}/files", self.at.api);
         let body = serde_json::json!({ "name": name, "mimeType": FOLDER, "parents": [parent] });
-        let made: File = json(self.call(ASKED_WITHIN, |http| {
+        let made: File = json(self.call(Some(ASKED_WITHIN), |http| {
             http.post(&url)
                 .query(&[("fields", FILE_FIELDS)])
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
@@ -163,7 +162,7 @@ impl Drive {
         let mut all = Vec::new();
         let mut next: Option<String> = None;
         loop {
-            let page: Page = json(self.call(ASKED_WITHIN, |http| {
+            let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
                 let mut asked = http.get(&url).query(&[
                     ("q", "trashed = false"),
                     ("orderBy", "createdTime"),
@@ -237,7 +236,7 @@ impl Drive {
 
     fn fresh(&self, file: &File, name: &str) -> Result<Option<File>, Hitch> {
         let url = format!("{}/files/{}", self.at.api, file.id);
-        let now: File = match self.call(ASKED_WITHIN, |http| {
+        let now: File = match self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[("fields", FILE_FIELDS)])
         }) {
             Ok(answer) => json(answer)?,
@@ -260,7 +259,7 @@ impl Drive {
             quoted(leaf)
         );
         let fields = format!("files({FILE_FIELDS})");
-        let page: Page = json(self.call(ASKED_WITHIN, |http| {
+        let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
@@ -309,7 +308,7 @@ impl Drive {
             "name = '{}' and mimeType = '{FOLDER}' and '{parent}' in parents and trashed = false",
             quoted(name)
         );
-        let page: Page = json(self.call(ASKED_WITHIN, |http| {
+        let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
@@ -357,7 +356,7 @@ impl Drive {
         let mut token = since.to_string();
         let mut all = Vec::new();
         loop {
-            let moved: Moved = json(self.call(ASKED_WITHIN, |http| {
+            let moved: Moved = json(self.call(Some(ASKED_WITHIN), |http| {
                 http.get(&url).query(&[
                     ("pageToken", token.as_str()),
                     ("pageSize", "1000"),
@@ -436,13 +435,21 @@ impl Remote for Drive {
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
         let url = format!("{}/files/{}", self.at.api, file.id);
         let mut answer = self
-            .call(FETCHED_WITHIN, |http| {
-                let asked = http.get(&url).query(&[("alt", "media")]);
-                match from {
-                    0 => asked,
-                    from => asked.header(reqwest::header::RANGE, format!("bytes={from}-")),
-                }
-            })
+            .call(
+                Some(given(
+                    file.size
+                        .as_deref()
+                        .and_then(|one| one.parse().ok())
+                        .unwrap_or(0),
+                )),
+                |http| {
+                    let asked = http.get(&url).query(&[("alt", "media")]);
+                    match from {
+                        0 => asked,
+                        from => asked.header(reqwest::header::RANGE, format!("bytes={from}-")),
+                    }
+                },
+            )
             .map_err(|hitch| match hitch {
                 Hitch::Missing(_) => Hitch::Missing(name.to_string()),
                 other => other,
@@ -505,7 +512,7 @@ impl Remote for Drive {
         }
         for one in &all {
             let url = format!("{}/files/{}", self.at.api, one.id);
-            match self.call(ASKED_WITHIN, |http| http.delete(&url)) {
+            match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
                 Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
                 Err(other) => return Err(other),
             }
@@ -544,7 +551,7 @@ impl Remote for Drive {
         }
         let Some(since) = since else {
             let url = format!("{}/changes/startPageToken", self.at.api);
-            let start: Start = json(self.call(ASKED_WITHIN, |http| http.get(&url))?)?;
+            let start: Start = json(self.call(Some(ASKED_WITHIN), |http| http.get(&url))?)?;
             self.listed(Some(start.start_page_token.clone()))?;
             return Ok(Changes::Whole {
                 seen: self.shown("")?,

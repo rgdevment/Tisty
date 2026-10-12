@@ -8,14 +8,20 @@ use super::Drive;
 use crate::{WAITED_UNTOLD, told, waited};
 
 const CONNECTED_WITHIN: Duration = Duration::from_secs(30);
+const SLOWEST: u64 = 64 * 1024;
+const MARGIN: Duration = Duration::from_secs(2 * 60);
 const DAILY_WAIT: Duration = Duration::from_secs(60 * 60);
 
-// No overall timeout: a big part on a slow line takes what it takes, and each call says its own.
 pub(super) fn transfer_http() -> Result<Http, Hitch> {
     Http::builder()
         .connect_timeout(CONNECTED_WITHIN)
         .build()
         .map_err(|e| Hitch::Broke(told(&e.without_url())))
+}
+
+// A transfer gets what it would take at a crawl, so a slow line finishes and only a dead one is cut.
+pub(super) fn given(bytes: u64) -> Duration {
+    MARGIN + Duration::from_secs(bytes / SLOWEST)
 }
 
 pub(super) fn quoted(text: &str) -> String {
@@ -30,15 +36,17 @@ pub(super) fn json<T: serde::de::DeserializeOwned>(answer: Response) -> Result<T
 impl Drive {
     pub(super) fn call(
         &self,
-        patience: Duration,
+        patience: Option<Duration>,
         build: impl Fn(&Http) -> RequestBuilder,
     ) -> Result<Response, Hitch> {
         let mut renewed = false;
         loop {
             let access = self.tokens.access()?;
-            let answer = build(&self.http)
-                .timeout(patience)
-                .bearer_auth(&access)
+            let mut asked = build(&self.http).bearer_auth(&access);
+            if let Some(patience) = patience {
+                asked = asked.timeout(patience);
+            }
+            let answer = asked
                 .send()
                 .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
             if answer.status().as_u16() == 401 && !renewed {

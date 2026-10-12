@@ -911,3 +911,69 @@ fn an_upload_google_finished_as_the_line_dropped_is_taken_as_landed() {
 
     assert_eq!(landed.map(|one| one.revision), Ok("B.1".into()));
 }
+
+#[test]
+fn a_big_transfer_is_given_hours_and_a_small_one_still_a_couple_of_minutes() {
+    assert!(wire::given(8 * 1024 * 1024 * 1024) > Duration::from_secs(2 * 60 * 60));
+    assert!(wire::given(0) >= Duration::from_secs(2 * 60));
+}
+
+fn kept(range: &str) -> Said {
+    Said {
+        status: "308 Resume Incomplete",
+        headers: format!("Range: bytes=0-{range}\r\n"),
+        body: String::new(),
+    }
+}
+
+#[test]
+fn a_long_upload_survives_cuts_and_server_errors_that_do_not_come_in_a_row() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"0123456789AB");
+    let (at, asked) = google_at(|base| {
+        vec![
+            said("200 OK", ROOT_FOUND),
+            said("200 OK", &listing("")),
+            said("200 OK", &listing("")),
+            Said {
+                status: "200 OK",
+                headers: format!("Location: {base}/upload/session\r\n"),
+                body: String::new(),
+            },
+            said("DROP", ""),
+            kept("3"),
+            kept("3"),
+            said("503 Service Unavailable", ""),
+            kept("7"),
+            kept("7"),
+            said("DROP", ""),
+            kept("7"),
+            said(
+                "200 OK",
+                r#"{"id":"B","name":"big.bin","parents":["R"],"size":"12","version":"1"}"#,
+            ),
+        ]
+    });
+    let drive = drive(at, home.path()).with_chunk(4);
+
+    let landed = drive.put("big.bin", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("B.1".into()));
+    let asked = asked.join().unwrap();
+    let ranges: Vec<String> = asked[4..]
+        .iter()
+        .map(|one| header(one, "content-range"))
+        .collect();
+    assert!(
+        ranges[1].ends_with("bytes */12"),
+        "a cut did not ask what Google kept: {ranges:?}"
+    );
+    assert!(
+        ranges[4].ends_with("bytes */12"),
+        "a 503 did not ask what Google kept: {ranges:?}"
+    );
+    assert!(
+        ranges.last().unwrap().ends_with("bytes 8-11/12"),
+        "{ranges:?}"
+    );
+}
