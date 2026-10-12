@@ -550,7 +550,10 @@ pub fn settle_paper(
     session.mind(&id);
     session.asked.remove(&id);
 
-    let Some(body) = brought else { return Ok(None) };
+    let Some(body) = brought else {
+        told_as_settled(&mut session, &id);
+        return Ok(None);
+    };
     let beside = session
         .state
         .docs
@@ -573,6 +576,7 @@ pub fn settle_paper(
             .settle(&here, &id, tisty_carrier::Keep::Mine)
             .map_err(said)?;
         session.mind(&id);
+        told_as_settled(&mut session, &id);
         return Ok(twin);
     }
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
@@ -601,7 +605,16 @@ pub fn settle_paper(
         .settle(&here, &id, tisty_carrier::Keep::Mine)
         .map_err(said)?;
     session.mind(&id);
+    told_as_settled(&mut session, &id);
     Ok(Some(file))
+}
+
+// The body settled goes to the shared folder, and a body no history answers for is asked about again there.
+fn told_as_settled(session: &mut Session, id: &str) {
+    if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), id) {
+        let hand = signing(&session.state);
+        session.retell(id, &body, hand);
+    }
 }
 
 fn twin_of(session: &Session, beside: Option<&crate::Placing>, body: &str) -> Option<String> {

@@ -67,3 +67,25 @@ fn a_copy_written_with_its_closing_line_is_still_the_same_arrival() {
         Some(copy)
     );
 }
+
+#[test]
+fn a_settled_body_is_written_down_so_the_other_machine_has_a_history_that_answers_for_it() {
+    let (_tmp, mut session) = session();
+    let id = filed(&mut session, "# Idea\n\nlo viejo\n");
+    session.retell(&id, "# Idea\n\nlo nuevo\n", None);
+    let at = tisty_core::docs::resolve(&session.paths.docs(), &id).unwrap();
+    std::fs::write(&at, "# Idea\n\nlo viejo\n").unwrap();
+
+    told_as_settled(&mut session, &id);
+
+    let kept = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .unwrap();
+    assert_eq!(
+        kept.print,
+        tisty_core::event::Said::of("# Idea\n\nlo viejo\n").print
+    );
+}
