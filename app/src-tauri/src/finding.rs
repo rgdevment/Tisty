@@ -94,6 +94,7 @@ pub async fn fetched<T: Send + 'static>(
     let at = where_to(session, &reference);
     let unvouched = at.unvouched.clone();
     let data = at.data.clone();
+    let asked = reference.clone();
     let done = elsewhere(move || work(reference, at)).await?;
     let came = unvouched.lock().ok().and_then(|mut one| one.take());
     if let Some(d) = came {
@@ -108,6 +109,7 @@ pub async fn fetched<T: Send + 'static>(
             if let Ok(landed) = landed {
                 let _ = std::fs::remove_file(landed);
             }
+            return Err(Refusal::about("cloudLater", asked));
         }
     }
     done

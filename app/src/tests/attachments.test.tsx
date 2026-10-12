@@ -61,6 +61,22 @@ describe("a picture left on screen", () => {
   });
 });
 
+describe("a picture already showing", () => {
+  it("stays when asking for it again fails for a while", async () => {
+    const one = "![cuatro](<attachments/dd/4.png>)";
+    const first = render(<Composed html={composed(one)} className="prose" />);
+    await waitFor(() => expect(resolved()).toBe(1));
+    first.unmount();
+    served.mockImplementationOnce(() => Promise.reject({ code: "cloudNotNow" }));
+
+    render(<Composed html={composed(one)} className="prose" />);
+    await new Promise((settled) => setTimeout(settled, 0));
+
+    expect(resolved()).toBe(1);
+    expect(screen.queryByText(/cuatro/)).toBeNull();
+  });
+});
+
 describe("the description field, which is the one that takes files", () => {
   it("shows its images when it does not take files", async () => {
     render(<Prose value={TWO} hint="h" label="Journal" onWrite={vi.fn()} />);

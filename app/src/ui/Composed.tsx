@@ -65,7 +65,7 @@ export default function Composed({
           known.set(reference, url);
           if (live && img.getAttribute("src") !== url) img.setAttribute("src", url);
         })
-        .catch(() => live && img.replaceWith(missing(img.alt || reference)));
+        .catch(() => live && !cached && img.replaceWith(missing(img.alt || reference)));
     });
 
     measure();

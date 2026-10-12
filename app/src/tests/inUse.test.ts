@@ -6,7 +6,7 @@ const { served } = vi.hoisted(() => ({
 
 vi.mock("../core", () => ({ served }));
 
-import { serve } from "../inUse";
+import { askAgain, serve } from "../inUse";
 
 afterEach(() => {
   served.mockReset();
@@ -37,6 +37,19 @@ describe("asking for an attachment", () => {
     vi.advanceTimersByTime(61 * 1000);
     served.mockImplementation((reference: string) => Promise.resolve(`C:\\data\\${reference}`));
     await expect(serve("attachments/bb/dos.png")).resolves.toBe("C:\\data\\attachments/bb/dos.png");
+    expect(served).toHaveBeenCalledTimes(2);
+  });
+
+  it("answers a person asking again by asking, not with the old refusal", async () => {
+    served.mockImplementation(() => Promise.reject({ code: "cloudLater" }));
+    await expect(serve("attachments/cc/tres.png")).rejects.toEqual({ code: "cloudLater" });
+
+    served.mockImplementation((reference: string) => Promise.resolve(`C:\\data\\${reference}`));
+    askAgain("attachments/cc/tres.png");
+
+    await expect(serve("attachments/cc/tres.png")).resolves.toBe(
+      "C:\\data\\attachments/cc/tres.png",
+    );
     expect(served).toHaveBeenCalledTimes(2);
   });
 });

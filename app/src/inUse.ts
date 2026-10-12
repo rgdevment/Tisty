@@ -33,6 +33,11 @@ export function serve(reference: string): Promise<string> {
   return asked;
 }
 
+/** Asking again by hand is never answered with an old refusal. */
+export function askAgain(reference: string): void {
+  refused.delete(reference);
+}
+
 // A picture left on screen for weeks is still in use, so it is asked for again while it stays.
 export function showing(reference: string): () => void {
   shown.set(reference, (shown.get(reference) ?? 0) + 1);

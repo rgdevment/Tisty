@@ -16,7 +16,7 @@ import {
   weighs,
 } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
-import { serve, showing } from "../inUse";
+import { askAgain, serve, showing } from "../inUse";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
@@ -764,6 +764,7 @@ export default function Editor({
     },
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
+      askAgain(reference);
       missing.current.delete(reference);
       pending.current.delete(`url:${reference}`);
       pending.current.delete(`weight:${reference}`);

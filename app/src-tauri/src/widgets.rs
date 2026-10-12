@@ -116,12 +116,9 @@ pub fn small_enough(weighs: u64) -> Answer<()> {
 }
 
 fn kept_page(reference: String, at: finding::Where) -> Answer<Vec<u8>> {
-    if let Some(weighs) = at.weight {
+    let weighs = finding::weight_of(&reference, &at.data, at.shared.as_deref(), at.weight);
+    if let Some(weighs) = weighs {
         small_enough(weighs)?;
-    }
-    let found = finding::handed_over(&reference, &at)?;
-    if let Ok(told) = std::fs::metadata(&found) {
-        small_enough(told.len())?;
     }
     crate::answers::attaching::read_out(reference, at)
 }
