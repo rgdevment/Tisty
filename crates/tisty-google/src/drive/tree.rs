@@ -37,16 +37,6 @@ pub(super) struct Tree {
     pub files: BTreeMap<String, Vec<File>>,
 }
 
-impl Tree {
-    pub fn version_of(&self) -> HashMap<&str, &str> {
-        self.files
-            .values()
-            .flatten()
-            .map(|one| (one.id.as_str(), one.version.as_deref().unwrap_or("0")))
-            .collect()
-    }
-}
-
 pub(super) fn seen(name: &str, file: &File) -> Seen {
     Seen {
         name: name.to_string(),

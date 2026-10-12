@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -53,6 +54,8 @@ pub struct Drive {
     chunk: u64,
     roots: Mutex<Option<Vec<String>>>,
     known: Mutex<Option<Known>>,
+    // What this machine wrote or deleted, by id and version, so its own changes are never news.
+    wrote: Mutex<HashSet<(String, Option<String>)>>,
 }
 
 impl Drive {
@@ -64,6 +67,7 @@ impl Drive {
             chunk: 8 * MIB,
             roots: Mutex::new(None),
             known: Mutex::new(None),
+            wrote: Mutex::new(HashSet::new()),
         })
     }
 
@@ -316,6 +320,12 @@ impl Drive {
         Ok(page.files.into_iter().next().map(|one| one.id))
     }
 
+    fn owned(&self, id: &str, version: Option<String>) {
+        if let Ok(mut held) = self.wrote.lock() {
+            held.insert((id.to_string(), version));
+        }
+    }
+
     fn shown(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
         self.with_known(|tree| {
             tree.files
@@ -359,24 +369,20 @@ impl Drive {
             match (moved.next_page_token, moved.new_start_page_token) {
                 (Some(next), _) => token = next,
                 (None, Some(cursor)) => {
-                    let ours = self
-                        .known
+                    let wrote = self
+                        .wrote
                         .lock()
-                        .ok()
-                        .and_then(|held| {
-                            held.as_ref().map(|known| {
-                                let versions = known.tree.version_of();
-                                all.iter().all(|one| match (&one.file, one.removed) {
-                                    (_, true) => !versions.contains_key(one.file_id.as_str()),
-                                    (Some(file), false) if !file.trashed => {
-                                        versions.get(one.file_id.as_str()).copied()
-                                            == Some(file.version.as_deref().unwrap_or("0"))
-                                    }
-                                    _ => !versions.contains_key(one.file_id.as_str()),
-                                })
-                            })
-                        })
-                        .unwrap_or(all.is_empty());
+                        .map(|held| held.clone())
+                        .unwrap_or_default();
+                    let ours = all.iter().all(|one| {
+                        let version = match (&one.file, one.removed) {
+                            (Some(file), false) if !file.trashed => {
+                                Some(file.version.clone().unwrap_or_else(|| "0".into()))
+                            }
+                            _ => None,
+                        };
+                        wrote.contains(&(one.file_id.clone(), version))
+                    });
                     return Ok((!ours, cursor));
                 }
                 (None, None) => {
@@ -412,12 +418,7 @@ impl Remote for Drive {
     }
 
     fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
-        let cursor = self
-            .known
-            .lock()
-            .ok()
-            .and_then(|held| held.as_ref().and_then(|known| known.cursor.clone()));
-        self.listed(cursor)?;
+        self.listed(None)?;
         self.shown(under)
     }
 
@@ -478,6 +479,10 @@ impl Remote for Drive {
             .folder_id(folders, true)?
             .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?;
         let made = self.sent(name, from, current, &parent)?;
+        self.owned(
+            &made.id,
+            Some(made.version.clone().unwrap_or_else(|| "0".into())),
+        );
         let landed = seen(name, &made);
         self.noted(|tree| {
             let copies = tree.files.entry(name.to_string()).or_default();
@@ -501,7 +506,7 @@ impl Remote for Drive {
         for one in &all {
             let url = format!("{}/files/{}", self.at.api, one.id);
             match self.call(ASKED_WITHIN, |http| http.delete(&url)) {
-                Ok(_) | Err(Hitch::Missing(_)) => {}
+                Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
                 Err(other) => return Err(other),
             }
         }
@@ -547,6 +552,9 @@ impl Remote for Drive {
             });
         };
         let (stirred, cursor) = self.stirred(since)?;
+        if let Ok(mut held) = self.wrote.lock() {
+            held.clear();
+        }
         let followed = self.known.lock().ok().is_some_and(|held| {
             held.as_ref()
                 .is_some_and(|known| known.cursor.as_deref() == Some(since))

@@ -820,3 +820,93 @@ fn a_name_with_a_quote_is_asked_for_as_written() {
     assert_eq!(wire::quoted("it's"), r"it\'s");
     assert_eq!(wire::quoted(r"a\b"), r"a\\b");
 }
+
+#[test]
+fn a_change_another_machine_made_is_news_even_when_the_listing_already_holds_it() {
+    let home = tempfile::tempdir().unwrap();
+    let theirs = r#"{"id":"F","name":"f.md","parents":["R"],"version":"4"}"#;
+    let (at, _) = google(vec![
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing(theirs)),
+        said("200 OK", theirs),
+        said(
+            "200 OK",
+            r#"{"changes":[{"fileId":"F","file":{"id":"F","version":"4"}}],"newStartPageToken":"21"}"#,
+        ),
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing(theirs)),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive.about("f.md").unwrap();
+    let after_restart = drive.changes(Some("20")).unwrap();
+
+    assert!(
+        matches!(after_restart, Changes::Whole { ref seen, .. } if seen.len() == 1),
+        "another machine's file was taken for this one's: {after_restart:?}"
+    );
+}
+
+#[test]
+fn a_listing_taken_for_one_folder_never_hides_what_changed_elsewhere() {
+    let home = tempfile::tempdir().unwrap();
+    let theirs = r#"{"id":"N","name":"note.md","parents":["R"],"version":"2"}"#;
+    let (at, _) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing("")),
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing(theirs)),
+        said(
+            "200 OK",
+            r#"{"changes":[{"fileId":"N","file":{"id":"N","version":"2"}}],"newStartPageToken":"11"}"#,
+        ),
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing(theirs)),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive.changes(None).unwrap();
+    drive.list("attachments").unwrap();
+    let next = drive.changes(Some("10")).unwrap();
+
+    assert!(matches!(next, Changes::Whole { .. }), "{next:?}");
+}
+
+#[test]
+fn an_upload_google_finished_as_the_line_dropped_is_taken_as_landed() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"0123456789");
+    let (at, _) = google_at(|base| {
+        vec![
+            said("200 OK", ROOT_FOUND),
+            said("200 OK", &listing("")),
+            said("200 OK", &listing("")),
+            Said {
+                status: "200 OK",
+                headers: format!("Location: {base}/upload/session\r\n"),
+                body: String::new(),
+            },
+            Said {
+                status: "308 Resume Incomplete",
+                headers: "Range: bytes=0-3\r\n".into(),
+                body: String::new(),
+            },
+            Said {
+                status: "308 Resume Incomplete",
+                headers: "Range: bytes=0-7\r\n".into(),
+                body: String::new(),
+            },
+            said("DROP", ""),
+            said(
+                "201 Created",
+                r#"{"id":"B","name":"big.bin","parents":["R"],"size":"10","version":"1"}"#,
+            ),
+        ]
+    });
+    let drive = drive(at, home.path()).with_chunk(4);
+
+    let landed = drive.put("big.bin", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("B.1".into()));
+}

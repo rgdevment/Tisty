@@ -111,7 +111,10 @@ impl Drive {
                 Ok(answer) => answer,
                 Err(_) if failed + 1 < TRIES => {
                     failed += 1;
-                    at = self.kept_so_far(&session, bytes)?;
+                    match self.kept_so_far(&session, bytes)? {
+                        Kept::At(next) => at = next,
+                        Kept::Done(file) => return Ok(file),
+                    }
                     continue;
                 }
                 Err(e) => return Err(Hitch::Unreachable(told(&e.without_url()))),
@@ -134,7 +137,7 @@ impl Drive {
     }
 
     // After a cut, Google says how much of the file it kept, and the upload carries on from there.
-    fn kept_so_far(&self, session: &str, bytes: u64) -> Result<u64, Hitch> {
+    fn kept_so_far(&self, session: &str, bytes: u64) -> Result<Kept, Hitch> {
         let answer = self
             .http
             .put(session)
@@ -143,12 +146,18 @@ impl Drive {
             .send()
             .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
         match answer.status().as_u16() {
-            308 => Ok(stored(&answer)),
+            308 => Ok(Kept::At(stored(&answer))),
+            200 | 201 => Ok(Kept::Done(json(answer)?)),
             _ => Err(judged(answer)
                 .err()
                 .unwrap_or_else(|| Hitch::Broke("the upload session ended".into()))),
         }
     }
+}
+
+enum Kept {
+    At(u64),
+    Done(File),
 }
 
 fn stored(answer: &reqwest::blocking::Response) -> u64 {
