@@ -147,6 +147,15 @@ fn listing(files: &str) -> String {
     format!(r#"{{"files":[{files}]}}"#)
 }
 
+fn header(asked: &Asked, name: &str) -> String {
+    asked
+        .head
+        .lines()
+        .find(|one| one.to_ascii_lowercase().starts_with(name))
+        .unwrap_or_default()
+        .to_string()
+}
+
 #[test]
 fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
     let home = tempfile::tempdir().unwrap();
@@ -189,10 +198,7 @@ fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
     let asked = asked.join().unwrap();
     assert_eq!(asked.len(), 3, "the root was looked up twice");
     assert!(asked[0].line.contains("q=name"), "{}", asked[0].line);
-    assert!(
-        asked[0].head.contains("authorization: Bearer access-1")
-            || asked[0].head.contains("Authorization: Bearer access-1")
-    );
+    assert!(header(&asked[0], "authorization").ends_with("access-1"));
 }
 
 #[test]
@@ -244,14 +250,12 @@ fn writing_over_a_file_that_was_expected_absent_is_refused_before_anything_is_se
     let home = tempfile::tempdir().unwrap();
     let local = home.path().join("a.md");
     std::fs::write(&local, b"hello").unwrap();
+    let file =
+        r#"{"id":"A","name":"a.md","parents":["R"],"size":"1","md5Checksum":"aa","version":"1"}"#;
     let (at, asked) = google(vec![
         said("200 OK", ROOT_FOUND),
-        said(
-            "200 OK",
-            &listing(
-                r#"{"id":"A","name":"a.md","parents":["R"],"size":"1","md5Checksum":"aa","version":"1"}"#,
-            ),
-        ),
+        said("200 OK", &listing(file)),
+        said("200 OK", file),
     ]);
     let drive = drive(at, home.path());
 
@@ -260,9 +264,30 @@ fn writing_over_a_file_that_was_expected_absent_is_refused_before_anything_is_se
     assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
     assert_eq!(
         asked.join().unwrap().len(),
-        2,
+        3,
         "something was sent after all"
     );
+}
+
+#[test]
+fn a_file_another_machine_made_since_the_listing_is_found_before_writing() {
+    let home = tempfile::tempdir().unwrap();
+    let local = home.path().join("a.md");
+    std::fs::write(&local, b"hello").unwrap();
+    let theirs =
+        r#"{"id":"A","name":"a.md","parents":["R"],"size":"1","md5Checksum":"aa","version":"1"}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing("")),
+        said("200 OK", &listing(theirs)),
+    ]);
+    let drive = drive(at, home.path());
+
+    let refused = drive.put("a.md", &local, Expect::Absent);
+
+    assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
+    let asked = asked.join().unwrap();
+    assert!(asked[2].line.contains("q=name"), "{}", asked[2].line);
 }
 
 #[test]
@@ -275,7 +300,8 @@ fn a_revision_that_moved_on_is_refused_and_a_missing_one_is_missing() {
     let (at, _) = google(vec![
         said("200 OK", ROOT_FOUND),
         said("200 OK", &listing(file)),
-        said("200 OK", &listing("")),
+        said("200 OK", file),
+        said("404 Not Found", ""),
     ]);
     let drive = drive(at, home.path());
 
@@ -331,6 +357,7 @@ fn a_big_file_goes_up_in_parts_through_a_session() {
         vec![
             said("200 OK", ROOT_FOUND),
             said("200 OK", &listing("")),
+            said("200 OK", &listing("")),
             Said {
                 status: "200 OK",
                 headers: format!("Location: {base}/upload/session\r\n"),
@@ -350,25 +377,20 @@ fn a_big_file_goes_up_in_parts_through_a_session() {
 
     assert_eq!(landed.revision, "B.1");
     let asked = asked.join().unwrap();
+    assert!(asked[2].line.contains("q=name"), "{}", asked[2].line);
     assert!(
-        asked[2].line.contains("uploadType=resumable"),
+        asked[3].line.contains("uploadType=resumable"),
         "{}",
-        asked[2].line
+        asked[3].line
     );
-    let ranges: Vec<String> = asked[3..]
+    let ranges: Vec<String> = asked[4..]
         .iter()
-        .map(|one| {
-            one.head
-                .lines()
-                .find(|line| line.to_ascii_lowercase().starts_with("content-range"))
-                .unwrap()
-                .to_string()
-        })
+        .map(|one| header(one, "content-range"))
         .collect();
     assert!(ranges[0].ends_with("bytes 0-3/10"), "{ranges:?}");
     assert!(ranges[1].ends_with("bytes 4-7/10"), "{ranges:?}");
     assert!(ranges[2].ends_with("bytes 8-9/10"), "{ranges:?}");
-    let parts: Vec<&[u8]> = asked[3..].iter().map(|one| one.body.as_slice()).collect();
+    let parts: Vec<&[u8]> = asked[4..].iter().map(|one| one.body.as_slice()).collect();
     assert_eq!(parts, [&b"0123"[..], &b"4567"[..], &b"89"[..]]);
 }
 
@@ -380,6 +402,7 @@ fn what_google_refuses_becomes_what_tisty_knows() {
     let full = r#"{"error":{"message":"The user's Drive storage quota has been exceeded.","errors":[{"reason":"storageQuotaExceeded"}]}}"#;
     let (at, _) = google(vec![
         said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing("")),
         said("200 OK", &listing("")),
         said("403 Forbidden", full),
         said("200 OK", &listing("")),
@@ -416,15 +439,8 @@ fn a_token_turned_down_is_renewed_once_and_a_second_refusal_means_reconnecting()
     assert_eq!(drive.list(""), Err(Hitch::Lost));
 
     let asked = asked.join().unwrap();
-    let bearer = |at: usize| {
-        asked[at]
-            .head
-            .lines()
-            .find(|one| one.to_ascii_lowercase().starts_with("authorization"))
-            .unwrap()
-            .to_string()
-    };
-    assert!(bearer(0).ends_with("access-1") && bearer(1).ends_with("access-2"));
+    assert!(header(&asked[0], "authorization").ends_with("access-1"));
+    assert!(header(&asked[1], "authorization").ends_with("access-2"));
 }
 
 #[test]
@@ -435,8 +451,8 @@ fn a_download_starts_where_it_was_asked_and_a_vanished_file_is_missing_by_name()
     let (at, asked) = google(vec![
         said("200 OK", ROOT_FOUND),
         said("200 OK", &listing(file)),
+        said("200 OK", file),
         said("206 Partial Content", "lo"),
-        said("200 OK", &listing(file)),
         said("404 Not Found", r#"{"error":{"message":"File not found"}}"#),
     ]);
     let drive = drive(at, home.path());
@@ -450,28 +466,32 @@ fn a_download_starts_where_it_was_asked_and_a_vanished_file_is_missing_by_name()
     assert_eq!(gone, Err(Hitch::Missing("a.md".into())));
     let asked = asked.join().unwrap();
     assert!(
-        asked[2].line.contains("/files/A?alt=media"),
+        asked[3].line.contains("/files/A?alt=media"),
         "{}",
-        asked[2].line
+        asked[3].line
     );
     assert!(
-        asked[2]
-            .head
-            .to_ascii_lowercase()
-            .contains("range: bytes=3-"),
+        header(&asked[3], "range").ends_with("bytes=3-"),
         "{}",
-        asked[2].head
+        asked[3].head
+    );
+    assert_eq!(
+        asked.len(),
+        5,
+        "a file Google no longer has was asked for its bytes"
     );
 }
 
 #[test]
 fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
     let home = tempfile::tempdir().unwrap();
-    let two = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"},{"id":"A2","name":"a.md","parents":["R"],"version":"1"}"#;
+    let one = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"}"#;
+    let two = format!(r#"{one},{{"id":"A2","name":"a.md","parents":["R"],"version":"1"}}"#);
     let (at, asked) = google(vec![
         said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(two)),
-        said("200 OK", &listing(two)),
+        said("200 OK", &listing(&two)),
+        said("200 OK", one),
+        said("200 OK", one),
         said("204 No Content", ""),
         said("404 Not Found", ""),
         said("200 OK", &listing("")),
@@ -489,8 +509,8 @@ fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
     );
 
     let asked = asked.join().unwrap();
-    assert!(asked[3].line.starts_with("DELETE /drive/v3/files/A1"));
-    assert!(asked[4].line.starts_with("DELETE /drive/v3/files/A2"));
+    assert!(asked[4].line.starts_with("DELETE /drive/v3/files/A1"));
+    assert!(asked[5].line.starts_with("DELETE /drive/v3/files/A2"));
 }
 
 #[test]
@@ -566,4 +586,62 @@ fn the_fingerprint_of_a_file_here_is_the_md5_google_publishes() {
         drive(at, home.path()).hash_of(&local).unwrap(),
         "md5:5d41402abc4b2a76b9719d911017c592"
     );
+}
+
+#[test]
+fn writing_many_files_in_one_round_lists_the_drive_once_and_asks_each_file_alone() {
+    let home = tempfile::tempdir().unwrap();
+    let local = home.path().join("a.md");
+    std::fs::write(&local, b"hello").unwrap();
+    let a =
+        r#"{"id":"A","name":"a.md","parents":["R"],"size":"1","md5Checksum":"aa","version":"1"}"#;
+    let b =
+        r#"{"id":"B","name":"b.md","parents":["R"],"size":"1","md5Checksum":"bb","version":"1"}"#;
+    let a2 =
+        r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","md5Checksum":"x","version":"2"}"#;
+    let b2 =
+        r#"{"id":"B","name":"b.md","parents":["R"],"size":"5","md5Checksum":"x","version":"2"}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", ROOT_FOUND),
+        said("200 OK", &listing(&format!("{a},{b}"))),
+        said("200 OK", a),
+        said("200 OK", a2),
+        said("200 OK", b),
+        said("200 OK", b2),
+        said("200 OK", a2),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive
+        .put("a.md", &local, Expect::Revision("A.1".into()))
+        .unwrap();
+    drive
+        .put("b.md", &local, Expect::Revision("B.1".into()))
+        .unwrap();
+    let again = drive.about("a.md").unwrap().unwrap();
+
+    assert_eq!(
+        again.revision, "A.2",
+        "what this machine just wrote was forgotten"
+    );
+    let asked = asked.join().unwrap();
+    let listings = asked
+        .iter()
+        .filter(|one| one.line.contains("q=trashed"))
+        .count();
+    assert_eq!(
+        listings, 1,
+        "the whole drive was listed again for each file"
+    );
+    assert!(
+        asked[3].line.starts_with("PATCH /upload/drive/v3/files/A"),
+        "{}",
+        asked[3].line
+    );
+}
+
+#[test]
+fn a_name_with_a_quote_is_asked_for_as_written() {
+    assert_eq!(quoted("it's"), r"it\'s");
+    assert_eq!(quoted(r"a\b"), r"a\\b");
 }

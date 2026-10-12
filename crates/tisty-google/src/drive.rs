@@ -13,7 +13,7 @@ use crate::{WAITED_UNTOLD, http, told, waited};
 
 const ROOT: &str = "Tisty";
 const FOLDER: &str = "application/vnd.google-apps.folder";
-const FILE_FIELDS: &str = "id,name,parents,mimeType,size,md5Checksum,version";
+const FILE_FIELDS: &str = "id,name,parents,mimeType,size,md5Checksum,version,trashed";
 const MIB: u64 = 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,6 +43,7 @@ pub struct Drive {
     at: DriveAt,
     chunk: u64,
     root: Mutex<Option<String>>,
+    known: Mutex<Option<Tree>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -58,6 +59,8 @@ struct File {
     size: Option<String>,
     md5_checksum: Option<String>,
     version: Option<String>,
+    #[serde(default)]
+    trashed: bool,
 }
 
 #[derive(Deserialize)]
@@ -68,6 +71,7 @@ struct Page {
     next_page_token: Option<String>,
 }
 
+#[derive(Clone)]
 struct Tree {
     folders: HashMap<String, String>,
     files: Vec<(String, File)>,
@@ -99,6 +103,10 @@ fn seen(name: &str, file: &File) -> Seen {
     }
 }
 
+fn quoted(text: &str) -> String {
+    text.replace('\\', "\\\\").replace('\'', "\\'")
+}
+
 fn within(name: &str, under: &str) -> bool {
     let under = under.trim_end_matches('/');
     under.is_empty() || name.starts_with(&format!("{under}/"))
@@ -112,6 +120,7 @@ impl Drive {
             at,
             chunk: 8 * MIB,
             root: Mutex::new(None),
+            known: Mutex::new(None),
         })
     }
 
@@ -234,13 +243,79 @@ impl Drive {
                 None => break,
             }
         }
-        Ok(planted(&root, all))
+        let tree = planted(&root, all);
+        if let Ok(mut held) = self.known.lock() {
+            *held = Some(tree.clone());
+        }
+        Ok(tree)
     }
 
-    fn found(&self, name: &str) -> Result<(Tree, Option<File>), Hitch> {
-        let tree = self.tree()?;
-        let first = tree.named(name).next().cloned();
-        Ok((tree, first))
+    fn known(&self) -> Result<Tree, Hitch> {
+        match self.known.lock().ok().and_then(|held| held.clone()) {
+            Some(tree) => Ok(tree),
+            None => self.tree(),
+        }
+    }
+
+    fn noted(&self, change: impl FnOnce(&mut Tree)) {
+        if let Ok(mut held) = self.known.lock()
+            && let Some(tree) = held.as_mut()
+        {
+            change(tree);
+        }
+    }
+
+    // A file is judged as Google holds it now with one small ask, never a whole listing per file.
+    fn current(&self, name: &str) -> Result<(Tree, Vec<File>), Hitch> {
+        let tree = self.known()?;
+        let mut copies: Vec<File> = tree.named(name).cloned().collect();
+        match copies.first().map(|one| one.id.clone()) {
+            Some(id) => match self.fresh(&id)? {
+                Some(now) => copies[0] = now,
+                None => {
+                    copies.remove(0);
+                }
+            },
+            None => copies = self.looked_up(&tree, name)?,
+        }
+        Ok((tree, copies))
+    }
+
+    fn fresh(&self, id: &str) -> Result<Option<File>, Hitch> {
+        let url = format!("{}/files/{id}", self.at.api);
+        match self.call(|http| http.get(&url).query(&[("fields", FILE_FIELDS)])) {
+            Ok(answer) => {
+                let file: File = json(answer)?;
+                Ok((!file.trashed).then_some(file))
+            }
+            Err(Hitch::Missing(_)) => Ok(None),
+            Err(other) => Err(other),
+        }
+    }
+
+    fn looked_up(&self, tree: &Tree, name: &str) -> Result<Vec<File>, Hitch> {
+        let (parent, leaf) = match name.rsplit_once('/') {
+            Some((folders, leaf)) => match tree.folders.get(folders) {
+                Some(id) => (id.clone(), leaf),
+                None => return Ok(Vec::new()),
+            },
+            None => (self.root()?, name),
+        };
+        let url = format!("{}/files", self.at.api);
+        let asked = format!(
+            "name = '{}' and '{parent}' in parents and trashed = false",
+            quoted(leaf)
+        );
+        let fields = format!("files({FILE_FIELDS})");
+        let page: Page = json(self.call(|http| {
+            http.get(&url).query(&[
+                ("q", asked.as_str()),
+                ("orderBy", "createdTime"),
+                ("fields", fields.as_str()),
+                ("spaces", "drive"),
+            ])
+        })?)?;
+        Ok(page.files)
     }
 
     fn parent_of(&self, tree: &Tree, name: &str) -> Result<String, Hitch> {
@@ -257,7 +332,13 @@ impl Drive {
             };
             at = match tree.folders.get(&path) {
                 Some(id) => id.clone(),
-                None => self.folder(part, &at)?,
+                None => {
+                    let made = self.folder(part, &at)?;
+                    self.noted(|tree| {
+                        tree.folders.insert(path.clone(), made.clone());
+                    });
+                    made
+                }
             };
         }
         Ok(at)
@@ -511,14 +592,16 @@ impl Remote for Drive {
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
         named_well(name)?;
-        Ok(self.found(name)?.1.map(|file| seen(name, &file)))
+        Ok(self.current(name)?.1.first().map(|file| seen(name, file)))
     }
 
     fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
         named_well(name)?;
         let file = self
-            .found(name)?
+            .current(name)?
             .1
+            .into_iter()
+            .next()
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
         let url = format!("{}/files/{}", self.at.api, file.id);
         let mut answer = self
@@ -539,7 +622,8 @@ impl Remote for Drive {
 
     fn put(&self, name: &str, from: &Path, expect: Expect) -> Result<Seen, Hitch> {
         named_well(name)?;
-        let (tree, current) = self.found(name)?;
+        let (tree, copies) = self.current(name)?;
+        let current = copies.into_iter().next();
         let revision = current.as_ref().map(|one| seen(name, one).revision);
         match (&expect, &revision) {
             (Expect::Absent, Some(_)) => return Err(Hitch::Changed(name.to_string())),
@@ -551,13 +635,19 @@ impl Remote for Drive {
         }
         let parent = self.parent_of(&tree, name)?;
         let made = self.sent(name, from, current.as_ref(), &parent)?;
-        Ok(seen(name, &made))
+        let landed = seen(name, &made);
+        self.noted(
+            |tree| match tree.files.iter_mut().find(|(path, _)| path == name) {
+                Some(slot) => slot.1 = made,
+                None => tree.files.push((name.to_string(), made)),
+            },
+        );
+        Ok(landed)
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         named_well(name)?;
-        let tree = self.tree()?;
-        let all: Vec<File> = tree.named(name).cloned().collect();
+        let (_, all) = self.current(name)?;
         let first = all
             .first()
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
@@ -571,6 +661,7 @@ impl Remote for Drive {
                 Err(other) => return Err(other),
             }
         }
+        self.noted(|tree| tree.files.retain(|(path, _)| path != name));
         Ok(())
     }
 
