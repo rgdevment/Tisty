@@ -192,16 +192,26 @@ impl Carried {
     }
 
     pub fn facing(&mut self, dest: &Path, been_here: bool) -> bool {
-        if self
-            .up_to
-            .as_deref()
-            .is_some_and(|kept| crate::paths::is_the_one(kept, dest))
-        {
-            return false;
+        if let Some(kept) = self.up_to.as_deref() {
+            if crate::paths::is_the_one(kept, dest) {
+                return false;
+            }
+            // Forgetting every base turns each document written on both sides into a question for the person.
+            if crate::paths::written_at(kept, dest) {
+                self.up_to = Some(crate::paths::told_of(dest));
+                return false;
+            }
         }
         if self.up_to.is_none() && been_here && !self.prints.is_empty() {
             self.up_to = Some(crate::paths::told_of(dest));
             return false;
+        }
+        if !self.prints.is_empty() {
+            crate::witness::note(
+                crate::witness::channel::SYNC,
+                "another folder is carried to now, so what was carried before is forgotten",
+                &[("count", crate::witness::Fact::Count(self.prints.len()))],
+            );
         }
         self.prints.clear();
         self.up_to = Some(crate::paths::told_of(dest));
