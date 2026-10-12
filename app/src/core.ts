@@ -702,6 +702,7 @@ export interface Settled {
   astray: string[];
   unprojected: boolean;
   joined: string[];
+  deferred?: "budget" | "limit" | "offline" | "busy" | "changed" | null;
 }
 
 export const whatWentAmiss = (said: Settled) =>
@@ -712,6 +713,18 @@ export const whatWentAmiss = (said: Settled) =>
   (said.unconfirmed?.length && "someoneUnconfirmed") ||
   (said.unreadable?.length && "someoneUnreadable") ||
   null;
+
+const WAITS = {
+  budget: "deferredBudget",
+  limit: "deferredLimit",
+  offline: "deferredOffline",
+} as const;
+
+// A round left for later is no error, and a busy or changed one retries by itself, so only these are said.
+export const whatWaits = (said: Settled): (typeof WAITS)[keyof typeof WAITS] | null => {
+  const reason = said.deferred;
+  return reason && reason in WAITS ? WAITS[reason as keyof typeof WAITS] : null;
+};
 
 export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>
   invoke("sync_now", { way });

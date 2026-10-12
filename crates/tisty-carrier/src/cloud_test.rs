@@ -1014,6 +1014,33 @@ fn a_document_forgotten_while_a_round_runs_is_still_forgotten() {
 }
 
 #[test]
+fn a_forgetting_still_being_written_is_left_for_the_next_round() {
+    let setting = Setting {
+        name: "cloud over drive".to_string(),
+        room: tempfile::tempdir().unwrap(),
+        place: Place::Cloud(Arc::new(Fake::drive())),
+    };
+    let one = desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nuno\n");
+    one.round(Way::Both);
+    let home = home_of(&setting, "dev_a");
+    std::fs::write(home.join(super::FORGOTTEN), format!("{DOC}\n")).unwrap();
+    let writing = super::lock::Held::take(&home, super::lock::FORGETTING)
+        .unwrap()
+        .unwrap();
+
+    one.round(Way::Both);
+
+    assert!(
+        home.join(super::FORGOTTEN).exists(),
+        "the list was taken from under a writer, whose line would land where nobody reads"
+    );
+    drop(writing);
+    one.round(Way::Both);
+    assert!(!home.join(super::FORGOTTEN).exists());
+}
+
+#[test]
 fn a_provider_that_gives_no_hashes_still_gets_each_file_once_and_a_quiet_round_sends_nothing() {
     let room = tempfile::tempdir().unwrap();
     let plain = Arc::new(Fake::dropbox().without_hashes());
@@ -1122,6 +1149,38 @@ fn a_download_that_comes_short_is_never_installed_and_the_next_round_takes_it_wh
         two.round(Way::Pull);
         assert_eq!(two.titles(), ["lo de uno"], "{who}");
         assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+    }
+}
+
+#[test]
+fn a_file_that_cannot_come_down_owes_itself_without_holding_the_cursor_back() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        fake.truncate_next(usize::MAX);
+
+        two.round(Way::Pull);
+
+        let index = super::index::Index::load(&home_of(&setting, "dev_b"));
+        assert!(
+            index.cursor.is_some(),
+            "{who}: the cursor stayed behind the file"
+        );
+        assert!(
+            !index.owed.is_empty(),
+            "{who}: what could not come down was forgotten"
+        );
+        fake.truncate_next(0);
+        one.wrote("lo de después");
+        one.round(Way::Both);
+        two.round(Way::Pull);
+        assert_eq!(two.doc(DOC), one.doc(DOC), "{who}");
+        assert_eq!(two.titles().len(), 2, "{who}: {:?}", two.titles());
+        let index = super::index::Index::load(&home_of(&setting, "dev_b"));
+        assert!(index.owed.is_empty(), "{who}: {:?}", index.owed.keys());
     }
 }
 
@@ -1309,13 +1368,7 @@ fn what_this_machine_sent_up_is_not_taken_for_a_stir_from_elsewhere() {
     for (setting, _) in each_kind(|fake| fake.polled_every(Duration::ZERO)) {
         let who = &setting.name;
         let (one, _) = pair(&setting);
-        one.filed(
-            DOC,
-            "# Plan
-
-uno
-",
-        );
+        one.filed(DOC, "# Plan\n\nuno\n");
         one.wrote("lo de uno");
         one.round(Way::Both);
         let still = desk(&setting, "dev_a").carrier.stirring();
@@ -1643,3 +1696,27 @@ mod shift;
 
 #[path = "freed_test.rs"]
 mod freed;
+
+#[test]
+fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
+    let owed = Some(crate::Deferred {
+        reason: Reason::Changed,
+        left: 1,
+        retry_after: None,
+    });
+    let spent = Some(crate::Deferred {
+        reason: Reason::Budget,
+        left: 2,
+        retry_after: None,
+    });
+
+    let said = super::merged(owed, spent).unwrap();
+
+    assert_eq!(
+        said.reason,
+        Reason::Budget,
+        "a spent day was told as a file that changed"
+    );
+    assert_eq!(said.left, 3);
+    assert_eq!(super::merged(spent, owed).unwrap().reason, Reason::Budget);
+}

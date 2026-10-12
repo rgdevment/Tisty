@@ -78,7 +78,7 @@ impl Tokens {
             return Ok(access.clone());
         }
         let _turn =
-            Held::wait_for(&self.home, RENEWING, RENEWING_WAITED_OUT)?.ok_or(Hitch::Limited {
+            Held::wait_for(&self.home, RENEWING, RENEWING_WAITED_OUT)?.ok_or(Hitch::Busy {
                 wait: RENEWING_WAITED_OUT,
             })?;
         let refresh = match held.unsaved.clone() {

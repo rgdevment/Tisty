@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { stillApart, walkThrough } from "../apart";
-import { docs, type Kin, syncKin, syncNow, whatWentAmiss } from "../core";
+import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../core";
 import { decideAll, putOffSaid } from "../deciding";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -54,6 +54,7 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
       }
       const { said, putOff } = await decideAll(answer.undecided, true);
       const amiss = whatWentAmiss(answer);
+      const waits = whatWaits(answer);
       if (amiss) {
         fail({ card: "sync", text: t(amiss) });
       } else if (said) {
@@ -62,6 +63,8 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
         tell({ card: "sync", text: putOffSaid(putOff.length) });
       } else if (answer.joined?.length) {
         tell({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
+      } else if (waits) {
+        tell({ card: "sync", text: t(waits) });
       } else {
         tell({ card: "sync", text: syncSaid(answer) });
       }

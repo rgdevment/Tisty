@@ -25,6 +25,9 @@ pub struct Index {
     pub shelf: BTreeMap<String, Seen>,
     #[serde(default)]
     pub spoiled: BTreeMap<String, String>,
+    /// What a pull could not take yet; the cursor moves past it and the next pull asks again.
+    #[serde(default)]
+    pub owed: BTreeMap<String, Seen>,
 }
 
 impl Index {

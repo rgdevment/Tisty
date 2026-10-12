@@ -13,6 +13,7 @@ pub fn judge(hitch: Hitch, provider: &str) -> Judged {
     let provider = provider.to_string();
     match hitch {
         Hitch::Limited { wait } => Judged::Pause(Reason::Limit, Some(wait)),
+        Hitch::Busy { wait } => Judged::Pause(Reason::Busy, Some(wait)),
         Hitch::Spent => Judged::Pause(Reason::Budget, None),
         Hitch::Unreachable(_) => Judged::Pause(Reason::Offline, None),
         Hitch::Full => Judged::Stop(Trouble::CloudFull { provider }),
@@ -22,3 +23,7 @@ pub fn judge(hitch: Hitch, provider: &str) -> Judged {
         Hitch::Broke(why) => Judged::Stop(Trouble::Broke(why)),
     }
 }
+
+#[cfg(test)]
+#[path = "judge_test.rs"]
+mod tests;
