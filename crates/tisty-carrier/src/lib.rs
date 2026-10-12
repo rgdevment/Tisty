@@ -23,15 +23,6 @@ pub use cloud::Cloud;
 pub use folder::Folder;
 pub use keychain::Keychain;
 
-#[cfg(feature = "cloud")]
-pub mod google;
-
-pub fn cloud_offered() -> bool {
-    #[cfg(feature = "cloud")]
-    return google::client().is_some();
-    #[cfg(not(feature = "cloud"))]
-    false
-}
 pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
 pub use shift::{Owed, Shift, filling, homing, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};

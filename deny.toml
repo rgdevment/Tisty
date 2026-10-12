@@ -31,9 +31,9 @@ confidence-threshold = 0.9
 multiple-versions = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
-# HTTP reaches the window and, behind its `cloud` feature, the cloud's crate; a new user names itself here.
+# HTTP reaches the window and the crate that speaks to Google; a new user names itself here.
 deny = [
-  { crate = "reqwest", wrappers = ["tisty-gui", "tauri-plugin-updater", "tisty-carrier"] },
+  { crate = "reqwest", wrappers = ["tisty-gui", "tauri-plugin-updater", "tisty-google"] },
   { crate = "hyper", wrappers = ["reqwest", "hyper-util", "hyper-rustls"] },
   { crate = "hyper-util", wrappers = ["reqwest", "hyper-rustls"] },
   { crate = "ureq" },

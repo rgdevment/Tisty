@@ -34,7 +34,8 @@ windows = { version = "0.62", features = [
 windows-future = "0.3"
 
 [dependencies]
-tisty-carrier = { workspace = true, features = ["cloud"] }
+tisty-carrier.workspace = true
+tisty-google.workspace = true
 tisty-core.workspace = true
 tisty-nl.workspace = true
 tauri.workspace = true
@@ -53,10 +54,10 @@ ulid.workspace = true
 zip.workspace = true
 semver = "1"
 sha2.workspace = true
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "default-tls", "charset", "http2"] }
+reqwest.workspace = true
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-updater = "2"
-url = "2"
+url.workspace = true
 percent-encoding = "2"
 
 [dev-dependencies]

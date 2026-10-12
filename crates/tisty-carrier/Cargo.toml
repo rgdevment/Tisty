@@ -15,15 +15,6 @@ tisty-sync.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 keyring-core.workspace = true
-reqwest = { workspace = true, optional = true }
-url = { workspace = true, optional = true }
-base64 = { workspace = true, optional = true }
-sha2 = { workspace = true, optional = true }
-rand_core = { workspace = true, optional = true }
-
-# Network code is opt-in: nothing without this feature can reach a provider.
-[features]
-cloud = ["dep:reqwest", "dep:url", "dep:base64", "dep:sha2", "dep:rand_core"]
 
 [target.'cfg(windows)'.dependencies]
 windows-native-keyring-store.workspace = true

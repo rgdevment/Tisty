@@ -148,13 +148,13 @@ How an append stays safe (`Store`):
 
 ### Network
 
-`tisty-core`, `tisty-sync`, `tisty-nl` and the CLI contain no network code;
-CI fails if any of them reaches `reqwest`. `tisty-gui` holds the version check
-and the updater (`update.rs`, limited to GitHub hosts) and the preview of a
-link the person asks for (`glimpse.rs`). `tisty-carrier` reaches the network
-only behind its `cloud` feature, which only the window turns on: Google's
-sign-in and token renewal (`google.rs`). The window's content policy allows no
-connection but IPC (`tauri.conf.json`).
+`tisty-core`, `tisty-sync`, `tisty-nl`, `tisty-carrier` and the CLI contain no
+network code; `deny.toml` lets `reqwest` be wrapped by the window and
+`tisty-google` alone, on every target the release builds. `tisty-gui` holds the
+version check and the updater (`update.rs`, limited to GitHub hosts) and the
+preview of a link the person asks for (`glimpse.rs`). `tisty-google`, which
+only the window depends on, holds Google's sign-in and token renewal. The
+window's content policy allows no connection but IPC (`tauri.conf.json`).
 
 ## The data model
 
@@ -834,17 +834,22 @@ scope (the store or the profile) and the key, so two stores of one person never
 share a token, and on Windows it is kept `Local`, since the default roams with a
 domain profile to machines that would rotate it. No token is ever written to a
 file, which a test fixes.
-`google::GoogleRenew` implements `Renew` against Google's token endpoint: a
-refresh Google no longer honours (`invalid_grant`) is `Hitch::Lost`, a 429 waits
-its `Retry-After`, and a rotated refresh token comes back to be kept.
+`tisty_google::GoogleRenew` implements `Renew` against Google's token endpoint:
+a refresh Google no longer honours (`invalid_grant`) is `Hitch::Lost`, a 429 or
+a 5xx with `Retry-After` waits that long and never under a second, and a
+rotated refresh token comes back to be kept.
 
-The sign-in is `google::Consent`, OAuth with PKCE (S256) and a `state`, over a
-loopback on `127.0.0.1` at a port the system picks. It asks for `drive.file`
-alone and refuses a grant that came back wider. The client id and its secret,
-which Google does not treat as confidential for a desktop app, are fixed when
-the release is built (`option_env!`, from the `release` environment); a build
-without them, a fork's included, gets `cloud_offered()` false and offers no
-cloud.
+The sign-in is `tisty_google::Consent`, OAuth with PKCE (S256) and a `state`,
+over a loopback on `127.0.0.1` at a port the system picks. Only an answer
+carrying its own `state` ends the wait; a stale tab, a probe or an idle socket
+is answered 404 and waited past, each request read for two seconds and 16 KiB at
+most. The browser hears «connected» only after the code is traded and the grant
+is checked: it must be `drive.file` alone, and one wider or empty is revoked and
+refused. A sign-in nobody finishes leaves the account unconnected. The client
+id and its secret, which Google does not treat as confidential for a desktop
+app, are fixed when the release is built (`option_env!`, the secret from the
+`release` environment); a build without them, a fork's included, has
+`offered()` false and offers no cloud.
 
 ### `Remote`
 
