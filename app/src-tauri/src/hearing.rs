@@ -24,7 +24,10 @@ pub fn listen(app: AppHandle) {
                                 let _ = app.emit("told", ());
                             }
                             Ok(false) => {}
-                            Err(_) => break,
+                            Err(_) => {
+                                std::thread::sleep(AGAIN);
+                                break;
+                            }
                         }
                         if let Some(rest) = QUICKEST.checked_sub(asked.elapsed()) {
                             std::thread::sleep(rest);

@@ -96,3 +96,19 @@ fn the_limits_of_a_signed_word_are_the_ones_the_meter_keeps() {
         "the lowered day was not kept"
     );
 }
+
+#[test]
+fn a_paused_cloud_does_not_listen_either() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::dropbox();
+
+    let open = Metered::over(&fake, home.path(), Class::History).hears("0");
+    policy::pause_here(home.path(), true).unwrap();
+    let held = Metered::over(&fake, home.path(), Class::History).hears("0");
+
+    assert!(open.is_some(), "a provider that can say so was not heard");
+    assert!(
+        held.is_none(),
+        "a paused cloud kept listening to the provider"
+    );
+}

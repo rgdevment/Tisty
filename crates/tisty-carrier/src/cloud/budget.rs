@@ -220,7 +220,9 @@ impl Remote for Metered<'_> {
         changes
     }
 
+    // Listening asks the provider too, so a paused cloud or a spent day hears nothing.
     fn hears(&self, since: &str) -> Option<Box<dyn Watch>> {
+        self.allowed().ok()?;
         self.remote.hears(since)
     }
 
