@@ -65,7 +65,7 @@ pub fn challenge_of(verifier: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
 }
 
-fn random_text(bytes: usize) -> Result<String, Hitch> {
+pub(crate) fn random_text(bytes: usize) -> Result<String, Hitch> {
     use rand_core::TryRngCore;
     let mut fresh = vec![0u8; bytes];
     rand_core::OsRng
