@@ -5,7 +5,7 @@ const TYPE = ["21", "13", "12.5", "11.5", "10.5", "9"];
 const CORNERS = ["md", "full", "[10px]"];
 const VEILS = ["10", "40", "70"];
 
-const looked = ["src/ui", "src"];
+const looked = ["src/ui", "src/ui/viewer", "src"];
 
 const sources = (): { name: string; body: string }[] =>
   looked.flatMap((where) =>

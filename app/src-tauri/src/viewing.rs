@@ -17,24 +17,51 @@ pub enum Lent {
     Reference(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Paper {
+    pub id: String,
+    pub file: String,
+    pub title: String,
+    pub place: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Shown {
     File(PathBuf),
-    Doc { file: String, title: String },
-    Widget(Lent),
+    Doc(Paper),
+    Widget { lent: Lent, from: Option<Paper> },
 }
 
-#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
-    File { name: String, body: String },
-    Doc { file: String, title: String },
-    Widget { lent: Lent },
+    File {
+        name: String,
+        place: String,
+        path: String,
+        body: String,
+    },
+    Missed {
+        name: String,
+        place: String,
+        path: String,
+        refusal: Refusal,
+    },
+    Doc {
+        paper: Paper,
+        body: String,
+    },
+    Widget {
+        lent: Lent,
+        from: Option<Paper>,
+    },
 }
 
 #[derive(Default)]
 pub struct Views {
     shown: Mutex<HashMap<String, Shown>>,
+    kept: Mutex<HashMap<PathBuf, Paper>>,
     made: AtomicU64,
 }
 
@@ -85,15 +112,24 @@ fn named(at: &Path) -> String {
         .unwrap_or_default()
 }
 
-// Windows wedges a window built from inside the event loop, so the windows are built from a thread of their own.
-pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
-    let wanted: Vec<PathBuf> = argv
-        .iter()
+fn place_of(at: &Path) -> String {
+    at.parent()
+        .and_then(|up| up.file_name())
+        .map(|one| one.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
+pub fn wanted(argv: &[String], cwd: Option<&Path>) -> Vec<PathBuf> {
+    argv.iter()
         .skip(1)
         .filter_map(|one| asked(one, cwd))
-        .collect();
+        .collect()
+}
+
+// Windows wedges a window built from inside the event loop, so the windows are built from a thread of their own.
+pub fn show(app: &AppHandle, wanted: Vec<PathBuf>) {
     if wanted.is_empty() {
-        return false;
+        return;
     }
     let app = app.clone();
     std::thread::spawn(move || {
@@ -101,7 +137,13 @@ pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
             open(&app, Shown::File(at));
         }
     });
-    true
+}
+
+pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
+    let found = wanted(argv, cwd);
+    let any = !found.is_empty();
+    show(app, found);
+    any
 }
 
 #[cfg(target_os = "macos")]
@@ -118,13 +160,24 @@ pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     }
 }
 
+fn spanish(app: &AppHandle) -> bool {
+    app.try_state::<Mutex<Session>>()
+        .and_then(|session| session.lock().ok().map(|one| one.locale.clone()))
+        .map(|locale| {
+            tisty_core::model::spoken(locale.as_deref())
+                .to_lowercase()
+                .starts_with("es")
+        })
+        .unwrap_or_else(crate::refusing::speaks_spanish)
+}
+
 pub fn open(app: &AppHandle, shown: Shown) {
     let views = app.state::<Views>();
     let label = format!("view-{}", views.made.fetch_add(1, Ordering::Relaxed));
     let title = match &shown {
         Shown::File(at) => named(at),
-        Shown::Doc { title, .. } => title.clone(),
-        Shown::Widget(_) => "Tisty".into(),
+        Shown::Doc(paper) => paper.title.clone(),
+        Shown::Widget { .. } => "Tisty".into(),
     };
     if let Ok(mut held) = views.shown.lock() {
         held.insert(label.clone(), shown);
@@ -132,17 +185,11 @@ pub fn open(app: &AppHandle, shown: Shown) {
     let made = tauri::WebviewWindowBuilder::new(
         app,
         &label,
-        tauri::WebviewUrl::App(
-            match crate::refusing::speaks_spanish() {
-                true => "index.html?locale=es",
-                false => "index.html?locale=en",
-            }
-            .into(),
-        ),
+        tauri::WebviewUrl::App(crate::refusing::page(spanish(app)).into()),
     )
     .title(title)
-    .inner_size(960.0, 780.0)
-    .min_inner_size(480.0, 360.0)
+    .inner_size(1040.0, 800.0)
+    .min_inner_size(520.0, 380.0)
     .decorations(false)
     .transparent(true)
     .shadow(true)
@@ -153,11 +200,13 @@ pub fn open(app: &AppHandle, shown: Shown) {
             let gone = app.clone();
             let named = label.clone();
             window.on_window_event(move |event| {
-                if matches!(event, tauri::WindowEvent::Destroyed)
-                    && let Ok(mut held) = gone.state::<Views>().shown.lock()
-                {
+                if !matches!(event, tauri::WindowEvent::Destroyed) {
+                    return;
+                }
+                if let Ok(mut held) = gone.state::<Views>().shown.lock() {
                     held.remove(&named);
                 }
+                gone.state::<widgets::Lent>().release(&named);
             });
         }
         Err(why) => {
@@ -182,16 +231,54 @@ fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
         .ok_or_else(|| Refusal::of("notAllowed"))
 }
 
-#[tauri::command(async)]
-pub fn view_shown(window: tauri::WebviewWindow, views: tauri::State<'_, Views>) -> Answer<Showing> {
-    Ok(match shown_in(&views, window.label())? {
-        Shown::File(at) => Showing::File {
-            name: named(&at),
-            body: crate::answers::carrying::read_outside(&at)?,
-        },
-        Shown::Doc { file, title } => Showing::Doc { file, title },
-        Shown::Widget(lent) => Showing::Widget { lent },
+fn session_of(app: &AppHandle) -> Answer<tauri::State<'_, Mutex<Session>>> {
+    app.try_state::<Mutex<Session>>()
+        .ok_or_else(|| Refusal::of("internal"))
+}
+
+// Read without being minded: the main window's guard against overwriting a changed file must stay its own.
+fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
+    let root = held(&session_of(app)?).paths.docs();
+    tisty_core::docs::read(&root, file).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => {
+            Refusal::about("documentTooBig", crate::weighed(limit))
+        }
+        _ => Refusal::about("noSuchDoc", file.to_string()),
     })
+}
+
+#[tauri::command(async)]
+pub fn view_shown(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+) -> Answer<Showing> {
+    Ok(match shown_in(&views, window.label())? {
+        Shown::File(at) => match crate::answers::carrying::read_outside(&at) {
+            Ok(body) => Showing::File {
+                name: named(&at),
+                place: place_of(&at),
+                path: at.display().to_string(),
+                body,
+            },
+            Err(refusal) => Showing::Missed {
+                name: named(&at),
+                place: place_of(&at),
+                path: at.display().to_string(),
+                refusal,
+            },
+        },
+        Shown::Doc(paper) => Showing::Doc {
+            body: doc_body(&app, &paper.file)?,
+            paper,
+        },
+        Shown::Widget { lent, from } => Showing::Widget { lent, from },
+    })
+}
+
+fn bring(app: &AppHandle, file: &str) {
+    let _ = app.emit_to("main", "showdoc", file.to_string());
+    crate::tray::surface(app);
 }
 
 #[tauri::command(async)]
@@ -199,42 +286,70 @@ pub fn view_import(
     app: AppHandle,
     window: tauri::WebviewWindow,
     views: tauri::State<'_, Views>,
-) -> Answer<String> {
+    open: bool,
+) -> Answer<Paper> {
     let Shown::File(at) = shown_in(&views, window.label())? else {
         return Err(Refusal::of("notAllowed"));
     };
-    let session = app
-        .try_state::<Mutex<Session>>()
-        .ok_or_else(|| Refusal::of("internal"))?;
-    let body = crate::answers::carrying::read_outside(&at)?;
-    let made = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
-    let _ = app.emit_to("main", "showdoc", made.id.clone());
-    crate::tray::surface(&app);
-    Ok(made.id)
-}
-
-#[tauri::command(async)]
-pub fn view_widget(app: AppHandle, lent: Lent) -> Answer<()> {
-    match &lent {
-        Lent::Source(source) if source.len() > widgets::LENT_AT_MOST => {
-            return Err(Refusal::about(
-                "widgetTooBig",
-                crate::weighed(widgets::LENT_AT_MOST as u64),
-            ));
+    let known = views
+        .kept
+        .lock()
+        .ok()
+        .and_then(|held| held.get(&at).cloned());
+    let paper = match known {
+        Some(paper) => paper,
+        None => {
+            let body = crate::answers::carrying::read_outside(&at)?;
+            let session = session_of(&app)?;
+            let made = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
+            let id = held(&session)
+                .state
+                .docs
+                .iter()
+                .find(|(_, kept)| kept.file == made.id)
+                .map(|(id, _)| id.to_string())
+                .unwrap_or_default();
+            Paper {
+                id,
+                file: made.id,
+                title: made.title,
+                place: String::new(),
+            }
         }
-        Lent::Reference(reference) if !widgets::a_page(reference) => {
-            return Err(Refusal::of("notAllowed"));
-        }
-        _ => {}
+    };
+    if let Ok(mut held) = views.kept.lock() {
+        held.insert(at, paper.clone());
     }
-    open(&app, Shown::Widget(lent));
+    if let Ok(mut held) = views.shown.lock() {
+        held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
+    }
+    if open {
+        bring(&app, &paper.file);
+    } else {
+        let _ = app.emit_to("main", "papered", ());
+    }
+    Ok(paper)
+}
+
+#[tauri::command(async)]
+pub fn view_go(app: AppHandle, file: String) {
+    bring(&app, &file);
+}
+
+#[tauri::command(async)]
+pub fn view_widget(app: AppHandle, lent: Lent, from: Option<Paper>) -> Answer<()> {
+    if let Lent::Reference(reference) = &lent
+        && !widgets::a_page(reference)
+    {
+        return Err(Refusal::of("notAllowed"));
+    }
+    open(&app, Shown::Widget { lent, from });
     Ok(())
 }
 
 #[tauri::command(async)]
-pub fn view_doc(app: AppHandle, file: String, title: String) -> Answer<()> {
-    open(&app, Shown::Doc { file, title });
-    Ok(())
+pub fn view_doc(app: AppHandle, paper: Paper) {
+    open(&app, Shown::Doc(paper));
 }
 
 #[cfg(test)]

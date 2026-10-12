@@ -11,6 +11,9 @@
     "core:window:allow-is-maximized",
     "core:window:allow-close",
     "opener:default",
-    "dialog:allow-ask"
+    "opener:allow-reveal-item-in-dir",
+    "dialog:allow-ask",
+    "dialog:allow-message",
+    "dialog:allow-save"
   ]
 }

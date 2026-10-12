@@ -652,17 +652,21 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let argv: Vec<String> = std::env::args().collect();
     let here = std::env::current_dir().ok();
+    let wanted = viewing::wanted(&argv, here.as_deref());
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
-        viewing::heard(app.handle(), &argv, here.as_deref());
+        viewing::show(app.handle(), wanted);
         return Ok(());
     }
-    opened(app.handle())?;
-    viewing::heard(app.handle(), &argv, here.as_deref());
+    opened(app.handle(), !wanted.is_empty())?;
+    viewing::show(app.handle(), wanted);
     Ok(())
 }
 
-pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn opened(
+    app: &tauri::AppHandle,
+    viewing: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let session = match Session::open() {
         Ok(session) => session,
         Err(why) => {
@@ -795,7 +799,7 @@ pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
 
     if let Some(window) = app.get_webview_window("main") {
         desktop::proofread(&window);
-        if came_back || !waking::hushed() {
+        if came_back || !(waking::hushed() || viewing) {
             desktop::fitted(&window);
             let _ = window.show();
         }
@@ -1039,6 +1043,7 @@ pub fn run() {
             viewing::view_import,
             viewing::view_widget,
             viewing::view_doc,
+            viewing::view_go,
             answers::shelves::sow,
             answers::shelves::folder_file
         ])

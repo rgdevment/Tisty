@@ -91,7 +91,7 @@ fn no_more_than_so_many_are_held_at_once_and_the_oldest_goes_first() {
     for _ in 0..OUT_AT_ONCE {
         lent.lend("<p>more</p>".into()).unwrap();
     }
-    assert_eq!(lent.0.lock().unwrap().len(), OUT_AT_ONCE);
+    assert_eq!(lent.out.lock().unwrap().len(), OUT_AT_ONCE);
     assert_eq!(
         lent.shown(&asked(&format!("/{first}"))).status(),
         StatusCode::NOT_FOUND
@@ -430,4 +430,27 @@ fn a_page_that_loads_again_reads_its_theme_from_its_address() {
         page.contains("themed();"),
         "a reloaded frame would keep the theme it was first served with"
     );
+}
+
+#[test]
+fn what_a_closed_window_borrowed_is_taken_back_and_nothing_else() {
+    let lent = Lent::default();
+    let its = lent.lend("<p>apart</p>".into()).unwrap();
+    let kept = lent.lend("<p>main</p>".into()).unwrap();
+    lent.owned_by("view-3", &its);
+    lent.owned_by("main", &kept);
+
+    lent.release("view-3");
+
+    assert_eq!(said(&lent.shown(&asked(&format!("/{its}")))), "");
+    assert!(said(&lent.shown(&asked(&format!("/{kept}")))).contains("main"));
+}
+
+#[test]
+fn every_widget_says_how_far_its_content_reaches_across() {
+    let lent = Lent::default();
+    let id = lent.lend("<p>x</p>".into()).unwrap();
+
+    assert!(said(&lent.shown(&asked(&format!("/{id}")))).contains("type:\"span\""));
+    assert!(paged("<p>x</p>").contains("type:\"span\""));
 }

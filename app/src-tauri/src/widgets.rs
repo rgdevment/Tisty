@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 
 use tauri::http::{Response, StatusCode, Uri, header};
@@ -31,7 +31,10 @@ pub struct Borrowed {
 }
 
 #[derive(Default)]
-pub struct Lent(Mutex<VecDeque<(String, String, Kind)>>);
+pub struct Lent {
+    out: Mutex<VecDeque<(String, String, Kind)>>,
+    owners: Mutex<HashMap<String, Vec<String>>>,
+}
 
 impl Lent {
     pub fn lend(&self, body: String) -> Answer<String> {
@@ -56,7 +59,7 @@ impl Lent {
 
     fn held(&self, body: String, kind: Kind) -> String {
         let id = ulid::Ulid::generate().to_string().to_lowercase();
-        let mut out = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut out = self.out.lock().unwrap_or_else(|e| e.into_inner());
         while out.len() >= OUT_AT_ONCE {
             out.pop_front();
         }
@@ -64,8 +67,30 @@ impl Lent {
         id
     }
 
+    // A window closed from outside never runs its own clean-up, so what it borrowed is taken back by its name.
+    pub fn owned_by(&self, window: &str, id: &str) {
+        self.owners
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry(window.to_string())
+            .or_default()
+            .push(id.to_string());
+    }
+
+    pub fn release(&self, window: &str) {
+        let gone = self
+            .owners
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(window)
+            .unwrap_or_default();
+        for id in gone {
+            self.take_back(&id);
+        }
+    }
+
     pub fn take_back(&self, id: &str) {
-        self.0
+        self.out
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .retain(|(one, _, _)| one != id);
@@ -77,7 +102,7 @@ impl Lent {
             .query()
             .is_some_and(|asked| asked.split('&').any(|one| one == "dark=1"));
         let found = self
-            .0
+            .out
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .iter()
@@ -100,8 +125,14 @@ impl Lent {
 }
 
 #[tauri::command]
-pub fn widget_lend(lent: tauri::State<'_, Lent>, body: String) -> Answer<String> {
-    lent.lend(body)
+pub fn widget_lend(
+    window: tauri::WebviewWindow,
+    lent: tauri::State<'_, Lent>,
+    body: String,
+) -> Answer<String> {
+    let id = lent.lend(body)?;
+    lent.owned_by(window.label(), &id);
+    Ok(id)
 }
 
 fn too_big_a_page() -> Refusal {
@@ -134,6 +165,7 @@ pub fn a_page(reference: &str) -> bool {
 
 #[tauri::command]
 pub async fn widget_lend_kept(
+    window: tauri::WebviewWindow,
     session: tauri::State<'_, Mutex<Session>>,
     lent: tauri::State<'_, Lent>,
     reference: String,
@@ -142,7 +174,9 @@ pub async fn widget_lend_kept(
         return Err(Refusal::of("notAllowed"));
     }
     let body = finding::fetched(&session, reference, kept_page).await?;
-    lent.lend_kept(body)
+    let borrowed = lent.lend_kept(body)?;
+    lent.owned_by(window.label(), &borrowed.id);
+    Ok(borrowed)
 }
 
 #[tauri::command]
@@ -155,7 +189,7 @@ pub fn shell(body: &str, dark: bool) -> String {
     format!(
         "<!doctype html><html{theme}><head><meta charset=\"utf-8\">\
 <meta name=\"color-scheme\" content=\"light dark\"><style>{KIT}</style></head>\
-<body><main class=\"w\">{body}</main><script>{BRIDGE}</script></body></html>"
+<body><main class=\"w\">{body}</main><script>{BRIDGE}{SPAN}</script></body></html>"
     )
 }
 
@@ -203,7 +237,11 @@ fn opens_tag(text: &str, tag: &str) -> bool {
 // Before anything the page holds, so no script or string of its own can swallow the measurer.
 pub fn paged(body: &str) -> String {
     let (at, _) = prelude(body);
-    format!("{}<script>{MEASURER}</script>{}", &body[..at], &body[at..])
+    format!(
+        "{}<script>{MEASURER}{SPAN}</script>{}",
+        &body[..at],
+        &body[at..]
+    )
 }
 
 const KIT: &str = r#"
@@ -255,6 +293,9 @@ const BRIDGE: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");const bo
 
 // A page may replace its whole document while it unpacks, so it is measured from the window, by what flows in its body.
 const MEASURER: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let queued=false;const px=(v)=>Number.parseFloat(v)||0;const span=document.createRange();let view=innerHeight;const sizes=new WeakMap();const fluid=new WeakSet();const within=(one,depth)=>{let low=0;for(const inner of one.childNodes)low=Math.max(low,edge(inner,depth));return low};const edge=(one,depth)=>{if(one.nodeType===3&&one.textContent.trim()){span.selectNodeContents(one);return span.getBoundingClientRect().bottom}if(one.nodeType!==1)return 0;const s=getComputedStyle(one);if(s.position==="fixed"||s.display==="none")return 0;if(s.display==="contents")return depth<6?within(one,depth+1):0;const r=one.getBoundingClientRect();if(r.height<=0&&r.width<=0)return 0;const was=sizes.get(one);if(was!==undefined&&innerHeight!==view&&Math.abs(r.height-was-(innerHeight-view))<1)fluid.add(one);sizes.set(one,r.height);if(fluid.has(one)&&depth<6){const low=within(one,depth+1);if(low>0)return low+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom)}return r.top+Math.max(r.height,one.scrollHeight)+px(s.marginBottom)};const reach=()=>{const b=document.body;if(!b)return 0;const low=within(b,0);view=innerHeight;if(low<=0)return 0;const s=getComputedStyle(b);return Math.ceil(low+scrollY+px(s.paddingBottom)+px(s.borderBottomWidth)+px(s.marginBottom))};const tell=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;const h=reach();if(h>0)say({type:"resize",height:h})})};const clicked=(e)=>{if(e.defaultPrevented)return;const a=e.target instanceof Element?e.target.closest("a[href]"):null;if(!a)return;const href=(a.getAttribute("href")||"").trim();if(href.startsWith("#")||/^javascript:/i.test(href))return;e.preventDefault();say({type:"open",href})};const last=()=>{removeEventListener("click",clicked);addEventListener("click",clicked)};const hooked=()=>{document.addEventListener("load",tell,true);addEventListener("load",tell);addEventListener("resize",tell);document.addEventListener("DOMContentLoaded",last);addEventListener("load",last);last()};let root=null;const seen=new ResizeObserver(tell);const watch=()=>{if(document.documentElement!==root){root=document.documentElement;seen.disconnect();seen.observe(root);hooked()}const b=document.body;if(b){seen.observe(b);for(const one of b.children)seen.observe(one)}tell()};new MutationObserver(watch).observe(document,{childList:true,subtree:true});watch()})();"##;
+
+// How far the content reaches across, so a viewer can centre a widget drawn at a fixed width.
+const SPAN: &str = r##"(()=>{const say=(m)=>parent.postMessage(m,"*");let at=0;const tell=()=>{cancelAnimationFrame(at);at=requestAnimationFrame(()=>{const b=document.body;if(!b)return;let l=Infinity,r=0,n=0;for(const e of b.querySelectorAll("*")){if(++n>3000)break;const q=e.getBoundingClientRect();if(!q.width||!q.height||q.width>=innerWidth-1)continue;if(getComputedStyle(e).position==="fixed")continue;l=Math.min(l,q.left);r=Math.max(r,q.right)}if(r>0)say({type:"span",left:Math.max(0,Math.round(l)),right:Math.ceil(r),view:innerWidth})})};addEventListener("load",tell);new ResizeObserver(tell).observe(document.documentElement)})();"##;
 
 #[cfg(test)]
 #[path = "widgets_test.rs"]

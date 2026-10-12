@@ -4,13 +4,11 @@ import { asPlain } from "../copying";
 import {
   attach,
   attachExport,
-  attached,
   convertPaper,
   docAway,
   docBack,
   docBackable,
   docExport,
-  docFacts,
   docLock,
   docOrder,
   docRead,
@@ -36,8 +34,10 @@ import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import Modal from "./Modal";
+import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import type { Block } from "./Slash";
+import { PAPER, pageFor } from "./sheets";
 import { clearOfChrome } from "./WindowChrome";
 import type { Head } from "./writing";
 
@@ -64,7 +64,6 @@ const RAIL_WIDE = 380;
 const GUTTER = 8;
 const SHEET = 820;
 
-const PAPER: Record<Paper, number> = { a4: 820, letter: 843, tabloid: 1090 };
 const leaves = (): Record<string, Paper> => {
   try {
     const said: unknown = JSON.parse(localStorage.getItem("tisty.paper") ?? "{}");
@@ -76,7 +75,6 @@ const leaves = (): Record<string, Paper> => {
     return {};
   }
 };
-const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in 17in" };
 
 const ASIDE = 344;
 
@@ -100,8 +98,6 @@ interface Props {
 }
 
 const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
-
-const dated = (when: number): string => stamped(new Date(when * 1000).toISOString());
 
 export default function Docs({
   open: asked,
@@ -462,59 +458,22 @@ export default function Docs({
   const leaf = (open && sized[open.file]) || "a4";
   const wall = { maxWidth: `${PAPER[leaf]}px` };
 
-  useEffect(() => {
-    const id = "tisty-page";
-    let tag = document.getElementById(id) as HTMLStyleElement | null;
-    if (!tag) {
-      tag = document.createElement("style");
-      tag.id = id;
-      document.head.append(tag);
-    }
-    tag.textContent = `@page { size: ${PAGE[leaf]}; margin: 22mm 20mm; }`;
-  }, [leaf]);
+  useEffect(() => pageFor(leaf), [leaf]);
 
   const blobOf = async (signed?: string): Promise<Blob | null> => {
     const read = giving.current;
     if (!open || !read) return null;
-    const [{ pdf }, { Papered, registered }, { fetched, shapesOf }] = await Promise.all([
-      import("@react-pdf/renderer"),
-      import("./paper"),
-      import("./shaping"),
-    ]);
-    registered();
     // What is printed is the book as it reads, not as the log last settled it.
     const pages = inTextOrder(
       known.filter((one) => one.pageOf === open.id),
       told,
     );
     const written = await Promise.all(pages.map((one) => docRead(one.file)));
-    const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
-      import("@tiptap/core"),
-      import("./writing"),
-      import("../markdown"),
-    ]);
     const at = (file: string) => {
       const found = pages.findIndex((one) => one.file === file);
       return found < 0 ? null : found + 1;
     };
-    const sheets = await Promise.all(
-      [read(), ...written.map((body) => generateJSON(composed(loosened(body)), shapes()))].map(
-        (one) => fetched(shapesOf(one), attached, at),
-      ),
-    );
-    return pdf(<Papered sheets={sheets} leaf={leaf} signed={signed} />).toBlob();
-  };
-
-  const signature = async (file: string): Promise<string | undefined> => {
-    const facts = await docFacts(file).catch(() => null);
-    if (!facts) return undefined;
-    const said = [
-      facts.author ? fill("pdfBy", facts.author) : "",
-      facts.editor ? fill("pdfEditedBy", facts.editor) : "",
-      facts.made ? fill("pdfMade", dated(facts.made)) : "",
-      facts.wrote ? fill("pdfWrote", dated(facts.wrote)) : "",
-    ].filter(Boolean);
-    return said.length ? said.join("  ·  ") : undefined;
+    return pdfOf(read(), written, leaf, signed, at);
   };
 
   const preview = async () => {
@@ -631,7 +590,16 @@ export default function Docs({
       {open && (
         <button
           type="button"
-          onClick={() => void viewDoc(open.file, open.title || t("untitledDoc")).catch(() => {})}
+          onClick={() =>
+            void viewDoc({
+              id: open.id,
+              file: open.file,
+              title: open.title || t("untitledDoc"),
+              place: trailed(folders, open.folder ?? null)
+                .map((one) => one.name)
+                .join(" / "),
+            }).catch((e) => onError(saidPlainly(e)))
+          }
           title={t("viewDocApart")}
           aria-label={t("viewDocApart")}
           className={`absolute top-11 ${beside ? "right-3" : "right-10"} z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink`}

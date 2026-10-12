@@ -24,11 +24,14 @@ const drawn = async (content: string, stranger: boolean) => {
   const editor = new Editor({ element, extensions: written(stranger), content, editable: false });
   await settled();
   const lent = ipc.calls.filter((one) => one === "widget_lend").length;
-  const apart = [...element.querySelectorAll<HTMLButtonElement>(".lit-fold")].some(
+  const apart = [...element.querySelectorAll<HTMLButtonElement>(".lit-fold, .lit-apart")].some(
+    (one) => !one.hidden,
+  );
+  const warned = [...element.querySelectorAll<HTMLElement>(".lit-locked")].some(
     (one) => !one.hidden,
   );
   editor.destroy();
-  return { lent, apart };
+  return { lent, apart, warned };
 };
 
 const WIDGETS = [
@@ -41,10 +44,10 @@ const WIDGETS = [
 
 describe("someone else's file", () => {
   it.each(WIDGETS)("never runs a widget, however it is written: %s", async (content) => {
-    expect(await drawn(content, true)).toEqual({ lent: 0, apart: false });
+    expect(await drawn(content, true)).toEqual({ lent: 0, apart: false, warned: true });
   });
 
   it("still runs the person's own widgets", async () => {
-    expect((await drawn(WIDGETS[0], false)).lent).toBe(1);
+    expect(await drawn(WIDGETS[0], false)).toEqual({ lent: 1, apart: true, warned: false });
   });
 });

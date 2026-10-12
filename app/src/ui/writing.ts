@@ -21,7 +21,7 @@ import type { Moved } from "../paging";
 import { spared } from "./Icons";
 import { Listed, Tightened } from "./listing";
 import { TONGUES } from "./tongues";
-import { besideWidget, type Lending, lend } from "./widgeting";
+import { besideWidget, failed, iconed, type Lending, lend, locked } from "./widgeting";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
 export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
@@ -984,10 +984,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       const fold = document.createElement("button");
       fold.type = "button";
       fold.className = "lit-fold";
-      const apart = document.createElement("button");
-      apart.type = "button";
-      apart.className = "lit-fold";
-      apart.textContent = t("viewApart");
+      const apart = iconed("apart", t("viewApart"), "lit-apart");
       let folded = (node.textContent ?? "").trim() !== "";
       const folding = (one: ProseNode) => {
         const widget = !stranger && String(one.attrs.language ?? "") === "widget";
@@ -1046,7 +1043,7 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         folding(mine as ProseNode);
       });
       apart.addEventListener("click", () => {
-        viewWidget({ source: (mine as ProseNode).textContent ?? "" }).catch(() => {});
+        viewWidget({ source: (mine as ProseNode).textContent ?? "" }).catch(failed);
       });
       bar.append(name, said, fold, apart, picked);
 
@@ -1068,7 +1065,9 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         folding(mine as ProseNode);
       });
 
-      held.append(bar, body, drawn);
+      const warned = locked();
+      warned.hidden = !(stranger && String(node.attrs.language ?? "") === "widget");
+      held.append(bar, warned, body, drawn);
 
       let asked = 0;
       let drew = "";

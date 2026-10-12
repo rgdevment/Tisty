@@ -16,7 +16,7 @@ import {
   previewOf,
   weighed,
 } from "../previews";
-import { lendKept } from "./widgeting";
+import { dropdown, failed, iconed, lendKept } from "./widgeting";
 
 export interface Reach {
   url: (reference: string) => string | null;
@@ -503,30 +503,30 @@ const paging = (href: string, label: string, reach: Reach, shelve: () => void): 
   name.className = "widget-page-name";
   name.textContent = label || named(href);
   bar.append(name);
-  if (reach.onMenu) {
-    const back = document.createElement("button");
-    back.type = "button";
-    back.className = "widget-page-shelve";
-    back.textContent = t("showAsAttachment");
-    back.addEventListener("click", (e) => {
-      e.stopPropagation();
-      shelve();
-    });
-    bar.append(back);
-  }
-  const apart = document.createElement("button");
-  apart.type = "button";
-  apart.className = "widget-page-apart";
-  apart.textContent = t("viewApart");
-  apart.addEventListener("click", (e) => {
-    e.stopPropagation();
-    viewWidget({ reference: href }).catch(() => {});
-  });
-  bar.append(apart);
   const drawn = document.createElement("span");
   drawn.className = "widget-page-drawn";
+  let lending = lendKept(drawn, href);
+  const apart = iconed("apart", t("viewApart"), "widget-page-apart");
+  apart.addEventListener("click", (e) => {
+    e.stopPropagation();
+    viewWidget({ reference: href }).catch(failed);
+  });
+  const more = iconed("more", t("viewMore"), "widget-page-more");
+  more.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown(more, [
+      {
+        label: t("viewReload"),
+        run: () => {
+          lending.drop();
+          lending = lendKept(drawn, href);
+        },
+      },
+      ...(reach.onMenu ? [{ label: t("showAsAttachment"), run: shelve }] : []),
+    ]);
+  });
+  bar.append(apart, more);
   box.append(bar, drawn);
-  const lending = lendKept(drawn, href);
   waits.set(box, () => lending.drop());
   return box;
 };

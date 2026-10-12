@@ -30,6 +30,14 @@ const reach: Reach = {
   title: () => null,
 };
 
+const picked = (editor: Editor, label: string) => {
+  document.querySelector(".widget-menu")?.remove();
+  editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-more")?.click();
+  return [...document.querySelectorAll<HTMLButtonElement>(".widget-menu button")].find(
+    (one) => one.textContent === label,
+  );
+};
+
 const made = (content: string, how: Partial<Reach> = {}) => {
   const element = document.createElement("div");
   document.body.append(element);
@@ -63,7 +71,7 @@ describe("a page attached to a document", () => {
       expect(editor.view.dom.querySelector(".widget-page iframe")).toBeTruthy(),
     );
 
-    editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-shelve")?.click();
+    picked(editor, t("showAsAttachment"))?.click();
 
     expect(editor.view.dom.querySelector(".widget-page")).toBeNull();
     expect(editor.view.dom.querySelector(".preview.card")).toBeTruthy();
@@ -92,7 +100,8 @@ describe("a page attached to a document", () => {
     const editor = made(`![informe](<${PAGE}>)`, { onMenu: undefined });
 
     expect(editor.view.dom.querySelector(".widget-page")).toBeTruthy();
-    expect(editor.view.dom.querySelector(".widget-page-shelve")).toBeNull();
+    expect(picked(editor, t("showAsAttachment"))).toBeUndefined();
+    expect(picked(editor, t("viewReload"))).toBeTruthy();
     editor.destroy();
   });
 
@@ -101,7 +110,10 @@ describe("a page attached to a document", () => {
 
     editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-apart")?.click();
 
-    expect(ipc.calls).toContainEqual({ cmd: "view_widget", args: { lent: { reference: PAGE } } });
+    expect(ipc.calls).toContainEqual({
+      cmd: "view_widget",
+      args: { lent: { reference: PAGE }, from: null },
+    });
     editor.destroy();
   });
 
