@@ -6,6 +6,7 @@ import type { Papers } from "../core";
 import { AT_A_GLANCE, SHOWN } from "../glance";
 import { fill, t } from "../locales";
 import Docs from "../ui/Docs";
+import { SETTLING_MS } from "../ui/Sure";
 import Tree from "../ui/Tree";
 
 interface FakeFolder {
@@ -937,6 +938,8 @@ describe("deleting a document", () => {
 
     await chooseFor("Notes", t("deleteIt"));
     const box = await screen.findByRole("dialog", { name: t("sureTitle") });
+    // Drawn last in the body, so a window already open cannot cover it.
+    expect(box.parentElement).toBe(document.body);
     await userEvent.click(within(box).getByRole("button", { name: t("cancel") }));
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
@@ -944,7 +947,7 @@ describe("deleting a document", () => {
     expect(screen.getByRole("button", { name: "Notes" })).toBeTruthy();
   });
 
-  it("asks one question at a time when two come at once", async () => {
+  it("asks one question at a time when two come at once, and a double-click answers only the first", async () => {
     seedDoc({ title: "Alpha" });
     seedDoc({ title: "Beta" });
     await boot();
@@ -956,6 +959,11 @@ describe("deleting a document", () => {
     await goOn();
     await waitFor(() => expect(store.docs).toHaveLength(1));
     expect(screen.getAllByRole("dialog", { name: t("sureTitle") })).toHaveLength(1);
+    await goOn();
+    await new Promise((settle) => setTimeout(settle, 100));
+    expect(store.docs).toHaveLength(1);
+
+    await new Promise((settle) => setTimeout(settle, SETTLING_MS));
     await goOn();
     await waitFor(() => expect(store.docs).toHaveLength(0));
   });

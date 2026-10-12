@@ -30,6 +30,8 @@ export interface Torn {
 
 export interface Asked {
   said: string;
+  turn: number;
+  hurried: boolean;
   done: (yes: boolean) => void;
 }
 
@@ -110,8 +112,9 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
 
       {asked && (
         <Sure
-          key={asked.said}
+          key={asked.turn}
           said={asked.said}
+          hurried={asked.hurried}
           onAnswer={(yes) => {
             asked.done(yes);
             setAsked(null);

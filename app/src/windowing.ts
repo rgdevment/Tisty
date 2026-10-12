@@ -20,6 +20,7 @@ import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
 import type { Asked, MenuOpen, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
+import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
 import { type Chosen, type Slice, useReach } from "./views";
 import { useAloud, useTight, useUpdates } from "./watching";
@@ -272,8 +273,25 @@ function useOverlays() {
         ),
     );
     let turn: Promise<unknown> = Promise.resolve();
+    let turns = 0;
+    let answeredAt = Number.NEGATIVE_INFINITY;
     asksSure((said) => {
-      const answer = turn.then(() => new Promise<boolean>((done) => setAsked({ said, done })));
+      const answer = turn.then(
+        () =>
+          new Promise<boolean>((done) => {
+            turns += 1;
+            const hurried = performance.now() - answeredAt < SETTLING_MS;
+            setAsked({
+              said,
+              turn: turns,
+              hurried,
+              done: (yes) => {
+                answeredAt = performance.now();
+                done(yes);
+              },
+            });
+          }),
+      );
       turn = answer.catch(() => undefined);
       return answer;
     });
