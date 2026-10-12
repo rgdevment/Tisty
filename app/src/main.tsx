@@ -7,6 +7,7 @@ import { locale } from "./locales";
 import Moving from "./Moving";
 import Quick from "./Quick";
 import Standing from "./Standing";
+import Viewing from "./Viewing";
 import "./index.css";
 
 document.addEventListener("contextmenu", (e) => {
@@ -37,6 +38,16 @@ if (quick) document.documentElement.classList.add("quick");
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <Standing>{label === "moving" ? <Moving /> : quick ? <Quick /> : <App />}</Standing>
+    <Standing>
+      {label === "moving" ? (
+        <Moving />
+      ) : label.startsWith("view-") ? (
+        <Viewing />
+      ) : quick ? (
+        <Quick />
+      ) : (
+        <App />
+      )}
+    </Standing>
   </React.StrictMode>,
 );

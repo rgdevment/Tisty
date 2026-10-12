@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { type MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { carrying } from "./carrying";
@@ -131,6 +132,18 @@ export function usePapers({
       .catch((e) => setError(saidPlainly(e)));
   };
 
+  const opening = useRef(openDoc);
+  opening.current = openDoc;
+  const changing = useRef<() => void>(() => {});
+  useEffect(() => {
+    const off = listen<string>("showdoc", ({ payload }) => opening.current(payload));
+    const fresh = listen("papered", () => changing.current());
+    return () => {
+      void off.then((stop) => stop());
+      void fresh.then((stop) => stop());
+    };
+  }, []);
+
   const caught = useRef(false);
   const lookPapers = useCallback(() => {
     docs()
@@ -155,6 +168,7 @@ export function usePapers({
     lookPapers();
     carries.current?.changed();
   }, [lookPapers, carries]);
+  changing.current = papersChanged;
 
   const hangIt = async (doc: string, pageOf: string) => {
     const named = (id: string) =>

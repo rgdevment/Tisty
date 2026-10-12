@@ -8,5 +8,36 @@
   <string>Tisty copies a file into its own store when you attach one, and your Documents folder is one of the few places it may take a file from.</string>
   <key>NSDownloadsFolderUsageDescription</key>
   <string>Tisty copies a file into its own store when you attach one, and your Downloads folder is where most of them land.</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>dev.rgdevment.tisty</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>tisty</string>
+      </array>
+    </dict>
+  </array>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Markdown</string>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array>
+        <string>net.daringfireball.markdown</string>
+      </array>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>md</string>
+        <string>markdown</string>
+      </array>
+    </dict>
+  </array>
 </dict>
 </plist>

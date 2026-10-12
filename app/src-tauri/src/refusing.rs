@@ -39,6 +39,13 @@ pub fn where_it_comes_from() -> &'static str {
     }
 }
 
+pub fn page(spanish: bool) -> &'static str {
+    match spanish {
+        true => "index.html?locale=es",
+        false => "index.html?locale=en",
+    }
+}
+
 pub fn speaks_spanish() -> bool {
     let chosen = tisty_core::Paths::resolve()
         .ok()

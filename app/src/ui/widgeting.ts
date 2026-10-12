@@ -1,15 +1,24 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { message } from "@tauri-apps/plugin-dialog";
 import type { Editor as Writing } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
 import { type Borrowed, openLink, widgetLend, widgetLendKept, widgetTakeBack } from "../core";
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { saidPlainly } from "../refusal";
+import { drawn, type Shaped } from "./viewer/shapes";
 
 export const SHORTEST = 40;
 export const TALLEST = 2400;
 
-export type Asked = { type: "resize"; height: number } | { type: "open"; href: string };
+export type Span = { left: number; right: number; view: number };
+
+export type Asked =
+  | { type: "resize"; height: number }
+  | { type: "open"; href: string }
+  | ({ type: "span" } & Span);
+
+const counted = (one: unknown): one is number => typeof one === "number" && Number.isFinite(one);
 
 export const heard = (data: unknown): Asked | null => {
   if (!data || typeof data !== "object") return null;
@@ -18,6 +27,8 @@ export const heard = (data: unknown): Asked | null => {
     return { type: "resize", height: said.height };
   if (said.type === "open" && typeof said.href === "string")
     return { type: "open", href: said.href };
+  if (said.type === "span" && counted(said.left) && counted(said.right) && counted(said.view))
+    return { type: "span", left: said.left, right: said.right, view: said.view };
   return null;
 };
 
@@ -54,15 +65,26 @@ const followed = (retheme: () => void) => {
   watching.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 };
 
-export type Lending = { retheme: () => void; drop: () => void };
+export type Lending = {
+  retheme: () => void;
+  shade: (dark: boolean | null) => void;
+  drop: () => void;
+};
 
-export const lend = (drawn: HTMLElement, source: string): Lending =>
-  drawnFrom(drawn, () => widgetLend(source).then((id) => ({ id, whole: false })));
+export const lend = (drawn: HTMLElement, source: string, onSpan?: (span: Span) => void): Lending =>
+  drawnFrom(drawn, () => widgetLend(source).then((id) => ({ id, whole: false })), onSpan);
 
-export const lendKept = (drawn: HTMLElement, reference: string): Lending =>
-  drawnFrom(drawn, () => widgetLendKept(reference));
+export const lendKept = (
+  drawn: HTMLElement,
+  reference: string,
+  onSpan?: (span: Span) => void,
+): Lending => drawnFrom(drawn, () => widgetLendKept(reference), onSpan);
 
-const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lending => {
+const drawnFrom = (
+  drawn: HTMLElement,
+  borrowed: () => Promise<Borrowed>,
+  onSpan?: (span: Span) => void,
+): Lending => {
   let id: string | null = null;
   let whole = false;
   let gone = false;
@@ -70,6 +92,8 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
   let climbed = 0;
   let stride = 0;
   let climbedAt = Number.NEGATIVE_INFINITY;
+  let forced: boolean | null = null;
+  const shaded = () => forced ?? darkNow();
   const frame = document.createElement("iframe");
   frame.className = "lit-widget";
   frame.setAttribute("sandbox", "allow-scripts");
@@ -82,6 +106,10 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
     if (event.source !== frame.contentWindow || event.origin !== "null") return;
     const asked = heard(event.data);
     if (!asked) return;
+    if (asked.type === "span") {
+      onSpan?.(asked);
+      return;
+    }
     if (asked.type === "resize") {
       const next = tall(asked.height);
       const step = next - (Number.parseFloat(frame.style.height) || SHORTEST);
@@ -120,7 +148,8 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
       }
       id = lent.id;
       whole = lent.whole;
-      frame.src = `${convertFileSrc(lent.id, "widget")}${darkNow() && !whole ? "?dark=1" : ""}`;
+      const asked = [shaded() && !whole ? "dark=1" : "", onSpan ? "span=1" : ""].filter(Boolean);
+      frame.src = `${convertFileSrc(lent.id, "widget")}${asked.length ? `?${asked.join("&")}` : ""}`;
       drawn.replaceChildren(frame);
     })
     .catch((problem) => {
@@ -133,15 +162,19 @@ const drawnFrom = (drawn: HTMLElement, borrowed: () => Promise<Borrowed>): Lendi
     });
 
   const retheme = () => {
-    frame.style.colorScheme = darkNow() ? "dark" : "light";
+    frame.style.colorScheme = shaded() ? "dark" : "light";
     // A whole page may route by its own hash, so the theme never travels through its address.
     if (!frame.src || whole) return;
-    frame.src = `${frame.src.split("#")[0]}#${darkNow() ? "dark" : "light"}`;
+    frame.src = `${frame.src.split("#")[0]}#${shaded() ? "dark" : "light"}`;
   };
   followed(retheme);
 
   return {
     retheme,
+    shade: (dark) => {
+      forced = dark;
+      retheme();
+    },
     drop: () => {
       gone = true;
       following.delete(retheme);
@@ -165,3 +198,68 @@ export const besideWidget = (editor: Writing, back: boolean): boolean => {
   editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(doc, start)));
   return true;
 };
+
+export type Pick = { label: string; run: () => void };
+
+export const dropdown = (anchor: HTMLElement, picks: Pick[]): void => {
+  const card = document.createElement("div");
+  card.className = "widget-menu";
+  card.setAttribute("role", "menu");
+  const gone = () => {
+    card.remove();
+    document.removeEventListener("mousedown", away, true);
+    document.removeEventListener("keydown", keyed, true);
+  };
+  const away = (e: MouseEvent) => {
+    if (!card.contains(e.target as Node)) gone();
+  };
+  const keyed = (e: KeyboardEvent) => {
+    if (e.key === "Escape") gone();
+  };
+  for (const one of picks) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.setAttribute("role", "menuitem");
+    item.textContent = one.label;
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      gone();
+      one.run();
+    });
+    card.append(item);
+  }
+  document.body.append(card);
+  const box = anchor.getBoundingClientRect();
+  const wide = card.getBoundingClientRect().width || 220;
+  card.style.left = `${Math.max(6, Math.min(box.right - wide, window.innerWidth - wide - 6))}px`;
+  card.style.top = `${box.bottom + 4}px`;
+  document.addEventListener("mousedown", away, true);
+  document.addEventListener("keydown", keyed, true);
+  card.querySelector<HTMLButtonElement>("button")?.focus();
+};
+
+export const iconed = (kind: Shaped, label: string, className: string) => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  button.append(drawn(kind, 15));
+  return button;
+};
+
+export const locked = () => {
+  const said = document.createElement("div");
+  said.className = "lit-locked";
+  said.setAttribute("contenteditable", "false");
+  said.append(drawn("lock", 14));
+  const why = document.createElement("span");
+  const bold = document.createElement("b");
+  bold.textContent = t("viewWidgetLocked");
+  why.append(bold, ` ${t("viewWidgetLockedWhy")}`);
+  said.append(why);
+  return said;
+};
+
+export const failed = (problem: unknown) =>
+  void message(saidPlainly(problem), { kind: "warning" }).catch(() => {});
