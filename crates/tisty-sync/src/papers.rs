@@ -91,7 +91,11 @@ pub(crate) fn carry_papers_leaning_on(
     straight(&there, dest)?;
     let was = Carried::read(data);
     let mut said = was.clone();
-    if said.facing(dest, been_here) {
+    if said.facing(
+        dest,
+        been_here,
+        crate::holds_our_store(&data.join(STORE), dest),
+    ) {
         tisty_core::docs::forget_what_was_carried(data);
     }
     let mut prints = Prints::read(data);

@@ -2,13 +2,18 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use crate::{STORE, written};
-use tisty_core::paths::{is_the_one, told_of};
+use tisty_core::paths::{same_folder, told_of};
 
 pub(crate) const CARRIED_TO: &str = "carried-to";
 const ADOPTING: &str = "adopting";
 
 // A memo another identity left, as a reinstall that kept the cache does, is not being here.
-pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path, device: Option<&str>) -> bool {
+pub(crate) fn carried_here(
+    aside: Option<&Path>,
+    dest: &Path,
+    device: Option<&str>,
+    holds_our_store: bool,
+) -> bool {
     let Some(aside) = aside else {
         return false;
     };
@@ -19,7 +24,7 @@ pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path, device: Option<&st
         Some((at, by)) => (at, Some(by.trim())),
         None => (last.as_str(), None),
     };
-    is_the_one(at, dest)
+    same_folder(at, dest, holds_our_store)
         && match (by, device) {
             (Some(by), Some(device)) => by.eq_ignore_ascii_case(device),
             _ => true,
@@ -27,7 +32,7 @@ pub(crate) fn carried_here(aside: Option<&Path>, dest: &Path, device: Option<&st
 }
 
 pub fn forget_carried_to(aside: &Path, dest: &Path) {
-    if carried_here(Some(aside), dest, None) {
+    if carried_here(Some(aside), dest, None, false) {
         let _ = std::fs::remove_file(aside.join(CARRIED_TO));
     }
 }
@@ -57,12 +62,16 @@ pub(crate) fn names_in(dest: &Path) -> BTreeSet<String> {
 }
 
 /// A machine still in the cloud on joining would otherwise wait for the confirmation joining gave.
-pub(crate) fn still_adopting(aside: Option<&Path>, dest: &Path) -> BTreeSet<String> {
+pub(crate) fn still_adopting(
+    aside: Option<&Path>,
+    dest: &Path,
+    holds_our_store: bool,
+) -> BTreeSet<String> {
     let Some(kept) = aside.and_then(|at| std::fs::read_to_string(at.join(ADOPTING)).ok()) else {
         return BTreeSet::new();
     };
     match kept.split_once('\n') {
-        Some((names, at)) if is_the_one(at, dest) => {
+        Some((names, at)) if same_folder(at, dest, holds_our_store) => {
             names.split_whitespace().map(str::to_string).collect()
         }
         _ => BTreeSet::new(),

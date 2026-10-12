@@ -33,3 +33,47 @@ fn a_body_past_the_ceiling_is_refused_without_being_opened_to_be_read() {
         "a body past the ceiling was read to find that out"
     );
 }
+
+#[test]
+fn the_same_folder_come_back_with_another_mark_keeps_what_was_carried() {
+    let shared = tempfile::tempdir().unwrap();
+    let mut said = Carried {
+        prints: [("dev_a-0001".to_string(), "huella".to_string())].into(),
+        up_to: Some(format!("1:2\n{}", shared.path().display())),
+    };
+
+    assert!(!said.facing(shared.path(), false, true));
+
+    assert_eq!(said.of("dev_a-0001"), Some("huella"));
+    assert_eq!(
+        said.up_to.as_deref(),
+        Some(crate::paths::told_of(shared.path()).as_str())
+    );
+}
+
+#[test]
+fn the_same_path_holding_another_store_forgets_what_was_carried() {
+    let shared = tempfile::tempdir().unwrap();
+    let mut said = Carried {
+        prints: [("dev_a-0001".to_string(), "huella".to_string())].into(),
+        up_to: Some(format!("1:2\n{}", shared.path().display())),
+    };
+
+    assert!(said.facing(shared.path(), false, false));
+
+    assert_eq!(said.of("dev_a-0001"), None);
+}
+
+#[test]
+fn another_folder_forgets_what_was_carried() {
+    let before = tempfile::tempdir().unwrap();
+    let now = tempfile::tempdir().unwrap();
+    let mut said = Carried {
+        prints: [("dev_a-0001".to_string(), "huella".to_string())].into(),
+        up_to: Some(crate::paths::told_of(before.path())),
+    };
+
+    assert!(said.facing(now.path(), false, true));
+
+    assert_eq!(said.of("dev_a-0001"), None);
+}

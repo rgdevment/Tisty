@@ -420,15 +420,28 @@ fn a_mark(one: &str) -> bool {
                 .all(|one| one.bytes().all(|b| b.is_ascii_hexdigit())))
 }
 
+fn mark_and_path(kept: &str) -> (Option<&str>, &str) {
+    match kept.split_once('\n') {
+        Some((one, rest)) if a_mark(one.trim()) => (Some(one.trim()), rest.trim()),
+        _ => (None, kept.trim()),
+    }
+}
+
 pub fn is_the_one(kept: &str, at: &Path) -> bool {
-    let (mark, path) = match kept.split_once('\n') {
-        Some((one, rest)) if a_mark(one.trim()) => (Some(one.trim()), rest),
-        _ => (None, kept),
-    };
-    let path = path.trim();
+    let (mark, _) = mark_and_path(kept);
     if let (Some(mark), Some(now)) = (mark, told_apart(at)) {
         return mark == now;
     }
+    written_at(kept, at)
+}
+
+// A cloud drive can hand the same folder back under another mark, and only the store it holds says it is the same one.
+pub fn same_folder(kept: &str, at: &Path, holds_our_store: bool) -> bool {
+    is_the_one(kept, at) || (holds_our_store && written_at(kept, at))
+}
+
+fn written_at(kept: &str, at: &Path) -> bool {
+    let (_, path) = mark_and_path(kept);
     !path.is_empty() && as_written(Path::new(path)) == as_written(at)
 }
 

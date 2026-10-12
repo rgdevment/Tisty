@@ -9,7 +9,7 @@ import {
   starDue,
   type Task,
 } from "./core";
-import { decidesByBlock } from "./deciding";
+import { decidesByBlock, decidesWhole } from "./deciding";
 import { deep } from "./folders";
 import { useNote } from "./glance";
 import { useListening } from "./listening";
@@ -263,7 +263,16 @@ function useOverlays() {
 
   useEffect(() => {
     decidesByBlock((named, rifts) => new Promise((answer) => setTorn({ named, rifts, answer })));
-    return () => decidesByBlock(null);
+    decidesWhole(
+      (named) =>
+        new Promise((answer) =>
+          setTorn({ named, rifts: [], answer: (picks) => answer(picks?.[0] ?? null) }),
+        ),
+    );
+    return () => {
+      decidesByBlock(null);
+      decidesWhole(null);
+    };
   }, []);
 
   return {
