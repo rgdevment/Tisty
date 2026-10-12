@@ -546,7 +546,14 @@ jobs:
         run: |
           packs=""
           if [ -f sign.json ]; then packs="--config sign.json"; fi
-          npm run tauri build -- --bundles nsis $packs
+          # The bundler downloads NSIS and its plugin from GitHub releases, which now and then answer 500.
+          for try in 1 2 3; do
+            if npm run tauri build -- --bundles nsis $packs 2>&1 | tee bundle.log; then exit 0; fi
+            grep -q "http status: 5" bundle.log || exit 1
+            echo "::warning::try $try could not download what the bundler needs; again in a minute"
+            sleep 60
+          done
+          exit 1
 
       # The MSIX packs these same bytes; building them a second time over there bought nothing.
       - name: Set the binaries aside for the MSIX
@@ -624,11 +631,15 @@ jobs:
           foreach ($one in $mine) {
             $where = $one.FullName.Substring($peek.Length).TrimStart("\\")
             $sig = Get-AuthenticodeSignature $one.FullName
-            if ($sig.SignerCertificate -and $sig.Status -eq 'Valid') {
-              Write-Host "$where <- $($sig.SignerCertificate.Subject)"
-            } else {
+            # Our certificate chains to no root this runner trusts, so a sound signature reads UnknownError.
+            if (-not $sig.SignerCertificate -or $sig.Status -in 'NotSigned', 'HashMismatch', 'NotSupportedFileFormat') {
               Write-Error "$where goes out unsigned or with a broken signature ($($sig.Status))"
               $status = 1
+            } elseif (-not $sig.TimeStamperCertificate) {
+              Write-Error "$where carries no timestamp, so its signature dies with the certificate"
+              $status = 1
+            } else {
+              Write-Host "$where <- $($sig.SignerCertificate.Subject) ($($sig.Status))"
             }
           }
           exit $status
