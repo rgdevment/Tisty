@@ -702,7 +702,16 @@ export interface Settled {
   astray: string[];
   unprojected: boolean;
   joined: string[];
+  deferred?: "budget" | "limit" | "offline" | "busy" | "changed" | null;
 }
+
+const DEFERRED = {
+  budget: "deferredBudget",
+  limit: "deferredLimit",
+  offline: "deferredOffline",
+  busy: "deferredBusy",
+  changed: "deferredChanged",
+} as const;
 
 export const whatWentAmiss = (said: Settled) =>
   (said.unprojected && "ownLogUnreadable") ||
@@ -711,6 +720,7 @@ export const whatWentAmiss = (said: Settled) =>
   (said.waiting?.length && "someoneUnconfirmedHolds") ||
   (said.unconfirmed?.length && "someoneUnconfirmed") ||
   (said.unreadable?.length && "someoneUnreadable") ||
+  (said.deferred && DEFERRED[said.deferred]) ||
   null;
 
 export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>

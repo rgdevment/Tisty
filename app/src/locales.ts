@@ -951,6 +951,14 @@ const en = {
   cloudElsewhere:
     "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
   cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while",
+  deferredBudget:
+    "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on tomorrow.",
+  deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
+  deferredOffline:
+    "Your cloud could not be reached. What you write stays safe here and goes when there is a connection.",
+  deferredBusy:
+    "Another Tisty on this computer was talking to your cloud. The sync carries on in a moment.",
+  deferredChanged: "Your cloud changed while this sync ran. What is left goes on the next one.",
   emptiedPlace:
     "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
   syncRefused:
@@ -2567,6 +2575,14 @@ const es: Catalog = {
     "La nube ahora responde como otra cuenta ({name}). Tisty se detiene para no mezclar dos cuentas: conecta la que usabas antes.",
   cloudNotNow:
     "No se pudo consultar primero tu nube, así que no se hizo nada. Inténtalo en un rato",
+  deferredBudget:
+    "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue mañana.",
+  deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",
+  deferredOffline:
+    "No se pudo llegar a tu nube. Lo que escribas queda guardado aquí y se envía cuando haya conexión.",
+  deferredBusy:
+    "Otro Tisty de este equipo estaba hablando con tu nube. La sincronización sigue en un momento.",
+  deferredChanged: "Tu nube cambió mientras se sincronizaba. Lo que falta va en la próxima.",
   emptiedPlace:
     "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",
   syncRefused:

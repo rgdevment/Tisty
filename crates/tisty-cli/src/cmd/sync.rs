@@ -243,6 +243,17 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             style::dim(&lang.fill(word, &[("names", &many.join(", "))]))
         );
     }
+    if let Some(deferred) = &moved.deferred {
+        let word = match deferred.reason {
+            carrier::Reason::Budget => "deferred-budget",
+            carrier::Reason::Limit => "deferred-limit",
+            carrier::Reason::Offline => "deferred-offline",
+            carrier::Reason::Busy => "deferred-busy",
+            carrier::Reason::Changed => "deferred-changed",
+        };
+        let left = deferred.left.to_string();
+        println!("  {}", style::dim(&lang.fill(word, &[("left", &left)])));
+    }
     println!();
     Ok(ExitCode::SUCCESS)
 }
