@@ -779,7 +779,8 @@ cache directory (where memos live) and this machine's device id.
 | `kin`, `stitch` | Compare lineages; merge them |
 | `signed`, `unclaimed`, `stirring` | The alias in the histories there; files there no log claims; a cheap mark that changes when something there moved |
 | `let_go` | Release local copies of large attachments that verifiably live there |
-| `lends_from`, `brought` | The directory outside the store the window may serve attachments from (the folder's; none for the cloud); fetch one attachment on demand (`Brought::{At, Absent, Later}`). The window serves from `lends_from` but looks for attachments itself (`finding.rs`) and does not call `brought` |
+| `lends_from`, `brought` | The directory outside the store the window may serve attachments from (the folder's; none for the cloud); fetch one attachment on demand (`Brought::{At, Unvouched, Absent, Later}`). The window serves from `lends_from` and looks for attachments itself (`finding.rs`); only with a place that `frees_space` does it call `brought` for one that is not here, without the `#` or `?` a link may carry, and it writes `AttachKept` for one that came back `Unvouched` once the work is done (`finding::fetched`); when that write fails the copy is removed, so the next open tries again. `Later` reads as `cloudLater`. With such a place, a size the disk cannot answer comes from the log, so one let go of here is never shown as lost, and a page is held to its ceiling before it is fetched. The window asks for one attachment once at a time and not again for a minute after a refusal (`inUse.ts::serve`), so an editor redrawing never fetches the same file twice |
+| `frees_space` | True for the cloud: every attachment stays here once opened, so the window hides «Where large attachments stay» and Maintenance offers to free space (`unused_attachments`, `free_space`, 30, 60 or 90 days, `answers/freeing.rs`, which also holds `free_up`: both let go through one helper that says how far it got every 250 ms). The estimate reads no bytes; only letting go compares the provider's hash |
 | `bring_home` | A pull round that brings home every attachment the place holds, within the budget, whatever `holds` says; what a move out of a place runs. It sends nothing up, so a full place never keeps anyone in it. For a folder it is a pull round |
 | `could_free`, `set_free` | What freeing space would let go of, and letting go of it: local copies of attachments unused since a moment, that the place holds with the same size and provider's hash (a provider that gives no hash frees nothing). Answered as `LetGo`, like `let_go`, so the caller writes `AttachLetGo` for each. Only the cloud frees anything; a folder answers nothing |
 | `shelf` | Every attachment the place holds, with its size, read once; `None` when it cannot tell (a folder out of reach, a cloud not yet listed) |
@@ -812,7 +813,7 @@ it.
 | Deferral | `Hitch::Limited` pauses with `Reason::Limit` and its `wait`; `Spent` pauses with `Reason::Budget`; `Unreachable` with `Offline`; a busy `round.lock` with `Busy`. A deferred round has written everything locally, lost nothing and asks nothing of the person |
 | Refusal | `Hitch::Full`, `Lost` and `Elsewhere { found }` stop the round as `Trouble::CloudFull`, `CloudLost` and `CloudElsewhere`, each naming the provider (`Limits::provider`) so the person is told it is the provider that refuses. `Missing`, `Changed` and `Broke` stop it as `Trouble::Broke` |
 | Bringing | Opening an attachment that is not here: one buried (retired and named by nothing) is `Absent`. `brought` serves the copy here first; an attachment the last listing did not show is `Later`, never asked of the provider; otherwise it is fetched straight into this machine's `attachments/`, held to its name and the log's full digest, written in the ledger and kept, so it plays from the disk from then on. One the log does not answer for yet is held to its name and the ledger and handed back as `Unvouched`, so the caller writes its `AttachKept`. Bytes refused for what they hold (not a disk that failed to take them) are remembered by revision in `index.json` (`spoiled`): not fetched again, refused at once when opened, not counted as held there so they never stall a move, and written over by a genuine copy when this machine sends one |
-| Freeing space | `set_free` lets go of copies here neither opened nor shown (`<data>/used.json`, which the window writes, again each day a picture stays on screen) nor attached or brought in (the latest `AttachKept` in the log) since the chosen moment, nor since `used.json` was begun. It runs after a fresh pull under the round lock, decides what is unused only then, and refuses when that pull cannot run; it lets go only when the cloud holds the same size and the provider's hash matches, never of a placeholder. Opening one again brings it back, and attaching the same bytes puts them back under the name the ledger gives |
+| Freeing space | `set_free` lets go of copies here neither opened nor shown (`<data>/used.json`, which the window writes, again each day a picture stays on screen) nor attached or brought in (the latest `AttachKept` in the log) since the chosen moment, nor since `used.json` was begun. It runs after a fresh pull under the round lock, decides what is unused only then, asks `used.json` again right before each copy goes, and refuses with `Trouble::NotNow` when that pull cannot run; it lets go only when the cloud holds the same size and the provider's hash matches, never of a placeholder. Opening one again brings it back, and attaching the same bytes puts them back under the name the ledger gives |
 | First round | Until `tisty.toml` has been seen or put, what the engine remembers about the place (`.shape-seen`, `carried-to`) is forgotten, so a first round that was deferred cannot leave this machine unable to start again |
 | Forgetting | `forget_paper` queues the id in `forgotten`; the next round deletes it up there |
 
@@ -821,8 +822,17 @@ a refresh token read through the `Secrets` trait, the seam for the system
 keychain, serialising renewals across processes with `renewing.lock`. A refresh
 token that cannot be saved is kept in memory and retried. No stored refresh
 token is `Hitch::Lost`. `spoiled(access)` drops an access token the provider
-turned down, so the next ask renews. Nothing implements `Secrets` or `Renew`
-outside tests.
+turned down, so the next ask renews. `Keychain` implements `Secrets` over the
+system's own store through `keyring-core`: Credential Manager on Windows, the
+Keychain on macOS, the Secret Service elsewhere. It writes a token as UTF-8
+bytes, since Credential Manager holds a password as UTF-16 and that halves the
+room a long token has; one past the keychain's room is said so, and `Tokens` writes
+it to the log and keeps it only while Tisty stays open. Each entry is named by a
+scope (the store or the profile) and the key, so two stores of one person never
+share a token, and on Windows it is kept `Local`, since the default roams with a
+domain profile to machines that would rotate it. No token is ever written to a
+file, which a test fixes.
+Nothing implements `Renew` outside tests.
 
 ### `Remote`
 
@@ -1338,11 +1348,6 @@ checks that a test would notice a changed line.
 - `tisty doctor` and Maintenance showing the cloud's day's spend.
 - A window screen or command that moves between places with `shift` and shows
   how far the move has gone.
-- The window opening an attachment that lives only in a cloud through
-  `Carrier::brought`, and Maintenance offering to free space with
-  `could_free` and `set_free` (30, 60 or 90 days unused, only with the cloud).
-- Hiding «Where large attachments stay» when the cloud is chosen: a cloud
-  round ignores it.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.

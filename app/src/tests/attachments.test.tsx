@@ -40,23 +40,40 @@ describe("more than one image", () => {
 });
 
 describe("a picture left on screen", () => {
-  it("is asked for again each day it stays, and no longer once it is gone", () => {
+  it("is asked for again each day it stays, and no longer once it is gone", async () => {
     const one = "![tres](<attachments/cc/3.png>)";
     const asked = () => served.mock.calls.filter(([at]) => at === "attachments/cc/3.png").length;
     vi.useFakeTimers();
     try {
       const shown = render(<Composed html={composed(one)} className="prose" />);
+      await vi.advanceTimersByTimeAsync(0);
       const before = asked();
 
-      vi.advanceTimersByTime(ONCE_A_DAY);
+      await vi.advanceTimersByTimeAsync(ONCE_A_DAY);
       expect(asked()).toBe(before + 1);
 
       shown.unmount();
-      vi.advanceTimersByTime(ONCE_A_DAY);
+      await vi.advanceTimersByTimeAsync(ONCE_A_DAY);
       expect(asked()).toBe(before + 1);
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("a picture already showing", () => {
+  it("stays when asking for it again fails for a while", async () => {
+    const one = "![cuatro](<attachments/dd/4.png>)";
+    const first = render(<Composed html={composed(one)} className="prose" />);
+    await waitFor(() => expect(resolved()).toBe(1));
+    first.unmount();
+    served.mockImplementationOnce(() => Promise.reject({ code: "cloudNotNow" }));
+
+    render(<Composed html={composed(one)} className="prose" />);
+    await new Promise((settled) => setTimeout(settled, 0));
+
+    expect(resolved()).toBe(1);
+    expect(screen.queryByText(/cuatro/)).toBeNull();
   });
 });
 

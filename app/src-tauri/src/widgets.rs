@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::http::{Response, StatusCode, Uri, header};
 
-use crate::{Answer, Refusal, Session, elsewhere, finding, weighed};
+use crate::{Answer, Refusal, Session, finding, weighed};
 
 pub const LENT_AT_MOST: usize = 512 * 1024;
 pub const KEPT_AT_MOST: usize = 8 * 1024 * 1024;
@@ -116,9 +116,9 @@ pub fn small_enough(weighs: u64) -> Answer<()> {
 }
 
 fn kept_page(reference: String, at: finding::Where) -> Answer<Vec<u8>> {
-    let found = finding::handed_over(&reference, &at)?;
-    if let Ok(told) = std::fs::metadata(&found) {
-        small_enough(told.len())?;
+    let weighs = finding::weight_of(&reference, &at.data, at.shared.as_deref(), at.weight);
+    if let Some(weighs) = weighs {
+        small_enough(weighs)?;
     }
     crate::answers::attaching::read_out(reference, at)
 }
@@ -141,8 +141,7 @@ pub async fn widget_lend_kept(
     if !a_page(&reference) {
         return Err(Refusal::of("notAllowed"));
     }
-    let at = finding::where_to(&session, &reference);
-    let body = elsewhere(move || kept_page(reference, at)).await??;
+    let body = finding::fetched(&session, reference, kept_page).await?;
     lent.lend_kept(body)
 }
 

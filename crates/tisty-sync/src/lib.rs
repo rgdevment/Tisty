@@ -37,20 +37,33 @@ const PAPERS: &str = "docs";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Trouble {
     NotThere(String),
-    OtherStore { theirs: String },
+    OtherStore {
+        theirs: String,
+    },
     Unreadable(String),
     Refused(String),
     Broke(String),
-    WouldReset { theirs: String },
+    WouldReset {
+        theirs: String,
+    },
     NotAllowed(String),
     SameName(String),
     Emptied(String),
     Newer(String),
     Shape(String),
     Unshaped(String),
-    CloudFull { provider: String },
-    CloudLost { provider: String },
-    CloudElsewhere { provider: String, found: String },
+    CloudFull {
+        provider: String,
+    },
+    CloudLost {
+        provider: String,
+    },
+    CloudElsewhere {
+        provider: String,
+        found: String,
+    },
+    /// The cloud could not be asked first (another round, no connection, a limit): try again later.
+    NotNow(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

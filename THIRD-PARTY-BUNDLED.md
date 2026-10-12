@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (343 crates)
+## In the core (346 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -288,6 +288,7 @@ written once with the crates that carry it.
 | `anstyle-query` | 1.1.5 | MIT OR Apache-2.0 |
 | `anstyle-wincon` | 3.0.11 | MIT OR Apache-2.0 |
 | `anyhow` | 1.0.104 | MIT OR Apache-2.0 |
+| `apple-native-keyring-store` | 1.0.2 | MIT OR Apache-2.0 |
 | `arboard` | 3.6.1 | MIT OR Apache-2.0 |
 | `atomic-waker` | 1.1.2 | Apache-2.0 OR MIT |
 | `aws-lc-rs` | 1.18.0 | ISC AND (Apache-2.0 OR ISC) |
@@ -415,6 +416,7 @@ written once with the crates that carry it.
 | `jsonptr` | 0.7.1 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.7.0 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.8.3 | MIT OR Apache-2.0 |
+| `keyring-core` | 1.0.0 | MIT OR Apache-2.0 |
 | `libc` | 0.2.189 | MIT OR Apache-2.0 |
 | `libsqlite3-sys` | 0.38.2 | MIT |
 | `litemap` | 0.8.2 | Unicode-3.0 |
@@ -587,6 +589,7 @@ written once with the crates that carry it.
 | `windows-future` | 0.3.2 | MIT OR Apache-2.0 |
 | `windows-link` | 0.1.3 | MIT OR Apache-2.0 |
 | `windows-link` | 0.2.1 | MIT OR Apache-2.0 |
+| `windows-native-keyring-store` | 1.1.0 | MIT OR Apache-2.0 |
 | `windows-numerics` | 0.2.0 | MIT OR Apache-2.0 |
 | `windows-numerics` | 0.3.1 | MIT OR Apache-2.0 |
 | `windows-registry` | 0.6.1 | MIT OR Apache-2.0 |

@@ -472,6 +472,7 @@ export interface Carrying {
   sharedWasLater?: boolean;
   later?: boolean;
   backedUpAt?: string;
+  freesSpace: boolean;
 }
 
 export interface Astray {
@@ -607,6 +608,15 @@ export interface Freeing {
 
 export const freeUp = (): Promise<Freeing> => invoke("free_up");
 export const stopFreeing = (): Promise<void> => invoke("stop_freeing");
+
+export interface Unused {
+  files: number;
+  bytes: number;
+}
+
+export const unusedAttachments = (days: number): Promise<Unused> =>
+  invoke("unused_attachments", { days });
+export const freeSpace = (days: number): Promise<Freeing> => invoke("free_space", { days });
 
 export type Theme = "light" | "dark";
 

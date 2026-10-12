@@ -14,6 +14,7 @@ export type Which =
   | "notices"
   | "attach"
   | "holds"
+  | "free"
   | "tagging"
   | "repeated"
   | "unvouched"
@@ -51,6 +52,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   notices: "bandNotices",
   attach: "attachTitle",
   holds: "holdsTitle",
+  free: "freeTitle",
   tagging: "tagsRead",
   repeated: "repeatedLists",
   unvouched: "unvouchedTitle",

@@ -322,6 +322,7 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
             "cloud-elsewhere",
             &[("provider", provider), ("found", found)],
         ),
+        carrier::Trouble::NotNow(_) => lang.fill("cloud-not-now", &[]),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)

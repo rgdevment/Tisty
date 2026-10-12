@@ -22,6 +22,9 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
 
     let root = session.paths.data().to_path_buf();
     let shared = session.shared_now();
+    let frees = session
+        .carrier()
+        .is_some_and(|carrier| carrier.frees_space());
     let on_disk = tisty_core::docs::all(&session.paths.docs());
     let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
         on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
@@ -63,10 +66,11 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
             tisty_core::refs::Kind::Link
                 if tisty_core::attach::names_an_attachment(&one.target) =>
             {
-                let bytes = finding::where_it_lies(&one.target, &root, shared.as_deref())
-                    .and_then(|at| std::fs::metadata(at).ok())
-                    .filter(|told| told.is_file())
-                    .map(|told| told.len());
+                let away = frees
+                    .then(|| session.state.kept.get(finding::plain(&one.target)))
+                    .flatten()
+                    .map(|(_, bytes)| *bytes);
+                let bytes = finding::weight_of(&one.target, &root, shared.as_deref(), away);
                 Left {
                     kind: "file",
                     label: one.label.clone(),
