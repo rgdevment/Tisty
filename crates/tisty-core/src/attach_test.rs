@@ -779,6 +779,10 @@ fn a_name_that_cannot_be_told_apart_is_not_room_to_win_back() {
         .share_mode(0)
         .open(&other)
         .unwrap();
+    // Some Windows builds still identify a file another handle holds shut, and then there is nothing to prove.
+    if same_file::Handle::from_path(&other).is_ok() {
+        return;
+    }
 
     assert!(
         twins(root.path()).is_empty(),
