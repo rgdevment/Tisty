@@ -27,19 +27,19 @@ pub struct Client {
 
 // Fixed when the release is built, so a fork or a local build without them offers no cloud.
 pub fn client() -> Option<Client> {
-    match (
+    client_of(
         option_env!("TISTY_GOOGLE_CLIENT_ID"),
         option_env!("TISTY_GOOGLE_CLIENT_SECRET"),
-    ) {
+    )
+}
+
+fn client_of(id: Option<&'static str>, secret: Option<&'static str>) -> Option<Client> {
+    match (id, secret) {
         (Some(id), Some(secret)) if !id.is_empty() && !secret.is_empty() => {
             Some(Client { id, secret })
         }
         _ => None,
     }
-}
-
-pub fn offered() -> bool {
-    client().is_some()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

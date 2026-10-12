@@ -193,6 +193,47 @@ fn a_trade_google_turns_down_is_never_told_to_the_browser_as_connected() {
 }
 
 #[test]
+fn saying_no_on_googles_page_leaves_the_account_unconnected() {
+    let consent = Consent::begin(CLIENT).unwrap();
+    let (redirect, state) = (
+        said_in(&consent, "redirect_uri"),
+        said_in(&consent, "state"),
+    );
+    let waiting = waiting(consent, nowhere());
+
+    let page = lands(&redirect, &format!("state={state}&error=access_denied"));
+
+    assert!(page.contains(NOT_CONNECTED), "{page}");
+    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+}
+
+#[test]
+fn a_browser_that_sends_many_headers_still_reads_the_whole_page() {
+    let consent = Consent::begin(CLIENT).unwrap();
+    let (redirect, state) = (
+        said_in(&consent, "redirect_uri"),
+        said_in(&consent, "state"),
+    );
+    let waiting = waiting(consent, nowhere());
+    let headers: String = (0..80)
+        .map(|at| format!("X-Header-{at}: {}\r\n", "v".repeat(80)))
+        .collect();
+
+    let mut stream = TcpStream::connect(("127.0.0.1", port_of(&redirect))).unwrap();
+    write!(
+        stream,
+        "GET /?state={state}&error=access_denied HTTP/1.1\r\nHost: 127.0.0.1\r\n{headers}\r\n"
+    )
+    .unwrap();
+    let mut page = String::new();
+    let read = stream.read_to_string(&mut page);
+
+    assert!(read.is_ok(), "the browser was reset: {read:?}");
+    assert!(page.contains(NOT_CONNECTED), "{page}");
+    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+}
+
+#[test]
 fn a_grant_wider_than_drive_file_is_refused_and_handed_back() {
     let (at, asked) = provider(vec![
         reply(
@@ -229,13 +270,16 @@ fn what_reaches_the_port_without_our_state_is_waited_past_and_never_traded() {
     let other = lands(&redirect, "state=someone-else&code=stolen");
     let bare = lands(&redirect, "code=stolen");
     let refusal = lands(&redirect, "error=access_denied");
-    lands(&redirect, &format!("state={state}&error=access_denied"));
+    lands(
+        &redirect,
+        &format!("state={state}&error=temporarily_unavailable"),
+    );
 
     for page in [other, bare, refusal] {
         assert!(page.starts_with("HTTP/1.1 404"), "{page}");
     }
     assert!(
-        matches!(waiting.join().unwrap(), Err(Hitch::Lost)),
+        matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))),
         "an answer without our state ended the sign-in"
     );
 }
@@ -250,9 +294,12 @@ fn a_connection_that_says_nothing_does_not_stand_in_the_way_of_the_answer() {
     let waiting = waiting(consent, nowhere());
 
     let _idle = TcpStream::connect(("127.0.0.1", port_of(&redirect))).unwrap();
-    lands(&redirect, &format!("state={state}&error=access_denied"));
+    lands(
+        &redirect,
+        &format!("state={state}&error=temporarily_unavailable"),
+    );
 
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
 }
 
 #[test]
@@ -266,9 +313,12 @@ fn a_request_that_never_ends_is_cut_short_and_the_answer_still_lands() {
 
     let mut endless = TcpStream::connect(("127.0.0.1", port_of(&redirect))).unwrap();
     let _ = endless.write_all(&vec![b'a'; 64 * 1024]);
-    lands(&redirect, &format!("state={state}&error=access_denied"));
+    lands(
+        &redirect,
+        &format!("state={state}&error=temporarily_unavailable"),
+    );
 
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
 }
 
 #[test]
@@ -289,9 +339,12 @@ fn waiting_for_as_long_as_it_takes_does_not_overflow() {
     );
     let waiting = std::thread::spawn(move || consent.finish(Duration::MAX, &nowhere()));
 
-    lands(&redirect, &format!("state={state}&error=access_denied"));
+    lands(
+        &redirect,
+        &format!("state={state}&error=temporarily_unavailable"),
+    );
 
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
 }
 
 #[test]
@@ -386,9 +439,66 @@ fn being_told_to_wait_waits_as_long_as_google_says_and_never_less_than_a_second(
 }
 
 #[test]
-fn a_build_without_a_client_id_offers_no_cloud() {
+fn a_build_without_a_client_id_and_its_secret_offers_no_cloud() {
+    assert_eq!(client_of(None, None), None);
+    assert_eq!(client_of(Some("id"), None), None);
+    assert_eq!(client_of(None, Some("secret")), None);
+    assert_eq!(client_of(Some(""), Some("secret")), None);
+    assert_eq!(client_of(Some("id"), Some("")), None);
+    assert_eq!(
+        client_of(Some("id"), Some("secret")),
+        Some(Client {
+            id: "id",
+            secret: "secret"
+        })
+    );
     if option_env!("TISTY_GOOGLE_CLIENT_ID").is_none() {
-        assert!(!offered());
         assert_eq!(client(), None);
     }
+}
+
+#[test]
+fn every_sign_in_asks_with_a_state_and_a_verifier_of_its_own() {
+    let (one, two) = (
+        Consent::begin(CLIENT).unwrap(),
+        Consent::begin(CLIENT).unwrap(),
+    );
+
+    assert_ne!(said_in(&one, "state"), said_in(&two, "state"));
+    assert_ne!(one.verifier, two.verifier);
+    assert!(said_in(&one, "state").len() >= 32);
+    assert!(
+        one.verifier.len() >= 43,
+        "RFC 7636 asks at least 43 characters"
+    );
+    assert_eq!(said_in(&one, "code_challenge"), challenge_of(&one.verifier));
+}
+
+#[test]
+fn what_went_wrong_keeps_every_cause_under_it() {
+    #[derive(Debug)]
+    struct Under;
+    impl std::fmt::Display for Under {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("the certificate is not trusted")
+        }
+    }
+    impl std::error::Error for Under {}
+    #[derive(Debug)]
+    struct Top(Under);
+    impl std::fmt::Display for Top {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str("error sending request")
+        }
+    }
+    impl std::error::Error for Top {
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            Some(&self.0)
+        }
+    }
+
+    assert_eq!(
+        told(&Top(Under)),
+        "error sending request: the certificate is not trusted"
+    );
 }

@@ -849,7 +849,7 @@ refused. A sign-in nobody finishes leaves the account unconnected. The client
 id and its secret, which Google does not treat as confidential for a desktop
 app, are fixed when the release is built (`option_env!`, the secret from the
 `release` environment); a build without them, a fork's included, has
-`offered()` false and offers no cloud.
+no `client()` and offers no cloud.
 
 ### `Remote`
 
