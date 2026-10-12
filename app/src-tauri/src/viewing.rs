@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Component, Path, PathBuf, Prefix};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -10,30 +10,26 @@ use crate::{Answer, Refusal, Session, held, widgets};
 
 const OPENS: [&str; 3] = ["md", "markdown", "txt"];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Shown {
-    File(PathBuf),
-    Widget(Lent),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Lent {
     Source(String),
     Reference(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Shown {
+    File(PathBuf),
+    Doc { file: String, title: String },
+    Widget(Lent),
+}
+
 #[derive(Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 pub enum Showing {
-    File {
-        name: String,
-        body: String,
-    },
-    Widget {
-        source: Option<String>,
-        reference: Option<String>,
-    },
+    File { name: String, body: String },
+    Doc { file: String, title: String },
+    Widget { lent: Lent },
 }
 
 #[derive(Default)]
@@ -42,8 +38,8 @@ pub struct Views {
     made: AtomicU64,
 }
 
-// Whatever reaches Tisty from outside is a third party's word: only a whole path to a readable text file passes.
-pub fn asked(said: &str) -> Option<PathBuf> {
+// Whatever reaches Tisty from outside is a third party's word: only a local path to a readable text file passes.
+pub fn asked(said: &str, cwd: Option<&Path>) -> Option<PathBuf> {
     let said = said.trim();
     let at = match url::Url::parse(said) {
         Ok(link) if link.scheme() == "tisty" => {
@@ -58,13 +54,23 @@ pub fn asked(said: &str) -> Option<PathBuf> {
             PathBuf::from(path.into_owned())
         }
         Ok(link) if link.scheme() == "file" => link.to_file_path().ok()?,
-        _ => PathBuf::from(said),
+        _ => match (PathBuf::from(said), cwd) {
+            (at, Some(cwd)) if at.is_relative() => cwd.join(at),
+            (at, _) => at,
+        },
     };
     readable(&at).then_some(at)
 }
 
 fn readable(at: &Path) -> bool {
-    at.is_absolute()
+    let local = match at.components().next() {
+        Some(Component::Prefix(prefix)) => {
+            matches!(prefix.kind(), Prefix::Disk(_) | Prefix::VerbatimDisk(_))
+        }
+        _ => true,
+    };
+    local
+        && at.is_absolute()
         && !at.components().any(|one| one == Component::ParentDir)
         && at
             .extension()
@@ -73,28 +79,42 @@ fn readable(at: &Path) -> bool {
         && at.is_file()
 }
 
-pub fn heard(app: &AppHandle, argv: &[String]) -> bool {
-    let mut any = false;
-    for one in argv.iter().skip(1) {
-        if let Some(at) = asked(one) {
-            open(app, Shown::File(at));
-            any = true;
-        }
+fn named(at: &Path) -> String {
+    at.file_name()
+        .map(|one| one.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
+// Windows wedges a window built from inside the event loop, so the windows are built from a thread of their own.
+pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
+    let wanted: Vec<PathBuf> = argv
+        .iter()
+        .skip(1)
+        .filter_map(|one| asked(one, cwd))
+        .collect();
+    if wanted.is_empty() {
+        return false;
     }
-    any
+    let app = app.clone();
+    std::thread::spawn(move || {
+        for at in wanted {
+            open(&app, Shown::File(at));
+        }
+    });
+    true
 }
 
 #[cfg(target_os = "macos")]
 pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
-    for one in links {
-        match asked(one.as_str()) {
-            Some(at) => open(app, Shown::File(at)),
-            None => witness::warn(
-                channel::WINDOW,
-                "a link Tisty was asked to open was not one it opens",
-                &[],
-            ),
-        }
+    let said: Vec<String> = std::iter::once(String::new())
+        .chain(links.iter().map(|one| one.to_string()))
+        .collect();
+    if !heard(app, &said, None) {
+        witness::warn(
+            channel::WINDOW,
+            "a link Tisty was asked to open was not one it opens",
+            &[],
+        );
     }
 }
 
@@ -102,10 +122,8 @@ pub fn open(app: &AppHandle, shown: Shown) {
     let views = app.state::<Views>();
     let label = format!("view-{}", views.made.fetch_add(1, Ordering::Relaxed));
     let title = match &shown {
-        Shown::File(at) => at
-            .file_name()
-            .map(|one| one.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "Tisty".into()),
+        Shown::File(at) => named(at),
+        Shown::Doc { title, .. } => title.clone(),
         Shown::Widget(_) => "Tisty".into(),
     };
     if let Ok(mut held) = views.shown.lock() {
@@ -123,8 +141,11 @@ pub fn open(app: &AppHandle, shown: Shown) {
         ),
     )
     .title(title)
-    .inner_size(920.0, 760.0)
-    .min_inner_size(420.0, 320.0)
+    .inner_size(960.0, 780.0)
+    .min_inner_size(480.0, 360.0)
+    .decorations(false)
+    .transparent(true)
+    .shadow(true)
     .center()
     .build();
     match made {
@@ -165,20 +186,11 @@ fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
 pub fn view_shown(window: tauri::WebviewWindow, views: tauri::State<'_, Views>) -> Answer<Showing> {
     Ok(match shown_in(&views, window.label())? {
         Shown::File(at) => Showing::File {
-            name: at
-                .file_name()
-                .map(|one| one.to_string_lossy().into_owned())
-                .unwrap_or_default(),
+            name: named(&at),
             body: crate::answers::carrying::read_outside(&at)?,
         },
-        Shown::Widget(Lent::Source(source)) => Showing::Widget {
-            source: Some(source),
-            reference: None,
-        },
-        Shown::Widget(Lent::Reference(reference)) => Showing::Widget {
-            source: None,
-            reference: Some(reference),
-        },
+        Shown::Doc { file, title } => Showing::Doc { file, title },
+        Shown::Widget(lent) => Showing::Widget { lent },
     })
 }
 
@@ -187,18 +199,21 @@ pub fn view_import(
     app: AppHandle,
     window: tauri::WebviewWindow,
     views: tauri::State<'_, Views>,
-    session: tauri::State<'_, Mutex<Session>>,
 ) -> Answer<String> {
     let Shown::File(at) = shown_in(&views, window.label())? else {
         return Err(Refusal::of("notAllowed"));
     };
-    let made = crate::answers::carrying::imported(&mut held(&session), &at, None)?;
+    let session = app
+        .try_state::<Mutex<Session>>()
+        .ok_or_else(|| Refusal::of("internal"))?;
+    let body = crate::answers::carrying::read_outside(&at)?;
+    let made = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
     let _ = app.emit_to("main", "showdoc", made.id.clone());
     crate::tray::surface(&app);
     Ok(made.id)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn view_widget(app: AppHandle, lent: Lent) -> Answer<()> {
     match &lent {
         Lent::Source(source) if source.len() > widgets::LENT_AT_MOST => {
@@ -213,6 +228,12 @@ pub fn view_widget(app: AppHandle, lent: Lent) -> Answer<()> {
         _ => {}
     }
     open(&app, Shown::Widget(lent));
+    Ok(())
+}
+
+#[tauri::command(async)]
+pub fn view_doc(app: AppHandle, file: String, title: String) -> Answer<()> {
+    open(&app, Shown::Doc { file, title });
     Ok(())
 }
 

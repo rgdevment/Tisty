@@ -651,13 +651,14 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let argv: Vec<String> = std::env::args().collect();
+    let here = std::env::current_dir().ok();
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
-        viewing::heard(app.handle(), &argv);
+        viewing::heard(app.handle(), &argv, here.as_deref());
         return Ok(());
     }
     opened(app.handle())?;
-    viewing::heard(app.handle(), &argv);
+    viewing::heard(app.handle(), &argv, here.as_deref());
     Ok(())
 }
 
@@ -806,8 +807,8 @@ pub fn run() {
     let mut building = tauri::Builder::default();
 
     if tisty_core::paths::profile().is_none() {
-        building = building.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            if !viewing::heard(app, &argv) {
+        building = building.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            if !viewing::heard(app, &argv, Some(std::path::Path::new(&cwd))) {
                 tray::surface(app);
             }
         }));
@@ -1037,6 +1038,7 @@ pub fn run() {
             viewing::view_shown,
             viewing::view_import,
             viewing::view_widget,
+            viewing::view_doc,
             answers::shelves::sow,
             answers::shelves::folder_file
         ])

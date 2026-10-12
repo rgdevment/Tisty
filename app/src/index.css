@@ -959,6 +959,9 @@ body {
 .viewed-widget {
   display: flex;
 }
+.viewed-doc .scroller:focus {
+  outline: none;
+}
 .viewed-widget .lit-widget {
   flex: 1;
   width: 100%;

@@ -116,7 +116,8 @@ pub fn doc_import(
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    imported(&mut held(&session), std::path::Path::new(&from), folder)
+    let body = read_outside(std::path::Path::new(&from))?;
+    imported(&mut held(&session), &body, folder)
 }
 
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {
@@ -130,17 +131,16 @@ pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {
 
 pub(crate) fn imported(
     session: &mut Session,
-    from: &std::path::Path,
+    body: &str,
     folder: Option<tisty_core::model::FolderId>,
 ) -> Answer<tisty_core::docs::Doc> {
-    let body = read_outside(from)?;
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
         }
         folder_open(&session.state, at, true)?;
     }
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be imported", e))?;
 
     let order = tisty_core::order::last_of(
@@ -161,7 +161,7 @@ pub(crate) fn imported(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said::of(&body)),
+            said: Some(tisty_core::event::Said::of(body)),
             folder,
             page_of: None,
         },

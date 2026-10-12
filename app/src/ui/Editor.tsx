@@ -218,6 +218,7 @@ const aimed = (editor: Writing) => {
 interface Props {
   value: string;
   reading?: boolean;
+  stranger?: boolean;
   folder?: string | null;
   paper?: string;
   onMade?: (id: string, name: string) => void;
@@ -247,6 +248,7 @@ interface Props {
 export default function Editor({
   value,
   reading,
+  stranger,
   folder,
   paper,
   onMade,
@@ -374,8 +376,12 @@ export default function Editor({
   const picking = useRef(onTag);
   picking.current = onTag;
   const shapes = useMemo(
-    () => [...written(), previewing(() => reach.current), tagging((tag) => picking.current?.(tag))],
-    [],
+    () => [
+      ...written(stranger),
+      previewing(() => reach.current),
+      tagging((tag) => picking.current?.(tag)),
+    ],
+    [stranger],
   );
 
   const own = filed(papers, paper);

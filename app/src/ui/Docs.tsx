@@ -22,6 +22,7 @@ import {
   opened,
   type Paper,
   roomy,
+  viewDoc,
 } from "../core";
 import { stamped } from "../format";
 import { frail } from "../frail";
@@ -625,6 +626,17 @@ export default function Docs({
           className="absolute top-11 right-3 z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
         >
           <span aria-hidden="true">◨</span>
+        </button>
+      )}
+      {open && (
+        <button
+          type="button"
+          onClick={() => void viewDoc(open.file, open.title || t("untitledDoc")).catch(() => {})}
+          title={t("viewDocApart")}
+          aria-label={t("viewDocApart")}
+          className={`absolute top-11 ${beside ? "right-3" : "right-10"} z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink`}
+        >
+          <span aria-hidden="true">⧉</span>
         </button>
       )}
       <div
