@@ -18,6 +18,7 @@ import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
 import Notice from "./Notice";
 import Rifts from "./Rifts";
+import Versions from "./Versions";
 import Welcome from "./Welcome";
 
 export interface Torn {
@@ -99,7 +100,17 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
         {aloud}
       </p>
 
-      {torn && (
+      {torn && torn.rifts.length === 0 && (
+        <Versions
+          named={torn.named}
+          onPick={(pick) => {
+            torn.answer(pick ? [pick] : null);
+            setTorn(null);
+          }}
+        />
+      )}
+
+      {torn && torn.rifts.length > 0 && (
         <Rifts
           named={torn.named}
           rifts={torn.rifts}

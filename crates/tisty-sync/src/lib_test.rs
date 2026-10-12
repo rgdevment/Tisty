@@ -7913,16 +7913,18 @@ fn a_reinstall_that_kept_the_cache_meets_the_folder_as_a_new_machine() {
     assert!(super::place::carried_here(
         Some(kept.path()),
         shared.path(),
-        Some("dev_a")
+        Some("dev_a"),
+        false
     ));
     assert!(
-        !super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_z")),
+        !super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_z"), false),
         "another identity's memo stopped this one from taking the folder up"
     );
     assert!(super::place::carried_here(
         Some(kept.path()),
         shared.path(),
-        None
+        None,
+        false
     ));
 }
 
@@ -7937,7 +7939,7 @@ fn a_memo_from_before_it_named_its_machine_still_reads_as_having_been_here() {
     .unwrap();
 
     assert!(
-        super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_a")),
+        super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_a"), false),
         "every machine would take its folder up again, answering for every key in it"
     );
 }
@@ -8503,4 +8505,39 @@ fn the_print_the_folder_holds_for_a_document_is_the_print_of_its_body() {
     assert!(held_there(shared.path(), "dev_a-0001").is_some());
     assert_eq!(held_there(shared.path(), "dev_a-0002"), None);
     assert_eq!(held_there(shared.path(), "../fuera"), None);
+}
+
+#[test]
+fn the_same_folder_handed_back_under_another_mark_is_still_where_we_carried_while_it_holds_our_store()
+ {
+    let kept = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    std::fs::write(
+        kept.path().join(super::place::CARRIED_TO),
+        format!("1:2\n{}\nby dev_a", shared.path().display()),
+    )
+    .unwrap();
+
+    assert!(super::place::carried_here(
+        Some(kept.path()),
+        shared.path(),
+        Some("dev_a"),
+        true
+    ));
+    assert!(
+        !super::place::carried_here(Some(kept.path()), shared.path(), Some("dev_a"), false),
+        "another disk under the same name was taken for the folder we carried to"
+    );
+}
+
+#[test]
+fn a_folder_holds_our_store_only_when_its_name_is_ours() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let store = one.data.join(STORE);
+    assert!(!super::holds_our_store(&store, shared.path()));
+
+    carry_leaning_on(&one.data, None, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(super::holds_our_store(&store, shared.path()));
 }
