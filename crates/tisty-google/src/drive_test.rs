@@ -1038,3 +1038,29 @@ fn asking_google_what_it_kept_survives_a_cut_of_its_own() {
         asked[6].head
     );
 }
+
+#[test]
+fn a_store_split_across_two_roots_reads_a_vanished_copy_from_the_whole_listing() {
+    let home = tempfile::tempdir().unwrap();
+    let roots = r#"{"id":"R1","name":"Tisty","mimeType":"application/vnd.google-apps.folder","parents":["myroot"]},
+                   {"id":"R2","name":"Tisty","mimeType":"application/vnd.google-apps.folder","parents":["myroot"]}"#;
+    let x2 = r#"{"id":"X2","name":"x","parents":["R2"],"version":"1"}"#;
+    let (at, asked) = google(vec![
+        said(
+            "200 OK",
+            &listing(&format!(
+                r#"{roots},{{"id":"X1","name":"x","parents":["R1"],"version":"1"}},{x2}"#
+            )),
+        ),
+        said("404 Not Found", ""),
+        said("200 OK", &listing(&format!("{roots},{x2}"))),
+    ]);
+
+    let found = drive(at, home.path()).about("x").unwrap();
+
+    assert_eq!(found.map(|one| one.revision), Some("X2.1".into()));
+    assert!(
+        !asked.join().unwrap()[2].line.contains("name+%3D"),
+        "only one root was searched"
+    );
+}

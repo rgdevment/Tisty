@@ -235,6 +235,15 @@ impl Drive {
             copies[0] = now;
             return Ok(copies);
         }
+        if self.split_store() {
+            let cursor = self
+                .known
+                .lock()
+                .ok()
+                .and_then(|held| held.as_ref().and_then(|known| known.cursor.clone()));
+            self.listed(cursor)?;
+            return self.with_known(|tree| tree.files.get(name).cloned().unwrap_or_default());
+        }
         let found = self.looked_up(name)?;
         self.noted(|tree| match found.is_empty() {
             true => {
@@ -245,6 +254,15 @@ impl Drive {
             }
         });
         Ok(found)
+    }
+
+    // A name search walks one folder, so a store split across two roots is read whole again instead.
+    fn split_store(&self) -> bool {
+        self.roots
+            .lock()
+            .ok()
+            .and_then(|held| held.as_ref().map(|roots| roots.len() > 1))
+            .unwrap_or(false)
     }
 
     fn fresh(&self, file: &File, name: &str) -> Result<Option<File>, Hitch> {
