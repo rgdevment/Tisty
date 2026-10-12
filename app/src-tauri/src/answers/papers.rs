@@ -609,11 +609,10 @@ pub fn settle_paper(
     Ok(Some(file))
 }
 
-// The body settled goes to the shared folder, and a body no history answers for is asked about again there.
+// Unsigned, as settling writes nothing new, yet another machine asks about a body no history answers for.
 fn told_as_settled(session: &mut Session, id: &str) {
     if let Ok(body) = tisty_core::docs::read(&session.paths.docs(), id) {
-        let hand = signing(&session.state);
-        session.retell(id, &body, hand);
+        session.retell(id, &body, None);
     }
 }
 
