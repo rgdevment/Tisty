@@ -176,13 +176,7 @@ impl Consent {
                     }
                     std::thread::sleep(LISTENED_EVERY);
                 }
-                Err(e)
-                    if matches!(
-                        e.kind(),
-                        std::io::ErrorKind::ConnectionAborted
-                            | std::io::ErrorKind::ConnectionReset
-                            | std::io::ErrorKind::Interrupted
-                    ) => {}
+                Err(e) if passing(e.kind()) => {}
                 Err(e) => return Err(e.into()),
             }
         }
@@ -219,20 +213,43 @@ enum Heard {
     Elsewhere,
 }
 
+// A socket someone dropped before it was taken is theirs to lose, not the sign-in's.
+fn passing(kind: std::io::ErrorKind) -> bool {
+    matches!(
+        kind,
+        std::io::ErrorKind::ConnectionAborted
+            | std::io::ErrorKind::ConnectionReset
+            | std::io::ErrorKind::Interrupted
+    )
+}
+
 fn asked_for(stream: &TcpStream) -> Option<String> {
     stream.set_nonblocking(false).ok()?;
-    stream.set_read_timeout(Some(HEARD_WITHIN)).ok()?;
-    let until = Instant::now() + HEARD_WITHIN;
-    let mut reader = BufReader::new(stream.take(HEARD_AT_MOST));
+    let mut patience = |left: Duration| stream.set_read_timeout(Some(left)).is_ok();
+    query_of(stream, Instant::now, &mut patience)
+}
+
+// The headers are read through, or closing with them unread resets the browser's connection.
+fn query_of(
+    request: impl Read,
+    mut now: impl FnMut() -> Instant,
+    patience: &mut impl FnMut(Duration) -> bool,
+) -> Option<String> {
+    let until = now() + HEARD_WITHIN;
+    let mut reader = BufReader::new(request.take(HEARD_AT_MOST));
     let mut first = String::new();
+    if !patience(HEARD_WITHIN) {
+        return None;
+    }
     reader.read_line(&mut first).ok()?;
-    // The headers are read through, or closing with them unread resets the browser's connection.
     let mut line = String::new();
     while let Some(left) = until
-        .checked_duration_since(Instant::now())
+        .checked_duration_since(now())
         .filter(|left| !left.is_zero())
     {
-        stream.set_read_timeout(Some(left)).ok()?;
+        if !patience(left) {
+            break;
+        }
         match reader.read_line(&mut line) {
             Ok(read) if read > 2 => line.clear(),
             _ => break,
