@@ -60,7 +60,7 @@ pub fn weight_of(
 ) -> Option<u64> {
     where_it_lies(reference, data, shared)
         .and_then(|at| std::fs::metadata(at).ok())
-        .filter(|told| told.is_file())
+        .filter(std::fs::Metadata::is_file)
         .map(|told| told.len())
         .or(away)
 }
@@ -99,7 +99,8 @@ pub async fn fetched<T: Send + 'static>(
     let came = unvouched.lock().ok().and_then(|mut one| one.take());
     if let Some(d) = came {
         let landed = tisty_core::attach::resolve(&d.at, &data);
-        if let Err(e) = held(session).commit(tisty_core::Op::AttachKept { d }) {
+        let written = held(session).commit(tisty_core::Op::AttachKept { d });
+        if let Err(e) = written {
             tisty_core::witness::warn(
                 tisty_core::witness::channel::ATTACH,
                 "what an attachment brought from the cloud holds could not be written down, so it goes until the next open",
@@ -107,7 +108,7 @@ pub async fn fetched<T: Send + 'static>(
             );
             // Left in place, it would be found on disk from then on and never written down.
             if let Ok(landed) = landed {
-                let _ = std::fs::remove_file(landed);
+                let _ = elsewhere(move || std::fs::remove_file(landed)).await;
             }
             return Err(Refusal::about("cloudLater", asked));
         }
