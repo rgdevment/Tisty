@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::{Answer, Refusal, Session, held, vouching};
+use crate::{Answer, Refusal, Session, elsewhere, held, vouching};
 
 /// Long enough for a file already on its way, short enough that nobody thinks the app hung.
 const COMES_WITHIN: std::time::Duration = std::time::Duration::from_millis(1_500);
@@ -38,6 +38,10 @@ pub struct Where {
     pub avowed: Option<String>,
     pub shared: Option<std::path::PathBuf>,
     pub reached: std::path::PathBuf,
+    /// A cloud reached through its API, which brings an attachment down the first time it is opened.
+    pub cloud: Option<(tisty_carrier::Shared, tisty_carrier::Here)>,
+    /// What came down with no history answering for it yet, written down once the work is done.
+    pub unvouched: std::sync::Arc<Mutex<Option<tisty_core::event::Held>>>,
 }
 
 /// Taken and let go of at once: what follows can wait on a cloud, and holding the session while it
@@ -53,7 +57,34 @@ pub fn where_to(session: &tauri::State<'_, Mutex<Session>>, reference: &str) -> 
             .map(|(sha256, _)| sha256.clone()),
         shared: session.shared_now(),
         reached: session.paths.data().join(tisty_core::lately::USED),
+        cloud: session
+            .carrier()
+            .filter(|carrier| carrier.frees_space())
+            .map(|carrier| (carrier, session.here())),
+        unvouched: Default::default(),
     }
+}
+
+/// Runs the work away from the window, then writes down what a cloud brought with no history behind it.
+pub async fn fetched<T: Send + 'static>(
+    session: &tauri::State<'_, Mutex<Session>>,
+    reference: String,
+    work: impl FnOnce(String, Where) -> Answer<T> + Send + 'static,
+) -> Answer<T> {
+    let at = where_to(session, &reference);
+    let unvouched = at.unvouched.clone();
+    let done = elsewhere(move || work(reference, at)).await?;
+    let came = unvouched.lock().ok().and_then(|mut one| one.take());
+    if let Some(d) = came
+        && let Err(e) = held(session).commit(tisty_core::Op::AttachKept { d })
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::ATTACH,
+            "what an attachment brought from the cloud holds could not be written down",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+    }
+    done
 }
 
 /// The store first, then the shared folder, which is where a machine that let go of it kept it.
@@ -83,7 +114,37 @@ pub fn handed_over(reference: &str, at: &Where) -> Answer<std::path::PathBuf> {
         at.avowed.as_deref(),
     ) {
         Sought::At(found) => Ok(found),
+        Sought::No if let Some((carrier, here)) = &at.cloud => {
+            brought(&**carrier, here, reference, at)
+        }
         other => Err(unreachable(other, reference.to_string())),
+    }
+}
+
+fn brought(
+    carrier: &dyn tisty_carrier::Carrier,
+    here: &tisty_carrier::Here,
+    reference: &str,
+    at: &Where,
+) -> Answer<std::path::PathBuf> {
+    match carrier.brought(here, reference).map_err(crate::said)? {
+        tisty_carrier::Brought::At(found) => Ok(found),
+        tisty_carrier::Brought::Unvouched {
+            at: found,
+            sha256,
+            bytes,
+        } => {
+            if let Ok(mut unvouched) = at.unvouched.lock() {
+                *unvouched = Some(tisty_core::event::Held {
+                    at: reference.to_string(),
+                    sha256,
+                    bytes,
+                });
+            }
+            Ok(found)
+        }
+        tisty_carrier::Brought::Later => Err(Refusal::about("comingDown", reference.to_string())),
+        tisty_carrier::Brought::Absent => Err(Refusal::about("cannotRead", reference.to_string())),
     }
 }
 
@@ -133,3 +194,7 @@ pub fn found_in(
         _ => Sought::No,
     }
 }
+
+#[cfg(test)]
+#[path = "finding_test.rs"]
+mod tests;

@@ -198,6 +198,7 @@ struct Carrying {
     shared_was_later: bool,
     later: bool,
     backed_up_at: Option<String>,
+    frees_space: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -888,6 +889,8 @@ pub fn run() {
             take_out_of_reach,
             answers::storing::free_up,
             answers::storing::stop_freeing,
+            answers::freeing::unused_attachments,
+            answers::freeing::free_space,
             answers::wired::wiring,
             answers::agents::assistants,
             answers::wired::wire,

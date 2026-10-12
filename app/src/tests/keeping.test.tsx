@@ -112,6 +112,7 @@ const carrying = {
   sharedWas: undefined as string | undefined,
   sharedWasLater: undefined as boolean | undefined,
   later: undefined as boolean | undefined,
+  freesSpace: false,
 };
 
 const arriving = {
@@ -258,7 +259,10 @@ beforeEach(() => {
         });
       }
       case "free_up":
+      case "free_space":
         return new Promise(() => {});
+      case "unused_attachments":
+        return Promise.resolve({ files: 3, bytes: 3 * 1024 * 1024 });
       case "stop_freeing":
         return Promise.resolve(null);
       case "checked":
@@ -681,6 +685,55 @@ describe("the maintenance panel", () => {
     await screen.findByText(/Freeing what the shared folder/i);
     await userEvent.click(await screen.findByRole("button", { name: /^stop$/i }));
     await waitFor(() => expect(sent("stop_freeing")).toHaveLength(1));
+  });
+
+  it("with a cloud of its own, offers to free unused attachments instead of where big ones stay", async () => {
+    carrying.freesSpace = true;
+    try {
+      render(
+        <Keeping
+          onPack={() => {}}
+          onUnpack={() => {}}
+          onGreet={() => {}}
+          onChanged={() => {}}
+          onDoc={() => {}}
+        />,
+      );
+      await data();
+
+      const unused = await screen.findByRole("combobox", { name: /unused for/i });
+      expect(screen.queryByRole("combobox", { name: /where large attachments/i })).toBeNull();
+      await screen.findByText(/set by your cloud provider, not by Tisty/i);
+      await screen.findByText(/3 unused/i);
+
+      await userEvent.selectOptions(unused, "60");
+      await waitFor(() =>
+        expect(sent("unused_attachments").map((one) => one.args.days)).toContain(60),
+      );
+      await userEvent.click(await screen.findByRole("button", { name: /^free$/i }));
+      await waitFor(() => expect(sent("free_space")).toHaveLength(1));
+      expect(sent("free_space")[0].args.days).toBe(60);
+      await screen.findByText(/Freeing space/i);
+    } finally {
+      carrying.freesSpace = false;
+    }
+  });
+
+  it("never offers to free space when a folder is the place", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await data();
+
+    await screen.findByRole("combobox", { name: /where large attachments/i });
+    expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
+    expect(sent("unused_attachments")).toHaveLength(0);
   });
 
   it("fetches the ones that are not here when told to hold them all", async () => {

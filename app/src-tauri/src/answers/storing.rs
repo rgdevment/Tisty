@@ -121,7 +121,7 @@ impl Telling {
     }
 }
 
-fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[String]) {
+pub(crate) fn said_no_longer_held(session: &tauri::State<'_, Mutex<Session>>, let_go: &[String]) {
     if let_go.is_empty() {
         return;
     }
@@ -373,6 +373,9 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         shared_was_later: config.once_shared().is_some_and(|was| was.is_later()),
         later: tisty_carrier::chosen(config.sync.as_ref()).chosen == tisty_carrier::Chosen::Later,
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
+        frees_space: tisty_carrier::chosen(config.sync.as_ref())
+            .carrier
+            .is_some_and(|carrier| carrier.frees_space()),
     })
 }
 
@@ -995,13 +998,13 @@ fn told(at: &std::path::Path) -> Told {
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Freeing {
-    gone: usize,
-    freed: u64,
-    done: bool,
+    pub(crate) gone: usize,
+    pub(crate) freed: u64,
+    pub(crate) done: bool,
 }
 
 #[derive(Default)]
-pub(crate) struct Stopping(std::sync::atomic::AtomicBool);
+pub(crate) struct Stopping(pub(crate) std::sync::atomic::AtomicBool);
 
 /// Turning it on is the only change that moves anything, so it is asked for rather than done on
 /// the way past: it can take an afternoon, and somebody may want it to stop.

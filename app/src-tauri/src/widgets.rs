@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::http::{Response, StatusCode, Uri, header};
 
-use crate::{Answer, Refusal, Session, elsewhere, finding, weighed};
+use crate::{Answer, Refusal, Session, finding, weighed};
 
 pub const LENT_AT_MOST: usize = 512 * 1024;
 pub const KEPT_AT_MOST: usize = 8 * 1024 * 1024;
@@ -141,8 +141,7 @@ pub async fn widget_lend_kept(
     if !a_page(&reference) {
         return Err(Refusal::of("notAllowed"));
     }
-    let at = finding::where_to(&session, &reference);
-    let body = elsewhere(move || kept_page(reference, at)).await??;
+    let body = finding::fetched(&session, reference, kept_page).await?;
     lent.lend_kept(body)
 }
 

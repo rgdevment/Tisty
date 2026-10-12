@@ -71,6 +71,10 @@ impl Carrier for Folder {
         tisty_sync::been_here(&here.aside, &self.at, &here.device)
     }
 
+    fn frees_space(&self) -> bool {
+        false
+    }
+
     fn lends_from(&self) -> Option<PathBuf> {
         Some(self.at.join("attachments"))
     }

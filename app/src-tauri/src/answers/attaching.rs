@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Answer, Refusal, Session, Task, elsewhere, finding, held, herald, show, weighed};
+use crate::{Answer, Refusal, Session, Task, finding, held, herald, show, weighed};
 
 #[tauri::command]
 pub fn attach(
@@ -131,8 +131,7 @@ pub async fn attached(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<Vec<u8>> {
-    let at = finding::where_to(&session, &reference);
-    elsewhere(move || read_out(reference, at)).await?
+    finding::fetched(&session, reference, read_out).await
 }
 
 fn pointed_at(reference: String, at: finding::Where) -> Answer<String> {
@@ -146,8 +145,7 @@ pub async fn served(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<String> {
-    let at = finding::where_to(&session, &reference);
-    elsewhere(move || pointed_at(reference, at)).await?
+    finding::fetched(&session, reference, pointed_at).await
 }
 
 fn taken_out(reference: String, into: String, at: finding::Where) -> Answer<()> {
@@ -173,8 +171,10 @@ pub async fn attach_export(
     reference: String,
     into: String,
 ) -> Answer<()> {
-    let at = finding::where_to(&session, &reference);
-    elsewhere(move || taken_out(reference, into, at)).await?
+    finding::fetched(&session, reference, move |reference, at| {
+        taken_out(reference, into, at)
+    })
+    .await
 }
 
 #[tauri::command(async)]
@@ -198,9 +198,7 @@ pub async fn opened(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    let looking = finding::where_to(&session, &reference);
-    let asked = reference.clone();
-    let at = elsewhere(move || looked_up(asked, looking)).await??;
+    let at = finding::fetched(&session, reference.clone(), looked_up).await?;
     if !safe_to_open(&at) {
         return show(&at, &reference);
     }

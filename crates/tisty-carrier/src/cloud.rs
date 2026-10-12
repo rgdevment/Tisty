@@ -361,6 +361,10 @@ impl Carrier for Cloud {
         None
     }
 
+    fn frees_space(&self) -> bool {
+        true
+    }
+
     fn lends_from(&self) -> Option<PathBuf> {
         None
     }
