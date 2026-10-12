@@ -25,11 +25,12 @@ shared folder both computers can reach: a folder a cloud client keeps in step, a
 NAS, an external drive. Tisty only reads and writes local paths there and does
 not know which provider, if any, stands behind it.
 
-Syncing through a provider's API is partly built and not usable. The `Cloud`
-carrier, the `Remote` contract it speaks and token renewal exist and are tested
-against simulated Drive, OneDrive and Dropbox providers. No real provider
-implements `Remote`, no setting selects `Cloud`, and the window has no screen
-for it. *Carriers* says exactly what exists.
+Syncing through a provider's API is built for Google Drive and not offered yet.
+The `Cloud` carrier, the `Remote` contract it speaks and token renewal are
+tested against simulated Drive, OneDrive and Dropbox providers, and
+`tisty_google::Drive` implements `Remote` for real. A setting selects it
+(`Sync::Cloud`) and the window builds it, but no screen chooses it yet.
+*Carriers* says exactly what exists.
 
 ### Rules that hold everywhere
 
@@ -158,8 +159,10 @@ Drive `Remote`. Its root folders come out of the same whole listing as every
 file, never from a separate search that could lag, and none is made while
 reading; a root in the bin stops the round instead of reading as an empty
 drive. Drive has no conditional write, so a revision is checked just before
-writing and two machines writing one file in that gap both land: the mirror
-keeps the oldest copy of a name and later rounds settle the rest. The
+writing; two machines making one new file in that gap both land and the mirror
+keeps the oldest, and a write over another machine's in that gap puts the other
+bytes back on top from the file's revisions and is refused (*A write in the
+gap*). The
 window's content policy allows no connection but IPC (`tauri.conf.json`).
 
 ## The data model
@@ -769,9 +772,20 @@ classDiagram
   Cloud ..> TistySync : same round over a mirror
 ```
 
-`chosen(Option<&Sync>) -> Keeping` is the one place a carrier is built from
-settings: `Local` and no setting give no carrier (`Chosen::Alone`), `Folder`
-gives a `Folder`, `Unknown` gives none and `Chosen::Later`. `considering(path)`
+`chosen_with(Option<&Sync>, Option<&dyn Reach>) -> Keeping` is the one place a
+carrier is built from settings: `Local` and no setting give no carrier
+(`Chosen::Alone`), `Folder` gives a `Folder`, `Cloud` gives `Chosen::Cloud` and
+whatever the `Reach` builds, `Unknown` gives none and `Chosen::Later`. Only the
+window has a `Reach` (`reaching.rs`): `chosen(sync)` is `chosen_with(sync, None)`,
+so the command line and the agents see a chosen cloud and never reach the
+network; `tisty sync` says the window carries it, and `config set remote`
+refuses to leave it. A build without Google's ids builds nothing and the window
+says so (`cloudNotOffered`). `Reaching` keeps the carrier it built for an
+account, so Drive's listing outlives a command. A `Sync::Cloud` names the
+provider, the provider's id for the account and its address; one named any
+other way is a later build's and is kept whole as `Unknown`. Leaving a cloud is
+never a choice of another way (`Leaving::Cloud`): it goes through the move that
+first brings everything here. `considering(path)`
 builds a `Folder` for a folder only being considered. A carrier is shared as
 `Arc<dyn Carrier>` and its methods take `&self`; one that keeps tokens, cursors
 or counters keeps them behind interior mutability.
@@ -804,8 +818,8 @@ Google Drive (My Drive only), OneDrive, iCloud and Dropbox keep on this machine
 ### `Cloud`
 
 `Cloud::over(remote, home)` runs the same round over a local mirror of a
-provider's files. It implements `Carrier`, but nothing outside the tests builds
-it.
+provider's files. It implements `Carrier`, and the window builds it when the
+settings name a cloud.
 
 | Piece | Behaviour |
 |---|---|
@@ -816,14 +830,15 @@ it.
 | Attachments | Not mirrored: `Shelf` implements `Attachments` and talks to the `Remote` directly, putting with `Expect::Absent` and checking the landed size and hash. A round sends attachments up and never brings one down nor lets go of a copy here, whatever `holds` says: the cloud is where other machines fetch from, not where a copy lives instead of here. Only `bring_home` brings them all down |
 | Verification | Downloads are checked against the provider's hash and length before they count; the round then installs exactly what it checked |
 | Pull failures | A cursor the provider no longer knows is dropped and the place read whole. A file that comes short or fails its hash is held back alone, for the next round, and the round says so as deferred (`Changed`) |
-| Polling | `stirring` asks for changes at most once per `Limits::poll_every`, stretches the wait to four intervals while nothing moves and returns to one when something does; a revision the index already holds (this machine's own upload) is not a change. It waits at least a `Limited`'s `wait` and asks again if the clock went back. State is in `stirring.json` because every command builds its carrier anew |
+| Polling | `stirring` asks for changes at most once per `Limits::poll_every`, stretches the wait to four intervals while nothing moves and returns to one when something does; a revision the index already holds (this machine's own upload) is not a change. It waits at least a `Limited`'s `wait` and asks again if the clock went back. State is in `stirring.json` because every command builds its carrier anew. Drive keeps, for each cursor its listing reached, the paths that moved to reach it, so the round asking from the cursor a poll already passed hears every change and deletion again, and Drive is asked only onward. `hears` hands out the provider's own `Watch` when it can push (Dropbox's longpoll) and otherwise `cloud/asking.rs`, which waits for the same `stirring.json` pace and says `told` when the mark moves, so the window's glance and its listening never ask twice. Drive cannot push to a desktop: `changes.watch` needs a public HTTPS address and Tisty keeps none |
 | Budget | `cloud/budget.rs`: every request goes through `Metered`, which charges the provider's `Costs` and the bytes brought down to `budget.json` under `budget.lock`, started again each UTC day. History may spend all of `units_a_day` and `bytes_a_day`; attachments (sending them, and `bring_home`) stop at nine tenths; what is opened by hand (`brought`) always goes and is counted |
-| `cloud.json` | `cloud/policy.rs`: a word from the maintainer, signed with minisign by a key kept off CI and checked on the raw bytes before any field is read (at most 16 KB). It may lower `units_a_day` and `bytes_a_day` freely and raise them to twice what the build ships with, never further; the newest `serial` is kept in `cloud-policy.json` for good and an older one is refused as a replay. `halted_until` pauses every cloud request, by hand too, while its date is ahead and no more than a week out, so a lost word cannot stop Tisty for good. A `paused-here` file is the person's own switch for this machine. Both raise `Hitch::Paused`. It is read only while the cloud is chosen, and the window fetches it |
+| `cloud.json` | `cloud/policy.rs`: a word from the maintainer, signed with minisign by a key kept off CI and checked on the raw bytes before any field is read (at most 16 KB). It may lower `units_a_day` and `bytes_a_day` freely and raise them to twice what the build ships with, never further; the newest `serial` is kept in `cloud-policy.json` for good and an older one is refused as a replay. `halted_until` pauses every cloud request, by hand too, while its date is ahead and no more than a week out, so a lost word cannot stop Tisty for good. A `paused-here` file is the person's own switch for this machine. Both raise `Hitch::Paused`. The window fetches `cloud.json` and its `.sig` from the `manifest` branch before a round, at most once an hour and only while a cloud is chosen, with no redirect followed and no more than 16 KB read (`reaching::heed`); the public key is fixed when the release is built (`TISTY_CLOUD_POLICY_KEY`), and a build without it keeps the limits it ships with |
 | Deferral | `Hitch::Limited` pauses with `Reason::Limit` and its `wait`; `Spent` pauses with `Reason::Budget`; `Paused` with `Reason::Paused`; `Unreachable` with `Offline`; a busy `round.lock` with `Busy`. A deferred round has written everything locally, lost nothing and asks nothing of the person. It names, up to `NAMED_AT_MOST`, the attachments it left; the rest of what waits is counted |
 | Refusal | `Hitch::Full`, `Lost` and `Elsewhere { found }` stop the round as `Trouble::CloudFull`, `CloudLost` and `CloudElsewhere`, each naming the provider (`Limits::provider`) so the person is told it is the provider that refuses. `Missing`, `Changed` and `Broke` stop it as `Trouble::Broke` |
 | Bringing | Opening an attachment that is not here: one buried (retired and named by nothing) is `Absent`. `brought` serves the copy here first; an attachment the last listing did not show is `Later`, never asked of the provider; otherwise it is fetched straight into this machine's `attachments/`, held to its name and the log's full digest, written in the ledger and kept, so it plays from the disk from then on. One the log does not answer for yet is held to its name and the ledger and handed back as `Unvouched`, so the caller writes its `AttachKept`. Bytes refused for what they hold (not a disk that failed to take them) are remembered by revision in `index.json` (`spoiled`): not fetched again, refused at once when opened, not counted as held there so they never stall a move, and written over by a genuine copy when this machine sends one |
 | Freeing space | `set_free` lets go of copies here neither opened nor shown (`<data>/used.json`, which the window writes, again each day a picture stays on screen) nor attached or brought in (the latest `AttachKept` in the log) since the chosen moment, nor since `used.json` was begun. It runs after a fresh pull under the round lock, decides what is unused only then, asks `used.json` again right before each copy goes, and refuses with `Trouble::NotNow` when that pull cannot run; it lets go only when the cloud holds the same size and the provider's hash matches, never of a placeholder. Opening one again brings it back, and attaching the same bytes puts them back under the name the ledger gives |
-| First round | Until `tisty.toml` has been seen or put, what the engine remembers about the place (`.shape-seen`, `carried-to`) is forgotten, so a first round that was deferred cannot leave this machine unable to start again |
+| First round | Until `tisty.toml` has been seen or put, what the engine remembers about the place (`.shape-seen`, `carried-to`) is forgotten, so a first round that was deferred cannot leave this machine unable to start again. Another account has another home and so another mirror path, so `Carried::facing` forgets what was carried before and nothing is read as deleted |
+| A write in the gap | A provider without conditional writes checks a revision and then writes, so another machine can land in between. `Remote::put` promises never to leave its bytes over a revision `expect` did not name: Drive finds the other bytes among the file's revisions (only one that landed after the revision checked and before this write), puts them back on top and answers `Changed`, and the round turns that into a question for the person like any other conflict. When that cannot finish now it is written down (`drive-owed.json`) and finished before the next change is read, so the bytes come in as another machine's change; if a newer write has come since, they are not put over it but kept in Drive's version history and named in the log. A deletion against a revision goes to Drive's bin and comes back out when other bytes are found there. What these extra requests cost is charged through `Remote::spent_beyond` |
 | Forgetting | `forget_paper` queues the id in `forgotten`; the next round deletes it up there |
 
 `Tokens` hands out an access token: it renews it a minute before it expires from
@@ -833,14 +848,38 @@ token that cannot be saved is kept in memory and retried. No stored refresh
 token is `Hitch::Lost`. `spoiled(access)` drops an access token the provider
 turned down, so the next ask renews. `Keychain` implements `Secrets` over the
 system's own store through `keyring-core`: Credential Manager on Windows, the
-Keychain on macOS, the Secret Service elsewhere. It writes a token as UTF-8
-bytes, since Credential Manager holds a password as UTF-16 and that halves the
-room a long token has; one past the keychain's room is said so, and `Tokens` writes
-it to the log and keeps it only while Tisty stays open. Each entry is named by a
-scope (the store or the profile) and the key, so two stores of one person never
-share a token, and on Windows it is kept `Local`, since the default roams with a
-domain profile to machines that would rotate it. No token is ever written to a
-file, which a test fixes.
+Keychain on macOS, the Secret Service on Linux and, on Windows, a file sealed
+with DPAPI under `%LOCALAPPDATA%\Tisty\secrets` (`sealed.rs`). DPAPI is the lock
+Credential Manager itself uses, and that folder leaves with the app: a Store
+install writes it inside its own package, and the installer's uninstaller and
+`--unreach` delete it. Only the window reads or writes a token. `Keychain`
+writes a token as UTF-8 bytes, since Credential Manager holds a password as
+UTF-16 and that halves the room a long token has; one past the keychain's room
+is said so, and `Tokens` writes it to the log and keeps it only while Tisty
+stays open. Each entry is named by the account and the key, so two accounts
+never share a token, and a Credential Manager entry is kept `Local`, since the
+default roams with a domain profile to machines that would rotate it. Outside
+Windows no token is ever written to a file, which a test fixes; on Windows the
+file never holds the token as it reads, which another test fixes.
+
+Connecting (`cloud_connect`) opens Google's consent in the browser, learns the
+account with the grant held in memory, and files the refresh token under that
+account; choosing the cloud (`cloud_choose`) is allowed only from a copy that
+shares with nobody, since any other way has things to bring over first.
+Google revokes per person and project, not per machine: revoking one token
+invalidates every machine's. So letting go here (`cloud_forget`, uninstalling
+on Windows) only forgets this machine's copy, and revoking (`cloud_revoke`) is
+its own act that ends access everywhere, sent to Google before the token is
+forgotten so a revoke that fails can be asked again. Either one forgets the
+stored token before the one in memory, so nothing still running can renew it
+back, and
+either takes an account by name, since a connected account not chosen yet holds
+a token too. Removing the app on macOS or Linux runs no code, so the keychain
+entry stays until it is let go of first. Google also keeps at most 100
+refresh tokens per account and client and drops the oldest without warning, so
+Tisty asks for consent only when its token no longer renews. On macOS the
+Keychain answers without asking only to the app that wrote the entry, as its
+signature names it.
 `tisty_google::GoogleRenew` implements `Renew` against Google's token endpoint:
 a refresh Google no longer honours (`invalid_grant`) is `Hitch::Lost`, a 429 or
 a 5xx with `Retry-After` waits that long and never under a second, and a
@@ -869,11 +908,11 @@ root, `/`-separated, and names exactly one file (`named_well` rejects empty,
 | `limits()` | `Limits`: the `provider`'s name as the person knows it, `units_a_day`, `bytes_a_day`, `poll_every`, `chunk`, `page`, `most_per_file`, `folds_case` and the `Costs` of each verb |
 | `list(under)` | Each name once, as `Seen { name, bytes, hash, revision }` |
 | `fetch(name, from, into)` | The file from an offset |
-| `put(name, from, expect)` | Replace or refuse, never add a second file. `Expect::Absent`, `Revision(r)` or `Any` |
+| `put(name, from, expect)` | Replace or refuse, never add a second file. `Expect::Absent`, `Revision(r)` or `Any`. Never leaves these bytes over a revision `expect` did not name: a write that finds one puts it back and answers `Changed` |
 | `delete(name, expect)` | Delete against a revision |
 | `hash_of(local)` | The provider's own fingerprint of a local file, so a landing is checked without downloading it |
 | `about`, `changes(since)` | Default to a listing; `changes` returns `Changes::Whole` or `Since { changed, gone, cursor }`. A provider may answer an expired cursor with the whole listing or with an error; `Cloud` copes with both |
-| `hears(since)`, `lends(name)` | Optional: a pushed-changes `Watch`, and a link to a file |
+| `hears(since)`, `lends(name)` | Optional: a pushed-changes `Watch` for a provider that can push, and a link to a file. `Cloud` asks at the provider's pace for the rest |
 
 A revision names one version of one file and is never given again.
 `Revision` on a file that is gone is `Missing`, not `Changed`. A provider that
@@ -1098,8 +1137,12 @@ sequenceDiagram
 - **Sync schedule** (`app/src/carrying.ts`): a pull when the window opens, gains
   focus or becomes visible; a push 4 seconds after a change; both every 15
   minutes; a glance (`folder_astir`, the carrier's `stirring` mark) every 30
-  seconds while visible, which pulls when the mark moves. A round that runs past
-  60 seconds is shown as slow.
+  seconds while visible, which pulls when the mark moves; and, for a carrier
+  that `hears`, a thread (`hearing.rs`) that emits `told` the moment the other
+  side changes, which the window treats like a moved mark. A round that runs
+  past 60 seconds is shown as slow. The foot of the sidebar names the way this
+  copy syncs (`Mode.tsx`, from `Carrying.mode`: alone, folder, cloud with its
+  account, or later) and opens its settings.
 - **Events from Rust to the UI:** `bringing` and `brought` (round progress and
   end), `carried`, `stirred`, `freeing`, `closing`, `withdrawn`, `parting`,
   `unstuck`, `chime`, `updating`, `moving`. The quick window tells the main one
@@ -1371,8 +1414,9 @@ checks that a test would notice a changed line.
 
 ## Not built yet
 
-- A `Remote` for a real provider (Drive, OneDrive, Dropbox), a `Sync` value that
-  selects `Cloud`, and a window screen to choose it.
+- A window screen to connect and choose a cloud, its states and the local
+  switch; the backend commands exist (`answers/clouding.rs`).
+- A `Remote` for OneDrive and Dropbox.
 - `tisty doctor` and Maintenance showing the cloud's day's spend.
 - A window screen or command that moves between places with `shift` and shows
   how far the move has gone.

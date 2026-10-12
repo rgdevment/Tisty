@@ -660,7 +660,7 @@ fn a_download_starts_where_asked_a_full_disk_is_no_offline_and_a_vanished_file_i
 }
 
 #[test]
-fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
+fn deleting_with_a_revision_bins_the_file_and_takes_every_other_copy() {
     let home = tempfile::tempdir().unwrap();
     let one = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"}"#;
     let two = format!(r#"{one},{{"id":"A2","name":"a.md","parents":["R"],"version":"1"}}"#);
@@ -668,7 +668,10 @@ fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
         said("200 OK", &whole(&two)),
         said("200 OK", one),
         said("200 OK", one),
-        said("204 No Content", ""),
+        said(
+            "200 OK",
+            r#"{"id":"A1","name":"a.md","parents":["R"],"version":"2","trashed":true}"#,
+        ),
         said("404 Not Found", ""),
         said("200 OK", &listing("")),
     ]);
@@ -685,12 +688,13 @@ fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
     );
 
     let asked = asked.join().unwrap();
-    assert!(asked[3].line.starts_with("DELETE /drive/v3/files/A1"));
+    assert!(asked[3].line.starts_with("PATCH /drive/v3/files/A1"));
+    assert_eq!(asked[3].body, br#"{"trashed":true}"#);
     assert!(asked[4].line.starts_with("DELETE /drive/v3/files/A2"));
 }
 
 #[test]
-fn what_this_machine_wrote_is_no_news_and_what_another_wrote_brings_the_listing() {
+fn what_this_machine_wrote_is_no_news_and_what_another_wrote_comes_alone() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let a2 =
@@ -706,10 +710,9 @@ fn what_this_machine_wrote_is_no_news_and_what_another_wrote_brings_the_listing(
         ),
         said(
             "200 OK",
-            r#"{"changes":[{"fileId":"Z","file":{"id":"Z","version":"1"}}],"nextPageToken":"12"}"#,
+            r#"{"changes":[{"fileId":"Z","file":{"id":"Z","name":"z.md","parents":["R"],"size":"3","sha256Checksum":"zz","version":"1"}}],"nextPageToken":"12"}"#,
         ),
         said("200 OK", r#"{"changes":[],"newStartPageToken":"13"}"#),
-        said("200 OK", &whole(a2)),
     ]);
     let drive = drive(at, home.path());
 
@@ -730,14 +733,28 @@ fn what_this_machine_wrote_is_no_news_and_what_another_wrote_brings_the_listing(
         },
         "this machine's own write was taken for someone else's"
     );
-    assert!(matches!(theirs, Changes::Whole { ref cursor, .. } if cursor == "13"));
+    assert_eq!(
+        theirs,
+        Changes::Since {
+            changed: vec![Seen {
+                name: "z.md".into(),
+                bytes: 3,
+                hash: "sha256:zz".into(),
+                revision: "Z.1".into(),
+            }],
+            gone: Vec::new(),
+            cursor: "13".into()
+        },
+        "another machine's write did not come as what changed"
+    );
     let asked = asked.join().unwrap();
     assert_eq!(
         asked
             .iter()
             .filter(|one| one.line.contains("q=trashed"))
             .count(),
-        2
+        1,
+        "a change elsewhere listed the whole drive again"
     );
 }
 
@@ -1063,4 +1080,473 @@ fn a_store_split_across_two_roots_reads_a_vanished_copy_from_the_whole_listing()
         !asked.join().unwrap()[2].line.contains("name+%3D"),
         "only one root was searched"
     );
+}
+
+const CHECKED: &str = r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m1","headRevisionId":"h1","version":"1"}"#;
+
+#[test]
+fn bytes_another_machine_wrote_in_the_gap_go_back_on_top_and_the_write_is_refused() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said(
+            "200 OK",
+            r#"{"revisions":[{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"},{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h2","md5Checksum":"m2","modifiedTime":"2026-10-12T10:00:02Z"}]}"#,
+        ),
+        said("200 OK", r#"{"id":"h2"}"#),
+        said("200 OK", "theirs"),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m2","headRevisionId":"h4","version":"4"}"#,
+        ),
+        said("204 No Content", ""),
+    ]);
+
+    let refused = drive(at, home.path()).put("a.md", &local, Expect::Revision("A.1".into()));
+
+    assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
+    let asked = asked.join().unwrap();
+    assert!(
+        asked[4]
+            .line
+            .starts_with("PATCH /drive/v3/files/A/revisions/h2")
+    );
+    assert_eq!(asked[4].body, br#"{"keepForever":true}"#);
+    assert!(
+        asked[5]
+            .line
+            .starts_with("GET /drive/v3/files/A/revisions/h2?alt=media")
+    );
+    assert!(asked[6].line.starts_with("PATCH /upload/drive/v3/files/A"));
+    let sent = String::from_utf8_lossy(&asked[6].body);
+    assert!(
+        sent.contains("theirs"),
+        "their bytes did not go back: {sent}"
+    );
+    assert!(
+        asked[7]
+            .line
+            .starts_with("DELETE /drive/v3/files/A/revisions/h2"),
+        "a pin cannot come off, so the pinned revision is deleted"
+    );
+}
+
+#[test]
+fn a_version_that_moved_without_other_bytes_lets_the_write_stand() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said(
+            "200 OK",
+            r#"{"revisions":[{"id":"h1","md5Checksum":"m1"},{"id":"h3","md5Checksum":"m3"}]}"#,
+        ),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Revision("A.1".into()));
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.3".to_string()));
+    assert_eq!(asked.join().unwrap().len(), 4);
+}
+
+#[test]
+fn a_deletion_that_finds_other_bytes_in_the_bin_takes_them_back_out_and_is_refused() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m2","version":"3","trashed":true}"#,
+        ),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m2","version":"4"}"#,
+        ),
+    ]);
+
+    let refused = drive(at, home.path()).delete("a.md", Some("A.1"));
+
+    assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
+    let asked = asked.join().unwrap();
+    assert_eq!(asked[2].body, br#"{"trashed":true}"#);
+    assert_eq!(asked[3].body, br#"{"trashed":false}"#);
+}
+
+fn changed(json_list: &str) -> Vec<super::tree::Changed> {
+    serde_json::from_str(json_list).unwrap()
+}
+
+fn held_tree(files: &str) -> super::tree::Tree {
+    let all: Vec<super::tree::File> = serde_json::from_str(&format!("[{ROOT},{files}]")).unwrap();
+    super::tree::planted(&["R".to_string()], all)
+}
+
+const DOCS: &str =
+    r#"{"id":"F","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}"#;
+
+#[test]
+fn a_file_binned_or_removed_elsewhere_comes_as_gone_and_one_added_in_new_folders_as_changed() {
+    let tree = held_tree(&format!(
+        r#"{DOCS},{{"id":"D","name":"a.md","parents":["F"],"version":"1"}}"#
+    ));
+    let roots = ["R".to_string()];
+    let moved = changed(
+        r#"[{"fileId":"D","file":{"id":"D","name":"a.md","parents":["F"],"version":"2","trashed":true}},
+            {"fileId":"X","file":{"id":"X","name":"x.png","parents":["G2"],"version":"1"}},
+            {"fileId":"G2","file":{"id":"G2","name":"04","parents":["G1"],"mimeType":"application/vnd.google-apps.folder"}},
+            {"fileId":"G1","file":{"id":"G1","name":"attachments","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}}]"#,
+    );
+
+    let (next, applied) = super::tree::applied(&tree, &roots, &moved).unwrap();
+
+    assert_eq!(applied.gone, vec!["docs/a.md".to_string()]);
+    assert_eq!(applied.changed, vec!["attachments/04/x.png".to_string()]);
+    assert!(!next.files.contains_key("docs/a.md"));
+}
+
+#[test]
+fn a_folder_of_the_store_renamed_or_binned_asks_for_the_whole_listing() {
+    let tree = held_tree(DOCS);
+    let roots = ["R".to_string()];
+    let renamed = changed(
+        r#"[{"fileId":"F","file":{"id":"F","name":"papers","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}}]"#,
+    );
+    let binned = changed(
+        r#"[{"fileId":"R","file":{"id":"R","name":"Tisty","parents":["myroot"],"mimeType":"application/vnd.google-apps.folder","trashed":true}}]"#,
+    );
+    let touched = changed(
+        r#"[{"fileId":"F","file":{"id":"F","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}}]"#,
+    );
+
+    assert!(super::tree::applied(&tree, &roots, &renamed).is_none());
+    assert!(super::tree::applied(&tree, &roots, &binned).is_none());
+    assert!(super::tree::applied(&tree, &roots, &touched).is_some());
+}
+
+#[test]
+fn an_administrator_s_block_and_drive_s_own_ceilings_are_told_apart() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let reason =
+        |one: &str| format!(r#"{{"error":{{"message":"m","errors":[{{"reason":"{one}"}}]}}}}"#);
+    let (at, _) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("403 Forbidden", &reason("domainPolicy")),
+        said("200 OK", &listing("")),
+        said(
+            "403 Forbidden",
+            &reason("numChildrenInNonRootLimitExceeded"),
+        ),
+        said("200 OK", &listing("")),
+        said("403 Forbidden", &reason("insufficientFilePermissions")),
+    ]);
+    let drive = drive(at, home.path());
+
+    assert!(matches!(
+        drive.put("a.md", &local, Expect::Any),
+        Err(Hitch::Broke(said)) if said.contains("administrators")
+    ));
+    assert_eq!(drive.put("a.md", &local, Expect::Any), Err(Hitch::Full));
+    assert!(matches!(
+        drive.put("a.md", &local, Expect::Any),
+        Err(Hitch::Broke(said)) if said.contains("may not change")
+    ));
+}
+
+#[test]
+fn a_session_google_let_go_of_starts_the_upload_over_and_is_never_a_missing_file() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"0123456789");
+    let (at, _) = google_at(|base| {
+        vec![
+            said("200 OK", &whole("")),
+            said("200 OK", &listing("")),
+            Said {
+                status: "200 OK",
+                headers: format!("Location: {base}/upload/session\r\n"),
+                body: String::new(),
+            },
+            said("503 Service Unavailable", ""),
+            said("404 Not Found", ""),
+        ]
+    });
+    let drive = drive(at, home.path()).with_chunk(8);
+
+    let landed = drive.put("big.bin", &local, Expect::Absent);
+
+    assert!(matches!(landed, Err(Hitch::Unreachable(_))), "{landed:?}");
+}
+
+#[test]
+fn a_drive_bound_to_an_account_reads_nothing_of_another_and_asks_once() {
+    let home = tempfile::tempdir().unwrap();
+    let them = r#"{"user":{"emailAddress":"otra@example.com","permissionId":"P2"}}"#;
+    let (at, asked) = google(vec![said("200 OK", them)]);
+    let elsewhere = drive(at, home.path()).for_account("P1");
+
+    assert_eq!(
+        elsewhere.list(""),
+        Err(Hitch::Elsewhere {
+            found: "otra@example.com".into()
+        })
+    );
+    assert_eq!(asked.join().unwrap().len(), 1, "a listing went out first");
+
+    let me = r#"{"user":{"emailAddress":"mario@example.com","permissionId":"P1"}}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", me),
+        said("200 OK", &whole("")),
+        said("200 OK", &whole("")),
+    ]);
+    let mine = drive(at, home.path()).for_account("P1");
+
+    mine.list("").unwrap();
+    mine.list("").unwrap();
+
+    assert_eq!(
+        asked
+            .join()
+            .unwrap()
+            .iter()
+            .filter(|one| one.line.contains("/about"))
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn an_older_revision_is_never_taken_for_another_machine_s_write() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"4"}"#,
+        ),
+        said(
+            "200 OK",
+            r#"{"revisions":[{"id":"h0","md5Checksum":"m0","modifiedTime":"2026-10-11T09:00:00Z"},{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"}]}"#,
+        ),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Revision("A.1".into()));
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.4".to_string()));
+    assert_eq!(
+        asked.join().unwrap().len(),
+        4,
+        "yesterday's bytes went back on top"
+    );
+}
+
+#[test]
+fn asking_again_from_a_cursor_the_listing_already_passed_lists_nothing_again() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(A)),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive.changes(None).unwrap();
+    drive.changes(Some("10")).unwrap();
+    let again = drive.changes(Some("10")).unwrap();
+
+    assert!(matches!(again, Changes::Since { ref cursor, .. } if cursor == "11"));
+    let listings = asked
+        .join()
+        .unwrap()
+        .iter()
+        .filter(|one| one.line.contains("q=trashed"))
+        .count();
+    assert_eq!(
+        listings, 1,
+        "a poll from the index's older cursor listed the drive again"
+    );
+}
+
+#[test]
+fn a_change_inside_a_second_folder_of_the_same_name_is_still_found() {
+    let tree = held_tree(&format!(
+        r#"{DOCS},{{"id":"F2","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}},{{"id":"B","name":"b.md","parents":["F2"],"version":"1"}}"#
+    ));
+    let roots = ["R".to_string()];
+    let moved = changed(
+        r#"[{"fileId":"B","file":{"id":"B","name":"b.md","parents":["F2"],"version":"2"}},
+            {"fileId":"C","file":{"id":"C","name":"c.md","parents":["F2"],"version":"1"}}]"#,
+    );
+
+    let (_, applied) = super::tree::applied(&tree, &roots, &moved).unwrap();
+
+    assert_eq!(
+        applied.changed,
+        vec!["docs/b.md".to_string(), "docs/c.md".to_string()]
+    );
+    assert!(applied.gone.is_empty());
+}
+
+#[test]
+fn a_file_gone_before_it_reached_the_bin_still_takes_its_other_copies() {
+    let home = tempfile::tempdir().unwrap();
+    let one = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"}"#;
+    let two = format!(r#"{one},{{"id":"A2","name":"a.md","parents":["R"],"version":"1"}}"#);
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(&two)),
+        said("200 OK", one),
+        said("404 Not Found", ""),
+        said("204 No Content", ""),
+    ]);
+
+    let gone = drive(at, home.path()).delete("a.md", Some("A1.1"));
+
+    assert_eq!(gone, Ok(()));
+    assert!(
+        asked.join().unwrap()[3]
+            .line
+            .starts_with("DELETE /drive/v3/files/A2")
+    );
+}
+
+#[test]
+fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let revisions = r#"{"revisions":[{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h2","md5Checksum":"m2","modifiedTime":"2026-10-12T10:00:02Z"},{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"}]}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said("503 Service Unavailable", ""),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said("200 OK", revisions),
+        said("200 OK", r#"{"id":"h2"}"#),
+        said("200 OK", "theirs"),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m2","headRevisionId":"h4","version":"4"}"#,
+        ),
+        said("204 No Content", ""),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+        said("200 OK", &whole(CHECKED)),
+    ]);
+    let drive = drive(at, home.path()).owing_at(home.path());
+
+    let first = drive.put("a.md", &local, Expect::Revision("A.1".into()));
+    assert!(matches!(first, Err(Hitch::Unreachable(_))), "{first:?}");
+    assert!(home.path().join("drive-owed.json").is_file());
+
+    drive.changes(Some("10")).unwrap();
+
+    let asked = asked.join().unwrap();
+    let sent = String::from_utf8_lossy(&asked[8].body);
+    assert!(
+        sent.contains("theirs"),
+        "their bytes never went back: {sent}"
+    );
+    assert!(
+        asked[9]
+            .line
+            .starts_with("DELETE /drive/v3/files/A/revisions/h2")
+    );
+    assert!(
+        !home.path().join("drive-owed.json").exists(),
+        "a debt paid was kept"
+    );
+}
+
+#[test]
+fn a_deletion_heard_by_a_poll_is_still_gone_for_the_round_that_asks_from_the_same_cursor() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(A)),
+        said(
+            "200 OK",
+            r#"{"changes":[{"fileId":"A","removed":true}],"newStartPageToken":"11"}"#,
+        ),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+    ]);
+    let drive = drive(at, home.path());
+    drive.changes(None).unwrap();
+
+    let polled = drive.changes(Some("10")).unwrap();
+    let round = drive.changes(Some("10")).unwrap();
+
+    for heard in [polled, round] {
+        assert!(
+            matches!(heard, Changes::Since { ref gone, .. } if gone == &vec!["a.md".to_string()]),
+            "{heard:?}"
+        );
+    }
+    let asked = asked.join().unwrap();
+    assert!(asked[3].line.contains("pageToken=11"), "{}", asked[3].line);
+}
+
+#[test]
+fn a_debt_whose_file_moved_on_keeps_the_bytes_in_drive_s_history_and_writes_over_nothing() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let revisions = r#"{"revisions":[{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h2","md5Checksum":"m2","modifiedTime":"2026-10-12T10:00:02Z"},{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"},{"id":"h5","md5Checksum":"m5","modifiedTime":"2026-10-12T11:00:00Z"}]}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said("503 Service Unavailable", ""),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m5","headRevisionId":"h5","version":"6"}"#,
+        ),
+        said("200 OK", revisions),
+        said("200 OK", r#"{"id":"h2"}"#),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+        said("200 OK", &whole(CHECKED)),
+    ]);
+    let drive = drive(at, home.path()).owing_at(home.path());
+
+    assert!(
+        drive
+            .put("a.md", &local, Expect::Revision("A.1".into()))
+            .is_err()
+    );
+    drive.changes(Some("10")).unwrap();
+
+    let asked = asked.join().unwrap();
+    assert!(
+        asked[6]
+            .line
+            .starts_with("PATCH /drive/v3/files/A/revisions/h2")
+    );
+    assert!(
+        !asked[4..]
+            .iter()
+            .any(|one| one.line.starts_with("PATCH /upload")),
+        "a newer write was covered by older bytes"
+    );
+    assert!(!home.path().join("drive-owed.json").exists());
 }

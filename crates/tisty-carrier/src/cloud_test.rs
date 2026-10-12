@@ -1739,21 +1739,17 @@ fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
 }
 
 #[test]
-fn a_provider_that_says_when_the_other_side_changed_is_heard_and_the_rest_are_looked_at() {
-    for setting in settings() {
+fn every_cloud_is_heard_and_only_a_folder_is_looked_at() {
+    let folder = settings().into_iter().next().unwrap();
+    assert!(desk(&folder, "dev_a").carrier.hears().is_none());
+    for (setting, _) in each_kind(|fake| fake.polled_every(Duration::ZERO)) {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         one.wrote("lo de uno");
         one.round(Way::Both);
         two.round(Way::Both);
         one.round(Way::Both);
-        let Some(mut heard) = one.carrier.hears() else {
-            assert!(
-                who != "cloud over dropbox",
-                "{who}: a provider that can say so was only looked at"
-            );
-            continue;
-        };
+        let mut heard = one.carrier.hears().expect(who);
         assert_eq!(
             heard.told(Duration::ZERO),
             Ok(false),
@@ -1767,6 +1763,118 @@ fn a_provider_that_says_when_the_other_side_changed_is_heard_and_the_rest_are_lo
             heard.told(Duration::ZERO),
             Ok(true),
             "{who}: the other side was not heard"
+        );
+    }
+}
+
+#[test]
+fn a_provider_that_cannot_push_is_asked_no_sooner_than_its_pace() {
+    for (setting, fake) in each_kind(|fake| fake.polled_every(Duration::from_secs(3600))) {
+        let who = &setting.name;
+        if fake.hears_pushed() {
+            continue;
+        }
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let mut heard = one.carrier.hears().expect(who);
+        heard.told(Duration::ZERO).unwrap();
+        fake.forget_counts();
+
+        for _ in 0..3 {
+            assert_eq!(heard.told(Duration::from_millis(5)), Ok(false), "{who}");
+        }
+
+        assert_eq!(fake.counts().lists, 0, "{who}: asked before its time");
+    }
+}
+
+#[test]
+fn an_account_never_used_here_does_not_take_the_documents_for_deleted() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.round(Way::Both);
+        let another: Arc<dyn Remote> = Arc::new(crate::folder_backed::FolderBacked::at(
+            setting.room.path().join("another-account"),
+        ));
+        let moved = Desk {
+            here: one.here.clone(),
+            carrier: Arc::new(Cloud::over(
+                another.clone(),
+                setting.room.path().join("dev_a").join("cloud-another"),
+            )),
+        };
+
+        moved.round(Way::Both);
+
+        assert_eq!(
+            one.doc(DOC).as_deref(),
+            Some("# Plan\n\nlo escrito\n"),
+            "{who}"
+        );
+        assert!(another.about(&doc_name()).unwrap().is_some(), "{who}");
+    }
+}
+
+#[test]
+fn two_machines_writing_one_document_in_drive_s_gap_lose_neither_text() {
+    let (setting, fake) = each_kind(|fake| fake).remove(0);
+    assert_eq!(fake.who(), "drive");
+    let (one, two) = pair(&setting);
+    one.filed(DOC, "# Plan\n\nlo primero\n");
+    one.round(Way::Both);
+    two.round(Way::Both);
+    one.edited(DOC, "# Plan\n\nlo de uno\n");
+    two.edited(DOC, "# Plan\n\nlo de dos\n");
+    let meanwhile = Desk {
+        here: two.here.clone(),
+        carrier: two.carrier.clone(),
+    };
+    fake.in_the_gap(&doc_name(), move || {
+        meanwhile.round(Way::Both);
+    });
+
+    one.round(Way::Both);
+    for _ in 0..2 {
+        two.round(Way::Both);
+        one.round(Way::Both);
+    }
+
+    assert_eq!(one.doc(DOC).as_deref(), Some("# Plan\n\nlo de uno\n"));
+    assert_eq!(two.doc(DOC).as_deref(), Some("# Plan\n\nlo de dos\n"));
+    assert!(
+        one.carrier.paper_waiting(DOC) || two.carrier.paper_waiting(DOC),
+        "the two texts met and nobody was asked"
+    );
+}
+
+#[test]
+fn a_clock_set_back_does_not_leave_the_cloud_unheard() {
+    for (setting, fake) in each_kind(|fake| fake.polled_every(Duration::from_secs(3600))) {
+        let who = &setting.name;
+        if fake.hears_pushed() {
+            continue;
+        }
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let ahead = super::now_ms() + 24 * 60 * 60 * 1000;
+        std::fs::write(
+            home_of(&setting, "dev_a").join("stirring.json"),
+            format!(r#"{{"asked_ms":{ahead},"every_ms":3600000,"mark":0}}"#),
+        )
+        .unwrap();
+        let mut heard = one.carrier.hears().expect(who);
+        fake.forget_counts();
+
+        heard.told(Duration::ZERO).unwrap();
+
+        assert_eq!(
+            fake.counts().lists,
+            1,
+            "{who}: a clock set back silenced the cloud"
         );
     }
 }

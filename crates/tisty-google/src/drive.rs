@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -8,16 +8,25 @@ use reqwest::blocking::Client as Http;
 use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
+mod gap;
+mod owed;
 mod tree;
 mod upload;
 mod wire;
 
-use tree::{FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within};
+use tree::{
+    Changed, FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within,
+};
 use wire::{given, json, quoted, transfer_http};
 
 use crate::ASKED_WITHIN;
 
 const ROOT: &str = "Tisty";
+// Google's units for what a verb's own cost does not cover (guides/limits).
+pub(super) const READ: u64 = 5;
+pub(super) const LIST: u64 = 100;
+pub(super) const DOWNLOAD: u64 = 200;
+pub(super) const EDIT: u64 = 50;
 const MIB: u64 = 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +53,36 @@ pub struct Account {
 struct Known {
     tree: Tree,
     cursor: Option<String>,
+    // Each cursor reached with the paths that moved to reach it, so one asked from an older cursor hears all of them again.
+    passed: Vec<(String, BTreeSet<String>)>,
+}
+
+const PASSED_AT_MOST: usize = 64;
+
+impl Known {
+    fn holds_up_to(&self, since: &str) -> bool {
+        self.passed.iter().any(|(one, _)| one == since)
+    }
+
+    fn moved_to(&mut self, cursor: &str, touched: BTreeSet<String>) {
+        self.cursor = Some(cursor.to_string());
+        if self.passed.last().is_some_and(|(last, _)| last == cursor) {
+            return;
+        }
+        self.passed.push((cursor.to_string(), touched));
+        if self.passed.len() > PASSED_AT_MOST {
+            self.passed.remove(0);
+        }
+    }
+
+    fn touched_since(&self, since: &str) -> BTreeSet<String> {
+        self.passed
+            .iter()
+            .skip_while(|(one, _)| one != since)
+            .skip(1)
+            .flat_map(|(_, touched)| touched.iter().cloned())
+            .collect()
+    }
 }
 
 pub struct Drive {
@@ -55,6 +94,10 @@ pub struct Drive {
     known: Mutex<Option<Known>>,
     // What this machine wrote or deleted, by id and version, so its own changes are never news.
     wrote: Mutex<HashSet<(String, Option<String>)>>,
+    expected: Option<String>,
+    vouched: std::sync::atomic::AtomicBool,
+    owing: Option<std::path::PathBuf>,
+    beyond: std::sync::atomic::AtomicU64,
 }
 
 impl Drive {
@@ -67,7 +110,35 @@ impl Drive {
             roots: Mutex::new(None),
             known: Mutex::new(None),
             wrote: Mutex::new(HashSet::new()),
+            expected: None,
+            vouched: std::sync::atomic::AtomicBool::new(false),
+            owing: None,
+            beyond: std::sync::atomic::AtomicU64::new(0),
         })
+    }
+
+    /// Reads and writes only once Google says it is this account, so two accounts never mix.
+    pub fn for_account(mut self, id: &str) -> Self {
+        self.expected = Some(id.to_string());
+        self
+    }
+
+    pub(super) fn spent(&self, units: u64) {
+        self.beyond
+            .fetch_add(units, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    fn vouched_for(&self) -> Result<(), Hitch> {
+        use std::sync::atomic::Ordering;
+        let Some(expected) = &self.expected else {
+            return Ok(());
+        };
+        if !self.vouched.load(Ordering::Acquire) {
+            self.spent(READ);
+            self.verify(expected)?;
+            self.vouched.store(true, Ordering::Release);
+        }
+        Ok(())
     }
 
     #[cfg(test)]
@@ -133,6 +204,7 @@ impl Drive {
     fn folder(&self, name: &str, parent: &str) -> Result<String, Hitch> {
         let url = format!("{}/files", self.at.api);
         let body = serde_json::json!({ "name": name, "mimeType": FOLDER, "parents": [parent] });
+        self.spent(EDIT);
         let made: File = json(self.call(Some(ASKED_WITHIN), |http| {
             http.post(&url)
                 .query(&[("fields", FILE_FIELDS)])
@@ -147,6 +219,7 @@ impl Drive {
     }
 
     fn listed(&self, cursor: Option<String>) -> Result<(), Hitch> {
+        self.vouched_for()?;
         let url = format!("{}/files", self.at.api);
         let fields = format!("nextPageToken,files({FILE_FIELDS})");
         let mut all = Vec::new();
@@ -183,6 +256,10 @@ impl Drive {
         if let Ok(mut held) = self.known.lock() {
             *held = Some(Known {
                 tree: planted(&roots, all),
+                passed: cursor
+                    .iter()
+                    .map(|one| (one.clone(), BTreeSet::new()))
+                    .collect(),
                 cursor,
             });
         }
@@ -193,6 +270,7 @@ impl Drive {
     fn binned(&self) -> Result<bool, Hitch> {
         let url = format!("{}/files", self.at.api);
         let asked = format!("name = '{ROOT}' and mimeType = '{FOLDER}' and trashed = true");
+        self.spent(LIST);
         let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
@@ -290,6 +368,7 @@ impl Drive {
             quoted(leaf)
         );
         let fields = format!("files({FILE_FIELDS})");
+        self.spent(LIST);
         let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
@@ -333,6 +412,7 @@ impl Drive {
             };
             self.noted(|tree| {
                 tree.folders.insert(walked.clone(), found.clone());
+                tree.folder_paths.insert(found.clone(), walked.clone());
             });
             at = found;
         }
@@ -345,6 +425,7 @@ impl Drive {
             "name = '{}' and mimeType = '{FOLDER}' and '{parent}' in parents and trashed = false",
             quoted(name)
         );
+        self.spent(LIST);
         let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
@@ -372,15 +453,8 @@ impl Drive {
         })
     }
 
-    fn stirred(&self, since: &str) -> Result<(bool, String), Hitch> {
-        #[derive(Deserialize)]
-        struct Changed {
-            #[serde(rename = "fileId")]
-            file_id: String,
-            #[serde(default)]
-            removed: bool,
-            file: Option<File>,
-        }
+    fn stirred(&self, since: &str) -> Result<(Vec<Changed>, String), Hitch> {
+        self.vouched_for()?;
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Moved {
@@ -390,6 +464,8 @@ impl Drive {
             new_start_page_token: Option<String>,
         }
         let url = format!("{}/changes", self.at.api);
+        let fields =
+            format!("nextPageToken,newStartPageToken,changes(fileId,removed,file({FILE_FIELDS}))");
         let mut token = since.to_string();
         let mut all = Vec::new();
         loop {
@@ -398,7 +474,7 @@ impl Drive {
                     ("pageToken", token.as_str()),
                     ("pageSize", "1000"),
                     ("spaces", "drive"),
-                    ("fields", "nextPageToken,newStartPageToken,changes(fileId,removed,file(id,version,trashed))"),
+                    ("fields", fields.as_str()),
                 ])
             })?)?;
             all.extend(moved.changes);
@@ -410,16 +486,13 @@ impl Drive {
                         .lock()
                         .map(|held| held.clone())
                         .unwrap_or_default();
-                    let ours = all.iter().all(|one| {
-                        let version = match (&one.file, one.removed) {
-                            (Some(file), false) if !file.trashed => {
-                                Some(file.version.clone().unwrap_or_else(|| "0".into()))
-                            }
-                            _ => None,
-                        };
-                        wrote.contains(&(one.file_id.clone(), version))
+                    all.retain(|one| {
+                        let version = one
+                            .standing()
+                            .map(|file| file.version.clone().unwrap_or_else(|| "0".into()));
+                        !wrote.contains(&(one.file_id.clone(), version))
                     });
-                    return Ok((!ours, cursor));
+                    return Ok((all, cursor));
                 }
                 (None, None) => {
                     return Err(Hitch::Broke(
@@ -428,6 +501,39 @@ impl Drive {
                 }
             }
         }
+    }
+
+    // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
+    fn caught_up(&self, since: &str, theirs: &[Changed], cursor: &str) -> Option<Changes> {
+        let roots = self.roots.lock().ok()?.clone()?;
+        let mut held = self.known.lock().ok()?;
+        let known = held.as_mut()?;
+        let touched = match theirs.is_empty() {
+            true => BTreeSet::new(),
+            false => {
+                let (tree, applied) = tree::applied(&known.tree, &roots, theirs)?;
+                known.tree = tree;
+                applied.changed.into_iter().chain(applied.gone).collect()
+            }
+        };
+        known.moved_to(cursor, touched);
+        let (mut changed, mut gone) = (Vec::new(), Vec::new());
+        for path in known.touched_since(since) {
+            match known
+                .tree
+                .files
+                .get(&path)
+                .and_then(|copies| copies.first())
+            {
+                Some(file) => changed.push(seen(&path, file)),
+                None => gone.push(path),
+            }
+        }
+        Some(Changes::Since {
+            changed,
+            gone,
+            cursor: cursor.to_string(),
+        })
     }
 }
 
@@ -449,6 +555,7 @@ impl Remote for Drive {
                 delete: 50,
                 about: 5,
                 changes: 100,
+                checks: 5,
             },
         }
     }
@@ -525,6 +632,11 @@ impl Remote for Drive {
                 .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?,
         };
         let made = self.sent(name, from, current, &parent)?;
+        if let Some(checked) = current
+            && gap::leapt(checked, &made)
+        {
+            self.handed_back(name, &made, checked)?;
+        }
         self.owned(
             &made.id,
             Some(made.version.clone().unwrap_or_else(|| "0".into())),
@@ -549,7 +661,17 @@ impl Remote for Drive {
         if expect.is_some_and(|wanted| seen(name, first).revision != wanted) {
             return Err(Hitch::Changed(name.to_string()));
         }
-        for one in &all {
+        let copies = match expect {
+            Some(_) => {
+                match self.binned_unless_moved(name, first) {
+                    Ok(()) | Err(Hitch::Missing(_)) => {}
+                    Err(other) => return Err(other),
+                }
+                &all[1..]
+            }
+            None => &all[..],
+        };
+        for one in copies {
             let url = format!("{}/files/{}", self.at.api, one.id);
             match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
                 Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
@@ -560,6 +682,10 @@ impl Remote for Drive {
             tree.files.remove(name);
         });
         Ok(())
+    }
+
+    fn spent_beyond(&self) -> u64 {
+        self.beyond.swap(0, std::sync::atomic::Ordering::Relaxed)
     }
 
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
@@ -575,6 +701,7 @@ impl Remote for Drive {
         struct Start {
             start_page_token: String,
         }
+        self.repaid();
         let Some(since) = since else {
             let url = format!("{}/changes/startPageToken", self.at.api);
             let start: Start = json(self.call(Some(ASKED_WITHIN), |http| http.get(&url))?)?;
@@ -584,28 +711,29 @@ impl Remote for Drive {
                 cursor: start.start_page_token,
             });
         };
-        let (stirred, cursor) = self.stirred(since)?;
+        // Asked onward from where the listing stands, never again from the older cursor, so nothing is applied twice.
+        let followed = self.known.lock().ok().and_then(|held| {
+            held.as_ref()
+                .filter(|known| known.holds_up_to(since))
+                .and_then(|known| known.cursor.clone())
+        });
+        let (theirs, cursor) = self.stirred(followed.as_deref().unwrap_or(since))?;
         if let Ok(mut held) = self.wrote.lock() {
             held.clear();
         }
-        let followed = self.known.lock().ok().is_some_and(|held| {
-            held.as_ref()
-                .is_some_and(|known| known.cursor.as_deref() == Some(since))
-        });
-        if stirred || !followed {
-            self.listed(Some(cursor.clone()))?;
-        } else if let Ok(mut held) = self.known.lock()
-            && let Some(known) = held.as_mut()
+        if followed.is_some()
+            && let Some(caught_up) = self.caught_up(since, &theirs, &cursor)
         {
-            known.cursor = Some(cursor.clone());
+            return Ok(caught_up);
         }
-        Ok(match stirred {
-            false => Changes::Since {
+        self.listed(Some(cursor.clone()))?;
+        Ok(match theirs.is_empty() {
+            true => Changes::Since {
                 changed: Vec::new(),
                 gone: Vec::new(),
                 cursor,
             },
-            true => Changes::Whole {
+            false => Changes::Whole {
                 seen: self.shown("")?,
                 cursor,
             },

@@ -8,6 +8,7 @@ const leaf = (at: string) => at.split(/[\\/]/).filter(Boolean).pop() ?? at;
 export const modeSaid = (state: Carrying): string => {
   if (state.mode === "later") return t("modeLater");
   if (state.mode === "folder" && state.chosen) return fill("modeFolder", leaf(state.chosen));
+  if (state.mode === "cloud" && state.cloud) return fill("modeCloud", state.cloud);
   return t("modeAlone");
 };
 

@@ -75,7 +75,11 @@ pub struct Fake {
     expires_cursors: bool,
     poll: Option<Duration>,
     shelf: Arc<Mutex<Shelf>>,
+    gap: Mutex<Option<Gap>>,
 }
+
+// Drive checks a revision and only then writes, so another machine can land in between.
+type Gap = (String, Box<dyn FnOnce() + Send>);
 
 impl Fake {
     pub fn new(kind: Kind) -> Self {
@@ -88,6 +92,7 @@ impl Fake {
             expires_cursors: false,
             poll: None,
             shelf: Arc::default(),
+            gap: Mutex::new(None),
         }
     }
 
@@ -133,6 +138,20 @@ impl Fake {
     pub fn polled_every(mut self, poll: Duration) -> Self {
         self.poll = Some(poll);
         self
+    }
+
+    pub fn in_the_gap(&self, name: &str, meanwhile: impl FnOnce() + Send + 'static) {
+        if let Ok(mut gap) = self.gap.lock() {
+            *gap = Some((name.to_string(), Box::new(meanwhile)));
+        }
+    }
+
+    fn gap_for(&self, name: &str) -> Option<Box<dyn FnOnce() + Send>> {
+        let mut gap = self.gap.lock().ok()?;
+        match gap.as_ref() {
+            Some((waiting, _)) if waiting == name => gap.take().map(|(_, run)| run),
+            _ => None,
+        }
     }
 
     pub fn truncate_next(&self, fetches: usize) {
@@ -353,6 +372,7 @@ impl Remote for Fake {
                     delete: 50,
                     about: 5,
                     changes: 100,
+                    checks: 5,
                 },
             ),
             Kind::OneDrive => (
@@ -367,6 +387,7 @@ impl Remote for Fake {
                     delete: 2,
                     about: 1,
                     changes: 1,
+                    checks: 0,
                 },
             ),
             Kind::Dropbox => (
@@ -381,6 +402,7 @@ impl Remote for Fake {
                     delete: 1,
                     about: 1,
                     changes: 1,
+                    checks: 0,
                 },
             ),
         };
@@ -461,7 +483,29 @@ impl Remote for Fake {
         let requests = limits.requests_to_put(body.len() as u64);
         self.spend(&mut shelf, requests, limits.costs.put);
         shelf.counts.sent += body.len() as u64;
-        Ok(self.written(&mut shelf, name, body, at))
+        let Some(meanwhile) = self.gap_for(name) else {
+            return Ok(self.written(&mut shelf, name, body, at));
+        };
+        let checked = at.map(|at| (shelf.files[at].id, shelf.files[at].revision));
+        drop(shelf);
+        meanwhile();
+        let mut shelf = self.lock();
+        let now = checked.and_then(|(id, _)| shelf.files.iter().position(|one| one.id == id));
+        let theirs = match (checked, now) {
+            (Some((_, was)), Some(at)) if shelf.files[at].revision != was => {
+                Some(shelf.files[at].body.clone())
+            }
+            _ => None,
+        };
+        let landed = self.written(&mut shelf, name, body, now);
+        match theirs {
+            // As Drive does it: what the gap let in goes back on top, and this write is refused.
+            Some(theirs) => {
+                self.written(&mut shelf, name, theirs, now);
+                Err(Hitch::Changed(name.to_string()))
+            }
+            None => Ok(landed),
+        }
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {

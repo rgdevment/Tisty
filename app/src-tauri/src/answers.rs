@@ -1,6 +1,7 @@
 pub mod agents;
 pub mod attaching;
 pub mod carrying;
+pub mod clouding;
 pub mod freeing;
 pub mod joining;
 pub mod knocking;

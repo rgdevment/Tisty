@@ -5541,6 +5541,7 @@ dependencies = [
  "tempfile",
  "tisty-carrier",
  "tisty-core",
+ "tokio",
  "url",
 ]
 

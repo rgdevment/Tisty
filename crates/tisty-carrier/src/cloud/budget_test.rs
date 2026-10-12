@@ -137,3 +137,66 @@ fn a_listen_already_open_is_charged_each_ask_and_stops_when_the_cloud_pauses() {
         "a paused listen still asked"
     );
 }
+
+#[test]
+fn the_look_a_provider_takes_before_writing_is_counted_with_the_write() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+    let source = home.path().join("bytes");
+    std::fs::write(&source, b"unos bytes").unwrap();
+
+    meter
+        .put("store/dev_a.log", &source, crate::Expect::Absent)
+        .unwrap();
+    meter.delete("store/dev_a.log", None).unwrap();
+
+    let costs = fake.limits().costs;
+    assert_eq!(
+        Spent::load(home.path()).units,
+        costs.put + costs.delete + 2 * costs.checks,
+        "the budget sat below what Google counts"
+    );
+}
+
+struct SpendingMore(Fake, std::sync::atomic::AtomicU64);
+
+impl Remote for SpendingMore {
+    fn limits(&self) -> Limits {
+        self.0.limits()
+    }
+    fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
+        self.1.store(300, std::sync::atomic::Ordering::SeqCst);
+        self.0.list(under)
+    }
+    fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
+        self.0.fetch(name, from, into)
+    }
+    fn put(&self, name: &str, from: &Path, expect: crate::Expect) -> Result<Seen, Hitch> {
+        self.0.put(name, from, expect)
+    }
+    fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
+        self.0.delete(name, expect)
+    }
+    fn hash_of(&self, local: &Path) -> std::io::Result<String> {
+        self.0.hash_of(local)
+    }
+    fn spent_beyond(&self) -> u64 {
+        self.1.swap(0, std::sync::atomic::Ordering::SeqCst)
+    }
+}
+
+#[test]
+fn what_a_provider_spent_beyond_a_verb_is_charged_with_it_and_only_once() {
+    let home = tempfile::tempdir().unwrap();
+    let more = SpendingMore(Fake::drive(), std::sync::atomic::AtomicU64::new(0));
+    let meter = Metered::over(&more, home.path(), Class::History);
+
+    meter.list("").unwrap();
+    meter.list("").unwrap();
+
+    assert_eq!(
+        Spent::load(home.path()).units,
+        2 * more.limits().costs.list + 600,
+    );
+}
