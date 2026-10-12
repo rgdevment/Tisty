@@ -47,6 +47,7 @@ export function deskOf(state: State, data: Snapshot) {
     greet,
     leaving,
     torn,
+    asked,
     parcels,
     asking,
     marking,
@@ -74,7 +75,7 @@ export function deskOf(state: State, data: Snapshot) {
     open,
     mode,
     tight,
-    calm: !asking && !greet && !leaving && !torn && !afoot && !error && !parcels.asking,
+    calm: !asking && !greet && !leaving && !torn && !asked && !afoot && !error && !parcels.asking,
   });
 
   const remember = (next: Mode) => {

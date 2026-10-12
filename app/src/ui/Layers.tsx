@@ -18,6 +18,7 @@ import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
 import Notice from "./Notice";
 import Rifts from "./Rifts";
+import Sure from "./Sure";
 import Versions from "./Versions";
 import Welcome from "./Welcome";
 
@@ -25,6 +26,11 @@ export interface Torn {
   named: string;
   rifts: Rift[];
   answer: (picks: Pick[] | null) => void;
+}
+
+export interface Asked {
+  said: string;
+  done: (yes: boolean) => void;
 }
 
 export interface MenuOpen {
@@ -39,6 +45,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
   const {
     afoot,
     aloud,
+    asked,
     backing,
     behind,
     captured,
@@ -63,6 +70,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     renaming,
     roomBelow,
     setBacking,
+    setAsked,
     setBehind,
     setChosen,
     setError,
@@ -99,6 +107,17 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
       <p role="status" aria-live="polite" className="sr-only">
         {aloud}
       </p>
+
+      {asked && (
+        <Sure
+          key={asked.said}
+          said={asked.said}
+          onAnswer={(yes) => {
+            asked.done(yes);
+            setAsked(null);
+          }}
+        />
+      )}
 
       {torn && torn.rifts.length === 0 && (
         <Versions

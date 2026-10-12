@@ -1,4 +1,3 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import {
   addPart,
   type Change,
@@ -22,6 +21,7 @@ import {
   writeStep,
 } from "./core";
 import { fill } from "./locales";
+import { sure } from "./sure";
 
 export interface Hands {
   data: Snapshot;
@@ -80,10 +80,10 @@ export const erasing = (
   h: { clear: () => void; gone: () => void; fail: (problem: unknown) => void },
 ) => {
   const entries = task.volume?.journal ?? 0;
-  const sure = entries
+  const said = entries
     ? `${fill("eraseSure", task.title)} ${fill("eraseWritten", String(entries))}`
     : fill("eraseSure", task.title);
-  ask(sure, { kind: "warning" })
+  sure(said)
     .then((yes) => {
       if (!yes) return;
       h.clear();
