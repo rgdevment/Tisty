@@ -19,7 +19,7 @@ fn sent(desk: &Desk) -> tisty_core::attach::Kept {
 
 fn freed(desk: &Desk, unused_since: SystemTime) -> Result<LetGo, Trouble> {
     desk.carrier
-        .set_free(&desk.here, unused_since, &|_| false, &mut |_| true)
+        .set_free(&desk.here, unused_since, &mut |_| true)
 }
 
 #[test]
@@ -29,7 +29,7 @@ fn space_is_freed_only_by_a_cloud_and_only_of_what_lies_up_there_unused() {
         let (one, two) = pair(&setting);
         let kept = sent(&one);
 
-        let could = one.carrier.could_free(&one.here, later(), &|_| false);
+        let could = one.carrier.could_free(&one.here, later());
         let done = freed(&one, later()).unwrap();
 
         if let Place::Folder(_) = setting.place {
@@ -68,12 +68,12 @@ fn an_attachment_opened_lately_stays() {
             .as_secs()
             + 60;
         tisty_core::lately::used_on(
-            &one.here.aside.join(tisty_core::lately::USED),
+            &one.here.data.join(tisty_core::lately::USED),
             &kept.at,
             seconds,
         );
 
-        let could = one.carrier.could_free(&one.here, later(), &|_| false);
+        let could = one.carrier.could_free(&one.here, later());
         let done = freed(&one, later()).unwrap();
 
         assert!(could.let_go.is_empty(), "{who}");
@@ -110,8 +110,8 @@ fn a_date_no_clock_could_hold_never_stops_the_freeing() {
         let who = &setting.name;
         let (one, _) = pair(&setting);
         let kept = sent(&one);
-        let used = one.here.aside.join(tisty_core::lately::USED);
-        std::fs::create_dir_all(&one.here.aside).unwrap();
+        let used = one.here.data.join(tisty_core::lately::USED);
+        std::fs::create_dir_all(&one.here.data).unwrap();
         std::fs::write(&used, format!("{{\"{}\": {}}}", kept.at, u64::MAX)).unwrap();
 
         let done = freed(&one, later()).unwrap();
@@ -169,5 +169,44 @@ fn the_same_bytes_attached_again_after_freeing_come_back_under_their_name() {
 
         assert_eq!(again.at, kept.at, "{who}");
         assert_eq!(one.held(&kept.at).as_deref(), Some(PHOTO), "{who}");
+    }
+}
+
+#[test]
+fn a_provider_that_gives_no_hash_never_has_a_copy_here_let_go() {
+    for (setting, _) in each_kind(|fake| fake.without_hashes()) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let kept = sent(&one);
+
+        let could = one.carrier.could_free(&one.here, later());
+        let done = freed(&one, later()).unwrap();
+
+        assert!(could.let_go.is_empty(), "{who}");
+        assert!(done.let_go.is_empty(), "{who}");
+        assert_eq!(one.held(&kept.at).as_deref(), Some(PHOTO), "{who}");
+    }
+}
+
+#[test]
+fn an_attachment_shown_under_a_moment_of_its_own_still_counts_as_used() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let kept = sent(&one);
+        let seconds = later()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + 60;
+        tisty_core::lately::used_on(
+            &one.here.data.join(tisty_core::lately::USED),
+            &format!("{}#t=5", kept.at),
+            seconds,
+        );
+
+        let done = freed(&one, later()).unwrap();
+
+        assert!(done.let_go.is_empty(), "{who}");
     }
 }

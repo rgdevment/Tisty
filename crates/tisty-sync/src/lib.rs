@@ -421,7 +421,7 @@ pub fn carry_through(
     Ok(moved)
 }
 
-fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
+pub fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
     if told.retired.is_empty() {
         return Default::default();
     }

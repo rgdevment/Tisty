@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { opened, openLink, revealed, served } from "../core";
 import { markup } from "../glyphs";
+import { showing } from "../inUse";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
@@ -17,9 +18,7 @@ interface Props {
   tabIndex?: number;
 }
 
-// Asked again once a day, so a window left open for weeks still says the picture is in use.
-const FRESH_FOR = 24 * 60 * 60 * 1000;
-const known = new Map<string, { url: string; at: number }>();
+const known = new Map<string, string>();
 
 export default function Composed({
   html,
@@ -41,6 +40,7 @@ export default function Composed({
     holder.innerHTML = html;
     setLong(false);
     let live = true;
+    const shown: (() => void)[] = [];
 
     const measure = () => {
       if (live && holder.scrollHeight > holder.clientHeight + 4) setLong(true);
@@ -54,17 +54,18 @@ export default function Composed({
         return;
       }
       img.addEventListener("load", measure);
+      shown.push(showing(reference));
 
       const cached = known.get(reference);
       if (cached) {
-        img.setAttribute("src", cached.url);
-        if (Date.now() - cached.at < FRESH_FOR) return;
+        img.setAttribute("src", cached);
+        return;
       }
       served(reference)
         .then((at) => {
           const url = convertFileSrc(at);
-          known.set(reference, { url, at: Date.now() });
-          if (live && img.getAttribute("src") !== url) img.setAttribute("src", url);
+          known.set(reference, url);
+          if (live) img.setAttribute("src", url);
         })
         .catch(() => live && img.replaceWith(missing(img.alt || reference)));
     });
@@ -72,6 +73,7 @@ export default function Composed({
     measure();
     return () => {
       live = false;
+      for (const gone of shown) gone();
     };
   }, [html, cut]);
 

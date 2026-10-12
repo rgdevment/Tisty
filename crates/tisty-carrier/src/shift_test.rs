@@ -269,3 +269,137 @@ fn an_attachment_swapped_up_there_is_never_brought_home_and_does_not_hold_the_mo
         );
     }
 }
+
+fn spoiled_by(setting: &Setting, device: &str, reference: &str) -> bool {
+    crate::cloud::index::Index::load(&home_of(setting, device)).spoiled(reference)
+}
+
+#[test]
+fn an_attachment_retired_and_written_down_again_but_named_by_nothing_is_owed_nowhere() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        one.store()
+            .append(Op::AttachRetire { d: kept.at.clone() })
+            .unwrap();
+        one.store().append(kept.told()).unwrap();
+        let_go_here(&one, &kept.at);
+
+        assert!(crate::homing(&*one.carrier, &one.here).nothing(), "{who}");
+        assert!(crate::filling(&*one.carrier, &one.here).nothing(), "{who}");
+    }
+}
+
+#[test]
+fn an_attachment_that_could_not_be_put_in_place_is_tried_again_not_called_spoiled() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        two.round(Way::Pull);
+        let target = tisty_core::attach::resolve(&kept.at, &two.here.data).unwrap();
+        std::fs::create_dir_all(target.join("en el camino")).unwrap();
+
+        let stopped = step(&two, Some(&*two.carrier), None);
+
+        assert!(
+            matches!(stopped, Shift::Homing { .. }),
+            "{who}: {stopped:?}"
+        );
+        assert!(!spoiled_by(&setting, "dev_b", &kept.at), "{who}");
+        std::fs::remove_dir_all(&target).unwrap();
+        assert_eq!(step(&two, Some(&*two.carrier), None), Shift::Ready, "{who}");
+        assert_eq!(two.held(&kept.at).as_deref(), Some(PHOTO), "{who}");
+    }
+}
+
+#[test]
+fn a_spoiled_copy_is_neither_fetched_when_opened_nor_left_up_there_by_a_move_into_that_cloud() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        let swapped = setting.room.path().join("swapped");
+        std::fs::write(&swapped, vec![b'x'; PHOTO.len()]).unwrap();
+        remote.put(&kept.at, &swapped, Expect::Any).unwrap();
+        two.round(Way::Pull);
+        step(&two, Some(&*two.carrier), None);
+        assert!(spoiled_by(&setting, "dev_b", &kept.at), "{who}");
+
+        remote.forget_counts();
+        assert!(two.carrier.brought(&two.here, &kept.at).is_err(), "{who}");
+        assert_eq!(
+            remote.counts().fetches,
+            0,
+            "{who}: fetched what was refused"
+        );
+
+        one.round(Way::Pull);
+        let mut index = crate::cloud::index::Index::load(&home_of(&setting, "dev_a"));
+        let revision = index.shelf[&kept.at].revision.clone();
+        index.spoiled.insert(kept.at.clone(), revision);
+        index.save(&home_of(&setting, "dev_a")).unwrap();
+        let done = step(&one, None, Some(&*one.carrier));
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        let mut there = Vec::new();
+        remote.fetch(&kept.at, 0, &mut there).unwrap();
+        assert_eq!(there, PHOTO, "{who}: the refused copy stayed up there");
+    }
+}
+
+#[test]
+fn history_the_pull_had_to_leave_for_later_leaves_the_move_homing() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo primero de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        one.wrote("lo ultimo de uno");
+        one.round(Way::Both);
+        fake.truncate_next(1);
+
+        let stopped = step(&two, Some(&*two.carrier), None);
+
+        let Shift::Homing { deferred, .. } = stopped else {
+            panic!("{who}: {stopped:?}");
+        };
+        assert_eq!(
+            deferred.map(|one| one.reason),
+            Some(Reason::Changed),
+            "{who}"
+        );
+        assert_eq!(step(&two, Some(&*two.carrier), None), Shift::Ready, "{who}");
+        assert_eq!(
+            two.titles(),
+            ["lo primero de uno", "lo ultimo de uno"],
+            "{who}"
+        );
+    }
+}
+
+#[test]
+fn an_attachment_no_history_answers_for_is_brought_and_handed_back_to_be_written_down() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.kept("foto", PHOTO);
+        one.wrote("con foto");
+        one.round(Way::Both);
+        two.round(Way::Pull);
+
+        let brought = two.carrier.brought(&two.here, &kept.at).unwrap();
+
+        let crate::Brought::Unvouched { at, sha256, bytes } = brought else {
+            panic!("{who}: {brought:?}");
+        };
+        assert_eq!(std::fs::read(at).unwrap(), PHOTO, "{who}");
+        assert_eq!((sha256, bytes), (kept.sha256.clone(), kept.bytes), "{who}");
+    }
+}

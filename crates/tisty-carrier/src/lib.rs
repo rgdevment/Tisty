@@ -46,6 +46,12 @@ pub type Shared = Arc<dyn Carrier>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Brought {
     At(PathBuf),
+    /// Held only to its name, since no history answers for it yet: the caller writes `AttachKept`.
+    Unvouched {
+        at: PathBuf,
+        sha256: String,
+        bytes: u64,
+    },
     Absent,
     Later,
 }
@@ -74,14 +80,9 @@ pub trait Carrier: Send + std::marker::Sync {
     fn unclaimed(&self) -> Holding;
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
-    fn could_free(&self, here: &Here, unused_since: SystemTime, elsewhere: Elsewhere) -> LetGo;
-    fn set_free(
-        &self,
-        here: &Here,
-        unused_since: SystemTime,
-        elsewhere: Elsewhere,
-        told: Told,
-    ) -> Result<LetGo, Trouble>;
+    fn could_free(&self, here: &Here, unused_since: SystemTime) -> LetGo;
+    fn set_free(&self, here: &Here, unused_since: SystemTime, told: Told)
+    -> Result<LetGo, Trouble>;
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble>;
     fn let_go(
         &self,

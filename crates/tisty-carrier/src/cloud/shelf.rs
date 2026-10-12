@@ -60,6 +60,7 @@ impl<'a> Shelf<'a> {
             && one.len <= COPIED_IN_DOC
             && attach::shelved(&one.under, &one.leaf)
             && (round.again
+                || self.index.spoiled(&one.reference)
                 || !self
                     .index
                     .shelf
@@ -96,7 +97,12 @@ impl<'a> Shelf<'a> {
     }
 
     fn send(&self, one: &Local) -> Result<Seen, Hitch> {
-        let (seen, ours) = match self.remote.put(&one.reference, &one.at, Expect::Absent) {
+        // What is up there was refused for its bytes, so ours, already held to its name and the log, goes over it.
+        let expect = match self.index.spoiled(&one.reference) {
+            true => Expect::Any,
+            false => Expect::Absent,
+        };
+        let (seen, ours) = match self.remote.put(&one.reference, &one.at, expect) {
             Ok(seen) => (seen, true),
             Err(Hitch::Changed(_)) => (
                 self.remote
@@ -128,11 +134,13 @@ impl<'a> Shelf<'a> {
 fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<PathBuf, Hitch> {
     if let Some(parent) = target.parent() {
         std::fs::create_dir_all(parent)?;
+        let _ = tisty_core::paths::ours_alone(parent);
     }
     let part = tisty_core::parting::beside(target, TURN.fetch_add(1, Ordering::Relaxed));
     let fetched = std::fs::File::create(&part)
         .map_err(Hitch::from)
         .and_then(|mut file| {
+            let _ = tisty_core::paths::ours_alone(&part);
             let got = remote.fetch(reference, 0, &mut file)?;
             file.sync_all()?;
             Ok(got)
@@ -157,30 +165,41 @@ pub fn named_well(reference: &str) -> bool {
     placed(reference).is_some_and(|(under, leaf)| attach::shelved(under, leaf))
 }
 
+/// Where it lies, and what it read when no history answers for it yet.
+pub type Fetched = (PathBuf, Option<(String, u64)>);
+
 pub fn brought(
     remote: &dyn Remote,
     data: &Path,
     reference: &str,
-    logged: &str,
-) -> Result<Option<PathBuf>, Hitch> {
+    logged: Option<&str>,
+) -> Result<Option<Fetched>, Hitch> {
     let Some((under, leaf)) = placed(reference).filter(|_| named_well(reference)) else {
         return Ok(None);
     };
     let target = attach::resolve(reference, data).map_err(|e| Hitch::Broke(e.to_string()))?;
+    let written_down = attach::digests(data);
     let holds = |at: &Path| {
         attach::hashed(at).ok().filter(|(sha256, _)| {
-            attach::vouched(under, leaf, sha256) && sha256.eq_ignore_ascii_case(logged)
+            attach::vouched(under, leaf, sha256)
+                && match logged {
+                    Some(logged) => sha256.eq_ignore_ascii_case(logged),
+                    None => attach::as_kept(&written_down, reference, sha256),
+                }
         })
     };
-    if target.is_file() && holds(&target).is_some() {
-        return Ok(Some(target));
+    let unvouched = |read: (String, u64)| logged.is_none().then_some(read);
+    if target.is_file()
+        && let Some(read) = holds(&target)
+    {
+        return Ok(Some((target, unvouched(read))));
     }
     let part = match fetched_part(remote, reference, &target) {
         Ok(part) => part,
         Err(Hitch::Missing(_)) => return Ok(None),
         Err(hitch) => return Err(hitch),
     };
-    let Some((sha256, bytes)) = holds(&part) else {
+    let Some(read) = holds(&part) else {
         let _ = std::fs::remove_file(&part);
         return Err(Hitch::Broke(format!(
             "{reference} does not hold the bytes its name and the log vouch for"
@@ -190,8 +209,9 @@ pub fn brought(
         let _ = std::fs::remove_file(&part);
         return Err(e.into());
     }
-    attach::noted(data, reference, &sha256, bytes);
-    Ok(Some(target))
+    let _ = tisty_core::paths::ours_alone(&target);
+    attach::noted(data, reference, &read.0, read.1);
+    Ok(Some((target, unvouched(read))))
 }
 
 impl Attachments for Shelf<'_> {
@@ -318,11 +338,14 @@ impl Attachments for Shelf<'_> {
                     continue;
                 }
             };
-            let kept = attach::hashed(&part).is_ok_and(|(sha256, bytes)| {
-                let fits = attach::vouched(under, leaf, &sha256)
-                    && attach::as_kept(&written_down, reference, &sha256)
-                    && std::fs::rename(&part, &target).is_ok();
-                if fits {
+            let read = attach::hashed(&part);
+            let fits = read.as_ref().is_ok_and(|(sha256, _)| {
+                attach::vouched(under, leaf, sha256)
+                    && attach::as_kept(&written_down, reference, sha256)
+            });
+            match read {
+                Ok((sha256, bytes)) if fits && std::fs::rename(&part, &target).is_ok() => {
+                    let _ = tisty_core::paths::ours_alone(&target);
                     attach::noted(round.data, reference, &sha256, bytes);
                     (round.saying)(Reached::Kept {
                         at: reference.clone(),
@@ -330,21 +353,27 @@ impl Attachments for Shelf<'_> {
                         bytes,
                     });
                     taken.took_in.push((reference.clone(), sha256, bytes));
+                    taken.brought += 1;
                 }
-                fits
-            });
-            if kept {
-                taken.brought += 1;
-            } else {
-                let _ = std::fs::remove_file(&part);
-                self.index
-                    .spoiled
-                    .insert(reference.clone(), seen.revision.clone());
-                witness::warn(
-                    channel::CLOUD,
-                    "an attachment from the cloud does not hold the bytes its name vouches for",
-                    &[("at", Fact::Id(reference.clone()))],
-                );
+                Ok(_) if !fits => {
+                    let _ = std::fs::remove_file(&part);
+                    self.index
+                        .spoiled
+                        .insert(reference.clone(), seen.revision.clone());
+                    witness::warn(
+                        channel::CLOUD,
+                        "an attachment from the cloud does not hold the bytes its name vouches for",
+                        &[("at", Fact::Id(reference.clone()))],
+                    );
+                }
+                _ => {
+                    let _ = std::fs::remove_file(&part);
+                    witness::warn(
+                        channel::CLOUD,
+                        "an attachment from the cloud could not be kept here, so the next step tries again",
+                        &[("at", Fact::Id(reference.clone()))],
+                    );
+                }
             }
         }
         (round.saying)(Reached::Along {
@@ -371,9 +400,10 @@ fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
     };
     attach::shelved(under, leaf)
         && !round.buried.contains(reference)
-        && round
+        && (round
             .reachable
             .is_none_or(|named| named.contains(reference))
+            || round.avowed.contains_key(reference))
         && !index.spoiled(reference)
         && seen.bytes <= COPIED_IN_DOC
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)

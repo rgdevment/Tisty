@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ONCE_A_DAY } from "../inUse";
 import { composed } from "../markdown";
 import Composed from "../ui/Composed";
 import Prose from "../ui/Prose";
@@ -38,24 +39,24 @@ describe("more than one image", () => {
   });
 });
 
-describe("a picture the window already found", () => {
-  it("is asked for again once a day, so a window left open still says it is in use", async () => {
+describe("a picture left on screen", () => {
+  it("is asked for again each day it stays, and no longer once it is gone", () => {
     const one = "![tres](<attachments/cc/3.png>)";
     const asked = () => served.mock.calls.filter(([at]) => at === "attachments/cc/3.png").length;
-    const first = render(<Composed html={composed(one)} className="prose" />);
-    await waitFor(() => expect(resolved()).toBe(1));
-    first.unmount();
+    vi.useFakeTimers();
+    try {
+      const shown = render(<Composed html={composed(one)} className="prose" />);
+      const before = asked();
 
-    const again = render(<Composed html={composed(one)} className="prose" />);
-    expect(resolved()).toBe(1);
-    expect(asked()).toBe(1);
-    again.unmount();
+      vi.advanceTimersByTime(ONCE_A_DAY);
+      expect(asked()).toBe(before + 1);
 
-    const clock = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 25 * 60 * 60 * 1000);
-    render(<Composed html={composed(one)} className="prose" />);
-    expect(resolved()).toBe(1);
-    await waitFor(() => expect(asked()).toBe(2));
-    clock.mockRestore();
+      shown.unmount();
+      vi.advanceTimersByTime(ONCE_A_DAY);
+      expect(asked()).toBe(before + 1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

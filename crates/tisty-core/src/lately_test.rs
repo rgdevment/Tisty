@@ -153,3 +153,34 @@ fn a_day_still_to_come_is_written_over_by_the_next_use() {
         Some(1_700_000_000)
     );
 }
+
+#[test]
+fn a_file_nobody_can_read_is_set_aside_and_counts_everything_as_used_from_now() {
+    let (_room, at) = room();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, b"not json at all").unwrap();
+    let before = now();
+
+    let seen = begun(&at).unwrap();
+
+    assert!(
+        seen[SINCE] >= before,
+        "an old start would free what was in use"
+    );
+    assert!(
+        at.with_extension("unreadable").is_file(),
+        "what it held was thrown away"
+    );
+}
+
+#[test]
+fn a_moment_inside_an_attachment_is_written_down_under_the_attachment() {
+    let (_room, at) = room();
+
+    used_on(&at, "attachments/ab/charla-00000000.mp4#t=5", 1_700_000_000);
+
+    assert_eq!(
+        every(&at).keys().collect::<Vec<_>>(),
+        ["attachments/ab/charla-00000000.mp4"]
+    );
+}

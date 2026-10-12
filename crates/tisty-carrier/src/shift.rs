@@ -117,7 +117,7 @@ fn carried(
 
 pub(crate) fn logged(here: &Here) -> tisty_core::State {
     let store = here.data.join(STORE);
-    tisty_core::cache::summarised(&store, &here.aside)
+    tisty_core::cache::project(&store, &here.aside)
         .ok()
         .or_else(|| {
             tisty_core::store::read_all(&store)
@@ -128,9 +128,12 @@ pub(crate) fn logged(here: &Here) -> tisty_core::State {
 }
 
 fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
-    logged(here)
+    let state = logged(here);
+    let buried = tisty_sync::buried_now(&state, &here.data);
+    state
         .kept
         .into_iter()
+        .filter(move |(reference, _)| !buried.contains(reference))
         .map(|(reference, (_, bytes))| (reference, bytes))
 }
 
