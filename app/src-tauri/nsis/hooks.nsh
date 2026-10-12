@@ -77,6 +77,7 @@
     DeleteRegValue SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
+    RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\secrets"
     Delete "$INSTDIR\ns*.tmp.old"
     RMDir "$INSTDIR"
   ${EndIf}

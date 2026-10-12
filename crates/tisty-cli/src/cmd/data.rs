@@ -18,9 +18,10 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
             show("device_id", Some(&config.device_id.0));
             show("locale", config.locale.as_deref());
             show("editor", config.editor.as_deref());
-            let remote = match later(app) {
-                true => Some(lang.get("remote-later").to_string()),
-                false => value(app, "remote")?,
+            let remote = match (later(app), in_the_cloud(app, lang)) {
+                (true, _) => Some(lang.get("remote-later").to_string()),
+                (_, Some(cloud)) => Some(cloud),
+                _ => value(app, "remote")?,
             };
             show("remote", remote.as_deref());
             show("data_dir", Some(&app.paths.data().display().to_string()));
@@ -44,6 +45,12 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                     eprintln!("{}", lang.get("remote-later"));
                     Ok(ExitCode::from(EXIT_NOT_FOUND))
                 }
+                None if key == "remote"
+                    && let Some(cloud) = in_the_cloud(app, lang) =>
+                {
+                    eprintln!("{cloud}");
+                    Ok(ExitCode::from(EXIT_NOT_FOUND))
+                }
                 None => {
                     eprintln!("{}", lang.fill("unset-key", &[("key", &key)]));
                     Ok(ExitCode::from(EXIT_NOT_FOUND))
@@ -53,6 +60,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
 
         Some(ConfigAction::Set { key, value }) => {
             check(&key, lang)?;
+            let leaving = leaving_now(app);
             if key == "locale" && Lang::known(&value).is_none() {
                 anyhow::bail!(
                     "{}",
@@ -82,13 +90,14 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                     true
                 }
             })?;
-            refused(edited, lang)?;
+            refused(edited, leaving, lang)?;
             println!("  {} {key} = {value}", style::paint(style::GREEN, "✓"));
             Ok(ExitCode::SUCCESS)
         }
 
         Some(ConfigAction::Unset { key }) => {
             check(&key, lang)?;
+            let leaving = leaving_now(app);
             let edited = app.edit_config_if(|c| match key.as_str() {
                 "locale" => {
                     c.locale = None;
@@ -100,7 +109,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                     true
                 }
             })?;
-            refused(edited, lang)?;
+            refused(edited, leaving, lang)?;
             println!("  {} {key}", style::dim("✕"));
             Ok(ExitCode::SUCCESS)
         }
@@ -112,19 +121,38 @@ fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sy
     let held = config
         .sync
         .as_ref()
-        .is_some_and(|was| *was != to && was.leaving() == Leaving::Later);
+        .is_some_and(|was| *was != to && matches!(was.leaving(), Leaving::Later | Leaving::Cloud));
     if !held {
         config.sync = Some(to);
     }
     !held
 }
 
-fn refused(edited: Edited, lang: Lang) -> anyhow::Result<()> {
+fn leaving_now(app: &App) -> Option<tisty_core::config::Leaving> {
+    app.config()
+        .sync
+        .as_ref()
+        .map(tisty_core::config::Sync::leaving)
+}
+
+fn refused(
+    edited: Edited,
+    leaving: Option<tisty_core::config::Leaving>,
+    lang: Lang,
+) -> anyhow::Result<()> {
     match edited {
         Edited::Saved => Ok(()),
+        Edited::Refused if leaving == Some(tisty_core::config::Leaving::Cloud) => {
+            anyhow::bail!("{}", lang.get("cloud-to-leave"))
+        }
         Edited::Refused => anyhow::bail!("{}", lang.get("sync-later-to-leave")),
         Edited::Unreadable => anyhow::bail!("{}", lang.get("settings-unreadable")),
     }
+}
+
+fn in_the_cloud(app: &App, lang: Lang) -> Option<String> {
+    tisty_carrier::cloud_of(app.config().sync.as_ref())
+        .map(|at| lang.fill("remote-cloud", &[("email", &at.email)]))
 }
 
 fn later(app: &App) -> bool {

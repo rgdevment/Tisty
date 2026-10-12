@@ -28,13 +28,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     } = asked;
     let keeping = carrier::chosen(app.config().sync.as_ref());
     let Some(via) = keeping.carrier else {
-        anyhow::bail!(
-            "{}",
-            lang.get(match keeping.chosen {
-                carrier::Chosen::Later => "sync-later",
-                _ => "no-remote",
-            })
-        );
+        anyhow::bail!("{}", nothing_to_carry_with(app, keeping.chosen, lang));
     };
     let Some(dest) = via.place().map(std::path::Path::to_path_buf) else {
         anyhow::bail!("{}", lang.get("no-remote"));
@@ -370,4 +364,16 @@ fn settle_what_arrived(app: &mut App, files: &[String]) {
             &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
         );
     }
+}
+
+// The cloud is the window's alone, so the line says where to go rather than that nothing is set.
+fn nothing_to_carry_with(app: &App, chosen: carrier::Chosen, lang: Lang) -> String {
+    if let Some(at) = carrier::cloud_of(app.config().sync.as_ref()) {
+        return lang.fill("sync-in-the-window", &[("email", &at.email)]);
+    }
+    lang.get(match chosen {
+        carrier::Chosen::Later => "sync-later",
+        _ => "no-remote",
+    })
+    .to_string()
 }

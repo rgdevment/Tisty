@@ -123,6 +123,7 @@ impl Remote for FolderBacked {
                 delete: 1,
                 about: 1,
                 changes: 1,
+                checks: 0,
             },
         }
     }

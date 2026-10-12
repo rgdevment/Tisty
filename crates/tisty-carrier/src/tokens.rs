@@ -54,6 +54,13 @@ impl Tokens {
         }
     }
 
+    /// What is held in memory goes too, so a machine that let go stops reaching the cloud at once.
+    pub fn let_go(&self) {
+        if let Ok(mut held) = self.held.lock() {
+            *held = InMemory::default();
+        }
+    }
+
     pub fn spoiled(&self, access: &str) {
         if let Ok(mut held) = self.held.lock()
             && held.access.as_ref().is_some_and(|(kept, _)| kept == access)

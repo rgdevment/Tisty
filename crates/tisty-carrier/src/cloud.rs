@@ -13,6 +13,7 @@ use crate::{
     Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble, Watch,
 };
 
+mod asking;
 mod budget;
 mod index;
 mod judge;
@@ -243,13 +244,17 @@ impl Cloud {
         Ok(moved)
     }
 
+    fn stirred_last(&self) -> Stir {
+        std::fs::read(self.home.join(STIRRING))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .unwrap_or_default()
+    }
+
     fn asked_again(&self) -> u64 {
         let poll = self.remote.limits().poll_every;
         let at = self.home.join(STIRRING);
-        let mut stir: Stir = std::fs::read(&at)
-            .ok()
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-            .unwrap_or_default();
+        let mut stir = self.stirred_last();
         let now = now_ms();
         if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
@@ -474,7 +479,10 @@ impl Carrier for Cloud {
 
     fn hears(&self) -> Option<Box<dyn Watch>> {
         let index = Index::load(&self.home);
-        Metered::over(&*self.remote, &self.home, Class::History).hears(index.cursor.as_deref()?)
+        let pushed = index.cursor.as_deref().and_then(|cursor| {
+            Metered::over(&*self.remote, &self.home, Class::History).hears(cursor)
+        });
+        Some(pushed.unwrap_or_else(|| asking::Asking::of(self)))
     }
 
     fn unclaimed(&self) -> Holding {
@@ -576,24 +584,30 @@ impl Carrier for Cloud {
     }
 
     fn forget_paper(&self, id: &str) {
-        if tisty_core::docs::resolve(Path::new(""), id).is_err()
-            || std::fs::create_dir_all(&self.home).is_err()
-        {
+        if !forgotten_later(&self.home, id) {
             return;
-        }
-        {
-            let _writing = lock::Held::wait_for(&self.home, lock::FORGETTING, PATIENCE);
-            let asked = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(self.home.join(FORGOTTEN));
-            if let Ok(mut list) = asked {
-                let _ = writeln!(list, "{id}");
-            }
         }
         if let Ok(Some(_round)) = lock::Round::take(&self.home) {
             self.forget_asked(&self.tree());
         }
+    }
+}
+
+/// Queued without the provider, so a cloud that cannot be reached now still forgets it at its next round.
+pub fn forgotten_later(home: &Path, id: &str) -> bool {
+    if tisty_core::docs::resolve(Path::new(""), id).is_err()
+        || std::fs::create_dir_all(home).is_err()
+    {
+        return false;
+    }
+    let _writing = lock::Held::wait_for(home, lock::FORGETTING, PATIENCE);
+    let asked = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(home.join(FORGOTTEN));
+    match asked {
+        Ok(mut list) => writeln!(list, "{id}").is_ok(),
+        Err(_) => false,
     }
 }
 

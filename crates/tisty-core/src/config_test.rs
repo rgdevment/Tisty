@@ -704,3 +704,71 @@ fn a_file_written_by_hand_before_the_later_key_existed_still_reads() {
     assert_eq!(read.sync, Some(Sync::folder("G:/otra")));
     assert_eq!(read.shared_was_later, None);
 }
+
+fn drive_of_ana() -> CloudAt {
+    CloudAt {
+        provider: "google".into(),
+        account: "0123".into(),
+        email: "ana@example.com".into(),
+    }
+}
+
+#[test]
+fn a_cloud_survives_the_file_is_no_place_and_leaves_only_by_a_move() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(&tmp);
+    let mut config = Config::load_or_init(&paths).unwrap();
+    config.holds = Some(Holds::Mine);
+    config.sync = Some(Sync::cloud(drive_of_ana()));
+    config.save(&paths).unwrap();
+
+    let said = std::fs::read_to_string(paths.config_file()).unwrap();
+    let read = Config::load(&paths.config_file()).unwrap().unwrap();
+
+    assert_eq!(read.sync, Some(Sync::cloud(drive_of_ana())), "{said}");
+    assert!(said.contains("how = \"cloud\""), "{said}");
+    let cloud = read.sync.unwrap();
+    assert_eq!(cloud.place(), None);
+    assert!(!cloud.shares());
+    assert_eq!(cloud.leaving(), Leaving::Cloud);
+    assert_eq!(
+        read.holds,
+        Some(Holds::Mine),
+        "the setting itself is kept for a folder chosen later"
+    );
+    config.sync = Some(cloud);
+    assert_eq!(
+        config.holds(),
+        Holds::Everywhere,
+        "with the cloud every attachment stays here"
+    );
+}
+
+#[test]
+fn a_cloud_named_more_or_less_than_this_build_writes_is_kept_whole() {
+    let more: toml::Value = toml::from_str(
+        "how = \"cloud\"\nat = { provider = \"google\", account = \"0123\", email = \"a@b.c\", folder = \"x\" }",
+    )
+    .unwrap();
+    let short: toml::Value =
+        toml::from_str("how = \"cloud\"\nat = { provider = \"google\" }").unwrap();
+
+    assert_eq!(
+        more.clone().try_into::<Sync>().unwrap(),
+        Sync::Unknown(more)
+    );
+    assert_eq!(
+        short.clone().try_into::<Sync>().unwrap(),
+        Sync::Unknown(short)
+    );
+}
+
+#[test]
+fn a_cloud_put_away_by_a_restore_comes_back_as_the_cloud_it_was() {
+    let mut config = Config::load_or_init(&paths(&tempfile::tempdir().unwrap())).unwrap();
+
+    config.remember_shared(Some(Was::Cloud(drive_of_ana())));
+
+    assert_eq!(config.once_shared(), Some(Was::Cloud(drive_of_ana())));
+    assert_eq!(config.shared_was, None);
+}

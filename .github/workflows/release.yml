@@ -546,6 +546,7 @@ jobs:
         env:
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
         run: |
           packs=""
           if [ -f sign.json ]; then packs="--config sign.json"; fi
@@ -796,6 +797,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
         run: npm run tauri build -- --target "$TARGET" --bundles app,dmg
 
       - name: The app is one architecture

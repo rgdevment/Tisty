@@ -10,8 +10,11 @@ mod hearing;
 mod herald;
 mod linking;
 mod moving;
+mod reaching;
 mod refusing;
 mod report;
+#[cfg(windows)]
+mod sealed;
 mod session;
 mod shop;
 mod summing;
@@ -200,6 +203,8 @@ struct Carrying {
     shared_was_later: bool,
     later: bool,
     mode: &'static str,
+    cloud: Option<String>,
+    cloud_offered: bool,
     backed_up_at: Option<String>,
     frees_space: bool,
 }
@@ -643,6 +648,11 @@ pub fn unreach() -> std::io::Result<bool> {
     for at in tisty_core::Paths::shims() {
         let _ = std::fs::remove_file(&at);
     }
+    // Revoking would cut every other machine off too, so leaving takes only this machine's copy.
+    #[cfg(windows)]
+    if let Some(sealed) = sealed::home() {
+        let _ = std::fs::remove_dir_all(sealed);
+    }
     reached
 }
 
@@ -813,6 +823,49 @@ pub(crate) fn opened(
     Ok(())
 }
 
+fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if window.label() != "main" {
+        return;
+    }
+    if let tauri::WindowEvent::ThemeChanged(_) = event {
+        tray::repaint(window.app_handle());
+        return;
+    }
+
+    let tauri::WindowEvent::CloseRequested { api, .. } = event else {
+        return;
+    };
+
+    let app = window.app_handle();
+    let Some(perched) = app.try_state::<Perched>() else {
+        api.prevent_close();
+        let _ = window.hide();
+        return;
+    };
+    if !perched.0 {
+        api.prevent_close();
+        desktop::parting(app);
+        return;
+    }
+
+    let asked = held(&app.state::<Mutex<Session>>()).config.on_close;
+    match asked {
+        Some(tisty_core::config::Closing::Quit) => {
+            api.prevent_close();
+            desktop::parting(app);
+        }
+        Some(tisty_core::config::Closing::Hide) => {
+            api.prevent_close();
+            let _ = window.emit("withdrawn", ());
+            let _ = window.hide();
+        }
+        None => {
+            api.prevent_close();
+            let _ = window.emit("closing", ());
+        }
+    }
+}
+
 pub fn run() {
     let mut building = tauri::Builder::default();
 
@@ -837,48 +890,7 @@ pub fn run() {
                 .shown(request.uri())
         })
         .setup(settled)
-        .on_window_event(|window, event| {
-            if window.label() != "main" {
-                return;
-            }
-            if let tauri::WindowEvent::ThemeChanged(_) = event {
-                tray::repaint(window.app_handle());
-                return;
-            }
-
-            let tauri::WindowEvent::CloseRequested { api, .. } = event else {
-                return;
-            };
-
-            let app = window.app_handle();
-            let Some(perched) = app.try_state::<Perched>() else {
-                api.prevent_close();
-                let _ = window.hide();
-                return;
-            };
-            if !perched.0 {
-                api.prevent_close();
-                desktop::parting(app);
-                return;
-            }
-
-            let asked = held(&app.state::<Mutex<Session>>()).config.on_close;
-            match asked {
-                Some(tisty_core::config::Closing::Quit) => {
-                    api.prevent_close();
-                    desktop::parting(app);
-                }
-                Some(tisty_core::config::Closing::Hide) => {
-                    api.prevent_close();
-                    let _ = window.emit("withdrawn", ());
-                    let _ = window.hide();
-                }
-                None => {
-                    api.prevent_close();
-                    let _ = window.emit("closing", ());
-                }
-            }
-        })
+        .on_window_event(window_event)
         .manage(OneAtATime::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
@@ -907,6 +919,11 @@ pub fn run() {
             answers::storing::settle_in,
             reachable,
             take_out_of_reach,
+            answers::clouding::cloud_connect,
+            answers::clouding::cloud_choose,
+            answers::clouding::cloud_forget,
+            answers::clouding::cloud_revoke,
+            answers::clouding::cloud_pause,
             answers::freeing::free_up,
             answers::freeing::stop_freeing,
             answers::freeing::unused_attachments,

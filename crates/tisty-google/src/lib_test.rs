@@ -586,3 +586,22 @@ fn a_socket_dropped_before_it_was_taken_never_ends_the_sign_in_but_a_real_fault_
         assert!(!passing(kind), "{kind:?}");
     }
 }
+
+#[test]
+fn revoking_takes_the_token_to_google_and_one_already_gone_is_no_failure() {
+    let (at, asked) = provider(vec![
+        reply("200 OK", "{}"),
+        reply("400 Bad Request", r#"{"error":"invalid_token"}"#),
+        reply("503 Service Unavailable", ""),
+    ]);
+
+    assert_eq!(revoke_everywhere("1//refresh", &at), Ok(()));
+    assert_eq!(revoke_everywhere("1//refresh", &at), Ok(()));
+    assert!(matches!(
+        revoke_everywhere("1//refresh", &at),
+        Err(Hitch::Unreachable(_))
+    ));
+    let asked = asked.join().unwrap();
+    assert!(asked[0].starts_with("POST /revoke"));
+    assert!(asked[0].contains("token=1%2F%2Frefresh"), "{}", asked[0]);
+}

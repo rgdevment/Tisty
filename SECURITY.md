@@ -37,8 +37,10 @@ report will never be dismissed for being inconvenient.
 - **A cloud account is reached only if you choose it.** Syncing straight with
   your own Google Drive, OneDrive or Dropbox is being built and is in no release
   yet. When it ships, Tisty talks only to that provider, keeps the access it was
-  given in the system keychain and never in a file, and masks tokens and signed
-  addresses in its own log. What it will ask and send is in
+  given in the system keychain on macOS and Linux and, on Windows, in a file
+  sealed for your user with DPAPI that uninstalling removes, and masks tokens
+  and signed addresses in its own log. Only the window holds it; the command
+  line and assistants never reach the network. What it will ask and send is in
   [PRIVACY.md](PRIVACY.md) before the release that carries it.
 - **An update is verified before it is installed.** What the button fetches is
   checked against a public key compiled into the copy already on your machine.

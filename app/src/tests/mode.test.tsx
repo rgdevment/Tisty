@@ -34,6 +34,12 @@ describe("the way Tisty syncs, said in a word", () => {
     expect(modeSaid(state({ mode: "later" }))).toBe(t("modeLater"));
   });
 
+  it("names the cloud by the account it syncs with", () => {
+    expect(modeSaid(state({ mode: "cloud", cloud: "ana@example.com" }))).toBe(
+      fill("modeCloud", "ana@example.com"),
+    );
+  });
+
   it("opens the settings that change it", async () => {
     ipc.state = state({ mode: "folder", chosen: "/nas/tisty" });
     const open = vi.fn();

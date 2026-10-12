@@ -1002,6 +1002,13 @@ const en = {
   cloudElsewhere:
     "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
   cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while",
+  cloudToLeave:
+    "Leaving the cloud goes through a move that first brings everything to this machine, so nothing stays behind there. Nothing was changed.",
+  cloudNeedsMove:
+    "This copy already syncs another way. Moving to the cloud brings everything over first, so nothing stays behind. Nothing was changed.",
+  cloudNotOffered:
+    "This copy syncs with Google Drive, and this build of Tisty was made without access to it. Install Tisty from rgdevment.com or the Microsoft Store; nothing was changed.",
+  cloudDenied: "Google was not given access, so nothing was connected.",
   deferredBudget:
     "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on tomorrow.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
@@ -1164,6 +1171,7 @@ const en = {
   modeAlone: "Only on this machine",
   modeFolder: "Folder · {name}",
   modeLater: "Syncing a newer way",
+  modeCloud: "Google Drive · {name}",
   modeOpen: "How Tisty syncs",
   turnSyncOn: "Turn on…",
   changeFolder: "Change folder",
@@ -2683,6 +2691,13 @@ const es: Catalog = {
     "La nube ahora responde como otra cuenta ({name}). Tisty se detiene para no mezclar dos cuentas: conecta la que usabas antes.",
   cloudNotNow:
     "No se pudo consultar primero tu nube, así que no se hizo nada. Inténtalo en un rato",
+  cloudToLeave:
+    "Salir de la nube se hace con una mudanza que primero trae todo a este equipo, para que nada quede allá. No se cambió nada.",
+  cloudNeedsMove:
+    "Esta copia ya sincroniza de otra manera. Mudarse a la nube trae todo primero, para que nada quede atrás. No se cambió nada.",
+  cloudNotOffered:
+    "Esta copia sincroniza con Google Drive, y esta versión de Tisty se hizo sin acceso a él. Instala Tisty desde rgdevment.com o la Microsoft Store; no se cambió nada.",
+  cloudDenied: "No se le dio acceso a Google, así que no se conectó nada.",
   deferredBudget:
     "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue mañana.",
   deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",
@@ -2846,6 +2861,7 @@ const es: Catalog = {
   modeAlone: "Solo en este equipo",
   modeFolder: "Carpeta · {name}",
   modeLater: "Sincroniza de una forma más nueva",
+  modeCloud: "Google Drive · {name}",
   modeOpen: "Cómo sincroniza Tisty",
   turnSyncOn: "Activar…",
   changeFolder: "Cambiar carpeta",

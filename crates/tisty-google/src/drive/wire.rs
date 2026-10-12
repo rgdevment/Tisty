@@ -107,6 +107,19 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
             wait: wait.unwrap_or(WAITED_UNTOLD),
         },
         (403, "insufficientPermissions") => Hitch::Lost,
+        // Signing in again does not hand Tisty a file another app or person holds, so it stops and says so.
+        (403, "appNotAuthorizedToFile" | "insufficientFilePermissions") => Hitch::Broke(format!(
+            "Google Drive holds a file in the Tisty folder that Tisty may not change: {message}"
+        )),
+        (403, "domainPolicy") => Hitch::Broke(
+            "the administrators of this Google account turned off apps like Tisty in Drive".into(),
+        ),
+        (
+            403,
+            "activeItemCreationLimitExceeded"
+            | "numChildrenInNonRootLimitExceeded"
+            | "myDriveHierarchyDepthLimitExceeded",
+        ) => Hitch::Full,
         (404, _) => Hitch::Missing(message),
         (412, _) => Hitch::Changed(message),
         (500.., _) => match wait {
