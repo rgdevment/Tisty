@@ -2,9 +2,9 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 346 crates named in
+The licence texts of the 348 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
-the crates that carry it: 233 texts. A text is read in full from the
+the crates that carry it: 234 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
 LICENSES folder. A crate that publishes none gets the licence its manifest
 declares, Apache-2.0 first where it is offered, with the holders its manifest
@@ -836,7 +836,7 @@ SOFTWARE.
 
 ## Text 12
 
-Carried by `anyhow` 1.0.104, `erased-serde` 0.4.10, `itoa` 1.0.18, `libc` 0.2.189, `osakit` 0.3.1, `semver` 1.0.28, `serde` 1.0.229, `serde_core` 1.0.229, `serde_json` 1.0.151, `serde-untagged` 0.1.9, `thiserror` 2.0.21, `typed-path` 0.12.3, `typeid` 1.0.3, `utf8parse` 0.2.2.
+Carried by `anyhow` 1.0.104, `erased-serde` 0.4.10, `itoa` 1.0.18, `libc` 0.2.189, `osakit` 0.3.1, `ryu` 1.0.23, `semver` 1.0.28, `serde` 1.0.229, `serde_core` 1.0.229, `serde_json` 1.0.151, `serde_urlencoded` 0.7.1, `serde-untagged` 0.1.9, `thiserror` 2.0.21, `typed-path` 0.12.3, `typeid` 1.0.3, `utf8parse` 0.2.2.
 
 ```text
 Apache License
@@ -5550,7 +5550,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 71
 
-Carried by `error-code` 3.3.2.
+Carried by `error-code` 3.3.2, `ryu` 1.0.23.
 
 ```text
 Boost Software License - Version 1.0 - August 17th, 2003
@@ -11506,6 +11506,38 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## Text 169
 
+Carried by `serde_urlencoded` 0.7.1.
+
+```text
+Copyright (c) 2016 Anthony Ramine
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+```
+
+## Text 170
+
 Carried by `serde_with` 3.21.0.
 
 ```text
@@ -11536,7 +11568,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 170
+## Text 171
 
 Carried by `serialize-to-javascript` 0.1.2.
 
@@ -11564,7 +11596,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 171
+## Text 172
 
 Carried by `sha2` 0.11.0.
 
@@ -11599,7 +11631,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 172
+## Text 173
 
 Carried by `shell-words` 1.1.1.
 
@@ -11807,7 +11839,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Text 173
+## Text 174
 
 Carried by `shell-words` 1.1.1.
 
@@ -11839,7 +11871,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 174
+## Text 175
 
 Carried by `simd-adler32` 0.3.10.
 
@@ -11867,7 +11899,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 175
+## Text 176
 
 Carried by `siphasher` 1.0.3.
 
@@ -11881,7 +11913,7 @@ http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
 option.
 ```
 
-## Text 176
+## Text 177
 
 Carried by `slab` 0.4.12.
 
@@ -11913,7 +11945,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 177
+## Text 178
 
 Carried by `smallvec` 1.15.2.
 
@@ -11945,7 +11977,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 178
+## Text 179
 
 Carried by `softbuffer` 0.4.8.
 
@@ -12153,7 +12185,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 179
+## Text 180
 
 Carried by `softbuffer` 0.4.8.
 
@@ -12179,7 +12211,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 180
+## Text 181
 
 Carried by `stable_deref_trait` 1.2.1.
 
@@ -12211,7 +12243,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 181
+## Text 182
 
 Carried by `strsim` 0.11.1.
 
@@ -12241,7 +12273,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 182
+## Text 183
 
 Carried by `subtle` 2.6.1.
 
@@ -12277,7 +12309,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Text 183
+## Text 184
 
 Carried by `sys-locale` 0.3.2.
 
@@ -12305,7 +12337,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 184
+## Text 185
 
 Carried by `sysinfo` 0.39.6.
 
@@ -12333,7 +12365,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 185
+## Text 186
 
 Carried by `system-configuration` 0.7.0, `system-configuration-sys` 0.6.0.
 
@@ -12365,7 +12397,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 186
+## Text 187
 
 Carried by `tar` 0.4.46.
 
@@ -12397,7 +12429,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 187
+## Text 188
 
 Carried by `tauri` 2.12.1, `tauri-plugin-clipboard-manager` 2.4.0, `tauri-plugin-dialog` 2.8.1, `tauri-plugin-fs` 2.6.0, `tauri-plugin-global-shortcut` 2.4.0, `tauri-plugin-notification` 2.5.1, `tauri-plugin-opener` 2.6.0, `tauri-plugin-updater` 2.13.0, `tauri-runtime` 2.12.1, `tauri-runtime-wry` 2.12.1, `tauri-utils` 2.10.1, `tauri-winrt-notification` 0.7.3.
 
@@ -12425,7 +12457,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 188
+## Text 189
 
 Carried by `tauri-plugin-single-instance` 2.5.2.
 
@@ -12453,7 +12485,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 189
+## Text 190
 
 Carried by `tempfile` 3.27.0, `xattr` 1.6.1.
 
@@ -12485,7 +12517,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 190
+## Text 191
 
 Carried by `tiff` 0.11.3.
 
@@ -12513,7 +12545,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 191
+## Text 192
 
 Carried by `time` 0.3.55, `time-core` 0.1.9.
 
@@ -12539,7 +12571,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 192
+## Text 193
 
 Carried by `tinyvec_macros` 0.1.1.
 
@@ -12747,7 +12779,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 193
+## Text 194
 
 Carried by `tinyvec_macros` 0.1.1.
 
@@ -12775,7 +12807,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 194
+## Text 195
 
 Carried by `tinyvec_macros` 0.1.1.
 
@@ -12801,7 +12833,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-## Text 195
+## Text 196
 
 Carried by `tokio` 1.53.1, `tokio-util` 0.7.19.
 
@@ -12829,7 +12861,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 196
+## Text 197
 
 Carried by `tokio-rustls` 0.26.4.
 
@@ -13037,7 +13069,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Text 197
+## Text 198
 
 Carried by `tokio-rustls` 0.26.4.
 
@@ -13069,7 +13101,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 198
+## Text 199
 
 Carried by `tower` 0.5.3, `tower-layer` 0.3.3, `tower-service` 0.3.3.
 
@@ -13101,7 +13133,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 199
+## Text 200
 
 Carried by `tower-http` 0.6.11.
 
@@ -13133,7 +13165,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 200
+## Text 201
 
 Carried by `tracing` 0.1.44, `tracing-core` 0.1.36.
 
@@ -13165,7 +13197,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 201
+## Text 202
 
 Carried by `try-lock` 0.2.5.
 
@@ -13192,7 +13224,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 202
+## Text 203
 
 Carried by `typenum` 1.20.1.
 
@@ -13200,7 +13232,7 @@ Carried by `typenum` 1.20.1.
 MIT OR Apache-2.0
 ```
 
-## Text 203
+## Text 204
 
 Carried by `typenum` 1.20.1.
 
@@ -13408,7 +13440,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Text 204
+## Text 205
 
 Carried by `typenum` 1.20.1.
 
@@ -13436,7 +13468,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 205
+## Text 206
 
 Carried by `ulid` 3.0.0.
 
@@ -13464,7 +13496,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 206
+## Text 207
 
 Carried by `universal-hash` 0.6.1.
 
@@ -13496,7 +13528,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 207
+## Text 208
 
 Carried by `untrusted` 0.9.0.
 
@@ -13516,7 +13548,7 @@ Carried by `untrusted` 0.9.0.
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-## Text 208
+## Text 209
 
 Carried by `urlpattern` 0.6.0.
 
@@ -13544,7 +13576,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 209
+## Text 210
 
 Carried by `utf8parse` 0.2.2.
 
@@ -13576,7 +13608,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 210
+## Text 211
 
 Carried by `uuid` 1.24.0.
 
@@ -13609,7 +13641,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 211
+## Text 212
 
 Carried by `want` 0.3.1.
 
@@ -13635,7 +13667,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 212
+## Text 213
 
 Carried by `web-time` 1.1.0.
 
@@ -13843,7 +13875,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 213
+## Text 214
 
 Carried by `web-time` 1.1.0.
 
@@ -13871,7 +13903,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 214
+## Text 215
 
 Written out for `webview2-com` 0.39.1, from the licence the manifest declares: the crate ships no licence file.
 
@@ -13899,7 +13931,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 215
+## Text 216
 
 Written out for `webview2-com-sys` 0.39.1, from the licence the manifest declares: the crate ships no licence file.
 
@@ -13927,7 +13959,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 216
+## Text 217
 
 Carried by `weezl` 0.1.12.
 
@@ -13955,7 +13987,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 217
+## Text 218
 
 Carried by `winapi` 0.3.9.
 
@@ -13981,7 +14013,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 218
+## Text 219
 
 Carried by `window-vibrancy` 0.8.1.
 
@@ -14009,7 +14041,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 219
+## Text 220
 
 Carried by `windows` 0.61.3, `windows` 0.62.2, `windows_x86_64_msvc` 0.52.6, `windows_x86_64_msvc` 0.53.1, `windows-collections` 0.2.0, `windows-collections` 0.3.2, `windows-core` 0.61.2, `windows-core` 0.62.2, `windows-future` 0.2.1, `windows-future` 0.3.2, `windows-link` 0.1.3, `windows-link` 0.2.1, `windows-numerics` 0.2.0, `windows-numerics` 0.3.1, `windows-registry` 0.6.1, `windows-result` 0.3.4, `windows-result` 0.4.1, `windows-strings` 0.4.2, `windows-strings` 0.5.1, `windows-sys` 0.59.0, `windows-sys` 0.60.2, `windows-sys` 0.61.2, `windows-targets` 0.52.6, `windows-targets` 0.53.5, `windows-threading` 0.1.0, `windows-threading` 0.2.1, `windows-version` 0.1.7.
 
@@ -14217,7 +14249,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 220
+## Text 221
 
 Carried by `windows` 0.61.3, `windows` 0.62.2, `windows_x86_64_msvc` 0.52.6, `windows_x86_64_msvc` 0.53.1, `windows-collections` 0.2.0, `windows-collections` 0.3.2, `windows-core` 0.61.2, `windows-core` 0.62.2, `windows-future` 0.2.1, `windows-future` 0.3.2, `windows-link` 0.1.3, `windows-link` 0.2.1, `windows-numerics` 0.2.0, `windows-numerics` 0.3.1, `windows-registry` 0.6.1, `windows-result` 0.3.4, `windows-result` 0.4.1, `windows-strings` 0.4.2, `windows-strings` 0.5.1, `windows-sys` 0.59.0, `windows-sys` 0.60.2, `windows-sys` 0.61.2, `windows-targets` 0.52.6, `windows-targets` 0.53.5, `windows-threading` 0.1.0, `windows-threading` 0.2.1, `windows-version` 0.1.7.
 
@@ -14245,7 +14277,7 @@ MIT License
     SOFTWARE
 ```
 
-## Text 221
+## Text 222
 
 Carried by `winnow` 1.0.4.
 
@@ -14270,7 +14302,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 222
+## Text 223
 
 Carried by `winreg` 0.56.0.
 
@@ -14296,7 +14328,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 223
+## Text 224
 
 Carried by `wry` 0.57.0.
 
@@ -14324,7 +14356,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 224
+## Text 225
 
 Carried by `zerocopy` 0.8.56.
 
@@ -14532,7 +14564,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 225
+## Text 226
 
 Carried by `zerocopy` 0.8.56.
 
@@ -14563,7 +14595,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Text 226
+## Text 227
 
 Carried by `zerocopy` 0.8.56.
 
@@ -14595,7 +14627,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 227
+## Text 228
 
 Carried by `zeroize` 1.9.0.
 
@@ -14627,7 +14659,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 228
+## Text 229
 
 Carried by `zip` 4.6.1.
 
@@ -14658,7 +14690,7 @@ Some files in the "tests/data" subdirectory of this repository are under other
 licences; see files named LICENSE.*.txt for details.
 ```
 
-## Text 229
+## Text 230
 
 Carried by `zip` 8.6.0.
 
@@ -14686,7 +14718,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 230
+## Text 231
 
 Carried by `zlib-rs` 0.6.7.
 
@@ -14712,7 +14744,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-## Text 231
+## Text 232
 
 Carried by `zopfli` 0.8.3.
 
@@ -14920,7 +14952,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 232
+## Text 233
 
 Carried by `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
 
@@ -14948,7 +14980,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 233
+## Text 234
 
 Carried by `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
 

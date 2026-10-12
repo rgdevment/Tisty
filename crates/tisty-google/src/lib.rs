@@ -7,14 +7,18 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use sha2::{Digest, Sha256};
 use tisty_carrier::{Hitch, Renew, Renewed};
 
+mod drive;
+
+pub use drive::{Account, Drive, DriveAt};
+
 const CONSENT_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.file";
 const LISTENED_EVERY: Duration = Duration::from_millis(100);
-const ASKED_WITHIN: Duration = Duration::from_secs(30);
+pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
 const HEARD_WITHIN: Duration = Duration::from_secs(2);
 const HEARD_AT_MOST: u64 = 16 * 1024;
 const WAITED_AT_LEAST: Duration = Duration::from_secs(1);
-const WAITED_UNTOLD: Duration = Duration::from_secs(60);
+pub(crate) const WAITED_UNTOLD: Duration = Duration::from_secs(60);
 const CONNECTED: &str = "Tisty is connected. You can close this tab.";
 const NOT_CONNECTED: &str =
     "Tisty could not connect. You can close this tab and try again from Tisty.";
@@ -61,7 +65,7 @@ pub fn challenge_of(verifier: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
 }
 
-fn random_text(bytes: usize) -> Result<String, Hitch> {
+pub(crate) fn random_text(bytes: usize) -> Result<String, Hitch> {
     use rand_core::TryRngCore;
     let mut fresh = vec![0u8; bytes];
     rand_core::OsRng
@@ -289,14 +293,14 @@ struct TokenRefusal {
 }
 
 // Blocking on purpose: every carrier call already runs off the window's async runtime.
-fn http() -> Result<reqwest::blocking::Client, Hitch> {
+pub(crate) fn http() -> Result<reqwest::blocking::Client, Hitch> {
     reqwest::blocking::Client::builder()
         .timeout(ASKED_WITHIN)
         .build()
         .map_err(|e| Hitch::Broke(told(&e.without_url())))
 }
 
-fn told(error: &dyn std::error::Error) -> String {
+pub(crate) fn told(error: &dyn std::error::Error) -> String {
     let mut said = error.to_string();
     let mut under = error.source();
     while let Some(one) = under {
@@ -307,7 +311,7 @@ fn told(error: &dyn std::error::Error) -> String {
     said
 }
 
-fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+pub(crate) fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
     headers
         .get(reqwest::header::RETRY_AFTER)
         .and_then(|one| one.to_str().ok())

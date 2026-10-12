@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 tisty-carrier.workspace = true
+tisty-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 reqwest.workspace = true
@@ -18,3 +19,6 @@ url.workspace = true
 base64.workspace = true
 sha2.workspace = true
 rand_core.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

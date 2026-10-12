@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (346 crates)
+## In the core (348 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -484,6 +484,7 @@ written once with the crates that carry it.
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
 | `rustls-platform-verifier` | 0.7.0 | MIT OR Apache-2.0 |
 | `rustls-webpki` | 0.103.14 | ISC |
+| `ryu` | 1.0.23 | Apache-2.0 OR BSL-1.0 |
 | `salsa20` | 0.11.0 | MIT OR Apache-2.0 |
 | `same-file` | 1.0.6 | Unlicense/MIT |
 | `scopeguard` | 1.2.0 | MIT OR Apache-2.0 |
@@ -495,6 +496,7 @@ written once with the crates that carry it.
 | `serde_core` | 1.0.229 | MIT OR Apache-2.0 |
 | `serde_json` | 1.0.151 | MIT OR Apache-2.0 |
 | `serde_spanned` | 1.1.1 | MIT OR Apache-2.0 |
+| `serde_urlencoded` | 0.7.1 | MIT/Apache-2.0 |
 | `serde_with` | 3.21.0 | MIT OR Apache-2.0 |
 | `serde-untagged` | 0.1.9 | MIT OR Apache-2.0 |
 | `serialize-to-javascript` | 0.1.2 | MIT OR Apache-2.0 |

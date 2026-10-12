@@ -94,6 +94,11 @@ impl<'a> Metered<'a> {
     }
 
     fn charge(&self, requests: u64, cost: u64, bytes: u64) {
+        // Threads of one process queue here without a deadline, so only another process can ever wait the lock out.
+        static CHARGING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _ours = CHARGING
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         // Unlocked, two charges at once can still lose one; never charging loses every one.
         let _turn = match Held::wait_for(&self.home, BUDGETING, CHARGE_WAITED_OUT) {
             Ok(Some(turn)) => Some(turn),

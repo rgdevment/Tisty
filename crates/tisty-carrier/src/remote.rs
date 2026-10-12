@@ -47,6 +47,10 @@ pub struct Costs {
     pub changes: u64,
 }
 
+// Only a guard against a copy stuck in a loop: the provider paces by the minute, and a person is never held back.
+pub const UNITS_A_DAY: u64 = 2_000_000;
+pub const BYTES_A_DAY: u64 = 50 * 1024 * 1024 * 1024;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
     pub provider: &'static str,
