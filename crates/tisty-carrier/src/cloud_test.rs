@@ -1696,3 +1696,27 @@ mod shift;
 
 #[path = "freed_test.rs"]
 mod freed;
+
+#[test]
+fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
+    let owed = Some(crate::Deferred {
+        reason: Reason::Changed,
+        left: 1,
+        retry_after: None,
+    });
+    let spent = Some(crate::Deferred {
+        reason: Reason::Budget,
+        left: 2,
+        retry_after: None,
+    });
+
+    let said = super::merged(owed, spent).unwrap();
+
+    assert_eq!(
+        said.reason,
+        Reason::Budget,
+        "a spent day was told as a file that changed"
+    );
+    assert_eq!(said.left, 3);
+    assert_eq!(super::merged(spent, owed).unwrap().reason, Reason::Budget);
+}

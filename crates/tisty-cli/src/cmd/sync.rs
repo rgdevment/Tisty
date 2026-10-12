@@ -251,8 +251,15 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             carrier::Reason::Busy => "deferred-busy",
             carrier::Reason::Changed => "deferred-changed",
         };
-        let left = deferred.left.to_string();
-        println!("  {}", style::dim(&lang.fill(word, &[("left", &left)])));
+        let said = match deferred.left {
+            0 => lang.get(word).to_string(),
+            left => format!(
+                "{} {}",
+                lang.get(word),
+                lang.fill("deferred-left", &[("left", &left.to_string())])
+            ),
+        };
+        println!("  {}", style::dim(&said));
     }
     println!();
     Ok(ExitCode::SUCCESS)

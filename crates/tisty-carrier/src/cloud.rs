@@ -133,7 +133,8 @@ impl Cloud {
                 return Err(trouble);
             }
         };
-        let quiet = !turn.sends || held.is_some_and(|one| one.reason == Reason::Limit);
+        let quiet = !turn.sends
+            || held.is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Busy));
         let (pushed, hitch) = match quiet {
             true => (mirror::Pushed::default(), None),
             false => mirror::push(remote, &tree, &mut index),
@@ -346,10 +347,24 @@ fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Troub
         .collect())
 }
 
+// What the person can do least about speaks: a spent day outlasts a file that changed mid-round.
+fn weight(reason: Reason) -> u8 {
+    match reason {
+        Reason::Budget => 4,
+        Reason::Offline => 3,
+        Reason::Limit => 2,
+        Reason::Busy => 1,
+        Reason::Changed => 0,
+    }
+}
+
 fn merged(first: Option<Deferred>, second: Option<Deferred>) -> Option<Deferred> {
     match (first, second) {
         (Some(one), Some(other)) => Some(Deferred {
-            reason: one.reason,
+            reason: match weight(other.reason) > weight(one.reason) {
+                true => other.reason,
+                false => one.reason,
+            },
             left: one.left + other.left,
             retry_after: one.retry_after.max(other.retry_after),
         }),
