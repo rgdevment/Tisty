@@ -5,6 +5,7 @@ import { type Refusal, saidPlainly } from "./refusal";
 
 const settling = new Set<string>();
 const later = new Set<string>();
+const reminded = new Set<string>();
 const decided = new Set<string>();
 let queue: Promise<unknown> = Promise.resolve();
 let queued = 0;
@@ -61,6 +62,8 @@ export const decide = async (id: string, called?: string): Promise<boolean> => {
 export interface Decided {
   shut: string[];
   said: string | null;
+  /** Put off before and not yet said so: what the person is reminded of, once each. */
+  putOff: string[];
 }
 
 /** `byHand` is the person asking for a sync: what they put off before is asked again. */
@@ -81,13 +84,15 @@ export const decideAll = (ids: string[], byHand = false): Promise<Decided> => {
 
 const decideInTurn = async (ids: string[], byHand: boolean): Promise<Decided> => {
   const asking = ids.filter((id) => !decided.has(id) && (byHand || !later.has(id)));
-  if (!asking.length) return { shut: [], said: null };
+  const putOff = byHand ? [] : ids.filter((id) => later.has(id) && !reminded.has(id));
+  for (const id of putOff) reminded.add(id);
+  if (!asking.length) return { shut: [], said: null, putOff };
   const told = new Set<string>();
   const found = await docs().catch((problem: unknown) => {
     told.add(saidPlainly(problem));
     return null;
   });
-  if (!found) return { shut: [], said: [...told].join(" ") };
+  if (!found) return { shut: [], said: [...told].join(" "), putOff };
   const named = (id: string) =>
     found.docs.find((one) => one.file === id)?.title?.trim() || t("untitledDoc");
   const shut = new Set(found.docs.filter((one) => one.locked).map((one) => one.file));
@@ -96,8 +101,10 @@ const decideInTurn = async (ids: string[], byHand: boolean): Promise<Decided> =>
     try {
       const settled = await decide(id, named(id));
       decided.add(id);
-      if (settled) later.delete(id);
-      else later.add(id);
+      if (settled) {
+        later.delete(id);
+        reminded.delete(id);
+      } else later.add(id);
     } catch (problem) {
       const code = (problem as Refusal | undefined)?.code;
       if (code === "documentLocked") {
@@ -112,5 +119,5 @@ const decideInTurn = async (ids: string[], byHand: boolean): Promise<Decided> =>
   const lockedSaid = locked.length
     ? [fill("someLockedAtOdds", locked.map((id) => `«${named(id)}»`).join(", "))]
     : [];
-  return { shut: locked, said: [...lockedSaid, ...told].join(" ") || null };
+  return { shut: locked, said: [...lockedSaid, ...told].join(" ") || null, putOff };
 };

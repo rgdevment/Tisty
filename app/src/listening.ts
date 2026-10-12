@@ -5,7 +5,7 @@ import { heard, play } from "./chime";
 import { type Afoot, attach, doorDue, parted, syncState } from "./core";
 import { decideAll } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
-import { t } from "./locales";
+import { fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import type { Chosen } from "./views";
@@ -85,8 +85,9 @@ export function useListening({
       },
       (ids) => {
         decideAll(ids)
-          .then(({ said }) => {
+          .then(({ said, putOff }) => {
             if (said) setError(said);
+            else if (putOff.length) noted(fill("putOffDocs", String(putOff.length)), 8000);
           })
           .catch((problem) => setError(saidPlainly(problem)))
           .finally(() => latest.current());

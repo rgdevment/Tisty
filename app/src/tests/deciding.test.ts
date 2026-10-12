@@ -254,7 +254,8 @@ describe("asking inside the window", () => {
     decidesWhole(whole);
 
     await decideAll(["dev_a-0003"]);
-    await decideAll(["dev_a-0003"]);
+    expect((await decideAll(["dev_a-0003"])).putOff).toEqual(["dev_a-0003"]);
+    expect((await decideAll(["dev_a-0003"])).putOff).toEqual([]);
     expect(whole).toHaveBeenCalledTimes(1);
     expect(settled()).toEqual([]);
 
