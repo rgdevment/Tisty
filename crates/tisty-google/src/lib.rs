@@ -14,7 +14,7 @@ pub use drive::{Account, Drive, DriveAt};
 const CONSENT_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.file";
 const LISTENED_EVERY: Duration = Duration::from_millis(100);
-const ASKED_WITHIN: Duration = Duration::from_secs(30);
+pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
 const HEARD_WITHIN: Duration = Duration::from_secs(2);
 const HEARD_AT_MOST: u64 = 16 * 1024;
 const WAITED_AT_LEAST: Duration = Duration::from_secs(1);

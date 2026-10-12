@@ -153,7 +153,13 @@ network code; `deny.toml` lets `reqwest` be wrapped by the window and
 `tisty-google` alone, on every target the release builds. `tisty-gui` holds the
 version check and the updater (`update.rs`, limited to GitHub hosts) and the
 preview of a link the person asks for (`glimpse.rs`). `tisty-google`, which
-only the window depends on, holds Google's sign-in and token renewal. The
+only the window depends on, holds Google's sign-in and token renewal and the
+Drive `Remote`. Its root folders come out of the same whole listing as every
+file, never from a separate search that could lag, and none is made while
+reading; a root in the bin stops the round instead of reading as an empty
+drive. Drive has no conditional write, so a revision is checked just before
+writing and two machines writing one file in that gap both land: the mirror
+keeps the oldest copy of a name and later rounds settle the rest. The
 window's content policy allows no connection but IPC (`tauri.conf.json`).
 
 ## The data model

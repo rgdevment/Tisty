@@ -6,19 +6,19 @@ use std::time::Duration;
 
 use reqwest::blocking::Client as Http;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
 mod tree;
 mod upload;
 mod wire;
 
-use tree::{FILE_FIELDS, FOLDER, File, Page, Tree, planted, seen, split, within};
+use tree::{FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within};
 use wire::{given, json, quoted, transfer_http};
+
+use crate::ASKED_WITHIN;
 
 const ROOT: &str = "Tisty";
 const MIB: u64 = 1024 * 1024;
-const ASKED_WITHIN: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DriveAt {
@@ -109,34 +109,25 @@ impl Drive {
         }
     }
 
-    fn roots(&self) -> Result<Vec<String>, Hitch> {
-        if let Some(roots) = self.roots.lock().ok().and_then(|held| held.clone()) {
-            return Ok(roots);
-        }
-        let url = format!("{}/files", self.at.api);
-        let asked = format!(
-            "name = '{ROOT}' and mimeType = '{FOLDER}' and 'root' in parents and trashed = false"
-        );
-        let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
-            http.get(&url).query(&[
-                ("q", asked.as_str()),
-                ("orderBy", "createdTime"),
-                ("fields", "files(id)"),
-                ("spaces", "drive"),
-            ])
-        })?)?;
-        let mut roots: Vec<String> = found.files.into_iter().map(|one| one.id).collect();
-        if roots.is_empty() {
-            roots.push(self.folder(ROOT, "root")?);
-        }
-        if let Ok(mut held) = self.roots.lock() {
-            *held = Some(roots.clone());
-        }
-        Ok(roots)
+    fn root_known(&self) -> Result<Option<String>, Hitch> {
+        self.with_known(|_| ())?;
+        Ok(self
+            .roots
+            .lock()
+            .ok()
+            .and_then(|held| held.as_ref().and_then(|roots| roots.first().cloned())))
     }
 
-    fn root(&self) -> Result<String, Hitch> {
-        Ok(self.roots()?.swap_remove(0))
+    // Made only when something is written, never while reading, so a lagging search can never split the store.
+    fn root_made(&self) -> Result<String, Hitch> {
+        if let Some(root) = self.root_known()? {
+            return Ok(root);
+        }
+        let made = self.folder(ROOT, "root")?;
+        if let Ok(mut held) = self.roots.lock() {
+            *held = Some(vec![made.clone()]);
+        }
+        Ok(made)
     }
 
     fn folder(&self, name: &str, parent: &str) -> Result<String, Hitch> {
@@ -148,15 +139,14 @@ impl Drive {
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
                 .body(body.to_string())
         })?)?;
+        self.owned(
+            &made.id,
+            Some(made.version.clone().unwrap_or_else(|| "0".into())),
+        );
         Ok(made.id)
     }
 
-    // A whole listing also asks the roots again, so a Tisty folder put in the bin is never written into.
     fn listed(&self, cursor: Option<String>) -> Result<(), Hitch> {
-        if let Ok(mut held) = self.roots.lock() {
-            *held = None;
-        }
-        let roots = self.roots()?;
         let url = format!("{}/files", self.at.api);
         let fields = format!("nextPageToken,files({FILE_FIELDS})");
         let mut all = Vec::new();
@@ -181,6 +171,15 @@ impl Drive {
                 None => break,
             }
         }
+        let roots = roots_in(ROOT, &all);
+        if roots.is_empty() && self.binned()? {
+            return Err(Hitch::Broke(
+                "the Tisty folder in Google Drive is in the bin; take it out, and nothing here was changed".into(),
+            ));
+        }
+        if let Ok(mut held) = self.roots.lock() {
+            *held = Some(roots.clone());
+        }
         if let Ok(mut held) = self.known.lock() {
             *held = Some(Known {
                 tree: planted(&roots, all),
@@ -188,6 +187,20 @@ impl Drive {
             });
         }
         Ok(())
+    }
+
+    // A store whose folder went to the bin is stopped, never read as an empty drive.
+    fn binned(&self) -> Result<bool, Hitch> {
+        let url = format!("{}/files", self.at.api);
+        let asked = format!("name = '{ROOT}' and mimeType = '{FOLDER}' and trashed = true");
+        let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
+            http.get(&url).query(&[
+                ("q", asked.as_str()),
+                ("fields", "files(id)"),
+                ("spaces", "drive"),
+            ])
+        })?)?;
+        Ok(!found.files.is_empty())
     }
 
     fn with_known<T>(&self, read: impl FnOnce(&Tree) -> T) -> Result<T, Hitch> {
@@ -275,7 +288,13 @@ impl Drive {
     }
 
     fn folder_id(&self, path: Option<&str>, making: bool) -> Result<Option<String>, Hitch> {
-        let mut at = self.root()?;
+        let found = match making {
+            true => Some(self.root_made()?),
+            false => self.root_known()?,
+        };
+        let Some(mut at) = found else {
+            return Ok(None);
+        };
         let Some(path) = path else {
             return Ok(Some(at));
         };
@@ -481,10 +500,12 @@ impl Remote for Drive {
             }
             _ => {}
         }
-        let (folders, _) = split(name);
-        let parent = self
-            .folder_id(folders, true)?
-            .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?;
+        let parent = match current {
+            Some(_) => String::new(),
+            None => self
+                .folder_id(split(name).0, true)?
+                .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?,
+        };
         let made = self.sent(name, from, current, &parent)?;
         self.owned(
             &made.id,
@@ -524,22 +545,9 @@ impl Remote for Drive {
     }
 
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
-        let mut file = std::fs::File::open(local)?;
-        let mut hasher = Sha256::new();
-        let mut block = vec![0u8; 64 * 1024];
-        loop {
-            let read = file.read(&mut block)?;
-            if read == 0 {
-                break;
-            }
-            hasher.update(&block[..read]);
-        }
-        let hex: String = hasher
-            .finalize()
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect();
-        Ok(format!("sha256:{hex}"))
+        tisty_core::attach::hashed(local)
+            .map(|(hex, _)| format!("sha256:{hex}"))
+            .map_err(std::io::Error::other)
     }
 
     // Changes name a file by its id alone; with any not this machine's own, the whole listing says where each one is.

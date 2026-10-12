@@ -145,7 +145,14 @@ fn drive(at: DriveAt, home: &std::path::Path) -> Drive {
     Drive::new(Arc::new(tokens), at).unwrap()
 }
 
-const ROOT_FOUND: &str = r#"{"files":[{"id":"R"}]}"#;
+const ROOT: &str = r#"{"id":"R","name":"Tisty","mimeType":"application/vnd.google-apps.folder","parents":["myroot"]}"#;
+
+fn whole(files: &str) -> String {
+    match files.trim().is_empty() {
+        true => listing(ROOT),
+        false => listing(&format!("{ROOT},{files}")),
+    }
+}
 
 fn listing(files: &str) -> String {
     format!(r#"{{"files":[{files}]}}"#)
@@ -172,18 +179,15 @@ const A: &str =
 #[test]
 fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
     let home = tempfile::tempdir().unwrap();
-    let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said(
-            "200 OK",
-            &listing(
-                r#"{"id":"F","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"},
+    let (at, asked) = google(vec![said(
+        "200 OK",
+        &whole(
+            r#"{"id":"F","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"},
                    {"id":"D","name":"a.md","parents":["F"],"size":"5","sha256Checksum":"ab","version":"3"},
                    {"id":"T","name":"tisty.toml","parents":["R"],"size":"2","sha256Checksum":"cd","version":"1"},
                    {"id":"X","name":"elsewhere.md","parents":["Q"],"size":"1","sha256Checksum":"ef","version":"1"}"#,
-            ),
         ),
-    ]);
+    )]);
     let drive = drive(at, home.path());
 
     let all = drive.list("").unwrap();
@@ -206,23 +210,24 @@ fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
         ]
     );
     let asked = asked.join().unwrap();
-    assert!(asked[0].line.contains("q=name"), "{}", asked[0].line);
+    assert_eq!(
+        asked.len(),
+        1,
+        "the Tisty folder was searched apart from the listing"
+    );
     assert!(header(&asked[0], "authorization").ends_with("access-1"));
 }
 
 #[test]
 fn of_two_files_with_one_name_the_oldest_is_the_one() {
     let home = tempfile::tempdir().unwrap();
-    let (at, _) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said(
-            "200 OK",
-            &listing(
-                r#"{"id":"OLD","name":"a.md","parents":["R"],"version":"1"},
+    let (at, _) = google(vec![said(
+        "200 OK",
+        &whole(
+            r#"{"id":"OLD","name":"a.md","parents":["R"],"version":"1"},
                    {"id":"NEW","name":"a.md","parents":["R"],"version":"1"}"#,
-            ),
         ),
-    ]);
+    )]);
 
     let shown = drive(at, home.path()).list("").unwrap();
 
@@ -233,16 +238,15 @@ fn of_two_files_with_one_name_the_oldest_is_the_one() {
 #[test]
 fn what_two_machines_wrote_in_tisty_folders_of_their_own_is_all_found() {
     let home = tempfile::tempdir().unwrap();
-    let (at, _) = google(vec![
-        said("200 OK", r#"{"files":[{"id":"R1"},{"id":"R2"}]}"#),
-        said(
-            "200 OK",
-            &listing(
-                r#"{"id":"A","name":"a.md","parents":["R1"],"version":"1"},
+    let (at, _) = google(vec![said(
+        "200 OK",
+        &listing(
+            r#"{"id":"R1","name":"Tisty","mimeType":"application/vnd.google-apps.folder","parents":["myroot"]},
+                   {"id":"R2","name":"Tisty","mimeType":"application/vnd.google-apps.folder","parents":["P"]},
+                   {"id":"A","name":"a.md","parents":["R1"],"version":"1"},
                    {"id":"B","name":"b.md","parents":["R2"],"version":"1"}"#,
-            ),
         ),
-    ]);
+    )]);
 
     let shown = drive(at, home.path()).list("").unwrap();
 
@@ -256,31 +260,77 @@ fn what_two_machines_wrote_in_tisty_folders_of_their_own_is_all_found() {
 }
 
 #[test]
-fn a_drive_without_the_tisty_folder_gets_one_and_every_listing_asks_for_it_again() {
+fn reading_a_drive_without_the_tisty_folder_makes_nothing_and_writing_makes_it_once() {
     let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
     let (at, asked) = google(vec![
         said("200 OK", &listing("")),
-        said("200 OK", r#"{"id":"R","name":"Tisty"}"#),
         said("200 OK", &listing("")),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", r#"{"id":"R","name":"Tisty","version":"1"}"#),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"version":"1"}"#,
+        ),
     ]);
     let drive = drive(at, home.path());
 
     assert!(drive.list("").unwrap().is_empty());
-    assert!(drive.list("").unwrap().is_empty());
+    drive.put("a.md", &local, Expect::Absent).unwrap();
 
     let asked = asked.join().unwrap();
     assert!(
-        asked[1].line.starts_with("POST /drive/v3/files"),
+        asked[1].line.contains("trashed+%3D+true")
+            || asked[1].line.contains("trashed%20%3D%20true"),
         "{}",
         asked[1].line
     );
-    let made = String::from_utf8_lossy(&asked[1].body);
-    assert!(made.contains(r#""name":"Tisty""#), "{made}");
     assert!(
-        asked[3].line.contains("q=name"),
-        "a Tisty folder put in the bin would be written into"
+        asked[2].line.starts_with("POST /drive/v3/files"),
+        "{}",
+        asked[2].line
+    );
+    assert!(String::from_utf8_lossy(&asked[2].body).contains(r#""name":"Tisty""#));
+    assert!(String::from_utf8_lossy(&asked[3].body).contains(r#""parents":["R"]"#));
+}
+
+#[test]
+fn a_tisty_folder_put_in_the_bin_stops_the_round_instead_of_reading_an_empty_drive() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said("200 OK", &listing("")),
+        said("200 OK", r#"{"files":[{"id":"R"}]}"#),
+    ]);
+
+    let stopped = drive(at, home.path()).list("");
+
+    assert!(matches!(stopped, Err(Hitch::Broke(_))), "{stopped:?}");
+    assert_eq!(
+        asked.join().unwrap().len(),
+        2,
+        "a new Tisty folder was made"
+    );
+}
+
+#[test]
+fn a_tisty_folder_moved_inside_another_of_its_folders_is_not_taken_for_a_root() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _) = google(vec![said(
+        "200 OK",
+        &whole(
+            r#"{"id":"F","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"},
+               {"id":"T","name":"Tisty","parents":["F"],"mimeType":"application/vnd.google-apps.folder"},
+               {"id":"D","name":"a.md","parents":["T"],"version":"1"}"#,
+        ),
+    )]);
+
+    let shown = drive(at, home.path()).list("").unwrap();
+
+    assert_eq!(
+        shown
+            .iter()
+            .map(|one| one.name.as_str())
+            .collect::<Vec<_>>(),
+        ["docs/Tisty/a.md"]
     );
 }
 
@@ -288,18 +338,14 @@ fn a_drive_without_the_tisty_folder_gets_one_and_every_listing_asks_for_it_again
 fn writing_over_a_file_expected_absent_is_refused_before_anything_is_sent() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
-    let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(A)),
-        said("200 OK", A),
-    ]);
+    let (at, asked) = google(vec![said("200 OK", &whole(A)), said("200 OK", A)]);
 
     let refused = drive(at, home.path()).put("a.md", &local, Expect::Absent);
 
     assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
     assert_eq!(
         asked.join().unwrap().len(),
-        3,
+        2,
         "something was sent after all"
     );
 }
@@ -309,15 +355,14 @@ fn a_file_another_machine_made_since_the_listing_is_found_before_writing() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", &whole("")),
         said("200 OK", &listing(A)),
     ]);
 
     let refused = drive(at, home.path()).put("a.md", &local, Expect::Absent);
 
     assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
-    assert!(asked.join().unwrap()[2].line.contains("q=name"));
+    assert!(asked.join().unwrap()[1].line.contains("q=name"));
 }
 
 #[test]
@@ -326,8 +371,7 @@ fn a_file_another_machine_replaced_is_found_by_its_name_and_never_doubled() {
     let local = written(&home, b"hello");
     let replaced = r#"{"id":"A3","name":"a.md","parents":["R"],"version":"1"}"#;
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(A)),
+        said("200 OK", &whole(A)),
         said("404 Not Found", ""),
         said("200 OK", &listing(replaced)),
     ]);
@@ -335,7 +379,7 @@ fn a_file_another_machine_replaced_is_found_by_its_name_and_never_doubled() {
     let refused = drive(at, home.path()).put("a.md", &local, Expect::Absent);
 
     assert_eq!(refused, Err(Hitch::Changed("a.md".into())));
-    assert_eq!(asked.join().unwrap().len(), 4, "a second a.md was uploaded");
+    assert_eq!(asked.join().unwrap().len(), 3, "a second a.md was uploaded");
 }
 
 #[test]
@@ -344,8 +388,7 @@ fn a_file_renamed_in_drive_is_never_written_over_under_its_old_name() {
     let local = written(&home, b"hello");
     let renamed = r#"{"id":"A","name":"b.md","parents":["R"],"version":"2"}"#;
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(A)),
+        said("200 OK", &whole(A)),
         said("200 OK", renamed),
         said("200 OK", &listing("")),
         said(
@@ -361,9 +404,9 @@ fn a_file_renamed_in_drive_is_never_written_over_under_its_old_name() {
     assert_eq!(landed.revision, "N.1");
     let asked = asked.join().unwrap();
     assert!(
-        asked[4].line.starts_with("POST /upload/drive/v3/files"),
+        asked[3].line.starts_with("POST /upload/drive/v3/files"),
         "{}",
-        asked[4].line
+        asked[3].line
     );
 }
 
@@ -372,8 +415,7 @@ fn a_folder_another_machine_made_is_found_and_what_is_in_it_is_never_doubled() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", &whole("")),
         said("200 OK", r#"{"files":[{"id":"H"}]}"#),
         said("200 OK", r#"{"files":[{"id":"B"}]}"#),
         said(
@@ -387,9 +429,9 @@ fn a_folder_another_machine_made_is_found_and_what_is_in_it_is_never_doubled() {
     assert_eq!(refused, Err(Hitch::Changed("HELD/ab/x".into())));
     let asked = asked.join().unwrap();
     assert!(
-        asked[3].line.contains("H%27+in+parents") || asked[3].line.contains("H%27%20in%20parents"),
+        asked[2].line.contains("H%27+in+parents") || asked[2].line.contains("H%27%20in%20parents"),
         "{}",
-        asked[3].line
+        asked[2].line
     );
 }
 
@@ -399,8 +441,7 @@ fn a_revision_that_moved_on_is_refused_and_a_missing_one_is_missing() {
     let local = written(&home, b"hello");
     let file = r#"{"id":"A","name":"a.md","parents":["R"],"version":"7"}"#;
     let (at, _) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(file)),
+        said("200 OK", &whole(file)),
         said("200 OK", file),
         said("404 Not Found", ""),
         said("200 OK", &listing("")),
@@ -422,8 +463,7 @@ fn a_new_file_gets_its_folders_and_lands_with_a_boundary_of_its_own() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello\r\n--tisty-part\r\nstill hello");
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", &whole("")),
         said("200 OK", &listing("")),
         said("200 OK", &listing("")),
         said("200 OK", r#"{"id":"F","name":"docs"}"#),
@@ -439,17 +479,17 @@ fn a_new_file_gets_its_folders_and_lands_with_a_boundary_of_its_own() {
 
     assert_eq!(landed.revision, "D.1");
     let asked = asked.join().unwrap();
-    assert!(String::from_utf8_lossy(&asked[4].body).contains(r#""name":"docs""#));
+    assert!(String::from_utf8_lossy(&asked[3].body).contains(r#""name":"docs""#));
     assert!(
-        asked[5].line.contains("uploadType=multipart"),
+        asked[4].line.contains("uploadType=multipart"),
         "{}",
-        asked[5].line
+        asked[4].line
     );
-    let kind = header(&asked[5], "content-type");
+    let kind = header(&asked[4], "content-type");
     let boundary = kind.split("boundary=").nth(1).unwrap().trim();
     assert_ne!(boundary, "tisty-part");
     assert!(boundary.len() > 20, "{boundary}");
-    let sent = String::from_utf8_lossy(&asked[5].body);
+    let sent = String::from_utf8_lossy(&asked[4].body);
     assert!(
         sent.contains(r#""parents":["F"]"#) && sent.contains("still hello"),
         "{sent}"
@@ -462,8 +502,7 @@ fn a_big_file_goes_up_in_parts_from_where_google_says_it_kept() {
     let local = written(&home, b"0123456789");
     let (at, asked) = google_at(|base| {
         vec![
-            said("200 OK", ROOT_FOUND),
-            said("200 OK", &listing("")),
+            said("200 OK", &whole("")),
             said("200 OK", &listing("")),
             Said {
                 status: "200 OK",
@@ -494,11 +533,11 @@ fn a_big_file_goes_up_in_parts_from_where_google_says_it_kept() {
     assert_eq!(landed.revision, "B.1");
     let asked = asked.join().unwrap();
     assert!(
-        asked[3].line.contains("uploadType=resumable"),
+        asked[2].line.contains("uploadType=resumable"),
         "{}",
-        asked[3].line
+        asked[2].line
     );
-    let ranges: Vec<String> = asked[4..]
+    let ranges: Vec<String> = asked[3..]
         .iter()
         .map(|one| header(one, "content-range"))
         .collect();
@@ -509,7 +548,7 @@ fn a_big_file_goes_up_in_parts_from_where_google_says_it_kept() {
     );
     assert!(ranges[2].ends_with("bytes */10"), "{ranges:?}");
     assert!(ranges[3].ends_with("bytes 6-9/10"), "{ranges:?}");
-    assert_eq!(asked[7].body, b"6789");
+    assert_eq!(asked[6].body, b"6789");
 }
 
 #[test]
@@ -519,8 +558,7 @@ fn what_google_refuses_becomes_what_tisty_knows() {
     let reason =
         |one: &str| format!(r#"{{"error":{{"message":"m","errors":[{{"reason":"{one}"}}]}}}}"#);
     let (at, _) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", &whole("")),
         said("200 OK", &listing("")),
         said("403 Forbidden", &reason("storageQuotaExceeded")),
         said("200 OK", &listing("")),
@@ -560,8 +598,7 @@ fn a_token_turned_down_is_renewed_once_and_a_second_refusal_means_reconnecting()
     let home = tempfile::tempdir().unwrap();
     let (at, asked) = google(vec![
         said("401 Unauthorized", ""),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", &whole("")),
         said("401 Unauthorized", ""),
         said("401 Unauthorized", ""),
     ]);
@@ -590,8 +627,7 @@ impl Write for Unwritable {
 fn a_download_starts_where_asked_a_full_disk_is_no_offline_and_a_vanished_file_is_missing() {
     let home = tempfile::tempdir().unwrap();
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(A)),
+        said("200 OK", &whole(A)),
         said("200 OK", A),
         said("206 Partial Content", "lo"),
         said("200 OK", A),
@@ -612,14 +648,14 @@ fn a_download_starts_where_asked_a_full_disk_is_no_offline_and_a_vanished_file_i
     assert_eq!(gone, Err(Hitch::Missing("a.md".into())));
     let asked = asked.join().unwrap();
     assert!(
-        asked[3].line.contains("/files/A?alt=media"),
+        asked[2].line.contains("/files/A?alt=media"),
         "{}",
-        asked[3].line
+        asked[2].line
     );
     assert!(
-        header(&asked[3], "range").ends_with("bytes=3-"),
+        header(&asked[2], "range").ends_with("bytes=3-"),
         "{}",
-        asked[3].head
+        asked[2].head
     );
 }
 
@@ -629,8 +665,7 @@ fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
     let one = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"}"#;
     let two = format!(r#"{one},{{"id":"A2","name":"a.md","parents":["R"],"version":"1"}}"#);
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(&two)),
+        said("200 OK", &whole(&two)),
         said("200 OK", one),
         said("200 OK", one),
         said("204 No Content", ""),
@@ -650,8 +685,8 @@ fn deleting_takes_every_copy_of_a_name_and_respects_the_revision() {
     );
 
     let asked = asked.join().unwrap();
-    assert!(asked[4].line.starts_with("DELETE /drive/v3/files/A1"));
-    assert!(asked[5].line.starts_with("DELETE /drive/v3/files/A2"));
+    assert!(asked[3].line.starts_with("DELETE /drive/v3/files/A1"));
+    assert!(asked[4].line.starts_with("DELETE /drive/v3/files/A2"));
 }
 
 #[test]
@@ -662,8 +697,7 @@ fn what_this_machine_wrote_is_no_news_and_what_another_wrote_brings_the_listing(
         r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","sha256Checksum":"x","version":"2"}"#;
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(A)),
+        said("200 OK", &whole(A)),
         said("200 OK", A),
         said("200 OK", a2),
         said(
@@ -675,8 +709,7 @@ fn what_this_machine_wrote_is_no_news_and_what_another_wrote_brings_the_listing(
             r#"{"changes":[{"fileId":"Z","file":{"id":"Z","version":"1"}}],"nextPageToken":"12"}"#,
         ),
         said("200 OK", r#"{"changes":[],"newStartPageToken":"13"}"#),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(a2)),
+        said("200 OK", &whole(a2)),
     ]);
     let drive = drive(at, home.path());
 
@@ -713,11 +746,9 @@ fn a_cursor_another_process_moved_brings_the_listing_back_in_step() {
     let home = tempfile::tempdir().unwrap();
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
+        said("200 OK", &whole("")),
         said("200 OK", r#"{"changes":[],"newStartPageToken":"30"}"#),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(A)),
+        said("200 OK", &whole(A)),
     ]);
     let drive = drive(at, home.path());
 
@@ -779,8 +810,7 @@ fn writing_many_files_in_one_round_lists_the_drive_once_and_asks_each_file_alone
     let a2 = r#"{"id":"A","name":"a.md","parents":["R"],"version":"2"}"#;
     let b2 = r#"{"id":"B","name":"b.md","parents":["R"],"version":"2"}"#;
     let (at, asked) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(&format!("{A},{b}"))),
+        said("200 OK", &whole(&format!("{A},{b}"))),
         said("200 OK", A),
         said("200 OK", a2),
         said("200 OK", b),
@@ -810,9 +840,9 @@ fn writing_many_files_in_one_round_lists_the_drive_once_and_asks_each_file_alone
         1
     );
     assert!(
-        asked[3].line.starts_with("PATCH /upload/drive/v3/files/A"),
+        asked[2].line.starts_with("PATCH /upload/drive/v3/files/A"),
         "{}",
-        asked[3].line
+        asked[2].line
     );
 }
 
@@ -827,15 +857,13 @@ fn a_change_another_machine_made_is_news_even_when_the_listing_already_holds_it(
     let home = tempfile::tempdir().unwrap();
     let theirs = r#"{"id":"F","name":"f.md","parents":["R"],"version":"4"}"#;
     let (at, _) = google(vec![
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(theirs)),
+        said("200 OK", &whole(theirs)),
         said("200 OK", theirs),
         said(
             "200 OK",
             r#"{"changes":[{"fileId":"F","file":{"id":"F","version":"4"}}],"newStartPageToken":"21"}"#,
         ),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(theirs)),
+        said("200 OK", &whole(theirs)),
     ]);
     let drive = drive(at, home.path());
 
@@ -854,16 +882,13 @@ fn a_listing_taken_for_one_folder_never_hides_what_changed_elsewhere() {
     let theirs = r#"{"id":"N","name":"note.md","parents":["R"],"version":"2"}"#;
     let (at, _) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing("")),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(theirs)),
+        said("200 OK", &whole("")),
+        said("200 OK", &whole(theirs)),
         said(
             "200 OK",
             r#"{"changes":[{"fileId":"N","file":{"id":"N","version":"2"}}],"newStartPageToken":"11"}"#,
         ),
-        said("200 OK", ROOT_FOUND),
-        said("200 OK", &listing(theirs)),
+        said("200 OK", &whole(theirs)),
     ]);
     let drive = drive(at, home.path());
 
@@ -880,8 +905,7 @@ fn an_upload_google_finished_as_the_line_dropped_is_taken_as_landed() {
     let local = written(&home, b"0123456789");
     let (at, _) = google_at(|base| {
         vec![
-            said("200 OK", ROOT_FOUND),
-            said("200 OK", &listing("")),
+            said("200 OK", &whole("")),
             said("200 OK", &listing("")),
             Said {
                 status: "200 OK",
@@ -932,8 +956,7 @@ fn a_long_upload_survives_cuts_and_server_errors_that_do_not_come_in_a_row() {
     let local = written(&home, b"0123456789AB");
     let (at, asked) = google_at(|base| {
         vec![
-            said("200 OK", ROOT_FOUND),
-            said("200 OK", &listing("")),
+            said("200 OK", &whole("")),
             said("200 OK", &listing("")),
             Said {
                 status: "200 OK",
@@ -960,7 +983,7 @@ fn a_long_upload_survives_cuts_and_server_errors_that_do_not_come_in_a_row() {
 
     assert_eq!(landed.map(|one| one.revision), Ok("B.1".into()));
     let asked = asked.join().unwrap();
-    let ranges: Vec<String> = asked[4..]
+    let ranges: Vec<String> = asked[3..]
         .iter()
         .map(|one| header(one, "content-range"))
         .collect();
@@ -975,5 +998,43 @@ fn a_long_upload_survives_cuts_and_server_errors_that_do_not_come_in_a_row() {
     assert!(
         ranges.last().unwrap().ends_with("bytes 8-11/12"),
         "{ranges:?}"
+    );
+}
+
+#[test]
+fn asking_google_what_it_kept_survives_a_cut_of_its_own() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"0123456789");
+    let (at, asked) = google_at(|base| {
+        vec![
+            said("200 OK", &whole("")),
+            said("200 OK", &listing("")),
+            Said {
+                status: "200 OK",
+                headers: format!(
+                    "Location: {base}/upload/session
+"
+                ),
+                body: String::new(),
+            },
+            said("DROP", ""),
+            said("DROP", ""),
+            kept("3"),
+            said(
+                "200 OK",
+                r#"{"id":"B","name":"big.bin","parents":["R"],"size":"10","version":"1"}"#,
+            ),
+        ]
+    });
+    let drive = drive(at, home.path()).with_chunk(8);
+
+    let landed = drive.put("big.bin", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("B.1".into()));
+    let asked = asked.join().unwrap();
+    assert!(
+        header(&asked[6], "content-range").ends_with("bytes 4-9/10"),
+        "{}",
+        asked[6].head
     );
 }

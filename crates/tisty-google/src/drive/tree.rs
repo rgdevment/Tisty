@@ -66,6 +66,24 @@ pub(super) fn split(name: &str) -> (Option<&str>, &str) {
     }
 }
 
+// A root is a Tisty folder not inside another folder Tisty made, wherever the person moved it.
+pub(super) fn roots_in(name: &str, all: &[File]) -> Vec<String> {
+    let ours: std::collections::HashSet<&str> = all
+        .iter()
+        .filter(|one| one.mime_type == FOLDER)
+        .map(|one| one.id.as_str())
+        .collect();
+    all.iter()
+        .filter(|one| one.mime_type == FOLDER && one.name == name)
+        .filter(|one| {
+            one.parents
+                .first()
+                .is_none_or(|parent| !ours.contains(parent.as_str()))
+        })
+        .map(|one| one.id.clone())
+        .collect()
+}
+
 // Every root Tisty folder counts, so what a racing first machine wrote in its own is still found.
 pub(super) fn planted(roots: &[String], all: Vec<File>) -> Tree {
     let folder_of: HashMap<&str, (&str, Option<&str>)> = all

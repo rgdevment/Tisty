@@ -4,14 +4,16 @@ use std::path::Path;
 use reqwest::Method;
 use tisty_carrier::Hitch;
 
+use super::Drive;
 use super::tree::{FILE_FIELDS, File};
 use super::wire::{given, json, judged};
-use super::{ASKED_WITHIN, Drive};
+use crate::ASKED_WITHIN;
 use crate::told;
 
 // Google takes a multipart upload up to 5 MB; anything larger goes through a session.
 const WHOLE_AT_MOST: u64 = 5 * 1000 * 1000;
 const TRIES: u32 = 3;
+const PAUSE: std::time::Duration = std::time::Duration::from_secs(1);
 
 impl Drive {
     pub(super) fn sent(
@@ -106,16 +108,21 @@ impl Drive {
                 )
                 .body(part)
                 .send();
-            // A cut or a 5xx asks Google how much it kept; only failures in a row give the session up.
+            // Google may have kept part of a cut chunk, so resending from our own offset would misalign the file.
             let broke = match &sent {
                 Ok(answer) => answer.status().is_server_error(),
                 Err(_) => true,
             };
             if broke && failed + 1 < TRIES {
                 failed += 1;
-                match self.kept_so_far(&session, bytes)? {
+                match self.resumed(&session, bytes, &mut failed)? {
                     Kept::At(next) => at = next,
                     Kept::Done(file) => return Ok(file),
+                }
+                if at >= bytes {
+                    return Err(Hitch::Broke(
+                        "Google kept every byte but never closed the upload".into(),
+                    ));
                 }
                 continue;
             }
@@ -140,7 +147,20 @@ impl Drive {
         }
     }
 
-    // After a cut, Google says how much of the file it kept, and the upload carries on from there.
+    // The question itself can be cut too; it shares the same budget of failures as the chunks.
+    fn resumed(&self, session: &str, bytes: u64, failed: &mut u32) -> Result<Kept, Hitch> {
+        loop {
+            match self.kept_so_far(session, bytes) {
+                Ok(kept) => return Ok(kept),
+                Err(Hitch::Unreachable(_) | Hitch::Limited { .. }) if *failed + 1 < TRIES => {
+                    *failed += 1;
+                    std::thread::sleep(PAUSE * *failed);
+                }
+                Err(other) => return Err(other),
+            }
+        }
+    }
+
     fn kept_so_far(&self, session: &str, bytes: u64) -> Result<Kept, Hitch> {
         let answer = self
             .http
