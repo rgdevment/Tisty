@@ -1,54 +1,22 @@
-const PATHS: Record<string, React.ReactNode> = {
-  list: <path d="M3 4.5h10M3 8h7M3 11.5h10" />,
-  reload: (
-    <>
-      <path d="M13.2 8.6A5.3 5.3 0 1 1 11.8 4" />
-      <path d="M12.7 1.8v3h-3" />
-    </>
-  ),
-  apart: (
-    <>
-      <path d="M9.5 2.5H13.5V6.5M13.5 2.5L8 8" />
-      <path d="M6.5 3.5H3.5A1 1 0 0 0 2.5 4.5V12.5A1 1 0 0 0 3.5 13.5H11.5A1 1 0 0 0 12.5 12.5V9.5" />
-    </>
-  ),
-  code: <path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5" />,
-  lock: (
-    <>
-      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
-      <path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7" />
-    </>
-  ),
-  doc: (
-    <>
-      <path d="M4 1.8h5l3.5 3.5v9a.9.9 0 0 1-.9.9H4a.9.9 0 0 1-.9-.9V2.7A.9.9 0 0 1 4 1.8Z" />
-      <path d="M9 1.8v3.6h3.5M5.5 8.5h5M5.5 11h3.5" />
-    </>
-  ),
-  widget: <path d="M8 2 14 8 8 14 2 8Z" />,
-};
+import { createElement } from "react";
+import { SHAPES, type Shaped } from "./shapes";
 
-export function Glyph({ name, className = "h-4 w-4" }: { name: string; className?: string }) {
-  if (name === "more")
-    return (
-      <svg viewBox="0 0 16 16" className={className} fill="currentColor" aria-hidden="true">
-        <circle cx="3.5" cy="8" r="1.3" />
-        <circle cx="8" cy="8" r="1.3" />
-        <circle cx="12.5" cy="8" r="1.3" />
-      </svg>
-    );
+export function Glyph({ name, className = "h-4 w-4" }: { name: Shaped; className?: string }) {
+  const more = name === "more";
   return (
     <svg
       viewBox="0 0 16 16"
       className={className}
-      fill="none"
-      stroke="currentColor"
+      fill={more ? "currentColor" : "none"}
+      stroke={more ? "none" : "currentColor"}
       strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      {PATHS[name]}
+      {SHAPES[name].map((one) =>
+        createElement(one.tag, { key: JSON.stringify(one.at), ...one.at }),
+      )}
     </svg>
   );
 }

@@ -117,7 +117,7 @@ pub fn doc_import(
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
     let body = read_outside(std::path::Path::new(&from))?;
-    imported(&mut held(&session), &body, folder)
+    imported(&mut held(&session), &body, folder).map(|(made, _)| made)
 }
 
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {
@@ -133,7 +133,7 @@ pub(crate) fn imported(
     session: &mut Session,
     body: &str,
     folder: Option<tisty_core::model::FolderId>,
-) -> Answer<tisty_core::docs::Doc> {
+) -> Answer<(tisty_core::docs::Doc, ulid::Ulid)> {
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
@@ -152,8 +152,9 @@ pub(crate) fn imported(
             .map(|one| one.order.as_str()),
     );
     let signed_as = signing(&session.state);
+    let id = ulid::Ulid::generate();
     session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
+        id,
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
@@ -166,7 +167,7 @@ pub(crate) fn imported(
             page_of: None,
         },
     })?;
-    Ok(made)
+    Ok((made, id))
 }
 
 #[derive(Clone, serde::Serialize)]

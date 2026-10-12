@@ -9,6 +9,7 @@ import { button, Segments } from "./Glyphs";
 interface Props {
   body: string;
   title: string;
+  paper?: string;
   stranger: boolean;
   side: boolean;
   raw: boolean;
@@ -142,6 +143,7 @@ export default function Reader(props: Props) {
               reading
               stranger={stranger}
               label={title}
+              paper={props.paper}
               onWrite={() => {}}
               onOutline={setHeads}
               onDoc={props.onDoc}

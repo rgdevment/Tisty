@@ -51,18 +51,18 @@ export default function Stage({ lent, preset, actual, dark, again }: Props) {
     const at = drawn.current;
     if (!at || again < 0) return;
     setOwn(null);
-    const spanned = (span: Span) => {
-      const wide = natural(span);
-      if (wide !== null) setOwn((was) => (was === null ? wide : Math.min(was, wide)));
-    };
+    const spanned = (span: Span) => setOwn(natural(span));
     const made =
       "reference" in lent ? lendKept(at, lent.reference, spanned) : lend(at, lent.source, spanned);
+    made.shade(shading.current);
     lending.current = made;
     return () => made.drop();
   }, [lent, again]);
 
+  const shading = useRef(dark);
+  shading.current = dark;
   useEffect(() => {
-    if (dark !== null) lending.current?.shade(dark);
+    lending.current?.shade(dark);
   }, [dark]);
 
   const wide = preset === "fit" ? (own ?? room.wide) : Number(preset);

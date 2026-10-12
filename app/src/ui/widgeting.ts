@@ -6,6 +6,7 @@ import { type Borrowed, openLink, widgetLend, widgetLendKept, widgetTakeBack } f
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { saidPlainly } from "../refusal";
+import { drawn, type Shaped } from "./viewer/shapes";
 
 export const SHORTEST = 40;
 export const TALLEST = 2400;
@@ -66,7 +67,7 @@ const followed = (retheme: () => void) => {
 
 export type Lending = {
   retheme: () => void;
-  shade: (dark: boolean) => void;
+  shade: (dark: boolean | null) => void;
   drop: () => void;
 };
 
@@ -91,6 +92,8 @@ const drawnFrom = (
   let climbed = 0;
   let stride = 0;
   let climbedAt = Number.NEGATIVE_INFINITY;
+  let forced: boolean | null = null;
+  const shaded = () => forced ?? darkNow();
   const frame = document.createElement("iframe");
   frame.className = "lit-widget";
   frame.setAttribute("sandbox", "allow-scripts");
@@ -145,7 +148,8 @@ const drawnFrom = (
       }
       id = lent.id;
       whole = lent.whole;
-      frame.src = `${convertFileSrc(lent.id, "widget")}${darkNow() && !whole ? "?dark=1" : ""}`;
+      const asked = [shaded() && !whole ? "dark=1" : "", onSpan ? "span=1" : ""].filter(Boolean);
+      frame.src = `${convertFileSrc(lent.id, "widget")}${asked.length ? `?${asked.join("&")}` : ""}`;
       drawn.replaceChildren(frame);
     })
     .catch((problem) => {
@@ -158,19 +162,18 @@ const drawnFrom = (
     });
 
   const retheme = () => {
-    frame.style.colorScheme = darkNow() ? "dark" : "light";
+    frame.style.colorScheme = shaded() ? "dark" : "light";
     // A whole page may route by its own hash, so the theme never travels through its address.
     if (!frame.src || whole) return;
-    frame.src = `${frame.src.split("#")[0]}#${darkNow() ? "dark" : "light"}`;
+    frame.src = `${frame.src.split("#")[0]}#${shaded() ? "dark" : "light"}`;
   };
   followed(retheme);
 
   return {
     retheme,
     shade: (dark) => {
-      frame.style.colorScheme = dark ? "dark" : "light";
-      if (!frame.src || whole) return;
-      frame.src = `${frame.src.split("#")[0]}#${dark ? "dark" : "light"}`;
+      forced = dark;
+      retheme();
     },
     drop: () => {
       gone = true;
@@ -235,20 +238,13 @@ export const dropdown = (anchor: HTMLElement, picks: Pick[]): void => {
   card.querySelector<HTMLButtonElement>("button")?.focus();
 };
 
-const ICONS = {
-  apart:
-    '<path d="M9.5 2.5H13.5V6.5M13.5 2.5L8 8"/><path d="M6.5 3.5H3.5A1 1 0 0 0 2.5 4.5V12.5A1 1 0 0 0 3.5 13.5H11.5A1 1 0 0 0 12.5 12.5V9.5"/>',
-  more: '<circle cx="3.5" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.5" cy="8" r="1.1"/>',
-  lock: '<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"/>',
-} as const;
-
-export const iconed = (kind: keyof typeof ICONS, label: string, className: string) => {
+export const iconed = (kind: Shaped, label: string, className: string) => {
   const button = document.createElement("button");
   button.type = "button";
   button.className = className;
   button.title = label;
   button.setAttribute("aria-label", label);
-  button.innerHTML = `<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[kind]}</svg>`;
+  button.append(drawn(kind, 15));
   return button;
 };
 
@@ -256,7 +252,7 @@ export const locked = () => {
   const said = document.createElement("div");
   said.className = "lit-locked";
   said.setAttribute("contenteditable", "false");
-  said.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">${ICONS.lock}</svg>`;
+  said.append(drawn("lock", 14));
   const why = document.createElement("span");
   const bold = document.createElement("b");
   bold.textContent = t("viewWidgetLocked");

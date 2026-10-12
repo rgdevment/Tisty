@@ -12,7 +12,6 @@ import { common, createLowlight } from "lowlight";
 import markPlugin from "markdown-it-mark";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
-import { viewWidget } from "../core";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { DOC } from "../markdown";
@@ -21,7 +20,7 @@ import type { Moved } from "../paging";
 import { spared } from "./Icons";
 import { Listed, Tightened } from "./listing";
 import { TONGUES } from "./tongues";
-import { besideWidget, failed, iconed, type Lending, lend, locked } from "./widgeting";
+import { besideWidget, iconed, type Lending, lend, locked } from "./widgeting";
 
 /// A bracket left bare closes the label early, and the reference stops naming anything.
 export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
@@ -1043,7 +1042,12 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         folding(mine as ProseNode);
       });
       apart.addEventListener("click", () => {
-        viewWidget({ source: (mine as ProseNode).textContent ?? "" }).catch(failed);
+        apart.dispatchEvent(
+          new CustomEvent("widgetapart", {
+            bubbles: true,
+            detail: { source: (mine as ProseNode).textContent ?? "" },
+          }),
+        );
       });
       bar.append(name, said, fold, apart, picked);
 

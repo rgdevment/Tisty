@@ -105,15 +105,21 @@ describe("a page attached to a document", () => {
     editor.destroy();
   });
 
+  it("shows a page named by someone else's file as a card, never drawn", () => {
+    const editor = made(`![informe](<${PAGE}>)`, { stranger: true });
+
+    expect(editor.view.dom.querySelector(".widget-page")).toBeNull();
+    expect(asked("widget_lend_kept")).toHaveLength(0);
+    editor.destroy();
+  });
+
   it("opens the page alone in a window of its own, named by its reference", () => {
-    const editor = made(`![informe](<${PAGE}>)`, { onMenu: undefined });
+    const apart = vi.fn();
+    const editor = made(`![informe](<${PAGE}>)`, { onMenu: undefined, onApart: apart });
 
     editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-apart")?.click();
 
-    expect(ipc.calls).toContainEqual({
-      cmd: "view_widget",
-      args: { lent: { reference: PAGE }, from: null },
-    });
+    expect(apart).toHaveBeenCalledWith({ reference: PAGE });
     editor.destroy();
   });
 

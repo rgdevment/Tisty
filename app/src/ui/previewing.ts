@@ -3,7 +3,7 @@ import type { Node as Written } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { type Glimpse, viewWidget } from "../core";
+import type { Glimpse, Lent } from "../core";
 import { markup } from "../glyphs";
 import { t, type Word } from "../locales";
 import {
@@ -16,7 +16,7 @@ import {
   previewOf,
   weighed,
 } from "../previews";
-import { dropdown, failed, iconed, lendKept } from "./widgeting";
+import { dropdown, iconed, lendKept } from "./widgeting";
 
 export interface Reach {
   url: (reference: string) => string | null;
@@ -30,6 +30,8 @@ export interface Reach {
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
   onWorld?: (at: string) => void;
+  stranger?: boolean;
+  onApart?: (lent: Lent) => void;
   onMenu?: (
     at: { x: number; y: number },
     untie: (() => void) | undefined,
@@ -509,7 +511,7 @@ const paging = (href: string, label: string, reach: Reach, shelve: () => void): 
   const apart = iconed("apart", t("viewApart"), "widget-page-apart");
   apart.addEventListener("click", (e) => {
     e.stopPropagation();
-    viewWidget({ reference: href }).catch(failed);
+    reach.onApart?.({ reference: href });
   });
   const more = iconed("more", t("viewMore"), "widget-page-more");
   more.addEventListener("click", (e) => {
@@ -633,7 +635,7 @@ export const previewing = (reach: () => Reach) => {
                 state.doc,
                 scan(state.doc).flatMap((one) => [
                   Decoration.node(one.at, one.at + one.size, { class: "card-source" }),
-                  one.paged
+                  one.paged && !now.stranger
                     ? Decoration.widget(
                         one.at,
                         (view, getPos) =>

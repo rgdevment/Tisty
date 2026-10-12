@@ -58,11 +58,45 @@ pub enum Showing {
     },
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Imported {
+    paper: Paper,
+    stamp: Option<(u64, std::time::SystemTime)>,
+}
+
 #[derive(Default)]
 pub struct Views {
     shown: Mutex<HashMap<String, Shown>>,
-    kept: Mutex<HashMap<PathBuf, Paper>>,
+    kept: Mutex<HashMap<PathBuf, Imported>>,
+    importing: Mutex<()>,
     made: AtomicU64,
+    #[cfg(target_os = "macos")]
+    born: Born,
+}
+
+#[cfg(target_os = "macos")]
+struct Born(std::time::Instant);
+
+#[cfg(target_os = "macos")]
+impl Default for Born {
+    fn default() -> Self {
+        Self(std::time::Instant::now())
+    }
+}
+
+impl Views {
+    // A file from outside is someone else's word: its window borrows no widget, whatever its body names.
+    pub fn stranger(&self, label: &str) -> bool {
+        self.shown
+            .lock()
+            .ok()
+            .is_some_and(|held| matches!(held.get(label), Some(Shown::File(_))))
+    }
+}
+
+fn stamp_of(at: &Path) -> Option<(u64, std::time::SystemTime)> {
+    let facts = std::fs::metadata(at).ok()?;
+    Some((facts.len(), facts.modified().ok()?))
 }
 
 // Whatever reaches Tisty from outside is a third party's word: only a local path to a readable text file passes.
@@ -146,12 +180,23 @@ pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
     any
 }
 
+// Finder hands a file over only once the app is up, so a launch that came for a file puts the main window back.
+#[cfg(target_os = "macos")]
+const LAUNCHED_FOR_IT: std::time::Duration = std::time::Duration::from_secs(3);
+
 #[cfg(target_os = "macos")]
 pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     let said: Vec<String> = std::iter::once(String::new())
         .chain(links.iter().map(|one| one.to_string()))
         .collect();
-    if !heard(app, &said, None) {
+    let any = heard(app, &said, None);
+    if any
+        && app.state::<Views>().born.0.elapsed() < LAUNCHED_FOR_IT
+        && let Some(main) = app.get_webview_window("main")
+    {
+        let _ = main.hide();
+    }
+    if !any {
         witness::warn(
             channel::WINDOW,
             "a link Tisty was asked to open was not one it opens",
@@ -288,45 +333,62 @@ pub fn view_import(
     views: tauri::State<'_, Views>,
     open: bool,
 ) -> Answer<Paper> {
-    let Shown::File(at) = shown_in(&views, window.label())? else {
-        return Err(Refusal::of("notAllowed"));
-    };
-    let known = views
-        .kept
-        .lock()
-        .ok()
-        .and_then(|held| held.get(&at).cloned());
-    let paper = match known {
-        Some(paper) => paper,
-        None => {
-            let body = crate::answers::carrying::read_outside(&at)?;
-            let session = session_of(&app)?;
-            let made = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
-            let id = held(&session)
-                .state
-                .docs
-                .iter()
-                .find(|(_, kept)| kept.file == made.id)
-                .map(|(id, _)| id.to_string())
-                .unwrap_or_default();
-            Paper {
-                id,
-                file: made.id,
-                title: made.title,
-                place: String::new(),
+    let _one_at_a_time = views.importing.lock().unwrap_or_else(|e| e.into_inner());
+    let paper = match shown_in(&views, window.label())? {
+        Shown::Doc(paper) => paper,
+        Shown::File(at) => {
+            let paper = imported_once(&app, &views, &at)?;
+            if let Ok(mut held) = views.shown.lock() {
+                held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
             }
+            paper
         }
+        Shown::Widget { .. } => return Err(Refusal::of("notAllowed")),
     };
-    if let Ok(mut held) = views.kept.lock() {
-        held.insert(at, paper.clone());
-    }
-    if let Ok(mut held) = views.shown.lock() {
-        held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
-    }
     if open {
         bring(&app, &paper.file);
     } else {
         let _ = app.emit_to("main", "papered", ());
+    }
+    Ok(paper)
+}
+
+// The same file brought in twice is the same document, as long as both are still what they were.
+fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<Paper> {
+    let session = session_of(app)?;
+    let stamp = stamp_of(at);
+    let known = views
+        .kept
+        .lock()
+        .ok()
+        .and_then(|held| held.get(at).cloned());
+    if let Some(known) = known
+        && known.stamp.is_some()
+        && known.stamp == stamp
+        && held(&session)
+            .state
+            .docs
+            .values()
+            .any(|kept| kept.file == known.paper.file)
+    {
+        return Ok(known.paper);
+    }
+    let body = crate::answers::carrying::read_outside(at)?;
+    let (made, id) = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
+    let paper = Paper {
+        id: id.to_string(),
+        file: made.id,
+        title: made.title,
+        place: String::new(),
+    };
+    if let Ok(mut held) = views.kept.lock() {
+        held.insert(
+            at.to_path_buf(),
+            Imported {
+                paper: paper.clone(),
+                stamp,
+            },
+        );
     }
     Ok(paper)
 }

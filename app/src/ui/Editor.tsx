@@ -11,8 +11,10 @@ import {
   type Glimpse,
   glimpseFetch,
   glimpseKept,
+  type Lent,
   noteTrouble,
   openLink,
+  viewWidget,
   weighs,
 } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
@@ -32,6 +34,7 @@ import Shot from "./Shot";
 import Slash, { asked, type Block, narrowed } from "./Slash";
 import Tabled from "./Tabled";
 import { tagging } from "./tagging";
+import { failed } from "./widgeting";
 import { asMarkdown, cardMoved, type Head, headed, loosened, written } from "./writing";
 
 export const stripped = (html: string): string =>
@@ -375,6 +378,12 @@ export default function Editor({
 
   const picking = useRef(onTag);
   picking.current = onTag;
+  const apart = useRef((_: Lent) => {});
+  apart.current = (lent: Lent) =>
+    void viewWidget(
+      lent,
+      paper ? { id: "", file: paper, title: label ?? "", place: "" } : undefined,
+    ).catch(failed);
   const shapes = useMemo(
     () => [
       ...written(stranger),
@@ -499,9 +508,15 @@ export default function Editor({
       const paper = (event as CustomEvent<unknown>).detail;
       if (typeof paper === "string" && paper) hands.current.onDoc?.(paper);
     };
+    const parted = (event: Event) => {
+      const lent = (event as CustomEvent<unknown>).detail;
+      if (lent && typeof lent === "object" && "source" in lent) apart.current(lent as Lent);
+    };
     page.addEventListener("widgetdoc", opened);
+    page.addEventListener("widgetapart", parted);
     return () => {
       page.removeEventListener("widgetdoc", opened);
+      page.removeEventListener("widgetapart", parted);
       hands.current.onInsert?.(null);
       hands.current.onOrder?.(null);
     };
@@ -765,6 +780,8 @@ export default function Editor({
             keep: kept && onKeep ? () => hands.current.onKeep?.(kept.at, kept.name) : undefined,
             own: leaf && onOwn ? () => hands.current.onOwn?.(leaf) : undefined,
           }),
+    stranger,
+    onApart: (lent) => apart.current(lent),
     onWorld: (at) => {
       void openLink(at).catch(() => {});
     },

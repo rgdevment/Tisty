@@ -442,15 +442,19 @@ fn what_a_closed_window_borrowed_is_taken_back_and_nothing_else() {
 
     lent.release("view-3");
 
+    assert!(
+        lent.owners.lock().unwrap().get("main").is_none(),
+        "the main window, which is never closed, would keep every loan forever"
+    );
     assert_eq!(said(&lent.shown(&asked(&format!("/{its}")))), "");
     assert!(said(&lent.shown(&asked(&format!("/{kept}")))).contains("main"));
 }
 
 #[test]
-fn every_widget_says_how_far_its_content_reaches_across() {
+fn only_a_widget_shown_on_its_own_measures_how_far_it_reaches() {
     let lent = Lent::default();
     let id = lent.lend("<p>x</p>".into()).unwrap();
 
-    assert!(said(&lent.shown(&asked(&format!("/{id}")))).contains("type:\"span\""));
-    assert!(paged("<p>x</p>").contains("type:\"span\""));
+    assert!(said(&lent.shown(&asked(&format!("/{id}?span=1")))).contains("type:\"span\""));
+    assert!(!said(&lent.shown(&asked(&format!("/{id}")))).contains("type:\"span\""));
 }
