@@ -66,8 +66,8 @@ jobs:
           set -uo pipefail
           # zizmor exits 1 only when it could not finish; findings exit 10 or more and are not retried.
           for try in 1 2 3; do
-            zizmor --min-severity medium .github
-            code=$?
+            code=0
+            zizmor --min-severity medium .github || code=$?
             [ "$code" -ne 1 ] && exit "$code"
             echo "::warning::try $try did not finish; asking GitHub again in a minute"
             sleep 60
