@@ -1,4 +1,4 @@
-import { ask, save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
+import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asPlain } from "../copying";
 import {
@@ -30,6 +30,7 @@ import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../pagi
 import { crowd, ending, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
+import { sure } from "../sure";
 import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
@@ -228,7 +229,7 @@ export default function Docs({
 
   const wentBack = useCallback(async () => {
     if (!open) return;
-    if (!(await ask(t("backSure"), { kind: "warning" }))) return;
+    if (!(await sure(t("backSure")))) return;
     drop();
     try {
       const said = await docBack(open.file);
@@ -249,7 +250,7 @@ export default function Docs({
 
   const theirsStands = useCallback(async () => {
     if (!open) return;
-    if (!(await ask(t("clashSure"), { kind: "warning" }))) return;
+    if (!(await sure(t("clashSure")))) return;
     drop();
     docRead(open.file)
       .then((text) => {
@@ -392,7 +393,7 @@ export default function Docs({
 
   const anyway = async () => {
     const losing = (warned ?? []).map((one) => t(one as Parameters<typeof t>[0])).join(" · ");
-    if (!(await ask(fill("frailAnywaySure", losing), { kind: "warning" }))) return;
+    if (!(await sure(fill("frailAnywaySure", losing)))) return;
     setStuck(false);
     setReading(false);
   };

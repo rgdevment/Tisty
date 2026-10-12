@@ -1,8 +1,8 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import type { LogEntry } from "../core";
 import { wroteAt } from "../format";
 import { t } from "../locales";
+import { sure } from "../sure";
 import { signedBy } from "../who";
 import Prose from "./Prose";
 
@@ -53,7 +53,7 @@ export default function Journal({ entries, steps, onError, onWhole, onDoc, onWri
                   type="button"
                   aria-label={`${t("remove")} ${wroteAt(entry.at, entry.tz)}`}
                   onClick={() =>
-                    ask(t("journalEraseSure"), { kind: "warning" })
+                    sure(t("journalEraseSure"))
                       .then((sure) => sure && onWrite("", entry.id))
                       .catch(onError)
                   }

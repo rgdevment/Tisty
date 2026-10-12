@@ -492,6 +492,7 @@ describe("what the maintenance screen writes", () => {
     await user.click(screen.getByRole("button", { name: /^review$/i }));
     await screen.findByText("win1-0002");
     await user.click(screen.getByRole("button", { name: /^remove$/i }));
+    await user.click(await screen.findByRole("button", { name: /^go on$/i }));
     await waitFor(() =>
       expect(ipc.calls.filter((one) => one.cmd === "remove_machine")).toHaveLength(1),
     );

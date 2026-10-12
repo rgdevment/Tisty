@@ -1,4 +1,3 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import {
   type About,
@@ -23,6 +22,7 @@ import {
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { sure } from "../sure";
 import Card, { type Run, type Which, type Word } from "./Card";
 import FreeSpace from "./FreeSpace";
 import { Asked, MachineList } from "./Keys";
@@ -72,7 +72,7 @@ export default function Upkeep({
 
   const letGoOfAll = (astray: Astray[]) => {
     if (held || astray.length === 0) return;
-    ask(fill("upkeepSafeAllSure", String(astray.length)), { kind: "warning" })
+    sure(fill("upkeepSafeAllSure", String(astray.length)))
       .then((sure) => {
         if (!sure) return;
         run("review", retireAttachments(astray.map((one) => one.at)).then(checked), (now) => {
@@ -85,7 +85,7 @@ export default function Upkeep({
 
   const forgetMissing = (one: Gone) => {
     if (held) return;
-    ask(fill("dropDocSure", one.title || one.file), { kind: "warning" })
+    sure(fill("dropDocSure", one.title || one.file))
       .then(
         (sure) =>
           sure &&
@@ -118,7 +118,7 @@ export default function Upkeep({
 
   const letGoOfPaper = (one: Stray) => {
     if (held) return;
-    ask(fill("upkeepDropSure", one.title || one.file), { kind: "warning" })
+    sure(fill("upkeepDropSure", one.title || one.file))
       .then(
         (sure) =>
           sure &&
@@ -133,7 +133,7 @@ export default function Upkeep({
   const letGo = (reference: string, shared?: boolean) => {
     if (held) return;
     const named = reference.split("/").pop() ?? reference;
-    ask(fill(shared ? "looseDropSharedSure" : "looseDropSure", named), { kind: "warning" })
+    sure(fill(shared ? "looseDropSharedSure" : "looseDropSure", named))
       .then(
         (sure) =>
           sure &&
@@ -170,7 +170,7 @@ export default function Upkeep({
       "machineDropWhen",
       one.when === 0 ? t("machineNever") : dated(one.when),
     )}`;
-    ask(said, { kind: "warning" })
+    sure(said)
       .then(
         (sure) =>
           sure &&

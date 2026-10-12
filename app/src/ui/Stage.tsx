@@ -1,8 +1,8 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { discard, docPage, patch, sow } from "../core";
 import { useDesk } from "../desk";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
+import { sure } from "../sure";
 import { title } from "../views";
 import About from "./About";
 import Board from "./Board";
@@ -129,7 +129,7 @@ export default function Stage() {
           sow(where).catch((e: unknown) => setError(saidPlainly(e)));
         }}
         onDiscardAll={(ids) => {
-          ask(fill("dropThemSure", String(ids.length)), { kind: "warning" })
+          sure(fill("dropThemSure", String(ids.length)))
             .then((yes) => {
               if (!yes) return;
               setError(null);

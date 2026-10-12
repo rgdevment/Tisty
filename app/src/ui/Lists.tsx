@@ -1,4 +1,3 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { useAttended } from "../attended";
 import {
@@ -14,6 +13,7 @@ import {
 import { isOverdue, isToday, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { sure } from "../sure";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
 import Naming from "./Naming";
@@ -82,7 +82,7 @@ export default function Lists({
   const field = useAttended<HTMLInputElement>(making);
 
   const drop = (list: List) => {
-    ask(fill("listDropSure", list.name), { kind: "warning" })
+    sure(fill("listDropSure", list.name))
       .then((sure) => {
         if (!sure) return undefined;
         setEditing(null);

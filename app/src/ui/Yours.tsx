@@ -1,4 +1,4 @@
-import { ask, open, save } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   type About,
   backUp,
@@ -14,6 +14,7 @@ import {
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { sure } from "../sure";
 import Backup from "./Backup";
 import type { Run, Which, Word } from "./Card";
 import { Band, Line, mild, off } from "./Rows";
@@ -89,7 +90,7 @@ export default function Yours({
     open({ filters: [{ name: "Tisty", extensions: ["zip"] }] })
       .then(async (at) => {
         if (typeof at !== "string") return;
-        if (!(await ask(t("restoreSure"), { kind: "warning" }))) return;
+        if (!(await sure(t("restoreSure")))) return;
         run("restore", restore(at), (files) =>
           tell({ card: "restore", text: fill("restored", String(files)) }),
         );

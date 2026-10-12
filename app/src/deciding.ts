@@ -1,7 +1,7 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { docs, type Pick, paperRifts, type Rift, settlePaper, weavePaper } from "./core";
 import { fill, t } from "./locales";
 import { type Refusal, saidPlainly } from "./refusal";
+import { sure } from "./sure";
 
 const later = new Set<string>();
 const reminded = new Set<string>();
@@ -25,8 +25,8 @@ export const decidesWhole = (asking: AskingWhole | null): void => {
 
 const askedOutright = async (said: string): Promise<Pick | null> => {
   if (whole) return whole(said);
-  if (await ask(fill("bothChanged", said), { kind: "warning" })) return "both";
-  return (await ask(fill("whoseWins", said), { kind: "warning" })) ? "mine" : "theirs";
+  if (await sure(fill("bothChanged", said))) return "both";
+  return (await sure(fill("whoseWins", said))) ? "mine" : "theirs";
 };
 
 export const decide = async (id: string, called?: string): Promise<boolean> => {

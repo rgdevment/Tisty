@@ -17,8 +17,10 @@ import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
 import { useSnapshot } from "./snapshotting";
-import type { MenuOpen, Torn } from "./ui/Layers";
+import { asksSure } from "./sure";
+import type { Asked, MenuOpen, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
+import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
 import { type Chosen, type Slice, useReach } from "./views";
 import { useAloud, useTight, useUpdates } from "./watching";
@@ -260,6 +262,7 @@ function useOverlays() {
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [torn, setTorn] = useState<Torn | null>(null);
+  const [asked, setAsked] = useState<Asked | null>(null);
 
   useEffect(() => {
     decidesByBlock((named, rifts) => new Promise((answer) => setTorn({ named, rifts, answer })));
@@ -269,9 +272,33 @@ function useOverlays() {
           setTorn({ named, rifts: [], answer: (picks) => answer(picks?.[0] ?? null) }),
         ),
     );
+    let turn: Promise<unknown> = Promise.resolve();
+    let turns = 0;
+    let answeredAt = Number.NEGATIVE_INFINITY;
+    asksSure((said) => {
+      const answer = turn.then(
+        () =>
+          new Promise<boolean>((done) => {
+            turns += 1;
+            const hurried = performance.now() - answeredAt < SETTLING_MS;
+            setAsked({
+              said,
+              turn: turns,
+              hurried,
+              done: (yes) => {
+                answeredAt = performance.now();
+                done(yes);
+              },
+            });
+          }),
+      );
+      turn = answer.catch(() => undefined);
+      return answer;
+    });
     return () => {
       decidesByBlock(null);
       decidesWhole(null);
+      asksSure(null);
     };
   }, []);
 
@@ -288,5 +315,7 @@ function useOverlays() {
     setLeaving,
     torn,
     setTorn,
+    asked,
+    setAsked,
   };
 }
