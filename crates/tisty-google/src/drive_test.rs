@@ -1401,3 +1401,74 @@ fn a_change_inside_a_second_folder_of_the_same_name_is_still_found() {
     );
     assert!(applied.gone.is_empty());
 }
+
+#[test]
+fn a_file_gone_before_it_reached_the_bin_still_takes_its_other_copies() {
+    let home = tempfile::tempdir().unwrap();
+    let one = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"}"#;
+    let two = format!(r#"{one},{{"id":"A2","name":"a.md","parents":["R"],"version":"1"}}"#);
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(&two)),
+        said("200 OK", one),
+        said("404 Not Found", ""),
+        said("204 No Content", ""),
+    ]);
+
+    let gone = drive(at, home.path()).delete("a.md", Some("A1.1"));
+
+    assert_eq!(gone, Ok(()));
+    assert!(
+        asked.join().unwrap()[3]
+            .line
+            .starts_with("DELETE /drive/v3/files/A2")
+    );
+}
+
+#[test]
+fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let revisions = r#"{"revisions":[{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h2","md5Checksum":"m2","modifiedTime":"2026-10-12T10:00:02Z"},{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"}]}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said("503 Service Unavailable", ""),
+        said("200 OK", revisions),
+        said("200 OK", r#"{"id":"h2"}"#),
+        said("200 OK", "theirs"),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m2","headRevisionId":"h4","version":"4"}"#,
+        ),
+        said("204 No Content", ""),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+        said("200 OK", &whole(CHECKED)),
+    ]);
+    let drive = drive(at, home.path()).owing_at(home.path());
+
+    let first = drive.put("a.md", &local, Expect::Revision("A.1".into()));
+    assert!(matches!(first, Err(Hitch::Unreachable(_))), "{first:?}");
+    assert!(home.path().join("drive-owed.json").is_file());
+
+    drive.changes(Some("10")).unwrap();
+
+    let asked = asked.join().unwrap();
+    let sent = String::from_utf8_lossy(&asked[7].body);
+    assert!(
+        sent.contains("theirs"),
+        "their bytes never went back: {sent}"
+    );
+    assert!(
+        asked[8]
+            .line
+            .starts_with("DELETE /drive/v3/files/A/revisions/h2")
+    );
+    assert!(
+        !home.path().join("drive-owed.json").exists(),
+        "a debt paid was kept"
+    );
+}

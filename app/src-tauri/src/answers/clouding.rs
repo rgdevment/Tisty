@@ -74,12 +74,18 @@ fn connected(
     let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
     let renew =
         tisty_google::GoogleRenew::new(client, at).map_err(|e| refused(e, "Google Drive"))?;
-    let tokens = Tokens::new(unfiled, Arc::new(renew), KEPT_AS, aside);
+    let tokens = Tokens::new(unfiled.clone(), Arc::new(renew), KEPT_AS, aside);
     let account = tisty_google::Drive::new(Arc::new(tokens), tisty_google::DriveAt::google())
         .and_then(|drive| drive.account())
         .map_err(|e| refused(e, "Google Drive"))?;
+    // Learning the account may have renewed it, and Google can hand back a new one then.
+    let refresh = unfiled
+        .read(KEPT_AS)
+        .ok()
+        .flatten()
+        .unwrap_or(granted.refresh);
     secrets_for(&account.id)
-        .and_then(|kept| kept.write(KEPT_AS, &granted.refresh))
+        .and_then(|kept| kept.write(KEPT_AS, &refresh))
         .map_err(|e| refused(e, "Google Drive"))?;
     Ok(Connected {
         provider: GOOGLE,
@@ -140,30 +146,69 @@ pub(crate) fn choosing_cloud(
     }
 }
 
-#[tauri::command]
-pub fn cloud_forget(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    let at = chosen_cloud(&session)?;
-    held(&session).reach.let_go();
-    secrets_for(&at.account)
-        .and_then(|kept| kept.forget(KEPT_AS))
-        .map_err(|e| refused(e, "Google Drive"))
+#[tauri::command(async)]
+pub async fn cloud_forget(
+    session: tauri::State<'_, Mutex<Session>>,
+    account: Option<String>,
+) -> Answer<()> {
+    let (account, held_tokens) = letting_go(&session, account)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        forgotten(&account)?;
+        if let Some(tokens) = held_tokens {
+            tokens.let_go();
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
 }
 
 /// Google takes Tisty's access away from this person on every machine at once; this machine forgets it too.
 #[tauri::command(async)]
-pub async fn cloud_revoke(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    let at = chosen_cloud(&session)?;
-    held(&session).reach.let_go();
+pub async fn cloud_revoke(
+    session: tauri::State<'_, Mutex<Session>>,
+    account: Option<String>,
+) -> Answer<()> {
+    let (account, held_tokens) = letting_go(&session, account)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let kept = secrets_for(&at.account).map_err(|e| refused(e, "Google Drive"))?;
-        if let Some(token) = kept.read(KEPT_AS).map_err(|e| refused(e, "Google Drive"))? {
+        let kept = secrets_for(&account).map_err(|e| refused(e, "Google Drive"))?;
+        let token = kept.read(KEPT_AS).map_err(|e| refused(e, "Google Drive"))?;
+        forgotten(&account)?;
+        if let Some(tokens) = held_tokens {
+            tokens.let_go();
+        }
+        if let Some(token) = token {
             tisty_google::revoke_everywhere(&token, &tisty_google::Endpoints::google())
                 .map_err(|e| refused(e, "Google Drive"))?;
         }
-        kept.forget(KEPT_AS).map_err(|e| refused(e, "Google Drive"))
+        Ok(())
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
+}
+
+// A connected account not chosen yet has a token too, so it can be let go of by name.
+fn letting_go(
+    session: &tauri::State<'_, Mutex<Session>>,
+    account: Option<String>,
+) -> Answer<(String, Option<Arc<Tokens>>)> {
+    let session = held(session);
+    let chosen = tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| at.account.clone());
+    let account = account
+        .or(chosen.clone())
+        .ok_or_else(|| Refusal::of("noRemote"))?;
+    let held_tokens = match chosen.as_deref() == Some(account.as_str()) {
+        true => session.reach.taken(),
+        false => None,
+    };
+    Ok((account, held_tokens))
+}
+
+// Forgotten where it is kept first, so nothing still running can read it back and renew it.
+fn forgotten(account: &str) -> Answer<()> {
+    secrets_for(account)
+        .and_then(|kept| kept.forget(KEPT_AS))
+        .map_err(|e| refused(e, "Google Drive"))
 }
 
 #[tauri::command]

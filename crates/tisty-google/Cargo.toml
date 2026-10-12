@@ -20,3 +20,4 @@ base64.workspace = true
 sha2.workspace = true
 rand_core.workspace = true
 tempfile.workspace = true
+tokio = { version = "1", default-features = false, features = ["rt"] }

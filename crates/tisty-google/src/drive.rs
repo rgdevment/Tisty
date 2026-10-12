@@ -9,6 +9,7 @@ use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
 mod gap;
+mod owed;
 mod tree;
 mod upload;
 mod wire;
@@ -21,6 +22,11 @@ use wire::{given, json, quoted, transfer_http};
 use crate::ASKED_WITHIN;
 
 const ROOT: &str = "Tisty";
+// Google's units for what a verb's own cost does not cover (guides/limits).
+pub(super) const READ: u64 = 5;
+pub(super) const LIST: u64 = 100;
+pub(super) const DOWNLOAD: u64 = 200;
+pub(super) const EDIT: u64 = 50;
 const MIB: u64 = 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +86,8 @@ pub struct Drive {
     wrote: Mutex<HashSet<(String, Option<String>)>>,
     expected: Option<String>,
     vouched: std::sync::atomic::AtomicBool,
+    owing: Option<std::path::PathBuf>,
+    beyond: std::sync::atomic::AtomicU64,
 }
 
 impl Drive {
@@ -94,6 +102,8 @@ impl Drive {
             wrote: Mutex::new(HashSet::new()),
             expected: None,
             vouched: std::sync::atomic::AtomicBool::new(false),
+            owing: None,
+            beyond: std::sync::atomic::AtomicU64::new(0),
         })
     }
 
@@ -103,12 +113,18 @@ impl Drive {
         self
     }
 
+    pub(super) fn spent(&self, units: u64) {
+        self.beyond
+            .fetch_add(units, std::sync::atomic::Ordering::Relaxed);
+    }
+
     fn vouched_for(&self) -> Result<(), Hitch> {
         use std::sync::atomic::Ordering;
         let Some(expected) = &self.expected else {
             return Ok(());
         };
         if !self.vouched.load(Ordering::Acquire) {
+            self.spent(READ);
             self.verify(expected)?;
             self.vouched.store(true, Ordering::Release);
         }
@@ -178,6 +194,7 @@ impl Drive {
     fn folder(&self, name: &str, parent: &str) -> Result<String, Hitch> {
         let url = format!("{}/files", self.at.api);
         let body = serde_json::json!({ "name": name, "mimeType": FOLDER, "parents": [parent] });
+        self.spent(EDIT);
         let made: File = json(self.call(Some(ASKED_WITHIN), |http| {
             http.post(&url)
                 .query(&[("fields", FILE_FIELDS)])
@@ -240,6 +257,7 @@ impl Drive {
     fn binned(&self) -> Result<bool, Hitch> {
         let url = format!("{}/files", self.at.api);
         let asked = format!("name = '{ROOT}' and mimeType = '{FOLDER}' and trashed = true");
+        self.spent(LIST);
         let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
@@ -337,6 +355,7 @@ impl Drive {
             quoted(leaf)
         );
         let fields = format!("files({FILE_FIELDS})");
+        self.spent(LIST);
         let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
@@ -393,6 +412,7 @@ impl Drive {
             "name = '{}' and mimeType = '{FOLDER}' and '{parent}' in parents and trashed = false",
             quoted(name)
         );
+        self.spent(LIST);
         let page: Page = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[
                 ("q", asked.as_str()),
@@ -632,7 +652,10 @@ impl Remote for Drive {
         }
         let copies = match expect {
             Some(_) => {
-                self.binned_unless_moved(name, first)?;
+                match self.binned_unless_moved(name, first) {
+                    Ok(()) | Err(Hitch::Missing(_)) => {}
+                    Err(other) => return Err(other),
+                }
                 &all[1..]
             }
             None => &all[..],
@@ -650,6 +673,10 @@ impl Remote for Drive {
         Ok(())
     }
 
+    fn spent_beyond(&self) -> u64 {
+        self.beyond.swap(0, std::sync::atomic::Ordering::Relaxed)
+    }
+
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         tisty_core::attach::hashed(local)
             .map(|(hex, _)| format!("sha256:{hex}"))
@@ -663,6 +690,7 @@ impl Remote for Drive {
         struct Start {
             start_page_token: String,
         }
+        self.repaid();
         let Some(since) = since else {
             let url = format!("{}/changes/startPageToken", self.at.api);
             let start: Start = json(self.call(Some(ASKED_WITHIN), |http| http.get(&url))?)?;

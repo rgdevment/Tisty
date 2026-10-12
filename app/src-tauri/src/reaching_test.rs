@@ -98,7 +98,7 @@ fn a_build_without_the_maintainer_s_key_never_asks() {
 }
 
 #[test]
-fn what_kept_a_cloud_from_being_built_is_said_and_letting_go_drops_nothing_built() {
+fn what_kept_a_cloud_from_being_built_is_said_and_nothing_was_kept() {
     let home = tempfile::tempdir().unwrap();
     let paths = Paths::new(home.path().join("data"), home.path().join("config"));
     let reaching = Reaching::of(&paths);
@@ -113,6 +113,6 @@ fn what_kept_a_cloud_from_being_built_is_said_and_letting_go_drops_nothing_built
             .why_not()
             .is_some_and(|why| why.contains("onedrive"))
     );
-    reaching.let_go();
+    assert!(reaching.taken().is_none());
     assert!(reaching.cloud(&elsewhere).is_none());
 }

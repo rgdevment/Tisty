@@ -8,8 +8,10 @@ use sha2::{Digest, Sha256};
 use tisty_carrier::{Hitch, Renew, Renewed};
 
 mod drive;
+mod off;
 
 pub use drive::{Account, Drive, DriveAt};
+pub use off::{OffRuntime, away};
 
 const CONSENT_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.file";

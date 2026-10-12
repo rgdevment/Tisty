@@ -83,13 +83,20 @@ impl<'a> Metered<'a> {
     }
 
     fn charge(&self, requests: u64, cost: u64, bytes: u64) {
-        charged(&self.home, requests, cost, bytes);
+        let beyond = self.remote.spent_beyond();
+        charged(
+            &self.home,
+            1,
+            requests.saturating_mul(cost).saturating_add(beyond),
+            bytes,
+        );
     }
 
     fn charge_checked(&self, requests: u64, cost: u64, bytes: u64) {
         let units = requests
             .saturating_mul(cost)
-            .saturating_add(self.limits.costs.checks);
+            .saturating_add(self.limits.costs.checks)
+            .saturating_add(self.remote.spent_beyond());
         charged(&self.home, 1, units, bytes);
     }
 }

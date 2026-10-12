@@ -7,7 +7,7 @@ pub(super) const FOLDER: &str = "application/vnd.google-apps.folder";
 pub(super) const FILE_FIELDS: &str =
     "id,name,parents,mimeType,size,sha256Checksum,md5Checksum,headRevisionId,version,trashed";
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct File {
     pub id: String,

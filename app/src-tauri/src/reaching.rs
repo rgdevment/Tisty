@@ -48,13 +48,9 @@ impl Reaching {
         self.why_not.lock().ok().and_then(|held| held.clone())
     }
 
-    // The carrier a round or a listening thread still holds drops its access with it, not an hour later.
-    pub fn let_go(&self) {
-        if let Ok(mut built) = self.built.lock()
-            && let Some(was) = built.take()
-        {
-            was.tokens.let_go();
-        }
+    // Handed out rather than let go here, so the caller can do it without holding the session.
+    pub fn taken(&self) -> Option<Arc<Tokens>> {
+        self.built.lock().ok()?.take().map(|was| was.tokens)
     }
 }
 
@@ -66,7 +62,8 @@ impl Reach for Reaching {
         {
             return Some(was.carrier.clone());
         }
-        let made = cloud_of(&self.home_of(at), at);
+        let home = self.home_of(at);
+        let made = tisty_google::away(|| cloud_of(&home, at));
         if let Ok(mut why) = self.why_not.lock() {
             *why = made.as_ref().err().cloned();
         }
@@ -98,8 +95,10 @@ fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> 
     let tokens = Arc::new(Tokens::new(secrets, Arc::new(renew), KEPT_AS, home));
     let drive = tisty_google::Drive::new(tokens.clone(), tisty_google::DriveAt::google())
         .map_err(|e| format!("{e:?}"))?
-        .for_account(&at.account);
-    Ok((Arc::new(Cloud::over(Arc::new(drive), home)), tokens))
+        .for_account(&at.account)
+        .owing_at(home);
+    let remote = Arc::new(tisty_google::OffRuntime(drive));
+    Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
 #[cfg(windows)]

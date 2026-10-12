@@ -3,9 +3,10 @@ use std::io::Write;
 use serde::Deserialize;
 use tisty_carrier::Hitch;
 
-use super::Drive;
+use super::owed::Owed;
 use super::tree::{FILE_FIELDS, File};
 use super::wire::json;
+use super::{DOWNLOAD, Drive, EDIT, LIST};
 use crate::ASKED_WITHIN;
 
 #[derive(Deserialize)]
@@ -43,13 +44,21 @@ fn same_bytes(checked: &File, md5: Option<&str>) -> bool {
 
 // Only what landed after the checked revision and before this one can be another machine's; with the checked one gone from the list nothing is.
 fn between(all: &[Revision], landed: &File, checked: &File) -> Option<String> {
-    let after = &all
-        .iter()
-        .find(|one| checked.head_revision_id.as_deref() == Some(one.id.as_str()))?
-        .modified_time;
+    let time_of = |head: &Option<String>| {
+        all.iter()
+            .find(|one| head.as_deref() == Some(one.id.as_str()))
+            .map(|one| one.modified_time.clone())
+    };
+    let after = time_of(&checked.head_revision_id)?;
+    let before = time_of(&landed.head_revision_id);
     let ours = landed.head_revision_id.as_deref();
     all.iter()
-        .filter(|one| one.modified_time > *after && Some(one.id.as_str()) != ours)
+        .filter(|one| one.modified_time > after && Some(one.id.as_str()) != ours)
+        .filter(|one| {
+            before
+                .as_ref()
+                .is_none_or(|before| one.modified_time < *before)
+        })
         .filter(|one| !same_bytes(checked, one.md5_checksum.as_deref()))
         .filter(|one| one.md5_checksum != landed.md5_checksum)
         .max_by(|a, b| a.modified_time.cmp(&b.modified_time))
@@ -57,23 +66,21 @@ fn between(all: &[Revision], landed: &File, checked: &File) -> Option<String> {
 }
 
 impl Drive {
+    // What could not be put back now is written down and put back before the next change is read.
     pub(super) fn handed_back(
         &self,
         name: &str,
         landed: &File,
         checked: &File,
     ) -> Result<(), Hitch> {
-        let Some(theirs) = self.written_between(landed, checked)? else {
-            tisty_core::witness::note(
-                tisty_core::witness::channel::CLOUD,
-                "Drive moved past this write alone, and no bytes of another machine were among its revisions",
-                &[],
-            );
-            return Ok(());
+        let restored = match self.restored(name, landed, checked) {
+            Ok(None) => return Ok(()),
+            Ok(Some(restored)) => restored,
+            Err(failed) => {
+                self.owe(Owed::back(name, landed, checked));
+                return Err(failed);
+            }
         };
-        let held = self.revision_held(&landed.id, &theirs)?;
-        let restored = self.sent(name, held.path(), Some(landed), "")?;
-        self.unpinned(&landed.id, &theirs);
         self.owned(
             &restored.id,
             Some(restored.version.clone().unwrap_or_else(|| "0".into())),
@@ -90,11 +97,33 @@ impl Drive {
         Err(Hitch::Changed(name.to_string()))
     }
 
+    pub(super) fn restored(
+        &self,
+        name: &str,
+        landed: &File,
+        checked: &File,
+    ) -> Result<Option<File>, Hitch> {
+        let Some(theirs) = self.written_between(landed, checked)? else {
+            tisty_core::witness::note(
+                tisty_core::witness::channel::CLOUD,
+                "Drive moved past this write alone, and no bytes of another machine were among its revisions",
+                &[],
+            );
+            return Ok(None);
+        };
+        let held = self.revision_held(&landed.id, &theirs)?;
+        self.spent(EDIT);
+        let restored = self.sent(name, held.path(), Some(landed), "")?;
+        self.unpinned(&landed.id, &theirs);
+        Ok(Some(restored))
+    }
+
     fn written_between(&self, landed: &File, checked: &File) -> Result<Option<String>, Hitch> {
         let url = format!("{}/files/{}/revisions", self.at.api, landed.id);
         let mut all = Vec::new();
         let mut next: Option<String> = None;
         loop {
+            self.spent(LIST);
             let page: Revisions = json(self.call(Some(ASKED_WITHIN), |http| {
                 let mut asked = http.get(&url).query(&[
                     (
@@ -125,6 +154,7 @@ impl Drive {
 
     pub(super) fn unpinned(&self, id: &str, revision: &str) {
         let url = format!("{}/files/{id}/revisions/{revision}", self.at.api);
+        self.spent(EDIT);
         if let Err(hitch) = self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
             tisty_core::witness::warn(
                 tisty_core::witness::channel::CLOUD,
@@ -136,6 +166,7 @@ impl Drive {
 
     fn revision_brought(&self, id: &str, revision: &str) -> Result<tempfile::NamedTempFile, Hitch> {
         let url = format!("{}/files/{id}/revisions/{revision}", self.at.api);
+        self.spent(DOWNLOAD);
         let mut answer = self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[("alt", "media")])
         })?;
@@ -149,6 +180,7 @@ impl Drive {
 
     fn pinned(&self, id: &str, revision: &str) -> Result<(), Hitch> {
         let url = format!("{}/files/{id}/revisions/{revision}", self.at.api);
+        self.spent(EDIT);
         let body = serde_json::json!({ "keepForever": true }).to_string();
         self.call(Some(ASKED_WITHIN), |http| {
             http.patch(&url)
@@ -166,7 +198,15 @@ impl Drive {
             self.owned(&checked.id, None);
             return Ok(());
         }
-        let back = self.trashed(&checked.id, false)?;
+        let back = match self.trashed(&checked.id, false) {
+            Ok(back) => back,
+            Err(failed) => {
+                self.owe(Owed::Unbinned {
+                    id: checked.id.clone(),
+                });
+                return Err(failed);
+            }
+        };
         self.owned(
             &back.id,
             Some(back.version.clone().unwrap_or_else(|| "0".into())),
@@ -174,8 +214,9 @@ impl Drive {
         Err(Hitch::Changed(name.to_string()))
     }
 
-    fn trashed(&self, id: &str, trashed: bool) -> Result<File, Hitch> {
+    pub(super) fn trashed(&self, id: &str, trashed: bool) -> Result<File, Hitch> {
         let url = format!("{}/files/{id}", self.at.api);
+        self.spent(EDIT);
         let body = serde_json::json!({ "trashed": trashed }).to_string();
         json(self.call(Some(ASKED_WITHIN), |http| {
             http.patch(&url)

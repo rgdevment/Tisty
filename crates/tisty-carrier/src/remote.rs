@@ -149,4 +149,9 @@ pub trait Remote: Send + Sync {
     fn lends(&self, _name: &str) -> Result<Option<String>, Hitch> {
         Ok(None)
     }
+
+    /// Units spent on requests no verb's cost covers since last asked, so the budget counts them too.
+    fn spent_beyond(&self) -> u64 {
+        0
+    }
 }

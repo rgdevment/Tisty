@@ -838,7 +838,7 @@ settings name a cloud.
 | Bringing | Opening an attachment that is not here: one buried (retired and named by nothing) is `Absent`. `brought` serves the copy here first; an attachment the last listing did not show is `Later`, never asked of the provider; otherwise it is fetched straight into this machine's `attachments/`, held to its name and the log's full digest, written in the ledger and kept, so it plays from the disk from then on. One the log does not answer for yet is held to its name and the ledger and handed back as `Unvouched`, so the caller writes its `AttachKept`. Bytes refused for what they hold (not a disk that failed to take them) are remembered by revision in `index.json` (`spoiled`): not fetched again, refused at once when opened, not counted as held there so they never stall a move, and written over by a genuine copy when this machine sends one |
 | Freeing space | `set_free` lets go of copies here neither opened nor shown (`<data>/used.json`, which the window writes, again each day a picture stays on screen) nor attached or brought in (the latest `AttachKept` in the log) since the chosen moment, nor since `used.json` was begun. It runs after a fresh pull under the round lock, decides what is unused only then, asks `used.json` again right before each copy goes, and refuses with `Trouble::NotNow` when that pull cannot run; it lets go only when the cloud holds the same size and the provider's hash matches, never of a placeholder. Opening one again brings it back, and attaching the same bytes puts them back under the name the ledger gives |
 | First round | Until `tisty.toml` has been seen or put, what the engine remembers about the place (`.shape-seen`, `carried-to`) is forgotten, so a first round that was deferred cannot leave this machine unable to start again. Another account has another home and so another mirror path, so `Carried::facing` forgets what was carried before and nothing is read as deleted |
-| A write in the gap | A provider without conditional writes checks a revision and then writes, so another machine can land in between. `Remote::put` promises never to leave its bytes over a revision `expect` did not name: Drive finds the other bytes among the file's revisions, puts them back on top and answers `Changed`, and the round turns that into a question for the person like any other conflict. A deletion against a revision goes to Drive's bin and comes back out when other bytes are found there |
+| A write in the gap | A provider without conditional writes checks a revision and then writes, so another machine can land in between. `Remote::put` promises never to leave its bytes over a revision `expect` did not name: Drive finds the other bytes among the file's revisions (only one that landed after the revision checked and before this write), puts them back on top and answers `Changed`, and the round turns that into a question for the person like any other conflict. When that cannot finish now it is written down (`drive-owed.json`) and finished before the next change is read, so the bytes come in as another machine's change. A deletion against a revision goes to Drive's bin and comes back out when other bytes are found there. What these extra requests cost is charged through `Remote::spent_beyond` |
 | Forgetting | `forget_paper` queues the id in `forgotten`; the next round deletes it up there |
 
 `Tokens` hands out an access token: it renews it a minute before it expires from
@@ -867,12 +867,17 @@ account with the grant held in memory, and files the refresh token under that
 account; choosing the cloud (`cloud_choose`) is allowed only from a copy that
 shares with nobody, since any other way has things to bring over first.
 Google revokes per person and project, not per machine: revoking one token
-invalidates every machine's. So letting go here (`cloud_forget`, uninstalling)
-only forgets this machine's copy, and revoking (`cloud_revoke`) is its own act
-that ends access everywhere. Google also keeps at most 100 refresh tokens per
-account and client and drops the oldest without warning, so Tisty asks for
-consent only when its token no longer renews. On macOS the Keychain answers
-without asking only to the app that wrote the entry, as its signature names it.
+invalidates every machine's. So letting go here (`cloud_forget`, uninstalling
+on Windows) only forgets this machine's copy, and revoking (`cloud_revoke`) is
+its own act that ends access everywhere. Either one forgets the stored token
+before the one in memory, so nothing still running can renew it back, and
+either takes an account by name, since a connected account not chosen yet holds
+a token too. Removing the app on macOS or Linux runs no code, so the keychain
+entry stays until it is let go of first. Google also keeps at most 100
+refresh tokens per account and client and drops the oldest without warning, so
+Tisty asks for consent only when its token no longer renews. On macOS the
+Keychain answers without asking only to the app that wrote the entry, as its
+signature names it.
 `tisty_google::GoogleRenew` implements `Renew` against Google's token endpoint:
 a refresh Google no longer honours (`invalid_grant`) is `Hitch::Lost`, a 429 or
 a 5xx with `Retry-After` waits that long and never under a second, and a
