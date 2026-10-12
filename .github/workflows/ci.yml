@@ -105,9 +105,14 @@ jobs:
         run: cargo hack --each-feature clippy -p tisty-carrier --all-targets
       - name: Only the window and the cloud's crate reach the network
         run: |
+          # The release builds the CLI alone (-p tisty-cli), so its own tree is the one that ships.
           for one in tisty-core tisty-sync tisty-nl tisty-cli; do
-            if cargo tree -p "$one" -e normal -i reqwest > /dev/null 2>&1; then
+            if said=$(cargo tree -p "$one" -e normal -i reqwest 2>&1); then
               echo "::error::$one reaches reqwest, and only the window and the cloud's crate may"
+              exit 1
+            fi
+            if ! grep -q "did not match any packages" <<< "$said"; then
+              echo "::error::the tree of $one could not be read: $said"
               exit 1
             fi
           done

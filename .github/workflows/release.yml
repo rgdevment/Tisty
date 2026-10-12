@@ -277,8 +277,8 @@ jobs:
 
       - name: Build
         run: |
-          cargo build --release --locked --bin tisty --target aarch64-apple-darwin
-          cargo build --release --locked --bin tisty --target x86_64-apple-darwin
+          cargo build --release --locked -p tisty-cli --bin tisty --target aarch64-apple-darwin
+          cargo build --release --locked -p tisty-cli --bin tisty --target x86_64-apple-darwin
 
           mkdir -p "target/$TARGET/release"
           lipo -create -output "target/$TARGET/release/tisty" \
@@ -397,7 +397,7 @@ jobs:
 
       - name: Build
         shell: bash
-        run: cargo build --release --locked --bin tisty --target "$TARGET"
+        run: cargo build --release --locked -p tisty-cli --bin tisty --target "$TARGET"
 
       - name: Sign executable
         if: env.HAS_PFX_BASE64 == 'true'
@@ -499,7 +499,7 @@ jobs:
             echo "::error::the CLI is built for «$host» and would ship named for $TARGET"
             exit 1
           fi
-          cargo build --release --locked --bin tisty
+          cargo build --release --locked -p tisty-cli --bin tisty
           mkdir -p app/src-tauri/binaries
           cp target/release/tisty.exe "app/src-tauri/binaries/tisty-$TARGET.exe"
 
@@ -784,7 +784,7 @@ jobs:
 
       - name: The CLI rides along
         run: |
-          cargo build --release --locked --bin tisty --target "$TARGET"
+          cargo build --release --locked -p tisty-cli --bin tisty --target "$TARGET"
           mkdir -p app/src-tauri/binaries
           cp "target/$TARGET/release/tisty" "app/src-tauri/binaries/tisty-$TARGET"
 
