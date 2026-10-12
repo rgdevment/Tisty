@@ -223,6 +223,8 @@ const en = {
   noEnd: "No end",
   setWhen: "Apply",
   cancel: "Cancel",
+  sureTitle: "Are you sure?",
+  sureGoOn: "Go on",
   sliceAll: "All",
   repeatingEmpty:
     "Nothing comes back on its own. Write «water the plants every week» to start a habit.",
@@ -1831,6 +1833,8 @@ const es: Catalog = {
   noEnd: "Sin final",
   setWhen: "Aplicar",
   cancel: "Cancelar",
+  sureTitle: "¿Seguro?",
+  sureGoOn: "Seguir",
   sliceAll: "Todas",
   repeatingEmpty:
     "Nada vuelve solo. Escribe «regar las plantas cada semana» para empezar un hábito.",

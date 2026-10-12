@@ -1,4 +1,4 @@
-import { ask, open as pick } from "@tauri-apps/plugin-dialog";
+import { open as pick } from "@tauri-apps/plugin-dialog";
 import { type MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { carrying } from "./carrying";
 import {
@@ -17,6 +17,7 @@ import {
 } from "./core";
 import { fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
+import { sure } from "./sure";
 import type { Chosen } from "./views";
 
 export const steady = <T>(was: T, found: T): T =>
@@ -75,7 +76,7 @@ export function usePapers({
       .catch((e) => setError(saidPlainly(e)));
 
   const dropFolder = (folder: Folded) =>
-    ask(fill("dropFolderSure", folder.name), { kind: "warning" })
+    sure(fill("dropFolderSure", folder.name))
       .then((yes) => {
         if (!yes) return;
         if (here === folder.id) setHere(undefined);
@@ -85,12 +86,11 @@ export function usePapers({
       .catch((e) => setError(saidPlainly(e)));
 
   const dropDoc = (doc: Filed) =>
-    ask(
+    sure(
       fill(
         papers.docs.some((one) => one.pageOf === doc.id) ? "dropPagesSure" : "dropDocSure",
         doc.title || t("untitledDoc"),
       ),
-      { kind: "warning" },
     )
       .then((yes) => {
         if (!yes) return;
@@ -159,7 +159,7 @@ export function usePapers({
   const hangIt = async (doc: string, pageOf: string) => {
     const named = (id: string) =>
       papers.docs.find((one) => one.id === id)?.title || t("untitledDoc");
-    if (!(await ask(fill("pageOfSure", named(doc), named(pageOf)), { kind: "warning" }))) return;
+    if (!(await sure(fill("pageOfSure", named(doc), named(pageOf))))) return;
     const under = papers.docs.find((one) => one.id === pageOf);
     const page = papers.docs.find((one) => one.id === doc);
     docPage(doc, pageOf)

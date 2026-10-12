@@ -6,6 +6,7 @@ import type { Papers } from "../core";
 import { AT_A_GLANCE, SHOWN } from "../glance";
 import { fill, t } from "../locales";
 import Docs from "../ui/Docs";
+import { SETTLING_MS } from "../ui/Sure";
 import Tree from "../ui/Tree";
 
 interface FakeFolder {
@@ -407,6 +408,10 @@ const SETTLES_LONG_ENOUGH = 900;
 async function chooseFor(rowLabel: string | RegExp, itemLabel: string) {
   fireEvent.contextMenu(menuFor(rowLabel), { clientX: 5, clientY: 5 });
   await userEvent.click(await screen.findByRole("menuitem", { name: itemLabel }));
+}
+
+async function goOn() {
+  fireEvent.click(await screen.findByRole("button", { name: t("sureGoOn") }));
 }
 
 async function backHome() {
@@ -921,9 +926,46 @@ describe("deleting a document", () => {
     await screen.findByTestId("editor");
 
     await chooseFor("Notes", t("deleteIt"));
+    await goOn();
 
     await waitFor(() => expect(screen.queryByTestId("editor")).toBeNull());
     expect(screen.queryByRole("button", { name: "Notes" })).toBeNull();
+  });
+
+  it("asks in its own window and keeps the document when the question is cancelled", async () => {
+    seedDoc({ title: "Notes" });
+    await boot();
+
+    await chooseFor("Notes", t("deleteIt"));
+    const box = await screen.findByRole("dialog", { name: t("sureTitle") });
+    // Drawn last in the body, so a window already open cannot cover it.
+    expect(box.parentElement).toBe(document.body);
+    await userEvent.click(within(box).getByRole("button", { name: t("cancel") }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(store.docs).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Notes" })).toBeTruthy();
+  });
+
+  it("asks one question at a time when two come at once, and a double-click answers only the first", async () => {
+    seedDoc({ title: "Alpha" });
+    seedDoc({ title: "Beta" });
+    await boot();
+
+    await chooseFor("Alpha", t("deleteIt"));
+    await chooseFor("Beta", t("deleteIt"));
+    expect(screen.getAllByRole("dialog", { name: t("sureTitle") })).toHaveLength(1);
+
+    await goOn();
+    await waitFor(() => expect(store.docs).toHaveLength(1));
+    expect(screen.getAllByRole("dialog", { name: t("sureTitle") })).toHaveLength(1);
+    await goOn();
+    await new Promise((settle) => setTimeout(settle, 100));
+    expect(store.docs).toHaveLength(1);
+
+    await new Promise((settle) => setTimeout(settle, SETTLING_MS));
+    await goOn();
+    await waitFor(() => expect(store.docs).toHaveLength(0));
   });
 
   it("leaves the editor alone when a document deleted elsewhere is not the one open", async () => {
@@ -935,6 +977,7 @@ describe("deleting a document", () => {
     expect(editor.getAttribute("aria-label")).toBe("Alpha");
 
     await chooseFor("Beta", t("deleteIt"));
+    await goOn();
 
     await waitFor(() => expect(screen.queryByRole("button", { name: "Beta" })).toBeNull());
     expect(screen.getByTestId("editor").getAttribute("aria-label")).toBe("Alpha");
@@ -951,6 +994,7 @@ describe("deleting a document", () => {
     fireEvent.change(editor, { target: { value: "half finished thought" } });
     fireEvent.contextMenu(menuFor("Draft"), { clientX: 5, clientY: 5 });
     fireEvent.click(screen.getByRole("menuitem", { name: t("deleteIt") }));
+    await goOn();
 
     await waitFor(() => expect(screen.queryByTestId("editor")).toBeNull());
     await new Promise((go) => setTimeout(go, SETTLES_LONG_ENOUGH));
@@ -1097,6 +1141,7 @@ describe("what a folder's own menu can do", () => {
     await boot();
 
     await chooseFor("Trabajo", t("deleteIt"));
+    await goOn();
 
     await waitFor(() => expect(store.folders).toHaveLength(0));
     expect(store.docs[0].folder).toBeNull();
