@@ -7,7 +7,8 @@ use std::time::Duration;
 
 use tisty_carrier::{Renew, Renewed, Secrets, Tokens};
 
-use super::*;
+use super::{Account, Drive, DriveAt, wire};
+use tisty_carrier::{Changes, Expect, Hitch, Remote, Seen};
 
 struct Said {
     status: &'static str,
@@ -166,7 +167,7 @@ fn written(home: &tempfile::TempDir, body: &[u8]) -> std::path::PathBuf {
 }
 
 const A: &str =
-    r#"{"id":"A","name":"a.md","parents":["R"],"size":"1","md5Checksum":"aa","version":"1"}"#;
+    r#"{"id":"A","name":"a.md","parents":["R"],"size":"1","sha256Checksum":"aa","version":"1"}"#;
 
 #[test]
 fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
@@ -177,9 +178,9 @@ fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
             "200 OK",
             &listing(
                 r#"{"id":"F","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"},
-                   {"id":"D","name":"a.md","parents":["F"],"size":"5","md5Checksum":"ab","version":"3"},
-                   {"id":"T","name":"tisty.toml","parents":["R"],"size":"2","md5Checksum":"cd","version":"1"},
-                   {"id":"X","name":"elsewhere.md","parents":["Q"],"size":"1","md5Checksum":"ef","version":"1"}"#,
+                   {"id":"D","name":"a.md","parents":["F"],"size":"5","sha256Checksum":"ab","version":"3"},
+                   {"id":"T","name":"tisty.toml","parents":["R"],"size":"2","sha256Checksum":"cd","version":"1"},
+                   {"id":"X","name":"elsewhere.md","parents":["Q"],"size":"1","sha256Checksum":"ef","version":"1"}"#,
             ),
         ),
     ]);
@@ -193,13 +194,13 @@ fn every_file_tisty_made_is_named_by_its_path_under_its_own_folder() {
             Seen {
                 name: "docs/a.md".into(),
                 bytes: 5,
-                hash: "md5:ab".into(),
+                hash: "sha256:ab".into(),
                 revision: "D.3".into()
             },
             Seen {
                 name: "tisty.toml".into(),
                 bytes: 2,
-                hash: "md5:cd".into(),
+                hash: "sha256:cd".into(),
                 revision: "T.1".into()
             },
         ]
@@ -428,7 +429,7 @@ fn a_new_file_gets_its_folders_and_lands_with_a_boundary_of_its_own() {
         said("200 OK", r#"{"id":"F","name":"docs"}"#),
         said(
             "200 OK",
-            r#"{"id":"D","name":"a.md","parents":["F"],"size":"5","md5Checksum":"x","version":"1"}"#,
+            r#"{"id":"D","name":"a.md","parents":["F"],"size":"5","sha256Checksum":"x","version":"1"}"#,
         ),
     ]);
 
@@ -482,7 +483,7 @@ fn a_big_file_goes_up_in_parts_from_where_google_says_it_kept() {
             },
             said(
                 "200 OK",
-                r#"{"id":"B","name":"local.bin","parents":["R"],"size":"10","md5Checksum":"x","version":"1"}"#,
+                r#"{"id":"B","name":"local.bin","parents":["R"],"size":"10","sha256Checksum":"x","version":"1"}"#,
             ),
         ]
     });
@@ -658,7 +659,7 @@ fn what_this_machine_wrote_is_no_news_and_what_another_wrote_brings_the_listing(
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let a2 =
-        r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","md5Checksum":"x","version":"2"}"#;
+        r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","sha256Checksum":"x","version":"2"}"#;
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
         said("200 OK", ROOT_FOUND),
@@ -759,14 +760,14 @@ fn the_account_is_checked_and_another_one_is_named_and_refused() {
 }
 
 #[test]
-fn the_fingerprint_of_a_file_here_is_the_md5_google_publishes() {
+fn the_fingerprint_of_a_file_here_is_the_sha256_google_publishes() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let (at, _) = google(vec![]);
 
     assert_eq!(
         drive(at, home.path()).hash_of(&local).unwrap(),
-        "md5:5d41402abc4b2a76b9719d911017c592"
+        "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
     );
 }
 

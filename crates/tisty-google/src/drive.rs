@@ -4,9 +4,9 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use md5::{Digest, Md5};
 use reqwest::blocking::Client as Http;
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
 mod tree;
@@ -518,7 +518,7 @@ impl Remote for Drive {
 
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         let mut file = std::fs::File::open(local)?;
-        let mut hasher = Md5::new();
+        let mut hasher = Sha256::new();
         let mut block = vec![0u8; 64 * 1024];
         loop {
             let read = file.read(&mut block)?;
@@ -532,7 +532,7 @@ impl Remote for Drive {
             .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect();
-        Ok(format!("md5:{hex}"))
+        Ok(format!("sha256:{hex}"))
     }
 
     // Changes name a file by its id alone; with any not this machine's own, the whole listing says where each one is.

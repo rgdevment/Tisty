@@ -2,7 +2,7 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 349 crates named in
+The licence texts of the 348 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
 the crates that carry it: 234 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
@@ -269,7 +269,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 4
 
-Carried by `aead` 0.6.1, `block-buffer` 0.12.1, `chacha20` 0.10.2, `chacha20poly1305` 0.11.0, `cipher` 0.5.2, `const-oid` 0.10.2, `cpufeatures` 0.3.0, `crypto-common` 0.2.2, `digest` 0.11.3, `hmac` 0.13.0, `hybrid-array` 0.4.15, `inout` 0.2.2, `md-5` 0.11.0, `pbkdf2` 0.13.0, `poly1305` 0.9.1, `salsa20` 0.11.0, `scrypt` 0.12.0, `sha2` 0.11.0, `signature` 3.0.0, `universal-hash` 0.6.1.
+Carried by `aead` 0.6.1, `block-buffer` 0.12.1, `chacha20` 0.10.2, `chacha20poly1305` 0.11.0, `cipher` 0.5.2, `const-oid` 0.10.2, `cpufeatures` 0.3.0, `crypto-common` 0.2.2, `digest` 0.11.3, `hmac` 0.13.0, `hybrid-array` 0.4.15, `inout` 0.2.2, `pbkdf2` 0.13.0, `poly1305` 0.9.1, `salsa20` 0.11.0, `scrypt` 0.12.0, `sha2` 0.11.0, `signature` 3.0.0, `universal-hash` 0.6.1.
 
 ```text
 Apache License
@@ -8098,41 +8098,6 @@ SOFTWARE.
 
 ## Text 121
 
-Carried by `md-5` 0.11.0, `sha2` 0.11.0.
-
-```text
-Copyright (c) 2016-2026 The RustCrypto Project Developers
-Copyright (c) 2016 Artyom Pavlov
-Copyright (c) 2009-2013 Mozilla Foundation
-Copyright (c) 2006-2009 Graydon Hoare
-
-Permission is hereby granted, free of charge, to any
-person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the
-Software without restriction, including without
-limitation the rights to use, copy, modify, merge,
-publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software
-is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice
-shall be included in all copies or substantial portions
-of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-```
-
-## Text 122
-
 Carried by `mime` 0.3.17.
 
 ```text
@@ -8157,7 +8122,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 123
+## Text 122
 
 Carried by `minisign-verify` 0.2.5.
 
@@ -8223,7 +8188,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 124
+## Text 123
 
 Carried by `miniz_oxide` 0.8.9.
 
@@ -8235,6 +8200,37 @@ Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
 Copyright (c) 2017 Frommi
 Copyright (c) 2017-2024 oyvindln
 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## Text 124
+
+Carried by `miniz_oxide` 0.8.9.
+
+```text
+MIT License
+
+Copyright 2013-2014 RAD Game Tools and Valve Software
+Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+Copyright (c) 2017 Frommi
+Copyright (c) 2017-2024 oyvindln
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -8260,37 +8256,6 @@ SOFTWARE.
 Carried by `miniz_oxide` 0.8.9.
 
 ```text
-MIT License
-
-Copyright 2013-2014 RAD Game Tools and Valve Software
-Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
-Copyright (c) 2017 Frommi
-Copyright (c) 2017-2024 oyvindln
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-## Text 126
-
-Carried by `miniz_oxide` 0.8.9.
-
-```text
 Copyright 2013-2014 RAD Game Tools and Valve Software
 Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
 Copyright (c) 2020 Frommi
@@ -8307,7 +8272,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-## Text 127
+## Text 126
 
 Carried by `mio` 1.2.2.
 
@@ -8333,7 +8298,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 128
+## Text 127
 
 Carried by `moxcms` 0.8.1, `pxfm` 0.1.30.
 
@@ -8541,7 +8506,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 129
+## Text 128
 
 Carried by `moxcms` 0.8.1, `pxfm` 0.1.30.
 
@@ -8574,7 +8539,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Text 130
+## Text 129
 
 Carried by `notify-rust` 4.18.0.
 
@@ -8602,7 +8567,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 131
+## Text 130
 
 Carried by `ntapi` 0.4.3.
 
@@ -8626,7 +8591,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 132
+## Text 131
 
 Carried by `num-conv` 0.2.2.
 
@@ -8652,7 +8617,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 133
+## Text 132
 
 Written out for `objc2-foundation` 0.3.2, from the licence the manifest declares: the crate ships no licence file.
 
@@ -8680,7 +8645,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 134
+## Text 133
 
 Carried by `open` 5.4.1.
 
@@ -8712,7 +8677,7 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 135
+## Text 134
 
 Carried by `option-ext` 0.2.0.
 
@@ -9092,7 +9057,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
   defined by the Mozilla Public License, v. 2.0.
 ```
 
-## Text 136
+## Text 135
 
 Carried by `osakit` 0.3.1.
 
@@ -9124,7 +9089,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 137
+## Text 136
 
 Carried by `pbkdf2` 0.13.0.
 
@@ -9157,7 +9122,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 138
+## Text 137
 
 Carried by `phf` 0.13.1, `phf_shared` 0.13.1.
 
@@ -9184,7 +9149,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 139
+## Text 138
 
 Carried by `plist` 1.10.0.
 
@@ -9210,7 +9175,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 140
+## Text 139
 
 Carried by `png` 0.18.1.
 
@@ -9242,7 +9207,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 141
+## Text 140
 
 Carried by `poly1305` 0.9.1.
 
@@ -9274,7 +9239,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 142
+## Text 141
 
 Carried by `powerfmt` 0.2.0.
 
@@ -9482,7 +9447,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 143
+## Text 142
 
 Carried by `powerfmt` 0.2.0.
 
@@ -9508,7 +9473,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 144
+## Text 143
 
 Carried by `ppv-lite86` 0.2.21.
 
@@ -9716,7 +9681,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Text 145
+## Text 144
 
 Carried by `ppv-lite86` 0.2.21.
 
@@ -9748,7 +9713,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 146
+## Text 145
 
 Carried by `quick-error` 2.0.1.
 
@@ -9774,7 +9739,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 147
+## Text 146
 
 Carried by `quick-xml` 0.41.0.
 
@@ -9804,7 +9769,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 148
+## Text 147
 
 Carried by `rand` 0.9.5, `rand` 0.10.2, `rand_chacha` 0.9.0.
 
@@ -9987,7 +9952,7 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 END OF TERMS AND CONDITIONS
 ```
 
-## Text 149
+## Text 148
 
 Carried by `rand` 0.9.5, `rand` 0.10.2, `rand_chacha` 0.9.0, `rand_core` 0.9.5.
 
@@ -10020,7 +9985,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 150
+## Text 149
 
 Carried by `rand_core` 0.9.5, `rand_core` 0.10.1.
 
@@ -10214,7 +10179,7 @@ APPENDIX: How to apply the Apache License to your work.
    identification within third-party archives.
 ```
 
-## Text 151
+## Text 150
 
 Carried by `rand_core` 0.10.1.
 
@@ -10246,7 +10211,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 152
+## Text 151
 
 Carried by `raw-window-handle` 0.6.2.
 
@@ -10274,7 +10239,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 153
+## Text 152
 
 Carried by `raw-window-handle` 0.6.2.
 
@@ -10292,7 +10257,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-## Text 154
+## Text 153
 
 Carried by `reqwest` 0.13.5.
 
@@ -10500,7 +10465,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Text 155
+## Text 154
 
 Carried by `reqwest` 0.13.5.
 
@@ -10526,7 +10491,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 156
+## Text 155
 
 Carried by `rfd` 0.16.0.
 
@@ -10554,7 +10519,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 157
+## Text 156
 
 Carried by `ring` 0.17.14.
 
@@ -10570,7 +10535,7 @@ See src/polyfill/once_cell/LICENSE-APACHE and src/polyfill/once_cell/LICENSE-MIT
 for the license to code that was sourced from the once_cell project.
 ```
 
-## Text 158
+## Text 157
 
 Carried by `ring` 0.17.14.
 
@@ -10848,7 +10813,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## Text 159
+## Text 158
 
 Carried by `ring` 0.17.14.
 
@@ -10868,7 +10833,7 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-## Text 160
+## Text 159
 
 Carried by `rustix` 1.1.4.
 
@@ -11093,7 +11058,7 @@ the License, but only in their entirety and only with respect to the Combined
 Software.
 ```
 
-## Text 161
+## Text 160
 
 Carried by `rustls-pki-types` 1.15.1.
 
@@ -11301,7 +11266,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Text 162
+## Text 161
 
 Carried by `rustls-pki-types` 1.15.1.
 
@@ -11333,7 +11298,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 163
+## Text 162
 
 Carried by `rustls-platform-verifier` 0.7.0.
 
@@ -11361,7 +11326,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 164
+## Text 163
 
 Carried by `rustls-webpki` 0.103.14.
 
@@ -11387,7 +11352,7 @@ The files under third-party/chromium are licensed as described in
 third-party/chromium/LICENSE.
 ```
 
-## Text 165
+## Text 164
 
 Carried by `salsa20` 0.11.0.
 
@@ -11420,7 +11385,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 166
+## Text 165
 
 Carried by `same-file` 1.0.6, `winapi-util` 0.1.11.
 
@@ -11448,7 +11413,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## Text 167
+## Text 166
 
 Carried by `scopeguard` 1.2.0.
 
@@ -11480,7 +11445,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 168
+## Text 167
 
 Carried by `scrypt` 0.12.0.
 
@@ -11512,7 +11477,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 169
+## Text 168
 
 Carried by `security-framework` 3.7.0, `security-framework-sys` 2.17.0.
 
@@ -11539,7 +11504,7 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 170
+## Text 169
 
 Carried by `serde_urlencoded` 0.7.1.
 
@@ -11571,7 +11536,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 171
+## Text 170
 
 Carried by `serde_with` 3.21.0.
 
@@ -11603,7 +11568,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-## Text 172
+## Text 171
 
 Carried by `serialize-to-javascript` 0.1.2.
 
@@ -11629,6 +11594,41 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+## Text 172
+
+Carried by `sha2` 0.11.0.
+
+```text
+Copyright (c) 2016-2026 The RustCrypto Project Developers
+Copyright (c) 2016 Artyom Pavlov
+Copyright (c) 2009-2013 Mozilla Foundation
+Copyright (c) 2006-2009 Graydon Hoare
+
+Permission is hereby granted, free of charge, to any
+person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the
+Software without restriction, including without
+limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software
+is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice
+shall be included in all copies or substantial portions
+of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
 ```
 
 ## Text 173

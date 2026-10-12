@@ -4,7 +4,7 @@ use serde::Deserialize;
 use tisty_carrier::Seen;
 
 pub(super) const FOLDER: &str = "application/vnd.google-apps.folder";
-pub(super) const FILE_FIELDS: &str = "id,name,parents,mimeType,size,md5Checksum,version,trashed";
+pub(super) const FILE_FIELDS: &str = "id,name,parents,mimeType,size,sha256Checksum,version,trashed";
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,7 +17,7 @@ pub(super) struct File {
     #[serde(default)]
     pub mime_type: String,
     pub size: Option<String>,
-    pub md5_checksum: Option<String>,
+    pub sha256_checksum: Option<String>,
     pub version: Option<String>,
     #[serde(default)]
     pub trashed: bool,
@@ -46,9 +46,9 @@ pub(super) fn seen(name: &str, file: &File) -> Seen {
             .and_then(|one| one.parse().ok())
             .unwrap_or(0),
         hash: file
-            .md5_checksum
+            .sha256_checksum
             .as_deref()
-            .map(|one| format!("md5:{one}"))
+            .map(|one| format!("sha256:{one}"))
             .unwrap_or_default(),
         revision: format!("{}.{}", file.id, file.version.as_deref().unwrap_or("0")),
     }

@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (349 crates)
+## In the core (348 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -424,7 +424,6 @@ written once with the crates that carry it.
 | `log` | 0.4.34 | MIT OR Apache-2.0 |
 | `mac-notification-sys` | 0.6.15 | MIT/Apache-2.0 |
 | `machine-uid` | 0.6.0 | MIT |
-| `md-5` | 0.11.0 | MIT OR Apache-2.0 |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
 | `mime` | 0.3.17 | MIT OR Apache-2.0 |
 | `minisign-verify` | 0.2.5 | MIT |
