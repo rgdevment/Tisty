@@ -361,11 +361,14 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<Paper> {
     if let Some(known) = known
         && known.stamp.is_some()
         && known.stamp == stamp
-        && held(&session)
-            .state
-            .docs
-            .values()
-            .any(|kept| kept.file == known.paper.file)
+        && {
+            let session = held(&session);
+            session
+                .state
+                .docs
+                .values()
+                .any(|kept| kept.file == known.paper.file && !session.state.held_away(kept))
+        }
     {
         return Ok(known.paper);
     }

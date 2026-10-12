@@ -16,8 +16,10 @@ export const PRESETS: { key: Preset; word: "viewFit" | "viewPhone" | "viewTablet
 const GUTTER = 32;
 
 // Content that fills its frame reaches the edge; anything narrower was drawn at a width of its own.
-export const natural = (span: Span): number | null =>
-  span.right >= span.view - 4 ? null : Math.max(320, span.right + span.left);
+export const natural = (span: Span): number | null => {
+  const wide = span.right + span.left;
+  return span.right >= span.view - 0.5 || wide >= span.view ? null : Math.max(320, wide);
+};
 
 interface Props {
   lent: Lent;
