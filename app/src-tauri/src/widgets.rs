@@ -122,14 +122,11 @@ impl Lent {
             .iter()
             .find(|(one, _, _)| one == id)
             .map(|(_, body, kind)| (body.clone(), *kind));
-        let (status, mut page, policy) = match found {
-            Some((body, Kind::Fenced)) => (StatusCode::OK, shell(&body, dark), FENCED),
-            Some((body, Kind::Page)) => (StatusCode::OK, paged(&body), PAGED),
+        let (status, page, policy) = match found {
+            Some((body, Kind::Fenced)) => (StatusCode::OK, shell(&body, dark, spanned), FENCED),
+            Some((body, Kind::Page)) => (StatusCode::OK, paged(&body, spanned), PAGED),
             None => (StatusCode::NOT_FOUND, String::new(), FENCED),
         };
-        if spanned && status == StatusCode::OK {
-            page.push_str(&format!("<script>{SPAN}</script>"));
-        }
         Response::builder()
             .status(status)
             .header(header::CONTENT_TYPE, "text/html; charset=utf-8")
@@ -206,12 +203,13 @@ pub fn widget_take_back(lent: tauri::State<'_, Lent>, id: String) {
     lent.take_back(&id);
 }
 
-pub fn shell(body: &str, dark: bool) -> String {
+pub fn shell(body: &str, dark: bool, spanned: bool) -> String {
     let theme = if dark { " class=\"dark\"" } else { "" };
+    let span = if spanned { SPAN } else { "" };
     format!(
         "<!doctype html><html{theme}><head><meta charset=\"utf-8\">\
 <meta name=\"color-scheme\" content=\"light dark\"><style>{KIT}</style></head>\
-<body><main class=\"w\">{body}</main><script>{BRIDGE}</script></body></html>"
+<body><main class=\"w\">{body}</main><script>{BRIDGE}{span}</script></body></html>"
     )
 }
 
@@ -257,9 +255,14 @@ fn opens_tag(text: &str, tag: &str) -> bool {
 }
 
 // Before anything the page holds, so no script or string of its own can swallow the measurer.
-pub fn paged(body: &str) -> String {
+pub fn paged(body: &str, spanned: bool) -> String {
     let (at, _) = prelude(body);
-    format!("{}<script>{MEASURER}</script>{}", &body[..at], &body[at..])
+    let span = if spanned { SPAN } else { "" };
+    format!(
+        "{}<script>{MEASURER}{span}</script>{}",
+        &body[..at],
+        &body[at..]
+    )
 }
 
 const KIT: &str = r#"

@@ -100,7 +100,7 @@ fn no_more_than_so_many_are_held_at_once_and_the_oldest_goes_first() {
 
 #[test]
 fn the_page_takes_the_window_theme_down_to_its_scrollbars() {
-    let page = shell("<p>x</p>", true);
+    let page = shell("<p>x</p>", true, false);
     assert!(page.contains(":root.dark{color-scheme:dark}"));
     assert!(
         page.contains("scrollbar-width:thin"),
@@ -145,7 +145,7 @@ fn an_attached_page_has_its_own_ceiling_and_survives_bytes_that_are_not_text() {
 
 #[test]
 fn the_frame_is_measured_by_what_the_widget_holds_not_by_the_frame_itself() {
-    let page = shell("<p>x</p>", false);
+    let page = shell("<p>x</p>", false, false);
     assert!(
         page.contains("document.querySelector(\"main.w\")"),
         "measuring the whole page never reads smaller than the frame, so it could only grow"
@@ -230,13 +230,16 @@ fn a_whole_page_is_told_by_how_it_opens() {
 
 #[test]
 fn a_page_without_a_body_still_gets_its_measurer() {
-    let page = paged("<p>sin cuerpo</p>");
+    let page = paged("<p>sin cuerpo</p>", false);
     assert!(page.starts_with("<script>") && page.ends_with("</script><p>sin cuerpo</p>"));
 }
 
 #[test]
 fn the_measurer_cannot_land_inside_a_script_of_the_page() {
-    let page = paged("<!doctype html><script>const t = \"</body>\";</script><p>x</p>");
+    let page = paged(
+        "<!doctype html><script>const t = \"</body>\";</script><p>x</p>",
+        false,
+    );
     assert!(
         page.starts_with("<!doctype html><script>(()=>"),
         "the measurer went after the page's own markup, where a string could swallow it"
@@ -246,7 +249,10 @@ fn the_measurer_cannot_land_inside_a_script_of_the_page() {
 
 #[test]
 fn the_measurer_keeps_the_declaration_first_after_comments() {
-    let page = paged("<!-- hecho a mano -->\n<!DOCTYPE html><html><body></body></html>");
+    let page = paged(
+        "<!-- hecho a mano -->\n<!DOCTYPE html><html><body></body></html>",
+        false,
+    );
     assert!(
         page.starts_with("<!-- hecho a mano -->\n<!DOCTYPE html><script>"),
         "a script before the doctype would drop the page into quirks mode"
@@ -255,7 +261,7 @@ fn the_measurer_keeps_the_declaration_first_after_comments() {
 
 #[test]
 fn a_page_that_rewrites_itself_gets_its_link_and_size_listeners_back() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("seen.observe(root);hooked()"),
         "document.open() drops the window's listeners, and a rewritten page's links would open inside the frame"
@@ -278,7 +284,7 @@ fn a_page_frames_only_what_it_made_itself() {
 
 #[test]
 fn a_page_held_inside_a_viewport_high_wrapper_is_measured_by_what_overflows_it() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("r.top+Math.max(r.height,one.scrollHeight)"),
         "a #app at 100vh is exactly as tall as the frame, so the frame never grew past 40px"
@@ -287,7 +293,7 @@ fn a_page_held_inside_a_viewport_high_wrapper_is_measured_by_what_overflows_it()
 
 #[test]
 fn a_box_that_grows_with_the_frame_is_measured_by_what_it_holds() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("Math.abs(r.height-was-(innerHeight-view))<1)fluid.add(one)"),
         "a #app at min-height:100vh grew with every frame it was given, a few pixels more each time"
@@ -297,7 +303,7 @@ fn a_box_that_grows_with_the_frame_is_measured_by_what_it_holds() {
 
 #[test]
 fn the_window_hears_a_link_after_the_page_routers_registered_first() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains(
             "const last=()=>{removeEventListener(\"click\",clicked);addEventListener(\"click\",clicked)}"
@@ -311,7 +317,7 @@ fn the_window_hears_a_link_after_the_page_routers_registered_first() {
 
 #[test]
 fn a_box_with_display_contents_is_measured_by_what_it_holds() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("if(s.display===\"contents\")return depth<6?within(one,depth+1):0;"),
         "a wrapper with no box of its own measured 0x0 and left the frame at 40px"
@@ -320,7 +326,7 @@ fn a_box_with_display_contents_is_measured_by_what_it_holds() {
 
 #[test]
 fn a_javascript_link_is_left_to_the_page() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("/^javascript:/i.test(href)"),
         "a javascript: link was cancelled and sent to a window that cannot open it"
@@ -329,7 +335,7 @@ fn a_javascript_link_is_left_to_the_page() {
 
 #[test]
 fn a_page_handles_its_own_links_before_the_window_opens_any() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         !page.contains("addEventListener(\"click\",clicked,true)"),
         "caught on the way down, a click never reached the page's own router"
@@ -342,7 +348,7 @@ fn a_page_handles_its_own_links_before_the_window_opens_any() {
 
 #[test]
 fn a_page_held_to_the_viewport_is_measured_again_when_what_it_holds_grows() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("seen.observe(b);for(const one of b.children)seen.observe(one)"),
         "with html{{height:100%}} the root never changes size, so growth inside the body went unseen"
@@ -355,7 +361,7 @@ fn a_page_held_to_the_viewport_is_measured_again_when_what_it_holds_grows() {
 
 #[test]
 fn a_page_is_measured_by_its_loose_text_and_its_closing_margins() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     for wanted in [
         "within(b,0)",
         "nodeType===3",
@@ -389,7 +395,7 @@ fn the_page_policy_lets_it_unpack_itself_but_reach_no_one() {
 
 #[test]
 fn a_page_is_measured_by_what_flows_in_its_body_even_after_it_replaces_itself() {
-    let page = paged("<html><body></body></html>");
+    let page = paged("<html><body></body></html>", false);
     assert!(
         page.contains("position===\"fixed\""),
         "a fixed overlay as tall as the frame would keep the frame from ever shrinking"
@@ -412,7 +418,7 @@ fn a_page_too_large_is_refused_by_its_size_before_a_byte_is_read() {
 
 #[test]
 fn the_theme_reaches_the_page_through_its_address_and_nothing_is_posted_into_it() {
-    let page = shell("<p>x</p>", false);
+    let page = shell("<p>x</p>", false, false);
     assert!(
         page.contains("hashchange"),
         "a theme change would need a message posted into the frame"
@@ -425,7 +431,7 @@ fn the_theme_reaches_the_page_through_its_address_and_nothing_is_posted_into_it(
 
 #[test]
 fn a_page_that_loads_again_reads_its_theme_from_its_address() {
-    let page = shell("<p>x</p>", true);
+    let page = shell("<p>x</p>", true, false);
     assert!(
         page.contains("themed();"),
         "a reloaded frame would keep the theme it was first served with"
@@ -457,4 +463,17 @@ fn only_a_widget_shown_on_its_own_measures_how_far_it_reaches() {
 
     assert!(said(&lent.shown(&asked(&format!("/{id}?span=1")))).contains("type:\"span\""));
     assert!(!said(&lent.shown(&asked(&format!("/{id}")))).contains("type:\"span\""));
+}
+
+#[test]
+fn a_page_measures_its_reach_before_anything_it_holds_can_swallow_the_measure() {
+    let lent = Lent::default();
+    let page = lent
+        .lend_kept(b"<!doctype html><p>x</p><!-- never closed".to_vec())
+        .unwrap();
+
+    let shown = said(&lent.shown(&asked(&format!("/{}?span=1", page.id))));
+
+    let span = shown.find("type:\"span\"").unwrap();
+    assert!(span < shown.find("<p>x</p>").unwrap(), "{shown}");
 }

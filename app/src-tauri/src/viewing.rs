@@ -70,21 +70,18 @@ pub struct Views {
     kept: Mutex<HashMap<PathBuf, Imported>>,
     importing: Mutex<()>,
     made: AtomicU64,
-    #[cfg(target_os = "macos")]
-    born: Born,
-}
-
-#[cfg(target_os = "macos")]
-struct Born(std::time::Instant);
-
-#[cfg(target_os = "macos")]
-impl Default for Born {
-    fn default() -> Self {
-        Self(std::time::Instant::now())
-    }
+    ready: std::sync::atomic::AtomicBool,
+    early: Mutex<Vec<PathBuf>>,
 }
 
 impl Views {
+    // Finder hands over the file a launch was for before the app has finished starting, so it waits for the start.
+    pub fn started(&self, wanted: &mut Vec<PathBuf>) {
+        let mut held = self.early.lock().unwrap_or_else(|e| e.into_inner());
+        wanted.append(&mut held);
+        self.ready.store(true, Ordering::SeqCst);
+    }
+
     // A file from outside is someone else's word: its window borrows no widget, whatever its body names.
     pub fn stranger(&self, label: &str) -> bool {
         self.shown
@@ -180,22 +177,21 @@ pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
     any
 }
 
-// Finder hands a file over only once the app is up, so a launch that came for a file puts the main window back.
-#[cfg(target_os = "macos")]
-const LAUNCHED_FOR_IT: std::time::Duration = std::time::Duration::from_secs(3);
-
 #[cfg(target_os = "macos")]
 pub fn heard_links(app: &AppHandle, links: &[url::Url]) {
     let said: Vec<String> = std::iter::once(String::new())
         .chain(links.iter().map(|one| one.to_string()))
         .collect();
-    let any = heard(app, &said, None);
-    if any
-        && app.state::<Views>().born.0.elapsed() < LAUNCHED_FOR_IT
-        && let Some(main) = app.get_webview_window("main")
+    let views = app.state::<Views>();
+    let found = wanted(&said, None);
+    if let Ok(mut held) = views.early.lock()
+        && !views.ready.load(Ordering::SeqCst)
     {
-        let _ = main.hide();
+        held.extend(found);
+        return;
     }
+    let any = !found.is_empty();
+    show(app, found);
     if !any {
         witness::warn(
             channel::WINDOW,

@@ -652,7 +652,8 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let argv: Vec<String> = std::env::args().collect();
     let here = std::env::current_dir().ok();
-    let wanted = viewing::wanted(&argv, here.as_deref());
+    let mut wanted = viewing::wanted(&argv, here.as_deref());
+    app.state::<viewing::Views>().started(&mut wanted);
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
         viewing::show(app.handle(), wanted);

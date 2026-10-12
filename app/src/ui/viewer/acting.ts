@@ -7,6 +7,8 @@ import { PRESETS, type Preset } from "./Stage";
 export const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
 export const PLAIN = ZOOMS.indexOf(1);
 
+export const darkNow = () => document.documentElement.getAttribute("data-theme") === "dark";
+
 export interface Acts {
   shown: Showing | null;
   body: string;
@@ -42,7 +44,12 @@ export const choicesFor = (a: Acts): Choice[] => {
         off: !from,
         onPick: () => from && void viewGo(from.file).catch(a.fail),
       },
-      { key: "dark", label: `${a.dark ? "✓ " : ""}${t("viewDark")}`, apart: true, onPick: a.shade },
+      {
+        key: "dark",
+        label: `${(a.dark ?? darkNow()) ? "✓ " : ""}${t("viewDark")}`,
+        apart: true,
+        onPick: a.shade,
+      },
       {
         key: "actual",
         label: `${a.actual ? "✓ " : ""}${t("viewActual")}`,

@@ -6,7 +6,7 @@ import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
 import { pageFor } from "./ui/sheets";
-import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
+import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
 import Preview from "./ui/viewer/Preview";
@@ -32,8 +32,6 @@ const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
   refusal.code === "documentTooBig"
     ? { kind: "big", limit: refusal.name ?? "" }
     : { kind: "unreadable" };
-
-const darkNow = () => document.documentElement.getAttribute("data-theme") === "dark";
 
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
