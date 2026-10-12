@@ -22,6 +22,7 @@ pub enum Hitch {
     Missing(String),
     Changed(String),
     Limited { wait: Duration },
+    Busy { wait: Duration },
     Spent,
     Full,
     Lost,

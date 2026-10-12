@@ -61,6 +61,7 @@ pub fn pull(
             if index.cursor.is_none() {
                 clear_unlisted(tree, &listed);
             }
+            index.owed.retain(|name, _| listed.contains(name.as_str()));
             (seen, gone, cursor)
         }
         Changes::Since {
@@ -69,17 +70,30 @@ pub fn pull(
             cursor,
         } => (changed, gone, cursor),
     };
+    let mut due = std::mem::take(&mut index.owed);
     for name in gone {
+        due.remove(&name);
         forget(tree, index, &name);
     }
-    let mut held_back = 0;
     for seen in changed {
-        held_back += usize::from(learn(remote, tree, index, data, seen)?);
+        due.insert(seen.name.clone(), seen);
     }
-    if held_back == 0 {
-        index.cursor = Some(cursor);
+    let mut due = due.into_values();
+    while let Some(seen) = due.next() {
+        match learn(remote, tree, index, data, seen.clone()) {
+            Ok(false) => {}
+            Ok(true) => {
+                index.owed.insert(seen.name.clone(), seen);
+            }
+            Err(hitch) => {
+                index.owed.insert(seen.name.clone(), seen);
+                index.owed.extend(due.map(|one| (one.name.clone(), one)));
+                return Err(hitch);
+            }
+        }
     }
-    Ok(held_back)
+    index.cursor = Some(cursor);
+    Ok(index.owed.len())
 }
 
 fn heal(tree: &Path, index: &mut Index) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type Settled, whatWentAmiss } from "../core";
+import { type Settled, whatWaits, whatWentAmiss } from "../core";
 import { t } from "../locales";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
@@ -33,5 +33,21 @@ describe("what a sync says went amiss", () => {
 
   it("keeps the plain notice when nothing of it is held back", () => {
     expect(whatWentAmiss(settled({ unconfirmed: ["dev_w"] }))).toBe("someoneUnconfirmed");
+  });
+
+  it("says a day's budget ran out as something that waits, never as what went wrong", () => {
+    const said = settled({ deferred: "budget" });
+
+    expect(whatWentAmiss(said)).toBeNull();
+    expect(whatWaits(said)).toBe("deferredBudget");
+    expect(t("deferredBudget")).toMatch(/tomorrow/);
+  });
+
+  it("says why a round waits on the cloud, and nothing for one that retries by itself", () => {
+    expect(whatWaits(settled({ deferred: "limit" }))).toBe("deferredLimit");
+    expect(whatWaits(settled({ deferred: "offline" }))).toBe("deferredOffline");
+    expect(whatWaits(settled({ deferred: "busy" }))).toBeNull();
+    expect(whatWaits(settled({ deferred: "changed" }))).toBeNull();
+    expect(whatWaits(settled({}))).toBeNull();
   });
 });

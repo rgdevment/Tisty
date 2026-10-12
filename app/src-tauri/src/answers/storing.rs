@@ -579,6 +579,7 @@ pub async fn sync_now(
             astray: Vec::new(),
             unprojected: false,
             joined: Vec::new(),
+            deferred: None,
         });
     };
     let was = held(&session).config.sync.clone();
@@ -762,6 +763,13 @@ async fn carried_round(
         astray: done.astray,
         unprojected: done.unprojected,
         joined: done.joined,
+        deferred: done.deferred.map(|deferred| match deferred.reason {
+            tisty_carrier::Reason::Budget => "budget",
+            tisty_carrier::Reason::Limit => "limit",
+            tisty_carrier::Reason::Offline => "offline",
+            tisty_carrier::Reason::Busy => "busy",
+            tisty_carrier::Reason::Changed => "changed",
+        }),
     })
 }
 
@@ -777,6 +785,7 @@ pub struct Settled {
     astray: Vec<String>,
     unprojected: bool,
     joined: Vec<String>,
+    deferred: Option<&'static str>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -796,6 +805,12 @@ pub async fn back_up(
     let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     let (data, aside, also) = {
         let session = held(&session);
+        if session
+            .carrier()
+            .is_some_and(|carrier| carrier.frees_space())
+        {
+            return Err(Refusal::of("backupCloudOff"));
+        }
         (
             session.paths.data().to_path_buf(),
             session.paths.cache().to_path_buf(),

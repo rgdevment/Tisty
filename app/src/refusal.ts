@@ -66,6 +66,7 @@ const KNOWN = [
   "cloudLost",
   "cloudElsewhere",
   "cloudNotNow",
+  "backupCloudOff",
   "wouldReset",
   "sameName",
   "noBase",

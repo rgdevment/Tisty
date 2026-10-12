@@ -41,3 +41,19 @@ fn spending_is_counted_as_each_request_goes_out() {
     other.list("").unwrap();
     assert_eq!(Spent::load(home.path()).units, 2 * fake.limits().costs.list);
 }
+
+#[test]
+fn a_charge_still_counts_when_another_process_holds_the_budget_too_long() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    let _held = Held::take(home.path(), BUDGETING).unwrap().unwrap();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+
+    meter.list("").unwrap();
+
+    assert_eq!(
+        Spent::load(home.path()).units,
+        fake.limits().costs.list,
+        "what went out was never counted, so a loop could spend past the day"
+    );
+}
