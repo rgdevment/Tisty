@@ -1534,3 +1534,25 @@ fn a_name_in_capitals_is_not_the_one_we_write_and_vouches_for_nothing() {
     );
     assert!(!vouched(shelf, &format!("Charla-{stamp}.mp4"), &sha256));
 }
+
+#[test]
+fn bytes_let_go_here_and_attached_again_under_another_name_come_back_where_the_ledger_says() {
+    let (_src, first) = dropped("foto.jpg", b"los bytes de una foto");
+    let (_other, again) = dropped("IMG_1234.jpg", b"los bytes de una foto");
+    let root = tempfile::tempdir().unwrap();
+    let kept = keep(&first, root.path(), COPIED_UP_TO).unwrap();
+    std::fs::remove_file(root.path().join(&kept.at)).unwrap();
+
+    let back = keep(&again, root.path(), COPIED_UP_TO).unwrap();
+
+    assert_eq!(back.at, kept.at);
+    assert_eq!(
+        std::fs::read(root.path().join(&back.at)).unwrap(),
+        b"los bytes de una foto"
+    );
+    assert_eq!(
+        digests(root.path()).len(),
+        1,
+        "the ledger grew a second line"
+    );
+}

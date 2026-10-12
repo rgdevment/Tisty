@@ -392,7 +392,7 @@ pub fn carry_through(
             saying(Reached::Papers);
         }
     }
-    if taking {
+    if taking && attachments.takes() {
         let reachable = adrift.then(|| named_now(&told, data));
         let buried_again;
         let buried = match moved.arrived.is_empty() {
@@ -421,7 +421,7 @@ pub fn carry_through(
     Ok(moved)
 }
 
-fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
+pub fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
     if told.retired.is_empty() {
         return Default::default();
     }

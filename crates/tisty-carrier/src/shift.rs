@@ -43,9 +43,17 @@ pub fn shift(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Shift, Trouble> {
     if let Some(from) = from {
-        let moved = carried(from, here, Way::Pull, alive, saying)?;
+        let moved = from.bring_home(
+            here,
+            Round {
+                way: Way::Pull,
+                alive,
+                holds: Holds::Everywhere,
+                saying,
+            },
+        )?;
         let owed = homing(from, here);
-        if !owed.nothing() {
+        if !owed.nothing() || moved.deferred.is_some() {
             return Ok(Shift::Homing {
                 owed,
                 deferred: moved.deferred,
@@ -107,21 +115,25 @@ fn carried(
     )
 }
 
-fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
+pub(crate) fn logged(here: &Here) -> tisty_core::State {
     let store = here.data.join(STORE);
-    let state = tisty_core::cache::project(&store, &here.aside)
+    tisty_core::cache::project(&store, &here.aside)
         .ok()
         .or_else(|| {
             tisty_core::store::read_all(&store)
                 .ok()
                 .map(|events| tisty_core::State::replay(&events))
         })
-        .unwrap_or_default();
-    let retired = state.retired;
+        .unwrap_or_default()
+}
+
+fn known(here: &Here) -> impl Iterator<Item = (String, u64)> {
+    let state = logged(here);
+    let buried = tisty_sync::buried_now(&state, &here.data);
     state
         .kept
         .into_iter()
-        .filter(move |(reference, _)| !retired.contains(reference))
+        .filter(move |(reference, _)| !buried.contains(reference))
         .map(|(reference, (_, bytes))| (reference, bytes))
 }
 

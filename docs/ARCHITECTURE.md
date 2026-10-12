@@ -380,13 +380,14 @@ the data home*) and sets the folder hidden and private to the account.
 | `<data>/.turned-away` | Machines the last round turned away, and why | no | no |
 | `<data>/.verified-to`, `.shape-seen` | How far each history was checked; folder shapes met | no | no |
 | `<data>/.bringing/` | Scratch copies of a round, swept a day later | no | no |
+| `<data>/used.json` | When each attachment was last opened or shown, and since when that is counted (`*`); the measure freeing space goes by. Unreadable, it is set aside and begun again, so it frees nothing | no | no |
 | `<config>/config.toml` | Settings and this machine's `device_id` | never | never |
 | `<config>/private/<device>.device-key` | Ed25519 signing key (32 bytes) | never | never |
 | `<config>/private/<store-id>.store-key` | The secret that seals parcels | never | never |
 | `<config>/private/tisty.log` | The local log (rolls at 256 KiB to `tisty.log.1`) | never | never |
 | `<config>/cloud/<provider>-<account>-<hash>/` | Where `Paths::cloud_home` puts a cloud carrier's mirror, index and caches; nothing creates it outside tests | never | never |
 | `<cache>/read.db` | The read cache | never | never |
-| `<cache>/selection.json`, `vouched.json`, `used.json`, `glimpses/` | CLI listing numbers; digests of shared-folder attachments; when an attachment was last opened; link previews | never | never |
+| `<cache>/selection.json`, `vouched.json`, `glimpses/` | CLI listing numbers; digests of shared-folder attachments; link previews | never | never |
 | `<cache>/carried-to`, `adopting` | Memo that this machine has been to a folder; machines to take up | never | never |
 
 The shared folder (`<shared>`) holds:
@@ -778,7 +779,9 @@ cache directory (where memos live) and this machine's device id.
 | `kin`, `stitch` | Compare lineages; merge them |
 | `signed`, `unclaimed`, `stirring` | The alias in the histories there; files there no log claims; a cheap mark that changes when something there moved |
 | `let_go` | Release local copies of large attachments that verifiably live there |
-| `lends_from`, `brought` | The directory the window may serve attachments from; fetch one attachment on demand (`Brought::{At, Absent, Later}`). The window serves from `lends_from` but looks for attachments itself (`finding.rs`) and does not call `brought` |
+| `lends_from`, `brought` | The directory outside the store the window may serve attachments from (the folder's; none for the cloud); fetch one attachment on demand (`Brought::{At, Absent, Later}`). The window serves from `lends_from` but looks for attachments itself (`finding.rs`) and does not call `brought` |
+| `bring_home` | A pull round that brings home every attachment the place holds, within the budget, whatever `holds` says; what a move out of a place runs. It sends nothing up, so a full place never keeps anyone in it. For a folder it is a pull round |
+| `could_free`, `set_free` | What freeing space would let go of, and letting go of it: local copies of attachments unused since a moment, that the place holds with the same size and provider's hash (a provider that gives no hash frees nothing). Answered as `LetGo`, like `let_go`, so the caller writes `AttachLetGo` for each. Only the cloud frees anything; a folder answers nothing |
 | `shelf` | Every attachment the place holds, with its size, read once; `None` when it cannot tell (a folder out of reach, a cloud not yet listed) |
 | `paper_waiting`, `paper_print`, `both_papers`, `settle`, `forget_paper` | Look at, compare, settle and delete one document's body there |
 
@@ -801,14 +804,15 @@ it.
 | Index | `index.json`: the change cursor, whether `tisty.toml` was seen or put (`confirmed`), per mirrored name the revision, length, time and digest of the copy, and per attachment up there what the provider reported (`Seen`) |
 | Round | `with_mirror`: take `round.lock`, pull (apply `Remote::changes` since the cursor, download what changed into a `.part` and rename), run `carry_through` over the mirror, then push |
 | Push order | History first, then documents, `tisty.toml` last. A document file missing from the mirror while `docs/` stands is read as a deletion and deleted up there against the revision last seen; anything else missing from the mirror is fetched again |
-| Attachments | Not mirrored: `Shelf` implements `Attachments` and talks to the `Remote` directly, putting with `Expect::Absent` and checking the landed size and hash |
+| Attachments | Not mirrored: `Shelf` implements `Attachments` and talks to the `Remote` directly, putting with `Expect::Absent` and checking the landed size and hash. A round sends attachments up and never brings one down nor lets go of a copy here, whatever `holds` says: the cloud is where other machines fetch from, not where a copy lives instead of here. Only `bring_home` brings them all down |
 | Verification | Downloads are checked against the provider's hash and length before they count; the round then installs exactly what it checked |
-| Pull failures | A cursor the provider no longer knows is dropped and the place read whole. A file that comes short or fails its hash is held back alone, for the next round |
+| Pull failures | A cursor the provider no longer knows is dropped and the place read whole. A file that comes short or fails its hash is held back alone, for the next round, and the round says so as deferred (`Changed`) |
 | Polling | `stirring` asks for changes at most once per `Limits::poll_every`, stretches the wait to four intervals while nothing moves and returns to one when something does; a revision the index already holds (this machine's own upload) is not a change. It waits at least a `Limited`'s `wait` and asks again if the clock went back. State is in `stirring.json` because every command builds its carrier anew |
-| Budget | `cloud/budget.rs`: every request goes through `Metered`, which charges the provider's `Costs` and the bytes brought down to `budget.json` under `budget.lock`, started again each UTC day. History may spend all of `units_a_day` and `bytes_a_day`; attachments stop at nine tenths; what is asked for by hand (`brought`) always goes and is counted |
+| Budget | `cloud/budget.rs`: every request goes through `Metered`, which charges the provider's `Costs` and the bytes brought down to `budget.json` under `budget.lock`, started again each UTC day. History may spend all of `units_a_day` and `bytes_a_day`; attachments (sending them, and `bring_home`) stop at nine tenths; what is opened by hand (`brought`) always goes and is counted |
 | Deferral | `Hitch::Limited` pauses with `Reason::Limit` and its `wait`; `Spent` pauses with `Reason::Budget`; `Unreachable` with `Offline`; a busy `round.lock` with `Busy`. A deferred round has written everything locally, lost nothing and asks nothing of the person |
 | Refusal | `Hitch::Full`, `Lost` and `Elsewhere { found }` stop the round as `Trouble::CloudFull`, `CloudLost` and `CloudElsewhere`, each naming the provider (`Limits::provider`) so the person is told it is the provider that refuses. `Missing`, `Changed` and `Broke` stop it as `Trouble::Broke` |
-| Bringing | `brought` serves a cached copy first; an attachment the last listing did not show is `Later`, never asked of the provider; otherwise it is fetched into `<home>/held/`, held to its name and this machine's digest, and kept there |
+| Bringing | Opening an attachment that is not here: one buried (retired and named by nothing) is `Absent`. `brought` serves the copy here first; an attachment the last listing did not show is `Later`, never asked of the provider; otherwise it is fetched straight into this machine's `attachments/`, held to its name and the log's full digest, written in the ledger and kept, so it plays from the disk from then on. One the log does not answer for yet is held to its name and the ledger and handed back as `Unvouched`, so the caller writes its `AttachKept`. Bytes refused for what they hold (not a disk that failed to take them) are remembered by revision in `index.json` (`spoiled`): not fetched again, refused at once when opened, not counted as held there so they never stall a move, and written over by a genuine copy when this machine sends one |
+| Freeing space | `set_free` lets go of copies here neither opened nor shown (`<data>/used.json`, which the window writes, again each day a picture stays on screen) nor attached or brought in (the latest `AttachKept` in the log) since the chosen moment, nor since `used.json` was begun. It runs after a fresh pull under the round lock, decides what is unused only then, and refuses when that pull cannot run; it lets go only when the cloud holds the same size and the provider's hash matches, never of a placeholder. Opening one again brings it back, and attaching the same bytes puts them back under the name the ledger gives |
 | First round | Until `tisty.toml` has been seen or put, what the engine remembers about the place (`.shape-seen`, `carried-to`) is forgotten, so a first round that was deferred cannot leave this machine unable to start again |
 | Forgetting | `forget_paper` queues the id in `forgotten`; the next round deletes it up there |
 
@@ -858,22 +862,23 @@ folds case answers to every spelling as one file; Tisty writes lowercase names.
 A move is one step at a time: `shift(from, to, here, alive, saying)` returns
 `Shift::Homing`, `Filling` or `Ready`, each with what is still owed (`Owed {
 files, bytes }`) and why the step stopped. It has no download or upload of its
-own: it runs ordinary rounds with `Holds::Everywhere`, which go file by file and
-stop with the budget, so the next step carries on where the last one stopped.
-Every step pulls from the old place first, so history only it holds comes
-along even when no attachment is owed.
+own: it runs `bring_home` on the old place and a push round with
+`Holds::Everywhere` on the new one, which go file by file and stop with the
+budget, so the next step carries on where the last one stopped. Every step
+pulls from the old place first, so history only it holds comes along even when
+no attachment is owed; a pull that was deferred leaves the move in `Homing`.
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Homing: pull round from the old place
-  Homing --> Homing: still owed home
+  [*] --> Homing: bring_home from the old place
+  Homing --> Homing: still owed home, or the pull deferred
   Homing --> Filling: everything home
   Filling --> Filling: push round, the new place lacks some, or deferred
   Filling --> Ready: the new place holds all
   Ready --> [*]: the caller changes the pointer
 ```
 
-- **Homing** (`homing(from, here)`): attachments the log keeps, not retired,
+- **Homing** (`homing(from, here)`): attachments the log keeps, not buried,
   not whole here, and held in the old place at their size (a place that cannot
   tell counts as holding them). One that no
   place ever held (another machine kept it to itself) does not hold a move back.
@@ -1334,7 +1339,10 @@ checks that a test would notice a changed line.
 - A window screen or command that moves between places with `shift` and shows
   how far the move has gone.
 - The window opening an attachment that lives only in a cloud through
-  `Carrier::brought`.
+  `Carrier::brought`, and Maintenance offering to free space with
+  `could_free` and `set_free` (30, 60 or 90 days unused, only with the cloud).
+- Hiding «Where large attachments stay» when the cloud is chosen: a cloud
+  round ignores it.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.
