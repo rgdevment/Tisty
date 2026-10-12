@@ -14,12 +14,14 @@ pub use tisty_sync::{
 
 mod cloud;
 mod folder;
+mod keychain;
 mod remote;
 mod shift;
 mod tokens;
 
 pub use cloud::Cloud;
 pub use folder::Folder;
+pub use keychain::Keychain;
 pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
 pub use shift::{Owed, Shift, filling, homing, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};
@@ -69,6 +71,8 @@ pub type Told<'a> = &'a mut dyn FnMut(&LetGo) -> bool;
 pub trait Carrier: Send + std::marker::Sync {
     fn place(&self) -> Option<&Path>;
     fn lends_from(&self) -> Option<PathBuf>;
+    /// Attachments always stay here and space is freed by hand: there is no copy kept only there.
+    fn frees_space(&self) -> bool;
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble>;
     fn shelf(&self) -> Option<BTreeMap<String, u64>>;
     fn reachable(&self) -> bool;

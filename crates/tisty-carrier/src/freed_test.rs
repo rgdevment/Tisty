@@ -210,3 +210,85 @@ fn an_attachment_shown_under_a_moment_of_its_own_still_counts_as_used() {
         assert!(done.let_go.is_empty(), "{who}");
     }
 }
+
+#[test]
+fn only_a_cloud_says_it_frees_space_so_the_window_offers_it_nowhere_else() {
+    for setting in settings() {
+        let (one, _) = pair(&setting);
+
+        let frees = one.carrier.frees_space();
+
+        assert_eq!(
+            frees,
+            matches!(setting.place, Place::Cloud(_)),
+            "{}",
+            setting.name
+        );
+    }
+}
+
+#[test]
+fn the_estimate_reads_no_bytes_and_only_letting_go_checks_them() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        let kept = sent(&one);
+        let swapped = setting.room.path().join("swapped");
+        std::fs::write(&swapped, vec![b'x'; PHOTO.len()]).unwrap();
+        remote.put(&kept.at, &swapped, Expect::Any).unwrap();
+        one.round(Way::Pull);
+
+        let could = one.carrier.could_free(&one.here, later());
+        let done = freed(&one, later()).unwrap();
+
+        assert_eq!(could.let_go, std::slice::from_ref(&kept.at), "{who}");
+        assert!(
+            done.let_go.is_empty(),
+            "{who}: the estimate was taken as a check"
+        );
+        assert_eq!(one.held(&kept.at).as_deref(), Some(PHOTO), "{who}");
+    }
+}
+
+#[test]
+fn an_attachment_opened_while_space_is_freed_stays() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let first = one.kept("foto", PHOTO);
+        let second = one.kept("otra", b"los bytes de otra foto");
+        one.store().append(first.told()).unwrap();
+        one.store().append(second.told()).unwrap();
+        one.wrote("con fotos");
+        one.round(Way::Both);
+        let used = one.here.data.join(tisty_core::lately::USED);
+        let seconds = later()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            + 60;
+
+        let done = one
+            .carrier
+            .set_free(&one.here, later(), &mut |far| {
+                for reference in [&first.at, &second.at] {
+                    if !far.let_go.contains(reference) {
+                        tisty_core::lately::used_on(&used, reference, seconds);
+                    }
+                }
+                true
+            })
+            .unwrap();
+
+        assert_eq!(done.let_go.len(), 1, "{who}: {done:?}");
+        let stayed = [&first, &second]
+            .into_iter()
+            .find(|one| !done.let_go.contains(&one.at))
+            .unwrap();
+        assert!(
+            one.held(&stayed.at).is_some(),
+            "{who}: opened, and still let go of"
+        );
+    }
+}

@@ -555,6 +555,8 @@ const en = {
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
+  cloudLater:
+    "{name} could not be brought from your cloud right now: it may not be up there yet, or your cloud asked to wait. Try again after the next sync",
   attachmentTorn:
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
   sharedAway:
@@ -573,6 +575,18 @@ const en = {
   holdsFreeing: "Freeing what the shared folder already holds — {name} so far",
   holdsFreed: "{name} freed. What could not be checked against the shared folder stayed here",
   holdsStop: "Stop",
+  freeTitle: "Free space",
+  freeWhy:
+    "Every attachment stays on this machine once it is opened. Letting go of the ones you have not used in a while frees space here; the next time you open one, it comes down from your cloud again.",
+  freeQuota:
+    "Bringing it down again spends the quota and bandwidth of your cloud account. Those limits are set by your cloud provider, not by Tisty.",
+  freeUnused: "Unused for",
+  freeDays: "{name} days",
+  freeFound: "{name} unused · {other}",
+  freeNone: "Nothing unused that long",
+  freeDo: "Free",
+  freeing: "Freeing space — {name} so far",
+  freed: "{name} freed. Anything your cloud could not vouch for stayed here",
   moreHere: "…and {name} more",
   clashSave: "Save mine anyway",
   clashLook: "Read it again",
@@ -934,6 +948,7 @@ const en = {
     "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this machine.",
   cloudElsewhere:
     "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
+  cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while",
   emptiedPlace:
     "{name} was the shared folder and it is empty now — nothing was written, in case the drive or the folder is simply not mounted. If it is the right folder, «Send it all again» writes it back.",
   syncRefused:
@@ -2137,6 +2152,8 @@ const es: Catalog = {
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
+  cloudLater:
+    "{name} no se pudo traer de tu nube ahora: puede que todavía no esté allá, o tu nube pidió esperar. Vuelve a intentarlo después de la próxima sincronización",
   attachmentTorn:
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
   sharedAway:
@@ -2156,6 +2173,18 @@ const es: Catalog = {
   holdsFreed:
     "{name} liberados. Lo que no se pudo comprobar contra la carpeta compartida se quedó aquí",
   holdsStop: "Detener",
+  freeTitle: "Liberar espacio",
+  freeWhy:
+    "Cada adjunto se queda en este equipo una vez que lo abres. Soltar los que no usas hace tiempo libera espacio aquí; la próxima vez que abras uno, vuelve a bajar de tu nube.",
+  freeQuota:
+    "Volver a bajarlo gasta la cuota y el ancho de banda de tu cuenta en la nube. Esos límites los pone tu proveedor, no Tisty.",
+  freeUnused: "Sin usar hace",
+  freeDays: "{name} días",
+  freeFound: "{name} sin usar · {other}",
+  freeNone: "Nada lleva tanto tiempo sin usarse",
+  freeDo: "Liberar",
+  freeing: "Liberando espacio — {name} hasta ahora",
+  freed: "{name} liberados. Lo que tu nube no pudo confirmar se quedó aquí",
   moreHere: "…y {name} más",
   clashSave: "Guardar lo mío de todos modos",
   clashLook: "Volver a leerlo",
@@ -2520,6 +2549,8 @@ const es: Catalog = {
     "{name} ya no deja entrar a Tisty: el acceso se retiró o venció. Vuelve a conectar {name}; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudElsewhere:
     "La nube ahora responde como otra cuenta ({name}). Tisty se detiene para no mezclar dos cuentas: conecta la que usabas antes.",
+  cloudNotNow:
+    "No se pudo consultar primero tu nube, así que no se hizo nada. Inténtalo en un rato",
   emptiedPlace:
     "{name} era la carpeta compartida y ahora está vacía — no se escribió nada, por si el disco o la carpeta simplemente no están montados. Si es la carpeta correcta, «Volver a enviar» la vuelve a escribir.",
   syncRefused:

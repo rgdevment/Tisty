@@ -13,11 +13,10 @@ import {
   glimpseKept,
   noteTrouble,
   openLink,
-  served,
   weighs,
 } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
-import { showing } from "../inUse";
+import { askAgain, serve, showing } from "../inUse";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
@@ -765,6 +764,7 @@ export default function Editor({
     },
     gone: (reference) => missing.current.has(reference),
     onAgain: (reference) => {
+      askAgain(reference);
       missing.current.delete(reference);
       pending.current.delete(`url:${reference}`);
       pending.current.delete(`weight:${reference}`);
@@ -775,7 +775,7 @@ export default function Editor({
       const held = urls.current.get(reference);
       if (held) return held;
       fetches(`url:${reference}`, () =>
-        served(reference).then((real) => {
+        serve(reference).then((real) => {
           urls.current.set(reference, convertFileSrc(real));
         }),
       );
@@ -929,7 +929,7 @@ export default function Editor({
             img.setAttribute("src", cached);
             return;
           }
-          served(at)
+          serve(at)
             .then((real) => {
               const url = convertFileSrc(real);
               urls.current.set(at, url);

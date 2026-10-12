@@ -51,6 +51,11 @@ scrypt = { version = "0.12", default-features = false }
 rand_core = { version = "0.9", features = ["os_rng"] }
 zeroize = "1"
 hmac = "0.13"
+# Each keychain store by name: `keyring` would pull every store onto every system.
+keyring-core = "1"
+windows-native-keyring-store = "1"
+apple-native-keyring-store = { version = "1", features = ["keychain"] }
+zbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
 ed25519-dalek = "3"
 zip = { version = "8", default-features = false, features = ["deflate"] }
 anyhow = "1"

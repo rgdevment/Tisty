@@ -185,3 +185,49 @@ fn a_lifetime_no_clock_could_hold_does_not_bring_renewal_down() {
 
     assert_eq!(tokens.access().unwrap(), "a1");
 }
+
+struct Marked;
+
+impl Renew for Marked {
+    fn renew(&self, _: &str) -> Result<Renewed, Hitch> {
+        Ok(Renewed {
+            access: "acceso-secreto".into(),
+            lasts: Duration::ZERO,
+            refresh: Some("renovado-secreto".into()),
+        })
+    }
+}
+
+fn every_file(at: &std::path::Path, found: &mut Vec<Vec<u8>>) {
+    for one in std::fs::read_dir(at).unwrap().flatten() {
+        match one.path().is_dir() {
+            true => every_file(&one.path(), found),
+            false => found.push(std::fs::read(one.path()).unwrap_or_default()),
+        }
+    }
+}
+
+#[test]
+fn no_token_ever_lands_in_a_file_even_when_the_keychain_will_not_take_it() {
+    let home = tempfile::tempdir().unwrap();
+    let kept = kept_with("primero-secreto");
+    let tokens = Tokens::new(kept.clone(), Arc::new(Marked), KEY, home.path());
+    tokens.access().unwrap();
+    kept.1.store(true, Ordering::SeqCst);
+    tokens.access().unwrap();
+
+    let mut found = Vec::new();
+    every_file(home.path(), &mut found);
+
+    assert!(
+        !found.is_empty(),
+        "nothing was left beside the locks to look into"
+    );
+    let secret = b"secreto";
+    assert!(
+        !found
+            .iter()
+            .any(|body| body.windows(secret.len()).any(|one| one == secret)),
+        "a token was written beside the locks"
+    );
+}
