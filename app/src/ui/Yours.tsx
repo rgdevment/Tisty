@@ -16,7 +16,6 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Backup from "./Backup";
 import type { Run, Which, Word } from "./Card";
-import FreeSpace from "./FreeSpace";
 import { Band, Line, mild, off } from "./Rows";
 import Syncing from "./Syncing";
 
@@ -29,8 +28,6 @@ interface Props {
   build: About | null;
   freeing: Freeing | null;
   setFreeing: (freeing: Freeing | null) => void;
-  freeDays: number;
-  setFreeDays: (days: number) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -51,8 +48,6 @@ export default function Yours({
   build,
   freeing,
   setFreeing,
-  freeDays,
-  setFreeDays,
   busy,
   said,
   trouble,
@@ -140,19 +135,6 @@ export default function Yours({
               ))}
             </select>
           </Line>
-        )}
-
-        {state.freesSpace && (
-          <FreeSpace
-            held={held}
-            freeing={freeing}
-            setFreeing={setFreeing}
-            days={freeDays}
-            setDays={setFreeDays}
-            said={said}
-            trouble={trouble}
-            fail={fail}
-          />
         )}
 
         {kept && !state.freesSpace && (

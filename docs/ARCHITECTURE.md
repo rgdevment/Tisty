@@ -1262,7 +1262,10 @@ Store.
   put two machines in one directory) and never `<config>/private/`. What goes in,
   and what a restore may put back, is one list of name shapes. Capped at 8 GB and
   200,000 files. With `Holds::Shared`, the bodies and attachments that live only
-  in the folder are packed too.
+  in the folder are packed too. With a carrier that `frees_space` (the cloud),
+  the window keeps backing up off and says why: attachments never opened live
+  only in the account, so a backup here would not hold everything. Restoring
+  stays.
 - **Restore** (`backup::read`) is a photograph. It unpacks beside the data,
   reads the store back, moves each old folder aside, and only then moves the new
   ones in; a corrupt or foreign zip changes nothing. A backup of another store

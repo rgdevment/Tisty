@@ -1139,6 +1139,8 @@ const en = {
   backupWhat:
     "One file with your whole history, from every machine. Keep it wherever you like and come back to it after a format.",
   backupMake: "Create backup…",
+  backupCloudOff:
+    "With your cloud account, attachments you have not opened live only there, so a backup here would not hold everything. Your cloud keeps the whole store; to have all of it on a disk, move to a folder.",
   backupMade: "{name} saved",
   backupLeftOut: "{name} saved. Attachments this machine does not hold stayed out of it: {other}",
   restored: "{name} files restored",
@@ -2753,6 +2755,8 @@ const es: Catalog = {
   backupWhat:
     "Un archivo con todo tu historial, de todos tus equipos. Guárdalo donde quieras y recupéralo cuando lo necesites.",
   backupMake: "Crear respaldo…",
+  backupCloudOff:
+    "Con tu cuenta en la nube, los adjuntos que no has abierto viven solo allá, así que un respaldo aquí no lo tendría todo. Tu nube guarda el almacén completo; para tenerlo entero en un disco, múdate a una carpeta.",
   backupMade: "{name} guardados",
   backupLeftOut: "{name} guardados. Quedaron fuera los adjuntos que este equipo no tiene: {other}",
   restored: "{name} archivos restaurados",

@@ -275,8 +275,6 @@ export default function Keeping({
             build={build}
             freeing={freeing}
             setFreeing={setFreeing}
-            freeDays={freeDays}
-            setFreeDays={setFreeDays}
             busy={busy}
             said={said}
             trouble={trouble}
@@ -309,6 +307,11 @@ export default function Keeping({
             audit={audit}
             setAudit={setAudit}
             build={build}
+            state={state}
+            freeing={freeing}
+            setFreeing={setFreeing}
+            freeDays={freeDays}
+            setFreeDays={setFreeDays}
             busy={busy}
             said={said}
             trouble={trouble}
