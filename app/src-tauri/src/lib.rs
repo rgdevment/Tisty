@@ -198,6 +198,7 @@ struct Carrying {
     shared_was: Option<String>,
     shared_was_later: bool,
     later: bool,
+    mode: &'static str,
     backed_up_at: Option<String>,
     frees_space: bool,
 }

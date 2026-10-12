@@ -1160,6 +1160,10 @@ const en = {
   syncOffRestored:
     "Not sharing since you restored. It was «{name}»; choosing it again asks you which side wins.",
   syncOn: "Leaving copies in {name}",
+  modeAlone: "Only on this machine",
+  modeFolder: "Folder · {name}",
+  modeLater: "Syncing a newer way",
+  modeOpen: "How Tisty syncs",
   turnSyncOn: "Turn on…",
   changeFolder: "Change folder",
   syncOffNow: "Turn off",
@@ -2837,6 +2841,10 @@ const es: Catalog = {
   syncOffRestored:
     "Sin compartir desde que restauraste. Compartías con «{name}»; al volver a elegirla te preguntará qué lado manda.",
   syncOn: "Dejando copias en {name}",
+  modeAlone: "Solo en este equipo",
+  modeFolder: "Carpeta · {name}",
+  modeLater: "Sincroniza de una forma más nueva",
+  modeOpen: "Cómo sincroniza Tisty",
   turnSyncOn: "Activar…",
   changeFolder: "Cambiar carpeta",
   syncOffNow: "Desactivar",

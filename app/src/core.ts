@@ -491,6 +491,7 @@ export interface Carrying {
   sharedWas?: string;
   sharedWasLater?: boolean;
   later?: boolean;
+  mode: "alone" | "folder" | "later";
   backedUpAt?: string;
   freesSpace: boolean;
 }
