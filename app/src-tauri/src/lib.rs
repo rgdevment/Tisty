@@ -6,6 +6,7 @@ mod command;
 mod desktop;
 mod finding;
 mod glimpse;
+mod hearing;
 mod herald;
 mod linking;
 mod moving;
@@ -750,6 +751,7 @@ pub(crate) fn opened(
     app.manage(Mutex::new(session));
     app.manage(herald::Speaking::new(app, telling, &quiet));
     herald::watch(app.clone(), watched);
+    hearing::listen(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
     let perched = tray::raise(app, &words).is_some();

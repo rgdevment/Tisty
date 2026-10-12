@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
@@ -138,6 +139,7 @@ export function carrying(
 
   window.addEventListener("focus", pull);
   document.addEventListener("visibilitychange", seen);
+  const told = listen("told", () => void pull());
   const beat = setInterval(both, EVERY_SO_OFTEN);
   const glancing = setInterval(glance, A_GLANCE);
 
@@ -158,6 +160,7 @@ export function carrying(
       clearTimeout(later);
       clearInterval(beat);
       clearInterval(glancing);
+      void told.then((stop) => stop());
       window.removeEventListener("focus", pull);
       document.removeEventListener("visibilitychange", seen);
     },

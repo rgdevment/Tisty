@@ -14,6 +14,15 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
+const bus = vi.hoisted(() => ({ heard: new Map<string, () => void>() }));
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (named: string, fn: () => void) => {
+    bus.heard.set(named, fn);
+    return Promise.resolve(() => bus.heard.delete(named));
+  },
+}));
+
 const state = { chosen: undefined as string | undefined, asked: true, loose: 0 };
 let carried: ReturnType<typeof carrying> | undefined;
 
@@ -37,6 +46,30 @@ const settle = () => vi.advanceTimersByTimeAsync(0);
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("carrying on its own", () => {
+  it("brings the other side home the moment its provider says it changed", async () => {
+    carried = carrying(() => {});
+    await settle();
+    const before = sent("sync_now").length;
+
+    bus.heard.get("told")?.();
+    await settle();
+
+    const rounds = sent("sync_now");
+    expect(rounds.length).toBe(before + 1);
+    expect(rounds[rounds.length - 1].args.way).toBe("pull");
+  });
+
+  it("stops listening once it stops", async () => {
+    carried = carrying(() => {});
+    await settle();
+
+    carried.stop();
+    carried = undefined;
+    await settle();
+
+    expect(bus.heard.has("told")).toBe(false);
+  });
+
   it("glances at the folder and brings it home only when something stirred", async () => {
     let mark = "one";
     ipc.answer = (cmd) => {

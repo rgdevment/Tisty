@@ -10,7 +10,7 @@ use tisty_sync::{NAMED_AT_MOST, carry_through, forget_carried_to, forget_shape};
 
 use crate::{
     Brought, Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason,
-    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
+    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble, Watch,
 };
 
 mod budget;
@@ -468,6 +468,11 @@ impl Carrier for Cloud {
 
     fn stirring(&self) -> u64 {
         self.asked_again()
+    }
+
+    fn hears(&self) -> Option<Box<dyn Watch>> {
+        let index = Index::load(&self.home);
+        Metered::over(&*self.remote, &self.home, Class::History).hears(index.cursor.as_deref()?)
     }
 
     fn unclaimed(&self) -> Holding {

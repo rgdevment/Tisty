@@ -104,6 +104,10 @@ pub trait Carrier: Send + std::marker::Sync {
     fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble>;
     fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble>;
     fn forget_paper(&self, id: &str);
+    /// A way to hear the other side change, for a carrier whose provider can say so; a folder is only looked at.
+    fn hears(&self) -> Option<Box<dyn Watch>> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1737,3 +1737,36 @@ fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
     );
     assert_eq!(super::merged(spent, owed).unwrap().reason, Reason::Budget);
 }
+
+#[test]
+fn a_provider_that_says_when_the_other_side_changed_is_heard_and_the_rest_are_looked_at() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        one.round(Way::Both);
+        let Some(mut heard) = one.carrier.hears() else {
+            assert!(
+                who != "cloud over dropbox",
+                "{who}: a provider that can say so was only looked at"
+            );
+            continue;
+        };
+        assert_eq!(
+            heard.told(Duration::ZERO),
+            Ok(false),
+            "{who}: told of nothing"
+        );
+
+        two.wrote("lo de dos");
+        two.round(Way::Both);
+
+        assert_eq!(
+            heard.told(Duration::ZERO),
+            Ok(true),
+            "{who}: the other side was not heard"
+        );
+    }
+}
