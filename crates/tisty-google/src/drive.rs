@@ -399,8 +399,8 @@ impl Remote for Drive {
     fn limits(&self) -> Limits {
         Limits {
             provider: "Google Drive",
-            units_a_day: 100_000,
-            bytes_a_day: 5 * 1024 * MIB,
+            units_a_day: tisty_carrier::UNITS_A_DAY,
+            bytes_a_day: tisty_carrier::BYTES_A_DAY,
             poll_every: Duration::from_secs(300),
             chunk: self.chunk,
             page: 1000,
