@@ -1004,6 +1004,12 @@ const en = {
   riftKeepTheirs: "The other",
   riftKeepBoth: "Both",
   riftDone: "Done",
+  versionsWhy:
+    "This document was written on this machine and on another since they last met, and the two could not be put together on their own.",
+  versionsKeepMine: "Keep the one on this machine",
+  versionsKeepTheirs: "Keep the one from the other machine",
+  versionsKeepBoth: "Keep both, the other one beside this one and marked",
+  versionsLater: "Later",
   riftLeft: "{name} left",
   sameName:
     "Both hold a machine called {name}, and each wrote something different under that name. Joining them would put two histories into one file, so Tisty refuses. Keep one of the two sides instead.",
@@ -2606,6 +2612,12 @@ const es: Catalog = {
   riftKeepTheirs: "La otra",
   riftKeepBoth: "Las dos",
   riftDone: "Listo",
+  versionsWhy:
+    "Este documento se escribió en esta máquina y en otra desde la última vez que se vieron, y las dos versiones no se pudieron juntar solas.",
+  versionsKeepMine: "Quedarme con la de esta máquina",
+  versionsKeepTheirs: "Quedarme con la de la otra máquina",
+  versionsKeepBoth: "Quedarme con las dos, la otra al lado y marcada",
+  versionsLater: "Más tarde",
   riftLeft: "quedan {name}",
   sameName:
     "Las dos guardan una máquina llamada {name}, y cada una escribió cosas distintas con ese nombre. Unirlas metería dos historias en el mismo archivo, así que Tisty se niega. Conserva uno de los dos lados.",

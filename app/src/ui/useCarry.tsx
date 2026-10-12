@@ -52,7 +52,7 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
         fail({ card: "sync", text: t("wouldReset") });
         return "declined";
       }
-      const { said } = await decideAll(answer.undecided);
+      const { said } = await decideAll(answer.undecided, true);
       const amiss = whatWentAmiss(answer);
       if (amiss) {
         fail({ card: "sync", text: t(amiss) });

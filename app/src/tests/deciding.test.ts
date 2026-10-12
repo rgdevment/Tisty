@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Pick, Rift } from "../core";
-import { decideAll, decidesByBlock } from "../deciding";
 import { fill, t } from "../locales";
+
+let { decideAll, decidesByBlock, decidesWhole } = await import("../deciding");
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -59,7 +60,9 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   },
 }));
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.resetModules();
+  ({ decideAll, decidesByBlock, decidesWhole } = await import("../deciding"));
   torn.said = { rifts: [], print: "" };
   torn.refuses = false;
   torn.moved = false;
@@ -67,6 +70,7 @@ beforeEach(() => {
   torn.blind = false;
   torn.shut = false;
   decidesByBlock(null);
+  decidesWhole(null);
   ipc.calls = [];
   asked.held = [];
   asked.said = [];
@@ -230,5 +234,50 @@ describe("a title that carries a dollar sign", () => {
     expect(fill("changedWhileDeciding", "Gastos $$ 2026 $& $'")).toContain(
       "«Gastos $$ 2026 $& $'»",
     );
+  });
+});
+
+describe("asking inside the window", () => {
+  it("asks there instead of with the system's dialog, and keeps what was picked", async () => {
+    const whole = vi.fn(async () => "theirs" as Pick);
+    decidesWhole(whole);
+
+    await decideAll(["dev_a-0001"]);
+
+    expect(whole).toHaveBeenCalledWith("Kit de transmisión");
+    expect(asked.said).toEqual([]);
+    expect(settled()[0].args.keep).toBe("theirs");
+  });
+
+  it("puts off a document the person left for later until they sync by hand", async () => {
+    const whole = vi.fn(async (): Promise<Pick | null> => null);
+    decidesWhole(whole);
+
+    await decideAll(["dev_a-0003"]);
+    await decideAll(["dev_a-0003"]);
+    expect(whole).toHaveBeenCalledTimes(1);
+    expect(settled()).toEqual([]);
+
+    whole.mockImplementation(async () => "mine");
+    await decideAll(["dev_a-0003"], true);
+    expect(whole).toHaveBeenCalledTimes(2);
+    expect(settled()[0].args.keep).toBe("mine");
+  });
+
+  it("asks one thing at a time, and never again for what a round waiting behind it named", async () => {
+    const held: ((pick: Pick) => void)[] = [];
+    decidesWhole(() => new Promise((answer) => held.push(answer)));
+
+    const first = decideAll(["dev_a-0004", "dev_a-0005"]);
+    const second = decideAll(["dev_a-0004", "dev_a-0005"]);
+    await vi.waitFor(() => expect(held).toHaveLength(1));
+    held[0]("mine");
+    await vi.waitFor(() => expect(held).toHaveLength(2));
+    held[1]("mine");
+    await first;
+    await second;
+
+    expect(held).toHaveLength(2);
+    expect(settled()).toHaveLength(2);
   });
 });
