@@ -14,13 +14,7 @@ pub fn begin(app: tauri::AppHandle) {
     let shown = tauri::WebviewWindowBuilder::new(
         &app,
         "moving",
-        tauri::WebviewUrl::App(
-            match crate::refusing::speaks_spanish() {
-                true => "index.html?locale=es",
-                false => "index.html?locale=en",
-            }
-            .into(),
-        ),
+        tauri::WebviewUrl::App(crate::refusing::page(crate::refusing::speaks_spanish()).into()),
     )
     .title("Tisty")
     .inner_size(440.0, 170.0)
@@ -52,7 +46,7 @@ pub fn begin(app: tauri::AppHandle) {
 }
 
 fn settled_in(app: &tauri::AppHandle) {
-    if let Err(why) = crate::opened(app) {
+    if let Err(why) = crate::opened(app, false) {
         witness::error(
             channel::WINDOW,
             "the window could not open after the store moved",

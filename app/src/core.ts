@@ -410,6 +410,26 @@ export const widgetLendKept = (reference: string): Promise<Borrowed> =>
   invoke("widget_lend_kept", { reference });
 export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take_back", { id });
 
+export type Lent = { source: string } | { reference: string };
+export type Viewed = { id: string; file: string; title: string; place: string };
+export type Showing =
+  | { kind: "file"; name: string; place: string; path: string; body: string }
+  | {
+      kind: "missed";
+      name: string;
+      place: string;
+      path: string;
+      refusal: { code: string; name?: string };
+    }
+  | { kind: "doc"; paper: Viewed; body: string }
+  | { kind: "widget"; lent: Lent; from: Viewed | null };
+export const viewShown = (): Promise<Showing> => invoke("view_shown");
+export const viewImport = (open: boolean): Promise<Viewed> => invoke("view_import", { open });
+export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
+export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>
+  invoke("view_widget", { lent, from: from ?? null });
+export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
+
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });

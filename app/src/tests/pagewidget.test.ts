@@ -30,6 +30,14 @@ const reach: Reach = {
   title: () => null,
 };
 
+const picked = (editor: Editor, label: string) => {
+  document.querySelector(".widget-menu")?.remove();
+  editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-more")?.click();
+  return [...document.querySelectorAll<HTMLButtonElement>(".widget-menu button")].find(
+    (one) => one.textContent === label,
+  );
+};
+
 const made = (content: string, how: Partial<Reach> = {}) => {
   const element = document.createElement("div");
   document.body.append(element);
@@ -63,7 +71,7 @@ describe("a page attached to a document", () => {
       expect(editor.view.dom.querySelector(".widget-page iframe")).toBeTruthy(),
     );
 
-    editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-shelve")?.click();
+    picked(editor, t("showAsAttachment"))?.click();
 
     expect(editor.view.dom.querySelector(".widget-page")).toBeNull();
     expect(editor.view.dom.querySelector(".preview.card")).toBeTruthy();
@@ -92,7 +100,26 @@ describe("a page attached to a document", () => {
     const editor = made(`![informe](<${PAGE}>)`, { onMenu: undefined });
 
     expect(editor.view.dom.querySelector(".widget-page")).toBeTruthy();
-    expect(editor.view.dom.querySelector(".widget-page-shelve")).toBeNull();
+    expect(picked(editor, t("showAsAttachment"))).toBeUndefined();
+    expect(picked(editor, t("viewReload"))).toBeTruthy();
+    editor.destroy();
+  });
+
+  it("shows a page named by someone else's file as a card, never drawn", () => {
+    const editor = made(`![informe](<${PAGE}>)`, { stranger: true });
+
+    expect(editor.view.dom.querySelector(".widget-page")).toBeNull();
+    expect(asked("widget_lend_kept")).toHaveLength(0);
+    editor.destroy();
+  });
+
+  it("opens the page alone in a window of its own, named by its reference", () => {
+    const apart = vi.fn();
+    const editor = made(`![informe](<${PAGE}>)`, { onMenu: undefined, onApart: apart });
+
+    editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-apart")?.click();
+
+    expect(apart).toHaveBeenCalledWith({ reference: PAGE });
     editor.destroy();
   });
 

@@ -16,6 +16,7 @@ mod shop;
 mod summing;
 mod tray;
 mod update;
+mod viewing;
 mod vouching;
 mod waking;
 mod widgets;
@@ -649,14 +650,26 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let argv: Vec<String> = std::env::args_os()
+        .map(|one| one.to_string_lossy().into_owned())
+        .collect();
+    let here = std::env::current_dir().ok();
+    let mut wanted = viewing::wanted(&argv, here.as_deref());
+    app.state::<viewing::Views>().started(&mut wanted);
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
+        viewing::show(app.handle(), wanted);
         return Ok(());
     }
-    opened(app.handle())
+    opened(app.handle(), !wanted.is_empty())?;
+    viewing::show(app.handle(), wanted);
+    Ok(())
 }
 
-pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn opened(
+    app: &tauri::AppHandle,
+    viewing: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
     let session = match Session::open() {
         Ok(session) => session,
         Err(why) => {
@@ -789,7 +802,7 @@ pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
 
     if let Some(window) = app.get_webview_window("main") {
         desktop::proofread(&window);
-        if came_back || !waking::hushed() {
+        if came_back || !(waking::hushed() || viewing) {
             desktop::fitted(&window);
             let _ = window.show();
         }
@@ -801,8 +814,10 @@ pub fn run() {
     let mut building = tauri::Builder::default();
 
     if tisty_core::paths::profile().is_none() {
-        building = building.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            tray::surface(app);
+        building = building.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            if !viewing::heard(app, &argv, Some(std::path::Path::new(&cwd))) {
+                tray::surface(app);
+            }
         }));
     }
 
@@ -863,6 +878,7 @@ pub fn run() {
         })
         .manage(OneAtATime::default())
         .manage(widgets::Lent::default())
+        .manage(viewing::Views::default())
         .manage(Packing::default())
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
@@ -1026,6 +1042,11 @@ pub fn run() {
             answers::shelves::folder_away,
             answers::papers::doc_lock,
             desktop::parted,
+            viewing::view_shown,
+            viewing::view_import,
+            viewing::view_widget,
+            viewing::view_doc,
+            viewing::view_go,
             answers::shelves::sow,
             answers::shelves::folder_file
         ])
@@ -1035,6 +1056,10 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if matches!(_event, tauri::RunEvent::Reopen { .. }) {
                 tray::surface(_app);
+            }
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &_event {
+                viewing::heard_links(_app, urls);
             }
         });
 }

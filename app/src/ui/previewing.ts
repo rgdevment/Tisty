@@ -3,7 +3,7 @@ import type { Node as Written } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import type { Glimpse } from "../core";
+import type { Glimpse, Lent } from "../core";
 import { markup } from "../glyphs";
 import { t, type Word } from "../locales";
 import {
@@ -16,7 +16,7 @@ import {
   previewOf,
   weighed,
 } from "../previews";
-import { lendKept } from "./widgeting";
+import { dropdown, iconed, lendKept } from "./widgeting";
 
 export interface Reach {
   url: (reference: string) => string | null;
@@ -30,6 +30,8 @@ export interface Reach {
   gone?: (reference: string) => boolean;
   onDoc?: (id: string) => void;
   onWorld?: (at: string) => void;
+  stranger?: boolean;
+  onApart?: (lent: Lent) => void;
   onMenu?: (
     at: { x: number; y: number },
     untie: (() => void) | undefined,
@@ -503,21 +505,30 @@ const paging = (href: string, label: string, reach: Reach, shelve: () => void): 
   name.className = "widget-page-name";
   name.textContent = label || named(href);
   bar.append(name);
-  if (reach.onMenu) {
-    const back = document.createElement("button");
-    back.type = "button";
-    back.className = "widget-page-shelve";
-    back.textContent = t("showAsAttachment");
-    back.addEventListener("click", (e) => {
-      e.stopPropagation();
-      shelve();
-    });
-    bar.append(back);
-  }
   const drawn = document.createElement("span");
   drawn.className = "widget-page-drawn";
+  let lending = lendKept(drawn, href);
+  const apart = iconed("apart", t("viewApart"), "widget-page-apart");
+  apart.addEventListener("click", (e) => {
+    e.stopPropagation();
+    reach.onApart?.({ reference: href });
+  });
+  const more = iconed("more", t("viewMore"), "widget-page-more");
+  more.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown(more, [
+      {
+        label: t("viewReload"),
+        run: () => {
+          lending.drop();
+          lending = lendKept(drawn, href);
+        },
+      },
+      ...(reach.onMenu ? [{ label: t("showAsAttachment"), run: shelve }] : []),
+    ]);
+  });
+  bar.append(apart, more);
   box.append(bar, drawn);
-  const lending = lendKept(drawn, href);
   waits.set(box, () => lending.drop());
   return box;
 };
@@ -624,7 +635,7 @@ export const previewing = (reach: () => Reach) => {
                 state.doc,
                 scan(state.doc).flatMap((one) => [
                   Decoration.node(one.at, one.at + one.size, { class: "card-source" }),
-                  one.paged
+                  one.paged && !now.stranger
                     ? Decoration.widget(
                         one.at,
                         (view, getPos) =>

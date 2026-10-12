@@ -116,22 +116,31 @@ pub fn doc_import(
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    let body =
-        tisty_core::docs::read_outside(std::path::Path::new(&from)).map_err(|e| match e {
-            tisty_core::Error::DocumentTooBig { limit, .. } => {
-                Refusal::about("documentTooBig", weighed(limit))
-            }
-            _ => Refusal::about("cannotRead", from),
-        })?;
+    let body = read_outside(std::path::Path::new(&from))?;
+    imported(&mut held(&session), &body, folder).map(|(made, _)| made)
+}
 
-    let mut session = held(&session);
+pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {
+    tisty_core::docs::read_outside(from).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => {
+            Refusal::about("documentTooBig", weighed(limit))
+        }
+        _ => Refusal::about("cannotRead", from.display().to_string()),
+    })
+}
+
+pub(crate) fn imported(
+    session: &mut Session,
+    body: &str,
+    folder: Option<tisty_core::model::FolderId>,
+) -> Answer<(tisty_core::docs::Doc, ulid::Ulid)> {
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
         }
         folder_open(&session.state, at, true)?;
     }
-    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be imported", e))?;
 
     let order = tisty_core::order::last_of(
@@ -143,8 +152,9 @@ pub fn doc_import(
             .map(|one| one.order.as_str()),
     );
     let signed_as = signing(&session.state);
+    let id = ulid::Ulid::generate();
     session.commit(Op::DocAdd {
-        id: ulid::Ulid::generate(),
+        id,
         d: tisty_core::event::DocAdd {
             wrote: None,
             guest: false,
@@ -152,12 +162,12 @@ pub fn doc_import(
             by: signed_as.clone(),
             file: made.id.clone(),
             order,
-            said: Some(tisty_core::event::Said::of(&body)),
+            said: Some(tisty_core::event::Said::of(body)),
             folder,
             page_of: None,
         },
     })?;
-    Ok(made)
+    Ok((made, id))
 }
 
 #[derive(Clone, serde::Serialize)]
