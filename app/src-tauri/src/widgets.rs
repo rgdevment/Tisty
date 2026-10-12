@@ -116,6 +116,9 @@ pub fn small_enough(weighs: u64) -> Answer<()> {
 }
 
 fn kept_page(reference: String, at: finding::Where) -> Answer<Vec<u8>> {
+    if let Some(weighs) = at.weight {
+        small_enough(weighs)?;
+    }
     let found = finding::handed_over(&reference, &at)?;
     if let Ok(told) = std::fs::metadata(&found) {
         small_enough(told.len())?;

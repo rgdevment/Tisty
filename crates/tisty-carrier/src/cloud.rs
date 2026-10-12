@@ -190,7 +190,7 @@ impl Cloud {
         })?;
         match done.value {
             Some(value) => Ok(value),
-            None => Err(Trouble::Broke(unavailable(done.deferred))),
+            None => Err(Trouble::NotNow(unavailable(done.deferred))),
         }
     }
 
@@ -307,10 +307,12 @@ impl<T> Done<T> {
     }
 }
 
+fn seconds(at: SystemTime) -> u64 {
+    at.duration_since(UNIX_EPOCH).map_or(0, |one| one.as_secs())
+}
+
 fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Trouble> {
-    let since = unused_since
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |one| one.as_secs());
+    let since = seconds(unused_since);
     let opened = tisty_core::lately::begun(&here.data.join(tisty_core::lately::USED))
         .map_err(|e| Trouble::Broke(e.to_string()))?;
     let begun = opened
@@ -473,8 +475,14 @@ impl Carrier for Cloud {
     ) -> Result<LetGo, Trouble> {
         self.only(Some(here), |_, index, remote| {
             let idle = idle(here, unused_since)?;
+            let used = here.data.join(tisty_core::lately::USED);
+            let since = seconds(unused_since);
+            // Asked again right before each one goes, so an attachment opened meanwhile stays.
+            let unused_now = |reference: &str| {
+                tisty_core::lately::last(&used, reference).is_none_or(|when| when < since)
+            };
             let letting = Letting {
-                chosen: &|reference, _| idle.contains(reference),
+                chosen: &|reference, _| idle.contains(reference) && unused_now(reference),
                 elsewhere: &|_| false,
                 told,
                 only_counting: false,

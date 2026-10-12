@@ -65,6 +65,7 @@ export default function Keeping({
   const [keys, setKeys] = useState<string | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
   const [freeing, setFreeing] = useState<Freeing | null>(null);
+  const [freeDays, setFreeDays] = useState(30);
 
   useEffect(() => {
     const off = listen<Freeing>("freeing", (told) => setFreeing(told.payload));
@@ -274,6 +275,8 @@ export default function Keeping({
             build={build}
             freeing={freeing}
             setFreeing={setFreeing}
+            freeDays={freeDays}
+            setFreeDays={setFreeDays}
             busy={busy}
             said={said}
             trouble={trouble}

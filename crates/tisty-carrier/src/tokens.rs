@@ -91,8 +91,13 @@ impl Tokens {
             .unwrap_or_else(|| Instant::now() + RENEWED_AHEAD * 2);
         held.access = Some((renewed.access.clone(), until));
         if let Some(next) = renewed.refresh
-            && self.secrets.write(&self.key, &next).is_err()
+            && let Err(hitch) = self.secrets.write(&self.key, &next)
         {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::CLOUD,
+                "the keychain would not keep the renewed token, so it lasts only while Tisty stays open",
+                &[("why", tisty_core::witness::Fact::Why(format!("{hitch:?}")))],
+            );
             held.unsaved = Some(next);
         }
         Ok(renewed.access)

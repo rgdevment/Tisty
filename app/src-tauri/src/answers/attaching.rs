@@ -180,10 +180,13 @@ pub async fn attach_export(
 #[tauri::command(async)]
 pub fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
     let looking = finding::where_to(&session, &reference);
-    let at = finding::where_it_lies(&reference, &looking.data, looking.shared.as_deref())
-        .ok_or_else(|| Refusal::about("cannotRead", reference.clone()))?;
-    let told = std::fs::metadata(&at).map_err(|_| Refusal::about("cannotRead", reference))?;
-    Ok(told.len())
+    finding::weight_of(
+        &reference,
+        &looking.data,
+        looking.shared.as_deref(),
+        looking.weight,
+    )
+    .ok_or_else(|| Refusal::about("cannotRead", reference))
 }
 
 fn looked_up(reference: String, at: finding::Where) -> Answer<std::path::PathBuf> {

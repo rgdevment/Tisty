@@ -29,6 +29,8 @@ interface Props {
   build: About | null;
   freeing: Freeing | null;
   setFreeing: (freeing: Freeing | null) => void;
+  freeDays: number;
+  setFreeDays: (days: number) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -49,6 +51,8 @@ export default function Yours({
   build,
   freeing,
   setFreeing,
+  freeDays,
+  setFreeDays,
   busy,
   said,
   trouble,
@@ -143,6 +147,8 @@ export default function Yours({
             held={held}
             freeing={freeing}
             setFreeing={setFreeing}
+            days={freeDays}
+            setDays={setFreeDays}
             said={said}
             trouble={trouble}
             fail={fail}

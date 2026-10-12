@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { type Freeing, freeSpace, stopFreeing, type Unused, unusedAttachments } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 import type { Word } from "./Card";
 import { Line, off } from "./Rows";
 
@@ -11,14 +12,24 @@ interface Props {
   held: boolean;
   freeing: Freeing | null;
   setFreeing: (freeing: Freeing | null) => void;
+  days: number;
+  setDays: (days: number) => void;
   said?: Word;
   trouble?: Word;
   fail: (word?: Word) => void;
 }
 
 /** Only with a cloud reached through its API, where every attachment stays here once opened. */
-export default function FreeSpace({ held, freeing, setFreeing, said, trouble, fail }: Props) {
-  const [days, setDays] = useState(DAYS[0]);
+export default function FreeSpace({
+  held,
+  freeing,
+  setFreeing,
+  days,
+  setDays,
+  said,
+  trouble,
+  fail,
+}: Props) {
   const [found, setFound] = useState<Unused | null>(null);
   const running = freeing !== null && !freeing.done;
 
@@ -35,10 +46,11 @@ export default function FreeSpace({ held, freeing, setFreeing, said, trouble, fa
   }, [days, running]);
 
   const letGo = () => {
+    fail(undefined);
     setFreeing({ gone: 0, freed: 0, done: false });
-    freeSpace(days).catch(() => {
+    freeSpace(days).catch((e) => {
       setFreeing(null);
-      fail({ card: "free", text: t("freeLater") });
+      fail({ card: "free", text: saidPlainly(e) });
     });
   };
 

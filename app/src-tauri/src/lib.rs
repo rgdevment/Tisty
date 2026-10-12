@@ -395,6 +395,7 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }
+        tisty_carrier::Trouble::NotNow(_) => Refusal::of("cloudNotNow"),
     }
 }
 
@@ -736,7 +737,7 @@ pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::E
     app.manage(herald::Speaking::new(app, telling, &quiet));
     herald::watch(app.clone(), watched);
 
-    app.manage(answers::storing::Stopping::default());
+    app.manage(answers::freeing::Stopping::default());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
     app.manage(Bound(listen_for(app)));
@@ -887,8 +888,8 @@ pub fn run() {
             answers::storing::settle_in,
             reachable,
             take_out_of_reach,
-            answers::storing::free_up,
-            answers::storing::stop_freeing,
+            answers::freeing::free_up,
+            answers::freeing::stop_freeing,
             answers::freeing::unused_attachments,
             answers::freeing::free_space,
             answers::wired::wiring,

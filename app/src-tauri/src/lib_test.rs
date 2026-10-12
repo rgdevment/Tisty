@@ -117,6 +117,7 @@ fn what_was_really_handed_over_is_written_down_and_a_refusal_is_not() {
         reached: reached.clone(),
         cloud: None,
         unvouched: Default::default(),
+        weight: None,
     };
 
     let loose = from.path().join("nota.txt");
@@ -178,6 +179,7 @@ fn a_read_that_fails_after_the_lookup_is_not_written_down_as_reached_for() {
             reached: reached.clone(),
             cloud: None,
             unvouched: Default::default(),
+            weight: None,
         },
     );
     drop(shut);

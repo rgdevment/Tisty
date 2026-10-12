@@ -722,9 +722,10 @@ describe("the maintenance panel", () => {
   it("says when nothing is unused that long, and says to try later when the cloud cannot be asked", async () => {
     carrying.freesSpace = true;
     let unused = 0;
+    let refusing = "cloudNotNow";
     ipc.answer = ((was) => (cmd: string, args: Record<string, unknown>) => {
       if (cmd === "unused_attachments") return Promise.resolve({ files: unused, bytes: 0 });
-      if (cmd === "free_space") return Promise.reject({ code: "syncBroke" });
+      if (cmd === "free_space") return Promise.reject({ code: refusing });
       return was(cmd, args);
     })(ipc.answer);
     try {
@@ -749,6 +750,11 @@ describe("the maintenance panel", () => {
 
       await screen.findByText(/could not be asked first/i);
       expect(screen.queryByText(/Freeing space/i)).toBeNull();
+
+      refusing = "cloudLost";
+      await userEvent.click(screen.getByRole("button", { name: /^free$/i }));
+      await screen.findByText(/no longer lets Tisty in/i);
+      expect(screen.queryByText(/could not be asked first/i)).toBeNull();
     } finally {
       carrying.freesSpace = false;
     }

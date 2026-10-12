@@ -1,8 +1,8 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
-import { opened, openLink, revealed, served } from "../core";
+import { opened, openLink, revealed } from "../core";
 import { markup } from "../glyphs";
-import { showing } from "../inUse";
+import { serve, showing } from "../inUse";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
@@ -57,15 +57,13 @@ export default function Composed({
       shown.push(showing(reference));
 
       const cached = known.get(reference);
-      if (cached) {
-        img.setAttribute("src", cached);
-        return;
-      }
-      served(reference)
+      if (cached) img.setAttribute("src", cached);
+      // Asked even when the address is cached, so seeing it again counts as using it.
+      serve(reference)
         .then((at) => {
           const url = convertFileSrc(at);
           known.set(reference, url);
-          if (live) img.setAttribute("src", url);
+          if (live && img.getAttribute("src") !== url) img.setAttribute("src", url);
         })
         .catch(() => live && img.replaceWith(missing(img.alt || reference)));
     });

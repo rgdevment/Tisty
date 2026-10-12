@@ -105,6 +105,7 @@ fn looking(data: &Path, answer: Brought) -> Where {
             },
         )),
         unvouched: Default::default(),
+        weight: None,
     }
 }
 
@@ -137,12 +138,38 @@ fn what_came_down_with_no_history_behind_it_is_kept_to_be_written_down() {
 }
 
 #[test]
-fn an_attachment_the_cloud_will_send_later_is_said_to_be_coming() {
+fn an_attachment_the_cloud_no_longer_has_cannot_be_read() {
+    let data = tempfile::tempdir().unwrap();
+
+    let absent = handed_over(ASKED, &looking(data.path(), Brought::Absent));
+
+    assert!(absent.is_err_and(|refused| format!("{refused:?}").contains("cannotRead")));
+}
+
+#[test]
+fn a_moment_inside_an_attachment_names_the_attachment_itself() {
+    assert_eq!(plain(&format!("{ASKED}#t=30")), ASKED);
+    assert_eq!(plain(&format!("{ASKED}?page=2")), ASKED);
+    assert_eq!(plain(ASKED), ASKED);
+}
+
+#[test]
+fn an_attachment_let_go_of_here_still_weighs_what_the_log_says() {
+    let data = tempfile::tempdir().unwrap();
+
+    assert_eq!(weight_of(ASKED, data.path(), None, Some(42)), Some(42));
+    assert_eq!(weight_of(ASKED, data.path(), None, None), None);
+    let at = tisty_core::attach::resolve(ASKED, data.path()).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, b"siete b").unwrap();
+    assert_eq!(weight_of(ASKED, data.path(), None, Some(42)), Some(7));
+}
+
+#[test]
+fn an_attachment_the_cloud_cannot_send_yet_says_so_in_words_of_the_cloud() {
     let data = tempfile::tempdir().unwrap();
 
     let later = handed_over(ASKED, &looking(data.path(), Brought::Later));
-    let absent = handed_over(ASKED, &looking(data.path(), Brought::Absent));
 
-    assert!(later.is_err_and(|refused| format!("{refused:?}").contains("comingDown")));
-    assert!(absent.is_err_and(|refused| format!("{refused:?}").contains("cannotRead")));
+    assert!(later.is_err_and(|one| format!("{one:?}").contains("cloudLater")));
 }

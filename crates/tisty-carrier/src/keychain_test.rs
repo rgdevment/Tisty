@@ -13,12 +13,16 @@ type Kept = Arc<Mutex<HashMap<String, Vec<u8>>>>;
 struct Shelf {
     kept: Kept,
     broken: bool,
+    at_most: Option<usize>,
+    twinned: bool,
 }
 
 struct Held {
     kept: Kept,
     user: String,
     broken: bool,
+    at_most: Option<usize>,
+    twinned: bool,
 }
 
 fn refused() -> Error {
@@ -29,6 +33,9 @@ impl CredentialApi for Held {
     fn set_secret(&self, secret: &[u8]) -> keyring_core::Result<()> {
         if self.broken {
             return Err(refused());
+        }
+        if let Some(most) = self.at_most.filter(|most| secret.len() > *most) {
+            return Err(Error::TooLong("the secret".into(), most as u32));
         }
         self.kept
             .lock()
@@ -52,6 +59,18 @@ impl CredentialApi for Held {
     fn delete_credential(&self) -> keyring_core::Result<()> {
         if self.broken {
             return Err(refused());
+        }
+        if self.twinned {
+            let one = || {
+                Entry::new_with_credential(Arc::new(Held {
+                    kept: self.kept.clone(),
+                    user: self.user.clone(),
+                    broken: false,
+                    at_most: None,
+                    twinned: false,
+                }))
+            };
+            return Err(Error::Ambiguous(vec![one(), one()]));
         }
         self.kept
             .lock()
@@ -93,6 +112,8 @@ impl CredentialStoreApi for Shelf {
             kept: self.kept.clone(),
             user: user.to_string(),
             broken: self.broken,
+            at_most: self.at_most,
+            twinned: self.twinned,
         })))
     }
 
@@ -117,7 +138,10 @@ fn round_trip(keychain: &Keychain, key: &str) {
 
 #[test]
 fn a_token_written_is_read_back_whole_and_forgetting_it_twice_is_no_error() {
-    round_trip(&Keychain::over(Arc::new(Shelf::default())), "drive:ana");
+    round_trip(
+        &Keychain::over(Arc::new(Shelf::default()), "store"),
+        "drive:ana",
+    );
 }
 
 #[test]
@@ -127,18 +151,21 @@ fn what_is_not_text_is_never_handed_out_as_a_token() {
         .kept
         .lock()
         .unwrap()
-        .insert("drive:ana".into(), vec![0xff, 0xfe]);
-    let keychain = Keychain::over(Arc::new(shelf));
+        .insert("store/drive:ana".into(), vec![0xff, 0xfe]);
+    let keychain = Keychain::over(Arc::new(shelf), "store");
 
     assert!(matches!(keychain.read("drive:ana"), Err(Hitch::Broke(_))));
 }
 
 #[test]
 fn a_keychain_that_refuses_is_a_hitch_and_never_an_empty_answer() {
-    let keychain = Keychain::over(Arc::new(Shelf {
-        broken: true,
-        ..Shelf::default()
-    }));
+    let keychain = Keychain::over(
+        Arc::new(Shelf {
+            broken: true,
+            ..Shelf::default()
+        }),
+        "store",
+    );
 
     assert!(matches!(keychain.read("drive:ana"), Err(Hitch::Broke(_))));
     assert!(matches!(
@@ -148,12 +175,65 @@ fn a_keychain_that_refuses_is_a_hitch_and_never_an_empty_answer() {
     assert!(matches!(keychain.forget("drive:ana"), Err(Hitch::Broke(_))));
 }
 
+#[test]
+fn two_stores_of_one_person_never_read_or_forget_each_others_token() {
+    let shelf: Arc<CredentialStore> = Arc::new(Shelf::default());
+    let main = Keychain::over(shelf.clone(), "main");
+    let sandbox = Keychain::over(shelf, "sandbox");
+    main.write("drive:ana", "r-main").unwrap();
+
+    assert_eq!(sandbox.read("drive:ana").unwrap(), None);
+    sandbox.forget("drive:ana").unwrap();
+    assert_eq!(main.read("drive:ana").unwrap().as_deref(), Some("r-main"));
+}
+
+#[test]
+fn a_token_too_long_for_the_keychain_says_so() {
+    let keychain = Keychain::over(
+        Arc::new(Shelf {
+            at_most: Some(2560),
+            ..Shelf::default()
+        }),
+        "store",
+    );
+
+    let refused = keychain.write("onedrive:ana", &"a".repeat(3000));
+
+    assert!(
+        matches!(&refused, Err(Hitch::Broke(why)) if why.contains("at most 2560 bytes")),
+        "{refused:?}"
+    );
+}
+
+#[test]
+fn forgetting_a_token_kept_twice_forgets_both() {
+    let keychain = Keychain::over(
+        Arc::new(Shelf {
+            twinned: true,
+            ..Shelf::default()
+        }),
+        "store",
+    );
+    keychain.write("drive:ana", "r0").unwrap();
+
+    keychain.forget("drive:ana").unwrap();
+
+    assert_eq!(keychain.read("drive:ana").unwrap(), None);
+}
+
 // Only Windows runners hold a keychain that answers without a person unlocking it.
 #[cfg(windows)]
 #[test]
 fn the_system_keychain_keeps_a_token_whole() {
-    round_trip(
-        &Keychain::native().unwrap(),
-        &format!("test-{}", std::process::id()),
-    );
+    struct Cleared<'a>(&'a Keychain, String);
+    impl Drop for Cleared<'_> {
+        fn drop(&mut self) {
+            let _ = self.0.forget(&self.1);
+        }
+    }
+
+    let keychain = Keychain::native(&format!("test-{}", std::process::id())).unwrap();
+    let _cleared = Cleared(&keychain, "drive:ana".into());
+
+    round_trip(&keychain, "drive:ana");
 }

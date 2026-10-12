@@ -498,13 +498,15 @@ pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting)
             .shelf
             .get(&one.reference)
             .filter(|up| up.bytes == one.len);
+        // Counting reads no bytes: the same size under a hash the provider keeps is enough for an estimate.
         let safe = !tisty_core::holes::a_hole(&one.at)
             && match twin {
-                Some(up) if !up.hash.is_empty() => resembles(remote, &one.at, up),
+                Some(up) if !up.hash.is_empty() => only_counting || resembles(remote, &one.at, up),
                 Some(_) => elsewhere(&one.reference),
                 None => false,
             };
-        match safe && (only_counting || std::fs::remove_file(&one.at).is_ok()) {
+        let still = only_counting || chosen(&one.reference, one.len);
+        match safe && still && (only_counting || std::fs::remove_file(&one.at).is_ok()) {
             true => {
                 done.gone += 1;
                 done.freed += one.len;

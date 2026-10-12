@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use keyring_core::{CredentialStore, Entry, Error};
@@ -9,19 +10,31 @@ const SERVICE: &str = "tisty";
 /// The system's own keychain: Credential Manager, the macOS Keychain or the Secret Service.
 pub struct Keychain {
     store: Arc<CredentialStore>,
+    scope: String,
 }
 
 impl Keychain {
-    pub fn native() -> Result<Self, Hitch> {
-        native_store().map(Self::over).map_err(trouble)
+    /// `scope` keeps apart what two stores or two profiles of one person hold for the same account.
+    pub fn native(scope: &str) -> Result<Self, Hitch> {
+        native_store()
+            .map(|store| Self::over(store, scope))
+            .map_err(trouble)
     }
 
-    pub(crate) fn over(store: Arc<CredentialStore>) -> Self {
-        Self { store }
+    pub(crate) fn over(store: Arc<CredentialStore>, scope: &str) -> Self {
+        Self {
+            store,
+            scope: scope.to_string(),
+        }
     }
 
     fn entry(&self, key: &str) -> Result<Entry, Hitch> {
-        self.store.build(SERVICE, key, None).map_err(trouble)
+        let named = format!("{}/{key}", self.scope);
+        let kept = kept_here();
+        let modifiers = (!kept.is_empty()).then_some(&kept);
+        self.store
+            .build(SERVICE, &named, modifiers)
+            .map_err(trouble)
     }
 }
 
@@ -46,9 +59,27 @@ impl Secrets for Keychain {
     fn forget(&self, key: &str) -> Result<(), Hitch> {
         match self.entry(key)?.delete_credential() {
             Ok(()) | Err(Error::NoEntry) => Ok(()),
+            Err(Error::Ambiguous(all)) => {
+                all.iter()
+                    .try_for_each(|one| match one.delete_credential() {
+                        Ok(()) | Err(Error::NoEntry) => Ok(()),
+                        Err(e) => Err(trouble(e)),
+                    })
+            }
             Err(e) => Err(trouble(e)),
         }
     }
+}
+
+// Enterprise, Windows' default, roams with a domain profile, and another machine would rotate the same token.
+#[cfg(windows)]
+fn kept_here() -> HashMap<&'static str, &'static str> {
+    HashMap::from([("persistence", "Local")])
+}
+
+#[cfg(not(windows))]
+fn kept_here() -> HashMap<&'static str, &'static str> {
+    HashMap::new()
 }
 
 #[cfg(windows)]
@@ -67,7 +98,12 @@ fn native_store() -> keyring_core::Result<Arc<CredentialStore>> {
 }
 
 fn trouble(e: Error) -> Hitch {
-    Hitch::Broke(format!("the keychain refused: {e}"))
+    match e {
+        Error::TooLong(what, most) => Hitch::Broke(format!(
+            "the keychain holds at most {most} bytes for {what}, and this token is longer"
+        )),
+        other => Hitch::Broke(format!("the keychain refused: {other}")),
+    }
 }
 
 #[cfg(test)]
