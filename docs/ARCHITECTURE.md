@@ -148,11 +148,13 @@ How an append stays safe (`Store`):
 
 ### Network
 
-`tisty-core`, `tisty-sync` and `tisty-carrier` contain no network code. The
-only HTTP client is in `tisty-gui`: the version check and the updater
-(`update.rs`, limited to GitHub hosts) and the preview of a link the person
-asks for (`glimpse.rs`). The window's content policy allows no connection but
-IPC (`tauri.conf.json`).
+`tisty-core`, `tisty-sync`, `tisty-nl` and the CLI contain no network code;
+CI fails if any of them reaches `reqwest`. `tisty-gui` holds the version check
+and the updater (`update.rs`, limited to GitHub hosts) and the preview of a
+link the person asks for (`glimpse.rs`). `tisty-carrier` reaches the network
+only behind its `cloud` feature, which only the window turns on: Google's
+sign-in and token renewal (`google.rs`). The window's content policy allows no
+connection but IPC (`tauri.conf.json`).
 
 ## The data model
 
@@ -832,7 +834,17 @@ scope (the store or the profile) and the key, so two stores of one person never
 share a token, and on Windows it is kept `Local`, since the default roams with a
 domain profile to machines that would rotate it. No token is ever written to a
 file, which a test fixes.
-Nothing implements `Renew` outside tests.
+`google::GoogleRenew` implements `Renew` against Google's token endpoint: a
+refresh Google no longer honours (`invalid_grant`) is `Hitch::Lost`, a 429 waits
+its `Retry-After`, and a rotated refresh token comes back to be kept.
+
+The sign-in is `google::Consent`, OAuth with PKCE (S256) and a `state`, over a
+loopback on `127.0.0.1` at a port the system picks. It asks for `drive.file`
+alone and refuses a grant that came back wider. The client id and its secret,
+which Google does not treat as confidential for a desktop app, are fixed when
+the release is built (`option_env!`, from the `release` environment); a build
+without them, a fork's included, gets `cloud_offered()` false and offers no
+cloud.
 
 ### `Remote`
 

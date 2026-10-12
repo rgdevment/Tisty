@@ -5443,15 +5443,20 @@ name = "tisty-carrier"
 version = "0.1.0"
 dependencies = [
  "apple-native-keyring-store",
+ "base64 0.22.1",
  "keyring-core",
  "proptest",
+ "rand_core 0.9.5",
+ "reqwest",
  "serde",
  "serde_json",
+ "sha2 0.11.0",
  "tempfile",
  "tisty-core",
  "tisty-sync",
  "toml 1.1.6+spec-1.1.0",
  "ulid",
+ "url",
  "windows-native-keyring-store",
  "zbus-secret-service-keyring-store",
 ]
