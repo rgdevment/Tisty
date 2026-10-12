@@ -46,11 +46,24 @@ const settle = () => vi.advanceTimersByTimeAsync(0);
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("carrying on its own", () => {
-  it("brings the other side home the moment its provider says it changed", async () => {
+  it("brings the other side home when its provider says it changed, and not for its own upload", async () => {
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
     carried = carrying(() => {});
+    await settle();
+    bus.heard.get("told")?.();
     await settle();
     const before = sent("sync_now").length;
 
+    bus.heard.get("told")?.();
+    await settle();
+    expect(sent("sync_now")).toHaveLength(before);
+
+    mark = "two";
     bus.heard.get("told")?.();
     await settle();
 

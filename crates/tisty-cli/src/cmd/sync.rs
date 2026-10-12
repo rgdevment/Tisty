@@ -262,8 +262,9 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         };
         println!("  {}", style::dim(&said));
         for name in &deferred.names {
-            let shown = name.rsplit('/').next().unwrap_or(name);
-            println!("    {}", style::dim(shown));
+            let leaf = name.rsplit('/').next().unwrap_or(name);
+            let shown = tisty_core::attach::decoded(leaf).unwrap_or_else(|| leaf.to_string());
+            println!("    {}", style::dim(&shown));
         }
         let unnamed = deferred.left.saturating_sub(deferred.names.len());
         if !deferred.names.is_empty() && unnamed > 0 {

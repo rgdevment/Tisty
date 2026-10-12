@@ -112,3 +112,28 @@ fn a_paused_cloud_does_not_listen_either() {
         "a paused cloud kept listening to the provider"
     );
 }
+
+#[test]
+fn a_listen_already_open_is_charged_each_ask_and_stops_when_the_cloud_pauses() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::dropbox();
+    let mut heard = Metered::over(&fake, home.path(), Class::History)
+        .hears("0")
+        .unwrap();
+
+    heard.told(std::time::Duration::ZERO).unwrap();
+    let after_one = Spent::load(home.path()).units;
+    policy::pause_here(home.path(), true).unwrap();
+
+    assert_eq!(
+        after_one,
+        fake.limits().costs.changes,
+        "the ask went uncounted"
+    );
+    assert_eq!(heard.told(std::time::Duration::ZERO), Err(Hitch::Paused));
+    assert_eq!(
+        Spent::load(home.path()).units,
+        after_one,
+        "a paused listen still asked"
+    );
+}

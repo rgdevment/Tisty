@@ -78,57 +78,79 @@ impl<'a> Metered<'a> {
     }
 
     fn allowed(&self) -> Result<(), Hitch> {
-        if policy::paused_here(&self.home)
-            || policy::halted(policy::kept(&self.home).as_ref(), policy::now())
-        {
-            return Err(Hitch::Paused);
-        }
         let class = self.class.lock().map_or(Class::History, |one| *one);
-        let (units, bytes) = match class {
-            Class::Asked => return Ok(()),
-            Class::History => (self.limits.units_a_day, self.limits.bytes_a_day),
-            Class::Attachments => (
-                self.limits.units_a_day - self.limits.units_a_day / 100 * RESERVED_PERCENT,
-                self.limits.bytes_a_day - self.limits.bytes_a_day / 100 * RESERVED_PERCENT,
-            ),
-        };
-        let spent = Spent::load(&self.home);
-        match spent.units >= units || spent.bytes >= bytes {
-            true => Err(Hitch::Spent),
-            false => Ok(()),
-        }
+        allowed_at(&self.home, &self.limits, class)
     }
 
     fn charge(&self, requests: u64, cost: u64, bytes: u64) {
-        // Threads of one process queue here without a deadline, so only another process can ever wait the lock out.
-        static CHARGING: std::sync::Mutex<()> = std::sync::Mutex::new(());
-        let _ours = CHARGING
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        // Unlocked, two charges at once can still lose one; never charging loses every one.
-        let _turn = match Held::wait_for(&self.home, BUDGETING, CHARGE_WAITED_OUT) {
-            Ok(Some(turn)) => Some(turn),
-            Ok(None) => {
-                tisty_core::witness::warn(
-                    tisty_core::witness::channel::CLOUD,
-                    "the budget is charged without its lock, which another process held too long",
-                    &[],
-                );
-                None
-            }
-            Err(why) => {
-                tisty_core::witness::warn(
-                    tisty_core::witness::channel::CLOUD,
-                    "the budget is charged without its lock, which could not be taken",
-                    &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
-                );
-                None
-            }
-        };
-        let mut spent = Spent::load(&self.home);
-        spent.units = spent.units.saturating_add(requests.saturating_mul(cost));
-        spent.bytes = spent.bytes.saturating_add(bytes);
-        spent.save(&self.home);
+        charged(&self.home, requests, cost, bytes);
+    }
+}
+
+fn allowed_at(home: &Path, limits: &Limits, class: Class) -> Result<(), Hitch> {
+    if policy::paused_here(home) || policy::halted(policy::kept(home).as_ref(), policy::now()) {
+        return Err(Hitch::Paused);
+    }
+    let (units, bytes) = match class {
+        Class::Asked => return Ok(()),
+        Class::History => (limits.units_a_day, limits.bytes_a_day),
+        Class::Attachments => (
+            limits.units_a_day - limits.units_a_day / 100 * RESERVED_PERCENT,
+            limits.bytes_a_day - limits.bytes_a_day / 100 * RESERVED_PERCENT,
+        ),
+    };
+    let spent = Spent::load(home);
+    match spent.units >= units || spent.bytes >= bytes {
+        true => Err(Hitch::Spent),
+        false => Ok(()),
+    }
+}
+
+fn charged(home: &Path, requests: u64, cost: u64, bytes: u64) {
+    // Threads of one process queue here without a deadline, so only another process can ever wait the lock out.
+    static CHARGING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _ours = CHARGING
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    // Unlocked, two charges at once can still lose one; never charging loses every one.
+    let _turn = match Held::wait_for(home, BUDGETING, CHARGE_WAITED_OUT) {
+        Ok(Some(turn)) => Some(turn),
+        Ok(None) => {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::CLOUD,
+                "the budget is charged without its lock, which another process held too long",
+                &[],
+            );
+            None
+        }
+        Err(why) => {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::CLOUD,
+                "the budget is charged without its lock, which could not be taken",
+                &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+            );
+            None
+        }
+    };
+    let mut spent = Spent::load(home);
+    spent.units = spent.units.saturating_add(requests.saturating_mul(cost));
+    spent.bytes = spent.bytes.saturating_add(bytes);
+    spent.save(home);
+}
+
+// Every ask a long listen makes is weighed like any other, so a pause or a spent day stops it between two.
+struct Listening {
+    watch: Box<dyn Watch>,
+    home: PathBuf,
+    limits: Limits,
+}
+
+impl Watch for Listening {
+    fn told(&mut self, within: std::time::Duration) -> Result<bool, Hitch> {
+        allowed_at(&self.home, &self.limits, Class::History)?;
+        let heard = self.watch.told(within);
+        charged(&self.home, 1, self.limits.costs.changes, 0);
+        heard
     }
 }
 
@@ -223,7 +245,12 @@ impl Remote for Metered<'_> {
     // Listening asks the provider too, so a paused cloud or a spent day hears nothing.
     fn hears(&self, since: &str) -> Option<Box<dyn Watch>> {
         self.allowed().ok()?;
-        self.remote.hears(since)
+        let watch = self.remote.hears(since)?;
+        Some(Box::new(Listening {
+            watch,
+            home: self.home.clone(),
+            limits: self.limits,
+        }))
     }
 
     fn lends(&self, name: &str) -> Result<Option<String>, Hitch> {

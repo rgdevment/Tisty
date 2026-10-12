@@ -15,9 +15,9 @@ pub fn listen(app: AppHandle) {
     std::thread::spawn(move || {
         loop {
             match heard_from(&app) {
-                Some(mut heard) => {
+                Some((mut heard, chosen)) => {
                     let began = Instant::now();
-                    while began.elapsed() < RENEWED {
+                    while began.elapsed() < RENEWED && chosen_now(&app) == chosen {
                         let asked = Instant::now();
                         match heard.told(LISTENS) {
                             Ok(true) => {
@@ -40,7 +40,19 @@ pub fn listen(app: AppHandle) {
     });
 }
 
-fn heard_from(app: &AppHandle) -> Option<Box<dyn tisty_carrier::Watch>> {
-    let carrier = app.try_state::<Mutex<Session>>()?.lock().ok()?.carrier()?;
-    carrier.hears()
+type Chosen = Option<tisty_core::config::Sync>;
+
+fn chosen_now(app: &AppHandle) -> Chosen {
+    app.try_state::<Mutex<Session>>()
+        .and_then(|session| session.lock().ok().and_then(|one| one.config.sync.clone()))
+}
+
+// Heard together with the way it was chosen, so a listen ends the moment the person picks another.
+fn heard_from(app: &AppHandle) -> Option<(Box<dyn tisty_carrier::Watch>, Chosen)> {
+    let (carrier, chosen) = {
+        let session = app.try_state::<Mutex<Session>>()?;
+        let session = session.lock().ok()?;
+        (session.carrier()?, session.config.sync.clone())
+    };
+    Some((carrier.hears()?, chosen))
 }
