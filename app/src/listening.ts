@@ -3,9 +3,9 @@ import { type MutableRefObject, useEffect, useRef } from "react";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { type Afoot, attach, doorDue, parted, syncState } from "./core";
-import { decideAll } from "./deciding";
+import { decideAll, putOffSaid } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
-import { fill, t } from "./locales";
+import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { settled } from "./saving";
 import type { Chosen } from "./views";
@@ -87,7 +87,7 @@ export function useListening({
         decideAll(ids)
           .then(({ said, putOff }) => {
             if (said) setError(said);
-            else if (putOff.length) noted(fill("putOffDocs", String(putOff.length)), 8000);
+            if (putOff.length) noted(putOffSaid(putOff.length), 8000);
           })
           .catch((problem) => setError(saidPlainly(problem)))
           .finally(() => latest.current());

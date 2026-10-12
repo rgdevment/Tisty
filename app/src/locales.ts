@@ -1008,6 +1008,8 @@ const en = {
     "This document was written on this machine and on another since they last met, and the two could not be put together on their own. Keeping one loses the other; keeping both loses nothing.",
   putOffDocs:
     "{name} documents left for later are not synced until you decide. Sync by hand to see them again.",
+  putOffDocIsOne:
+    "1 document left for later is not synced until you decide. Sync by hand to see it again.",
   versionsKeepMine: "Keep the one on this machine",
   versionsKeepTheirs: "Keep the one from the other machine",
   versionsKeepBoth: "Keep both, the other one beside this one and marked",
@@ -2618,6 +2620,8 @@ const es: Catalog = {
     "Este documento se escribió en esta máquina y en otra desde la última vez que se vieron, y las dos versiones no se pudieron juntar solas. Si te quedas con una, la otra se pierde; con las dos no se pierde nada.",
   putOffDocs:
     "{name} documentos que dejaste para más tarde no se sincronizan hasta que decidas. Sincroniza a mano para verlos de nuevo.",
+  putOffDocIsOne:
+    "1 documento que dejaste para más tarde no se sincroniza hasta que decidas. Sincroniza a mano para verlo de nuevo.",
   versionsKeepMine: "Quedarme con la de esta máquina",
   versionsKeepTheirs: "Quedarme con la de la otra máquina",
   versionsKeepBoth: "Quedarme con las dos, la otra al lado y marcada",

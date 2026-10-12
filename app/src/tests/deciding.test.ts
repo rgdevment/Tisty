@@ -253,7 +253,6 @@ describe("asking inside the window", () => {
     const whole = vi.fn(async (): Promise<Pick | null> => null);
     decidesWhole(whole);
 
-    await decideAll(["dev_a-0003"]);
     expect((await decideAll(["dev_a-0003"])).putOff).toEqual(["dev_a-0003"]);
     expect((await decideAll(["dev_a-0003"])).putOff).toEqual([]);
     expect(whole).toHaveBeenCalledTimes(1);
@@ -280,5 +279,25 @@ describe("asking inside the window", () => {
 
     expect(held).toHaveLength(2);
     expect(settled()).toHaveLength(2);
+  });
+});
+
+describe("a document that comes back at odds after it was decided", () => {
+  it("is asked about again by the next round that looks after the decision", async () => {
+    const whole = vi.fn(async (): Promise<Pick | null> => "mine");
+    decidesWhole(whole);
+
+    await decideAll(["dev_a-0006"]);
+    await decideAll(["dev_a-0006"]);
+
+    expect(whole).toHaveBeenCalledTimes(2);
+  });
+
+  it("tells a sync by hand what was left for later", async () => {
+    decidesWhole(async () => null);
+
+    const { putOff } = await decideAll(["dev_a-0007"], true);
+
+    expect(putOff).toEqual(["dev_a-0007"]);
   });
 });
