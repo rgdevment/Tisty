@@ -4,7 +4,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use tisty_core::attach::{self, COPIED_IN_DOC};
 use tisty_core::witness::{self, Fact, channel};
-use tisty_sync::{Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken, Taking, Trouble};
+use tisty_sync::{
+    Attachments, Given, Giving, HELD, LetGo, NAMED_AT_MOST, Reached, Stage, Taken, Taking, Trouble,
+};
 
 use super::index::Index;
 use super::judge::{Judged, judge};
@@ -48,7 +50,7 @@ impl<'a> Shelf<'a> {
     }
 
     pub fn paused(&self) -> Option<Deferred> {
-        self.paused
+        self.paused.clone()
     }
 
     pub fn sent(&self) -> usize {
@@ -68,7 +70,12 @@ impl<'a> Shelf<'a> {
                     .is_some_and(|up| up.bytes == one.len))
     }
 
-    fn refuse(&mut self, hitch: Hitch, reference: &str, remaining: usize) -> Result<(), Trouble> {
+    fn refuse(
+        &mut self,
+        hitch: Hitch,
+        reference: &str,
+        remaining: Vec<String>,
+    ) -> Result<(), Trouble> {
         if matches!(
             hitch,
             Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
@@ -87,8 +94,9 @@ impl<'a> Shelf<'a> {
             Judged::Pause(reason, wait) => {
                 self.paused = Some(Deferred {
                     reason,
-                    left: remaining,
+                    left: remaining.len(),
                     retry_after: wait,
+                    names: remaining.into_iter().take(NAMED_AT_MOST).collect(),
                 });
                 Ok(())
             }
@@ -263,7 +271,8 @@ impl Attachments for Shelf<'_> {
                     let remaining = all[at..]
                         .iter()
                         .filter(|rest| self.owed(rest, &round))
-                        .count();
+                        .map(|rest| rest.reference.clone())
+                        .collect();
                     self.refuse(hitch, &one.reference, remaining)?;
                 }
             }
@@ -333,7 +342,8 @@ impl Attachments for Shelf<'_> {
                     let remaining = up[done..]
                         .iter()
                         .filter(|(rest, said)| wanted(&round, self.index, rest, said))
-                        .count();
+                        .map(|(rest, _)| rest.to_string())
+                        .collect();
                     self.refuse(hitch, reference, remaining)?;
                     continue;
                 }

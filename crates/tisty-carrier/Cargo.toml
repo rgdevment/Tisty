@@ -15,6 +15,7 @@ tisty-sync.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 keyring-core.workspace = true
+minisign-verify.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows-native-keyring-store.workspace = true

@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
@@ -108,8 +109,9 @@ export function carrying(
       .catch(() => {});
 
   let astir: string | undefined;
-  const glance = () => {
-    if (gone || folder === undefined || document.visibilityState !== "visible") return;
+  // The provider also says when this machine's own upload landed, so its word is weighed like a glance.
+  const stirred = () => {
+    if (gone) return;
     folderAstir()
       .then((mark) => {
         if (gone) return undefined;
@@ -130,6 +132,11 @@ export function carrying(
       .catch(() => {});
   };
 
+  const glance = () => {
+    if (folder === undefined || document.visibilityState !== "visible") return;
+    stirred();
+  };
+
   const seen = () => {
     if (document.visibilityState === "visible") void pull();
   };
@@ -138,6 +145,7 @@ export function carrying(
 
   window.addEventListener("focus", pull);
   document.addEventListener("visibilitychange", seen);
+  const told = listen("told", stirred);
   const beat = setInterval(both, EVERY_SO_OFTEN);
   const glancing = setInterval(glance, A_GLANCE);
 
@@ -158,6 +166,7 @@ export function carrying(
       clearTimeout(later);
       clearInterval(beat);
       clearInterval(glancing);
+      void told.then((stop) => stop());
       window.removeEventListener("focus", pull);
       document.removeEventListener("visibilitychange", seen);
     },

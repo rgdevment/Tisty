@@ -110,16 +110,21 @@ pub struct Moved {
 pub enum Reason {
     Limit,
     Budget,
+    Paused,
     Busy,
     Offline,
     Changed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// How many of what is left a round names; the rest is only counted.
+pub const NAMED_AT_MOST: usize = 20;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Deferred {
     pub reason: Reason,
     pub left: usize,
     pub retry_after: Option<std::time::Duration>,
+    pub names: Vec<String>,
 }
 
 impl Moved {

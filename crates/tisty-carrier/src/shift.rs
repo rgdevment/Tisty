@@ -22,7 +22,7 @@ impl Owed {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Shift {
     Homing {
         owed: Owed,
