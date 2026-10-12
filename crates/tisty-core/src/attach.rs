@@ -861,7 +861,7 @@ fn since_epoch(when: std::time::SystemTime) -> i64 {
         .unwrap_or(0)
 }
 
-fn decoded(said: &str) -> Option<String> {
+pub fn decoded(said: &str) -> Option<String> {
     let bytes = said.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
     let mut at = 0;

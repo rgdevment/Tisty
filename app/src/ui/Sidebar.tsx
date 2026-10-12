@@ -6,6 +6,7 @@ import type { Chosen, Named } from "../views";
 import Coming from "./Coming";
 import Glyph from "./Glyph";
 import Knocking, { KnockDot } from "./Knocking";
+import Mode from "./Mode";
 import Tree from "./Tree";
 
 interface Props {
@@ -143,6 +144,7 @@ export default function Sidebar({
           </Drawn>
           <KnockDot />
         </button>
+        <Mode onOpen={() => onChoose({ named: "keeping" })} />
         {waiting ? (
           <button
             type="button"

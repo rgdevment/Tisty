@@ -491,6 +491,7 @@ export interface Carrying {
   sharedWas?: string;
   sharedWasLater?: boolean;
   later?: boolean;
+  mode: "alone" | "folder" | "later";
   backedUpAt?: string;
   freesSpace: boolean;
 }
@@ -722,8 +723,14 @@ export interface Settled {
   astray: string[];
   unprojected: boolean;
   joined: string[];
-  deferred?: "budget" | "limit" | "offline" | "busy" | "changed" | null;
+  deferred?: Waiting | null;
 }
+
+export type Waiting = {
+  reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused";
+  left: number;
+  names: string[];
+};
 
 export const whatWentAmiss = (said: Settled) =>
   (said.unprojected && "ownLogUnreadable") ||
@@ -738,11 +745,12 @@ const WAITS = {
   budget: "deferredBudget",
   limit: "deferredLimit",
   offline: "deferredOffline",
+  paused: "deferredPaused",
 } as const;
 
 // A round left for later is no error, and a busy or changed one retries by itself, so only these are said.
 export const whatWaits = (said: Settled): (typeof WAITS)[keyof typeof WAITS] | null => {
-  const reason = said.deferred;
+  const reason = said.deferred?.reason;
   return reason && reason in WAITS ? WAITS[reason as keyof typeof WAITS] : null;
 };
 

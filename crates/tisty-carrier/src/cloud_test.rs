@@ -835,7 +835,13 @@ fn an_upload_the_provider_defers_goes_with_the_next_round_and_the_original_stays
 
         let held_back = one.carry(Way::Both, Holds::Shared).unwrap();
 
-        assert_eq!(held_back.deferred.unwrap().reason, Reason::Limit, "{who}");
+        let deferred = held_back.deferred.clone().unwrap();
+        assert_eq!(deferred.reason, Reason::Limit, "{who}");
+        assert!(
+            deferred.names.contains(&kept.at),
+            "{who}: what was left lost its name: {:?}",
+            deferred.names
+        );
         assert_eq!(held_back.let_go, Vec::<String>::new(), "{who}");
         assert!(
             one.held(&kept.at).is_some(),
@@ -1703,14 +1709,16 @@ fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
         reason: Reason::Changed,
         left: 1,
         retry_after: None,
+        names: vec!["attachments/ab/a.png".into()],
     });
     let spent = Some(crate::Deferred {
         reason: Reason::Budget,
         left: 2,
         retry_after: None,
+        names: vec!["attachments/cd/b.pdf".into(), "attachments/ef/c.mp4".into()],
     });
 
-    let said = super::merged(owed, spent).unwrap();
+    let said = super::merged(owed.clone(), spent.clone()).unwrap();
 
     assert_eq!(
         said.reason,
@@ -1718,5 +1726,47 @@ fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
         "a spent day was told as a file that changed"
     );
     assert_eq!(said.left, 3);
+    assert_eq!(
+        said.names,
+        [
+            "attachments/ab/a.png",
+            "attachments/cd/b.pdf",
+            "attachments/ef/c.mp4"
+        ],
+        "what was left lost its names on the way"
+    );
     assert_eq!(super::merged(spent, owed).unwrap().reason, Reason::Budget);
+}
+
+#[test]
+fn a_provider_that_says_when_the_other_side_changed_is_heard_and_the_rest_are_looked_at() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        one.round(Way::Both);
+        let Some(mut heard) = one.carrier.hears() else {
+            assert!(
+                who != "cloud over dropbox",
+                "{who}: a provider that can say so was only looked at"
+            );
+            continue;
+        };
+        assert_eq!(
+            heard.told(Duration::ZERO),
+            Ok(false),
+            "{who}: told of nothing"
+        );
+
+        two.wrote("lo de dos");
+        two.round(Way::Both);
+
+        assert_eq!(
+            heard.told(Duration::ZERO),
+            Ok(true),
+            "{who}: the other side was not heard"
+        );
+    }
 }

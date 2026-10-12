@@ -6,11 +6,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tisty_core::signing::SigningKey;
-use tisty_sync::{carry_through, forget_carried_to, forget_shape};
+use tisty_sync::{NAMED_AT_MOST, carry_through, forget_carried_to, forget_shape};
 
 use crate::{
     Brought, Carrier, Changes, Deferred, Elsewhere, Here, Holding, Keep, Kin, LetGo, Moved, Reason,
-    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble,
+    Remote, Round, STORE, Seen, Signed, Stitched, Told, Trouble, Watch,
 };
 
 mod budget;
@@ -18,6 +18,7 @@ mod index;
 mod judge;
 pub(crate) mod lock;
 mod mirror;
+pub mod policy;
 mod shelf;
 
 use budget::{Class, Metered};
@@ -134,7 +135,9 @@ impl Cloud {
             }
         };
         let quiet = !turn.sends
-            || held.is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Busy));
+            || held
+                .as_ref()
+                .is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Busy));
         let (pushed, hitch) = match quiet {
             true => (mirror::Pushed::default(), None),
             false => mirror::push(remote, &tree, &mut index),
@@ -143,6 +146,7 @@ impl Cloud {
             reason: Reason::Changed,
             left: held_back,
             retry_after: None,
+            names: Vec::new(),
         });
         let mut deferred = merged(held, left_there);
         let mut stopped = None;
@@ -154,6 +158,7 @@ impl Cloud {
                         reason,
                         left: pushed.left,
                         retry_after: wait,
+                        names: Vec::new(),
                     }),
                 );
             }
@@ -165,6 +170,7 @@ impl Cloud {
                         reason: Reason::Changed,
                         left: pushed.left,
                         retry_after: None,
+                        names: Vec::new(),
                     }),
                 );
             }
@@ -307,6 +313,7 @@ impl<T> Done<T> {
                 reason,
                 left: 0,
                 retry_after: wait,
+                names: Vec::new(),
             }),
             stopped: None,
             uploaded: 0,
@@ -350,6 +357,7 @@ fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Troub
 // What the person can do least about speaks: a spent day outlasts a file that changed mid-round.
 fn weight(reason: Reason) -> u8 {
     match reason {
+        Reason::Paused => 5,
         Reason::Budget => 4,
         Reason::Offline => 3,
         Reason::Limit => 2,
@@ -367,6 +375,12 @@ fn merged(first: Option<Deferred>, second: Option<Deferred>) -> Option<Deferred>
             },
             left: one.left + other.left,
             retry_after: one.retry_after.max(other.retry_after),
+            names: one
+                .names
+                .into_iter()
+                .chain(other.names)
+                .take(NAMED_AT_MOST)
+                .collect(),
         }),
         (one, other) => one.or(other),
     }
@@ -456,6 +470,11 @@ impl Carrier for Cloud {
 
     fn stirring(&self) -> u64 {
         self.asked_again()
+    }
+
+    fn hears(&self) -> Option<Box<dyn Watch>> {
+        let index = Index::load(&self.home);
+        Metered::over(&*self.remote, &self.home, Class::History).hears(index.cursor.as_deref()?)
     }
 
     fn unclaimed(&self) -> Holding {

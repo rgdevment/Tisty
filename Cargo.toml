@@ -11,6 +11,7 @@ license = "AGPL-3.0-only"
 publish = false
 
 [workspace.dependencies]
+minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
 tisty-core = { path = "crates/tisty-core" }

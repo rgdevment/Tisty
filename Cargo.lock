@@ -5463,6 +5463,7 @@ version = "0.1.0"
 dependencies = [
  "apple-native-keyring-store",
  "keyring-core",
+ "minisign-verify",
  "proptest",
  "serde",
  "serde_json",

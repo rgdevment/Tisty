@@ -21,12 +21,20 @@ pub enum Expect {
 pub enum Hitch {
     Missing(String),
     Changed(String),
-    Limited { wait: Duration },
-    Busy { wait: Duration },
+    Limited {
+        wait: Duration,
+    },
+    Busy {
+        wait: Duration,
+    },
     Spent,
+    /// Held by Tisty itself, from afar or on this machine, never by the provider.
+    Paused,
     Full,
     Lost,
-    Elsewhere { found: String },
+    Elsewhere {
+        found: String,
+    },
     Unreachable(String),
     Broke(String),
 }

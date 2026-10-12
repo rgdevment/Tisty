@@ -1005,6 +1005,10 @@ const en = {
   deferredBudget:
     "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on tomorrow.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
+  deferredPaused: "The cloud is paused. Your changes stay on this machine until it goes on.",
+  deferredLeft: "{name} left for later: {other}.",
+  deferredMore: "{name} and {other} more",
+  deferredCount: "{name} left for later.",
   deferredOffline:
     "Your cloud could not be reached. What you write stays safe here and goes when there is a connection.",
   emptiedPlace:
@@ -1157,6 +1161,10 @@ const en = {
   syncOffRestored:
     "Not sharing since you restored. It was «{name}»; choosing it again asks you which side wins.",
   syncOn: "Leaving copies in {name}",
+  modeAlone: "Only on this machine",
+  modeFolder: "Folder · {name}",
+  modeLater: "Syncing a newer way",
+  modeOpen: "How Tisty syncs",
   turnSyncOn: "Turn on…",
   changeFolder: "Change folder",
   syncOffNow: "Turn off",
@@ -2678,6 +2686,10 @@ const es: Catalog = {
   deferredBudget:
     "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue mañana.",
   deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",
+  deferredPaused: "La nube está en pausa. Tus cambios quedan en este equipo hasta que siga.",
+  deferredLeft: "Quedan {name} para después: {other}.",
+  deferredMore: "{name} y {other} más",
+  deferredCount: "Quedan {name} para después.",
   deferredOffline:
     "No se pudo llegar a tu nube. Lo que escribas queda guardado aquí y se envía cuando haya conexión.",
   emptiedPlace:
@@ -2831,6 +2843,10 @@ const es: Catalog = {
   syncOffRestored:
     "Sin compartir desde que restauraste. Compartías con «{name}»; al volver a elegirla te preguntará qué lado manda.",
   syncOn: "Dejando copias en {name}",
+  modeAlone: "Solo en este equipo",
+  modeFolder: "Carpeta · {name}",
+  modeLater: "Sincroniza de una forma más nueva",
+  modeOpen: "Cómo sincroniza Tisty",
   turnSyncOn: "Activar…",
   changeFolder: "Cambiar carpeta",
   syncOffNow: "Desactivar",
