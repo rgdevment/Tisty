@@ -33,6 +33,19 @@
   ${EndIf}
 !macroend
 
+; Tisty only joins "Open with" for Markdown: the default program for .md stays the person's choice.
+!macro NSIS_HOOK_POSTINSTALL
+  WriteRegStr SHCTX "Software\Classes\tisty" "" "URL:Tisty"
+  WriteRegStr SHCTX "Software\Classes\tisty" "URL Protocol" ""
+  WriteRegStr SHCTX "Software\Classes\tisty\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
+  WriteRegStr SHCTX "Software\Classes\tisty\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" "%1"'
+  WriteRegStr SHCTX "Software\Classes\Tisty.Markdown" "" "Markdown"
+  WriteRegStr SHCTX "Software\Classes\Tisty.Markdown\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
+  WriteRegStr SHCTX "Software\Classes\Tisty.Markdown\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" "%1"'
+  WriteRegStr SHCTX "Software\Classes\.md\OpenWithProgids" "Tisty.Markdown" ""
+  WriteRegStr SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown" ""
+!macroend
+
 !macro NSIS_HOOK_PREUNINSTALL
   ; The window is not the only thing running: an assistant keeps `tisty.exe mcp`
   ; alive for as long as its client lives, and a locked binary leaves the folder
@@ -58,6 +71,10 @@
   ; left where it is on purpose: wanting the program gone is not wanting the
   ; documents gone, and they are the person's.
   ${If} $UpdateMode <> 1
+    DeleteRegKey SHCTX "Software\Classes\tisty"
+    DeleteRegKey SHCTX "Software\Classes\Tisty.Markdown"
+    DeleteRegValue SHCTX "Software\Classes\.md\OpenWithProgids" "Tisty.Markdown"
+    DeleteRegValue SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
     Delete "$INSTDIR\ns*.tmp.old"

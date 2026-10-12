@@ -15,6 +15,7 @@ import markPlugin from "markdown-it-mark";
 import taskLists from "markdown-it-task-lists";
 import { MarkdownSerializerState } from "prosemirror-markdown";
 import { Markdown } from "tiptap-markdown";
+import { viewWidget } from "../core";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { DOC } from "../markdown";
@@ -975,11 +976,16 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
       const fold = document.createElement("button");
       fold.type = "button";
       fold.className = "lit-fold";
+      const apart = document.createElement("button");
+      apart.type = "button";
+      apart.className = "lit-fold";
+      apart.textContent = t("viewApart");
       let folded = (node.textContent ?? "").trim() !== "";
       const folding = (one: ProseNode) => {
         const widget = String(one.attrs.language ?? "") === "widget";
         if (widget && !(one.textContent ?? "").trim()) folded = false;
         fold.hidden = !widget;
+        apart.hidden = !widget || !(one.textContent ?? "").trim();
         held.classList.toggle("lit-folding", widget);
         body.hidden = widget && folded;
         fold.textContent = t(folded ? "codeShow" : "codeHide");
@@ -1031,7 +1037,10 @@ const Lettered = CodeBlockLowlight.configure({ lowlight: createLowlight(common) 
         folded = !folded;
         folding(mine as ProseNode);
       });
-      bar.append(name, said, fold, picked);
+      apart.addEventListener("click", () => {
+        viewWidget({ source: (mine as ProseNode).textContent ?? "" }).catch(() => {});
+      });
+      bar.append(name, said, fold, apart, picked);
 
       const drawn = document.createElement("div");
       drawn.className = "lit-drawn";

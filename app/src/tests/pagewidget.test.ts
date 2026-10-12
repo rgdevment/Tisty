@@ -96,6 +96,15 @@ describe("a page attached to a document", () => {
     editor.destroy();
   });
 
+  it("opens the page alone in a window of its own, named by its reference", () => {
+    const editor = made(`![informe](<${PAGE}>)`, { onMenu: undefined });
+
+    editor.view.dom.querySelector<HTMLButtonElement>(".widget-page-apart")?.click();
+
+    expect(ipc.calls).toContainEqual({ cmd: "view_widget", args: { lent: { reference: PAGE } } });
+    editor.destroy();
+  });
+
   it("offers no widget for a card that is not a page", () => {
     const menu = vi.fn();
     const editor = made("![acta](<attachments/cd/acta-12345678.pdf>)", { onMenu: menu });

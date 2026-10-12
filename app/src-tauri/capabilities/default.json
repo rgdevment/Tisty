@@ -5,7 +5,8 @@
   "windows": [
     "main",
     "quick",
-    "moving"
+    "moving",
+    "view-*"
   ],
   "permissions": [
     "core:default",
@@ -25,6 +26,8 @@
     "notification:default",
     "core:window:allow-hide",
     "core:window:allow-show",
-    "core:window:allow-set-focus"
+    "core:window:allow-set-focus",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen"
   ]
 }

@@ -410,6 +410,14 @@ export const widgetLendKept = (reference: string): Promise<Borrowed> =>
   invoke("widget_lend_kept", { reference });
 export const widgetTakeBack = (id: string): Promise<void> => invoke("widget_take_back", { id });
 
+export type Showing =
+  | { kind: "file"; name: string; body: string }
+  | { kind: "widget"; source: string | null; reference: string | null };
+export type Lent = { source: string } | { reference: string };
+export const viewShown = (): Promise<Showing> => invoke("view_shown");
+export const viewImport = (): Promise<string> => invoke("view_import");
+export const viewWidget = (lent: Lent): Promise<void> => invoke("view_widget", { lent });
+
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });

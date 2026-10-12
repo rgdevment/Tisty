@@ -16,6 +16,7 @@ mod shop;
 mod summing;
 mod tray;
 mod update;
+mod viewing;
 mod vouching;
 mod waking;
 mod widgets;
@@ -649,11 +650,15 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let argv: Vec<String> = std::env::args().collect();
     if tisty_core::paths::home_moves() {
         moving::begin(app.handle().clone());
+        viewing::heard(app.handle(), &argv);
         return Ok(());
     }
-    opened(app.handle())
+    opened(app.handle())?;
+    viewing::heard(app.handle(), &argv);
+    Ok(())
 }
 
 pub(crate) fn opened(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
@@ -801,8 +806,10 @@ pub fn run() {
     let mut building = tauri::Builder::default();
 
     if tisty_core::paths::profile().is_none() {
-        building = building.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            tray::surface(app);
+        building = building.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if !viewing::heard(app, &argv) {
+                tray::surface(app);
+            }
         }));
     }
 
@@ -863,6 +870,7 @@ pub fn run() {
         })
         .manage(OneAtATime::default())
         .manage(widgets::Lent::default())
+        .manage(viewing::Views::default())
         .manage(Packing::default())
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
@@ -1026,6 +1034,9 @@ pub fn run() {
             answers::shelves::folder_away,
             answers::papers::doc_lock,
             desktop::parted,
+            viewing::view_shown,
+            viewing::view_import,
+            viewing::view_widget,
             answers::shelves::sow,
             answers::shelves::folder_file
         ])
@@ -1035,6 +1046,10 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             if matches!(_event, tauri::RunEvent::Reopen { .. }) {
                 tray::surface(_app);
+            }
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &_event {
+                viewing::heard_links(_app, urls);
             }
         });
 }

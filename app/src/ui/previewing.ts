@@ -3,7 +3,7 @@ import type { Node as Written } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import type { Glimpse } from "../core";
+import { type Glimpse, viewWidget } from "../core";
 import { markup } from "../glyphs";
 import { t, type Word } from "../locales";
 import {
@@ -514,6 +514,15 @@ const paging = (href: string, label: string, reach: Reach, shelve: () => void): 
     });
     bar.append(back);
   }
+  const apart = document.createElement("button");
+  apart.type = "button";
+  apart.className = "widget-page-apart";
+  apart.textContent = t("viewApart");
+  apart.addEventListener("click", (e) => {
+    e.stopPropagation();
+    viewWidget({ reference: href }).catch(() => {});
+  });
+  bar.append(apart);
   const drawn = document.createElement("span");
   drawn.className = "widget-page-drawn";
   box.append(bar, drawn);

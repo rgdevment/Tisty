@@ -939,7 +939,8 @@ body {
   color: var(--tisty-ink);
   font-weight: 550;
 }
-.tisty-doc .widget-page-shelve {
+.tisty-doc .widget-page-shelve,
+.tisty-doc .widget-page-apart {
   font-size: 11.5px;
   color: var(--tisty-soft);
   border: 1px solid var(--tisty-line);
@@ -947,12 +948,23 @@ body {
   padding: 1px 8px;
   background: transparent;
 }
-.tisty-doc .widget-page-shelve:hover {
+.tisty-doc .widget-page-shelve:hover,
+.tisty-doc .widget-page-apart:hover {
   background: var(--tisty-hover);
 }
 .tisty-doc .widget-page-drawn {
   display: block;
   padding: 14px;
+}
+.viewed-widget {
+  display: flex;
+}
+.viewed-widget .lit-widget {
+  flex: 1;
+  width: 100%;
+  height: 100% !important;
+  border: 0;
+  background: transparent;
 }
 .tisty-doc .widget-page-drawn .lit-widget {
   display: block;

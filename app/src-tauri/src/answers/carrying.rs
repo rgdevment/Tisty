@@ -116,15 +116,24 @@ pub fn doc_import(
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    let body =
-        tisty_core::docs::read_outside(std::path::Path::new(&from)).map_err(|e| match e {
-            tisty_core::Error::DocumentTooBig { limit, .. } => {
-                Refusal::about("documentTooBig", weighed(limit))
-            }
-            _ => Refusal::about("cannotRead", from),
-        })?;
+    imported(&mut held(&session), std::path::Path::new(&from), folder)
+}
 
-    let mut session = held(&session);
+pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {
+    tisty_core::docs::read_outside(from).map_err(|e| match e {
+        tisty_core::Error::DocumentTooBig { limit, .. } => {
+            Refusal::about("documentTooBig", weighed(limit))
+        }
+        _ => Refusal::about("cannotRead", from.display().to_string()),
+    })
+}
+
+pub(crate) fn imported(
+    session: &mut Session,
+    from: &std::path::Path,
+    folder: Option<tisty_core::model::FolderId>,
+) -> Answer<tisty_core::docs::Doc> {
+    let body = read_outside(from)?;
     if let Some(at) = folder {
         if !session.state.folders.contains_key(&at) {
             return Err(Refusal::of("noSuchFolder"));
