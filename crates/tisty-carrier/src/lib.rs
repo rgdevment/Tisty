@@ -23,7 +23,10 @@ pub use cloud::Cloud;
 pub use folder::Folder;
 pub use keychain::Keychain;
 
-pub use remote::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Watch, named_well};
+pub use remote::{
+    BYTES_A_DAY, Changes, Costs, Expect, Hitch, Limits, Remote, Seen, UNITS_A_DAY, Watch,
+    named_well,
+};
 pub use shift::{Owed, Shift, filling, homing, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};
 
