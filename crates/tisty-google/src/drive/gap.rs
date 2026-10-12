@@ -118,7 +118,11 @@ impl Drive {
         Ok(Some(restored))
     }
 
-    fn written_between(&self, landed: &File, checked: &File) -> Result<Option<String>, Hitch> {
+    pub(super) fn written_between(
+        &self,
+        landed: &File,
+        checked: &File,
+    ) -> Result<Option<String>, Hitch> {
         let url = format!("{}/files/{}/revisions", self.at.api, landed.id);
         let mut all = Vec::new();
         let mut next: Option<String> = None;
@@ -178,7 +182,7 @@ impl Drive {
         Ok(held)
     }
 
-    fn pinned(&self, id: &str, revision: &str) -> Result<(), Hitch> {
+    pub(super) fn pinned(&self, id: &str, revision: &str) -> Result<(), Hitch> {
         let url = format!("{}/files/{id}/revisions/{revision}", self.at.api);
         self.spent(EDIT);
         let body = serde_json::json!({ "keepForever": true }).to_string();

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tisty_carrier::{Hitch, Secrets, Tokens};
 use tisty_core::config::{CloudAt, Leaving, Sync};
 
@@ -148,15 +148,14 @@ pub(crate) fn choosing_cloud(
 
 #[tauri::command(async)]
 pub async fn cloud_forget(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     account: Option<String>,
 ) -> Answer<()> {
-    let (account, held_tokens) = letting_go(&session, account)?;
+    let account = whose(&session, account)?;
     tauri::async_runtime::spawn_blocking(move || {
         forgotten(&account)?;
-        if let Some(tokens) = held_tokens {
-            tokens.let_go();
-        }
+        let_go_held(&app, &account);
         Ok(())
     })
     .await
@@ -166,21 +165,20 @@ pub async fn cloud_forget(
 /// Google takes Tisty's access away from this person on every machine at once; this machine forgets it too.
 #[tauri::command(async)]
 pub async fn cloud_revoke(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     account: Option<String>,
 ) -> Answer<()> {
-    let (account, held_tokens) = letting_go(&session, account)?;
+    let account = whose(&session, account)?;
     tauri::async_runtime::spawn_blocking(move || {
         let kept = secrets_for(&account).map_err(|e| refused(e, "Google Drive"))?;
-        let token = kept.read(KEPT_AS).map_err(|e| refused(e, "Google Drive"))?;
-        forgotten(&account)?;
-        if let Some(tokens) = held_tokens {
-            tokens.let_go();
-        }
-        if let Some(token) = token {
+        // Revoked before it is forgotten, so a revoke that fails can be asked again with the token still here.
+        if let Some(token) = kept.read(KEPT_AS).map_err(|e| refused(e, "Google Drive"))? {
             tisty_google::revoke_everywhere(&token, &tisty_google::Endpoints::google())
                 .map_err(|e| refused(e, "Google Drive"))?;
         }
+        forgotten(&account)?;
+        let_go_held(&app, &account);
         Ok(())
     })
     .await
@@ -188,23 +186,31 @@ pub async fn cloud_revoke(
 }
 
 // A connected account not chosen yet has a token too, so it can be let go of by name.
-fn letting_go(
-    session: &tauri::State<'_, Mutex<Session>>,
-    account: Option<String>,
-) -> Answer<(String, Option<Arc<Tokens>>)> {
+fn whose(session: &tauri::State<'_, Mutex<Session>>, account: Option<String>) -> Answer<String> {
     let session = held(session);
-    let chosen = tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| at.account.clone());
-    let account = account
-        .or(chosen.clone())
-        .ok_or_else(|| Refusal::of("noRemote"))?;
-    let held_tokens = match chosen.as_deref() == Some(account.as_str()) {
-        true => session.reach.taken(),
-        false => None,
-    };
-    Ok((account, held_tokens))
+    account
+        .or_else(|| {
+            tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| at.account.clone())
+        })
+        .ok_or_else(|| Refusal::of("noRemote"))
 }
 
-// Forgotten where it is kept first, so nothing still running can read it back and renew it.
+// Taken only once the stored token is gone, so whatever builds the cloud anew finds nothing to renew.
+fn let_go_held(app: &tauri::AppHandle, account: &str) {
+    let Some(session) = app.try_state::<Mutex<Session>>() else {
+        return;
+    };
+    let tokens = {
+        let session = held(&session);
+        let chosen = tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .is_some_and(|at| at.account == account);
+        chosen.then(|| session.reach.taken()).flatten()
+    };
+    if let Some(tokens) = tokens {
+        tokens.let_go();
+    }
+}
+
 fn forgotten(account: &str) -> Answer<()> {
     secrets_for(account)
         .and_then(|kept| kept.forget(KEPT_AS))

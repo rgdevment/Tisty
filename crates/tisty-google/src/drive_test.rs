@@ -1437,6 +1437,10 @@ fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read()
             r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
         ),
         said("503 Service Unavailable", ""),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
         said("200 OK", revisions),
         said("200 OK", r#"{"id":"h2"}"#),
         said("200 OK", "theirs"),
@@ -1457,13 +1461,13 @@ fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read()
     drive.changes(Some("10")).unwrap();
 
     let asked = asked.join().unwrap();
-    let sent = String::from_utf8_lossy(&asked[7].body);
+    let sent = String::from_utf8_lossy(&asked[8].body);
     assert!(
         sent.contains("theirs"),
         "their bytes never went back: {sent}"
     );
     assert!(
-        asked[8]
+        asked[9]
             .line
             .starts_with("DELETE /drive/v3/files/A/revisions/h2")
     );
@@ -1471,4 +1475,78 @@ fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read()
         !home.path().join("drive-owed.json").exists(),
         "a debt paid was kept"
     );
+}
+
+#[test]
+fn a_deletion_heard_by_a_poll_is_still_gone_for_the_round_that_asks_from_the_same_cursor() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(A)),
+        said(
+            "200 OK",
+            r#"{"changes":[{"fileId":"A","removed":true}],"newStartPageToken":"11"}"#,
+        ),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+    ]);
+    let drive = drive(at, home.path());
+    drive.changes(None).unwrap();
+
+    let polled = drive.changes(Some("10")).unwrap();
+    let round = drive.changes(Some("10")).unwrap();
+
+    for heard in [polled, round] {
+        assert!(
+            matches!(heard, Changes::Since { ref gone, .. } if gone == &vec!["a.md".to_string()]),
+            "{heard:?}"
+        );
+    }
+    let asked = asked.join().unwrap();
+    assert!(asked[3].line.contains("pageToken=11"), "{}", asked[3].line);
+}
+
+#[test]
+fn a_debt_whose_file_moved_on_keeps_the_bytes_in_drive_s_history_and_writes_over_nothing() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let revisions = r#"{"revisions":[{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h2","md5Checksum":"m2","modifiedTime":"2026-10-12T10:00:02Z"},{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"},{"id":"h5","md5Checksum":"m5","modifiedTime":"2026-10-12T11:00:00Z"}]}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"3"}"#,
+        ),
+        said("503 Service Unavailable", ""),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m5","headRevisionId":"h5","version":"6"}"#,
+        ),
+        said("200 OK", revisions),
+        said("200 OK", r#"{"id":"h2"}"#),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+        said("200 OK", &whole(CHECKED)),
+    ]);
+    let drive = drive(at, home.path()).owing_at(home.path());
+
+    assert!(
+        drive
+            .put("a.md", &local, Expect::Revision("A.1".into()))
+            .is_err()
+    );
+    drive.changes(Some("10")).unwrap();
+
+    let asked = asked.join().unwrap();
+    assert!(
+        asked[6]
+            .line
+            .starts_with("PATCH /drive/v3/files/A/revisions/h2")
+    );
+    assert!(
+        !asked[4..]
+            .iter()
+            .any(|one| one.line.starts_with("PATCH /upload")),
+        "a newer write was covered by older bytes"
+    );
+    assert!(!home.path().join("drive-owed.json").exists());
 }

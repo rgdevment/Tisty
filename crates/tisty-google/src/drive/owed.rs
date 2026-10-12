@@ -3,8 +3,10 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tisty_carrier::Hitch;
 
-use super::Drive;
-use super::tree::File;
+use super::tree::{FILE_FIELDS, File};
+use super::wire::json;
+use super::{Drive, READ};
+use crate::ASKED_WITHIN;
 
 const OWED: &str = "drive-owed.json";
 
@@ -125,9 +127,38 @@ impl Drive {
             } => {
                 let landed = file(id, landed_head, landed_md5);
                 let checked = file(id, checked_head, checked_md5);
+                if self.head_of(id)? != *landed_head {
+                    return self.kept_aside(name, &landed, &checked);
+                }
                 self.restored(name, &landed, &checked).map(|_| ())
             }
             Owed::Unbinned { id } => self.trashed(id, false).map(|_| ()),
         }
+    }
+
+    fn head_of(&self, id: &str) -> Result<Option<String>, Hitch> {
+        let url = format!("{}/files/{id}", self.at.api);
+        self.spent(READ);
+        let now: File = json(self.call(Some(ASKED_WITHIN), |http| {
+            http.get(&url).query(&[("fields", FILE_FIELDS)])
+        })?)?;
+        Ok(now.head_revision_id)
+    }
+
+    // A newer write came after the one that covered them, so they stay in Drive's history rather than going over it.
+    fn kept_aside(&self, name: &str, landed: &File, checked: &File) -> Result<(), Hitch> {
+        let Some(theirs) = self.written_between(landed, checked)? else {
+            return Ok(());
+        };
+        self.pinned(&landed.id, &theirs)?;
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::CLOUD,
+            "another machine's bytes stay in Drive's version history, since a newer write came after the one that covered them",
+            &[
+                ("name", tisty_core::witness::Fact::Id(name.to_string())),
+                ("revision", tisty_core::witness::Fact::Id(theirs)),
+            ],
+        );
+        Ok(())
     }
 }

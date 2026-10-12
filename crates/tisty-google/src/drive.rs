@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -53,25 +53,35 @@ pub struct Account {
 struct Known {
     tree: Tree,
     cursor: Option<String>,
-    // Every cursor this listing already holds all of, since the index may still ask from an older one.
-    passed: Vec<String>,
+    // Each cursor reached with the paths that moved to reach it, so one asked from an older cursor hears all of them again.
+    passed: Vec<(String, BTreeSet<String>)>,
 }
 
 const PASSED_AT_MOST: usize = 64;
 
 impl Known {
     fn holds_up_to(&self, since: &str) -> bool {
-        self.passed.iter().any(|one| one == since)
+        self.passed.iter().any(|(one, _)| one == since)
     }
 
-    fn moved_to(&mut self, cursor: &str) {
+    fn moved_to(&mut self, cursor: &str, touched: BTreeSet<String>) {
         self.cursor = Some(cursor.to_string());
-        if !self.holds_up_to(cursor) {
-            self.passed.push(cursor.to_string());
+        if self.passed.last().is_some_and(|(last, _)| last == cursor) {
+            return;
         }
+        self.passed.push((cursor.to_string(), touched));
         if self.passed.len() > PASSED_AT_MOST {
             self.passed.remove(0);
         }
+    }
+
+    fn touched_since(&self, since: &str) -> BTreeSet<String> {
+        self.passed
+            .iter()
+            .skip_while(|(one, _)| one != since)
+            .skip(1)
+            .flat_map(|(_, touched)| touched.iter().cloned())
+            .collect()
     }
 }
 
@@ -246,7 +256,10 @@ impl Drive {
         if let Ok(mut held) = self.known.lock() {
             *held = Some(Known {
                 tree: planted(&roots, all),
-                passed: cursor.iter().cloned().collect(),
+                passed: cursor
+                    .iter()
+                    .map(|one| (one.clone(), BTreeSet::new()))
+                    .collect(),
                 cursor,
             });
         }
@@ -491,36 +504,34 @@ impl Drive {
     }
 
     // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
-    fn caught_up(&self, theirs: &[Changed], cursor: &str) -> Option<Changes> {
+    fn caught_up(&self, since: &str, theirs: &[Changed], cursor: &str) -> Option<Changes> {
         let roots = self.roots.lock().ok()?.clone()?;
         let mut held = self.known.lock().ok()?;
         let known = held.as_mut()?;
-        if theirs.is_empty() {
-            known.moved_to(cursor);
-            return Some(Changes::Since {
-                changed: Vec::new(),
-                gone: Vec::new(),
-                cursor: cursor.to_string(),
-            });
+        let touched = match theirs.is_empty() {
+            true => BTreeSet::new(),
+            false => {
+                let (tree, applied) = tree::applied(&known.tree, &roots, theirs)?;
+                known.tree = tree;
+                applied.changed.into_iter().chain(applied.gone).collect()
+            }
+        };
+        known.moved_to(cursor, touched);
+        let (mut changed, mut gone) = (Vec::new(), Vec::new());
+        for path in known.touched_since(since) {
+            match known
+                .tree
+                .files
+                .get(&path)
+                .and_then(|copies| copies.first())
+            {
+                Some(file) => changed.push(seen(&path, file)),
+                None => gone.push(path),
+            }
         }
-        let (tree, applied) = tree::applied(&known.tree, &roots, theirs)?;
-        known.tree = tree;
-        known.moved_to(cursor);
-        let changed = applied
-            .changed
-            .iter()
-            .filter_map(|path| {
-                known
-                    .tree
-                    .files
-                    .get(path)?
-                    .first()
-                    .map(|file| seen(path, file))
-            })
-            .collect();
         Some(Changes::Since {
             changed,
-            gone: applied.gone,
+            gone,
             cursor: cursor.to_string(),
         })
     }
@@ -700,16 +711,19 @@ impl Remote for Drive {
                 cursor: start.start_page_token,
             });
         };
-        let (theirs, cursor) = self.stirred(since)?;
+        // Asked onward from where the listing stands, never again from the older cursor, so nothing is applied twice.
+        let followed = self.known.lock().ok().and_then(|held| {
+            held.as_ref()
+                .filter(|known| known.holds_up_to(since))
+                .and_then(|known| known.cursor.clone())
+        });
+        let (theirs, cursor) = self.stirred(followed.as_deref().unwrap_or(since))?;
         if let Ok(mut held) = self.wrote.lock() {
             held.clear();
         }
-        let followed = self
-            .known
-            .lock()
-            .ok()
-            .is_some_and(|held| held.as_ref().is_some_and(|known| known.holds_up_to(since)));
-        if followed && let Some(caught_up) = self.caught_up(&theirs, &cursor) {
+        if followed.is_some()
+            && let Some(caught_up) = self.caught_up(since, &theirs, &cursor)
+        {
             return Ok(caught_up);
         }
         self.listed(Some(cursor.clone()))?;
