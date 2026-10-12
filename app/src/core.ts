@@ -491,7 +491,9 @@ export interface Carrying {
   sharedWas?: string;
   sharedWasLater?: boolean;
   later?: boolean;
-  mode: "alone" | "folder" | "later";
+  mode: "alone" | "folder" | "cloud" | "later";
+  cloud?: string | null;
+  cloudOffered: boolean;
   backedUpAt?: string;
   freesSpace: boolean;
 }

@@ -16,13 +16,28 @@ use crate::{
 pub enum Sync {
     Local,
     Folder(std::path::PathBuf),
+    Cloud(CloudAt),
     /// A way a later build knows and this one does not. Kept exactly as it was read: refusing
     /// it would stop this build opening at all, and dropping it would take the choice away.
     #[serde(untagged)]
     Unknown(toml::Value),
 }
 
+/// A provider reached by its API, and the account the store belongs to.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CloudAt {
+    pub provider: String,
+    /// The provider's own id for the account, which outlives a change of address.
+    pub account: String,
+    pub email: String,
+}
+
 impl Sync {
+    pub fn cloud(at: CloudAt) -> Self {
+        Self::Cloud(at)
+    }
+
     pub fn folder(at: impl Into<std::path::PathBuf>) -> Self {
         Self::Folder(at.into())
     }
@@ -34,7 +49,7 @@ impl Sync {
     pub fn place(&self) -> Option<&Path> {
         match self {
             Self::Folder(at) => Some(at),
-            Self::Local | Self::Unknown(_) => None,
+            Self::Local | Self::Cloud(_) | Self::Unknown(_) => None,
         }
     }
 
@@ -46,6 +61,7 @@ impl Sync {
         match self {
             Self::Local => Leaving::Free,
             Self::Folder(_) => Leaving::Place,
+            Self::Cloud(_) => Leaving::Cloud,
             Self::Unknown(_) => Leaving::Later,
         }
     }
@@ -54,6 +70,7 @@ impl Sync {
         match self {
             Self::Local => None,
             Self::Folder(at) => Some(Was::Folder(at.clone())),
+            Self::Cloud(at) => Some(Was::Cloud(at.clone())),
             Self::Unknown(raw) => Some(Was::Later(raw.clone())),
         }
     }
@@ -63,12 +80,15 @@ impl Sync {
 pub enum Leaving {
     Free,
     Place,
+    /// Only through the move that first brings everything here (C-6), never by choosing another way.
+    Cloud,
     Later,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Was {
     Folder(std::path::PathBuf),
+    Cloud(CloudAt),
     Later(toml::Value),
 }
 
@@ -84,7 +104,7 @@ impl Was {
     pub fn folder(&self) -> Option<&Path> {
         match self {
             Self::Folder(at) => Some(at),
-            Self::Later(_) => None,
+            Self::Cloud(_) | Self::Later(_) => None,
         }
     }
 
@@ -93,7 +113,7 @@ impl Was {
     }
 }
 
-fn has_more_than_a_folder(raw: &toml::Value) -> bool {
+fn has_more_than_how_and_at(raw: &toml::Value) -> bool {
     raw.as_table()
         .is_some_and(|table| table.keys().any(|key| key != "how" && key != "at"))
 }
@@ -107,15 +127,24 @@ impl<'de> Deserialize<'de> for Sync {
         match raw.get("how").and_then(toml::Value::as_str) {
             Some("local") => Ok(Self::Local),
             // What a later build adds to a folder is kept whole, not dropped on the next save.
-            Some("folder") if has_more_than_a_folder(&raw) => Ok(Self::Unknown(raw)),
+            Some("folder") if has_more_than_how_and_at(&raw) => Ok(Self::Unknown(raw)),
             Some("folder") => raw
                 .get("at")
                 .and_then(toml::Value::as_str)
                 .map(|at| Self::Folder(at.into()))
                 .ok_or_else(|| D::Error::custom("syncing with a folder and no folder named")),
+            Some("cloud") if has_more_than_how_and_at(&raw) => Ok(Self::Unknown(raw)),
+            Some("cloud") => Ok(cloud_at(&raw)),
             _ => Ok(Self::Unknown(raw)),
         }
     }
+}
+
+// A cloud named any other way than this build writes it is a later build's, kept whole and never refused.
+fn cloud_at(raw: &toml::Value) -> Sync {
+    raw.get("at")
+        .and_then(|at| at.clone().try_into::<CloudAt>().ok())
+        .map_or_else(|| Sync::Unknown(raw.clone()), Sync::Cloud)
 }
 
 fn said_once(named: &str) -> bool {
@@ -158,7 +187,10 @@ impl Config {
         match (&self.shared_was, &self.shared_was_later) {
             (Some(at), _) => Some(Was::Folder(at.clone())),
             (None, Some(put)) if put.restored_at == self.restored_at => {
-                Some(Was::Later(put.way.clone()))
+                match put.way.clone().try_into::<Sync>() {
+                    Ok(Sync::Cloud(at)) => Some(Was::Cloud(at)),
+                    _ => Some(Was::Later(put.way.clone())),
+                }
             }
             (None, _) => None,
         }
@@ -167,6 +199,15 @@ impl Config {
     pub fn remember_shared(&mut self, was: Option<Was>) {
         (self.shared_was, self.shared_was_later) = match was {
             Some(Was::Folder(at)) => (Some(at), None),
+            Some(Was::Cloud(at)) => (
+                None,
+                toml::Value::try_from(Sync::Cloud(at))
+                    .ok()
+                    .map(|way| PutAway {
+                        restored_at: self.restored_at,
+                        way,
+                    }),
+            ),
             Some(Was::Later(way)) => (
                 None,
                 Some(PutAway {

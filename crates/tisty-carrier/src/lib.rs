@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use tisty_core::config::{Holds, Sync};
+use tisty_core::config::{CloudAt, Holds, Sync};
 use tisty_core::signing::SigningKey;
 
 pub use tisty_core::turned;
@@ -114,7 +114,13 @@ pub trait Carrier: Send + std::marker::Sync {
 pub enum Chosen {
     Alone,
     Folder,
+    Cloud,
     Later,
+}
+
+/// What only the window can build: the command line and the agents never reach the network.
+pub trait Reach: Send + std::marker::Sync {
+    fn cloud(&self, at: &CloudAt) -> Option<Shared>;
 }
 
 pub struct Keeping {
@@ -122,8 +128,12 @@ pub struct Keeping {
     pub chosen: Chosen,
 }
 
-// The one match on the way of syncing: everything else asks the carrier it was handed.
 pub fn chosen(sync: Option<&Sync>) -> Keeping {
+    chosen_with(sync, None)
+}
+
+// The one match on the way of syncing: everything else asks the carrier it was handed.
+pub fn chosen_with(sync: Option<&Sync>, reach: Option<&dyn Reach>) -> Keeping {
     match sync {
         None | Some(Sync::Local) => Keeping {
             carrier: None,
@@ -133,11 +143,22 @@ pub fn chosen(sync: Option<&Sync>) -> Keeping {
             carrier: Some(Arc::new(Folder::at(at.clone()))),
             chosen: Chosen::Folder,
         },
+        Some(Sync::Cloud(at)) => Keeping {
+            carrier: reach.and_then(|reach| reach.cloud(at)),
+            chosen: Chosen::Cloud,
+        },
         // A way a later build knows: nothing is carried, and the choice is left as it was read.
         Some(Sync::Unknown(_)) => Keeping {
             carrier: None,
             chosen: Chosen::Later,
         },
+    }
+}
+
+pub fn cloud_of(sync: Option<&Sync>) -> Option<&CloudAt> {
+    match sync {
+        Some(Sync::Cloud(at)) => Some(at),
+        _ => None,
     }
 }
 

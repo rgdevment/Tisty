@@ -58,6 +58,8 @@ pub struct Drive {
     known: Mutex<Option<Known>>,
     // What this machine wrote or deleted, by id and version, so its own changes are never news.
     wrote: Mutex<HashSet<(String, Option<String>)>>,
+    expected: Option<String>,
+    vouched: std::sync::atomic::AtomicBool,
 }
 
 impl Drive {
@@ -70,7 +72,27 @@ impl Drive {
             roots: Mutex::new(None),
             known: Mutex::new(None),
             wrote: Mutex::new(HashSet::new()),
+            expected: None,
+            vouched: std::sync::atomic::AtomicBool::new(false),
         })
+    }
+
+    /// Reads and writes only once Google says it is this account, so two accounts never mix.
+    pub fn for_account(mut self, id: &str) -> Self {
+        self.expected = Some(id.to_string());
+        self
+    }
+
+    fn vouched_for(&self) -> Result<(), Hitch> {
+        use std::sync::atomic::Ordering;
+        let Some(expected) = &self.expected else {
+            return Ok(());
+        };
+        if !self.vouched.load(Ordering::Acquire) {
+            self.verify(expected)?;
+            self.vouched.store(true, Ordering::Release);
+        }
+        Ok(())
     }
 
     #[cfg(test)]
@@ -150,6 +172,7 @@ impl Drive {
     }
 
     fn listed(&self, cursor: Option<String>) -> Result<(), Hitch> {
+        self.vouched_for()?;
         let url = format!("{}/files", self.at.api);
         let fields = format!("nextPageToken,files({FILE_FIELDS})");
         let mut all = Vec::new();
@@ -377,6 +400,7 @@ impl Drive {
 
     // What changed since the cursor, less what this machine wrote itself, with each file as it now stands.
     fn stirred(&self, since: &str) -> Result<(Vec<Changed>, String), Hitch> {
+        self.vouched_for()?;
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Moved {

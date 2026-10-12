@@ -1289,3 +1289,40 @@ fn a_session_google_let_go_of_starts_the_upload_over_and_is_never_a_missing_file
 
     assert!(matches!(landed, Err(Hitch::Unreachable(_))), "{landed:?}");
 }
+
+#[test]
+fn a_drive_bound_to_an_account_reads_nothing_of_another_and_asks_once() {
+    let home = tempfile::tempdir().unwrap();
+    let them = r#"{"user":{"emailAddress":"otra@example.com","permissionId":"P2"}}"#;
+    let (at, asked) = google(vec![said("200 OK", them)]);
+    let elsewhere = drive(at, home.path()).for_account("P1");
+
+    assert_eq!(
+        elsewhere.list(""),
+        Err(Hitch::Elsewhere {
+            found: "otra@example.com".into()
+        })
+    );
+    assert_eq!(asked.join().unwrap().len(), 1, "a listing went out first");
+
+    let me = r#"{"user":{"emailAddress":"mario@example.com","permissionId":"P1"}}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", me),
+        said("200 OK", &whole("")),
+        said("200 OK", &whole("")),
+    ]);
+    let mine = drive(at, home.path()).for_account("P1");
+
+    mine.list("").unwrap();
+    mine.list("").unwrap();
+
+    assert_eq!(
+        asked
+            .join()
+            .unwrap()
+            .iter()
+            .filter(|one| one.line.contains("/about"))
+            .count(),
+        1
+    );
+}

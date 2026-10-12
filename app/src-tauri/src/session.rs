@@ -20,6 +20,7 @@ pub struct Session {
     /// was committed here is counted rather than measured.
     writes: u64,
     behind: bool,
+    pub reach: crate::reaching::Reaching,
 }
 
 pub struct Projected {
@@ -103,6 +104,7 @@ impl Session {
         let print = tisty_core::cache::fingerprint(&paths.store());
 
         let mut session = Self {
+            reach: crate::reaching::Reaching::of(&paths),
             locale: config.locale.clone(),
             paths,
             config,
@@ -300,7 +302,7 @@ impl Session {
     }
 
     pub fn keeping(&self) -> tisty_carrier::Keeping {
-        tisty_carrier::chosen(self.config.sync.as_ref())
+        tisty_carrier::chosen_with(self.config.sync.as_ref(), Some(&self.reach))
     }
 
     pub fn carrier(&self) -> Option<tisty_carrier::Shared> {
@@ -321,6 +323,7 @@ impl Session {
         keeping.carrier.ok_or_else(|| {
             Refusal::of(match keeping.chosen {
                 tisty_carrier::Chosen::Later => "syncLater",
+                tisty_carrier::Chosen::Cloud => "cloudNotOffered",
                 _ => "noRemote",
             })
         })

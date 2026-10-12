@@ -615,7 +615,11 @@ fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
         .collect();
     allowed.sort();
 
-    let audited = ["src-tauri/src/desktop.rs", "src-tauri/src/shop.rs"];
+    let audited = [
+        "src-tauri/src/desktop.rs",
+        "src-tauri/src/sealed.rs",
+        "src-tauri/src/shop.rs",
+    ];
     assert_eq!(
         allowed.len(),
         audited.len(),

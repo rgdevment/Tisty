@@ -2928,3 +2928,49 @@ fn rewording_a_step_past_the_limit_is_refused_too() {
             .contains("collect the figures")
     );
 }
+
+fn syncing_with_the_cloud(cli: &Cli) {
+    cli.ok(&["a task so the settings exist"]);
+    let file = cli.home.path().join("config").join("config.toml");
+    let mut said = std::fs::read_to_string(&file).unwrap();
+    said.push_str(
+        "\n[sync]\nhow = 'cloud'\nat = { provider = 'google', account = '0123', email = 'ana@example.com' }\n",
+    );
+    std::fs::write(&file, said).unwrap();
+}
+
+#[test]
+fn the_command_line_leaves_the_cloud_to_the_window_and_never_reaches_the_network() {
+    let cli = Cli::new();
+    syncing_with_the_cloud(&cli);
+
+    let run = cli.run(&["sync"]);
+    let listed = cli.ok(&["config"]);
+    let got = cli.run(&["config", "get", "remote"]);
+
+    assert_ne!(run.code, 0);
+    assert!(run.err.contains("Tisty window"), "{}", run.err);
+    assert!(run.err.contains("ana@example.com"), "{}", run.err);
+    assert!(listed.contains("ana@example.com"), "{listed}");
+    assert_ne!(got.code, 0);
+    assert!(!got.err.contains("is not set"), "{}", got.err);
+}
+
+#[test]
+fn the_cloud_is_never_left_from_the_command_line() {
+    let cli = Cli::new();
+    syncing_with_the_cloud(&cli);
+    let elsewhere = tempfile::tempdir().unwrap();
+    let to = elsewhere.path().display().to_string();
+    let file = cli.home.path().join("config").join("config.toml");
+    let before = std::fs::read(&file).unwrap();
+
+    let set = cli.run(&["config", "set", "remote", &to]);
+    let unset = cli.run(&["config", "unset", "remote"]);
+
+    for run in [set, unset] {
+        assert_ne!(run.code, 0);
+        assert!(run.err.contains("move"), "{}", run.err);
+    }
+    assert_eq!(std::fs::read(&file).unwrap(), before);
+}

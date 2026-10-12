@@ -319,7 +319,7 @@ pub async fn settle_in(
 
 #[tauri::command(async)]
 pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
-    let (config, paths, mut held, open, archived, lists, let_go) = {
+    let (config, paths, mut held, open, archived, lists, let_go, keeping) = {
         let session = held(&session);
         let named: Vec<String> = session
             .state
@@ -345,6 +345,7 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
                 .len(),
             session.state.lists.len(),
             let_go_to(&session),
+            session.keeping(),
         )
     };
     held.extend(tisty_core::docs::referenced(&paths.docs()));
@@ -371,16 +372,17 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             .once_shared()
             .and_then(|was| was.folder().map(|at| at.display().to_string())),
         shared_was_later: config.once_shared().is_some_and(|was| was.is_later()),
-        later: tisty_carrier::chosen(config.sync.as_ref()).chosen == tisty_carrier::Chosen::Later,
-        mode: match tisty_carrier::chosen(config.sync.as_ref()).chosen {
+        later: keeping.chosen == tisty_carrier::Chosen::Later,
+        mode: match keeping.chosen {
             tisty_carrier::Chosen::Alone => "alone",
             tisty_carrier::Chosen::Folder => "folder",
+            tisty_carrier::Chosen::Cloud => "cloud",
             tisty_carrier::Chosen::Later => "later",
         },
+        cloud: tisty_carrier::cloud_of(config.sync.as_ref()).map(|at| at.email.clone()),
+        cloud_offered: crate::reaching::offered(),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
-        frees_space: tisty_carrier::chosen(config.sync.as_ref())
-            .carrier
-            .is_some_and(|carrier| carrier.frees_space()),
+        frees_space: keeping.carrier.is_some_and(|carrier| carrier.frees_space()),
     })
 }
 
@@ -484,6 +486,7 @@ fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> 
     let was = session.config.sync.as_ref().filter(|was| *was != chosen)?;
     match was.leaving() {
         Leaving::Free => None,
+        Leaving::Cloud => Some(Refusal::of("cloudToLeave")),
         Leaving::Later => Some(Refusal::of("syncLaterToLeave")),
         Leaving::Place => {
             let carrier = session.carrier()?;
@@ -507,13 +510,17 @@ pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
 fn choosing(
     chosen: tisty_core::config::Sync,
 ) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {
+    use tisty_core::config::Leaving;
     move |config| {
-        let kept = config.sync.as_ref().is_some_and(|was| {
-            *was != chosen && was.leaving() == tisty_core::config::Leaving::Later
-        });
-        match kept {
-            true => Some(Refusal::of("syncLaterToLeave")),
-            false => {
+        let leaving = config
+            .sync
+            .as_ref()
+            .filter(|was| **was != chosen)
+            .map(|was| was.leaving());
+        match leaving {
+            Some(Leaving::Later) => Some(Refusal::of("syncLaterToLeave")),
+            Some(Leaving::Cloud) => Some(Refusal::of("cloudToLeave")),
+            _ => {
                 config.sync = Some(chosen);
                 None
             }
@@ -603,11 +610,13 @@ fn stuck_after(
     was: &Option<tisty_core::config::Sync>,
     now: &Option<tisty_core::config::Sync>,
 ) -> Option<Stuck> {
-    why.filter(|one| !matches!(one.code, "noRemote" | "syncLater") && was == now)
-        .map(|why| Stuck {
-            code: why.code,
-            name: why.name.clone(),
-        })
+    why.filter(|one| {
+        !matches!(one.code, "noRemote" | "syncLater" | "cloudNotOffered") && was == now
+    })
+    .map(|why| Stuck {
+        code: why.code,
+        name: why.name.clone(),
+    })
 }
 
 async fn carried_round(
@@ -643,7 +652,14 @@ async fn carried_round(
     let joining = !carrier.been_here(&home);
     let mut telling = Telling::new(app.clone(), joining);
     let pushing = (home.clone(), carrier.clone(), alive.clone());
+    let heeding = {
+        let session = held(session);
+        tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| session.reach.home_of(at))
+    };
     let done = tauri::async_runtime::spawn_blocking(move || {
+        if let Some(cloud) = &heeding {
+            crate::reaching::heed(cloud);
+        }
         let mut saying = |far| telling.hear(far);
         let done = carrier.carry(
             &home,

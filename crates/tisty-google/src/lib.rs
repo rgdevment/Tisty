@@ -384,6 +384,31 @@ fn revoke(http: &reqwest::blocking::Client, at: &Endpoints, granted: &TokenAnswe
         .send();
 }
 
+/// Takes Tisty's access away for this person on every machine at once, which is how Google revokes.
+pub fn revoke_everywhere(token: &str, at: &Endpoints) -> Result<(), Hitch> {
+    let body = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("token", token)
+        .finish();
+    let answer = http()?
+        .post(&at.revoke)
+        .header(
+            reqwest::header::CONTENT_TYPE,
+            "application/x-www-form-urlencoded",
+        )
+        .body(body)
+        .send()
+        .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+    match answer.status().as_u16() {
+        200 => Ok(()),
+        // A token Google no longer knows was already revoked, which is what was asked.
+        400 => Ok(()),
+        429 => Err(Hitch::Limited {
+            wait: waited(answer.headers()).unwrap_or(WAITED_UNTOLD),
+        }),
+        status => Err(Hitch::Unreachable(format!("Google answered {status}"))),
+    }
+}
+
 pub struct GoogleRenew {
     client: Client,
     at: Endpoints,
