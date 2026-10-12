@@ -94,18 +94,26 @@ impl<'a> Metered<'a> {
     }
 
     fn charge(&self, requests: u64, cost: u64, bytes: u64) {
-        // Counting twice by a race spends a little early; not counting lets a loop spend past the day.
-        let _turn = Held::wait_for(&self.home, BUDGETING, CHARGE_WAITED_OUT)
-            .ok()
-            .flatten()
-            .or_else(|| {
+        // Unlocked, two charges at once can still lose one; never charging loses every one.
+        let _turn = match Held::wait_for(&self.home, BUDGETING, CHARGE_WAITED_OUT) {
+            Ok(Some(turn)) => Some(turn),
+            Ok(None) => {
                 tisty_core::witness::warn(
                     tisty_core::witness::channel::CLOUD,
                     "the budget is charged without its lock, which another process held too long",
                     &[],
                 );
                 None
-            });
+            }
+            Err(why) => {
+                tisty_core::witness::warn(
+                    tisty_core::witness::channel::CLOUD,
+                    "the budget is charged without its lock, which could not be taken",
+                    &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+                );
+                None
+            }
+        };
         let mut spent = Spent::load(&self.home);
         spent.units = spent.units.saturating_add(requests.saturating_mul(cost));
         spent.bytes = spent.bytes.saturating_add(bytes);

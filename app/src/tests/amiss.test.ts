@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type Settled, whatWentAmiss } from "../core";
+import { type Settled, whatWaits, whatWentAmiss } from "../core";
 import { t } from "../locales";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
@@ -35,27 +35,19 @@ describe("what a sync says went amiss", () => {
     expect(whatWentAmiss(settled({ unconfirmed: ["dev_w"] }))).toBe("someoneUnconfirmed");
   });
 
-  it("says a day's budget ran out without calling it an error, and when syncing goes on", () => {
-    const said = whatWentAmiss(settled({ deferred: "budget" }));
+  it("says a day's budget ran out as something that waits, never as what went wrong", () => {
+    const said = settled({ deferred: "budget" });
 
-    expect(said).toBe("deferredBudget");
+    expect(whatWentAmiss(said)).toBeNull();
+    expect(whatWaits(said)).toBe("deferredBudget");
     expect(t("deferredBudget")).toMatch(/tomorrow/);
   });
 
-  it("names every reason a cloud round can leave work for later", () => {
-    for (const [reason, word] of [
-      ["limit", "deferredLimit"],
-      ["offline", "deferredOffline"],
-      ["busy", "deferredBusy"],
-      ["changed", "deferredChanged"],
-    ] as const) {
-      expect(whatWentAmiss(settled({ deferred: reason }))).toBe(word);
-    }
-  });
-
-  it("lets what needs the person speak before what only waits", () => {
-    expect(whatWentAmiss(settled({ astray: ["uno-0001"], deferred: "budget" }))).toBe(
-      "someDocsAstray",
-    );
+  it("says why a round waits on the cloud, and nothing for one that retries by itself", () => {
+    expect(whatWaits(settled({ deferred: "limit" }))).toBe("deferredLimit");
+    expect(whatWaits(settled({ deferred: "offline" }))).toBe("deferredOffline");
+    expect(whatWaits(settled({ deferred: "busy" }))).toBeNull();
+    expect(whatWaits(settled({ deferred: "changed" }))).toBeNull();
+    expect(whatWaits(settled({}))).toBeNull();
   });
 });
