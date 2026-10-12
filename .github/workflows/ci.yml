@@ -84,6 +84,35 @@ jobs:
         run: rustup toolchain install --no-self-update && rustup component add rustfmt
       - run: cargo fmt --all --check
 
+  network:
+    name: network
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The toolchain rust-toolchain.toml names
+        shell: bash
+        run: rustup toolchain install --no-self-update && rustup component add clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: cargo-hack
+      - name: The cloud's crate lints with its network and without it
+        run: cargo hack --each-feature clippy -p tisty-carrier --all-targets
+      - name: Only the window and the cloud's crate reach the network
+        run: |
+          for one in tisty-core tisty-sync tisty-nl tisty-cli; do
+            if cargo tree -p "$one" -e normal -i reqwest > /dev/null 2>&1; then
+              echo "::error::$one reaches reqwest, and only the window and the cloud's crate may"
+              exit 1
+            fi
+          done
+          echo "nothing else reaches the network"
+
   window:
     name: frontend
     runs-on: ubuntu-24.04
@@ -156,6 +185,7 @@ jobs:
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-cli \
+            --features tisty-carrier/cloud \
             --lcov --output-path lcov-rust.info
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

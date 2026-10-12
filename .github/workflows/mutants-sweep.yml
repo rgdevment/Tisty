@@ -128,7 +128,7 @@ jobs:
         id: run
         run: |
           set +e
-          cargo mutants -p tisty-carrier -j 2
+          cargo mutants -p tisty-carrier --features cloud -j 2
           echo "code=$?" >> "$GITHUB_OUTPUT"
 
       - name: What survived

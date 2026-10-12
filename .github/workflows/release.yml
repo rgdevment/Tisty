@@ -543,6 +543,9 @@ jobs:
       - name: Bundle
         working-directory: app
         shell: bash
+        env:
+          TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           packs=""
           if [ -f sign.json ]; then packs="--config sign.json"; fi
@@ -791,6 +794,8 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: npm run tauri build -- --target "$TARGET" --bundles app,dmg
 
       - name: The app is one architecture
