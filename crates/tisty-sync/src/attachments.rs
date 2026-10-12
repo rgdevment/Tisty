@@ -39,6 +39,9 @@ pub trait Attachments {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble>;
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble>;
     fn reaches(&self, reference: &str) -> bool;
+    fn takes(&self) -> bool {
+        true
+    }
 }
 
 pub struct Beside<'a> {

@@ -1,19 +1,25 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ONCE_A_DAY } from "../inUse";
 import { composed } from "../markdown";
 import Composed from "../ui/Composed";
 import Prose from "../ui/Prose";
 
-vi.mock("../core", () => ({
-  served: (reference: string) => Promise.resolve(`C:\\data\\${reference}`),
+const { served } = vi.hoisted(() => ({
+  served: vi.fn((reference: string) => Promise.resolve(`C:\\data\\${reference}`)),
 }));
+
+vi.mock("../core", () => ({ served }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (at: string) => `http://asset.localhost/${encodeURIComponent(at)}`,
 }));
 
-vi.mock("@tauri-apps/plugin-opener", () => ({ openPath: vi.fn(), openUrl: vi.fn() }));
+vi.mock("@tauri-apps/plugin-opener", () => ({
+  openPath: vi.fn(),
+  openUrl: vi.fn(),
+}));
 
 const TWO = "![one](<attachments/aa/1.png>)\n\n![two](<attachments/bb/2.png>)";
 const resolved = () => document.querySelectorAll('img[src^="http"]').length;
@@ -30,6 +36,27 @@ describe("more than one image", () => {
 
     rerender(<Composed html={composed(TWO)} className="prose" />);
     expect(resolved()).toBe(2);
+  });
+});
+
+describe("a picture left on screen", () => {
+  it("is asked for again each day it stays, and no longer once it is gone", () => {
+    const one = "![tres](<attachments/cc/3.png>)";
+    const asked = () => served.mock.calls.filter(([at]) => at === "attachments/cc/3.png").length;
+    vi.useFakeTimers();
+    try {
+      const shown = render(<Composed html={composed(one)} className="prose" />);
+      const before = asked();
+
+      vi.advanceTimersByTime(ONCE_A_DAY);
+      expect(asked()).toBe(before + 1);
+
+      shown.unmount();
+      vi.advanceTimersByTime(ONCE_A_DAY);
+      expect(asked()).toBe(before + 1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

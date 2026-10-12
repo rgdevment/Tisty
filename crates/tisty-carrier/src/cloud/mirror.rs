@@ -34,7 +34,7 @@ pub fn pull(
     tree: &Path,
     index: &mut Index,
     data: Option<&Path>,
-) -> Result<(), Hitch> {
+) -> Result<usize, Hitch> {
     heal(tree, index);
     let told = match remote.changes(index.cursor.as_deref()) {
         Err(Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)) if index.cursor.is_some() => {
@@ -72,14 +72,14 @@ pub fn pull(
     for name in gone {
         forget(tree, index, &name);
     }
-    let mut held_back = false;
+    let mut held_back = 0;
     for seen in changed {
-        held_back |= learn(remote, tree, index, data, seen)?;
+        held_back += usize::from(learn(remote, tree, index, data, seen)?);
     }
-    if !held_back {
+    if held_back == 0 {
         index.cursor = Some(cursor);
     }
-    Ok(())
+    Ok(held_back)
 }
 
 fn heal(tree: &Path, index: &mut Index) {
@@ -216,7 +216,7 @@ fn forget_base(data: &Path, name: &str) {
     tisty_core::docs::forget_carried(data, id);
 }
 
-fn resembles(remote: &dyn Remote, at: &Path, seen: &Seen) -> bool {
+pub(super) fn resembles(remote: &dyn Remote, at: &Path, seen: &Seen) -> bool {
     !seen.hash.is_empty()
         && std::fs::metadata(at).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
         && remote.hash_of(at).is_ok_and(|hash| hash == seen.hash)

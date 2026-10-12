@@ -1,8 +1,9 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tisty_core::signing::SigningKey;
 use tisty_sync::{carry_through, forget_carried_to, forget_shape};
@@ -22,7 +23,7 @@ mod shelf;
 use budget::{Class, Metered};
 use index::Index;
 use judge::{Judged, judge};
-use shelf::Shelf;
+use shelf::{Letting, Shelf};
 
 const TREE: &str = "tree";
 const FORGOTTEN: &str = "forgotten";
@@ -30,7 +31,25 @@ const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
-const LENT: &str = "held";
+
+#[derive(Clone, Copy)]
+struct Turn {
+    waits: bool,
+    sends: bool,
+}
+
+const ASKED: Turn = Turn {
+    waits: true,
+    sends: true,
+};
+const PASSING: Turn = Turn {
+    waits: false,
+    sends: true,
+};
+const HOMING: Turn = Turn {
+    waits: false,
+    sends: false,
+};
 
 struct Done<T> {
     value: Option<T>,
@@ -68,10 +87,10 @@ impl Cloud {
     fn with_mirror<T>(
         &self,
         here: Option<&Here>,
-        patient: bool,
+        turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
-        let taken = match patient {
+        let taken = match turn.waits {
             true => lock::Round::wait_for(&self.home, PATIENCE),
             false => lock::Round::take(&self.home),
         };
@@ -88,13 +107,16 @@ impl Cloud {
         let remote: &dyn Remote = &metered;
         let mut index = Index::load(&self.home);
         let data = here.map(|here| here.data.as_path());
-        if let Err(hitch) = mirror::pull(remote, &tree, &mut index, data) {
-            let _ = index.save(&self.home);
-            return match judge(hitch, self.remote.limits().provider) {
-                Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
-                Judged::Stop(trouble) => Err(trouble),
-            };
-        }
+        let held_back = match mirror::pull(remote, &tree, &mut index, data) {
+            Ok(held_back) => held_back,
+            Err(hitch) => {
+                let _ = index.save(&self.home);
+                return match judge(hitch, self.remote.limits().provider) {
+                    Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
+                    Judged::Stop(trouble) => Err(trouble),
+                };
+            }
+        };
         if let Some(here) = here
             && !index.confirmed
         {
@@ -111,12 +133,17 @@ impl Cloud {
                 return Err(trouble);
             }
         };
-        let rated = held.is_some_and(|one| one.reason == Reason::Limit);
-        let (pushed, hitch) = match rated {
+        let quiet = !turn.sends || held.is_some_and(|one| one.reason == Reason::Limit);
+        let (pushed, hitch) = match quiet {
             true => (mirror::Pushed::default(), None),
             false => mirror::push(remote, &tree, &mut index),
         };
-        let mut deferred = held;
+        let left_there = (held_back > 0).then_some(Deferred {
+            reason: Reason::Changed,
+            left: held_back,
+            retry_after: None,
+        });
+        let mut deferred = merged(held, left_there);
         let mut stopped = None;
         match hitch.map(|hitch| judge(hitch, remote.limits().provider)) {
             Some(Judged::Pause(reason, wait)) => {
@@ -156,9 +183,11 @@ impl Cloud {
     fn only<T>(
         &self,
         here: Option<&Here>,
-        work: impl FnOnce(&Path) -> Result<T, Trouble>,
+        work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<T, Trouble>,
     ) -> Result<T, Trouble> {
-        let done = self.with_mirror(here, true, |tree, _, _| Ok((work(tree)?, None)))?;
+        let done = self.with_mirror(here, ASKED, |tree, index, remote| {
+            Ok((work(tree, index, remote)?, None))
+        })?;
         match done.value {
             Some(value) => Ok(value),
             None => Err(Trouble::Broke(unavailable(done.deferred))),
@@ -166,8 +195,45 @@ impl Cloud {
     }
 
     fn looked_again(&self) -> PathBuf {
-        let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
+        let _ = self.with_mirror(None, PASSING, |_, _, _| Ok(((), None)));
         self.tree()
+    }
+
+    fn rounded(&self, here: &Here, round: Round, fetching: bool) -> Result<Moved, Trouble> {
+        let turn = match fetching {
+            true => HOMING,
+            false => PASSING,
+        };
+        let done = self.with_mirror(Some(here), turn, |tree, index, remote| {
+            shelf::sweep(&here.data);
+            let mut shelf = match fetching {
+                true => Shelf::fetching_all(remote, index),
+                false => Shelf::over(remote, index),
+            };
+            let moved = carry_through(
+                &here.data,
+                Some(&here.aside),
+                &here.device,
+                tree,
+                round.way,
+                round.alive,
+                round.holds,
+                round.saying,
+                &mut shelf,
+            )?;
+            Ok(((moved, shelf.sent()), shelf.paused()))
+        })?;
+        let (mut moved, attached) = done.value.unwrap_or_default();
+        let mirrored = moved.sent.saturating_sub(attached);
+        moved.sent = attached + mirrored.min(done.uploaded);
+        if let Some(trouble) = done.stopped {
+            if moved == Moved::default() {
+                return Err(trouble);
+            }
+            moved.refused = Some(trouble);
+        }
+        moved.deferred = done.deferred;
+        Ok(moved)
     }
 
     fn asked_again(&self) -> u64 {
@@ -204,7 +270,7 @@ impl Cloud {
 
     fn fresh(&self) -> PathBuf {
         if !Index::load(&self.home).pulled() && !self.tried.swap(true, Ordering::Relaxed) {
-            let _ = self.with_mirror(None, false, |_, _, _| Ok(((), None)));
+            let _ = self.with_mirror(None, PASSING, |_, _, _| Ok(((), None)));
         }
         self.tree()
     }
@@ -241,6 +307,37 @@ impl<T> Done<T> {
     }
 }
 
+fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Trouble> {
+    let since = unused_since
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |one| one.as_secs());
+    let opened = tisty_core::lately::begun(&here.data.join(tisty_core::lately::USED))
+        .map_err(|e| Trouble::Broke(e.to_string()))?;
+    let begun = opened
+        .get(tisty_core::lately::SINCE)
+        .copied()
+        .unwrap_or(u64::MAX);
+    let events = tisty_core::store::read_all(here.data.join(STORE))
+        .map_err(|e| Trouble::Broke(e.to_string()))?;
+    let mut arrived: BTreeMap<&str, u64> = BTreeMap::new();
+    for event in &events {
+        if let tisty_core::Op::AttachKept { d } = &event.op {
+            let when = u64::try_from(event.timestamp.as_second()).unwrap_or(0);
+            let last = arrived.entry(d.at.as_str()).or_default();
+            *last = (*last).max(when);
+        }
+    }
+    Ok(tisty_core::State::replay(&events)
+        .kept
+        .into_keys()
+        .filter(|reference| {
+            let used = opened.get(reference).copied().unwrap_or(0);
+            let came = arrived.get(reference.as_str()).copied().unwrap_or(0);
+            used.max(came).max(begun) < since
+        })
+        .collect())
+}
+
 fn merged(first: Option<Deferred>, second: Option<Deferred>) -> Option<Deferred> {
     match (first, second) {
         (Some(one), Some(other)) => Some(Deferred {
@@ -265,19 +362,31 @@ impl Carrier for Cloud {
     }
 
     fn lends_from(&self) -> Option<PathBuf> {
-        Some(self.home.join(LENT).join("attachments"))
+        None
     }
 
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
-        let cache = self.home.join(LENT);
+        let state = crate::shift::logged(here);
+        if !shelf::named_well(reference)
+            || tisty_sync::buried_now(&state, &here.data).contains(reference)
+        {
+            return Ok(Brought::Absent);
+        }
+        let logged = state.kept.get(reference).map(|(sha256, _)| sha256.as_str());
         let index = Index::load(&self.home);
-        let cached = tisty_core::attach::resolve(reference, &cache).is_ok_and(|at| at.is_file());
-        if !cached && index.pulled() && !index.shelf.contains_key(reference) {
+        let home = tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| at.is_file());
+        if !home && index.spoiled(reference) {
+            return Err(Trouble::Broke(format!(
+                "{reference} up there does not hold the bytes its name and the log vouch for"
+            )));
+        }
+        if !home && index.pulled() && !index.shelf.contains_key(reference) {
             return Ok(Brought::Later);
         }
         let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
-        match shelf::brought(&metered, &here.data, reference, &cache) {
-            Ok(Some(at)) => Ok(Brought::At(at)),
+        match shelf::brought(&metered, &here.data, reference, logged) {
+            Ok(Some((at, None))) => Ok(Brought::At(at)),
+            Ok(Some((at, Some((sha256, bytes))))) => Ok(Brought::Unvouched { at, sha256, bytes }),
             Ok(None) => Ok(Brought::Absent),
             Err(hitch) => match judge(hitch, self.remote.limits().provider) {
                 Judged::Pause(..) => Ok(Brought::Later),
@@ -291,8 +400,9 @@ impl Carrier for Cloud {
         index.pulled().then(|| {
             index
                 .shelf
-                .into_iter()
-                .map(|(reference, seen)| (reference, seen.bytes))
+                .iter()
+                .filter(|(reference, _)| !index.spoiled(reference))
+                .map(|(reference, seen)| (reference.clone(), seen.bytes))
                 .collect()
         })
     }
@@ -326,36 +436,51 @@ impl Carrier for Cloud {
     }
 
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        let done = self.with_mirror(Some(here), false, |tree, index, remote| {
-            let mut shelf = Shelf::over(remote, index);
-            let moved = carry_through(
-                &here.data,
-                Some(&here.aside),
-                &here.device,
-                tree,
-                round.way,
-                round.alive,
-                round.holds,
-                round.saying,
-                &mut shelf,
-            )?;
-            Ok(((moved, shelf.sent()), shelf.paused()))
-        })?;
-        let (mut moved, attached) = done.value.unwrap_or_default();
-        let mirrored = moved.sent.saturating_sub(attached);
-        moved.sent = attached + mirrored.min(done.uploaded);
-        if let Some(trouble) = done.stopped {
-            if moved == Moved::default() {
-                return Err(trouble);
-            }
-            moved.refused = Some(trouble);
-        }
-        moved.deferred = done.deferred;
-        Ok(moved)
+        self.rounded(here, round, false)
+    }
+
+    fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
+        let round = Round {
+            way: crate::Way::Pull,
+            holds: tisty_core::config::Holds::Everywhere,
+            ..round
+        };
+        self.rounded(here, round, true)
+    }
+
+    fn could_free(&self, here: &Here, unused_since: SystemTime) -> LetGo {
+        let Ok(idle) = idle(here, unused_since) else {
+            return LetGo::default();
+        };
+        let letting = Letting {
+            chosen: &|reference, _| idle.contains(reference),
+            elsewhere: &|_| false,
+            told: &mut |_| true,
+            only_counting: true,
+        };
+        shelf::let_go(&*self.remote, &Index::load(&self.home), &here.data, letting)
+    }
+
+    fn set_free(
+        &self,
+        here: &Here,
+        unused_since: SystemTime,
+        told: Told,
+    ) -> Result<LetGo, Trouble> {
+        self.only(Some(here), |_, index, remote| {
+            let idle = idle(here, unused_since)?;
+            let letting = Letting {
+                chosen: &|reference, _| idle.contains(reference),
+                elsewhere: &|_| false,
+                told,
+                only_counting: false,
+            };
+            Ok(shelf::let_go(remote, index, &here.data, letting))
+        })
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {
-        self.only(Some(here), |tree| {
+        self.only(Some(here), |tree, _, _| {
             tisty_sync::stitch(&here.data, &here.device, tree, key)
         })
     }
@@ -367,16 +492,15 @@ impl Carrier for Cloud {
         elsewhere: Elsewhere,
         told: Told,
     ) -> Result<LetGo, Trouble> {
-        let done = self.with_mirror(Some(here), true, |_, index, remote| {
-            Ok((
-                shelf::let_go(remote, index, &here.data, above, elsewhere, told),
-                None,
-            ))
-        })?;
-        match done.value {
-            Some(freed) => Ok(freed),
-            None => Err(Trouble::Broke(unavailable(done.deferred))),
-        }
+        self.only(Some(here), |_, index, remote| {
+            let letting = Letting {
+                chosen: &|_, len| len > above,
+                elsewhere,
+                told,
+                only_counting: false,
+            };
+            Ok(shelf::let_go(remote, index, &here.data, letting))
+        })
     }
 
     fn paper_waiting(&self, id: &str) -> bool {
@@ -388,13 +512,13 @@ impl Carrier for Cloud {
     }
 
     fn both_papers(&self, here: &Here, id: &str) -> Result<(String, String), Trouble> {
-        self.only(Some(here), |tree| {
+        self.only(Some(here), |tree, _, _| {
             tisty_sync::both_papers(&here.data, tree, id)
         })
     }
 
     fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
-        self.only(Some(here), |tree| {
+        self.only(Some(here), |tree, _, _| {
             tisty_sync::settle(&here.data, tree, id, keep)
         })
     }

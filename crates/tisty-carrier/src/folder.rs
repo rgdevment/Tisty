@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use tisty_core::signing::SigningKey;
 
@@ -109,6 +110,25 @@ impl Carrier for Folder {
             round.holds,
             round.saying,
         )
+    }
+
+    fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
+        self.carry(
+            here,
+            Round {
+                way: crate::Way::Pull,
+                holds: tisty_core::config::Holds::Everywhere,
+                ..round
+            },
+        )
+    }
+
+    fn could_free(&self, _: &Here, _: SystemTime) -> LetGo {
+        LetGo::default()
+    }
+
+    fn set_free(&self, _: &Here, _: SystemTime, _: Told) -> Result<LetGo, Trouble> {
+        Ok(LetGo::default())
     }
 
     fn stitch(&self, here: &Here, key: Option<SigningKey>) -> Result<Stitched, Trouble> {

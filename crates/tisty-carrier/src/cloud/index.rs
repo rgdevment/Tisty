@@ -23,6 +23,8 @@ pub struct Index {
     pub confirmed: bool,
     pub tree: BTreeMap<String, Mirrored>,
     pub shelf: BTreeMap<String, Seen>,
+    #[serde(default)]
+    pub spoiled: BTreeMap<String, String>,
 }
 
 impl Index {
@@ -41,6 +43,12 @@ impl Index {
 
     pub fn pulled(&self) -> bool {
         self.cursor.is_some()
+    }
+
+    pub fn spoiled(&self, reference: &str) -> bool {
+        self.shelf
+            .get(reference)
+            .is_some_and(|seen| self.spoiled.get(reference) == Some(&seen.revision))
     }
 }
 

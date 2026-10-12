@@ -2,6 +2,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
 import { opened, openLink, revealed, served } from "../core";
 import { markup } from "../glyphs";
+import { showing } from "../inUse";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
@@ -39,6 +40,7 @@ export default function Composed({
     holder.innerHTML = html;
     setLong(false);
     let live = true;
+    const shown: (() => void)[] = [];
 
     const measure = () => {
       if (live && holder.scrollHeight > holder.clientHeight + 4) setLong(true);
@@ -52,6 +54,7 @@ export default function Composed({
         return;
       }
       img.addEventListener("load", measure);
+      shown.push(showing(reference));
 
       const cached = known.get(reference);
       if (cached) {
@@ -70,6 +73,7 @@ export default function Composed({
     measure();
     return () => {
       live = false;
+      for (const gone of shown) gone();
     };
   }, [html, cut]);
 

@@ -2,15 +2,13 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use tisty_core::attach::{self, COPIED_IN_DOC, COPIED_UP_TO};
-use tisty_core::config::Holds;
+use tisty_core::attach::{self, COPIED_IN_DOC};
 use tisty_core::witness::{self, Fact, channel};
-use tisty_sync::{
-    Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken, Taking, Trouble, left_behind,
-};
+use tisty_sync::{Attachments, Given, Giving, HELD, LetGo, Reached, Stage, Taken, Taking, Trouble};
 
 use super::index::Index;
 use super::judge::{Judged, judge};
+use super::mirror::resembles;
 use crate::{Deferred, Elsewhere, Expect, Hitch, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
@@ -20,6 +18,7 @@ pub struct Shelf<'a> {
     index: &'a mut Index,
     paused: Option<Deferred>,
     sent: usize,
+    fetching: bool,
 }
 
 struct Local {
@@ -37,6 +36,14 @@ impl<'a> Shelf<'a> {
             index,
             paused: None,
             sent: 0,
+            fetching: false,
+        }
+    }
+
+    pub fn fetching_all(remote: &'a dyn Remote, index: &'a mut Index) -> Self {
+        Self {
+            fetching: true,
+            ..Self::over(remote, index)
         }
     }
 
@@ -53,6 +60,7 @@ impl<'a> Shelf<'a> {
             && one.len <= COPIED_IN_DOC
             && attach::shelved(&one.under, &one.leaf)
             && (round.again
+                || self.index.spoiled(&one.reference)
                 || !self
                     .index
                     .shelf
@@ -89,7 +97,12 @@ impl<'a> Shelf<'a> {
     }
 
     fn send(&self, one: &Local) -> Result<Seen, Hitch> {
-        let (seen, ours) = match self.remote.put(&one.reference, &one.at, Expect::Absent) {
+        // What is up there was refused for its bytes, so ours, already held to its name and the log, goes over it.
+        let expect = match self.index.spoiled(&one.reference) {
+            true => Expect::Any,
+            false => Expect::Absent,
+        };
+        let (seen, ours) = match self.remote.put(&one.reference, &one.at, expect) {
             Ok(seen) => (seen, true),
             Err(Hitch::Changed(_)) => (
                 self.remote
@@ -121,11 +134,13 @@ impl<'a> Shelf<'a> {
 fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<PathBuf, Hitch> {
     if let Some(parent) = target.parent() {
         std::fs::create_dir_all(parent)?;
+        let _ = tisty_core::paths::ours_alone(parent);
     }
     let part = tisty_core::parting::beside(target, TURN.fetch_add(1, Ordering::Relaxed));
     let fetched = std::fs::File::create(&part)
         .map_err(Hitch::from)
         .and_then(|mut file| {
+            let _ = tisty_core::paths::ours_alone(&part);
             let got = remote.fetch(reference, 0, &mut file)?;
             file.sync_all()?;
             Ok(got)
@@ -146,50 +161,62 @@ fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<P
     }
 }
 
+pub fn named_well(reference: &str) -> bool {
+    placed(reference).is_some_and(|(under, leaf)| attach::shelved(under, leaf))
+}
+
+/// Where it lies, and what it read when no history answers for it yet.
+pub type Fetched = (PathBuf, Option<(String, u64)>);
+
 pub fn brought(
     remote: &dyn Remote,
     data: &Path,
     reference: &str,
-    cache: &Path,
-) -> Result<Option<PathBuf>, Hitch> {
-    let Some((under, leaf)) =
-        placed(reference).filter(|(under, leaf)| attach::shelved(under, leaf))
-    else {
+    logged: Option<&str>,
+) -> Result<Option<Fetched>, Hitch> {
+    let Some((under, leaf)) = placed(reference).filter(|_| named_well(reference)) else {
         return Ok(None);
     };
-    let target = attach::resolve(reference, cache).map_err(|e| Hitch::Broke(e.to_string()))?;
+    let target = attach::resolve(reference, data).map_err(|e| Hitch::Broke(e.to_string()))?;
     let written_down = attach::digests(data);
     let holds = |at: &Path| {
-        attach::hashed(at).is_ok_and(|(sha256, _)| {
-            attach::vouched(under, leaf, &sha256)
-                && attach::as_kept(&written_down, reference, &sha256)
+        attach::hashed(at).ok().filter(|(sha256, _)| {
+            attach::vouched(under, leaf, sha256)
+                && match logged {
+                    Some(logged) => sha256.eq_ignore_ascii_case(logged),
+                    None => attach::as_kept(&written_down, reference, sha256),
+                }
         })
     };
-    if target.is_file() && holds(&target) {
-        return Ok(Some(target));
+    let unvouched = |read: (String, u64)| logged.is_none().then_some(read);
+    if target.is_file()
+        && let Some(read) = holds(&target)
+    {
+        return Ok(Some((target, unvouched(read))));
     }
     let part = match fetched_part(remote, reference, &target) {
         Ok(part) => part,
         Err(Hitch::Missing(_)) => return Ok(None),
         Err(hitch) => return Err(hitch),
     };
-    if !holds(&part) {
+    let Some(read) = holds(&part) else {
         let _ = std::fs::remove_file(&part);
         return Err(Hitch::Broke(format!(
-            "{reference} does not hold the bytes its name and this machine vouch for"
+            "{reference} does not hold the bytes its name and the log vouch for"
         )));
-    }
+    };
     if let Err(e) = std::fs::rename(&part, &target) {
         let _ = std::fs::remove_file(&part);
         return Err(e.into());
     }
-    Ok(Some(target))
+    let _ = tisty_core::paths::ours_alone(&target);
+    attach::noted(data, reference, &read.0, read.1);
+    Ok(Some((target, unvouched(read))))
 }
 
 impl Attachments for Shelf<'_> {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
         let mut given = Given::default();
-        let mut landed = Vec::new();
         let (all, mut asked_for) = locals(round.data, round.buried);
         for (at, one) in all.iter().enumerate() {
             if self.paused.is_some() {
@@ -202,7 +229,7 @@ impl Attachments for Shelf<'_> {
             if !self.owed(one, &round) {
                 continue;
             }
-            let (sha256, bytes) = match attach::hashed(&one.at) {
+            let (sha256, _) = match attach::hashed(&one.at) {
                 Ok(read) => read,
                 Err(e) => {
                     witness::warn(
@@ -229,7 +256,6 @@ impl Attachments for Shelf<'_> {
             match self.send(one) {
                 Ok(seen) => {
                     self.index.shelf.insert(one.reference.clone(), seen);
-                    landed.push((one.reference.clone(), bytes));
                     given.sent += 1;
                     self.sent += 1;
                 }
@@ -242,19 +268,6 @@ impl Attachments for Shelf<'_> {
                 }
             }
         }
-        if round.holds == Holds::Shared {
-            for (reference, bytes) in landed
-                .into_iter()
-                .filter(|(_, bytes)| *bytes > COPIED_UP_TO)
-            {
-                let freed = attach::resolve(&reference, round.data)
-                    .is_ok_and(|at| std::fs::remove_file(at).is_ok());
-                if freed {
-                    given.freed += bytes;
-                    given.let_go.push(reference);
-                }
-            }
-        }
         tisty_core::holes::ask_for(asked_for);
         Ok(given)
     }
@@ -263,9 +276,19 @@ impl Attachments for Shelf<'_> {
         self.index.shelf.contains_key(reference)
     }
 
+    fn takes(&self) -> bool {
+        self.fetching
+    }
+
     fn take(&mut self, round: Taking) -> Result<Taken, Trouble> {
-        sweep(round.data);
         let mut taken = Taken::default();
+        let index = &mut *self.index;
+        index.spoiled.retain(|reference, revision| {
+            index
+                .shelf
+                .get(reference)
+                .is_some_and(|seen| &seen.revision == revision)
+        });
         let mut written_down = attach::digests(round.data);
         for (at, one) in round.avowed {
             if written_down
@@ -279,7 +302,6 @@ impl Attachments for Shelf<'_> {
                 );
             }
         }
-        let above = left_behind(round.holds);
         let up: Vec<(String, Seen)> = self
             .index
             .shelf
@@ -296,7 +318,7 @@ impl Attachments for Shelf<'_> {
                 done,
                 whole,
             });
-            if !wanted(&round, above, reference, seen) {
+            if !wanted(&round, self.index, reference, seen) {
                 continue;
             }
             let Some((under, leaf)) = placed(reference) else {
@@ -310,17 +332,20 @@ impl Attachments for Shelf<'_> {
                 Err(hitch) => {
                     let remaining = up[done..]
                         .iter()
-                        .filter(|(rest, said)| wanted(&round, above, rest, said))
+                        .filter(|(rest, said)| wanted(&round, self.index, rest, said))
                         .count();
                     self.refuse(hitch, reference, remaining)?;
                     continue;
                 }
             };
-            let kept = attach::hashed(&part).is_ok_and(|(sha256, bytes)| {
-                let fits = attach::vouched(under, leaf, &sha256)
-                    && attach::as_kept(&written_down, reference, &sha256)
-                    && std::fs::rename(&part, &target).is_ok();
-                if fits {
+            let read = attach::hashed(&part);
+            let fits = read.as_ref().is_ok_and(|(sha256, _)| {
+                attach::vouched(under, leaf, sha256)
+                    && attach::as_kept(&written_down, reference, sha256)
+            });
+            match read {
+                Ok((sha256, bytes)) if fits && std::fs::rename(&part, &target).is_ok() => {
+                    let _ = tisty_core::paths::ours_alone(&target);
                     attach::noted(round.data, reference, &sha256, bytes);
                     (round.saying)(Reached::Kept {
                         at: reference.clone(),
@@ -328,18 +353,27 @@ impl Attachments for Shelf<'_> {
                         bytes,
                     });
                     taken.took_in.push((reference.clone(), sha256, bytes));
+                    taken.brought += 1;
                 }
-                fits
-            });
-            if kept {
-                taken.brought += 1;
-            } else {
-                let _ = std::fs::remove_file(&part);
-                witness::warn(
-                    channel::CLOUD,
-                    "an attachment from the cloud does not hold the bytes its name vouches for",
-                    &[("at", Fact::Id(reference.clone()))],
-                );
+                Ok(_) if !fits => {
+                    let _ = std::fs::remove_file(&part);
+                    self.index
+                        .spoiled
+                        .insert(reference.clone(), seen.revision.clone());
+                    witness::warn(
+                        channel::CLOUD,
+                        "an attachment from the cloud does not hold the bytes its name vouches for",
+                        &[("at", Fact::Id(reference.clone()))],
+                    );
+                }
+                _ => {
+                    let _ = std::fs::remove_file(&part);
+                    witness::warn(
+                        channel::CLOUD,
+                        "an attachment from the cloud could not be kept here, so the next step tries again",
+                        &[("at", Fact::Id(reference.clone()))],
+                    );
+                }
             }
         }
         (round.saying)(Reached::Along {
@@ -357,7 +391,7 @@ fn placed(reference: &str) -> Option<(&str, &str)> {
         .and_then(|rest| rest.split_once('/'))
 }
 
-fn wanted(round: &Taking, above: Option<u64>, reference: &str, seen: &Seen) -> bool {
+fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
     let Some((under, leaf)) = placed(reference) else {
         return false;
     };
@@ -366,15 +400,16 @@ fn wanted(round: &Taking, above: Option<u64>, reference: &str, seen: &Seen) -> b
     };
     attach::shelved(under, leaf)
         && !round.buried.contains(reference)
-        && round
+        && (round
             .reachable
             .is_none_or(|named| named.contains(reference))
-        && above.is_none_or(|most| seen.bytes <= most)
+            || round.avowed.contains_key(reference))
+        && !index.spoiled(reference)
         && seen.bytes <= COPIED_IN_DOC
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
 }
 
-fn sweep(data: &Path) {
+pub fn sweep(data: &Path) {
     let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
         return;
     };
@@ -439,29 +474,37 @@ fn locals(data: &Path, buried: &BTreeSet<String>) -> (Vec<Local>, Vec<PathBuf>) 
     (all, asked)
 }
 
-pub fn let_go(
-    remote: &dyn Remote,
-    index: &Index,
-    data: &Path,
-    above: u64,
-    elsewhere: Elsewhere,
-    told: Told,
-) -> LetGo {
+pub struct Letting<'a> {
+    pub chosen: &'a dyn Fn(&str, u64) -> bool,
+    pub elsewhere: Elsewhere<'a>,
+    pub told: Told<'a>,
+    pub only_counting: bool,
+}
+
+pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting) -> LetGo {
+    let Letting {
+        chosen,
+        elsewhere,
+        told,
+        only_counting,
+    } = letting;
     let mut done = LetGo::default();
     let (all, _) = locals(data, &BTreeSet::new());
-    for one in all.into_iter().filter(|one| one.len > above) {
+    for one in all
+        .into_iter()
+        .filter(|one| chosen(&one.reference, one.len))
+    {
         let twin = index
             .shelf
             .get(&one.reference)
             .filter(|up| up.bytes == one.len);
-        let safe = match twin {
-            Some(up) if !up.hash.is_empty() => {
-                remote.hash_of(&one.at).is_ok_and(|hash| hash == up.hash)
-            }
-            Some(_) => elsewhere(&one.reference),
-            None => false,
-        };
-        match safe && std::fs::remove_file(&one.at).is_ok() {
+        let safe = !tisty_core::holes::a_hole(&one.at)
+            && match twin {
+                Some(up) if !up.hash.is_empty() => resembles(remote, &one.at, up),
+                Some(_) => elsewhere(&one.reference),
+                None => false,
+            };
+        match safe && (only_counting || std::fs::remove_file(&one.at).is_ok()) {
             true => {
                 done.gone += 1;
                 done.freed += one.len;

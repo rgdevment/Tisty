@@ -17,6 +17,7 @@ import {
   weighs,
 } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
+import { showing } from "../inUse";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { DOC, docOf } from "../markdown";
@@ -296,6 +297,7 @@ export default function Editor({
   const mine = useRef(value);
   const sheet = useRef<HTMLDivElement | null>(null);
   const urls = useRef(new Map<string, string>());
+  const onScreen = useRef(new Map<string, () => void>());
   const weights = useRef(new Map<string, number>());
   const blurbs = useRef(new Map<string, string>());
   const glimpses = useRef(new Map<string, Glimpse | null>());
@@ -769,6 +771,7 @@ export default function Editor({
       nudge.current();
     },
     url: (reference) => {
+      if (!onScreen.current.has(reference)) onScreen.current.set(reference, showing(reference));
       const held = urls.current.get(reference);
       if (held) return held;
       fetches(`url:${reference}`, () =>
@@ -903,6 +906,14 @@ export default function Editor({
   }, [editor, reading]);
 
   useEffect(() => {
+    const held = onScreen.current;
+    return () => {
+      for (const gone of held.values()) gone();
+      held.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     let live = true;
     const dress = () =>
@@ -912,6 +923,7 @@ export default function Editor({
           const at = img.getAttribute("src") ?? "";
           if (!at || /^(https?|data|asset|blob|file):/i.test(at)) return;
           if (!pictured(at)) return;
+          if (!onScreen.current.has(at)) onScreen.current.set(at, showing(at));
           const cached = urls.current.get(at);
           if (cached) {
             img.setAttribute("src", cached);

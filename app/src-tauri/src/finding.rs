@@ -52,7 +52,7 @@ pub fn where_to(session: &tauri::State<'_, Mutex<Session>>, reference: &str) -> 
             .get(reference)
             .map(|(sha256, _)| sha256.clone()),
         shared: session.shared_now(),
-        reached: session.paths.cache().join(tisty_core::lately::USED),
+        reached: session.paths.data().join(tisty_core::lately::USED),
     }
 }
 
