@@ -13,6 +13,7 @@ pub const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
 pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.file";
 const LISTENED_EVERY: Duration = Duration::from_millis(100);
 const ASKED_WITHIN: Duration = Duration::from_secs(30);
+const HEARD_WITHIN: Duration = Duration::from_secs(2);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Client {
@@ -61,7 +62,6 @@ pub struct Consent {
 }
 
 impl Consent {
-    /// Listens on a port the system picks, then names the page the person signs in on.
     pub fn begin(client: Client) -> Result<Self, Hitch> {
         let listener = TcpListener::bind(("127.0.0.1", 0))?;
         let redirect = format!("http://127.0.0.1:{}/", listener.local_addr()?.port());
@@ -95,6 +95,7 @@ impl Consent {
     ) -> Result<Granted, Hitch> {
         let code = self.answered(within)?;
         let answer = post_form(
+            &reqwest::blocking::Client::new(),
             token_url,
             &[
                 ("client_id", client.id),
@@ -126,11 +127,11 @@ impl Consent {
         let until = Instant::now() + within;
         loop {
             match self.listener.accept() {
-                Ok((stream, _)) => {
-                    if let Some(code) = self.heard(stream)? {
-                        return Ok(code);
-                    }
-                }
+                Ok((stream, _)) => match self.heard(stream) {
+                    Heard::Code(code) => return Ok(code),
+                    Heard::Refused(hitch) => return Err(hitch),
+                    Heard::Elsewhere => {}
+                },
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     if Instant::now() >= until {
                         return Err(Hitch::Unreachable("the sign-in was never finished".into()));
@@ -142,49 +143,74 @@ impl Consent {
         }
     }
 
-    // A request that is not the redirect (a favicon, a probe) is answered and waited past.
-    fn heard(&self, mut stream: TcpStream) -> Result<Option<String>, Hitch> {
-        stream.set_nonblocking(false)?;
-        stream.set_read_timeout(Some(ASKED_WITHIN))?;
-        let mut line = String::new();
-        BufReader::new(&stream).read_line(&mut line)?;
-        let target = line.split_whitespace().nth(1).unwrap_or_default();
-        let Some(query) = target.strip_prefix("/?") else {
-            let _ = stream.write_all(
-                b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-            );
-            return Ok(None);
+    // Only our own state ends the wait: a stale tab, a probe or an idle socket may reach the port first.
+    fn heard(&self, mut stream: TcpStream) -> Heard {
+        let Some(query) = asked_for(&stream) else {
+            answer(&mut stream, "404 Not Found", "");
+            return Heard::Elsewhere;
         };
         let said: std::collections::HashMap<String, String> =
             url::form_urlencoded::parse(query.as_bytes())
                 .into_owned()
                 .collect();
-        let outcome = match (said.get("state"), said.get("code"), said.get("error")) {
-            (Some(state), _, _) if *state != self.state => Err(Hitch::Broke(
-                "the sign-in answered for another request".into(),
-            )),
-            (_, _, Some(error)) => Err(match error.as_str() {
+        if said.get("state") != Some(&self.state) {
+            answer(&mut stream, "404 Not Found", "");
+            return Heard::Elsewhere;
+        }
+        let heard = match (said.get("code"), said.get("error")) {
+            (_, Some(error)) => Heard::Refused(match error.as_str() {
                 "access_denied" => Hitch::Lost,
                 other => Hitch::Broke(format!("Google refused the sign-in: {other}")),
             }),
-            (_, Some(code), _) => Ok(code.clone()),
-            _ => Err(Hitch::Broke("the sign-in came back without a code".into())),
+            (Some(code), None) => Heard::Code(code.clone()),
+            (None, None) => {
+                Heard::Refused(Hitch::Broke("the sign-in came back without a code".into()))
+            }
         };
-        let page = match outcome {
-            Ok(_) => "Tisty is connected. You can close this tab.",
-            Err(_) => "Tisty could not connect. You can close this tab and try again from Tisty.",
+        let page = match heard {
+            Heard::Code(_) => "Tisty is connected. You can close this tab.",
+            _ => "Tisty could not connect. You can close this tab and try again from Tisty.",
         };
-        let _ = write!(
-            stream,
-            "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}",
-            page.len()
-        );
-        outcome.map(Some)
+        answer(&mut stream, "200 OK", page);
+        heard
     }
 }
 
+enum Heard {
+    Code(String),
+    Refused(Hitch),
+    Elsewhere,
+}
+
+fn asked_for(stream: &TcpStream) -> Option<String> {
+    stream.set_nonblocking(false).ok()?;
+    stream.set_read_timeout(Some(HEARD_WITHIN)).ok()?;
+    let mut reader = BufReader::new(stream);
+    let mut first = String::new();
+    reader.read_line(&mut first).ok()?;
+    // The headers are read through, or closing with them unread resets the browser's connection.
+    let mut line = String::new();
+    while reader.read_line(&mut line).is_ok_and(|read| read > 2) {
+        line.clear();
+    }
+    let target = first.split_whitespace().nth(1)?;
+    target.strip_prefix("/?").map(str::to_owned)
+}
+
+fn answer(stream: &mut TcpStream, status: &str, page: &str) {
+    let _ = write!(
+        stream,
+        "HTTP/1.1 {status}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}",
+        page.len()
+    );
+    let _ = stream.shutdown(std::net::Shutdown::Write);
+}
+
 fn only_drive_file(scope: Option<&str>) -> bool {
-    scope.is_some_and(|granted| granted.split_whitespace().all(|one| one == SCOPE))
+    scope.is_some_and(|granted| {
+        granted.split_whitespace().next().is_some()
+            && granted.split_whitespace().all(|one| one == SCOPE)
+    })
 }
 
 #[derive(serde::Deserialize)]
@@ -200,11 +226,16 @@ struct TokenRefusal {
     error: Option<String>,
 }
 
-fn post_form(url: &str, fields: &[(&str, &str)]) -> Result<TokenAnswer, Hitch> {
+// Blocking on purpose: every carrier call already runs off the window's async runtime.
+fn post_form(
+    http: &reqwest::blocking::Client,
+    url: &str,
+    fields: &[(&str, &str)],
+) -> Result<TokenAnswer, Hitch> {
     let body = url::form_urlencoded::Serializer::new(String::new())
         .extend_pairs(fields)
         .finish();
-    let answer = reqwest::blocking::Client::new()
+    let answer = http
         .post(url)
         .header("Content-Type", "application/x-www-form-urlencoded")
         .body(body)
@@ -233,7 +264,7 @@ fn post_form(url: &str, fields: &[(&str, &str)]) -> Result<TokenAnswer, Hitch> {
                 .and_then(|one| one.error)
                 .unwrap_or_default();
             match error.as_str() {
-                "invalid_grant" | "unauthorized_client" => Err(Hitch::Lost),
+                "invalid_grant" => Err(Hitch::Lost),
                 other => Err(Hitch::Broke(format!("Google refused the token: {other}"))),
             }
         }
@@ -243,6 +274,7 @@ fn post_form(url: &str, fields: &[(&str, &str)]) -> Result<TokenAnswer, Hitch> {
 pub struct GoogleRenew {
     client: Client,
     token_url: String,
+    http: reqwest::blocking::Client,
 }
 
 impl GoogleRenew {
@@ -250,6 +282,7 @@ impl GoogleRenew {
         Self {
             client,
             token_url: token_url.into(),
+            http: reqwest::blocking::Client::new(),
         }
     }
 }
@@ -257,6 +290,7 @@ impl GoogleRenew {
 impl Renew for GoogleRenew {
     fn renew(&self, refresh: &str) -> Result<Renewed, Hitch> {
         let answer = post_form(
+            &self.http,
             &self.token_url,
             &[
                 ("client_id", self.client.id),

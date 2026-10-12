@@ -9,7 +9,6 @@ const CLIENT: Client = Client {
     secret: "not-a-secret",
 };
 
-/// One canned answer on a port of its own; hands back what it was asked.
 fn provider(status: &str, body: &str) -> (String, std::thread::JoinHandle<String>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let url = format!(
@@ -60,7 +59,6 @@ fn said_in(consent: &Consent, key: &str) -> String {
         .into_owned()
 }
 
-/// What the browser does after the person agrees: it lands on the loopback with the answer.
 fn lands(redirect: &str, query: &str) -> String {
     let port: u16 = redirect
         .trim_end_matches('/')
@@ -142,17 +140,61 @@ fn a_code_that_comes_back_is_traded_for_lasting_access_with_its_verifier() {
 }
 
 #[test]
-fn an_answer_for_another_request_is_refused_before_anything_is_traded() {
+fn what_reaches_the_port_without_our_state_is_waited_past_and_never_traded() {
     let consent = Consent::begin(CLIENT).unwrap();
-    let redirect = said_in(&consent, "redirect_uri");
+    let (redirect, state) = (
+        said_in(&consent, "redirect_uri"),
+        said_in(&consent, "state"),
+    );
     let waiting = std::thread::spawn(move || {
         consent.finish(CLIENT, Duration::from_secs(5), "http://127.0.0.1:9/")
     });
 
-    let page = lands(&redirect, "state=someone-else&code=stolen");
+    let other = lands(&redirect, "state=someone-else&code=stolen");
+    let bare = lands(&redirect, "code=stolen");
+    let refusal = lands(&redirect, "error=access_denied");
+    lands(&redirect, &format!("state={state}&error=access_denied"));
 
-    assert!(page.contains("could not connect"), "{page}");
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
+    for page in [other, bare, refusal] {
+        assert!(page.starts_with("HTTP/1.1 404"), "{page}");
+    }
+    assert!(
+        matches!(waiting.join().unwrap(), Err(Hitch::Lost)),
+        "an answer without our state ended the sign-in"
+    );
+}
+
+#[test]
+fn a_connection_that_says_nothing_does_not_stand_in_the_way_of_the_answer() {
+    let consent = Consent::begin(CLIENT).unwrap();
+    let (redirect, state) = (
+        said_in(&consent, "redirect_uri"),
+        said_in(&consent, "state"),
+    );
+    let port: u16 = redirect
+        .trim_end_matches('/')
+        .rsplit(':')
+        .next()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let waiting = std::thread::spawn(move || {
+        consent.finish(CLIENT, Duration::from_secs(10), "http://127.0.0.1:9/")
+    });
+
+    let _idle = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+    lands(&redirect, &format!("state={state}&error=access_denied"));
+
+    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+}
+
+#[test]
+fn a_client_google_does_not_allow_is_a_build_to_fix_not_an_account_to_reconnect() {
+    let (token_url, _) = provider("401 Unauthorized", r#"{"error":"unauthorized_client"}"#);
+
+    let renewed = GoogleRenew::new(CLIENT, token_url).renew("1//old");
+
+    assert!(matches!(renewed, Err(Hitch::Broke(_))));
 }
 
 #[test]
@@ -198,6 +240,10 @@ fn granted_scope_beyond_drive_file_is_turned_down() {
         "{SCOPE} https://www.googleapis.com/auth/drive"
     ))));
     assert!(!only_drive_file(None));
+    assert!(
+        !only_drive_file(Some("")),
+        "a grant that left drive.file unticked was taken as connected"
+    );
 }
 
 #[test]

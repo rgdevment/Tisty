@@ -26,7 +26,6 @@ pub use keychain::Keychain;
 #[cfg(feature = "cloud")]
 pub mod google;
 
-/// Whether this build can offer a cloud at all: never without the feature, nor without a client id.
 pub fn cloud_offered() -> bool {
     #[cfg(feature = "cloud")]
     return google::client().is_some();
