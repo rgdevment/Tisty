@@ -19,7 +19,7 @@ mod remote;
 mod shift;
 mod tokens;
 
-pub use cloud::Cloud;
+pub use cloud::{Cloud, policy};
 pub use folder::Folder;
 pub use keychain::Keychain;
 

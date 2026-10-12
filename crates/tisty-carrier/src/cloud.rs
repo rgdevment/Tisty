@@ -18,6 +18,7 @@ mod index;
 mod judge;
 pub(crate) mod lock;
 mod mirror;
+pub mod policy;
 mod shelf;
 
 use budget::{Class, Metered};
@@ -356,6 +357,7 @@ fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Troub
 // What the person can do least about speaks: a spent day outlasts a file that changed mid-round.
 fn weight(reason: Reason) -> u8 {
     match reason {
+        Reason::Paused => 5,
         Reason::Budget => 4,
         Reason::Offline => 3,
         Reason::Limit => 2,

@@ -774,6 +774,7 @@ async fn carried_round(
                 tisty_carrier::Reason::Limit => "limit",
                 tisty_carrier::Reason::Offline => "offline",
                 tisty_carrier::Reason::Busy => "busy",
+                tisty_carrier::Reason::Paused => "paused",
                 tisty_carrier::Reason::Changed => "changed",
             },
             left: deferred.left,

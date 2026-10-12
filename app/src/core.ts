@@ -727,7 +727,7 @@ export interface Settled {
 }
 
 export type Waiting = {
-  reason: "budget" | "limit" | "offline" | "busy" | "changed";
+  reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused";
   left: number;
   names: string[];
 };
@@ -745,6 +745,7 @@ const WAITS = {
   budget: "deferredBudget",
   limit: "deferredLimit",
   offline: "deferredOffline",
+  paused: "deferredPaused",
 } as const;
 
 // A round left for later is no error, and a busy or changed one retries by itself, so only these are said.

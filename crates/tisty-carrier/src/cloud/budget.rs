@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 
 use super::lock::{BUDGETING, Held};
+use super::policy;
 use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 
 const FILE: &str = "budget.json";
@@ -64,7 +65,7 @@ impl<'a> Metered<'a> {
     pub fn over(remote: &'a dyn Remote, home: &Path, class: Class) -> Self {
         Self {
             remote,
-            limits: remote.limits(),
+            limits: policy::applied(remote.limits(), policy::kept(home).as_ref()),
             home: home.to_path_buf(),
             class: Mutex::new(class),
         }
@@ -77,6 +78,11 @@ impl<'a> Metered<'a> {
     }
 
     fn allowed(&self) -> Result<(), Hitch> {
+        if policy::paused_here(&self.home)
+            || policy::halted(policy::kept(&self.home).as_ref(), policy::now())
+        {
+            return Err(Hitch::Paused);
+        }
         let class = self.class.lock().map_or(Class::History, |one| *one);
         let (units, bytes) = match class {
             Class::Asked => return Ok(()),

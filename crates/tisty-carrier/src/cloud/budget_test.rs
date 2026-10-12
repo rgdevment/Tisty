@@ -57,3 +57,42 @@ fn a_charge_still_counts_when_another_process_holds_the_budget_too_long() {
         "what went out was never counted, so a loop could spend past the day"
     );
 }
+
+#[test]
+fn a_cloud_paused_here_or_from_afar_asks_nothing_not_even_what_the_person_asked_for() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+
+    policy::pause_here(home.path(), true).unwrap();
+    let held = Metered::over(&fake, home.path(), Class::Asked).list("");
+    policy::pause_here(home.path(), false).unwrap();
+    let freed = Metered::over(&fake, home.path(), Class::Asked).list("");
+
+    assert_eq!(held, Err(Hitch::Paused));
+    assert!(freed.is_ok());
+    assert_eq!(
+        crate::fakes::Counting::counts(&fake).lists,
+        1,
+        "the paused one was asked after all"
+    );
+}
+
+#[test]
+fn the_limits_of_a_signed_word_are_the_ones_the_meter_keeps() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    std::fs::write(
+        home.path().join("cloud-policy.json"),
+        br#"{"serial":1,"units_a_day":1}"#,
+    )
+    .unwrap();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+
+    meter.list("").unwrap();
+
+    assert_eq!(
+        meter.list(""),
+        Err(Hitch::Spent),
+        "the lowered day was not kept"
+    );
+}

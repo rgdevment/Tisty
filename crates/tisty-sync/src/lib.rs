@@ -110,6 +110,7 @@ pub struct Moved {
 pub enum Reason {
     Limit,
     Budget,
+    Paused,
     Busy,
     Offline,
     Changed,

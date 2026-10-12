@@ -53,6 +53,7 @@ describe("what a sync says went amiss", () => {
   it("says why a round waits on the cloud, and nothing for one that retries by itself", () => {
     expect(whatWaits(settled({ deferred: waiting("limit") }))).toBe("deferredLimit");
     expect(whatWaits(settled({ deferred: waiting("offline") }))).toBe("deferredOffline");
+    expect(whatWaits(settled({ deferred: waiting("paused") }))).toBe("deferredPaused");
     expect(whatWaits(settled({ deferred: waiting("busy") }))).toBeNull();
     expect(whatWaits(settled({ deferred: waiting("changed") }))).toBeNull();
     expect(whatWaits(settled({}))).toBeNull();

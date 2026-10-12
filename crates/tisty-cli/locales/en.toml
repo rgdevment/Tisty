@@ -124,6 +124,7 @@ deferred-busy      = "Tisty was already talking to your cloud; the sync carries 
 deferred-changed   = "your cloud changed while this sync ran; what is left goes on the next one"
 deferred-left      = "({left} left for later)"
 deferred-more      = "and {more} more"
+deferred-paused    = "The cloud is paused; your changes stay on this machine until it goes on."
 machines-unreadable = "these machines' histories could not be read and were left out: {names}"
 machines-disowned   = "these machines' histories carry a signature that does not answer to the key kept for them, so none of what they hold was taken in: {names}. Either something changed those files after they were written, or they now sign with a key other than the one confirmed here"
 machines-unconfirmed = "these machines say what they sign with and nobody here has answered for them, so nothing they write came in: {names}. Let one through with `tisty sync --confirm <machine>`"

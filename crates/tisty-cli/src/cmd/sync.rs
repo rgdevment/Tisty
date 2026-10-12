@@ -249,6 +249,7 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             carrier::Reason::Limit => "deferred-limit",
             carrier::Reason::Offline => "deferred-offline",
             carrier::Reason::Busy => "deferred-busy",
+            carrier::Reason::Paused => "deferred-paused",
             carrier::Reason::Changed => "deferred-changed",
         };
         let said = match deferred.left {
