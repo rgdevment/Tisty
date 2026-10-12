@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Paper } from "../../core";
+import { copied, type Paper } from "../../core";
 import { fill, t } from "../../locales";
 import Editor from "../Editor";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
@@ -25,13 +25,12 @@ interface Props {
 const heading = "mx-2 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-faint";
 
 function Raw({ body, wide }: { body: string; wide: number }) {
-  const [copied, setCopied] = useState(false);
+  const [done, setDone] = useState(false);
   const copy = () =>
-    navigator.clipboard
-      .writeText(body)
+    copied(body)
       .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+        setDone(true);
+        setTimeout(() => setDone(false), 1200);
       })
       .catch(() => {});
   return (
@@ -41,7 +40,7 @@ function Raw({ body, wide }: { body: string; wide: number }) {
         style={{ maxWidth: wide }}
       >
         <button type="button" onClick={copy} className={`absolute top-3 right-3.5 ${button}`}>
-          {t(copied ? "viewCopied" : "viewCopy")}
+          {t(done ? "viewCopied" : "viewCopy")}
         </button>
         {body.split("\n").map((line, at) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: a line of one text has no identity but its place

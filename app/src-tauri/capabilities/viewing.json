@@ -14,6 +14,7 @@
     "opener:allow-reveal-item-in-dir",
     "dialog:allow-ask",
     "dialog:allow-message",
-    "dialog:allow-save"
+    "dialog:allow-save",
+    "clipboard-manager:allow-write-text"
   ]
 }

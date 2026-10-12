@@ -1,5 +1,5 @@
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { docCopy, type Showing, viewGo } from "../../core";
+import { copied, docCopy, type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
 import { PRESETS, type Preset } from "./Stage";
@@ -88,7 +88,7 @@ export const choicesFor = (a: Acts): Choice[] => {
     {
       key: "copy",
       label: t("viewCopyMd"),
-      onPick: () => void navigator.clipboard.writeText(a.body).catch(a.fail),
+      onPick: () => void copied(a.body).catch(a.fail),
     },
     { key: "see", label: t("seePdf"), hint: "Ctrl+P", apart: true, onPick: a.preview },
     { key: "pdf", label: t("toPdf"), onPick: a.keep },
