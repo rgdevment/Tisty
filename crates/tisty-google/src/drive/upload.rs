@@ -117,7 +117,7 @@ impl Drive {
                 failed += 1;
                 match self.resumed(&session, bytes, &mut failed)? {
                     Kept::At(next) => at = next,
-                    Kept::Done(file) => return Ok(file),
+                    Kept::Done(file) => return Ok(*file),
                 }
                 if at >= bytes {
                     return Err(Hitch::Broke(
@@ -171,7 +171,11 @@ impl Drive {
             .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
         match answer.status().as_u16() {
             308 => Ok(Kept::At(stored(&answer))),
-            200 | 201 => Ok(Kept::Done(json(answer)?)),
+            200 | 201 => Ok(Kept::Done(Box::new(json(answer)?))),
+            // Google's word for a session it let go of: the upload starts over, the file is not missing.
+            404 => Err(Hitch::Unreachable(
+                "Google let go of the upload session, so it starts over".into(),
+            )),
             _ => Err(judged(answer)
                 .err()
                 .unwrap_or_else(|| Hitch::Broke("the upload session ended".into()))),
@@ -181,7 +185,7 @@ impl Drive {
 
 enum Kept {
     At(u64),
-    Done(File),
+    Done(Box<File>),
 }
 
 fn stored(answer: &reqwest::blocking::Response) -> u64 {

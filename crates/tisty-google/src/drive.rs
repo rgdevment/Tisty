@@ -8,11 +8,14 @@ use reqwest::blocking::Client as Http;
 use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
+mod gap;
 mod tree;
 mod upload;
 mod wire;
 
-use tree::{FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within};
+use tree::{
+    Changed, FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within,
+};
 use wire::{given, json, quoted, transfer_http};
 
 use crate::ASKED_WITHIN;
@@ -372,15 +375,8 @@ impl Drive {
         })
     }
 
-    fn stirred(&self, since: &str) -> Result<(bool, String), Hitch> {
-        #[derive(Deserialize)]
-        struct Changed {
-            #[serde(rename = "fileId")]
-            file_id: String,
-            #[serde(default)]
-            removed: bool,
-            file: Option<File>,
-        }
+    // What changed since the cursor, less what this machine wrote itself, with each file as it now stands.
+    fn stirred(&self, since: &str) -> Result<(Vec<Changed>, String), Hitch> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Moved {
@@ -390,6 +386,8 @@ impl Drive {
             new_start_page_token: Option<String>,
         }
         let url = format!("{}/changes", self.at.api);
+        let fields =
+            format!("nextPageToken,newStartPageToken,changes(fileId,removed,file({FILE_FIELDS}))");
         let mut token = since.to_string();
         let mut all = Vec::new();
         loop {
@@ -398,7 +396,7 @@ impl Drive {
                     ("pageToken", token.as_str()),
                     ("pageSize", "1000"),
                     ("spaces", "drive"),
-                    ("fields", "nextPageToken,newStartPageToken,changes(fileId,removed,file(id,version,trashed))"),
+                    ("fields", fields.as_str()),
                 ])
             })?)?;
             all.extend(moved.changes);
@@ -410,16 +408,13 @@ impl Drive {
                         .lock()
                         .map(|held| held.clone())
                         .unwrap_or_default();
-                    let ours = all.iter().all(|one| {
-                        let version = match (&one.file, one.removed) {
-                            (Some(file), false) if !file.trashed => {
-                                Some(file.version.clone().unwrap_or_else(|| "0".into()))
-                            }
-                            _ => None,
-                        };
-                        wrote.contains(&(one.file_id.clone(), version))
+                    all.retain(|one| {
+                        let version = one
+                            .standing()
+                            .map(|file| file.version.clone().unwrap_or_else(|| "0".into()));
+                        !wrote.contains(&(one.file_id.clone(), version))
                     });
-                    return Ok((!ours, cursor));
+                    return Ok((all, cursor));
                 }
                 (None, None) => {
                     return Err(Hitch::Broke(
@@ -428,6 +423,33 @@ impl Drive {
                 }
             }
         }
+    }
+
+    // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
+    fn caught_up(&self, theirs: &[Changed], cursor: &str) -> Option<Changes> {
+        let roots = self.roots.lock().ok()?.clone()?;
+        let mut held = self.known.lock().ok()?;
+        let known = held.as_mut()?;
+        let (tree, applied) = tree::applied(&known.tree, &roots, theirs)?;
+        known.tree = tree;
+        known.cursor = Some(cursor.to_string());
+        let changed = applied
+            .changed
+            .iter()
+            .filter_map(|path| {
+                known
+                    .tree
+                    .files
+                    .get(path)?
+                    .first()
+                    .map(|file| seen(path, file))
+            })
+            .collect();
+        Some(Changes::Since {
+            changed,
+            gone: applied.gone,
+            cursor: cursor.to_string(),
+        })
     }
 }
 
@@ -449,6 +471,7 @@ impl Remote for Drive {
                 delete: 50,
                 about: 5,
                 changes: 100,
+                checks: 5,
             },
         }
     }
@@ -525,6 +548,11 @@ impl Remote for Drive {
                 .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?,
         };
         let made = self.sent(name, from, current, &parent)?;
+        if let Some(checked) = current
+            && gap::leapt(checked, &made)
+        {
+            self.handed_back(name, &made, checked)?;
+        }
         self.owned(
             &made.id,
             Some(made.version.clone().unwrap_or_else(|| "0".into())),
@@ -549,7 +577,14 @@ impl Remote for Drive {
         if expect.is_some_and(|wanted| seen(name, first).revision != wanted) {
             return Err(Hitch::Changed(name.to_string()));
         }
-        for one in &all {
+        let copies = match expect {
+            Some(_) => {
+                self.binned_unless_moved(name, first)?;
+                &all[1..]
+            }
+            None => &all[..],
+        };
+        for one in copies {
             let url = format!("{}/files/{}", self.at.api, one.id);
             match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
                 Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
@@ -584,7 +619,7 @@ impl Remote for Drive {
                 cursor: start.start_page_token,
             });
         };
-        let (stirred, cursor) = self.stirred(since)?;
+        let (theirs, cursor) = self.stirred(since)?;
         if let Ok(mut held) = self.wrote.lock() {
             held.clear();
         }
@@ -592,20 +627,17 @@ impl Remote for Drive {
             held.as_ref()
                 .is_some_and(|known| known.cursor.as_deref() == Some(since))
         });
-        if stirred || !followed {
-            self.listed(Some(cursor.clone()))?;
-        } else if let Ok(mut held) = self.known.lock()
-            && let Some(known) = held.as_mut()
-        {
-            known.cursor = Some(cursor.clone());
+        if followed && let Some(caught_up) = self.caught_up(&theirs, &cursor) {
+            return Ok(caught_up);
         }
-        Ok(match stirred {
-            false => Changes::Since {
+        self.listed(Some(cursor.clone()))?;
+        Ok(match theirs.is_empty() {
+            true => Changes::Since {
                 changed: Vec::new(),
                 gone: Vec::new(),
                 cursor,
             },
-            true => Changes::Whole {
+            false => Changes::Whole {
                 seen: self.shown("")?,
                 cursor,
             },

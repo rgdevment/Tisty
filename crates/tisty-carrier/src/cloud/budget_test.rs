@@ -137,3 +137,24 @@ fn a_listen_already_open_is_charged_each_ask_and_stops_when_the_cloud_pauses() {
         "a paused listen still asked"
     );
 }
+
+#[test]
+fn the_look_a_provider_takes_before_writing_is_counted_with_the_write() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+    let source = home.path().join("bytes");
+    std::fs::write(&source, b"unos bytes").unwrap();
+
+    meter
+        .put("store/dev_a.log", &source, crate::Expect::Absent)
+        .unwrap();
+    meter.delete("store/dev_a.log", None).unwrap();
+
+    let costs = fake.limits().costs;
+    assert_eq!(
+        Spent::load(home.path()).units,
+        costs.put + costs.delete + 2 * costs.checks,
+        "the budget sat below what Google counts"
+    );
+}

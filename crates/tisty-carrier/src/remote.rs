@@ -53,6 +53,8 @@ pub struct Costs {
     pub delete: u64,
     pub about: u64,
     pub changes: u64,
+    /// The look a provider without conditional writes takes before each fetch, put or delete.
+    pub checks: u64,
 }
 
 // Only a guard against a copy stuck in a loop: the provider paces by the minute, and a person is never held back.
@@ -119,6 +121,7 @@ pub trait Remote: Send + Sync {
     fn limits(&self) -> Limits;
     fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch>;
     fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch>;
+    /// Never leaves these bytes over a revision `expect` did not name: a write that finds one put back and answers Changed.
     fn put(&self, name: &str, from: &Path, expect: Expect) -> Result<Seen, Hitch>;
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch>;
     fn hash_of(&self, local: &Path) -> std::io::Result<String>;

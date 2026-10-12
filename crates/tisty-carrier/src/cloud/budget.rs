@@ -85,6 +85,13 @@ impl<'a> Metered<'a> {
     fn charge(&self, requests: u64, cost: u64, bytes: u64) {
         charged(&self.home, requests, cost, bytes);
     }
+
+    fn charge_checked(&self, requests: u64, cost: u64, bytes: u64) {
+        let units = requests
+            .saturating_mul(cost)
+            .saturating_add(self.limits.costs.checks);
+        charged(&self.home, 1, units, bytes);
+    }
 }
 
 fn allowed_at(home: &Path, limits: &Limits, class: Class) -> Result<(), Hitch> {
@@ -192,7 +199,7 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let mut tallied = Tallied { into, bytes: 0 };
         let got = self.remote.fetch(name, from, &mut tallied);
-        self.charge(1, self.limits.costs.fetch, tallied.bytes);
+        self.charge_checked(1, self.limits.costs.fetch, tallied.bytes);
         got
     }
 
@@ -200,7 +207,7 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
         let put = self.remote.put(name, from, expect);
-        self.charge(
+        self.charge_checked(
             self.limits.requests_to_put(weighs),
             self.limits.costs.put,
             0,
@@ -211,7 +218,7 @@ impl Remote for Metered<'_> {
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         self.allowed()?;
         let gone = self.remote.delete(name, expect);
-        self.charge(1, self.limits.costs.delete, 0);
+        self.charge_checked(1, self.limits.costs.delete, 0);
         gone
     }
 
