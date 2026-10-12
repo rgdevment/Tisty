@@ -719,6 +719,41 @@ describe("the maintenance panel", () => {
     }
   });
 
+  it("says when nothing is unused that long, and says to try later when the cloud cannot be asked", async () => {
+    carrying.freesSpace = true;
+    let unused = 0;
+    ipc.answer = ((was) => (cmd: string, args: Record<string, unknown>) => {
+      if (cmd === "unused_attachments") return Promise.resolve({ files: unused, bytes: 0 });
+      if (cmd === "free_space") return Promise.reject({ code: "syncBroke" });
+      return was(cmd, args);
+    })(ipc.answer);
+    try {
+      render(
+        <Keeping
+          onPack={() => {}}
+          onUnpack={() => {}}
+          onGreet={() => {}}
+          onChanged={() => {}}
+          onDoc={() => {}}
+        />,
+      );
+      await data();
+
+      await screen.findByText(/nothing unused that long/i);
+      expect(screen.getByRole("button", { name: /^free$/i }).hasAttribute("disabled")).toBe(true);
+
+      unused = 2;
+      await userEvent.selectOptions(screen.getByRole("combobox", { name: /unused for/i }), "90");
+      await screen.findByText(/2 unused/i);
+      await userEvent.click(screen.getByRole("button", { name: /^free$/i }));
+
+      await screen.findByText(/could not be asked first/i);
+      expect(screen.queryByText(/Freeing space/i)).toBeNull();
+    } finally {
+      carrying.freesSpace = false;
+    }
+  });
+
   it("never offers to free space when a folder is the place", async () => {
     render(
       <Keeping

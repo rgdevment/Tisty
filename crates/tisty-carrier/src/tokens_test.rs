@@ -219,6 +219,10 @@ fn no_token_ever_lands_in_a_file_even_when_the_keychain_will_not_take_it() {
     let mut found = Vec::new();
     every_file(home.path(), &mut found);
 
+    assert!(
+        !found.is_empty(),
+        "nothing was left beside the locks to look into"
+    );
     let secret = b"secreto";
     assert!(
         !found

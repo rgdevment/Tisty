@@ -210,3 +210,19 @@ fn an_attachment_shown_under_a_moment_of_its_own_still_counts_as_used() {
         assert!(done.let_go.is_empty(), "{who}");
     }
 }
+
+#[test]
+fn only_a_cloud_says_it_frees_space_so_the_window_offers_it_nowhere_else() {
+    for setting in settings() {
+        let (one, _) = pair(&setting);
+
+        let frees = one.carrier.frees_space();
+
+        assert_eq!(
+            frees,
+            matches!(setting.place, Place::Cloud(_)),
+            "{}",
+            setting.name
+        );
+    }
+}

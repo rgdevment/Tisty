@@ -13,9 +13,11 @@ pub struct Keychain {
 
 impl Keychain {
     pub fn native() -> Result<Self, Hitch> {
-        Ok(Self {
-            store: native_store().map_err(trouble)?,
-        })
+        native_store().map(Self::over).map_err(trouble)
+    }
+
+    pub(crate) fn over(store: Arc<CredentialStore>) -> Self {
+        Self { store }
     }
 
     fn entry(&self, key: &str) -> Result<Entry, Hitch> {
@@ -68,7 +70,6 @@ fn trouble(e: Error) -> Hitch {
     Hitch::Broke(format!("the keychain refused: {e}"))
 }
 
-// Only Windows runners hold a keychain that answers without a person unlocking it.
-#[cfg(all(test, windows))]
+#[cfg(test)]
 #[path = "keychain_test.rs"]
 mod tests;
