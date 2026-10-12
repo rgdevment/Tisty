@@ -5509,6 +5509,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-google"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "rand_core 0.9.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tisty-carrier",
+ "url",
+]
+
+[[package]]
 name = "tisty-gui"
 version = "0.1.0"
 dependencies = [
@@ -5536,6 +5550,7 @@ dependencies = [
  "tempfile",
  "tisty-carrier",
  "tisty-core",
+ "tisty-google",
  "tisty-nl",
  "toml 1.1.6+spec-1.1.0",
  "ulid",
