@@ -435,9 +435,12 @@ pub fn is_the_one(kept: &str, at: &Path) -> bool {
     written_at(kept, at)
 }
 
-/// Only where it was written, whatever mark it carried: a folder a cloud drive serves can come back
-/// with another mark after a restart.
-pub fn written_at(kept: &str, at: &Path) -> bool {
+// A cloud drive can hand the same folder back under another mark, and only the store it holds says it is the same one.
+pub fn same_folder(kept: &str, at: &Path, holds_our_store: bool) -> bool {
+    is_the_one(kept, at) || (holds_our_store && written_at(kept, at))
+}
+
+fn written_at(kept: &str, at: &Path) -> bool {
     let (_, path) = mark_and_path(kept);
     !path.is_empty() && as_written(Path::new(path)) == as_written(at)
 }

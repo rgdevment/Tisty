@@ -139,7 +139,7 @@ impl Moved {
 const BROUGHT_WITHIN: std::time::Duration = std::time::Duration::from_secs(15);
 
 pub fn been_here(aside: &Path, dest: &Path, device: &str) -> bool {
-    carried_here(Some(aside), dest, Some(device))
+    carried_here(Some(aside), dest, Some(device), false)
 }
 
 pub fn carry(
@@ -238,7 +238,8 @@ pub fn carry_through(
     shape::before_reading(data, dest)?;
     let store = data.join(STORE);
     let again = matches!(way, Way::Again);
-    let been_here = carried_here(aside, dest, Some(device));
+    let holds_ours = holds_our_store(&store, dest);
+    let been_here = carried_here(aside, dest, Some(device), holds_ours);
     let ours = settled(&store, dest, been_here && !again)?;
 
     let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
@@ -248,7 +249,7 @@ pub fn carry_through(
     let mut alike = Alike::default();
     let mut said = None;
     if taking {
-        let mut adopting = still_adopting(aside, dest);
+        let mut adopting = still_adopting(aside, dest, holds_ours);
         if !been_here
             && tisty_core::vouched::all_confirmed(data)
                 .keys()
@@ -514,6 +515,11 @@ pub fn claims(theirs: &str, ours: &str) -> Result<(), Trouble> {
 
 pub fn theirs(dest: &Path) -> Option<String> {
     tisty_core::store::peek_identity(dest.join(STORE))
+}
+
+pub(crate) fn holds_our_store(store: &Path, dest: &Path) -> bool {
+    tisty_core::store::peek_identity(store)
+        .is_some_and(|ours| theirs(dest).as_deref() == Some(ours.trim()))
 }
 
 pub fn paper_waiting(dest: &Path, id: &str) -> bool {
@@ -823,7 +829,7 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     let theirs = tisty_core::docs::resolve(&dest.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;
     let mut said = Carried::read(data);
-    if said.facing(dest, false) {
+    if said.facing(dest, false, holds_our_store(&data.join(STORE), dest)) {
         tisty_core::docs::forget_what_was_carried(data);
     }
     plainly(&theirs)?;

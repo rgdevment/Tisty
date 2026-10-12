@@ -1686,19 +1686,22 @@ fn a_base_is_kept_for_the_folder_it_was_taken_against_and_dropped_in_any_other()
     let folder = tempfile::tempdir().unwrap();
 
     let mut said = Carried::default();
-    assert!(said.facing(folder.path(), false), "a folder it never faced");
+    assert!(
+        said.facing(folder.path(), false, false),
+        "a folder it never faced"
+    );
     said.keep("mac0-0001", "abc123");
     said.save(data).unwrap();
 
     let mut again = Carried::read(data);
     assert!(
-        !again.facing(folder.path(), false),
+        !again.facing(folder.path(), false, false),
         "the folder it was taken against was read as another one"
     );
     assert_eq!(again.of("mac0-0001"), Some("abc123"));
 
     let elsewhere = tempfile::tempdir().unwrap();
-    assert!(again.facing(elsewhere.path(), false));
+    assert!(again.facing(elsewhere.path(), false, false));
     assert_eq!(
         again.of("mac0-0001"),
         None,
@@ -1723,7 +1726,7 @@ fn a_ledger_written_before_any_folder_was_named_is_a_base_for_none_it_cannot_pla
         Some("abc123"),
         "the shape written before the folder was named was read as nothing at all"
     );
-    assert!(said.facing(folder.path(), false));
+    assert!(said.facing(folder.path(), false, false));
     assert_eq!(said.of("mac0-0001"), None);
 }
 
@@ -1740,7 +1743,7 @@ fn a_ledger_written_before_any_folder_was_named_still_stands_where_this_machine_
     let mut said = Carried::read(room.path());
 
     assert!(
-        !said.facing(folder.path(), true),
+        !said.facing(folder.path(), true, false),
         "updating in place was read as carrying somewhere else"
     );
     assert_eq!(said.of("mac0-0001"), Some("abc123"));
@@ -1748,7 +1751,7 @@ fn a_ledger_written_before_any_folder_was_named_still_stands_where_this_machine_
     said.save(room.path()).unwrap();
     let mut again = Carried::read(room.path());
     assert!(
-        !again.facing(folder.path(), false),
+        !again.facing(folder.path(), false, false),
         "the folder it was just given a name for was read as another one"
     );
     assert_eq!(again.of("mac0-0001"), Some("abc123"));

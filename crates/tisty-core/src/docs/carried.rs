@@ -191,13 +191,12 @@ impl Carried {
         self.prints.remove(id);
     }
 
-    pub fn facing(&mut self, dest: &Path, been_here: bool) -> bool {
+    pub fn facing(&mut self, dest: &Path, been_here: bool, holds_our_store: bool) -> bool {
         if let Some(kept) = self.up_to.as_deref() {
             if crate::paths::is_the_one(kept, dest) {
                 return false;
             }
-            // Forgetting every base turns each document written on both sides into a question for the person.
-            if crate::paths::written_at(kept, dest) {
+            if crate::paths::same_folder(kept, dest, holds_our_store) {
                 self.up_to = Some(crate::paths::told_of(dest));
                 return false;
             }
