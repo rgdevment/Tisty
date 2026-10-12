@@ -140,7 +140,6 @@ impl Fake {
         self
     }
 
-    /// The next put of `name` passes its check, lets `meanwhile` run, and then writes regardless.
     pub fn in_the_gap(&self, name: &str, meanwhile: impl FnOnce() + Send + 'static) {
         if let Ok(mut gap) = self.gap.lock() {
             *gap = Some((name.to_string(), Box::new(meanwhile)));

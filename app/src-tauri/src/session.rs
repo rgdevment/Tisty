@@ -320,12 +320,15 @@ impl Session {
     /// The way of carrying this machine chose, or the refusal every command that needs one gives.
     pub fn carrying(&self) -> Result<tisty_carrier::Shared, Refusal> {
         let keeping = self.keeping();
-        keeping.carrier.ok_or_else(|| {
-            Refusal::of(match keeping.chosen {
-                tisty_carrier::Chosen::Later => "syncLater",
-                tisty_carrier::Chosen::Cloud => "cloudNotOffered",
-                _ => "noRemote",
-            })
+        keeping.carrier.ok_or_else(|| match keeping.chosen {
+            tisty_carrier::Chosen::Later => Refusal::of("syncLater"),
+            tisty_carrier::Chosen::Cloud if !crate::reaching::offered() => {
+                Refusal::of("cloudNotOffered")
+            }
+            tisty_carrier::Chosen::Cloud => {
+                Refusal::about("syncBroke", self.reach.why_not().unwrap_or_default())
+            }
+            _ => Refusal::of("noRemote"),
         })
     }
 
@@ -734,8 +737,15 @@ impl Session {
                     ],
                 );
             }
-            if let Some(carrier) = self.carrier() {
-                carrier.forget_paper(file);
+            match (
+                self.carrier(),
+                tisty_carrier::cloud_of(self.config.sync.as_ref()),
+            ) {
+                (Some(carrier), _) => carrier.forget_paper(file),
+                (None, Some(at)) => {
+                    tisty_carrier::forgotten_later(&self.reach.home_of(at), file);
+                }
+                (None, None) => {}
             }
             said.forget(file);
             tisty_core::docs::forget_carried(self.paths.data(), file);

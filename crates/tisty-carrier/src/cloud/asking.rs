@@ -23,8 +23,16 @@ impl Asking {
     // Kept here too, so a pace that could not be written down never turns into asking without pause.
     fn due_in(&self) -> Duration {
         let last = self.cloud.stirred_last();
-        let due = last.asked_ms.saturating_add(last.every_ms);
-        let written = Duration::from_millis(due.saturating_sub(now_ms()));
+        let now = now_ms();
+        // A clock set back leaves the last ask in the future, and asking again is what stirring does then too.
+        let written = match last.asked_ms > now {
+            true => Duration::ZERO,
+            false => Duration::from_millis(
+                last.asked_ms
+                    .saturating_add(last.every_ms)
+                    .saturating_sub(now),
+            ),
+        };
         let ours = self.asked.map_or(Duration::ZERO, |asked| {
             self.cloud
                 .remote

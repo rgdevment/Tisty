@@ -49,7 +49,6 @@ impl Secrets for Unfiled {
     }
 }
 
-/// Opens Google's consent in the browser and keeps the grant for the account it names. Nothing is chosen yet.
 #[tauri::command(async)]
 pub async fn cloud_connect(session: tauri::State<'_, Mutex<Session>>) -> Answer<Connected> {
     let client = tisty_google::client().ok_or_else(|| Refusal::of("cloudNotOffered"))?;
@@ -120,21 +119,31 @@ pub fn cloud_choose(
 pub(crate) fn choosing_cloud(
     chosen: Sync,
 ) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {
+    let same =
+        |was: &CloudAt, now: &CloudAt| was.provider == now.provider && was.account == now.account;
     move |config| match config.sync.as_ref().map(Sync::leaving) {
         None | Some(Leaving::Free) => {
             config.sync = Some(chosen);
             None
         }
-        Some(Leaving::Cloud) if config.sync.as_ref() == Some(&chosen) => None,
+        // The account outlives a change of address, so the new address is only written down.
+        Some(Leaving::Cloud)
+            if tisty_carrier::cloud_of(config.sync.as_ref())
+                .zip(tisty_carrier::cloud_of(Some(&chosen)))
+                .is_some_and(|(was, now)| same(was, now)) =>
+        {
+            config.sync = Some(chosen);
+            None
+        }
         Some(Leaving::Later) => Some(Refusal::of("syncLaterToLeave")),
         Some(_) => Some(Refusal::of("cloudNeedsMove")),
     }
 }
 
-/// This machine lets go of its own access; every other machine keeps syncing.
 #[tauri::command]
 pub fn cloud_forget(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
     let at = chosen_cloud(&session)?;
+    held(&session).reach.let_go();
     secrets_for(&at.account)
         .and_then(|kept| kept.forget(KEPT_AS))
         .map_err(|e| refused(e, "Google Drive"))
@@ -144,6 +153,7 @@ pub fn cloud_forget(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 #[tauri::command(async)]
 pub async fn cloud_revoke(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
     let at = chosen_cloud(&session)?;
+    held(&session).reach.let_go();
     tauri::async_runtime::spawn_blocking(move || {
         let kept = secrets_for(&at.account).map_err(|e| refused(e, "Google Drive"))?;
         if let Some(token) = kept.read(KEPT_AS).map_err(|e| refused(e, "Google Drive"))? {
@@ -156,7 +166,6 @@ pub async fn cloud_revoke(session: tauri::State<'_, Mutex<Session>>) -> Answer<(
     .map_err(|_| Refusal::of("internal"))?
 }
 
-/// The person's own switch for this machine: the cloud waits here, and everything stays written locally.
 #[tauri::command]
 pub fn cloud_pause(session: tauri::State<'_, Mutex<Session>>, paused: bool) -> Answer<()> {
     let at = chosen_cloud(&session)?;

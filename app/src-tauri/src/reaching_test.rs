@@ -33,7 +33,7 @@ fn a_provider_this_build_does_not_know_is_never_built() {
         ..ana()
     };
 
-    assert!(cloud_of(home.path(), &at).is_none());
+    assert!(cloud_of(home.path(), &at).is_err());
 }
 
 #[test]
@@ -95,4 +95,24 @@ fn a_build_without_the_maintainer_s_key_never_asks() {
     heed(home.path());
 
     assert!(!home.path().join(POLICY_ASKED).exists());
+}
+
+#[test]
+fn what_kept_a_cloud_from_being_built_is_said_and_letting_go_drops_nothing_built() {
+    let home = tempfile::tempdir().unwrap();
+    let paths = Paths::new(home.path().join("data"), home.path().join("config"));
+    let reaching = Reaching::of(&paths);
+    let elsewhere = CloudAt {
+        provider: "onedrive".into(),
+        ..ana()
+    };
+
+    assert!(reaching.cloud(&elsewhere).is_none());
+    assert!(
+        reaching
+            .why_not()
+            .is_some_and(|why| why.contains("onedrive"))
+    );
+    reaching.let_go();
+    assert!(reaching.cloud(&elsewhere).is_none());
 }

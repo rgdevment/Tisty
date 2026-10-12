@@ -53,7 +53,6 @@ pub struct Costs {
     pub delete: u64,
     pub about: u64,
     pub changes: u64,
-    /// The look a provider without conditional writes takes before each fetch, put or delete.
     pub checks: u64,
 }
 

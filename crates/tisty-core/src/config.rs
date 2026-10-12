@@ -23,7 +23,6 @@ pub enum Sync {
     Unknown(toml::Value),
 }
 
-/// A provider reached by its API, and the account the store belongs to.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CloudAt {

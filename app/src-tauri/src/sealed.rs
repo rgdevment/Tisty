@@ -7,7 +7,6 @@ pub fn home() -> Option<PathBuf> {
     std::env::var_os("LOCALAPPDATA").map(|local| PathBuf::from(local).join("Tisty").join("secrets"))
 }
 
-/// Sealed with DPAPI for this Windows user, the lock Credential Manager uses too, where it cannot outlive the app.
 pub struct Sealed {
     at: PathBuf,
 }

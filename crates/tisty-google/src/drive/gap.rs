@@ -41,8 +41,22 @@ fn same_bytes(checked: &File, md5: Option<&str>) -> bool {
     checked.md5_checksum.is_some() && checked.md5_checksum.as_deref() == md5
 }
 
+// Only what landed after the checked revision and before this one can be another machine's; with the checked one gone from the list nothing is.
+fn between(all: &[Revision], landed: &File, checked: &File) -> Option<String> {
+    let after = &all
+        .iter()
+        .find(|one| checked.head_revision_id.as_deref() == Some(one.id.as_str()))?
+        .modified_time;
+    let ours = landed.head_revision_id.as_deref();
+    all.iter()
+        .filter(|one| one.modified_time > *after && Some(one.id.as_str()) != ours)
+        .filter(|one| !same_bytes(checked, one.md5_checksum.as_deref()))
+        .filter(|one| one.md5_checksum != landed.md5_checksum)
+        .max_by(|a, b| a.modified_time.cmp(&b.modified_time))
+        .map(|one| one.id.clone())
+}
+
 impl Drive {
-    /// Bytes another machine wrote between the check and this write go back on top, and the write is refused.
     pub(super) fn handed_back(
         &self,
         name: &str,
@@ -76,7 +90,6 @@ impl Drive {
         Err(Hitch::Changed(name.to_string()))
     }
 
-    // Google does not promise an order, so the newest revision that is neither the one checked nor this one.
     fn written_between(&self, landed: &File, checked: &File) -> Result<Option<String>, Hitch> {
         let url = format!("{}/files/{}/revisions", self.at.api, landed.id);
         let mut all = Vec::new();
@@ -101,18 +114,7 @@ impl Drive {
                 None => break,
             }
         }
-        let known = [&landed.head_revision_id, &checked.head_revision_id];
-        Ok(all
-            .into_iter()
-            .filter(|one| {
-                !known
-                    .iter()
-                    .any(|id| id.as_deref() == Some(one.id.as_str()))
-            })
-            .filter(|one| !same_bytes(checked, one.md5_checksum.as_deref()))
-            .filter(|one| one.md5_checksum != landed.md5_checksum)
-            .max_by(|a, b| a.modified_time.cmp(&b.modified_time))
-            .map(|one| one.id))
+        Ok(between(&all, landed, checked))
     }
 
     // Only a pinned revision downloads and a pin never comes off, so once its bytes are back on top it is deleted.

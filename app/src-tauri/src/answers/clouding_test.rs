@@ -81,3 +81,16 @@ fn a_grant_waiting_for_its_account_is_held_only_in_memory() {
     unfiled.forget(KEPT_AS).unwrap();
     assert_eq!(unfiled.read(KEPT_AS).unwrap(), None);
 }
+
+#[test]
+fn the_same_account_under_a_new_address_is_kept_and_the_address_written_down() {
+    let renamed = Sync::cloud(CloudAt {
+        provider: GOOGLE.into(),
+        account: "0123".into(),
+        email: "ana.nueva@example.com".into(),
+    });
+    let mut config = config_with(Some(ana()));
+
+    assert!(choosing_cloud(renamed.clone())(&mut config).is_none());
+    assert_eq!(config.sync, Some(renamed));
+}

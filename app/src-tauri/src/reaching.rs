@@ -9,7 +9,6 @@ use tisty_core::config::CloudAt;
 use tisty_core::witness::{self, Fact, channel};
 
 pub const GOOGLE: &str = "google";
-/// The name the refresh token is kept under, inside the account's own scope.
 pub const KEPT_AS: &str = "refresh";
 
 const POLICY: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json";
@@ -19,10 +18,17 @@ const POLICY_ASKED: &str = "cloud-policy-asked";
 const POLICY_EVERY: Duration = Duration::from_secs(60 * 60);
 const PATIENCE: Duration = Duration::from_secs(10);
 
-/// Builds the cloud carrier once per account and hands the same one back, so Drive's listing is kept between calls.
+// Built once per account and handed back, so Drive's listing outlives a command.
 pub struct Reaching {
     paths: Paths,
-    built: Mutex<Option<(CloudAt, Shared)>>,
+    built: Mutex<Option<Built>>,
+    why_not: Mutex<Option<String>>,
+}
+
+struct Built {
+    at: CloudAt,
+    carrier: Shared,
+    tokens: Arc<Tokens>,
 }
 
 impl Reaching {
@@ -30,45 +36,70 @@ impl Reaching {
         Self {
             paths: paths.clone(),
             built: Mutex::new(None),
+            why_not: Mutex::new(None),
         }
     }
 
     pub fn home_of(&self, at: &CloudAt) -> PathBuf {
         self.paths.cloud_home(&at.provider, &at.account)
     }
+
+    pub fn why_not(&self) -> Option<String> {
+        self.why_not.lock().ok().and_then(|held| held.clone())
+    }
+
+    // The carrier a round or a listening thread still holds drops its access with it, not an hour later.
+    pub fn let_go(&self) {
+        if let Ok(mut built) = self.built.lock()
+            && let Some(was) = built.take()
+        {
+            was.tokens.let_go();
+        }
+    }
 }
 
 impl Reach for Reaching {
     fn cloud(&self, at: &CloudAt) -> Option<Shared> {
         let mut built = self.built.lock().ok()?;
-        if let Some((was, carrier)) = built.as_ref()
-            && was == at
+        if let Some(was) = built.as_ref()
+            && was.at == *at
         {
-            return Some(carrier.clone());
+            return Some(was.carrier.clone());
         }
-        let carrier = cloud_of(&self.home_of(at), at)?;
-        *built = Some((at.clone(), carrier.clone()));
+        let made = cloud_of(&self.home_of(at), at);
+        if let Ok(mut why) = self.why_not.lock() {
+            *why = made.as_ref().err().cloned();
+        }
+        let (carrier, tokens) = made.ok()?;
+        *built = Some(Built {
+            at: at.clone(),
+            carrier: carrier.clone(),
+            tokens,
+        });
         Some(carrier)
     }
 }
 
-/// Whether this build can reach any cloud at all: one made without Google's ids offers none.
 pub fn offered() -> bool {
     tisty_google::client().is_some()
 }
 
-fn cloud_of(home: &Path, at: &CloudAt) -> Option<Shared> {
+fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
     if at.provider != GOOGLE {
-        return None;
+        return Err(format!(
+            "this build does not know the cloud {}",
+            at.provider
+        ));
     }
-    let client = tisty_google::client()?;
-    let secrets = secrets_for(&at.account).ok()?;
-    let renew = tisty_google::GoogleRenew::new(client, tisty_google::Endpoints::google()).ok()?;
+    let client = tisty_google::client().ok_or("this build has no access to Google Drive")?;
+    let secrets = secrets_for(&at.account).map_err(|e| format!("{e:?}"))?;
+    let renew = tisty_google::GoogleRenew::new(client, tisty_google::Endpoints::google())
+        .map_err(|e| format!("{e:?}"))?;
     let tokens = Arc::new(Tokens::new(secrets, Arc::new(renew), KEPT_AS, home));
-    let drive = tisty_google::Drive::new(tokens, tisty_google::DriveAt::google())
-        .ok()?
+    let drive = tisty_google::Drive::new(tokens.clone(), tisty_google::DriveAt::google())
+        .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account);
-    Some(Arc::new(Cloud::over(Arc::new(drive), home)))
+    Ok((Arc::new(Cloud::over(Arc::new(drive), home)), tokens))
 }
 
 #[cfg(windows)]
@@ -88,7 +119,6 @@ fn policy_key() -> Option<&'static str> {
     option_env!("TISTY_CLOUD_POLICY_KEY").filter(|key| !key.is_empty())
 }
 
-/// The maintainer's signed word on the cloud, asked at most once an hour and only while a cloud is chosen.
 pub fn heed(home: &Path) {
     let Some(key) = policy_key() else {
         return;

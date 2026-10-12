@@ -47,6 +47,26 @@ pub struct Account {
 struct Known {
     tree: Tree,
     cursor: Option<String>,
+    // Every cursor this listing already holds all of, since the index may still ask from an older one.
+    passed: Vec<String>,
+}
+
+const PASSED_AT_MOST: usize = 64;
+
+impl Known {
+    fn holds_up_to(&self, since: &str) -> bool {
+        self.passed.iter().any(|one| one == since)
+    }
+
+    fn moved_to(&mut self, cursor: &str) {
+        self.cursor = Some(cursor.to_string());
+        if !self.holds_up_to(cursor) {
+            self.passed.push(cursor.to_string());
+        }
+        if self.passed.len() > PASSED_AT_MOST {
+            self.passed.remove(0);
+        }
+    }
 }
 
 pub struct Drive {
@@ -209,6 +229,7 @@ impl Drive {
         if let Ok(mut held) = self.known.lock() {
             *held = Some(Known {
                 tree: planted(&roots, all),
+                passed: cursor.iter().cloned().collect(),
                 cursor,
             });
         }
@@ -359,6 +380,7 @@ impl Drive {
             };
             self.noted(|tree| {
                 tree.folders.insert(walked.clone(), found.clone());
+                tree.folder_paths.insert(found.clone(), walked.clone());
             });
             at = found;
         }
@@ -398,7 +420,6 @@ impl Drive {
         })
     }
 
-    // What changed since the cursor, less what this machine wrote itself, with each file as it now stands.
     fn stirred(&self, since: &str) -> Result<(Vec<Changed>, String), Hitch> {
         self.vouched_for()?;
         #[derive(Deserialize)]
@@ -454,9 +475,17 @@ impl Drive {
         let roots = self.roots.lock().ok()?.clone()?;
         let mut held = self.known.lock().ok()?;
         let known = held.as_mut()?;
+        if theirs.is_empty() {
+            known.moved_to(cursor);
+            return Some(Changes::Since {
+                changed: Vec::new(),
+                gone: Vec::new(),
+                cursor: cursor.to_string(),
+            });
+        }
         let (tree, applied) = tree::applied(&known.tree, &roots, theirs)?;
         known.tree = tree;
-        known.cursor = Some(cursor.to_string());
+        known.moved_to(cursor);
         let changed = applied
             .changed
             .iter()
@@ -647,10 +676,11 @@ impl Remote for Drive {
         if let Ok(mut held) = self.wrote.lock() {
             held.clear();
         }
-        let followed = self.known.lock().ok().is_some_and(|held| {
-            held.as_ref()
-                .is_some_and(|known| known.cursor.as_deref() == Some(since))
-        });
+        let followed = self
+            .known
+            .lock()
+            .ok()
+            .is_some_and(|held| held.as_ref().is_some_and(|known| known.holds_up_to(since)));
         if followed && let Some(caught_up) = self.caught_up(&theirs, &cursor) {
             return Ok(caught_up);
         }

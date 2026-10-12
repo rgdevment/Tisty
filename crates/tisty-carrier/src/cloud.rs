@@ -584,24 +584,30 @@ impl Carrier for Cloud {
     }
 
     fn forget_paper(&self, id: &str) {
-        if tisty_core::docs::resolve(Path::new(""), id).is_err()
-            || std::fs::create_dir_all(&self.home).is_err()
-        {
+        if !forgotten_later(&self.home, id) {
             return;
-        }
-        {
-            let _writing = lock::Held::wait_for(&self.home, lock::FORGETTING, PATIENCE);
-            let asked = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(self.home.join(FORGOTTEN));
-            if let Ok(mut list) = asked {
-                let _ = writeln!(list, "{id}");
-            }
         }
         if let Ok(Some(_round)) = lock::Round::take(&self.home) {
             self.forget_asked(&self.tree());
         }
+    }
+}
+
+/// Queued without the provider, so a cloud that cannot be reached now still forgets it at its next round.
+pub fn forgotten_later(home: &Path, id: &str) -> bool {
+    if tisty_core::docs::resolve(Path::new(""), id).is_err()
+        || std::fs::create_dir_all(home).is_err()
+    {
+        return false;
+    }
+    let _writing = lock::Held::wait_for(home, lock::FORGETTING, PATIENCE);
+    let asked = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(home.join(FORGOTTEN));
+    match asked {
+        Ok(mut list) => writeln!(list, "{id}").is_ok(),
+        Err(_) => false,
     }
 }
 

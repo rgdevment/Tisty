@@ -1849,3 +1849,32 @@ fn two_machines_writing_one_document_in_drive_s_gap_lose_neither_text() {
         "the two texts met and nobody was asked"
     );
 }
+
+#[test]
+fn a_clock_set_back_does_not_leave_the_cloud_unheard() {
+    for (setting, fake) in each_kind(|fake| fake.polled_every(Duration::from_secs(3600))) {
+        let who = &setting.name;
+        if fake.hears_pushed() {
+            continue;
+        }
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        let ahead = super::now_ms() + 24 * 60 * 60 * 1000;
+        std::fs::write(
+            home_of(&setting, "dev_a").join("stirring.json"),
+            format!(r#"{{"asked_ms":{ahead},"every_ms":3600000,"mark":0}}"#),
+        )
+        .unwrap();
+        let mut heard = one.carrier.hears().expect(who);
+        fake.forget_counts();
+
+        heard.told(Duration::ZERO).unwrap();
+
+        assert_eq!(
+            fake.counts().lists,
+            1,
+            "{who}: a clock set back silenced the cloud"
+        );
+    }
+}

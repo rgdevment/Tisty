@@ -231,3 +231,17 @@ fn no_token_ever_lands_in_a_file_even_when_the_keychain_will_not_take_it() {
         "a token was written beside the locks"
     );
 }
+
+#[test]
+fn a_machine_that_let_go_holds_no_access_in_memory_either() {
+    let home = tempfile::tempdir().unwrap();
+    let kept = kept_with("r0");
+    let renew = Arc::new(Rotating::lasting(Duration::from_secs(3600)));
+    let tokens = Tokens::new(kept.clone(), renew, KEY, home.path());
+    tokens.access().unwrap();
+
+    kept.forget(KEY).unwrap();
+    tokens.let_go();
+
+    assert_eq!(tokens.access(), Err(Hitch::Lost));
+}

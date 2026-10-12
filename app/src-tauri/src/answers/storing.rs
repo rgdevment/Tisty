@@ -195,7 +195,10 @@ pub async fn settle_in(
     if keeping.chosen == tisty_carrier::Chosen::Later {
         stuck = Some(Refusal::of("syncLater"));
     }
-    let mut carried = keeping.carrier.is_none();
+    if keeping.chosen == tisty_carrier::Chosen::Cloud && keeping.carrier.is_none() {
+        stuck = held(&session).carrying().err();
+    }
+    let mut carried = keeping.carrier.is_none() && keeping.chosen != tisty_carrier::Chosen::Cloud;
     if let Some(carrier) = keeping.carrier
         && let Some(_done) = alone.inner().claim()
     {
@@ -656,10 +659,11 @@ async fn carried_round(
         let session = held(session);
         tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| session.reach.home_of(at))
     };
+    // A slow or unreachable GitHub must not hold back the round it rides along with.
+    if let Some(cloud) = heeding {
+        std::thread::spawn(move || crate::reaching::heed(&cloud));
+    }
     let done = tauri::async_runtime::spawn_blocking(move || {
-        if let Some(cloud) = &heeding {
-            crate::reaching::heed(cloud);
-        }
         let mut saying = |far| telling.hear(far);
         let done = carrier.carry(
             &home,

@@ -1326,3 +1326,78 @@ fn a_drive_bound_to_an_account_reads_nothing_of_another_and_asks_once() {
         1
     );
 }
+
+#[test]
+fn an_older_revision_is_never_taken_for_another_machine_s_write() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"mine");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(CHECKED)),
+        said("200 OK", CHECKED),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"md5Checksum":"m3","headRevisionId":"h3","version":"4"}"#,
+        ),
+        said(
+            "200 OK",
+            r#"{"revisions":[{"id":"h0","md5Checksum":"m0","modifiedTime":"2026-10-11T09:00:00Z"},{"id":"h1","md5Checksum":"m1","modifiedTime":"2026-10-12T10:00:01Z"},{"id":"h3","md5Checksum":"m3","modifiedTime":"2026-10-12T10:00:03Z"}]}"#,
+        ),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Revision("A.1".into()));
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.4".to_string()));
+    assert_eq!(
+        asked.join().unwrap().len(),
+        4,
+        "yesterday's bytes went back on top"
+    );
+}
+
+#[test]
+fn asking_again_from_a_cursor_the_listing_already_passed_lists_nothing_again() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(A)),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive.changes(None).unwrap();
+    drive.changes(Some("10")).unwrap();
+    let again = drive.changes(Some("10")).unwrap();
+
+    assert!(matches!(again, Changes::Since { ref cursor, .. } if cursor == "11"));
+    let listings = asked
+        .join()
+        .unwrap()
+        .iter()
+        .filter(|one| one.line.contains("q=trashed"))
+        .count();
+    assert_eq!(
+        listings, 1,
+        "a poll from the index's older cursor listed the drive again"
+    );
+}
+
+#[test]
+fn a_change_inside_a_second_folder_of_the_same_name_is_still_found() {
+    let tree = held_tree(&format!(
+        r#"{DOCS},{{"id":"F2","name":"docs","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}},{{"id":"B","name":"b.md","parents":["F2"],"version":"1"}}"#
+    ));
+    let roots = ["R".to_string()];
+    let moved = changed(
+        r#"[{"fileId":"B","file":{"id":"B","name":"b.md","parents":["F2"],"version":"2"}},
+            {"fileId":"C","file":{"id":"C","name":"c.md","parents":["F2"],"version":"1"}}]"#,
+    );
+
+    let (_, applied) = super::tree::applied(&tree, &roots, &moved).unwrap();
+
+    assert_eq!(
+        applied.changed,
+        vec!["docs/b.md".to_string(), "docs/c.md".to_string()]
+    );
+    assert!(applied.gone.is_empty());
+}
