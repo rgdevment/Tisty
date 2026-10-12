@@ -108,7 +108,8 @@ pub async fn fetched<T: Send + 'static>(
             );
             // Left in place, it would be found on disk from then on and never written down.
             if let Ok(landed) = landed {
-                let _ = elsewhere(move || std::fs::remove_file(landed)).await;
+                let _ = tauri::async_runtime::spawn_blocking(move || std::fs::remove_file(landed))
+                    .await;
             }
             return Err(Refusal::about("cloudLater", asked));
         }
