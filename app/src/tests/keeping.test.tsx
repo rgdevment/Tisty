@@ -700,9 +700,11 @@ describe("the maintenance panel", () => {
         />,
       );
       await data();
+      expect(screen.queryByRole("combobox", { name: /where large attachments/i })).toBeNull();
+      expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
+      await go(/maintenance/i);
 
       const unused = await screen.findByRole("combobox", { name: /unused for/i });
-      expect(screen.queryByRole("combobox", { name: /where large attachments/i })).toBeNull();
       await screen.findByText(/set by your cloud provider, not by Tisty/i);
       await screen.findByText(/3 unused/i);
 
@@ -739,6 +741,7 @@ describe("the maintenance panel", () => {
         />,
       );
       await data();
+      await go(/maintenance/i);
 
       await screen.findByText(/nothing unused that long/i);
       expect(screen.getByRole("button", { name: /^free$/i }).hasAttribute("disabled")).toBe(true);
@@ -773,8 +776,36 @@ describe("the maintenance panel", () => {
     await data();
 
     await screen.findByRole("combobox", { name: /where large attachments/i });
+    await go(/maintenance/i);
+    await screen.findByRole("button", { name: /^review$/i });
     expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
     expect(sent("unused_attachments")).toHaveLength(0);
+  });
+
+  it("with a cloud of its own, keeps the backup off and says why, and still restores", async () => {
+    carrying.freesSpace = true;
+    try {
+      render(
+        <Keeping
+          onPack={() => {}}
+          onUnpack={() => {}}
+          onGreet={() => {}}
+          onChanged={() => {}}
+          onDoc={() => {}}
+        />,
+      );
+      await data();
+
+      await screen.findByText(/a backup here would not hold everything/i);
+      expect(screen.getByRole("button", { name: /create backup/i }).hasAttribute("disabled")).toBe(
+        true,
+      );
+      expect(screen.getByRole("button", { name: /restore from/i }).hasAttribute("disabled")).toBe(
+        false,
+      );
+    } finally {
+      carrying.freesSpace = false;
+    }
   });
 
   it("fetches the ones that are not here when told to hold them all", async () => {

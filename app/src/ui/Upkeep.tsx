@@ -3,11 +3,13 @@ import { useState } from "react";
 import {
   type About,
   type Astray,
+  type Carrying,
   checked,
   confirmMachineKey,
   docAdopt,
   docDrop,
   docLetGo,
+  type Freeing,
   type Gone,
   type Machine,
   type Reviewed,
@@ -22,6 +24,7 @@ import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Card, { type Run, type Which, type Word } from "./Card";
+import FreeSpace from "./FreeSpace";
 import { Asked, MachineList } from "./Keys";
 import Leftovers from "./Leftovers";
 import Reporting from "./Reporting";
@@ -32,6 +35,11 @@ interface Props {
   audit: Reviewed | null;
   setAudit: (audit: Reviewed) => void;
   build: About | null;
+  state: Carrying;
+  freeing: Freeing | null;
+  setFreeing: (freeing: Freeing | null) => void;
+  freeDays: number;
+  setFreeDays: (days: number) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -45,6 +53,11 @@ export default function Upkeep({
   audit,
   setAudit,
   build,
+  state,
+  freeing,
+  setFreeing,
+  freeDays,
+  setFreeDays,
   busy,
   said,
   trouble,
@@ -235,6 +248,19 @@ export default function Upkeep({
           )}
         </div>
       </Card>
+
+      {state.freesSpace && (
+        <FreeSpace
+          busy={busy}
+          freeing={freeing}
+          setFreeing={setFreeing}
+          days={freeDays}
+          setDays={setFreeDays}
+          said={said}
+          trouble={trouble}
+          fail={fail}
+        />
+      )}
 
       <Group label={t("theMachines")} />
 

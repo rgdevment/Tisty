@@ -453,8 +453,8 @@ Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la ve
 el nombre del documento y su título —pasando por encima de una valla o de la
 marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
 abre una columna con de qué va el documento, el formato que el menú `/`
-escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o una hoja
-sin fin, con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
+escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
+con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
 de exportarlo.
 
 **Y salen enteros.** Un documento se copia como Markdown, se escribe en una
