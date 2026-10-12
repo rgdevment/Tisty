@@ -68,6 +68,7 @@ fn trouble(e: Error) -> Hitch {
     Hitch::Broke(format!("the keychain refused: {e}"))
 }
 
-#[cfg(test)]
+// Only Windows runners hold a keychain that answers without a person unlocking it.
+#[cfg(all(test, windows))]
 #[path = "keychain_test.rs"]
 mod tests;

@@ -1,7 +1,5 @@
 use super::*;
 
-// Only Windows runners hold a keychain that answers without a person unlocking it.
-#[cfg(windows)]
 #[test]
 fn a_token_written_is_read_back_whole_and_forgetting_it_twice_is_no_error() {
     let keychain = Keychain::native().unwrap();
