@@ -763,12 +763,16 @@ async fn carried_round(
         astray: done.astray,
         unprojected: done.unprojected,
         joined: done.joined,
-        deferred: done.deferred.map(|deferred| match deferred.reason {
-            tisty_carrier::Reason::Budget => "budget",
-            tisty_carrier::Reason::Limit => "limit",
-            tisty_carrier::Reason::Offline => "offline",
-            tisty_carrier::Reason::Busy => "busy",
-            tisty_carrier::Reason::Changed => "changed",
+        deferred: done.deferred.map(|deferred| Waiting {
+            reason: match deferred.reason {
+                tisty_carrier::Reason::Budget => "budget",
+                tisty_carrier::Reason::Limit => "limit",
+                tisty_carrier::Reason::Offline => "offline",
+                tisty_carrier::Reason::Busy => "busy",
+                tisty_carrier::Reason::Changed => "changed",
+            },
+            left: deferred.left,
+            names: deferred.names,
         }),
     })
 }
@@ -785,7 +789,15 @@ pub struct Settled {
     astray: Vec<String>,
     unprojected: bool,
     joined: Vec<String>,
-    deferred: Option<&'static str>,
+    deferred: Option<Waiting>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Waiting {
+    reason: &'static str,
+    left: usize,
+    names: Vec<String>,
 }
 
 #[derive(Debug, serde::Serialize)]

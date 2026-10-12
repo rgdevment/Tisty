@@ -1005,6 +1005,9 @@ const en = {
   deferredBudget:
     "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on tomorrow.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
+  deferredLeft: "{name} left for later: {other}.",
+  deferredMore: "{name} and {other} more",
+  deferredCount: "{name} left for later.",
   deferredOffline:
     "Your cloud could not be reached. What you write stays safe here and goes when there is a connection.",
   emptiedPlace:
@@ -2678,6 +2681,9 @@ const es: Catalog = {
   deferredBudget:
     "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue mañana.",
   deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",
+  deferredLeft: "Quedan {name} para después: {other}.",
+  deferredMore: "{name} y {other} más",
+  deferredCount: "Quedan {name} para después.",
   deferredOffline:
     "No se pudo llegar a tu nube. Lo que escribas queda guardado aquí y se envía cuando haya conexión.",
   emptiedPlace:

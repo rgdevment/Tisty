@@ -260,6 +260,17 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             ),
         };
         println!("  {}", style::dim(&said));
+        for name in &deferred.names {
+            let shown = name.rsplit('/').next().unwrap_or(name);
+            println!("    {}", style::dim(shown));
+        }
+        let unnamed = deferred.left.saturating_sub(deferred.names.len());
+        if !deferred.names.is_empty() && unnamed > 0 {
+            println!(
+                "    {}",
+                style::dim(&lang.fill("deferred-more", &[("more", &unnamed.to_string())]))
+            );
+        }
     }
     println!();
     Ok(ExitCode::SUCCESS)
