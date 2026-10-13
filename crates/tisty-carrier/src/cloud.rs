@@ -47,23 +47,28 @@ const EMPTIED: &str = "emptied-there";
 struct Turn {
     waits: bool,
     sends: bool,
+    homes: bool,
 }
 
 const ASKED: Turn = Turn {
     waits: true,
     sends: true,
+    homes: false,
 };
 const PASSING: Turn = Turn {
     waits: false,
     sends: true,
+    homes: false,
 };
 const HOMING: Turn = Turn {
     waits: false,
     sends: false,
+    homes: true,
 };
 const BINNING: Turn = Turn {
     waits: true,
     sends: false,
+    homes: false,
 };
 
 struct Done<T> {
@@ -77,7 +82,6 @@ pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
     tried: AtomicBool,
-    again: AtomicBool,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -93,7 +97,6 @@ impl Cloud {
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
-            again: AtomicBool::new(false),
         }
     }
 
@@ -131,7 +134,7 @@ impl Cloud {
         turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
-        self.with_mirror_along(here, turn, &mut |_| {}, |tree, index, remote, _| {
+        self.with_mirror_along(here, turn, false, &mut |_| {}, |tree, index, remote, _| {
             work(tree, index, remote)
         })
     }
@@ -140,6 +143,7 @@ impl Cloud {
         &self,
         here: Option<&Here>,
         turn: Turn,
+        again: bool,
         along: &mut dyn FnMut(crate::Reached),
         work: impl FnOnce(
             &Path,
@@ -162,8 +166,7 @@ impl Cloud {
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
         let emptied = self.home.join(EMPTIED);
-        let again = self.again.swap(false, Ordering::Relaxed) && emptied.exists();
-        if again || index::outdated(&self.home) {
+        if (again && emptied.exists()) || index::outdated(&self.home) {
             self.started_over()?;
         }
         let tree = self.tree();
@@ -174,13 +177,26 @@ impl Cloud {
         let remote: &dyn Remote = &metered;
         let mut index = Index::load(&self.home);
         let data = here.map(|here| here.data.as_path());
-        let held_back = match mirror::pull(remote, &tree, &mut index, data) {
+        let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes);
+        // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.
+        if self.still_emptied(&pulled, &index) && (turn.homes || here.is_some()) {
+            let _ = index.save(&self.home);
+            return match turn.homes {
+                true => Ok(Done {
+                    value: None,
+                    deferred: None,
+                    stopped: None,
+                    uploaded: 0,
+                }),
+                false => Err(Trouble::CloudEmptied {
+                    provider: self.remote.limits().provider.to_string(),
+                }),
+            };
+        }
+        let held_back = match pulled {
             Ok(held_back) => held_back,
             Err(hitch) => {
                 let _ = index.save(&self.home);
-                if hitch == crate::Hitch::Emptied {
-                    let _ = std::fs::write(&emptied, b"");
-                }
                 return match judge(hitch, self.remote.limits().provider) {
                     Judged::Pause(reason, wait) => {
                         let deferred = Done::deferred(reason, wait);
@@ -267,6 +283,21 @@ impl Cloud {
         })
     }
 
+    fn still_emptied(&self, pulled: &Result<usize, crate::Hitch>, index: &Index) -> bool {
+        let emptied = self.home.join(EMPTIED);
+        let stands = index.tree.contains_key(tisty_sync::NAMED);
+        match pulled {
+            Err(crate::Hitch::Emptied) => {
+                let _ = std::fs::write(&emptied, b"");
+            }
+            Ok(_) if stands => {
+                let _ = std::fs::remove_file(&emptied);
+            }
+            _ => {}
+        }
+        !stands && emptied.exists()
+    }
+
     // The wait a provider asked for outlives this round, so the window's own pace does not ask again before it.
     fn heeded(&self, deferred: Option<&Deferred>) {
         let reason = deferred.map(|one| one.reason);
@@ -313,10 +344,13 @@ impl Cloud {
             holds,
             saying,
         } = round;
-        self.again
-            .store(matches!(way, crate::Way::Again), Ordering::Relaxed);
-        let done =
-            self.with_mirror_along(Some(here), turn, saying, |tree, index, remote, saying| {
+        let again = matches!(way, crate::Way::Again);
+        let done = self.with_mirror_along(
+            Some(here),
+            turn,
+            again,
+            saying,
+            |tree, index, remote, saying| {
                 shelf::sweep(&here.data);
                 let history = Metered::over(&*self.remote, &self.home, Class::History);
                 let shelf = match fetching {
@@ -339,7 +373,8 @@ impl Cloud {
                     (moved, shelf.sent(), shelf.early(), shelf.full()),
                     shelf.paused(),
                 ))
-            })?;
+            },
+        )?;
         let (mut moved, attached, early, full) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
         moved.sent = attached + mirrored.min(done.uploaded + early);

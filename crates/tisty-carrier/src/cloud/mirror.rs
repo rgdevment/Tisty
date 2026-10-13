@@ -37,6 +37,7 @@ pub fn pull(
     tree: &Path,
     index: &mut Index,
     data: Option<&Path>,
+    homing: bool,
 ) -> Result<usize, Hitch> {
     heal(tree, index);
     let told = match remote.changes(index.cursor.as_deref()) {
@@ -55,16 +56,15 @@ pub fn pull(
         index.tree.contains_key(tisty_sync::NAMED)
             && (listed_nothing || index.tree.keys().all(|name| gone.contains(name.as_str())))
     };
-    match &told {
-        Changes::Whole { seen, .. } if emptied(seen.is_empty(), &BTreeSet::new()) => {
-            return Err(Hitch::Emptied);
+    let emptied = match &told {
+        Changes::Whole { seen, .. } => emptied(seen.is_empty(), &BTreeSet::new()),
+        Changes::Since { changed, gone, .. } => {
+            changed.is_empty() && emptied(false, &gone.iter().map(String::as_str).collect())
         }
-        Changes::Since { changed, gone, .. }
-            if changed.is_empty() && emptied(false, &gone.iter().map(String::as_str).collect()) =>
-        {
-            return Err(Hitch::Emptied);
-        }
-        _ => {}
+    };
+    // Moving home reads an emptied store through, so the move learns nothing is left up there and goes on.
+    if emptied && !homing {
+        return Err(Hitch::Emptied);
     }
     let (changed, gone, cursor) = match told {
         Changes::Whole { seen, cursor } => {
@@ -111,7 +111,10 @@ pub fn pull(
         }
     }
     index.cursor = Some(cursor);
-    Ok(index.owed.len())
+    match emptied {
+        true => Err(Hitch::Emptied),
+        false => Ok(index.owed.len()),
+    }
 }
 
 fn heal(tree: &Path, index: &mut Index) {

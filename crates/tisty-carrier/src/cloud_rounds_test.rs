@@ -399,3 +399,105 @@ fn a_store_deleted_whole_up_there_is_said_so_and_sending_it_all_again_writes_it_
         );
     }
 }
+
+fn emptied_up_there(one: &Desk, fake: &Fake) {
+    one.filed(DOC, "# Plan\n\nlo escrito\n");
+    one.wrote("algo");
+    one.round(Way::Both);
+    for there in fake.list("").unwrap() {
+        fake.delete(&there.name, None).unwrap();
+    }
+    assert!(matches!(
+        one.carry(Way::Both, Holds::Everywhere),
+        Err(Trouble::CloudEmptied { .. })
+    ));
+}
+
+#[test]
+fn sending_it_all_again_turned_away_by_a_busy_round_is_not_carried_out_by_a_later_look() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        emptied_up_there(&one, &fake);
+        let round = crate::cloud::lock::Round::take(&home_of(&setting, "dev_a"))
+            .unwrap()
+            .unwrap();
+        let busy = one.round(Way::Again);
+        assert_eq!(
+            busy.deferred.map(|one| one.reason),
+            Some(Reason::Busy),
+            "{who}"
+        );
+        drop(round);
+
+        one.carrier.kin(&one.here);
+
+        assert!(
+            matches!(
+                one.carry(Way::Both, Holds::Everywhere),
+                Err(Trouble::CloudEmptied { .. })
+            ),
+            "{who}: the mirror started over though nobody asked again"
+        );
+    }
+}
+
+#[test]
+fn sending_it_all_again_put_off_by_the_provider_s_wait_is_not_carried_out_by_a_later_ask() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        emptied_up_there(&one, &fake);
+        crate::cloud::resting::rest(&home_of(&setting, "dev_a"), Duration::from_secs(60));
+        let resting = one.round(Way::Again);
+        assert_eq!(
+            resting.deferred.map(|one| one.reason),
+            Some(Reason::Limit),
+            "{who}"
+        );
+        waited_out(&setting, "dev_a");
+
+        let _ = one.carrier.stitch(&one.here, one.key());
+
+        assert!(
+            matches!(
+                one.carry(Way::Both, Holds::Everywhere),
+                Err(Trouble::CloudEmptied { .. })
+            ),
+            "{who}: the mirror started over though nobody asked again"
+        );
+    }
+}
+
+#[test]
+fn a_store_written_back_up_there_by_another_machine_keeps_a_later_send_again_from_starting_over() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("algo");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+        assert!(one.carry(Way::Both, Holds::Everywhere).is_err(), "{who}");
+        assert!(two.carry(Way::Both, Holds::Everywhere).is_err(), "{who}");
+        two.round(Way::Again);
+        one.round(Way::Both);
+        assert!(
+            !home_of(&setting, "dev_a")
+                .join(crate::cloud::EMPTIED)
+                .exists(),
+            "{who}: the store came back and the mark of its deletion stayed"
+        );
+        fake.forget_counts();
+
+        one.round(Way::Again);
+
+        assert_eq!(
+            fake.counts().fetches,
+            0,
+            "{who}: sending it all again started the mirror over"
+        );
+    }
+}

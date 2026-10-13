@@ -749,3 +749,42 @@ fn a_cloud_left_for_a_folder_and_chosen_again_is_the_same_store_and_takes_up_onl
         );
     }
 }
+
+#[test]
+fn leaving_a_cloud_whose_store_was_deleted_up_there_is_ready_and_loses_nothing_here() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        let kept = one.attached(PHOTO);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+        let into = Folder::at(setting.room.path().join("new"));
+        std::fs::create_dir_all(setting.room.path().join("new")).unwrap();
+
+        let alone = step(&one, Some(&*one.carrier), None);
+        let done = step(&one, Some(&*one.carrier), Some(&into));
+
+        assert_eq!(alone, Shift::Ready, "{who}");
+        assert_eq!(done, Shift::Ready, "{who}");
+        assert_eq!(one.titles(), ["con foto"], "{who}");
+        assert_eq!(one.held(&kept.at).as_deref(), Some(PHOTO), "{who}");
+        assert_eq!(
+            one.doc(DOC).as_deref(),
+            Some("# Plan\n\nlo escrito\n"),
+            "{who}"
+        );
+        assert!(
+            tisty_core::store::inhabited(setting.room.path().join("new").join(STORE)),
+            "{who}: the new place was not filled"
+        );
+        let left = one.carrier.leave_word("se fue a otra carpeta");
+        assert!(left.is_ok(), "{who}: {left:?}");
+        assert!(
+            fake.about(tisty_core::moved::NAMED).unwrap().is_some(),
+            "{who}: the others were never told where it went"
+        );
+    }
+}
