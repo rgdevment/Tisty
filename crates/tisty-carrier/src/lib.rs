@@ -19,6 +19,7 @@ mod remote;
 mod shift;
 mod tokens;
 
+pub use cloud::standing::{OWED_BACK, Standing, standing};
 pub use cloud::{Cloud, forgotten_later, policy};
 pub use folder::Folder;
 pub use keychain::Keychain;

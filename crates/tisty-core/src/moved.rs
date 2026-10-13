@@ -8,6 +8,8 @@ use crate::signing::{SigningKey, hexed, unhexed};
 
 /// Left in a place a machine stopped syncing with, so the machines still there learn where it went.
 pub const NAMED: &str = "moved.json";
+/// A word the place left behind could not take yet, kept in the cache until it can.
+pub const OWED: &str = "word-owed.json";
 const READ_AT_MOST: usize = 4 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

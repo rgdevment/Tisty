@@ -6,7 +6,7 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::reaching::Reaching;
 use crate::{Answer, Refusal};
 
-const OWED: &str = "word-owed.json";
+use tisty_core::moved::OWED;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct Owed {

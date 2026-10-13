@@ -8,8 +8,6 @@ use super::wire::json;
 use super::{Drive, READ};
 use crate::ASKED_WITHIN;
 
-const OWED: &str = "drive-owed.json";
-
 /// Another machine's bytes a write covered and could not yet put back, kept until they are.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "owed", rename_all = "lowercase")]
@@ -52,7 +50,7 @@ fn file(id: &str, head: &Option<String>, md5: &Option<String>) -> File {
 impl Drive {
     /// Where a Drive that must outlive a crash writes down what it still owes.
     pub fn owing_at(mut self, home: impl Into<PathBuf>) -> Self {
-        self.owing = Some(home.into().join(OWED));
+        self.owing = Some(home.into().join(tisty_carrier::OWED_BACK));
         self
     }
 

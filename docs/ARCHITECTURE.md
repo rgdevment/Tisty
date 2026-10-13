@@ -352,7 +352,14 @@ name at its word.
 
 `tisty doctor` replays the log and compares it with the cache. The cache is
 absent, stale, in agreement, or wrong; only wrong exits non-zero.
-`tisty doctor --repair` discards the cache.
+`tisty doctor --repair` discards the cache. With a cloud chosen, `doctor` also
+says what this disk knows of it, with no request and no keychain
+(`tisty_carrier::standing`): the account, whether it was ever read, how many
+files are mirrored and attachments held there, what waits (to bring again, to
+delete there, to put back for another machine), today's spend against the
+day's limits, a pause here or from afar, and the number of the signed word
+kept. For any place it names a word another machine left there, when one
+confirmed here signed it, and a word still owed to the place left behind.
 
 ## On disk
 
@@ -855,7 +862,7 @@ settings name a cloud.
 | Bringing | Opening an attachment that is not here: one buried (retired and named by nothing) is `Absent`. `brought` serves the copy here first; an attachment the last listing did not show is `Later`, never asked of the provider; otherwise it is fetched straight into this machine's `attachments/`, held to its name and the log's full digest, written in the ledger and kept, so it plays from the disk from then on. One the log does not answer for yet is held to its name and the ledger and handed back as `Unvouched`, so the caller writes its `AttachKept`. Bytes refused for what they hold (not a disk that failed to take them) are remembered by revision in `index.json` (`spoiled`): not fetched again, refused at once when opened, not counted as held there so they never stall a move, and written over by a genuine copy when this machine sends one |
 | Freeing space | `set_free` lets go of copies here neither opened nor shown (`<data>/used.json`, which the window writes, again each day a picture stays on screen) nor attached or brought in (the latest `AttachKept` in the log) since the chosen moment, nor since `used.json` was begun. It runs after a fresh pull under the round lock, decides what is unused only then, asks `used.json` again right before each copy goes, and refuses with `Trouble::NotNow` when that pull cannot run; it lets go only when the cloud holds the same size and the provider's hash matches, never of a placeholder. Opening one again brings it back, and attaching the same bytes puts them back under the name the ledger gives |
 | First round | Until `tisty.toml` has been seen or put, what the engine remembers about the place (`.shape-seen`, `carried-to`) is forgotten, so a first round that was deferred cannot leave this machine unable to start again. Another account has another home and so another mirror path, so `Carried::facing` forgets what was carried before and nothing is read as deleted |
-| A write in the gap | A provider without conditional writes checks a revision and then writes, so another machine can land in between. `Remote::put` promises never to leave its bytes over a revision `expect` did not name: Drive finds the other bytes among the file's revisions (only one that landed after the revision checked and before this write), puts them back on top and answers `Changed`, and the round turns that into a question for the person like any other conflict. When that cannot finish now it is written down (`drive-owed.json`) and finished before the next change is read, so the bytes come in as another machine's change; if a newer write has come since, they are not put over it but kept in Drive's version history and named in the log. A deletion against a revision goes to Drive's bin and comes back out when other bytes are found there. What these extra requests cost is charged through `Remote::spent_beyond` |
+| A write in the gap | A provider without conditional writes checks a revision and then writes, so another machine can land in between. `Remote::put` promises never to leave its bytes over a revision `expect` did not name: Drive finds the other bytes among the file's revisions (only one that landed after the revision checked and before this write), puts them back on top and answers `Changed`, and the round turns that into a question for the person like any other conflict. When that cannot finish now it is written down (`owed-back.json`, `tisty_carrier::OWED_BACK`) and finished before the next change is read, so the bytes come in as another machine's change; if a newer write has come since, they are not put over it but kept in Drive's version history and named in the log. A deletion against a revision goes to Drive's bin and comes back out when other bytes are found there. What these extra requests cost is charged through `Remote::spent_beyond` |
 | Forgetting | `forget_paper` queues the id in `forgotten`; the next round deletes it up there |
 
 `Tokens` hands out an access token: it renews it a minute before it expires from
@@ -1434,7 +1441,7 @@ checks that a test would notice a changed line.
 - A window screen to connect and choose a cloud, its states and the local
   switch; the backend commands exist (`answers/clouding.rs`).
 - A `Remote` for OneDrive and Dropbox.
-- `tisty doctor` and Maintenance showing the cloud's day's spend.
+- Maintenance showing the cloud's day's spend.
 - A window screen or command that moves between places with `shift` and shows
   how far the move has gone.
 - A command that writes `device.rotate`; the format is read and honoured.
