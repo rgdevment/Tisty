@@ -324,9 +324,14 @@ export function Done({
       </p>
       {wiped && <p className="text-[11.5px] text-faint">{wiped}</p>}
       {wiping && (
-        <p role="status" className="text-[12px] text-soft">
-          {t("moveWiping")}
-        </p>
+        <div className="flex flex-col gap-2">
+          <span aria-hidden="true" className="block h-1 overflow-hidden rounded-full bg-line">
+            <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
+          </span>
+          <p role="status" className="text-[12px] text-soft">
+            {t("moveWiping")}
+          </p>
+        </div>
       )}
       <div className="flex flex-wrap items-center gap-2.5">
         {offersWipe && !wiped && (
