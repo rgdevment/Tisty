@@ -140,7 +140,7 @@ export default function Docs({
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
   const [pdfAsked, setPdfAsked] = useState(false);
-  const [signing, setSigning] = useState(false);
+  const [signing, setSigning] = useState(true);
   const giving = useRef<(() => unknown) | null>(null);
   const putting = useRef<((page: Filed) => boolean) | null>(null);
   const paged = useRef(onPaging);
@@ -509,7 +509,7 @@ export default function Docs({
 
   const toPdf = () => {
     if (!open || making) return;
-    setSigning(false);
+    setSigning(true);
     setPdfAsked(true);
   };
 
@@ -901,7 +901,7 @@ export default function Docs({
           title={t("toPdf")}
           onClose={() => {
             setPdfAsked(false);
-            setSigning(false);
+            setSigning(true);
           }}
         >
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
@@ -919,7 +919,7 @@ export default function Docs({
               type="button"
               onClick={() => {
                 setPdfAsked(false);
-                setSigning(false);
+                setSigning(true);
               }}
               className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
             >

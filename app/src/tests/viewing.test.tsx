@@ -166,7 +166,7 @@ describe("a widget's own width", () => {
 });
 
 describe("reading in the viewer", () => {
-  it("previews a Tisty document as a PDF, signs it, saves it and closes on Esc", async () => {
+  it("previews a Tisty document as a PDF signed by default, unsigns it, saves it and closes on Esc", async () => {
     ipc.shown = tisty;
     render(<Viewing />);
     await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
@@ -176,7 +176,7 @@ describe("reading in the viewer", () => {
     expect(screen.getByText(t("seePdf")).parentElement?.className).toContain("pr-[7.5rem]");
     await userEvent.click(screen.getByRole("checkbox", { name: t("viewWithSign") }));
     await waitFor(() =>
-      expect(asked("pdf").map((one) => one.args.signed)).toEqual([null, "Firmado"]),
+      expect(asked("pdf").map((one) => one.args.signed)).toEqual(["Firmado", null]),
     );
     await userEvent.click(screen.getByRole("button", { name: t("toPdf") }));
     await waitFor(() => expect(asked("keep_pdf")).toHaveLength(1));

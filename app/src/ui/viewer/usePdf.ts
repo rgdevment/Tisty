@@ -15,7 +15,7 @@ interface Asked {
 
 export default function usePdf({ ready, body, leaf, paper, named, onFail }: Asked) {
   const [seeing, setSeeing] = useState<string | null>(null);
-  const [signing, setSigning] = useState(false);
+  const [signing, setSigning] = useState(true);
   const [making, setMaking] = useState(false);
 
   const made = async () => {
