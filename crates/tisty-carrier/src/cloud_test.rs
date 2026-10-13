@@ -1959,3 +1959,62 @@ fn a_wipe_waits_out_a_slow_answer_or_a_short_pause_and_gives_up_on_anything_else
         "a file changed meanwhile is never deleted on a second try"
     );
 }
+
+#[test]
+fn a_wipe_asks_four_times_at_most_while_the_provider_keeps_asking_for_a_short_wait() {
+    for hitch in [
+        Hitch::Limited {
+            wait: Duration::ZERO,
+        },
+        Hitch::Busy {
+            wait: Duration::ZERO,
+        },
+    ] {
+        let mut asked = 0;
+        let last = super::patiently(|| {
+            asked += 1;
+            Err(hitch.clone())
+        });
+        assert_eq!(last, Err(hitch.clone()));
+        assert_eq!(asked, super::DELETE_TRIES, "{hitch:?}");
+    }
+}
+
+#[test]
+fn a_wipe_never_waits_out_a_pause_longer_than_a_minute() {
+    let longer = Duration::from_secs(61);
+    for hitch in [
+        Hitch::Limited { wait: longer },
+        Hitch::Busy { wait: longer },
+    ] {
+        let mut asked = 0;
+        let last = super::patiently(|| {
+            asked += 1;
+            Err(hitch.clone())
+        });
+        assert_eq!(last, Err(hitch.clone()));
+        assert_eq!(asked, 1, "{hitch:?}");
+    }
+}
+
+#[test]
+fn a_wipe_tries_again_after_the_provider_failed_on_its_side_and_asks_no_more_once_it_went() {
+    let mut asked = 0;
+    let once = super::patiently(|| {
+        asked += 1;
+        match asked {
+            1 => Err(Hitch::Troubled("500".into())),
+            _ => Ok(()),
+        }
+    });
+    assert_eq!(once, Ok(()));
+    assert_eq!(asked, 2);
+
+    let mut first = 0;
+    let went = super::patiently(|| {
+        first += 1;
+        Ok(())
+    });
+    assert_eq!(went, Ok(()));
+    assert_eq!(first, 1);
+}

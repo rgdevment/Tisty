@@ -346,9 +346,6 @@ impl Attachments for Shelf<'_> {
             }
             if one.len > HELD_UP_TO && self.not_up_there(one, &round) {
                 self.unsent(&one.reference, "past what the cloud takes");
-                if self.owed(one, &round) {
-                    pace.went(one.len);
-                }
                 continue;
             }
             if !self.owed(one, &round) {

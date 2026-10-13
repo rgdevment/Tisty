@@ -1781,3 +1781,135 @@ fn a_new_small_file_cut_on_its_way_back_is_looked_for_before_it_is_sent_again() 
         asked[3].line
     );
 }
+
+fn uploads(asked: &[Asked]) -> usize {
+    asked
+        .iter()
+        .filter(|one| one.line.contains("uploadType=multipart"))
+        .count()
+}
+
+fn looks(asked: &[Asked]) -> usize {
+    asked
+        .iter()
+        .filter(|one| one.line.contains("q=name"))
+        .count()
+}
+
+#[test]
+fn a_look_for_a_cut_create_that_fails_itself_never_stops_the_file_from_being_sent_again() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("DROP", ""),
+        said("503 Service Unavailable", ""),
+        said("200 OK", HELLO_LANDED),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.1".into()));
+    let asked = asked.join().unwrap();
+    assert_eq!(asked.len(), 5, "{asked:?}");
+    assert_eq!(uploads(&asked), 2, "{asked:?}");
+    assert!(asked[3].line.contains("q=name"), "{}", asked[3].line);
+}
+
+#[test]
+fn a_change_to_a_file_already_there_is_sent_again_without_looking_for_a_twin() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(A)),
+        said("200 OK", A),
+        said("503 Service Unavailable", ""),
+        said(
+            "200 OK",
+            r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","version":"2"}"#,
+        ),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Revision("A.1".into()));
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.2".into()));
+    let asked = asked.join().unwrap();
+    assert_eq!(asked.len(), 4, "{asked:?}");
+    assert_eq!(looks(&asked), 0, "a change looked for a twin: {asked:?}");
+    assert!(asked[2].line.starts_with("PATCH"), "{}", asked[2].line);
+    assert!(asked[3].line.starts_with("PATCH"), "{}", asked[3].line);
+}
+
+#[test]
+fn a_small_file_google_keeps_failing_is_sent_three_times_and_then_left_for_a_later_round() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("503 Service Unavailable", ""),
+        said("200 OK", &listing("")),
+        said("503 Service Unavailable", ""),
+        said("200 OK", &listing("")),
+        said("503 Service Unavailable", ""),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert!(matches!(landed, Err(Hitch::Troubled(_))), "{landed:?}");
+    let asked = asked.join().unwrap();
+    assert_eq!(uploads(&asked), 3, "{asked:?}");
+    assert_eq!(looks(&asked), 3, "{asked:?}");
+}
+
+#[test]
+fn a_cut_create_found_by_its_size_when_google_gives_no_checksum_is_taken_as_ours() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("DROP", ""),
+        said(
+            "200 OK",
+            &listing(r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","version":"1"}"#),
+        ),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.1".into()));
+    let asked = asked.join().unwrap();
+    assert_eq!(
+        uploads(&asked),
+        1,
+        "a create that landed was sent twice: {asked:?}"
+    );
+}
+
+#[test]
+fn a_file_of_the_same_name_and_another_size_with_no_checksum_is_never_taken_for_ours() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("DROP", ""),
+        said(
+            "200 OK",
+            &listing(r#"{"id":"B","name":"a.md","parents":["R"],"size":"4","version":"1"}"#),
+        ),
+        said("200 OK", HELLO_LANDED),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.1".into()));
+    let asked = asked.join().unwrap();
+    assert_eq!(
+        uploads(&asked),
+        2,
+        "another file was taken for ours: {asked:?}"
+    );
+}
