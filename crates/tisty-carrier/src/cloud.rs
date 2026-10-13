@@ -219,10 +219,11 @@ impl Cloud {
         };
         let done = self.with_mirror(Some(here), turn, |tree, index, remote| {
             shelf::sweep(&here.data);
-            let mut shelf = match fetching {
+            let shelf = match fetching {
                 true => Shelf::fetching_all(remote, index),
                 false => Shelf::over(remote, index),
             };
+            let mut shelf = shelf.history_first(tree);
             let moved = carry_through(
                 &here.data,
                 Some(&here.aside),
@@ -234,11 +235,11 @@ impl Cloud {
                 round.saying,
                 &mut shelf,
             )?;
-            Ok(((moved, shelf.sent()), shelf.paused()))
+            Ok(((moved, shelf.sent(), shelf.early()), shelf.paused()))
         })?;
-        let (mut moved, attached) = done.value.unwrap_or_default();
+        let (mut moved, attached, early) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
-        moved.sent = attached + mirrored.min(done.uploaded);
+        moved.sent = attached + mirrored.min(done.uploaded + early);
         if let Some(trouble) = done.stopped {
             if moved == Moved::default() {
                 return Err(trouble);
