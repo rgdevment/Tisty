@@ -408,14 +408,12 @@ fn named(source: &Path, stamp: &str, ext: &str) -> String {
         .map(plainly)
         .collect();
 
-    let slug: String = slug
-        .split('-')
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
-        .chars()
-        .take(SHORTENS_TO)
-        .collect();
+    let mut parts: Vec<&str> = slug.split('-').filter(|part| !part.is_empty()).collect();
+    // A source that is itself a kept attachment already carries this stamp; it is added once, never again.
+    while parts.last().is_some_and(|last| carries(last, stamp)) {
+        parts.pop();
+    }
+    let slug: String = parts.join("-").chars().take(SHORTENS_TO).collect();
     let slug = slug.trim_matches('-');
 
     if slug.is_empty() {
@@ -423,6 +421,11 @@ fn named(source: &Path, stamp: &str, ext: &str) -> String {
     } else {
         format!("{slug}-{stamp}{ext}")
     }
+}
+
+fn carries(part: &str, stamp: &str) -> bool {
+    let short = &stamp[..stamp.len().min(8)];
+    (part.len() == 8 || part.len() == 16) && lower_hex(part) && part.starts_with(short)
 }
 
 fn plainly(c: char) -> char {
