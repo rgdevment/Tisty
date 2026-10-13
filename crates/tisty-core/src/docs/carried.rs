@@ -123,21 +123,58 @@ pub fn read_as_printed(at: &Path, print: &str) -> std::io::Result<Option<Vec<u8>
     Ok(whole_of(at)?.filter(|bytes| printed_body(bytes) == print))
 }
 
+type Prints = std::collections::BTreeMap<String, String>;
+
+/// What was carried to a place this machine is not facing now, kept so coming back to it still
+/// knows what the two last agreed on: a move carries to the folder and to the cloud in turns.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct Elsewhere {
+    up_to: String,
+    #[serde(default)]
+    prints: Prints,
+}
+
+const ELSEWHERE_AT_MOST: usize = 3;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Carried {
     #[serde(default)]
-    prints: std::collections::BTreeMap<String, String>,
+    prints: Prints,
     #[serde(default)]
     up_to: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    elsewhere: Vec<Elsewhere>,
 }
 
 fn ledger(data: &Path) -> PathBuf {
     data.join("carried.json")
 }
 
+fn bases_elsewhere(data: &Path) -> PathBuf {
+    data.join("carried-elsewhere")
+}
+
+fn bases_of(data: &Path, up_to: &str) -> PathBuf {
+    let named = crate::attach::printed(up_to.as_bytes());
+    bases_elsewhere(data).join(&named[..named.len().min(16)])
+}
+
 pub fn forget_what_was_carried(data: &Path) {
     let _ = std::fs::remove_file(ledger(data));
     let _ = std::fs::remove_dir_all(base(data));
+    let _ = std::fs::remove_dir_all(bases_elsewhere(data));
+}
+
+fn moved_whole(from: &Path, into: &Path) -> bool {
+    let _ = std::fs::remove_dir_all(into);
+    if !from.exists() {
+        return true;
+    }
+    if let Some(parent) = into.parent() {
+        let _ = std::fs::create_dir_all(parent);
+        let _ = crate::paths::ours_alone(parent);
+    }
+    std::fs::rename(from, into).is_ok()
 }
 
 /// A line naming a page is not the person's writing, so it does not take their one step back with
@@ -166,7 +203,7 @@ impl Carried {
         if let Ok(prints) = serde_json::from_str(&said) {
             return Self {
                 prints,
-                up_to: None,
+                ..Self::default()
             };
         }
         serde_json::from_str(&said).unwrap_or_default()
@@ -191,7 +228,15 @@ impl Carried {
         self.prints.remove(id);
     }
 
-    pub fn facing(&mut self, dest: &Path, been_here: bool, holds_our_store: bool) -> bool {
+    /// Turns to `dest`, true when it is not the place faced before. What was carried to that one
+    /// is set aside with its bases, and what was carried to `dest` before comes back with its own.
+    pub fn facing(
+        &mut self,
+        data: &Path,
+        dest: &Path,
+        been_here: bool,
+        holds_our_store: bool,
+    ) -> bool {
         if let Some(kept) = self.up_to.as_deref() {
             if crate::paths::is_the_one(kept, dest) {
                 return false;
@@ -205,16 +250,45 @@ impl Carried {
             self.up_to = Some(crate::paths::told_of(dest));
             return false;
         }
-        if !self.prints.is_empty() {
-            crate::witness::note(
-                crate::witness::channel::SYNC,
-                "another folder is carried to now, so what was carried before is forgotten",
-                &[("count", crate::witness::Fact::Count(self.prints.len()))],
-            );
+        self.set_aside(data);
+        let back = self
+            .elsewhere
+            .iter()
+            .position(|one| crate::paths::same_folder(&one.up_to, dest, holds_our_store));
+        if let Some(at) = back {
+            let one = self.elsewhere.remove(at);
+            if moved_whole(&bases_of(data, &one.up_to), &base(data)) {
+                self.prints = one.prints;
+            }
         }
-        self.prints.clear();
         self.up_to = Some(crate::paths::told_of(dest));
         true
+    }
+
+    fn set_aside(&mut self, data: &Path) {
+        let prints = std::mem::take(&mut self.prints);
+        let up_to = self.up_to.take();
+        let Some(up_to) = up_to.filter(|_| !prints.is_empty()) else {
+            if !prints.is_empty() {
+                crate::witness::note(
+                    crate::witness::channel::SYNC,
+                    "another folder is carried to now, so what was carried before is forgotten",
+                    &[("count", crate::witness::Fact::Count(prints.len()))],
+                );
+            }
+            let _ = std::fs::remove_dir_all(base(data));
+            return;
+        };
+        self.elsewhere.retain(|one| one.up_to != up_to);
+        if !moved_whole(&base(data), &bases_of(data, &up_to)) {
+            let _ = std::fs::remove_dir_all(base(data));
+            return;
+        }
+        self.elsewhere.push(Elsewhere { up_to, prints });
+        while self.elsewhere.len() > ELSEWHERE_AT_MOST {
+            let gone = self.elsewhere.remove(0);
+            let _ = std::fs::remove_dir_all(bases_of(data, &gone.up_to));
+        }
     }
 }
 

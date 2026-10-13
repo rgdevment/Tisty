@@ -860,8 +860,9 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     let theirs = tisty_core::docs::resolve(&dest.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;
     let mut said = Carried::read(data);
-    if said.facing(dest, false, holds_our_store(&data.join(STORE), dest)) {
-        tisty_core::docs::forget_what_was_carried(data);
+    if said.facing(data, dest, false, holds_our_store(&data.join(STORE), dest)) {
+        said.save(data)
+            .map_err(|e| Trouble::Unreadable(e.to_string()))?;
     }
     plainly(&theirs)?;
     plainly(&mine)?;

@@ -485,6 +485,65 @@ fn two_machines_touching_different_parts_end_up_with_one_document_and_no_questio
 }
 
 #[test]
+fn carrying_to_another_place_between_two_rounds_keeps_the_base_a_join_leans_on() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let cloud = tempfile::tempdir().unwrap();
+    let here = one.data.join(PAPERS);
+    let there = shared.path().join(PAPERS);
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+la introduccion
+
+el cuerpo
+
+el cierre
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    carry_papers(&one.data, cloud.path(), &["uno-0001".into()]).unwrap();
+
+    wrote_body(
+        &here,
+        "uno-0001",
+        "# Kit
+
+la introduccion del mac
+
+el cuerpo
+
+el cierre
+",
+    );
+    carry_papers(&one.data, cloud.path(), &["uno-0001".into()]).unwrap();
+    wrote_body(
+        &there,
+        "uno-0001",
+        "# Kit
+
+la introduccion
+
+el cuerpo
+
+el cierre
+
+lo de windows
+",
+    );
+
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    assert!(done.undecided.is_empty(), "{done:?}");
+    assert_eq!(done.joined, vec!["uno-0001".to_string()]);
+    let whole = std::fs::read_to_string(here.join("uno-0001.md")).unwrap();
+    assert!(whole.contains("del mac"), "{whole}");
+    assert!(whole.contains("lo de windows"), "{whole}");
+}
+
+#[test]
 fn the_same_paragraph_written_two_ways_still_asks() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
