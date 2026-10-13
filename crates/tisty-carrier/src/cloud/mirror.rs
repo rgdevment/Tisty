@@ -367,6 +367,9 @@ pub fn push(
     }
     if done.left > 0 {
         done.left += stamp.len();
+        for one in stamp {
+            pace.went(one.len);
+        }
         return (done, None);
     }
     for one in stamp {

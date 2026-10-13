@@ -442,8 +442,8 @@ pub(crate) fn wiped(
         tisty_carrier::Trouble::NotThere(name) if name == tisty_core::moved::NAMED => {
             Refusal::of("wipeUntold")
         }
-        broke @ tisty_carrier::Trouble::Broke(_) => {
-            said(broke);
+        paused @ tisty_carrier::Trouble::NotNow(_) => {
+            said(paused);
             Refusal::of("wipeStopped")
         }
         other => said(other),

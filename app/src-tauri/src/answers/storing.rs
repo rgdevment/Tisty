@@ -65,6 +65,7 @@ pub(crate) struct Telling {
     kept: Vec<(String, String, u64)>,
     kept_at: std::time::Instant,
     said: Option<(&'static str, std::time::Instant)>,
+    unsaid: Option<Bringing>,
     joining: bool,
 }
 
@@ -75,6 +76,7 @@ impl Telling {
             kept: Vec::new(),
             kept_at: std::time::Instant::now(),
             said: None,
+            unsaid: None,
             joining,
         }
     }
@@ -115,23 +117,27 @@ impl Telling {
         let quiet = self
             .said
             .is_some_and(|(was, at)| was == stage && at.elapsed() < SAID_EVERY);
+        let now = Bringing {
+            stage,
+            done,
+            whole,
+            joining: self.joining,
+            up,
+        };
+        // Held rather than dropped: a round paused right after it is otherwise left a step behind.
         if quiet && done < whole {
+            self.unsaid = Some(now);
             return;
         }
         self.said = Some((stage, std::time::Instant::now()));
-        let _ = self.app.emit(
-            "bringing",
-            Bringing {
-                stage,
-                done,
-                whole,
-                joining: self.joining,
-                up,
-            },
-        );
+        self.unsaid = None;
+        let _ = self.app.emit("bringing", now);
     }
 
     pub(crate) fn flush(&mut self) {
+        if let Some(last) = self.unsaid.take() {
+            let _ = self.app.emit("bringing", last);
+        }
         self.kept_at = std::time::Instant::now();
         if self.kept.is_empty() {
             return;

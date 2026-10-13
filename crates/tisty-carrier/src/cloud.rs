@@ -840,10 +840,13 @@ impl Carrier for Cloud {
     }
 
     fn wipe(&self) -> Result<usize, Trouble> {
+        let provider = self.remote.limits().provider;
+        let stopped = |hitch| match judge(hitch, provider) {
+            Judged::Pause(reason, _) => Trouble::NotNow(format!("{reason:?}")),
+            Judged::Stop(trouble) => trouble,
+        };
         let done = self.with_mirror(None, BINNING, |_, index, remote| {
-            let all = remote
-                .list("")
-                .map_err(|e| Trouble::Broke(format!("{e:?}")))?;
+            let all = remote.list("").map_err(stopped)?;
             if !all.iter().any(|one| one.name == tisty_core::moved::NAMED) {
                 return Err(Trouble::NotThere(tisty_core::moved::NAMED.to_string()));
             }
@@ -858,7 +861,7 @@ impl Carrier for Cloud {
                         index.shelf.remove(&one.name);
                         gone += 1;
                     }
-                    Err(hitch) => return Err(Trouble::Broke(format!("{hitch:?}"))),
+                    Err(hitch) => return Err(stopped(hitch)),
                 }
             }
             Ok((gone, None))
