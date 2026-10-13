@@ -200,3 +200,48 @@ fn an_earlier_release_stops_at_a_place_this_build_arranged_and_leaves_it_as_it_w
         "an earlier release changed a place this build had arranged"
     );
 }
+
+#[test]
+#[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
+fn an_earlier_release_stops_at_a_place_a_machine_left_with_a_word_and_leaves_it_as_it_was() {
+    let shared = tempfile::tempdir().unwrap();
+    let (earlier, current) = written_in_turn(shared.path());
+    current.ok(&["written by this build before it left"]);
+    current.ok(&["sync"]);
+    let data = current.home.path().join("data");
+    let key = tisty_core::signing::SigningKey::from_bytes(&[7; 32]);
+    let word = tisty_core::moved::said(
+        &key,
+        tisty_core::moved::Leaving {
+            by: &tisty_core::DeviceId(named(&current)),
+            to: "folder:elsewhere",
+            at: 1_760_000_000,
+            store: &tisty_core::moved::store_of(&data),
+            place: "folder",
+        },
+    );
+    std::fs::write(shared.path().join(tisty_core::moved::NAMED), word).unwrap();
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
+    assert!(
+        said.contains(&format!("shape = {}", tisty_carrier::SHAPE)),
+        "{said}"
+    );
+    let before = snapshot(shared.path());
+
+    let run = earlier.run(&["sync"]);
+
+    assert!(earlier_stops(), "an earlier release would still write here");
+    assert_ne!(
+        run.code, 0,
+        "it synced beside a word it cannot read: {}",
+        run.out
+    );
+    assert!(run.err.contains("newer"), "{}", run.err);
+    assert_eq!(
+        snapshot(shared.path()),
+        before,
+        "an earlier release changed a place a machine had left a word in"
+    );
+    let kept = earlier.ok(&["ls", "all"]);
+    assert!(kept.contains("written by the earlier release"), "{kept}");
+}
