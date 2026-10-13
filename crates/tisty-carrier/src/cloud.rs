@@ -615,7 +615,7 @@ impl Carrier for Cloud {
     }
 
     fn holds_a_store(&self) -> bool {
-        tisty_core::store::inhabited(self.looked_again().join(STORE))
+        tisty_core::store::inhabited(self.fresh().join(STORE))
     }
 
     fn wipe(&self) -> Result<usize, Trouble> {
@@ -634,7 +634,6 @@ impl Carrier for Cloud {
                         index.shelf.remove(&one.name);
                         gone += 1;
                     }
-                    Err(crate::Hitch::Changed(_)) => {}
                     Err(hitch) => return Err(Trouble::Broke(format!("{hitch:?}"))),
                 }
             }

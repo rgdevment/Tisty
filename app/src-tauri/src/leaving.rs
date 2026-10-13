@@ -140,7 +140,6 @@ pub struct Owing {
     at: PathBuf,
     old: tisty_carrier::Shared,
     said: String,
-    way: Sync,
 }
 
 pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
@@ -156,7 +155,6 @@ pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing
         at,
         old,
         said: owed.said,
-        way: owed.way,
     })
 }
 
@@ -165,9 +163,6 @@ impl Owing {
         let reached = self.old.leave_word(&self.said).is_ok();
         if reached {
             let _ = std::fs::remove_file(self.at);
-            if let Some(at) = tisty_carrier::cloud_of(Some(&self.way)) {
-                crate::answers::clouding::let_go_of(&at.account);
-            }
         }
         reached
     }

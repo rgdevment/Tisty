@@ -384,8 +384,6 @@ const en = {
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
   attachTitle: "Attachments",
-  attachWhy:
-    "The largest file Tisty will take in. Everything you attach is copied into the store, so it travels with your tasks and is still there on the other machine.",
   attachUpTo: "take files up to",
   tasks: "Tasks",
   someOfMany: "Showing {name}. Narrow the words to see the rest.",
@@ -1419,11 +1417,6 @@ const en = {
   closingAsk: "Ask each time",
   closingHideBar: "Leave it in the menu bar",
   terminal: "Command line",
-  terminalOn: "Your terminal finds «tisty», through {name}",
-  terminalRetiring:
-    "The task and document commands are being retired: no feature reaches them, and they go in the next major version. The window is where Tisty happens; the binary stays as your assistant's door and for maintenance.",
-  terminalRemove: "Take it back out",
-  terminalGone: "No longer reachable",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
   toolCopyPaste:
@@ -1486,7 +1479,6 @@ const en = {
   aliasTooLong: "An alias holds up to {name} characters",
   bandNotices: "Notices",
   bandOutside: "Outside this window",
-  attachRow: "Take in files up to",
   lookNow: "Check for updates",
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
@@ -2204,8 +2196,6 @@ const es: Catalog = {
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
   attachTitle: "Adjuntos",
-  attachWhy:
-    "El archivo más grande que Tisty acepta. Todo lo que adjuntas se copia al almacén, así viaja con tus tareas y sigue ahí en el otro equipo.",
   attachUpTo: "aceptar archivos de hasta",
   tasks: "Tareas",
   someOfMany: "Se muestran {name}. Afina las palabras para ver el resto.",
@@ -3246,11 +3236,6 @@ const es: Catalog = {
   closingAsk: "Preguntar cada vez",
   closingHideBar: "Dejarlo en la barra de menús",
   terminal: "Línea de comandos",
-  terminalOn: "Tu terminal encuentra «tisty», desde {name}",
-  terminalRetiring:
-    "Los comandos de tareas y documentos se retiran: ninguna función nueva les llega, y se van en la siguiente versión mayor. Tisty pasa en la ventana; el binario se queda como puerta de tu asistente y para mantenimiento.",
-  terminalRemove: "Quitarlo",
-  terminalGone: "Ya no está disponible",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
   toolCopyPaste:
@@ -3313,7 +3298,6 @@ const es: Catalog = {
   aliasTooLong: "Un alias admite hasta {name} caracteres",
   bandNotices: "Avisos",
   bandOutside: "Fuera de esta ventana",
-  attachRow: "Aceptar archivos de hasta",
   lookNow: "Buscar actualizaciones",
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",

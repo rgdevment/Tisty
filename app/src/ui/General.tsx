@@ -3,10 +3,8 @@ import {
   keepClosing,
   keepLocale,
   keepTheme,
-  type Reach,
   type Settings,
   type Theme,
-  takeOutOfReach,
   type Waking,
   wakeFor,
 } from "../core";
@@ -21,8 +19,6 @@ interface Props {
   wake: Waking | null;
   setWake: (wake: Waking) => void;
   keys: string | null;
-  reach: Reach | null;
-  setReach: (reach: Reach) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -41,8 +37,6 @@ export default function General({
   wake,
   setWake,
   keys,
-  reach,
-  setReach,
   busy,
   said,
   trouble,
@@ -219,35 +213,6 @@ export default function General({
 
       <Band label={t("bandOutside")} />
       <div className="border-t border-hair">
-        {reach?.shipped && reach.withinReach && (
-          <Line
-            title={t("terminal")}
-            why={fill("terminalOn", reach.through ?? reach.at ?? "")}
-            which="terminal"
-            said={said}
-            trouble={trouble}
-            more={
-              <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
-                {t("terminalRetiring")}
-              </p>
-            }
-          >
-            <button
-              type="button"
-              disabled={held}
-              onClick={() =>
-                run("terminal", takeOutOfReach(), (now) => {
-                  setReach(now);
-                  tell({ card: "terminal", text: t("terminalGone") });
-                })
-              }
-              className={mild}
-            >
-              {t("terminalRemove")}
-            </button>
-          </Line>
-        )}
-
         <Line
           title={t("greetAgain")}
           why={t("greetAgainWhy")}

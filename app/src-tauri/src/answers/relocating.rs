@@ -107,14 +107,15 @@ fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
     if from.is_none() && tisty_carrier::cloud_of(now.as_ref()).is_some() {
         return Err(Refusal::of("moveFromUnreachable"));
     }
-    if let Some(at) = way.place()
-        && went_back_on(session, tisty_carrier::considering(at).theirs())
-    {
-        return Err(Refusal::about("restoredApart", at.display().to_string()));
-    }
     let to = tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier;
     if way != Sync::alone() && to.is_none() {
         return Err(Refusal::of("moveToUnreachable"));
+    }
+    if session.config.restored_at.is_some()
+        && let Some(to) = &to
+        && went_back_on(session, to.theirs())
+    {
+        return Err(Refusal::about("restoredApart", towards(toward)));
     }
     let joins = Joins {
         rejoined: joined_on(session, Some(&way)),
@@ -128,6 +129,14 @@ fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
         alive: session.alive(),
         joins,
     })
+}
+
+fn towards(toward: &Toward) -> String {
+    match toward {
+        Toward::Alone => String::new(),
+        Toward::Folder { at } => at.clone(),
+        Toward::Cloud { email, .. } => email.clone(),
+    }
 }
 
 #[tauri::command(async)]
@@ -243,7 +252,7 @@ pub async fn move_to(
 fn delivered(cache: &std::path::Path, after: After, from: Option<tisty_carrier::Shared>) -> bool {
     let told = match after.word {
         Some((left, said, _)) => crate::leaving::left_said(cache, &left, &said, from),
-        None => true,
+        None => !after.owes_word,
     };
     if let Some(now) = after.unword {
         forget_word_in(&now);

@@ -636,6 +636,7 @@ pub(crate) struct After {
         String,
         Option<tisty_carrier::Shared>,
     )>,
+    pub(crate) owes_word: bool,
     pub(crate) unword: Option<tisty_carrier::Shared>,
 }
 
@@ -696,6 +697,7 @@ where
     if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !joins.left) {
         crate::answers::clouding::let_go_of(&at.account);
     }
+    let owes_word = was.as_ref().is_some_and(told);
     let word = was.filter(told).and_then(|left| {
         crate::leaving::word_for(&session.paths, &session.config, &chosen)
             .map(|said| (left, said, old))
@@ -705,7 +707,11 @@ where
     let unword = (a_place && joins.rejoined)
         .then(|| session.carrier())
         .flatten();
-    Ok(After { word, unword })
+    Ok(After {
+        word,
+        owes_word,
+        unword,
+    })
 }
 
 #[tauri::command]

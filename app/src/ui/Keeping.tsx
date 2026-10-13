@@ -291,8 +291,6 @@ export default function Keeping({
             wake={wake}
             setWake={setWake}
             keys={keys}
-            reach={reach}
-            setReach={setReach}
             busy={busy}
             said={said}
             trouble={trouble}
