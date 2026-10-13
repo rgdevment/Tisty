@@ -521,5 +521,5 @@ fn is_history(name: &str) -> bool {
 }
 
 pub(super) fn mirrored(name: &str) -> bool {
-    name == NAMED || is_history(name) || is_doc(name)
+    name == NAMED || name == tisty_core::moved::NAMED || is_history(name) || is_doc(name)
 }

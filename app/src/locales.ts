@@ -1009,6 +1009,12 @@ const en = {
   cloudNotOffered:
     "This copy syncs with Google Drive, and this build of Tisty was made without access to it. Install Tisty from rgdevment.com or the Microsoft Store; nothing was changed.",
   cloudDenied: "Google was not given access, so nothing was connected.",
+  changeUnbacked:
+    "Tisty could not keep a copy of your tasks and documents before changing how they sync, so nothing was changed.",
+  movedAway:
+    "Your other machines moved to {name} and stopped syncing here. This copy stopped too, so nothing goes on alone; choose {name} in Settings to follow them.",
+  movedAlone:
+    "Your other machines stopped syncing here. This copy stopped too, so nothing goes on alone; choose again how it syncs in Settings.",
   deferredBudget:
     "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on tomorrow.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
@@ -2698,6 +2704,12 @@ const es: Catalog = {
   cloudNotOffered:
     "Esta copia sincroniza con Google Drive, y esta versión de Tisty se hizo sin acceso a él. Instala Tisty desde rgdevment.com o la Microsoft Store; no se cambió nada.",
   cloudDenied: "No se le dio acceso a Google, así que no se conectó nada.",
+  changeUnbacked:
+    "Tisty no pudo guardar una copia de tus tareas y documentos antes de cambiar cómo se sincronizan, así que no se cambió nada.",
+  movedAway:
+    "Tus otros equipos se mudaron a {name} y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; elige {name} en Ajustes para seguirlos.",
+  movedAlone:
+    "Tus otros equipos dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; vuelve a elegir cómo sincroniza en Ajustes.",
   deferredBudget:
     "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue mañana.",
   deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",

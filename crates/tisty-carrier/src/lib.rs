@@ -108,6 +108,16 @@ pub trait Carrier: Send + std::marker::Sync {
     fn hears(&self) -> Option<Box<dyn Watch>> {
         None
     }
+    /// Signed word that this machine stopped syncing here; a carrier that keeps nothing keeps no word either.
+    fn leave_word(&self, _said: &str) -> Result<(), Trouble> {
+        Ok(())
+    }
+    fn word_left(&self) -> Option<String> {
+        None
+    }
+    fn forget_word(&self) -> Result<(), Trouble> {
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

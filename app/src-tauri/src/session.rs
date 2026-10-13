@@ -163,7 +163,7 @@ impl Session {
     }
 
     /// A file this build cannot read is a newer build's: neither adopted nor written over.
-    fn settings_on_disk(&self) -> Option<Config> {
+    pub fn settings_on_disk(&self) -> Option<Config> {
         match Config::load(&self.paths.config_file()) {
             Ok(Some(kept)) => Some(kept),
             Ok(None) => Some(self.config.clone()),

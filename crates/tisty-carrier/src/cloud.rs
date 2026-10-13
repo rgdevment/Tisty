@@ -583,6 +583,32 @@ impl Carrier for Cloud {
         })
     }
 
+    fn leave_word(&self, said: &str) -> Result<(), Trouble> {
+        self.only(None, |tree, _, _| {
+            tisty_core::store::write_atomic(&tree.join(tisty_core::moved::NAMED), said.as_bytes())
+                .map_err(|e| Trouble::Broke(e.to_string()))
+        })
+    }
+
+    // Read after a pull, so a machine stops before the round that would write there alone.
+    fn word_left(&self) -> Option<String> {
+        std::fs::read_to_string(self.looked_again().join(tisty_core::moved::NAMED)).ok()
+    }
+
+    // Only a document missing here is taken for deleted up there, so the word is taken down by name.
+    fn forget_word(&self) -> Result<(), Trouble> {
+        self.only(None, |tree, index, remote| {
+            let _ = std::fs::remove_file(tree.join(tisty_core::moved::NAMED));
+            match remote.delete(tisty_core::moved::NAMED, None) {
+                Ok(()) | Err(crate::Hitch::Missing(_)) => {
+                    index.tree.remove(tisty_core::moved::NAMED);
+                    Ok(())
+                }
+                Err(hitch) => Err(Trouble::Broke(format!("{hitch:?}"))),
+            }
+        })
+    }
+
     fn forget_paper(&self, id: &str) {
         if !forgotten_later(&self.home, id) {
             return;

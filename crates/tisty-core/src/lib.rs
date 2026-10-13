@@ -20,6 +20,7 @@ pub mod machine;
 mod masked;
 pub mod merge;
 pub mod model;
+pub mod moved;
 pub mod moving;
 pub mod order;
 pub mod parcel;
