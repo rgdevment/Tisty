@@ -145,6 +145,9 @@ jobs:
       HAS_WINGET: ${{ secrets.WINGET_TOKEN != '' }}
       HAS_MSIX_IDENTITY: ${{ vars.MSIX_IDENTITY != '' }}
       HAS_MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER != '' }}
+      HAS_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID != '' }}
+      HAS_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET != '' }}
+      HAS_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY != '' }}
     steps:
       - name: Signing secrets come in pairs
         run: |
@@ -176,6 +179,10 @@ jobs:
             want TAURI_SIGNING_PRIVATE_KEY_PASSWORD "$HAS_UPDATER_PASSWORD"
             want PFX_BASE64 "$HAS_PFX"
             want PFX_PASSWORD "$HAS_PFX_PASSWORD"
+            # Without them the build quietly offers no cloud and cannot be told to pause it.
+            want GOOGLE_CLIENT_ID "$HAS_GOOGLE_CLIENT_ID"
+            want GOOGLE_CLIENT_SECRET "$HAS_GOOGLE_CLIENT_SECRET"
+            want CLOUD_POLICY_KEY "$HAS_CLOUD_POLICY_KEY"
             if [ "$BUILD_MACOS" = "true" ]; then
               want MACOS_CERTIFICATE_P12 "$HAS_P12"
               want MACOS_CERTIFICATE_PASSWORD "$HAS_P12_PASSWORD"
