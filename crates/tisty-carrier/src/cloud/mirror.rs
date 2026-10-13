@@ -435,14 +435,14 @@ fn upload(
 
 // What refused a write is read again, since a change the provider never tells would leave the write refused every round.
 fn read_again(remote: &dyn Remote, index: &mut Index, name: &str) {
-    match remote.about(name) {
-        Ok(Some(seen)) => {
-            index.owed.insert(name.to_string(), seen);
-        }
-        Ok(None) => {
-            index.tree.remove(name);
-        }
-        Err(_) => {}
+    let learned = match remote.about(name) {
+        Ok(Some(seen)) => index.owed.insert(name.to_string(), seen.clone()) != Some(seen),
+        Ok(None) => index.tree.remove(name).is_some(),
+        Err(_) => false,
+    };
+    // A refusal that leaves what changed written down is progress, so a push of many refused files is no loop.
+    if learned {
+        remote.moved_on();
     }
 }
 
@@ -572,3 +572,7 @@ fn is_history(name: &str) -> bool {
 pub(super) fn mirrored(name: &str) -> bool {
     name == NAMED || name == tisty_core::moved::NAMED || is_history(name) || is_doc(name)
 }
+
+#[cfg(test)]
+#[path = "mirror_test.rs"]
+mod tests;

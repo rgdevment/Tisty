@@ -382,6 +382,7 @@ impl Attachments for Shelf<'_> {
                         .insert(one.reference.clone(), seen.revision.clone());
                     self.index.shelved(&one.reference, seen);
                     self.unsent(&one.reference, "up there with other bytes");
+                    self.remote.moved_on();
                     pace.passed();
                 }
                 Err(hitch) => {
