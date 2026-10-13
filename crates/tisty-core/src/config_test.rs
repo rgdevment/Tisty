@@ -300,28 +300,27 @@ mod ceilings {
     }
 
     #[test]
-    fn a_store_that_never_chose_keeps_the_ceiling_it_always_had() {
-        assert_eq!(bare().copies_up_to(), crate::attach::COPIED_UP_TO);
+    fn a_task_holds_25_mb_whatever_an_older_setting_asked_for() {
+        let mut config = bare();
+        config.attach_up_to = Some(5 * 1024 * 1024);
+
+        assert_eq!(config.copies_up_to(), 25 * 1024 * 1024);
     }
 
     #[test]
-    fn a_machine_starting_today_asks_for_less_until_it_says_otherwise() {
+    fn a_machine_starting_today_takes_the_same_fixed_ceiling() {
         let room = tempfile::tempdir().unwrap();
         let paths = Paths::new(room.path().join("data"), room.path().join("config"));
 
         let made = Config::load_or_init(&paths).unwrap();
 
-        assert_eq!(made.copies_up_to(), crate::attach::COPIED_AT_FIRST);
-        assert!(made.copies_up_to() < crate::attach::COPIED_UP_TO);
+        assert_eq!(made.copies_up_to(), crate::attach::COPIED_UP_TO);
     }
 
     #[test]
-    fn a_document_still_holds_its_own_ceiling_whatever_a_task_is_set_to() {
-        let mut config = bare();
-        config.attach_up_to = Some(crate::attach::COPIED_AT_FIRST);
-
-        assert_eq!(config.copies_in_a_doc(), 750 * 1024 * 1024);
-        assert!(config.copies_in_a_doc() > config.copies_up_to());
+    fn a_document_holds_650_mb() {
+        assert_eq!(bare().copies_in_a_doc(), 650 * 1024 * 1024);
+        assert!(bare().copies_in_a_doc() > bare().copies_up_to());
     }
 }
 

@@ -272,7 +272,7 @@ pub(crate) fn copy_held(
             if above.is_some_and(|most| weighs > most) {
                 continue;
             }
-            if weighs > tisty_core::attach::COPIED_IN_DOC {
+            if weighs > tisty_core::attach::HELD_UP_TO {
                 witness::warn(
                     channel::SYNC,
                     "something in the shared folder is past what any attachment may weigh",
@@ -296,7 +296,7 @@ pub(crate) fn copy_held(
                 continue;
             }
             let part = beside(&target);
-            let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::COPIED_IN_DOC);
+            let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::HELD_UP_TO);
             let Ok((sha256, bytes)) = ferried else {
                 let _ = std::fs::remove_file(&part);
                 witness::warn(

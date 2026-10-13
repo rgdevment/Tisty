@@ -160,9 +160,7 @@ impl Config {
     }
 
     pub fn copies_up_to(&self) -> u64 {
-        self.attach_up_to
-            .unwrap_or(crate::attach::COPIED_UP_TO)
-            .clamp(crate::attach::COPIED_LEAST, crate::attach::COPIED_MOST)
+        crate::attach::COPIED_UP_TO
     }
 
     pub fn copies_in_a_doc(&self) -> u64 {
@@ -361,7 +359,7 @@ impl Config {
             checked_at: None,
             found_version: None,
             found_in_the_shop: None,
-            attach_up_to: Some(crate::attach::COPIED_AT_FIRST),
+            attach_up_to: None,
             holds: None,
             opened_by: None,
             on_close: None,

@@ -1289,7 +1289,7 @@ fn brought(
                 landed.missed += 1;
                 continue;
             }
-            let Ok(kept) = crate::attach::keep(&from, data, crate::attach::COPIED_IN_DOC) else {
+            let Ok(kept) = crate::attach::keep(&from, data, crate::attach::HELD_UP_TO) else {
                 landed.missed += 1;
                 continue;
             };

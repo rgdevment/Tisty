@@ -1,5 +1,13 @@
+import { useEffect, useState } from "react";
 import { turnedOff } from "../apart";
-import { type Carrying, revealed, type Settings } from "../core";
+import {
+  type Carrying,
+  moveDropped,
+  movePending,
+  revealed,
+  type Settings,
+  type Toward,
+} from "../core";
 import { daysFrom, stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -20,6 +28,48 @@ interface Props {
   fail: (word?: Word) => void;
   carry: (way?: "again") => void;
   pickFolder: () => void;
+  onMove: (resume?: Toward) => void;
+}
+
+function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward) => void }) {
+  const [pending, setPending] = useState<Toward | null>(null);
+
+  useEffect(() => {
+    if (!state) return;
+    movePending()
+      .then(setPending)
+      .catch(() => setPending(null));
+  }, [state]);
+
+  if (!pending) return null;
+  const where =
+    pending.kind === "cloud"
+      ? `Google Drive · ${pending.email}`
+      : pending.kind === "folder"
+        ? pending.at
+        : t("welcomeAlone");
+  return (
+    <div
+      role="status"
+      className="mb-2.5 flex flex-wrap items-center gap-2.5 rounded-[10px] border border-hue-amber/40 px-3 py-2"
+    >
+      <span className="min-w-0 flex-1 text-[12.5px] text-ink">{fill("movePending", where)}</span>
+      <button
+        type="button"
+        onClick={() =>
+          void moveDropped()
+            .then(() => setPending(null))
+            .catch(() => undefined)
+        }
+        className={mild}
+      >
+        {t("moveDrop")}
+      </button>
+      <button type="button" onClick={() => onMove(pending)} className={strong}>
+        {t("moveAgain")}
+      </button>
+    </div>
+  );
 }
 
 export default function Syncing({
@@ -32,6 +82,7 @@ export default function Syncing({
   fail,
   carry,
   pickFolder,
+  onMove,
 }: Props) {
   const held = busy !== null;
   const carrying = busy === "sync";
@@ -40,6 +91,7 @@ export default function Syncing({
       <>
         <Band label={t("syncing")} />
         <section className="rounded-[10px] border border-hair px-4 py-3.5">
+          <Pending state={state} onMove={onMove} />
           <Clouded
             state={state}
             busy={busy}
@@ -48,6 +100,7 @@ export default function Syncing({
             run={run}
             fail={fail}
             carry={carry}
+            onMove={() => onMove()}
           />
         </section>
       </>
@@ -56,6 +109,7 @@ export default function Syncing({
     <>
       <Band label={t("syncing")} />
       <section className="rounded-[10px] border border-hair px-4 py-3.5">
+        <Pending state={state} onMove={onMove} />
         <p className="text-[12.5px] leading-relaxed text-soft">
           {state.chosen
             ? fill("syncOn", state.chosen)
@@ -117,6 +171,11 @@ export default function Syncing({
               <button type="button" disabled={held} onClick={pickFolder} className={mild}>
                 {t("changeFolder")}
               </button>
+              {state.cloudOffered && (
+                <button type="button" disabled={held} onClick={() => onMove()} className={mild}>
+                  {t("moveOpen")}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={held}

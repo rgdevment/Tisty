@@ -87,6 +87,7 @@ export default function Welcome({ onDone }: Props) {
   const [named, setNamed] = useState<string>();
   const [offered, setOffered] = useState(false);
   const [another, setAnother] = useState(false);
+  const [toCloud, setToCloud] = useState(false);
   const went = useRef(false);
   const joined = useRef(false);
 
@@ -197,6 +198,7 @@ export default function Welcome({ onDone }: Props) {
       });
 
   const chose = (at?: string) => {
+    setToCloud(at === "cloud");
     setTrouble(undefined);
     setStuck(undefined);
     if (!at) {
@@ -270,10 +272,12 @@ export default function Welcome({ onDone }: Props) {
 
   if (offer) {
     return (
-      <Modal title={t("welcomeFolderHolds")}>
+      <Modal title={t(toCloud ? "welcomeCloudHolds" : "welcomeFolderHolds")}>
         <p className="mt-3 text-[13px] leading-relaxed text-soft">{t("welcomeFolderHoldsWhy")}</p>
         <p className="mt-2 text-[12.5px] leading-relaxed text-faint">
-          {offer.alias ? fill("welcomeFolderHoldsAs", offer.alias) : t("welcomeFolderHoldsHow")}
+          {offer.alias
+            ? fill("welcomeFolderHoldsAs", offer.alias)
+            : t(toCloud ? "welcomeCloudHoldsHow" : "welcomeFolderHoldsHow")}
         </p>
         <div className="mt-5 flex items-center gap-3 text-[11.5px]">
           <button

@@ -384,8 +384,6 @@ const en = {
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
   attachTitle: "Attachments",
-  attachWhy:
-    "The largest file Tisty will take in. Everything you attach is copied into the store, so it travels with your tasks and is still there on the other machine.",
   attachUpTo: "take files up to",
   tasks: "Tasks",
   someOfMany: "Showing {name}. Narrow the words to see the rest.",
@@ -1257,6 +1255,55 @@ const en = {
   cloudTodayUnits: "{name} of {other} requests",
   cloudTodayBytes: "{name} of {other} downloaded",
   movedChoose: "Choose where it syncs",
+  movedFollowCloud: "Go to Google Drive",
+  movedFollowFolder: "Choose the folder",
+  movedToCloud:
+    "Your other machines moved to Google Drive ({name}) and stopped syncing here. This copy stopped too, so nothing goes on alone; follow them from Settings.",
+  moveOpen: "Move to another place…",
+  moveTitle: "Move to another place",
+  moveWhy:
+    "It isn't a switch: everything you already have has to move. While it lasts, the same things are in both places.",
+  moveNow: "Now",
+  moveThen: "You'll move to",
+  moveDown:
+    "First what lives only in your cloud comes down ({name}), and then it goes to the new place.",
+  moveUp: "{name} goes up to the new place, as fast as your connection allows.",
+  moveResumes:
+    "If it's cut off, it carries on where it left off. Nothing changes place until everything is there.",
+  moveKeepsDrive: "Nothing is deleted in your Google Drive: it stays there until you remove it.",
+  moveDesktopTip:
+    "Faster and without using your quota: if you have the Google Drive app, choose its folder.",
+  moveAgree: "I understand the move takes time and can't be left halfway.",
+  moveGo: "Move my copies",
+  moveMoving: "Moving your copies",
+  moveMovingWhy: "Everything keeps working meanwhile. Keep Tisty open until it ends.",
+  moveWaiting: "The move is waiting",
+  moveLeft: "{name} files still to move ({other}).",
+  moveStuck: "Some files couldn't be brought yet. Try again in a while.",
+  moveAgain: "Carry on",
+  moveLater: "Later",
+  moveDone: "Done, your copies are now in {name}",
+  moveDoneWhy: "Your other computers were told where you went; each one follows when it syncs.",
+  moveWipe: "Delete my copies in Google Drive",
+  moveWipeSure:
+    "Tisty's copies go to your Google Drive bin, where Google keeps them for 30 days before deleting them for good. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in Drive.",
+  moveWipeKeep: "Leave them there",
+  moveWiped: "{name} copies went to your Google Drive bin.",
+  movePending: "A move to {name} is halfway.",
+  moveDrop: "Drop it",
+  moveSamePlace: "This copy already syncs there, so there is nothing to move.",
+  moveFromUnused:
+    "This computer never synced with this cloud, so there is nothing to bring from it: stop using it from its card instead.",
+  moveUnsettled:
+    "Some documents or computers are waiting for you to decide. Sync now and settle them; then carry on with the move.",
+  moveUntold:
+    "Your other computers couldn't be told yet; Tisty keeps trying on every sync, and keeps the old cloud's access until then.",
+  wipeUntold:
+    "Your other computers haven't been told where you went yet, so the copies stay until they are.",
+  moveFromUnreachable:
+    "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
+  moveToUnreachable: "The new place can't be reached. Nothing was changed.",
+  wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
   modeOpen: "How Tisty syncs",
   turnSyncOn: "Turn on…",
   changeFolder: "Change folder",
@@ -1370,11 +1417,6 @@ const en = {
   closingAsk: "Ask each time",
   closingHideBar: "Leave it in the menu bar",
   terminal: "Command line",
-  terminalOn: "Your terminal finds «tisty», through {name}",
-  terminalRetiring:
-    "The task and document commands are being retired: no feature reaches them, and they go in the next major version. The window is where Tisty happens; the binary stays as your assistant's door and for maintenance.",
-  terminalRemove: "Take it back out",
-  terminalGone: "No longer reachable",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
   toolCopyPaste:
@@ -1437,7 +1479,6 @@ const en = {
   aliasTooLong: "An alias holds up to {name} characters",
   bandNotices: "Notices",
   bandOutside: "Outside this window",
-  attachRow: "Take in files up to",
   lookNow: "Check for updates",
   lookingNow: "Checking…",
   lookNowNone: "You are on the newest version",
@@ -1744,6 +1785,9 @@ const en = {
   welcomeStayHere: "Stay on this machine only",
   welcomeOtherFolder: "Choose another folder",
   welcomeFolderHolds: "This folder already holds a Tisty",
+  welcomeCloudHolds: "Your cloud already holds a Tisty",
+  welcomeCloudHoldsHow:
+    "Its tasks and its documents come along, and this machine joins that history. Nothing in your cloud is lost.",
   welcomeFolderHoldsWhy: "It looks like the history of another machine of yours. Bring it here?",
   welcomeFolderHoldsHow:
     "Its tasks and its documents come along, and this machine joins that history. Nothing in the folder is lost.",
@@ -2152,8 +2196,6 @@ const es: Catalog = {
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
   attachTitle: "Adjuntos",
-  attachWhy:
-    "El archivo más grande que Tisty acepta. Todo lo que adjuntas se copia al almacén, así viaja con tus tareas y sigue ahí en el otro equipo.",
   attachUpTo: "aceptar archivos de hasta",
   tasks: "Tareas",
   someOfMany: "Se muestran {name}. Afina las palabras para ver el resto.",
@@ -3032,6 +3074,55 @@ const es: Catalog = {
   cloudTodayUnits: "{name} de {other} pedidos",
   cloudTodayBytes: "{name} de {other} bajados",
   movedChoose: "Elegir dónde sincroniza",
+  movedFollowCloud: "Ir a Google Drive",
+  movedFollowFolder: "Elegir la carpeta",
+  movedToCloud:
+    "Tus otros equipos se mudaron a Google Drive ({name}) y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; síguelos desde Ajustes.",
+  moveOpen: "Mudarme a otro lugar…",
+  moveTitle: "Vas a cambiar de lugar",
+  moveWhy:
+    "No es un interruptor: hay que mover todo lo que ya tienes. Mientras dure, lo mismo estará en los dos lugares.",
+  moveNow: "Ahora",
+  moveThen: "Pasarás a",
+  moveDown:
+    "Primero se baja lo que solo vive en tu nube ({name}), y después se lleva al nuevo lugar.",
+  moveUp: "Se suben {name} al nuevo lugar, tan rápido como lo permita tu conexión.",
+  moveResumes: "Si se corta, sigue donde quedó. No se cambia de lugar hasta tenerlo todo.",
+  moveKeepsDrive: "En tu Google Drive no se borra nada: queda ahí hasta que tú lo quites.",
+  moveDesktopTip:
+    "Más rápido y sin gastar cupo: si tienes el programa de Google Drive, elige su carpeta.",
+  moveAgree: "Entiendo que la mudanza tarda y que no se puede dejar a medias.",
+  moveGo: "Mover mis copias",
+  moveMoving: "Moviendo tus copias",
+  moveMovingWhy: "Mientras tanto todo funciona igual. Deja Tisty abierto hasta que termine.",
+  moveWaiting: "La mudanza quedó en espera",
+  moveLeft: "Faltan {name} archivos por mover ({other}).",
+  moveStuck: "Algunos archivos todavía no se pudieron traer. Vuelve a intentarlo en un rato.",
+  moveAgain: "Seguir",
+  moveLater: "Después",
+  moveDone: "Listo, tus copias ya están en {name}",
+  moveDoneWhy:
+    "Tus otros equipos quedaron avisados de adónde te fuiste; cada uno te sigue cuando sincroniza.",
+  moveWipe: "Borrar mis copias en Google Drive",
+  moveWipeSure:
+    "Las copias de Tisty van a la papelera de tu Google Drive, donde Google las guarda 30 días antes de borrarlas para siempre. Todo sigue en este equipo y en el nuevo lugar. En Drive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
+  moveWipeKeep: "Dejarlas ahí",
+  moveWiped: "{name} copias quedaron en la papelera de tu Google Drive.",
+  movePending: "Hay una mudanza a medias hacia {name}.",
+  moveDrop: "Dejarla",
+  moveSamePlace: "Esta copia ya sincroniza ahí, así que no hay nada que mover.",
+  moveFromUnused:
+    "Este equipo nunca sincronizó con esta nube, así que no hay nada que traer de ahí: deja de usarla desde su tarjeta.",
+  moveUnsettled:
+    "Hay documentos o equipos esperando que decidas. Sincroniza y resuélvelos; después sigue con la mudanza.",
+  moveUntold:
+    "Todavía no se pudo avisar a tus otros equipos; Tisty lo sigue intentando en cada sincronización y guarda el acceso a la nube anterior hasta entonces.",
+  wipeUntold:
+    "Tus otros equipos todavía no saben adónde te fuiste, así que las copias se quedan hasta que lo sepan.",
+  moveFromUnreachable:
+    "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
+  moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
+  wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
   modeOpen: "Cómo sincroniza Tisty",
   turnSyncOn: "Activar…",
   changeFolder: "Cambiar carpeta",
@@ -3145,11 +3236,6 @@ const es: Catalog = {
   closingAsk: "Preguntar cada vez",
   closingHideBar: "Dejarlo en la barra de menús",
   terminal: "Línea de comandos",
-  terminalOn: "Tu terminal encuentra «tisty», desde {name}",
-  terminalRetiring:
-    "Los comandos de tareas y documentos se retiran: ninguna función nueva les llega, y se van en la siguiente versión mayor. Tisty pasa en la ventana; el binario se queda como puerta de tu asistente y para mantenimiento.",
-  terminalRemove: "Quitarlo",
-  terminalGone: "Ya no está disponible",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
   toolCopyPaste:
@@ -3212,7 +3298,6 @@ const es: Catalog = {
   aliasTooLong: "Un alias admite hasta {name} caracteres",
   bandNotices: "Avisos",
   bandOutside: "Fuera de esta ventana",
-  attachRow: "Aceptar archivos de hasta",
   lookNow: "Buscar actualizaciones",
   lookingNow: "Buscando…",
   lookNowNone: "Estás en la versión más reciente",
@@ -3520,6 +3605,9 @@ const es: Catalog = {
   welcomeStayHere: "Seguir solo en este equipo",
   welcomeOtherFolder: "Elegir otra carpeta",
   welcomeFolderHolds: "Esta carpeta ya trae un Tisty",
+  welcomeCloudHolds: "Tu nube ya trae un Tisty",
+  welcomeCloudHoldsHow:
+    "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de tu nube.",
   welcomeFolderHoldsWhy: "Parece la historia de otra máquina tuya. ¿La traemos aquí?",
   welcomeFolderHoldsHow:
     "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de la carpeta.",

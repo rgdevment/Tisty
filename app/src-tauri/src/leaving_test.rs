@@ -87,9 +87,9 @@ fn a_word_the_old_place_could_not_take_is_owed_and_delivered_once_it_can() {
     leave_word(&one.paths, &one.config, &left, old, &Sync::alone());
 
     assert!(one.paths.cache().join(OWED).is_file());
-    assert!(owing(one.paths.cache(), &one.reach, None).is_some_and(|owed| !owed.delivered()));
+    assert!(owing(&one.paths, &one.reach, None).is_some_and(|owed| !owed.delivered()));
     std::fs::create_dir_all(&gone).unwrap();
-    assert!(owing(one.paths.cache(), &one.reach, None).is_some_and(Owing::delivered));
+    assert!(owing(&one.paths, &one.reach, None).is_some_and(Owing::delivered));
     assert!(word_in(&gone).is_some_and(|said| said.contains("alone")));
     assert!(!one.paths.cache().join(OWED).exists());
 }
@@ -146,7 +146,7 @@ fn a_word_owed_to_a_place_this_machine_came_back_to_is_never_delivered() {
     crate::answers::storing::choose(&mut one, Some(shared.display().to_string())).unwrap();
 
     assert!(!one.paths.cache().join(OWED).exists());
-    assert!(owing(one.paths.cache(), &one.reach, one.config.sync.as_ref()).is_none());
+    assert!(owing(&one.paths, &one.reach, one.config.sync.as_ref()).is_none());
     assert_eq!(word_in(&shared), None);
 }
 
@@ -159,7 +159,7 @@ fn a_word_owed_is_dropped_when_the_way_now_chosen_is_that_place() {
     let left = Sync::folder(&shared);
     owe(one.paths.cache(), &left, "un aviso");
 
-    assert!(owing(one.paths.cache(), &one.reach, Some(&left)).is_none());
+    assert!(owing(&one.paths, &one.reach, Some(&left)).is_none());
     assert!(!one.paths.cache().join(OWED).exists());
 }
 
@@ -194,7 +194,7 @@ fn a_word_owed_to_no_place_is_dropped_instead_of_kept_forever() {
     let one = machine(room.path(), "one");
     owe(one.paths.cache(), &Sync::alone(), "a nadie");
 
-    assert!(owing(one.paths.cache(), &one.reach, None).is_none());
+    assert!(owing(&one.paths, &one.reach, None).is_none());
     assert!(!one.paths.cache().join(OWED).exists());
 }
 
@@ -213,4 +213,36 @@ fn a_change_that_is_refused_keeps_no_copy() {
         !one.paths.private().join("before-a-change").exists(),
         "a refused change pushed out a real copy"
     );
+}
+
+#[test]
+fn machines_left_behind_are_told_the_cloud_the_others_moved_to() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    let (mut one, two) = (machine(room.path(), "one"), machine(room.path(), "two"));
+    vouches_for(&two, &one);
+    crate::answers::storing::choose(&mut one, Some(shared.display().to_string())).unwrap();
+    let cloud = Sync::cloud(CloudAt {
+        provider: "google".into(),
+        account: "0123".into(),
+        email: "ana@example.com".into(),
+    });
+
+    leave_word(
+        &one.paths,
+        &one.config,
+        &Sync::folder(&shared),
+        Some(tisty_carrier::considering(&shared)),
+        &cloud,
+    );
+
+    let stopped = heeded(
+        word_in(&shared).as_deref(),
+        two.paths.data(),
+        &two.config.device_id,
+    )
+    .expect("the machine left behind went on syncing alone");
+    assert_eq!(stopped.code, "movedToCloud");
+    assert_eq!(stopped.name.as_deref(), Some("ana@example.com"));
 }

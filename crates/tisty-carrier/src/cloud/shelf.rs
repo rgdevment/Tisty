@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use tisty_core::attach::{self, COPIED_IN_DOC};
+use tisty_core::attach::{self, HELD_UP_TO};
 use tisty_core::witness::{self, Fact, channel};
 use tisty_sync::{
     Attachments, Given, Giving, HELD, LetGo, NAMED_AT_MOST, Reached, Stage, Taken, Taking, Trouble,
@@ -59,7 +59,7 @@ impl<'a> Shelf<'a> {
 
     fn owed(&self, one: &Local, round: &Giving) -> bool {
         !round.buried.contains(&one.reference)
-            && one.len <= COPIED_IN_DOC
+            && one.len <= HELD_UP_TO
             && attach::shelved(&one.under, &one.leaf)
             && (round.again
                 || self.index.spoiled(&one.reference)
@@ -154,7 +154,7 @@ fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<P
             Ok(got)
         })
         .and_then(|got| match std::fs::metadata(&part)?.len() == got.bytes {
-            true if got.bytes <= COPIED_IN_DOC => Ok(()),
+            true if got.bytes <= HELD_UP_TO => Ok(()),
             true => Err(Hitch::Broke(format!(
                 "{reference} is past what an attachment may weigh"
             ))),
@@ -415,7 +415,7 @@ fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
             .is_none_or(|named| named.contains(reference))
             || round.avowed.contains_key(reference))
         && !index.spoiled(reference)
-        && seen.bytes <= COPIED_IN_DOC
+        && seen.bytes <= HELD_UP_TO
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
 }
 

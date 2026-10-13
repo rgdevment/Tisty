@@ -127,7 +127,9 @@ export default function Sidebar({
       </div>
 
       <Knocking />
-      <Coming onOpen={() => onChoose({ named: "keeping", tab: "data" })} />
+      <Coming
+        onOpen={(move) => onChoose({ named: "keeping", tab: "data", move, movedAt: Date.now() })}
+      />
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"
