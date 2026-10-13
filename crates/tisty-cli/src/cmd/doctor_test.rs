@@ -20,8 +20,11 @@ fn the_last_round_says_when_and_how_it_ended() {
         "2026-10-13 12:00 UTC, ended well"
     );
     assert!(
-        ended(&round("deferred-budget", 3), en).contains("put off (budget) (3 left for later)")
+        ended(&round("deferred-budget", 3), en)
+            .contains("put off: your cloud reached its limit for today")
     );
+    assert!(ended(&round("deferred-budget", 3), en).ends_with("(3 left for later)"));
+    assert!(ended(&round("deferred-someday", 0), en).contains("stopped (deferred-someday)"));
     assert!(ended(&round("cloudLost", 0), en).contains("stopped (cloudLost)"));
 }
 
@@ -33,5 +36,8 @@ fn the_last_round_is_told_in_spanish_too() {
         ended(&round("ok", 0), es),
         "2026-10-13 12:00 UTC, terminó bien"
     );
-    assert!(ended(&round("deferred-offline", 0), es).contains("quedó para después (offline)"));
+    assert!(
+        ended(&round("deferred-offline", 0), es)
+            .contains("quedó para después: no se pudo llegar a tu nube")
+    );
 }

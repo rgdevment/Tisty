@@ -229,7 +229,7 @@ fn ended(last: &tisty_carrier::LastRound, lang: Lang) -> String {
     match last.code.as_str() {
         "ok" => lang.fill("cloud-last-ok", &[("when", &when)]),
         code => match code.strip_prefix("deferred-") {
-            Some(reason) => {
+            Some(reason @ ("budget" | "limit" | "offline" | "busy" | "paused" | "changed")) => {
                 let left = match last.left {
                     0 => String::new(),
                     left => format!(
@@ -239,10 +239,14 @@ fn ended(last: &tisty_carrier::LastRound, lang: Lang) -> String {
                 };
                 style::dim(&lang.fill(
                     "cloud-last-waits",
-                    &[("when", &when), ("reason", reason), ("left", &left)],
+                    &[
+                        ("when", &when),
+                        ("reason", lang.get(&format!("deferred-{reason}"))),
+                        ("left", &left),
+                    ],
                 ))
             }
-            None => style::paint(
+            _ => style::paint(
                 style::RED,
                 &lang.fill("cloud-last-stopped", &[("when", &when), ("code", code)]),
             ),
