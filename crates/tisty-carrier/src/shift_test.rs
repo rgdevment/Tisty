@@ -679,3 +679,73 @@ fn a_move_into_the_cloud_cut_by_a_pause_keeps_what_landed_as_it_went_and_sends_o
         );
     }
 }
+
+#[test]
+fn a_cloud_left_for_a_folder_and_chosen_again_is_the_same_store_and_takes_up_only_what_is_new() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let alive = vec![DOC.to_string()];
+        one.filed(DOC, "# Plan\n\nantes\n");
+        let before = one.attached(PHOTO);
+        one.round(Way::Both);
+        let room = setting.room.path().join("carpeta");
+        std::fs::create_dir_all(&room).unwrap();
+        let folder = Folder::at(room);
+        let mut quiet = |_| {};
+
+        let out = crate::shift(
+            Some(&*one.carrier),
+            Some(&folder),
+            &one.here,
+            &alive,
+            &mut quiet,
+        );
+        assert_eq!(out, Ok(Shift::Ready), "{who}");
+        one.carrier.leave_word("se fue a una carpeta").unwrap();
+        one.wrote("en la carpeta");
+        let after = one.kept("nueva", b"una foto tomada en la carpeta");
+        one.store().append(after.told()).unwrap();
+        folder
+            .carry(
+                &one.here,
+                Round {
+                    way: Way::Both,
+                    alive: &alive,
+                    holds: Holds::Everywhere,
+                    saying: &mut quiet,
+                },
+            )
+            .unwrap();
+        let sent_before = fake.uploaded().len();
+
+        let back = crate::shift(
+            Some(&folder),
+            Some(&*one.carrier),
+            &one.here,
+            &alive,
+            &mut quiet,
+        );
+        one.carrier.forget_word().unwrap();
+
+        assert_eq!(
+            back,
+            Ok(Shift::Ready),
+            "{who}: the store it left was not taken back"
+        );
+        assert!(
+            matches!(one.carrier.kin(&one.here), crate::Kin::SameLineage),
+            "{who}: the store it left was read as another one"
+        );
+        assert!(
+            fake.about(tisty_core::moved::NAMED).unwrap().is_none(),
+            "{who}: the word it left stayed up there"
+        );
+        let sent: Vec<String> = fake.uploaded()[sent_before..].to_vec();
+        assert!(sent.contains(&after.at), "{who}: {sent:?}");
+        assert!(
+            !sent.contains(&before.at) && !sent.contains(&format!("docs/{DOC}.md")),
+            "{who}: what was already up there went up again: {sent:?}"
+        );
+    }
+}
