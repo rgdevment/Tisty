@@ -64,9 +64,34 @@ pub(crate) struct Telling {
     app: tauri::AppHandle,
     kept: Vec<(String, String, u64)>,
     kept_at: std::time::Instant,
+    pacing: Pacing,
+    joining: bool,
+}
+
+#[derive(Default)]
+struct Pacing {
     said: Option<(&'static str, std::time::Instant)>,
     unsaid: Option<Bringing>,
-    joining: bool,
+}
+
+impl Pacing {
+    fn told(&mut self, step: Bringing, now: std::time::Instant) -> Option<Bringing> {
+        let quiet = self.said.is_some_and(|(was, at)| {
+            was == step.stage && now.saturating_duration_since(at) < SAID_EVERY
+        });
+        // Held rather than dropped: a round paused right after it is otherwise left a step behind.
+        if quiet && step.done < step.whole {
+            self.unsaid = Some(step);
+            return None;
+        }
+        self.said = Some((step.stage, now));
+        self.unsaid = None;
+        Some(step)
+    }
+
+    fn flushed(&mut self) -> Option<Bringing> {
+        self.unsaid.take()
+    }
 }
 
 impl Telling {
@@ -75,8 +100,7 @@ impl Telling {
             app,
             kept: Vec::new(),
             kept_at: std::time::Instant::now(),
-            said: None,
-            unsaid: None,
+            pacing: Pacing::default(),
             joining,
         }
     }
@@ -114,28 +138,20 @@ impl Telling {
     }
 
     fn told(&mut self, stage: &'static str, done: usize, whole: usize, up: Option<Up>) {
-        let quiet = self
-            .said
-            .is_some_and(|(was, at)| was == stage && at.elapsed() < SAID_EVERY);
-        let now = Bringing {
+        let step = Bringing {
             stage,
             done,
             whole,
             joining: self.joining,
             up,
         };
-        // Held rather than dropped: a round paused right after it is otherwise left a step behind.
-        if quiet && done < whole {
-            self.unsaid = Some(now);
-            return;
+        if let Some(step) = self.pacing.told(step, std::time::Instant::now()) {
+            let _ = self.app.emit("bringing", step);
         }
-        self.said = Some((stage, std::time::Instant::now()));
-        self.unsaid = None;
-        let _ = self.app.emit("bringing", now);
     }
 
     pub(crate) fn flush(&mut self) {
-        if let Some(last) = self.unsaid.take() {
+        if let Some(last) = self.pacing.flushed() {
             let _ = self.app.emit("bringing", last);
         }
         self.kept_at = std::time::Instant::now();
