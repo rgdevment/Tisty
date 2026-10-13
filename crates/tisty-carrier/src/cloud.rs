@@ -19,6 +19,7 @@ mod index;
 mod judge;
 pub(crate) mod lock;
 mod mirror;
+mod pace;
 pub mod policy;
 mod resting;
 mod shelf;
@@ -27,6 +28,7 @@ pub mod standing;
 use budget::{Class, Metered};
 use index::Index;
 use judge::{Judged, judge};
+use pace::Pace;
 use shelf::{Letting, Shelf};
 
 const TREE: &str = "tree";
@@ -101,6 +103,23 @@ impl Cloud {
         turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
+        self.with_mirror_along(here, turn, &mut |_| {}, |tree, index, remote, _| {
+            work(tree, index, remote)
+        })
+    }
+
+    fn with_mirror_along<T>(
+        &self,
+        here: Option<&Here>,
+        turn: Turn,
+        along: &mut dyn FnMut(crate::Reached),
+        work: impl FnOnce(
+            &Path,
+            &mut Index,
+            &dyn Remote,
+            &mut dyn FnMut(crate::Reached),
+        ) -> Result<(T, Option<Deferred>), Trouble>,
+    ) -> Result<Done<T>, Trouble> {
         // What the person asked for is tried anyway; only the window's own pace waits.
         if let Some(left) = resting::left(&self.home).filter(|_| !turn.waits) {
             return Ok(Done::deferred(Reason::Limit, Some(left)));
@@ -143,7 +162,8 @@ impl Cloud {
             forget_carried_to(&here.aside, &tree);
         }
         metered.as_class(Class::Attachments);
-        let worked = work(&tree, &mut index, remote);
+        let mut pace = Pace::new(Some(&self.home), along);
+        let worked = work(&tree, &mut index, remote, pace.saying());
         metered.as_class(Class::History);
         let (value, held) = match worked {
             Ok(worked) => worked,
@@ -158,7 +178,7 @@ impl Cloud {
                 .is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Busy));
         let (pushed, hitch) = match quiet {
             true => (mirror::Pushed::default(), None),
-            false => mirror::push(remote, &tree, &mut index),
+            false => mirror::push(remote, &tree, &mut index, &mut pace),
         };
         let left_there = (held_back > 0).then_some(Deferred {
             reason: Reason::Changed,
@@ -251,30 +271,37 @@ impl Cloud {
             true => HOMING,
             false => PASSING,
         };
-        let done = self.with_mirror(Some(here), turn, |tree, index, remote| {
-            shelf::sweep(&here.data);
-            let history = Metered::over(&*self.remote, &self.home, Class::History);
-            let shelf = match fetching {
-                true => Shelf::fetching_all(remote, index),
-                false => Shelf::over(remote, index),
-            };
-            let mut shelf = shelf.history_first(tree, &history);
-            let moved = carry_through(
-                &here.data,
-                Some(&here.aside),
-                &here.device,
-                tree,
-                round.way,
-                round.alive,
-                round.holds,
-                round.saying,
-                &mut shelf,
-            )?;
-            Ok((
-                (moved, shelf.sent(), shelf.early(), shelf.full()),
-                shelf.paused(),
-            ))
-        })?;
+        let Round {
+            way,
+            alive,
+            holds,
+            saying,
+        } = round;
+        let done =
+            self.with_mirror_along(Some(here), turn, saying, |tree, index, remote, saying| {
+                shelf::sweep(&here.data);
+                let history = Metered::over(&*self.remote, &self.home, Class::History);
+                let shelf = match fetching {
+                    true => Shelf::fetching_all(remote, index),
+                    false => Shelf::over(remote, index),
+                };
+                let mut shelf = shelf.history_first(tree, &history).kept_in(&self.home);
+                let moved = carry_through(
+                    &here.data,
+                    Some(&here.aside),
+                    &here.device,
+                    tree,
+                    way,
+                    alive,
+                    holds,
+                    saying,
+                    &mut shelf,
+                )?;
+                Ok((
+                    (moved, shelf.sent(), shelf.early(), shelf.full()),
+                    shelf.paused(),
+                ))
+            })?;
         let (mut moved, attached, early, full) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
         moved.sent = attached + mirrored.min(done.uploaded + early);

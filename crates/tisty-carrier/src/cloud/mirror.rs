@@ -7,6 +7,7 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_sync::{MARKER, NAMED, STORE};
 
 use super::index::{Index, Mirrored, digest_of, on_shelf, path_of, stamp_of};
+use super::pace::Pace;
 use crate::{Changes, Expect, Hitch, Remote, Seen};
 
 const PAPERS: &str = "docs";
@@ -295,7 +296,12 @@ fn fetch_whole(remote: &dyn Remote, name: &str, part: &Path) -> Result<Seen, Hit
     Ok(got)
 }
 
-pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Option<Hitch>) {
+pub fn push(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &mut Index,
+    pace: &mut Pace,
+) -> (Pushed, Option<Hitch>) {
     let mut done = Pushed::default();
     let mut here = Vec::new();
     let sound = walk(tree, tree, &mut here);
@@ -313,9 +319,10 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) =
         dirty.into_iter().partition(|one| one.name == NAMED);
     rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
+    pace.begun(rest.len() + gone.len() + stamp.len());
 
     for (at, one) in rest.iter().enumerate() {
-        if let Err(hitch) = upload(remote, index, one, &mut done) {
+        if let Err(hitch) = upload(remote, index, one, &mut done, pace) {
             done.left += rest.len() - at + gone.len() + stamp.len();
             done.stuck = matches!(hitch, Hitch::Broke(_)).then(|| one.name.clone());
             return (done, Some(hitch));
@@ -325,10 +332,12 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
         match remote.delete(name, Some(revision)) {
             Ok(()) | Err(Hitch::Missing(_)) => {
                 index.tree.remove(name);
+                pace.landed(index);
             }
             Err(Hitch::Changed(_)) => {
                 done.left += 1;
                 read_again(remote, index, name);
+                pace.passed();
             }
             Err(hitch) => {
                 done.left += gone.len() - at + stamp.len();
@@ -341,7 +350,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
         return (done, None);
     }
     for one in stamp {
-        if let Err(hitch) = upload(remote, index, one, &mut done) {
+        if let Err(hitch) = upload(remote, index, one, &mut done, pace) {
             done.left += 1;
             return (done, Some(hitch));
         }
@@ -376,6 +385,7 @@ fn upload(
     index: &mut Index,
     one: &Found,
     done: &mut Pushed,
+    pace: &mut Pace,
 ) -> Result<(), Hitch> {
     let expect = match index.tree.get(&one.name) {
         Some(kept) => Expect::Revision(kept.seen.revision.clone()),
@@ -395,11 +405,13 @@ fn upload(
                 },
             );
             done.put += 1;
+            pace.landed(index);
             Ok(())
         }
         Err(Hitch::Changed(_) | Hitch::Missing(_)) => {
             done.left += 1;
             read_again(remote, index, &one.name);
+            pace.passed();
             Ok(())
         }
         Err(other) => Err(other),

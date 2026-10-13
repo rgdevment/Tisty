@@ -210,6 +210,8 @@ pub enum Stage {
     Log,
     Papers,
     Attachments,
+    /// What goes up to a cloud, file by file, so a long push is never a silent one.
+    Uploading,
 }
 
 pub fn carry_holding(
@@ -393,6 +395,7 @@ pub fn carry_through(
             avowed: &told.kept,
             again,
             holds,
+            saying: &mut *saying,
         })?;
         moved.sent += given.sent;
         (moved.freed, moved.let_go) = (given.freed, given.let_go);

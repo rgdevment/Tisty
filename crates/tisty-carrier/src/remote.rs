@@ -158,4 +158,7 @@ pub trait Remote: Send + Sync {
     fn spent_beyond(&self) -> u64 {
         0
     }
+
+    /// Something landed or was found already there, so a meter of asks that came to nothing starts again.
+    fn moved_on(&self) {}
 }

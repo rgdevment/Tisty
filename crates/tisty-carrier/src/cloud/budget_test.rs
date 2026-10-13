@@ -222,3 +222,58 @@ fn a_budget_that_does_not_read_starts_from_nothing() {
     assert_eq!(Spent::load(home.path()).units, 0);
     assert_eq!(Spent::load(home.path()).units, 0);
 }
+
+#[test]
+fn a_round_that_keeps_asking_with_nothing_landing_stops_and_anything_landing_starts_the_count_again()
+ {
+    let home = tempfile::tempdir().unwrap();
+    let local = home.path().join("local.md");
+    std::fs::write(&local, b"hola").unwrap();
+    let fake = Fake::drive();
+    fake.refusing("never/", Hitch::Broke("not taken".into()));
+    let meter = Metered::over(&fake, home.path(), Class::Attachments);
+    let each = fake.limits().costs.put + fake.limits().costs.checks;
+
+    let mut asked = 0;
+    let stopped = loop {
+        match meter.put(&format!("never/{asked}.md"), &local, Expect::Absent) {
+            Err(Hitch::Troubled(why)) => break why,
+            _ => asked += 1,
+        }
+        assert!(
+            asked < 1_000,
+            "a round that landed nothing was never stopped"
+        );
+    };
+
+    assert_eq!(asked, STALLED_UNITS.div_ceil(each), "{stopped}");
+    assert_eq!(
+        meter.list(""),
+        Err(Hitch::Troubled(stopped)),
+        "the stalled round went on asking"
+    );
+    meter.moved_on();
+    assert!(meter.put("landed.md", &local, Expect::Absent).is_ok());
+    for at in 0..asked {
+        assert_eq!(
+            meter.put(&format!("never/again-{at}.md"), &local, Expect::Absent),
+            Err(Hitch::Broke("not taken".into())),
+            "a landing did not start the count again"
+        );
+    }
+}
+
+#[test]
+fn many_cheap_asks_with_nothing_landing_stop_a_round_too() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::dropbox();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+
+    let mut asked = 0;
+    while meter.about("nada/aqui.md").is_ok() {
+        asked += 1;
+        assert!(asked < 1_000, "a round of cheap asks was never stopped");
+    }
+
+    assert_eq!(asked, STALLED_ASKS);
+}

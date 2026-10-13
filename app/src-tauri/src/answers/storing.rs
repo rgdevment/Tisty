@@ -83,6 +83,7 @@ impl Telling {
                     tisty_carrier::Stage::Log => "log",
                     tisty_carrier::Stage::Papers => "papers",
                     tisty_carrier::Stage::Attachments => "attachments",
+                    tisty_carrier::Stage::Uploading => "uploading",
                 };
                 let quiet = self
                     .said
