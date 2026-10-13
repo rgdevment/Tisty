@@ -192,6 +192,9 @@ fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
             ],
         ),
     );
+    if let Some(last) = &told.last {
+        line(lang.get("cloud-last"), &ended(last, lang));
+    }
     if told.paused_here {
         line(
             lang.get("cloud-paused"),
@@ -217,6 +220,34 @@ fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
             None => lang.get("cloud-word-none").to_string(),
         },
     );
+}
+
+fn ended(last: &tisty_carrier::LastRound, lang: Lang) -> String {
+    let when = jiff::Timestamp::from_second(i64::try_from(last.at).unwrap_or(i64::MAX))
+        .map(|at| at.strftime("%Y-%m-%d %H:%M UTC").to_string())
+        .unwrap_or_default();
+    match last.code.as_str() {
+        "ok" => lang.fill("cloud-last-ok", &[("when", &when)]),
+        code => match code.strip_prefix("deferred-") {
+            Some(reason) => {
+                let left = match last.left {
+                    0 => String::new(),
+                    left => format!(
+                        " {}",
+                        lang.fill("deferred-left", &[("left", &left.to_string())])
+                    ),
+                };
+                style::dim(&lang.fill(
+                    "cloud-last-waits",
+                    &[("when", &when), ("reason", reason), ("left", &left)],
+                ))
+            }
+            None => style::paint(
+                style::RED,
+                &lang.fill("cloud-last-stopped", &[("when", &when), ("code", code)]),
+            ),
+        },
+    }
 }
 
 fn moved_word(said: Option<String>, data: &std::path::Path, me: &tisty_core::DeviceId, lang: Lang) {
@@ -246,3 +277,7 @@ fn weighed(bytes: u64) -> String {
         _ => format!("{} GB", bytes / 1_073_741_824),
     }
 }
+
+#[cfg(test)]
+#[path = "doctor_test.rs"]
+mod tests;
