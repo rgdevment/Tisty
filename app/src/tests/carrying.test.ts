@@ -72,6 +72,31 @@ describe("carrying on its own", () => {
     expect(rounds[rounds.length - 1].args.way).toBe("pull");
   });
 
+  it("hears every stir while out of sight, not one of each two", async () => {
+    const seen = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    let mark = "one";
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (cmd === "folder_astir") return Promise.resolve(mark);
+      return Promise.resolve({ carried: "came", undecided: [] });
+    };
+    carried = carrying(() => {});
+    await settle();
+    bus.heard.get("told")?.();
+    await settle();
+    const before = sent("sync_now").length;
+
+    mark = "two";
+    bus.heard.get("told")?.();
+    await settle();
+    mark = "three";
+    bus.heard.get("told")?.();
+    await settle();
+
+    expect(sent("sync_now")).toHaveLength(before + 2);
+    seen.mockRestore();
+  });
+
   it("stops listening once it stops", async () => {
     carried = carrying(() => {});
     await settle();

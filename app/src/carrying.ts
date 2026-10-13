@@ -125,8 +125,14 @@ export function carrying(
         // otherwise swallow what stirred and wait for the next thing to move.
         return pull().then((how) => {
           if (!how || how === "busy") return;
-          // Our own push moves the folder too, so the mark is read again rather than kept.
-          astir = undefined;
+          // Read again once the round is done, so our own push is absorbed and the next stir is still heard.
+          return folderAstir()
+            .then((after) => {
+              if (!gone) astir = after;
+            })
+            .catch(() => {
+              astir = undefined;
+            });
         });
       })
       .catch(() => {});
