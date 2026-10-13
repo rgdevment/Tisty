@@ -184,3 +184,37 @@ fn a_moment_inside_an_attachment_is_written_down_under_the_attachment() {
         ["attachments/ab/charla-00000000.mp4"]
     );
 }
+
+#[test]
+fn what_is_forgotten_to_stay_small_still_counts_as_reached_as_late_as_the_last_one_forgotten() {
+    let (_room, at) = room();
+    let full: Used = (0..KEPT_AT_MOST)
+        .map(|n| {
+            (
+                format!("attachments/ab/one-{n:08}.txt"),
+                2_000_000_000 + n as u64,
+            )
+        })
+        .collect();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(&at, serde_json::to_vec(&full).unwrap()).unwrap();
+
+    used_on(&at, "attachments/cd/late-99999999.txt", 3_000_000_000);
+    used_on(&at, "attachments/cd/later-88888888.txt", 3_000_000_001);
+
+    assert_eq!(last(&at, "attachments/ab/one-00000000.txt"), None);
+    assert_eq!(last(&at, "attachments/ab/one-00000001.txt"), None);
+    assert_eq!(
+        reached(&at, "attachments/ab/one-00000000.txt"),
+        Some(2_000_000_001),
+        "a use forgotten to keep the file small read as never reached"
+    );
+    assert_eq!(
+        reached(&at, "attachments/ab/one-00000002.txt"),
+        Some(2_000_000_002)
+    );
+    assert_eq!(
+        reached(&at, "attachments/cd/late-99999999.txt"),
+        Some(3_000_000_000)
+    );
+}

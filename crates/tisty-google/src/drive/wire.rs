@@ -31,7 +31,7 @@ pub(super) fn quoted(text: &str) -> String {
 // A line cut while the body was still coming is no connection, never a shape Tisty misreads.
 pub(super) fn json<T: serde::de::DeserializeOwned>(answer: Response) -> Result<T, Hitch> {
     serde_json::from_reader(answer).map_err(|e| match e.is_io() {
-        true => Hitch::Unreachable(e.to_string()),
+        true => Hitch::Unreachable("the line was cut while Google Drive was answering".into()),
         false => Hitch::Broke("Google Drive answered in a shape Tisty does not read".into()),
     })
 }
@@ -101,8 +101,10 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
         .unwrap_or_default();
     Err(match (status, reason) {
         (401, _) => Hitch::Lost,
-        (403, "storageQuotaExceeded" | "quotaExceeded") => Hitch::Full,
-        (403, "dailyLimitExceeded") => Hitch::Limited {
+        (403, "storageQuotaExceeded") => Hitch::Full,
+        // Google names a project's quota this way too; only one that speaks of storage is a full Drive.
+        (403, "quotaExceeded") if message.to_ascii_lowercase().contains("storage") => Hitch::Full,
+        (403, "dailyLimitExceeded" | "quotaExceeded") => Hitch::Limited {
             wait: wait.unwrap_or(DAILY_WAIT),
         },
         (403, "userRateLimitExceeded" | "rateLimitExceeded" | "sharingRateLimitExceeded")

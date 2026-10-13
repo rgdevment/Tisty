@@ -54,6 +54,7 @@ const plan = {
   up: { files: 0, bytes: 0 },
   fromCloud: true,
   toCloud: false,
+  others: 0,
 };
 
 const opened = (over: Partial<Parameters<typeof Relocating>[0]> = {}) => {
@@ -91,6 +92,20 @@ describe("moving to another place", () => {
     expect(screen.getByText(t("moveKeepsDrive"))).toBeTruthy();
     expect(screen.getByText(t("moveDesktopTip"))).toBeTruthy();
     expect(screen.getByText("G:/Mi unidad/Tisty")).toBeTruthy();
+  });
+
+  it("tells that computers which never confirmed this one will not follow it", async () => {
+    ipc.answers.move_plan = () => Promise.resolve({ ...plan, others: 2 });
+    opened({ resume: { kind: "folder", at: "G:/Mi unidad/Tisty" } });
+
+    expect(await screen.findByText(t("moveOthersFollow"))).toBeTruthy();
+  });
+
+  it("says nothing of other computers when this one is alone in the place", async () => {
+    opened({ resume: { kind: "folder", at: "G:/Mi unidad/Tisty" } });
+
+    expect(await screen.findByText(t("moveKeepsDrive"))).toBeTruthy();
+    expect(screen.queryByText(t("moveOthersFollow"))).toBeNull();
   });
 
   it("moves only once the person says they understand", async () => {

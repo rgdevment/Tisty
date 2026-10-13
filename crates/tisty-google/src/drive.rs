@@ -10,6 +10,7 @@ use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens,
 
 mod gap;
 mod owed;
+mod sessions;
 mod tree;
 mod upload;
 mod wire;
@@ -635,9 +636,9 @@ impl Remote for Drive {
             })?;
         let mut block = vec![0u8; 64 * 1024];
         loop {
-            let read = answer
-                .read(&mut block)
-                .map_err(|e| Hitch::Unreachable(e.to_string()))?;
+            let read = answer.read(&mut block).map_err(|_| {
+                Hitch::Unreachable("the line was cut while Google Drive was sending".into())
+            })?;
             if read == 0 {
                 break;
             }

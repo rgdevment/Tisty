@@ -482,15 +482,21 @@ impl Carrier for Cloud {
             return Ok(Brought::Absent);
         }
         let logged = state.kept.get(reference).map(|(sha256, _)| sha256.as_str());
-        let index = Index::load(&self.home);
+        let mut index = Index::load(&self.home);
         let home = tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| at.is_file());
+        // Read again before saying it is gone, as a machine may have put it back since.
+        if !home && index.vanished.contains(reference) {
+            self.looked_again();
+            index = Index::load(&self.home);
+        }
         if !home && index.spoiled(reference) {
             return Err(Trouble::Broke(format!(
                 "{reference} up there does not hold the bytes its name and the log vouch for"
             )));
         }
         if !home && index.pulled() && !index.shelf.contains_key(reference) {
-            return Ok(Brought::Later);
+            let gone = index.vanished.contains(reference) && !index.owed.contains_key(reference);
+            return Ok(if gone { Brought::Gone } else { Brought::Later });
         }
         let metered = Metered::over(&*self.remote, &self.home, Class::Asked);
         match shelf::brought(&metered, &here.data, reference, logged) {
@@ -530,6 +536,10 @@ impl Carrier for Cloud {
 
     fn kin(&self, here: &Here) -> Kin {
         tisty_sync::kinship(&here.data.join(STORE), &self.looked_again())
+    }
+
+    fn others(&self, here: &Here) -> Vec<String> {
+        tisty_sync::others_in(&self.fresh(), &here.device)
     }
 
     fn signed(&self) -> Signed {
@@ -590,7 +600,7 @@ impl Carrier for Cloud {
             let since = seconds(unused_since);
             // Asked again right before each one goes, so an attachment opened meanwhile stays.
             let unused_now = |reference: &str| {
-                tisty_core::lately::last(&used, reference).is_none_or(|when| when < since)
+                tisty_core::lately::reached(&used, reference).is_none_or(|when| when < since)
             };
             let letting = Letting {
                 chosen: &|reference, _| idle.contains(reference) && unused_now(reference),

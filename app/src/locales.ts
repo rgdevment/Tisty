@@ -607,6 +607,8 @@ const en = {
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   cloudLater:
     "{name} hasn't arrived from your cloud yet: the computer that attached it may still be sending it, its cloud may be full, or your cloud asked to wait. Try again after the next sync",
+  cloudGone:
+    "{name} is no longer in your cloud: it was deleted or sent to the trash there. If you still have it, attach it again; if it's in the Drive trash, restore it and try again",
   attachmentTorn:
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
   sharedAway:
@@ -1299,6 +1301,8 @@ const en = {
   moveResumes:
     "If it's cut off, it carries on where it left off. Nothing changes place until everything is there.",
   moveKeepsDrive: "Nothing is deleted in your Google Drive: it stays there until you remove it.",
+  moveOthersFollow:
+    "Other computers sync here too. Those that never confirmed this one will not follow it: open Tisty there and choose the new place yourself.",
   moveDesktopTip:
     "Faster and without using your quota: if you have the Google Drive app, choose its folder.",
   moveAgree: "I understand the move takes time and can't be left halfway.",
@@ -2463,6 +2467,8 @@ const es: Catalog = {
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   cloudLater:
     "{name} todavía no llega desde tu nube: puede que el equipo que lo adjuntó aún lo esté enviando, que su nube esté llena, o que tu nube pidiera esperar. Vuelve a intentarlo después de la próxima sincronización",
+  cloudGone:
+    "{name} ya no está en tu nube: allá lo borraron o lo mandaron a la papelera. Si aún lo tienes, adjúntalo de nuevo; si está en la papelera de Drive, restáuralo y vuelve a intentarlo",
   attachmentTorn:
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
   sharedAway:
@@ -3160,6 +3166,8 @@ const es: Catalog = {
   moveUp: "Se suben {name} al nuevo lugar, tan rápido como lo permita tu conexión.",
   moveResumes: "Si se corta, sigue donde quedó. No se cambia de lugar hasta tenerlo todo.",
   moveKeepsDrive: "En tu Google Drive no se borra nada: queda ahí hasta que tú lo quites.",
+  moveOthersFollow:
+    "Otros equipos también sincronizan aquí. Los que nunca confirmaron este no lo van a seguir: abre Tisty en ellos y elige tú el nuevo lugar.",
   moveDesktopTip:
     "Más rápido y sin gastar cupo: si tienes el programa de Google Drive, elige su carpeta.",
   moveAgree: "Entiendo que la mudanza tarda y que no se puede dejar a medias.",

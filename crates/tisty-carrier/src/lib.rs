@@ -65,6 +65,8 @@ pub enum Brought {
     },
     Absent,
     Later,
+    /// It was in the cloud and left it, trashed or deleted there, and nothing up there owes it.
+    Gone,
 }
 
 pub struct Round<'a> {
@@ -129,6 +131,12 @@ pub trait Carrier: Send + std::marker::Sync {
     }
     fn wipe(&self) -> Result<usize, Trouble> {
         Ok(0)
+    }
+    /// Who else writes here, as far as this machine has read the place.
+    fn others(&self, here: &Here) -> Vec<String> {
+        self.place()
+            .map(|dest| tisty_sync::others_in(dest, &here.device))
+            .unwrap_or_default()
     }
 }
 

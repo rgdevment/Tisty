@@ -126,6 +126,7 @@ export function Plan({
           <li>{t("moveResumes")}</li>
           {plan.fromCloud && <li>{t("moveKeepsDrive")}</li>}
           {plan.fromCloud && toward.kind === "folder" && <li>{t("moveDesktopTip")}</li>}
+          {plan.others > 0 && <li>{t("moveOthersFollow")}</li>}
         </ul>
       )}
       <label className="flex items-start gap-2 text-[12.5px] text-soft">

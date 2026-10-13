@@ -16,8 +16,8 @@ use held::{copy_held, let_go_of};
 pub use held::{left_behind, let_go_telling};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
-pub use place::forget_carried_to;
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
+pub use place::{forget_carried_to, others_in};
 use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };

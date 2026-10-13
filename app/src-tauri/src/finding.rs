@@ -136,6 +136,7 @@ fn brought(
             Ok(found)
         }
         tisty_carrier::Brought::Later => Err(Refusal::about("cloudLater", reference.to_string())),
+        tisty_carrier::Brought::Gone => Err(Refusal::about("cloudGone", reference.to_string())),
         tisty_carrier::Brought::Absent => Err(Refusal::about("cannotRead", reference.to_string())),
     }
 }

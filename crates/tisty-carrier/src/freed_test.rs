@@ -292,3 +292,28 @@ fn an_attachment_opened_while_space_is_freed_stays() {
         );
     }
 }
+
+#[test]
+fn an_attachment_freed_here_whose_copy_left_the_cloud_is_told_gone_not_later() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        let kept = sent(&one);
+        freed(&one, later()).unwrap();
+        remote.delete(&kept.at, None).unwrap();
+        one.round(Way::Pull);
+
+        let asked = one.carrier.brought(&one.here, &kept.at).unwrap();
+
+        assert_eq!(asked, crate::Brought::Gone, "{who}");
+        let back = setting.room.path().join("back");
+        std::fs::write(&back, PHOTO).unwrap();
+        remote.put(&kept.at, &back, Expect::Any).unwrap();
+        assert_eq!(
+            one.carrier.brought(&one.here, &kept.at).unwrap(),
+            crate::Brought::At(tisty_core::attach::resolve(&kept.at, &one.here.data).unwrap()),
+            "{who}: put back up there and still told gone"
+        );
+    }
+}

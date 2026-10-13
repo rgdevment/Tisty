@@ -335,7 +335,7 @@ impl Attachments for Shelf<'_> {
             }
             match self.send(one) {
                 Ok(Sent::Landed(seen)) => {
-                    self.index.shelf.insert(one.reference.clone(), seen);
+                    self.index.shelved(&one.reference, seen);
                     given.sent += 1;
                     self.sent += 1;
                 }
@@ -343,7 +343,7 @@ impl Attachments for Shelf<'_> {
                     self.index
                         .spoiled
                         .insert(one.reference.clone(), seen.revision.clone());
-                    self.index.shelf.insert(one.reference.clone(), seen);
+                    self.index.shelved(&one.reference, seen);
                     self.unsent(&one.reference, "up there with other bytes");
                 }
                 Err(hitch) => {
