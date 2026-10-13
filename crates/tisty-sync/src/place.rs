@@ -67,18 +67,49 @@ pub(crate) fn still_adopting(
     dest: &Path,
     holds_our_store: bool,
 ) -> BTreeSet<String> {
-    let Some(kept) = aside.and_then(|at| std::fs::read_to_string(at.join(ADOPTING)).ok()) else {
-        return BTreeSet::new();
-    };
-    match kept.split_once('\n') {
-        Some((names, at)) if same_folder(at, dest, holds_our_store) => {
-            names.split_whitespace().map(str::to_string).collect()
+    match adopting_kept(aside) {
+        Some((names, at, since))
+            if same_folder(&at, dest, holds_our_store)
+                && since.elapsed().is_ok_and(|one| one < ADOPTING_FOR) =>
+        {
+            names
         }
         _ => BTreeSet::new(),
     }
 }
 
-pub(crate) fn keep_adopting(aside: Option<&Path>, dest: &Path, names: &BTreeSet<String>) {
+/// Past a week, a key nobody said is a person's to confirm.
+const ADOPTING_FOR: std::time::Duration = std::time::Duration::from_secs(7 * 24 * 60 * 60);
+
+type Adopting = (BTreeSet<String>, String, std::time::SystemTime);
+
+const SINCE: &str = "since ";
+
+/// Written before the week was kept, a list reads as begun now.
+fn adopting_kept(aside: Option<&Path>) -> Option<Adopting> {
+    let kept = std::fs::read_to_string(aside?.join(ADOPTING)).ok()?;
+    let (names, rest) = kept.split_once('\n')?;
+    let names = names.split_whitespace().map(str::to_string).collect();
+    let (since, at) = match rest
+        .strip_prefix(SINCE)
+        .and_then(|rest| rest.split_once('\n'))
+        .and_then(|(secs, at)| Some((secs.trim().parse::<u64>().ok()?, at)))
+    {
+        Some((secs, at)) => (
+            std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs),
+            at,
+        ),
+        None => (std::time::SystemTime::now(), rest),
+    };
+    Some((names, at.to_string(), since))
+}
+
+pub(crate) fn keep_adopting(
+    aside: Option<&Path>,
+    dest: &Path,
+    holds_our_store: bool,
+    names: &BTreeSet<String>,
+) {
     let Some(aside) = aside else {
         return;
     };
@@ -87,11 +118,18 @@ pub(crate) fn keep_adopting(aside: Option<&Path>, dest: &Path, names: &BTreeSet<
         let _ = std::fs::remove_file(at);
         return;
     }
+    let here = told_of(dest);
+    let since = adopting_kept(Some(aside))
+        .filter(|(_, was, _)| same_folder(was, dest, holds_our_store))
+        .map_or_else(std::time::SystemTime::now, |(_, _, since)| since);
+    let secs = since
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |one| one.as_secs());
     if std::fs::create_dir_all(aside).is_ok() {
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
         let _ = written(
             &at,
-            format!("{}\n{}", names.join(" "), told_of(dest)).as_bytes(),
+            format!("{}\n{SINCE}{secs}\n{here}", names.join(" ")).as_bytes(),
         );
     }
 }

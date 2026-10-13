@@ -262,12 +262,12 @@ pub fn carry_through(
         {
             adopting.extend(names_in(dest));
         }
-        keep_adopting(aside, dest, &adopting);
+        keep_adopting(aside, dest, holds_ours, &adopting);
         moved.brought = bring(
             data, &store, device, dest, &adopting, &mut moved, &mut alike, saying,
         )?;
         adopting.retain(|one| moved.coming.contains(one) || moved.unsaid.contains(one));
-        keep_adopting(aside, dest, &adopting);
+        keep_adopting(aside, dest, holds_ours, &adopting);
         said = as_told(&store, aside);
         if moved.brought > 0 {
             saying(Reached::Log);
@@ -988,6 +988,19 @@ fn copy_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
     laid(at, |file| {
         std::io::copy(&mut source, &mut &*file).map(|_| ())
     })
+}
+
+/// A live segment is read without its writer's lock, so a line still being written stays behind.
+fn copy_lines_onto(from: &Path, at: &Path) -> Result<(), Trouble> {
+    use std::io::Write;
+
+    plainly(from)?;
+    let bytes = std::fs::read(from).map_err(io)?;
+    let whole = bytes
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .map_or(0, |at| at + 1);
+    laid(at, |file| (&mut &*file).write_all(&bytes[..whole]))
 }
 
 pub(crate) fn copy_unless_there(from: &Path, at: &Path) -> Result<bool, Trouble> {

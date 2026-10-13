@@ -195,9 +195,10 @@ pub fn home_moves() -> bool {
 }
 
 fn home_roots() -> Option<crate::moving::Roots> {
-    if [DATA_ENV, CONFIG_ENV, CACHE_ENV, PROFILE_ENV]
+    if [DATA_ENV, CONFIG_ENV, CACHE_ENV]
         .iter()
         .any(|key| env_path(key).is_some())
+        || profile().is_some()
     {
         return None;
     }
@@ -456,7 +457,11 @@ pub fn from_the_store() -> bool {
     std::env::current_exe().is_ok_and(|at| under_windows_apps(&at))
 }
 
+/// Profiles are for building Tisty: a release keeps one home, so one Google account holds one token.
 pub fn profile() -> Option<String> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
     named(&std::env::var(PROFILE_ENV).ok()?)
 }
 

@@ -695,10 +695,25 @@ pub fn note_trouble(code: String, name: Option<String>) {
         return;
     };
     let mut facts = vec![("code", Fact::Code(code))];
-    if let Some(name) = name.filter(|one| !one.is_empty()) {
+    if let Some(name) = name.filter(|one| opaque(one)) {
         facts.push(("at", Fact::Path(std::path::PathBuf::from(name))));
     }
     witness::warn(channel::WINDOW, "the window showed a refusal", &facts);
+}
+
+/// The log is meant to be shared, so only names that say nothing the person wrote go in.
+fn opaque(name: &str) -> bool {
+    let a_doc = name.split_once('-').is_some_and(|(stem, n)| {
+        stem.len() == 8
+            && stem
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+            && n.len() == 4
+            && n.bytes().all(|b| b.is_ascii_digit())
+    });
+    let a_ulid = name.parse::<ulid::Ulid>().is_ok();
+    let inside = name.starts_with("attachments/") || name.starts_with("docs/");
+    a_doc || a_ulid || inside
 }
 
 #[tauri::command(async)]

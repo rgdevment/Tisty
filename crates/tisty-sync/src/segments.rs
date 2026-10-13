@@ -2,7 +2,7 @@ use std::path::Path;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{STORE, Trouble, copy_onto, copy_unless_there, io, plainly};
+use crate::{STORE, Trouble, copy_lines_onto, copy_onto, copy_unless_there, io, plainly};
 
 pub(crate) type Named = std::collections::BTreeSet<std::ffi::OsString>;
 
@@ -117,7 +117,10 @@ pub(crate) fn copy_segments(
         };
         let target = into.join(named);
         let closed = named.to_str().is_some_and(tisty_core::store::is_closed);
-        let stands = !again && ((closed && known.contains(named)) || same(at, &target));
+        let stands = !again
+            && ((closed && known.contains(named))
+                || same(at, &target)
+                || (!closed && same_lines(at, &target)));
         if !stands {
             let spent = !closed
                 && std::fs::read(at)
@@ -125,7 +128,10 @@ pub(crate) fn copy_segments(
             if spent {
                 continue;
             }
-            copy_onto(at, &target)?;
+            match closed {
+                true => copy_onto(at, &target)?,
+                false => copy_lines_onto(at, &target)?,
+            }
             done += 1;
         }
 
@@ -246,6 +252,18 @@ pub(crate) fn sweep(dir: &Path) {
             );
         }
     }
+}
+
+/// A live segment whose last line is still half written was copied without it, and stays copied.
+fn same_lines(from: &Path, to: &Path) -> bool {
+    let (Ok(here), Ok(there)) = (std::fs::read(from), std::fs::read(to)) else {
+        return false;
+    };
+    let whole = here
+        .iter()
+        .rposition(|one| *one == b'\n')
+        .map_or(0, |at| at + 1);
+    whole < here.len() && here[..whole] == there[..]
 }
 
 pub(crate) fn same(from: &Path, to: &Path) -> bool {

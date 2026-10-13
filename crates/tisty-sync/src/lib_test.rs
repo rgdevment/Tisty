@@ -8541,3 +8541,35 @@ fn a_folder_holds_our_store_only_when_its_name_is_ours() {
 
     assert!(super::holds_our_store(&store, shared.path()));
 }
+
+#[test]
+fn the_welcome_a_join_gives_ends_a_week_later() {
+    let aside = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    let names: std::collections::BTreeSet<String> = ["dev_z".to_string()].into();
+
+    crate::place::keep_adopting(Some(aside.path()), shared.path(), false, &names);
+    assert_eq!(
+        crate::place::still_adopting(Some(aside.path()), shared.path(), false),
+        names
+    );
+
+    let kept = std::fs::read_to_string(aside.path().join("adopting")).unwrap();
+    let (first, rest) = kept.split_once('\n').unwrap();
+    let (_, place) = rest.split_once('\n').unwrap();
+    let long_ago = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        - 8 * 24 * 60 * 60;
+    std::fs::write(
+        aside.path().join("adopting"),
+        format!("{first}\nsince {long_ago}\n{place}"),
+    )
+    .unwrap();
+
+    assert!(
+        crate::place::still_adopting(Some(aside.path()), shared.path(), false).is_empty(),
+        "a machine that never said its key was still taken unchecked a week after joining"
+    );
+}

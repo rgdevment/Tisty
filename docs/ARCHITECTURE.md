@@ -373,7 +373,8 @@ confirmed here signed it, and a word still owed to the place left behind.
 
 `TISTY_DATA`, `TISTY_CONFIG` and `TISTY_CACHE` override each root.
 `TISTY_PROFILE=<name>` moves all three under `sandboxes/<name>` and turns off
-the single-instance guard. On Windows the packaged (Store) app's `AppData` is a
+the single-instance guard; only debug builds read it, so a release keeps one
+home. On Windows the packaged (Store) app's `AppData` is a
 private copy that Windows deletes on uninstall, so the roots live under the
 profile's `.tisty`; the window moves a store it finds under
 `%LOCALAPPDATA%\tisty` there on its first start (see *Backup, restore, moving
