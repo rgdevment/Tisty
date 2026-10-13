@@ -21,7 +21,9 @@ use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting}
 use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
-pub use shape::{NAMED, unseen as forget_shape};
+pub use shape::{
+    NAMED, NEEDS, OURS as SHAPE, needs_later, raised, raised_told, unseen as forget_shape,
+};
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -51,6 +53,8 @@ pub enum Trouble {
     Emptied(String),
     Newer(String),
     Shape(String),
+    /// The place asks for this release or a later one, so this build neither reads nor writes there.
+    Needs(String),
     Unshaped(String),
     CloudFull {
         provider: String,
