@@ -539,3 +539,15 @@ fn nothing_is_owed_before_the_interval_is_up() {
     assert!(!due(Some(recent), now));
     assert!(due(Some(old), now));
 }
+
+#[test]
+fn an_update_counts_only_when_its_signature_names_the_version_offered() {
+    let config: serde_json::Value =
+        serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+
+    assert_eq!(
+        config["plugins"]["updater"]["requireSignedVersion"],
+        serde_json::Value::Bool(true),
+        "without it, the unsigned feed could pass an older signed installer off as a newer one"
+    );
+}

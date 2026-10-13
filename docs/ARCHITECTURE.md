@@ -871,20 +871,18 @@ keychain, serialising renewals across processes with `renewing.lock`. A refresh
 token that cannot be saved is kept in memory and retried. No stored refresh
 token is `Hitch::Lost`. `spoiled(access)` drops an access token the provider
 turned down, so the next ask renews. `Keychain` implements `Secrets` over the
-system's own store through `keyring-core`: Credential Manager on Windows, the
-Keychain on macOS, the Secret Service on Linux and, on Windows, a file sealed
-with DPAPI under `%LOCALAPPDATA%\Tisty\secrets` (`sealed.rs`). DPAPI is the lock
-Credential Manager itself uses, and that folder leaves with the app: a Store
-install writes it inside its own package, and the installer's uninstaller and
-`--unreach` delete it. Only the window reads or writes a token. `Keychain`
-writes a token as UTF-8 bytes, since Credential Manager holds a password as
-UTF-16 and that halves the room a long token has; one past the keychain's room
-is said so, and `Tokens` writes it to the log and keeps it only while Tisty
-stays open. Each entry is named by the account and the key, so two accounts
-never share a token, and a Credential Manager entry is kept `Local`, since the
-default roams with a domain profile to machines that would rotate it. Outside
-Windows no token is ever written to a file, which a test fixes; on Windows the
-file never holds the token as it reads, which another test fixes.
+system's own store through `keyring-core`: the Keychain on macOS and the Secret
+Service on Linux. Windows keeps no token in a keychain: `Sealed` (`sealed.rs`)
+writes it to a file sealed with DPAPI under `%LOCALAPPDATA%\Tisty\secrets`.
+DPAPI is the lock Credential Manager itself uses, and that folder leaves with
+the app: a Store install writes it inside its own package, and the installer's
+uninstaller and `--unreach` delete it. Only the window reads or writes a token.
+`Keychain` writes a token as UTF-8 bytes; one past the keychain's room is said
+so, and `Tokens` writes it to the log and keeps it only while Tisty stays open.
+Each entry is named by the account and the key, so two accounts never share a
+token. Outside Windows no token is ever written to a file, which a test fixes;
+on Windows the file never holds the token as it reads, which another test
+fixes.
 
 Connecting (`cloud_connect`) opens Google's consent in the browser, learns the
 account with the grant held in memory, and files the refresh token under that
@@ -1192,7 +1190,13 @@ sequenceDiagram
   a `list.add` for a list the sentence names that does not exist, and the
   `task.add`.
 - **Updates** (`update.rs`) follow how Tisty was installed (`Route`: Store,
-  Brew, Download) and check a manifest on GitHub once a day.
+  Brew, Download) and check a manifest on GitHub once a day. The feeds
+  (`release-manifest.json`, `latest.json`, `candidate.json`) are not signed;
+  each installer is, with the updater key, and the release signs it with the
+  version it was cut for (`tauri signer sign --app-version`). The app requires
+  that signed version to match the one offered (`requireSignedVersion`), and the
+  release and the daily feed check refuse a signature that does not name it, so
+  an older signed installer cannot pose as a newer one.
 - **Security.** The webview may connect only to IPC. Files are served through the
   `asset:` scope, limited to `attachments/`, `docs/` and the directory a carrier
   lends. Widgets and attached pages are served over `widget://` under their own

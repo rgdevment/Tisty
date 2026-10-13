@@ -106,9 +106,18 @@ jobs:
                 echo "::error::the installer for $os in $what does not answer: $url"
                 return 1
               fi
-              if ! minisign -Vm one.bin -p tisty.pub -x one.sig >/dev/null; then
+              local signed wanted
+              if ! signed=$(bash scripts/signed-version.sh one.bin one.sig tisty.pub); then
                 echo "::error::the installer for $os in $what does not verify against the key \
                       every installed copy carries. It answers, and it cannot be installed: $url"
+                return 1
+              fi
+              wanted=$(printf '%s' "${expected#v}" | sed 's/+.*//')
+              # Releases cut before signatures named their version are still taken by the copies that knew no better.
+              if [ -z "$signed" ] && [ "$(printf '%s\n%s\n' "$wanted" 1.25.99 | sort -V | tail -1)" = 1.25.99 ]; then
+                echo "::warning::the installer for $os in $what predates signatures that name their version"
+              elif [ "$signed" != "$wanted" ]; then
+                echo "::error::the installer for $os in $what is signed for «${signed:-no version}» and offered as $expected, so no copy will take it"
                 return 1
               fi
               echo "  $os verifies"
