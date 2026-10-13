@@ -95,13 +95,13 @@ afterEach(() => {
 
 const LOST = t("cloudLost");
 
-const shown = (trouble?: string) => {
-  ipc.answers.cloud_status = () => Promise.resolve(status({ last: round("cloudLost") }));
+const shown = (trouble?: string, code = "cloudLost") => {
+  ipc.answers.cloud_status = () => Promise.resolve(status({ last: round(code) }));
   const carry = vi.fn();
   const run = vi.fn((_card: string, work: Promise<unknown>, then: (answer: unknown) => void) => {
     work.then(then).catch(() => undefined);
   });
-  act(() => ended({ code: "cloudLost" }));
+  act(() => ended({ code }));
   const settings = render(
     <Clouded
       state={carrying({ last: "2026-10-12T10:00:00Z" })}
@@ -151,6 +151,17 @@ describe("a cloud Google shut its door on", () => {
     await waitFor(() => expect(carry).toHaveBeenCalled());
     expect(screen.queryByText(t("stateReconnect"))).toBeNull();
     expect(screen.queryByText(LOST)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("lets go of a door shut on another account once the sign-in goes through", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    const { carry } = shown(undefined, "cloudElsewhere");
+
+    await userEvent.click(await screen.findByRole("button", { name: t("stateElsewhereDo") }));
+
+    await waitFor(() => expect(carry).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: t("stateElsewhereDo") })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });
