@@ -713,7 +713,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "page_doc",
             "title": "Make one document, or several, into pages, put their pages in order, or take them back out",
-            "description": "Hang a document from another as one of its pages, or take a page out \
+            "description": "Needs `doc`, or `order` with `page_of`. Hang a document from another as one of its pages, or take a page out \
                             by leaving `page_of` out, which makes it a document of its own again, \
                             back in the folder it came from. A page goes with its document \
                             everywhere — folder, archive and deletion — and holds no pages of its \

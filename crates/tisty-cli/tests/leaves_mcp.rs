@@ -4340,3 +4340,55 @@ fn a_call_that_fits_neither_way_of_proposing_or_paging_is_told_both_ways() {
         "an entry inside `tasks` was told to send `tasks`: {many}"
     );
 }
+
+#[test]
+fn a_client_that_sends_null_for_every_field_it_leaves_out_is_read_as_leaving_them_out() {
+    let served = Served::new();
+    let book = served.wrote("# Actas", None);
+    let loose = served.wrote("# Suelto", None);
+
+    let paged = served.call(
+        "page_doc",
+        serde_json::json!({
+            "doc": loose, "page_of": book,
+            "after": null, "before": null, "at": null, "order": null
+        }),
+    );
+    assert!(
+        paged["result"]["isError"].as_bool() != Some(true),
+        "{paged}"
+    );
+    assert_eq!(served.pages_read(&book), vec![loose]);
+
+    let whole = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "mudanza",
+            "tasks": null,
+            "parts": [{ "title": "cajas", "tasks": null, "parts": null, "part_of": null, "again": null }]
+        }),
+    );
+    assert!(
+        whole["result"]["isError"].as_bool() != Some(true),
+        "{whole}"
+    );
+}
+
+#[test]
+fn what_comes_beside_a_list_of_tasks_is_refused_instead_of_lost() {
+    let served = Served::new();
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({ "source": "sereno#9", "tasks": [{ "title": "a" }, { "title": "b" }] }),
+    );
+
+    assert_eq!(said["result"]["isError"], serde_json::json!(true), "{said}");
+    assert!(
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("`source`"),
+        "{said}"
+    );
+}

@@ -20,7 +20,7 @@ use super::{
 /// Eight tasks in one call instead of eight calls: what the door costs an agent is mostly the
 /// conversation it has to send again each time, not the writing.
 pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(many) = args.get("tasks").filter(|one| !one.is_null()) else {
+    let Some(many) = args.get("tasks") else {
         if text(args, "title").is_none() {
             return Err(Refused::Tool(
                 "send a `title` for one task, or `tasks` for several.".into(),
@@ -34,6 +34,14 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .into(),
         ));
     };
+    if let Some(beside) = args
+        .as_object()
+        .and_then(|all| all.keys().find(|key| *key != "tasks"))
+    {
+        return Err(Refused::Tool(format!(
+            "with `tasks`, every field goes inside each task, so `{beside}` beside them would be              lost. Nothing was written."
+        )));
+    }
     if many.is_empty() {
         return Err(Refused::Tool(
             "`tasks` came empty, so nothing was written.".into(),
@@ -919,7 +927,7 @@ const DRAFTS_AT_MOST: usize = 32;
 pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> {
     only_what_it_takes("propose", one)?;
     short_and_plain(one)?;
-    if one.get("tasks").is_some_and(|many| !many.is_null()) {
+    if one.get("tasks").is_some() {
         return Err(Refused::Tool(
             "a task inside `tasks` cannot carry `tasks` of its own.".into(),
         ));
