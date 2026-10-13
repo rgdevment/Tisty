@@ -615,7 +615,7 @@ impl Carrier for Cloud {
     }
 
     fn holds_a_store(&self) -> bool {
-        tisty_core::store::inhabited(self.fresh().join(STORE))
+        tisty_core::store::inhabited(self.tree().join(STORE))
     }
 
     fn wipe(&self) -> Result<usize, Trouble> {

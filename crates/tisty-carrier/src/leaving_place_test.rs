@@ -5,11 +5,13 @@ fn a_fresh_machine_sees_that_a_place_already_holds_a_tisty() {
     for setting in settings() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
+        let _ = two.carrier.kin(&two.here);
         assert!(!two.carrier.holds_a_store(), "{who}");
 
         one.wrote("ya estaba");
         one.round(Way::Both);
 
+        let _ = two.carrier.kin(&two.here);
         assert!(two.carrier.holds_a_store(), "{who}");
     }
 }

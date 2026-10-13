@@ -594,10 +594,9 @@ fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
     );
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
 
-    // A fresh install copies up to five megabytes; a holiday video from a chat is over it.
     let heavy = served.home.path().join("holiday.mp4");
     let mut bytes = b"    ftypisom".to_vec();
-    bytes.resize(6_000_000, 0);
+    bytes.resize(27_000_000, 0);
     std::fs::write(&heavy, bytes).unwrap();
     let said = served.call(
         "attach",
@@ -658,7 +657,7 @@ fn a_document_takes_a_file_a_task_will_not() {
 
     let heavy = served.home.path().join("charla.mp4");
     let mut bytes = b"    ftypisom".to_vec();
-    bytes.resize(6_000_000, 0);
+    bytes.resize(27_000_000, 0);
     std::fs::write(&heavy, bytes).unwrap();
 
     let onto = served.call(
@@ -667,7 +666,7 @@ fn a_document_takes_a_file_a_task_will_not() {
     );
     assert_eq!(
         onto["result"]["isError"], true,
-        "a fresh install copies five megabytes onto a task: {onto}"
+        "a task copies up to 25 megabytes: {onto}"
     );
 
     let into = served.call(
