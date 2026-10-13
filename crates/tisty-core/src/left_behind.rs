@@ -2,9 +2,9 @@ use std::path::Path;
 
 use crate::moved::Word;
 
-/// A note for whoever opens a folder this machine stopped syncing, in both languages Tisty speaks.
-pub const NOTICE: &str = "LEEME - Tisty.txt";
-const HEAD: &str = "Tisty · LEEME / README";
+/// A note for whoever opens a folder this machine stopped syncing.
+pub const NOTICE: &str = "README - Tisty.txt";
+const HEAD: &str = "Tisty · README";
 
 /// Never written over a file of the same name that Tisty did not write.
 pub fn left_notice(place: &Path, said: &str) {
@@ -37,6 +37,11 @@ fn ours(at: &Path) -> bool {
 }
 
 pub fn noticed(word: &Word) -> String {
+    noticed_in(word, &crate::model::spoken(None))
+}
+
+/// The language this computer speaks goes first; the other follows for whoever opens it elsewhere.
+pub fn noticed_in(word: &Word, spoken: &str) -> String {
     let name = crate::config::nicknamed(&word.by);
     let date = i64::try_from(word.at)
         .ok()
@@ -57,17 +62,22 @@ pub fn noticed(word: &Word) -> String {
             "only on that computer".to_string(),
         ),
     };
-    format!(
-        "{HEAD}\n\n\
-         El equipo «{name}» dejó de sincronizar Tisty en esta carpeta el {date}.\n\
+    let spanish = format!(
+        "El equipo «{name}» dejó de sincronizar Tisty en esta carpeta el {date}.\n\
          Sus tareas y documentos ahora están {es}.\n\
          Lo que quedó aquí ya no se actualiza desde ese equipo.\n\
-         Para volver: abre Tisty en ese equipo, ve a Ajustes › Datos y elige esta carpeta.\n\n\
-         The computer \"{name}\" stopped syncing Tisty in this folder on {date}.\n\
+         Para volver: abre Tisty en ese equipo, ve a Ajustes › Datos y elige esta carpeta.\n"
+    );
+    let english = format!(
+        "The computer \"{name}\" stopped syncing Tisty in this folder on {date}.\n\
          Its tasks and documents are now {en}.\n\
          What stayed here is no longer kept up to date from that computer.\n\
          To come back: open Tisty on that computer, go to Settings › Data and choose this folder.\n"
-    )
+    );
+    match spoken.to_lowercase().starts_with("es") {
+        true => format!("{HEAD}\n\n{spanish}\n{english}"),
+        false => format!("{HEAD}\n\n{english}\n{spanish}"),
+    }
 }
 
 #[cfg(test)]

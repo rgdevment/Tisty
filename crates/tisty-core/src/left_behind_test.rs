@@ -80,3 +80,22 @@ fn a_word_that_does_not_read_leaves_no_note() {
 
     assert!(!place.path().join(NOTICE).exists());
 }
+
+#[test]
+fn the_note_speaks_this_computer_s_language_first_and_the_other_after() {
+    let left = crate::moved::read(&word("cloud:ana@example.com")).unwrap();
+
+    let spanish = noticed_in(&left, "es-CL");
+    let english = noticed_in(&left, "en-US");
+
+    assert!(
+        spanish.starts_with("Tisty · README\n\nEl equipo"),
+        "{spanish}"
+    );
+    assert!(spanish.contains("The computer"), "{spanish}");
+    assert!(
+        english.starts_with("Tisty · README\n\nThe computer"),
+        "{english}"
+    );
+    assert!(english.contains("El equipo"), "{english}");
+}
