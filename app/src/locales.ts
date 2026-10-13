@@ -1029,6 +1029,8 @@ const en = {
     "Nothing was synced, in either direction. The shared folder is arranged in a way this Tisty does not know, so a newer one has been there. Update this machine and try once more — writing into it now could undo what it left.",
   syncUnshaped:
     "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the machine that last wrote there.",
+  syncNeeds:
+    "Nothing was synced, in either direction. Another of your computers uses Tisty {name}: update this one to keep syncing. What you write here stays here meanwhile.",
   syncNewer:
     "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this machine. Update it and try once more.",
   storeNewer:
@@ -1302,6 +1304,23 @@ const en = {
     "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
   wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
+  wipeNotHome:
+    "Not everything in that cloud is on this computer yet, so its copies stay. Sync, settle anything waiting for you, and try again.",
+  forgetUntold:
+    "Your other computers haven't been told where you went yet, so this computer keeps the cloud's access until they are.",
+  cloudNotLost:
+    "Tisty can still reach this cloud, so leaving it goes through the move that brings everything here first. Nothing was changed.",
+  cloudAbandon: "Leave without Google Drive",
+  cloudAbandonSure:
+    "Google Drive can no longer be reached from this computer. If you leave it, Tisty keeps your tasks and documents here and syncs with nothing. {name} attachments are only in Drive and stay there, out of Tisty's reach. Leave anyway?",
+  cloudAbandonSureOne:
+    "Google Drive can no longer be reached from this computer. If you leave it, Tisty keeps your tasks and documents here and syncs with nothing. 1 attachment is only in Drive and stays there, out of Tisty's reach. Leave anyway?",
+  cloudAbandonSureNone:
+    "Google Drive can no longer be reached from this computer. If you leave it, Tisty keeps your tasks and documents here and syncs with nothing. Every attachment is already on this computer. Leave anyway?",
+  placeRaised: "Your other computers need Tisty {name}",
+  placeRaisedWhy:
+    "This computer updated the place you sync with. Your other computers have to update to Tisty {name} to keep syncing there; until then they stop, and nothing of theirs is lost.",
+  placeRaisedTold: "Got it",
   modeOpen: "How Tisty syncs",
   turnSyncOn: "Turn on…",
   changeFolder: "Change folder",
@@ -2843,6 +2862,8 @@ const es: Catalog = {
     "No se sincronizó nada, en ningún sentido. La carpeta compartida está dispuesta de una forma que este Tisty no conoce, así que ha pasado por ahí uno más nuevo. Actualiza este equipo y vuelve a intentarlo: escribir ahí ahora podría deshacer lo que dejó.",
   syncUnshaped:
     "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
+  syncNeeds:
+    "No se sincronizó nada, en ningún sentido. Otro de tus equipos usa Tisty {name}: actualiza este para seguir sincronizando. Mientras tanto, lo que escribas aquí se queda aquí.",
   syncNewer:
     "No se sincronizó nada, en ningún sentido. «{name}» escribe con un Tisty más nuevo que este, así que lo que escribas aquí se queda aquí hasta que actualices este equipo. Actualízalo y vuelve a intentarlo.",
   storeNewer:
@@ -3117,6 +3138,23 @@ const es: Catalog = {
     "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
   wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
+  wipeNotHome:
+    "Todavía no está todo lo de esa nube en este equipo, así que sus copias se quedan. Sincroniza, resuelve lo que esté esperando tu decisión y vuelve a intentarlo.",
+  forgetUntold:
+    "Tus otros equipos todavía no saben adónde te fuiste, así que este equipo conserva el acceso a la nube hasta que lo sepan.",
+  cloudNotLost:
+    "Tisty todavía puede llegar a esta nube, así que salir de ella se hace con la mudanza que primero trae todo aquí. No se cambió nada.",
+  cloudAbandon: "Salir sin Google Drive",
+  cloudAbandonSure:
+    "Ya no se puede llegar a Google Drive desde este equipo. Si sales, Tisty conserva aquí tus tareas y documentos y no sincroniza con nada. {name} adjuntos están solo en Drive y se quedan ahí, fuera del alcance de Tisty. ¿Salir igual?",
+  cloudAbandonSureOne:
+    "Ya no se puede llegar a Google Drive desde este equipo. Si sales, Tisty conserva aquí tus tareas y documentos y no sincroniza con nada. 1 adjunto está solo en Drive y se queda ahí, fuera del alcance de Tisty. ¿Salir igual?",
+  cloudAbandonSureNone:
+    "Ya no se puede llegar a Google Drive desde este equipo. Si sales, Tisty conserva aquí tus tareas y documentos y no sincroniza con nada. Todos los adjuntos ya están en este equipo. ¿Salir igual?",
+  placeRaised: "Tus otros equipos necesitan Tisty {name}",
+  placeRaisedWhy:
+    "Este equipo actualizó el lugar con el que sincronizas. Tus otros equipos tienen que actualizarse a Tisty {name} para seguir sincronizando ahí; mientras tanto se detienen y no pierden nada.",
+  placeRaisedTold: "Entendido",
   modeOpen: "Cómo sincroniza Tisty",
   turnSyncOn: "Activar…",
   changeFolder: "Cambiar carpeta",

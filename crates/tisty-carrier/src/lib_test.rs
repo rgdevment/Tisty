@@ -140,6 +140,41 @@ fn the_place_is_the_folders_and_nothing_else_has_one() {
 }
 
 #[test]
+fn only_a_folder_carried_into_while_sharing_attachments_is_stranded_by_leaving_it() {
+    let desk = desk();
+    let was = Sync::Folder(desk.shared.clone());
+    let elsewhere = Sync::Folder(desk.shared.join("otra"));
+    let before = strands_on_leaving(&was, &Sync::Local, Holds::Shared, &desk.here);
+    Folder::at(desk.shared.clone())
+        .carry(&desk.here, round(Way::Push, &mut |_| {}))
+        .unwrap();
+
+    assert!(
+        !before,
+        "a folder never carried into holds nothing of this machine's"
+    );
+    assert!(strands_on_leaving(
+        &was,
+        &Sync::Local,
+        Holds::Shared,
+        &desk.here
+    ));
+    assert!(strands_on_leaving(
+        &was,
+        &elsewhere,
+        Holds::Shared,
+        &desk.here
+    ));
+    assert!(!strands_on_leaving(&was, &was, Holds::Shared, &desk.here));
+    assert!(!strands_on_leaving(
+        &was,
+        &Sync::Local,
+        Holds::Everywhere,
+        &desk.here
+    ));
+}
+
+#[test]
 fn a_folder_being_considered_answers_for_its_place_without_being_chosen() {
     let desk = desk();
 

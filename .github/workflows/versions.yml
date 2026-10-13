@@ -52,14 +52,20 @@ jobs:
       # The releases carry a command line for Windows and macOS only.
       matrix:
         os: [windows-latest, macos-latest]
-        release: ["1.23.1", "1.24.4", "1.25.0"]
+        release: ["1.23.1", "1.24.4", "1.25.0", "1.25.1"]
         include:
           - release: "1.23.1"
             schema: 15
+            shape: 0
           - release: "1.24.4"
             schema: 16
+            shape: 1
           - release: "1.25.0"
             schema: 17
+            shape: 1
+          - release: "1.25.1"
+            schema: 17
+            shape: 1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,4 +107,5 @@ jobs:
         env:
           TISTY_PREVIOUS: ${{ steps.earlier.outputs.bin }}
           TISTY_PREVIOUS_SCHEMA: ${{ matrix.schema }}
+          TISTY_PREVIOUS_SHAPE: ${{ matrix.shape }}
         run: cargo test -p tisty-cli --test versions -- --ignored

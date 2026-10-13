@@ -108,16 +108,53 @@ fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> 
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
-#[cfg(windows)]
+#[cfg(all(windows, not(test)))]
 pub fn secrets_for(account: &str) -> Result<Arc<dyn Secrets>, Hitch> {
     let home = crate::sealed::home()
         .ok_or_else(|| Hitch::Broke("Windows named no local folder for this person".into()))?;
     Ok(Arc::new(crate::sealed::Sealed::under(&home, account)))
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(test)))]
 pub fn secrets_for(account: &str) -> Result<Arc<dyn Secrets>, Hitch> {
     Ok(Arc::new(tisty_carrier::Keychain::native(account)?))
+}
+
+// Tests keep tokens in memory, so none ever reaches the keychain of whoever runs them.
+#[cfg(test)]
+pub fn secrets_for(account: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(InMemory(account.to_string())))
+}
+
+#[cfg(test)]
+static IN_MEMORY: Mutex<std::collections::BTreeMap<String, String>> =
+    Mutex::new(std::collections::BTreeMap::new());
+
+#[cfg(test)]
+struct InMemory(String);
+
+#[cfg(test)]
+impl InMemory {
+    fn kept() -> std::sync::MutexGuard<'static, std::collections::BTreeMap<String, String>> {
+        IN_MEMORY
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+}
+
+#[cfg(test)]
+impl Secrets for InMemory {
+    fn read(&self, key: &str) -> Result<Option<String>, Hitch> {
+        Ok(Self::kept().get(&format!("{}/{key}", self.0)).cloned())
+    }
+    fn write(&self, key: &str, value: &str) -> Result<(), Hitch> {
+        Self::kept().insert(format!("{}/{key}", self.0), value.to_string());
+        Ok(())
+    }
+    fn forget(&self, key: &str) -> Result<(), Hitch> {
+        Self::kept().remove(&format!("{}/{key}", self.0));
+        Ok(())
+    }
 }
 
 // Fixed when the release is built, like Google's ids: a build without it keeps the limits it ships with.

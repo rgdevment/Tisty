@@ -80,6 +80,9 @@ const KNOWN = [
   "moveFromUnreachable",
   "moveToUnreachable",
   "wipeChosen",
+  "wipeNotHome",
+  "forgetUntold",
+  "cloudNotLost",
   "backupCloudOff",
   "wouldReset",
   "sameName",
@@ -92,6 +95,7 @@ const KNOWN = [
   "restoredApart",
   "syncNewer",
   "syncShape",
+  "syncNeeds",
   "syncUnshaped",
   "storeNewer",
   "cannotWrite",
@@ -172,6 +176,7 @@ const BEHIND = [
   "storeNewer",
   "syncNewer",
   "syncShape",
+  "syncNeeds",
   "syncLater",
   "syncLaterToLeave",
   "settingsUnreadable",
@@ -179,9 +184,8 @@ const BEHIND = [
 
 export const folderAhead = (problem: unknown): { name?: string } | null => {
   const refusal = problem as Refusal | undefined;
-  return refusal?.code === "syncNewer" || refusal?.code === "syncShape"
-    ? { name: refusal.name }
-    : null;
+  if (refusal?.code === "syncNewer") return { name: refusal.name };
+  return ["syncShape", "syncNeeds"].includes(refusal?.code ?? "") ? {} : null;
 };
 
 /** The offer the person clicked is off the feed: what is offered now has to be looked up again. */

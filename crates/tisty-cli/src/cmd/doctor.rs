@@ -132,19 +132,29 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
 fn syncing(app: &App, lang: Lang) {
     let config = app.config();
     let data = app.paths.data();
+    let place = config
+        .sync
+        .as_ref()
+        .map(tisty_core::moved::place_of)
+        .unwrap_or_default();
     if let Some(at) = tisty_carrier::cloud_of(config.sync.as_ref()) {
         let home = app.paths.cloud_home(&at.provider, &at.account);
         cloud(&tisty_carrier::standing(&home), &at.email, lang);
         moved_word(
             std::fs::read_to_string(home.join("tree").join(tisty_core::moved::NAMED)).ok(),
             data,
+            &place,
             &config.device_id,
             lang,
         );
     } else if let Some(carrier) = tisty_carrier::chosen(config.sync.as_ref()).carrier {
-        moved_word(carrier.word_left(), data, &config.device_id, lang);
+        moved_word(carrier.word_left(), data, &place, &config.device_id, lang);
     }
-    if app.paths.cache().join(tisty_core::moved::OWED).is_file() {
+    let owed = [app.paths.private(), app.paths.cache().to_path_buf()];
+    if owed
+        .iter()
+        .any(|at| at.join(tisty_core::moved::OWED).is_file())
+    {
         line(lang.get("word-owed"), &style::dim(lang.get("word-owed-is")));
     }
 }
@@ -254,8 +264,14 @@ fn ended(last: &tisty_carrier::LastRound, lang: Lang) -> String {
     }
 }
 
-fn moved_word(said: Option<String>, data: &std::path::Path, me: &tisty_core::DeviceId, lang: Lang) {
-    if let Some(word) = tisty_core::moved::heeded(said.as_deref(), data, me) {
+fn moved_word(
+    said: Option<String>,
+    data: &std::path::Path,
+    place: &str,
+    me: &tisty_core::DeviceId,
+    lang: Lang,
+) {
+    if let Some(word) = tisty_core::moved::heeded(said.as_deref(), data, me, place) {
         let said = match word.to.split_once(':') {
             Some(("cloud", email)) => lang.fill(
                 "moved-away-to",

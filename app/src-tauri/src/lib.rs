@@ -395,6 +395,7 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
         tisty_carrier::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
         tisty_carrier::Trouble::Shape(at) => Refusal::about("syncShape", at),
+        tisty_carrier::Trouble::Needs(release) => Refusal::about("syncNeeds", release),
         tisty_carrier::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
         tisty_carrier::Trouble::CloudFull { provider } => Refusal::about("cloudFull", provider),
         tisty_carrier::Trouble::CloudLost { provider } => Refusal::about("cloudLost", provider),
@@ -765,6 +766,7 @@ pub(crate) fn opened(
     app.manage(herald::Speaking::new(app, telling, &quiet));
     herald::watch(app.clone(), watched);
     hearing::listen(app.clone());
+    leaving::keep_telling(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
     let perched = tray::raise(app, &words).is_some();
@@ -933,6 +935,10 @@ pub fn run() {
             answers::relocating::move_pending,
             answers::relocating::move_dropped,
             answers::relocating::cloud_wipe,
+            answers::relocating::cloud_stranded,
+            answers::relocating::cloud_abandon,
+            answers::storing::place_raised,
+            answers::storing::place_raised_told,
             answers::freeing::free_up,
             answers::freeing::stop_freeing,
             answers::freeing::unused_attachments,

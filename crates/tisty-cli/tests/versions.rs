@@ -80,6 +80,19 @@ fn earlier_schema() -> u32 {
         .expect("a schema number")
 }
 
+/// 0 for a release from before places said their shape: it reads none and stops only on the schema.
+fn earlier_shape() -> u32 {
+    std::env::var("TISTY_PREVIOUS_SHAPE")
+        .expect("TISTY_PREVIOUS_SHAPE says which shape of place the earlier release arranges")
+        .parse()
+        .expect("a shape number")
+}
+
+fn earlier_stops() -> bool {
+    SCHEMA_VERSION > earlier_schema()
+        || (earlier_shape() > 0 && tisty_carrier::SHAPE > earlier_shape())
+}
+
 fn snapshot(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     let mut found = BTreeMap::new();
     let mut pending = vec![dir.to_path_buf()];
@@ -134,13 +147,13 @@ fn an_earlier_release_and_this_build_share_a_folder_as_far_as_their_schemas_allo
 
     let run = earlier.run(&["sync"]);
 
-    if SCHEMA_VERSION > earlier_schema() {
+    if earlier_stops() {
         assert_ne!(
             run.code, 0,
             "it carried on beside a newer build: {}",
             run.out
         );
-        assert!(run.err.contains("newer Tisty"), "{}", run.err);
+        assert!(run.err.contains("newer"), "{}", run.err);
         assert_eq!(
             snapshot(shared.path()),
             before,
@@ -156,4 +169,34 @@ fn an_earlier_release_and_this_build_share_a_folder_as_far_as_their_schemas_allo
     let kept = earlier.ok(&["ls", "all"]);
     assert!(kept.contains("written by the earlier release"), "{kept}");
     earlier.ok(&["still writing here"]);
+}
+
+#[test]
+#[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
+fn an_earlier_release_stops_at_a_place_this_build_arranged_and_leaves_it_as_it_was() {
+    let shared = tempfile::tempdir().unwrap();
+    let (earlier, current) = written_in_turn(shared.path());
+    current.ok(&["written by this build"]);
+    current.ok(&["sync"]);
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
+    assert!(
+        said.contains(&format!("shape = {}", tisty_carrier::SHAPE)),
+        "{said}"
+    );
+    assert!(
+        said.contains(&format!("needs = \"{}\"", tisty_carrier::NEEDS)),
+        "{said}"
+    );
+    let before = snapshot(shared.path());
+
+    let run = earlier.run(&["sync"]);
+
+    assert!(earlier_stops(), "an earlier release would still write here");
+    assert_ne!(run.code, 0, "it synced beside this build: {}", run.out);
+    assert!(run.err.contains("newer"), "{}", run.err);
+    assert_eq!(
+        snapshot(shared.path()),
+        before,
+        "an earlier release changed a place this build had arranged"
+    );
 }

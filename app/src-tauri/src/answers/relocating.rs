@@ -252,8 +252,8 @@ pub async fn move_to(
         tisty_carrier::Shift::Ready => {
             let after = changed_with(&mut held(&session), way.clone(), moving_in, joins)?;
             pending_kept(&paths, None);
-            let cache = paths.cache().to_path_buf();
-            let told = tauri::async_runtime::spawn_blocking(move || delivered(&cache, after, from))
+            let at = paths.clone();
+            let told = tauri::async_runtime::spawn_blocking(move || delivered(&at, after, from))
                 .await
                 .map_err(|_| Refusal::of("internal"))?;
             let _ = app.emit("unstuck", ());
@@ -263,9 +263,9 @@ pub async fn move_to(
     }
 }
 
-fn delivered(cache: &std::path::Path, after: After, from: Option<tisty_carrier::Shared>) -> bool {
+fn delivered(paths: &tisty_core::Paths, after: After, from: Option<tisty_carrier::Shared>) -> bool {
     let told = match after.word {
-        Some((left, said, _)) => crate::leaving::left_said(cache, &left, &said, from),
+        Some((left, said, _)) => crate::leaving::left_said(paths, &left, &said, from),
         None => !after.owes_word,
     };
     if let Some(now) = after.unword {
@@ -349,7 +349,7 @@ pub fn move_dropped(session: tauri::State<'_, Mutex<Session>>) {
     let dropped = pending_cloud(&session.paths).filter(|account| {
         tisty_carrier::cloud_of(session.config.sync.as_ref())
             .is_none_or(|now| &now.account != account)
-            && !crate::leaving::owed_to(session.paths.cache(), account)
+            && !crate::leaving::owed_to(&session.paths, account)
     });
     pending_kept(&session.paths, None);
     if let Some(account) = dropped {
@@ -370,7 +370,7 @@ pub async fn cloud_wipe(
         account,
         email,
     };
-    let (carrier, cache) = {
+    let (carrier, paths, here, alive) = {
         let session = held(&session);
         if tisty_carrier::cloud_of(session.config.sync.as_ref())
             .is_some_and(|now| now.account == at.account)
@@ -379,21 +379,97 @@ pub async fn cloud_wipe(
         }
         (
             session.reach.apart(&at),
-            session.paths.cache().to_path_buf(),
+            session.paths.clone(),
+            session.here(),
+            session.alive(),
         )
     };
     let carrier = carrier.ok_or_else(|| Refusal::about("cloudLost", "Google Drive".to_string()))?;
-    if crate::leaving::owed_to(&cache, &at.account) {
+    if crate::leaving::owed_to(&paths, &at.account) {
         return Err(Refusal::of("wipeUntold"));
     }
-    let gone = tauri::async_runtime::spawn_blocking(move || match carrier.word_left() {
-        Some(_) => carrier.wipe().map_err(said),
-        None => Err(Refusal::of("wipeUntold")),
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))??;
+    let gone = tauri::async_runtime::spawn_blocking(move || wiped(&*carrier, &here, &alive))
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
+    catching_up(
+        &session,
+        &paths,
+        "the store would not project after a cloud left behind brought something home",
+        channel::SYNC,
+    )
+    .await?;
+    let gone = gone?;
     super::clouding::let_go_of(&at.account);
     Ok(gone)
+}
+
+/// Asked of the cloud itself, never of the mirror here: emptied only once all is home and the word is up there.
+pub(crate) fn wiped(
+    carrier: &dyn tisty_carrier::Carrier,
+    here: &tisty_carrier::Here,
+    alive: &[String],
+) -> Answer<usize> {
+    if !tisty_carrier::all_home(carrier, here, alive).map_err(said)? {
+        return Err(Refusal::of("wipeNotHome"));
+    }
+    carrier.wipe().map_err(|trouble| match trouble {
+        tisty_carrier::Trouble::NotThere(name) if name == tisty_core::moved::NAMED => {
+            Refusal::of("wipeUntold")
+        }
+        other => said(other),
+    })
+}
+
+/// Only a cloud this build can never reach again is left without bringing everything home first.
+fn lost_cloud(session: &Session) -> Answer<CloudAt> {
+    let at = tisty_carrier::cloud_of(session.config.sync.as_ref())
+        .cloned()
+        .ok_or_else(|| Refusal::of("noRemote"))?;
+    match super::clouding::lost_for_good_at(&session.reach.home_of(&at), &at.account) {
+        true => Ok(at),
+        false => Err(Refusal::of("cloudNotLost")),
+    }
+}
+
+/// What would stay only in Drive, read off this disk, so the person knows before letting it go.
+#[tauri::command(async)]
+pub async fn cloud_stranded(session: tauri::State<'_, Mutex<Session>>) -> Answer<Weight> {
+    let (home, here) = {
+        let session = held(&session);
+        let at = lost_cloud(&session)?;
+        (session.reach.home_of(&at), session.here())
+    };
+    tauri::async_runtime::spawn_blocking(move || tisty_carrier::only_up_there(&home, &here).into())
+        .await
+        .map_err(|_| Refusal::of("internal"))
+}
+
+#[tauri::command(async)]
+pub async fn cloud_abandon(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+) -> Answer<()> {
+    let _done = alone.inner().waited(WAITED).await?;
+    {
+        let mut session = held(&session);
+        session.refresh_settings();
+        lost_cloud(&session)?;
+        left_for_alone(&mut session)?;
+    }
+    let _ = app.emit("unstuck", ());
+    Ok(())
+}
+
+// Nobody up there can be told and its access is let go of: the copy here keeps every task and document.
+pub(crate) fn left_for_alone(session: &mut Session) -> Answer<()> {
+    let joins = Joins {
+        rejoined: false,
+        left: false,
+    };
+    changed_with(session, Sync::alone(), moving_in, joins)?;
+    pending_kept(&session.paths, None);
+    Ok(())
 }
 
 #[cfg(test)]

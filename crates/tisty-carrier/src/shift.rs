@@ -92,19 +92,41 @@ pub fn shift(
     Ok(Shift::Ready)
 }
 
+/// Asked again right before a place left behind is emptied: true only when nothing more came and nothing is owed.
+pub fn all_home(from: &dyn Carrier, here: &Here, alive: &[String]) -> Result<bool, Trouble> {
+    let moved = from.bring_home(
+        here,
+        Round {
+            way: Way::Pull,
+            alive,
+            holds: Holds::Everywhere,
+            saying: &mut |_| {},
+        },
+    )?;
+    let Some(moved) = settled(moved)? else {
+        return Ok(false);
+    };
+    Ok(moved.brought == 0 && moved.deferred.is_none() && homing(from, here).nothing())
+}
+
 pub fn homing(from: &dyn Carrier, here: &Here) -> Owed {
     homing_up_to(from, here, u64::MAX)
 }
 
 pub fn homing_up_to(from: &dyn Carrier, here: &Here, at_most: u64) -> Owed {
-    let there = from.shelf();
+    owed_against(from.shelf().as_ref(), here, at_most)
+}
+
+pub(crate) fn owed_against(
+    there: Option<&std::collections::BTreeMap<String, u64>>,
+    here: &Here,
+    at_most: u64,
+) -> Owed {
     known(here)
         .filter(|(reference, bytes)| {
             *bytes <= at_most
                 && !at_home(here, reference, *bytes)
-                && there
-                    .as_ref()
-                    .is_none_or(|there| there.get(reference) == Some(bytes))
+                && there.is_none_or(|there| there.get(reference) == Some(bytes))
         })
         .fold(Owed::default(), |owed, (_, bytes)| owed.add(bytes))
 }

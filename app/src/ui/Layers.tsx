@@ -17,6 +17,7 @@ import Closing from "./Closing";
 import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
 import Notice from "./Notice";
+import Raised from "./Raised";
 import Rifts from "./Rifts";
 import Sure from "./Sure";
 import Versions from "./Versions";
@@ -176,6 +177,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
       )}
 
       <Progress settling={settling && !error} note={!error && !afoot ? note : null} afoot={afoot} />
+      <Raised />
 
       {leaving && (
         <Closing onDismiss={() => setLeaving(false)} onError={(e) => setError(saidPlainly(e))} />

@@ -5898,7 +5898,8 @@ fn a_round_leaves_the_meeting_place_saying_what_shape_it_is_in() {
 
     let said = std::fs::read_to_string(shared.path().join("tisty.toml"))
         .expect("a round wrote a whole history and never said what shape it left");
-    assert!(said.contains("shape = 1"), "{said}");
+    assert!(said.contains(&format!("shape = {SHAPE}")), "{said}");
+    assert!(said.contains(&format!("needs = \"{NEEDS}\"")), "{said}");
     assert!(said.contains("store"), "{said}");
 }
 
@@ -5908,14 +5909,89 @@ fn a_quiet_round_leaves_the_shape_it_finds_as_it_is() {
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
     let at = shared.path().join("tisty.toml");
-    std::fs::write(&at, "shape = 1\n# as it was left\n").unwrap();
+    let left = format!("shape = {SHAPE}\n# as it was left\n");
+    std::fs::write(&at, &left).unwrap();
 
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     assert_eq!(
         std::fs::read_to_string(&at).unwrap(),
-        "shape = 1\n# as it was left\n",
+        left,
         "a round with nothing to tell told it again"
+    );
+}
+
+#[test]
+fn a_round_over_a_place_older_builds_arranged_raises_it_once_and_says_so() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    raised_told(&one.data);
+    std::fs::create_dir_all(shared.path().join("store").join("dev_otro")).unwrap();
+    let at = shared.path().join("tisty.toml");
+    std::fs::write(
+        &at,
+        "shape = 1\nfolders = [\"store\", \"attachments\", \"docs\"]\n",
+    )
+    .unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    assert!(
+        raised(&one.data),
+        "the machines left on an older build were never warned"
+    );
+    raised_told(&one.data);
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        !raised(&one.data),
+        "the warning came back on a place already raised"
+    );
+    let said = std::fs::read_to_string(&at).unwrap();
+    assert!(said.contains(&format!("shape = {SHAPE}")), "{said}");
+    assert!(said.contains(&format!("needs = \"{NEEDS}\"")), "{said}");
+}
+
+#[test]
+fn a_place_only_this_machine_used_is_raised_without_warning_anyone() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::write(shared.path().join("tisty.toml"), "shape = 1\n").unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        !raised(&one.data),
+        "it warned of computers that never synced there"
+    );
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
+    assert!(said.contains(&format!("shape = {SHAPE}")), "{said}");
+}
+
+#[test]
+fn a_place_that_needs_a_later_release_stops_the_round_and_is_left_as_it_was() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::write(
+        shared.path().join("tisty.toml"),
+        format!("shape = {SHAPE}\nneeds = \"99.0.0\"\n"),
+    )
+    .unwrap();
+    let before = std::fs::read(shared.path().join("tisty.toml")).unwrap();
+
+    let two = machine("dos");
+    let stopped = carry(&two.data, &two.device, shared.path(), Way::Both, &[]);
+
+    assert_eq!(stopped, Err(Trouble::Needs("99.0.0".into())));
+    assert_eq!(
+        std::fs::read(shared.path().join("tisty.toml")).unwrap(),
+        before
+    );
+    assert!(
+        !shared.path().join("store").join(&two.device).exists(),
+        "it wrote into a place that asked for a later release"
     );
 }
 

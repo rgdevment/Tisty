@@ -2976,6 +2976,30 @@ fn the_cloud_is_never_left_from_the_command_line() {
 }
 
 #[test]
+fn a_folder_that_may_hold_the_only_copy_of_attachments_is_not_left_from_the_command_line() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let elsewhere = tempfile::tempdir().unwrap();
+    let to = elsewhere.path().display().to_string();
+    let cli = Cli::new();
+    cli.ok(&["config", "set", "remote", &met]);
+    cli.ok(&["buy bread"]);
+    cli.ok(&["sync"]);
+    let file = cli.home.path().join("config").join("config.toml");
+    let before = std::fs::read(&file).unwrap();
+
+    let set = cli.run(&["config", "set", "remote", &to]);
+    let unset = cli.run(&["config", "unset", "remote"]);
+
+    for run in [set, unset] {
+        assert_ne!(run.code, 0);
+        assert!(run.err.contains("Tisty window"), "{}", run.err);
+    }
+    assert_eq!(std::fs::read(&file).unwrap(), before);
+    assert_eq!(cli.ok(&["config", "get", "remote"]).trim(), met);
+}
+
+#[test]
 fn the_doctor_tells_the_cloud_from_this_disk_alone() {
     let cli = Cli::new();
     syncing_with_the_cloud(&cli);
@@ -3007,15 +3031,34 @@ fn the_doctor_says_when_the_place_left_behind_is_still_owed_its_word() {
     assert!(out.contains("still has to be told"), "{out}");
 }
 
-fn word_from_another_machine(cli: &Cli, to: &str) -> String {
+#[test]
+fn the_doctor_finds_a_word_owed_beside_the_settings_where_a_reset_cannot_take_it() {
+    let cli = Cli::new();
+    cli.ok(&["a task so the settings exist"]);
+    let private = cli.home.path().join("config").join("private");
+    std::fs::create_dir_all(&private).unwrap();
+    std::fs::write(private.join(tisty_core::moved::OWED), "[]").unwrap();
+
+    let out = cli.ok(&["doctor"]);
+
+    assert!(out.contains("still has to be told"), "{out}");
+}
+
+fn word_from_another_machine(cli: &Cli, to: &str, place: &str) -> String {
     let key = tisty_core::signing::SigningKey::from_bytes(&[9; 32]);
     let other = tisty_core::DeviceId("dev_otro".into());
-    tisty_core::vouched::confirm(
-        &cli.home.path().join("data"),
-        &other,
-        &tisty_core::signing::shown(&key),
-    );
-    tisty_core::moved::said(&key, &other, to, 1_760_000_000)
+    let data = cli.home.path().join("data");
+    tisty_core::vouched::confirm(&data, &other, &tisty_core::signing::shown(&key));
+    tisty_core::moved::said(
+        &key,
+        tisty_core::moved::Leaving {
+            by: &other,
+            to,
+            at: 1_760_000_000,
+            store: &tisty_core::moved::store_of(&data),
+            place,
+        },
+    )
 }
 
 #[test]
@@ -3043,7 +3086,7 @@ fn the_doctor_tells_a_cloud_already_read_what_waits_a_pause_from_afar_and_who_le
         format!(r#"{{"serial":4,"halted_until":{until}}}"#),
     )
     .unwrap();
-    let word = word_from_another_machine(&cli, "cloud:otra@example.com");
+    let word = word_from_another_machine(&cli, "cloud:otra@example.com", "cloud:google:0123");
     std::fs::write(home.join("tree").join(tisty_core::moved::NAMED), word).unwrap();
 
     let out = cli.ok(&["doctor"]);
@@ -3069,13 +3112,13 @@ fn the_doctor_names_who_left_a_folder_and_who_stopped_syncing_there() {
 
     std::fs::write(
         shared.path().join(tisty_core::moved::NAMED),
-        word_from_another_machine(&cli, "folder:elsewhere"),
+        word_from_another_machine(&cli, "folder:elsewhere", "folder"),
     )
     .unwrap();
     let moved = cli.ok(&["doctor"]);
     std::fs::write(
         shared.path().join(tisty_core::moved::NAMED),
-        word_from_another_machine(&cli, "alone"),
+        word_from_another_machine(&cli, "alone", "folder"),
     )
     .unwrap();
     let stopped = cli.ok(&["doctor"]);
