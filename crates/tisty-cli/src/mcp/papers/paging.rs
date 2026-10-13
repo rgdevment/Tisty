@@ -15,7 +15,15 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if args.get("order").is_some_and(|one| !one.is_null()) {
         return in_this_order(paths, args);
     }
-    let (many, listed) = many_docs(args, "hang or unhang")?;
+    let (many, listed) = many_docs(args, "hang or unhang").map_err(|refused| {
+        match args.get("doc").is_some_and(Value::is_array) {
+            true => refused,
+            false => Refused::Tool(
+                "name the document in `doc` to hang or unhang it, or send `order` with `page_of` to put the pages of one in order."
+                    .into(),
+            ),
+        }
+    })?;
     let (state, mut store) = opened(paths)?;
 
     for side in ["after", "before", "at"] {

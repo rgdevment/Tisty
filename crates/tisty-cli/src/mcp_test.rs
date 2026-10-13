@@ -156,6 +156,16 @@ fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
         }
         let shape = &one["inputSchema"];
         assert_eq!(shape["type"], json!("object"), "{name} takes an object");
+        for top in ["anyOf", "oneOf", "allOf", "not", "if", "then", "else"] {
+            assert!(
+                shape.get(top).is_none(),
+                "{name} says `{top}` at the top of its schema, which a client that hands the schema straight to the model refuses"
+            );
+        }
+        assert!(
+            !names_a_key(shape, "oneOf"),
+            "{name} uses `oneOf`, which some clients do not take; `anyOf` says the same"
+        );
         let none = serde_json::Map::new();
         let fields = shape["properties"].as_object().unwrap_or(&none);
         for (field, said) in fields {
@@ -172,20 +182,8 @@ fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
                 );
             }
         }
-        let asked: Vec<&Value> = shape
-            .get("required")
-            .into_iter()
-            .chain(
-                shape
-                    .get("anyOf")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|one| one.get("required")),
-            )
-            .collect();
-        for group in asked {
-            for want in group.as_array().unwrap_or(&Vec::new()) {
+        if let Some(asked) = shape.get("required").and_then(Value::as_array) {
+            for want in asked {
                 let want = want.as_str().unwrap_or_default();
                 assert!(
                     fields.contains_key(want),
@@ -193,6 +191,16 @@ fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
                 );
             }
         }
+    }
+}
+
+fn names_a_key(shape: &Value, key: &str) -> bool {
+    match shape {
+        Value::Object(all) => all
+            .iter()
+            .any(|(named, inside)| named == key || names_a_key(inside, key)),
+        Value::Array(all) => all.iter().any(|one| names_a_key(one, key)),
+        _ => false,
     }
 }
 

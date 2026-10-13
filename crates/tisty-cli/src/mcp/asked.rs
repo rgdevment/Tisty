@@ -18,6 +18,55 @@ const MANY_AT_MOST: &[(&str, usize)] = &[("tags", 32), ("steps", 200), ("remind"
 
 const EACH_AT_MOST: usize = 2_000;
 
+/// Some clients send `null` for every field they leave out; only a field that says it takes `null` keeps it.
+pub(super) fn without_nulls(name: &str, args: Value) -> Value {
+    let tools = tools();
+    let Some(taken) = tools
+        .as_array()
+        .and_then(|all| all.iter().find(|one| one["name"] == name))
+        .and_then(|one| one["inputSchema"]["properties"].as_object())
+    else {
+        return args;
+    };
+    quieted(taken, args, name == "propose")
+}
+
+fn quieted(taken: &serde_json::Map<String, Value>, args: Value, nested: bool) -> Value {
+    let Value::Object(said) = args else {
+        return args;
+    };
+    let kept = said
+        .into_iter()
+        .filter(|(key, sent)| !sent.is_null() || taken.get(key).is_some_and(takes_null))
+        .map(
+            |(key, sent)| match (nested && (key == "tasks" || key == "parts"), sent) {
+                (true, Value::Array(all)) => {
+                    let all = all
+                        .into_iter()
+                        .map(|one| quieted(taken, one, true))
+                        .collect();
+                    (key, Value::Array(all))
+                }
+                (_, sent) => (key, sent),
+            },
+        )
+        .collect();
+    Value::Object(kept)
+}
+
+fn takes_null(shape: &Value) -> bool {
+    let named = |one: &Value| match one {
+        Value::String(said) => said == "null",
+        Value::Array(all) => all.iter().any(|one| one == "null"),
+        _ => false,
+    };
+    shape.get("type").is_some_and(named)
+        || shape
+            .get("anyOf")
+            .and_then(Value::as_array)
+            .is_some_and(|all| all.iter().any(|one| one.get("type").is_some_and(named)))
+}
+
 pub(super) fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused> {
     let Some(said) = args.as_object() else {
         return Ok(());
@@ -79,7 +128,10 @@ pub(super) fn kinds_of(shape: &Value) -> Vec<String> {
         _ => Vec::new(),
     };
     let mut out = shape.get("type").map(named).unwrap_or_default();
-    if let Some(all) = shape.get("oneOf").and_then(Value::as_array) {
+    for all in ["anyOf", "oneOf"]
+        .into_iter()
+        .filter_map(|key| shape.get(key).and_then(Value::as_array))
+    {
         for one in all {
             out.extend(one.get("type").map(named).unwrap_or_default());
         }
