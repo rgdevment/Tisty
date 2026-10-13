@@ -99,7 +99,12 @@ pub struct Beside<'a> {
 impl Attachments for Beside<'_> {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
         let mut carried = Vec::new();
-        let owed = owed_beside(&round.data.join(HELD), &self.dest.join(HELD), round.again);
+        let owed = owed_beside(
+            &round.data.join(HELD),
+            &self.dest.join(HELD),
+            round.buried,
+            round.again,
+        );
         let mut copied = 0;
         if owed > 0 {
             (round.saying)(Reached::Sending {
@@ -181,11 +186,12 @@ impl Attachments for Beside<'_> {
     }
 }
 
-// Only what differs from the folder is told, so a round with nothing to copy says nothing.
-fn owed_beside(from: &Path, into: &Path, again: bool) -> usize {
+// Only what the copy would carry is told, so a round with nothing to copy says nothing.
+fn owed_beside(from: &Path, into: &Path, buried: &BTreeSet<String>, again: bool) -> usize {
     let Ok(shelves) = std::fs::read_dir(from) else {
         return 0;
     };
+    let len = |at: &Path| std::fs::metadata(at).map(|one| one.len()).ok();
     shelves
         .filter_map(|shelf| shelf.ok())
         .filter_map(|shelf| {
@@ -199,9 +205,19 @@ fn owed_beside(from: &Path, into: &Path, again: bool) -> usize {
                 .map(move |file| (shelf.file_name(), file))
         })
         .filter(|(shelf, file)| {
-            let len = |at: &Path| std::fs::metadata(at).map(|one| one.len()).ok();
-            let target = into.join(shelf).join(file.file_name());
-            file.path().is_file() && (again || len(&file.path()) != len(&target))
+            let (Some(under), Some(named)) = (
+                shelf.to_str(),
+                file.file_name().to_str().map(str::to_string),
+            ) else {
+                return false;
+            };
+            let at = file.path();
+            at.is_file()
+                && tisty_core::attach::shelved(under, &named)
+                && !buried.contains(&format!("attachments/{under}/{named}"))
+                && len(&at).is_some_and(|weighs| weighs <= tisty_core::attach::HELD_UP_TO)
+                && !tisty_core::holes::a_hole(&at)
+                && (again || len(&at) != len(&into.join(under).join(&named)))
         })
         .count()
 }

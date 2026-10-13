@@ -260,6 +260,8 @@ impl Carried {
             }
         }
         self.up_to = Some(crate::paths::told_of(dest));
+        // The bases already moved on disk; a round cut before its end must not find the ledger telling the old place.
+        let _ = self.save(data);
         true
     }
 

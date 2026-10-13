@@ -8898,17 +8898,31 @@ fn an_attachment_whose_copy_in_the_folder_changed_size_is_told_and_copied_again(
 fn a_file_the_folder_round_skips_still_closes_the_count_it_was_told_in() {
     let one = machine("dev_a");
     let at = planted(&one.data, "foto.png", b"a picture");
-    let shelf = one.data.join(&at).parent().unwrap().to_path_buf();
-    std::fs::write(shelf.join("notas.txt"), b"not an attachment").unwrap();
+    std::fs::write(one.data.join(&at), b"other bytes than its name vouches for").unwrap();
     let shared = tempfile::tempdir().unwrap();
 
     let first = folder_round(&one, shared.path(), Way::Push);
-    assert_eq!(told_sending(&first), vec![(0, 2), (1, 2), (2, 2)]);
-
     let again = folder_round(&one, shared.path(), Way::Push);
+
+    assert_eq!(told_sending(&first), vec![(0, 1), (1, 1)]);
     assert_eq!(
         told_sending(&again),
         vec![(0, 1), (1, 1)],
         "a count that is never closed leaves the step hanging"
     );
+}
+
+#[test]
+fn what_the_folder_copy_never_carries_is_never_counted() {
+    let one = machine("dev_a");
+    let at = planted(&one.data, "foto.png", b"a picture");
+    let shelf = one.data.join(&at).parent().unwrap().to_path_buf();
+    std::fs::write(shelf.join("notas.txt"), b"not an attachment").unwrap();
+    let shared = tempfile::tempdir().unwrap();
+
+    let first = folder_round(&one, shared.path(), Way::Push);
+    let again = folder_round(&one, shared.path(), Way::Push);
+
+    assert_eq!(told_sending(&first), vec![(0, 1), (1, 1)]);
+    assert!(told_sending(&again).is_empty(), "{again:?}");
 }
