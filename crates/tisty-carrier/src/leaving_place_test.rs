@@ -25,6 +25,7 @@ fn a_machine_leaving_a_place_knows_who_else_still_writes_there() {
         one.round(Way::Both);
         assert!(one.carrier.others(&one.here).is_empty(), "{who}");
 
+        two.round(Way::Pull);
         two.wrote("de dos");
         two.round(Way::Both);
         one.round(Way::Pull);
