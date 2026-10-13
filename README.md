@@ -513,14 +513,32 @@ not signed with a key compiled into the copy you already have.
 
 ## Two Machines, If You Have Two
 
-Tell Tisty where to leave the copies. It offers Google Drive, OneDrive, iCloud
-and Dropbox — whichever it finds installed, folder already worked out — or any
-other folder both computers reach, a NAS, a drive you plug in on Fridays. The
-rest it does on its own.
+Tell Tisty where to leave the copies, in Settings › *Syncing*. There are two
+ways, and the rest it does on its own.
+
+**Your Google Drive, directly.** Choose *Your cloud service* and **Connect**:
+your browser opens, you sign in to Google, and Google asks whether Tisty may
+keep its copies there. Tisty only ever sees the files it creates — nothing else
+in your Drive — and you do not need Google's desktop program installed or
+running. The first time, everything you already have goes up; after that only
+what is new travels, and a dropped connection carries on where it left off.
+Attachments stay on the computer they were added on and come down on another
+one when you open them there; *Free space* lets go of the ones you have not
+opened in a while. Each computer has a daily allowance, so no single copy can
+spend the quota Google grants the project: when it runs out, what you write
+stays safe here and syncing carries on the next day. Connecting happens only in
+the window. OneDrive and Dropbox may come later; nothing is promised.
+
+**A folder.** Google Drive, OneDrive, iCloud and Dropbox's own folders —
+whichever it finds installed, folder already worked out — or any other folder
+both computers reach, a NAS, a drive you plug in on Fridays.
 
 There is nothing of mine in the middle: no account, no server, no daemon. Who
-runs that folder is your business, not Tisty's. If you sync nothing, it never
-opens a connection at all.
+runs that folder or that Drive is your business, not Tisty's. If you sync
+nothing, it never opens a connection for it at all. Changing your mind later is
+a move, not a switch: *Move to another place…* takes your copies between this
+machine, a folder and Google Drive, brings home what lived only in the cloud
+first, and tells your other machines where you went so each one follows.
 
 Two machines can genuinely write the same document at once, and there Tisty
 merges them **block by block** — you edit the introduction on one, someone edits
@@ -546,9 +564,10 @@ space it took: the file is there when your provider or your NAS is, and Tisty
 says so plainly when it is not. A copy is only ever let go of after the one in
 the shared folder is found to hash the same.
 
-And because what uploads that folder is your provider's program and not
-Tisty, if you ever change something on one machine and it does not turn up
-on the other, [FAQ.md](docs/FAQ.md) lists the causes worth checking, in order.
+And because what uploads a folder is your provider's program and not Tisty, if
+you ever change something on one machine and it does not turn up on the other,
+[FAQ.md](docs/FAQ.md) lists the causes worth checking, in order — and what each
+message about Google Drive means, from *Reconnect* to a full Drive.
 
 ## A Command Line, If You Want One
 
@@ -559,6 +578,12 @@ window keeps for safety, which it obeys — and the task and document commands
 go in the next major version. What stays is the `tisty`
 binary itself, because it is the door your assistant comes through (`tisty
 mcp`) and the place for maintenance: `doctor`, `sync`, `export`, `agent`.
+
+Neither the command line nor the assistant's door ever touches the network.
+Connecting Google Drive happens only in the window, and on a copy that syncs
+with it `tisty sync` leaves the round to the window; `tisty doctor` still tells
+you, from what is on this disk, how the last one went and what today's
+allowance has left.
 
 ```console
 $ tisty doctor
@@ -707,10 +732,11 @@ If you already use an assistant of your own, Tisty leaves an
 again, and until you do everything it tries is refused.
 
 **Can I use it on two computers?**
-Yes, through a folder you already sync: Google Drive, OneDrive, iCloud,
-Dropbox, a NAS, a drive you plug in on Fridays. There is no server of mine in
-between, no account, and nothing that stops working the day a company changes
-its mind.
+Yes, two ways. Connect your own Google Drive in the window, and Tisty talks to
+it directly, seeing only the files it creates there. Or use a folder you
+already sync: Google Drive, OneDrive, iCloud, Dropbox, a NAS, a drive you plug
+in on Fridays. Either way there is no server of mine in between, no account of
+mine, and you can move from one to the other whenever you like.
 
 **Is there a mobile app?**
 No. Tisty is a desktop program for Windows and macOS. Your documents are

@@ -8,7 +8,10 @@ Dropbox, Syncthing — not Tisty. If that program is not running, Tisty will
 keep saving your work fine and will have no way to tell that nobody is picking
 it up.
 
-Go through this in order. The first three cover almost every case.
+Go through this in order. The first three cover almost every case. If you
+connected Google Drive directly instead of a folder, Tisty talks to it itself
+and says what is wrong on its own card: see
+[Syncing through Google Drive directly](#syncing-through-google-drive-directly).
 
 ### 1. Is your cloud program running?
 
@@ -85,6 +88,84 @@ only appends: nothing is overwritten or dropped. As soon as the folder starts
 moving again, both machines catch up on their own, even if both were working
 at once. If both wrote the same part of a document, the window shows the two
 side by side and asks which stays — **This one**, **The other** or **Both**.
+
+## Syncing through Google Drive directly
+
+Since 1.30, Tisty can sync through your own Google Drive without Google's
+desktop program. Here Tisty is the one talking to Drive, so unlike with a
+folder, it knows when something is wrong and says so on the Google Drive card
+in **Settings → Syncing**. Whatever the card says, what you write is safe on
+this machine and goes up once the cause is gone.
+
+### How do I connect it?
+
+**Settings → Syncing → Your cloud service → Google Drive → Connect.** Your
+browser opens on Google's own page; sign in and allow Tisty to keep its copies
+there. Tisty asks only for the files it creates, so it cannot see anything else
+in your Drive. Then **Start uploading**: the first time everything you have goes
+up, and if you close Tisty or lose the network it carries on where it left off.
+Do the same on your other computer, with the same Google account.
+
+It can only be connected from the window. The command line and assistants never
+reach the network, and a copy of Tisty built without this project's Google
+credentials does not offer the cloud at all.
+
+### What travels, and what stays
+
+Your history, your documents and their settings go up. Attachments stay on the
+computer they were added on; on another one each comes down the first time you
+open it there. **Free space** lets go of the attachments you have not opened in
+a while; the next time you open one, it comes down again. Attachments are capped
+at 25 MB per task and 650 MB inside a document, as with a folder.
+
+### «Google no longer lets Tisty in»
+
+The permission was removed — from your Google account, or with **Remove
+Tisty's access on every computer** — or it expired. Press **Reconnect** and sign
+in again. Removing access on one machine removes it on all of them, so each one
+will ask.
+
+### «This copy belongs to another account»
+
+You signed in with a different Google account from the one this copy already
+syncs with. Tisty stops rather than mix two accounts. Press **Change account**
+and sign in with the one you used before. If you really mean to sync with a
+different account, move there instead (below).
+
+### «Your Google Drive is full»
+
+Your Drive has no room left. Tisty sends your tasks first; the rest, including
+what your other computers send, waits until you free up space in Drive or get
+more. **See storage** opens Google's page for it.
+
+### «Your cloud reached today's limit»
+
+Every computer has its own daily allowance — 2,000,000 requests' worth and
+50 GB downloaded — so no single copy can spend the quota Google grants the
+project. It is per computer, not per person. When it runs out, syncing carries
+on the next day by itself. **Cloud use today**, on the same card, shows how much
+is left; `tisty doctor` prints it too.
+
+### «Google asked to wait a little»
+
+Google is slowing everyone down for a moment. Tisty waits as long as Google says
+and carries on by itself. There is nothing to do.
+
+### «The cloud is paused for now»
+
+The project can pause syncing on every copy for a while, should its shared
+quota with Google be at risk; the notice is signed, so nobody else can send it.
+It lifts by itself. **Turn off** on the card does the same on this computer
+only, until you turn it on again.
+
+### Leaving Google Drive
+
+**Move to another place…** takes your copies to a folder or back to this
+machine alone. Tisty first brings home everything that lived only in Drive,
+then tells your other computers where you went so each one follows when it
+syncs. Nothing is deleted in Drive unless you ask; **Delete my copies in Google
+Drive** sends them to its bin afterwards. To stop one computer without moving
+the others, use **Disconnect this computer**.
 
 ## One of my machines stopped syncing after an update
 

@@ -981,18 +981,30 @@ stateDiagram-v2
 - **Filling** (`filling(to, here)`): attachments whole here that the new place
   does not hold at their size. A deferred push round also leaves the move in
   `Filling`.
-- The old place stays chosen until `Ready`, and nothing in it is deleted. Only
-  the crate does this so far: no window or command offers a move yet.
+- The old place stays chosen until `Ready`, and nothing in it is deleted. The
+  window drives it (`answers/relocating.rs`, *Move to another place…* in
+  Settings): `move_plan` says what will travel, `move_to` runs steps until
+  `Ready`, changes the pointer, and leaves the signed `moved.json` in the old
+  place so the other machines follow. The command line offers no move.
 
 ### What exists
 
 - `Folder`: complete and in use.
-- `Cloud`, `Shelf`, `Tokens` and the `Remote` contract: complete against test
+- `Cloud`, `Shelf`, `Tokens` and the `Remote` contract, proved against test
   providers (`remote_fakes.rs` simulates Drive, OneDrive and Dropbox with their
   limits, a lagging index, truncated downloads and conflict copies;
   `remote_folder_backed.rs` serves a real folder through the same contract).
-- No `Remote` for a real provider, no `Sync` value that names a cloud, and no
-  window screen for choosing one.
+- Google Drive's `Remote` in `crates/tisty-google` (`Drive`, scope `drive.file`,
+  sign-in through the browser with PKCE). A build without
+  `TISTY_GOOGLE_CLIENT_ID` and `TISTY_GOOGLE_CLIENT_SECRET` has no client and
+  offers no cloud.
+- `Sync::Cloud` in `config.rs`, naming the provider and the account.
+- The window: the Google Drive card with its states, the local switch, the
+  day's spend, *Free space*, and the move between this machine, a folder and
+  the cloud (`answers/clouding.rs`, `answers/relocating.rs`,
+  `answers/freeing.rs`). The command line and MCP never reach the network:
+  `tisty sync` leaves a cloud round to the window, and `tisty doctor` reads the
+  cloud's standing off this disk.
 
 ## Documents and attachments
 
@@ -1442,12 +1454,7 @@ checks that a test would notice a changed line.
 
 ## Not built yet
 
-- A window screen to connect and choose a cloud, its states and the local
-  switch; the backend commands exist (`answers/clouding.rs`).
 - A `Remote` for OneDrive and Dropbox.
-- Maintenance showing the cloud's day's spend.
-- A window screen or command that moves between places with `shift` and shows
-  how far the move has gone.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.

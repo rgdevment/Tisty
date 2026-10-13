@@ -521,14 +521,33 @@ que no esté firmado con una clave compilada dentro de la copia que ya tienes.
 
 ## Dos equipos, si tienes dos
 
-Dile a Tisty dónde dejar las copias. Te ofrece Google Drive, OneDrive, iCloud y
-Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier
-otra que tus dos computadores alcancen: un NAS, un disco que enchufas los
-viernes. El resto lo hace solo.
+Dile a Tisty dónde dejar las copias, en Configuración › *Sincronizar*. Hay dos
+formas, y el resto lo hace solo.
+
+**Tu Google Drive, directo.** Elige *Tu servicio de nube* y **Conectar**: se
+abre tu navegador, entras a Google y Google te pregunta si Tisty puede guardar
+sus copias ahí. Tisty solo ve los archivos que él mismo crea —nada más de tu
+Drive— y no necesitas el programa de escritorio de Google instalado ni abierto.
+La primera vez sube todo lo que ya tienes; después solo viaja lo nuevo, y si se
+corta la conexión sigue donde quedó. Los adjuntos se quedan en el equipo donde
+se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los
+que no abres hace tiempo. Cada equipo tiene un cupo diario, para que ninguna
+copia gaste la cuota que Google le da al proyecto: si se acaba, lo que escribas
+queda a salvo aquí y la sincronización sigue al día siguiente. Conectar se hace
+solo desde la ventana. OneDrive y Dropbox podrían llegar más adelante; no hay
+nada prometido.
+
+**Una carpeta.** Las carpetas de Google Drive, OneDrive, iCloud y Dropbox —las
+que encuentre instaladas, ya resueltas— o cualquier otra que tus dos
+computadores alcancen: un NAS, un disco que enchufas los viernes.
 
 No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Quién
-mantenga esa carpeta es asunto tuyo, no de Tisty. Si no sincronizas nada, no abre
-una conexión en su vida.
+mantenga esa carpeta o ese Drive es asunto tuyo, no de Tisty. Si no sincronizas
+nada, no abre una conexión para eso en su vida. Cambiar de idea después es una
+mudanza, no un interruptor: *Mudarme a otro lugar…* lleva tus copias entre este
+equipo, una carpeta y Google Drive, primero trae a casa lo que vivía solo en la
+nube, y les avisa a tus otros equipos adónde te fuiste para que cada uno te
+siga.
 
 Dos equipos sí pueden escribir el mismo documento a la vez, y ahí Tisty los junta
 **bloque a bloque**: editas la introducción en uno, alguien edita el cierre en el
@@ -556,9 +575,10 @@ está tu nube o tu NAS, y
 Tisty te lo dice con todas las letras cuando no. Una copia solo se suelta después
 de comprobar que la de la carpeta compartida tiene el mismo sha.
 
-Y como quien sube esa carpeta es el programa de tu proveedor y no Tisty, si algún
+Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
 día cambias algo en un equipo y no aparece en el otro, [FAQ.md](docs/FAQ.md)
-enumera las causas en el orden en que conviene revisarlas (en inglés).
+enumera las causas en el orden en que conviene revisarlas, y qué significa cada
+aviso de Google Drive, de *Reconectar* a un Drive lleno (en inglés).
 
 ## Una línea de comandos, si la quieres
 
@@ -569,6 +589,12 @@ ventana guarda por seguridad, y que obedece—, y los comandos de tareas y
 documentos se van en la siguiente versión mayor. Lo que se queda es el binario
 `tisty`, porque es la puerta por la que entra tu asistente (`tisty mcp`) y el
 sitio del mantenimiento: `doctor`, `sync`, `export`, `agent`.
+
+Ni la línea de comandos ni la puerta del asistente salen nunca a la red.
+Conectar Google Drive se hace solo en la ventana, y en una copia que sincroniza
+con él `tisty sync` le deja la ronda a la ventana; `tisty doctor` igual te dice,
+con lo que hay en este disco, cómo terminó la última y cuánto queda del cupo de
+hoy.
 
 ```console
 $ tisty doctor
@@ -718,10 +744,11 @@ sin nube. Si ya usas un asistente tuyo, Tisty deja una puerta
 y hasta que la abras todo lo que intente se rechaza.
 
 **¿Puedo usarlo en dos equipos?**
-Sí, a través de una carpeta que ya sincronizas: Google Drive, OneDrive, iCloud,
-Dropbox, un NAS, un disco que enchufas los viernes. No hay ningún servidor mío
-en medio, ni cuenta, ni nada que deje de funcionar el día que una empresa
-cambie de opinión.
+Sí, de dos formas. Conecta tu propio Google Drive en la ventana y Tisty habla
+con él directo, viendo solo los archivos que crea ahí. O usa una carpeta que ya
+sincronizas: Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que
+enchufas los viernes. En los dos casos no hay ningún servidor mío en medio, ni
+cuenta mía, y puedes mudarte de una a otra cuando quieras.
 
 **¿Hay aplicación para el teléfono?**
 No. Tisty es un programa de escritorio para Windows y macOS. Tus documentos son
