@@ -49,6 +49,31 @@ fn only_a_link_of_the_web_is_handed_over() {
 }
 
 #[test]
+fn only_the_web_mail_a_phone_and_the_store_are_handed_to_the_system() {
+    for one in [
+        "https://example.com/",
+        "HTTP://example.com/",
+        "mailto:someone@example.com",
+        "tel:+56912345678",
+        "ms-windows-store://downloadsandupdates",
+    ] {
+        assert!(openable(one), "{one}");
+    }
+    for one in [
+        "file:///C:/Windows/System32/calc.exe",
+        r"C:\Windows\System32\calc.exe",
+        "javascript:alert(1)",
+        "smb://evil.example/share",
+        "search-ms:query=x",
+        "linkunbound://open?url=https%3A%2F%2Fexample.com",
+        "https:",
+        "",
+    ] {
+        assert!(!openable(one), "{one}");
+    }
+}
+
+#[test]
 fn what_is_opened_is_the_real_link_until_something_answers_for_the_scheme() {
     let one = "https://example.com/a?b=1";
 
