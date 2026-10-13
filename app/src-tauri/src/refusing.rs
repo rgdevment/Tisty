@@ -196,6 +196,7 @@ const REFUSALS: &[&str] = &[
     "syncFailed",
     "syncStuckDoc",
     "syncStuckHistory",
+    "cloudEmptied",
     "cloudFull",
     "cloudLost",
     "cloudElsewhere",

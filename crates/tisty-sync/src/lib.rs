@@ -60,6 +60,10 @@ pub enum Trouble {
     CloudFull {
         provider: String,
     },
+    /// The store up there was deleted whole, outside Tisty; sending it all again writes it back.
+    CloudEmptied {
+        provider: String,
+    },
     CloudLost {
         provider: String,
     },

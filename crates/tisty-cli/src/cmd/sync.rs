@@ -343,6 +343,9 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
         carrier::Trouble::CloudFull { provider } => {
             lang.fill("cloud-full", &[("provider", provider)])
         }
+        carrier::Trouble::CloudEmptied { provider } => {
+            lang.fill("cloud-emptied", &[("provider", provider)])
+        }
         carrier::Trouble::CloudLost { provider } => {
             lang.fill("cloud-lost", &[("provider", provider)])
         }

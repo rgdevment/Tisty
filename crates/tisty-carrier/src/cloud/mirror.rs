@@ -51,6 +51,21 @@ pub fn pull(
         }
         told => told?,
     };
+    let emptied = |listed_nothing: bool, gone: &BTreeSet<&str>| {
+        index.tree.contains_key(tisty_sync::NAMED)
+            && (listed_nothing || index.tree.keys().all(|name| gone.contains(name.as_str())))
+    };
+    match &told {
+        Changes::Whole { seen, .. } if emptied(seen.is_empty(), &BTreeSet::new()) => {
+            return Err(Hitch::Emptied);
+        }
+        Changes::Since { changed, gone, .. }
+            if changed.is_empty() && emptied(false, &gone.iter().map(String::as_str).collect()) =>
+        {
+            return Err(Hitch::Emptied);
+        }
+        _ => {}
+    }
     let (changed, gone, cursor) = match told {
         Changes::Whole { seen, cursor } => {
             let listed: BTreeSet<&str> = seen.iter().map(|one| one.name.as_str()).collect();

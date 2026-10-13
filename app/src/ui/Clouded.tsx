@@ -76,7 +76,11 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
     );
   };
 
-  const exit = (how: Exit) => {
+  const exit = async (how: Exit) => {
+    if (how === "again") {
+      if (await sure(t("stateEmptiedSure"))) carry("again");
+      return;
+    }
     if (how === "reconnect") return reconnect();
     if (how === "turnOn") return switched(true);
     openUrl(STORAGE).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
@@ -146,7 +150,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
             <button
               type="button"
               disabled={held}
-              onClick={() => standing.exit && exit(standing.exit)}
+              onClick={() => standing.exit && void exit(standing.exit)}
               className={strong}
             >
               {t(standing.exitSaid)}

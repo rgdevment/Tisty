@@ -5,7 +5,7 @@ import { plainly } from "./refusal";
 
 type Key = Parameters<typeof t>[0];
 
-export type Exit = "reconnect" | "storage" | "turnOn";
+export type Exit = "reconnect" | "storage" | "turnOn" | "again";
 
 export interface Standing {
   said: Key;
@@ -30,6 +30,12 @@ const BY_CODE: Record<string, Standing> = {
     why: "stateElsewhereWhy",
     exit: "reconnect",
     exitSaid: "stateElsewhereDo",
+  },
+  cloudEmptied: {
+    said: "stateEmptied",
+    why: "stateEmptiedWhy",
+    exit: "again",
+    exitSaid: "stateEmptiedDo",
   },
   cloudFull: { said: "stateFull", why: "stateFullWhy", exit: "storage", exitSaid: "stateFullDo" },
   "deferred-offline": { said: "stateOffline", why: "stateOfflineWhy" },

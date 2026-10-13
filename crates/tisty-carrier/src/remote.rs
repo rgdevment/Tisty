@@ -38,6 +38,8 @@ pub enum Hitch {
     Unreachable(String),
     /// The provider failed on its side and gave no wait, so the round is tried again later.
     Troubled(String),
+    /// Everything the store held up there is gone at once, deleted outside Tisty, and is never read as each file deleted.
+    Emptied,
     Broke(String),
 }
 

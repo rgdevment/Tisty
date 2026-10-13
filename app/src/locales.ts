@@ -994,6 +994,8 @@ const en = {
   settingsUnreadable:
     "The settings file says something this version cannot read, most likely written by a newer Tisty. Nothing was written; update Tisty before changing settings.",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
+  cloudEmptied:
+    "Tisty's copies in {name} were deleted outside Tisty. Nothing here changed: send everything again, or move to another place.",
   cloudFull:
     "{name} has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in {name} or get more. Everything you write stays safe on this machine meanwhile.",
   cloudLost:
@@ -1266,6 +1268,12 @@ const en = {
   stateFullWhy:
     "Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space or get more.",
   stateFullDo: "See storage",
+  stateEmptied: "Tisty's copies in Google Drive were deleted",
+  stateEmptiedWhy:
+    "They were deleted outside Tisty, perhaps from Drive › Manage apps. Nothing here changed. Send everything again from this computer, or move to another place.",
+  stateEmptiedDo: "Send it all again",
+  stateEmptiedSure:
+    "Everything on this computer goes up to Google Drive again. Your other computers will pick it up from there. Go ahead?",
   stateBudget: "Your cloud reached today's limit",
   stateBudgetWhy: "What you write stays here and syncing carries on {name}.",
   stateWait: "Google asked to wait a little",
@@ -2878,6 +2886,8 @@ const es: Catalog = {
   settingsUnreadable:
     "El archivo de ajustes dice algo que esta versión no sabe leer, seguramente escrito por un Tisty más nuevo. No se escribió nada; actualiza Tisty antes de cambiar ajustes.",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
+  cloudEmptied:
+    "Las copias de Tisty en {name} se borraron fuera de Tisty. Aquí no cambió nada: vuelve a subirlo todo, o múdate a otro lugar.",
   cloudFull:
     "{name} no tiene más espacio. Tisty sube primero tus tareas; lo demás, incluido lo que envían tus otros equipos, espera hasta que liberes espacio en {name} o consigas más. Mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudLost:
@@ -3151,6 +3161,12 @@ const es: Catalog = {
   stateFullWhy:
     "Tisty sube primero tus tareas; lo demás, incluido lo que envían tus otros equipos, espera hasta que liberes espacio o consigas más.",
   stateFullDo: "Ver espacio",
+  stateEmptied: "Se borraron las copias de Tisty en Google Drive",
+  stateEmptiedWhy:
+    "Se borraron fuera de Tisty, quizás desde Drive › Administrar aplicaciones. Aquí no cambió nada. Vuelve a subirlo todo desde este equipo, o múdate a otro lugar.",
+  stateEmptiedDo: "Subirlo todo de nuevo",
+  stateEmptiedSure:
+    "Todo lo que hay en este equipo vuelve a subir a Google Drive. Tus otros equipos lo tomarán desde ahí. ¿Sigo?",
   stateBudget: "Tu nube llegó a su límite de hoy",
   stateBudgetWhy: "Lo que escribas queda aquí y la sincronización sigue {name}.",
   stateWait: "Google pidió esperar un poco",

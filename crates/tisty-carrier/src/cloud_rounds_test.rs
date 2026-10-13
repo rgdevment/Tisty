@@ -334,3 +334,68 @@ fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_rea
         "a document left behind was hidden by an attachment that can never go: {shifted:?}"
     );
 }
+
+#[test]
+fn an_index_of_an_older_layout_starts_the_mirror_over_into_the_new_space() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let one = desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nantes\n");
+    one.wrote("de la rc.1");
+    one.round(Way::Both);
+    let home = home_of(&setting, "dev_a");
+    let mut old: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
+    old.as_object_mut().unwrap().remove("layout");
+    std::fs::write(home.join("index.json"), old.to_string()).unwrap();
+    let stale = home.join("tree").join("stale.md");
+    std::fs::write(&stale, "de la carpeta vieja").unwrap();
+    let space = Arc::new(Fake::drive());
+    let anew = Desk {
+        here: one.here.clone(),
+        carrier: Arc::new(Cloud::over(space.clone(), home.clone())),
+    };
+
+    let done = anew.round(Way::Both);
+
+    assert!(done.refused.is_none(), "{done:?}");
+    assert!(!stale.exists(), "the old mirror was kept");
+    assert!(
+        space.about(&doc_name()).unwrap().is_some(),
+        "the new space was taken for already in step: {:?}",
+        space.uploaded()
+    );
+    let now: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
+    assert_eq!(
+        now["layout"],
+        serde_json::json!(crate::cloud::index::LAYOUT)
+    );
+}
+
+#[test]
+fn a_store_deleted_whole_up_there_is_said_so_and_sending_it_all_again_writes_it_back() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("algo");
+        one.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+
+        let stopped = one.carry(Way::Both, Holds::Everywhere);
+
+        assert!(
+            matches!(stopped, Err(Trouble::CloudEmptied { .. })),
+            "{who}: {stopped:?}"
+        );
+        assert_eq!(one.titles(), ["algo"], "{who}: something here changed");
+        let again = one.carry(Way::Again, Holds::Everywhere);
+        assert!(again.is_ok(), "{who}: {again:?}");
+        assert!(
+            fake.about(&doc_name()).unwrap().is_some(),
+            "{who}: sending it all again left the cloud empty"
+        );
+    }
+}

@@ -19,6 +19,7 @@ pub fn judge(hitch: Hitch, provider: &str) -> Judged {
         Hitch::Unreachable(_) => Judged::Pause(Reason::Offline, None),
         Hitch::Troubled(_) => Judged::Pause(Reason::Troubled, None),
         Hitch::Full => Judged::Stop(Trouble::CloudFull { provider }),
+        Hitch::Emptied => Judged::Stop(Trouble::CloudEmptied { provider }),
         Hitch::Lost => Judged::Stop(Trouble::CloudLost { provider }),
         Hitch::Elsewhere { found } => Judged::Stop(Trouble::CloudElsewhere { provider, found }),
         Hitch::Missing(name) | Hitch::Changed(name) => Judged::Stop(Trouble::Broke(name)),

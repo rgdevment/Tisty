@@ -40,6 +40,8 @@ const PATIENCE: Duration = Duration::from_secs(5);
 const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
+// Written when the store up there was found deleted whole, so only then does sending it all again start the mirror over.
+const EMPTIED: &str = "emptied-there";
 
 #[derive(Clone, Copy)]
 struct Turn {
@@ -75,6 +77,7 @@ pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
     tried: AtomicBool,
+    again: AtomicBool,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -90,11 +93,36 @@ impl Cloud {
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
+            again: AtomicBool::new(false),
         }
     }
 
     fn tree(&self) -> PathBuf {
         self.home.join(TREE)
+    }
+
+    // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.
+    fn started_over(&self) -> Result<(), Trouble> {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::CLOUD,
+            "the cloud's index was of an older layout, so the mirror starts over",
+            &[],
+        );
+        let broke = |e: std::io::Error| Trouble::Broke(e.to_string());
+        index::forget(&self.home).map_err(broke)?;
+        match std::fs::remove_dir_all(self.tree()) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(broke(e)),
+            _ => {}
+        }
+        for left in [
+            standing::OWED_BACK,
+            standing::CARRIED,
+            standing::LAST_ROUND,
+            EMPTIED,
+        ] {
+            let _ = std::fs::remove_file(self.home.join(left));
+        }
+        Ok(())
     }
 
     fn with_mirror<T>(
@@ -133,6 +161,11 @@ impl Cloud {
             Ok(None) => return Ok(Done::deferred(Reason::Busy, None)),
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
+        let emptied = self.home.join(EMPTIED);
+        let again = self.again.swap(false, Ordering::Relaxed) && emptied.exists();
+        if again || index::outdated(&self.home) {
+            self.started_over()?;
+        }
         let tree = self.tree();
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
         self.forget_asked(&tree);
@@ -145,6 +178,9 @@ impl Cloud {
             Ok(held_back) => held_back,
             Err(hitch) => {
                 let _ = index.save(&self.home);
+                if hitch == crate::Hitch::Emptied {
+                    let _ = std::fs::write(&emptied, b"");
+                }
                 return match judge(hitch, self.remote.limits().provider) {
                     Judged::Pause(reason, wait) => {
                         let deferred = Done::deferred(reason, wait);
@@ -277,6 +313,8 @@ impl Cloud {
             holds,
             saying,
         } = round;
+        self.again
+            .store(matches!(way, crate::Way::Again), Ordering::Relaxed);
         let done =
             self.with_mirror_along(Some(here), turn, saying, |tree, index, remote, saying| {
                 shelf::sweep(&here.data);
