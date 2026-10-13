@@ -1,6 +1,6 @@
 import type { Stage } from "../coming";
 import type { Carrying, MovePlan, Moving, Toward } from "../core";
-import { stamped, weigh } from "../format";
+import { goesOnAt, weigh } from "../format";
 import { fill, t } from "../locales";
 import { waitSaid } from "../syncSaid";
 
@@ -129,7 +129,7 @@ export function Plan({
       {plan && (
         <ul className={`${box} list-disc pl-7`}>
           {plan.down.files > 0 && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
-          <li>{t("moveHomeFirst")}</li>
+          {plan.down.files === 0 && <li>{t("moveHomeFirst")}</li>}
           {plan.toCloud && plan.up.files > 0 && <li>{fill("moveUp", weigh(plan.up.bytes))}</li>}
           {plan.toCloud && <li>{t("moveOnDemand")}</li>}
           {plan.toCloud && state.mode === "folder" && <li>{t("moveOldFolderSpace")}</li>}
@@ -185,9 +185,7 @@ export function Underway({
       <p className="text-[13px] font-semibold">{t("moveMoving")}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveMovingWhy")}</p>
       {pausedUntil !== undefined && (
-        <p className="text-[11.5px] text-faint tabular-nums">
-          {fill("movePaused", stamped(new Date(pausedUntil).toISOString()))}
-        </p>
+        <p className="text-[11.5px] text-faint tabular-nums">{goesOnAt(pausedUntil)}</p>
       )}
       {along && pausedUntil === undefined && (
         <p className="text-[11.5px] text-faint tabular-nums">
@@ -230,7 +228,9 @@ export function Waiting({
         <span className="block text-[12.5px] font-semibold text-ink">{t("moveWaiting")}</span>
         {why}{" "}
         {result.left.files > 0 &&
-          fill("moveLeft", String(result.left.files), weigh(result.left.bytes))}
+          (result.left.files === 1
+            ? fill("moveLeftOne", "1", weigh(result.left.bytes))
+            : fill("moveLeft", String(result.left.files), weigh(result.left.bytes)))}
       </div>
       <div className="flex items-center gap-4">
         <button type="button" onClick={onDrop} className={quiet}>

@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type About,
   about,
@@ -22,6 +22,7 @@ import {
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { afterMove } from "../relocation";
 import type { Heading, Tab } from "../views";
 import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which, type Word } from "./Card";
@@ -161,6 +162,12 @@ export default function Keeping({
     onChanged,
   });
   const carryNow = carrying.carryNow;
+  const landed = useRef(() => {});
+  landed.current = () => {
+    look();
+    void carryNow();
+  };
+  useEffect(() => afterMove(() => landed.current()), []);
 
   if (!state) {
     return (
@@ -248,11 +255,6 @@ export default function Keeping({
           onClose={() => {
             setMoving(null);
             look();
-          }}
-          onMoved={() => {
-            look();
-            onChanged();
-            void carryNow();
           }}
         />
       )}

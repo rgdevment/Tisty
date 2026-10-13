@@ -1,7 +1,9 @@
+import { useEffect, useRef } from "react";
 import { discard, docPage, patch, sow } from "../core";
 import { useDesk } from "../desk";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
+import { afterMove } from "../relocation";
 import { sure } from "../sure";
 import { title } from "../views";
 import About from "./About";
@@ -57,6 +59,15 @@ export default function Stage() {
     told,
     underway,
   } = useDesk();
+  const refreshed = () => {
+    load();
+    lookPapers();
+    carries.current?.recheck();
+    carries.current?.changed();
+  };
+  const fresh = useRef(refreshed);
+  fresh.current = refreshed;
+  useEffect(() => afterMove(() => fresh.current()), []);
   return chosen.named === "aboutScreen" ? (
     <About
       ready={ready}
@@ -162,12 +173,7 @@ export default function Stage() {
       onUnpack={parcels.takeParcel}
       onGreet={() => setGreet(true)}
       onDoc={openDoc}
-      onChanged={() => {
-        load();
-        lookPapers();
-        carries.current?.recheck();
-        carries.current?.changed();
-      }}
+      onChanged={refreshed}
     />
   ) : sheet && task ? (
     <Detail

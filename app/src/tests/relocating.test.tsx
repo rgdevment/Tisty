@@ -1,9 +1,10 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { heard } from "../coming";
 import type { Carrying } from "../core";
 import { adopt, fill, t } from "../locales";
-import { endMove } from "../relocation";
+import { afterMove, endMove, startMove, useMove } from "../relocation";
 import MoveNotice from "../ui/MoveNotice";
 import Relocating from "../ui/Relocating";
 
@@ -61,19 +62,16 @@ const plan = {
   short: 0,
 };
 
+const unhooks: (() => void)[] = [];
+
 const opened = (over: Partial<Parameters<typeof Relocating>[0]> = {}) => {
   const closed = vi.fn();
   const moved = vi.fn();
-  render(
-    <Relocating
-      state={cloud}
-      resume={{ kind: "alone" }}
-      onClose={closed}
-      onMoved={moved}
-      {...over}
-    />,
+  unhooks.push(afterMove(moved));
+  const shown = render(
+    <Relocating state={cloud} resume={{ kind: "alone" }} onClose={closed} {...over} />,
   );
-  return { closed, moved };
+  return { closed, moved, shown };
 };
 
 const agreedAndMoved = async () => {
@@ -88,7 +86,12 @@ beforeEach(() => {
   adopt("en");
 });
 
-afterEach(() => act(() => endMove()));
+afterEach(() => {
+  for (const unhook of unhooks.splice(0)) unhook();
+  vi.useRealTimers();
+  act(() => endMove());
+  heard(null);
+});
 
 describe("moving to another place", () => {
   it("says what comes down from the cloud and that nothing is deleted there", async () => {
@@ -178,7 +181,12 @@ describe("moving to another place", () => {
       await screen.findByText((text) => text.startsWith(fill("movePaused", "").trim())),
     ).toBeTruthy();
     expect(screen.queryByText(t("moveWaiting"))).toBeNull();
-    await waitFor(() => expect(sent("move_to")).toHaveLength(2), { timeout: 5_000 });
+    vi.useFakeTimers();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    vi.useRealTimers();
+    expect(sent("move_to")).toHaveLength(2);
     expect(await screen.findByText(t("moveDoneAlone"))).toBeTruthy();
   });
 
@@ -193,8 +201,15 @@ describe("moving to another place", () => {
       });
     opened();
     await agreedAndMoved();
+    vi.useFakeTimers();
+    for (let pause = 0; pause < 4; pause += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5_000);
+      });
+    }
+    vi.useRealTimers();
 
-    expect(await screen.findByText(t("moveWaiting"), {}, { timeout: 15_000 })).toBeTruthy();
+    expect(await screen.findByText(t("moveWaiting"))).toBeTruthy();
     expect(sent("move_to")).toHaveLength(4);
     expect(screen.getByRole("button", { name: t("moveAgain") })).toBeTruthy();
   });
@@ -240,8 +255,9 @@ describe("moving to another place", () => {
 
     expect(await screen.findByText(fill("moveWiped", "12"))).toBeTruthy();
     expect(sent("cloud_wipe")[0].args).toEqual({ account: ANA.account, email: ANA.email });
+    expect(moved).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole("button", { name: t("close") }));
-    expect(moved).toHaveBeenCalled();
+    expect(moved).toHaveBeenCalledTimes(1);
     expect(sent("cloud_forget")).toHaveLength(0);
   });
 
@@ -280,8 +296,8 @@ describe("a move whose word could not reach the others", () => {
 
     expect(await screen.findByText(t("moveUntold"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("moveWipe") })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: t("close") }));
     expect(moved).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: t("close") }));
     expect(sent("cloud_forget")).toHaveLength(0);
   });
 
@@ -325,7 +341,6 @@ describe("a move that runs out of sight", () => {
         state={cloud}
         resume={{ kind: "cloud", account: ANA.account, email: ANA.email }}
         onClose={closed}
-        onMoved={() => undefined}
       />,
     );
     await agreedAndMoved();
@@ -346,7 +361,6 @@ describe("a move that runs out of sight", () => {
         state={cloud}
         resume={{ kind: "cloud", account: ANA.account, email: ANA.email }}
         onClose={() => undefined}
-        onMoved={() => undefined}
       />,
     );
     await agreedAndMoved();
@@ -366,5 +380,102 @@ describe("a move that runs out of sight", () => {
     await agreedAndMoved();
 
     expect(await screen.findAllByText(t("moveDoneAlone"))).toHaveLength(1);
+  });
+});
+
+const PAUSED = {
+  state: "waiting",
+  stage: "filling",
+  left: { files: 2, bytes: 10 },
+  reason: "limit",
+  wait: 0,
+};
+const TOWARD = { kind: "cloud" as const, account: ANA.account, email: ANA.email };
+
+function Watching() {
+  const run = useMove();
+  return <span data-testid="run">{run ? "run" : "none"}</span>;
+}
+
+describe("a move let go of or seen again", () => {
+  it("tells a move that failed out of sight as stopped, and shows why on reopening", async () => {
+    ipc.answers.move_to = () => Promise.reject({ code: "moveFromUnreachable" });
+    render(<MoveNotice onOpen={() => undefined} />);
+    await act(async () => startMove(TOWARD));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(t("moveStopped"));
+    opened({ resume: TOWARD });
+    expect(await screen.findByText(t("moveFromUnreachable"))).toBeTruthy();
+  });
+
+  it("reopened while a pause is waited out, it never moves twice at once", async () => {
+    vi.useFakeTimers();
+    const answers: unknown[] = [PAUSED, { state: "done", told: true, leftCloud: null }];
+    ipc.answers.move_to = () => Promise.resolve(answers.shift());
+    await act(async () => {
+      startMove(TOWARD);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    render(<Relocating state={cloud} resume={TOWARD} onClose={() => undefined} />);
+    expect(sent("move_to")).toHaveLength(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(sent("move_to")).toHaveLength(2);
+  });
+
+  it("let go of, its pause timer and its answer still on the way never bring it back", async () => {
+    vi.useFakeTimers();
+    ipc.answers.move_to = () => Promise.resolve(PAUSED);
+    render(<Watching />);
+    await act(async () => {
+      startMove(TOWARD);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => endMove());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(sent("move_to")).toHaveLength(1);
+
+    let answer: (value: unknown) => void = () => undefined;
+    ipc.answers.move_to = () =>
+      new Promise((resolve) => {
+        answer = resolve;
+      });
+    act(() => startMove(TOWARD));
+    act(() => endMove());
+    await act(async () => {
+      answer(PAUSED);
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(screen.getByTestId("run").textContent).toBe("none");
+    expect(sent("move_to")).toHaveLength(2);
+  });
+
+  it("starts every try with no progress left over from the one before", async () => {
+    ipc.answers.move_to = () => new Promise(() => undefined);
+    heard({ stage: "uploading", done: 245, whole: 245 });
+    opened({ resume: TOWARD });
+    await agreedAndMoved();
+
+    expect(await screen.findByText(t("moveMoving"))).toBeTruthy();
+    expect(screen.queryByText((text) => text.includes(fill("comingOf", "245", "245")))).toBeNull();
+  });
+});
+
+describe("a finished move told in the sidebar", () => {
+  it("is put away when seen, letting go of the cloud it left", async () => {
+    ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: ANA });
+    render(<MoveNotice onOpen={() => undefined} />);
+    await act(async () => startMove({ kind: "alone" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("viewGotIt") }));
+
+    expect(sent("cloud_forget")[0].args.account).toBe(ANA.account);
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

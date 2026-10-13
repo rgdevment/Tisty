@@ -12,7 +12,7 @@ import {
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { endMove, startMove, underway, useMove, watchMove } from "../relocation";
+import { dismissMove, endMove, startMove, underway, useMove, watchMove } from "../relocation";
 import { sure } from "../sure";
 import type { Heading } from "../views";
 import Clouding from "./Clouding";
@@ -25,7 +25,6 @@ interface Props {
   heading?: Heading;
   resume?: Toward;
   onClose: () => void;
-  onMoved: () => void;
 }
 
 type Step = "pick" | "folder" | "cloud" | "plan" | "moving" | "waiting" | "done";
@@ -33,7 +32,7 @@ type Step = "pick" | "folder" | "cloud" | "plan" | "moving" | "waiting" | "done"
 const firstStep = (heading?: Heading, resume?: Toward): Step =>
   resume ? "plan" : heading === "cloud" ? "cloud" : heading === "folder" ? "folder" : "pick";
 
-export default function Relocating({ state, heading, resume, onClose, onMoved }: Props) {
+export default function Relocating({ state, heading, resume, onClose }: Props) {
   const now = useMove();
   const along = useComing();
   const [chosen, setStep] = useState<Step>(now ? "plan" : firstStep(heading, resume));
@@ -90,9 +89,7 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
       return;
     }
     if (connectedHere && toward?.kind === "cloud" && !now) letGoUnused(toward.account);
-    if (leftCloud && !settled.current) void cloudForget(leftCloud.account).catch(() => undefined);
-    if (done) onMoved();
-    endMove();
+    dismissMove(!settled.current);
     onClose();
   };
 
@@ -115,7 +112,7 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
     cloudWipe(leftCloud.account, leftCloud.email)
       .then((gone) => {
         settled.current = true;
-        setWiped(fill("moveWiped", String(gone)));
+        setWiped(gone === 1 ? t("moveWipedOne") : fill("moveWiped", String(gone)));
       })
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
