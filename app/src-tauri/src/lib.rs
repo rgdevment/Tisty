@@ -635,6 +635,10 @@ impl OneAtATime {
 const TURN_ASKED_AGAIN: std::time::Duration = std::time::Duration::from_millis(100);
 const ROUND_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(120);
 
+pub fn asked_to_unreach() -> bool {
+    waking::unreaching(&waking::said())
+}
+
 pub fn unreach() -> std::io::Result<bool> {
     let _ = waking::wake(false);
     let reached = command::out_of_reach();
@@ -663,9 +667,7 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    let argv: Vec<String> = std::env::args_os()
-        .map(|one| one.to_string_lossy().into_owned())
-        .collect();
+    let argv = waking::said();
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());
     app.state::<viewing::Views>().started(&mut wanted);

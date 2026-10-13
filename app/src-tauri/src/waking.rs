@@ -2,8 +2,28 @@ use tisty_core::witness::{self, Fact, channel};
 
 pub const HUSHED: &str = "--hushed";
 
+pub const UNREACH: &str = "--unreach";
+
 pub fn hushed() -> bool {
-    std::env::args().any(|one| one == HUSHED)
+    told(&said(), HUSHED)
+}
+
+pub fn said() -> Vec<String> {
+    std::env::args_os()
+        .map(|one| one.to_string_lossy().into_owned())
+        .collect()
+}
+
+// A link or a file handed over by the shell comes after `--`, so nothing it carries reads as a flag.
+pub fn told(args: &[String], flag: &str) -> bool {
+    args.iter()
+        .skip(1)
+        .take_while(|one| *one != "--")
+        .any(|one| one == flag)
+}
+
+pub fn unreaching(args: &[String]) -> bool {
+    matches!(args, [_, one] if one == UNREACH)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -408,3 +428,7 @@ mod tests {
         assert!(approves(&[]));
     }
 }
+
+#[cfg(test)]
+#[path = "waking_test.rs"]
+mod flags;

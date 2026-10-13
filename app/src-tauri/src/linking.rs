@@ -4,10 +4,18 @@ use crate::{Answer, Refusal};
 
 const SCHEME: &str = "linkunbound";
 
+// Besides the web, mail and phone, the window only ever sends someone to the store's own pages.
+const OPENED: [&str; 5] = ["http", "https", "mailto", "tel", "ms-windows-store"];
+
 pub fn on_the_web(url: &str) -> bool {
     matches!(url.split_once(':'), Some((scheme, rest))
         if !rest.is_empty()
             && (scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https")))
+}
+
+pub fn openable(url: &str) -> bool {
+    matches!(url.split_once(':'), Some((scheme, rest))
+        if !rest.is_empty() && OPENED.iter().any(|one| scheme.eq_ignore_ascii_case(one)))
 }
 
 pub fn through(url: &str) -> String {
@@ -56,6 +64,9 @@ pub fn a_handler_is_there() -> bool {
 #[tauri::command]
 pub fn open_link(url: String) -> Answer<()> {
     let said = url.trim();
+    if !openable(said) {
+        return Err(Refusal::about("cannotOpen", said.to_string()));
+    }
     let asked = as_opened(said, a_handler_is_there());
     if asked != said && tauri_plugin_opener::open_url(&asked, None::<&str>).is_ok() {
         return Ok(());
