@@ -14,6 +14,8 @@ export default function MoveNotice({ onOpen }: { onOpen: () => void }) {
   const run = useMove();
   if (!run || run.watched) return null;
   const done = run.result?.state === "done" && !run.going;
+  // What becomes of the copies in a cloud left behind is asked only in the move's last step.
+  const asksAboutCopies = run.result?.state === "done" && run.result.told && !!run.result.leftCloud;
   const failed = Boolean(run.failed);
   const waiting =
     !failed && !run.going && run.pausedUntil === undefined && run.result?.state === "waiting";
@@ -43,7 +45,7 @@ export default function MoveNotice({ onOpen }: { onOpen: () => void }) {
       {done && (
         <button
           type="button"
-          onClick={() => dismissMove()}
+          onClick={() => (asksAboutCopies ? onOpen() : dismissMove())}
           className="shrink-0 text-[11.5px] text-faint hover:text-soft"
         >
           {t("viewGotIt")}

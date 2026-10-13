@@ -468,14 +468,28 @@ describe("a move let go of or seen again", () => {
 });
 
 describe("a finished move told in the sidebar", () => {
-  it("is put away when seen, letting go of the cloud it left", async () => {
+  it("opens the last step when a cloud was left behind, so its copies are asked about first", async () => {
     ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: ANA });
-    render(<MoveNotice onOpen={() => undefined} />);
+    const open = vi.fn();
+    render(<MoveNotice onOpen={open} />);
     await act(async () => startMove({ kind: "alone" }));
 
     await userEvent.click(await screen.findByRole("button", { name: t("viewGotIt") }));
 
-    expect(sent("cloud_forget")[0].args.account).toBe(ANA.account);
+    expect(open).toHaveBeenCalled();
+    expect(sent("cloud_forget")).toHaveLength(0);
+    expect(screen.getByRole("status")).toBeTruthy();
+  });
+
+  it("is put away when seen, with nothing left to choose", async () => {
+    ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: null });
+    const open = vi.fn();
+    render(<MoveNotice onOpen={open} />);
+    await act(async () => startMove({ kind: "alone" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("viewGotIt") }));
+
+    expect(open).not.toHaveBeenCalled();
     expect(screen.queryByRole("status")).toBeNull();
   });
 });
