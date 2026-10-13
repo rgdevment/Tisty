@@ -38,10 +38,10 @@
   WriteRegStr SHCTX "Software\Classes\tisty" "" "URL:Tisty"
   WriteRegStr SHCTX "Software\Classes\tisty" "URL Protocol" ""
   WriteRegStr SHCTX "Software\Classes\tisty\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
-  WriteRegStr SHCTX "Software\Classes\tisty\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" "%1"'
+  WriteRegStr SHCTX "Software\Classes\tisty\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" -- "%1"'
   WriteRegStr SHCTX "Software\Classes\Tisty.Markdown" "" "Markdown"
   WriteRegStr SHCTX "Software\Classes\Tisty.Markdown\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
-  WriteRegStr SHCTX "Software\Classes\Tisty.Markdown\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" "%1"'
+  WriteRegStr SHCTX "Software\Classes\Tisty.Markdown\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" -- "%1"'
   WriteRegStr SHCTX "Software\Classes\.md\OpenWithProgids" "Tisty.Markdown" ""
   WriteRegStr SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown" ""
 !macroend

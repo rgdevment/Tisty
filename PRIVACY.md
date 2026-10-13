@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** October 11, 2026
+**Last updated:** October 13, 2026
 
 ## The short version
 
@@ -15,9 +15,10 @@ Never otherwise. A copy installed from the Microsoft Store makes none of those:
 it asks Windows what the Store has, and the Store does the rest. All of them are
 described in full below.
 
-A way of syncing that talks to your own cloud account directly is being built.
-It is in no release yet; when it is, it runs only if you choose it, and what it
-does is already written below, before it ships.
+Since version 1.30, Tisty can also sync through your own Google Drive, talking
+to it directly. It runs only if you choose it and connect your account in the
+Tisty window, it reaches nothing but Google, and what it sends and receives is
+described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -41,7 +42,7 @@ What you can choose, and what each implies:
 |---|---|
 | **Local only** (the default) | Nobody. It never leaves the machine |
 | **A folder your cloud client keeps in step** (Google Drive, OneDrive, iCloud, Dropbox, pCloud…) | That provider, under their terms and their jurisdiction |
-| **Your own cloud account, reached by Tisty directly** (being built; in no release yet) | That provider, under their terms and their jurisdiction. Nobody else: there is no server of ours in between |
+| **Your own Google Drive, reached by Tisty directly** (since 1.30) | Google, under its terms and its jurisdiction. Nobody else: there is no server of ours in between |
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
@@ -146,7 +147,7 @@ defence, because the remedy barely exists.
   open" below: what it carries is its doing and your choice, never Tisty's.
 - Does not upload crash reports.
 - Does not make background network calls, except the update check below and,
-  only if you choose your cloud account, the requests that sync with it.
+  only if you connect Google Drive, the requests that sync with it.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -264,23 +265,38 @@ That button is the only thing that fetches an installer, and what it does is
 described above. If you never press it, nothing is downloaded and the line just
 sits there.
 
-## Syncing with your own cloud account (being built)
+## Syncing with your own Google Drive
 
-This way of syncing is in no release yet. It is written here first because this
-file promises that a request is described before the release that makes it.
+Since version 1.30, Tisty can keep your machines in step through your own
+Google Drive account, without Google's desktop program installed. Google Drive
+is the only provider for now; OneDrive or Dropbox may follow, and none is
+promised. A copy built without this project's Google credentials offers no
+cloud at all and makes none of these requests.
 
 | | |
 | :--- | :--- |
-| **Why** | To keep your machines in step through your cloud account, without its desktop program installed |
-| **Who it talks to** | Only the provider you choose: Google Drive first, OneDrive and Dropbox later. Never a server of ours, because there is none |
-| **What it sends** | The files of your store — the history, the documents, `tisty.toml` and the attachments — into your own account, as they are on your disk. Tisty does not encrypt them, just as it does not encrypt a folder you sync. When a machine stops syncing with a place, it leaves there a short signed note (`moved.json`) saying where it went — a folder's name or the cloud account's address — so your other machines stop instead of going on alone |
-| **What it receives** | The same files, written by your other machines, and the provider's list of what changed |
-| **How you allow it** | You sign in on the provider's own page. Tisty never sees your password; it receives an access you can withdraw from your account's settings at any time. On macOS and Linux it keeps that access in the system keychain. On Windows it keeps it in a file sealed with Windows' own protection for your user (DPAPI, the same lock Credential Manager uses), inside Tisty's folder, so uninstalling Tisty removes it. Only the window touches it; the command line and assistants never do |
-| **Letting go** | Disconnecting a machine forgets its access on that machine only. Google withdraws an access for every machine at once, so withdrawing it is a separate choice that disconnects them all. Uninstalling withdraws nothing. On Windows it also removes this machine's copy. macOS and Linux run nothing when an app is removed, so there the copy stays in the system keychain until you disconnect first or delete it there; Google drops an access unused for six months |
-| **How often** | Only while Tisty is open. It asks whether anything changed at most every few minutes, and less often while nothing does. There is no background service |
-| **Limits** | A daily allowance per person, so one copy cannot spend the shared quota the provider grants this project. The allowance comes from a small signed file published beside the version manifest, fetched at most once an hour while you sync with your cloud account, which carries numbers and nothing of yours |
-| **What it never does** | Send your data to us or to anyone but the provider you chose, or write tokens and signed addresses into its own log |
-| **Leaving** | Choose *Only on this machine* or a folder. Tisty brings home what lives only in your account before it lets go of it, and leaves the copies there until you delete them; the provider keeps what is deleted for as long as its own bin and version history do |
+| **Why** | To keep your machines in step through your Google Drive, without its desktop program installed |
+| **Who it talks to** | Google only: `accounts.google.com` and `oauth2.googleapis.com` to sign in, and `www.googleapis.com` for Drive. Never a server of ours, because there is none |
+| **What Google lets Tisty see** | The permission asked for is `drive.file`: Tisty sees and changes only the files it created itself. The rest of your Drive — your documents, your photos, what others share with you — stays out of its reach. If Google grants anything wider, Tisty gives the access back and stops. It also reads the address of the account you connected, to show you which one it is and to refuse to mix two accounts |
+| **What it sends** | The files of your store — the history, the documents and `tisty.toml` — into a folder of its own in your Drive, as they are on your disk. Tisty does not encrypt them, just as it does not encrypt a folder you sync. Attachments go up too, but stay on the computer they were added on; on your other computers each one comes down only when you open it. When a machine stops syncing with a place, it leaves there a short signed note (`moved.json`) saying where it went — a folder's name or the cloud account's address — so your other machines stop instead of going on alone |
+| **What Google sees** | What any provider of a synced folder sees: the files above, their names and sizes, when they change, and the address and time of each request. Google already holds your account; Tisty adds nothing about you |
+| **What it receives** | The same files, written by your other machines, and Drive's list of what changed |
+| **How you allow it** | Only from the Tisty window: the command line and assistants never connect an account and never touch the network. You sign in on Google's own page in your browser. Tisty never sees your password; it receives an access you can withdraw at any time. On macOS and Linux it keeps that access in the system keychain. On Windows it keeps it in a file sealed with Windows' own protection for your user (DPAPI, the same lock Credential Manager uses), inside Tisty's folder under your profile, so uninstalling Tisty removes it. Only the window touches it; it never reaches the log, a backup or a parcel |
+| **Letting go** | *Disconnect this computer* forgets the access on that machine only. *Remove Tisty's access on every computer* asks Google to withdraw it, which Google does for every machine at once. You can also withdraw it yourself from your Google account, under *Security* › *Third-party apps and services* (<https://myaccount.google.com/connections>). Uninstalling withdraws nothing. On Windows it also removes this machine's copy. macOS and Linux run nothing when an app is removed, so there the copy stays in the system keychain until you disconnect first or delete it there; Google drops an access unused for six months |
+| **How often** | Only while Tisty is running, including when it sits in the tray or started on its own at login; never once it is closed. It asks whether anything changed at most every few minutes, and less often while nothing does. There is no background service |
+| **Limits** | A daily allowance per computer — not per person — of 2,000,000 request units and 50 GB downloaded, so one copy cannot spend the shared quota Google grants this project. Attachments are capped at 25 MB per task and 650 MB inside a document, and nothing over 750 MB is taken in from the cloud. *Free space* lets go of attachments you have not opened in a while; opening one again brings it back down and counts against the same allowance |
+| **The remote switch** | A small file, `cloud.json`, published beside the version manifest at `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json`, can lower those limits or pause syncing for a while on every copy, should the project's quota be at risk. It is signed with minisign against a key fixed in the program when it is built, read only up to 16 KiB, and an older one never replaces a newer one. It is fetched at most once an hour while you sync with Google Drive, sends nothing but the request itself, and carries numbers and nothing of yours |
+| **What it never does** | Send your data to us or to anyone but Google, read a file in your Drive it did not create, or write tokens and signed addresses into its own log |
+| **Leaving** | Choose *Only on this machine* or a folder through *Move to another place*. Tisty brings home what lives only in your Drive before it lets go of it, and leaves the copies there until you delete them; Google keeps what is deleted for as long as its own bin and version history do |
+
+### Google API Services
+
+Tisty's use and transfer of information received from Google APIs adheres to
+the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy),
+including the Limited Use requirements. In plain words: what Tisty reads from
+your Drive is used only to sync your own store between your own machines. It
+is never sent to us or to anyone else, never used for advertising, never sold,
+never used to train any model, and no person reads it.
 
 ## The door you can open for an assistant
 

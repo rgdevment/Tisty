@@ -121,6 +121,25 @@ nothing itself: it asks the Store what it has and lets the Store install it. Wha
 signs the package there is the Store, on publication, and the key above never
 comes into it.
 
+## What a build of your own leaves out
+
+Syncing straight with Google Drive needs three values fixed into the program
+when it is compiled. They are not in this repository, because they belong to
+this project's Google client and its signing key, not to the code:
+
+| Build input | What it is |
+|---|---|
+| `TISTY_GOOGLE_CLIENT_ID` | The Google OAuth client the sign-in page names |
+| `TISTY_GOOGLE_CLIENT_SECRET` | That client's secret, which Google asks a desktop client to send along |
+| `TISTY_CLOUD_POLICY_KEY` | The minisign public key that `cloud.json` — the signed file that can lower the daily limits or pause syncing on every copy — must be signed with |
+
+A fork or a build compiled without the first two offers no cloud at all: the
+choice does not appear and no request to Google is ever made. Folder sync, and
+everything else, works the same. Without the third, the cloud works with the
+limits the program ships with and never asks for `cloud.json`. To offer the
+cloud in a build of your own, register your own Google client and set your own
+key; this project's are not to be reused.
+
 ## Questions
 
 <github@apirest.cl>. If your situation is not covered here, ask before

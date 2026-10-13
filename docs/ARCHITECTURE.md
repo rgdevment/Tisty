@@ -601,9 +601,9 @@ sequenceDiagram
 | Identity | A machine that never wrote adopts the folder's `.store-id`; two named stores that differ are refused (`OtherStore`); a folder that holds history but no `.store-id` is `WouldReset` | `settled` |
 | Pull | Each directory of the folder other than this machine's own, verified and installed as in *Verifying a history on arrival*. Names that no machine could have are left alone. A directory still arriving from the cloud waits (`coming`). This machine's own directory is taken back only if the folder holds strictly more of it | `bringing.rs` |
 | Push | Allowed only if the ledger lets this machine write. `.store-id` is written if it differs, the own directory is copied, and histories held for other machines are handed on when ours reaches further than the folder's | `segments.rs` |
-| Attachments up | Everything the log has not retired, whose bytes match name and digest; with `Holds::Shared`, a copy above 50 MB is then released locally once the folder's copy is verified | `held.rs`, `attachments.rs` |
+| Attachments up | Everything the log has not retired, whose bytes match name and digest; with `Holds::Shared`, a copy above 25 MB is then released locally once the folder's copy is verified | `held.rs`, `attachments.rs` |
 | Documents | One decision per live document (next section) | `papers.rs` |
-| Attachments down | Files in the folder shaped like an attachment, not retired, not above the 50 MB line unless `Holds::Everywhere`, and, when the folder holds files no log claims, only those a task or document names. Bytes are checked against the name and digest before the rename | `held.rs` |
+| Attachments down | Files in the folder shaped like an attachment, not retired, not above the 25 MB line unless `Holds::Everywhere`, and, when the folder holds files no log claims, only those a task or document names. Bytes are checked against the name and digest before the rename | `held.rs` |
 | Stamp | `tisty.toml` is written last, only if it is missing or says less than this build knows; finding it is finding a round that finished | `shape::stamp` |
 
 Files already identical are skipped. Identical means the same length and then
@@ -982,18 +982,30 @@ stateDiagram-v2
 - **Filling** (`filling(to, here)`): attachments whole here that the new place
   does not hold at their size. A deferred push round also leaves the move in
   `Filling`.
-- The old place stays chosen until `Ready`, and nothing in it is deleted. Only
-  the crate does this so far: no window or command offers a move yet.
+- The old place stays chosen until `Ready`, and nothing in it is deleted. The
+  window drives it (`answers/relocating.rs`, *Move to another place…* in
+  Settings): `move_plan` says what will travel, `move_to` runs steps until
+  `Ready`, changes the pointer, and leaves the signed `moved.json` in the old
+  place so the other machines follow. The command line offers no move.
 
 ### What exists
 
 - `Folder`: complete and in use.
-- `Cloud`, `Shelf`, `Tokens` and the `Remote` contract: complete against test
+- `Cloud`, `Shelf`, `Tokens` and the `Remote` contract, proved against test
   providers (`remote_fakes.rs` simulates Drive, OneDrive and Dropbox with their
   limits, a lagging index, truncated downloads and conflict copies;
   `remote_folder_backed.rs` serves a real folder through the same contract).
-- No `Remote` for a real provider, no `Sync` value that names a cloud, and no
-  window screen for choosing one.
+- Google Drive's `Remote` in `crates/tisty-google` (`Drive`, scope `drive.file`,
+  sign-in through the browser with PKCE). A build without
+  `TISTY_GOOGLE_CLIENT_ID` and `TISTY_GOOGLE_CLIENT_SECRET` has no client and
+  offers no cloud.
+- `Sync::Cloud` in `config.rs`, naming the provider and the account.
+- The window: the Google Drive card with its states, the local switch, the
+  day's spend, *Free space*, and the move between this machine, a folder and
+  the cloud (`answers/clouding.rs`, `answers/relocating.rs`,
+  `answers/freeing.rs`). The command line and MCP never reach the network:
+  `tisty sync` leaves a cloud round to the window, and `tisty doctor` reads the
+  cloud's standing off this disk.
 
 ## Documents and attachments
 
@@ -1079,7 +1091,7 @@ in-memory `Corpus` (64 MiB) keyed by size and time is used.
 ```mermaid
 stateDiagram-v2
   [*] --> Here: keep, then attach.kept
-  Here --> FolderOnly: holds Shared, above 50 MB, folder copy verified, attach.let_go
+  Here --> FolderOnly: holds Shared, above 25 MB, folder copy verified, attach.let_go
   FolderOnly --> Here: a round under holds Everywhere brings it down
   Here --> Retired: attach.retire
   FolderOnly --> Retired: attach.retire
@@ -1092,14 +1104,15 @@ stateDiagram-v2
   folded to ASCII, the extension is lowercased. A second copy of the same bytes
   finds the first. The reference written into the task journal or document is
   `![label](<attachments/…>)`.
-- **Limits.** A task copies up to the person's setting (`attach_up_to`: 5 MB on
-  a new configuration, between 64 KB and 50 MB). A document copies up to
-  `COPIED_IN_DOC` = 750 MB, and refuses before copying when the line would not
-  fit or the document already names 150 files.
+- **Limits.** Fixed, not a setting. A task copies up to `COPIED_UP_TO` =
+  25 MB. A document copies up to `COPIED_IN_DOC` = 650 MB, and refuses before
+  copying when the line would not fit or the document already names 150 files.
+  Nothing larger than `HELD_UP_TO` = 750 MB is taken in from another machine
+  or the cloud.
 - **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy;
   `attach.let_go` says it released its copy; `attach.retire` retires the name
   for every machine.
-- **Holds** (`config::Holds`) decides where files above 50 MB
+- **Holds** (`config::Holds`) decides where files above 25 MB
   (`COPIED_UP_TO`) live once there is a shared folder. `Everywhere`: every
   machine keeps every file. `Mine`: large files are not brought here, and this
   machine never releases its own. `Shared` (the default with a folder): a large
@@ -1443,12 +1456,7 @@ checks that a test would notice a changed line.
 
 ## Not built yet
 
-- A window screen to connect and choose a cloud, its states and the local
-  switch; the backend commands exist (`answers/clouding.rs`).
 - A `Remote` for OneDrive and Dropbox.
-- Maintenance showing the cloud's day's spend.
-- A window screen or command that moves between places with `shift` and shows
-  how far the move has gone.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.

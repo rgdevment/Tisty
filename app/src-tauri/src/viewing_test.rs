@@ -1,4 +1,4 @@
-use super::asked;
+use super::{asked, wanted};
 
 fn written(room: &tempfile::TempDir, name: &str) -> std::path::PathBuf {
     let at = room.path().join(name);
@@ -22,6 +22,15 @@ fn a_whole_path_to_a_markdown_file_is_opened_however_it_comes() {
     assert_eq!(asked(&linked(&at), None), Some(at.clone()));
     let file = url::Url::from_file_path(&at).unwrap();
     assert_eq!(asked(file.as_str(), None), Some(at));
+}
+
+#[test]
+fn what_the_shell_hands_over_after_the_separator_still_opens() {
+    let room = tempfile::tempdir().unwrap();
+    let real = written(&room, "real.md");
+    let argv = vec!["tisty-gui".to_string(), "--".to_string(), linked(&real)];
+
+    assert_eq!(wanted(&argv, Some(room.path())), vec![real]);
 }
 
 #[test]

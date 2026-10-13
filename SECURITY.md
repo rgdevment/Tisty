@@ -34,14 +34,22 @@ report will never be dismissed for being inconvenient.
   Microsoft Store makes neither request: it asks Windows what the Store has for
   it. It is written out in full in [PRIVACY.md](PRIVACY.md), down to the
   headers.
-- **A cloud account is reached only if you choose it.** Syncing straight with
-  your own Google Drive, OneDrive or Dropbox is being built and is in no release
-  yet. When it ships, Tisty talks only to that provider, keeps the access it was
-  given in the system keychain on macOS and Linux and, on Windows, in a file
-  sealed for your user with DPAPI that uninstalling removes, and masks tokens
-  and signed addresses in its own log. Only the window holds it; the command
-  line and assistants never reach the network. What it will ask and send is in
-  [PRIVACY.md](PRIVACY.md) before the release that carries it.
+- **A cloud account is reached only if you choose it.** Since 1.30, Tisty can
+  sync straight with your own Google Drive; OneDrive or Dropbox may come later,
+  and none is promised. It talks only to Google, asks only for `drive.file` — so
+  it sees the files it created and nothing else in your Drive — and gives back
+  any access granted wider than that. It keeps the access it was given in the
+  system keychain on macOS and Linux and, on Windows, in a file sealed for your
+  user with DPAPI under your profile that uninstalling removes, and masks tokens
+  and signed addresses in its own log. Only the window holds it and only the
+  window connects an account; the command line and assistants never reach the
+  network. Nothing goes to a server of ours. A daily allowance per computer keeps
+  one copy from spending the project's shared quota, and the one remote switch
+  that can lower it or pause syncing, `cloud.json`, is refused unless it is
+  signed with minisign against a key fixed in the build, is no larger than
+  16 KiB and is newer than the last one heard. You can withdraw Tisty's access
+  from the window or from your Google account at any time. What it asks and
+  sends is in [PRIVACY.md](PRIVACY.md).
 - **An update is verified before it is installed.** What the button fetches is
   checked against a public key compiled into the copy already on your machine.
   A build signed with any other key is refused, so a release that is not the

@@ -266,7 +266,6 @@ const en = {
   guestNone: "from elsewhere",
   goneDoc: "That document is not on this machine",
   docItself: "This very document",
-  goneFile: "not in the store",
   documentTooBig: "That document is larger than {name}, so it was not imported",
   markStep: "Mark done: {name}",
   unmarkStep: "Mark not done: {name}",
@@ -1123,7 +1122,7 @@ const en = {
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another store ({name})",
   attachmentTooBig:
-    "That file is over {name}, the most a task takes. Raise it in Settings → Your data, or attach it inside a document, which takes up to 750 MB.",
+    "That file is over {name}, the most a task takes. Attach it inside a document instead, which takes up to 650 MB.",
   attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
@@ -1183,7 +1182,6 @@ const en = {
   chooseFolderWhy: "A NAS, a drive or your cloud app's folder. You decide where and how.",
   chooseOneAtATime:
     "One at a time. You can change it later in Settings: it's a move, and before anything is touched you're told what will happen.",
-  cloudConnectTitle: "Connect your cloud",
   cloudConnectWhy:
     "Your browser opens, you sign in to your account and Google asks whether Tisty may keep its copies there.",
   cloudGoogle: "Google Drive",
@@ -1227,7 +1225,6 @@ const en = {
   cloudRevokeAll: "Remove Tisty's access on every computer",
   cloudRevokeAllSure:
     "Google takes Tisty's access away from this account on every computer at once. Your copies stay in your Drive, and each computer will have to connect again.",
-  cloudWhenWrong: "When something isn't working",
   stateReconnect: "Google no longer lets Tisty in",
   stateReconnectWhy:
     "The permission was removed or expired. Connect again; meanwhile everything stays safe here.",
@@ -1585,7 +1582,6 @@ const en = {
   machinesNone: "No machine has written yet",
   machineHushed:
     "Some machines have not written here in a while. They may still be using what looks loose below.",
-  machineSigns: "signs with",
   machineKeyLoose: "unconfirmed",
   machineWaits: "Waiting",
   machineWaitsWhy: "Nothing it writes comes in until you confirm it",
@@ -1767,7 +1763,6 @@ const en = {
     "If the code is not the same, what it writes is not coming from the computer you think. Nothing changed here: what it wrote stays in the folder, outside.",
   confirmMismatchDo:
     "Did you reinstall or replace that computer recently? Then it comes back as a new one: look for it in the list and confirm that one. If not, check who has access to your shared folder.",
-  confirmGotIt: "Got it",
   machineCode: "code",
   machineSince: "writing since {name}",
   machineCarried: "accepted on update",
@@ -2078,7 +2073,6 @@ const es: Catalog = {
   guestNone: "de fuera",
   goneDoc: "Ese documento no está en esta máquina",
   docItself: "Este mismo documento",
-  goneFile: "no está en el almacén",
   documentTooBig: "Ese documento pasa de {name}, así que no se importó",
   markStep: "Marcar hecho: {name}",
   unmarkStep: "Marcar sin hacer: {name}",
@@ -2942,7 +2936,7 @@ const es: Catalog = {
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro almacén ({name})",
   attachmentTooBig:
-    "Ese archivo pasa de {name}, el máximo de una tarea. Súbelo en Configuración → Tus datos, o adjúntalo dentro de un documento, que admite hasta 750 MB.",
+    "Ese archivo pasa de {name}, el máximo de una tarea. Adjúntalo mejor dentro de un documento, que admite hasta 650 MB.",
   attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
   textTooLong:
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
@@ -3004,7 +2998,6 @@ const es: Catalog = {
     "Un NAS, un disco o la carpeta del programa de tu nube. Tú decides dónde y cómo.",
   chooseOneAtATime:
     "Es una sola a la vez. Puedes cambiarla después desde Ajustes: es una mudanza, y antes de tocar nada te contamos qué va a pasar.",
-  cloudConnectTitle: "Conecta tu nube",
   cloudConnectWhy:
     "Se abre tu navegador, entras en tu cuenta y Google te pregunta si Tisty puede guardar ahí sus copias.",
   cloudGoogle: "Google Drive",
@@ -3047,7 +3040,6 @@ const es: Catalog = {
   cloudRevokeAll: "Quitar el acceso de Tisty en todos tus equipos",
   cloudRevokeAllSure:
     "Google le quita a Tisty el acceso a esta cuenta en todos tus equipos a la vez. Tus copias quedan en tu Drive, y cada equipo tendrá que conectarse de nuevo.",
-  cloudWhenWrong: "Cuando algo no va",
   stateReconnect: "Google ya no deja entrar a Tisty",
   stateReconnectWhy:
     "El permiso se quitó o venció. Conecta de nuevo; mientras tanto todo queda a salvo aquí.",
@@ -3406,7 +3398,6 @@ const es: Catalog = {
   machinesNone: "Ninguna máquina ha escrito todavía",
   machineHushed:
     "Hay equipos que llevan tiempo sin escribir aquí. Puede que sigan usando lo que abajo parece suelto.",
-  machineSigns: "firma con",
   machineKeyLoose: "sin confirmar",
   machineWaits: "Esperando",
   machineWaitsWhy: "Nada de lo que escribe entra hasta que la confirmes",
@@ -3588,7 +3579,6 @@ const es: Catalog = {
     "Si el código no es el mismo, lo que escribe no viene del computador que crees. Aquí no cambió nada: lo que escribió sigue en la carpeta, sin entrar.",
   confirmMismatchDo:
     "¿Reinstalaste o cambiaste ese computador hace poco? Entonces vuelve como uno nuevo: búscalo en la lista y confirma ese. Si no, revisa quién tiene acceso a tu carpeta compartida.",
-  confirmGotIt: "Entendido",
   machineCode: "código",
   machineSince: "escribe desde {name}",
   machineCarried: "aceptado al actualizar",
