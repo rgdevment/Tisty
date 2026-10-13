@@ -513,8 +513,13 @@ fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> 
 }
 
 pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
+    went_back_asking(session, || theirs)
+}
+
+// Only a restored store asks whose store is there, since the first look at a cloud brings its whole history.
+pub(crate) fn went_back_asking(session: &Session, theirs: impl FnOnce() -> Option<String>) -> bool {
     session.config.restored_at.is_some()
-        && theirs.is_some_and(|theirs| {
+        && theirs().is_some_and(|theirs| {
             tisty_core::store::peek_identity(session.paths.store())
                 .is_some_and(|ours| ours.trim() == theirs.trim())
         })
@@ -854,7 +859,7 @@ async fn carried_round(
     let (carrier, paths, home, store, alive, holds, owing, place) = {
         let session = held(session);
         let carrier = session.carrying()?;
-        if went_back_on(&session, carrier.theirs()) {
+        if went_back_asking(&session, || carrier.theirs()) {
             let named = carrier.place().map(|at| at.display().to_string());
             return Err(Refusal::about("restoredApart", named.unwrap_or_default()));
         }
