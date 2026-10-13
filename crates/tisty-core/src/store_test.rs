@@ -2008,3 +2008,78 @@ fn a_store_does_not_write_behind_a_line_of_a_newer_schema() {
     );
     assert_eq!(std::fs::read(&active).unwrap(), was);
 }
+
+#[test]
+fn a_reading_that_failed_once_is_asked_again_before_the_next_write() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let dir = paths.store().join(&who.0);
+    std::fs::create_dir_all(dir.join("000001.tisty")).unwrap();
+
+    let mut store = Store::open(paths.store(), who)
+        .unwrap()
+        .signing_with(Some(key));
+    store
+        .append(a_task("while a segment would not read"))
+        .unwrap();
+    std::fs::remove_dir(dir.join("000001.tisty")).unwrap();
+    store.append(a_task("once it reads again")).unwrap();
+
+    let whole = std::fs::read_to_string(dir.join(ACTIVE)).unwrap();
+    assert!(
+        whole
+            .lines()
+            .last()
+            .is_some_and(|line| line.contains("\"op\":\"seal\"")),
+        "one failed reading gave up signing for the rest of the session"
+    );
+}
+
+#[test]
+fn a_half_line_left_while_the_store_is_open_is_set_aside_before_the_next_event() {
+    let tmp = tempfile::tempdir().unwrap();
+    let who = DeviceId("dev_a".into());
+    let mut store = Store::open(tmp.path(), who.clone()).unwrap();
+    store.append(add("before the cut")).unwrap();
+    let active = tmp.path().join(&who.0).join(ACTIVE);
+    std::fs::OpenOptions::new()
+        .append(true)
+        .open(&active)
+        .unwrap()
+        .write_all(b"{\"v\":17,\"op\":\"task.ad")
+        .unwrap();
+
+    store.append(add("after the cut")).unwrap();
+
+    let read = read_all(tmp.path()).expect("the half line glued itself to the next event");
+    assert_eq!(read.len(), 2);
+    assert!(
+        active.with_extension(TORN).exists(),
+        "the half line was not kept aside"
+    );
+}
+
+#[test]
+fn a_store_reopened_right_after_a_rotation_still_knows_its_newest_stamp() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let who = DeviceId("dev_a".into());
+    let key = crate::signing::mine(&paths, &who).expect("a key");
+    let written = {
+        let mut store = Store::open(paths.store(), who.clone())
+            .unwrap()
+            .signing_with(Some(key.clone()));
+        let event = store.append(a_task("the last before closing")).unwrap();
+        assert!(store.rotate().unwrap());
+        event
+    };
+
+    let store = Store::open(paths.store(), who).unwrap();
+
+    assert!(
+        (store.head, store.seq) >= (written.timestamp, written.seq),
+        "a clock set back would stamp before the segment just closed"
+    );
+}
