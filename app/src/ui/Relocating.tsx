@@ -110,6 +110,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
     if (!leftCloud || busy || !(await sure(t("moveWipeSure")))) return;
     setBusy(true);
     setWiping(true);
+    setTrouble(undefined);
     cloudWipe(leftCloud.account, leftCloud.email)
       .then((gone) => {
         settled.current = true;

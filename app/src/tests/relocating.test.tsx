@@ -289,6 +289,24 @@ describe("moving to another place", () => {
     expect(sent("cloud_forget")).toHaveLength(0);
   });
 
+  it("clears a stopped deletion's message and shows it working when pressed again", async () => {
+    ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: ANA });
+    ipc.answers.cloud_wipe = () => Promise.reject({ code: "wipeStopped" });
+    opened();
+    await agreedAndMoved();
+    await userEvent.click(await screen.findByRole("button", { name: t("moveWipe") }));
+    expect((await screen.findByRole("alert")).textContent).toBe(t("wipeStopped"));
+
+    let finish: (gone: number) => void = () => undefined;
+    ipc.answers.cloud_wipe = () => new Promise((done) => (finish = done));
+    await userEvent.click(screen.getByRole("button", { name: t("moveWipe") }));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe(t("moveWiping"));
+    finish(30);
+    expect(await screen.findByText(fill("moveWiped", "30"))).toBeTruthy();
+  });
+
   it("lets go of the old cloud's access when its copies are left there", async () => {
     ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: ANA });
     opened();
