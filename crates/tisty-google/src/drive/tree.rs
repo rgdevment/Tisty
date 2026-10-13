@@ -4,8 +4,9 @@ use serde::Deserialize;
 use tisty_carrier::Seen;
 
 pub(super) const FOLDER: &str = "application/vnd.google-apps.folder";
-pub(super) const FILE_FIELDS: &str =
-    "id,name,parents,mimeType,size,sha256Checksum,md5Checksum,headRevisionId,version,trashed";
+// Tisty's own bin inside its space: a file set aside there is no file of the store, only a deletion not yet final.
+pub(super) const BIN: &str = ".bin";
+pub(super) const FILE_FIELDS: &str = "id,name,parents,mimeType,size,sha256Checksum,md5Checksum,headRevisionId,version,trashed,createdTime";
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,6 +25,12 @@ pub(super) struct File {
     pub version: Option<String>,
     #[serde(default)]
     pub trashed: bool,
+    pub created_time: Option<String>,
+}
+
+// The oldest copy of a name is the one, on every machine alike, however each heard of the others.
+pub(super) fn ordered(copies: &mut [File]) {
+    copies.sort_by(|a, b| (&a.created_time, &a.id).cmp(&(&b.created_time, &b.id)));
 }
 
 #[derive(Deserialize)]
@@ -40,6 +47,27 @@ pub(super) struct Tree {
     // Every folder by its id, a racing machine's second `docs` too, so what sits in either is found.
     pub folder_paths: HashMap<String, String>,
     pub files: BTreeMap<String, Vec<File>>,
+    pub binned: Vec<File>,
+}
+
+pub(super) fn differing(was: &Tree, now: &Tree) -> BTreeSet<String> {
+    let first = |tree: &Tree, path: &str| {
+        tree.files
+            .get(path)
+            .and_then(|copies| copies.first())
+            .map(|one| (one.id.clone(), one.version.clone()))
+    };
+    was.files
+        .keys()
+        .chain(now.files.keys())
+        .filter(|path| first(was, path) != first(now, path))
+        .cloned()
+        .collect()
+}
+
+pub(super) fn in_bin(path: &str) -> bool {
+    path.strip_prefix(BIN)
+        .is_some_and(|rest| rest.starts_with('/'))
 }
 
 pub(super) fn seen(name: &str, file: &File) -> Seen {
@@ -71,25 +99,26 @@ pub(super) fn split(name: &str) -> (Option<&str>, &str) {
     }
 }
 
-// A root is a Tisty folder not inside another folder Tisty made, wherever the person moved it.
-pub(super) fn roots_in(name: &str, all: &[File]) -> Vec<String> {
-    let ours: std::collections::HashSet<&str> = all
+// Only the space itself holds what is listed without its parent, so two such parents mean the listing cannot say which is the space.
+pub(super) fn root_in(all: &[File]) -> Result<Option<String>, ()> {
+    let folders: std::collections::HashSet<&str> = all
         .iter()
         .filter(|one| one.mime_type == FOLDER)
         .map(|one| one.id.as_str())
         .collect();
-    all.iter()
-        .filter(|one| one.mime_type == FOLDER && one.name == name)
-        .filter(|one| {
-            one.parents
-                .first()
-                .is_none_or(|parent| !ours.contains(parent.as_str()))
-        })
-        .map(|one| one.id.clone())
-        .collect()
+    let outside: BTreeSet<&str> = all
+        .iter()
+        .filter_map(|one| one.parents.first())
+        .map(String::as_str)
+        .filter(|parent| !folders.contains(parent))
+        .collect();
+    match outside.len() {
+        0 => Ok(None),
+        1 => Ok(outside.first().map(|one| (*one).to_string())),
+        _ => Err(()),
+    }
 }
 
-// Every root Tisty folder counts, so what a racing first machine wrote in its own is still found.
 pub(super) fn planted(roots: &[String], all: Vec<File>) -> Tree {
     let folder_of: HashMap<&str, (&str, Option<&str>)> = all
         .iter()
@@ -116,8 +145,12 @@ pub(super) fn planted(roots: &[String], all: Vec<File>) -> Tree {
                 tree.folder_paths.insert(one.id.clone(), path.clone());
                 tree.folders.entry(path).or_insert_with(|| one.id.clone());
             }
+            false if in_bin(&path) => tree.binned.push(one.clone()),
             false => tree.files.entry(path).or_default().push(one.clone()),
         }
+    }
+    for copies in tree.files.values_mut() {
+        ordered(copies);
     }
     tree
 }
@@ -213,7 +246,7 @@ pub(super) fn applied(
         let Some(file) = one.standing() else {
             continue;
         };
-        let Some(path) = path_in(&next, roots, file) else {
+        let Some(path) = path_in(&next, roots, file).filter(|path| !in_bin(path)) else {
             continue;
         };
         let copies = next.files.entry(path.clone()).or_default();
@@ -221,6 +254,7 @@ pub(super) fn applied(
             Some((was, at)) if was == path => copies.insert(at.min(copies.len()), file.clone()),
             _ => copies.push(file.clone()),
         }
+        ordered(copies);
         where_is.insert(file.id.clone(), path.clone());
         touched.insert(path);
     }

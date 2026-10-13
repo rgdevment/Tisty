@@ -342,3 +342,34 @@ fn the_tasks_sent_ahead_spend_the_history_budget_not_the_attachments_one() {
         );
     }
 }
+
+#[test]
+fn a_folder_left_keeps_a_note_for_whoever_opens_it_until_this_machine_chooses_it_again() {
+    let room = tempfile::tempdir().unwrap();
+    let folder = Folder::at(room.path().to_path_buf());
+    let said = tisty_core::moved::said(
+        &tisty_core::signing::SigningKey::from_bytes(&[3; 32]),
+        tisty_core::moved::Leaving {
+            by: &tisty_core::DeviceId("dev_a".into()),
+            to: "cloud:ana@example.com",
+            at: 1_760_000_000,
+            store: "store",
+            place: "folder",
+        },
+    );
+    let note = room.path().join(tisty_core::left_behind::NOTICE);
+
+    folder.leave_word(&said).unwrap();
+    assert!(
+        std::fs::read_to_string(&note)
+            .unwrap()
+            .contains("Google Drive"),
+        "the folder left behind says nothing of where things went"
+    );
+
+    folder.forget_word().unwrap();
+    assert!(
+        !note.exists(),
+        "the note stayed once the folder was chosen again"
+    );
+}

@@ -2,12 +2,13 @@ use std::collections::{BTreeSet, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use reqwest::blocking::Client as Http;
 use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
+mod bin;
 mod gap;
 mod owed;
 mod sessions;
@@ -15,20 +16,20 @@ mod tree;
 mod upload;
 mod wire;
 
-use tree::{
-    Changed, FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within,
-};
+use tree::{Changed, FILE_FIELDS, FOLDER, File, Page, Tree, planted, root_in, seen, split, within};
 use wire::{given, json, quoted, transfer_http};
 
 use crate::ASKED_WITHIN;
 
-const ROOT: &str = "Tisty";
+// Drive's hidden space for this app: Tisty's store never shows among the person's own files.
+pub(super) const SPACE: &str = "appDataFolder";
 // Google's units for what a verb's own cost does not cover (guides/limits).
 pub(super) const READ: u64 = 5;
 pub(super) const LIST: u64 = 100;
 pub(super) const DOWNLOAD: u64 = 200;
 pub(super) const EDIT: u64 = 50;
 const MIB: u64 = 1024 * 1024;
+const FRESH_FOR: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DriveAt {
@@ -55,10 +56,18 @@ struct Known {
     tree: Tree,
     cursor: Option<String>,
     // Each cursor reached with the paths that moved to reach it, so one asked from an older cursor hears all of them again.
-    passed: Vec<(String, BTreeSet<String>)>,
+    passed: Passed,
+    current_at: Instant,
 }
 
+type Passed = Vec<(String, BTreeSet<String>)>;
+
 const PASSED_AT_MOST: usize = 64;
+
+// Only an attachment's name says its bytes, so only its absence in a current tree is trusted without a search.
+fn content_addressed(name: &str) -> bool {
+    name.starts_with("attachments/")
+}
 
 impl Known {
     fn holds_up_to(&self, since: &str) -> bool {
@@ -67,6 +76,7 @@ impl Known {
 
     fn moved_to(&mut self, cursor: &str, touched: BTreeSet<String>) {
         self.cursor = Some(cursor.to_string());
+        self.current_at = Instant::now();
         if self.passed.last().is_some_and(|(last, _)| last == cursor) {
             return;
         }
@@ -74,6 +84,12 @@ impl Known {
         if self.passed.len() > PASSED_AT_MOST {
             self.passed.remove(0);
         }
+    }
+
+    // A quiet catch-up between rounds moves the cursor without a mark, so a day of them never pushes out the one the index holds.
+    fn kept_at(&mut self, cursor: &str) {
+        self.cursor = Some(cursor.to_string());
+        self.current_at = Instant::now();
     }
 
     fn touched_since(&self, since: &str) -> BTreeSet<String> {
@@ -91,7 +107,7 @@ pub struct Drive {
     http: Http,
     at: DriveAt,
     chunk: u64,
-    roots: Mutex<Option<Vec<String>>>,
+    root: Mutex<Option<String>>,
     known: Mutex<Option<Known>>,
     // What this machine wrote or deleted, by id and version, so its own changes are never news.
     wrote: Mutex<HashSet<(String, Option<String>)>>,
@@ -108,7 +124,7 @@ impl Drive {
             http: transfer_http()?,
             at,
             chunk: 8 * MIB,
-            roots: Mutex::new(None),
+            root: Mutex::new(None),
             known: Mutex::new(None),
             wrote: Mutex::new(HashSet::new()),
             expected: None,
@@ -181,25 +197,28 @@ impl Drive {
         }
     }
 
-    fn root_known(&self) -> Result<Option<String>, Hitch> {
+    // Google's own name for the space stands for it until a listing says its id, which files there name as their parent.
+    fn root(&self) -> Result<String, Hitch> {
         self.with_known(|_| ())?;
-        Ok(self
-            .roots
-            .lock()
-            .ok()
-            .and_then(|held| held.as_ref().and_then(|roots| roots.first().cloned())))
+        Ok(self.roots().pop().unwrap_or_else(|| SPACE.to_string()))
     }
 
-    // Made only when something is written, never while reading, so a lagging search can never split the store.
-    fn root_made(&self) -> Result<String, Hitch> {
-        if let Some(root) = self.root_known()? {
-            return Ok(root);
-        }
-        let made = self.folder(ROOT, "root")?;
-        if let Ok(mut held) = self.roots.lock() {
-            *held = Some(vec![made.clone()]);
-        }
-        Ok(made)
+    fn roots(&self) -> Vec<String> {
+        self.root
+            .lock()
+            .ok()
+            .and_then(|held| held.clone())
+            .into_iter()
+            .collect()
+    }
+
+    fn space_id(&self) -> Result<String, Hitch> {
+        let url = format!("{}/files/{SPACE}", self.at.api);
+        self.spent(READ);
+        let space: File = json(self.call(Some(ASKED_WITHIN), |http| {
+            http.get(&url).query(&[("fields", "id")])
+        })?)?;
+        Ok(space.id)
     }
 
     fn folder(&self, name: &str, parent: &str) -> Result<String, Hitch> {
@@ -232,7 +251,7 @@ impl Drive {
                     ("orderBy", "createdTime"),
                     ("pageSize", "1000"),
                     ("fields", fields.as_str()),
-                    ("spaces", "drive"),
+                    ("spaces", SPACE),
                 ]);
                 if let Some(token) = &next {
                     asked = asked.query(&[("pageToken", token.as_str())]);
@@ -245,13 +264,16 @@ impl Drive {
                 None => break,
             }
         }
-        let roots = roots_in(ROOT, &all);
-        if roots.is_empty() && self.binned()? {
-            return Err(Hitch::Binned);
+        let root = match root_in(&all) {
+            Ok(found) => found,
+            Err(()) => Some(self.space_id()?),
+        };
+        if let Some(root) = root
+            && let Ok(mut held) = self.root.lock()
+        {
+            *held = Some(root);
         }
-        if let Ok(mut held) = self.roots.lock() {
-            *held = Some(roots.clone());
-        }
+        let roots = self.roots();
         if let Ok(mut held) = self.known.lock() {
             *held = Some(Known {
                 tree: planted(&roots, all),
@@ -260,24 +282,10 @@ impl Drive {
                     .map(|one| (one.clone(), BTreeSet::new()))
                     .collect(),
                 cursor,
+                current_at: Instant::now(),
             });
         }
         Ok(())
-    }
-
-    // A store whose folder went to the bin is stopped, never read as an empty drive.
-    fn binned(&self) -> Result<bool, Hitch> {
-        let url = format!("{}/files", self.at.api);
-        let asked = format!("name = '{ROOT}' and mimeType = '{FOLDER}' and trashed = true");
-        self.spent(LIST);
-        let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
-            http.get(&url).query(&[
-                ("q", asked.as_str()),
-                ("fields", "files(id)"),
-                ("spaces", "drive"),
-            ])
-        })?)?;
-        Ok(!found.files.is_empty())
     }
 
     fn with_known<T>(&self, read: impl FnOnce(&Tree) -> T) -> Result<T, Hitch> {
@@ -312,13 +320,7 @@ impl Drive {
             copies[0] = now;
             return Ok(copies);
         }
-        if self.split_store() {
-            let cursor = self
-                .known
-                .lock()
-                .ok()
-                .and_then(|held| held.as_ref().and_then(|known| known.cursor.clone()));
-            self.listed(cursor)?;
+        if copies.is_empty() && content_addressed(name) && self.kept_current()? {
             return self.with_known(|tree| tree.files.get(name).cloned().unwrap_or_default());
         }
         let found = self.looked_up(name)?;
@@ -333,21 +335,54 @@ impl Drive {
         Ok(found)
     }
 
-    // A name search walks one folder, so a store split across two roots is read whole again instead.
-    fn split_store(&self) -> bool {
-        self.roots
-            .lock()
-            .ok()
-            .and_then(|held| held.as_ref().map(|roots| roots.len() > 1))
-            .unwrap_or(false)
+    // Absence in a tree the changes feed caught up within a minute is trusted: a racing twin lands beside ours as after a search, and an attachment's holds the same bytes.
+    fn kept_current(&self) -> Result<bool, Hitch> {
+        let held = self.known.lock().ok().and_then(|held| {
+            held.as_ref()
+                .and_then(|known| Some((known.cursor.clone()?, known.current_at)))
+        });
+        let Some((cursor, at)) = held else {
+            return Ok(false);
+        };
+        if at.elapsed() < FRESH_FOR {
+            return Ok(true);
+        }
+        self.spent(LIST);
+        let (theirs, next) = self.stirred(&cursor)?;
+        let remembered = !theirs.is_empty();
+        if self
+            .caught_up(&cursor, &theirs, &next, remembered)
+            .is_none()
+        {
+            let before = self.known.lock().ok().and_then(|held| {
+                held.as_ref()
+                    .map(|known| (known.tree.clone(), known.passed.clone()))
+            });
+            self.listed(Some(next.clone()))?;
+            self.laid_over(&theirs);
+            self.passed_kept(before, &next);
+        }
+        Ok(true)
     }
 
+    // The cursor a round asks from stays known across a listing taken between rounds, with every path it changed, so that round lists nothing again.
+    fn passed_kept(&self, before: Option<(Tree, Passed)>, cursor: &str) {
+        let Some((was, passed)) = before else {
+            return;
+        };
+        if let Ok(mut held) = self.known.lock()
+            && let Some(known) = held.as_mut()
+        {
+            let touched = tree::differing(&was, &known.tree);
+            known.passed = passed;
+            known.moved_to(cursor, touched);
+        }
+    }
+
+    // The verb's own look pays for this ask, so it goes unmetered here.
     fn fresh(&self, file: &File, name: &str) -> Result<Option<File>, Hitch> {
-        let url = format!("{}/files/{}", self.at.api, file.id);
-        let now: File = match self.call(Some(ASKED_WITHIN), |http| {
-            http.get(&url).query(&[("fields", FILE_FIELDS)])
-        }) {
-            Ok(answer) => json(answer)?,
+        let now = match self.file_now(&file.id) {
+            Ok(now) => now,
             Err(Hitch::Missing(_)) => return Ok(None),
             Err(other) => return Err(other),
         };
@@ -373,24 +408,20 @@ impl Drive {
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
                 ("fields", fields.as_str()),
-                ("spaces", "drive"),
+                ("spaces", SPACE),
             ])
         })?)?;
-        Ok(page
+        let mut found: Vec<File> = page
             .files
             .into_iter()
             .filter(|one| one.mime_type != FOLDER)
-            .collect())
+            .collect();
+        tree::ordered(&mut found);
+        Ok(found)
     }
 
     fn folder_id(&self, path: Option<&str>, making: bool) -> Result<Option<String>, Hitch> {
-        let found = match making {
-            true => Some(self.root_made()?),
-            false => self.root_known()?,
-        };
-        let Some(mut at) = found else {
-            return Ok(None);
-        };
+        let mut at = self.root()?;
         let Some(path) = path else {
             return Ok(Some(at));
         };
@@ -404,6 +435,7 @@ impl Drive {
                 at = id;
                 continue;
             }
+            // Searched even in a current tree, so two machines making one folder at once still meet in the older one.
             let found = match self.child_folder(&at, part)? {
                 Some(id) => id,
                 None if making => self.folder(part, &at)?,
@@ -430,10 +462,16 @@ impl Drive {
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
                 ("fields", "files(id)"),
-                ("spaces", "drive"),
+                ("spaces", SPACE),
             ])
         })?)?;
         Ok(page.files.into_iter().next().map(|one| one.id))
+    }
+
+    // The meter charges a refused write only its look, so each ask that still carried bytes to Google is added here.
+    fn refused_after(&self, carried: u64, refused: Hitch) -> Hitch {
+        self.spent(EDIT.saturating_mul(carried));
+        refused
     }
 
     fn owned(&self, id: &str, version: Option<String>) {
@@ -472,7 +510,7 @@ impl Drive {
                 http.get(&url).query(&[
                     ("pageToken", token.as_str()),
                     ("pageSize", "1000"),
-                    ("spaces", "drive"),
+                    ("spaces", SPACE),
                     ("fields", fields.as_str()),
                 ])
             })?)?;
@@ -504,9 +542,10 @@ impl Drive {
 
     // A listing can lag behind the changes that sent us to it, so what they say that it does not show yet is laid over it.
     fn laid_over(&self, theirs: &[Changed]) {
-        let Some(roots) = self.roots.lock().ok().and_then(|held| held.clone()) else {
+        let roots = self.roots();
+        if roots.is_empty() {
             return;
-        };
+        }
         let Ok(mut held) = self.known.lock() else {
             return;
         };
@@ -540,8 +579,17 @@ impl Drive {
     }
 
     // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
-    fn caught_up(&self, since: &str, theirs: &[Changed], cursor: &str) -> Option<Changes> {
-        let roots = self.roots.lock().ok()?.clone()?;
+    fn caught_up(
+        &self,
+        since: &str,
+        theirs: &[Changed],
+        cursor: &str,
+        remembered: bool,
+    ) -> Option<Changes> {
+        let roots = self.roots();
+        if roots.is_empty() && !theirs.is_empty() {
+            return None;
+        }
         let mut held = self.known.lock().ok()?;
         let known = held.as_mut()?;
         let touched = match theirs.is_empty() {
@@ -552,7 +600,10 @@ impl Drive {
                 applied.changed.into_iter().chain(applied.gone).collect()
             }
         };
-        known.moved_to(cursor, touched);
+        match remembered {
+            true => known.moved_to(cursor, touched),
+            false => known.kept_at(cursor),
+        }
         let (mut changed, mut gone) = (Vec::new(), Vec::new());
         for path in known.touched_since(since) {
             match known
@@ -667,11 +718,22 @@ impl Remote for Drive {
                 .folder_id(split(name).0, true)?
                 .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?,
         };
-        let made = self.sent(name, from, current, &parent)?;
+        let mut carried = 0;
+        let made = match self.sent(name, from, current, &parent, &mut carried) {
+            Err(refused @ (Hitch::Missing(_) | Hitch::Changed(_))) => {
+                return Err(self.refused_after(carried, refused));
+            }
+            other => other?,
+        };
         if let Some(checked) = current
             && gap::leapt(checked, &made)
         {
-            self.handed_back(name, &made, checked)?;
+            match self.handed_back(name, &made, checked) {
+                Err(refused @ Hitch::Changed(_)) => {
+                    return Err(self.refused_after(carried, refused));
+                }
+                other => other?,
+            }
         }
         self.owned(
             &made.id,
@@ -684,6 +746,7 @@ impl Remote for Drive {
                 Some(first) if current.is_some() => *first = made,
                 _ => copies.insert(0, made),
             }
+            tree::ordered(copies);
         });
         Ok(landed)
     }
@@ -697,27 +760,39 @@ impl Remote for Drive {
         if expect.is_some_and(|wanted| seen(name, first).revision != wanted) {
             return Err(Hitch::Changed(name.to_string()));
         }
-        let copies = match expect {
-            Some(_) => {
-                match self.binned_unless_moved(name, first) {
-                    Ok(()) | Err(Hitch::Missing(_)) => {}
-                    Err(other) => return Err(other),
-                }
-                &all[1..]
-            }
-            None => &all[..],
-        };
-        for one in copies {
-            let url = format!("{}/files/{}", self.at.api, one.id);
-            match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
-                Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
-                Err(other) => return Err(other),
-            }
+        if expect.is_some() {
+            self.set_aside(name, first)?;
+        }
+        for one in &all {
+            self.deleted_for_good(&one.id)?;
         }
         self.noted(|tree| {
             tree.files.remove(name);
         });
         Ok(())
+    }
+
+    fn room(&self) -> Result<Option<u64>, Hitch> {
+        #[derive(Deserialize)]
+        struct Quota {
+            limit: Option<String>,
+            usage: Option<String>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct About {
+            storage_quota: Quota,
+        }
+        self.vouched_for()?;
+        let url = format!("{}/about", self.at.api);
+        self.spent(READ);
+        let about: About = json(self.call(Some(ASKED_WITHIN), |http| {
+            http.get(&url)
+                .query(&[("fields", "storageQuota(limit,usage)")])
+        })?)?;
+        let bytes = |one: Option<String>| one.and_then(|one| one.parse::<u64>().ok());
+        Ok(bytes(about.storage_quota.limit)
+            .map(|limit| limit.saturating_sub(bytes(about.storage_quota.usage).unwrap_or(0))))
     }
 
     fn spent_beyond(&self) -> u64 {
@@ -738,6 +813,7 @@ impl Remote for Drive {
             start_page_token: String,
         }
         self.repaid();
+        self.swept();
         let Some(since) = since else {
             let url = format!("{}/changes/startPageToken", self.at.api);
             let start: Start = json(self.call(Some(ASKED_WITHIN), |http| http.get(&url))?)?;
@@ -758,7 +834,7 @@ impl Remote for Drive {
             held.clear();
         }
         if followed.is_some()
-            && let Some(caught_up) = self.caught_up(since, &theirs, &cursor)
+            && let Some(caught_up) = self.caught_up(since, &theirs, &cursor, true)
         {
             return Ok(caught_up);
         }

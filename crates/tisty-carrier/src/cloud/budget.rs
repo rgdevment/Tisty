@@ -12,6 +12,8 @@ const FILE: &str = "budget.json";
 const RESERVED_PERCENT: u64 = 10;
 const DAY_SECS: u64 = 24 * 60 * 60;
 const CHARGE_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(30);
+const STALLED_UNITS: u64 = 5_000;
+const STALLED_ASKS: u64 = 200;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
@@ -71,6 +73,11 @@ fn went_out<T>(answer: &Result<T, Hitch>) -> bool {
     !matches!(answer, Err(Hitch::Unreachable(_)))
 }
 
+// An answer that says how things stand is no sign of a loop by its cost, only by how many there are.
+fn answered<T>(answer: &Result<T, Hitch>) -> bool {
+    matches!(answer, Ok(_) | Err(Hitch::Missing(_) | Hitch::Changed(_)))
+}
+
 fn today() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -82,6 +89,14 @@ pub struct Metered<'a> {
     limits: Limits,
     home: PathBuf,
     class: Mutex<Class>,
+    idle: Mutex<Idle>,
+}
+
+#[derive(Default)]
+struct Idle {
+    units: u64,
+    asks: u64,
+    told: bool,
 }
 
 impl<'a> Metered<'a> {
@@ -91,6 +106,7 @@ impl<'a> Metered<'a> {
             limits: policy::applied(remote.limits(), policy::kept(home).as_ref()),
             home: home.to_path_buf(),
             class: Mutex::new(class),
+            idle: Mutex::new(Idle::default()),
         }
     }
 
@@ -102,25 +118,75 @@ impl<'a> Metered<'a> {
 
     fn allowed(&self) -> Result<(), Hitch> {
         let class = self.class.lock().map_or(Class::History, |one| *one);
-        allowed_at(&self.home, &self.limits, class)
+        allowed_at(&self.home, &self.limits, class)?;
+        self.unstalled()
     }
 
-    fn charge(&self, requests: u64, cost: u64, bytes: u64) {
-        let beyond = self.remote.spent_beyond();
-        charged(
-            &self.home,
-            1,
-            requests.saturating_mul(cost).saturating_add(beyond),
-            bytes,
-        );
+    // A round that keeps asking file by file with nothing landing stops, instead of spending the day without a word.
+    fn unstalled(&self) -> Result<(), Hitch> {
+        let Ok(mut idle) = self.idle.lock() else {
+            return Ok(());
+        };
+        if idle.units < STALLED_UNITS && idle.asks < STALLED_ASKS {
+            return Ok(());
+        }
+        if !idle.told {
+            idle.told = true;
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::CLOUD,
+                "a round kept asking the cloud with nothing landing, so it stopped",
+                &[
+                    (
+                        "units",
+                        tisty_core::witness::Fact::Count(
+                            usize::try_from(idle.units).unwrap_or(usize::MAX),
+                        ),
+                    ),
+                    (
+                        "asks",
+                        tisty_core::witness::Fact::Count(
+                            usize::try_from(idle.asks).unwrap_or(usize::MAX),
+                        ),
+                    ),
+                ],
+            );
+        }
+        Err(Hitch::Troubled(
+            "the round kept asking the cloud with nothing landing".into(),
+        ))
     }
 
-    fn charge_checked(&self, requests: u64, cost: u64, bytes: u64) {
+    // Only a landing starts the count again; an answer that says how things stand counts as an ask but weighs nothing.
+    fn weighed<T>(&self, answer: &Result<T, Hitch>, units: u64, lands: bool) {
+        match answer {
+            Ok(_) if lands => self.moved_on(),
+            _ if answered(answer) => self.idled(0),
+            _ => self.idled(units),
+        }
+    }
+
+    fn idled(&self, units: u64) {
+        if let Ok(mut idle) = self.idle.lock() {
+            idle.units = idle.units.saturating_add(units);
+            idle.asks = idle.asks.saturating_add(1);
+        }
+    }
+
+    fn charge(&self, requests: u64, cost: u64, bytes: u64) -> u64 {
+        let units = requests
+            .saturating_mul(cost)
+            .saturating_add(self.remote.spent_beyond());
+        charged(&self.home, 1, units, bytes);
+        units
+    }
+
+    fn charge_checked(&self, requests: u64, cost: u64, bytes: u64) -> u64 {
         let units = requests
             .saturating_mul(cost)
             .saturating_add(self.limits.costs.checks)
             .saturating_add(self.remote.spent_beyond());
         charged(&self.home, 1, units, bytes);
+        units
     }
 }
 
@@ -232,7 +298,8 @@ impl Remote for Metered<'_> {
         let mut tallied = Tallied { into, bytes: 0 };
         let got = self.remote.fetch(name, from, &mut tallied);
         if went_out(&got) || tallied.bytes > 0 {
-            self.charge_checked(1, self.limits.costs.fetch, tallied.bytes);
+            let units = self.charge_checked(1, self.limits.costs.fetch, tallied.bytes);
+            self.weighed(&got, units, true);
         }
         got
     }
@@ -241,12 +308,13 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
         let put = self.remote.put(name, from, expect);
-        // Bytes may have gone up before the answer broke, so an upload is charged however it ended.
-        self.charge_checked(
-            self.limits.requests_to_put(weighs),
-            self.limits.costs.put,
-            0,
-        );
+        // Bytes may have gone up before the answer broke, so an upload is charged however it ended, unless refused on the look before it.
+        let requests = match &put {
+            Err(Hitch::Changed(_) | Hitch::Missing(_)) => 0,
+            _ => self.limits.requests_to_put(weighs),
+        };
+        let units = self.charge_checked(requests, self.limits.costs.put, 0);
+        self.weighed(&put, units, true);
         put
     }
 
@@ -254,7 +322,8 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let gone = self.remote.delete(name, expect);
         if went_out(&gone) {
-            self.charge_checked(1, self.limits.costs.delete, 0);
+            let units = self.charge_checked(1, self.limits.costs.delete, 0);
+            self.weighed(&gone, units, true);
         }
         gone
     }
@@ -267,7 +336,8 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let seen = self.remote.about(name);
         if went_out(&seen) {
-            self.charge(1, self.limits.costs.about, 0);
+            let units = self.charge(1, self.limits.costs.about, 0);
+            self.weighed(&seen, units, false);
         }
         seen
     }
@@ -304,8 +374,15 @@ impl Remote for Metered<'_> {
     fn lends(&self, name: &str) -> Result<Option<String>, Hitch> {
         self.allowed()?;
         let lent = self.remote.lends(name);
-        self.charge(1, self.limits.costs.about, 0);
+        let units = self.charge(1, self.limits.costs.about, 0);
+        self.weighed(&lent, units, false);
         lent
+    }
+
+    fn moved_on(&self) {
+        if let Ok(mut idle) = self.idle.lock() {
+            *idle = Idle::default();
+        }
     }
 }
 

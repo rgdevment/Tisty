@@ -11,6 +11,7 @@ const said: Record<Stage, Word> = {
   log: "comingLog",
   papers: "comingPapers",
   attachments: "comingAttachments",
+  uploading: "comingUploading",
 };
 
 const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
@@ -56,7 +57,11 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
               style={{ width: `${far}%` }}
             />
           </span>
-          {long >= SLOW_AFTER && <span className="text-[11.5px] text-soft">{t("comingSlow")}</span>}
+          {long >= SLOW_AFTER && (
+            <span className="text-[11.5px] text-soft">
+              {t(coming.stage === "uploading" ? "comingSlowUp" : "comingSlow")}
+            </span>
+          )}
         </div>
       )}
       {stuck != null && (

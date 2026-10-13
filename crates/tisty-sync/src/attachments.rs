@@ -13,6 +13,7 @@ pub struct Giving<'a> {
     pub avowed: &'a BTreeMap<String, (String, u64)>,
     pub again: bool,
     pub holds: Holds,
+    pub saying: &'a mut dyn FnMut(Reached),
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

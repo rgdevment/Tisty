@@ -172,7 +172,9 @@ impl Carrier for Folder {
     fn leave_word(&self, said: &str) -> Result<(), Trouble> {
         tisty_sync::raise_place(&self.at);
         tisty_core::store::write_atomic(&self.at.join(tisty_core::moved::NAMED), said.as_bytes())
-            .map_err(|_| Trouble::NotThere(self.at.display().to_string()))
+            .map_err(|_| Trouble::NotThere(self.at.display().to_string()))?;
+        tisty_core::left_behind::left_notice(&self.at, said);
+        Ok(())
     }
 
     fn word_left(&self) -> Option<String> {
@@ -180,6 +182,7 @@ impl Carrier for Folder {
     }
 
     fn forget_word(&self) -> Result<(), Trouble> {
+        tisty_core::left_behind::notice_gone(&self.at);
         match std::fs::remove_file(self.at.join(tisty_core::moved::NAMED)) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),

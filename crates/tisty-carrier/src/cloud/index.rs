@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::Seen;
 
 const FILE: &str = "index.json";
+/// How the store is laid out up there; an index of an older layout names files no longer read, so the mirror starts over.
+pub const LAYOUT: u32 = 1;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Mirrored {
@@ -18,6 +20,8 @@ pub struct Mirrored {
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Index {
+    #[serde(default, serialize_with = "laid_out_now")]
+    pub layout: u32,
     pub cursor: Option<String>,
     #[serde(default)]
     pub confirmed: bool,
@@ -31,6 +35,25 @@ pub struct Index {
     /// Attachments a pull saw leave the cloud, so opening one says it is gone instead of not there yet.
     #[serde(default)]
     pub vanished: BTreeSet<String>,
+}
+
+fn laid_out_now<S: serde::Serializer>(_: &u32, to: S) -> Result<S::Ok, S::Error> {
+    to.serialize_u32(LAYOUT)
+}
+
+/// Only an index that was written and read is judged: none at all is a first round anyway.
+pub fn outdated(home: &Path) -> bool {
+    std::fs::read(home.join(FILE))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Index>(&bytes).ok())
+        .is_some_and(|index| index.layout < LAYOUT)
+}
+
+pub fn forget(home: &Path) -> std::io::Result<()> {
+    match std::fs::remove_file(home.join(FILE)) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
+        _ => Ok(()),
+    }
 }
 
 impl Index {

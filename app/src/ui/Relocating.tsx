@@ -1,32 +1,30 @@
-import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
+import { useComing } from "../coming";
 import {
   type Carrying,
   cloudForget,
   cloudWipe,
   type MovePlan,
-  type Moving,
   moveDropped,
   movePlan,
-  moveTo,
   type Toward,
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { dismissMove, endMove, startMove, underway, useMove, watchMove } from "../relocation";
 import { sure } from "../sure";
 import type { Heading } from "../views";
 import Clouding from "./Clouding";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
-import { type Along, Done, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
+import { Done, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
 
 interface Props {
   state: Carrying;
   heading?: Heading;
   resume?: Toward;
   onClose: () => void;
-  onMoved: () => void;
 }
 
 type Step = "pick" | "folder" | "cloud" | "plan" | "moving" | "waiting" | "done";
@@ -34,17 +32,37 @@ type Step = "pick" | "folder" | "cloud" | "plan" | "moving" | "waiting" | "done"
 const firstStep = (heading?: Heading, resume?: Toward): Step =>
   resume ? "plan" : heading === "cloud" ? "cloud" : heading === "folder" ? "folder" : "pick";
 
-export default function Relocating({ state, heading, resume, onClose, onMoved }: Props) {
-  const [step, setStep] = useState<Step>(firstStep(heading, resume));
-  const [toward, setToward] = useState<Toward | undefined>(resume);
+export default function Relocating({ state, heading, resume, onClose }: Props) {
+  const now = useMove();
+  const along = useComing();
+  const [chosen, setStep] = useState<Step>(now ? "plan" : firstStep(heading, resume));
+  const [toward, setToward] = useState<Toward | undefined>(now?.toward ?? resume);
   const [plan, setPlan] = useState<MovePlan>();
   const [agreed, setAgreed] = useState(false);
-  const [along, setAlong] = useState<Along>();
-  const [result, setResult] = useState<Moving>();
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
   const [busy, setBusy] = useState(false);
   const settled = useRef(false);
+
+  useEffect(watchMove, []);
+
+  useEffect(() => {
+    if (!now?.failed) return;
+    setTrouble(saidPlainly(now.failed));
+    setToward(now.toward);
+    setStep("plan");
+    endMove();
+  }, [now]);
+
+  const result = now?.failed ? undefined : now?.result;
+  const step: Step =
+    now && !now.failed
+      ? underway(now)
+        ? "moving"
+        : result?.state === "done"
+          ? "done"
+          : "waiting"
+      : chosen;
 
   useEffect(() => {
     if (step !== "plan" || !toward) return;
@@ -53,14 +71,6 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
       .then(setPlan)
       .catch((e) => setTrouble(saidPlainly(e)));
   }, [step, toward]);
-
-  useEffect(() => {
-    if (step !== "moving") return;
-    const off = listen<Along>("bringing", ({ payload }) => setAlong(payload));
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, [step]);
 
   const chose = (next: Toward) => {
     setTrouble(undefined);
@@ -74,33 +84,25 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
 
   const close = () => {
     if (busy) return;
-    if (connectedHere && toward?.kind === "cloud" && !result) letGoUnused(toward.account);
-    if (leftCloud && !settled.current) void cloudForget(leftCloud.account).catch(() => undefined);
-    if (done) onMoved();
+    if (now && underway(now)) {
+      onClose();
+      return;
+    }
+    if (connectedHere && toward?.kind === "cloud" && !now) letGoUnused(toward.account);
+    dismissMove(!settled.current);
     onClose();
   };
 
   const move = () => {
     if (!toward || busy) return;
-    setBusy(true);
     setTrouble(undefined);
-    setAlong(undefined);
-    setStep("moving");
-    moveTo(toward)
-      .then((now) => {
-        setResult(now);
-        setStep(now.state === "done" ? "done" : "waiting");
-      })
-      .catch((e) => {
-        setTrouble(saidPlainly(e));
-        setStep("plan");
-      })
-      .finally(() => setBusy(false));
+    startMove(toward);
   };
 
   const drop = () => {
     void moveDropped().catch(() => undefined);
     if (toward?.kind === "cloud") letGoUnused(toward.account);
+    endMove();
     onClose();
   };
 
@@ -110,7 +112,7 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
     cloudWipe(leftCloud.account, leftCloud.email)
       .then((gone) => {
         settled.current = true;
-        setWiped(fill("moveWiped", String(gone)));
+        setWiped(gone === 1 ? t("moveWipedOne") : fill("moveWiped", String(gone)));
       })
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
@@ -173,7 +175,9 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
         />
       )}
 
-      {step === "moving" && <Underway along={along} />}
+      {step === "moving" && (
+        <Underway along={along ?? undefined} pausedUntil={now?.pausedUntil} onHide={close} />
+      )}
 
       {step === "waiting" && result?.state === "waiting" && (
         <Waiting result={result} busy={busy} onDrop={drop} onLater={close} onAgain={move} />

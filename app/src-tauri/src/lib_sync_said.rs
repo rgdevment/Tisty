@@ -53,16 +53,12 @@ fn a_document_that_holds_the_push_back_is_named_by_its_title() {
 }
 
 #[test]
-fn a_spent_day_and_a_store_in_the_bin_are_said_as_what_they_are() {
+fn a_spent_day_is_said_as_what_it_is() {
     let spent = said(Trouble::CloudSpent {
-        provider: "Google Drive".into(),
-    });
-    let binned = said(Trouble::CloudBinned {
         provider: "Google Drive".into(),
     });
 
     assert_eq!(spent.code, "cloudSpent");
-    assert_eq!(binned.code, "cloudBinned");
 }
 
 #[test]

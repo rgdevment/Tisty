@@ -38,8 +38,8 @@ pub enum Hitch {
     Unreachable(String),
     /// The provider failed on its side and gave no wait, so the round is tried again later.
     Troubled(String),
-    /// The store's own folder went to the provider's bin, and is never read as an empty store.
-    Binned,
+    /// Everything the store held up there is gone at once, deleted outside Tisty, and is never read as each file deleted.
+    Emptied,
     Broke(String),
 }
 
@@ -154,8 +154,16 @@ pub trait Remote: Send + Sync {
         Ok(None)
     }
 
+    /// Bytes the account can still take, or None where the provider sets no ceiling or does not say.
+    fn room(&self) -> Result<Option<u64>, Hitch> {
+        Ok(None)
+    }
+
     /// Units spent on requests no verb's cost covers since last asked, so the budget counts them too.
     fn spent_beyond(&self) -> u64 {
         0
     }
+
+    /// Something landed or was found already there, so a meter of asks that came to nothing starts again.
+    fn moved_on(&self) {}
 }

@@ -16,7 +16,7 @@ pub use drive::{Account, Drive, DriveAt};
 pub use off::{OffRuntime, away};
 
 const CONSENT_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
-pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.file";
+pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";
 const LISTENED_EVERY: Duration = Duration::from_millis(100);
 pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
 const HEARD_WITHIN: Duration = Duration::from_secs(2);
@@ -178,10 +178,10 @@ impl Consent {
                 ("redirect_uri", &self.redirect),
             ],
         )?;
-        if !only_drive_file(answer.scope.as_deref()) {
+        if !only_app_data(answer.scope.as_deref()) {
             revoke(&http, at, &answer);
             return Err(Hitch::Broke(
-                "Google did not grant access to just the files Tisty creates, so the sign-in was refused"
+                "Google did not grant access to just Tisty's own space in Drive, so the sign-in was refused"
                     .into(),
             ));
         }
@@ -307,7 +307,7 @@ fn answer(stream: &mut TcpStream, status: &str, page: &str) {
     let _ = stream.shutdown(Shutdown::Write);
 }
 
-fn only_drive_file(scope: Option<&str>) -> bool {
+fn only_app_data(scope: Option<&str>) -> bool {
     scope.is_some_and(|granted| {
         granted.split_whitespace().next().is_some()
             && granted.split_whitespace().all(|one| one == SCOPE)
