@@ -47,3 +47,32 @@ fn a_folder_has_nothing_to_wipe() {
     let room = tempfile::tempdir().unwrap();
     assert_eq!(Folder::at(room.path().to_path_buf()).wipe().unwrap(), 0);
 }
+
+#[test]
+fn a_round_sends_the_history_and_the_documents_before_the_attachments() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        one.wrote("con foto");
+        one.filed(DOC, "el acta");
+        let kept = one.kept("foto", b"los bytes de una foto");
+        one.store().append(kept.told()).unwrap();
+        let remote = counting(&setting);
+        remote.forget_counts();
+
+        one.round(Way::Both);
+
+        let sent = remote.uploaded();
+        let first_attachment = sent
+            .iter()
+            .position(|name| name.starts_with("attachments/"));
+        let last_rest = sent
+            .iter()
+            .rposition(|name| name.starts_with("store/") || name.starts_with("docs/"));
+        assert!(
+            first_attachment.is_some() && last_rest.is_some(),
+            "{who}: {sent:?}"
+        );
+        assert!(last_rest < first_attachment, "{who}: {sent:?}");
+    }
+}

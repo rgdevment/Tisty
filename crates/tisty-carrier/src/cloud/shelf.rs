@@ -10,7 +10,7 @@ use tisty_sync::{
 
 use super::index::Index;
 use super::judge::{Judged, judge};
-use super::mirror::resembles;
+use super::mirror::{self, resembles};
 use crate::{Deferred, Elsewhere, Expect, Hitch, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
@@ -21,6 +21,9 @@ pub struct Shelf<'a> {
     paused: Option<Deferred>,
     sent: usize,
     fetching: bool,
+    tree: Option<&'a Path>,
+    early: usize,
+    full: Option<Trouble>,
 }
 
 struct Local {
@@ -39,7 +42,30 @@ impl<'a> Shelf<'a> {
             paused: None,
             sent: 0,
             fetching: false,
+            tree: None,
+            early: 0,
+            full: None,
         }
+    }
+
+    pub fn history_first(mut self, tree: &'a Path) -> Self {
+        self.tree = Some(tree);
+        self
+    }
+
+    pub fn early(&self) -> usize {
+        self.early
+    }
+
+    pub fn full(&self) -> Option<Trouble> {
+        self.full.clone()
+    }
+
+    fn history_sent(&mut self) -> Option<Hitch> {
+        let tree = self.tree.take()?;
+        let (pushed, hitch) = mirror::push(self.remote, tree, self.index);
+        self.early += pushed.put;
+        hitch
     }
 
     pub fn fetching_all(remote: &'a dyn Remote, index: &'a mut Index) -> Self {
@@ -76,6 +102,12 @@ impl<'a> Shelf<'a> {
         reference: &str,
         remaining: Vec<String>,
     ) -> Result<(), Trouble> {
+        if matches!(hitch, Hitch::Full) {
+            if let Judged::Stop(trouble) = judge(hitch, self.remote.limits().provider) {
+                self.full = Some(trouble);
+            }
+            return Ok(());
+        }
         if matches!(
             hitch,
             Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
@@ -227,7 +259,7 @@ impl Attachments for Shelf<'_> {
         let mut given = Given::default();
         let (all, mut asked_for) = locals(round.data, round.buried);
         for (at, one) in all.iter().enumerate() {
-            if self.paused.is_some() {
+            if self.paused.is_some() || self.full.is_some() {
                 break;
             }
             if tisty_core::holes::a_hole(&one.at) {
@@ -235,6 +267,15 @@ impl Attachments for Shelf<'_> {
                 continue;
             }
             if !self.owed(one, &round) {
+                continue;
+            }
+            if let Some(hitch) = self.history_sent() {
+                let remaining = all[at..]
+                    .iter()
+                    .filter(|rest| self.owed(rest, &round))
+                    .map(|rest| rest.reference.clone())
+                    .collect();
+                self.refuse(hitch, &one.reference, remaining)?;
                 continue;
             }
             let (sha256, _) = match attach::hashed(&one.at) {
@@ -530,3 +571,7 @@ pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting)
     }
     done
 }
+
+#[cfg(test)]
+#[path = "shelf_test.rs"]
+mod tests;
