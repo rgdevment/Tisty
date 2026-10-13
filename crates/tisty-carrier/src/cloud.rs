@@ -590,8 +590,9 @@ impl Carrier for Cloud {
         })
     }
 
+    // Read after a pull, so a machine stops before the round that would write there alone.
     fn word_left(&self) -> Option<String> {
-        std::fs::read_to_string(self.fresh().join(tisty_core::moved::NAMED)).ok()
+        std::fs::read_to_string(self.looked_again().join(tisty_core::moved::NAMED)).ok()
     }
 
     // Only a document missing here is taken for deleted up there, so the word is taken down by name.

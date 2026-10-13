@@ -87,9 +87,9 @@ fn a_word_the_old_place_could_not_take_is_owed_and_delivered_once_it_can() {
     leave_word(&one.paths, &one.config, &left, old, &Sync::alone());
 
     assert!(one.paths.cache().join(OWED).is_file());
-    assert!(owing(one.paths.cache(), &one.reach).is_some_and(|owed| !owed.delivered()));
+    assert!(owing(one.paths.cache(), &one.reach, None).is_some_and(|owed| !owed.delivered()));
     std::fs::create_dir_all(&gone).unwrap();
-    assert!(owing(one.paths.cache(), &one.reach).is_some_and(Owing::delivered));
+    assert!(owing(one.paths.cache(), &one.reach, None).is_some_and(Owing::delivered));
     assert!(word_in(&gone).is_some_and(|said| said.contains("alone")));
     assert!(!one.paths.cache().join(OWED).exists());
 }
@@ -113,4 +113,52 @@ fn the_same_account_under_a_new_address_is_the_same_place() {
         &Sync::folder("G:/otra")
     ));
     assert!(!same_place(&Sync::alone(), &at("ana@example.com")));
+}
+
+#[test]
+fn choosing_again_the_place_this_machine_was_stopped_in_takes_the_word_away() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    let mut two = machine(room.path(), "two");
+    crate::answers::storing::choose(&mut two, Some(shared.display().to_string())).unwrap();
+    std::fs::write(shared.join(tisty_core::moved::NAMED), "otro equipo se fue").unwrap();
+
+    crate::answers::storing::choose(&mut two, Some(shared.display().to_string())).unwrap();
+
+    assert_eq!(
+        word_in(&shared),
+        None,
+        "staying on purpose left the machine stopped"
+    );
+}
+
+#[test]
+fn a_word_owed_to_a_place_this_machine_came_back_to_is_never_delivered() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    let mut one = machine(room.path(), "one");
+    let left = Sync::folder(&shared);
+    leave_word(&one.paths, &one.config, &left, None, &Sync::alone());
+    assert!(one.paths.cache().join(OWED).is_file());
+    std::fs::create_dir_all(&shared).unwrap();
+
+    crate::answers::storing::choose(&mut one, Some(shared.display().to_string())).unwrap();
+
+    assert!(!one.paths.cache().join(OWED).exists());
+    assert!(owing(one.paths.cache(), &one.reach, one.config.sync.as_ref()).is_none());
+    assert_eq!(word_in(&shared), None);
+}
+
+#[test]
+fn a_word_owed_is_dropped_when_the_way_now_chosen_is_that_place() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    let one = machine(room.path(), "one");
+    let left = Sync::folder(&shared);
+    owe(one.paths.cache(), &left, "un aviso");
+
+    assert!(owing(one.paths.cache(), &one.reach, Some(&left)).is_none());
+    assert!(!one.paths.cache().join(OWED).exists());
 }

@@ -97,6 +97,18 @@ fn owe(cache: &Path, left: &Sync, said: &str) {
     }
 }
 
+/// Coming back to the place a word was owed to means there is nothing to tell it any more.
+pub fn owed_no_more(cache: &Path, chosen: &Sync) {
+    let at = cache.join(OWED);
+    let back = std::fs::read(&at)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Owed>(&bytes).ok())
+        .is_some_and(|owed| same_place(&owed.way, chosen));
+    if back {
+        let _ = std::fs::remove_file(at);
+    }
+}
+
 /// A word still owed to the place left behind, with what reaches it; built under the session, delivered off it.
 pub struct Owing {
     at: PathBuf,
@@ -104,9 +116,13 @@ pub struct Owing {
     said: String,
 }
 
-pub fn owing(cache: &Path, reach: &Reaching) -> Option<Owing> {
+pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
     let at = cache.join(OWED);
     let owed: Owed = serde_json::from_slice(&std::fs::read(&at).ok()?).ok()?;
+    if now.is_some_and(|now| same_place(&owed.way, now)) {
+        let _ = std::fs::remove_file(&at);
+        return None;
+    }
     let old = tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier?;
     Some(Owing {
         at,

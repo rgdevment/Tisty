@@ -186,7 +186,11 @@ pub async fn settle_in(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
-            crate::leaving::owing(session.paths.cache(), &session.reach),
+            crate::leaving::owing(
+                session.paths.cache(),
+                &session.reach,
+                session.config.sync.as_ref(),
+            ),
         )
     };
 
@@ -611,8 +615,8 @@ where
     if let Some(left) = &was {
         crate::leaving::leave_word(&session.paths, &session.config, left, old, &chosen);
     }
-    if changing
-        && chosen.place().is_some()
+    crate::leaving::owed_no_more(session.paths.cache(), &chosen);
+    if chosen.place().is_some()
         && let Some(now) = session.carrier()
         && let Err(why) = now.forget_word()
     {
@@ -711,7 +715,11 @@ async fn carried_round(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
-            crate::leaving::owing(session.paths.cache(), &session.reach),
+            crate::leaving::owing(
+                session.paths.cache(),
+                &session.reach,
+                session.config.sync.as_ref(),
+            ),
         )
     };
     heeded_first(&carrier, &home, owing).await?;

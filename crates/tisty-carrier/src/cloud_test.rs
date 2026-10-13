@@ -1889,7 +1889,6 @@ fn a_word_left_in_the_place_reaches_the_other_machine_and_forgetting_it_takes_it
         two.round(Way::Both);
 
         one.carrier.leave_word("se fue a otra parte").unwrap();
-        two.round(Way::Both);
 
         assert_eq!(
             two.carrier.word_left().as_deref(),
