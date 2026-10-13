@@ -20,9 +20,6 @@ pub(super) enum Owed {
         landed_head: Option<String>,
         landed_md5: Option<String>,
     },
-    Unbinned {
-        id: String,
-    },
 }
 
 impl Owed {
@@ -160,7 +157,6 @@ impl Drive {
                 }
                 self.restored(name, &landed, &checked).map(|_| ())
             }
-            Owed::Unbinned { id } => self.trashed(id, false).map(|_| ()),
         }
     }
 

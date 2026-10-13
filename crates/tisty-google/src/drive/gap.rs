@@ -4,7 +4,7 @@ use serde::Deserialize;
 use tisty_carrier::Hitch;
 
 use super::owed::Owed;
-use super::tree::{FILE_FIELDS, File};
+use super::tree::File;
 use super::wire::json;
 use super::{DOWNLOAD, Drive, EDIT, LIST};
 use crate::ASKED_WITHIN;
@@ -190,34 +190,5 @@ impl Drive {
                 .body(body.clone())
         })?;
         Ok(())
-    }
-
-    /// Sent to the bin rather than deleted, so bytes another machine wrote meanwhile can come back.
-    pub(super) fn binned_unless_moved(&self, name: &str, checked: &File) -> Result<(), Hitch> {
-        let binned = self.trashed(&checked.id, true)?;
-        if same_bytes(checked, binned.md5_checksum.as_deref()) || !leapt(checked, &binned) {
-            self.owned(&checked.id, None);
-            return Ok(());
-        }
-        // Never noted as this machine's own: what comes back out of the bin is another machine's, and must come as its change.
-        if let Err(failed) = self.trashed(&checked.id, false) {
-            self.owe(Owed::Unbinned {
-                id: checked.id.clone(),
-            });
-            return Err(failed);
-        }
-        Err(Hitch::Changed(name.to_string()))
-    }
-
-    pub(super) fn trashed(&self, id: &str, trashed: bool) -> Result<File, Hitch> {
-        let url = format!("{}/files/{id}", self.at.api);
-        self.spent(EDIT);
-        let body = serde_json::json!({ "trashed": trashed }).to_string();
-        json(self.call(Some(ASKED_WITHIN), |http| {
-            http.patch(&url)
-                .query(&[("fields", FILE_FIELDS)])
-                .header(reqwest::header::CONTENT_TYPE, "application/json")
-                .body(body.clone())
-        })?)
     }
 }

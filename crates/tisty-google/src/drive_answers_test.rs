@@ -211,8 +211,16 @@ fn a_file_the_lagging_listing_does_not_show_yet_is_still_read_from_the_changes_t
 #[test]
 fn a_debt_owed_while_another_was_being_repaid_stays_owed() {
     use super::super::owed::{Owed, unpaid};
-    let paid = Owed::Unbinned { id: "A".into() };
-    let meanwhile = Owed::Unbinned { id: "B".into() };
+    let owed = |id: &str| Owed::Back {
+        name: "a.md".into(),
+        id: id.into(),
+        checked_head: None,
+        checked_md5: None,
+        landed_head: None,
+        landed_md5: None,
+    };
+    let paid = owed("A");
+    let meanwhile = owed("B");
 
     let left = unpaid(vec![paid.clone(), meanwhile.clone()], &[paid]);
 
@@ -225,7 +233,7 @@ fn a_repayment_already_running_elsewhere_is_not_run_twice() {
     let (at, asked) = google(Vec::new());
     let drive = drive(at, home.path()).owing_at(home.path());
     let owed = home.path().join(tisty_carrier::OWED_BACK);
-    std::fs::write(&owed, br#"[{"owed":"unbinned","id":"A"}]"#).unwrap();
+    std::fs::write(&owed, br#"[{"owed":"back","name":"a.md","id":"A"}]"#).unwrap();
     let running = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
@@ -239,7 +247,7 @@ fn a_repayment_already_running_elsewhere_is_not_run_twice() {
     assert!(asked.join().unwrap().is_empty());
     assert_eq!(
         std::fs::read(&owed).unwrap(),
-        br#"[{"owed":"unbinned","id":"A"}]"#
+        br#"[{"owed":"back","name":"a.md","id":"A"}]"#
     );
 }
 

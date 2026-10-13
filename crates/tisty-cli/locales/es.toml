@@ -132,7 +132,6 @@ cloud-full      = "{provider} no tiene espacio para lo que Tisty enviaría; libe
 cloud-lost      = "{provider} ya no deja entrar a Tisty; vuelve a conectarlo, y mientras tanto lo que escribas queda en este equipo"
 cloud-elsewhere = "{provider} ahora responde como otra cuenta ({found}); Tisty se detiene para no mezclar dos cuentas"
 cloud-not-now   = "no se pudo consultar primero tu nube, así que no se hizo nada; inténtalo en un rato"
-cloud-binned    = "la carpeta Tisty de {provider} está en la papelera; sácala de ahí, y aquí no se cambió nada"
 cloud-spent     = "se agotó el presupuesto de hoy para {provider}, así que no se hizo nada; se puede volver a hacer cuando cambie el día en UTC"
 sync-stuck-on   = "{name} no se pudo subir, así que lo que viene después espera a la próxima sincronización: {why}"
 sync-broke     = "no se pudo terminar la copia: {why}"

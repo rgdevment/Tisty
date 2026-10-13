@@ -23,7 +23,7 @@ fn what_waits_here_is_counted_and_the_switch_here_is_seen() {
     crate::forgotten_later(home.path(), "dev_a-0002");
     std::fs::write(
         home.path().join(OWED_BACK),
-        r#"[{"owed":"unbinned","id":"A"}]"#,
+        r#"[{"owed":"back","name":"a.md","id":"A"}]"#,
     )
     .unwrap();
     policy::pause_here(home.path(), true).unwrap();

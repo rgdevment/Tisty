@@ -67,9 +67,6 @@ pub enum Trouble {
         provider: String,
         found: String,
     },
-    CloudBinned {
-        provider: String,
-    },
     /// Today's budget for the cloud is spent, so what was asked by hand waits for the next day.
     CloudSpent {
         provider: String,

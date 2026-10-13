@@ -350,9 +350,6 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
             "cloud-elsewhere",
             &[("provider", provider), ("found", found)],
         ),
-        carrier::Trouble::CloudBinned { provider } => {
-            lang.fill("cloud-binned", &[("provider", provider)])
-        }
         carrier::Trouble::CloudSpent { provider } => {
             lang.fill("cloud-spent", &[("provider", provider)])
         }

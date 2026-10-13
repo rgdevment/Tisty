@@ -50,7 +50,7 @@ fn a_tree_older_than_a_minute_is_caught_up_once_from_the_feed_instead_of_a_searc
     let theirs = r#"{"id":"T","name":"t.md","parents":["R"],"version":"1"}"#;
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
-        said("200 OK", &whole("")),
+        said("200 OK", &whole(A)),
         said(
             "200 OK",
             &format!(

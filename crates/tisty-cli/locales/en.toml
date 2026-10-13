@@ -135,7 +135,6 @@ cloud-full      = "{provider} has no room left for what Tisty would send; free u
 cloud-lost      = "{provider} no longer lets Tisty in; connect it again, and what you write stays on this machine meanwhile"
 cloud-elsewhere = "{provider} now answers as another account ({found}); Tisty stops rather than mix two accounts"
 cloud-not-now   = "your cloud could not be asked first, so nothing was done; try again in a while"
-cloud-binned    = "the Tisty folder in {provider} is in the bin; take it out, and nothing here was changed"
 cloud-spent     = "today's budget for {provider} is spent, so nothing was done; it can be done again once the day turns in UTC"
 sync-stuck-on   = "{name} could not go up, so what comes after it waits for the next sync: {why}"
 sync-broke     = "the copy could not be finished: {why}"

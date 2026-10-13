@@ -38,8 +38,6 @@ pub enum Hitch {
     Unreachable(String),
     /// The provider failed on its side and gave no wait, so the round is tried again later.
     Troubled(String),
-    /// The store's own folder went to the provider's bin, and is never read as an empty store.
-    Binned,
     Broke(String),
 }
 

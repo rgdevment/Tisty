@@ -3077,7 +3077,7 @@ fn the_doctor_tells_a_cloud_already_read_what_waits_a_pause_from_afar_and_who_le
     std::fs::write(home.join("forgotten"), "dev_a-0001\ndev_a-0002\n").unwrap();
     std::fs::write(
         home.join(tisty_carrier::OWED_BACK),
-        r#"[{"owed":"unbinned","id":"A"}]"#,
+        r#"[{"owed":"back","name":"a.md","id":"A"}]"#,
     )
     .unwrap();
     let until = tisty_carrier::policy::now() + 3600;

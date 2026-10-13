@@ -15,14 +15,13 @@ mod tree;
 mod upload;
 mod wire;
 
-use tree::{
-    Changed, FILE_FIELDS, FOLDER, File, Page, Tree, planted, roots_in, seen, split, within,
-};
+use tree::{Changed, FILE_FIELDS, FOLDER, File, Page, Tree, planted, root_in, seen, split, within};
 use wire::{given, json, quoted, transfer_http};
 
 use crate::ASKED_WITHIN;
 
-const ROOT: &str = "Tisty";
+// Drive's hidden space for this app: Tisty's store never shows among the person's own files.
+pub(super) const SPACE: &str = "appDataFolder";
 // Google's units for what a verb's own cost does not cover (guides/limits).
 pub(super) const READ: u64 = 5;
 pub(super) const LIST: u64 = 100;
@@ -94,7 +93,7 @@ pub struct Drive {
     http: Http,
     at: DriveAt,
     chunk: u64,
-    roots: Mutex<Option<Vec<String>>>,
+    root: Mutex<Option<String>>,
     known: Mutex<Option<Known>>,
     // What this machine wrote or deleted, by id and version, so its own changes are never news.
     wrote: Mutex<HashSet<(String, Option<String>)>>,
@@ -111,7 +110,7 @@ impl Drive {
             http: transfer_http()?,
             at,
             chunk: 8 * MIB,
-            roots: Mutex::new(None),
+            root: Mutex::new(None),
             known: Mutex::new(None),
             wrote: Mutex::new(HashSet::new()),
             expected: None,
@@ -184,25 +183,28 @@ impl Drive {
         }
     }
 
-    fn root_known(&self) -> Result<Option<String>, Hitch> {
+    // Google's own name for the space stands for it until a listing says its id, which files there name as their parent.
+    fn root(&self) -> Result<String, Hitch> {
         self.with_known(|_| ())?;
-        Ok(self
-            .roots
-            .lock()
-            .ok()
-            .and_then(|held| held.as_ref().and_then(|roots| roots.first().cloned())))
+        Ok(self.roots().pop().unwrap_or_else(|| SPACE.to_string()))
     }
 
-    // Made only when something is written, never while reading, so a lagging search can never split the store.
-    fn root_made(&self) -> Result<String, Hitch> {
-        if let Some(root) = self.root_known()? {
-            return Ok(root);
-        }
-        let made = self.folder(ROOT, "root")?;
-        if let Ok(mut held) = self.roots.lock() {
-            *held = Some(vec![made.clone()]);
-        }
-        Ok(made)
+    fn roots(&self) -> Vec<String> {
+        self.root
+            .lock()
+            .ok()
+            .and_then(|held| held.clone())
+            .into_iter()
+            .collect()
+    }
+
+    fn space_id(&self) -> Result<String, Hitch> {
+        let url = format!("{}/files/{SPACE}", self.at.api);
+        self.spent(READ);
+        let space: File = json(self.call(Some(ASKED_WITHIN), |http| {
+            http.get(&url).query(&[("fields", "id")])
+        })?)?;
+        Ok(space.id)
     }
 
     fn folder(&self, name: &str, parent: &str) -> Result<String, Hitch> {
@@ -235,7 +237,7 @@ impl Drive {
                     ("orderBy", "createdTime"),
                     ("pageSize", "1000"),
                     ("fields", fields.as_str()),
-                    ("spaces", "drive"),
+                    ("spaces", SPACE),
                 ]);
                 if let Some(token) = &next {
                     asked = asked.query(&[("pageToken", token.as_str())]);
@@ -248,13 +250,16 @@ impl Drive {
                 None => break,
             }
         }
-        let roots = roots_in(ROOT, &all);
-        if roots.is_empty() && self.binned()? {
-            return Err(Hitch::Binned);
+        let root = match root_in(&all) {
+            Ok(found) => found,
+            Err(()) => Some(self.space_id()?),
+        };
+        if let Some(root) = root
+            && let Ok(mut held) = self.root.lock()
+        {
+            *held = Some(root);
         }
-        if let Ok(mut held) = self.roots.lock() {
-            *held = Some(roots.clone());
-        }
+        let roots = self.roots();
         if let Ok(mut held) = self.known.lock() {
             *held = Some(Known {
                 tree: planted(&roots, all),
@@ -267,21 +272,6 @@ impl Drive {
             });
         }
         Ok(())
-    }
-
-    // A store whose folder went to the bin is stopped, never read as an empty drive.
-    fn binned(&self) -> Result<bool, Hitch> {
-        let url = format!("{}/files", self.at.api);
-        let asked = format!("name = '{ROOT}' and mimeType = '{FOLDER}' and trashed = true");
-        self.spent(LIST);
-        let found: Page = json(self.call(Some(ASKED_WITHIN), |http| {
-            http.get(&url).query(&[
-                ("q", asked.as_str()),
-                ("fields", "files(id)"),
-                ("spaces", "drive"),
-            ])
-        })?)?;
-        Ok(!found.files.is_empty())
     }
 
     fn with_known<T>(&self, read: impl FnOnce(&Tree) -> T) -> Result<T, Hitch> {
@@ -319,15 +309,6 @@ impl Drive {
         if copies.is_empty() && self.kept_current()? {
             return self.with_known(|tree| tree.files.get(name).cloned().unwrap_or_default());
         }
-        if self.split_store() {
-            let cursor = self
-                .known
-                .lock()
-                .ok()
-                .and_then(|held| held.as_ref().and_then(|known| known.cursor.clone()));
-            self.listed(cursor)?;
-            return self.with_known(|tree| tree.files.get(name).cloned().unwrap_or_default());
-        }
         let found = self.looked_up(name)?;
         self.noted(|tree| match found.is_empty() {
             true => {
@@ -361,15 +342,6 @@ impl Drive {
         Ok(true)
     }
 
-    // A name search walks one folder, so a store split across two roots is read whole again instead.
-    fn split_store(&self) -> bool {
-        self.roots
-            .lock()
-            .ok()
-            .and_then(|held| held.as_ref().map(|roots| roots.len() > 1))
-            .unwrap_or(false)
-    }
-
     fn fresh(&self, file: &File, name: &str) -> Result<Option<File>, Hitch> {
         let url = format!("{}/files/{}", self.at.api, file.id);
         let now: File = match self.call(Some(ASKED_WITHIN), |http| {
@@ -401,7 +373,7 @@ impl Drive {
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
                 ("fields", fields.as_str()),
-                ("spaces", "drive"),
+                ("spaces", SPACE),
             ])
         })?)?;
         Ok(page
@@ -412,13 +384,7 @@ impl Drive {
     }
 
     fn folder_id(&self, path: Option<&str>, making: bool) -> Result<Option<String>, Hitch> {
-        let found = match making {
-            true => Some(self.root_made()?),
-            false => self.root_known()?,
-        };
-        let Some(mut at) = found else {
-            return Ok(None);
-        };
+        let mut at = self.root()?;
         let Some(path) = path else {
             return Ok(Some(at));
         };
@@ -463,7 +429,7 @@ impl Drive {
                 ("q", asked.as_str()),
                 ("orderBy", "createdTime"),
                 ("fields", "files(id)"),
-                ("spaces", "drive"),
+                ("spaces", SPACE),
             ])
         })?)?;
         Ok(page.files.into_iter().next().map(|one| one.id))
@@ -505,7 +471,7 @@ impl Drive {
                 http.get(&url).query(&[
                     ("pageToken", token.as_str()),
                     ("pageSize", "1000"),
-                    ("spaces", "drive"),
+                    ("spaces", SPACE),
                     ("fields", fields.as_str()),
                 ])
             })?)?;
@@ -537,9 +503,10 @@ impl Drive {
 
     // A listing can lag behind the changes that sent us to it, so what they say that it does not show yet is laid over it.
     fn laid_over(&self, theirs: &[Changed]) {
-        let Some(roots) = self.roots.lock().ok().and_then(|held| held.clone()) else {
+        let roots = self.roots();
+        if roots.is_empty() {
             return;
-        };
+        }
         let Ok(mut held) = self.known.lock() else {
             return;
         };
@@ -574,7 +541,10 @@ impl Drive {
 
     // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
     fn caught_up(&self, since: &str, theirs: &[Changed], cursor: &str) -> Option<Changes> {
-        let roots = self.roots.lock().ok()?.clone()?;
+        let roots = self.roots();
+        if roots.is_empty() && !theirs.is_empty() {
+            return None;
+        }
         let mut held = self.known.lock().ok()?;
         let known = held.as_mut()?;
         let touched = match theirs.is_empty() {
@@ -730,17 +700,8 @@ impl Remote for Drive {
         if expect.is_some_and(|wanted| seen(name, first).revision != wanted) {
             return Err(Hitch::Changed(name.to_string()));
         }
-        let copies = match expect {
-            Some(_) => {
-                match self.binned_unless_moved(name, first) {
-                    Ok(()) | Err(Hitch::Missing(_)) => {}
-                    Err(other) => return Err(other),
-                }
-                &all[1..]
-            }
-            None => &all[..],
-        };
-        for one in copies {
+        // The space has no bin, so the revision just checked is the last word before the bytes go for good.
+        for one in &all {
             let url = format!("{}/files/{}", self.at.api, one.id);
             match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
                 Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
