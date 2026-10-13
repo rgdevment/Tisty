@@ -409,8 +409,13 @@ const data = async () => {
   await userEvent.click(await screen.findByRole("tab", { name: /your data/i }));
 };
 
+const folders = async () => {
+  await userEvent.click(await screen.findByRole("button", { name: /cloud through a folder/i }));
+};
+
 const turnedOn = async () => {
   await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+  await folders();
   await userEvent.click(await screen.findByRole("button", { name: /another folder/i }));
   await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
 };
@@ -447,6 +452,7 @@ describe("the maintenance panel", () => {
     await data();
 
     await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
+    await folders();
 
     expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /another folder/i })).toBeTruthy();
@@ -782,7 +788,7 @@ describe("the maintenance panel", () => {
     expect(sent("unused_attachments")).toHaveLength(0);
   });
 
-  it("with a cloud of its own, keeps the backup off and says why, and still restores", async () => {
+  it("with a cloud of its own, leaves backing up and restoring out of sight", async () => {
     carrying.freesSpace = true;
     try {
       render(
@@ -796,13 +802,9 @@ describe("the maintenance panel", () => {
       );
       await data();
 
-      await screen.findByText(/a backup here would not hold everything/i);
-      expect(screen.getByRole("button", { name: /create backup/i }).hasAttribute("disabled")).toBe(
-        true,
-      );
-      expect(screen.getByRole("button", { name: /restore from/i }).hasAttribute("disabled")).toBe(
-        false,
-      );
+      await screen.findByText(t("whereItLives"));
+      expect(screen.queryByRole("button", { name: /create backup/i })).toBeNull();
+      expect(screen.queryByRole("button", { name: /restore from/i })).toBeNull();
     } finally {
       carrying.freesSpace = false;
     }
@@ -2206,9 +2208,11 @@ describe("the maintenance panel", () => {
 describe("the first-run assistant", () => {
   const spoken = async () => {
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
+    await folders();
   };
 
   const alone = async () => {
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
     await userEvent.click(await screen.findByRole("button", { name: /only on this machine/i }));
     await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
   };
@@ -2764,7 +2768,7 @@ describe("the first-run assistant", () => {
     render(<Welcome onDone={vi.fn()} />);
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
 
-    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /only on this machine/i })).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: /only on this machine/i }));
@@ -2780,6 +2784,7 @@ describe("the first-run assistant", () => {
     const done = vi.fn();
     render(<Welcome onDone={done} />);
     await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
     await userEvent.click(await screen.findByRole("button", { name: /only on this machine/i }));
     await screen.findByRole("textbox", { name: /^alias$/i });
 
@@ -2795,6 +2800,7 @@ describe("the first-run assistant", () => {
     await screen.findByRole("button", { name: /google drive/i });
 
     await userEvent.click(screen.getByRole("button", { name: /^back$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
     const english = await screen.findByRole("button", { name: /^english$/i });
     expect(english.getAttribute("aria-pressed")).toBe("true");
@@ -2804,8 +2810,9 @@ describe("the first-run assistant", () => {
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
 
-    await userEvent.click(screen.getByRole("button", { name: /^español$/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^español$/i }));
 
     expect(sent("keep_locale").map((one) => one.args.locale)).toEqual(["en", "es"]);
   });

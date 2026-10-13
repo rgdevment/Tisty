@@ -231,15 +231,17 @@ export default function Yours({
         </Line>
       </div>
 
-      <Backup
-        state={state}
-        holds={holds}
-        held={held}
-        said={said}
-        trouble={trouble}
-        onMake={makeBackup}
-        onTake={takeBackup}
-      />
+      {!state.freesSpace && (
+        <Backup
+          state={state}
+          holds={holds}
+          held={held}
+          said={said}
+          trouble={trouble}
+          onMake={makeBackup}
+          onTake={takeBackup}
+        />
+      )}
 
       <Band label={t("whereItLives")} />
       <div className="border-t border-hair">

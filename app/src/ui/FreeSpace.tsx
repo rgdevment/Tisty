@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { type Freeing, freeSpace, stopFreeing, type Unused, unusedAttachments } from "../core";
+import {
+  type CloudStatus,
+  cloudStatus,
+  type Freeing,
+  freeSpace,
+  stopFreeing,
+  type Unused,
+  unusedAttachments,
+} from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -31,6 +39,7 @@ export default function FreeSpace({
   fail,
 }: Props) {
   const [found, setFound] = useState<Unused | null>(null);
+  const [spent, setSpent] = useState<CloudStatus | null>(null);
   const held = busy !== null;
   const running = freeing !== null && !freeing.done;
 
@@ -46,6 +55,13 @@ export default function FreeSpace({
     };
   }, [days, running]);
 
+  useEffect(() => {
+    if (running) return;
+    cloudStatus()
+      .then(setSpent)
+      .catch(() => setSpent(null));
+  }, [running]);
+
   const letGo = () => {
     fail(undefined);
     setFreeing({ gone: 0, freed: 0, done: false });
@@ -59,6 +75,18 @@ export default function FreeSpace({
     <Card title={t("freeTitle")} which="free" busy={busy} said={said} trouble={trouble}>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("freeWhy")}</p>
       <p className="mt-1 text-[12.5px] leading-relaxed text-soft">{t("freeQuota")}</p>
+      {spent && spent.unitsADay > 0 && (
+        <p className="mt-1 text-[12.5px] leading-relaxed text-faint tabular-nums">
+          {t("cloudToday")}:{" "}
+          {fill(
+            "cloudTodayUnits",
+            spent.unitsSpent.toLocaleString(),
+            spent.unitsADay.toLocaleString(),
+          )}
+          {spent.bytesADay > 0 &&
+            ` · ${fill("cloudTodayBytes", weigh(spent.bytesSpent), weigh(spent.bytesADay))}`}
+        </p>
+      )}
       {found && (
         <p className="mt-1 text-[12.5px] leading-relaxed text-soft">
           {found.files > 0

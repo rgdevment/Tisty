@@ -5,6 +5,8 @@ import {
   about,
   type Carrying,
   chooseSync,
+  cloudForget,
+  cloudStatus,
   type Freeing,
   keepSettings,
   type Reach,
@@ -22,8 +24,8 @@ import { saidPlainly } from "../refusal";
 import type { Tab } from "../views";
 import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which, type Word } from "./Card";
+import Choosing from "./Choosing";
 import General from "./General";
-import Keepers from "./Keepers";
 import Modal from "./Modal";
 import { strong } from "./Rows";
 import { useSigning } from "./Signing";
@@ -193,7 +195,10 @@ export default function Keeping({
     onChanged();
     if (!at) return;
     if ((await carryNow()) !== "declined") return;
-    await chooseSync(was).catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    const brought = at === "cloud" ? (await cloudStatus().catch(() => null))?.account : undefined;
+    await chooseSync(was)
+      .then(() => (brought ? cloudForget(brought) : undefined))
+      .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
     look();
     onChanged();
   };
@@ -209,12 +214,17 @@ export default function Keeping({
     <main className="flex flex-col overflow-hidden">
       {picking && (
         <Modal title={t("welcomeCopies")} wide onClose={() => setPicking(false)}>
-          <p className="mb-4 text-[12.5px] leading-relaxed text-soft">{t("keepersWhy")}</p>
-          <Keepers
+          <Choosing
             busy={held}
-            onTrouble={(text) => setTrouble({ card: "sync", text })}
+            offered={state.cloudOffered && state.mode !== "folder"}
+            onTrouble={(text) => setTrouble(text ? { card: "sync", text } : undefined)}
             onDone={picked}
           />
+          {trouble?.card === "sync" && (
+            <p role="alert" className="mt-3 text-[11.5px] text-urgent">
+              {trouble.text}
+            </p>
+          )}
         </Modal>
       )}
       {carrying.shown}

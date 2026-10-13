@@ -124,7 +124,7 @@ fn a_way_a_newer_build_wrote_after_this_window_opened_is_not_replaced() {
     written.save(&paths).unwrap();
 
     let stopped = session
-        .keep_unless(choosing(Sync::folder("G:/otra")))
+        .keep_unless(choosing(Sync::folder("G:/otra"), true))
         .expect_err("what a newer build wrote was written over");
 
     assert_eq!(stopped.code, "syncLaterToLeave");
@@ -214,7 +214,7 @@ fn a_change_that_is_not_refused_is_written_onto_what_is_on_disk() {
     let mut session = Session::at(paths.clone()).unwrap();
 
     session
-        .keep_unless(choosing(Sync::folder("G:/compartida")))
+        .keep_unless(choosing(Sync::folder("G:/compartida"), true))
         .unwrap();
 
     let on_disk = tisty_core::Config::load(&paths.config_file())
@@ -247,4 +247,25 @@ fn a_command_that_needs_a_carrier_says_why_there_is_none() {
     );
     session.config.sync = Some(Sync::folder("G:/compartida"));
     assert!(session.carrying().is_ok());
+}
+
+#[test]
+fn a_cloud_is_left_only_through_a_move_once_this_machine_carried_into_it() {
+    let cloud = Sync::cloud(tisty_core::config::CloudAt {
+        provider: "google".into(),
+        account: "0123".into(),
+        email: "ana@example.com".into(),
+    });
+    let home = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(home.path().join("data"), home.path().join("config"));
+    let mut joined = tisty_core::Config::load_or_init(&paths).unwrap();
+    joined.sync = Some(cloud.clone());
+    let refused = choosing(Sync::alone(), true)(&mut joined);
+    assert_eq!(refused.map(|one| one.code), Some("cloudToLeave"));
+    assert_eq!(joined.sync, Some(cloud.clone()));
+
+    let mut never = joined.clone();
+    never.sync = Some(cloud);
+    assert!(choosing(Sync::alone(), false)(&mut never).is_none());
+    assert_eq!(never.sync, Some(Sync::alone()));
 }

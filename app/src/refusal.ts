@@ -181,6 +181,10 @@ export const folderAhead = (problem: unknown): { name?: string } | null => {
 export const offerMoved = (problem: unknown): boolean =>
   ["updateGone", "updateMoved"].includes((problem as Refusal | undefined)?.code ?? "");
 
+/** The others moved away, so the way out is choosing again in Settings. */
+export const leftBehind = (problem: unknown): boolean =>
+  ["movedAway", "movedAlone"].includes((problem as Refusal | undefined)?.code ?? "");
+
 let noticing: ((behind: boolean) => void) | null = null;
 
 export const noticeBehind = (fn: ((behind: boolean) => void) | null) => {

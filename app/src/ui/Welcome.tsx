@@ -14,12 +14,13 @@ import {
   sowLists,
   syncKin,
   syncNow,
+  syncState,
   wakeFor,
 } from "../core";
 import { adopt, fill, t } from "../locales";
 import { folderAhead, saidPlainly } from "../refusal";
 import Apart, { type Door } from "./Apart";
-import Keepers from "./Keepers";
+import Choosing from "./Choosing";
 import Modal from "./Modal";
 import Older from "./Older";
 
@@ -84,8 +85,16 @@ export default function Welcome({ onDone }: Props) {
   const [kin, setKin] = useState<Kin>();
   const [offer, setOffer] = useState<Joining>();
   const [named, setNamed] = useState<string>();
+  const [offered, setOffered] = useState(false);
+  const [another, setAnother] = useState(false);
   const went = useRef(false);
   const joined = useRef(false);
+
+  useEffect(() => {
+    syncState()
+      .then((state) => setOffered(state.cloudOffered))
+      .catch(() => undefined);
+  }, []);
 
   const ahead = folderAhead(stuck?.by);
   const path = named ? STEPS.filter((one) => one !== "signing") : STEPS;
@@ -371,6 +380,7 @@ export default function Welcome({ onDone }: Props) {
             busy={busy}
             onStay={stayHere}
             onOther={() => {
+              setAnother(true);
               joined.current = false;
               setNamed(undefined);
               setStuck(undefined);
@@ -414,7 +424,14 @@ export default function Welcome({ onDone }: Props) {
             </span>
           </div>
         ) : (
-          <Keepers busy={busy} onTrouble={setTrouble} onDeciding={setDeciding} onDone={chose} />
+          <Choosing
+            busy={busy}
+            offered={offered}
+            start={another ? "folder" : "pick"}
+            onTrouble={setTrouble}
+            onDeciding={setDeciding}
+            onDone={chose}
+          />
         )}
       </div>
 

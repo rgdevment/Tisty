@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Stage, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
-import { plainly } from "../refusal";
+import { leftBehind, plainly } from "../refusal";
 
 export const SHOWN_AFTER = 3_000;
 export const SLOW_AFTER = 60_000;
@@ -14,7 +14,7 @@ const said: Record<Stage, Word> = {
 
 const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
-export default function Coming() {
+export default function Coming({ onOpen }: { onOpen?: () => void }) {
   const coming = useComing();
   const stuck = useStuck();
   const [, tick] = useState(0);
@@ -55,6 +55,15 @@ export default function Coming() {
         <p role="alert" className="text-[11.5px] text-urgent">
           {plainly(stuck)}
         </p>
+      )}
+      {stuck != null && onOpen && leftBehind(stuck) && (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="self-start rounded-[10px] border border-line px-2.5 py-1 text-[11.5px] hover:bg-hover"
+        >
+          {t("movedChoose")}
+        </button>
       )}
     </div>
   );
