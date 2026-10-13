@@ -541,28 +541,13 @@ fn nothing_is_owed_before_the_interval_is_up() {
 }
 
 #[test]
-fn an_installer_counts_only_from_the_release_cut_for_the_version_offered() {
-    let at = |tag: &str| {
-        format!("https://github.com/rgdevment/Tisty/releases/download/{tag}/tisty-installer-x.exe")
-    };
+fn an_update_counts_only_when_its_signature_names_the_version_offered() {
+    let config: serde_json::Value =
+        serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
 
-    assert!(released_as(&at("v1.30.0"), "1.30.0"));
-    assert!(released_as(&at("v1.30.0-rc.1"), "1.30.0-rc.1"));
-    for (url, version) in [
-        (at("v1.25.1"), "9.9.9"),
-        (at("v1.30.0"), "1.30"),
-        (at("v1.30.0/../v1.25.1"), "1.30.0"),
-        (
-            at("v1.30.0").replace("rgdevment/Tisty", "otro/Tisty"),
-            "1.30.0",
-        ),
-        (at("v1.30.0").replace("https", "http"), "1.30.0"),
-        (
-            "https://objects.githubusercontent.com/rgdevment/Tisty/releases/download/v1.30.0/x.exe"
-                .to_string(),
-            "1.30.0",
-        ),
-    ] {
-        assert!(!released_as(&url, version), "{url} passed as {version}");
-    }
+    assert_eq!(
+        config["plugins"]["updater"]["requireSignedVersion"],
+        serde_json::Value::Bool(true),
+        "without it, the unsigned feed could pass an older signed installer off as a newer one"
+    );
 }

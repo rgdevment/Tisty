@@ -1106,7 +1106,7 @@ jobs:
               echo "::error::$f was not built, so nothing out there could update to it"
               exit 1
             fi
-            "$RUNNER_TEMP/signer/node_modules/.bin/tauri" signer sign "$f"
+            "$RUNNER_TEMP/signer/node_modules/.bin/tauri" signer sign --app-version "$v" "$f"
             test -s "$f.sig" || { echo "::error::no signature for $f"; exit 1; }
             mv "$f.sig" signatures/
           done
@@ -1566,12 +1566,18 @@ jobs:
             url=$(jq -r --arg os "$os" '.platforms[$os].url' channel.json)
             jq -r --arg os "$os" '.platforms[$os].signature' channel.json | base64 -d > one.sig
             curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o one.bin "$url"
-            if minisign -Vm one.bin -p tisty.pub -x one.sig; then
-              echo "$os verifies"
-            else
+            if ! trusted=$(minisign -Vm one.bin -p tisty.pub -x one.sig); then
               echo "::error::$os does not verify against the key this build ships"
               exit 1
             fi
+            # Copies refuse a signature that does not name the version it was cut for.
+            signed=$(printf '%s\n' "$trusted" | sed -n 's/^Trusted comment: //p' | tr '\t' '\n' \
+              | sed -n 's/^version://p')
+            if [ "$signed" != "$v" ]; then
+              echo "::error::$os verifies but is signed for «${signed:-no version}», not $v, so no copy will take it"
+              exit 1
+            fi
+            echo "$os verifies, signed for $v"
           done
 
   msstore:

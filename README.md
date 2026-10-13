@@ -81,8 +81,8 @@
   </p>
 
   <p>
-    <sub><a href="https://rgdevment.com/tisty/">rgdevment.com/tisty</a> ·
-    Docs</sub>
+    <sub>Site and docs:
+    <a href="https://rgdevment.com/tisty/">rgdevment.com/tisty</a></sub>
   </p>
 
 </div>

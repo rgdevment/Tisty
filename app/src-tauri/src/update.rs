@@ -91,17 +91,6 @@ pub fn ours(url: &str) -> bool {
     })
 }
 
-// The feed's version is not signed, the release's tag is: only a release cut for this version can hold its installer.
-pub fn released_as(url: &str, version: &str) -> bool {
-    let tagged = format!("/rgdevment/Tisty/releases/download/v{version}/");
-    url.parse::<url::Url>().is_ok_and(|at| {
-        at.scheme() == "https"
-            && at.host_str() == Some("github.com")
-            && at.path().starts_with(&tagged)
-            && !at.path()[tagged.len()..].contains('/')
-    })
-}
-
 /// Where to look for the version being offered, in the order to try. A candidate is looked for
 /// among the candidates, and then among the stable releases — because the release that retires a
 /// candidate takes its channel away with it, and a copy still holding that offer would otherwise

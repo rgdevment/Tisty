@@ -106,9 +106,19 @@ jobs:
                 echo "::error::the installer for $os in $what does not answer: $url"
                 return 1
               fi
-              if ! minisign -Vm one.bin -p tisty.pub -x one.sig >/dev/null; then
+              local trusted signed
+              if ! trusted=$(minisign -Vm one.bin -p tisty.pub -x one.sig); then
                 echo "::error::the installer for $os in $what does not verify against the key \
                       every installed copy carries. It answers, and it cannot be installed: $url"
+                return 1
+              fi
+              signed=$(printf '%s\n' "$trusted" | sed -n 's/^Trusted comment: //p' | tr '\t' '\n' \
+                | sed -n 's/^version://p')
+              if [ -z "$signed" ]; then
+                echo "::warning::the installer for $os in $what is signed without its version; \
+                      a copy that requires one takes it only once it is signed again"
+              elif [ "$signed" != "$expected" ]; then
+                echo "::error::the installer for $os in $what is signed for $signed and offered as $expected"
                 return 1
               fi
               echo "  $os verifies"

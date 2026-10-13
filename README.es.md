@@ -81,8 +81,8 @@
   </p>
 
   <p>
-    <sub><a href="https://rgdevment.com/es/tisty/">rgdevment.com/tisty</a> ·
-    Ayuda</sub>
+    <sub>Sitio y ayuda:
+    <a href="https://rgdevment.com/es/tisty/">rgdevment.com/es/tisty</a></sub>
   </p>
 
 </div>
