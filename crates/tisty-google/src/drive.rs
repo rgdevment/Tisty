@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use reqwest::blocking::Client as Http;
 use serde::Deserialize;
@@ -29,6 +29,7 @@ pub(super) const LIST: u64 = 100;
 pub(super) const DOWNLOAD: u64 = 200;
 pub(super) const EDIT: u64 = 50;
 const MIB: u64 = 1024 * 1024;
+const FRESH_FOR: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DriveAt {
@@ -56,6 +57,7 @@ struct Known {
     cursor: Option<String>,
     // Each cursor reached with the paths that moved to reach it, so one asked from an older cursor hears all of them again.
     passed: Vec<(String, BTreeSet<String>)>,
+    current_at: Instant,
 }
 
 const PASSED_AT_MOST: usize = 64;
@@ -67,6 +69,7 @@ impl Known {
 
     fn moved_to(&mut self, cursor: &str, touched: BTreeSet<String>) {
         self.cursor = Some(cursor.to_string());
+        self.current_at = Instant::now();
         if self.passed.last().is_some_and(|(last, _)| last == cursor) {
             return;
         }
@@ -260,6 +263,7 @@ impl Drive {
                     .map(|one| (one.clone(), BTreeSet::new()))
                     .collect(),
                 cursor,
+                current_at: Instant::now(),
             });
         }
         Ok(())
@@ -312,6 +316,9 @@ impl Drive {
             copies[0] = now;
             return Ok(copies);
         }
+        if copies.is_empty() && self.kept_current()? {
+            return self.with_known(|tree| tree.files.get(name).cloned().unwrap_or_default());
+        }
         if self.split_store() {
             let cursor = self
                 .known
@@ -331,6 +338,27 @@ impl Drive {
             }
         });
         Ok(found)
+    }
+
+    // Absence in a tree the changes feed caught up within a minute is trusted: a racing twin lands beside ours as after a search, and an attachment's holds the same bytes.
+    fn kept_current(&self) -> Result<bool, Hitch> {
+        let held = self.known.lock().ok().and_then(|held| {
+            held.as_ref()
+                .and_then(|known| Some((known.cursor.clone()?, known.current_at)))
+        });
+        let Some((cursor, at)) = held else {
+            return Ok(false);
+        };
+        if at.elapsed() < FRESH_FOR {
+            return Ok(true);
+        }
+        self.spent(LIST);
+        let (theirs, next) = self.stirred(&cursor)?;
+        if self.caught_up(&cursor, &theirs, &next).is_none() {
+            self.listed(Some(next))?;
+            self.laid_over(&theirs);
+        }
+        Ok(true)
     }
 
     // A name search walks one folder, so a store split across two roots is read whole again instead.
@@ -404,7 +432,12 @@ impl Drive {
                 at = id;
                 continue;
             }
-            let found = match self.child_folder(&at, part)? {
+            let current = self.kept_current()?;
+            let known = match current {
+                true => self.with_known(|tree| tree.folders.get(&walked).cloned())?,
+                false => self.child_folder(&at, part)?,
+            };
+            let found = match known {
                 Some(id) => id,
                 None if making => self.folder(part, &at)?,
                 None => return Ok(None),

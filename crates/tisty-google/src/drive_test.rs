@@ -1553,3 +1553,6 @@ fn a_debt_whose_file_moved_on_keeps_the_bytes_in_drive_s_history_and_writes_over
 
 #[path = "drive_answers_test.rs"]
 mod answers;
+
+#[path = "drive_fresh_test.rs"]
+mod fresh;
