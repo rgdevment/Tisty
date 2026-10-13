@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (348 crates)
+## In the core (347 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -591,7 +591,6 @@ written once with the crates that carry it.
 | `windows-future` | 0.3.2 | MIT OR Apache-2.0 |
 | `windows-link` | 0.1.3 | MIT OR Apache-2.0 |
 | `windows-link` | 0.2.1 | MIT OR Apache-2.0 |
-| `windows-native-keyring-store` | 1.1.0 | MIT OR Apache-2.0 |
 | `windows-numerics` | 0.2.0 | MIT OR Apache-2.0 |
 | `windows-numerics` | 0.3.1 | MIT OR Apache-2.0 |
 | `windows-registry` | 0.6.1 | MIT OR Apache-2.0 |

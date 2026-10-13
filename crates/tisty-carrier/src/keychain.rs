@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use keyring_core::{CredentialStore, Entry, Error};
@@ -7,7 +6,7 @@ use crate::{Hitch, Secrets};
 
 const SERVICE: &str = "tisty";
 
-/// The system's own keychain: Credential Manager, the macOS Keychain or the Secret Service.
+/// The system's own keychain on macOS and Linux; Windows keeps its tokens sealed beside the app instead.
 pub struct Keychain {
     store: Arc<CredentialStore>,
     scope: String,
@@ -15,12 +14,14 @@ pub struct Keychain {
 
 impl Keychain {
     /// `scope` keeps apart what two stores or two profiles of one person hold for the same account.
+    #[cfg(not(windows))]
     pub fn native(scope: &str) -> Result<Self, Hitch> {
         native_store()
             .map(|store| Self::over(store, scope))
             .map_err(trouble)
     }
 
+    #[cfg(any(not(windows), test))]
     pub(crate) fn over(store: Arc<CredentialStore>, scope: &str) -> Self {
         Self {
             store,
@@ -30,11 +31,7 @@ impl Keychain {
 
     fn entry(&self, key: &str) -> Result<Entry, Hitch> {
         let named = format!("{}/{key}", self.scope);
-        let kept = kept_here();
-        let modifiers = (!kept.is_empty()).then_some(&kept);
-        self.store
-            .build(SERVICE, &named, modifiers)
-            .map_err(trouble)
+        self.store.build(SERVICE, &named, None).map_err(trouble)
     }
 }
 
@@ -69,22 +66,6 @@ impl Secrets for Keychain {
             Err(e) => Err(trouble(e)),
         }
     }
-}
-
-// Enterprise, Windows' default, roams with a domain profile, and another machine would rotate the same token.
-#[cfg(windows)]
-fn kept_here() -> HashMap<&'static str, &'static str> {
-    HashMap::from([("persistence", "Local")])
-}
-
-#[cfg(not(windows))]
-fn kept_here() -> HashMap<&'static str, &'static str> {
-    HashMap::new()
-}
-
-#[cfg(windows)]
-fn native_store() -> keyring_core::Result<Arc<CredentialStore>> {
-    Ok(windows_native_keyring_store::Store::new()?)
 }
 
 #[cfg(target_os = "macos")]
