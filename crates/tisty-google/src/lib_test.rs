@@ -243,7 +243,7 @@ fn a_browser_that_sends_many_headers_still_reads_the_whole_page() {
 }
 
 #[test]
-fn a_grant_wider_than_drive_file_is_refused_and_handed_back() {
+fn a_grant_wider_than_drive_appdata_is_refused_and_handed_back() {
     let (at, asked) = provider(vec![
         reply(
             "200 OK",

@@ -197,10 +197,18 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
         | (429, _) => Hitch::Limited {
             wait: wait.unwrap_or(WAITED_UNTOLD),
         },
-        (403, "insufficientPermissions") => Hitch::Lost,
+        // A grant from before Tisty kept to its own space cannot read it, and only signing in again mends that.
+        (403, "insufficientPermissions" | "insufficientScopes") => Hitch::Lost,
+        (403, _)
+            if message
+                .to_ascii_lowercase()
+                .contains("application data folder") =>
+        {
+            Hitch::Lost
+        }
         // Signing in again does not hand Tisty a file another app or person holds, so it stops and says so.
         (403, "appNotAuthorizedToFile" | "insufficientFilePermissions") => Hitch::Broke(format!(
-            "Google Drive holds a file in the Tisty folder that Tisty may not change: {message}"
+            "Google Drive holds a file in Tisty's space that Tisty may not change: {message}"
         )),
         (403, "domainPolicy") => Hitch::Broke(
             "the administrators of this Google account turned off apps like Tisty in Drive".into(),

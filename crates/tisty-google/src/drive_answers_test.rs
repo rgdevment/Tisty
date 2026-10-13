@@ -374,3 +374,28 @@ fn the_room_left_is_the_ceiling_less_what_is_used_and_no_ceiling_is_no_limit() {
         "the room was not asked of the quota"
     );
 }
+
+#[test]
+fn a_grant_from_before_tisty_kept_to_its_own_space_asks_to_connect_again() {
+    let home = tempfile::tempdir().unwrap();
+    let refused = |reason: &str, message: &str| {
+        format!(r#"{{"error":{{"message":"{message}","errors":[{{"reason":"{reason}"}}]}}}}"#)
+    };
+    let (at, _) = google(vec![
+        said(
+            "403 Forbidden",
+            &refused("insufficientScopes", "Insufficient Permission"),
+        ),
+        said(
+            "403 Forbidden",
+            &refused(
+                "forbidden",
+                "The granted scopes do not give access to all of the requested spaces: Application Data folder.",
+            ),
+        ),
+    ]);
+    let drive = drive(at, home.path());
+
+    assert_eq!(drive.list(""), Err(Hitch::Lost));
+    assert_eq!(drive.list(""), Err(Hitch::Lost));
+}
