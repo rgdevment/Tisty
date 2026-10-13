@@ -214,3 +214,35 @@ fn a_change_that_is_refused_keeps_no_copy() {
         "a refused change pushed out a real copy"
     );
 }
+
+#[test]
+fn machines_left_behind_are_told_the_cloud_the_others_moved_to() {
+    let room = tempfile::tempdir().unwrap();
+    let shared = room.path().join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    let (mut one, two) = (machine(room.path(), "one"), machine(room.path(), "two"));
+    vouches_for(&two, &one);
+    crate::answers::storing::choose(&mut one, Some(shared.display().to_string())).unwrap();
+    let cloud = Sync::cloud(CloudAt {
+        provider: "google".into(),
+        account: "0123".into(),
+        email: "ana@example.com".into(),
+    });
+
+    leave_word(
+        &one.paths,
+        &one.config,
+        &Sync::folder(&shared),
+        Some(tisty_carrier::considering(&shared)),
+        &cloud,
+    );
+
+    let stopped = heeded(
+        word_in(&shared).as_deref(),
+        two.paths.data(),
+        &two.config.device_id,
+    )
+    .expect("the machine left behind went on syncing alone");
+    assert_eq!(stopped.code, "movedToCloud");
+    assert_eq!(stopped.name.as_deref(), Some("ana@example.com"));
+}

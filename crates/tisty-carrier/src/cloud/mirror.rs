@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tisty_core::witness::{self, Fact, channel};
-use tisty_sync::{MARKER, NAMED, STORE};
+use tisty_sync::{HELD, MARKER, NAMED, STORE};
 
 use super::index::{Index, Mirrored, digest_of, on_shelf, path_of, stamp_of};
 use crate::{Changes, Expect, Hitch, Remote, Seen};
@@ -308,7 +308,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     };
     let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) =
         dirty.into_iter().partition(|one| one.name == NAMED);
-    rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
+    rest.sort_by_key(|one| (pushed_in_turn(&one.name), one.name.clone()));
 
     for (at, one) in rest.iter().enumerate() {
         if let Err(hitch) = upload(remote, index, one, &mut done) {
@@ -353,13 +353,13 @@ fn is_dirty(index: &mut Index, one: &Found) -> bool {
     }
 }
 
-fn history_first(name: &str) -> u8 {
-    match name
-        .strip_prefix(STORE)
-        .is_some_and(|rest| rest.starts_with('/'))
-    {
-        true => 0,
-        false => 1,
+// A full Drive keeps what matters most: the history, then the documents, and the attachments last.
+fn pushed_in_turn(name: &str) -> u8 {
+    match () {
+        _ if under(name, STORE) => 0,
+        _ if under(name, PAPERS) => 1,
+        _ if under(name, HELD) => 3,
+        _ => 2,
     }
 }
 
@@ -523,3 +523,7 @@ fn is_history(name: &str) -> bool {
 pub(super) fn mirrored(name: &str) -> bool {
     name == NAMED || name == tisty_core::moved::NAMED || is_history(name) || is_doc(name)
 }
+
+#[cfg(test)]
+#[path = "mirror_test.rs"]
+mod tests;

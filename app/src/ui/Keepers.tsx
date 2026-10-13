@@ -19,6 +19,8 @@ interface Props {
   onTrouble: (said: string) => void;
   onDeciding?: (deciding: boolean) => void;
   onDone: (at: string) => void;
+  // A move only wants the place; it points there itself once everything is over.
+  pickOnly?: boolean;
 }
 
 interface Standing {
@@ -38,7 +40,7 @@ const row =
   "flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2 text-left hover:bg-hover disabled:opacity-50 disabled:hover:bg-transparent";
 const badge = "flex-none rounded-md px-1.5 py-0.5 text-[10.5px] tracking-wide";
 
-export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) {
+export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly }: Props) {
   const [offers, setOffers] = useState<Offering[]>([]);
   const [standing, setStanding] = useState<Standing>();
   const [held, setHeld] = useState(false);
@@ -98,10 +100,8 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
 
   const keep = () => {
     if (stuck || !standing) return;
-    settle(
-      makeRoom(standing.at).then(() => chooseSync(standing.at)),
-      standing.at,
-    );
+    const room = makeRoom(standing.at);
+    settle(pickOnly ? room : room.then(() => chooseSync(standing.at)), standing.at);
   };
 
   if (standing) {

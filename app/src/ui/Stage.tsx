@@ -156,6 +156,7 @@ export default function Stage() {
     <Keeping
       greeted={greeted}
       start={chosen.tab}
+      move={chosen.move}
       onPack={() => parcels.packUp([], "tisty")}
       onUnpack={parcels.takeParcel}
       onGreet={() => setGreet(true)}

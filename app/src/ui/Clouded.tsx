@@ -29,9 +29,10 @@ interface Props {
   run: Run;
   fail: (word?: Word) => void;
   carry: (way?: "again") => void;
+  onMove: () => void;
 }
 
-export default function Clouded({ state, busy, said, trouble, run, fail, carry }: Props) {
+export default function Clouded({ state, busy, said, trouble, run, fail, carry, onMove }: Props) {
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [which, setWhich] = useState(false);
   const held = busy !== null;
@@ -174,6 +175,9 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry }
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
         <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
+        <button type="button" disabled={held} onClick={onMove} className={mild}>
+          {t("moveOpen")}
+        </button>
         {status && !status.joined && (
           <button type="button" disabled={held} onClick={stop} className={mild}>
             {t("cloudStop")}

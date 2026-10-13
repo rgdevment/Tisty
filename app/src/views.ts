@@ -17,6 +17,8 @@ export type Named =
 
 export type Tab = "general" | "data" | "agents" | "upkeep";
 
+export type Heading = "pick" | "cloud" | "folder";
+
 export type Slice = "today" | "upcoming" | "repeating" | "all";
 
 export const SLICES: Slice[] = ["today", "upcoming", "repeating", "all"];
@@ -50,6 +52,7 @@ export interface Chosen {
   named?: Named;
   doc?: string;
   tab?: Tab;
+  move?: Heading;
   list?: string;
   lists?: string[];
   tags?: string[];

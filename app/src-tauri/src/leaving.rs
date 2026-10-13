@@ -146,7 +146,7 @@ impl Owing {
 pub fn heeded(said: Option<&str>, data: &Path, me: &tisty_core::DeviceId) -> Option<Refusal> {
     let word = tisty_core::moved::heeded(said, data, me)?;
     Some(match word.to.split_once(':') {
-        Some(("cloud", email)) => Refusal::about("movedAway", format!("Google Drive · {email}")),
+        Some(("cloud", email)) => Refusal::about("movedToCloud", email.to_string()),
         Some(("folder", named)) => Refusal::about("movedAway", named.to_string()),
         _ => Refusal::of("movedAlone"),
     })

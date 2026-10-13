@@ -123,6 +123,15 @@ pub trait Carrier: Send + std::marker::Sync {
     fn forget_word(&self) -> Result<(), Trouble> {
         Ok(())
     }
+    /// Whether a Tisty already lives there, so a fresh copy can offer to bring it home.
+    fn holds_a_store(&self) -> bool {
+        self.place()
+            .is_some_and(|dest| tisty_core::store::inhabited(dest.join(STORE)))
+    }
+    /// Everything this carrier keeps of Tisty goes to its bin, save the word that tells the others where it went.
+    fn wipe(&self) -> Result<usize, Trouble> {
+        Ok(0)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -73,6 +73,11 @@ const KNOWN = [
   "changeUnbacked",
   "movedAway",
   "movedAlone",
+  "movedToCloud",
+  "moveSamePlace",
+  "moveFromUnreachable",
+  "moveToUnreachable",
+  "wipeChosen",
   "backupCloudOff",
   "wouldReset",
   "sameName",
@@ -183,7 +188,9 @@ export const offerMoved = (problem: unknown): boolean =>
 
 /** The others moved away, so the way out is choosing again in Settings. */
 export const leftBehind = (problem: unknown): boolean =>
-  ["movedAway", "movedAlone"].includes((problem as Refusal | undefined)?.code ?? "");
+  ["movedAway", "movedAlone", "movedToCloud"].includes(
+    (problem as Refusal | undefined)?.code ?? "",
+  );
 
 let noticing: ((behind: boolean) => void) | null = null;
 

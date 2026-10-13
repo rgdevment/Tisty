@@ -51,7 +51,7 @@ struct Bringing {
 }
 
 /// What landed is told in handfuls, so a round cut short still owns what it already brought.
-struct Telling {
+pub(crate) struct Telling {
     app: tauri::AppHandle,
     kept: Vec<(String, String, u64)>,
     kept_at: std::time::Instant,
@@ -60,7 +60,7 @@ struct Telling {
 }
 
 impl Telling {
-    fn new(app: tauri::AppHandle, joining: bool) -> Self {
+    pub(crate) fn new(app: tauri::AppHandle, joining: bool) -> Self {
         Self {
             app,
             kept: Vec::new(),
@@ -70,7 +70,7 @@ impl Telling {
         }
     }
 
-    fn hear(&mut self, far: tisty_carrier::Reached) {
+    pub(crate) fn hear(&mut self, far: tisty_carrier::Reached) {
         match far {
             tisty_carrier::Reached::Log => {
                 let _ = self.app.emit("carried", "log");
@@ -110,7 +110,7 @@ impl Telling {
         }
     }
 
-    fn flush(&mut self) {
+    pub(crate) fn flush(&mut self) {
         self.kept_at = std::time::Instant::now();
         if self.kept.is_empty() {
             return;
@@ -575,21 +575,7 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
         .map(|one| one.trim().to_string())
         .filter(|one| !one.is_empty())
     {
-        Some(dest) => {
-            let at = std::path::PathBuf::from(&dest);
-            let data = session.paths.data();
-            let tangled = at.starts_with(data)
-                || data.starts_with(&at)
-                || at
-                    .canonicalize()
-                    .ok()
-                    .zip(data.canonicalize().ok())
-                    .is_some_and(|(a, b)| a.starts_with(&b) || b.starts_with(&a));
-            if tangled {
-                return Err(Refusal::about("remoteInsideStore", dest));
-            }
-            tisty_core::config::Sync::folder(at)
-        }
+        Some(dest) => folder_way(session, dest)?,
         None => tisty_core::config::Sync::alone(),
     };
     if let Some(at) = chosen.place()
@@ -602,6 +588,23 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
     }
     let joined = cloud_joined(session);
     changed_to(session, chosen, |one| choosing(one, joined))
+}
+
+/// A folder inside the store, or holding it, would carry the store into itself.
+pub(crate) fn folder_way(session: &Session, dest: String) -> Answer<tisty_core::config::Sync> {
+    let at = std::path::PathBuf::from(&dest);
+    let data = session.paths.data();
+    let tangled = at.starts_with(data)
+        || data.starts_with(&at)
+        || at
+            .canonicalize()
+            .ok()
+            .zip(data.canonicalize().ok())
+            .is_some_and(|(a, b)| a.starts_with(&b) || b.starts_with(&a));
+    if tangled {
+        return Err(Refusal::about("remoteInsideStore", dest));
+    }
+    Ok(tisty_core::config::Sync::folder(at))
 }
 
 /// Tasks and documents are kept first, the place left behind is told, and a place chosen again is the person's.
@@ -632,14 +635,17 @@ where
     }
     let old = session.carrier();
     let rejoined = joined_on(session, Some(&chosen));
+    let left_joined = joined_on(session, was.as_ref());
     session.keep_unless(choosing(chosen.clone()))?;
-    // Until the move exists only a cloud never carried into is left, and a word there would move someone else's.
-    let told = |left: &tisty_core::config::Sync| {
-        !matches!(
-            left.leaving(),
-            tisty_core::config::Leaving::Free | tisty_core::config::Leaving::Cloud
-        )
+    // A cloud never carried into holds someone else's copies, and a word there would move them.
+    let told = |left: &tisty_core::config::Sync| match left.leaving() {
+        tisty_core::config::Leaving::Free => false,
+        tisty_core::config::Leaving::Cloud => left_joined,
+        _ => true,
     };
+    if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !left_joined) {
+        crate::answers::clouding::let_go_of(&at.account);
+    }
     if let Some(left) = was.filter(told) {
         crate::leaving::leave_word(&session.paths, &session.config, &left, old, &chosen);
     }

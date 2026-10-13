@@ -142,9 +142,7 @@ pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
     Ok(Joining {
         kin: kinned(carrier.kin(&here)),
         fresh: !tisty_core::store::inhabited(&store),
-        holds: carrier
-            .place()
-            .is_some_and(|dest| tisty_core::store::inhabited(dest.join(tisty_carrier::STORE))),
+        holds: carrier.holds_a_store(),
         alias: signed.alias,
         coming: signed.coming,
     })

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { type Stage, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
+import type { Heading } from "../views";
 
 export const SHOWN_AFTER = 3_000;
 export const SLOW_AFTER = 60_000;
@@ -14,7 +15,15 @@ const said: Record<Stage, Word> = {
 
 const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
-export default function Coming({ onOpen }: { onOpen?: () => void }) {
+// The others' word says where they went, so the way out heads there.
+const followed = (stuck: unknown): { heading: Heading; said: Word } => {
+  const code = (stuck as { code?: string } | null)?.code;
+  if (code === "movedToCloud") return { heading: "cloud", said: "movedFollowCloud" };
+  if (code === "movedAway") return { heading: "folder", said: "movedFollowFolder" };
+  return { heading: "pick", said: "movedChoose" };
+};
+
+export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void }) {
   const coming = useComing();
   const stuck = useStuck();
   const [, tick] = useState(0);
@@ -59,10 +68,10 @@ export default function Coming({ onOpen }: { onOpen?: () => void }) {
       {stuck != null && onOpen && leftBehind(stuck) && (
         <button
           type="button"
-          onClick={onOpen}
+          onClick={() => onOpen(followed(stuck).heading)}
           className="self-start rounded-[10px] border border-line px-2.5 py-1 text-[11.5px] hover:bg-hover"
         >
-          {t("movedChoose")}
+          {t(followed(stuck).said)}
         </button>
       )}
     </div>

@@ -10,6 +10,7 @@ import {
   revealed,
   type Settings,
   stopFreeing,
+  type Toward,
 } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
@@ -36,6 +37,7 @@ interface Props {
   fail: (word?: Word) => void;
   carry: (way?: "again") => void;
   pickFolder: () => void;
+  onMove: (resume?: Toward) => void;
   remember: (next: Settings, card: Which) => void;
   onPack: () => void;
   onUnpack: () => void;
@@ -56,6 +58,7 @@ export default function Yours({
   fail,
   carry,
   pickFolder,
+  onMove,
   remember,
   onPack,
   onUnpack,
@@ -110,6 +113,7 @@ export default function Yours({
         fail={fail}
         carry={carry}
         pickFolder={pickFolder}
+        onMove={onMove}
       />
 
       <Band label={t("attachTitle")} />

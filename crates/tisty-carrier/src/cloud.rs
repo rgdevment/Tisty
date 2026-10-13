@@ -610,6 +610,35 @@ impl Carrier for Cloud {
         })
     }
 
+    fn holds_a_store(&self) -> bool {
+        tisty_core::store::inhabited(self.looked_again().join(STORE))
+    }
+
+    // Binned by revision, so the provider keeps each one in its bin for a while.
+    fn wipe(&self) -> Result<usize, Trouble> {
+        self.only(None, |_, index, remote| {
+            let all = remote
+                .list("")
+                .map_err(|e| Trouble::Broke(format!("{e:?}")))?;
+            let mut gone = 0;
+            for one in all
+                .iter()
+                .filter(|one| one.name != tisty_core::moved::NAMED)
+            {
+                match remote.delete(&one.name, Some(&one.revision)) {
+                    Ok(()) | Err(crate::Hitch::Missing(_)) => {
+                        index.tree.remove(&one.name);
+                        index.shelf.remove(&one.name);
+                        gone += 1;
+                    }
+                    Err(crate::Hitch::Changed(_)) => {}
+                    Err(hitch) => return Err(Trouble::Broke(format!("{hitch:?}"))),
+                }
+            }
+            Ok(gone)
+        })
+    }
+
     fn forget_paper(&self, id: &str) {
         if !forgotten_later(&self.home, id) {
             return;
