@@ -103,9 +103,14 @@ pub async fn cloud_connect(
         .map_err(|_| Refusal::of("internal"))?;
     consenting.done_with(&dropping);
     // A token kept from before the new grant must not be written back over it.
-    if done.is_ok()
-        && let Some(tokens) = held(&session).reach.taken()
-    {
+    let in_use = |account: &str| {
+        let session = held(&session);
+        tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .is_some_and(|at| at.account == account)
+            .then(|| session.reach.taken())
+            .flatten()
+    };
+    if let Some(tokens) = done.as_ref().ok().and_then(|now| in_use(&now.account)) {
         tokens.let_go();
     }
     done
