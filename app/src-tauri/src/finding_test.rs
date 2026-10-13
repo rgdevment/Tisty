@@ -138,7 +138,7 @@ fn what_came_down_with_no_history_behind_it_is_kept_to_be_written_down() {
 }
 
 #[test]
-fn an_attachment_the_cloud_no_longer_has_cannot_be_read() {
+fn an_attachment_the_cloud_does_not_have_yet_is_said_to_be_on_its_way() {
     let data = tempfile::tempdir().unwrap();
 
     let absent = handed_over(ASKED, &looking(data.path(), Brought::Absent));
@@ -172,4 +172,16 @@ fn an_attachment_the_cloud_cannot_send_yet_says_so_in_words_of_the_cloud() {
     let later = handed_over(ASKED, &looking(data.path(), Brought::Later));
 
     assert!(later.is_err_and(|one| format!("{one:?}").contains("cloudLater")));
+}
+
+#[test]
+fn an_attachment_found_nowhere_is_said_to_be_on_its_way_not_unreadable() {
+    let data = tempfile::tempdir().unwrap();
+    let mut at = looking(data.path(), Brought::Absent);
+    at.cloud = None;
+
+    let refused = handed_over(ASKED, &at).unwrap_err();
+
+    assert_eq!(refused.code, "attachNotYet");
+    assert_eq!(refused.name.as_deref(), Some(ASKED));
 }
