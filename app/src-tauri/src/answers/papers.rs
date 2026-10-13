@@ -4,8 +4,8 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Op, Reading, State};
 
 use crate::{
-    Answer, Refusal, Session, Task, blamed, doc_out, folder_open, held, placed, reading_as, said,
-    signing, stop, weighed,
+    Answer, Refusal, Session, Task, blamed, doc_out, elsewhere, folder_open, held, placed,
+    reading_as, said, signing, stop, weighed,
 };
 
 #[tauri::command]
@@ -519,64 +519,91 @@ pub fn convert_paper(
     Ok(())
 }
 
-#[tauri::command(async)]
-pub fn settle_paper(
+#[tauri::command]
+pub async fn settle_paper(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     keep: String,
     marked: Option<String>,
 ) -> Answer<Option<String>> {
-    let mut session = held(&session);
-    // Settling what two machines already wrote is not writing into it, so being archived is no
-    // reason to leave the rift with no way out. Only a lock guards the text itself.
-    if session.state.shut_tight(&id) {
-        return Err(Refusal::of("documentLocked"));
-    }
-    let carrier = session.carrying()?;
-    let here = session.here();
+    let (carrier, here, shown) = {
+        let session = held(&session);
+        // Settling what two machines already wrote is not writing into it, so being archived is no
+        // reason to leave the rift with no way out. Only a lock guards the text itself.
+        if session.state.shut_tight(&id) {
+            return Err(Refusal::of("documentLocked"));
+        }
+        (
+            session.carrying()?,
+            session.here(),
+            session.asked.get(&id).cloned(),
+        )
+    };
     let keep = match keep.as_str() {
         "mine" => tisty_carrier::Keep::Mine,
         "theirs" => tisty_carrier::Keep::Theirs,
         _ => tisty_carrier::Keep::Both,
     };
+    let (asking, there, at) = (carrier.clone(), here.clone(), id.clone());
+    let brought = elsewhere(move || {
+        if !matches!(keep, tisty_carrier::Keep::Theirs)
+            && let Some(shown) = shown
+            && asking.paper_print(&at).as_ref() != Some(&shown)
+        {
+            return Err(Refusal::of("movedUnderfoot"));
+        }
+        asking.settle(&there, &at, keep).map_err(said)
+    })
+    .await??;
 
-    if !matches!(keep, tisty_carrier::Keep::Theirs)
-        && let Some(shown) = session.asked.get(&id)
-        && carrier.paper_print(&id).as_ref() != Some(shown)
-    {
-        return Err(Refusal::of("movedUnderfoot"));
-    }
-    let brought = carrier.settle(&here, &id, keep).map_err(said)?;
-    session.mind(&id);
-    session.asked.remove(&id);
-
-    let Some(body) = brought else {
-        told_as_settled(&mut session, &id);
-        return Ok(None);
+    let answer = {
+        let mut session = held(&session);
+        session.mind(&id);
+        session.asked.remove(&id);
+        let Some(body) = brought else {
+            told_as_settled(&mut session, &id);
+            return Ok(None);
+        };
+        other_version_kept(&mut session, &id, body, marked.as_deref())?
     };
+
+    let at = id.clone();
+    elsewhere(move || {
+        carrier
+            .settle(&here, &at, tisty_carrier::Keep::Mine)
+            .map_err(said)
+    })
+    .await??;
+    let mut session = held(&session);
+    session.mind(&id);
+    told_as_settled(&mut session, &id);
+    Ok(answer)
+}
+
+// Asked again about the same arrival, keeping both must not leave one more copy each time.
+fn other_version_kept(
+    session: &mut Session,
+    id: &str,
+    body: String,
+    marked: Option<&str>,
+) -> Answer<Option<String>> {
     let beside = session
         .state
         .docs
         .values()
         .find(|one| one.file == id)
         .map(|one| (one.folder, one.page_of, one.order.clone()));
-    let same_as_mine = tisty_core::docs::read(&session.paths.docs(), &id)
+    let same_as_mine = tisty_core::docs::read(&session.paths.docs(), id)
         .is_ok_and(|mine| tisty_core::docs::unchanged(&mine, &body));
-    let body = match &marked {
+    let body = match marked {
         Some(said) => tisty_core::docs::marked(&body, said),
         None => body,
     };
-    // Asked again about the same arrival, keeping both must not leave one more copy each time.
     let twin = match same_as_mine {
         true => Some(None),
-        false => twin_of(&session, beside.as_ref(), &body).map(Some),
+        false => twin_of(session, beside.as_ref(), &body).map(Some),
     };
     if let Some(twin) = twin {
-        carrier
-            .settle(&here, &id, tisty_carrier::Keep::Mine)
-            .map_err(said)?;
-        session.mind(&id);
-        told_as_settled(&mut session, &id);
         return Ok(twin);
     }
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, &body)
@@ -600,12 +627,6 @@ pub fn settle_paper(
             },
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
-
-    carrier
-        .settle(&here, &id, tisty_carrier::Keep::Mine)
-        .map_err(said)?;
-    session.mind(&id);
-    told_as_settled(&mut session, &id);
     Ok(Some(file))
 }
 
