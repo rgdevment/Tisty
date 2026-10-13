@@ -5,12 +5,14 @@ import {
   type Carrying,
   type CloudStatus,
   chooseSync,
+  cloudAbandon,
   cloudChoose,
   cloudConnect,
   cloudForget,
   cloudPause,
   cloudRevoke,
   cloudStatus,
+  cloudStranded,
 } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
@@ -83,6 +85,24 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
   const forget = async () => {
     if (held || !(await sure(t("cloudForgetHereSure")))) return;
     run("sync", cloudForget(), look);
+  };
+
+  // Google will never let this copy in again, so it is left as it is, saying first what stays only in Drive.
+  const abandon = async () => {
+    if (held) return;
+    const left = await cloudStranded().catch((e) => {
+      fail({ card: "sync", text: saidPlainly(e) });
+      return null;
+    });
+    if (!left) return;
+    const asked =
+      left.files === 0
+        ? t("cloudAbandonSureNone")
+        : left.files === 1
+          ? t("cloudAbandonSureOne")
+          : fill("cloudAbandonSure", String(left.files));
+    if (!(await sure(asked))) return;
+    run("sync", cloudAbandon(), look);
   };
 
   const revoke = async () => {
@@ -188,6 +208,11 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
         <button type="button" disabled={held} onClick={forget} className={mild}>
           {t("cloudForgetHere")}
         </button>
+        {status?.lost && (
+          <button type="button" disabled={held} onClick={abandon} className={risky}>
+            {t("cloudAbandon")}
+          </button>
+        )}
         <button type="button" disabled={held} onClick={revoke} className={risky}>
           {t("cloudRevokeAll")}
         </button>

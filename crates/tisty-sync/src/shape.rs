@@ -7,23 +7,31 @@ use crate::{HELD, PAPERS, STORE, Trouble};
 pub const NAMED: &str = "tisty.toml";
 const SEEN: &str = ".shape-seen";
 const KEPT_FOR: usize = 8;
+const RAISED: &str = ".shape-raised";
 
 /// What this build knows the meeting place to look like. A folder that says a higher number was
 /// arranged by a build that knows something this one does not, and guessing at it writes over it.
-pub(crate) const OURS: u32 = 1;
+/// Shape 2 only fences out the builds before 1.30; the signed root, `head` and adopting take the next number.
+pub const OURS: u32 = 2;
+
+/// The oldest release that may write in a place this build arranges; a later change to the place raises it.
+pub const NEEDS: &str = "1.30.0";
 
 enum Told {
-    Shape(u32),
+    Shape { shape: u32, needs: Option<String> },
     Nothing,
     Unreadable,
 }
 
 fn told(dest: &Path) -> Told {
     match std::fs::read_to_string(dest.join(NAMED)) {
-        Ok(said) => said
-            .lines()
-            .find_map(shape_in)
-            .map_or(Told::Unreadable, Told::Shape),
+        Ok(said) => match said.lines().find_map(shape_in) {
+            Some(shape) => Told::Shape {
+                shape,
+                needs: said.lines().find_map(needs_in),
+            },
+            None => Told::Unreadable,
+        },
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Told::Nothing,
         Err(_) => Told::Unreadable,
     }
@@ -37,25 +45,57 @@ fn shape_in(line: &str) -> Option<u32> {
     }
 }
 
+fn needs_in(line: &str) -> Option<String> {
+    let (name, said) = line.split_once('=')?;
+    (name.trim() == "needs").then(|| said.trim().trim_matches('"').to_string())
+}
+
+fn release(said: &str) -> Option<(u64, u64, u64)> {
+    let mut parts = said.split(['-', '+']).next()?.split('.');
+    let mut next = || parts.next()?.parse().ok();
+    Some((next()?, next()?, next()?))
+}
+
+/// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
+pub fn needs_later(needs: &str) -> bool {
+    match (release(needs), release(NEEDS)) {
+        (Some(needs), Some(ours)) => needs > ours,
+        _ => true,
+    }
+}
+
 /// Read before anything else in the folder is. A folder that says nothing may be one from before
 /// this file existed, and is adopted; one that said something to this machine and has gone quiet
 /// is one where a round did not finish or a hand went through, and its silence is never read as
 /// «there is nothing here».
 pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
     match told(dest) {
-        Told::Shape(said) if said > OURS => {
+        Told::Shape {
+            needs: Some(needs), ..
+        } if needs_later(&needs) => {
+            witness::warn(
+                channel::SYNC,
+                "the meeting place asks for a later Tisty than this one, so nothing was carried either way",
+                &[
+                    ("at", Fact::Path(dest.to_path_buf())),
+                    ("needs", Fact::Id(needs.clone())),
+                ],
+            );
+            Err(Trouble::Needs(needs))
+        }
+        Told::Shape { shape, .. } if shape > OURS => {
             witness::warn(
                 channel::SYNC,
                 "the meeting place is in a shape this build does not know, so nothing was carried either way",
                 &[
                     ("at", Fact::Path(dest.to_path_buf())),
-                    ("shape", Fact::Count(said as usize)),
+                    ("shape", Fact::Count(shape as usize)),
                 ],
             );
             Err(Trouble::Shape(dest.display().to_string()))
         }
-        Told::Shape(said) => {
-            remember(data, dest, said);
+        Told::Shape { shape, .. } => {
+            remember(data, dest, shape);
             Ok(())
         }
         Told::Unreadable => {
@@ -79,18 +119,64 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
 }
 
 /// Written after everything else a round writes, so finding it is finding a round that finished.
-pub(crate) fn stamp(data: &Path, dest: &Path) {
+/// Says whether it raised, and wrote, a place older builds had arranged.
+pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
     match told(dest) {
-        Told::Shape(OURS) => remember(data, dest, OURS),
-        Told::Shape(said) if said > OURS => {}
-        Told::Unreadable => {}
-        Told::Shape(_) | Told::Nothing => tell(data, dest),
+        Told::Shape { shape, needs } if shape == OURS => {
+            match needs.is_some_and(|needs| needs != NEEDS && !needs_later(&needs)) {
+                true => {
+                    tell(data, dest);
+                }
+                false => remember(data, dest, OURS),
+            }
+            false
+        }
+        Told::Shape { shape, .. } if shape > OURS => false,
+        Told::Unreadable => false,
+        Told::Shape { .. } => tell(data, dest),
+        Told::Nothing => {
+            tell(data, dest);
+            false
+        }
     }
 }
 
-fn tell(data: &Path, dest: &Path) {
+/// Raised by a machine as it leaves, so the builds before this one stop there even without a round of its own.
+pub fn raise_place(dest: &Path) {
+    let older = match told(dest) {
+        Told::Shape { shape, .. } => shape < OURS,
+        Told::Nothing => dest.join(STORE).is_dir(),
+        Told::Unreadable => false,
+    };
+    if older {
+        written(dest);
+    }
+}
+
+/// Only another machine's history there means someone is left on an older build by raising it.
+pub(crate) fn shared_with_others(dest: &Path, device: &str) -> bool {
+    std::fs::read_dir(dest.join(STORE)).is_ok_and(|entries| {
+        entries
+            .filter_map(Result::ok)
+            .any(|one| one.file_type().is_ok_and(|kind| kind.is_dir()) && one.file_name() != device)
+    })
+}
+
+pub(crate) fn mark_raised(data: &Path) {
+    let _ = tisty_core::store::write_atomic(&data.join(RAISED), b"");
+}
+
+fn tell(data: &Path, dest: &Path) -> bool {
+    let done = written(dest);
+    if done {
+        remember(data, dest, OURS);
+    }
+    done
+}
+
+fn written(dest: &Path) -> bool {
     let said = format!(
-        "# What this folder is, and the shape it is in. Tisty reads this before anything else here.\nshape = {OURS}\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
+        "# What this folder is, and the shape it is in. Tisty reads this before anything else here.\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
     );
     if let Err(e) = tisty_core::store::write_atomic(&dest.join(NAMED), said.as_bytes()) {
         witness::warn(
@@ -101,9 +187,18 @@ fn tell(data: &Path, dest: &Path) {
                 ("why", Fact::Why(e.to_string())),
             ],
         );
-        return;
+        return false;
     }
-    remember(data, dest, OURS);
+    true
+}
+
+/// Left by the round that raised a place older builds had arranged, until the window has said so once.
+pub fn raised(data: &Path) -> bool {
+    data.join(RAISED).is_file()
+}
+
+pub fn raised_told(data: &Path) {
+    let _ = std::fs::remove_file(data.join(RAISED));
 }
 
 /// Remembered against the folder it was read in, never against the machine: one that has met a

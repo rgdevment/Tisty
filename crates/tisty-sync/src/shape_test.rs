@@ -140,3 +140,81 @@ fn a_folder_that_was_not_told_but_already_says_its_shape_is_still_remembered() {
         Err(Trouble::Unshaped(_))
     ));
 }
+
+#[test]
+fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_later() {
+    assert!(!needs_later(NEEDS));
+    assert!(!needs_later("1.29.9"));
+    assert!(!needs_later("1.30.0-rc.1"));
+    assert!(needs_later("1.30.1"));
+    assert!(needs_later("1.100.0"));
+    assert!(needs_later("2.0.0"));
+    assert!(needs_later("pronto"));
+}
+
+#[test]
+fn a_place_that_asks_for_this_release_is_read_and_one_that_asks_for_a_later_one_is_not() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        format!("shape = {OURS}\nneeds = \"{NEEDS}\"\n"),
+    )
+    .unwrap();
+    before_reading(&data, &dest).expect("a place this build arranged turned it away");
+
+    std::fs::write(dest.join(NAMED), "shape = 9\nneeds = \"7.1.0\"\n").unwrap();
+
+    assert_eq!(
+        before_reading(&data, &dest),
+        Err(Trouble::Needs("7.1.0".into())),
+        "the later release was not named, only a shape nobody can act on"
+    );
+}
+
+#[test]
+fn a_place_older_builds_arranged_is_raised_and_one_already_raised_is_not() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 1\n").unwrap();
+
+    assert!(stamp(&data, &dest));
+    assert!(said_in(&dest).contains(&format!("needs = \"{NEEDS}\"")));
+    assert!(!stamp(&data, &dest));
+}
+
+#[test]
+fn a_place_left_is_raised_for_the_older_builds_and_a_newer_or_empty_one_is_not() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 1\n").unwrap();
+    raise_place(&dest);
+    assert!(said_in(&dest).contains(&format!("shape = {OURS}")));
+
+    let more = format!("shape = {}\n", OURS + 1);
+    std::fs::write(dest.join(NAMED), &more).unwrap();
+    raise_place(&dest);
+    assert_eq!(said_in(&dest), more);
+
+    let room = tempfile::tempdir().unwrap();
+    raise_place(room.path());
+    assert!(
+        !room.path().join(NAMED).exists(),
+        "an empty folder was arranged"
+    );
+}
+
+#[test]
+fn only_another_machine_s_history_in_the_place_is_someone_left_behind() {
+    let (_room, _data, dest) = a_place();
+    std::fs::create_dir_all(dest.join(STORE).join("dev_a")).unwrap();
+    assert!(!shared_with_others(&dest, "dev_a"));
+
+    std::fs::create_dir_all(dest.join(STORE).join("dev_b")).unwrap();
+    assert!(shared_with_others(&dest, "dev_a"));
+}
+
+#[test]
+fn a_new_place_is_arranged_without_warning_anyone() {
+    let (_room, data, dest) = a_place();
+
+    assert!(!stamp(&data, &dest));
+    assert!(said_in(&dest).contains(&format!("shape = {OURS}")));
+}

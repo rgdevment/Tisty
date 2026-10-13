@@ -77,6 +77,7 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
                 if at.starts_with(data) || data.starts_with(&at) {
                     anyhow::bail!("{}", lang.fill("remote-inside", &[("at", &value)]));
                 }
+                stays_unless_stranded(app, &tisty_core::config::Sync::folder(&at), lang)?;
             }
 
             let edited = app.edit_config_if(|c| match key.as_str() {
@@ -97,6 +98,9 @@ pub fn config(app: &mut App, action: Option<ConfigAction>, lang: Lang) -> anyhow
 
         Some(ConfigAction::Unset { key }) => {
             check(&key, lang)?;
+            if key == "remote" {
+                stays_unless_stranded(app, &tisty_core::config::Sync::alone(), lang)?;
+            }
             let leaving = leaving_now(app);
             let edited = app.edit_config_if(|c| match key.as_str() {
                 "locale" => {
@@ -126,6 +130,26 @@ fn replacing_the_way(config: &mut tisty_core::Config, to: tisty_core::config::Sy
         config.sync = Some(to);
     }
     !held
+}
+
+fn stays_unless_stranded(
+    app: &App,
+    to: &tisty_core::config::Sync,
+    lang: Lang,
+) -> anyhow::Result<()> {
+    let config = app.config();
+    let Some(was) = config.sync.as_ref() else {
+        return Ok(());
+    };
+    let here = tisty_carrier::Here::of(&app.paths, config);
+    if tisty_carrier::strands_on_leaving(was, to, config.holds(), &here) {
+        let at = was.place().map(|at| at.display().to_string());
+        anyhow::bail!(
+            "{}",
+            lang.fill("shared-away-to-leave", &[("at", &at.unwrap_or_default())])
+        );
+    }
+    Ok(())
 }
 
 fn leaving_now(app: &App) -> Option<tisty_core::config::Leaving> {

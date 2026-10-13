@@ -35,10 +35,111 @@ fn wiping_a_cloud_bins_every_copy_and_keeps_only_the_word_for_the_others() {
             .map(|seen| seen.name)
             .collect();
         assert!(gone > 0, "{who}");
-        assert!(
-            left.iter().all(|name| name == tisty_core::moved::NAMED),
-            "{who}: {left:?}"
-        );
+        assert_eq!(left, [tisty_core::moved::NAMED], "{who}");
+    }
+}
+
+/// Hands every request to the provider it wraps, except the word, which the provider will not take.
+struct WordRefused {
+    inner: Arc<dyn Counting>,
+    hitch: Hitch,
+}
+
+impl Remote for WordRefused {
+    fn limits(&self) -> crate::Limits {
+        self.inner.limits()
+    }
+    fn list(&self, under: &str) -> Result<Vec<crate::Seen>, Hitch> {
+        self.inner.list(under)
+    }
+    fn fetch(
+        &self,
+        name: &str,
+        from: u64,
+        into: &mut dyn std::io::Write,
+    ) -> Result<crate::Seen, Hitch> {
+        self.inner.fetch(name, from, into)
+    }
+    fn put(
+        &self,
+        name: &str,
+        from: &std::path::Path,
+        expect: Expect,
+    ) -> Result<crate::Seen, Hitch> {
+        match name == tisty_core::moved::NAMED {
+            true => Err(self.hitch.clone()),
+            false => self.inner.put(name, from, expect),
+        }
+    }
+    fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
+        self.inner.delete(name, expect)
+    }
+    fn hash_of(&self, local: &std::path::Path) -> std::io::Result<String> {
+        self.inner.hash_of(local)
+    }
+    fn about(&self, name: &str) -> Result<Option<crate::Seen>, Hitch> {
+        self.inner.about(name)
+    }
+    fn changes(&self, since: Option<&str>) -> Result<crate::Changes, Hitch> {
+        self.inner.changes(since)
+    }
+}
+
+#[test]
+fn a_word_the_cloud_would_not_take_is_never_taken_for_delivered_nor_lets_the_copies_go() {
+    let refusals = [
+        Hitch::Full,
+        Hitch::Limited {
+            wait: Duration::from_secs(9),
+        },
+        Hitch::Unreachable("sin red".into()),
+    ];
+    for hitch in &refusals {
+        for setting in clouds() {
+            let who = format!("{} · {hitch:?}", setting.name);
+            let one = desk(&setting, "dev_a");
+            one.wrote("algo");
+            one.round(Way::Both);
+            let refusing: Arc<dyn Remote> = Arc::new(WordRefused {
+                inner: counting(&setting).clone(),
+                hitch: hitch.clone(),
+            });
+            let leaving = Cloud::over(refusing, home_of(&setting, "dev_a"));
+
+            let said = leaving.leave_word("se fue");
+            let wiped = one.carrier.wipe();
+
+            assert!(
+                said.is_err(),
+                "{who}: a word that never went up was said to"
+            );
+            assert_eq!(
+                wiped,
+                Err(Trouble::NotThere(tisty_core::moved::NAMED.to_string())),
+                "{who}"
+            );
+            let left = counting(&setting).list("").unwrap();
+            assert!(
+                left.iter().any(|seen| seen.name.starts_with("store/")),
+                "{who}: the copies went before the others were told"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_word_that_went_up_is_delivered_and_its_copies_can_go() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        one.wrote("algo");
+        one.round(Way::Both);
+
+        one.carrier.leave_word("se fue").unwrap();
+
+        let there = counting(&setting).about(tisty_core::moved::NAMED).unwrap();
+        assert!(there.is_some(), "{who}");
+        assert!(one.carrier.wipe().is_ok(), "{who}");
     }
 }
 
@@ -46,6 +147,40 @@ fn wiping_a_cloud_bins_every_copy_and_keeps_only_the_word_for_the_others() {
 fn a_folder_has_nothing_to_wipe() {
     let room = tempfile::tempdir().unwrap();
     assert_eq!(Folder::at(room.path().to_path_buf()).wipe().unwrap(), 0);
+}
+
+#[test]
+fn leaving_a_place_older_builds_still_use_raises_it_so_they_stop_too() {
+    for setting in settings() {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        one.wrote("algo");
+        one.round(Way::Both);
+        let older = "shape = 1\n";
+        let shaped = match &setting.place {
+            Place::Folder(shared) => shared.join(tisty_sync::NAMED),
+            Place::Cloud(_) => home_of(&setting, "dev_a")
+                .join("tree")
+                .join(tisty_sync::NAMED),
+        };
+        std::fs::write(&shaped, older).unwrap();
+        if let Place::Cloud(remote) = &setting.place {
+            remote.put(tisty_sync::NAMED, &shaped, Expect::Any).unwrap();
+        }
+
+        one.carrier.leave_word("se fue").unwrap();
+
+        let said = std::fs::read_to_string(&shaped).unwrap();
+        assert!(
+            said.contains(&format!("shape = {}", crate::SHAPE)),
+            "{who}: {said}"
+        );
+        if let Place::Cloud(remote) = &setting.place {
+            let mut there = Vec::new();
+            remote.fetch(tisty_sync::NAMED, 0, &mut there).unwrap();
+            assert_ne!(there, older.as_bytes(), "{who}: the raise never went up");
+        }
+    }
 }
 
 #[test]

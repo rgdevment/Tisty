@@ -448,3 +448,54 @@ fn what_comes_home_is_counted_up_to_a_size_when_asked() {
         assert!(small.nothing(), "{who}");
     }
 }
+
+#[test]
+fn a_cloud_that_can_no_longer_be_asked_still_says_what_only_it_held_from_this_disk() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        let home = home_of(&setting, "dev_a");
+        assert!(crate::only_up_there(&home, &one.here).nothing(), "{who}");
+
+        let_go_here(&one, &kept.at);
+        let remote = counting(&setting);
+        remote.forget_counts();
+
+        assert_eq!(
+            crate::only_up_there(&home, &one.here),
+            Owed {
+                files: 1,
+                bytes: PHOTO.len() as u64
+            },
+            "{who}"
+        );
+        assert_eq!(remote.counts().requests, 0, "{who}: the cloud was asked");
+    }
+}
+
+#[test]
+fn a_place_left_behind_is_all_home_only_until_another_machine_writes_there_again() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.attached(PHOTO);
+        one.round(Way::Both);
+        assert_eq!(step(&two, Some(&*two.carrier), None), Shift::Ready, "{who}");
+
+        let quiet = crate::all_home(&*two.carrier, &two.here, &[]).unwrap();
+        one.wrote("escrito despues de la mudanza");
+        one.round(Way::Both);
+        let after = crate::all_home(&*two.carrier, &two.here, &[]).unwrap();
+
+        assert!(
+            quiet,
+            "{who}: a place with nothing new was not taken for all home"
+        );
+        assert!(
+            !after,
+            "{who}: what came after the move would have gone with the copies"
+        );
+    }
+}

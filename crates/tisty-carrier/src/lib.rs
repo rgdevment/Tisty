@@ -8,8 +8,8 @@ use tisty_core::signing::SigningKey;
 
 pub use tisty_core::turned;
 pub use tisty_sync::{
-    Deferred, Holding, Keep, Kin, LetGo, Moved, Reached, Reason, STORE, Signed, Stage, Stitched,
-    Trouble, Undecided, Way,
+    Deferred, Holding, Keep, Kin, LetGo, Moved, NEEDS, Reached, Reason, SHAPE, STORE, Signed,
+    Stage, Stitched, Trouble, Undecided, Way, raised, raised_told,
 };
 
 mod cloud;
@@ -23,7 +23,7 @@ mod tokens;
 pub use cloud::standing::{
     LastRound, OWED_BACK, Standing, cloud_joined, round_forgotten, round_noted, standing,
 };
-pub use cloud::{Cloud, forgotten_later, policy};
+pub use cloud::{Cloud, forgotten_later, only_up_there, policy};
 pub use folder::Folder;
 #[cfg(not(windows))]
 pub use keychain::Keychain;
@@ -32,7 +32,7 @@ pub use remote::{
     BYTES_A_DAY, Changes, Costs, Expect, Hitch, Limits, Remote, Seen, UNITS_A_DAY, Watch,
     named_well,
 };
-pub use shift::{Owed, Shift, filling, homing, homing_up_to, shift};
+pub use shift::{Owed, Shift, all_home, filling, homing, homing_up_to, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -187,6 +187,16 @@ pub fn cloud_of(sync: Option<&Sync>) -> Option<&CloudAt> {
 // A folder somebody is only considering: nothing is chosen, so only what a place answers for itself is asked.
 pub fn considering(at: impl Into<PathBuf>) -> Shared {
     Arc::new(Folder::at(at.into()))
+}
+
+/// A folder this machine carried into may hold attachments freed or shared from here, so only the window's move leaves it.
+pub fn strands_on_leaving(was: &Sync, now: &Sync, holds: Holds, here: &Here) -> bool {
+    was != now
+        && was.leaving() == tisty_core::config::Leaving::Place
+        && holds != Holds::Everywhere
+        && chosen(Some(was))
+            .carrier
+            .is_some_and(|carrier| carrier.reachable() && carrier.been_here(here))
 }
 
 pub fn place_of(sync: Option<&Sync>) -> Option<PathBuf> {
