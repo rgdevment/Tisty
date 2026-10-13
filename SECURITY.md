@@ -47,7 +47,8 @@ report will never be dismissed for being inconvenient.
   A build signed with any other key is refused, so a release that is not the
   maintainer's cannot arrive this way, whatever it claims to be. Two narrower
   guards sit in front of that one: the address an update is fetched from must be
-  where this project's releases live, not merely whatever the feed named, and
+  the release cut for the very version offered, not merely whatever the feed
+  named, so an older signed installer cannot be passed off as a newer one; and
   the download is given a deadline, so a server that answers slowly forever is
   eventually hung up on. A copy kept by the Microsoft Store never fetches an
   installer at all: it asks the Store what it has and lets the Store install it,

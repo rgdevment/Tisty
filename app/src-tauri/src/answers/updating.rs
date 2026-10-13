@@ -227,7 +227,9 @@ pub async fn update_install(
 
     // The feed names the address the installer comes from, so it is checked against where our
     // releases actually live before a single byte is asked for.
-    if !update::ours(update.download_url.as_str()) {
+    if !update::ours(update.download_url.as_str())
+        || !update::released_as(update.download_url.as_str(), &want)
+    {
         return Err(Refusal::of("updateElsewhere"));
     }
     // The plugin builds the download with no deadline of its own, and a server that dribbles
