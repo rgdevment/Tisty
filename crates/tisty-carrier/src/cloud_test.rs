@@ -928,6 +928,7 @@ fn the_index_survives_being_saved_and_read_back() {
         .shelf
         .insert("attachments/ab/foto-1a2b3c4d.png".to_string(), seen);
 
+    index.layout = super::index::LAYOUT;
     index.save(room.path()).unwrap();
 
     assert_eq!(super::index::Index::load(room.path()), index);

@@ -7,7 +7,12 @@ const SHARD: &str = r#"{"id":"H","name":"attachments","parents":["R"],"mimeType"
 fn searched(asked: &[Asked]) -> usize {
     asked
         .iter()
-        .filter(|one| one.line.contains("q=name") && !one.line.contains("mimeType"))
+        .filter(|one| {
+            one.line.contains("q=name")
+                && !["mimeType+%3D", "mimeType%20%3D"]
+                    .iter()
+                    .any(|folder| one.line.contains(folder))
+        })
         .count()
 }
 
