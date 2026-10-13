@@ -122,8 +122,8 @@ describe("a cloud Google shut its door on", () => {
     shown(LOST);
 
     expect(await screen.findByText(t("stateReconnect"))).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(screen.queryByText(LOST)).toBeNull();
-    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("still says another trouble the card does not show", async () => {
