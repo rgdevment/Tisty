@@ -71,7 +71,7 @@ fn how_the_last_round_ended_is_kept_and_read_back() {
 }
 
 #[test]
-fn a_cloud_is_joined_once_this_disk_mirrors_anything_of_it() {
+fn a_cloud_is_joined_once_a_round_here_finished_not_when_it_only_pulled() {
     let home = tempfile::tempdir().unwrap();
     let room = tempfile::tempdir().unwrap();
     let here = crate::Here {
@@ -79,10 +79,8 @@ fn a_cloud_is_joined_once_this_disk_mirrors_anything_of_it() {
         aside: room.path().join("aside"),
         device: "dev_a".into(),
     };
-    assert!(!cloud_joined(home.path(), &here));
-
-    let mut index = Index::default();
-    index.shelf.insert(
+    let mut pulled = Index::default();
+    pulled.shelf.insert(
         "attachments/ab/plano.pdf".into(),
         crate::Seen {
             name: "attachments/ab/plano.pdf".into(),
@@ -91,7 +89,20 @@ fn a_cloud_is_joined_once_this_disk_mirrors_anything_of_it() {
             revision: "r".into(),
         },
     );
-    index.save(home.path()).unwrap();
+    pulled.save(home.path()).unwrap();
+    let round = |code: &str| LastRound {
+        at: 1,
+        code: code.into(),
+        name: None,
+        left: 0,
+        names: Vec::new(),
+    };
 
+    round_noted(home.path(), &round("wouldReset"));
+    assert!(!cloud_joined(home.path(), &here));
+
+    round_noted(home.path(), &round("ok"));
+    round_noted(home.path(), &round("cloudLost"));
+    round_forgotten(home.path());
     assert!(cloud_joined(home.path(), &here));
 }

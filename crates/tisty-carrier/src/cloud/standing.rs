@@ -8,6 +8,7 @@ use crate::{BYTES_A_DAY, UNITS_A_DAY};
 /// Another machine's bytes a provider still has to put back, written by the provider beside the mirror.
 pub const OWED_BACK: &str = "owed-back.json";
 const LAST_ROUND: &str = "last-round.json";
+const CARRIED: &str = "carried-here";
 
 /// How the last round ended, in the words the window already reads: `ok`, a refusal's code, or `deferred-<reason>`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -28,15 +29,18 @@ pub fn round_forgotten(home: &Path) {
     let _ = std::fs::remove_file(home.join(LAST_ROUND));
 }
 
-/// Read off this disk with no carrier, so a cloud that cannot be reached can still be told apart.
+/// Only this machine's own trace counts: a first round mirrors what it pulls before it ever sends.
 pub fn cloud_joined(home: &Path, here: &crate::Here) -> bool {
-    let index = Index::load(home);
-    !index.tree.is_empty()
-        || !index.shelf.is_empty()
+    home.join(CARRIED).exists()
         || tisty_sync::been_here(&here.aside, &home.join(super::TREE), &here.device)
 }
 
 pub fn round_noted(home: &Path, round: &LastRound) {
+    // Kept beside the mirror rather than in the cache, which the system may empty.
+    if round.code == "ok" && !home.join(CARRIED).exists() {
+        let _ = std::fs::create_dir_all(home)
+            .and_then(|_| std::fs::write(home.join(CARRIED), round.at.to_string()));
+    }
     let written = serde_json::to_vec(round)
         .map_err(std::io::Error::other)
         .and_then(|bytes| {
