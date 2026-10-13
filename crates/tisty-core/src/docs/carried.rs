@@ -125,8 +125,7 @@ pub fn read_as_printed(at: &Path, print: &str) -> std::io::Result<Option<Vec<u8>
 
 type Prints = std::collections::BTreeMap<String, String>;
 
-/// What was carried to a place this machine is not facing now, kept so coming back to it still
-/// knows what the two last agreed on: a move carries to the folder and to the cloud in turns.
+// A move carries to the folder and to the cloud in turns, so each keeps what the two last agreed on.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct Elsewhere {
     up_to: String,
@@ -228,8 +227,6 @@ impl Carried {
         self.prints.remove(id);
     }
 
-    /// Turns to `dest`, true when it is not the place faced before. What was carried to that one
-    /// is set aside with its bases, and what was carried to `dest` before comes back with its own.
     pub fn facing(
         &mut self,
         data: &Path,
@@ -250,16 +247,16 @@ impl Carried {
             self.up_to = Some(crate::paths::told_of(dest));
             return false;
         }
-        self.set_aside(data);
         let back = self
             .elsewhere
             .iter()
-            .position(|one| crate::paths::same_folder(&one.up_to, dest, holds_our_store));
-        if let Some(at) = back {
-            let one = self.elsewhere.remove(at);
-            if moved_whole(&bases_of(data, &one.up_to), &base(data)) {
-                self.prints = one.prints;
-            }
+            .position(|one| crate::paths::same_folder(&one.up_to, dest, holds_our_store))
+            .map(|at| self.elsewhere.remove(at));
+        self.set_aside(data);
+        if let Some(one) = back
+            && moved_whole(&bases_of(data, &one.up_to), &base(data))
+        {
+            self.prints = one.prints;
         }
         self.up_to = Some(crate::paths::told_of(dest));
         true

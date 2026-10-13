@@ -262,3 +262,23 @@ fn forgetting_what_was_carried_forgets_it_for_every_place() {
     assert_eq!(said.of("dev_a-0001"), None);
     assert_eq!(read_carried(data, "dev_a-0001"), None);
 }
+
+#[test]
+fn turning_back_to_the_oldest_place_kept_never_loses_it_to_the_one_set_aside() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path();
+    let places: Vec<_> = (0..=ELSEWHERE_AT_MOST)
+        .map(|_| tempfile::tempdir().unwrap())
+        .collect();
+    for (n, place) in places.iter().enumerate() {
+        carried_to(data, place.path(), "dev_a-0001", &format!("# {n}\n"));
+    }
+
+    let mut said = Carried::read(data);
+    assert!(said.facing(data, places[0].path(), false, true));
+    assert_eq!(
+        said.of("dev_a-0001"),
+        Some(crate::attach::printed(b"# 0\n").as_str())
+    );
+    assert_eq!(read_carried(data, "dev_a-0001").as_deref(), Some("# 0\n"));
+}
