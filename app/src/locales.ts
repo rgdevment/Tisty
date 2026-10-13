@@ -1215,7 +1215,7 @@ const en = {
   cloudGoogleWhy:
     "Tisty keeps its copies in a hidden space of your Drive and sees nothing else in it.",
   cloudWhere:
-    "Your copies live in a hidden space of your Google Drive that only Tisty opens. To take them out, move to a folder from Tisty; a backup keeps your tasks and documents. Disconnecting keeps them; removing Tisty in Google Drive › Settings › Manage apps deletes them.",
+    "Your copies live in a hidden space of your Google Drive that only Tisty opens. To take them out, move to a folder from Tisty; a backup keeps your tasks and documents. Disconnecting keeps them, here or in Drive; only «Delete hidden app data» in Google Drive › Settings › Manage apps deletes them.",
   cloudOneDrive: "OneDrive",
   cloudDropbox: "Dropbox",
   cloudConnectDo: "Connect",
@@ -1270,7 +1270,7 @@ const en = {
   stateFullDo: "See storage",
   stateEmptied: "Tisty's copies in Google Drive were deleted",
   stateEmptiedWhy:
-    "They were deleted outside Tisty, perhaps from Drive › Manage apps. Nothing here changed. Send everything again from this computer, or move to another place.",
+    "They were deleted outside Tisty, perhaps with «Delete hidden app data» in Drive › Manage apps. Nothing here changed. Send everything again from this computer, or move to another place.",
   stateEmptiedDo: "Send it all again",
   stateEmptiedSure:
     "Everything on this computer goes up to Google Drive again. Your other computers will pick it up from there. Go ahead?",
@@ -3109,7 +3109,7 @@ const es: Catalog = {
   cloudGoogle: "Google Drive",
   cloudGoogleWhy: "Tisty guarda sus copias en un espacio oculto de tu Drive y no ve nada más.",
   cloudWhere:
-    "Tus copias viven en un espacio oculto de tu Google Drive que solo abre Tisty. Para sacarlas, múdate a una carpeta desde Tisty; un respaldo guarda tus tareas y documentos. Desconectar las conserva; quitar Tisty en Google Drive › Configuración › Administrar apps las borra.",
+    "Tus copias viven en un espacio oculto de tu Google Drive que solo abre Tisty. Para sacarlas, múdate a una carpeta desde Tisty; un respaldo guarda tus tareas y documentos. Desconectar las conserva, aquí o en Drive; solo «Eliminar datos ocultos de la app» en Google Drive › Configuración › Administrar apps las borra.",
   cloudOneDrive: "OneDrive",
   cloudDropbox: "Dropbox",
   cloudConnectDo: "Conectar",
@@ -3163,7 +3163,7 @@ const es: Catalog = {
   stateFullDo: "Ver espacio",
   stateEmptied: "Se borraron las copias de Tisty en Google Drive",
   stateEmptiedWhy:
-    "Se borraron fuera de Tisty, quizás desde Drive › Administrar aplicaciones. Aquí no cambió nada. Vuelve a subirlo todo desde este equipo, o múdate a otro lugar.",
+    "Se borraron fuera de Tisty, quizás con «Eliminar datos ocultos de la app» en Drive › Administrar apps. Aquí no cambió nada. Vuelve a subirlo todo desde este equipo, o múdate a otro lugar.",
   stateEmptiedDo: "Subirlo todo de nuevo",
   stateEmptiedSure:
     "Todo lo que hay en este equipo vuelve a subir a Google Drive. Tus otros equipos lo tomarán desde ahí. ¿Sigo?",

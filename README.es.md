@@ -529,8 +529,9 @@ abre tu navegador, entras a Google y Google te pregunta si Tisty puede guardar
 sus copias ahí. Viven en un espacio oculto de tu Drive que solo abre Tisty
 —no ve nada más de tu Drive, y no aparecen entre tus archivos— y no necesitas el
 programa de escritorio de Google instalado ni abierto. Desconectar las conserva
-ahí; para sacarlas, múdate a una carpeta desde Tisty; quitar Tisty en Google
-Drive › Configuración › Administrar apps las borra.
+ahí, tanto en Tisty como en Drive; para sacarlas, múdate a una carpeta desde
+Tisty. En Google Drive › Configuración › Administrar apps, solo «Eliminar datos
+ocultos de la app» las borra.
 La primera vez sube todo lo que ya tienes; después solo viaja lo nuevo, y si se
 corta la conexión sigue donde quedó. Los adjuntos se quedan en el equipo donde
 se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los

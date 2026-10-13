@@ -174,8 +174,9 @@ others, use **Disconnect this computer**: the copies stay in Drive.
 In a hidden space of your Drive that belongs to Tisty: they do not show up among
 your files, and only Tisty opens them. To take them out, move to a folder from
 Tisty. Disconnecting keeps them, and coming back later to the same account picks
-them up again. Removing Tisty in **Google Drive › Settings › Manage apps**
-deletes them, as does **Delete my copies in Google Drive for good**.
+them up again, also after *Disconnect from Drive* in **Google Drive › Settings ›
+Manage apps**. Only **Delete hidden app data** there deletes them, as does
+**Delete my copies in Google Drive for good** in Tisty.
 
 ## One of my machines stopped syncing after an update
 

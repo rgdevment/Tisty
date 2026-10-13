@@ -521,8 +521,9 @@ your browser opens, you sign in to Google, and Google asks whether Tisty may
 keep its copies there. They live in a hidden space of your Drive that only
 Tisty opens — it sees nothing else in your Drive, and they do not show up among
 your files — and you do not need Google's desktop program installed or running.
-Disconnecting keeps them there; to take them out, move to a folder from Tisty;
-removing Tisty in Google Drive › Settings › Manage apps deletes them. The first
+Disconnecting keeps them there, in Tisty and in Drive alike; to take them out,
+move to a folder from Tisty. In Google Drive › Settings › Manage apps, only
+*Delete hidden app data* deletes them. The first
 time, everything you already have goes up; after that only
 what is new travels, and a dropped connection carries on where it left off.
 Attachments stay on the computer they were added on and come down on another
