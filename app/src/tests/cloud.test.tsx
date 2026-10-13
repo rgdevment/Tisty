@@ -61,7 +61,7 @@ const status = (over: Partial<CloudStatus> = {}): CloudStatus => ({
 });
 
 const round = (code: string, over: Partial<NonNullable<CloudStatus["last"]>> = {}) => ({
-  at: 1,
+  at: Math.floor(Date.now() / 1000),
   code,
   name: null,
   left: 0,
