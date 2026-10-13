@@ -810,7 +810,15 @@ fn a_cloud_left_after_its_store_was_deleted_up_there_takes_everything_when_chose
         );
         let sent_before = fake.uploaded().len();
 
-        let back = step(&one, Some(&folder), Some(&*one.carrier));
+        let mut saying = |_| {};
+        let back = crate::shift(
+            Some(&folder),
+            Some(&*one.carrier),
+            &one.here,
+            &[DOC.to_string()],
+            &mut saying,
+        )
+        .unwrap();
 
         assert_eq!(
             back,
