@@ -7,7 +7,7 @@ use tisty_carrier::Hitch;
 use super::Drive;
 use super::sessions::key_of;
 use super::tree::{FILE_FIELDS, File};
-use super::wire::{given, json, judged};
+use super::wire::{given, json, judged, traced};
 use crate::ASKED_WITHIN;
 use crate::told;
 
@@ -154,6 +154,7 @@ impl Drive {
             file.seek(SeekFrom::Start(at))?;
             let mut part = vec![0u8; usize::try_from(take).unwrap_or(usize::MAX)];
             file.read_exact(&mut part)?;
+            let began = std::time::Instant::now();
             let sent = self
                 .http
                 .put(session)
@@ -164,6 +165,13 @@ impl Drive {
                 )
                 .body(part)
                 .send();
+            traced(
+                &Method::PUT,
+                "upload-chunk",
+                sent.as_ref().ok(),
+                began,
+                take,
+            );
             // Google may have kept part of a cut chunk, so resending from our own offset would misalign the file.
             let broke = match &sent {
                 Ok(answer) => answer.status().is_server_error(),
@@ -225,13 +233,21 @@ impl Drive {
     }
 
     fn kept_so_far(&self, session: &str, bytes: u64) -> Result<Kept, Hitch> {
+        let began = std::time::Instant::now();
         let answer = self
             .http
             .put(session)
             .timeout(ASKED_WITHIN)
             .header(reqwest::header::CONTENT_RANGE, format!("bytes */{bytes}"))
-            .send()
-            .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+            .send();
+        traced(
+            &Method::PUT,
+            "upload-status",
+            answer.as_ref().ok(),
+            began,
+            0,
+        );
+        let answer = answer.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
         match answer.status().as_u16() {
             308 => Ok(Kept::At(stored(&answer))),
             200 | 201 => Ok(Kept::Done(Box::new(json(answer)?))),
