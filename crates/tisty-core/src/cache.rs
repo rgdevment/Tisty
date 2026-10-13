@@ -834,8 +834,7 @@ fn reached(
         return print;
     }
 
-    // One transaction for the lot, cut halfway it would leave a cache calling itself current over buried tasks.
-    // Taken for writing up front: a read first pins a snapshot that another process's write turns into "database is locked".
+    // One write transaction taken up front: cut halfway the cache would call itself current, and a read first would lock out other writers.
     let _ = cache.db.execute_batch("BEGIN IMMEDIATE");
     // A row left behind under a fingerprint that calls the whole cache current would be served stale.
     let carried = events
