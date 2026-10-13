@@ -635,6 +635,10 @@ impl OneAtATime {
 const TURN_ASKED_AGAIN: std::time::Duration = std::time::Duration::from_millis(100);
 const ROUND_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(120);
 
+pub fn asked_to_unreach() -> bool {
+    waking::unreaching(&waking::said())
+}
+
 pub fn unreach() -> std::io::Result<bool> {
     let _ = waking::wake(false);
     let reached = command::out_of_reach();
