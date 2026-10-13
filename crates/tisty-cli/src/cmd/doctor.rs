@@ -73,6 +73,8 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
         );
     }
 
+    syncing(app, lang);
+
     let verdict = match &audit {
         Audit::Unavailable => {
             line(lang.get("cache"), &style::dim(lang.get("no-cache")));
@@ -126,6 +128,111 @@ pub fn doctor(app: &App, repair: bool, lang: Lang) -> anyhow::Result<ExitCode> {
     Ok(verdict)
 }
 
+// Read off this disk alone: the command line never reaches the network nor the keychain.
+fn syncing(app: &App, lang: Lang) {
+    let config = app.config();
+    let data = app.paths.data();
+    if let Some(at) = tisty_carrier::cloud_of(config.sync.as_ref()) {
+        let home = app.paths.cloud_home(&at.provider, &at.account);
+        cloud(&tisty_carrier::standing(&home), &at.email, lang);
+        moved_word(
+            std::fs::read_to_string(home.join("tree").join(tisty_core::moved::NAMED)).ok(),
+            data,
+            &config.device_id,
+            lang,
+        );
+    } else if let Some(carrier) = tisty_carrier::chosen(config.sync.as_ref()).carrier {
+        moved_word(carrier.word_left(), data, &config.device_id, lang);
+    }
+    if app.paths.cache().join(tisty_core::moved::OWED).is_file() {
+        line(lang.get("word-owed"), &style::dim(lang.get("word-owed-is")));
+    }
+}
+
+fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
+    line(
+        lang.get("cloud"),
+        &lang.fill("cloud-is", &[("email", email)]),
+    );
+    line(
+        lang.get("cloud-read"),
+        &match told.listed {
+            true => lang.fill(
+                "cloud-read-is",
+                &[
+                    ("files", &told.mirrored.to_string()),
+                    ("attachments", &told.on_the_shelf.to_string()),
+                ],
+            ),
+            false => lang.get("cloud-never-read").to_string(),
+        },
+    );
+    if told.owed + told.forgotten + told.owed_back > 0 {
+        line(
+            lang.get("cloud-waits"),
+            &style::dim(&lang.fill(
+                "cloud-waits-are",
+                &[
+                    ("owed", &told.owed.to_string()),
+                    ("forgotten", &told.forgotten.to_string()),
+                    ("back", &told.owed_back.to_string()),
+                ],
+            )),
+        );
+    }
+    line(
+        lang.get("cloud-today"),
+        &lang.fill(
+            "cloud-today-is",
+            &[
+                ("units", &told.units_spent.to_string()),
+                ("units_most", &told.units_a_day.to_string()),
+                ("bytes", &weighed(told.bytes_spent)),
+                ("bytes_most", &weighed(told.bytes_a_day)),
+            ],
+        ),
+    );
+    if told.paused_here {
+        line(
+            lang.get("cloud-paused"),
+            &style::dim(lang.get("cloud-paused-here")),
+        );
+    }
+    if let Some(until) = told.halted_until {
+        let when = jiff::Timestamp::from_second(i64::try_from(until).unwrap_or(i64::MAX))
+            .map(|at| at.strftime("%Y-%m-%d %H:%M UTC").to_string())
+            .unwrap_or_default();
+        line(
+            lang.get("cloud-paused"),
+            &style::paint(
+                style::RED,
+                &lang.fill("cloud-halted-until", &[("when", &when)]),
+            ),
+        );
+    }
+    line(
+        lang.get("cloud-word"),
+        &match told.serial {
+            Some(serial) => lang.fill("cloud-word-is", &[("serial", &serial.to_string())]),
+            None => lang.get("cloud-word-none").to_string(),
+        },
+    );
+}
+
+fn moved_word(said: Option<String>, data: &std::path::Path, me: &tisty_core::DeviceId, lang: Lang) {
+    if let Some(word) = tisty_core::moved::heeded(said.as_deref(), data, me) {
+        let said = match word.to.split_once(':') {
+            Some(("cloud", email)) => lang.fill(
+                "moved-away-to",
+                &[("to", &format!("Google Drive · {email}"))],
+            ),
+            Some(("folder", named)) => lang.fill("moved-away-to", &[("to", named)]),
+            _ => lang.get("moved-alone").to_string(),
+        };
+        line(lang.get("moved-away"), &style::paint(style::RED, &said));
+    }
+}
+
 fn line(label: &str, value: &str) {
     let pad = " ".repeat(14usize.saturating_sub(label.chars().count()).max(1));
     println!("    {label}{pad}{value}");
@@ -135,6 +242,7 @@ fn weighed(bytes: u64) -> String {
     match bytes {
         0..=1023 => format!("{bytes} B"),
         1024..=1_048_575 => format!("{} kB", bytes / 1024),
-        _ => format!("{} MB", bytes / 1_048_576),
+        1_048_576..=1_073_741_823 => format!("{} MB", bytes / 1_048_576),
+        _ => format!("{} GB", bytes / 1_073_741_824),
     }
 }

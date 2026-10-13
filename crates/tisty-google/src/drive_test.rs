@@ -1456,7 +1456,7 @@ fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read()
 
     let first = drive.put("a.md", &local, Expect::Revision("A.1".into()));
     assert!(matches!(first, Err(Hitch::Unreachable(_))), "{first:?}");
-    assert!(home.path().join("drive-owed.json").is_file());
+    assert!(home.path().join(tisty_carrier::OWED_BACK).is_file());
 
     drive.changes(Some("10")).unwrap();
 
@@ -1472,7 +1472,7 @@ fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read()
             .starts_with("DELETE /drive/v3/files/A/revisions/h2")
     );
     assert!(
-        !home.path().join("drive-owed.json").exists(),
+        !home.path().join(tisty_carrier::OWED_BACK).exists(),
         "a debt paid was kept"
     );
 }
@@ -1548,5 +1548,5 @@ fn a_debt_whose_file_moved_on_keeps_the_bytes_in_drive_s_history_and_writes_over
             .any(|one| one.line.starts_with("PATCH /upload")),
         "a newer write was covered by older bytes"
     );
-    assert!(!home.path().join("drive-owed.json").exists());
+    assert!(!home.path().join(tisty_carrier::OWED_BACK).exists());
 }

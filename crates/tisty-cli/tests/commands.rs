@@ -2974,3 +2974,35 @@ fn the_cloud_is_never_left_from_the_command_line() {
     }
     assert_eq!(std::fs::read(&file).unwrap(), before);
 }
+
+#[test]
+fn the_doctor_tells_the_cloud_from_this_disk_alone() {
+    let cli = Cli::new();
+    syncing_with_the_cloud(&cli);
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let home = paths.cloud_home("google", "0123");
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::write(home.join("paused-here"), b"").unwrap();
+    std::fs::write(home.join("cloud-policy.json"), r#"{"serial":3}"#).unwrap();
+
+    let out = cli.ok(&["doctor"]);
+
+    assert!(out.contains("Google Drive · ana@example.com"), "{out}");
+    assert!(out.contains("never read yet"), "{out}");
+    assert!(out.contains("by its own switch"), "{out}");
+    assert!(out.contains("number 3"), "{out}");
+}
+
+#[test]
+fn the_doctor_says_when_the_place_left_behind_is_still_owed_its_word() {
+    let cli = Cli::new();
+    cli.ok(&["a task so the settings exist"]);
+    let cache = cli.home.path().join("cache");
+    std::fs::create_dir_all(&cache).unwrap();
+    std::fs::write(cache.join(tisty_core::moved::OWED), "{}").unwrap();
+
+    let out = cli.ok(&["doctor"]);
+
+    assert!(out.contains("still has to be told"), "{out}");
+}

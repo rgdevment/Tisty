@@ -21,6 +21,7 @@ pub(crate) mod lock;
 mod mirror;
 pub mod policy;
 mod shelf;
+pub mod standing;
 
 use budget::{Class, Metered};
 use index::Index;
