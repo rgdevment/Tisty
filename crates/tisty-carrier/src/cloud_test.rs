@@ -1878,3 +1878,31 @@ fn a_clock_set_back_does_not_leave_the_cloud_unheard() {
         );
     }
 }
+
+#[test]
+fn a_word_left_in_the_place_reaches_the_other_machine_and_forgetting_it_takes_it_away() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+
+        one.carrier.leave_word("se fue a otra parte").unwrap();
+
+        assert_eq!(
+            two.carrier.word_left().as_deref(),
+            Some("se fue a otra parte"),
+            "{who}"
+        );
+
+        two.carrier.forget_word().unwrap();
+        one.round(Way::Both);
+
+        assert_eq!(
+            one.carrier.word_left(),
+            None,
+            "{who}: the word outlived its forgetting"
+        );
+    }
+}

@@ -7,6 +7,9 @@ use crate::{
 };
 
 const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
+const TASKS_AND_DOCS: [&str; 3] = ["store", "docs", "originals"];
+const BEFORE_A_CHANGE: &str = "before-a-change";
+const BEFORE_KEPT: usize = 5;
 pub const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
 
@@ -26,6 +29,39 @@ pub struct Restored {
 }
 
 pub fn write(data: &Path, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
+    written(data, into, aside, also, &CARRIED)
+}
+
+/// Tasks and documents as they are on this disk, kept before the way of syncing changes; the last few stay.
+pub fn before_a_change(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
+    let kept = paths.private().join(BEFORE_A_CHANGE);
+    std::fs::create_dir_all(&kept)?;
+    let _ = crate::paths::ours_alone(&kept);
+    let into = kept.join(format!(
+        "{}-{:03}.zip",
+        at.strftime("%Y%m%d-%H%M%S"),
+        at.subsec_millisecond()
+    ));
+    written(paths.data(), &into, paths.cache(), None, &TASKS_AND_DOCS)?;
+    let mut all: Vec<PathBuf> = std::fs::read_dir(&kept)?
+        .filter_map(|one| one.ok().map(|one| one.path()))
+        .filter(|one| one.extension().is_some_and(|ext| ext == "zip"))
+        .collect();
+    all.sort();
+    let over = all.len().saturating_sub(BEFORE_KEPT);
+    for old in all.into_iter().take(over) {
+        let _ = std::fs::remove_file(old);
+    }
+    Ok(into)
+}
+
+fn written(
+    data: &Path,
+    into: &Path,
+    aside: &Path,
+    also: Option<&Path>,
+    folders: &[&str],
+) -> Result<Made> {
     let store_id = store::identity(data.join("store"))?;
     let told = crate::State::replay(&store::read_all(data.join("store"))?);
 
@@ -43,7 +79,7 @@ pub fn write(data: &Path, into: &Path, aside: &Path, also: Option<&Path>) -> Res
         aside.join(&named)
     };
 
-    match fill(data, also, &part, store_id, &told) {
+    match fill(data, also, &part, store_id, &told, folders) {
         Ok(made) => {
             place(&part, into)?;
             let _ = std::fs::remove_file(&part);
@@ -93,6 +129,7 @@ fn fill(
     into: &Path,
     store_id: String,
     told: &crate::State,
+    folders: &[&str],
 ) -> Result<Made> {
     let file = std::fs::File::create(into)?;
     let _ = crate::paths::ours_alone(into);
@@ -106,7 +143,7 @@ fn fill(
     };
     let mut written: std::collections::BTreeSet<String> = Default::default();
 
-    for folder in CARRIED {
+    for folder in folders {
         let root = data.join(folder);
         for at in walk(&root) {
             packed(&mut zip, &mut made, &mut written, data, &at)?;
