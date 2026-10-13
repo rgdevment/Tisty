@@ -117,6 +117,34 @@ describe("moving to another place", () => {
     expect(screen.queryByText(t("moveOthersFollow"))).toBeNull();
   });
 
+  it("says a folder left behind brings home first only when it holds something to bring", async () => {
+    const folder = { ...cloud, mode: "folder", chosen: "D:/Tisty", cloud: null } as Carrying;
+    ipc.answers.move_plan = () => Promise.resolve({ ...plan, fromCloud: false });
+    const { shown } = opened({ state: folder, resume: { kind: "alone" } });
+
+    expect(await screen.findByText(t("moveHomeFirst"))).toBeTruthy();
+    expect(screen.queryByText(fill("moveDown", "2.0 MB"))).toBeNull();
+    shown.unmount();
+
+    ipc.answers.move_plan = () =>
+      Promise.resolve({ ...plan, fromCloud: false, down: { files: 0, bytes: 0 } });
+    opened({ state: folder, resume: { kind: "alone" } });
+
+    expect(await screen.findByText(t("moveResumes"))).toBeTruthy();
+    expect(screen.queryByText(t("moveHomeFirst"))).toBeNull();
+  });
+
+  it("never says anything comes home when this computer was alone", async () => {
+    const alone = { ...cloud, mode: "alone", cloud: null } as Carrying;
+    ipc.answers.move_plan = () =>
+      Promise.resolve({ ...plan, fromCloud: false, toCloud: true, down: { files: 0, bytes: 0 } });
+    opened({ state: alone, resume: { kind: "cloud", account: ANA.account, email: ANA.email } });
+
+    expect(await screen.findByText(t("moveResumes"))).toBeTruthy();
+    expect(screen.queryByText(t("moveHomeFirst"))).toBeNull();
+    expect(screen.queryByText(fill("moveDown", "2.0 MB"))).toBeNull();
+  });
+
   it("will not move into a Drive that has no room and says how much is missing", async () => {
     ipc.answers.move_plan = () =>
       Promise.resolve({

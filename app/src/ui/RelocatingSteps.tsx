@@ -110,6 +110,7 @@ export function Plan({
   onCancel: () => void;
   onMove: () => void;
 }) {
+  const bringing = state.mode !== "alone" && (plan?.down.files ?? 0) > 0;
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveWhy")}</p>
@@ -128,8 +129,8 @@ export function Plan({
       </div>
       {plan && (
         <ul className={`${box} list-disc pl-7`}>
-          {plan.down.files > 0 && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
-          {plan.down.files === 0 && <li>{t("moveHomeFirst")}</li>}
+          {bringing && plan.fromCloud && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
+          {bringing && !plan.fromCloud && <li>{t("moveHomeFirst")}</li>}
           {plan.toCloud && plan.up.files > 0 && <li>{fill("moveUp", weigh(plan.up.bytes))}</li>}
           {plan.toCloud && <li>{t("moveOnDemand")}</li>}
           {plan.toCloud && state.mode === "folder" && <li>{t("moveOldFolderSpace")}</li>}
