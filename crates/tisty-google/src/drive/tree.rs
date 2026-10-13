@@ -4,8 +4,7 @@ use serde::Deserialize;
 use tisty_carrier::Seen;
 
 pub(super) const FOLDER: &str = "application/vnd.google-apps.folder";
-pub(super) const FILE_FIELDS: &str =
-    "id,name,parents,mimeType,size,sha256Checksum,md5Checksum,headRevisionId,version,trashed";
+pub(super) const FILE_FIELDS: &str = "id,name,parents,mimeType,size,sha256Checksum,md5Checksum,headRevisionId,version,trashed,createdTime";
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,6 +23,12 @@ pub(super) struct File {
     pub version: Option<String>,
     #[serde(default)]
     pub trashed: bool,
+    pub created_time: Option<String>,
+}
+
+// The oldest copy of a name is the one, on every machine alike, however each heard of the others.
+pub(super) fn ordered(copies: &mut [File]) {
+    copies.sort_by(|a, b| a.created_time.cmp(&b.created_time));
 }
 
 #[derive(Deserialize)]
@@ -222,6 +227,7 @@ pub(super) fn applied(
             Some((was, at)) if was == path => copies.insert(at.min(copies.len()), file.clone()),
             _ => copies.push(file.clone()),
         }
+        ordered(copies);
         where_is.insert(file.id.clone(), path.clone());
         touched.insert(path);
     }

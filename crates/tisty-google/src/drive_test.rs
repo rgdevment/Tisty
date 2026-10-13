@@ -1159,6 +1159,29 @@ fn a_file_binned_or_removed_elsewhere_comes_as_gone_and_one_added_in_new_folders
 }
 
 #[test]
+fn a_twin_heard_from_the_feed_goes_before_this_machine_s_own_when_it_is_older() {
+    let tree = held_tree(
+        r#"{"id":"B2","name":"a.md","parents":["R"],"version":"1","createdTime":"2026-10-13T10:00:02Z"}"#,
+    );
+    let roots = ["R".to_string()];
+    let older = changed(
+        r#"[{"fileId":"A1","file":{"id":"A1","name":"a.md","parents":["R"],"version":"1","createdTime":"2026-10-13T10:00:01Z"}}]"#,
+    );
+
+    let (next, _) = super::tree::applied(&tree, &roots, &older).unwrap();
+
+    let ids: Vec<&str> = next.files["a.md"]
+        .iter()
+        .map(|one| one.id.as_str())
+        .collect();
+    assert_eq!(
+        ids,
+        ["A1", "B2"],
+        "two machines would each take their own for the one"
+    );
+}
+
+#[test]
 fn a_folder_of_the_store_renamed_or_binned_asks_for_the_whole_listing() {
     let tree = held_tree(DOCS);
     let roots = ["R".to_string()];

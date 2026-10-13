@@ -61,6 +61,11 @@ struct Known {
 
 const PASSED_AT_MOST: usize = 64;
 
+// Only an attachment's name says its bytes, so only its absence in a current tree is trusted without a search.
+fn content_addressed(name: &str) -> bool {
+    name.starts_with("attachments/")
+}
+
 impl Known {
     fn holds_up_to(&self, since: &str) -> bool {
         self.passed.iter().any(|(one, _)| one == since)
@@ -76,6 +81,12 @@ impl Known {
         if self.passed.len() > PASSED_AT_MOST {
             self.passed.remove(0);
         }
+    }
+
+    // A quiet catch-up between rounds moves the cursor without a mark, so a day of them never pushes out the one the index holds.
+    fn kept_at(&mut self, cursor: &str) {
+        self.cursor = Some(cursor.to_string());
+        self.current_at = Instant::now();
     }
 
     fn touched_since(&self, since: &str) -> BTreeSet<String> {
@@ -306,7 +317,7 @@ impl Drive {
             copies[0] = now;
             return Ok(copies);
         }
-        if copies.is_empty() && self.kept_current()? {
+        if copies.is_empty() && content_addressed(name) && self.kept_current()? {
             return self.with_known(|tree| tree.files.get(name).cloned().unwrap_or_default());
         }
         let found = self.looked_up(name)?;
@@ -335,7 +346,11 @@ impl Drive {
         }
         self.spent(LIST);
         let (theirs, next) = self.stirred(&cursor)?;
-        if self.caught_up(&cursor, &theirs, &next).is_none() {
+        let remembered = !theirs.is_empty();
+        if self
+            .caught_up(&cursor, &theirs, &next, remembered)
+            .is_none()
+        {
             self.listed(Some(next))?;
             self.laid_over(&theirs);
         }
@@ -398,12 +413,8 @@ impl Drive {
                 at = id;
                 continue;
             }
-            let current = self.kept_current()?;
-            let known = match current {
-                true => self.with_known(|tree| tree.folders.get(&walked).cloned())?,
-                false => self.child_folder(&at, part)?,
-            };
-            let found = match known {
+            // Searched even in a current tree, so two machines making one folder at once still meet in the older one.
+            let found = match self.child_folder(&at, part)? {
                 Some(id) => id,
                 None if making => self.folder(part, &at)?,
                 None => return Ok(None),
@@ -540,7 +551,13 @@ impl Drive {
     }
 
     // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
-    fn caught_up(&self, since: &str, theirs: &[Changed], cursor: &str) -> Option<Changes> {
+    fn caught_up(
+        &self,
+        since: &str,
+        theirs: &[Changed],
+        cursor: &str,
+        remembered: bool,
+    ) -> Option<Changes> {
         let roots = self.roots();
         if roots.is_empty() && !theirs.is_empty() {
             return None;
@@ -555,7 +572,10 @@ impl Drive {
                 applied.changed.into_iter().chain(applied.gone).collect()
             }
         };
-        known.moved_to(cursor, touched);
+        match remembered {
+            true => known.moved_to(cursor, touched),
+            false => known.kept_at(cursor),
+        }
         let (mut changed, mut gone) = (Vec::new(), Vec::new());
         for path in known.touched_since(since) {
             match known
@@ -687,6 +707,7 @@ impl Remote for Drive {
                 Some(first) if current.is_some() => *first = made,
                 _ => copies.insert(0, made),
             }
+            tree::ordered(copies);
         });
         Ok(landed)
     }
@@ -752,7 +773,7 @@ impl Remote for Drive {
             held.clear();
         }
         if followed.is_some()
-            && let Some(caught_up) = self.caught_up(since, &theirs, &cursor)
+            && let Some(caught_up) = self.caught_up(since, &theirs, &cursor, true)
         {
             return Ok(caught_up);
         }

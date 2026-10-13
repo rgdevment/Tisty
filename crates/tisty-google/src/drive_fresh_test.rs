@@ -1,11 +1,13 @@
 use super::*;
 
-const LANDED: &str = r#"{"id":"N","name":"n.md","parents":["R"],"size":"5","version":"1"}"#;
+const LANDED: &str = r#"{"id":"N","name":"n.bin","parents":["B"],"size":"5","version":"1"}"#;
+const SHARD: &str = r#"{"id":"H","name":"attachments","parents":["R"],"mimeType":"application/vnd.google-apps.folder"},
+    {"id":"B","name":"ab","parents":["H"],"mimeType":"application/vnd.google-apps.folder"}"#;
 
 fn searched(asked: &[Asked]) -> usize {
     asked
         .iter()
-        .filter(|one| one.line.contains("q=name"))
+        .filter(|one| one.line.contains("q=name") && !one.line.contains("mimeType"))
         .count()
 }
 
@@ -18,39 +20,64 @@ fn aged(drive: &Drive) {
 }
 
 #[test]
-fn a_new_file_in_a_tree_the_changes_feed_just_caught_up_is_written_without_a_search() {
+fn a_new_attachment_in_a_tree_the_changes_feed_just_caught_up_is_written_without_a_search() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
-        said("200 OK", &whole("")),
+        said("200 OK", &whole(SHARD)),
         said("200 OK", LANDED),
         said("200 OK", LANDED),
     ]);
     let drive = drive(at, home.path());
 
     drive.changes(None).unwrap();
-    drive.put("n.md", &local, Expect::Absent).unwrap();
-    drive.put("m.md", &local, Expect::Absent).unwrap();
+    drive
+        .put("attachments/ab/n.bin", &local, Expect::Absent)
+        .unwrap();
+    drive
+        .put("attachments/ab/m.bin", &local, Expect::Absent)
+        .unwrap();
 
     let asked = asked.join().unwrap();
     assert_eq!(asked.len(), 4, "{asked:?}");
     assert_eq!(
         searched(&asked),
         0,
-        "each new file still paid a name search"
+        "each new attachment still paid a name search"
     );
     assert!(asked[2].line.contains("uploadType=multipart"));
+}
+
+#[test]
+fn a_shared_name_absent_from_a_current_tree_is_still_searched_before_it_is_written() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(SHARD)),
+        said("200 OK", &listing("")),
+        said(
+            "200 OK",
+            r#"{"id":"M","name":"moved.json","parents":["R"],"version":"1"}"#,
+        ),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive.changes(None).unwrap();
+    drive.put("moved.json", &local, Expect::Absent).unwrap();
+
+    assert_eq!(searched(&asked.join().unwrap()), 1);
 }
 
 #[test]
 fn a_tree_older_than_a_minute_is_caught_up_once_from_the_feed_instead_of_a_search_per_file() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
-    let theirs = r#"{"id":"T","name":"t.md","parents":["R"],"version":"1"}"#;
+    let theirs = r#"{"id":"T","name":"t.bin","parents":["B"],"version":"1"}"#;
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
-        said("200 OK", &whole(A)),
+        said("200 OK", &whole(SHARD)),
         said(
             "200 OK",
             &format!(
@@ -63,15 +90,55 @@ fn a_tree_older_than_a_minute_is_caught_up_once_from_the_feed_instead_of_a_searc
     drive.changes(None).unwrap();
     aged(&drive);
 
-    let refused = drive.put("t.md", &local, Expect::Absent);
-    let landed = drive.put("n.md", &local, Expect::Absent);
+    let refused = drive.put("attachments/ab/t.bin", &local, Expect::Absent);
+    let landed = drive.put("attachments/ab/n.bin", &local, Expect::Absent);
 
-    assert_eq!(refused, Err(Hitch::Changed("t.md".into())));
+    assert_eq!(refused, Err(Hitch::Changed("attachments/ab/t.bin".into())));
     assert!(landed.is_ok(), "{landed:?}");
     let asked = asked.join().unwrap();
     assert!(asked[2].line.contains("pageToken=10"), "{}", asked[2].line);
     assert_eq!(searched(&asked), 0);
     assert_eq!(asked.len(), 4, "{asked:?}");
+}
+
+#[test]
+fn a_quiet_catch_up_between_rounds_never_pushes_out_the_cursor_the_index_holds() {
+    let home = tempfile::tempdir().unwrap();
+    let mut script = vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(SHARD)),
+    ];
+    for at in 0..70 {
+        script.push(said(
+            "200 OK",
+            &format!(r#"{{"changes":[],"newStartPageToken":"{}"}}"#, 100 + at),
+        ));
+    }
+    script.push(said(
+        "200 OK",
+        r#"{"changes":[],"newStartPageToken":"500"}"#,
+    ));
+    let (at, asked) = google(script);
+    let drive = drive(at, home.path());
+    drive.changes(None).unwrap();
+
+    for _ in 0..70 {
+        aged(&drive);
+        assert!(drive.kept_current().unwrap());
+    }
+    let later = drive.changes(Some("10")).unwrap();
+
+    assert!(matches!(later, Changes::Since { ref cursor, .. } if cursor == "500"));
+    let listings = asked
+        .join()
+        .unwrap()
+        .iter()
+        .filter(|one| one.line.contains("q=trashed"))
+        .count();
+    assert_eq!(
+        listings, 1,
+        "a quiet day of catch-ups listed the drive again"
+    );
 }
 
 #[test]
@@ -114,25 +181,24 @@ fn every_ask_leaves_one_line_at_the_finest_trail_without_where_it_went_or_what_i
         .lines()
         .filter(|one| one.contains("Google Drive was asked"))
         .collect();
-    assert_eq!(ours.len(), 3, "{trail}");
+    assert!(ours.len() >= 3, "{trail}");
     assert!(
-        ours[0].contains("TRACE") && ours[0].contains("cloud"),
+        ours.iter().any(|one| one.contains("TRACE")
+            && one.contains("cloud")
+            && one.contains("verb=GET")
+            && one.contains("kind=list")),
         "{trail}"
     );
     assert!(
-        ours[0].contains("verb=GET") && ours[0].contains("kind=list"),
+        ours.iter()
+            .any(|one| one.contains("kind=search") && one.contains("status=200")),
         "{trail}"
     );
     assert!(
-        ours[1].contains("kind=search") && ours[1].contains("status=200"),
-        "{trail}"
-    );
-    assert!(
-        ours[2].contains("verb=POST") && ours[2].contains("kind=upload"),
-        "{trail}"
-    );
-    assert!(
-        ours[2].contains("received=") && ours[2].contains("ms="),
+        ours.iter().any(|one| one.contains("verb=POST")
+            && one.contains("kind=upload")
+            && one.contains("received=")
+            && one.contains("ms=")),
         "{trail}"
     );
     for hidden in ["secreto", "127.0.0.1", "access-", "drive/v3"] {
@@ -141,29 +207,41 @@ fn every_ask_leaves_one_line_at_the_finest_trail_without_where_it_went_or_what_i
 }
 
 #[test]
-fn folders_a_current_tree_does_not_hold_are_made_without_searching_for_them_first() {
+fn a_folder_a_current_tree_does_not_hold_is_searched_once_so_two_machines_meet_in_one() {
     let home = tempfile::tempdir().unwrap();
     let local = written(&home, b"hello");
     let (at, asked) = google(vec![
         said("200 OK", r#"{"startPageToken":"10"}"#),
         said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
         said("200 OK", r#"{"id":"H","name":"attachments"}"#),
-        said("200 OK", r#"{"id":"B","name":"ab"}"#),
+        said("200 OK", &listing(r#"{"id":"B"}"#)),
         said(
             "200 OK",
             r#"{"id":"X","name":"x.bin","parents":["B"],"size":"5","version":"1"}"#,
+        ),
+        said(
+            "200 OK",
+            r#"{"id":"Y","name":"y.bin","parents":["B"],"size":"5","version":"1"}"#,
         ),
     ]);
     let drive = drive(at, home.path());
 
     drive.changes(None).unwrap();
     let landed = drive.put("attachments/ab/x.bin", &local, Expect::Absent);
+    let again = drive.put("attachments/ab/y.bin", &local, Expect::Absent);
 
     assert_eq!(landed.map(|one| one.revision), Ok("X.1".into()));
+    assert_eq!(again.map(|one| one.revision), Ok("Y.1".into()));
     let asked = asked.join().unwrap();
+    assert_eq!(asked.len(), 7, "{asked:?}");
+    assert!(asked[2].line.contains("mimeType"), "{}", asked[2].line);
+    assert!(asked[4].line.contains("mimeType"), "{}", asked[4].line);
     assert!(
-        asked[2..].iter().all(|one| !one.line.contains("q=")),
-        "{asked:?}"
+        asked[4].line.contains("H%27+in+parents") || asked[4].line.contains("H%27%20in%20parents"),
+        "{}",
+        asked[4].line
     );
-    assert!(String::from_utf8_lossy(&asked[3].body).contains(r#""parents":["H"]"#));
+    assert_eq!(searched(&asked), 0);
+    assert!(String::from_utf8_lossy(&asked[5].body).contains(r#""parents":["B"]"#));
 }
