@@ -3,10 +3,8 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tisty_carrier::Hitch;
 
-use super::tree::{FILE_FIELDS, File};
-use super::wire::json;
-use super::{Drive, READ};
-use crate::ASKED_WITHIN;
+use super::Drive;
+use super::tree::File;
 
 /// Another machine's bytes a write covered and could not yet put back, kept until they are.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,16 +57,22 @@ impl Drive {
         self
     }
 
-    // Read one by one, so a debt of a kind this build no longer owes never hides the others.
-    fn owed(&self) -> Vec<Owed> {
-        self.owing
-            .as_ref()
-            .and_then(|at| std::fs::read(at).ok())
-            .and_then(|bytes| serde_json::from_slice::<Vec<serde_json::Value>>(&bytes).ok())
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|one| serde_json::from_value(one).ok())
-            .collect()
+    // Read one by one, so a debt of a kind this build no longer owes never hides the others; None is a list that could not be read.
+    fn owed(&self) -> Option<Vec<Owed>> {
+        let Some(at) = &self.owing else {
+            return Some(Vec::new());
+        };
+        let bytes = match std::fs::read(at) {
+            Ok(bytes) => bytes,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Some(Vec::new()),
+            Err(_) => return None,
+        };
+        let all = serde_json::from_slice::<Vec<serde_json::Value>>(&bytes).ok()?;
+        Some(
+            all.into_iter()
+                .filter_map(|one| serde_json::from_value(one).ok())
+                .collect(),
+        )
     }
 
     fn keep_owing(&self, all: &[Owed]) {
@@ -116,7 +120,7 @@ impl Drive {
 
     pub(super) fn owe(&self, one: Owed) {
         let _writing = self.held(WRITING, true);
-        let mut all = self.owed();
+        let mut all = self.owed().unwrap_or_default();
         if !all.contains(&one) {
             all.push(one);
         }
@@ -128,11 +132,13 @@ impl Drive {
         let Some(_repaying) = self.held(REPAYING, false) else {
             return;
         };
-        let all = self.owed();
+        let Some(all) = self.owed() else {
+            return;
+        };
         if all.is_empty() {
             if self.owing.as_ref().is_some_and(|at| at.exists()) {
                 let _writing = self.held(WRITING, true);
-                if self.owed().is_empty() {
+                if self.owed().is_some_and(|all| all.is_empty()) {
                     self.keep_owing(&[]);
                 }
             }
@@ -146,8 +152,9 @@ impl Drive {
             })
             .collect();
         let _writing = self.held(WRITING, true);
-        let left = unpaid(self.owed(), &paid);
-        self.keep_owing(&left);
+        if let Some(now) = self.owed() {
+            self.keep_owing(&unpaid(now, &paid));
+        }
     }
 
     fn repay(&self, one: &Owed) -> Result<(), Hitch> {
@@ -171,12 +178,7 @@ impl Drive {
     }
 
     fn head_of(&self, id: &str) -> Result<Option<String>, Hitch> {
-        let url = format!("{}/files/{id}", self.at.api);
-        self.spent(READ);
-        let now: File = json(self.call(Some(ASKED_WITHIN), |http| {
-            http.get(&url).query(&[("fields", FILE_FIELDS)])
-        })?)?;
-        Ok(now.head_revision_id)
+        Ok(self.looked_at(id)?.head_revision_id)
     }
 
     // A newer write came after the one that covered them, so they stay in Drive's history rather than going over it.

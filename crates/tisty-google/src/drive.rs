@@ -8,6 +8,7 @@ use reqwest::blocking::Client as Http;
 use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens, named_well};
 
+mod bin;
 mod gap;
 mod owed;
 mod sessions;
@@ -391,11 +392,13 @@ impl Drive {
                 ("spaces", SPACE),
             ])
         })?)?;
-        Ok(page
+        let mut found: Vec<File> = page
             .files
             .into_iter()
             .filter(|one| one.mime_type != FOLDER)
-            .collect())
+            .collect();
+        tree::ordered(&mut found);
+        Ok(found)
     }
 
     fn folder_id(&self, path: Option<&str>, making: bool) -> Result<Option<String>, Hitch> {
@@ -444,6 +447,12 @@ impl Drive {
             ])
         })?)?;
         Ok(page.files.into_iter().next().map(|one| one.id))
+    }
+
+    // The meter charges a refused write only its look, so each ask that still carried bytes to Google is added here.
+    fn refused_after(&self, carried: u64, refused: Hitch) -> Hitch {
+        self.spent(EDIT.saturating_mul(carried));
+        refused
     }
 
     fn owned(&self, id: &str, version: Option<String>) {
@@ -690,12 +699,10 @@ impl Remote for Drive {
                 .folder_id(split(name).0, true)?
                 .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?,
         };
-        // Parts of a long upload may have gone before Google turned it down, and the meter charges a refusal only its look.
-        let made = match self.sent(name, from, current, &parent) {
+        let mut carried = 0;
+        let made = match self.sent(name, from, current, &parent, &mut carried) {
             Err(refused @ (Hitch::Missing(_) | Hitch::Changed(_))) => {
-                let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
-                self.spent(EDIT.saturating_mul(self.limits().requests_to_put(weighs)));
-                return Err(refused);
+                return Err(self.refused_after(carried, refused));
             }
             other => other?,
         };
@@ -703,11 +710,8 @@ impl Remote for Drive {
             && gap::leapt(checked, &made)
         {
             match self.handed_back(name, &made, checked) {
-                // The bytes went up even though the write is refused, and the meter charges a refusal only its look.
-                Err(Hitch::Changed(refused)) => {
-                    let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
-                    self.spent(EDIT.saturating_mul(self.limits().requests_to_put(weighs)));
-                    return Err(Hitch::Changed(refused));
+                Err(refused @ Hitch::Changed(_)) => {
+                    return Err(self.refused_after(carried, refused));
                 }
                 other => other?,
             }
@@ -737,7 +741,9 @@ impl Remote for Drive {
         if expect.is_some_and(|wanted| seen(name, first).revision != wanted) {
             return Err(Hitch::Changed(name.to_string()));
         }
-        // The space has no bin, so the revision just checked is the last word before the bytes go for good.
+        if expect.is_some() {
+            self.set_aside(name, first)?;
+        }
         for one in &all {
             let url = format!("{}/files/{}", self.at.api, one.id);
             match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
@@ -792,6 +798,7 @@ impl Remote for Drive {
             start_page_token: String,
         }
         self.repaid();
+        self.swept();
         let Some(since) = since else {
             let url = format!("{}/changes/startPageToken", self.at.api);
             let start: Start = json(self.call(Some(ASKED_WITHIN), |http| http.get(&url))?)?;

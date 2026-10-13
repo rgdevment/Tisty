@@ -4,6 +4,8 @@ use serde::Deserialize;
 use tisty_carrier::Seen;
 
 pub(super) const FOLDER: &str = "application/vnd.google-apps.folder";
+// Tisty's own bin inside its space: a file set aside there is no file of the store, only a deletion not yet final.
+pub(super) const BIN: &str = ".bin";
 pub(super) const FILE_FIELDS: &str = "id,name,parents,mimeType,size,sha256Checksum,md5Checksum,headRevisionId,version,trashed,createdTime";
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -45,6 +47,12 @@ pub(super) struct Tree {
     // Every folder by its id, a racing machine's second `docs` too, so what sits in either is found.
     pub folder_paths: HashMap<String, String>,
     pub files: BTreeMap<String, Vec<File>>,
+    pub binned: Vec<File>,
+}
+
+pub(super) fn in_bin(path: &str) -> bool {
+    path.strip_prefix(BIN)
+        .is_some_and(|rest| rest.starts_with('/'))
 }
 
 pub(super) fn seen(name: &str, file: &File) -> Seen {
@@ -122,8 +130,12 @@ pub(super) fn planted(roots: &[String], all: Vec<File>) -> Tree {
                 tree.folder_paths.insert(one.id.clone(), path.clone());
                 tree.folders.entry(path).or_insert_with(|| one.id.clone());
             }
+            false if in_bin(&path) => tree.binned.push(one.clone()),
             false => tree.files.entry(path).or_default().push(one.clone()),
         }
+    }
+    for copies in tree.files.values_mut() {
+        ordered(copies);
     }
     tree
 }
@@ -219,7 +231,7 @@ pub(super) fn applied(
         let Some(file) = one.standing() else {
             continue;
         };
-        let Some(path) = path_in(&next, roots, file) else {
+        let Some(path) = path_in(&next, roots, file).filter(|path| !in_bin(path)) else {
             continue;
         };
         let copies = next.files.entry(path.clone()).or_default();

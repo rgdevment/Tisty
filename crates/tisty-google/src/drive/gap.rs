@@ -109,8 +109,10 @@ impl Drive {
             return Ok(None);
         };
         let held = self.revision_held(&landed.id, &theirs)?;
-        self.spent(EDIT);
-        let restored = self.sent(name, held.path(), Some(landed), "")?;
+        let mut carried = 0;
+        let restored = self.sent(name, held.path(), Some(landed), "", &mut carried);
+        self.spent(EDIT.saturating_mul(carried));
+        let restored = restored?;
         self.unpinned(&landed.id, &theirs);
         Ok(Some(restored))
     }

@@ -54,14 +54,18 @@ impl Drive {
             let asked = asked
                 .build()
                 .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
-            let (verb, kind) = (asked.method().clone(), kind_of(&asked));
-            let sent = asked
-                .body()
-                .and_then(|body| body.as_bytes())
-                .map_or(0, |body| body.len() as u64);
+            let shown = witness::keeping_all().then(|| {
+                let sent = asked
+                    .body()
+                    .and_then(|body| body.as_bytes())
+                    .map_or(0, |body| body.len() as u64);
+                (asked.method().clone(), kind_of(&asked), sent)
+            });
             let began = Instant::now();
             let answer = self.http.execute(asked);
-            traced(&verb, kind, answer.as_ref().ok(), began, sent);
+            if let Some((verb, kind, sent)) = &shown {
+                traced(verb, kind, answer.as_ref().ok(), began, *sent);
+            }
             let answer = answer.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
             if answer.status().as_u16() == 401 && !renewed {
                 self.tokens.spoiled(&access);

@@ -23,6 +23,7 @@ impl Drive {
         from: &Path,
         file: Option<&File>,
         parent: &str,
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let bytes = std::fs::metadata(from)?.len();
         let leaf = name.rsplit('/').next().unwrap_or(name);
@@ -38,8 +39,8 @@ impl Drive {
             None => (format!("{}/files", self.at.upload), Method::POST),
         };
         match bytes <= WHOLE_AT_MOST.min(self.chunk) {
-            true => self.sent_whole(&url, method, &meta, from),
-            false => self.sent_in_parts(&url, method, &meta, (name, from), bytes),
+            true => self.sent_whole(&url, method, &meta, from, carried),
+            false => self.sent_in_parts(&url, method, &meta, (name, from, bytes), carried),
         }
     }
 
@@ -50,6 +51,7 @@ impl Drive {
         method: Method,
         meta: &serde_json::Value,
         from: &Path,
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let boundary = format!("tisty-{}", crate::random_text(18)?);
         let mut body = format!(
@@ -59,6 +61,7 @@ impl Drive {
         body.extend(std::fs::read(from)?);
         body.extend(format!("\r\n--{boundary}--\r\n").into_bytes());
         let weighs = body.len() as u64;
+        *carried += 1;
         json(self.call(Some(given(weighs)), |http| {
             http.request(method.clone(), url)
                 .query(&[("uploadType", "multipart"), ("fields", FILE_FIELDS)])
@@ -76,8 +79,8 @@ impl Drive {
         url: &str,
         method: Method,
         meta: &serde_json::Value,
-        (name, from): (&str, &Path),
-        bytes: u64,
+        (name, from, bytes): (&str, &Path, u64),
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let key = key_of(url, &format!("{name}\u{0}{meta}"), from, bytes);
         let (session, at) = match self.reopened(key.as_deref(), bytes)? {
@@ -91,7 +94,7 @@ impl Drive {
                 (session, 0)
             }
         };
-        let done = self.sent_from(&session, from, bytes, at);
+        let done = self.sent_from(&session, from, (bytes, at), carried);
         if let (Ok(_), Some(key)) = (&done, &key) {
             self.session_closed(key);
         }
@@ -144,8 +147,8 @@ impl Drive {
         &self,
         session: &str,
         from: &Path,
-        bytes: u64,
-        mut at: u64,
+        (bytes, mut at): (u64, u64),
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let mut file = std::fs::File::open(from)?;
         let mut failed = 0;
@@ -155,6 +158,7 @@ impl Drive {
             let mut part = vec![0u8; usize::try_from(take).unwrap_or(usize::MAX)];
             file.read_exact(&mut part)?;
             let began = std::time::Instant::now();
+            *carried += 1;
             let sent = self
                 .http
                 .put(session)
