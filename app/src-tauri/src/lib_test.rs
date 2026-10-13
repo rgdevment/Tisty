@@ -1141,13 +1141,21 @@ fn a_refusal_the_window_showed_says_what_it_was_about() {
     note_trouble("noSuchDoc".into(), Some("ycqcwz50-0007".into()));
     note_trouble("noSuchDoc".into(), None);
     note_trouble("comprar pan".into(), Some("ycqcwz50-0008".into()));
+    note_trouble("cloudElsewhere".into(), Some("someone@example.com".into()));
+    note_trouble("archivedList".into(), Some("Compras del mes".into()));
 
     let seen = tisty_core::witness::recent(&paths, 50);
     let shown: Vec<&String> = seen
         .iter()
         .filter(|line| line.contains("the window showed a refusal"))
         .collect();
-    assert_eq!(shown.len(), 2, "{shown:?}");
+    assert_eq!(shown.len(), 4, "{shown:?}");
+    assert!(
+        !seen
+            .iter()
+            .any(|line| line.contains("someone@example.com") || line.contains("Compras del mes")),
+        "what the person wrote reached a log meant to be shared: {seen:?}"
+    );
     assert!(shown[0].contains("ycqcwz50-0007"), "{shown:?}");
     assert!(!shown[1].contains("at="), "{shown:?}");
     assert!(

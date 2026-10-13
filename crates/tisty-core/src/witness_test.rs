@@ -292,3 +292,36 @@ fn a_hostile_round_leaves_neither_its_token_nor_its_signed_address_in_the_log() 
     assert!(!line.contains("sig=Zx9"), "{line}");
     assert!(line.contains("401"), "{line}");
 }
+
+#[test]
+fn a_name_whose_lower_case_is_longer_is_hidden_without_cutting_a_letter() {
+    assert_eq!(without(r"C:\Users\İlker", "İlker"), r"C:\Users\···");
+    assert_eq!(
+        without(r"İİİ C:\Users\ilker\x", "ilker"),
+        r"İİİ C:\Users\···\x"
+    );
+}
+
+#[test]
+fn the_same_warning_over_and_over_is_written_once() {
+    let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    keeps(file(&paths), false);
+
+    for _ in 0..5 {
+        warn(
+            channel::SYNC,
+            "the same thing failed again",
+            &[("n", Fact::Count(1))],
+        );
+    }
+    warn(
+        channel::SYNC,
+        "the same thing failed again",
+        &[("n", Fact::Count(2))],
+    );
+
+    let seen = recent(&paths, 20);
+    assert_eq!(seen.len(), 2, "{seen:?}");
+}
