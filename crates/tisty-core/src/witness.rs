@@ -163,6 +163,10 @@ fn write(
     if let Some(at) = at {
         roll(&at);
         let line = lined(jiff::Zoned::now(), gravity, channel, said, facts);
+        if gravity == Gravity::Warn && said_lately(&at, &line) {
+            INSIDE.with(|inside| inside.set(false));
+            return;
+        }
         if let Ok(mut file) = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -173,6 +177,38 @@ fn write(
         }
     }
     INSIDE.with(|inside| inside.set(false));
+}
+
+const QUIET_FOR: std::time::Duration = std::time::Duration::from_secs(15 * 60);
+
+/// A round that keeps failing the same way would push the line that explains it out of the log.
+fn said_lately(at: &Path, line: &str) -> bool {
+    use std::hash::{Hash, Hasher};
+
+    static LATELY: OnceLock<Mutex<std::collections::HashMap<u64, std::time::Instant>>> =
+        OnceLock::new();
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    at.hash(&mut hasher);
+    line.split_once("  ")
+        .map_or(line, |(_, rest)| rest)
+        .hash(&mut hasher);
+    let key = hasher.finish();
+    let now = std::time::Instant::now();
+    let mut seen = LATELY
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    if seen
+        .get(&key)
+        .is_some_and(|then| now.duration_since(*then) < QUIET_FOR)
+    {
+        return true;
+    }
+    if seen.len() >= 512 {
+        seen.clear();
+    }
+    seen.insert(key, now);
+    false
 }
 
 fn lined(
@@ -284,24 +320,34 @@ pub fn hidden(text: &str) -> String {
     }
 }
 
+/// Letter by letter: lowering a whole text can change its length and cut a letter in half.
 fn without(text: &str, who: &str) -> String {
-    if who.chars().count() < 3 {
+    let needle: Vec<char> = who.chars().collect();
+    if needle.len() < 3 {
         return text.to_string();
     }
-    let hay = text.to_lowercase();
-    let needle = who.to_lowercase();
-    if !hay.contains(&needle) {
-        return text.to_string();
-    }
-
+    let alike =
+        |one: char, other: char| one == other || one.to_lowercase().eq(other.to_lowercase());
+    let letters: Vec<char> = text.chars().collect();
     let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(at) = rest.to_lowercase().find(&needle) {
-        out.push_str(&rest[..at]);
-        out.push_str("···");
-        rest = &rest[at + needle.len()..];
+    let mut at = 0;
+    while at < letters.len() {
+        let here = letters[at..].len() >= needle.len()
+            && needle
+                .iter()
+                .zip(&letters[at..])
+                .all(|(n, l)| alike(*n, *l));
+        match here {
+            true => {
+                out.push_str("···");
+                at += needle.len();
+            }
+            false => {
+                out.push(letters[at]);
+                at += 1;
+            }
+        }
     }
-    out.push_str(rest);
     out
 }
 

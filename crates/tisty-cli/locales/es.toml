@@ -192,7 +192,7 @@ many-years     = "años"
 
 not-a-cadence  = "eso no es una cadencia: {said}"
 past-end       = "una serie no puede terminar antes de hoy"
-demo-needs-sandbox = "demo solo corre dentro de un sandbox: define TISTY_PROFILE antes"
+demo-needs-sandbox = "demo solo corre dentro de un sandbox, en una build de desarrollo: define TISTY_PROFILE antes"
 demo-not-empty     = "este almacén ya tiene {n} tareas; usa --force para añadir los ejemplos igualmente"
 demo-planted       = "sembrados {n} cambios en el sandbox «{name}»"
 sandbox-cannot-join  = "un sandbox no se une nunca a otro almacén: este es de prueba"

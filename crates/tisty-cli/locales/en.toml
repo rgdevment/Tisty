@@ -195,7 +195,7 @@ many-years     = "years"
 
 not-a-cadence  = "that is not a cadence: {said}"
 past-end       = "a series cannot end before today"
-demo-needs-sandbox = "demo only runs inside a sandbox: set TISTY_PROFILE first"
+demo-needs-sandbox = "demo only runs inside a sandbox, in a development build: set TISTY_PROFILE first"
 demo-not-empty     = "this store already holds {n} tasks; pass --force to add the examples anyway"
 demo-planted       = "planted {n} changes in the «{name}» sandbox"
 sandbox-cannot-join  = "a sandbox never joins another store: this one is a test store"

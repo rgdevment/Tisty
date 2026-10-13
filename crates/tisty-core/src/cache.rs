@@ -489,6 +489,7 @@ impl Cache {
                     ("why", Fact::Why(e.to_string())),
                 ],
             );
+            return Err(std::io::Error::other(e.to_string()).into());
         }
         Ok(())
     }
@@ -834,12 +835,12 @@ fn reached(
     // row by row, and a process cut halfway would leave a cache that calls itself current
     // while still holding tasks the log had already buried.
     let _ = cache.db.execute_batch("BEGIN");
-    for event in events {
-        if let Some(id) = event.entity_id() {
-            let _ = cache.touch(state, id, &print);
-        }
-    }
-    if cache.db.execute_batch("COMMIT").is_err() {
+    // A row left behind under a fingerprint that calls the whole cache current would be served stale.
+    let carried = events
+        .iter()
+        .filter_map(|event| event.entity_id())
+        .all(|id| cache.touch(state, id, &print).is_ok());
+    if !carried || cache.db.execute_batch("COMMIT").is_err() {
         let _ = cache.db.execute_batch("ROLLBACK");
         cache.invalidate();
         return print;

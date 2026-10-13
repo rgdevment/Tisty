@@ -73,7 +73,14 @@ impl Store {
         }
 
         mend(&dir);
-        let tail = tail_of(&dir.join(ACTIVE))?;
+        let mut tail = tail_of(&dir.join(ACTIVE))?;
+        // A clock set back after a rotation would otherwise stamp new events before the ones just closed.
+        if tail.events == 0
+            && let Some(closed) = segments_in(&dir)?.into_iter().rfind(|at| closed_at(at))
+            && let Some(stamp) = last_stamp(&closed)
+        {
+            (tail.head, tail.seq) = stamp;
+        }
         let seen = active_mark(&dir.join(ACTIVE));
 
         Ok(Self {
@@ -111,10 +118,8 @@ impl Store {
         if self.signs.is_none() || self.covers.is_some() {
             return Ok(());
         }
-        match self.tip_now() {
-            Some(covers) => self.covers = Some(covers),
-            None => self.signs = None,
-        }
+        // A reading that failed once is asked again on the next write instead of giving up the key for the session.
+        self.covers = self.tip_now();
         Ok(())
     }
 
@@ -179,6 +184,16 @@ impl Store {
         }
 
         self.lock = Some(file);
+        let active = self.dir.join(ACTIVE);
+        if !ends_whole(&active) {
+            mended(&active);
+        }
+        if !ends_whole(&active) {
+            self.lock = None;
+            return Err(Error::Io(std::io::Error::other(
+                "the log ends in a half line that could not be set aside",
+            )));
+        }
         self.catch_up()
     }
 
@@ -393,17 +408,32 @@ impl Store {
         said.push_str(&crate::seal::line(key, &self.device.0, &seal));
     }
 
+    /// Opened to write: on Windows a handle that only appends cannot cut a failed write back.
     fn appended(&mut self, said: &str) -> Result<()> {
+        use std::io::Seek;
+
+        let active = self.dir.join(ACTIVE);
         let mut file = OpenOptions::new()
             .create(true)
-            .append(true)
-            .open(self.dir.join(ACTIVE))?;
-        let before = file.metadata()?.len();
+            .read(true)
+            .write(true)
+            .truncate(false)
+            .open(&active)?;
+        let before = file.seek(std::io::SeekFrom::End(0))?;
         if let Err(e) = file
             .write_all(said.as_bytes())
             .and_then(|()| file.sync_all())
         {
-            let _ = file.set_len(before);
+            if let Err(cut) = file.set_len(before).and_then(|()| file.sync_all()) {
+                witness::error(
+                    channel::STORE,
+                    "a write that failed could not be taken back, so the next one sets its half line aside first",
+                    &[
+                        ("at", Fact::Path(active)),
+                        ("why", Fact::Why(cut.to_string())),
+                    ],
+                );
+            }
             return Err(e.into());
         }
         if let Some(covers) = self.covers {
@@ -425,7 +455,7 @@ impl Store {
     /// A segment nobody sealed would be disowned for good once closed, so without a key it stays open.
     pub(crate) fn rotate(&mut self) -> Result<bool> {
         self.knows_where_it_stands()?;
-        if self.signs.is_none() {
+        if self.signs.is_none() || self.covers.is_none() {
             return Ok(false);
         }
         let active = self.dir.join(ACTIVE);
@@ -461,7 +491,19 @@ impl Store {
 
     fn closed_as(&mut self, seg: u32) -> Result<bool> {
         let active = self.dir.join(ACTIVE);
-        std::fs::rename(&active, self.dir.join(format!("{seg:06}.tisty")))?;
+        let closed = self.dir.join(format!("{seg:06}.tisty"));
+        match closed.try_exists()? {
+            true if std::fs::read(&closed)? == std::fs::read(&active)? => {
+                std::fs::remove_file(&active)?;
+            }
+            true => {
+                return Err(Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("{} is already closed with other bytes", closed.display()),
+                )));
+            }
+            false => renamed(&active, &closed)?,
+        }
         self.take_away_the_signature_of(&active);
         self.start_over()?;
         Ok(true)
@@ -1110,8 +1152,30 @@ fn mend(dir: &Path) {
     if guard.try_lock().is_err() {
         return;
     }
+    mended(&dir.join(ACTIVE));
+}
 
-    let path = &dir.join(ACTIVE);
+/// Read from the last byte alone: a writer pays for a whole read only when something was torn.
+fn ends_whole(path: &Path) -> bool {
+    use std::io::{Read, Seek};
+
+    let Ok(mut file) = File::open(path) else {
+        return true;
+    };
+    let Ok(weighs) = file.metadata().map(|m| m.len()) else {
+        return true;
+    };
+    if weighs == 0 {
+        return true;
+    }
+    let mut last = [0u8; 1];
+    file.seek(std::io::SeekFrom::Start(weighs - 1))
+        .and_then(|_| file.read_exact(&mut last))
+        .map_or(true, |()| last[0] == b'\n')
+}
+
+/// Only ever called with the store's lock held.
+fn mended(path: &Path) {
     // Read as bytes: half of a multi-byte letter is not text, and refusing to look at it would
     // leave the very file this exists to save unreadable.
     let whole = match std::fs::read(path) {
@@ -1122,7 +1186,7 @@ fn mend(dir: &Path) {
                 channel::STORE,
                 "the log could not be read to see whether a power cut left it torn",
                 &[
-                    ("at", Fact::Path(path.clone())),
+                    ("at", Fact::Path(path.to_path_buf())),
                     ("why", Fact::Why(why.to_string())),
                 ],
             );
@@ -1160,7 +1224,16 @@ fn mend(dir: &Path) {
     }
 
     let aside = path.with_extension(TORN);
-    if let Err(why) = std::fs::write(&aside, tail) {
+    let set_aside = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&aside)
+        .and_then(|mut kept| {
+            kept.write_all(tail)?;
+            kept.write_all(b"\n")?;
+            kept.sync_all()
+        });
+    if let Err(why) = set_aside {
         witness::error(
             channel::STORE,
             "a torn tail was found and could not be set aside, so the log is left as it is",
@@ -1205,6 +1278,22 @@ struct Tail {
     seq: u64,
     closing: Option<u32>,
     newest: u32,
+}
+
+fn last_stamp(segment: &Path) -> Option<(jiff::Timestamp, u64)> {
+    use std::io::{Read, Seek};
+
+    let mut file = File::open(segment).ok()?;
+    let weighs = file.metadata().ok()?.len();
+    let window = weighs.min(64 * 1024);
+    file.seek(std::io::SeekFrom::Start(weighs - window)).ok()?;
+    let mut read = Vec::new();
+    file.read_to_end(&mut read).ok()?;
+    String::from_utf8_lossy(&read)
+        .lines()
+        .filter_map(|line| serde_json::from_str::<Event>(line).ok())
+        .map(|event| (event.timestamp, event.seq))
+        .max()
 }
 
 fn tail_of(path: &Path) -> Result<Tail> {
