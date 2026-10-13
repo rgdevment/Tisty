@@ -1,6 +1,6 @@
 use super::*;
 
-fn cut_short(head: &'static str, sent: &'static str) -> (DriveAt, JoinHandle<()>) {
+fn cut_short(sent: &'static str) -> (DriveAt, JoinHandle<()>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
     let served = std::thread::spawn(move || {
@@ -8,7 +8,7 @@ fn cut_short(head: &'static str, sent: &'static str) -> (DriveAt, JoinHandle<()>
         heard(&mut stream);
         write!(
             stream,
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n{head}Content-Length: 4096\r\nConnection: close\r\n\r\n{sent}"
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 4096\r\nConnection: close\r\n\r\n{sent}"
         )
         .unwrap();
     });
@@ -175,10 +175,70 @@ fn every_way_google_says_slow_down_is_a_wait_and_a_bare_fault_is_trouble_not_off
 #[test]
 fn a_line_cut_while_an_answer_was_coming_is_no_connection_and_never_a_broken_drive() {
     let home = tempfile::tempdir().unwrap();
-    let (at, served) = cut_short("", r#"{"files":[{"id":"R","name":"Tis"#);
+    let (at, served) = cut_short(r#"{"files":[{"id":"R","name":"Tis"#);
 
     let cut = drive(at, home.path()).list("");
 
     served.join().unwrap();
     assert!(matches!(cut, Err(Hitch::Unreachable(_))), "{cut:?}");
+}
+
+#[test]
+fn a_file_the_lagging_listing_does_not_show_yet_is_still_read_from_the_changes_that_named_it() {
+    let home = tempfile::tempdir().unwrap();
+    let z = r#"{"id":"Z","name":"z.md","parents":["R"],"size":"3","sha256Checksum":"zz","version":"1"}"#;
+    let (at, _) = google(vec![
+        said(
+            "200 OK",
+            &format!(r#"{{"changes":[{{"fileId":"Z","file":{z}}}],"newStartPageToken":"6"}}"#),
+        ),
+        said("200 OK", &whole(A)),
+    ]);
+
+    let heard = drive(at, home.path()).changes(Some("5")).unwrap();
+
+    let Changes::Whole { seen, cursor } = heard else {
+        panic!("{heard:?}");
+    };
+    assert_eq!(cursor, "6");
+    assert!(
+        seen.iter().any(|one| one.name == "z.md"),
+        "a file the listing lagged behind on was skipped: {seen:?}"
+    );
+    assert!(seen.iter().any(|one| one.name == "a.md"), "{seen:?}");
+}
+
+#[test]
+fn a_debt_owed_while_another_was_being_repaid_stays_owed() {
+    use super::super::owed::{Owed, unpaid};
+    let paid = Owed::Unbinned { id: "A".into() };
+    let meanwhile = Owed::Unbinned { id: "B".into() };
+
+    let left = unpaid(vec![paid.clone(), meanwhile.clone()], &[paid]);
+
+    assert_eq!(left, vec![meanwhile]);
+}
+
+#[test]
+fn a_repayment_already_running_elsewhere_is_not_run_twice() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(Vec::new());
+    let drive = drive(at, home.path()).owing_at(home.path());
+    let owed = home.path().join(tisty_carrier::OWED_BACK);
+    std::fs::write(&owed, br#"[{"owed":"unbinned","id":"A"}]"#).unwrap();
+    let running = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(false)
+        .open(owed.with_extension("repaying.lock"))
+        .unwrap();
+    running.try_lock().unwrap();
+
+    drive.repaid();
+
+    assert!(asked.join().unwrap().is_empty());
+    assert_eq!(
+        std::fs::read(&owed).unwrap(),
+        br#"[{"owed":"unbinned","id":"A"}]"#
+    );
 }

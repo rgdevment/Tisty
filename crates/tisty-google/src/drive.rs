@@ -501,6 +501,43 @@ impl Drive {
         }
     }
 
+    // A listing can lag behind the changes that sent us to it, so what they say that it does not show yet is laid over it.
+    fn laid_over(&self, theirs: &[Changed]) {
+        let Some(roots) = self.roots.lock().ok().and_then(|held| held.clone()) else {
+            return;
+        };
+        let Ok(mut held) = self.known.lock() else {
+            return;
+        };
+        let Some(known) = held.as_mut() else {
+            return;
+        };
+        let listed: std::collections::HashMap<&str, u64> = known
+            .tree
+            .files
+            .values()
+            .flatten()
+            .map(|one| (one.id.as_str(), gap::version(one)))
+            .collect();
+        let behind: Vec<Changed> = theirs
+            .iter()
+            .filter(
+                |one| match (listed.get(one.file_id.as_str()), one.standing()) {
+                    (Some(_), None) | (None, Some(_)) => true,
+                    (Some(was), Some(now)) => gap::version(now) > *was,
+                    (None, None) => false,
+                },
+            )
+            .cloned()
+            .collect();
+        if behind.is_empty() {
+            return;
+        }
+        if let Some((tree, _)) = tree::applied(&known.tree, &roots, &behind) {
+            known.tree = tree;
+        }
+    }
+
     // Applied to the listing already held, so a change elsewhere costs one ask and not the whole drive again.
     fn caught_up(&self, since: &str, theirs: &[Changed], cursor: &str) -> Option<Changes> {
         let roots = self.roots.lock().ok()?.clone()?;
@@ -725,6 +762,7 @@ impl Remote for Drive {
             return Ok(caught_up);
         }
         self.listed(Some(cursor.clone()))?;
+        self.laid_over(&theirs);
         Ok(match theirs.is_empty() {
             true => Changes::Since {
                 changed: Vec::new(),

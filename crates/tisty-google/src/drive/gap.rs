@@ -26,7 +26,7 @@ struct Revisions {
     next_page_token: Option<String>,
 }
 
-fn version(file: &File) -> u64 {
+pub(super) fn version(file: &File) -> u64 {
     file.version
         .as_deref()
         .and_then(|one| one.parse().ok())

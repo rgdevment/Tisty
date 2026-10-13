@@ -142,7 +142,7 @@ fn path_of<'a>(
     None
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub(super) struct Changed {
     #[serde(rename = "fileId")]
     pub file_id: String,
