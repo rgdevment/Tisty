@@ -306,10 +306,9 @@ fn a_machine_reading_between_a_segment_and_its_signature_comes_in_on_the_next_ro
 #[test]
 fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_ready() {
     let (setting, fake) = each_kind(|fake| fake).remove(0);
-    let (one, two) = pair(&setting);
+    let (one, _) = pair(&setting);
     one.filed(DOC, "# Plan\n\nlo primero\n");
     one.round(Way::Both);
-    two.round(Way::Both);
     let big = tisty_core::attach::resolve("attachments/ab/grande-0123456789.bin", &one.here.data)
         .unwrap();
     std::fs::create_dir_all(big.parent().unwrap()).unwrap();
@@ -318,14 +317,7 @@ fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_rea
         .set_len(tisty_core::attach::HELD_UP_TO + 1)
         .unwrap();
     one.edited(DOC, "# Plan\n\nlo de uno\n");
-    two.edited(DOC, "# Plan\n\nlo de dos\n");
-    let meanwhile = Desk {
-        here: two.here.clone(),
-        carrier: two.carrier.clone(),
-    };
-    fake.in_the_gap(&doc_name(), move || {
-        let _ = meanwhile.carry(Way::Both, Holds::Everywhere);
-    });
+    fake.refusing(&doc_name(), Hitch::Changed(doc_name()));
     let mut saying = |_| {};
 
     let shifted = crate::shift(None, Some(&*one.carrier), &one.here, &[], &mut saying).unwrap();
