@@ -82,8 +82,7 @@ pub fn where_to(session: &tauri::State<'_, Mutex<Session>>, reference: &str) -> 
     }
 }
 
-/// Runs the work away from the window. What a cloud brought with no history behind it stays here
-/// unvouched, never written into the log on the strength of its name alone.
+/// Runs the work away from the window; what a cloud brought that no history answers for stays unvouched.
 pub async fn fetched<T: Send + 'static>(
     session: &tauri::State<'_, Mutex<Session>>,
     reference: String,

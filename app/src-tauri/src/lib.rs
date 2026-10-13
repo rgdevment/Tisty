@@ -414,7 +414,10 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
             told_in_the_log(&why);
             match name.strip_prefix("docs/") {
                 Some(_) => Refusal::about("syncStuckDoc", name),
-                None => Refusal::about("syncStuckHistory", name),
+                None => Refusal::about(
+                    "syncStuckHistory",
+                    tisty_core::config::nicknamed(name.split('/').nth(1).unwrap_or_default()),
+                ),
             }
         }
         tisty_carrier::Trouble::NotNow(_) => Refusal::of("cloudNotNow"),

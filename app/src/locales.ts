@@ -1023,10 +1023,12 @@ const en = {
     "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on {name}.",
   budgetResetsToday: "today at {name}",
   budgetResetsTomorrow: "tomorrow at {name}",
+  budgetResetsTodayAtOne: "today at {name}",
+  budgetResetsTomorrowAtOne: "tomorrow at {name}",
   deferredTroubled:
     "Google is having trouble on its side. What you write stays safe here, and Tisty tries again on the next sync.",
   deferredUnsent:
-    "Some attachments could not go up and stay safe on this machine: one may be open in another program, changed since it was attached, or too big for the cloud.",
+    "Some attachments could not travel and stay safe on this machine: one may be open in another program, have changed since it was attached, or be too big to travel.",
   deferredBusy: "Tisty was already talking to your cloud. It carries on in a moment.",
   deferredChanged: "Your cloud changed meanwhile. What is left goes on the next step.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
@@ -1059,7 +1061,7 @@ const en = {
   syncStuckDoc:
     "«{name}» could not go up to the cloud, so what comes after it waits. Tisty tries again on the next sync; the log says why.",
   syncStuckHistory:
-    "Part of your history ({name}) could not go up to the cloud, so what comes after it waits. Tisty tries again on the next sync; the log says why.",
+    "Part of the history of {name} could not go up to the cloud, so what comes after it waits. Tisty tries again on the next sync; the log says why.",
   notAllowed:
     "This machine was removed from the shared folder, so it no longer writes to it. It brought what is there; to write again it has to join, and joining resets what it holds.",
   bothChanged:
@@ -1275,7 +1277,7 @@ const en = {
   stateTroubledWhy: "Tisty will try again by itself. What you write stays here meanwhile.",
   stateUnsent: "Some attachments could not go up",
   stateUnsentWhy:
-    "They stay safe on this computer. One may be open in another program, changed since it was attached, or too big for the cloud.",
+    "They stay safe on this computer. One may be open in another program, have changed since it was attached, or be too big to travel.",
   cloudStop: "Stop using the cloud",
   cloudToday: "Cloud use today",
   cloudTodayUnits: "{name} of {other} requests",
@@ -2882,10 +2884,12 @@ const es: Catalog = {
     "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue {name}.",
   budgetResetsToday: "hoy a las {name}",
   budgetResetsTomorrow: "mañana a las {name}",
+  budgetResetsTodayAtOne: "hoy a la {name}",
+  budgetResetsTomorrowAtOne: "mañana a la {name}",
   deferredTroubled:
     "Google tiene problemas de su lado. Lo que escribas queda guardado aquí y Tisty vuelve a intentarlo en la próxima sincronización.",
   deferredUnsent:
-    "Algunos adjuntos no se pudieron subir y siguen a salvo en este equipo: puede que estén abiertos en otro programa, que hayan cambiado desde que los adjuntaste o que sean demasiado grandes para la nube.",
+    "Algunos adjuntos no pudieron viajar y siguen a salvo en este equipo: puede que estén abiertos en otro programa, que hayan cambiado desde que los adjuntaste o que sean demasiado grandes para viajar.",
   deferredBusy: "Tisty ya estaba hablando con tu nube. Sigue en un momento.",
   deferredChanged: "Tu nube cambió mientras tanto. Lo que falta va en el próximo paso.",
   deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",
@@ -2918,7 +2922,7 @@ const es: Catalog = {
   syncStuckDoc:
     "«{name}» no se pudo subir a la nube, así que lo que viene después espera. Tisty vuelve a intentarlo en la próxima sincronización; el registro dice por qué.",
   syncStuckHistory:
-    "Una parte de tu historial ({name}) no se pudo subir a la nube, así que lo que viene después espera. Tisty vuelve a intentarlo en la próxima sincronización; el registro dice por qué.",
+    "Una parte del historial de {name} no se pudo subir a la nube, así que lo que viene después espera. Tisty vuelve a intentarlo en la próxima sincronización; el registro dice por qué.",
   notAllowed:
     "Esta máquina fue removida de la carpeta compartida, así que ya no escribe en ella. Trajo lo que había; para volver a escribir tiene que unirse, y unirse reinicia lo que guarda.",
   bothChanged:
@@ -3135,7 +3139,7 @@ const es: Catalog = {
   stateTroubledWhy: "Tisty vuelve a intentarlo solo. Mientras tanto, lo que escribas queda aquí.",
   stateUnsent: "Algunos adjuntos no se pudieron subir",
   stateUnsentWhy:
-    "Siguen a salvo en este equipo. Puede que estén abiertos en otro programa, que hayan cambiado desde que los adjuntaste o que sean demasiado grandes para la nube.",
+    "Siguen a salvo en este equipo. Puede que estén abiertos en otro programa, que hayan cambiado desde que los adjuntaste o que sean demasiado grandes para viajar.",
   cloudStop: "Dejar de usar la nube",
   cloudToday: "Uso de hoy en la nube",
   cloudTodayUnits: "{name} de {other} pedidos",

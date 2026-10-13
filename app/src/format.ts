@@ -28,9 +28,10 @@ const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(
 export function budgetResets(now = new Date()): string {
   const turns = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
   const clock = formats().clock.format(turns);
-  return midnight(turns) === midnight(now)
-    ? fill("budgetResetsToday", clock)
-    : fill("budgetResetsTomorrow", clock);
+  const one = turns.getHours() === 1;
+  if (midnight(turns) === midnight(now))
+    return fill(one ? "budgetResetsTodayAtOne" : "budgetResetsToday", clock);
+  return fill(one ? "budgetResetsTomorrowAtOne" : "budgetResetsTomorrow", clock);
 }
 
 export function stamped(iso: string, now = new Date()): string {

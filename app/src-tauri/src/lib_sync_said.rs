@@ -45,7 +45,11 @@ fn a_document_that_holds_the_push_back_is_named_by_its_title() {
     assert_eq!(doc.code, "syncStuckDoc");
     assert_eq!(doc.name.as_deref(), Some("Plan de viaje"));
     assert_eq!(history.code, "syncStuckHistory");
-    assert_eq!(history.name.as_deref(), Some("store/dev_a/0001.tisty"));
+    assert_eq!(
+        history.name,
+        Some(tisty_core::config::nicknamed("dev_a")),
+        "a path of the store reached the window"
+    );
 }
 
 #[test]
@@ -71,24 +75,20 @@ fn a_round_left_for_later_that_moved_nothing_is_not_said_to_have_just_synced() {
         names: Vec::new(),
     };
 
-    assert!(!synced_now(
-        Some(&waiting(tisty_carrier::Reason::Offline)),
-        0,
-        false
-    ));
-    assert!(synced_now(
-        Some(&waiting(tisty_carrier::Reason::Offline)),
-        1,
-        false
-    ));
-    assert!(synced_now(
-        Some(&waiting(tisty_carrier::Reason::Offline)),
-        0,
-        true
-    ));
+    let offline = waiting(tisty_carrier::Reason::Offline);
+    let unsent = waiting(tisty_carrier::Reason::Unsent);
+
+    assert!(!synced_now(Some(&offline), false, 0, false));
+    assert!(synced_now(Some(&offline), false, 1, false));
+    assert!(synced_now(Some(&offline), false, 0, true));
     assert!(
-        synced_now(Some(&waiting(tisty_carrier::Reason::Unsent)), 0, false),
+        synced_now(Some(&unsent), false, 0, false),
         "a round that ran whole and only left an attachment here did sync"
     );
-    assert!(synced_now(None, 0, false));
+    assert!(
+        !synced_now(None, true, 0, false),
+        "a round stopped by a full cloud or a stuck file was said to have synced"
+    );
+    assert!(!synced_now(Some(&unsent), true, 0, false));
+    assert!(synced_now(None, false, 0, false));
 }
