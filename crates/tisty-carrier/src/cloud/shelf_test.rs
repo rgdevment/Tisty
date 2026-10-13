@@ -11,7 +11,7 @@ fn a_full_drive_while_the_history_goes_first_is_told_as_full() {
         std::fs::write(segment.join("000001.tisty"), b"{}").unwrap();
         let mut index = Index::default();
         fake.fail_next(Hitch::Full);
-        let mut shelf = Shelf::over(remote, &mut index).history_first(room.path());
+        let mut shelf = Shelf::over(remote, &mut index).history_first(room.path(), remote);
 
         let hitch = shelf.history_sent();
 
@@ -34,7 +34,7 @@ fn a_passing_hitch_on_the_history_ahead_is_left_to_the_round_s_own_push() {
         std::fs::write(segment.join("000001.tisty"), b"{}").unwrap();
         let mut index = Index::default();
         fake.fail_next(Hitch::Broke("a moment".into()));
-        let mut shelf = Shelf::over(remote, &mut index).history_first(room.path());
+        let mut shelf = Shelf::over(remote, &mut index).history_first(room.path(), remote);
 
         assert!(shelf.history_sent().is_none(), "{who}");
     }

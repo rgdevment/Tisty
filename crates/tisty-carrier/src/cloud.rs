@@ -32,6 +32,7 @@ const TREE: &str = "tree";
 const FORGOTTEN: &str = "forgotten";
 const FORGETTING: &str = "forgotten.working";
 const PATIENCE: Duration = Duration::from_secs(5);
+const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
 
@@ -219,11 +220,12 @@ impl Cloud {
         };
         let done = self.with_mirror(Some(here), turn, |tree, index, remote| {
             shelf::sweep(&here.data);
+            let history = Metered::over(&*self.remote, &self.home, Class::History);
             let shelf = match fetching {
                 true => Shelf::fetching_all(remote, index),
                 false => Shelf::over(remote, index),
             };
-            let mut shelf = shelf.history_first(tree);
+            let mut shelf = shelf.history_first(tree, &history);
             let moved = carry_through(
                 &here.data,
                 Some(&here.aside),
@@ -664,7 +666,7 @@ pub fn forgotten_later(home: &Path, id: &str) -> bool {
     {
         return false;
     }
-    let _writing = lock::Held::wait_for(home, lock::FORGETTING, PATIENCE);
+    let _writing = lock::Held::wait_for(home, lock::FORGETTING, ASKED_WAITED_OUT);
     let asked = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -689,6 +691,7 @@ fn news(index: &Index, changes: &Changes) -> bool {
     let known = |one: &Seen| {
         index.tree.get(&one.name).map(|was| &was.seen.revision) == Some(&one.revision)
             || index.shelf.get(&one.name).map(|was| &was.revision) == Some(&one.revision)
+            || index.owed.get(&one.name).map(|was| &was.revision) == Some(&one.revision)
     };
     match changes {
         Changes::Since { changed, gone, .. } => {

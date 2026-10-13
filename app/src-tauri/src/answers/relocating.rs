@@ -66,14 +66,11 @@ fn way_of(session: &Session, toward: &Toward) -> Answer<Sync> {
     match toward {
         Toward::Alone => Ok(Sync::alone()),
         Toward::Folder { at } => folder_way(session, at.trim().to_string()),
-        Toward::Cloud { account, email } => {
-            super::clouding::has_access(account)?;
-            Ok(Sync::cloud(CloudAt {
-                provider: GOOGLE.to_string(),
-                account: account.clone(),
-                email: email.clone(),
-            }))
-        }
+        Toward::Cloud { account, email } => Ok(Sync::cloud(CloudAt {
+            provider: GOOGLE.to_string(),
+            account: account.clone(),
+            email: email.clone(),
+        })),
     }
 }
 
@@ -107,7 +104,10 @@ fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
     if from.is_none() && tisty_carrier::cloud_of(now.as_ref()).is_some() {
         return Err(Refusal::of("moveFromUnreachable"));
     }
-    let to = tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier;
+    let to = match tisty_carrier::cloud_of(Some(&way)) {
+        Some(at) => session.reach.apart(at),
+        None => tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier,
+    };
     if way != Sync::alone() && to.is_none() {
         return Err(Refusal::of("moveToUnreachable"));
     }
@@ -131,6 +131,16 @@ fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
     })
 }
 
+async fn accessible(toward: &Toward) -> Answer<()> {
+    let Toward::Cloud { account, .. } = toward else {
+        return Ok(());
+    };
+    let account = account.clone();
+    tauri::async_runtime::spawn_blocking(move || super::clouding::has_access(&account))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
+}
+
 fn towards(toward: &Toward) -> String {
     match toward {
         Toward::Alone => String::new(),
@@ -141,6 +151,7 @@ fn towards(toward: &Toward) -> String {
 
 #[tauri::command(async)]
 pub async fn move_plan(session: tauri::State<'_, Mutex<Session>>, toward: Toward) -> Answer<Plan> {
+    accessible(&toward).await?;
     let ends = ends(&mut held(&session), &toward)?;
     tauri::async_runtime::spawn_blocking(move || {
         let down = ends
@@ -153,10 +164,12 @@ pub async fn move_plan(session: tauri::State<'_, Mutex<Session>>, toward: Toward
             .as_deref()
             .map(|to| tisty_carrier::filling(to, &ends.here))
             .unwrap_or_default();
-        let also = if ends.to.is_some() {
-            down
-        } else {
-            tisty_carrier::Owed::default()
+        let also = match (&ends.from, &ends.to) {
+            (Some(from), Some(to)) if to.frees_space() => {
+                tisty_carrier::homing_up_to(&**from, &ends.here, tisty_core::attach::HELD_UP_TO)
+            }
+            (_, Some(_)) => down,
+            _ => tisty_carrier::Owed::default(),
         };
         Plan {
             down: down.into(),
@@ -180,6 +193,7 @@ pub async fn move_to(
     toward: Toward,
 ) -> Answer<Moving> {
     let _done = alone.inner().waited(WAITED).await?;
+    accessible(&toward).await?;
     let (ends, paths, left) = {
         let mut session = held(&session);
         let ends = ends(&mut session, &toward)?;
@@ -346,9 +360,11 @@ pub fn move_dropped(session: tauri::State<'_, Mutex<Session>>) {
 #[tauri::command(async)]
 pub async fn cloud_wipe(
     session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
     account: String,
     email: String,
 ) -> Answer<usize> {
+    let _done = alone.inner().waited(WAITED).await?;
     let at = CloudAt {
         provider: GOOGLE.to_string(),
         account,
@@ -362,8 +378,7 @@ pub async fn cloud_wipe(
             return Err(Refusal::of("wipeChosen"));
         }
         (
-            tisty_carrier::chosen_with(Some(&Sync::cloud(at.clone())), Some(&session.reach))
-                .carrier,
+            session.reach.apart(&at),
             session.paths.cache().to_path_buf(),
         )
     };

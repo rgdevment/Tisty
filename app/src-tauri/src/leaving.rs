@@ -94,25 +94,31 @@ pub fn word_for(
 }
 
 pub fn owed_to(cache: &Path, account: &str) -> bool {
-    std::fs::read(cache.join(OWED))
-        .ok()
-        .and_then(|bytes| serde_json::from_slice::<Owed>(&bytes).ok())
-        .is_some_and(|owed| {
-            tisty_carrier::cloud_of(Some(&owed.way)).is_some_and(|at| at.account == account)
-        })
+    owed_all(cache).iter().any(|owed| {
+        tisty_carrier::cloud_of(Some(&owed.way)).is_some_and(|at| at.account == account)
+    })
 }
 
-fn owe(cache: &Path, left: &Sync, said: &str) {
-    let owed = Owed {
-        way: left.clone(),
-        said: said.to_string(),
+fn owed_all(cache: &Path) -> Vec<Owed> {
+    let Ok(bytes) = std::fs::read(cache.join(OWED)) else {
+        return Vec::new();
     };
-    let written = serde_json::to_vec(&owed)
+    serde_json::from_slice::<Vec<Owed>>(&bytes)
+        .or_else(|_| serde_json::from_slice::<Owed>(&bytes).map(|one| vec![one]))
+        .unwrap_or_default()
+}
+
+fn owed_kept(cache: &Path, all: &[Owed]) {
+    let at = cache.join(OWED);
+    if all.is_empty() {
+        let _ = std::fs::remove_file(at);
+        return;
+    }
+    let written = serde_json::to_vec(all)
         .map_err(std::io::Error::other)
         .and_then(|bytes| {
             std::fs::create_dir_all(cache)?;
-            tisty_core::store::write_atomic(&cache.join(OWED), &bytes)
-                .map_err(std::io::Error::other)
+            tisty_core::store::write_atomic(&at, &bytes).map_err(std::io::Error::other)
         });
     if let Err(why) = written {
         witness::warn(
@@ -123,44 +129,60 @@ fn owe(cache: &Path, left: &Sync, said: &str) {
     }
 }
 
-/// Coming back to the place a word was owed to means there is nothing to tell it any more.
+fn owe(cache: &Path, left: &Sync, said: &str) {
+    let mut all = owed_all(cache);
+    all.retain(|owed| !same_place(&owed.way, left));
+    all.push(Owed {
+        way: left.clone(),
+        said: said.to_string(),
+    });
+    owed_kept(cache, &all);
+}
+
 pub fn owed_no_more(cache: &Path, chosen: &Sync) {
-    let at = cache.join(OWED);
-    let back = std::fs::read(&at)
-        .ok()
-        .and_then(|bytes| serde_json::from_slice::<Owed>(&bytes).ok())
-        .is_some_and(|owed| same_place(&owed.way, chosen));
-    if back {
-        let _ = std::fs::remove_file(at);
+    let mut all = owed_all(cache);
+    let before = all.len();
+    all.retain(|owed| !same_place(&owed.way, chosen));
+    if all.len() != before {
+        owed_kept(cache, &all);
     }
 }
 
-/// A word still owed to the place left behind, with what reaches it; built under the session, delivered off it.
 pub struct Owing {
-    at: PathBuf,
+    cache: PathBuf,
+    way: Sync,
     old: tisty_carrier::Shared,
     said: String,
     release: Option<String>,
 }
 
 pub fn owing(paths: &tisty_core::Paths, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
-    let at = paths.cache().join(OWED);
-    let owed: Owed = serde_json::from_slice(&std::fs::read(&at).ok()?).ok()?;
-    let nobody_there = owed.way.leaving() == tisty_core::config::Leaving::Free;
-    if nobody_there || now.is_some_and(|now| same_place(&owed.way, now)) {
-        let _ = std::fs::remove_file(&at);
-        return None;
+    let cache = paths.cache().to_path_buf();
+    let mut all = owed_all(&cache);
+    let before = all.len();
+    all.retain(|owed| {
+        owed.way.leaving() != tisty_core::config::Leaving::Free
+            && !now.is_some_and(|now| same_place(&owed.way, now))
+    });
+    if all.len() != before {
+        owed_kept(&cache, &all);
     }
-    let old = tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier?;
     let heading_back = crate::answers::relocating::pending_cloud(paths);
-    let release = tisty_carrier::cloud_of(Some(&owed.way))
-        .map(|at| at.account.clone())
-        .filter(|account| heading_back.as_ref() != Some(account));
-    Some(Owing {
-        at,
-        old,
-        said: owed.said,
-        release,
+    all.into_iter().find_map(|owed| {
+        let old = match tisty_carrier::cloud_of(Some(&owed.way)) {
+            Some(at) => reach.apart(at),
+            None => tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier,
+        }?;
+        let release = tisty_carrier::cloud_of(Some(&owed.way))
+            .map(|at| at.account.clone())
+            .filter(|account| heading_back.as_ref() != Some(account));
+        Some(Owing {
+            cache: cache.clone(),
+            way: owed.way,
+            old,
+            said: owed.said,
+            release,
+        })
     })
 }
 
@@ -168,7 +190,9 @@ impl Owing {
     pub fn delivered(self) -> bool {
         let reached = self.old.leave_word(&self.said).is_ok();
         if reached {
-            let _ = std::fs::remove_file(self.at);
+            let mut all = owed_all(&self.cache);
+            all.retain(|owed| !same_place(&owed.way, &self.way));
+            owed_kept(&self.cache, &all);
             if let Some(account) = &self.release {
                 crate::answers::clouding::let_go_of(account);
             }

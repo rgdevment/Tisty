@@ -246,3 +246,49 @@ fn machines_left_behind_are_told_the_cloud_the_others_moved_to() {
     assert_eq!(stopped.code, "movedToCloud");
     assert_eq!(stopped.name.as_deref(), Some("ana@example.com"));
 }
+
+#[test]
+fn two_words_owed_to_two_places_are_both_kept_and_each_goes_once_delivered() {
+    let room = tempfile::tempdir().unwrap();
+    let cache = room.path().join("cache");
+    let first = Sync::folder(room.path().join("first"));
+    let second = Sync::folder(room.path().join("second"));
+
+    owe(&cache, &first, "fui a otro lado");
+    owe(&cache, &second, "y luego a otro");
+    owe(&cache, &first, "otra vez desde el primero");
+
+    let all = owed_all(&cache);
+    assert_eq!(all.len(), 2);
+    assert!(
+        all.iter()
+            .any(|owed| owed.said == "otra vez desde el primero")
+    );
+    assert!(all.iter().any(|owed| owed.said == "y luego a otro"));
+
+    owed_no_more(&cache, &first);
+    assert_eq!(owed_all(&cache).len(), 1);
+    owed_no_more(&cache, &second);
+    assert!(!cache.join(OWED).exists());
+}
+
+#[test]
+fn a_word_kept_by_an_older_build_is_still_read() {
+    let room = tempfile::tempdir().unwrap();
+    let cache = room.path().join("cache");
+    std::fs::create_dir_all(&cache).unwrap();
+    let cloud = Sync::cloud(CloudAt {
+        provider: "google".into(),
+        account: "0123".into(),
+        email: "ana@example.com".into(),
+    });
+    let one = Owed {
+        way: cloud,
+        said: "me fui".into(),
+    };
+    std::fs::write(cache.join(OWED), serde_json::to_vec(&one).unwrap()).unwrap();
+
+    assert_eq!(owed_all(&cache).len(), 1);
+    assert!(owed_to(&cache, "0123"));
+    assert!(!owed_to(&cache, "9999"));
+}
