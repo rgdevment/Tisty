@@ -259,3 +259,36 @@ fn a_forgetting_written_aside_while_its_list_was_held_is_still_forgotten() {
         assert!(!aside.exists(), "{who}: read and kept");
     }
 }
+
+#[test]
+fn a_machine_reading_between_a_segment_and_its_signature_comes_in_on_the_next_round() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        let mut written: Vec<String> = std::fs::read_dir(one.here.data.join(STORE).join("dev_a"))
+            .unwrap()
+            .filter_map(|one| one.ok()?.file_name().into_string().ok())
+            .map(|leaf| format!("{STORE}/dev_a/{leaf}"))
+            .filter(|name| super::super::mirror::mirrored(name))
+            .collect();
+        written.sort();
+        let last = written.last().expect(who).clone();
+        let meanwhile = Desk {
+            here: two.here.clone(),
+            carrier: two.carrier.clone(),
+        };
+        fake.in_the_gap(&last, move || {
+            let _ = meanwhile.carry(Way::Both, Holds::Everywhere);
+        });
+
+        one.round(Way::Both);
+        two.round(Way::Both);
+
+        assert_eq!(
+            two.titles(),
+            ["lo de uno"],
+            "{who}: what was read half way never came in"
+        );
+    }
+}
