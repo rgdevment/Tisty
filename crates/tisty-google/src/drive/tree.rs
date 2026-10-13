@@ -28,7 +28,7 @@ pub(super) struct File {
 
 // The oldest copy of a name is the one, on every machine alike, however each heard of the others.
 pub(super) fn ordered(copies: &mut [File]) {
-    copies.sort_by(|a, b| a.created_time.cmp(&b.created_time));
+    copies.sort_by(|a, b| (&a.created_time, &a.id).cmp(&(&b.created_time, &b.id)));
 }
 
 #[derive(Deserialize)]

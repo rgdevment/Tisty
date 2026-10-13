@@ -399,3 +399,16 @@ fn a_grant_from_before_tisty_kept_to_its_own_space_asks_to_connect_again() {
     assert_eq!(drive.list(""), Err(Hitch::Lost));
     assert_eq!(drive.list(""), Err(Hitch::Lost));
 }
+
+#[test]
+fn a_debt_of_a_kind_no_longer_owed_is_dropped_and_never_hides_the_others() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _) = google(Vec::new());
+    let drive = drive(at, home.path()).owing_at(home.path());
+    let owed = home.path().join(tisty_carrier::OWED_BACK);
+    std::fs::write(&owed, br#"[{"owed":"unbinned","id":"A"}]"#).unwrap();
+
+    drive.repaid();
+
+    assert!(!owed.exists(), "a debt of the old kind was kept forever");
+}

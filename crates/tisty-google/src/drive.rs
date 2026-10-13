@@ -690,7 +690,15 @@ impl Remote for Drive {
                 .folder_id(split(name).0, true)?
                 .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?,
         };
-        let made = self.sent(name, from, current, &parent)?;
+        // Parts of a long upload may have gone before Google turned it down, and the meter charges a refusal only its look.
+        let made = match self.sent(name, from, current, &parent) {
+            Err(refused @ (Hitch::Missing(_) | Hitch::Changed(_))) => {
+                let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
+                self.spent(EDIT.saturating_mul(self.limits().requests_to_put(weighs)));
+                return Err(refused);
+            }
+            other => other?,
+        };
         if let Some(checked) = current
             && gap::leapt(checked, &made)
         {

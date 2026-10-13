@@ -59,12 +59,16 @@ impl Drive {
         self
     }
 
+    // Read one by one, so a debt of a kind this build no longer owes never hides the others.
     fn owed(&self) -> Vec<Owed> {
         self.owing
             .as_ref()
             .and_then(|at| std::fs::read(at).ok())
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .and_then(|bytes| serde_json::from_slice::<Vec<serde_json::Value>>(&bytes).ok())
             .unwrap_or_default()
+            .into_iter()
+            .filter_map(|one| serde_json::from_value(one).ok())
+            .collect()
     }
 
     fn keep_owing(&self, all: &[Owed]) {
@@ -126,6 +130,12 @@ impl Drive {
         };
         let all = self.owed();
         if all.is_empty() {
+            if self.owing.as_ref().is_some_and(|at| at.exists()) {
+                let _writing = self.held(WRITING, true);
+                if self.owed().is_empty() {
+                    self.keep_owing(&[]);
+                }
+            }
             return;
         }
         let paid: Vec<Owed> = all
