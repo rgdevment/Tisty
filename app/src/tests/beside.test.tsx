@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { DOC } from "../markdown";
-import { counted, worded } from "../ui/Beside";
 import Docs from "../ui/Docs";
+import { counted, worded } from "../ui/PaperFacts";
 
 const store = vi.hoisted(() => ({
   ran: [] as string[],

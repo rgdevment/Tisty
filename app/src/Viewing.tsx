@@ -1,7 +1,15 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Paper, type Showing, viewGo, viewImport, viewShown } from "./core";
+import {
+  type DocFacts,
+  type Paper,
+  type Showing,
+  viewFacts,
+  viewGo,
+  viewImport,
+  viewShown,
+} from "./core";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
@@ -52,6 +60,7 @@ export default function Viewing() {
   const [again, setAgain] = useState(0);
   const [code, setCode] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [facts, setFacts] = useState<DocFacts | null>(null);
 
   const look = useCallback(
     () =>
@@ -75,6 +84,20 @@ export default function Viewing() {
   }, [leaf]);
 
   const reading = shown?.kind === "file" || shown?.kind === "doc";
+
+  useEffect(() => {
+    setFacts(null);
+    if (!reading) return;
+    let gone = false;
+    viewFacts()
+      .then((now) => {
+        if (!gone) setFacts(now);
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, [reading, shown]);
   const body = reading ? shown.body : "";
   const paper = shown?.kind === "doc" ? shown.paper : null;
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
@@ -192,6 +215,7 @@ export default function Viewing() {
           raw={raw}
           zoom={ZOOMS[zoom]}
           leaf={leaf}
+          facts={facts}
           finding={finding}
           onLeaf={(one) => setKept((was) => ({ ...was, leaf: one }))}
           onRaw={setRaw}

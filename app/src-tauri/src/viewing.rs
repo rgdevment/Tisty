@@ -317,6 +317,19 @@ pub fn view_shown(
     })
 }
 
+#[tauri::command]
+pub fn view_facts(
+    session: tauri::State<'_, Mutex<Session>>,
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+) -> Answer<crate::answers::papers::Facts> {
+    match shown_in(&views, window.label())? {
+        Shown::File(at) => crate::answers::papers::outside_facts(&at),
+        Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
+        Shown::Widget { .. } => Err(Refusal::of("notAllowed")),
+    }
+}
+
 fn bring(app: &AppHandle, file: &str) {
     let _ = app.emit_to("main", "showdoc", file.to_string());
     crate::tray::surface(app);

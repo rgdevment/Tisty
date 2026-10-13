@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { copied, type Paper } from "../../core";
+import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
 import Editor from "../Editor";
+import PaperFacts from "../PaperFacts";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
 import type { Head } from "../writing";
 import { button, Segments } from "./Glyphs";
@@ -15,6 +16,7 @@ interface Props {
   raw: boolean;
   zoom: number;
   leaf: Paper;
+  facts: DocFacts | null;
   finding: boolean;
   onLeaf: (leaf: Paper) => void;
   onRaw: (raw: boolean) => void;
@@ -95,7 +97,7 @@ export default function Reader(props: Props) {
   return (
     <div className="flex min-h-0 flex-1">
       {side && (
-        <nav className="flex w-[184px] shrink-0 flex-col overflow-auto border-r border-hair bg-panel px-2 py-3.5">
+        <nav className="flex w-[232px] shrink-0 flex-col overflow-auto border-r border-hair bg-panel px-2 py-3.5">
           <h6 className={heading}>{t(stranger ? "viewInFile" : "viewInDoc")}</h6>
           {heads.map((one) => (
             <button
@@ -109,6 +111,10 @@ export default function Reader(props: Props) {
             </button>
           ))}
           <div className="mt-auto border-t border-hair pt-3.5">
+            <h6 className={heading}>{t(stranger ? "aboutFile" : "aboutPaper")}</h6>
+            <div className="mx-2 mb-4">
+              <PaperFacts facts={props.facts} body={body} />
+            </div>
             <h6 className={heading}>{t("viewPage")}</h6>
             <div className="mx-1">
               <Segments

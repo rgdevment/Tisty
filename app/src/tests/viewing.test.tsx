@@ -9,12 +9,14 @@ import Viewing, { SIDE_FROM } from "../Viewing";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   shown: null as unknown,
+  facts: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
+    if (cmd === "view_facts") return Promise.resolve(ipc.facts);
     if (cmd === "view_import")
       return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
     if (cmd === "widget_lend") return Promise.resolve("w1");
@@ -84,17 +86,19 @@ const tisty: Showing = {
 beforeEach(() => {
   ipc.calls = [];
   ipc.shown = file;
+  ipc.facts = null;
   localStorage.clear();
 });
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("the viewer", () => {
-  it("shows a file from outside, read only, with its contents and page open", async () => {
+  it("shows a file from outside, read only, with its contents and page a press away", async () => {
     render(<Viewing />);
 
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
     expect(screen.getByText(t("viewInFile"))).toBeTruthy();
     expect(screen.getByText(t("viewPage"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
@@ -123,6 +127,7 @@ describe("the viewer", () => {
 
     expect(asked("view_import")[0].args).toEqual({ open: true });
     await waitFor(() => expect(screen.getByText(new RegExp(t("viewNowIn")))).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
     expect(screen.getByText(t("viewInDoc"))).toBeTruthy();
   });
 
@@ -216,6 +221,46 @@ describe("reading in the viewer", () => {
     window.innerWidth = was;
 
     expect(screen.queryByText(t("viewPage"))).toBeNull();
+  });
+
+  it("tells who wrote a Tisty document and how big it is beside its contents", async () => {
+    ipc.shown = tisty;
+    ipc.facts = {
+      made: 1_790_000_000,
+      wrote: 1_790_000_600,
+      bytes: 12_700,
+      pages: 2,
+      author: "rgdevment",
+      editor: null,
+      born: null,
+    };
+    render(<Viewing />);
+    await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+
+    expect(await screen.findByText("rgdevment")).toBeTruthy();
+    expect(screen.getByText(t("aboutPaper"))).toBeTruthy();
+    expect(screen.getByText(t("paperWeighs"))).toBeTruthy();
+    expect(ipc.calls.filter((one) => one.cmd === "view_facts")).toHaveLength(1);
+  });
+
+  it("tells what the disk knows of a file from outside, with no author it cannot know", async () => {
+    ipc.facts = {
+      made: 1_790_000_000,
+      wrote: 1_790_000_600,
+      bytes: 2_600,
+      pages: 0,
+      author: null,
+      editor: null,
+      born: null,
+    };
+    render(<Viewing />);
+    await screen.findByText("notas.md");
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+
+    expect(await screen.findByText(t("aboutFile"))).toBeTruthy();
+    expect(screen.getByText(t("paperMade"))).toBeTruthy();
+    expect(screen.queryByText(t("paperAuthor"))).toBeNull();
   });
 
   it("finds in the text from the menu, and lets go of the search on Esc", async () => {
