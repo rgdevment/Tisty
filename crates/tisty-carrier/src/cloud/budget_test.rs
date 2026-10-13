@@ -277,3 +277,36 @@ fn many_cheap_asks_with_nothing_landing_stop_a_round_too() {
 
     assert_eq!(asked, STALLED_ASKS);
 }
+
+#[test]
+fn a_write_refused_on_the_look_before_it_is_charged_the_look_and_not_the_upload() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive().with_chunk(4);
+    let meter = Metered::over(&fake, home.path(), Class::History);
+    let source = home.path().join("bytes");
+    std::fs::write(&source, b"many more bytes than one chunk holds").unwrap();
+    meter
+        .put("attachments/ab/x-ab12cd34.png", &source, Expect::Absent)
+        .unwrap();
+    let after_landing = Spent::load(home.path()).units;
+
+    assert!(matches!(
+        meter.put("attachments/ab/x-ab12cd34.png", &source, Expect::Absent),
+        Err(Hitch::Changed(_))
+    ));
+    assert!(matches!(
+        meter.put(
+            "attachments/cd/y-cd12ab34.png",
+            &source,
+            Expect::Revision("gone.1".into())
+        ),
+        Err(Hitch::Missing(_))
+    ));
+
+    let costs = fake.limits().costs;
+    assert_eq!(
+        Spent::load(home.path()).units - after_landing,
+        2 * costs.checks,
+        "a write that never sent a byte was charged as a whole upload"
+    );
+}
