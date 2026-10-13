@@ -4292,3 +4292,51 @@ fn a_file_kept_in_a_document_leaves_the_log_answering_for_what_it_now_holds() {
          hold this one back"
     );
 }
+
+#[test]
+fn a_call_that_fits_neither_way_of_proposing_or_paging_is_told_both_ways() {
+    let served = Served::new();
+    let text = |said: &serde_json::Value| {
+        said["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    };
+
+    let paged = served.call("page_doc", serde_json::json!({}));
+    assert_eq!(
+        paged["result"]["isError"],
+        serde_json::json!(true),
+        "{paged}"
+    );
+    let told = text(&paged);
+    assert!(told.contains("`doc`") && told.contains("`order`"), "{told}");
+    assert!(!told.contains("  "), "{told}");
+
+    let nothing = served.call("propose", serde_json::json!({}));
+    assert_eq!(
+        nothing["result"]["isError"],
+        serde_json::json!(true),
+        "{nothing}"
+    );
+    let told = text(&nothing);
+    assert!(
+        told.contains("`title`") && told.contains("`tasks`"),
+        "{told}"
+    );
+
+    let one = served.call(
+        "propose",
+        serde_json::json!({ "title": "comprar pan", "tasks": null }),
+    );
+    assert!(one["result"]["isError"].as_bool() != Some(true), "{one}");
+
+    let many = served.call(
+        "propose",
+        serde_json::json!({ "tasks": [{ "title": "una" }, { "description": "sin titulo" }] }),
+    );
+    assert!(
+        !text(&many).contains("several"),
+        "an entry inside `tasks` was told to send `tasks`: {many}"
+    );
+}

@@ -20,7 +20,12 @@ use super::{
 /// Eight tasks in one call instead of eight calls: what the door costs an agent is mostly the
 /// conversation it has to send again each time, not the writing.
 pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(many) = args.get("tasks") else {
+    let Some(many) = args.get("tasks").filter(|one| !one.is_null()) else {
+        if text(args, "title").is_none() {
+            return Err(Refused::Tool(
+                "send a `title` for one task, or `tasks` for several.".into(),
+            ));
+        }
         return proposed(paths, args);
     };
     let Some(many) = many.as_array() else {
@@ -105,9 +110,7 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(title) = text(args, "title") else {
-        return Err(Refused::Tool(
-            "a task needs a `title`, and several go together in `tasks`.".into(),
-        ));
+        return Err(Refused::Tool("a task needs a `title`.".into()));
     };
     steps_fit(&strings(args, "steps")?)?;
     let (state, mut store) = opened(paths)?;
@@ -916,7 +919,7 @@ const DRAFTS_AT_MOST: usize = 32;
 pub(super) fn one_of_many(paths: &Paths, one: &Value) -> Result<Value, Refused> {
     only_what_it_takes("propose", one)?;
     short_and_plain(one)?;
-    if one.get("tasks").is_some() {
+    if one.get("tasks").is_some_and(|many| !many.is_null()) {
         return Err(Refused::Tool(
             "a task inside `tasks` cannot carry `tasks` of its own.".into(),
         ));

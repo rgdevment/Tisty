@@ -251,7 +251,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task: send `title` for one, or `tasks` for several. Reading a thread that holds several, send them \
+            "description": "Propose a task, giving it a `title`. Reading a thread that holds several, send them \
                             together in `tasks` rather than one call each: each one is judged on \
                             its own and told apart in the answer, so a bad one does not take the \
                             good ones with it. Size the work first: a step is one line of a \
@@ -713,7 +713,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "page_doc",
             "title": "Make one document, or several, into pages, put their pages in order, or take them back out",
-            "description": "Send `doc` to hang or unhang pages, or `order` with `page_of` to put them in order. Hang a document from another as one of its pages, or take a page out \
+            "description": "Hang a document from another as one of its pages, or take a page out \
                             by leaving `page_of` out, which makes it a document of its own again, \
                             back in the folder it came from. A page goes with its document \
                             everywhere — folder, archive and deletion — and holds no pages of its \
