@@ -20,6 +20,7 @@ mod judge;
 pub(crate) mod lock;
 mod mirror;
 pub mod policy;
+mod resting;
 mod shelf;
 pub mod standing;
 
@@ -31,6 +32,8 @@ use shelf::{Letting, Shelf};
 const TREE: &str = "tree";
 const FORGOTTEN: &str = "forgotten";
 const FORGETTING: &str = "forgotten.working";
+const FORGOTTEN_ASIDE: &str = "forgotten.aside.";
+const ASIDE_LIST: &str = ".list";
 const PATIENCE: Duration = Duration::from_secs(5);
 const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
@@ -98,6 +101,10 @@ impl Cloud {
         turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
+        // What the person asked for is tried anyway; only the window's own pace waits.
+        if let Some(left) = resting::left(&self.home).filter(|_| !turn.waits) {
+            return Ok(Done::deferred(Reason::Limit, Some(left)));
+        }
         let taken = match turn.waits {
             true => lock::Round::wait_for(&self.home, PATIENCE),
             false => lock::Round::take(&self.home),
@@ -120,7 +127,11 @@ impl Cloud {
             Err(hitch) => {
                 let _ = index.save(&self.home);
                 return match judge(hitch, self.remote.limits().provider) {
-                    Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
+                    Judged::Pause(reason, wait) => {
+                        let deferred = Done::deferred(reason, wait);
+                        self.heeded(deferred.deferred.as_ref());
+                        Ok(deferred)
+                    }
                     Judged::Stop(trouble) => Err(trouble),
                 };
             }
@@ -169,7 +180,12 @@ impl Cloud {
                     }),
                 );
             }
-            Some(Judged::Stop(trouble)) => stopped = Some(trouble),
+            Some(Judged::Stop(trouble)) => {
+                stopped = Some(match (trouble, pushed.stuck.clone()) {
+                    (Trouble::Broke(why), Some(name)) => Trouble::StuckOn { name, why },
+                    (trouble, _) => trouble,
+                })
+            }
             None if pushed.left > 0 => {
                 deferred = merged(
                     deferred,
@@ -186,12 +202,26 @@ impl Cloud {
         if let Err(why) = index.save(&self.home) {
             stopped = stopped.or(Some(Trouble::Broke(why.to_string())));
         }
+        self.heeded(deferred.as_ref());
         Ok(Done {
             value: Some(value),
             deferred,
             stopped,
             uploaded: pushed.put,
         })
+    }
+
+    // The wait a provider asked for outlives this round, so the window's own pace does not ask again before it.
+    fn heeded(&self, deferred: Option<&Deferred>) {
+        let reason = deferred.map(|one| one.reason);
+        match deferred.and_then(|one| one.retry_after) {
+            Some(wait) if reason != Some(Reason::Busy) => resting::rest(&self.home, wait),
+            // Only a round the provider let through ends the wait; one cut short for another reason says nothing of it.
+            _ if matches!(reason, None | Some(Reason::Changed | Reason::Unsent)) => {
+                resting::rested(&self.home)
+            }
+            _ => {}
+        }
     }
 
     fn only<T>(
@@ -202,9 +232,12 @@ impl Cloud {
         let done = self.with_mirror(here, ASKED, |tree, index, remote| {
             Ok((work(tree, index, remote)?, None))
         })?;
-        match done.value {
-            Some(value) => Ok(value),
-            None => Err(Trouble::NotNow(unavailable(done.deferred))),
+        match (done.value, done.deferred) {
+            (Some(value), _) => Ok(value),
+            (None, Some(spent)) if spent.reason == Reason::Budget => Err(Trouble::CloudSpent {
+                provider: self.remote.limits().provider.to_string(),
+            }),
+            (None, deferred) => Err(Trouble::NotNow(unavailable(deferred))),
         }
     }
 
@@ -237,18 +270,22 @@ impl Cloud {
                 round.saying,
                 &mut shelf,
             )?;
-            Ok(((moved, shelf.sent(), shelf.early()), shelf.paused()))
+            Ok((
+                (moved, shelf.sent(), shelf.early(), shelf.full()),
+                shelf.paused(),
+            ))
         })?;
-        let (mut moved, attached, early) = done.value.unwrap_or_default();
+        let (mut moved, attached, early, full) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
         moved.sent = attached + mirrored.min(done.uploaded + early);
-        if let Some(trouble) = done.stopped {
+        let unsent = moved.deferred.take();
+        if let Some(trouble) = done.stopped.or(full) {
             if moved == Moved::default() {
                 return Err(trouble);
             }
             moved.refused = Some(trouble);
         }
-        moved.deferred = done.deferred;
+        moved.deferred = merged(unsent, done.deferred);
         Ok(moved)
     }
 
@@ -267,6 +304,9 @@ impl Cloud {
         if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
+        if resting::left(&self.home).is_some() {
+            return stir.mark;
+        }
         stir.asked_ms = now;
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
@@ -277,7 +317,10 @@ impl Cloud {
                 poll
             }
             Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
-            Err(crate::Hitch::Limited { wait }) => wait.max(poll),
+            Err(crate::Hitch::Limited { wait }) => {
+                resting::rest(&self.home, wait);
+                wait.max(poll)
+            }
             Err(_) => every.max(poll),
         };
         stir.every_ms = u64::try_from(next.as_millis()).unwrap_or(u64::MAX);
@@ -314,6 +357,15 @@ impl Cloud {
                 tisty_sync::forget_paper(tree, id);
             }
             let _ = std::fs::remove_file(&working);
+        }
+        for aside in asked_aside(&self.home) {
+            let Ok(text) = std::fs::read_to_string(&aside) else {
+                continue;
+            };
+            for id in text.lines().filter(|line| !line.is_empty()) {
+                tisty_sync::forget_paper(tree, id);
+            }
+            let _ = std::fs::remove_file(&aside);
         }
     }
 }
@@ -370,12 +422,15 @@ fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Troub
 // What the person can do least about speaks: a spent day outlasts a file that changed mid-round.
 fn weight(reason: Reason) -> u8 {
     match reason {
-        Reason::Paused => 5,
-        Reason::Budget => 4,
-        Reason::Offline => 3,
-        Reason::Limit => 2,
-        Reason::Busy => 1,
-        Reason::Changed => 0,
+        Reason::Paused => 7,
+        Reason::Budget => 6,
+        Reason::Offline => 5,
+        Reason::Troubled => 4,
+        Reason::Limit => 3,
+        Reason::Busy => 2,
+        Reason::Changed => 1,
+        // Lightest, so a round left unfinished for any other reason is never read as one that only left files here.
+        Reason::Unsent => 0,
     }
 }
 
@@ -698,7 +753,16 @@ pub fn forgotten_later(home: &Path, id: &str) -> bool {
     {
         return false;
     }
-    let _writing = lock::Held::wait_for(home, lock::FORGETTING, ASKED_WAITED_OUT);
+    let Ok(Some(_writing)) = lock::Held::wait_for(home, lock::FORGETTING, ASKED_WAITED_OUT) else {
+        // Never appended unheld, where a round taking the list could read it before the line lands.
+        let aside = format!(
+            "{FORGOTTEN_ASIDE}{}-{}{ASIDE_LIST}",
+            std::process::id(),
+            now_ms()
+        );
+        return tisty_core::store::write_atomic(&home.join(aside), format!("{id}\n").as_bytes())
+            .is_ok();
+    };
     let asked = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -707,6 +771,20 @@ pub fn forgotten_later(home: &Path, id: &str) -> bool {
         Ok(mut list) => writeln!(list, "{id}").is_ok(),
         Err(_) => false,
     }
+}
+
+fn asked_aside(home: &Path) -> Vec<PathBuf> {
+    let Ok(all) = std::fs::read_dir(home) else {
+        return Vec::new();
+    };
+    all.filter_map(|one| one.ok())
+        .filter(|one| {
+            one.file_name().to_str().is_some_and(|named| {
+                named.starts_with(FORGOTTEN_ASIDE) && named.ends_with(ASIDE_LIST)
+            })
+        })
+        .map(|one| one.path())
+        .collect()
 }
 
 fn now_ms() -> u64 {

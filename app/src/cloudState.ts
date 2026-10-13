@@ -1,5 +1,6 @@
 import { type CloudStatus, cloudForget, cloudStatus } from "./core";
-import type { t } from "./locales";
+import { budgetResets } from "./format";
+import { fill, type t } from "./locales";
 import { plainly } from "./refusal";
 
 type Key = Parameters<typeof t>[0];
@@ -32,8 +33,9 @@ const BY_CODE: Record<string, Standing> = {
   },
   cloudFull: { said: "stateFull", why: "stateFullWhy", exit: "storage", exitSaid: "stateFullDo" },
   "deferred-offline": { said: "stateOffline", why: "stateOfflineWhy" },
-  "deferred-budget": { said: "stateBudget", why: "stateBudgetWhy" },
   "deferred-limit": { said: "stateWait", why: "stateWaitWhy" },
+  "deferred-troubled": { said: "stateTroubled", why: "stateTroubledWhy" },
+  "deferred-unsent": { said: "stateUnsent", why: "stateUnsentWhy" },
   "deferred-busy": { said: "stateWait", why: "stateWaitWhy" },
   cloudNotNow: { said: "stateWait", why: "stateWaitWhy" },
 };
@@ -50,8 +52,13 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
     return { said: "stateHalted", why: "stateHaltedWhy" };
   const last = status.last;
   if (!last || QUIET.has(last.code)) return null;
-  if (last.code === "deferred-budget" && Math.floor(last.at / DAY) < Math.floor(now / DAY))
-    return null;
+  const spent = last.code === "deferred-budget" || last.code === "cloudSpent";
+  if (spent && Math.floor(last.at / DAY) < Math.floor(now / DAY)) return null;
+  if (spent)
+    return {
+      said: "stateBudget",
+      told: fill("stateBudgetWhy", budgetResets(new Date(now * 1000))),
+    };
   const name = last.name ?? undefined;
   const found = BY_CODE[last.code];
   if (found) return { ...found, name };

@@ -67,6 +67,18 @@ pub enum Trouble {
         provider: String,
         found: String,
     },
+    CloudBinned {
+        provider: String,
+    },
+    /// Today's budget for the cloud is spent, so what was asked by hand waits for the next day.
+    CloudSpent {
+        provider: String,
+    },
+    /// One file the provider would not take as sent holds back what comes after it.
+    StuckOn {
+        name: String,
+        why: String,
+    },
     /// The cloud could not be asked first (another round, no connection, a limit): try again later.
     NotNow(String),
 }
@@ -119,6 +131,10 @@ pub enum Reason {
     Busy,
     Offline,
     Changed,
+    /// The provider answered with a fault of its own and named no wait.
+    Troubled,
+    /// Attachments that could not go up, each kept here: unreadable, changed, refused or too big.
+    Unsent,
 }
 
 /// How many of what is left a round names; the rest is only counted.
@@ -380,6 +396,7 @@ pub fn carry_through(
         })?;
         moved.sent += given.sent;
         (moved.freed, moved.let_go) = (given.freed, given.let_go);
+        moved.deferred = given.unsent;
     }
     if !alive.is_empty() {
         let papers = carry_papers_leaning_on(

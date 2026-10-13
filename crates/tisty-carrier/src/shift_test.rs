@@ -499,3 +499,40 @@ fn a_place_left_behind_is_all_home_only_until_another_machine_writes_there_again
         );
     }
 }
+
+#[test]
+fn a_move_from_one_account_to_another_brings_everything_and_leaves_the_first_as_it_was() {
+    for ((first, was), (second, now)) in each_kind(|fake| fake)
+        .into_iter()
+        .zip(each_kind(|fake| fake))
+    {
+        let who = &first.name;
+        let (one, _) = pair(&first);
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        let into: Shared = Arc::new(Cloud::over(
+            now.clone() as Arc<dyn Remote>,
+            second.room.path().join("dev_a").join("cloud"),
+        ));
+        let before = was.counts().deletes;
+
+        let done = step(&one, Some(&*one.carrier), Some(&*into));
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        assert!(
+            now.about(&kept.at).unwrap().is_some(),
+            "{who}: the photo stayed behind"
+        );
+        let two = desk(&second, "dev_b");
+        one.vouches_for(&two);
+        two.vouches_for(&one);
+        two.round(Way::Pull);
+        assert_eq!(two.titles(), ["con foto"], "{who}");
+        assert!(was.about(&kept.at).unwrap().is_some(), "{who}");
+        assert_eq!(
+            was.counts().deletes,
+            before,
+            "{who}: the first account was emptied by moving"
+        );
+    }
+}

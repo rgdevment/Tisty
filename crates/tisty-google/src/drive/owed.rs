@@ -38,6 +38,14 @@ impl Owed {
     }
 }
 
+const WRITING: &str = "lock";
+const REPAYING: &str = "repaying.lock";
+
+// What was owed meanwhile stays owed: only what this pass paid comes off the list as it stands now.
+pub(super) fn unpaid(now: Vec<Owed>, paid: &[Owed]) -> Vec<Owed> {
+    now.into_iter().filter(|one| !paid.contains(one)).collect()
+}
+
 fn file(id: &str, head: &Option<String>, md5: &Option<String>) -> File {
     File {
         id: id.to_string(),
@@ -89,7 +97,24 @@ impl Drive {
         }
     }
 
+    // The list is read and written under its lock, since a poll repays while a round may owe.
+    fn held(&self, lock: &str, waits: bool) -> Option<std::fs::File> {
+        let at = self.owing.as_ref()?.with_extension(lock);
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(at)
+            .ok()?;
+        let taken = match waits {
+            true => file.lock().is_ok(),
+            false => file.try_lock().is_ok(),
+        };
+        taken.then_some(file)
+    }
+
     pub(super) fn owe(&self, one: Owed) {
+        let _writing = self.held(WRITING, true);
         let mut all = self.owed();
         if !all.contains(&one) {
             all.push(one);
@@ -99,17 +124,22 @@ impl Drive {
 
     // Paid before any change is read, so the bytes it puts back come in as another machine's change.
     pub(super) fn repaid(&self) {
+        let Some(_repaying) = self.held(REPAYING, false) else {
+            return;
+        };
         let all = self.owed();
         if all.is_empty() {
             return;
         }
-        let left: Vec<Owed> = all
+        let paid: Vec<Owed> = all
             .into_iter()
             .filter(|one| match self.repay(one) {
-                Ok(()) | Err(Hitch::Missing(_)) => false,
-                Err(_) => true,
+                Ok(()) | Err(Hitch::Missing(_)) => true,
+                Err(_) => false,
             })
             .collect();
+        let _writing = self.held(WRITING, true);
+        let left = unpaid(self.owed(), &paid);
         self.keep_owing(&left);
     }
 

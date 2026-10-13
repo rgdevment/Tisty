@@ -1,5 +1,5 @@
 import type { Carried, Settled } from "./core";
-import { stamped } from "./format";
+import { budgetResets, stamped } from "./format";
 import { fill, t } from "./locales";
 import { named } from "./previews";
 
@@ -15,6 +15,10 @@ export const syncSaid = (said: Settled, at = new Date()): string =>
   said.carried === "busy"
     ? t("syncBusy")
     : `${fill("syncResultAt", stamped(at.toISOString(), at))}: ${t(carried[said.carried])}`;
+
+/** Why a round waits, with a spent day told by the hour it turns here. */
+export const waitSaid = (key: Parameters<typeof t>[0], now = new Date()): string =>
+  key === "deferredBudget" ? fill(key, budgetResets(now)) : t(key);
 
 const NAMED = 3;
 

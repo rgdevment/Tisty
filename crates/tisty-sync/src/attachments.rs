@@ -3,7 +3,9 @@ use std::path::Path;
 
 use tisty_core::config::Holds;
 
-use crate::{HELD, Reached, Trouble, copy_held, left_behind, let_go_of};
+use crate::{
+    Deferred, HELD, NAMED_AT_MOST, Reached, Reason, Trouble, copy_held, left_behind, let_go_of,
+};
 
 pub struct Giving<'a> {
     pub data: &'a Path,
@@ -18,6 +20,8 @@ pub struct Given {
     pub sent: usize,
     pub freed: u64,
     pub let_go: Vec<String>,
+    /// What could not go and stays here, so the person is told rather than left waiting elsewhere.
+    pub unsent: Option<Deferred>,
 }
 
 pub struct Taking<'a> {
@@ -42,6 +46,49 @@ pub trait Attachments {
     fn takes(&self) -> bool {
         true
     }
+}
+
+// Whatever is here and not there after a copy did not go: unreadable, not what its name says, or too big.
+fn unsent_beside(data: &Path, dest: &Path, buried: &BTreeSet<String>) -> Option<Deferred> {
+    let mut unsent = Vec::new();
+    let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
+        return None;
+    };
+    for shelf in shelves.filter_map(|one| one.ok()) {
+        let Some(under) = shelf.file_name().to_str().map(str::to_string) else {
+            continue;
+        };
+        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+            continue;
+        };
+        for file in files.filter_map(|one| one.ok()) {
+            let Some(leaf) = file.file_name().to_str().map(str::to_string) else {
+                continue;
+            };
+            let reference = format!("{HELD}/{under}/{leaf}");
+            let here = file.metadata().ok().filter(|meta| meta.is_file());
+            let there = std::fs::metadata(dest.join(HELD).join(&under).join(&leaf)).ok();
+            let missing = here
+                .as_ref()
+                .is_some_and(|here| there.is_none_or(|there| there.len() != here.len()));
+            if missing
+                && !leaf.ends_with(".part")
+                && !tisty_core::holes::marker(&leaf)
+                && tisty_core::attach::shelved(&under, &leaf)
+                && !buried.contains(&reference)
+                && !tisty_core::holes::a_hole(&file.path())
+            {
+                unsent.push(reference);
+            }
+        }
+    }
+    unsent.sort();
+    (!unsent.is_empty()).then(|| Deferred {
+        reason: Reason::Unsent,
+        left: unsent.len(),
+        retry_after: None,
+        names: unsent.into_iter().take(NAMED_AT_MOST).collect(),
+    })
 }
 
 pub struct Beside<'a> {
@@ -76,6 +123,7 @@ impl Attachments for Beside<'_> {
             sent,
             freed,
             let_go,
+            unsent: unsent_beside(round.data, self.dest, round.buried),
         })
     }
 

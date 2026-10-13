@@ -114,7 +114,7 @@ fn lands(redirect: &str, query: &str) -> String {
     page
 }
 
-fn waiting(consent: Consent, at: Endpoints) -> JoinHandle<Result<Granted, Hitch>> {
+fn waiting(consent: Consent, at: Endpoints) -> JoinHandle<Result<Granted, Ended>> {
     std::thread::spawn(move || consent.finish(Duration::from_secs(10), &at))
 }
 
@@ -189,7 +189,10 @@ fn a_trade_google_turns_down_is_never_told_to_the_browser_as_connected() {
     let page = lands(&redirect, &format!("state={state}&code=4%2Fcode"));
 
     assert!(page.contains(NOT_CONNECTED), "{page}");
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Lost))
+    ));
 }
 
 #[test]
@@ -204,7 +207,10 @@ fn saying_no_on_googles_page_leaves_the_account_unconnected() {
     let page = lands(&redirect, &format!("state={state}&error=access_denied"));
 
     assert!(page.contains(NOT_CONNECTED), "{page}");
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Lost))
+    ));
 }
 
 #[test]
@@ -230,7 +236,10 @@ fn a_browser_that_sends_many_headers_still_reads_the_whole_page() {
 
     assert!(read.is_ok(), "the browser was reset: {read:?}");
     assert!(page.contains(NOT_CONNECTED), "{page}");
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Lost)));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Lost))
+    ));
 }
 
 #[test]
@@ -252,7 +261,10 @@ fn a_grant_wider_than_drive_file_is_refused_and_handed_back() {
     let page = lands(&redirect, &format!("state={state}&code=4%2Fcode"));
 
     assert!(page.contains(NOT_CONNECTED), "{page}");
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Broke(_)))
+    ));
     let asked = asked.join().unwrap();
     assert!(asked[1].starts_with("POST /revoke"), "{}", asked[1]);
     assert!(asked[1].contains("token=1%2F%2Fwide"), "{}", asked[1]);
@@ -279,7 +291,7 @@ fn what_reaches_the_port_without_our_state_is_waited_past_and_never_traded() {
         assert!(page.starts_with("HTTP/1.1 404"), "{page}");
     }
     assert!(
-        matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))),
+        matches!(waiting.join().unwrap(), Err(Ended::Failed(Hitch::Broke(_)))),
         "an answer without our state ended the sign-in"
     );
 }
@@ -299,7 +311,10 @@ fn a_connection_that_says_nothing_does_not_stand_in_the_way_of_the_answer() {
         &format!("state={state}&error=temporarily_unavailable"),
     );
 
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Broke(_)))
+    ));
 }
 
 #[test]
@@ -318,7 +333,10 @@ fn a_request_that_never_ends_is_cut_short_and_the_answer_still_lands() {
         &format!("state={state}&error=temporarily_unavailable"),
     );
 
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Broke(_)))
+    ));
 }
 
 #[test]
@@ -327,7 +345,21 @@ fn a_sign_in_nobody_finishes_leaves_the_account_unconnected() {
 
     let given_up = consent.finish(Duration::from_millis(200), &nowhere());
 
-    assert!(matches!(given_up, Err(Hitch::Lost)));
+    assert!(
+        matches!(given_up, Err(Ended::NoAnswer)),
+        "waiting too long was told as saying no"
+    );
+}
+
+#[test]
+fn a_sign_in_let_go_of_stops_waiting_for_the_browser_at_once() {
+    let consent = Consent::begin(CLIENT).unwrap();
+    let dropping = consent.dropping();
+    let waiting = std::thread::spawn(move || consent.finish(Duration::from_secs(60), &nowhere()));
+
+    dropping.store(true, std::sync::atomic::Ordering::Relaxed);
+
+    assert!(matches!(waiting.join().unwrap(), Err(Ended::Dropped)));
 }
 
 #[test]
@@ -344,7 +376,10 @@ fn waiting_for_as_long_as_it_takes_does_not_overflow() {
         &format!("state={state}&error=temporarily_unavailable"),
     );
 
-    assert!(matches!(waiting.join().unwrap(), Err(Hitch::Broke(_))));
+    assert!(matches!(
+        waiting.join().unwrap(),
+        Err(Ended::Failed(Hitch::Broke(_)))
+    ));
 }
 
 #[test]

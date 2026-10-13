@@ -200,3 +200,25 @@ fn what_a_provider_spent_beyond_a_verb_is_charged_with_it_and_only_once() {
         2 * more.limits().costs.list + 600,
     );
 }
+
+#[test]
+fn a_request_that_never_left_this_machine_costs_nothing() {
+    use crate::fakes::Counting;
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    let meter = Metered::over(&fake, home.path(), Class::History);
+    fake.fail_next(Hitch::Unreachable("sin red".into()));
+
+    assert!(meter.list("").is_err());
+
+    assert_eq!(Spent::load(home.path()).units, 0);
+}
+
+#[test]
+fn a_budget_that_does_not_read_starts_from_nothing() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::write(home.path().join(FILE), b"{ no es json").unwrap();
+
+    assert_eq!(Spent::load(home.path()).units, 0);
+    assert_eq!(Spent::load(home.path()).units, 0);
+}

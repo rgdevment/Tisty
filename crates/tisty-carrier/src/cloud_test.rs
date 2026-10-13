@@ -101,6 +101,11 @@ fn home_of(setting: &Setting, device: &str) -> PathBuf {
     setting.room.path().join(device).join("cloud")
 }
 
+// As if the wait a provider asked for had passed.
+fn waited_out(setting: &Setting, device: &str) {
+    super::resting::rested(&home_of(setting, device));
+}
+
 fn doc_name() -> String {
     format!("docs/{DOC}.md")
 }
@@ -479,6 +484,7 @@ fn a_limit_from_the_provider_defers_with_the_wait_it_asked_for() {
         assert_eq!(deferred.retry_after, Some(Duration::from_secs(9)), "{who}");
         assert!(deferred.left > 0, "{who}: something was left");
         assert_eq!(moved.sent, 0, "{who}: nothing reached the cloud");
+        waited_out(&setting, "dev_a");
         let later = one.round(Way::Both);
         assert_eq!(later.deferred, None, "{who}");
         two.round(Way::Both);
@@ -705,6 +711,7 @@ fn an_edit_that_did_not_go_up_is_not_overwritten_by_what_another_machine_sent_me
         assert_eq!(held_back.deferred.unwrap().reason, Reason::Limit, "{who}");
         two.edited(DOC, "# Plan\n\nlo de dos\n");
         two.round(Way::Both);
+        waited_out(&setting, "dev_a");
 
         let after = one.round(Way::Both);
 
@@ -847,6 +854,7 @@ fn an_upload_the_provider_defers_goes_with_the_next_round_and_the_original_stays
             one.held(&kept.at).is_some(),
             "{who}: the original is still here"
         );
+        waited_out(&setting, "dev_a");
 
         let sent = one.carry(Way::Both, Holds::Shared).unwrap();
 
@@ -1909,3 +1917,6 @@ fn a_word_left_in_the_place_reaches_the_other_machine_and_forgetting_it_takes_it
         );
     }
 }
+
+#[path = "cloud_rounds_test.rs"]
+mod rounds;

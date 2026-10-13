@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { type Settled, type Waiting, whatWaits, whatWentAmiss } from "../core";
 import { fill, t } from "../locales";
-import { whatsLeft } from "../syncSaid";
+import { waitSaid, whatsLeft } from "../syncSaid";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -47,7 +47,20 @@ describe("what a sync says went amiss", () => {
 
     expect(whatWentAmiss(said)).toBeNull();
     expect(whatWaits(said)).toBe("deferredBudget");
-    expect(t("deferredBudget")).toMatch(/tomorrow/);
+  });
+
+  it("tells when a spent day turns by the hour it turns here, never as a bare tomorrow", () => {
+    const said = waitSaid("deferredBudget", new Date("2026-10-13T12:00:00Z"));
+
+    expect(said).not.toMatch(/\{name\}/);
+    expect(said).toMatch(/(today|tomorrow) at \d/);
+  });
+
+  it("says a provider in trouble and attachments that could not go up", () => {
+    expect(whatWaits(settled({ deferred: waiting("troubled") }))).toBe("deferredTroubled");
+    expect(
+      whatWaits(settled({ deferred: waiting("unsent", 1, ["attachments/ab/foto.png"]) })),
+    ).toBe("deferredUnsent");
   });
 
   it("says why a round waits on the cloud, and nothing for one that retries by itself", () => {

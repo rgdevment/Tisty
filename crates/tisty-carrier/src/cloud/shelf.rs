@@ -11,7 +11,7 @@ use tisty_sync::{
 use super::index::Index;
 use super::judge::{Judged, judge};
 use super::mirror::{self, resembles};
-use crate::{Deferred, Elsewhere, Expect, Hitch, Remote, Seen, Told};
+use crate::{Deferred, Elsewhere, Expect, Hitch, Reason, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
 
@@ -23,6 +23,14 @@ pub struct Shelf<'a> {
     fetching: bool,
     tree: Option<(&'a Path, &'a dyn Remote)>,
     early: usize,
+    unsent: Vec<String>,
+    full: Option<Trouble>,
+}
+
+enum Sent {
+    Landed(Seen),
+    /// Up there under our name with other bytes: what is ours goes over it on the next round.
+    Spoiled(Seen),
 }
 
 struct Local {
@@ -43,6 +51,8 @@ impl<'a> Shelf<'a> {
             fetching: false,
             tree: None,
             early: 0,
+            unsent: Vec::new(),
+            full: None,
         }
     }
 
@@ -78,13 +88,48 @@ impl<'a> Shelf<'a> {
         self.paused.clone()
     }
 
+    /// A full provider stops the shelf alone, so the documents and the stamp still go.
+    pub fn full(&self) -> Option<Trouble> {
+        self.full.clone()
+    }
+
+    fn stopped(&self) -> bool {
+        self.paused.is_some() || self.full.is_some()
+    }
+
+    fn unsent(&mut self, reference: &str, why: &'static str) {
+        witness::warn(
+            channel::CLOUD,
+            "an attachment could not go up to the cloud, so it stays here and is told",
+            &[
+                ("at", Fact::Id(reference.to_string())),
+                ("why", Fact::Word(why)),
+            ],
+        );
+        if !self.unsent.iter().any(|one| one == reference) {
+            self.unsent.push(reference.to_string());
+        }
+    }
+
+    fn told_unsent(&self) -> Option<Deferred> {
+        (!self.unsent.is_empty()).then(|| Deferred {
+            reason: Reason::Unsent,
+            left: self.unsent.len(),
+            retry_after: None,
+            names: self.unsent.iter().take(NAMED_AT_MOST).cloned().collect(),
+        })
+    }
+
     pub fn sent(&self) -> usize {
         self.sent
     }
 
     fn owed(&self, one: &Local, round: &Giving) -> bool {
+        one.len <= HELD_UP_TO && self.not_up_there(one, round)
+    }
+
+    fn not_up_there(&self, one: &Local, round: &Giving) -> bool {
         !round.buried.contains(&one.reference)
-            && one.len <= HELD_UP_TO
             && attach::shelved(&one.under, &one.leaf)
             && (round.again
                 || self.index.spoiled(&one.reference)
@@ -95,25 +140,27 @@ impl<'a> Shelf<'a> {
                     .is_some_and(|up| up.bytes == one.len))
     }
 
+    /// True when only this one was passed over; the rest of the shelf goes on.
     fn refuse(
         &mut self,
         hitch: Hitch,
         reference: &str,
         remaining: Vec<String>,
-    ) -> Result<(), Trouble> {
+    ) -> Result<bool, Trouble> {
         if matches!(
             hitch,
             Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
         ) {
+            // The kind alone: what a provider says back can carry the attachment's own name.
             witness::warn(
                 channel::CLOUD,
                 "an attachment could not be carried to or from the cloud",
                 &[
                     ("at", Fact::Id(reference.to_string())),
-                    ("why", Fact::Why(format!("{hitch:?}"))),
+                    ("why", Fact::Word(kind_of(&hitch))),
                 ],
             );
-            return Ok(());
+            return Ok(true);
         }
         match judge(hitch, self.remote.limits().provider) {
             Judged::Pause(reason, wait) => {
@@ -123,13 +170,17 @@ impl<'a> Shelf<'a> {
                     retry_after: wait,
                     names: remaining.into_iter().take(NAMED_AT_MOST).collect(),
                 });
-                Ok(())
+                Ok(false)
+            }
+            Judged::Stop(trouble @ Trouble::CloudFull { .. }) => {
+                self.full = Some(trouble);
+                Ok(false)
             }
             Judged::Stop(trouble) => Err(trouble),
         }
     }
 
-    fn send(&self, one: &Local) -> Result<Seen, Hitch> {
+    fn send(&self, one: &Local) -> Result<Sent, Hitch> {
         // What is up there was refused for its bytes, so ours, already held to its name and the log, goes over it.
         let expect = match self.index.spoiled(&one.reference) {
             true => Expect::Any,
@@ -151,11 +202,8 @@ impl<'a> Shelf<'a> {
                 false => self.remote.hash_of(&one.at)? == seen.hash,
             };
         match same {
-            true => Ok(seen),
-            false => Err(Hitch::Broke(format!(
-                "{} is up there with other bytes",
-                one.reference
-            ))),
+            true => Ok(Sent::Landed(seen)),
+            false => Ok(Sent::Spoiled(seen)),
         }
     }
 
@@ -252,11 +300,15 @@ impl Attachments for Shelf<'_> {
         let mut given = Given::default();
         let (all, mut asked_for) = locals(round.data, round.buried);
         for (at, one) in all.iter().enumerate() {
-            if self.paused.is_some() {
+            if self.stopped() {
                 break;
             }
             if tisty_core::holes::a_hole(&one.at) {
                 asked_for.push(one.at.clone());
+                continue;
+            }
+            if one.len > HELD_UP_TO && self.not_up_there(one, &round) {
+                self.unsent(&one.reference, "past what the cloud takes");
                 continue;
             }
             if !self.owed(one, &round) {
@@ -271,35 +323,28 @@ impl Attachments for Shelf<'_> {
                 self.refuse(hitch, &one.reference, remaining)?;
                 continue;
             }
-            let (sha256, _) = match attach::hashed(&one.at) {
-                Ok(read) => read,
-                Err(e) => {
-                    witness::warn(
-                        channel::CLOUD,
-                        "an attachment could not be read to be sent",
-                        &[
-                            ("at", Fact::Id(one.reference.clone())),
-                            ("why", Fact::Why(e.to_string())),
-                        ],
-                    );
-                    continue;
-                }
+            let Ok((sha256, _)) = attach::hashed(&one.at) else {
+                self.unsent(&one.reference, "could not be read here");
+                continue;
             };
             if !attach::vouched(&one.under, &one.leaf, &sha256)
                 || !attach::as_kept(round.avowed, &one.reference, &sha256)
             {
-                witness::warn(
-                    channel::CLOUD,
-                    "an attachment does not hold what its name or the log say, so it was not sent",
-                    &[("at", Fact::Id(one.reference.clone()))],
-                );
+                self.unsent(&one.reference, "does not hold what its name or the log say");
                 continue;
             }
             match self.send(one) {
-                Ok(seen) => {
+                Ok(Sent::Landed(seen)) => {
                     self.index.shelf.insert(one.reference.clone(), seen);
                     given.sent += 1;
                     self.sent += 1;
+                }
+                Ok(Sent::Spoiled(seen)) => {
+                    self.index
+                        .spoiled
+                        .insert(one.reference.clone(), seen.revision.clone());
+                    self.index.shelf.insert(one.reference.clone(), seen);
+                    self.unsent(&one.reference, "up there with other bytes");
                 }
                 Err(hitch) => {
                     let remaining = all[at..]
@@ -307,11 +352,14 @@ impl Attachments for Shelf<'_> {
                         .filter(|rest| self.owed(rest, &round))
                         .map(|rest| rest.reference.clone())
                         .collect();
-                    self.refuse(hitch, &one.reference, remaining)?;
+                    if self.refuse(hitch, &one.reference, remaining)? {
+                        self.unsent(&one.reference, "the cloud would not take it");
+                    }
                 }
             }
         }
         tisty_core::holes::ask_for(asked_for);
+        given.unsent = self.told_unsent();
         Ok(given)
     }
 
@@ -353,7 +401,7 @@ impl Attachments for Shelf<'_> {
             .collect();
         let whole = up.len();
         for (done, (reference, seen)) in up.iter().enumerate() {
-            if self.paused.is_some() {
+            if self.stopped() {
                 break;
             }
             (round.saying)(Reached::Along {
@@ -391,13 +439,17 @@ impl Attachments for Shelf<'_> {
                 Ok((sha256, bytes)) if fits && std::fs::rename(&part, &target).is_ok() => {
                     let _ = tisty_core::paths::ours_alone(&target);
                     attach::noted(round.data, reference, &sha256, bytes);
+                    taken.brought += 1;
+                    // Only what the log already answers for is said to be held: a name alone vouches for too little.
+                    if !round.avowed.contains_key(reference) {
+                        continue;
+                    }
                     (round.saying)(Reached::Kept {
                         at: reference.clone(),
                         sha256: sha256.clone(),
                         bytes,
                     });
                     taken.took_in.push((reference.clone(), sha256, bytes));
-                    taken.brought += 1;
                 }
                 Ok(_) if !fits => {
                     let _ = std::fs::remove_file(&part);
@@ -451,6 +503,14 @@ fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
         && !index.spoiled(reference)
         && seen.bytes <= HELD_UP_TO
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
+}
+
+fn kind_of(hitch: &Hitch) -> &'static str {
+    match hitch {
+        Hitch::Missing(_) => "missing",
+        Hitch::Changed(_) => "changed",
+        _ => "broke",
+    }
 }
 
 pub fn sweep(data: &Path) {

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cloudStanding, STORAGE } from "../cloudState";
@@ -114,6 +114,10 @@ describe("what the cloud's state says", () => {
     expect(of("deferred-limit")?.said).toBe("stateWait");
     expect(of("deferred-busy")?.said).toBe("stateWait");
     expect(of("cloudNotNow")?.said).toBe("stateWait");
+    expect(of("deferred-troubled")?.said).toBe("stateTroubled");
+    expect(of("deferred-unsent")?.said).toBe("stateUnsent");
+    expect(of("cloudSpent")?.said).toBe("stateBudget");
+    expect(of("syncStuckDoc")?.said).toBe("stateFailed");
     expect(of("ok")).toBeNull();
     expect(of("deferred-paused")).toBeNull();
   });
@@ -168,6 +172,21 @@ describe("choosing where the copies go", () => {
 
     await waitFor(() => expect(done).toHaveBeenCalledWith("cloud"));
     expect(sent("cloud_choose")[0].args).toEqual({ account: ANA.account, email: ANA.email });
+  });
+
+  it("lets a sign-in the browser never answers be stopped, and says nothing of it", async () => {
+    ipc.answers.cloud_connect = () => new Promise(() => {});
+    const trouble = vi.fn();
+    render(<Choosing busy={false} offered onTrouble={trouble} onDone={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+
+    const waiting = await screen.findByRole("status");
+    await userEvent.click(within(waiting).getByRole("button", { name: t("cancel") }));
+
+    await waitFor(() => expect(sent("cloud_connect_cancel")).toHaveLength(1));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(trouble).not.toHaveBeenCalledWith(expect.stringContaining(t("cloudDropped")));
   });
 
   it("shows the providers still to come without letting them be picked", async () => {
@@ -296,6 +315,14 @@ describe("the cloud when things change under it", () => {
     const said = cloudStanding(status({ last: round("syncBroke", { name: "boom" }) }));
     expect(said?.said).toBe("stateFailed");
     expect(said?.told).toBe(fill("syncBroke", "boom"));
+  });
+
+  it("says the hour a spent day turns here rather than tomorrow", () => {
+    const day = 86_400;
+    const last = round("deferred-budget", { at: 10 * day + 5 });
+    const said = cloudStanding(status({ last }), 10 * day + 100);
+    expect(said?.told).toMatch(/(today|tomorrow) at \d/);
+    expect(said?.told).not.toMatch(/\{name\}/);
   });
 
   it("forgets yesterday's limit once the day has turned", () => {

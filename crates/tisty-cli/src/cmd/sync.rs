@@ -245,6 +245,8 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
             carrier::Reason::Busy => "deferred-busy",
             carrier::Reason::Paused => "deferred-paused",
             carrier::Reason::Changed => "deferred-changed",
+            carrier::Reason::Troubled => "deferred-troubled",
+            carrier::Reason::Unsent => "deferred-unsent",
         };
         let said = match deferred.left {
             0 => lang.get(word).to_string(),
@@ -348,6 +350,15 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
             "cloud-elsewhere",
             &[("provider", provider), ("found", found)],
         ),
+        carrier::Trouble::CloudBinned { provider } => {
+            lang.fill("cloud-binned", &[("provider", provider)])
+        }
+        carrier::Trouble::CloudSpent { provider } => {
+            lang.fill("cloud-spent", &[("provider", provider)])
+        }
+        carrier::Trouble::StuckOn { name, why } => {
+            lang.fill("sync-stuck-on", &[("name", name), ("why", why)])
+        }
         carrier::Trouble::NotNow(_) => lang.fill("cloud-not-now", &[]),
     };
     eprintln!("{text}");

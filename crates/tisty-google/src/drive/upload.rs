@@ -152,7 +152,9 @@ impl Drive {
         loop {
             match self.kept_so_far(session, bytes) {
                 Ok(kept) => return Ok(kept),
-                Err(Hitch::Unreachable(_) | Hitch::Limited { .. }) if *failed + 1 < TRIES => {
+                Err(Hitch::Unreachable(_) | Hitch::Troubled(_) | Hitch::Limited { .. })
+                    if *failed + 1 < TRIES =>
+                {
                     *failed += 1;
                     std::thread::sleep(PAUSE * *failed);
                 }

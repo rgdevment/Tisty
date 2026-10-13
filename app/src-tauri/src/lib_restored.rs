@@ -1,5 +1,5 @@
 use super::Session;
-use super::answers::storing::went_back_on;
+use super::answers::storing::{went_back_asking, went_back_on};
 use tisty_core::Paths;
 
 struct Desk {
@@ -89,5 +89,23 @@ fn an_empty_folder_is_open_to_a_store_that_went_back() {
             tisty_carrier::considering(desk.shared.clone()).theirs()
         ),
         "a folder that holds nothing has nothing to bring back"
+    );
+}
+
+#[test]
+fn a_store_never_restored_does_not_ask_the_carrier_whose_store_it_holds() {
+    let desk = desk();
+    let session = Session::at(desk.paths.clone()).unwrap();
+    let asked = std::cell::Cell::new(false);
+
+    let went_back = went_back_asking(&session, || {
+        asked.set(true);
+        None
+    });
+
+    assert!(!went_back, "nothing was restored");
+    assert!(
+        !asked.get(),
+        "asking a cloud whose store it holds would bring its whole history under the session"
     );
 }

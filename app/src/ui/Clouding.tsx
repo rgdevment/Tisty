@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
-import { type Connected, cloudChoose, cloudConnect, syncState } from "../core";
+import { type Connected, cloudChoose, cloudConnect, cloudConnectCancel, syncState } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -19,6 +19,9 @@ const heading = "block text-[12.5px] font-semibold text-ink";
 const back = "text-faint hover:text-ink disabled:opacity-60";
 const go =
   "ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60";
+
+// Only the newest sign-in may let an account go: an older one ending late would take a newer token with it.
+let asking = 0;
 
 function Mark({ letter, hue }: { letter: string; hue: string }) {
   return (
@@ -55,6 +58,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
     gone.current = false;
     return () => {
       gone.current = true;
+      cloudConnectCancel().catch(() => undefined);
       // Closed with an account connected and never started on: its access is let go of.
       if (unused.current) letGoUnused(unused.current);
     };
@@ -73,14 +77,20 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
     if (stuck) return;
     onTrouble(undefined);
     setWaiting(true);
+    const mine = ++asking;
     cloudConnect()
       .then((account) => {
-        if (gone.current) return letGoUnused(account.account);
+        if (gone.current) return mine === asking ? letGoUnused(account.account) : undefined;
         unused.current = account.account;
         setConnected(account);
       })
-      .catch((e) => !gone.current && onTrouble(saidPlainly(e)))
-      .finally(() => !gone.current && setWaiting(false));
+      .catch((e) => !gone.current && e?.code !== "cloudDropped" && onTrouble(saidPlainly(e)))
+      .finally(() => !gone.current && mine === asking && setWaiting(false));
+  };
+
+  const stopWaiting = () => {
+    cloudConnectCancel().catch(() => undefined);
+    setWaiting(false);
   };
 
   const leave = () => {
@@ -181,7 +191,10 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
       />
       {waiting && (
         <p role="status" aria-live="polite" className="text-[11.5px] text-faint">
-          {t("cloudWaiting")}
+          {t("cloudWaiting")}{" "}
+          <button type="button" onClick={stopWaiting} className="text-accent hover:underline">
+            {t("cancel")}
+          </button>
         </p>
       )}
       <div className="flex items-center gap-4 text-[11.5px]">

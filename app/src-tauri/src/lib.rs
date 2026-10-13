@@ -390,7 +390,10 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::Newer(who) => Refusal::about("syncNewer", who),
         tisty_carrier::Trouble::Unreadable(why) => Refusal::about("syncUnreadable", why),
         tisty_carrier::Trouble::Refused(why) => Refusal::about("syncRefused", why),
-        tisty_carrier::Trouble::Broke(why) => Refusal::about("syncBroke", why),
+        tisty_carrier::Trouble::Broke(why) => {
+            told_in_the_log(&why);
+            Refusal::of("syncFailed")
+        }
         tisty_carrier::Trouble::WouldReset { theirs } => Refusal::about("wouldReset", theirs),
         tisty_carrier::Trouble::NotAllowed(who) => Refusal::about("notAllowed", who),
         tisty_carrier::Trouble::Emptied(at) => Refusal::about("emptiedPlace", at),
@@ -405,7 +408,48 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }
+        tisty_carrier::Trouble::CloudBinned { provider } => Refusal::about("cloudBinned", provider),
+        tisty_carrier::Trouble::CloudSpent { provider } => Refusal::about("cloudSpent", provider),
+        tisty_carrier::Trouble::StuckOn { name, why } => {
+            told_in_the_log(&why);
+            match name.strip_prefix("docs/") {
+                Some(_) => Refusal::about("syncStuckDoc", name),
+                None => Refusal::about(
+                    "syncStuckHistory",
+                    tisty_core::config::nicknamed(name.split('/').nth(1).unwrap_or_default()),
+                ),
+            }
+        }
         tisty_carrier::Trouble::NotNow(_) => Refusal::of("cloudNotNow"),
+    }
+}
+
+// What a provider or the system says is English and technical, so the person reads a sentence and the log keeps it.
+fn told_in_the_log(why: &str) {
+    witness::warn(
+        channel::SYNC,
+        "a sync could not be finished",
+        &[("why", Fact::Why(why.to_string()))],
+    );
+}
+
+/// As `said`, with a document that held the round back named by its title.
+fn said_carrying(paths: &tisty_core::Paths, trouble: tisty_carrier::Trouble) -> Refusal {
+    let refusal = said(trouble);
+    let titled = refusal
+        .name
+        .as_deref()
+        .filter(|_| refusal.code == "syncStuckDoc")
+        .and_then(|name| name.strip_prefix("docs/"))
+        .and_then(|leaf| leaf.strip_suffix(".md"))
+        .and_then(|id| tisty_core::docs::title_of(&paths.docs(), id))
+        .filter(|title| !title.trim().is_empty());
+    match titled {
+        Some(title) => Refusal {
+            name: Some(title),
+            ..refusal
+        },
+        None => refusal,
     }
 }
 
@@ -897,6 +941,7 @@ pub fn run() {
         .setup(settled)
         .on_window_event(window_event)
         .manage(OneAtATime::default())
+        .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(Packing::default())
@@ -925,6 +970,7 @@ pub fn run() {
             reachable,
             take_out_of_reach,
             answers::clouding::cloud_connect,
+            answers::clouding::cloud_connect_cancel,
             answers::clouding::cloud_choose,
             answers::clouding::cloud_forget,
             answers::clouding::cloud_revoke,
@@ -1154,3 +1200,7 @@ mod ordering;
 #[cfg(test)]
 #[path = "lib_restored.rs"]
 mod restored;
+
+#[cfg(test)]
+#[path = "lib_sync_said.rs"]
+mod sync_said;

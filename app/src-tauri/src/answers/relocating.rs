@@ -289,6 +289,8 @@ fn waiting(
             tisty_carrier::Reason::Busy => "busy",
             tisty_carrier::Reason::Paused => "paused",
             tisty_carrier::Reason::Changed => "changed",
+            tisty_carrier::Reason::Troubled => "troubled",
+            tisty_carrier::Reason::Unsent => "unsent",
         }),
     }
 }

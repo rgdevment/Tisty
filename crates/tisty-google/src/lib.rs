@@ -1,5 +1,7 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use base64::Engine;
@@ -89,6 +91,28 @@ pub struct Consent {
     verifier: String,
     redirect: String,
     listener: TcpListener,
+    dropped: Arc<AtomicBool>,
+}
+
+/// How a sign-in that gave no grant ended, so the window tells waiting too long from saying no.
+#[derive(Debug)]
+pub enum Ended {
+    NoAnswer,
+    /// Let go of here: by the person, or by a newer sign-in.
+    Dropped,
+    Failed(Hitch),
+}
+
+impl From<Hitch> for Ended {
+    fn from(hitch: Hitch) -> Self {
+        Ended::Failed(hitch)
+    }
+}
+
+impl From<std::io::Error> for Ended {
+    fn from(e: std::io::Error) -> Self {
+        Ended::Failed(e.into())
+    }
 }
 
 impl Consent {
@@ -115,11 +139,17 @@ impl Consent {
             verifier,
             redirect,
             listener,
+            dropped: Arc::default(),
         })
     }
 
+    /// Set from anywhere, it ends the wait for the browser at once.
+    pub fn dropping(&self) -> Arc<AtomicBool> {
+        self.dropped.clone()
+    }
+
     // The browser is told how it ended only once the code is traded and the grant is known good.
-    pub fn finish(self, within: Duration, at: &Endpoints) -> Result<Granted, Hitch> {
+    pub fn finish(self, within: Duration, at: &Endpoints) -> Result<Granted, Ended> {
         let (code, mut browser) = self.answered(within)?;
         let granted = self.traded(&code, at);
         answer(
@@ -131,7 +161,7 @@ impl Consent {
                 NOT_CONNECTED
             },
         );
-        granted
+        granted.map_err(Ended::from)
     }
 
     fn traded(&self, code: &str, at: &Endpoints) -> Result<Granted, Hitch> {
@@ -166,19 +196,22 @@ impl Consent {
         })
     }
 
-    fn answered(&self, within: Duration) -> Result<(String, TcpStream), Hitch> {
+    fn answered(&self, within: Duration) -> Result<(String, TcpStream), Ended> {
         self.listener.set_nonblocking(true)?;
         let until = Instant::now().checked_add(within);
         loop {
+            if self.dropped.load(Ordering::Relaxed) {
+                return Err(Ended::Dropped);
+            }
             match self.listener.accept() {
                 Ok((stream, _)) => match self.heard(stream) {
                     Heard::Code(code, browser) => return Ok((code, browser)),
-                    Heard::Refused(hitch) => return Err(hitch),
+                    Heard::Refused(hitch) => return Err(hitch.into()),
                     Heard::Elsewhere => {}
                 },
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     if until.is_some_and(|until| Instant::now() >= until) {
-                        return Err(Hitch::Lost);
+                        return Err(Ended::NoAnswer);
                     }
                     std::thread::sleep(LISTENED_EVERY);
                 }
