@@ -303,7 +303,7 @@ fn a_tisty_folder_put_in_the_bin_stops_the_round_instead_of_reading_an_empty_dri
 
     let stopped = drive(at, home.path()).list("");
 
-    assert!(matches!(stopped, Err(Hitch::Broke(_))), "{stopped:?}");
+    assert_eq!(stopped, Err(Hitch::Binned));
     assert_eq!(
         asked.join().unwrap().len(),
         2,
@@ -1455,7 +1455,7 @@ fn bytes_that_could_not_go_back_at_once_go_back_before_the_next_change_is_read()
     let drive = drive(at, home.path()).owing_at(home.path());
 
     let first = drive.put("a.md", &local, Expect::Revision("A.1".into()));
-    assert!(matches!(first, Err(Hitch::Unreachable(_))), "{first:?}");
+    assert!(matches!(first, Err(Hitch::Troubled(_))), "{first:?}");
     assert!(home.path().join(tisty_carrier::OWED_BACK).is_file());
 
     drive.changes(Some("10")).unwrap();
@@ -1550,3 +1550,6 @@ fn a_debt_whose_file_moved_on_keeps_the_bytes_in_drive_s_history_and_writes_over
     );
     assert!(!home.path().join(tisty_carrier::OWED_BACK).exists());
 }
+
+#[path = "drive_answers_test.rs"]
+mod answers;

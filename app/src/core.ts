@@ -745,6 +745,7 @@ export interface CloudStatus {
 }
 
 export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
+export const cloudConnectCancel = (): Promise<void> => invoke("cloud_connect_cancel");
 export const cloudChoose = (account: string, email: string): Promise<void> =>
   invoke("cloud_choose", { account, email });
 export const cloudForget = (account?: string): Promise<void> => invoke("cloud_forget", { account });
@@ -801,10 +802,11 @@ export interface Settled {
   unprojected: boolean;
   joined: string[];
   deferred?: Waiting | null;
+  refused?: { code: string; name?: string | null } | null;
 }
 
 export type Waiting = {
-  reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused";
+  reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused" | "troubled" | "unsent";
   left: number;
   names: string[];
 };
@@ -823,6 +825,8 @@ const WAITS = {
   limit: "deferredLimit",
   offline: "deferredOffline",
   paused: "deferredPaused",
+  troubled: "deferredTroubled",
+  unsent: "deferredUnsent",
 } as const;
 
 // A round left for later is no error, and a busy or changed one retries by itself, so only these are said.

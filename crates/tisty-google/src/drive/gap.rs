@@ -26,7 +26,7 @@ struct Revisions {
     next_page_token: Option<String>,
 }
 
-fn version(file: &File) -> u64 {
+pub(super) fn version(file: &File) -> u64 {
     file.version
         .as_deref()
         .and_then(|one| one.parse().ok())
@@ -81,10 +81,7 @@ impl Drive {
                 return Err(failed);
             }
         };
-        self.owned(
-            &restored.id,
-            Some(restored.version.clone().unwrap_or_else(|| "0".into())),
-        );
+        // Never noted as this machine's own: the bytes put back are another machine's, and must come as its change.
         self.noted(|tree| {
             if let Some(first) = tree
                 .files
@@ -202,19 +199,13 @@ impl Drive {
             self.owned(&checked.id, None);
             return Ok(());
         }
-        let back = match self.trashed(&checked.id, false) {
-            Ok(back) => back,
-            Err(failed) => {
-                self.owe(Owed::Unbinned {
-                    id: checked.id.clone(),
-                });
-                return Err(failed);
-            }
-        };
-        self.owned(
-            &back.id,
-            Some(back.version.clone().unwrap_or_else(|| "0".into())),
-        );
+        // Never noted as this machine's own: what comes back out of the bin is another machine's, and must come as its change.
+        if let Err(failed) = self.trashed(&checked.id, false) {
+            self.owe(Owed::Unbinned {
+                id: checked.id.clone(),
+            });
+            return Err(failed);
+        }
         Err(Hitch::Changed(name.to_string()))
     }
 

@@ -1,4 +1,5 @@
 import { noteTrouble } from "./core";
+import { budgetResets } from "./format";
 import { fill, t } from "./locales";
 
 export interface Refusal {
@@ -62,6 +63,13 @@ const KNOWN = [
   "syncUnreadable",
   "syncRefused",
   "syncBroke",
+  "syncFailed",
+  "syncStuckDoc",
+  "syncStuckHistory",
+  "cloudBinned",
+  "cloudSpent",
+  "cloudNoAnswer",
+  "cloudDropped",
   "cloudFull",
   "cloudLost",
   "cloudElsewhere",
@@ -221,6 +229,7 @@ export function plainly(problem: unknown): string {
   if (!isKnown(refusal.code)) {
     return technical(refusal.name ?? refusal.code);
   }
+  if (refusal.code === "cloudSpent") return fill(refusal.code, refusal.name ?? "", budgetResets());
   return refusal.name ? fill(refusal.code, refusal.name) : t(refusal.code);
 }
 

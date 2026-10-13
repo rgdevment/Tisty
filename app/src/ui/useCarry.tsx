@@ -4,7 +4,7 @@ import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../c
 import { decideAll, putOffSaid } from "../deciding";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { syncSaid, whatsLeft } from "../syncSaid";
+import { syncSaid, waitSaid, whatsLeft } from "../syncSaid";
 import Apart, { type Door } from "./Apart";
 import type { Which, Word } from "./Card";
 
@@ -57,6 +57,11 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
       const waits = whatWaits(answer);
       if (amiss) {
         fail({ card: "sync", text: t(amiss) });
+      } else if (answer.refused) {
+        fail({
+          card: "sync",
+          text: saidPlainly({ code: answer.refused.code, name: answer.refused.name ?? undefined }),
+        });
       } else if (said) {
         fail({ card: "sync", text: said });
       } else if (putOff.length) {
@@ -64,7 +69,10 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
       } else if (answer.joined?.length) {
         tell({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
       } else if (waits) {
-        tell({ card: "sync", text: [t(waits), whatsLeft(answer)].filter(Boolean).join(" ") });
+        tell({
+          card: "sync",
+          text: [waitSaid(waits), whatsLeft(answer)].filter(Boolean).join(" "),
+        });
       } else {
         tell({ card: "sync", text: syncSaid(answer) });
       }

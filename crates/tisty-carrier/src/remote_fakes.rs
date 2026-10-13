@@ -64,6 +64,8 @@ struct Shelf {
     failing: VecDeque<Option<Hitch>>,
     uploads: Vec<String>,
     counts: Counts,
+    unheard: BTreeSet<String>,
+    refusing: Option<(String, Hitch)>,
 }
 
 pub struct Fake {
@@ -74,6 +76,7 @@ pub struct Fake {
     lag: u64,
     expires_cursors: bool,
     poll: Option<Duration>,
+    restores_unheard: bool,
     shelf: Arc<Mutex<Shelf>>,
     gap: Mutex<Option<Gap>>,
 }
@@ -91,6 +94,7 @@ impl Fake {
             lag: 0,
             expires_cursors: false,
             poll: None,
+            restores_unheard: false,
             shelf: Arc::default(),
             gap: Mutex::new(None),
         }
@@ -140,6 +144,12 @@ impl Fake {
         self
     }
 
+    /// The bytes a gap put back on top are never told as a change, as a Drive that took them for its own write.
+    pub fn restoring_unheard(mut self) -> Self {
+        self.restores_unheard = true;
+        self
+    }
+
     pub fn in_the_gap(&self, name: &str, meanwhile: impl FnOnce() + Send + 'static) {
         if let Ok(mut gap) = self.gap.lock() {
             *gap = Some((name.to_string(), Box::new(meanwhile)));
@@ -152,6 +162,11 @@ impl Fake {
             Some((waiting, _)) if waiting == name => gap.take().map(|(_, run)| run),
             _ => None,
         }
+    }
+
+    /// Every write of a name that starts so is refused with this, as a provider that will not take some files.
+    pub fn refusing(&self, starting: &str, hitch: Hitch) {
+        self.lock().refusing = Some((starting.to_string(), hitch));
     }
 
     pub fn truncate_next(&self, fetches: usize) {
@@ -473,6 +488,15 @@ impl Remote for Fake {
         let mut shelf = self.lock();
         shelf.counts.puts += 1;
         self.gate(&mut shelf, limits.costs.put)?;
+        let refused = shelf
+            .refusing
+            .as_ref()
+            .filter(|(starting, _)| name.starts_with(starting.as_str()))
+            .map(|(_, hitch)| hitch.clone());
+        if let Some(hitch) = refused {
+            self.spend(&mut shelf, 1, limits.costs.put);
+            return Err(hitch);
+        }
         let at = match self.allowed(&shelf, name, &expect) {
             Ok(at) => at,
             Err(refused) => {
@@ -501,7 +525,10 @@ impl Remote for Fake {
         match theirs {
             // As Drive does it: what the gap let in goes back on top, and this write is refused.
             Some(theirs) => {
-                self.written(&mut shelf, name, theirs, now);
+                let back = self.written(&mut shelf, name, theirs, now);
+                if self.restores_unheard {
+                    shelf.unheard.insert(back.revision);
+                }
                 Err(Hitch::Changed(name.to_string()))
             }
             None => Ok(landed),
@@ -594,7 +621,7 @@ impl Remote for Fake {
                     .into_iter()
                     .filter(|name| held.as_ref().is_none_or(|seen| seen.name != *name)),
             );
-            changed.extend(held);
+            changed.extend(held.filter(|seen| !shelf.unheard.contains(&seen.revision)));
         }
         let requests = limits.requests_to_list(changed.len() + gone.len());
         self.spend(&mut shelf, requests, limits.costs.changes);

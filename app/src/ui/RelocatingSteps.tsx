@@ -1,6 +1,7 @@
 import type { Carrying, MovePlan, Moving, Toward } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
+import { waitSaid } from "../syncSaid";
 
 export interface Along {
   stage: "log" | "papers" | "attachments";
@@ -17,10 +18,12 @@ const STAGE = {
 const WAITS = {
   budget: "deferredBudget",
   limit: "deferredLimit",
-  busy: "deferredLimit",
-  changed: "deferredLimit",
+  busy: "deferredBusy",
+  changed: "deferredChanged",
   offline: "deferredOffline",
   paused: "deferredPaused",
+  troubled: "deferredTroubled",
+  unsent: "deferredUnsent",
   unsettled: "moveUnsettled",
 } as const;
 
@@ -187,7 +190,7 @@ export function Waiting({
 }) {
   const why =
     result.reason && result.reason in WAITS
-      ? t(WAITS[result.reason as keyof typeof WAITS])
+      ? waitSaid(WAITS[result.reason as keyof typeof WAITS])
       : t("moveStuck");
   return (
     <div className="flex flex-col gap-3">

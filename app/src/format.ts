@@ -24,6 +24,16 @@ function formats(): Formats {
 
 const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
+// The cloud's day turns at midnight UTC, which is some other hour here, so the hour is said as it falls locally.
+export function budgetResets(now = new Date()): string {
+  const turns = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const clock = formats().clock.format(turns);
+  const one = turns.getHours() === 1;
+  if (midnight(turns) === midnight(now))
+    return fill(one ? "budgetResetsTodayAtOne" : "budgetResetsToday", clock);
+  return fill(one ? "budgetResetsTomorrowAtOne" : "budgetResetsTomorrow", clock);
+}
+
 export function stamped(iso: string, now = new Date()): string {
   const at = new Date(iso);
   const time = formats().clock.format(at);

@@ -6,7 +6,7 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
     Answer, Carrying, Filter, OneAtATime, Refusal, Scope, Session, Settling, blamed, elsewhere,
-    glimpse, held, report, room, said, session, show, today, within,
+    glimpse, held, report, room, said, said_carrying, session, show, today, within,
 };
 
 fn said_now_held(session: &tauri::State<'_, Mutex<Session>>, took_in: &[(String, String, u64)]) {
@@ -513,8 +513,13 @@ fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> 
 }
 
 pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
+    went_back_asking(session, || theirs)
+}
+
+// Only a restored store asks whose store is there, since the first look at a cloud brings its whole history.
+pub(crate) fn went_back_asking(session: &Session, theirs: impl FnOnce() -> Option<String>) -> bool {
     session.config.restored_at.is_some()
-        && theirs.is_some_and(|theirs| {
+        && theirs().is_some_and(|theirs| {
             tisty_core::store::peek_identity(session.paths.store())
                 .is_some_and(|ours| ours.trim() == theirs.trim())
         })
@@ -737,6 +742,7 @@ pub async fn sync_now(
             unprojected: false,
             joined: Vec::new(),
             deferred: None,
+            refused: None,
         });
     };
     let (was, home) = {
@@ -774,6 +780,16 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) {
     let at = jiff::Timestamp::now().as_second().unsigned_abs();
     let round = match done {
         Ok(settled) if settled.carried == "busy" => return,
+        Ok(Settled {
+            refused: Some(stuck),
+            ..
+        }) => tisty_carrier::LastRound {
+            at,
+            code: stuck.code.into(),
+            name: stuck.name.clone(),
+            left: 0,
+            names: Vec::new(),
+        },
         Ok(settled) => match &settled.deferred {
             Some(waiting) => tisty_carrier::LastRound {
                 at,
@@ -854,7 +870,7 @@ async fn carried_round(
     let (carrier, paths, home, store, alive, holds, owing, place) = {
         let session = held(session);
         let carrier = session.carrying()?;
-        if went_back_on(&session, carrier.theirs()) {
+        if went_back_asking(&session, || carrier.theirs()) {
             let named = carrier.place().map(|at| at.display().to_string());
             return Err(Refusal::about("restoredApart", named.unwrap_or_default()));
         }
@@ -905,7 +921,9 @@ async fn carried_round(
         done
     })
     .await;
-    let done = done.map_err(|_| Refusal::of("internal"))?.map_err(said)?;
+    let done = done
+        .map_err(|_| Refusal::of("internal"))?
+        .map_err(|trouble| said_carrying(&paths, trouble))?;
     answering(session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
@@ -994,10 +1012,24 @@ async fn carried_round(
         );
     }
     let heard = done.brought > 0;
-    let _ = session.keep(|c| {
-        c.synced_at = Some(jiff::Timestamp::now());
-        if heard {
-            c.heard_at = c.synced_at;
+    if synced_now(
+        done.deferred.as_ref(),
+        done.refused.is_some(),
+        carried,
+        moved,
+    ) {
+        let _ = session.keep(|c| {
+            c.synced_at = Some(jiff::Timestamp::now());
+            if heard {
+                c.heard_at = c.synced_at;
+            }
+        });
+    }
+    let refused = done.refused.clone().map(|trouble| {
+        let refusal = said_carrying(&paths, trouble);
+        Stuck {
+            code: refusal.code,
+            name: refusal.name,
         }
     });
     Ok(Settled {
@@ -1023,11 +1055,26 @@ async fn carried_round(
                 tisty_carrier::Reason::Busy => "busy",
                 tisty_carrier::Reason::Paused => "paused",
                 tisty_carrier::Reason::Changed => "changed",
+                tisty_carrier::Reason::Troubled => "troubled",
+                tisty_carrier::Reason::Unsent => "unsent",
             },
             left: deferred.left,
             names: deferred.names,
         }),
+        refused,
     })
+}
+
+// A round left for later or stopped that moved nothing did not sync, so the window does not say it just did.
+pub(crate) fn synced_now(
+    deferred: Option<&tisty_carrier::Deferred>,
+    refused: bool,
+    carried: usize,
+    moved: bool,
+) -> bool {
+    carried > 0
+        || moved
+        || (!refused && deferred.is_none_or(|one| one.reason == tisty_carrier::Reason::Unsent))
 }
 
 #[derive(serde::Serialize)]
@@ -1043,6 +1090,8 @@ pub struct Settled {
     unprojected: bool,
     joined: Vec<String>,
     deferred: Option<Waiting>,
+    /// What stopped the round after part of it went through, said as a refusal would be.
+    refused: Option<Stuck>,
 }
 
 #[derive(serde::Serialize)]

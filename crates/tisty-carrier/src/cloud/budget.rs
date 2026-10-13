@@ -32,7 +32,13 @@ impl Spent {
         let today = today();
         std::fs::read(home.join(FILE))
             .ok()
-            .and_then(|bytes| serde_json::from_slice::<Spent>(&bytes).ok())
+            .and_then(|bytes| match serde_json::from_slice::<Spent>(&bytes) {
+                Ok(spent) => Some(spent),
+                Err(why) => {
+                    unreadable_once(&why);
+                    None
+                }
+            })
             .filter(|spent| spent.day == today)
             .unwrap_or(Spent {
                 day: today,
@@ -46,6 +52,23 @@ impl Spent {
             let _ = tisty_core::store::write_atomic(&home.join(FILE), &bytes);
         }
     }
+}
+
+// Read as nothing spent, since the budget only guards against a loop; said once, not on every request.
+fn unreadable_once(why: &serde_json::Error) {
+    static SAID: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if !SAID.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::CLOUD,
+            "what the cloud spent today could not be read, so it starts again from nothing",
+            &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+        );
+    }
+}
+
+// A request that never left this machine cost the provider nothing.
+fn went_out<T>(answer: &Result<T, Hitch>) -> bool {
+    !matches!(answer, Err(Hitch::Unreachable(_)))
 }
 
 fn today() -> u64 {
@@ -194,11 +217,13 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let seen = self.remote.list(under);
         let entries = seen.as_ref().map_or(0, Vec::len);
-        self.charge(
-            self.limits.requests_to_list(entries),
-            self.limits.costs.list,
-            0,
-        );
+        if went_out(&seen) {
+            self.charge(
+                self.limits.requests_to_list(entries),
+                self.limits.costs.list,
+                0,
+            );
+        }
         seen
     }
 
@@ -206,7 +231,9 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let mut tallied = Tallied { into, bytes: 0 };
         let got = self.remote.fetch(name, from, &mut tallied);
-        self.charge_checked(1, self.limits.costs.fetch, tallied.bytes);
+        if went_out(&got) || tallied.bytes > 0 {
+            self.charge_checked(1, self.limits.costs.fetch, tallied.bytes);
+        }
         got
     }
 
@@ -214,6 +241,7 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
         let put = self.remote.put(name, from, expect);
+        // Bytes may have gone up before the answer broke, so an upload is charged however it ended.
         self.charge_checked(
             self.limits.requests_to_put(weighs),
             self.limits.costs.put,
@@ -225,7 +253,9 @@ impl Remote for Metered<'_> {
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         self.allowed()?;
         let gone = self.remote.delete(name, expect);
-        self.charge_checked(1, self.limits.costs.delete, 0);
+        if went_out(&gone) {
+            self.charge_checked(1, self.limits.costs.delete, 0);
+        }
         gone
     }
 
@@ -236,7 +266,9 @@ impl Remote for Metered<'_> {
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
         self.allowed()?;
         let seen = self.remote.about(name);
-        self.charge(1, self.limits.costs.about, 0);
+        if went_out(&seen) {
+            self.charge(1, self.limits.costs.about, 0);
+        }
         seen
     }
 
@@ -248,11 +280,13 @@ impl Remote for Metered<'_> {
             Ok(Changes::Since { changed, gone, .. }) => changed.len() + gone.len(),
             Err(_) => 0,
         };
-        self.charge(
-            self.limits.requests_to_list(entries),
-            self.limits.costs.changes,
-            0,
-        );
+        if went_out(&changes) {
+            self.charge(
+                self.limits.requests_to_list(entries),
+                self.limits.costs.changes,
+                0,
+            );
+        }
         changes
     }
 
