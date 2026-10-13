@@ -5,6 +5,7 @@ use reqwest::Method;
 use tisty_carrier::Hitch;
 
 use super::Drive;
+use super::sessions::key_of;
 use super::tree::{FILE_FIELDS, File};
 use super::wire::{given, json, judged};
 use crate::ASKED_WITHIN;
@@ -38,7 +39,7 @@ impl Drive {
         };
         match bytes <= WHOLE_AT_MOST.min(self.chunk) {
             true => self.sent_whole(&url, method, &meta, from),
-            false => self.sent_in_parts(&url, method, &meta, from, bytes),
+            false => self.sent_in_parts(&url, method, &meta, (name, from), bytes),
         }
     }
 
@@ -69,14 +70,41 @@ impl Drive {
         })?)
     }
 
+    // The session is written down, so a long upload cut short goes on from where it was next round.
     fn sent_in_parts(
         &self,
         url: &str,
         method: Method,
         meta: &serde_json::Value,
-        from: &Path,
+        (name, from): (&str, &Path),
         bytes: u64,
     ) -> Result<File, Hitch> {
+        let key = key_of(url, &format!("{name}\u{0}{meta}"), from, bytes);
+        let (session, at) = match self.reopened(key.as_deref(), bytes)? {
+            Reopened::At(session, at) => (session, at),
+            Reopened::Done(file) => return Ok(*file),
+            Reopened::Fresh => {
+                let session = self.opened(url, method, meta, bytes)?;
+                if let Some(key) = &key {
+                    self.session_opened(key, &session);
+                }
+                (session, 0)
+            }
+        };
+        let done = self.sent_from(&session, from, bytes, at);
+        if let (Ok(_), Some(key)) = (&done, &key) {
+            self.session_closed(key);
+        }
+        done
+    }
+
+    fn opened(
+        &self,
+        url: &str,
+        method: Method,
+        meta: &serde_json::Value,
+        bytes: u64,
+    ) -> Result<String, Hitch> {
         let opened = self.call(Some(ASKED_WITHIN), |http| {
             http.request(method.clone(), url)
                 .query(&[("uploadType", "resumable"), ("fields", FILE_FIELDS)])
@@ -84,14 +112,42 @@ impl Drive {
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
                 .body(meta.to_string())
         })?;
-        let session = opened
+        Ok(opened
             .headers()
             .get(reqwest::header::LOCATION)
             .and_then(|one| one.to_str().ok())
             .ok_or_else(|| Hitch::Broke("Google opened no upload session".into()))?
-            .to_string();
+            .to_string())
+    }
+
+    fn reopened(&self, key: Option<&str>, bytes: u64) -> Result<Reopened, Hitch> {
+        let Some((key, session)) = key.and_then(|key| Some((key, self.session_for(key)?))) else {
+            return Ok(Reopened::Fresh);
+        };
+        match self.kept_so_far(&session, bytes) {
+            Ok(Kept::At(at)) if at < bytes => Ok(Reopened::At(session, at)),
+            Ok(Kept::Done(file)) => {
+                self.session_closed(key);
+                Ok(Reopened::Done(file))
+            }
+            Err(waits @ (Hitch::Unreachable(_) | Hitch::Troubled(_) | Hitch::Limited { .. })) => {
+                Err(waits)
+            }
+            _ => {
+                self.session_closed(key);
+                Ok(Reopened::Fresh)
+            }
+        }
+    }
+
+    fn sent_from(
+        &self,
+        session: &str,
+        from: &Path,
+        bytes: u64,
+        mut at: u64,
+    ) -> Result<File, Hitch> {
         let mut file = std::fs::File::open(from)?;
-        let mut at = 0u64;
         let mut failed = 0;
         loop {
             let take = self.chunk.min(bytes - at);
@@ -100,7 +156,7 @@ impl Drive {
             file.read_exact(&mut part)?;
             let sent = self
                 .http
-                .put(&session)
+                .put(session)
                 .timeout(given(take))
                 .header(
                     reqwest::header::CONTENT_RANGE,
@@ -115,9 +171,14 @@ impl Drive {
             };
             if broke && failed + 1 < TRIES {
                 failed += 1;
-                match self.resumed(&session, bytes, &mut failed)? {
+                match self.resumed(session, bytes, &mut failed)? {
                     Kept::At(next) => at = next,
                     Kept::Done(file) => return Ok(*file),
+                    Kept::Lost => {
+                        return Err(Hitch::Unreachable(
+                            "Google let go of the upload session, so it starts over".into(),
+                        ));
+                    }
                 }
                 if at >= bytes {
                     return Err(Hitch::Broke(
@@ -175,9 +236,7 @@ impl Drive {
             308 => Ok(Kept::At(stored(&answer))),
             200 | 201 => Ok(Kept::Done(Box::new(json(answer)?))),
             // Google's word for a session it let go of: the upload starts over, the file is not missing.
-            404 => Err(Hitch::Unreachable(
-                "Google let go of the upload session, so it starts over".into(),
-            )),
+            404 | 410 => Ok(Kept::Lost),
             _ => Err(judged(answer)
                 .err()
                 .unwrap_or_else(|| Hitch::Broke("the upload session ended".into()))),
@@ -188,6 +247,13 @@ impl Drive {
 enum Kept {
     At(u64),
     Done(Box<File>),
+    Lost,
+}
+
+enum Reopened {
+    At(String, u64),
+    Done(Box<File>),
+    Fresh,
 }
 
 fn stored(answer: &reqwest::blocking::Response) -> u64 {

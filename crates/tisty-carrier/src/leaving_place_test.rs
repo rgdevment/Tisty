@@ -17,6 +17,25 @@ fn a_fresh_machine_sees_that_a_place_already_holds_a_tisty() {
 }
 
 #[test]
+fn a_machine_leaving_a_place_knows_who_else_still_writes_there() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("de uno");
+        one.round(Way::Both);
+        assert!(one.carrier.others(&one.here).is_empty(), "{who}");
+
+        two.round(Way::Pull);
+        two.wrote("de dos");
+        two.round(Way::Both);
+        one.round(Way::Pull);
+
+        assert_eq!(one.carrier.others(&one.here), ["dev_b"], "{who}");
+        assert_eq!(two.carrier.others(&two.here), ["dev_a"], "{who}");
+    }
+}
+
+#[test]
 fn wiping_a_cloud_bins_every_copy_and_keeps_only_the_word_for_the_others() {
     for setting in clouds() {
         let who = &setting.name;

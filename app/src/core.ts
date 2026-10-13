@@ -766,6 +766,7 @@ export interface MovePlan {
   up: Weight;
   fromCloud: boolean;
   toCloud: boolean;
+  others: number;
 }
 export type Moving =
   | {

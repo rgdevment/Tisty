@@ -61,6 +61,14 @@ pub(crate) fn names_in(dest: &Path) -> BTreeSet<String> {
         .collect()
 }
 
+/// The other machines writing in a place: the ones a word left there is meant for.
+pub fn others_in(dest: &Path, device: &str) -> Vec<String> {
+    names_in(dest)
+        .into_iter()
+        .filter(|named| !named.eq_ignore_ascii_case(device))
+        .collect()
+}
+
 /// A machine still in the cloud on joining would otherwise wait for the confirmation joining gave.
 pub(crate) fn still_adopting(
     aside: Option<&Path>,

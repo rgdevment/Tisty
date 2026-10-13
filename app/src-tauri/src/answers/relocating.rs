@@ -44,6 +44,8 @@ pub struct Plan {
     up: Weight,
     from_cloud: bool,
     to_cloud: bool,
+    /// Machines still writing in the place left: only those that confirmed this one follow its word.
+    others: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -179,6 +181,10 @@ pub async fn move_plan(session: tauri::State<'_, Mutex<Session>>, toward: Toward
             },
             from_cloud: ends.from.as_ref().is_some_and(|from| from.frees_space()),
             to_cloud: ends.to.as_ref().is_some_and(|to| to.frees_space()),
+            others: ends
+                .from
+                .as_deref()
+                .map_or(0, |from| from.others(&ends.here).len()),
         }
     })
     .await

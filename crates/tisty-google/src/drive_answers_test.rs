@@ -242,3 +242,105 @@ fn a_repayment_already_running_elsewhere_is_not_run_twice() {
         br#"[{"owed":"unbinned","id":"A"}]"#
     );
 }
+
+#[test]
+fn a_quota_of_the_project_is_a_wait_and_only_a_quota_of_storage_is_a_full_drive() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let refused = |reason: &str, message: &str| {
+        format!(r#"{{"error":{{"message":"{message}","errors":[{{"reason":"{reason}"}}]}}}}"#)
+    };
+    let (at, _) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said(
+            "403 Forbidden",
+            &refused("quotaExceeded", "Quota exceeded for quota metric 'Queries'"),
+        ),
+        said("200 OK", &listing("")),
+        said(
+            "403 Forbidden",
+            &refused(
+                "quotaExceeded",
+                "The user's Drive storage quota has been exceeded.",
+            ),
+        ),
+    ]);
+    let drive = drive(at, home.path());
+
+    assert_eq!(
+        drive.put("a.md", &local, Expect::Any),
+        Err(Hitch::Limited {
+            wait: Duration::from_secs(3600)
+        }),
+        "a quota of the project was told as a full Drive"
+    );
+    assert_eq!(drive.put("a.md", &local, Expect::Any), Err(Hitch::Full));
+}
+
+#[test]
+fn a_long_upload_cut_short_goes_on_next_round_from_where_google_kept_it() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"0123456789");
+    let landed = r#"{"id":"B","name":"big.bin","parents":["R"],"size":"10","sha256Checksum":"x","version":"1"}"#;
+    let kept_up_to = |last: u64| Said {
+        status: "308 Resume Incomplete",
+        headers: format!("Range: bytes=0-{last}\r\n"),
+        body: String::new(),
+    };
+    let (at, asked) = google_at(|base| {
+        vec![
+            said("200 OK", &whole("")),
+            said("200 OK", &listing("")),
+            Said {
+                status: "200 OK",
+                headers: format!("Location: {base}/upload/session\r\n"),
+                body: String::new(),
+            },
+            kept_up_to(3),
+            said(
+                "403 Forbidden",
+                r#"{"error":{"message":"m","errors":[{"reason":"userRateLimitExceeded"}]}}"#,
+            ),
+            said("200 OK", &listing("")),
+            kept_up_to(3),
+            kept_up_to(7),
+            said("200 OK", landed),
+        ]
+    });
+    let drive = drive(at, home.path()).owing_at(home.path()).with_chunk(4);
+
+    let cut = drive.put("big.bin", &local, Expect::Absent);
+    let again = drive.put("big.bin", &local, Expect::Absent);
+
+    assert!(matches!(cut, Err(Hitch::Limited { .. })), "{cut:?}");
+    assert_eq!(again.unwrap().revision, "B.1");
+    let asked = asked.join().unwrap();
+    assert_eq!(asked.len(), 9);
+    assert!(
+        asked[5..]
+            .iter()
+            .all(|one| !one.line.contains("uploadType=resumable")),
+        "a second session was opened instead of going on with the first"
+    );
+    assert!(
+        asked[6].line.contains("/upload/session"),
+        "{}",
+        asked[6].line
+    );
+    assert!(
+        header(&asked[6], "content-range").ends_with("bytes */10"),
+        "{}",
+        asked[6].head
+    );
+    assert!(
+        header(&asked[7], "content-range").ends_with("bytes 4-7/10"),
+        "it started over: {}",
+        asked[7].head
+    );
+    assert_eq!(asked[8].body, b"89");
+    assert!(
+        !home.path().join("uploading.json").exists(),
+        "a finished upload is still written down"
+    );
+}
