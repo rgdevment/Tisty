@@ -14,6 +14,7 @@ pub use tisty_sync::{
 
 mod cloud;
 mod folder;
+#[cfg(not(windows))]
 mod keychain;
 mod remote;
 mod shift;
@@ -22,6 +23,7 @@ mod tokens;
 pub use cloud::standing::{OWED_BACK, Standing, standing};
 pub use cloud::{Cloud, forgotten_later, policy};
 pub use folder::Folder;
+#[cfg(not(windows))]
 pub use keychain::Keychain;
 
 pub use remote::{

@@ -60,6 +60,7 @@
       "endpoints": [
         "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json"
       ],
+      "requireSignedVersion": true,
       "windows": {
         "installMode": "passive"
       }

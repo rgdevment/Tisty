@@ -220,20 +220,3 @@ fn forgetting_a_token_kept_twice_forgets_both() {
 
     assert_eq!(keychain.read("drive:ana").unwrap(), None);
 }
-
-// Only Windows runners hold a keychain that answers without a person unlocking it.
-#[cfg(windows)]
-#[test]
-fn the_system_keychain_keeps_a_token_whole() {
-    struct Cleared<'a>(&'a Keychain, String);
-    impl Drop for Cleared<'_> {
-        fn drop(&mut self) {
-            let _ = self.0.forget(&self.1);
-        }
-    }
-
-    let keychain = Keychain::native(&format!("test-{}", std::process::id())).unwrap();
-    let _cleared = Cleared(&keychain, "drive:ana".into());
-
-    round_trip(&keychain, "drive:ana");
-}

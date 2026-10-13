@@ -2,7 +2,7 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 348 crates named in
+The licence texts of the 347 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
 the crates that carry it: 234 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
@@ -1019,7 +1019,7 @@ END OF TERMS AND CONDITIONS
 
 ## Text 13
 
-Carried by `apple-native-keyring-store` 1.0.2, `keyring-core` 1.0.0, `windows-native-keyring-store` 1.1.0.
+Carried by `apple-native-keyring-store` 1.0.2, `keyring-core` 1.0.0.
 
 ```text
 Apache License
@@ -1227,7 +1227,7 @@ limitations under the License.
 
 ## Text 14
 
-Carried by `apple-native-keyring-store` 1.0.2, `keyring-core` 1.0.0, `windows-native-keyring-store` 1.1.0.
+Carried by `apple-native-keyring-store` 1.0.2, `keyring-core` 1.0.0.
 
 ```text
 Copyright (c) 2016 keyring Developers
