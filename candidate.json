@@ -1,0 +1,18 @@
+{
+  "version": "1.30.0-rc.1",
+  "notes": "https://github.com/rgdevment/Tisty/releases/tag/v1.30.0-rc.1",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.30.0-rc.1/tisty-installer-1.30.0-rc.1-windows-x86_64.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTWg3bzYwaXcyZzN5TmRYUnl3TlVrMy93b2hOUThzWkZ2WU9RR3RuMUVoV3QxSVN0TnZ3YzBVNDBONnpoV290WVBpa1gzRlRObU1laCtJQkpkamtTb3dZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxOTA1OTMyCWZpbGU6dGlzdHktaW5zdGFsbGVyLTEuMzAuMC1yYy4xLXdpbmRvd3MteDg2XzY0LmV4ZQl2ZXJzaW9uOjEuMzAuMC1yYy4xCnlsRU8zcDBkaUFldXE1TUVJbERleTJCdlJmUHFLZWowZk8xTWd5U3NXUlVZWjBCYnpxaThBaVA5MmtjSGhGYjc2R0ZOZHNaZWdsY05YcjFIeDV5UkRBPT0K"
+    },
+    "darwin-aarch64": {
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.30.0-rc.1/tisty-1.30.0-rc.1-macos-aarch64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTW9ObThLN2lLKzIwUUx0cEJoU1lPOCtFRVdvREdsdW9NTmdEemNIc1BKR1NaeHhpaVZ4bXIrVEVzYVNTVWs0WXFxSFAyNDhsV1VnMTN3eVc4eU9TQlFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxOTA1OTMyCWZpbGU6dGlzdHktMS4zMC4wLXJjLjEtbWFjb3MtYWFyY2g2NC5hcHAudGFyLmd6CXZlcnNpb246MS4zMC4wLXJjLjEKY2lSV0Ezd3MwRGQwV1FIQ1JFSENPSGxIeGdlcmpPMTFPODdVS1pzV3h3aDdoNHJXekhITTVhMG0zVHduQUpUeFdXcjVpOWpPODNHZlV5RlpHZTJ5Q3c9PQo="
+    },
+    "darwin-x86_64": {
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.30.0-rc.1/tisty-1.30.0-rc.1-macos-x86_64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTWdRblNObXZJMjJsUXlhaVhKeUQwaUJiRkRKODNaV1ByY1grdGd1d2tmUlBaNTZja1l6NzZpUG9HZElCUzZFOG1Jck12Nk9IRFhtY3NISVBKSmtZN2dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxOTA1OTMzCWZpbGU6dGlzdHktMS4zMC4wLXJjLjEtbWFjb3MteDg2XzY0LmFwcC50YXIuZ3oJdmVyc2lvbjoxLjMwLjAtcmMuMQp2bFhOdnA1WW9oMEpWZVQzS1NLajF4Nk9tQVU5clJTMDl1VFNGaTJHWTVHMmlHYWRZUFNaenNsd3oxQ0ZYOUhhL2tyOFhoVjRCcytaYmIrWXl6VlBDQT09Cg=="
+    }
+  }
+}
