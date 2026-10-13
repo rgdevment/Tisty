@@ -102,7 +102,11 @@ pub fn all_home(from: &dyn Carrier, here: &Here, alive: &[String]) -> Result<boo
     let Some(moved) = settled(moved)? else {
         return Ok(false);
     };
-    Ok(moved.brought == 0 && holding_back(moved.deferred).is_none() && homing(from, here).nothing())
+    Ok(
+        moved.brought == 0
+            && holding_back(moved.deferred).is_none()
+            && homing(from, here).nothing(),
+    )
 }
 
 // What can never go up, too big for the cloud, is already left out of what is owed, so it holds no move back.
