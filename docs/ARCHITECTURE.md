@@ -157,13 +157,13 @@ preview of a link the person asks for (`glimpse.rs`). `tisty-google`, which
 only the window depends on, holds Google's sign-in and token renewal and the
 Drive `Remote`. The store lives in Drive's hidden `appDataFolder`
 (`spaces=appDataFolder`); its id comes out of the same whole listing as every
-file, as the one parent the listing does not hold, and Google's alias stands
-for it until then. The space has no bin, so a deletion checks the revision
-right before it and is final. Drive has no conditional write, so a revision is checked just before
-writing; two machines making one new file in that gap both land and the mirror
-keeps the oldest, and a write over another machine's in that gap puts the other
-bytes back on top from the file's revisions and is refused (*A write in the
-gap*). The
+file, as the one parent the listing does not hold, and Google's alias stands for
+it until then. The space has no bin, so a deletion checks the revision right
+before it and is final. Drive has no conditional write, so a revision is checked
+just before writing; two machines making one new file in that gap both land and
+the mirror keeps the oldest, and a write over another machine's in that gap puts
+the other bytes back on top from the file's revisions and is refused (*A write
+in the gap*). The
 window's content policy allows no connection but IPC (`tauri.conf.json`).
 
 ## The data model
@@ -914,8 +914,8 @@ over a loopback on `127.0.0.1` at a port the system picks. Only an answer
 carrying its own `state` ends the wait; a stale tab, a probe or an idle socket
 is answered 404 and waited past, each request read for two seconds and 16 KiB at
 most. The browser hears «connected» only after the code is traded and the grant
-is checked: it must be `drive.appdata` alone, and one wider or empty is revoked and
-refused. A sign-in nobody finishes leaves the account unconnected. The client
+is checked: it must be `drive.appdata` alone, and one wider or empty is revoked
+and refused. A sign-in nobody finishes leaves the account unconnected. The client
 id and its secret, which Google does not treat as confidential for a desktop
 app, are fixed when the release is built (`option_env!`, the secret from the
 `release` environment); a build without them, a fork's included, has
