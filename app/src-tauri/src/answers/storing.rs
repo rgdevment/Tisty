@@ -48,6 +48,15 @@ struct Bringing {
     done: usize,
     whole: usize,
     joining: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    up: Option<Up>,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct Up {
+    part: u64,
+    sent: u64,
+    weighs: u64,
 }
 
 /// What landed is told in handfuls, so a round cut short still owns what it already brought.
@@ -55,8 +64,34 @@ pub(crate) struct Telling {
     app: tauri::AppHandle,
     kept: Vec<(String, String, u64)>,
     kept_at: std::time::Instant,
-    said: Option<(&'static str, std::time::Instant)>,
+    pacing: Pacing,
     joining: bool,
+}
+
+#[derive(Default)]
+struct Pacing {
+    said: Option<(&'static str, std::time::Instant)>,
+    unsaid: Option<Bringing>,
+}
+
+impl Pacing {
+    fn told(&mut self, step: Bringing, now: std::time::Instant) -> Option<Bringing> {
+        let quiet = self.said.is_some_and(|(was, at)| {
+            was == step.stage && now.saturating_duration_since(at) < SAID_EVERY
+        });
+        // Held rather than dropped: a round paused right after it is otherwise left a step behind.
+        if quiet && step.done < step.whole {
+            self.unsaid = Some(step);
+            return None;
+        }
+        self.said = Some((step.stage, now));
+        self.unsaid = None;
+        Some(step)
+    }
+
+    fn flushed(&mut self) -> Option<Bringing> {
+        self.unsaid.take()
+    }
 }
 
 impl Telling {
@@ -65,7 +100,7 @@ impl Telling {
             app,
             kept: Vec::new(),
             kept_at: std::time::Instant::now(),
-            said: None,
+            pacing: Pacing::default(),
             joining,
         }
     }
@@ -83,25 +118,16 @@ impl Telling {
                     tisty_carrier::Stage::Log => "log",
                     tisty_carrier::Stage::Papers => "papers",
                     tisty_carrier::Stage::Attachments => "attachments",
-                    tisty_carrier::Stage::Uploading => "uploading",
                 };
-                let quiet = self
-                    .said
-                    .is_some_and(|(was, at)| was == stage && at.elapsed() < SAID_EVERY);
-                if quiet && done < whole {
-                    return;
-                }
-                self.said = Some((stage, std::time::Instant::now()));
-                let _ = self.app.emit(
-                    "bringing",
-                    Bringing {
-                        stage,
-                        done,
-                        whole,
-                        joining: self.joining,
-                    },
-                );
+                self.told(stage, done, whole, None);
             }
+            tisty_carrier::Reached::Sending {
+                part,
+                done,
+                whole,
+                sent,
+                weighs,
+            } => self.told("uploading", done, whole, Some(Up { part, sent, weighs })),
             tisty_carrier::Reached::Kept { at, sha256, bytes } => {
                 self.kept.push((at, sha256, bytes));
                 if self.kept.len() >= KEPT_AT_MOST || self.kept_at.elapsed() >= KEPT_EVERY {
@@ -111,7 +137,23 @@ impl Telling {
         }
     }
 
+    fn told(&mut self, stage: &'static str, done: usize, whole: usize, up: Option<Up>) {
+        let step = Bringing {
+            stage,
+            done,
+            whole,
+            joining: self.joining,
+            up,
+        };
+        if let Some(step) = self.pacing.told(step, std::time::Instant::now()) {
+            let _ = self.app.emit("bringing", step);
+        }
+    }
+
     pub(crate) fn flush(&mut self) {
+        if let Some(last) = self.pacing.flushed() {
+            let _ = self.app.emit("bringing", last);
+        }
         self.kept_at = std::time::Instant::now();
         if self.kept.is_empty() {
             return;

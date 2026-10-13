@@ -204,6 +204,14 @@ pub enum Reached {
         sha256: String,
         bytes: u64,
     },
+    /// What goes up to a cloud, told by each part of a round that sends: history, documents and attachments.
+    Sending {
+        part: u64,
+        done: usize,
+        whole: usize,
+        sent: u64,
+        weighs: u64,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -211,8 +219,6 @@ pub enum Stage {
     Log,
     Papers,
     Attachments,
-    /// What goes up to a cloud, file by file, so a long push is never a silent one.
-    Uploading,
 }
 
 pub fn carry_holding(
@@ -860,8 +866,9 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
     let theirs = tisty_core::docs::resolve(&dest.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;
     let mut said = Carried::read(data);
-    if said.facing(dest, false, holds_our_store(&data.join(STORE), dest)) {
-        tisty_core::docs::forget_what_was_carried(data);
+    if said.facing(data, dest, false, holds_our_store(&data.join(STORE), dest)) {
+        said.save(data)
+            .map_err(|e| Trouble::Unreadable(e.to_string()))?;
     }
     plainly(&theirs)?;
     plainly(&mine)?;

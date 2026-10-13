@@ -1,13 +1,16 @@
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use tisty_core::witness::{self, Fact, channel};
-use tisty_sync::{Reached, Stage};
+use tisty_sync::Reached;
 
 use super::index::Index;
 
 const KEPT_EVERY: Duration = Duration::from_secs(30);
 const KEPT_EVERY_FILES: usize = 20;
+
+static PARTS: AtomicU64 = AtomicU64::new(1);
 
 /// How far a push got, told file by file and written down as it goes, so a round cut short keeps what landed.
 pub struct Pace<'s> {
@@ -15,8 +18,11 @@ pub struct Pace<'s> {
     saying: &'s mut dyn FnMut(Reached),
     kept_at: Instant,
     unkept: usize,
+    part: u64,
     done: usize,
     whole: usize,
+    sent: u64,
+    weighs: u64,
 }
 
 impl<'s> Pace<'s> {
@@ -26,8 +32,11 @@ impl<'s> Pace<'s> {
             saying,
             kept_at: Instant::now(),
             unkept: 0,
+            part: PARTS.fetch_add(1, Ordering::Relaxed),
             done: 0,
             whole: 0,
+            sent: 0,
+            weighs: 0,
         }
     }
 
@@ -35,25 +44,26 @@ impl<'s> Pace<'s> {
         &mut *self.saying
     }
 
-    pub fn begun(&mut self, whole: usize) {
-        self.done = 0;
-        self.whole = whole;
-        if whole > 0 {
+    /// More to go up in this part: what the window counts toward, history and documents included.
+    pub fn owe(&mut self, files: usize, bytes: u64) {
+        self.whole += files;
+        self.weighs += bytes;
+        if files > 0 {
             self.said();
         }
     }
 
-    pub fn passed(&mut self) {
+    pub fn went(&mut self, bytes: u64) {
         self.done = (self.done + 1).min(self.whole);
+        self.sent = (self.sent + bytes).min(self.weighs);
         self.said();
     }
 
-    pub fn landed(&mut self, index: &Index) {
-        self.passed();
+    pub fn landed(&mut self, index: &Index, bytes: u64) {
+        self.went(bytes);
         self.carried(index);
     }
 
-    // History and documents are written down as they land but never move the bar, which counts attachments alone.
     pub fn carried(&mut self, index: &Index) {
         self.unkept += 1;
         if self.unkept >= KEPT_EVERY_FILES || self.kept_at.elapsed() >= KEPT_EVERY {
@@ -80,10 +90,12 @@ impl<'s> Pace<'s> {
         if self.whole == 0 {
             return;
         }
-        (self.saying)(Reached::Along {
-            stage: Stage::Uploading,
+        (self.saying)(Reached::Sending {
+            part: self.part,
             done: self.done,
             whole: self.whole,
+            sent: self.sent,
+            weighs: self.weighs,
         });
     }
 }

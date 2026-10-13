@@ -1,13 +1,23 @@
 import { useSyncExternalStore } from "react";
-import { heard } from "./coming";
-import { cloudForget, type Moving, moveTo, type Toward } from "./core";
+import { added, type Heard, heard, onHeard, type Sum } from "./coming";
+import { type Carrying, cloudForget, type Moving, moveTo, type Toward } from "./core";
+
+/** Where a move stands, in the two steps the person sees: bringing home first, then sending on. */
+export type MoveAlong =
+  | { step: 1; bringing?: { done: number; whole: number } }
+  | ({ step: 2 } & Sum);
+
+export type Waited = "limit" | "offline" | "troubled";
 
 export interface Run {
   toward: Toward;
+  from?: Carrying["mode"];
   going: boolean;
   result?: Moving;
   failed?: unknown;
   pausedUntil?: number;
+  waited?: Waited;
+  along?: MoveAlong;
   watched: boolean;
 }
 
@@ -15,6 +25,7 @@ export interface Run {
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
 const STALLS = 3;
+export const RETRY_IN = 20;
 
 let run: Run | null = null;
 let watchers = 0;
@@ -25,58 +36,112 @@ let lastLeft: number | undefined;
 let epoch = 0;
 const told = new Set<() => void>();
 const afterMoves = new Set<() => void>();
+const ups = new Map<number, Sum>();
+let upBefore: Sum = { done: 0, whole: 0, sent: 0, weighs: 0 };
 
 const set = (next: Run | null) => {
   run = next && { ...next, watched: watchers > 0 };
   for (const one of told) one();
 };
 
-const shortPause = (now: Moving): number | undefined =>
-  stalled < STALLS &&
-  now.state === "waiting" &&
-  now.reason === "limit" &&
-  typeof now.wait === "number" &&
-  now.wait <= SHORT_PAUSE
-    ? now.wait
-    : undefined;
+// What an earlier try sent stays sent, and what it left is counted again by the try that sends it.
+const settleUps = () => {
+  const sum = added(ups.values(), upBefore);
+  upBefore = { done: sum.done, whole: sum.done, sent: sum.sent, weighs: sum.sent };
+  ups.clear();
+};
 
-const go = (toward: Toward) => {
+const forgetUps = () => {
+  ups.clear();
+  upBefore = { done: 0, whole: 0, sent: 0, weighs: 0 };
+};
+
+const sentSoFar = (): number => added(ups.values(), upBefore).done;
+
+// Once a move sends, it never goes back to saying it brings, whatever a later try looks over first.
+export const alongOf = (step: Heard, was?: MoveAlong): MoveAlong => {
+  if (step.stage === "uploading") {
+    const up = step.up ?? { part: 0, sent: 0, weighs: 0 };
+    ups.set(up.part, { done: step.done, whole: step.whole, sent: up.sent, weighs: up.weighs });
+    return { step: 2, ...added(ups.values(), upBefore) };
+  }
+  if (was?.step === 2) return was;
+  if (step.stage === "attachments" && step.whole > 0)
+    return { step: 1, bringing: { done: step.done, whole: step.whole } };
+  return was ?? { step: 1 };
+};
+
+onHeard((step) => {
+  if (!run?.going) return;
+  set({ ...run, along: alongOf(step, run.along) });
+});
+
+const waitOf = (now: Moving): { wait: number; waited: Waited } | undefined => {
+  if (stalled >= STALLS || now.state !== "waiting") return undefined;
+  if (now.reason === "limit" && typeof now.wait === "number" && now.wait <= SHORT_PAUSE)
+    return { wait: now.wait + MARGIN, waited: "limit" };
+  if (now.reason === "offline" || now.reason === "troubled")
+    return { wait: RETRY_IN, waited: now.reason };
+  return undefined;
+};
+
+const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
   if (run?.going) return;
   clearTimeout(resuming);
   const mine = epoch;
   heard(null);
-  set({ toward, going: true, watched: false });
+  settleUps();
+  const before = sentSoFar();
+  set({ toward, from, going: true, along, watched: false });
   moveTo(toward)
     .then((now) => {
       if (mine !== epoch) return;
       heard(null);
       if (now.state === "done") for (const one of afterMoves) one();
+      const along = run?.along;
       const left = now.state === "waiting" ? now.left.files : undefined;
-      stalled = left !== undefined && lastLeft !== undefined && left >= lastLeft ? stalled + 1 : 0;
+      const moved =
+        lastLeft === undefined ? sentSoFar() > before : left !== undefined && left < lastLeft;
+      if (moved) stalled = 0;
+      else if (left !== undefined && lastLeft !== undefined) stalled += 1;
       lastLeft = left;
-      const wait = shortPause(now);
-      if (wait === undefined) {
-        set({ toward, going: false, result: now, watched: false });
+      const waits = waitOf(now);
+      if (waits === undefined) {
+        set({ toward, from, going: false, result: now, along, watched: false });
         return;
       }
-      const until = Date.now() + (wait + MARGIN) * 1000;
-      set({ toward, going: false, result: now, pausedUntil: until, watched: false });
+      const until = Date.now() + waits.wait * 1000;
+      set({
+        toward,
+        from,
+        going: false,
+        result: now,
+        pausedUntil: until,
+        waited: waits.waited,
+        along,
+        watched: false,
+      });
       resuming = setTimeout(() => {
-        if (mine === epoch) go(toward);
+        if (mine === epoch) go(toward, from, run?.along);
       }, until - Date.now());
     })
     .catch((failed) => {
       if (mine !== epoch) return;
       heard(null);
-      set({ toward, going: false, failed: failed ?? {}, watched: false });
+      set({ toward, from, going: false, failed: failed ?? {}, watched: false });
     });
 };
 
-export const startMove = (toward: Toward) => {
+/** A move that waits goes on from where it stood when the person carries on; any other starts afresh. */
+export const startMove = (toward: Toward, from?: Carrying["mode"]) => {
   if (run?.going) return;
   stalled = 0;
-  lastLeft = undefined;
-  go(toward);
+  const goesOn = run?.result?.state === "waiting";
+  if (!goesOn) {
+    lastLeft = undefined;
+    forgetUps();
+  }
+  go(toward, from ?? run?.from, goesOn ? run?.along : undefined);
 };
 
 export const endMove = () => {
@@ -84,6 +149,7 @@ export const endMove = () => {
   clearTimeout(resuming);
   stalled = 0;
   lastLeft = undefined;
+  forgetUps();
   set(null);
 };
 

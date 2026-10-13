@@ -140,7 +140,7 @@ export default function Docs({
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
   const [pdfAsked, setPdfAsked] = useState(false);
-  const [signing, setSigning] = useState(false);
+  const [signing, setSigning] = useState(true);
   const giving = useRef<(() => unknown) | null>(null);
   const putting = useRef<((page: Filed) => boolean) | null>(null);
   const paged = useRef(onPaging);
@@ -509,7 +509,7 @@ export default function Docs({
 
   const toPdf = () => {
     if (!open || making) return;
-    setSigning(false);
+    setSigning(true);
     setPdfAsked(true);
   };
 
@@ -585,26 +585,6 @@ export default function Docs({
           className="absolute top-11 right-3 z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
         >
           <span aria-hidden="true">◨</span>
-        </button>
-      )}
-      {open && (
-        <button
-          type="button"
-          onClick={() =>
-            void viewDoc({
-              id: open.id,
-              file: open.file,
-              title: open.title || t("untitledDoc"),
-              place: trailed(folders, open.folder ?? null)
-                .map((one) => one.name)
-                .join(" / "),
-            }).catch((e) => onError(saidPlainly(e)))
-          }
-          title={t("viewDocApart")}
-          aria-label={t("viewDocApart")}
-          className={`absolute top-11 ${beside ? "right-3" : "right-10"} z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink`}
-        >
-          <span aria-hidden="true">⧉</span>
         </button>
       )}
       <div
@@ -904,14 +884,13 @@ export default function Docs({
       </div>
       {seeing && (
         <div className="absolute inset-0 z-40 flex flex-col bg-veil">
-          <div className={`flex h-9 shrink-0 items-center justify-end gap-2 pl-3 ${clearOfChrome}`}>
+          <div className={`flex h-9 shrink-0 items-center gap-2 pl-3 ${clearOfChrome}`}>
             <button
               type="button"
               onClick={shut}
-              aria-label={t("leaveIt")}
               className="rounded-md bg-bg px-2.5 py-1 text-[11.5px] text-soft hover:text-ink"
             >
-              {t("leaveIt")}
+              {t("previewBack")}
             </button>
           </div>
           <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
@@ -922,7 +901,7 @@ export default function Docs({
           title={t("toPdf")}
           onClose={() => {
             setPdfAsked(false);
-            setSigning(false);
+            setSigning(true);
           }}
         >
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
@@ -940,7 +919,7 @@ export default function Docs({
               type="button"
               onClick={() => {
                 setPdfAsked(false);
-                setSigning(false);
+                setSigning(true);
               }}
               className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
             >
@@ -998,6 +977,16 @@ export default function Docs({
               .catch((e) => onError(saidPlainly(e)));
           }}
           onShut={() => setShown(false)}
+          onApart={() =>
+            void viewDoc({
+              id: open.id,
+              file: open.file,
+              title: open.title || t("untitledDoc"),
+              place: trailed(folders, open.folder ?? null)
+                .map((one) => one.name)
+                .join(" / "),
+            }).catch((e) => onError(saidPlainly(e)))
+          }
         />
       )}
     </main>

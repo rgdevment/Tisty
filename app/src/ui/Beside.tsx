@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
-import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
-import { DOC } from "../markdown";
 import Glyph, { known } from "./Glyph";
+import PaperFacts from "./PaperFacts";
 import type { Block } from "./Slash";
 import { LEAVES, leafWord } from "./sheets";
 import { often } from "./tagging";
@@ -45,18 +44,6 @@ export const trailed = (folders: Folded[], at: string | null): Folded[] => {
   return walk;
 };
 
-export const worded = (body: string): number =>
-  body
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/[#>*_`~[\]()!|-]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean).length;
-
-export const counted = (body: string, needle: string): number => body.split(needle).length - 1;
-
-const dated = (when: number | null): string =>
-  when ? stamped(new Date(when * 1000).toISOString()) : "—";
-
 const mild =
   "rounded-[10px] border border-line px-2 py-1 text-[11.5px] text-soft hover:bg-hover hover:text-ink disabled:border-hair disabled:text-faint";
 
@@ -78,6 +65,7 @@ interface Props {
   onCopy: () => void;
   onTakeOut: () => void;
   onShut: () => void;
+  onApart: () => void;
   trail?: Folded[];
   onFolder?: (id: string | null) => void;
 }
@@ -100,6 +88,7 @@ export default function Beside({
   onCopy,
   onTakeOut,
   onShut,
+  onApart,
   trail = [],
   onFolder,
 }: Props) {
@@ -117,10 +106,7 @@ export default function Beside({
     };
   }, [paper, kept]);
 
-  const words = worded(body);
   const times = useMemo(() => often(body), [body]);
-  const papers = counted(body, DOC);
-  const files = counted(body, "attachments/");
   const shapes = blocks.filter((one) => SHAPES.includes(one.key));
   const puts = blocks.filter((one) => !SHAPES.includes(one.key));
 
@@ -170,62 +156,7 @@ export default function Beside({
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">
             {t("aboutPaper")}
           </h3>
-          <dl className="flex flex-col gap-1.5 text-[12.5px]">
-            {facts?.author && (
-              <div className="flex items-baseline justify-between gap-2.5">
-                <dt className="text-faint">{t("paperAuthor")}</dt>
-                <dd className="truncate text-ink">{facts.author}</dd>
-              </div>
-            )}
-            {facts?.born && (
-              <div className="flex items-baseline justify-between gap-2.5">
-                <dt className="text-faint">{t("paperBorn")}</dt>
-                <dd className="truncate text-soft">{facts.born}</dd>
-              </div>
-            )}
-            {facts?.editor && (
-              <div className="flex items-baseline justify-between gap-2.5">
-                <dt className="text-faint">{t("paperEditor")}</dt>
-                <dd className="truncate text-ink">{facts.editor}</dd>
-              </div>
-            )}
-            <div className="flex items-baseline justify-between gap-2.5">
-              <dt className="text-faint">{t("paperMade")}</dt>
-              <dd className="tabular-nums text-soft">{dated(facts?.made ?? null)}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <dt className="text-faint">{t("paperWrote")}</dt>
-              <dd className="tabular-nums text-soft">{dated(facts?.wrote ?? null)}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <dt className="text-faint">{t("paperLong")}</dt>
-              <dd className="tabular-nums text-soft">
-                {words ? fill("paperWords", String(words)) : t("paperEmpty")}
-              </dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-2.5">
-              <dt className="text-faint">{t("paperWeighs")}</dt>
-              <dd className="tabular-nums text-soft">{facts ? weigh(facts.bytes) : "—"}</dd>
-            </div>
-            {(papers > 0 || files > 0 || (facts?.pages ?? 0) > 0) && (
-              <div className="flex items-baseline justify-between gap-2.5">
-                <dt className="text-faint">{t("paperHolds")}</dt>
-                <dd className="text-right tabular-nums text-soft">
-                  {[
-                    facts?.pages
-                      ? facts.pages === 1
-                        ? t("pageHeld")
-                        : fill("pagesHeld", String(facts.pages))
-                      : "",
-                    papers > 0 ? fill("paperDocs", String(papers)) : "",
-                    files > 0 ? fill("paperFiles", String(files)) : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </dd>
-              </div>
-            )}
-          </dl>
+          <PaperFacts facts={facts} body={body} />
         </section>
 
         {tags.length > 0 && (
@@ -268,6 +199,13 @@ export default function Beside({
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("bandApart")}</h3>
+          <button type="button" onClick={onApart} className={mild}>
+            {t("viewDocApart")}
+          </button>
         </section>
 
         <section className="flex flex-col gap-2">

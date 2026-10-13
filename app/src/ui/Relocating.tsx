@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
-import { useComing } from "../coming";
 import {
   type Carrying,
   cloudForget,
@@ -34,14 +33,15 @@ const firstStep = (heading?: Heading, resume?: Toward): Step =>
 
 export default function Relocating({ state, heading, resume, onClose }: Props) {
   const now = useMove();
-  const along = useComing();
   const [chosen, setStep] = useState<Step>(now ? "plan" : firstStep(heading, resume));
   const [toward, setToward] = useState<Toward | undefined>(now?.toward ?? resume);
   const [plan, setPlan] = useState<MovePlan>();
   const [agreed, setAgreed] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
+  const [wiping, setWiping] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
 
   useEffect(watchMove, []);
@@ -96,7 +96,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const move = () => {
     if (!toward || busy) return;
     setTrouble(undefined);
-    startMove(toward);
+    startMove(toward, state.mode);
   };
 
   const drop = () => {
@@ -109,13 +109,18 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const wipe = async () => {
     if (!leftCloud || busy || !(await sure(t("moveWipeSure")))) return;
     setBusy(true);
+    setWiping(true);
+    setTrouble(undefined);
     cloudWipe(leftCloud.account, leftCloud.email)
       .then((gone) => {
         settled.current = true;
         setWiped(gone === 1 ? t("moveWipedOne") : fill("moveWiped", String(gone)));
       })
       .catch((e) => setTrouble(saidPlainly(e)))
-      .finally(() => setBusy(false));
+      .finally(() => {
+        setWiping(false);
+        setBusy(false);
+      });
   };
 
   const keep = () => {
@@ -141,12 +146,15 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           <Keepers
             busy={busy}
             pickOnly
+            onDeciding={setDeciding}
             onTrouble={(said) => setTrouble(said)}
             onDone={(at) => chose({ kind: "folder", at })}
           />
-          <button type="button" onClick={() => setStep("pick")} className={`self-start ${quiet}`}>
-            {t("welcomeBack")}
-          </button>
+          {!deciding && (
+            <button type="button" onClick={() => setStep("pick")} className={`self-start ${quiet}`}>
+              {t("welcomeBack")}
+            </button>
+          )}
         </div>
       )}
 
@@ -175,9 +183,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
         />
       )}
 
-      {step === "moving" && (
-        <Underway along={along ?? undefined} pausedUntil={now?.pausedUntil} onHide={close} />
-      )}
+      {step === "moving" && now && <Underway run={now} onHide={close} />}
 
       {step === "waiting" && result?.state === "waiting" && (
         <Waiting result={result} busy={busy} onDrop={drop} onLater={close} onAgain={move} />
@@ -188,6 +194,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           toward={toward}
           untold={done?.told === false}
           wiped={wiped}
+          wiping={wiping}
           offersWipe={Boolean(leftCloud)}
           busy={busy}
           onKeep={keep}

@@ -424,6 +424,7 @@ export type Showing =
   | { kind: "doc"; paper: Viewed; body: string }
   | { kind: "widget"; lent: Lent; from: Viewed | null };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
+export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewImport = (open: boolean): Promise<Viewed> => invoke("view_import", { open });
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
 export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>

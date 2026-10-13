@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { type Stage, useComing, useStuck } from "../coming";
+import { type Stage, useCarded, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
+import { underway, useMove } from "../relocation";
 import type { Heading } from "../views";
 
 export const SHOWN_AFTER = 3_000;
@@ -25,7 +26,10 @@ const followed = (stuck: unknown): { heading: Heading; said: Word } => {
 
 export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void }) {
   const coming = useComing();
-  const stuck = useStuck();
+  const told = useStuck();
+  const carded = useCarded();
+  const stuck = (told as { code?: string } | null)?.code === carded && carded ? null : told;
+  const move = useMove();
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -35,7 +39,9 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
   }, [coming]);
 
   const long = coming ? Date.now() - coming.since : 0;
-  const shown = coming !== null && long >= SHOWN_AFTER;
+  // A move tells its own steps beside this, so the round's raw stages would only say them twice.
+  const moving = move !== null && underway(move);
+  const shown = coming !== null && long >= SHOWN_AFTER && !moving;
   if (!shown && !stuck) return null;
   const far = coming?.whole ? Math.min(100, Math.round((coming.done / coming.whole) * 100)) : 0;
 

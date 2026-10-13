@@ -1126,6 +1126,7 @@ pub fn run() {
             answers::papers::doc_lock,
             desktop::parted,
             viewing::view_shown,
+            viewing::view_facts,
             viewing::view_import,
             viewing::view_widget,
             viewing::view_doc,

@@ -89,3 +89,31 @@ fn a_settled_body_is_written_down_so_the_other_machine_has_a_history_that_answer
         tisty_core::event::Said::of("# Idea\n\nlo viejo\n").print
     );
 }
+
+#[test]
+fn a_file_from_outside_tells_what_the_disk_knows_and_no_author() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("notas.md");
+    std::fs::write(&at, "# Notas\n").unwrap();
+
+    let told = super::outside_facts(&at).unwrap();
+
+    assert_eq!(told.bytes, 8);
+    assert!(told.wrote.is_some_and(|when| when > 0));
+    assert_eq!(told.pages, 0);
+    assert_eq!(told.author, None);
+}
+
+#[test]
+fn a_file_from_outside_that_went_away_is_said_missing_by_its_path() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("gone.md");
+
+    let refused = super::outside_facts(&at).map(|_| ()).unwrap_err();
+
+    assert_eq!(refused.code, "noSuchDoc");
+    assert_eq!(
+        refused.name.as_deref(),
+        Some(at.display().to_string().as_str())
+    );
+}

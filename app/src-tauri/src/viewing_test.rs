@@ -73,3 +73,10 @@ fn nothing_but_a_readable_local_text_file_passes() {
         assert_eq!(asked(&said, Some(room.path())), None, "{said}");
     }
 }
+
+#[test]
+fn a_viewer_opens_wide_enough_for_its_index_and_a_fifth_shorter_than_tisty() {
+    assert_eq!(super::scaled(820.0), (1400.0, 656.0));
+    assert_eq!(super::scaled(700.0), (1400.0, 560.0));
+    assert_eq!(super::scaled(750.0), (1400.0, 600.0));
+}

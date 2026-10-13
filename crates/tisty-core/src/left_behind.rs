@@ -66,13 +66,13 @@ pub fn noticed_in(word: &Word, spoken: &str) -> String {
         "El equipo «{name}» dejó de sincronizar Tisty en esta carpeta el {date}.\n\
          Sus tareas y documentos ahora están {es}.\n\
          Lo que quedó aquí ya no se actualiza desde ese equipo.\n\
-         Para volver: abre Tisty en ese equipo, ve a Ajustes › Datos y elige esta carpeta.\n"
+         Para volver: abre Tisty en ese equipo, ve a Configuración › Tus datos y elige esta carpeta.\n"
     );
     let english = format!(
         "The computer \"{name}\" stopped syncing Tisty in this folder on {date}.\n\
          Its tasks and documents are now {en}.\n\
          What stayed here is no longer kept up to date from that computer.\n\
-         To come back: open Tisty on that computer, go to Settings › Data and choose this folder.\n"
+         To come back: open Tisty on that computer, go to Settings › Your data and choose this folder.\n"
     );
     match spoken.to_lowercase().starts_with("es") {
         true => format!("{HEAD}\n\n{spanish}\n{english}"),

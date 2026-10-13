@@ -357,6 +357,7 @@ fn a_word_kept_in_the_cache_by_an_older_build_is_read_once_and_kept_beside_the_s
 struct Refusing {
     said: tisty_carrier::Trouble,
     brought: usize,
+    wiping: Result<usize, tisty_carrier::Trouble>,
     owed_at: PathBuf,
     owed_first: std::sync::atomic::AtomicBool,
 }
@@ -366,6 +367,9 @@ impl Refusing {
         Self {
             said,
             brought: 0,
+            wiping: Err(tisty_carrier::Trouble::NotThere(
+                tisty_core::moved::NAMED.to_string(),
+            )),
             owed_at: paths.private().join(OWED),
             owed_first: std::sync::atomic::AtomicBool::new(false),
         }
@@ -491,9 +495,7 @@ impl tisty_carrier::Carrier for Refusing {
         Err(self.said.clone())
     }
     fn wipe(&self) -> Result<usize, tisty_carrier::Trouble> {
-        Err(tisty_carrier::Trouble::NotThere(
-            tisty_core::moved::NAMED.to_string(),
-        ))
+        self.wiping.clone()
     }
 }
 
@@ -557,6 +559,80 @@ fn a_cloud_that_brought_something_new_while_its_copies_were_about_to_go_keeps_th
     let one = machine(room.path(), "one");
     let mut refusing = Refusing::with(tisty_carrier::Trouble::NotNow("busy".into()), &one.paths);
     refusing.brought = 1;
+
+    let wiped = crate::answers::relocating::wiped(&refusing, &one.here(), &[]);
+
+    assert_eq!(wiped.map_err(|one| one.code), Err("wipeNotHome"));
+}
+
+fn wiped_with(wiping: Result<usize, tisty_carrier::Trouble>) -> Answer<usize> {
+    let room = tempfile::tempdir().unwrap();
+    let one = machine(room.path(), "one");
+    let mut refusing = Refusing::with(tisty_carrier::Trouble::NotNow("busy".into()), &one.paths);
+    refusing.wiping = wiping;
+    crate::answers::relocating::wiped(&refusing, &one.here(), &[])
+}
+
+fn refused(answer: Answer<usize>) -> Result<usize, (&'static str, Option<String>)> {
+    answer.map_err(|one| (one.code, one.name))
+}
+
+#[test]
+fn a_cloud_with_everything_home_is_emptied_and_says_how_much_went() {
+    assert_eq!(refused(wiped_with(Ok(5))), Ok(5));
+}
+
+#[test]
+fn a_cloud_that_holds_no_word_of_the_move_is_not_emptied_as_untold() {
+    let untold = Err(tisty_carrier::Trouble::NotThere(
+        tisty_core::moved::NAMED.to_string(),
+    ));
+
+    assert_eq!(refused(wiped_with(untold)), Err(("wipeUntold", None)));
+}
+
+#[test]
+fn a_wipe_missing_some_other_file_says_the_meeting_place_is_gone_not_untold() {
+    let elsewhere = Err(tisty_carrier::Trouble::NotThere("store.json".into()));
+
+    assert_eq!(
+        refused(wiped_with(elsewhere)),
+        Err(("noMeetingPlace", Some("store.json".into())))
+    );
+}
+
+#[test]
+fn a_wipe_paused_by_a_limited_or_offline_cloud_says_it_stopped() {
+    for paused in ["the cloud cannot be used now: Limit", "offline"] {
+        let stopped = Err(tisty_carrier::Trouble::NotNow(paused.into()));
+
+        assert_eq!(
+            refused(wiped_with(stopped)),
+            Err(("wipeStopped", None)),
+            "{paused}"
+        );
+    }
+}
+
+#[test]
+fn a_wipe_refused_for_any_other_reason_says_that_reason() {
+    let full = Err(tisty_carrier::Trouble::CloudFull {
+        provider: "Google Drive".into(),
+    });
+
+    assert_eq!(
+        refused(wiped_with(full)),
+        Err(("cloudFull", Some("Google Drive".into())))
+    );
+}
+
+#[test]
+fn a_cloud_still_bringing_something_home_is_never_emptied_even_when_it_could_be() {
+    let room = tempfile::tempdir().unwrap();
+    let one = machine(room.path(), "one");
+    let mut refusing = Refusing::with(tisty_carrier::Trouble::NotNow("busy".into()), &one.paths);
+    refusing.brought = 1;
+    refusing.wiping = Ok(5);
 
     let wiped = crate::answers::relocating::wiped(&refusing, &one.here(), &[]);
 
