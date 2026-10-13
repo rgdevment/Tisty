@@ -591,11 +591,28 @@ impl Carrier for Cloud {
         })
     }
 
+    // A push that failed only says so in `stopped` or `deferred`, so the word counts once the provider hands it back.
     fn leave_word(&self, said: &str) -> Result<(), Trouble> {
-        self.only(None, |tree, _, _| {
+        let done = self.with_mirror(None, ASKED, |tree, _, _| {
             tisty_core::store::write_atomic(&tree.join(tisty_core::moved::NAMED), said.as_bytes())
-                .map_err(|e| Trouble::Broke(e.to_string()))
-        })
+                .map_err(|e| Trouble::Broke(e.to_string()))?;
+            Ok(((), None))
+        })?;
+        if done.value.is_none() {
+            return Err(Trouble::NotNow(unavailable(done.deferred)));
+        }
+        let mut there = Vec::new();
+        let metered = Metered::over(&*self.remote, &self.home, Class::History);
+        match metered.fetch(tisty_core::moved::NAMED, 0, &mut there) {
+            Ok(_) if there == said.as_bytes() => Ok(()),
+            Ok(_) | Err(crate::Hitch::Missing(_)) => Err(done
+                .stopped
+                .unwrap_or_else(|| Trouble::NotNow(unavailable(done.deferred)))),
+            Err(hitch) => Err(match judge(hitch, self.remote.limits().provider) {
+                Judged::Pause(..) => Trouble::NotNow(unavailable(done.deferred)),
+                Judged::Stop(trouble) => trouble,
+            }),
+        }
     }
 
     // Read after a pull, so a machine stops before the round that would write there alone.
@@ -626,6 +643,9 @@ impl Carrier for Cloud {
             let all = remote
                 .list("")
                 .map_err(|e| Trouble::Broke(format!("{e:?}")))?;
+            if !all.iter().any(|one| one.name == tisty_core::moved::NAMED) {
+                return Err(Trouble::NotThere(tisty_core::moved::NAMED.to_string()));
+            }
             let mut gone = 0;
             for one in all
                 .iter()
@@ -657,6 +677,17 @@ impl Carrier for Cloud {
             self.forget_asked(&self.tree());
         }
     }
+}
+
+/// What the last listing of a cloud held and this machine does not, read off this disk alone, for a cloud that can no longer be asked.
+pub fn only_up_there(home: &Path, here: &Here) -> crate::Owed {
+    let index = Index::load(home);
+    let shelf: BTreeMap<String, u64> = index
+        .shelf
+        .iter()
+        .map(|(reference, seen)| (reference.clone(), seen.bytes))
+        .collect();
+    crate::shift::owed_against(index.pulled().then_some(&shelf), here, u64::MAX)
 }
 
 /// Queued without the provider, so a cloud that cannot be reached now still forgets it at its next round.
