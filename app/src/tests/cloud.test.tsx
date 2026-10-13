@@ -46,7 +46,9 @@ const ANA = { provider: "google", account: "0123", email: "ana@example.com" };
 
 const status = (over: Partial<CloudStatus> = {}): CloudStatus => ({
   provider: "google",
+  account: ANA.account,
   email: ANA.email,
+  joined: true,
   unitsSpent: 1200,
   unitsADay: 20000,
   bytesSpent: 0,
@@ -182,7 +184,7 @@ describe("choosing where the copies go", () => {
 
     await userEvent.click(screen.getByRole("button", { name: t("welcomeBack") }));
 
-    expect(sent("cloud_forget")[0].args.account).toBe(ANA.account);
+    await waitFor(() => expect(sent("cloud_forget")[0]?.args.account).toBe(ANA.account));
     expect(sent("cloud_choose")).toHaveLength(0);
   });
 
@@ -203,8 +205,9 @@ describe("choosing where the copies go", () => {
 const card = (over: Partial<CloudStatus> = {}) => {
   ipc.answers.cloud_status = () => Promise.resolve(status(over));
   const carry = vi.fn();
+  const failed: unknown[] = [];
   const run = vi.fn((_card: string, work: Promise<unknown>, then: (answer: unknown) => void) => {
-    work.then(then);
+    work.then(then).catch((e) => failed.push(e));
   });
   render(
     <Clouded
@@ -215,7 +218,7 @@ const card = (over: Partial<CloudStatus> = {}) => {
       carry={carry}
     />,
   );
-  return { carry, run };
+  return { carry, run, failed };
 };
 
 describe("the cloud in Settings", () => {
@@ -282,6 +285,79 @@ describe("the cloud in Settings", () => {
     card();
     await userEvent.click(await screen.findByRole("button", { name: t("cloudRevokeAll") }));
     await waitFor(() => expect(sent("cloud_revoke")).toHaveLength(1));
+  });
+});
+
+describe("the cloud when things change under it", () => {
+  it("says a round it has no words for went wrong, in the refusal's own words", () => {
+    const said = cloudStanding(status({ last: round("syncBroke", { name: "boom" }) }));
+    expect(said?.said).toBe("stateFailed");
+    expect(said?.told).toBe(fill("syncBroke", "boom"));
+  });
+
+  it("forgets yesterday's limit once the day has turned", () => {
+    const day = 86_400;
+    const last = round("deferred-budget", { at: 10 * day + 5 });
+    expect(cloudStanding(status({ last }), 10 * day + 100)?.said).toBe("stateBudget");
+    expect(cloudStanding(status({ last }), 11 * day + 5)).toBeNull();
+  });
+
+  it("keeps a copy this machine carried with its account when Google hands back another", async () => {
+    ipc.answers.cloud_connect = () =>
+      Promise.resolve({ provider: "google", account: "9999", email: "otra@gmail.com" });
+    const { failed } = card({ last: round("cloudLost") });
+    await userEvent.click(await screen.findByRole("button", { name: t("stateReconnectDo") }));
+
+    await waitFor(() => expect(failed).toHaveLength(1));
+    expect(failed[0]).toEqual({ code: "cloudElsewhere", name: "otra@gmail.com" });
+    expect(sent("cloud_forget")[0].args.account).toBe("9999");
+    expect(sent("cloud_choose")).toHaveLength(0);
+  });
+
+  it("lets a cloud never carried into be left, and its access with it", async () => {
+    card({ joined: false });
+    await userEvent.click(await screen.findByRole("button", { name: t("cloudStop") }));
+
+    await waitFor(() => expect(sent("cloud_forget")).toHaveLength(1));
+    expect(sent("choose_sync")[0].args.dest).toBeUndefined();
+    expect(sent("cloud_forget")[0].args.account).toBe(ANA.account);
+  });
+
+  it("offers no way off a cloud this machine already carried into", async () => {
+    card();
+    await screen.findByText(ANA.email);
+    expect(screen.queryByRole("button", { name: t("cloudStop") })).toBeNull();
+  });
+
+  it("lets go of an account connected and left on screen when the chooser closes", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    ipc.answers.cloud_status = () => Promise.resolve(null);
+    const { unmount } = render(
+      <Choosing busy={false} offered onTrouble={() => {}} onDone={() => {}} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+    await screen.findByText(t("cloudConnectedTitle"));
+
+    unmount();
+
+    await waitFor(() => expect(sent("cloud_forget")[0]?.args.account).toBe(ANA.account));
+  });
+
+  it("never lets go of the account this copy already syncs with", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    ipc.answers.cloud_status = () => Promise.resolve(status());
+    const { unmount } = render(
+      <Choosing busy={false} offered onTrouble={() => {}} onDone={() => {}} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+    await screen.findByText(t("cloudConnectedTitle"));
+
+    unmount();
+
+    await waitFor(() => expect(sent("cloud_status").length).toBeGreaterThan(0));
+    expect(sent("cloud_forget")).toHaveLength(0);
   });
 });
 

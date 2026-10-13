@@ -730,7 +730,9 @@ export interface LastRound {
 
 export interface CloudStatus {
   provider: string;
+  account: string;
   email: string;
+  joined: boolean;
   unitsSpent: number;
   unitsADay: number;
   bytesSpent: number;

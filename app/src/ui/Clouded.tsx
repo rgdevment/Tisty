@@ -4,6 +4,7 @@ import { cloudStanding, type Exit, STORAGE } from "../cloudState";
 import {
   type Carrying,
   type CloudStatus,
+  chooseSync,
   cloudChoose,
   cloudConnect,
   cloudForget,
@@ -49,12 +50,28 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry }
 
   const switched = (on: boolean) => run("sync", cloudPause(!on), look);
 
-  const reconnect = () =>
+  // A copy this machine already carried stays with its account; one never carried may change it.
+  const reconnected = async () => {
+    const account = await cloudConnect();
+    const was = status?.account;
+    if (was && was !== account.account && status?.joined) {
+      await cloudForget(account.account).catch(() => undefined);
+      throw { code: "cloudElsewhere", name: account.email };
+    }
+    await cloudChoose(account.account, account.email);
+    if (was && was !== account.account) await cloudForget(was).catch(() => undefined);
+  };
+
+  const reconnect = () => run("sync", reconnected(), () => carry());
+
+  const stop = () => {
+    const was = status?.account;
     run(
       "sync",
-      cloudConnect().then((account) => cloudChoose(account.account, account.email)),
-      () => carry(),
+      chooseSync(undefined).then(() => (was ? cloudForget(was) : undefined)),
+      () => {},
     );
+  };
 
   const exit = (how: Exit) => {
     if (how === "reconnect") return reconnect();
@@ -100,7 +117,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry }
             <span className="block text-[12.5px] font-semibold text-ink">
               {standing.name ? fill(standing.said, standing.name) : t(standing.said)}
             </span>
-            {t(standing.why)}
+            {standing.why ? t(standing.why) : standing.told}
           </span>
           {standing.exit && standing.exitSaid && (
             <button
@@ -119,9 +136,11 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry }
         <button type="button" disabled={held || paused} onClick={() => carry()} className={strong}>
           {busy === "sync" ? t("syncing_") : t("syncNow")}
         </button>
-        <button type="button" disabled={held} onClick={() => switched(paused)} className={mild}>
-          {paused ? t("cloudTurnOn") : t("cloudTurnOff")}
-        </button>
+        {standing?.exit !== "turnOn" && (
+          <button type="button" disabled={held} onClick={() => switched(paused)} className={mild}>
+            {paused ? t("cloudTurnOn") : t("cloudTurnOff")}
+          </button>
+        )}
         <span className="ml-auto text-[11.5px] text-faint">
           {fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))}
         </span>
@@ -155,6 +174,11 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry }
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
         <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
+        {status && !status.joined && (
+          <button type="button" disabled={held} onClick={stop} className={mild}>
+            {t("cloudStop")}
+          </button>
+        )}
         <button type="button" disabled={held} onClick={forget} className={mild}>
           {t("cloudForgetHere")}
         </button>

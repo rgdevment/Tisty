@@ -69,3 +69,29 @@ fn how_the_last_round_ended_is_kept_and_read_back() {
 
     assert_eq!(standing(home.path()).last, Some(round));
 }
+
+#[test]
+fn a_cloud_is_joined_once_this_disk_mirrors_anything_of_it() {
+    let home = tempfile::tempdir().unwrap();
+    let room = tempfile::tempdir().unwrap();
+    let here = crate::Here {
+        data: room.path().join("data"),
+        aside: room.path().join("aside"),
+        device: "dev_a".into(),
+    };
+    assert!(!cloud_joined(home.path(), &here));
+
+    let mut index = Index::default();
+    index.shelf.insert(
+        "attachments/ab/plano.pdf".into(),
+        crate::Seen {
+            name: "attachments/ab/plano.pdf".into(),
+            bytes: 1,
+            hash: "h".into(),
+            revision: "r".into(),
+        },
+    );
+    index.save(home.path()).unwrap();
+
+    assert!(cloud_joined(home.path(), &here));
+}

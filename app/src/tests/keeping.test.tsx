@@ -2768,7 +2768,7 @@ describe("the first-run assistant", () => {
     render(<Welcome onDone={vi.fn()} />);
     await userEvent.click(await screen.findByRole("button", { name: /^english$/i }));
 
-    expect(await screen.findByRole("button", { name: /google drive/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /only on this machine/i })).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
 
     await userEvent.click(screen.getByRole("button", { name: /only on this machine/i }));
@@ -2784,6 +2784,7 @@ describe("the first-run assistant", () => {
     const done = vi.fn();
     render(<Welcome onDone={done} />);
     await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /^back$/i }));
     await userEvent.click(await screen.findByRole("button", { name: /only on this machine/i }));
     await screen.findByRole("textbox", { name: /^alias$/i });
 

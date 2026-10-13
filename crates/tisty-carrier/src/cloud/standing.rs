@@ -23,6 +23,19 @@ pub struct LastRound {
     pub names: Vec<String>,
 }
 
+/// A cloud chosen anew starts with no word of a round it never ran.
+pub fn round_forgotten(home: &Path) {
+    let _ = std::fs::remove_file(home.join(LAST_ROUND));
+}
+
+/// Read off this disk with no carrier, so a cloud that cannot be reached can still be told apart.
+pub fn cloud_joined(home: &Path, here: &crate::Here) -> bool {
+    let index = Index::load(home);
+    !index.tree.is_empty()
+        || !index.shelf.is_empty()
+        || tisty_sync::been_here(&here.aside, &home.join(super::TREE), &here.device)
+}
+
 pub fn round_noted(home: &Path, round: &LastRound) {
     let written = serde_json::to_vec(round)
         .map_err(std::io::Error::other)

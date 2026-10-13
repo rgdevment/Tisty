@@ -5,6 +5,8 @@ import {
   about,
   type Carrying,
   chooseSync,
+  cloudForget,
+  cloudStatus,
   type Freeing,
   keepSettings,
   type Reach,
@@ -193,7 +195,10 @@ export default function Keeping({
     onChanged();
     if (!at) return;
     if ((await carryNow()) !== "declined") return;
-    await chooseSync(was).catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
+    const brought = at === "cloud" ? (await cloudStatus().catch(() => null))?.account : undefined;
+    await chooseSync(was)
+      .then(() => (brought ? cloudForget(brought) : undefined))
+      .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
     look();
     onChanged();
   };

@@ -528,9 +528,12 @@ pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
 
 /// A cloud this machine never carried into holds nothing of its own, so it can be left like no way at all.
 pub(crate) fn cloud_joined(session: &Session) -> bool {
-    session
-        .carrier()
-        .is_none_or(|carrier| carrier.been_here(&session.here()))
+    joined_on(session, session.config.sync.as_ref())
+}
+
+fn joined_on(session: &Session, way: Option<&tisty_core::config::Sync>) -> bool {
+    tisty_carrier::cloud_of(way)
+        .is_none_or(|at| tisty_carrier::cloud_joined(&session.reach.home_of(at), &session.here()))
 }
 
 fn choosing(
@@ -628,22 +631,23 @@ where
         crate::leaving::backed_up(&session.paths)?;
     }
     let old = session.carrier();
-    let joined = old
-        .as_ref()
-        .is_none_or(|old| old.been_here(&session.here()));
+    let rejoined = joined_on(session, Some(&chosen));
     session.keep_unless(choosing(chosen.clone()))?;
-    // A cloud never carried into holds someone else's copies, and a word there would move them.
-    let told = |left: &tisty_core::config::Sync| match left.leaving() {
-        tisty_core::config::Leaving::Free => false,
-        tisty_core::config::Leaving::Cloud => joined,
-        _ => true,
+    // Until the move exists only a cloud never carried into is left, and a word there would move someone else's.
+    let told = |left: &tisty_core::config::Sync| {
+        !matches!(
+            left.leaving(),
+            tisty_core::config::Leaving::Free | tisty_core::config::Leaving::Cloud
+        )
     };
     if let Some(left) = was.filter(told) {
         crate::leaving::leave_word(&session.paths, &session.config, &left, old, &chosen);
     }
     crate::leaving::owed_no_more(session.paths.cache(), &chosen);
+    // A cloud this machine never carried into keeps the word others left there for its own machines.
     let a_place = chosen.place().is_some() || tisty_carrier::cloud_of(Some(&chosen)).is_some();
     if a_place
+        && rejoined
         && let Some(now) = session.carrier()
         && let Err(why) = now.forget_word()
     {
@@ -677,9 +681,16 @@ pub async fn sync_now(
             deferred: None,
         });
     };
-    let was = held(&session).config.sync.clone();
+    let (was, home) = {
+        let session = held(&session);
+        let home = tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .map(|at| session.reach.home_of(at));
+        (session.config.sync.clone(), home)
+    };
     let done = carried_round(&app, &session, way).await;
-    noted(&session, &done);
+    if let Some(home) = home {
+        noted(&home, &done);
+    }
     let now = held(&session);
     let _ = app.emit(
         "brought",
@@ -690,14 +701,7 @@ pub async fn sync_now(
 }
 
 /// How a round with the cloud ended stays written beside its mirror, so Settings can say it later.
-fn noted(session: &tauri::State<'_, Mutex<Session>>, done: &Answer<Settled>) {
-    let home = {
-        let session = held(session);
-        tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| session.reach.home_of(at))
-    };
-    let Some(home) = home else {
-        return;
-    };
+fn noted(home: &std::path::Path, done: &Answer<Settled>) {
     let at = jiff::Timestamp::now().as_second().unsigned_abs();
     let round = match done {
         Ok(settled) if settled.carried == "busy" => return,
@@ -725,7 +729,7 @@ fn noted(session: &tauri::State<'_, Mutex<Session>>, done: &Answer<Settled>) {
             names: Vec::new(),
         },
     };
-    tisty_carrier::round_noted(&home, &round);
+    tisty_carrier::round_noted(home, &round);
 }
 
 // The place left behind is told first, and a place others left stops this machine before it writes there alone.

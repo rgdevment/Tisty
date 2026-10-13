@@ -119,9 +119,11 @@ fn the_status_of_a_cloud_says_the_account_the_day_s_spend_the_switch_and_the_las
         },
     );
 
-    let status = status_of(&at, home.path());
+    let status = status_of(&at, home.path(), false);
 
+    assert_eq!(status.account, "0123");
     assert_eq!(status.email, "ana@example.com");
+    assert!(!status.joined);
     assert!(status.paused_here);
     assert_eq!(status.units_spent, 0);
     assert_eq!(

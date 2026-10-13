@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { type Connected, cloudChoose, cloudConnect, cloudForget, syncState } from "../core";
+import { letGoUnused } from "../cloudState";
+import { type Connected, cloudChoose, cloudConnect, syncState } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -47,13 +48,16 @@ export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
   const [connected, setConnected] = useState<Connected>();
   const [weight, setWeight] = useState<number>();
   const gone = useRef(false);
+  const unused = useRef<string | undefined>(undefined);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    gone.current = false;
+    return () => {
       gone.current = true;
-    },
-    [],
-  );
+      // Closed with an account connected and never started on: its access is let go of.
+      if (unused.current) letGoUnused(unused.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!connected) return;
@@ -70,8 +74,8 @@ export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
     setWaiting(true);
     cloudConnect()
       .then((account) => {
-        // Left before Google answered: the account it brought is let go of, so no access stays unused.
-        if (gone.current) return void cloudForget(account.account).catch(() => undefined);
+        if (gone.current) return letGoUnused(account.account);
+        unused.current = account.account;
         setConnected(account);
       })
       .catch((e) => !gone.current && onTrouble(saidPlainly(e)))
@@ -81,7 +85,8 @@ export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
   const leave = () => {
     if (busy || held) return;
     onTrouble(undefined);
-    if (connected) void cloudForget(connected.account).catch(() => undefined);
+    if (connected) letGoUnused(connected.account);
+    unused.current = undefined;
     setConnected(undefined);
     if (!connected) onBack();
   };
@@ -91,7 +96,10 @@ export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
     setHeld(true);
     onTrouble(undefined);
     cloudChoose(connected.account, connected.email)
-      .then(() => onDone("cloud"))
+      .then(() => {
+        unused.current = undefined;
+        onDone("cloud");
+      })
       .catch((e) => {
         onTrouble(saidPlainly(e));
         setHeld(false);
