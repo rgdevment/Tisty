@@ -331,7 +331,16 @@ pub fn move_pending(session: tauri::State<'_, Mutex<Session>>) -> Option<Toward>
 
 #[tauri::command]
 pub fn move_dropped(session: tauri::State<'_, Mutex<Session>>) {
-    pending_kept(&held(&session).paths.clone(), None);
+    let session = held(&session);
+    let dropped = pending_cloud(&session.paths).filter(|account| {
+        tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .is_none_or(|now| &now.account != account)
+            && !crate::leaving::owed_to(session.paths.cache(), account)
+    });
+    pending_kept(&session.paths, None);
+    if let Some(account) = dropped {
+        super::clouding::let_go_of(&account);
+    }
 }
 
 #[tauri::command(async)]
