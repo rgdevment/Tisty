@@ -1703,3 +1703,52 @@ mod fresh;
 
 #[path = "drive_bin_test.rs"]
 mod bin;
+
+#[test]
+fn a_small_file_google_fumbled_once_is_sent_again_and_lands() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("503 Service Unavailable", ""),
+        said("200 OK", A),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.1".into()));
+    let asked = asked.join().unwrap();
+    let uploads = asked
+        .iter()
+        .filter(|one| one.line.contains("uploadType=multipart"))
+        .count();
+    assert_eq!(uploads, 2, "{asked:?}");
+}
+
+#[test]
+fn a_new_small_file_cut_on_its_way_back_is_looked_for_before_it_is_sent_again() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("DROP", ""),
+        said("200 OK", &listing(A)),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert_eq!(landed.map(|one| one.revision), Ok("A.1".into()));
+    let asked = asked.join().unwrap();
+    let uploads = asked
+        .iter()
+        .filter(|one| one.line.contains("uploadType=multipart"))
+        .count();
+    assert_eq!(uploads, 1, "a create that landed was sent twice: {asked:?}");
+    assert!(
+        asked[3].line.contains("q=name"),
+        "it was not looked for by name: {}",
+        asked[3].line
+    );
+}

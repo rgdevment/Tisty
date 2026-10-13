@@ -39,8 +39,36 @@ impl Drive {
             None => (format!("{}/files", self.at.upload), Method::POST),
         };
         match bytes <= WHOLE_AT_MOST.min(self.chunk) {
-            true => self.sent_whole(&url, method, &meta, from, carried),
+            true => self.sent_whole_again(name, (&url, method), &meta, from, carried),
             false => self.sent_in_parts(&url, method, &meta, (name, from, bytes), carried),
+        }
+    }
+
+    // A passing fault would otherwise pause a whole move for one small file.
+    fn sent_whole_again(
+        &self,
+        name: &str,
+        (url, method): (&str, Method),
+        meta: &serde_json::Value,
+        from: &Path,
+        carried: &mut u64,
+    ) -> Result<File, Hitch> {
+        let mut failed = 0;
+        loop {
+            let cut = match self.sent_whole(url, method.clone(), meta, from, carried) {
+                Err(Hitch::Troubled(_)) if failed + 1 < TRIES => false,
+                Err(Hitch::Unreachable(_)) if failed + 1 < TRIES => true,
+                other => return other,
+            };
+            failed += 1;
+            std::thread::sleep(PAUSE * failed);
+            // A create cut on its way back may have landed, and sending it again would leave a twin.
+            if cut
+                && method == Method::POST
+                && let Some(landed) = self.looked_up(name)?.into_iter().next()
+            {
+                return Ok(landed);
+            }
         }
     }
 
