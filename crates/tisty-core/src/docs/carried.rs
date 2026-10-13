@@ -253,10 +253,11 @@ impl Carried {
             .position(|one| crate::paths::same_folder(&one.up_to, dest, holds_our_store))
             .map(|at| self.elsewhere.remove(at));
         self.set_aside(data);
-        if let Some(one) = back
-            && moved_whole(&bases_of(data, &one.up_to), &base(data))
-        {
-            self.prints = one.prints;
+        if let Some(one) = back {
+            match moved_whole(&bases_of(data, &one.up_to), &base(data)) {
+                true => self.prints = one.prints,
+                false => self.elsewhere.push(one),
+            }
         }
         self.up_to = Some(crate::paths::told_of(dest));
         true
