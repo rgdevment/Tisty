@@ -212,6 +212,24 @@ fn spanish(app: &AppHandle) -> bool {
         .unwrap_or_else(crate::refusing::speaks_spanish)
 }
 
+// A fifth smaller than Tisty as it stands, so the two sit together and the index still fits.
+fn beside_main(app: &AppHandle) -> (f64, f64) {
+    let Some(main) = app.get_webview_window("main") else {
+        return SIZED;
+    };
+    let (Ok(size), Ok(scale)) = (main.inner_size(), main.scale_factor()) else {
+        return SIZED;
+    };
+    let logical = size.to_logical::<f64>(scale);
+    scaled(logical.width, logical.height)
+}
+
+const SIZED: (f64, f64) = (1248.0, 656.0);
+
+fn scaled(width: f64, height: f64) -> (f64, f64) {
+    ((width * 0.8).max(760.0), (height * 0.8).max(560.0))
+}
+
 pub fn open(app: &AppHandle, shown: Shown) {
     let views = app.state::<Views>();
     let label = format!("view-{}", views.made.fetch_add(1, Ordering::Relaxed));
@@ -223,13 +241,14 @@ pub fn open(app: &AppHandle, shown: Shown) {
     if let Ok(mut held) = views.shown.lock() {
         held.insert(label.clone(), shown);
     }
+    let sized = beside_main(app);
     let made = tauri::WebviewWindowBuilder::new(
         app,
         &label,
         tauri::WebviewUrl::App(crate::refusing::page(spanish(app)).into()),
     )
     .title(title)
-    .inner_size(1180.0, 820.0)
+    .inner_size(sized.0, sized.1)
     .min_inner_size(520.0, 380.0)
     .decorations(false)
     .transparent(true)

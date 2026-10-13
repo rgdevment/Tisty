@@ -185,7 +185,7 @@ describe("reading in the viewer", () => {
     expect(screen.queryByTitle(t("seePdf"))).toBeNull();
   });
 
-  it("opens with the contents folded, shows and hides them, sizes the page, and reads the source by keys", async () => {
+  it("opens with the contents folded in a narrow window, shows and hides them, sizes the page, and reads the source by keys", async () => {
     render(<Viewing />);
     await screen.findByText("notas.md");
 

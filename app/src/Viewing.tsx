@@ -25,7 +25,7 @@ import usePdf from "./ui/viewer/usePdf";
 import WindowChrome from "./ui/WindowChrome";
 
 const KEPT = "tisty.viewer";
-export const SIDE_FROM = 1320;
+export const SIDE_FROM = 1000;
 
 // The index opens only where it leaves the page its full width.
 const remembered = (): { side: boolean; leaf: Paper } => {
