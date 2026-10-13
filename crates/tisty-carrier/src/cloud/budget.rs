@@ -12,7 +12,6 @@ const FILE: &str = "budget.json";
 const RESERVED_PERCENT: u64 = 10;
 const DAY_SECS: u64 = 24 * 60 * 60;
 const CHARGE_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(30);
-// What one round may ask file by file with nothing landing before it is taken for a loop.
 const STALLED_UNITS: u64 = 5_000;
 const STALLED_ASKS: u64 = 200;
 

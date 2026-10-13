@@ -283,6 +283,7 @@ pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     counts.insert("tags".to_string(), state.tags().len());
     counts.insert("quadrants".to_string(), quadrants);
     counts.insert("tray".to_string(), tray);
+    let mut active = std::collections::BTreeSet::new();
     for list in state.ordered_lists() {
         counts.insert(
             list.id.to_string(),
@@ -291,12 +292,8 @@ pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
         for key in SLICED {
             counts.entry(format!("{key}@{}", list.id)).or_insert(0);
         }
+        active.insert(list.id.to_string());
     }
-    let active: std::collections::BTreeSet<String> = state
-        .ordered_lists()
-        .iter()
-        .map(|one| one.id.to_string())
-        .collect();
     counts.retain(|key, _| {
         key.split_once('@')
             .is_none_or(|(_, list)| active.contains(list))

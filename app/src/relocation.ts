@@ -14,7 +14,6 @@ export interface Run {
 // A pause Google asks for that ends within minutes is waited out here; a longer one leaves the choice to the person.
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
-// Pauses in a row that moved nothing before the choice goes back to the person.
 const STALLS = 3;
 
 let run: Run | null = null;
@@ -96,7 +95,6 @@ export const dismissMove = (forget = true) => {
   endMove();
 };
 
-/// Told whenever a move lands, whether or not its window is open.
 export const afterMove = (then: () => void) => {
   afterMoves.add(then);
   return () => {
