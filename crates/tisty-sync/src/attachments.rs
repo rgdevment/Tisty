@@ -99,6 +99,17 @@ pub struct Beside<'a> {
 impl Attachments for Beside<'_> {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
         let mut carried = Vec::new();
+        let owed = owed_beside(&round.data.join(HELD), &self.dest.join(HELD), round.again);
+        let mut copied = 0;
+        if owed > 0 {
+            (round.saying)(Reached::Sending {
+                part: 0,
+                done: 0,
+                whole: owed,
+                sent: 0,
+                weighs: 0,
+            });
+        }
         let sent = copy_held(
             &round.data.join(HELD),
             &self.dest.join(HELD),
@@ -109,17 +120,28 @@ impl Attachments for Beside<'_> {
             None,
             Some(&mut carried),
             round.avowed,
-            &mut |far| match far {
-                Reached::Along { done, whole, .. } => (round.saying)(Reached::Sending {
-                    part: 0,
-                    done,
-                    whole,
-                    sent: 0,
-                    weighs: 0,
-                }),
-                other => (round.saying)(other),
+            &mut |far| {
+                if let Reached::Kept { .. } = far {
+                    copied += 1;
+                    (round.saying)(Reached::Sending {
+                        part: 0,
+                        done: copied,
+                        whole: owed,
+                        sent: 0,
+                        weighs: 0,
+                    });
+                }
             },
         )?;
+        if owed > copied {
+            (round.saying)(Reached::Sending {
+                part: 0,
+                done: owed,
+                whole: owed,
+                sent: 0,
+                weighs: 0,
+            });
+        }
         let (freed, let_go) = match round.holds {
             Holds::Shared => let_go_of(
                 round.data,
@@ -157,4 +179,29 @@ impl Attachments for Beside<'_> {
         )?;
         Ok(Taken { brought, took_in })
     }
+}
+
+// Only what differs from the folder is told, so a round with nothing to copy says nothing.
+fn owed_beside(from: &Path, into: &Path, again: bool) -> usize {
+    let Ok(shelves) = std::fs::read_dir(from) else {
+        return 0;
+    };
+    shelves
+        .filter_map(|shelf| shelf.ok())
+        .filter_map(|shelf| {
+            std::fs::read_dir(shelf.path())
+                .ok()
+                .map(|files| (shelf, files))
+        })
+        .flat_map(|(shelf, files)| {
+            files
+                .filter_map(|file| file.ok())
+                .map(move |file| (shelf.file_name(), file))
+        })
+        .filter(|(shelf, file)| {
+            let len = |at: &Path| std::fs::metadata(at).map(|one| one.len()).ok();
+            let target = into.join(shelf).join(file.file_name());
+            file.path().is_file() && (again || len(&file.path()) != len(&target))
+        })
+        .count()
 }

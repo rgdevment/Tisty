@@ -2707,7 +2707,7 @@ fn a_round_that_carried_nothing_says_nothing() {
     )
     .unwrap();
 
-    heard.retain(|far| !matches!(far, Reached::Along { .. } | Reached::Sending { .. }));
+    heard.retain(|far| !matches!(far, Reached::Along { .. }));
     assert!(heard.is_empty(), "{heard:?}");
 }
 
@@ -8707,4 +8707,44 @@ fn the_welcome_a_join_gives_ends_a_week_later() {
         crate::place::still_adopting(Some(aside.path()), shared.path(), false).is_empty(),
         "a machine that never said its key was still taken unchecked a week after joining"
     );
+}
+
+#[test]
+fn a_folder_round_tells_only_the_attachments_it_copies_and_says_nothing_once_they_are_there() {
+    let one = machine("dev_a");
+    planted(&one.data, "foto.png", b"a picture");
+    let shared = tempfile::tempdir().unwrap();
+    let sending = |heard: &[Reached]| -> Vec<(usize, usize)> {
+        heard
+            .iter()
+            .filter_map(|far| match far {
+                Reached::Sending { done, whole, .. } => Some((*done, *whole)),
+                _ => None,
+            })
+            .collect()
+    };
+    let round = || {
+        let mut heard = Vec::new();
+        carry_telling(
+            &one.data,
+            None,
+            &one.device,
+            shared.path(),
+            Way::Push,
+            &[],
+            Holds::Everywhere,
+            &mut |far| heard.push(far),
+        )
+        .unwrap();
+        heard
+    };
+
+    let first = round();
+    assert_eq!(sending(&first), vec![(0, 1), (1, 1)]);
+    assert!(
+        first.iter().all(|far| !matches!(far, Reached::Kept { .. })),
+        "what went out to the folder is never told as kept here: {first:?}"
+    );
+
+    assert!(sending(&round()).is_empty());
 }

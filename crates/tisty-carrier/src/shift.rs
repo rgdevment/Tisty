@@ -91,17 +91,6 @@ pub fn shift(
     }
     if let Some(to) = to {
         let mut sending = |far: Reached| match far {
-            Reached::Along {
-                stage: Stage::Attachments,
-                done,
-                whole,
-            } => saying(Reached::Sending {
-                part: 0,
-                done,
-                whole,
-                sent: 0,
-                weighs: 0,
-            }),
             Reached::Along { .. } => {}
             other => saying(other),
         };
