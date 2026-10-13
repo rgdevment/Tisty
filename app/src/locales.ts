@@ -1008,6 +1008,7 @@ const en = {
   cloudDenied: "Google was not given access, so nothing was connected.",
   cloudNoAnswer:
     "The browser never came back from Google, so nothing was connected. Try again when you are ready.",
+  cloudDropped: "The sign-in was stopped, so nothing was connected.",
   cloudBinned:
     "The Tisty folder in {name} is in the bin. Take it out of the bin and sync again; nothing here was changed.",
   cloudSpent:
@@ -2866,6 +2867,7 @@ const es: Catalog = {
   cloudDenied: "No se le dio acceso a Google, así que no se conectó nada.",
   cloudNoAnswer:
     "El navegador nunca volvió de Google, así que no se conectó nada. Vuelve a intentarlo cuando quieras.",
+  cloudDropped: "Se detuvo el inicio de sesión, así que no se conectó nada.",
   cloudBinned:
     "La carpeta Tisty de {name} está en la papelera. Sácala de la papelera y vuelve a sincronizar; aquí no se cambió nada.",
   cloudSpent:

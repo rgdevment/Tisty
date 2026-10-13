@@ -69,6 +69,7 @@ const KNOWN = [
   "cloudBinned",
   "cloudSpent",
   "cloudNoAnswer",
+  "cloudDropped",
   "cloudFull",
   "cloudLost",
   "cloudElsewhere",

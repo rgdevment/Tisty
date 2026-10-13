@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -57,16 +58,62 @@ impl Secrets for Unfiled {
     }
 }
 
+/// The one sign-in waiting for the browser; a newer one lets go of it, so two never race for one account.
+#[derive(Default)]
+pub struct Consenting(Mutex<Option<Arc<AtomicBool>>>);
+
+impl Consenting {
+    fn waits_on(&self, dropping: Arc<AtomicBool>) {
+        if let Ok(mut held) = self.0.lock()
+            && let Some(older) = held.replace(dropping)
+        {
+            older.store(true, Ordering::Relaxed);
+        }
+    }
+
+    fn done_with(&self, dropping: &Arc<AtomicBool>) {
+        if let Ok(mut held) = self.0.lock()
+            && held.as_ref().is_some_and(|now| Arc::ptr_eq(now, dropping))
+        {
+            *held = None;
+        }
+    }
+
+    fn let_go(&self) {
+        if let Some(waiting) = self.0.lock().ok().and_then(|mut held| held.take()) {
+            waiting.store(true, Ordering::Relaxed);
+        }
+    }
+}
+
 #[tauri::command(async)]
-pub async fn cloud_connect(session: tauri::State<'_, Mutex<Session>>) -> Answer<Connected> {
+pub async fn cloud_connect(
+    session: tauri::State<'_, Mutex<Session>>,
+    consenting: tauri::State<'_, Consenting>,
+) -> Answer<Connected> {
     let client = tisty_google::client().ok_or_else(|| Refusal::of("cloudNotOffered"))?;
     let aside = held(&session).paths.cache().to_path_buf();
     let consent = tisty_google::Consent::begin(client).map_err(|e| refused(e, "Google Drive"))?;
+    let dropping = consent.dropping();
+    consenting.waits_on(dropping.clone());
     tauri_plugin_opener::open_url(&consent.url, None::<&str>)
         .map_err(|_| Refusal::of("cannotOpen"))?;
-    tauri::async_runtime::spawn_blocking(move || connected(client, consent, &aside))
+    let done = tauri::async_runtime::spawn_blocking(move || connected(client, consent, &aside))
         .await
-        .map_err(|_| Refusal::of("internal"))?
+        .map_err(|_| Refusal::of("internal"))?;
+    consenting.done_with(&dropping);
+    // A token kept from before the new grant must not be written back over it.
+    if done.is_ok()
+        && let Some(tokens) = held(&session).reach.taken()
+    {
+        tokens.let_go();
+    }
+    done
+}
+
+#[tauri::command]
+pub fn cloud_connect_cancel(consenting: tauri::State<'_, Consenting>) {
+    consenting.let_go();
 }
 
 fn connected(
@@ -75,10 +122,7 @@ fn connected(
     aside: &std::path::Path,
 ) -> Answer<Connected> {
     let at = tisty_google::Endpoints::google();
-    let granted = consent.finish(CONSENT_WAITED, &at).map_err(|e| match e {
-        Hitch::Lost => Refusal::of("cloudDenied"),
-        other => refused(other, "Google Drive"),
-    })?;
+    let granted = consent.finish(CONSENT_WAITED, &at).map_err(ended)?;
     let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
     let renew =
         tisty_google::GoogleRenew::new(client, at).map_err(|e| refused(e, "Google Drive"))?;
@@ -100,6 +144,15 @@ fn connected(
         account: account.id,
         email: account.email,
     })
+}
+
+pub(crate) fn ended(how: tisty_google::Ended) -> Refusal {
+    match how {
+        tisty_google::Ended::NoAnswer => Refusal::of("cloudNoAnswer"),
+        tisty_google::Ended::Dropped => Refusal::of("cloudDropped"),
+        tisty_google::Ended::Failed(Hitch::Lost) => Refusal::of("cloudDenied"),
+        tisty_google::Ended::Failed(other) => refused(other, "Google Drive"),
+    }
 }
 
 /// Only a copy that shares with nobody starts on the cloud here; any other way has things to bring over first.

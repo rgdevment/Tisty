@@ -745,6 +745,7 @@ export interface CloudStatus {
 }
 
 export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
+export const cloudConnectCancel = (): Promise<void> => invoke("cloud_connect_cancel");
 export const cloudChoose = (account: string, email: string): Promise<void> =>
   invoke("cloud_choose", { account, email });
 export const cloudForget = (account?: string): Promise<void> => invoke("cloud_forget", { account });

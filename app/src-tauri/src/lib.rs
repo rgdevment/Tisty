@@ -938,6 +938,7 @@ pub fn run() {
         .setup(settled)
         .on_window_event(window_event)
         .manage(OneAtATime::default())
+        .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(Packing::default())
@@ -966,6 +967,7 @@ pub fn run() {
             reachable,
             take_out_of_reach,
             answers::clouding::cloud_connect,
+            answers::clouding::cloud_connect_cancel,
             answers::clouding::cloud_choose,
             answers::clouding::cloud_forget,
             answers::clouding::cloud_revoke,

@@ -160,3 +160,37 @@ fn a_keychain_that_holds_no_token_is_an_access_gone() {
     assert!(access_gone("sin-token"));
     assert!(lost_for_good_at(home.path(), "sin-token"));
 }
+
+#[test]
+fn a_sign_in_that_never_came_back_is_not_told_as_access_denied() {
+    assert_eq!(ended(tisty_google::Ended::NoAnswer).code, "cloudNoAnswer");
+    assert_eq!(ended(tisty_google::Ended::Dropped).code, "cloudDropped");
+    assert_eq!(
+        ended(tisty_google::Ended::Failed(Hitch::Lost)).code,
+        "cloudDenied"
+    );
+}
+
+#[test]
+fn a_newer_sign_in_lets_go_of_the_one_still_waiting_and_only_its_own_end_clears_it() {
+    let consenting = Consenting::default();
+    let (older, newer) = (
+        Arc::new(AtomicBool::new(false)),
+        Arc::new(AtomicBool::new(false)),
+    );
+
+    consenting.waits_on(older.clone());
+    consenting.waits_on(newer.clone());
+    consenting.done_with(&older);
+
+    assert!(
+        older.load(Ordering::Relaxed),
+        "two sign-ins raced for one account"
+    );
+    assert!(!newer.load(Ordering::Relaxed));
+    consenting.let_go();
+    assert!(
+        newer.load(Ordering::Relaxed),
+        "the older one's end cleared the newer one, and cancelling reached nothing"
+    );
+}
