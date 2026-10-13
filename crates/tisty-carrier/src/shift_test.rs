@@ -923,9 +923,23 @@ fn a_push_cut_by_a_document_changed_meanwhile_counts_it_and_the_stamp_held_back_
         one.wrote("algo");
         one.filed(DOC, "# Plan\n\nlo primero\n");
         fake.refusing(&doc_name(), Hitch::Changed(doc_name()));
+        let stamped = |fake: &Fake| {
+            fake.about(tisty_sync::NAMED)
+                .unwrap()
+                .map(|one| one.revision)
+        };
+        let before = stamped(&fake);
 
-        let (_, heard) = heard_while(&one, None, Some(&*one.carrier));
-        let held_back = fake.about(tisty_sync::NAMED).unwrap();
+        let mut heard = Vec::new();
+        crate::shift(
+            None,
+            Some(&*one.carrier),
+            &one.here,
+            &[DOC.to_string()],
+            &mut |far| heard.push(far),
+        )
+        .unwrap();
+        let held_back = stamped(&fake);
         fake.refusing("nothing/", Hitch::Broke("never".into()));
         step(&one, None, Some(&*one.carrier));
 
@@ -937,8 +951,8 @@ fn a_push_cut_by_a_document_changed_meanwhile_counts_it_and_the_stamp_held_back_
                 .all(|told| reached_its_whole_only_at_the_end(told)),
             "{who}: what was passed over was never counted: {parts:?}"
         );
-        assert!(
-            held_back.is_none(),
+        assert_eq!(
+            held_back, before,
             "{who}: the stamp went up past a document left behind"
         );
         assert!(

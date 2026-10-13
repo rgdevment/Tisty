@@ -87,6 +87,7 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.shown = file;
   ipc.facts = null;
+  window.innerWidth = SIDE_FROM - 1;
   localStorage.clear();
 });
 
@@ -99,7 +100,7 @@ describe("the viewer", () => {
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-    expect(screen.getByText(t("viewInFile"))).toBeTruthy();
+    expect(await screen.findByText(t("viewInFile"))).toBeTruthy();
     expect(screen.getByText(t("viewPage"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
@@ -128,7 +129,7 @@ describe("the viewer", () => {
     expect(asked("view_import")[0].args).toEqual({ open: true });
     await waitFor(() => expect(screen.getByText(new RegExp(t("viewNowIn")))).toBeTruthy());
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-    expect(screen.getByText(t("viewInDoc"))).toBeTruthy();
+    expect(await screen.findByText(t("viewInDoc"))).toBeTruthy();
   });
 
   it("says plainly why a file could not be opened", async () => {
