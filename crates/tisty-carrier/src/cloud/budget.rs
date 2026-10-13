@@ -11,7 +11,7 @@ use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 const FILE: &str = "budget.json";
 const RESERVED_PERCENT: u64 = 10;
 const DAY_SECS: u64 = 24 * 60 * 60;
-const CHARGE_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(5);
+const CHARGE_WAITED_OUT: std::time::Duration = std::time::Duration::from_secs(30);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Class {
