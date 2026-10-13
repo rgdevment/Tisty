@@ -37,6 +37,8 @@ const FORGETTING: &str = "forgotten.working";
 const FORGOTTEN_ASIDE: &str = "forgotten.aside.";
 const ASIDE_LIST: &str = ".list";
 const PATIENCE: Duration = Duration::from_secs(5);
+const DELETE_TRIES: u32 = 4;
+const WAITED_AT_MOST: Duration = Duration::from_secs(60);
 const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
@@ -850,7 +852,7 @@ impl Carrier for Cloud {
                 .iter()
                 .filter(|one| one.name != tisty_core::moved::NAMED)
             {
-                match remote.delete(&one.name, Some(&one.revision)) {
+                match patiently(|| remote.delete(&one.name, Some(&one.revision))) {
                     Ok(()) | Err(crate::Hitch::Missing(_)) => {
                         index.tree.remove(&one.name);
                         index.shelf.remove(&one.name);
@@ -980,6 +982,28 @@ fn marked(changes: &Changes) -> u64 {
         Changes::Since { cursor, .. } => cursor.hash(&mut said),
     }
     said.finish()
+}
+
+// One slow answer from the provider would otherwise stop a wipe of hundreds of files halfway.
+fn patiently(mut once: impl FnMut() -> Result<(), crate::Hitch>) -> Result<(), crate::Hitch> {
+    let mut failed = 0;
+    loop {
+        let wait = match once() {
+            Err(crate::Hitch::Unreachable(_) | crate::Hitch::Troubled(_))
+                if failed + 1 < DELETE_TRIES =>
+            {
+                Duration::from_secs(2u64.pow(failed))
+            }
+            Err(crate::Hitch::Limited { wait } | crate::Hitch::Busy { wait })
+                if failed + 1 < DELETE_TRIES && wait <= WAITED_AT_MOST =>
+            {
+                wait
+            }
+            other => return other,
+        };
+        failed += 1;
+        std::thread::sleep(wait);
+    }
 }
 
 #[cfg(test)]

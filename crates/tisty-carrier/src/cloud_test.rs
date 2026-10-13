@@ -1931,3 +1931,31 @@ fn a_word_left_in_the_place_reaches_the_other_machine_and_forgetting_it_takes_it
 
 #[path = "cloud_rounds_test.rs"]
 mod rounds;
+
+#[test]
+fn a_wipe_waits_out_a_slow_answer_or_a_short_pause_and_gives_up_on_anything_else() {
+    let mut asked = 0;
+    let once = super::patiently(|| {
+        asked += 1;
+        match asked {
+            1 => Err(crate::Hitch::Unreachable("timed out".into())),
+            2 => Err(crate::Hitch::Limited {
+                wait: std::time::Duration::ZERO,
+            }),
+            _ => Ok(()),
+        }
+    });
+    assert!(once.is_ok());
+    assert_eq!(asked, 3);
+
+    let mut refused = 0;
+    let gone = super::patiently(|| {
+        refused += 1;
+        Err(crate::Hitch::Changed("docs/a.md".into()))
+    });
+    assert!(matches!(gone, Err(crate::Hitch::Changed(_))));
+    assert_eq!(
+        refused, 1,
+        "a file changed meanwhile is never deleted on a second try"
+    );
+}

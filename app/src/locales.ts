@@ -1381,6 +1381,8 @@ const en = {
     "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
   wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
+  wipeStopped:
+    "Google stopped answering and the deleting paused. What was already deleted stays deleted and everything is still on this computer; press the button again to delete the rest.",
   wipeNotHome:
     "Not everything in that cloud is on this computer yet, so its copies stay. Sync, settle anything waiting for you, and try again.",
   forgetUntold:
@@ -3292,6 +3294,8 @@ const es: Catalog = {
     "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
   wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
+  wipeStopped:
+    "Google dejó de responder y el borrado se detuvo. Lo ya borrado queda borrado y todo sigue en este equipo; pulsa el botón de nuevo para borrar el resto.",
   wipeNotHome:
     "Todavía no está todo lo de esa nube en este equipo, así que sus copias se quedan. Sincroniza, resuelve lo que esté esperando tu decisión y vuelve a intentarlo.",
   forgetUntold:
