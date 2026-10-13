@@ -55,17 +55,16 @@ impl Drive {
     ) -> Result<File, Hitch> {
         let mut failed = 0;
         loop {
-            let cut = match self.sent_whole(url, method.clone(), meta, from, carried) {
-                Err(Hitch::Troubled(_)) if failed + 1 < TRIES => false,
-                Err(Hitch::Unreachable(_)) if failed + 1 < TRIES => true,
+            match self.sent_whole(url, method.clone(), meta, from, carried) {
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(_)) if failed + 1 < TRIES => {}
                 other => return other,
-            };
+            }
             failed += 1;
             std::thread::sleep(PAUSE * failed);
-            // A create cut on its way back may have landed, and sending it again would leave a twin.
-            if cut
-                && method == Method::POST
-                && let Some(landed) = self.looked_up(name)?.into_iter().next()
+            // A create that failed on its way back may have landed, and sending it again would leave a twin.
+            if method == Method::POST
+                && let Ok(found) = self.looked_up(name)
+                && let Some(landed) = found.into_iter().find(|one| sent_from(one, from))
             {
                 return Ok(landed);
             }
@@ -312,4 +311,14 @@ fn stored(answer: &reqwest::blocking::Response) -> u64 {
         .and_then(|one| one.rsplit('-').next())
         .and_then(|last| last.trim().parse::<u64>().ok())
         .map_or(0, |last| last + 1)
+}
+
+fn sent_from(file: &File, from: &Path) -> bool {
+    let Ok((hex, bytes)) = tisty_core::attach::hashed(from) else {
+        return false;
+    };
+    match file.sha256_checksum.as_deref() {
+        Some(theirs) => theirs == hex,
+        None => file.size.as_deref().and_then(|one| one.parse().ok()) == Some(bytes),
+    }
 }

@@ -1712,6 +1712,7 @@ fn a_small_file_google_fumbled_once_is_sent_again_and_lands() {
         said("200 OK", &whole("")),
         said("200 OK", &listing("")),
         said("503 Service Unavailable", ""),
+        said("200 OK", &listing("")),
         said("200 OK", A),
     ]);
 
@@ -1726,6 +1727,34 @@ fn a_small_file_google_fumbled_once_is_sent_again_and_lands() {
     assert_eq!(uploads, 2, "{asked:?}");
 }
 
+const HELLO_LANDED: &str = r#"{"id":"A","name":"a.md","parents":["R"],"size":"5","sha256Checksum":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","version":"1"}"#;
+
+#[test]
+fn a_file_of_the_same_name_holding_other_bytes_is_never_taken_for_the_one_that_was_cut() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"hello");
+    let (at, asked) = google(vec![
+        said("200 OK", &whole("")),
+        said("200 OK", &listing("")),
+        said("DROP", ""),
+        said("200 OK", &listing(A)),
+        said("200 OK", HELLO_LANDED),
+    ]);
+
+    let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
+
+    assert!(landed.is_ok(), "{landed:?}");
+    let asked = asked.join().unwrap();
+    let uploads = asked
+        .iter()
+        .filter(|one| one.line.contains("uploadType=multipart"))
+        .count();
+    assert_eq!(
+        uploads, 2,
+        "another machine's file was taken for ours: {asked:?}"
+    );
+}
+
 #[test]
 fn a_new_small_file_cut_on_its_way_back_is_looked_for_before_it_is_sent_again() {
     let home = tempfile::tempdir().unwrap();
@@ -1734,7 +1763,7 @@ fn a_new_small_file_cut_on_its_way_back_is_looked_for_before_it_is_sent_again() 
         said("200 OK", &whole("")),
         said("200 OK", &listing("")),
         said("DROP", ""),
-        said("200 OK", &listing(A)),
+        said("200 OK", &listing(HELLO_LANDED)),
     ]);
 
     let landed = drive(at, home.path()).put("a.md", &local, Expect::Absent);
