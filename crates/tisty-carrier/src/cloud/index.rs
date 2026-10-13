@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -28,6 +28,9 @@ pub struct Index {
     /// What a pull could not take yet; the cursor moves past it and the next pull asks again.
     #[serde(default)]
     pub owed: BTreeMap<String, Seen>,
+    /// Attachments a pull saw leave the cloud, so opening one says it is gone instead of not there yet.
+    #[serde(default)]
+    pub vanished: BTreeSet<String>,
 }
 
 impl Index {
@@ -46,6 +49,11 @@ impl Index {
 
     pub fn pulled(&self) -> bool {
         self.cursor.is_some()
+    }
+
+    pub fn shelved(&mut self, name: &str, seen: Seen) {
+        self.vanished.remove(name);
+        self.shelf.insert(name.to_string(), seen);
     }
 
     pub fn spoiled(&self, reference: &str) -> bool {

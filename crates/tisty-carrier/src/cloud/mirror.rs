@@ -128,7 +128,9 @@ fn clear_unlisted(tree: &Path, listed: &BTreeSet<&str>) {
 }
 
 fn forget(tree: &Path, index: &mut Index, name: &str) {
-    index.shelf.remove(name);
+    if index.shelf.remove(name).is_some() {
+        index.vanished.insert(name.to_string());
+    }
     if index.tree.remove(name).is_some()
         && let Some(at) = path_of(tree, name)
     {
@@ -145,7 +147,7 @@ fn learn(
 ) -> Result<bool, Hitch> {
     if on_shelf(&seen.name) {
         if crate::named_well(&seen.name).is_ok() {
-            index.shelf.insert(seen.name.clone(), seen);
+            index.shelved(&seen.name.clone(), seen);
         }
         return Ok(false);
     }
