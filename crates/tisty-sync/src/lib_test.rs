@@ -544,6 +544,108 @@ lo de windows
 }
 
 #[test]
+fn going_back_and_forth_twice_between_two_places_joins_each_edit_against_its_own_base() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let cloud = tempfile::tempdir().unwrap();
+    let here = one.data.join(PAPERS);
+    let there = shared.path().join(PAPERS);
+    let up = cloud.path().join(PAPERS);
+    let alive = ["uno-0001".to_string()];
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n",
+    );
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+    carry_papers(&one.data, cloud.path(), &alive).unwrap();
+    wrote_body(
+        &here,
+        "uno-0001",
+        "# Kit\n\nla introduccion del mac\n\nel cuerpo\n\nel cierre\n",
+    );
+    carry_papers(&one.data, cloud.path(), &alive).unwrap();
+    wrote_body(
+        &there,
+        "uno-0001",
+        "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n\nlo de windows\n",
+    );
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+    assert!(done.undecided.is_empty(), "{done:?}");
+
+    let met = std::fs::read_to_string(here.join("uno-0001.md")).unwrap();
+    carry_papers(&one.data, cloud.path(), &alive).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(up.join("uno-0001.md")).unwrap(),
+        met
+    );
+    wrote_body(
+        &up,
+        "uno-0001",
+        &met.replace("el cierre", "el cierre en la nube"),
+    );
+    wrote_body(
+        &here,
+        "uno-0001",
+        &met.replace(
+            "la introduccion del mac",
+            "la introduccion del mac, revisada",
+        ),
+    );
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+    assert!(done.undecided.is_empty(), "{done:?}");
+
+    let done = carry_papers(&one.data, cloud.path(), &alive).unwrap();
+
+    assert!(done.undecided.is_empty(), "{done:?}");
+    assert_eq!(done.joined, vec!["uno-0001".to_string()]);
+    let whole = std::fs::read_to_string(here.join("uno-0001.md")).unwrap();
+    assert!(whole.contains("del mac, revisada"), "{whole}");
+    assert!(whole.contains("el cierre en la nube"), "{whole}");
+    assert!(whole.contains("lo de windows"), "{whole}");
+}
+
+#[test]
+fn settling_a_document_in_another_place_sets_the_folder_s_base_aside_instead_of_wiping_it() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let cloud = tempfile::tempdir().unwrap();
+    let here = one.data.join(PAPERS);
+    let there = shared.path().join(PAPERS);
+    let alive = ["uno-0001".to_string()];
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n",
+    );
+    carry_papers(&one.data, shared.path(), &alive).unwrap();
+    wrote_body(
+        &cloud.path().join(PAPERS),
+        "uno-0001",
+        "# Kit\n\nlo de la nube\n",
+    );
+
+    settle(&one.data, cloud.path(), "uno-0001", Keep::Both).unwrap();
+    wrote_body(
+        &here,
+        "uno-0001",
+        "# Kit\n\nla introduccion del mac\n\nel cuerpo\n\nel cierre\n",
+    );
+    wrote_body(
+        &there,
+        "uno-0001",
+        "# Kit\n\nla introduccion\n\nel cuerpo\n\nel cierre\n\nlo de windows\n",
+    );
+    let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
+
+    assert!(
+        done.undecided.is_empty(),
+        "the folder's base was lost while another place was settled: {done:?}"
+    );
+    assert_eq!(done.joined, vec!["uno-0001".to_string()]);
+}
+
+#[test]
 fn the_same_paragraph_written_two_ways_still_asks() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
@@ -8709,42 +8811,104 @@ fn the_welcome_a_join_gives_ends_a_week_later() {
     );
 }
 
+fn told_sending(heard: &[Reached]) -> Vec<(usize, usize)> {
+    heard
+        .iter()
+        .filter_map(|far| match far {
+            Reached::Sending { done, whole, .. } => Some((*done, *whole)),
+            _ => None,
+        })
+        .collect()
+}
+
+fn folder_round(one: &Machine, dest: &Path, way: Way) -> Vec<Reached> {
+    let mut heard = Vec::new();
+    carry_telling(
+        &one.data,
+        None,
+        &one.device,
+        dest,
+        way,
+        &[],
+        Holds::Everywhere,
+        &mut |far| heard.push(far),
+    )
+    .unwrap();
+    heard
+}
+
 #[test]
 fn a_folder_round_tells_only_the_attachments_it_copies_and_says_nothing_once_they_are_there() {
     let one = machine("dev_a");
     planted(&one.data, "foto.png", b"a picture");
     let shared = tempfile::tempdir().unwrap();
-    let sending = |heard: &[Reached]| -> Vec<(usize, usize)> {
-        heard
-            .iter()
-            .filter_map(|far| match far {
-                Reached::Sending { done, whole, .. } => Some((*done, *whole)),
-                _ => None,
-            })
-            .collect()
-    };
-    let round = || {
-        let mut heard = Vec::new();
-        carry_telling(
-            &one.data,
-            None,
-            &one.device,
-            shared.path(),
-            Way::Push,
-            &[],
-            Holds::Everywhere,
-            &mut |far| heard.push(far),
-        )
-        .unwrap();
-        heard
-    };
 
-    let first = round();
-    assert_eq!(sending(&first), vec![(0, 1), (1, 1)]);
+    let first = folder_round(&one, shared.path(), Way::Push);
+    assert_eq!(told_sending(&first), vec![(0, 1), (1, 1)]);
     assert!(
         first.iter().all(|far| !matches!(far, Reached::Kept { .. })),
         "what went out to the folder is never told as kept here: {first:?}"
     );
 
-    assert!(sending(&round()).is_empty());
+    assert!(told_sending(&folder_round(&one, shared.path(), Way::Push)).is_empty());
+}
+
+#[test]
+fn a_folder_round_counts_each_attachment_it_copies_one_by_one() {
+    let one = machine("dev_a");
+    planted(&one.data, "foto.png", b"a picture");
+    planted(&one.data, "acta.pdf", b"the minutes of the meeting");
+    let shared = tempfile::tempdir().unwrap();
+
+    let heard = folder_round(&one, shared.path(), Way::Push);
+
+    assert_eq!(told_sending(&heard), vec![(0, 2), (1, 2), (2, 2)]);
+}
+
+#[test]
+fn sending_it_all_again_tells_every_attachment_even_those_the_folder_already_holds() {
+    let one = machine("dev_a");
+    planted(&one.data, "foto.png", b"a picture");
+    let shared = tempfile::tempdir().unwrap();
+    folder_round(&one, shared.path(), Way::Push);
+
+    let heard = folder_round(&one, shared.path(), Way::Again);
+
+    assert_eq!(told_sending(&heard), vec![(0, 1), (1, 1)]);
+}
+
+#[test]
+fn an_attachment_whose_copy_in_the_folder_changed_size_is_told_and_copied_again() {
+    let one = machine("dev_a");
+    let at = planted(&one.data, "foto.png", b"a picture");
+    let shared = tempfile::tempdir().unwrap();
+    folder_round(&one, shared.path(), Way::Push);
+    std::fs::write(shared.path().join(&at), b"cut").unwrap();
+
+    let heard = folder_round(&one, shared.path(), Way::Push);
+
+    assert_eq!(told_sending(&heard), vec![(0, 1), (1, 1)]);
+    assert_eq!(
+        std::fs::read(shared.path().join(&at)).unwrap(),
+        b"a picture"
+    );
+}
+
+#[test]
+fn a_file_the_folder_round_skips_still_closes_the_count_it_was_told_in() {
+    let one = machine("dev_a");
+    let at = planted(&one.data, "foto.png", b"a picture");
+    let shelf = one.data.join(&at).parent().unwrap().to_path_buf();
+    std::fs::write(shelf.join("notas.txt"), b"not an attachment").unwrap();
+    let shared = tempfile::tempdir().unwrap();
+
+    let first = folder_round(&one, shared.path(), Way::Push);
+    assert_eq!(told_sending(&first), vec![(0, 2), (1, 2), (2, 2)]);
+
+    let again = folder_round(&one, shared.path(), Way::Push);
+    assert_eq!(
+        told_sending(&again),
+        vec![(0, 1), (1, 1)],
+        "a count that is never closed leaves the step hanging"
+    );
 }
