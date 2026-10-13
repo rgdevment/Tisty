@@ -129,6 +129,8 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
         )}
       </div>
 
+      <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("cloudWhere")}</p>
+
       {standing && (
         <div
           role="status"
