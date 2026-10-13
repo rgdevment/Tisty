@@ -760,8 +760,8 @@ pub async fn sync_now(
 
 /// This copy raised a place the builds before 1.30 no longer write in, and the person has not been told yet.
 #[tauri::command]
-pub fn place_raised(session: tauri::State<'_, Mutex<Session>>) -> bool {
-    tisty_carrier::raised(held(&session).paths.data())
+pub fn place_raised(session: tauri::State<'_, Mutex<Session>>) -> Option<&'static str> {
+    tisty_carrier::raised(held(&session).paths.data()).then_some(tisty_carrier::NEEDS)
 }
 
 #[tauri::command]

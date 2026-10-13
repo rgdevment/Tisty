@@ -96,7 +96,11 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
     });
     if (!left) return;
     const asked =
-      left.files > 0 ? fill("cloudAbandonSure", String(left.files)) : t("cloudAbandonSureNone");
+      left.files === 0
+        ? t("cloudAbandonSureNone")
+        : left.files === 1
+          ? t("cloudAbandonSureOne")
+          : fill("cloudAbandonSure", String(left.files));
     if (!(await sure(asked))) return;
     run("sync", cloudAbandon(), look);
   };

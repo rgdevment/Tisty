@@ -1,17 +1,17 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 import { placeRaised, placeRaisedTold } from "../core";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 
 // Said once, by the copy that raised the place: the others stop there until they update.
 export default function Raised() {
-  const [shown, setShown] = useState(false);
+  const [needs, setNeeds] = useState<string | null>(null);
 
   useEffect(() => {
     const look = () =>
       void Promise.resolve()
         .then(placeRaised)
-        .then((raised) => setShown(raised === true))
+        .then((raised) => setNeeds(typeof raised === "string" ? raised : null))
         .catch(() => {});
     look();
     window.addEventListener("focus", look);
@@ -22,10 +22,10 @@ export default function Raised() {
     };
   }, []);
 
-  if (!shown) return null;
+  if (!needs) return null;
 
   const told = () => {
-    setShown(false);
+    setNeeds(null);
     void Promise.resolve()
       .then(placeRaisedTold)
       .catch(() => {});
@@ -37,8 +37,10 @@ export default function Raised() {
       className="shadow-lift fixed right-4 bottom-5 z-[60] flex w-[320px] items-start gap-2.5 rounded-[10px] border border-hue-amber/40 bg-bg px-3.5 py-2 text-[11.5px] leading-relaxed text-soft"
     >
       <span className="min-w-0 flex-1">
-        <span className="block text-[12.5px] font-semibold text-ink">{t("placeRaised")}</span>
-        {t("placeRaisedWhy")}
+        <span className="block text-[12.5px] font-semibold text-ink">
+          {fill("placeRaised", needs)}
+        </span>
+        {fill("placeRaisedWhy", needs)}
       </span>
       <button
         type="button"

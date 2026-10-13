@@ -786,7 +786,7 @@ export const cloudWipe = (account: string, email: string): Promise<number> =>
   invoke("cloud_wipe", { account, email });
 export const cloudStranded = (): Promise<Weight> => invoke("cloud_stranded");
 export const cloudAbandon = (): Promise<void> => invoke("cloud_abandon");
-export const placeRaised = (): Promise<boolean> => invoke("place_raised");
+export const placeRaised = (): Promise<string | null> => invoke("place_raised");
 export const placeRaisedTold = (): Promise<void> => invoke("place_raised_told");
 export type Carried = "came" | "sent" | "both" | "same" | "busy";
 

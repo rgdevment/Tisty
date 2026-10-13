@@ -1305,7 +1305,7 @@ const en = {
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
   wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
   wipeNotHome:
-    "Something new reached that cloud after the move, so its copies stay. Tisty is bringing it here; try again in a moment.",
+    "Not everything in that cloud is on this computer yet, so its copies stay. Sync, settle anything waiting for you, and try again.",
   forgetUntold:
     "Your other computers haven't been told where you went yet, so this computer keeps the cloud's access until they are.",
   cloudNotLost:
@@ -1313,11 +1313,13 @@ const en = {
   cloudAbandon: "Leave without Google Drive",
   cloudAbandonSure:
     "Google Drive can no longer be reached from this computer. If you leave it, Tisty keeps your tasks and documents here and syncs with nothing. {name} attachments are only in Drive and stay there, out of Tisty's reach. Leave anyway?",
+  cloudAbandonSureOne:
+    "Google Drive can no longer be reached from this computer. If you leave it, Tisty keeps your tasks and documents here and syncs with nothing. 1 attachment is only in Drive and stays there, out of Tisty's reach. Leave anyway?",
   cloudAbandonSureNone:
     "Google Drive can no longer be reached from this computer. If you leave it, Tisty keeps your tasks and documents here and syncs with nothing. Every attachment is already on this computer. Leave anyway?",
-  placeRaised: "Your other computers need Tisty 1.30",
+  placeRaised: "Your other computers need Tisty {name}",
   placeRaisedWhy:
-    "This computer updated the place you sync with. Your other computers have to update to Tisty 1.30 to keep syncing there; until then they stop, and nothing of theirs is lost.",
+    "This computer updated the place you sync with. Your other computers have to update to Tisty {name} to keep syncing there; until then they stop, and nothing of theirs is lost.",
   placeRaisedTold: "Got it",
   modeOpen: "How Tisty syncs",
   turnSyncOn: "Turn on…",
@@ -3137,7 +3139,7 @@ const es: Catalog = {
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
   wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
   wipeNotHome:
-    "Llegó algo nuevo a esa nube después de la mudanza, así que sus copias se quedan. Tisty lo está trayendo aquí; vuelve a intentarlo en un momento.",
+    "Todavía no está todo lo de esa nube en este equipo, así que sus copias se quedan. Sincroniza, resuelve lo que esté esperando tu decisión y vuelve a intentarlo.",
   forgetUntold:
     "Tus otros equipos todavía no saben adónde te fuiste, así que este equipo conserva el acceso a la nube hasta que lo sepan.",
   cloudNotLost:
@@ -3145,11 +3147,13 @@ const es: Catalog = {
   cloudAbandon: "Salir sin Google Drive",
   cloudAbandonSure:
     "Ya no se puede llegar a Google Drive desde este equipo. Si sales, Tisty conserva aquí tus tareas y documentos y no sincroniza con nada. {name} adjuntos están solo en Drive y se quedan ahí, fuera del alcance de Tisty. ¿Salir igual?",
+  cloudAbandonSureOne:
+    "Ya no se puede llegar a Google Drive desde este equipo. Si sales, Tisty conserva aquí tus tareas y documentos y no sincroniza con nada. 1 adjunto está solo en Drive y se queda ahí, fuera del alcance de Tisty. ¿Salir igual?",
   cloudAbandonSureNone:
     "Ya no se puede llegar a Google Drive desde este equipo. Si sales, Tisty conserva aquí tus tareas y documentos y no sincroniza con nada. Todos los adjuntos ya están en este equipo. ¿Salir igual?",
-  placeRaised: "Tus otros equipos necesitan Tisty 1.30",
+  placeRaised: "Tus otros equipos necesitan Tisty {name}",
   placeRaisedWhy:
-    "Este equipo actualizó el lugar con el que sincronizas. Tus otros equipos tienen que actualizarse a Tisty 1.30 para seguir sincronizando ahí; mientras tanto se detienen y no pierden nada.",
+    "Este equipo actualizó el lugar con el que sincronizas. Tus otros equipos tienen que actualizarse a Tisty {name} para seguir sincronizando ahí; mientras tanto se detienen y no pierden nada.",
   placeRaisedTold: "Entendido",
   modeOpen: "Cómo sincroniza Tisty",
   turnSyncOn: "Activar…",

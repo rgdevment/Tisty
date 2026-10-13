@@ -444,6 +444,21 @@ describe("a cloud Google will never open again", () => {
     asksSure(null);
   });
 
+  it("speaks of a single attachment left in Drive as one", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(false);
+    });
+    ipc.answers.cloud_stranded = () => Promise.resolve({ files: 1, bytes: 10 });
+    card({ lost: true });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("cloudAbandon") }));
+
+    await waitFor(() => expect(asked).toEqual([t("cloudAbandonSureOne")]));
+    asksSure(null);
+  });
+
   it("offers no way out without the move while Google still lets Tisty in", async () => {
     card({ lost: false, last: round("cloudFull") });
     await screen.findByText(ANA.email);
@@ -453,21 +468,21 @@ describe("a cloud Google will never open again", () => {
 
 describe("a place raised past the builds before 1.30", () => {
   it("tells the person once that the other computers have to update", async () => {
-    ipc.answers.place_raised = () => Promise.resolve(true);
+    ipc.answers.place_raised = () => Promise.resolve("1.30.0");
     render(<Raised />);
 
-    expect(await screen.findByText(t("placeRaised"))).toBeTruthy();
+    expect(await screen.findByText(fill("placeRaised", "1.30.0"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("placeRaisedTold") }));
 
-    expect(screen.queryByText(t("placeRaised"))).toBeNull();
+    expect(screen.queryByText(fill("placeRaised", "1.30.0"))).toBeNull();
     await waitFor(() => expect(sent("place_raised_told")).toHaveLength(1));
   });
 
   it("says nothing on a place nobody raised", async () => {
-    ipc.answers.place_raised = () => Promise.resolve(false);
+    ipc.answers.place_raised = () => Promise.resolve(null);
     render(<Raised />);
 
     await waitFor(() => expect(sent("place_raised").length).toBeGreaterThan(0));
-    expect(screen.queryByText(t("placeRaised"))).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });
