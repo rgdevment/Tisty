@@ -694,7 +694,15 @@ impl Remote for Drive {
         if let Some(checked) = current
             && gap::leapt(checked, &made)
         {
-            self.handed_back(name, &made, checked)?;
+            match self.handed_back(name, &made, checked) {
+                // The bytes went up even though the write is refused, and the meter charges a refusal only its look.
+                Err(Hitch::Changed(refused)) => {
+                    let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
+                    self.spent(EDIT.saturating_mul(self.limits().requests_to_put(weighs)));
+                    return Err(Hitch::Changed(refused));
+                }
+                other => other?,
+            }
         }
         self.owned(
             &made.id,
