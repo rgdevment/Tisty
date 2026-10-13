@@ -56,6 +56,15 @@ impl Sync {
         self.place().is_some()
     }
 
+    /// As every machine there names it alike: a folder's path differs from one machine to the next.
+    pub fn named_alike(&self) -> String {
+        match self {
+            Self::Cloud(at) => format!("cloud:{}:{}", at.provider, at.account),
+            Self::Folder(_) => "folder".to_string(),
+            Self::Local | Self::Unknown(_) => "alone".to_string(),
+        }
+    }
+
     pub fn leaving(&self) -> Leaving {
         match self {
             Self::Local => Leaving::Free,
