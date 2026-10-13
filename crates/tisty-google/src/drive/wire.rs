@@ -101,8 +101,10 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
         .unwrap_or_default();
     Err(match (status, reason) {
         (401, _) => Hitch::Lost,
-        (403, "storageQuotaExceeded" | "quotaExceeded") => Hitch::Full,
-        (403, "dailyLimitExceeded") => Hitch::Limited {
+        (403, "storageQuotaExceeded") => Hitch::Full,
+        // Google names a project's quota this way too; only one that speaks of storage is a full Drive.
+        (403, "quotaExceeded") if message.to_ascii_lowercase().contains("storage") => Hitch::Full,
+        (403, "dailyLimitExceeded" | "quotaExceeded") => Hitch::Limited {
             wait: wait.unwrap_or(DAILY_WAIT),
         },
         (403, "userRateLimitExceeded" | "rateLimitExceeded" | "sharingRateLimitExceeded")

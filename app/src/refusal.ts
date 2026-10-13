@@ -164,6 +164,7 @@ const KNOWN = [
   "nothingKeptBeside",
   "comingDown",
   "cloudLater",
+  "cloudGone",
   "docComing",
   "sharedAway",
   "heldAway",

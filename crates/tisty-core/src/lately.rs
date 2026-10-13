@@ -54,6 +54,16 @@ pub fn last(at: &Path, reference: &str) -> Option<u64> {
     every(at).get(plain(reference)).copied()
 }
 
+/// The day it counts as reached: its own, or the day the file began or forgot older ones, whichever is later.
+pub fn reached(at: &Path, reference: &str) -> Option<u64> {
+    let seen = read(at).unwrap_or_default();
+    [seen.get(plain(reference)), seen.get(SINCE)]
+        .into_iter()
+        .flatten()
+        .copied()
+        .max()
+}
+
 pub fn used(at: &Path, reference: &str) {
     used_on(at, reference, now());
 }
@@ -81,11 +91,14 @@ pub fn used_on(at: &Path, reference: &str, when: u64) {
             .iter()
             .filter(|one| one.0 != SINCE)
             .min_by(|one, two| one.1.cmp(two.1).then_with(|| one.0.cmp(two.0)))
-            .map(|(named, _)| named.clone())
+            .map(|(named, when)| (named.clone(), *when))
         else {
             break;
         };
-        seen.remove(&oldest);
+        seen.remove(&oldest.0);
+        // What is forgotten counts as reached as late as the last one forgotten, so freeing never takes it.
+        let since = seen.entry(SINCE.to_string()).or_insert(oldest.1);
+        *since = (*since).max(oldest.1);
     }
     if let Err(e) = written(at, &seen) {
         told_unwritten(at, &e.to_string());
