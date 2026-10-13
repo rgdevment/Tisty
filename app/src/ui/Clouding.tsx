@@ -10,7 +10,6 @@ interface Props {
   onTrouble: (said?: string) => void;
   onBack: () => void;
   onDone: (at: string) => void;
-  // A move takes the account and chooses it only once everything is over.
   onConnected?: (account: Connected) => void;
 }
 

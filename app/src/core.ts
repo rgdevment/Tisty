@@ -766,12 +766,16 @@ export interface MovePlan {
   toCloud: boolean;
 }
 export type Moving =
-  | { state: "done"; leftCloud?: { provider: string; account: string; email: string } | null }
+  | {
+      state: "done";
+      told: boolean;
+      leftCloud?: { provider: string; account: string; email: string } | null;
+    }
   | {
       state: "waiting";
       stage: "homing" | "filling";
       left: Weight;
-      reason?: Waiting["reason"] | null;
+      reason?: Waiting["reason"] | "unsettled" | null;
     };
 export const movePlan = (toward: Toward): Promise<MovePlan> => invoke("move_plan", { toward });
 export const moveTo = (toward: Toward): Promise<Moving> => invoke("move_to", { toward });

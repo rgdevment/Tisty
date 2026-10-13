@@ -157,6 +157,7 @@ export default function Stage() {
       greeted={greeted}
       start={chosen.tab}
       move={chosen.move}
+      movedAt={chosen.movedAt}
       onPack={() => parcels.packUp([], "tisty")}
       onUnpack={parcels.takeParcel}
       onGreet={() => setGreet(true)}

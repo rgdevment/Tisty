@@ -53,6 +53,10 @@ const HOMING: Turn = Turn {
     waits: false,
     sends: false,
 };
+const BINNING: Turn = Turn {
+    waits: true,
+    sends: false,
+};
 
 struct Done<T> {
     value: Option<T>,
@@ -614,9 +618,8 @@ impl Carrier for Cloud {
         tisty_core::store::inhabited(self.looked_again().join(STORE))
     }
 
-    // Binned by revision, so the provider keeps each one in its bin for a while.
     fn wipe(&self) -> Result<usize, Trouble> {
-        self.only(None, |_, index, remote| {
+        let done = self.with_mirror(None, BINNING, |_, index, remote| {
             let all = remote
                 .list("")
                 .map_err(|e| Trouble::Broke(format!("{e:?}")))?;
@@ -635,8 +638,13 @@ impl Carrier for Cloud {
                     Err(hitch) => return Err(Trouble::Broke(format!("{hitch:?}"))),
                 }
             }
-            Ok(gone)
-        })
+            Ok((gone, None))
+        })?;
+        let gone = done
+            .value
+            .ok_or_else(|| Trouble::NotNow(unavailable(done.deferred)))?;
+        let _ = std::fs::remove_dir_all(&self.home);
+        Ok(gone)
     }
 
     fn forget_paper(&self, id: &str) {

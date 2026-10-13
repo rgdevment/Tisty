@@ -51,6 +51,7 @@ interface Props {
   greeted?: number;
   start?: Tab;
   move?: Heading;
+  movedAt?: number;
 }
 
 export default function Keeping({
@@ -62,6 +63,7 @@ export default function Keeping({
   greeted,
   start,
   move,
+  movedAt,
 }: Props) {
   const [tab, setTab] = useState<Tab>(start ?? "general");
   const [state, setState] = useState<Carrying | null>(null);
@@ -146,7 +148,7 @@ export default function Keeping({
     if (!move) return;
     setTab("data");
     setMoving({ heading: move });
-  }, [move]);
+  }, [move, movedAt]);
   const [was, setWas] = useState<string>();
   const held = busy !== null;
 

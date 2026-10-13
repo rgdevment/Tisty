@@ -19,7 +19,6 @@ interface Props {
   onTrouble: (said: string) => void;
   onDeciding?: (deciding: boolean) => void;
   onDone: (at: string) => void;
-  // A move only wants the place; it points there itself once everything is over.
   pickOnly?: boolean;
 }
 

@@ -157,6 +157,10 @@ pub async fn cloud_forget(
     account: Option<String>,
 ) -> Answer<()> {
     let account = whose(&session, account)?;
+    let cache = held(&session).paths.cache().to_path_buf();
+    if crate::leaving::owed_to(&cache, &account) {
+        return Ok(());
+    }
     tauri::async_runtime::spawn_blocking(move || {
         forgotten(&account)?;
         let_go_held(&app, &account);
@@ -240,7 +244,6 @@ pub(crate) fn has_access(account: &str) -> Answer<()> {
     }
 }
 
-/// A cloud left before this machine ever carried into it keeps no access behind.
 pub(crate) fn let_go_of(account: &str) {
     if let Err(why) = forgotten(account) {
         tisty_core::witness::warn(

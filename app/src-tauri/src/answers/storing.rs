@@ -531,7 +531,7 @@ pub(crate) fn cloud_joined(session: &Session) -> bool {
     joined_on(session, session.config.sync.as_ref())
 }
 
-fn joined_on(session: &Session, way: Option<&tisty_core::config::Sync>) -> bool {
+pub(crate) fn joined_on(session: &Session, way: Option<&tisty_core::config::Sync>) -> bool {
     tisty_carrier::cloud_of(way)
         .is_none_or(|at| tisty_carrier::cloud_joined(&session.reach.home_of(at), &session.here()))
 }
@@ -590,7 +590,6 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
     changed_to(session, chosen, |one| choosing(one, joined))
 }
 
-/// A folder inside the store, or holding it, would carry the store into itself.
 pub(crate) fn folder_way(session: &Session, dest: String) -> Answer<tisty_core::config::Sync> {
     let at = std::path::PathBuf::from(&dest);
     let data = session.paths.data();
@@ -616,6 +615,60 @@ pub(crate) fn changed_to<F>(
 where
     F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
 {
+    let joins = Joins {
+        rejoined: joined_on(session, Some(&chosen)),
+        left: joined_on(session, session.config.sync.as_ref()),
+    };
+    let after = changed_with(session, chosen, choosing, joins)?;
+    after.done_now(session);
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct Joins {
+    pub(crate) rejoined: bool,
+    pub(crate) left: bool,
+}
+
+pub(crate) struct After {
+    pub(crate) word: Option<(
+        tisty_core::config::Sync,
+        String,
+        Option<tisty_carrier::Shared>,
+    )>,
+    pub(crate) unword: Option<tisty_carrier::Shared>,
+}
+
+impl After {
+    fn done_now(self, session: &Session) {
+        if let Some((left, said, old)) = self.word {
+            crate::leaving::left_said(session.paths.cache(), &left, &said, old);
+        }
+        if let Some(now) = self.unword {
+            forget_word_in(&now);
+        }
+    }
+}
+
+pub(crate) fn forget_word_in(now: &tisty_carrier::Shared) {
+    if let Err(why) = now.forget_word() {
+        witness::warn(
+            channel::SYNC,
+            "a word that other machines moved away stayed in the place chosen again",
+            &[("why", Fact::Why(format!("{why:?}")))],
+        );
+    }
+}
+
+pub(crate) fn changed_with<F>(
+    session: &mut Session,
+    chosen: tisty_core::config::Sync,
+    choosing: impl Fn(tisty_core::config::Sync) -> F,
+    joins: Joins,
+) -> Answer<After>
+where
+    F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
+{
     let was = session
         .config
         .sync
@@ -634,36 +687,25 @@ where
         crate::leaving::backed_up(&session.paths)?;
     }
     let old = session.carrier();
-    let rejoined = joined_on(session, Some(&chosen));
-    let left_joined = joined_on(session, was.as_ref());
     session.keep_unless(choosing(chosen.clone()))?;
-    // A cloud never carried into holds someone else's copies, and a word there would move them.
     let told = |left: &tisty_core::config::Sync| match left.leaving() {
         tisty_core::config::Leaving::Free => false,
-        tisty_core::config::Leaving::Cloud => left_joined,
+        tisty_core::config::Leaving::Cloud => joins.left,
         _ => true,
     };
-    if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !left_joined) {
+    if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !joins.left) {
         crate::answers::clouding::let_go_of(&at.account);
     }
-    if let Some(left) = was.filter(told) {
-        crate::leaving::leave_word(&session.paths, &session.config, &left, old, &chosen);
-    }
+    let word = was.filter(told).and_then(|left| {
+        crate::leaving::word_for(&session.paths, &session.config, &chosen)
+            .map(|said| (left, said, old))
+    });
     crate::leaving::owed_no_more(session.paths.cache(), &chosen);
-    // A cloud this machine never carried into keeps the word others left there for its own machines.
     let a_place = chosen.place().is_some() || tisty_carrier::cloud_of(Some(&chosen)).is_some();
-    if a_place
-        && rejoined
-        && let Some(now) = session.carrier()
-        && let Err(why) = now.forget_word()
-    {
-        witness::warn(
-            channel::SYNC,
-            "a word that other machines moved away stayed in the place chosen again",
-            &[("why", Fact::Why(format!("{why:?}")))],
-        );
-    }
-    Ok(())
+    let unword = (a_place && joins.rejoined)
+        .then(|| session.carrier())
+        .flatten();
+    Ok(After { word, unword })
 }
 
 #[tauri::command]

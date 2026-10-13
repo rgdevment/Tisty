@@ -75,6 +75,8 @@ const KNOWN = [
   "movedAlone",
   "movedToCloud",
   "moveSamePlace",
+  "moveFromUnused",
+  "wipeUntold",
   "moveFromUnreachable",
   "moveToUnreachable",
   "wipeChosen",

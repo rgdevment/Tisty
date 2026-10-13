@@ -53,7 +53,7 @@ fn where_to(chosen: &Sync) -> String {
     }
 }
 
-/// The word goes where this machine used to sync; a place out of reach gets it at the next round that reaches it.
+#[cfg(test)]
 pub fn leave_word(
     paths: &tisty_core::Paths,
     config: &tisty_core::Config,
@@ -61,19 +61,45 @@ pub fn leave_word(
     old: Option<tisty_carrier::Shared>,
     chosen: &Sync,
 ) {
-    let Some(key) = tisty_core::signing::mine(paths, &config.device_id) else {
-        return;
-    };
-    let said = tisty_core::moved::said(
+    if let Some(said) = word_for(paths, config, chosen) {
+        left_said(paths.cache(), left, &said, old);
+    }
+}
+
+pub fn left_said(
+    cache: &Path,
+    left: &Sync,
+    said: &str,
+    old: Option<tisty_carrier::Shared>,
+) -> bool {
+    let reached = old.is_some_and(|old| old.leave_word(said).is_ok());
+    if !reached {
+        owe(cache, left, said);
+    }
+    reached
+}
+
+pub fn word_for(
+    paths: &tisty_core::Paths,
+    config: &tisty_core::Config,
+    chosen: &Sync,
+) -> Option<String> {
+    let key = tisty_core::signing::mine(paths, &config.device_id)?;
+    Some(tisty_core::moved::said(
         &key,
         &config.device_id,
         &where_to(chosen),
         jiff::Timestamp::now().as_second().unsigned_abs(),
-    );
-    let reached = old.is_some_and(|old| old.leave_word(&said).is_ok());
-    if !reached {
-        owe(paths.cache(), left, &said);
-    }
+    ))
+}
+
+pub fn owed_to(cache: &Path, account: &str) -> bool {
+    std::fs::read(cache.join(OWED))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Owed>(&bytes).ok())
+        .is_some_and(|owed| {
+            tisty_carrier::cloud_of(Some(&owed.way)).is_some_and(|at| at.account == account)
+        })
 }
 
 fn owe(cache: &Path, left: &Sync, said: &str) {
@@ -114,6 +140,7 @@ pub struct Owing {
     at: PathBuf,
     old: tisty_carrier::Shared,
     said: String,
+    way: Sync,
 }
 
 pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
@@ -129,6 +156,7 @@ pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing
         at,
         old,
         said: owed.said,
+        way: owed.way,
     })
 }
 
@@ -137,6 +165,9 @@ impl Owing {
         let reached = self.old.leave_word(&self.said).is_ok();
         if reached {
             let _ = std::fs::remove_file(self.at);
+            if let Some(at) = tisty_carrier::cloud_of(Some(&self.way)) {
+                crate::answers::clouding::let_go_of(&at.account);
+            }
         }
         reached
     }

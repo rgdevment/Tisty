@@ -53,6 +53,7 @@ export interface Chosen {
   doc?: string;
   tab?: Tab;
   move?: Heading;
+  movedAt?: number;
   list?: string;
   lists?: string[];
   tags?: string[];

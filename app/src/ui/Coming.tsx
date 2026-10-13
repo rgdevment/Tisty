@@ -15,7 +15,6 @@ const said: Record<Stage, Word> = {
 
 const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
-// The others' word says where they went, so the way out heads there.
 const followed = (stuck: unknown): { heading: Heading; said: Word } => {
   const code = (stuck as { code?: string } | null)?.code;
   if (code === "movedToCloud") return { heading: "cloud", said: "movedFollowCloud" };

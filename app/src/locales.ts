@@ -1294,6 +1294,14 @@ const en = {
   movePending: "A move to {name} is halfway.",
   moveDrop: "Drop it",
   moveSamePlace: "This copy already syncs there, so there is nothing to move.",
+  moveFromUnused:
+    "This computer never synced with this cloud, so there is nothing to bring from it: stop using it from its card instead.",
+  moveUnsettled:
+    "Some documents or computers are waiting for you to decide. Sync now and settle them; then carry on with the move.",
+  moveUntold:
+    "Your other computers couldn't be told yet; Tisty keeps trying on every sync, and keeps the old cloud's access until then.",
+  wipeUntold:
+    "Your other computers haven't been told where you went yet, so the copies stay until they are.",
   moveFromUnreachable:
     "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
@@ -3113,6 +3121,14 @@ const es: Catalog = {
   movePending: "Hay una mudanza a medias hacia {name}.",
   moveDrop: "Dejarla",
   moveSamePlace: "Esta copia ya sincroniza ahí, así que no hay nada que mover.",
+  moveFromUnused:
+    "Este equipo nunca sincronizó con esta nube, así que no hay nada que traer de ahí: deja de usarla desde su tarjeta.",
+  moveUnsettled:
+    "Hay documentos o equipos esperando que decidas. Sincroniza y resuélvelos; después sigue con la mudanza.",
+  moveUntold:
+    "Todavía no se pudo avisar a tus otros equipos; Tisty lo sigue intentando en cada sincronización y guarda el acceso a la nube anterior hasta entonces.",
+  wipeUntold:
+    "Tus otros equipos todavía no saben adónde te fuiste, así que las copias se quedan hasta que lo sepan.",
   moveFromUnreachable:
     "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",

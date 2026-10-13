@@ -46,8 +46,11 @@ const STAGE = {
 const WAITS = {
   budget: "deferredBudget",
   limit: "deferredLimit",
+  busy: "deferredLimit",
+  changed: "deferredLimit",
   offline: "deferredOffline",
   paused: "deferredPaused",
+  unsettled: "moveUnsettled",
 } as const;
 
 const row =
@@ -108,12 +111,12 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
     setStep("plan");
   };
 
-  const leftCloud = result?.state === "done" ? result.leftCloud : undefined;
+  const leftCloud = result?.state === "done" && result.told ? result.leftCloud : undefined;
+  const untold = result?.state === "done" && !result.told;
 
   const close = () => {
     if (busy) return;
-    // A cloud connected only for this move, and never moved to, keeps no access behind.
-    if (toward?.kind === "cloud" && result?.state !== "done") letGoUnused(toward.account);
+    if (toward?.kind === "cloud" && !result) letGoUnused(toward.account);
     if (leftCloud && !settled.current) void cloudForget(leftCloud.account).catch(() => undefined);
     if (result?.state === "done") onMoved();
     onClose();
@@ -139,7 +142,9 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
 
   const drop = () => {
     void moveDropped().catch(() => undefined);
-    close();
+    if (toward?.kind === "cloud") letGoUnused(toward.account);
+    if (result?.state === "done") onMoved();
+    onClose();
   };
 
   const wipe = async () => {
@@ -314,7 +319,9 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
       {step === "done" && toward && (
         <div className="flex flex-col gap-3">
           <p className="text-[13px] font-semibold">{fill("moveDone", towardOf(toward))}</p>
-          <p className="text-[12.5px] leading-relaxed text-soft">{t("moveDoneWhy")}</p>
+          <p className="text-[12.5px] leading-relaxed text-soft">
+            {t(untold ? "moveUntold" : "moveDoneWhy")}
+          </p>
           {told && <p className="text-[11.5px] text-faint">{told}</p>}
           <div className="flex flex-wrap items-center gap-2.5">
             {leftCloud && !told && (
