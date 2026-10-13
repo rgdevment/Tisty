@@ -61,6 +61,8 @@ pub enum Moving {
         stage: &'static str,
         left: Weight,
         reason: Option<&'static str>,
+        /// Seconds the provider asked to wait, so a short pause goes on by itself.
+        wait: Option<u64>,
     },
 }
 
@@ -254,6 +256,7 @@ pub async fn move_to(
             stage: "homing",
             left: Weight::default(),
             reason: Some("unsettled"),
+            wait: None,
         }),
         tisty_carrier::Shift::Ready => {
             let after = changed_with(&mut held(&session), way.clone(), moving_in, joins)?;
@@ -288,6 +291,10 @@ fn waiting(
     Moving::Waiting {
         stage,
         left: owed.into(),
+        wait: deferred
+            .as_ref()
+            .and_then(|one| one.retry_after)
+            .map(|wait| wait.as_secs()),
         reason: deferred.map(|one| match one.reason {
             tisty_carrier::Reason::Budget => "budget",
             tisty_carrier::Reason::Limit => "limit",

@@ -779,6 +779,7 @@ export type Moving =
       stage: "homing" | "filling";
       left: Weight;
       reason?: Waiting["reason"] | "unsettled" | null;
+      wait?: number | null;
     };
 export const movePlan = (toward: Toward): Promise<MovePlan> => invoke("move_plan", { toward });
 export const moveTo = (toward: Toward): Promise<Moving> => invoke("move_to", { toward });

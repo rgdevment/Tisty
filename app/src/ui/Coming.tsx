@@ -11,6 +11,7 @@ const said: Record<Stage, Word> = {
   log: "comingLog",
   papers: "comingPapers",
   attachments: "comingAttachments",
+  uploading: "comingUploading",
 };
 
 const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);

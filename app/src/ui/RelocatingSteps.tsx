@@ -1,10 +1,11 @@
+import type { Stage } from "../coming";
 import type { Carrying, MovePlan, Moving, Toward } from "../core";
-import { weigh } from "../format";
+import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { waitSaid } from "../syncSaid";
 
 export interface Along {
-  stage: "log" | "papers" | "attachments";
+  stage: Stage;
   done: number;
   whole: number;
 }
@@ -13,6 +14,7 @@ const STAGE = {
   log: "comingLog",
   papers: "comingPapers",
   attachments: "comingAttachments",
+  uploading: "comingUploading",
 } as const;
 
 const WAITS = {
@@ -155,13 +157,18 @@ export function Plan({
   );
 }
 
-export function Underway({ along }: { along?: Along }) {
+export function Underway({ along, pausedUntil }: { along?: Along; pausedUntil?: number }) {
   const share = along?.whole ? Math.min(100, Math.round((along.done / along.whole) * 100)) : 10;
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       <p className="text-[13px] font-semibold">{t("moveMoving")}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveMovingWhy")}</p>
-      {along && (
+      {pausedUntil !== undefined && (
+        <p className="text-[11.5px] text-faint tabular-nums">
+          {fill("movePaused", stamped(new Date(pausedUntil).toISOString()))}
+        </p>
+      )}
+      {along && pausedUntil === undefined && (
         <p className="text-[11.5px] text-faint tabular-nums">
           {t(STAGE[along.stage])} · {fill("comingOf", String(along.done), String(along.whole))}
         </p>

@@ -31,6 +31,18 @@ interface Props {
 
 type Step = "pick" | "folder" | "cloud" | "plan" | "moving" | "waiting" | "done";
 
+// A pause Google asks for that ends within minutes is waited out here; a longer one leaves the choice to the person.
+const SHORT_PAUSE = 180;
+const MARGIN = 2;
+
+const shortPause = (now: Moving): number | undefined =>
+  now.state === "waiting" &&
+  now.reason === "limit" &&
+  typeof now.wait === "number" &&
+  now.wait <= SHORT_PAUSE
+    ? now.wait
+    : undefined;
+
 const firstStep = (heading?: Heading, resume?: Toward): Step =>
   resume ? "plan" : heading === "cloud" ? "cloud" : heading === "folder" ? "folder" : "pick";
 
@@ -44,7 +56,12 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [pausedUntil, setPausedUntil] = useState<number>();
   const settled = useRef(false);
+  const resuming = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const again = useRef<() => void>(() => undefined);
+
+  useEffect(() => () => clearTimeout(resuming.current), []);
 
   useEffect(() => {
     if (step !== "plan" || !toward) return;
@@ -74,6 +91,7 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
 
   const close = () => {
     if (busy) return;
+    clearTimeout(resuming.current);
     if (connectedHere && toward?.kind === "cloud" && !result) letGoUnused(toward.account);
     if (leftCloud && !settled.current) void cloudForget(leftCloud.account).catch(() => undefined);
     if (done) onMoved();
@@ -82,12 +100,22 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
 
   const move = () => {
     if (!toward || busy) return;
+    clearTimeout(resuming.current);
+    setPausedUntil(undefined);
     setBusy(true);
     setTrouble(undefined);
     setAlong(undefined);
     setStep("moving");
     moveTo(toward)
       .then((now) => {
+        const wait = shortPause(now);
+        if (wait !== undefined) {
+          const until = Date.now() + (wait + MARGIN) * 1000;
+          setResult(now);
+          setPausedUntil(until);
+          resuming.current = setTimeout(() => again.current(), until - Date.now());
+          return;
+        }
         setResult(now);
         setStep(now.state === "done" ? "done" : "waiting");
       })
@@ -97,6 +125,7 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
       })
       .finally(() => setBusy(false));
   };
+  again.current = move;
 
   const drop = () => {
     void moveDropped().catch(() => undefined);
@@ -173,7 +202,7 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
         />
       )}
 
-      {step === "moving" && <Underway along={along} />}
+      {step === "moving" && <Underway along={along} pausedUntil={pausedUntil} />}
 
       {step === "waiting" && result?.state === "waiting" && (
         <Waiting result={result} busy={busy} onDrop={drop} onLater={close} onAgain={move} />

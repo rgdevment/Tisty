@@ -137,6 +137,45 @@ describe("moving to another place", () => {
     await waitFor(() => expect(sent("move_to")).toHaveLength(2));
   });
 
+  it("waits out a short pause Google asked for by itself and goes on without asking", async () => {
+    const answers = [
+      {
+        state: "waiting",
+        stage: "filling",
+        left: { files: 2, bytes: 10 },
+        reason: "limit",
+        wait: 0,
+      },
+      { state: "done", told: true, leftCloud: null },
+    ];
+    ipc.answers.move_to = () => Promise.resolve(answers.shift());
+    opened();
+    await agreedAndMoved();
+
+    expect(
+      await screen.findByText((text) => text.startsWith(fill("movePaused", "").trim())),
+    ).toBeTruthy();
+    expect(screen.queryByText(t("moveWaiting"))).toBeNull();
+    await waitFor(() => expect(sent("move_to")).toHaveLength(2), { timeout: 5_000 });
+    expect(await screen.findByText(fill("moveDone", t("welcomeAlone")))).toBeTruthy();
+  });
+
+  it("leaves a long pause to the person instead of waiting it out", async () => {
+    ipc.answers.move_to = () =>
+      Promise.resolve({
+        state: "waiting",
+        stage: "filling",
+        left: { files: 2, bytes: 10 },
+        reason: "limit",
+        wait: 3_600,
+      });
+    opened();
+    await agreedAndMoved();
+
+    expect(await screen.findByText(t("moveWaiting"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("moveAgain") })).toBeTruthy();
+  });
+
   it("drops a move that waits only when asked", async () => {
     ipc.answers.move_to = () =>
       Promise.resolve({
