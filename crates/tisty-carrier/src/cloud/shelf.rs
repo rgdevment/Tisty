@@ -55,18 +55,16 @@ impl<'a> Shelf<'a> {
         self.early
     }
 
-    fn history_sent(&mut self) -> Result<(), Trouble> {
-        let Some(tree) = self.tree.take() else {
-            return Ok(());
-        };
+    fn history_sent(&mut self) -> Option<Hitch> {
+        let tree = self.tree.take()?;
         let (pushed, hitch) = mirror::push(self.remote, tree, self.index);
         self.early += pushed.put;
-        match hitch {
-            Some(Hitch::Full) => Err(Trouble::CloudFull {
-                provider: self.remote.limits().provider.to_string(),
-            }),
-            _ => Ok(()),
-        }
+        hitch.filter(|hitch| {
+            !matches!(
+                hitch,
+                Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
+            )
+        })
     }
 
     pub fn fetching_all(remote: &'a dyn Remote, index: &'a mut Index) -> Self {
@@ -264,7 +262,15 @@ impl Attachments for Shelf<'_> {
             if !self.owed(one, &round) {
                 continue;
             }
-            self.history_sent()?;
+            if let Some(hitch) = self.history_sent() {
+                let remaining = all[at..]
+                    .iter()
+                    .filter(|rest| self.owed(rest, &round))
+                    .map(|rest| rest.reference.clone())
+                    .collect();
+                self.refuse(hitch, &one.reference, remaining)?;
+                continue;
+            }
             let (sha256, _) = match attach::hashed(&one.at) {
                 Ok(read) => read,
                 Err(e) => {

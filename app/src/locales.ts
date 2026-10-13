@@ -607,7 +607,7 @@ const en = {
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   cloudLater:
-    "{name} could not be brought from your cloud right now: it may not be up there yet, or your cloud asked to wait. Try again after the next sync",
+    "{name} hasn't arrived from your cloud yet: the computer that attached it may still be sending it, its cloud may be full, or your cloud asked to wait. Try again after the next sync",
   attachmentTorn:
     "{name} does not yet hold what its name says it holds. If it was attached elsewhere a moment ago, your cloud may still be sending it — try again shortly. If it does not settle, the copy up there is not the one that was kept",
   sharedAway:
@@ -994,7 +994,7 @@ const en = {
     "The settings file says something this version cannot read, most likely written by a newer Tisty. Nothing was written; update Tisty before changing settings.",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
   cloudFull:
-    "{name} has no room left. Tisty sends your tasks first; the files, and the documents that use them, follow once you free up space in {name} or get more. Everything you write stays safe on this machine meanwhile.",
+    "{name} has no room left. Tisty sends your tasks first; the rest follows once you free up space in {name} or get more. Everything you write stays safe on this machine meanwhile.",
   cloudLost:
     "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this machine.",
   cloudElsewhere:
@@ -1239,9 +1239,7 @@ const en = {
   stateElsewhereDo: "Change account",
   stateFull: "Your Google Drive is full",
   stateFullWhy:
-    "Tisty sends your tasks first; the files, and the documents that use them, follow once you free up space or get more, file by file.",
-  attachNotYet:
-    "{name} hasn't reached this computer yet. The computer that attached it may still be sending it, or its cloud may be full; it shows up on its own once it arrives.",
+    "Tisty sends your tasks first; the rest follows once you free up space or get more, file by file.",
   stateFullDo: "See storage",
   stateBudget: "Your cloud reached today's limit",
   stateBudgetWhy: "What you write stays here and syncing carries on tomorrow.",
@@ -2423,7 +2421,7 @@ const es: Catalog = {
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   cloudLater:
-    "{name} no se pudo traer de tu nube ahora: puede que todavía no esté allá, o tu nube pidió esperar. Vuelve a intentarlo después de la próxima sincronización",
+    "{name} todavía no llega desde tu nube: puede que el equipo que lo adjuntó aún lo esté enviando, que su nube esté llena, o que tu nube pidiera esperar. Vuelve a intentarlo después de la próxima sincronización",
   attachmentTorn:
     "{name} todavía no tiene lo que su nombre dice. Si lo adjuntaron en otro equipo hace un momento, tu nube puede seguir enviándolo — vuelve a intentarlo en un rato. Si no se asienta, la copia de allá no es la que se guardó",
   sharedAway:
@@ -2814,7 +2812,7 @@ const es: Catalog = {
     "El archivo de ajustes dice algo que esta versión no sabe leer, seguramente escrito por un Tisty más nuevo. No se escribió nada; actualiza Tisty antes de cambiar ajustes.",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
   cloudFull:
-    "{name} no tiene más espacio. Tisty sube primero tus tareas; los archivos, y los documentos que los usan, siguen cuando liberes espacio en {name} o consigas más. Mientras tanto, todo lo que escribas queda a salvo en este equipo.",
+    "{name} no tiene más espacio. Tisty sube primero tus tareas; lo demás sigue cuando liberes espacio en {name} o consigas más. Mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudLost:
     "{name} ya no deja entrar a Tisty: el acceso se retiró o venció. Vuelve a conectar {name}; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudElsewhere:
@@ -3061,9 +3059,7 @@ const es: Catalog = {
   stateElsewhereDo: "Cambiar cuenta",
   stateFull: "Tu Google Drive está lleno",
   stateFullWhy:
-    "Tisty sube primero tus tareas; los archivos, y los documentos que los usan, siguen cuando liberes espacio o consigas más, archivo por archivo.",
-  attachNotYet:
-    "{name} todavía no llega a este equipo. Puede que el equipo que lo adjuntó aún lo esté enviando, o que su nube esté llena; aparece solo cuando llegue.",
+    "Tisty sube primero tus tareas; lo demás sigue cuando liberes espacio o consigas más, archivo por archivo.",
   stateFullDo: "Ver espacio",
   stateBudget: "Tu nube llegó a su límite de hoy",
   stateBudgetWhy: "Lo que escribas queda aquí y la sincronización sigue mañana.",
