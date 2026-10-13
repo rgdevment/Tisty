@@ -40,6 +40,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
 
   useEffect(watchMove, []);
@@ -139,12 +140,15 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           <Keepers
             busy={busy}
             pickOnly
+            onDeciding={setDeciding}
             onTrouble={(said) => setTrouble(said)}
             onDone={(at) => chose({ kind: "folder", at })}
           />
-          <button type="button" onClick={() => setStep("pick")} className={`self-start ${quiet}`}>
-            {t("welcomeBack")}
-          </button>
+          {!deciding && (
+            <button type="button" onClick={() => setStep("pick")} className={`self-start ${quiet}`}>
+              {t("welcomeBack")}
+            </button>
+          )}
         </div>
       )}
 

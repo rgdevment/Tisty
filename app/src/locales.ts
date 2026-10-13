@@ -1890,9 +1890,9 @@ const en = {
   keepersUnreadable: "This folder's history could not be read",
   keepersUnreadableWhy:
     "It may still be arriving, or this machine may not be allowed to read it. Choosing it now would look like an empty folder and start a history of its own beside the one already there.",
-  keepersStrays: "{name} documents here belong to no history",
+  keepersStrays: "{name} documents another computer left in this folder",
   keepersStraysWhy:
-    "They were written by a machine whose log is not in this folder. Until that machine syncs here too, Tisty cannot open them and they stay where they are.",
+    "That computer wrote them here, but what it did has not reached this folder yet. Nothing of yours is lost: they stay in the folder untouched, and they show up once that computer syncs here.",
 };
 
 type Catalog = typeof en;
@@ -3800,9 +3800,9 @@ const es: Catalog = {
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
   keepersUnreadableWhy:
     "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",
-  keepersStrays: "{name} documentos de aquí no pertenecen a ningún historial",
+  keepersStrays: "{name} documentos que otro computador dejó en esta carpeta",
   keepersStraysWhy:
-    "Los escribió un equipo cuyo registro no está en esta carpeta. Hasta que ese equipo también sincronice aquí, Tisty no puede abrirlos y se quedan donde están.",
+    "Ese computador los escribió aquí, pero lo que hizo todavía no llega a esta carpeta. No se pierde nada tuyo: se quedan en la carpeta sin tocar, y aparecen cuando ese computador sincronice aquí.",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

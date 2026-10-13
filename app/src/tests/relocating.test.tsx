@@ -316,6 +316,24 @@ describe("moving to another place", () => {
   });
 });
 
+describe("choosing the folder a move goes to", () => {
+  it("offers one way back while a folder is weighed", async () => {
+    ipc.answers.keepers = () =>
+      Promise.resolve([
+        { key: "gdrive", named: "Google Drive", at: "G:/Mi unidad", into: "G:/Mi unidad/Tisty" },
+      ]);
+    ipc.answers.strays_at = () => Promise.resolve({ adrift: 3, unreadable: false });
+    opened({ heading: "folder", resume: undefined });
+
+    expect(await screen.findAllByRole("button", { name: t("welcomeBack") })).toHaveLength(1);
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    expect(await screen.findByRole("button", { name: t("keepersSave") })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: t("welcomeBack") })).toHaveLength(1);
+    expect(await screen.findByText(fill("keepersStrays", "3"))).toBeTruthy();
+  });
+});
+
 describe("a move whose word could not reach the others", () => {
   it("keeps the old cloud and its access, and says the others are told later", async () => {
     ipc.answers.move_to = () => Promise.resolve({ state: "done", told: false, leftCloud: ANA });
