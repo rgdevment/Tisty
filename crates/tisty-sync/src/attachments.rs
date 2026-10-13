@@ -109,7 +109,16 @@ impl Attachments for Beside<'_> {
             None,
             Some(&mut carried),
             round.avowed,
-            &mut |_| {},
+            &mut |far| match far {
+                Reached::Along { done, whole, .. } => (round.saying)(Reached::Sending {
+                    part: 0,
+                    done,
+                    whole,
+                    sent: 0,
+                    weighs: 0,
+                }),
+                other => (round.saying)(other),
+            },
         )?;
         let (freed, let_go) = match round.holds {
             Holds::Shared => let_go_of(

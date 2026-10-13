@@ -2684,7 +2684,7 @@ fn a_round_says_the_log_is_home_before_it_says_the_documents_are() {
     )
     .unwrap();
 
-    heard.retain(|far| !matches!(far, Reached::Along { .. }));
+    heard.retain(|far| !matches!(far, Reached::Along { .. } | Reached::Sending { .. }));
     assert_eq!(heard, vec![Reached::Log, Reached::Papers]);
 }
 
@@ -2707,7 +2707,7 @@ fn a_round_that_carried_nothing_says_nothing() {
     )
     .unwrap();
 
-    heard.retain(|far| !matches!(far, Reached::Along { .. }));
+    heard.retain(|far| !matches!(far, Reached::Along { .. } | Reached::Sending { .. }));
     assert!(heard.is_empty(), "{heard:?}");
 }
 
