@@ -164,6 +164,23 @@ describe("moving to another place", () => {
     expect(await screen.findByText(t("moveDoneAlone"))).toBeTruthy();
   });
 
+  it("hands short pauses back to the person once several in a row moved nothing", async () => {
+    ipc.answers.move_to = () =>
+      Promise.resolve({
+        state: "waiting",
+        stage: "filling",
+        left: { files: 5, bytes: 10 },
+        reason: "limit",
+        wait: 0,
+      });
+    opened();
+    await agreedAndMoved();
+
+    expect(await screen.findByText(t("moveWaiting"), {}, { timeout: 15_000 })).toBeTruthy();
+    expect(sent("move_to")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: t("moveAgain") })).toBeTruthy();
+  });
+
   it("leaves a long pause to the person instead of waiting it out", async () => {
     ipc.answers.move_to = () =>
       Promise.resolve({
