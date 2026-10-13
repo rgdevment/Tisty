@@ -741,6 +741,7 @@ export interface CloudStatus {
   haltedUntil?: number | null;
   owed: number;
   last?: LastRound | null;
+  lost?: boolean;
 }
 
 export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
@@ -783,6 +784,10 @@ export const movePending = (): Promise<Toward | null> => invoke("move_pending");
 export const moveDropped = (): Promise<void> => invoke("move_dropped");
 export const cloudWipe = (account: string, email: string): Promise<number> =>
   invoke("cloud_wipe", { account, email });
+export const cloudStranded = (): Promise<Weight> => invoke("cloud_stranded");
+export const cloudAbandon = (): Promise<void> => invoke("cloud_abandon");
+export const placeRaised = (): Promise<boolean> => invoke("place_raised");
+export const placeRaisedTold = (): Promise<void> => invoke("place_raised_told");
 export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {

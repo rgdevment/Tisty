@@ -5,10 +5,12 @@ import { cloudStanding, STORAGE } from "../cloudState";
 import { ended, unstuck } from "../coming";
 import type { Carrying, CloudStatus } from "../core";
 import { adopt, fill, t } from "../locales";
+import { asksSure } from "../sure";
 import Choosing from "../ui/Choosing";
 import Clouded from "../ui/Clouded";
 import Coming from "../ui/Coming";
 import FreeSpace from "../ui/FreeSpace";
+import Raised from "../ui/Raised";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -402,5 +404,70 @@ describe("around the cloud", () => {
     act(() => ended({ code: "syncBroke", name: "x" }));
     expect(screen.queryByRole("button", { name: t("movedFollowFolder") })).toBeNull();
     act(() => unstuck());
+  });
+});
+
+describe("a cloud Google will never open again", () => {
+  it("is left for this computer alone only after saying what stays in Drive", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(asked.length > 1);
+    });
+    ipc.answers.cloud_stranded = () => Promise.resolve({ files: 3, bytes: 900 });
+    card({ lost: true, last: round("cloudLost") });
+    const leave = await screen.findByRole("button", { name: t("cloudAbandon") });
+
+    await userEvent.click(leave);
+    await waitFor(() => expect(asked).toHaveLength(1));
+    expect(sent("cloud_abandon")).toHaveLength(0);
+    await userEvent.click(leave);
+
+    await waitFor(() => expect(sent("cloud_abandon")).toHaveLength(1));
+    expect(asked[0]).toBe(fill("cloudAbandonSure", "3"));
+    asksSure(null);
+  });
+
+  it("says nothing stays behind when every attachment is already here", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(false);
+    });
+    ipc.answers.cloud_stranded = () => Promise.resolve({ files: 0, bytes: 0 });
+    card({ lost: true });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("cloudAbandon") }));
+
+    await waitFor(() => expect(asked).toEqual([t("cloudAbandonSureNone")]));
+    expect(sent("cloud_abandon")).toHaveLength(0);
+    asksSure(null);
+  });
+
+  it("offers no way out without the move while Google still lets Tisty in", async () => {
+    card({ lost: false, last: round("cloudFull") });
+    await screen.findByText(ANA.email);
+    expect(screen.queryByRole("button", { name: t("cloudAbandon") })).toBeNull();
+  });
+});
+
+describe("a place raised past the builds before 1.30", () => {
+  it("tells the person once that the other computers have to update", async () => {
+    ipc.answers.place_raised = () => Promise.resolve(true);
+    render(<Raised />);
+
+    expect(await screen.findByText(t("placeRaised"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("placeRaisedTold") }));
+
+    expect(screen.queryByText(t("placeRaised"))).toBeNull();
+    await waitFor(() => expect(sent("place_raised_told")).toHaveLength(1));
+  });
+
+  it("says nothing on a place nobody raised", async () => {
+    ipc.answers.place_raised = () => Promise.resolve(false);
+    render(<Raised />);
+
+    await waitFor(() => expect(sent("place_raised").length).toBeGreaterThan(0));
+    expect(screen.queryByText(t("placeRaised"))).toBeNull();
   });
 });

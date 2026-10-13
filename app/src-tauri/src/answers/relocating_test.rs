@@ -55,6 +55,22 @@ fn where_a_move_goes_is_written_down_until_it_ends() {
 }
 
 #[test]
+fn a_cloud_is_lost_for_good_only_when_this_build_can_never_reach_it_again() {
+    assert!(
+        lost_for_good(false, true, None),
+        "a build made without Google"
+    );
+    assert!(lost_for_good(true, false, None), "an access let go of");
+    assert!(
+        lost_for_good(true, true, Some("cloudLost")),
+        "an access withdrawn"
+    );
+    assert!(!lost_for_good(true, true, Some("cloudFull")));
+    assert!(!lost_for_good(true, true, Some("deferred-offline")));
+    assert!(!lost_for_good(true, true, None));
+}
+
+#[test]
 fn the_window_names_each_way_a_move_can_go() {
     let folder: Toward = serde_json::from_str(r#"{"kind":"folder","at":"G:/x"}"#).unwrap();
     let alone: Toward = serde_json::from_str(r#"{"kind":"alone"}"#).unwrap();

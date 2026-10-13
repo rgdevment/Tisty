@@ -157,9 +157,9 @@ pub async fn cloud_forget(
     account: Option<String>,
 ) -> Answer<()> {
     let account = whose(&session, account)?;
-    let cache = held(&session).paths.cache().to_path_buf();
-    if crate::leaving::owed_to(&cache, &account) {
-        return Ok(());
+    let paths = held(&session).paths.clone();
+    if crate::leaving::owed_to(&paths, &account) {
+        return Err(Refusal::of("forgetUntold"));
     }
     tauri::async_runtime::spawn_blocking(move || {
         forgotten(&account)?;
@@ -275,6 +275,7 @@ pub struct CloudStatus {
     halted_until: Option<u64>,
     owed: usize,
     last: Option<tisty_carrier::LastRound>,
+    lost: bool,
 }
 
 /// What Settings and Maintenance say of the chosen cloud, read off this disk with no request.
@@ -292,7 +293,13 @@ pub async fn cloud_status(
     };
     tauri::async_runtime::spawn_blocking(move || {
         let joined = tisty_carrier::cloud_joined(&home, &here);
-        Some(status_of(&at, &home, joined))
+        let mut status = status_of(&at, &home, joined);
+        status.lost = super::relocating::lost_for_good(
+            crate::reaching::offered(),
+            has_access(&at.account).is_ok(),
+            status.last.as_ref().map(|one| one.code.as_str()),
+        );
+        Some(status)
     })
     .await
     .map_err(|_| Refusal::of("internal"))
@@ -313,6 +320,7 @@ pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path, joined: bool) -> C
         halted_until: told.halted_until,
         owed: told.owed + told.forgotten,
         last: told.last,
+        lost: false,
     }
 }
 

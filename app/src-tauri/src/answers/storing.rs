@@ -166,7 +166,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, mut keeping, paths, home, store, alive, holds, owing) = {
+    let (was, mut keeping, paths, home, store, alive, holds, owing, place) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -187,13 +187,14 @@ pub async fn settle_in(
             session.alive(),
             session.config.holds(),
             crate::leaving::owing(&session.paths, &session.reach, session.config.sync.as_ref()),
+            place_now(&session),
         )
     };
 
     let mut brought = false;
     let mut stuck = None;
     if let Some(carrier) = keeping.carrier.as_ref()
-        && let Err(refusal) = heeded_first(carrier, &home, owing).await
+        && let Err(refusal) = heeded_first(carrier, &home, owing, place).await
     {
         stuck = Some(refusal);
         keeping.carrier = None;
@@ -504,12 +505,9 @@ fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> 
         Leaving::Cloud => cloud_joined(session).then(|| Refusal::of("cloudToLeave")),
         Leaving::Later => Some(Refusal::of("syncLaterToLeave")),
         Leaving::Place => {
-            let carrier = session.carrier()?;
-            let old = carrier.place()?;
-            (session.config.holds() != tisty_core::config::Holds::Everywhere
-                && carrier.reachable()
-                && carrier.been_here(&session.here()))
-            .then(|| Refusal::about("sharedAwayToLeave", old.display().to_string()))
+            let old = was.place()?;
+            tisty_carrier::strands_on_leaving(was, chosen, session.config.holds(), &session.here())
+                .then(|| Refusal::about("sharedAwayToLeave", old.display().to_string()))
         }
     }
 }
@@ -639,7 +637,7 @@ pub(crate) struct After {
 impl After {
     fn done_now(self, session: &Session) {
         if let Some((left, said, old)) = self.word {
-            crate::leaving::left_said(session.paths.cache(), &left, &said, old);
+            crate::leaving::left_said(&session.paths, &left, &said, old);
         }
         if let Some(now) = self.unword {
             forget_word_in(&now);
@@ -684,22 +682,31 @@ where
         crate::leaving::backed_up(&session.paths)?;
     }
     let old = session.carrier();
-    session.keep_unless(choosing(chosen.clone()))?;
-    super::relocating::pending_kept(&session.paths, None);
     let told = |left: &tisty_core::config::Sync| match left.leaving() {
         tisty_core::config::Leaving::Free => false,
         tisty_core::config::Leaving::Cloud => joins.left,
         _ => true,
     };
+    let owes_word = was.as_ref().is_some_and(told);
+    let word = was.clone().filter(told).and_then(|left| {
+        crate::leaving::word_for(&session.paths, &session.config, &left, &chosen)
+            .map(|said| (left, said, old))
+    });
+    // Owed before the settings change, so a window closed right after still tells the place it left.
+    if let Some((left, said, _)) = &word {
+        crate::leaving::owe(&session.paths, left, said);
+    }
+    if let Err(refused) = session.keep_unless(choosing(chosen.clone())) {
+        if let Some((left, _, _)) = &word {
+            crate::leaving::owed_no_more(&session.paths, left);
+        }
+        return Err(refused);
+    }
+    super::relocating::pending_kept(&session.paths, None);
     if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !joins.left) {
         crate::answers::clouding::let_go_of(&at.account);
     }
-    let owes_word = was.as_ref().is_some_and(told);
-    let word = was.filter(told).and_then(|left| {
-        crate::leaving::word_for(&session.paths, &session.config, &chosen)
-            .map(|said| (left, said, old))
-    });
-    crate::leaving::owed_no_more(session.paths.cache(), &chosen);
+    crate::leaving::owed_no_more(&session.paths, &chosen);
     let a_place = chosen.place().is_some() || tisty_carrier::cloud_of(Some(&chosen)).is_some();
     let unword = (a_place && joins.rejoined)
         .then(|| session.carrier())
@@ -751,6 +758,17 @@ pub async fn sync_now(
     done
 }
 
+/// This copy raised a place the builds before 1.30 no longer write in, and the person has not been told yet.
+#[tauri::command]
+pub fn place_raised(session: tauri::State<'_, Mutex<Session>>) -> bool {
+    tisty_carrier::raised(held(&session).paths.data())
+}
+
+#[tauri::command]
+pub fn place_raised_told(session: tauri::State<'_, Mutex<Session>>) {
+    tisty_carrier::raised_told(held(&session).paths.data());
+}
+
 /// How a round with the cloud ended stays written beside its mirror, so Settings can say it later.
 fn noted(home: &std::path::Path, done: &Answer<Settled>) {
     let at = jiff::Timestamp::now().as_second().unsigned_abs();
@@ -788,6 +806,7 @@ async fn heeded_first(
     carrier: &tisty_carrier::Shared,
     home: &tisty_carrier::Here,
     owing: Vec<crate::leaving::Owing>,
+    place: String,
 ) -> Answer<()> {
     let (carrier, home) = (carrier.clone(), home.clone());
     tauri::async_runtime::spawn_blocking(move || {
@@ -795,13 +814,22 @@ async fn heeded_first(
             owed.delivered();
         }
         let me = tisty_core::DeviceId(home.device.clone());
-        match crate::leaving::heeded(carrier.word_left().as_deref(), &home.data, &me) {
+        match crate::leaving::heeded(carrier.word_left().as_deref(), &home.data, &me, &place) {
             Some(refusal) => Err(refusal),
             None => Ok(()),
         }
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
+}
+
+fn place_now(session: &Session) -> String {
+    session
+        .config
+        .sync
+        .as_ref()
+        .map(tisty_core::moved::place_of)
+        .unwrap_or_default()
 }
 
 fn stuck_after(
@@ -823,7 +851,7 @@ async fn carried_round(
     session: &tauri::State<'_, Mutex<Session>>,
     way: Option<String>,
 ) -> Answer<Settled> {
-    let (carrier, paths, home, store, alive, holds, owing) = {
+    let (carrier, paths, home, store, alive, holds, owing, place) = {
         let session = held(session);
         let carrier = session.carrying()?;
         if went_back_on(&session, carrier.theirs()) {
@@ -838,9 +866,10 @@ async fn carried_round(
             session.alive(),
             session.config.holds(),
             crate::leaving::owing(&session.paths, &session.reach, session.config.sync.as_ref()),
+            place_now(&session),
         )
     };
-    heeded_first(&carrier, &home, owing).await?;
+    heeded_first(&carrier, &home, owing, place).await?;
 
     let before = tisty_core::cache::fingerprint(&store);
     let way = match way.as_deref() {
