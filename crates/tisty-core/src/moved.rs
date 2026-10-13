@@ -91,8 +91,7 @@ pub fn vouched(word: &Word, data: &Path) -> bool {
     key.verify(&over(word), &sig).is_ok()
 }
 
-/// The word another machine left that this one has to heed: never its own, never one it cannot vouch for,
-/// and never one signed for another store or another place, where it could only have been carried.
+/// The word another machine left here to heed: never its own, unvouched, or signed for another store or place.
 pub fn heeded(said: Option<&str>, data: &Path, me: &DeviceId, place: &str) -> Option<Word> {
     let word = read(said?)?;
     if word.by == me.0 {

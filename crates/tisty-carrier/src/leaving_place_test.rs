@@ -150,6 +150,40 @@ fn a_folder_has_nothing_to_wipe() {
 }
 
 #[test]
+fn leaving_a_place_older_builds_still_use_raises_it_so_they_stop_too() {
+    for setting in settings() {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        one.wrote("algo");
+        one.round(Way::Both);
+        let older = "shape = 1\n";
+        let shaped = match &setting.place {
+            Place::Folder(shared) => shared.join(tisty_sync::NAMED),
+            Place::Cloud(_) => home_of(&setting, "dev_a")
+                .join("tree")
+                .join(tisty_sync::NAMED),
+        };
+        std::fs::write(&shaped, older).unwrap();
+        if let Place::Cloud(remote) = &setting.place {
+            remote.put(tisty_sync::NAMED, &shaped, Expect::Any).unwrap();
+        }
+
+        one.carrier.leave_word("se fue").unwrap();
+
+        let said = std::fs::read_to_string(&shaped).unwrap();
+        assert!(
+            said.contains(&format!("shape = {}", crate::SHAPE)),
+            "{who}: {said}"
+        );
+        if let Place::Cloud(remote) = &setting.place {
+            let mut there = Vec::new();
+            remote.fetch(tisty_sync::NAMED, 0, &mut there).unwrap();
+            assert_ne!(there, older.as_bytes(), "{who}: the raise never went up");
+        }
+    }
+}
+
+#[test]
 fn a_round_sends_the_history_before_the_attachments() {
     for setting in clouds() {
         let who = &setting.name;

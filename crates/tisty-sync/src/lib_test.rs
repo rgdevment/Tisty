@@ -5927,6 +5927,7 @@ fn a_round_over_a_place_older_builds_arranged_raises_it_once_and_says_so() {
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
     raised_told(&one.data);
+    std::fs::create_dir_all(shared.path().join("store").join("dev_otro")).unwrap();
     let at = shared.path().join("tisty.toml");
     std::fs::write(
         &at,
@@ -5949,6 +5950,23 @@ fn a_round_over_a_place_older_builds_arranged_raises_it_once_and_says_so() {
     let said = std::fs::read_to_string(&at).unwrap();
     assert!(said.contains(&format!("shape = {SHAPE}")), "{said}");
     assert!(said.contains(&format!("needs = \"{NEEDS}\"")), "{said}");
+}
+
+#[test]
+fn a_place_only_this_machine_used_is_raised_without_warning_anyone() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+    std::fs::write(shared.path().join("tisty.toml"), "shape = 1\n").unwrap();
+
+    carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
+
+    assert!(
+        !raised(&one.data),
+        "it warned of computers that never synced there"
+    );
+    let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
+    assert!(said.contains(&format!("shape = {SHAPE}")), "{said}");
 }
 
 #[test]

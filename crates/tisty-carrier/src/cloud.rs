@@ -594,6 +594,7 @@ impl Carrier for Cloud {
     // A push that failed only says so in `stopped` or `deferred`, so the word counts once the provider hands it back.
     fn leave_word(&self, said: &str) -> Result<(), Trouble> {
         let done = self.with_mirror(None, ASKED, |tree, _, _| {
+            tisty_sync::raise_place(tree);
             tisty_core::store::write_atomic(&tree.join(tisty_core::moved::NAMED), said.as_bytes())
                 .map_err(|e| Trouble::Broke(e.to_string()))?;
             Ok(((), None))

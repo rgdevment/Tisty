@@ -14,8 +14,7 @@ const RAISED: &str = ".shape-raised";
 /// Shape 2 only fences out the builds before 1.30; the signed root, `head` and adopting take the next number.
 pub const OURS: u32 = 2;
 
-/// The oldest release that may write in a place this build arranges. A later build that changes the
-/// place raises it, and every build from this one on stops there and says which release it takes.
+/// The oldest release that may write in a place this build arranges; a later change to the place raises it.
 pub const NEEDS: &str = "1.30.0";
 
 enum Told {
@@ -120,23 +119,21 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
 }
 
 /// Written after everything else a round writes, so finding it is finding a round that finished.
-/// Says whether it raised a place older builds had arranged, which those builds no longer write in.
+/// Says whether it raised, and wrote, a place older builds had arranged.
 pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
     match told(dest) {
         Told::Shape { shape, needs } if shape == OURS => {
             match needs.is_some_and(|needs| needs != NEEDS && !needs_later(&needs)) {
-                true => tell(data, dest),
+                true => {
+                    tell(data, dest);
+                }
                 false => remember(data, dest, OURS),
             }
             false
         }
         Told::Shape { shape, .. } if shape > OURS => false,
         Told::Unreadable => false,
-        Told::Shape { .. } => {
-            tell(data, dest);
-            let _ = tisty_core::store::write_atomic(&data.join(RAISED), b"");
-            true
-        }
+        Told::Shape { .. } => tell(data, dest),
         Told::Nothing => {
             tell(data, dest);
             false
@@ -144,7 +141,40 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
     }
 }
 
-fn tell(data: &Path, dest: &Path) {
+/// Raised by a machine as it leaves, so the builds before this one stop there even without a round of its own.
+pub fn raise_place(dest: &Path) {
+    let older = match told(dest) {
+        Told::Shape { shape, .. } => shape < OURS,
+        Told::Nothing => dest.join(STORE).is_dir(),
+        Told::Unreadable => false,
+    };
+    if older {
+        written(dest);
+    }
+}
+
+/// Only another machine's history there means someone is left on an older build by raising it.
+pub(crate) fn shared_with_others(dest: &Path, device: &str) -> bool {
+    std::fs::read_dir(dest.join(STORE)).is_ok_and(|entries| {
+        entries
+            .filter_map(Result::ok)
+            .any(|one| one.file_type().is_ok_and(|kind| kind.is_dir()) && one.file_name() != device)
+    })
+}
+
+pub(crate) fn mark_raised(data: &Path) {
+    let _ = tisty_core::store::write_atomic(&data.join(RAISED), b"");
+}
+
+fn tell(data: &Path, dest: &Path) -> bool {
+    let done = written(dest);
+    if done {
+        remember(data, dest, OURS);
+    }
+    done
+}
+
+fn written(dest: &Path) -> bool {
     let said = format!(
         "# What this folder is, and the shape it is in. Tisty reads this before anything else here.\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
     );
@@ -157,9 +187,9 @@ fn tell(data: &Path, dest: &Path) {
                 ("why", Fact::Why(e.to_string())),
             ],
         );
-        return;
+        return false;
     }
-    remember(data, dest, OURS);
+    true
 }
 
 /// Left by the round that raised a place older builds had arranged, until the window has said so once.

@@ -22,7 +22,8 @@ use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
 pub use shape::{
-    NAMED, NEEDS, OURS as SHAPE, needs_later, raised, raised_told, unseen as forget_shape,
+    NAMED, NEEDS, OURS as SHAPE, needs_later, raise_place, raised, raised_told,
+    unseen as forget_shape,
 };
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -437,8 +438,8 @@ pub fn carry_through(
         moved.took_in.extend(taken.took_in);
     }
     // Last of all, so finding it is finding a round that got to the end.
-    if giving {
-        shape::stamp(data, dest);
+    if giving && shape::stamp(data, dest) && shape::shared_with_others(dest, device) {
+        shape::mark_raised(data);
     }
     note_carried(aside, dest, device);
     Ok(moved)
