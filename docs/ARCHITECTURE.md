@@ -600,9 +600,9 @@ sequenceDiagram
 | Identity | A machine that never wrote adopts the folder's `.store-id`; two named stores that differ are refused (`OtherStore`); a folder that holds history but no `.store-id` is `WouldReset` | `settled` |
 | Pull | Each directory of the folder other than this machine's own, verified and installed as in *Verifying a history on arrival*. Names that no machine could have are left alone. A directory still arriving from the cloud waits (`coming`). This machine's own directory is taken back only if the folder holds strictly more of it | `bringing.rs` |
 | Push | Allowed only if the ledger lets this machine write. `.store-id` is written if it differs, the own directory is copied, and histories held for other machines are handed on when ours reaches further than the folder's | `segments.rs` |
-| Attachments up | Everything the log has not retired, whose bytes match name and digest; with `Holds::Shared`, a copy above 50 MB is then released locally once the folder's copy is verified | `held.rs`, `attachments.rs` |
+| Attachments up | Everything the log has not retired, whose bytes match name and digest; with `Holds::Shared`, a copy above 25 MB is then released locally once the folder's copy is verified | `held.rs`, `attachments.rs` |
 | Documents | One decision per live document (next section) | `papers.rs` |
-| Attachments down | Files in the folder shaped like an attachment, not retired, not above the 50 MB line unless `Holds::Everywhere`, and, when the folder holds files no log claims, only those a task or document names. Bytes are checked against the name and digest before the rename | `held.rs` |
+| Attachments down | Files in the folder shaped like an attachment, not retired, not above the 25 MB line unless `Holds::Everywhere`, and, when the folder holds files no log claims, only those a task or document names. Bytes are checked against the name and digest before the rename | `held.rs` |
 | Stamp | `tisty.toml` is written last, only if it is missing or says less than this build knows; finding it is finding a round that finished | `shape::stamp` |
 
 Files already identical are skipped. Identical means the same length and then
@@ -1090,7 +1090,7 @@ in-memory `Corpus` (64 MiB) keyed by size and time is used.
 ```mermaid
 stateDiagram-v2
   [*] --> Here: keep, then attach.kept
-  Here --> FolderOnly: holds Shared, above 50 MB, folder copy verified, attach.let_go
+  Here --> FolderOnly: holds Shared, above 25 MB, folder copy verified, attach.let_go
   FolderOnly --> Here: a round under holds Everywhere brings it down
   Here --> Retired: attach.retire
   FolderOnly --> Retired: attach.retire
@@ -1103,14 +1103,15 @@ stateDiagram-v2
   folded to ASCII, the extension is lowercased. A second copy of the same bytes
   finds the first. The reference written into the task journal or document is
   `![label](<attachments/…>)`.
-- **Limits.** A task copies up to the person's setting (`attach_up_to`: 5 MB on
-  a new configuration, between 64 KB and 50 MB). A document copies up to
-  `COPIED_IN_DOC` = 750 MB, and refuses before copying when the line would not
-  fit or the document already names 150 files.
+- **Limits.** Fixed, not a setting. A task copies up to `COPIED_UP_TO` =
+  25 MB. A document copies up to `COPIED_IN_DOC` = 650 MB, and refuses before
+  copying when the line would not fit or the document already names 150 files.
+  Nothing larger than `HELD_UP_TO` = 750 MB is taken in from another machine
+  or the cloud.
 - **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy;
   `attach.let_go` says it released its copy; `attach.retire` retires the name
   for every machine.
-- **Holds** (`config::Holds`) decides where files above 50 MB
+- **Holds** (`config::Holds`) decides where files above 25 MB
   (`COPIED_UP_TO`) live once there is a shared folder. `Everywhere`: every
   machine keeps every file. `Mine`: large files are not brought here, and this
   machine never releases its own. `Shared` (the default with a folder): a large

@@ -557,7 +557,7 @@ kept wherever you like, and restored from the same place in *Your data*.
 
 **Where the big ones live is yours to say.** By default every machine carries
 every attachment, which is why any of them can open anything with the network
-off. For anything above 50 MB, Settings offers two other ways: keep only what
+off. For anything above 25 MB, Settings offers two other ways: keep only what
 this machine attached and fetch the rest when you open it, or leave them in the
 shared folder and nowhere else. That last one trades the copy on your disk for the
 space it took: the file is there when your provider or your NAS is, and Tisty

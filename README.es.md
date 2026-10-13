@@ -567,7 +567,7 @@ datos*.
 
 **Dónde viven los grandes lo dices tú.** Por defecto cada equipo carga con todos
 los adjuntos, que es por lo que cualquiera de ellos abre lo que sea con la red
-apagada. Para lo que pase de 50 MB, Configuración ofrece otras dos formas:
+apagada. Para lo que pase de 25 MB, Configuración ofrece otras dos formas:
 quedarte solo con lo que adjuntaste en este equipo y traer el resto cuando lo
 abras, o dejarlos en la carpeta compartida y en ningún otro sitio. Esa última
 cambia la copia de tu disco por el espacio que ocupaba: el archivo está cuando
