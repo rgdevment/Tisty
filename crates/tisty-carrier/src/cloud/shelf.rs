@@ -496,10 +496,10 @@ fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
     };
     attach::shelved(under, leaf)
         && !round.buried.contains(reference)
-        && (round.avowed.contains_key(reference)
-            || round
-                .reachable
-                .is_some_and(|named| named.contains(reference)))
+        && (round
+            .reachable
+            .is_none_or(|named| named.contains(reference))
+            || round.avowed.contains_key(reference))
         && !index.spoiled(reference)
         && seen.bytes <= HELD_UP_TO
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)

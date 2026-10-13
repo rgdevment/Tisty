@@ -159,7 +159,7 @@ fn a_full_cloud_while_an_attachment_is_owed_still_lets_the_documents_through_and
 }
 
 #[test]
-fn bringing_home_takes_only_what_the_log_answers_for() {
+fn bringing_home_takes_everything_but_writes_down_only_what_the_log_answers_for() {
     for setting in clouds() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
@@ -173,13 +173,18 @@ fn bringing_home_takes_only_what_the_log_answers_for() {
 
         assert_eq!(two.held(&named.at).as_deref(), Some(PHOTO), "{who}");
         assert_eq!(
-            two.held(&stray.at),
-            None,
-            "{who}: a well-named file nobody vouched for came home"
+            two.held(&stray.at).as_deref(),
+            Some(b"nadie la nombra".as_slice()),
+            "{who}: leaving the cloud left a file behind in it"
+        );
+        assert!(
+            moved.took_in.iter().any(|(at, _, _)| *at == named.at),
+            "{who}: {:?}",
+            moved.took_in
         );
         assert!(
             moved.took_in.iter().all(|(at, _, _)| *at != stray.at),
-            "{who}: {:?}",
+            "{who}: a name alone was written down as held: {:?}",
             moved.took_in
         );
     }
@@ -212,6 +217,11 @@ fn a_wait_the_provider_asked_for_is_kept_by_the_next_rounds_without_asking_it_ag
             fake.counts().requests,
             0,
             "{who}: the provider was asked again before its wait"
+        );
+        let _ = one.carrier.both_papers(&one.here, DOC);
+        assert!(
+            fake.counts().requests > 0,
+            "{who}: what the person asked for waited on the window's own pace"
         );
         waited_out(&setting, "dev_a");
         assert_eq!(one.round(Way::Both).deferred, None, "{who}");
@@ -291,4 +301,37 @@ fn a_machine_reading_between_a_segment_and_its_signature_comes_in_on_the_next_ro
             "{who}: what was read half way never came in"
         );
     }
+}
+
+#[test]
+fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_ready() {
+    let (setting, fake) = each_kind(|fake| fake).remove(0);
+    let (one, two) = pair(&setting);
+    one.filed(DOC, "# Plan\n\nlo primero\n");
+    one.round(Way::Both);
+    two.round(Way::Both);
+    let big = tisty_core::attach::resolve("attachments/ab/grande-0123456789.bin", &one.here.data)
+        .unwrap();
+    std::fs::create_dir_all(big.parent().unwrap()).unwrap();
+    std::fs::File::create(&big)
+        .unwrap()
+        .set_len(tisty_core::attach::HELD_UP_TO + 1)
+        .unwrap();
+    one.edited(DOC, "# Plan\n\nlo de uno\n");
+    two.edited(DOC, "# Plan\n\nlo de dos\n");
+    let meanwhile = Desk {
+        here: two.here.clone(),
+        carrier: two.carrier.clone(),
+    };
+    fake.in_the_gap(&doc_name(), move || {
+        let _ = meanwhile.carry(Way::Both, Holds::Everywhere);
+    });
+    let mut saying = |_| {};
+
+    let shifted = crate::shift(None, Some(&*one.carrier), &one.here, &[], &mut saying).unwrap();
+
+    assert!(
+        matches!(shifted, crate::Shift::Filling { .. }),
+        "a document left behind was hidden by an attachment that can never go: {shifted:?}"
+    );
 }

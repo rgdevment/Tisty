@@ -101,7 +101,8 @@ impl Cloud {
         turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
-        if let Some(left) = resting::left(&self.home) {
+        // What the person asked for is tried anyway; only the window's own pace waits.
+        if let Some(left) = resting::left(&self.home).filter(|_| !turn.waits) {
             return Ok(Done::deferred(Reason::Limit, Some(left)));
         }
         let taken = match turn.waits {
@@ -212,12 +213,14 @@ impl Cloud {
 
     // The wait a provider asked for outlives this round, so the window's own pace does not ask again before it.
     fn heeded(&self, deferred: Option<&Deferred>) {
-        match deferred
-            .filter(|one| one.reason == Reason::Limit)
-            .and_then(|one| one.retry_after)
-        {
-            Some(wait) => resting::rest(&self.home, wait),
-            None => resting::rested(&self.home),
+        let reason = deferred.map(|one| one.reason);
+        match deferred.and_then(|one| one.retry_after) {
+            Some(wait) if reason != Some(Reason::Busy) => resting::rest(&self.home, wait),
+            // Only a round the provider let through ends the wait; one cut short for another reason says nothing of it.
+            _ if matches!(reason, None | Some(Reason::Changed | Reason::Unsent)) => {
+                resting::rested(&self.home)
+            }
+            _ => {}
         }
     }
 
@@ -424,9 +427,10 @@ fn weight(reason: Reason) -> u8 {
         Reason::Offline => 5,
         Reason::Troubled => 4,
         Reason::Limit => 3,
-        Reason::Unsent => 2,
-        Reason::Busy => 1,
-        Reason::Changed => 0,
+        Reason::Busy => 2,
+        Reason::Changed => 1,
+        // Lightest, so a round left unfinished for any other reason is never read as one that only left files here.
+        Reason::Unsent => 0,
     }
 }
 

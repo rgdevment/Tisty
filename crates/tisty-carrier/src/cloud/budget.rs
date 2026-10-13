@@ -241,13 +241,12 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let weighs = std::fs::metadata(from).map_or(0, |one| one.len());
         let put = self.remote.put(name, from, expect);
-        if went_out(&put) {
-            self.charge_checked(
-                self.limits.requests_to_put(weighs),
-                self.limits.costs.put,
-                0,
-            );
-        }
+        // Bytes may have gone up before the answer broke, so an upload is charged however it ended.
+        self.charge_checked(
+            self.limits.requests_to_put(weighs),
+            self.limits.costs.put,
+            0,
+        );
         put
     }
 
