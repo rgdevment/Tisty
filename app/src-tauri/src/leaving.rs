@@ -119,7 +119,8 @@ pub struct Owing {
 pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
     let at = cache.join(OWED);
     let owed: Owed = serde_json::from_slice(&std::fs::read(&at).ok()?).ok()?;
-    if now.is_some_and(|now| same_place(&owed.way, now)) {
+    let nobody_there = owed.way.leaving() == tisty_core::config::Leaving::Free;
+    if nobody_there || now.is_some_and(|now| same_place(&owed.way, now)) {
         let _ = std::fs::remove_file(&at);
         return None;
     }

@@ -596,7 +596,7 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
 pub(crate) fn changed_to<F>(
     session: &mut Session,
     chosen: tisty_core::config::Sync,
-    choosing: impl FnOnce(tisty_core::config::Sync) -> F,
+    choosing: impl Fn(tisty_core::config::Sync) -> F,
 ) -> Answer<()>
 where
     F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
@@ -607,16 +607,25 @@ where
         .clone()
         .filter(|was| !crate::leaving::same_place(was, &chosen));
     let changing = was.is_some() || session.config.sync.is_none();
+    // Asked first on what is on disk, so a change that would be refused keeps no copy and pushes out no real one.
+    let Some(mut trial) = session.settings_on_disk() else {
+        return Err(Refusal::of("settingsUnreadable"));
+    };
+    if let Some(refused) = choosing(chosen.clone())(&mut trial) {
+        session.config = trial;
+        return Err(refused);
+    }
     if changing {
         crate::leaving::backed_up(&session.paths)?;
     }
     let old = session.carrier();
     session.keep_unless(choosing(chosen.clone()))?;
-    if let Some(left) = &was {
-        crate::leaving::leave_word(&session.paths, &session.config, left, old, &chosen);
+    if let Some(left) = was.filter(|left| left.leaving() != tisty_core::config::Leaving::Free) {
+        crate::leaving::leave_word(&session.paths, &session.config, &left, old, &chosen);
     }
     crate::leaving::owed_no_more(session.paths.cache(), &chosen);
-    if chosen.place().is_some()
+    let a_place = chosen.place().is_some() || tisty_carrier::cloud_of(Some(&chosen)).is_some();
+    if a_place
         && let Some(now) = session.carrier()
         && let Err(why) = now.forget_word()
     {

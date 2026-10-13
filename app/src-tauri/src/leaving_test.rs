@@ -162,3 +162,55 @@ fn a_word_owed_is_dropped_when_the_way_now_chosen_is_that_place() {
     assert!(owing(one.paths.cache(), &one.reach, Some(&left)).is_none());
     assert!(!one.paths.cache().join(OWED).exists());
 }
+
+#[test]
+fn leaving_this_machine_alone_owes_nobody_and_keeps_the_word_owed_to_a_real_place() {
+    let room = tempfile::tempdir().unwrap();
+    let unplugged = room.path().join("unplugged");
+    let elsewhere = room.path().join("elsewhere");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    let mut one = machine(room.path(), "one");
+    one.keep(|c| c.sync = Some(Sync::alone())).unwrap();
+    owe(
+        one.paths.cache(),
+        &Sync::folder(&unplugged),
+        "para la carpeta desconectada",
+    );
+
+    crate::answers::storing::choose(&mut one, Some(elsewhere.display().to_string())).unwrap();
+
+    let owed: Owed =
+        serde_json::from_slice(&std::fs::read(one.paths.cache().join(OWED)).unwrap()).unwrap();
+    assert_eq!(
+        owed.way,
+        Sync::folder(&unplugged),
+        "a word to nobody pushed out a real one"
+    );
+}
+
+#[test]
+fn a_word_owed_to_no_place_is_dropped_instead_of_kept_forever() {
+    let room = tempfile::tempdir().unwrap();
+    let one = machine(room.path(), "one");
+    owe(one.paths.cache(), &Sync::alone(), "a nadie");
+
+    assert!(owing(one.paths.cache(), &one.reach, None).is_none());
+    assert!(!one.paths.cache().join(OWED).exists());
+}
+
+#[test]
+fn a_change_that_is_refused_keeps_no_copy() {
+    let room = tempfile::tempdir().unwrap();
+    let mut one = machine(room.path(), "one");
+    let later: Sync = toml::from_str("how = \"nube\"\nat = { cuenta = \"yo\" }").unwrap();
+    one.keep(|c| c.sync = Some(later.clone())).unwrap();
+
+    let refused = crate::answers::storing::choose(&mut one, Some("G:/otra".to_string()))
+        .expect_err("left a way a newer build chose");
+
+    assert_eq!(refused.code, "syncLaterToLeave");
+    assert!(
+        !one.paths.private().join("before-a-change").exists(),
+        "a refused change pushed out a real copy"
+    );
+}
