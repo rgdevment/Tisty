@@ -60,3 +60,35 @@ fn a_spent_day_and_a_store_in_the_bin_are_said_as_what_they_are() {
     assert_eq!(spent.code, "cloudSpent");
     assert_eq!(binned.code, "cloudBinned");
 }
+
+#[test]
+fn a_round_left_for_later_that_moved_nothing_is_not_said_to_have_just_synced() {
+    use super::answers::storing::synced_now;
+    let waiting = |reason| tisty_carrier::Deferred {
+        reason,
+        left: 1,
+        retry_after: None,
+        names: Vec::new(),
+    };
+
+    assert!(!synced_now(
+        Some(&waiting(tisty_carrier::Reason::Offline)),
+        0,
+        false
+    ));
+    assert!(synced_now(
+        Some(&waiting(tisty_carrier::Reason::Offline)),
+        1,
+        false
+    ));
+    assert!(synced_now(
+        Some(&waiting(tisty_carrier::Reason::Offline)),
+        0,
+        true
+    ));
+    assert!(
+        synced_now(Some(&waiting(tisty_carrier::Reason::Unsent)), 0, false),
+        "a round that ran whole and only left an attachment here did sync"
+    );
+    assert!(synced_now(None, 0, false));
+}

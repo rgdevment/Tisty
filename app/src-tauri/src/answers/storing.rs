@@ -1012,9 +1012,7 @@ async fn carried_round(
         );
     }
     let heard = done.brought > 0;
-    // A round left for later that moved nothing did not sync, so the window does not say it just did.
-    let idle = done.deferred.is_some() && carried == 0 && !moved;
-    if !idle {
+    if synced_now(done.deferred.as_ref(), carried, moved) {
         let _ = session.keep(|c| {
             c.synced_at = Some(jiff::Timestamp::now());
             if heard {
@@ -1060,6 +1058,15 @@ async fn carried_round(
         }),
         refused,
     })
+}
+
+// A round left for later that moved nothing did not sync, so the window does not say it just did.
+pub(crate) fn synced_now(
+    deferred: Option<&tisty_carrier::Deferred>,
+    carried: usize,
+    moved: bool,
+) -> bool {
+    carried > 0 || moved || deferred.is_none_or(|one| one.reason == tisty_carrier::Reason::Unsent)
 }
 
 #[derive(serde::Serialize)]
