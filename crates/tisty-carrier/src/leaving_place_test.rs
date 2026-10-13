@@ -166,13 +166,13 @@ fn the_tasks_sent_ahead_spend_the_history_budget_not_the_attachments_one() {
             .unwrap()
             .as_secs()
             / 86_400;
-        let past_attachments = crate::UNITS_A_DAY / 100 * 95;
+        let remote = counting(&setting);
+        let past_attachments = remote.limits().units_a_day / 100 * 95;
         std::fs::write(
             home.join("budget.json"),
             format!(r#"{{"day":{today},"units":{past_attachments},"bytes":0}}"#),
         )
         .unwrap();
-        let remote = counting(&setting);
         remote.forget_counts();
 
         one.round(Way::Both);
