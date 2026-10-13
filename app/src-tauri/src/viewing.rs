@@ -229,7 +229,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
         tauri::WebviewUrl::App(crate::refusing::page(spanish(app)).into()),
     )
     .title(title)
-    .inner_size(1040.0, 800.0)
+    .inner_size(1180.0, 820.0)
     .min_inner_size(520.0, 380.0)
     .decorations(false)
     .transparent(true)

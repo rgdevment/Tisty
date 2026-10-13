@@ -78,6 +78,7 @@ interface Props {
   onCopy: () => void;
   onTakeOut: () => void;
   onShut: () => void;
+  onApart: () => void;
   trail?: Folded[];
   onFolder?: (id: string | null) => void;
 }
@@ -100,6 +101,7 @@ export default function Beside({
   onCopy,
   onTakeOut,
   onShut,
+  onApart,
   trail = [],
   onFolder,
 }: Props) {
@@ -268,6 +270,13 @@ export default function Beside({
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("bandApart")}</h3>
+          <button type="button" onClick={onApart} className={mild}>
+            {t("viewDocApart")}
+          </button>
         </section>
 
         <section className="flex flex-col gap-2">

@@ -168,6 +168,20 @@ describe("the window buttons sit where the system puts them", () => {
     expect(named()).toEqual(["Minimise", "Maximise", "Close"]);
   });
 
+  it("centres them on the bar of a window drawn edge to edge, and inside the inset pane otherwise", async () => {
+    vi.resetModules();
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Windows NT 10.0)");
+    const { default: WindowChrome } = await import("../ui/WindowChrome");
+    const { container, rerender } = render(<WindowChrome flush />);
+    const placed = () => (container.querySelector("[data-chrome]") as HTMLElement).className;
+
+    expect(placed()).toContain("top-0");
+    expect(placed()).toContain("h-11");
+    rerender(<WindowChrome />);
+    expect(placed()).toContain("top-2");
+    expect(placed()).not.toContain("h-11");
+  });
+
   it("puts them in the order macOS puts them", async () => {
     await chrome("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
 

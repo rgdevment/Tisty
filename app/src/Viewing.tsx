@@ -17,14 +17,17 @@ import usePdf from "./ui/viewer/usePdf";
 import WindowChrome from "./ui/WindowChrome";
 
 const KEPT = "tisty.viewer";
+export const SIDE_FROM = 1320;
 
+// The index opens only where it leaves the page its full width.
 const remembered = (): { side: boolean; leaf: Paper } => {
+  const side = window.innerWidth >= SIDE_FROM;
   try {
     const said = JSON.parse(localStorage.getItem(KEPT) ?? "{}") as Record<string, unknown>;
     const leaf = ["a4", "letter", "tabloid"].includes(String(said.leaf)) ? said.leaf : "a4";
-    return { side: said.side !== false, leaf: leaf as Paper };
+    return { side, leaf: leaf as Paper };
   } catch {
-    return { side: true, leaf: "a4" };
+    return { side, leaf: "a4" };
   }
 };
 
@@ -64,12 +67,12 @@ export default function Viewing() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(KEPT, JSON.stringify({ side, leaf }));
+      localStorage.setItem(KEPT, JSON.stringify({ leaf }));
     } catch {
       void 0;
     }
     pageFor(leaf);
-  }, [side, leaf]);
+  }, [leaf]);
 
   const reading = shown?.kind === "file" || shown?.kind === "doc";
   const body = reading ? shown.body : "";
@@ -146,7 +149,7 @@ export default function Viewing() {
 
   return (
     <main className="relative flex h-full flex-col bg-desk font-sans">
-      <WindowChrome />
+      <WindowChrome flush />
       <Header
         shown={shown}
         side={side}

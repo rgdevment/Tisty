@@ -587,26 +587,6 @@ export default function Docs({
           <span aria-hidden="true">◨</span>
         </button>
       )}
-      {open && (
-        <button
-          type="button"
-          onClick={() =>
-            void viewDoc({
-              id: open.id,
-              file: open.file,
-              title: open.title || t("untitledDoc"),
-              place: trailed(folders, open.folder ?? null)
-                .map((one) => one.name)
-                .join(" / "),
-            }).catch((e) => onError(saidPlainly(e)))
-          }
-          title={t("viewDocApart")}
-          aria-label={t("viewDocApart")}
-          className={`absolute top-11 ${beside ? "right-3" : "right-10"} z-10 grid h-6 w-6 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink`}
-        >
-          <span aria-hidden="true">⧉</span>
-        </button>
-      )}
       <div
         className="flex min-h-0 flex-1 flex-col motion-safe:transition-[padding] motion-safe:duration-150"
         style={{ paddingRight: reserve }}
@@ -998,6 +978,16 @@ export default function Docs({
               .catch((e) => onError(saidPlainly(e)));
           }}
           onShut={() => setShown(false)}
+          onApart={() =>
+            void viewDoc({
+              id: open.id,
+              file: open.file,
+              title: open.title || t("untitledDoc"),
+              place: trailed(folders, open.folder ?? null)
+                .map((one) => one.name)
+                .join(" / "),
+            }).catch((e) => onError(saidPlainly(e)))
+          }
         />
       )}
     </main>
