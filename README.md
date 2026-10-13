@@ -80,6 +80,11 @@
     (.dmg, one per chip)</sub>
   </p>
 
+  <p>
+    <sub><a href="https://rgdevment.com/tisty/">rgdevment.com/tisty</a> ·
+    Docs</sub>
+  </p>
+
 </div>
 
 ---
