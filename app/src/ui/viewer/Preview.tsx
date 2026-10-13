@@ -21,6 +21,13 @@ export default function Preview({ shown, leaf, signing, making, onSign, onKeep, 
         data-tauri-drag-region
         className={`flex h-11 shrink-0 items-center gap-2 border-b border-hair bg-panel text-[12.5px] ${onMac ? "pl-20" : "pl-4"} ${clearOfChrome}`}
       >
+        <button
+          type="button"
+          className={`${button} -ml-1.5 border-transparent text-soft`}
+          onClick={onClose}
+        >
+          {t("previewBack")}
+        </button>
         <b data-tauri-drag-region className="font-semibold">
           {t("seePdf")}
         </b>
@@ -42,13 +49,6 @@ export default function Preview({ shown, leaf, signing, making, onSign, onKeep, 
         )}
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>
           {t("toPdf")}
-        </button>
-        <button
-          type="button"
-          className={`${button} border-transparent text-soft`}
-          onClick={onClose}
-        >
-          {t("viewClose")}
         </button>
       </div>
       <iframe src={shown} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />

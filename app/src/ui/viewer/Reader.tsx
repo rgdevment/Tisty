@@ -97,20 +97,22 @@ export default function Reader(props: Props) {
   return (
     <div className="flex min-h-0 flex-1">
       {side && (
-        <nav className="flex w-[264px] shrink-0 flex-col overflow-auto border-r border-hair bg-panel px-2 py-3.5">
+        <nav className="flex w-[264px] shrink-0 flex-col overflow-hidden border-r border-hair bg-panel px-2 py-3.5">
           <h6 className={heading}>{t(stranger ? "viewInFile" : "viewInDoc")}</h6>
-          {heads.map((one) => (
-            <button
-              type="button"
-              key={one.key}
-              onClick={() => go(one)}
-              className="truncate rounded-md py-1 pr-2 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
-              style={{ paddingLeft: 8 + Math.max(0, one.level - 1) * 12 }}
-            >
-              {one.text}
-            </button>
-          ))}
-          <div className="mt-auto border-t border-hair pt-3.5">
+          <div className="scroller flex min-h-0 flex-1 flex-col">
+            {heads.map((one) => (
+              <button
+                type="button"
+                key={one.key}
+                onClick={() => go(one)}
+                className="shrink-0 truncate rounded-md py-1 pr-2 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
+                style={{ paddingLeft: 8 + Math.max(0, one.level - 1) * 12 }}
+              >
+                {one.text}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 shrink-0 border-t border-hair pt-3.5">
             <h6 className={heading}>{t(stranger ? "aboutFile" : "aboutPaper")}</h6>
             <div className="mx-2 mb-4">
               <PaperFacts facts={props.facts} body={body} />

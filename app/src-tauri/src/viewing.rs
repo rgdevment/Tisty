@@ -212,7 +212,7 @@ fn spanish(app: &AppHandle) -> bool {
         .unwrap_or_else(crate::refusing::speaks_spanish)
 }
 
-// A fifth smaller than Tisty as it stands, so the two sit together and the index still fits.
+// As tall as a fifth less than Tisty as it stands, and wide enough for the index beside the page.
 fn beside_main(app: &AppHandle) -> (f64, f64) {
     let Some(main) = app.get_webview_window("main") else {
         return SIZED;
@@ -221,13 +221,14 @@ fn beside_main(app: &AppHandle) -> (f64, f64) {
         return SIZED;
     };
     let logical = size.to_logical::<f64>(scale);
-    scaled(logical.width, logical.height)
+    scaled(logical.height)
 }
 
-const SIZED: (f64, f64) = (1248.0, 656.0);
+const WIDE: f64 = 1400.0;
+const SIZED: (f64, f64) = (WIDE, 656.0);
 
-fn scaled(width: f64, height: f64) -> (f64, f64) {
-    ((width * 0.8).max(760.0), (height * 0.8).max(560.0))
+fn scaled(height: f64) -> (f64, f64) {
+    (WIDE, (height * 0.8).max(560.0))
 }
 
 pub fn open(app: &AppHandle, shown: Shown) {

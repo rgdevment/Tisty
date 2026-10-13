@@ -75,9 +75,8 @@ fn nothing_but_a_readable_local_text_file_passes() {
 }
 
 #[test]
-fn a_viewer_opens_a_fifth_smaller_than_tisty_and_never_too_small_to_read() {
-    assert_eq!(super::scaled(1560.0, 820.0), (1248.0, 656.0));
-    assert_eq!(super::scaled(800.0, 600.0), (760.0, 560.0));
-    assert_eq!(super::scaled(950.0, 700.0), (760.0, 560.0));
-    assert_eq!(super::scaled(1000.0, 750.0), (800.0, 600.0));
+fn a_viewer_opens_wide_enough_for_its_index_and_a_fifth_shorter_than_tisty() {
+    assert_eq!(super::scaled(820.0), (1400.0, 656.0));
+    assert_eq!(super::scaled(700.0), (1400.0, 560.0));
+    assert_eq!(super::scaled(750.0), (1400.0, 600.0));
 }

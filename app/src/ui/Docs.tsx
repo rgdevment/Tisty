@@ -884,14 +884,13 @@ export default function Docs({
       </div>
       {seeing && (
         <div className="absolute inset-0 z-40 flex flex-col bg-veil">
-          <div className={`flex h-9 shrink-0 items-center justify-end gap-2 pl-3 ${clearOfChrome}`}>
+          <div className={`flex h-9 shrink-0 items-center gap-2 pl-3 ${clearOfChrome}`}>
             <button
               type="button"
               onClick={shut}
-              aria-label={t("leaveIt")}
               className="rounded-md bg-bg px-2.5 py-1 text-[11.5px] text-soft hover:text-ink"
             >
-              {t("leaveIt")}
+              {t("previewBack")}
             </button>
           </div>
           <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
