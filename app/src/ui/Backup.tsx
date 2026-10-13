@@ -23,7 +23,7 @@ export default function Backup({ state, holds, held, said, trouble, onMake, onTa
           title={t("backupSave")}
           why={
             <>
-              <span className="block">{t(state.freesSpace ? "backupCloudOff" : "backupWhat")}</span>
+              <span className="block">{t("backupWhat")}</span>
               <span className="mt-0.5 block tabular-nums">
                 {[
                   holds,
@@ -41,7 +41,7 @@ export default function Backup({ state, holds, held, said, trouble, onMake, onTa
         >
           <button
             type="button"
-            disabled={held || state.freesSpace || state.weight > state.carries}
+            disabled={held || state.weight > state.carries}
             onClick={onMake}
             className={mild}
           >

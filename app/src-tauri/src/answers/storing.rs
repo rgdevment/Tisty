@@ -505,7 +505,7 @@ fn stranded_by_leaving(session: &Session, chosen: &tisty_core::config::Sync) -> 
     let was = session.config.sync.as_ref().filter(|was| *was != chosen)?;
     match was.leaving() {
         Leaving::Free => None,
-        Leaving::Cloud => Some(Refusal::of("cloudToLeave")),
+        Leaving::Cloud => cloud_joined(session).then(|| Refusal::of("cloudToLeave")),
         Leaving::Later => Some(Refusal::of("syncLaterToLeave")),
         Leaving::Place => {
             let carrier = session.carrier()?;
@@ -526,8 +526,16 @@ pub(crate) fn went_back_on(session: &Session, theirs: Option<String>) -> bool {
         })
 }
 
+/// A cloud this machine never carried into holds nothing of its own, so it can be left like no way at all.
+pub(crate) fn cloud_joined(session: &Session) -> bool {
+    session
+        .carrier()
+        .is_none_or(|carrier| carrier.been_here(&session.here()))
+}
+
 fn choosing(
     chosen: tisty_core::config::Sync,
+    joined: bool,
 ) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {
     use tisty_core::config::Leaving;
     move |config| {
@@ -538,7 +546,7 @@ fn choosing(
             .map(|was| was.leaving());
         match leaving {
             Some(Leaving::Later) => Some(Refusal::of("syncLaterToLeave")),
-            Some(Leaving::Cloud) => Some(Refusal::of("cloudToLeave")),
+            Some(Leaving::Cloud) if joined => Some(Refusal::of("cloudToLeave")),
             _ => {
                 config.sync = Some(chosen);
                 None
@@ -589,7 +597,8 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
     if let Some(refusal) = stranded_by_leaving(session, &chosen) {
         return Err(refusal);
     }
-    changed_to(session, chosen, choosing)
+    let joined = cloud_joined(session);
+    changed_to(session, chosen, |one| choosing(one, joined))
 }
 
 /// Tasks and documents are kept first, the place left behind is told, and a place chosen again is the person's.
@@ -619,8 +628,17 @@ where
         crate::leaving::backed_up(&session.paths)?;
     }
     let old = session.carrier();
+    let joined = old
+        .as_ref()
+        .is_none_or(|old| old.been_here(&session.here()));
     session.keep_unless(choosing(chosen.clone()))?;
-    if let Some(left) = was.filter(|left| left.leaving() != tisty_core::config::Leaving::Free) {
+    // A cloud never carried into holds someone else's copies, and a word there would move them.
+    let told = |left: &tisty_core::config::Sync| match left.leaving() {
+        tisty_core::config::Leaving::Free => false,
+        tisty_core::config::Leaving::Cloud => joined,
+        _ => true,
+    };
+    if let Some(left) = was.filter(told) {
         crate::leaving::leave_word(&session.paths, &session.config, &left, old, &chosen);
     }
     crate::leaving::owed_no_more(session.paths.cache(), &chosen);
@@ -661,6 +679,7 @@ pub async fn sync_now(
     };
     let was = held(&session).config.sync.clone();
     let done = carried_round(&app, &session, way).await;
+    noted(&session, &done);
     let now = held(&session);
     let _ = app.emit(
         "brought",
@@ -668,6 +687,45 @@ pub async fn sync_now(
     );
     drop(now);
     done
+}
+
+/// How a round with the cloud ended stays written beside its mirror, so Settings can say it later.
+fn noted(session: &tauri::State<'_, Mutex<Session>>, done: &Answer<Settled>) {
+    let home = {
+        let session = held(session);
+        tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| session.reach.home_of(at))
+    };
+    let Some(home) = home else {
+        return;
+    };
+    let at = jiff::Timestamp::now().as_second().unsigned_abs();
+    let round = match done {
+        Ok(settled) if settled.carried == "busy" => return,
+        Ok(settled) => match &settled.deferred {
+            Some(waiting) => tisty_carrier::LastRound {
+                at,
+                code: format!("deferred-{}", waiting.reason),
+                name: None,
+                left: waiting.left,
+                names: waiting.names.clone(),
+            },
+            None => tisty_carrier::LastRound {
+                at,
+                code: "ok".into(),
+                name: None,
+                left: 0,
+                names: Vec::new(),
+            },
+        },
+        Err(refused) => tisty_carrier::LastRound {
+            at,
+            code: refused.code.into(),
+            name: refused.name.clone(),
+            left: 0,
+            names: Vec::new(),
+        },
+    };
+    tisty_carrier::round_noted(&home, &round);
 }
 
 // The place left behind is told first, and a place others left stops this machine before it writes there alone.

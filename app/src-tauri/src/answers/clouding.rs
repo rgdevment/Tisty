@@ -116,7 +116,8 @@ pub fn cloud_choose(
     });
     let mut session = held(&session);
     session.refresh_settings();
-    super::storing::changed_to(&mut session, chosen, choosing_cloud)?;
+    let joined = super::storing::cloud_joined(&session);
+    super::storing::changed_to(&mut session, chosen, |one| choosing_cloud(one, joined))?;
     drop(session);
     let _ = app.emit("unstuck", ());
     Ok(())
@@ -124,6 +125,7 @@ pub fn cloud_choose(
 
 pub(crate) fn choosing_cloud(
     chosen: Sync,
+    joined: bool,
 ) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {
     let same =
         |was: &CloudAt, now: &CloudAt| was.provider == now.provider && was.account == now.account;
@@ -132,11 +134,12 @@ pub(crate) fn choosing_cloud(
             config.sync = Some(chosen);
             None
         }
-        // The account outlives a change of address, so the new address is only written down.
+        // One never carried into holds nothing, and the same account under a new address is only written down.
         Some(Leaving::Cloud)
-            if tisty_carrier::cloud_of(config.sync.as_ref())
-                .zip(tisty_carrier::cloud_of(Some(&chosen)))
-                .is_some_and(|(was, now)| same(was, now)) =>
+            if !joined
+                || tisty_carrier::cloud_of(config.sync.as_ref())
+                    .zip(tisty_carrier::cloud_of(Some(&chosen)))
+                    .is_some_and(|(was, now)| same(was, now)) =>
         {
             config.sync = Some(chosen);
             None
@@ -215,6 +218,47 @@ fn forgotten(account: &str) -> Answer<()> {
     secrets_for(account)
         .and_then(|kept| kept.forget(KEPT_AS))
         .map_err(|e| refused(e, "Google Drive"))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudStatus {
+    provider: String,
+    email: String,
+    units_spent: u64,
+    units_a_day: u64,
+    bytes_spent: u64,
+    bytes_a_day: u64,
+    paused_here: bool,
+    halted_until: Option<u64>,
+    owed: usize,
+    last: Option<tisty_carrier::LastRound>,
+}
+
+/// What Settings and Maintenance say of the chosen cloud, read off this disk with no request.
+#[tauri::command]
+pub fn cloud_status(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<CloudStatus>> {
+    let session = held(&session);
+    let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()) else {
+        return Ok(None);
+    };
+    Ok(Some(status_of(&at.clone(), &session.reach.home_of(at))))
+}
+
+pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path) -> CloudStatus {
+    let told = tisty_carrier::standing(home);
+    CloudStatus {
+        provider: at.provider.clone(),
+        email: at.email.clone(),
+        units_spent: told.units_spent,
+        units_a_day: told.units_a_day,
+        bytes_spent: told.bytes_spent,
+        bytes_a_day: told.bytes_a_day,
+        paused_here: told.paused_here,
+        halted_until: told.halted_until,
+        owed: told.owed + told.forgotten,
+        last: told.last,
+    }
 }
 
 #[tauri::command]

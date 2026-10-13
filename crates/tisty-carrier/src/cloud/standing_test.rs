@@ -52,3 +52,20 @@ fn the_signed_word_kept_here_sets_the_limits_and_a_live_pause() {
     assert_eq!(told.bytes_a_day, BYTES_A_DAY);
     assert_eq!(told.halted_until, Some(until));
 }
+
+#[test]
+fn how_the_last_round_ended_is_kept_and_read_back() {
+    let home = tempfile::tempdir().unwrap();
+    assert_eq!(standing(home.path()).last, None);
+    let round = LastRound {
+        at: 1_760_000_000,
+        code: "deferred-budget".into(),
+        name: None,
+        left: 3,
+        names: vec!["attachments/ab/foto.png".into()],
+    };
+
+    round_noted(home.path(), &round);
+
+    assert_eq!(standing(home.path()).last, Some(round));
+}
