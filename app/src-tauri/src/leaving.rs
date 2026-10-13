@@ -140,10 +140,11 @@ pub struct Owing {
     at: PathBuf,
     old: tisty_carrier::Shared,
     said: String,
+    release: Option<String>,
 }
 
-pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
-    let at = cache.join(OWED);
+pub fn owing(paths: &tisty_core::Paths, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
+    let at = paths.cache().join(OWED);
     let owed: Owed = serde_json::from_slice(&std::fs::read(&at).ok()?).ok()?;
     let nobody_there = owed.way.leaving() == tisty_core::config::Leaving::Free;
     if nobody_there || now.is_some_and(|now| same_place(&owed.way, now)) {
@@ -151,10 +152,15 @@ pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing
         return None;
     }
     let old = tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier?;
+    let heading_back = crate::answers::relocating::pending_cloud(paths);
+    let release = tisty_carrier::cloud_of(Some(&owed.way))
+        .map(|at| at.account.clone())
+        .filter(|account| heading_back.as_ref() != Some(account));
     Some(Owing {
         at,
         old,
         said: owed.said,
+        release,
     })
 }
 
@@ -163,6 +169,9 @@ impl Owing {
         let reached = self.old.leave_word(&self.said).is_ok();
         if reached {
             let _ = std::fs::remove_file(self.at);
+            if let Some(account) = &self.release {
+                crate::answers::clouding::let_go_of(account);
+            }
         }
         reached
     }

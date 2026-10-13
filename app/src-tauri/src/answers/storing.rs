@@ -186,11 +186,7 @@ pub async fn settle_in(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
-            crate::leaving::owing(
-                session.paths.cache(),
-                &session.reach,
-                session.config.sync.as_ref(),
-            ),
+            crate::leaving::owing(&session.paths, &session.reach, session.config.sync.as_ref()),
         )
     };
 
@@ -689,6 +685,7 @@ where
     }
     let old = session.carrier();
     session.keep_unless(choosing(chosen.clone()))?;
+    super::relocating::pending_kept(&session.paths, None);
     let told = |left: &tisty_core::config::Sync| match left.leaving() {
         tisty_core::config::Leaving::Free => false,
         tisty_core::config::Leaving::Cloud => joins.left,
@@ -840,11 +837,7 @@ async fn carried_round(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
-            crate::leaving::owing(
-                session.paths.cache(),
-                &session.reach,
-                session.config.sync.as_ref(),
-            ),
+            crate::leaving::owing(&session.paths, &session.reach, session.config.sync.as_ref()),
         )
     };
     heeded_first(&carrier, &home, owing).await?;

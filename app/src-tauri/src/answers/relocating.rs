@@ -212,14 +212,13 @@ pub async fn move_to(
     })
     .await
     .map_err(|_| Refusal::of("internal"))?;
-    catching_up(
+    let caught = catching_up(
         &session,
         &paths,
         "the store would not project after a move brought things home",
         channel::SYNC,
     )
-    .await?;
-
+    .await;
     let shifted = match shifted {
         Ok(shifted) => shifted,
         Err(trouble) => {
@@ -227,6 +226,7 @@ pub async fn move_to(
             return Err(said(trouble));
         }
     };
+    caught?;
     match shifted {
         tisty_carrier::Shift::Homing { owed, deferred } => Ok(waiting("homing", owed, deferred)),
         tisty_carrier::Shift::Filling { owed, deferred } => Ok(waiting("filling", owed, deferred)),
@@ -289,7 +289,16 @@ pub(crate) fn moving_in(chosen: Sync) -> impl FnOnce(&mut tisty_core::Config) ->
     }
 }
 
-fn pending_kept(paths: &tisty_core::Paths, toward: Option<&Toward>) {
+pub(crate) fn pending_cloud(paths: &tisty_core::Paths) -> Option<String> {
+    let toward: Toward =
+        serde_json::from_slice(&std::fs::read(paths.private().join(PENDING)).ok()?).ok()?;
+    match toward {
+        Toward::Cloud { account, .. } => Some(account),
+        _ => None,
+    }
+}
+
+pub(crate) fn pending_kept(paths: &tisty_core::Paths, toward: Option<&Toward>) {
     let at = paths.private().join(PENDING);
     let written = match toward {
         Some(toward) => serde_json::to_vec(toward)

@@ -106,7 +106,7 @@ pub fn homing(from: &dyn Carrier, here: &Here) -> Owed {
 
 pub fn filling(to: &dyn Carrier, here: &Here) -> Owed {
     let there = to.shelf();
-    let takes = |bytes: u64| !to.frees_space() || bytes <= tisty_core::attach::COPIED_IN_DOC;
+    let takes = |bytes: u64| !to.frees_space() || bytes <= tisty_core::attach::HELD_UP_TO;
     known(here)
         .filter(|(reference, bytes)| {
             takes(*bytes)
