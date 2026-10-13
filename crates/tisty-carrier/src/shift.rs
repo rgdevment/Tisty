@@ -90,7 +90,22 @@ pub fn shift(
         }
     }
     if let Some(to) = to {
-        let moved = carried(to, here, Way::Push, alive, saying)?;
+        let mut sending = |far: Reached| match far {
+            Reached::Along {
+                stage: Stage::Attachments,
+                done,
+                whole,
+            } => saying(Reached::Sending {
+                part: 0,
+                done,
+                whole,
+                sent: 0,
+                weighs: 0,
+            }),
+            Reached::Along { .. } => {}
+            other => saying(other),
+        };
+        let moved = carried(to, here, Way::Push, alive, &mut sending)?;
         let Some(moved) = settled(moved)? else {
             return Ok(Shift::Unsettled);
         };

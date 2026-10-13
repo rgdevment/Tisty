@@ -583,13 +583,36 @@ fn leaving_a_place_that_holds_nothing_more_than_here_never_says_it_brings_attach
     }
 }
 
+fn sent_of(heard: &[Reached]) -> std::collections::BTreeMap<u64, Vec<(usize, usize, u64, u64)>> {
+    let mut parts: std::collections::BTreeMap<u64, Vec<_>> = Default::default();
+    for far in heard {
+        if let Reached::Sending {
+            part,
+            done,
+            whole,
+            sent,
+            weighs,
+        } = far
+        {
+            parts
+                .entry(*part)
+                .or_default()
+                .push((*done, *whole, *sent, *weighs));
+        }
+    }
+    parts
+}
+
 #[test]
-fn a_move_into_the_cloud_tells_each_upload_as_it_goes_up_to_the_whole() {
+fn a_move_into_the_cloud_tells_one_upload_of_history_documents_and_attachments_to_the_whole() {
     for (setting, _) in each_kind(|fake| fake) {
         let who = &setting.name;
         let (one, _) = pair(&setting);
+        let mut photos = 0;
         for at in 0..3 {
-            let kept = one.kept(&format!("foto{at}"), format!("foto {at}").as_bytes());
+            let bytes = format!("foto {at}");
+            photos += bytes.len() as u64;
+            let kept = one.kept(&format!("foto{at}"), bytes.as_bytes());
             one.store().append(kept.told()).unwrap();
         }
         one.wrote("con fotos");
@@ -597,14 +620,61 @@ fn a_move_into_the_cloud_tells_each_upload_as_it_goes_up_to_the_whole() {
         let (done, heard) = heard_while(&one, None, Some(&*one.carrier));
 
         assert_eq!(done, Shift::Ready, "{who}");
-        let told = told_of(&heard, crate::Stage::Uploading);
-        assert!(told.contains(&(0, 3)), "{who}: {told:?}");
-        assert!(told.contains(&(3, 3)), "{who}: {told:?}");
+        let parts = sent_of(&heard);
+        let last: Vec<_> = parts.values().filter_map(|told| told.last()).collect();
+        let files: usize = last.iter().map(|(_, whole, _, _)| whole).sum();
+        let weighs: u64 = last.iter().map(|(_, _, _, weighs)| weighs).sum();
         assert!(
-            told.iter().all(|(done, whole)| done <= whole),
-            "{who}: {told:?}"
+            files > 3,
+            "{who}: history and documents were not counted: {parts:?}"
+        );
+        assert!(weighs > photos, "{who}: {parts:?}");
+        assert!(
+            last.iter()
+                .all(|(done, whole, sent, weighs)| done == whole && sent == weighs),
+            "{who}: a part never reached its whole: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .flatten()
+                .any(|(done, _, sent, _)| *done == 0 && *sent == 0),
+            "{who}: the whole was not told before the first byte: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .flatten()
+                .all(|(done, whole, sent, weighs)| done <= whole && sent <= weighs),
+            "{who}: {parts:?}"
         );
     }
+}
+
+#[test]
+fn a_move_into_a_folder_tells_what_it_copies_as_its_second_step_and_never_what_it_looks_over() {
+    let setting = settings().remove(0);
+    let (one, _) = pair(&setting);
+    one.attached(PHOTO);
+    let into = Folder::at(setting.room.path().join("into"));
+    std::fs::create_dir_all(setting.room.path().join("into")).unwrap();
+
+    let (_, heard) = heard_while(&one, None, Some(&into));
+
+    assert!(
+        heard
+            .iter()
+            .all(|far| !matches!(far, Reached::Along { .. })),
+        "what the push looked over was told as if it came home: {heard:?}"
+    );
+    let parts = sent_of(&heard);
+    assert!(
+        parts
+            .get(&0)
+            .and_then(|told| told.last())
+            .is_some_and(|(done, whole, _, _)| done == whole && *whole > 0),
+        "{heard:?}"
+    );
 }
 
 #[test]

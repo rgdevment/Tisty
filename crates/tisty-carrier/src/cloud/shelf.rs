@@ -173,6 +173,14 @@ impl<'a> Shelf<'a> {
         }
         match judge(hitch, self.remote.limits().provider) {
             Judged::Pause(reason, wait) => {
+                witness::note(
+                    channel::CLOUD,
+                    "the shelf pauses, so what is left of it goes on a later round",
+                    &[
+                        ("why", Fact::Word(paused_for(reason))),
+                        ("count", Fact::Count(remaining.len())),
+                    ],
+                );
                 self.paused = Some(Deferred {
                     reason,
                     left: remaining.len(),
@@ -323,11 +331,11 @@ impl Attachments for Shelf<'_> {
         let mut pace = Pace::new(self.home, saying);
         let mut given = Given::default();
         let (all, mut asked_for) = locals(data, buried);
-        let whole = all
+        let (whole, weighs) = all
             .iter()
             .filter(|one| self.owed(one, &round) && !tisty_core::holes::a_hole(&one.at))
-            .count();
-        let mut begun = false;
+            .fold((0, 0), |(files, bytes), one| (files + 1, bytes + one.len));
+        pace.owe(whole, weighs);
         for (at, one) in all.iter().enumerate() {
             if self.stopped() {
                 break;
@@ -352,20 +360,16 @@ impl Attachments for Shelf<'_> {
                 self.refuse(hitch, &one.reference, remaining)?;
                 continue;
             }
-            if !begun {
-                pace.begun(whole);
-                begun = true;
-            }
             let Ok((sha256, _)) = attach::hashed(&one.at) else {
                 self.unsent(&one.reference, "could not be read here");
-                pace.passed();
+                pace.went(one.len);
                 continue;
             };
             if !attach::vouched(&one.under, &one.leaf, &sha256)
                 || !attach::as_kept(avowed, &one.reference, &sha256)
             {
                 self.unsent(&one.reference, "does not hold what its name or the log say");
-                pace.passed();
+                pace.went(one.len);
                 continue;
             }
             match self.send(one) {
@@ -374,7 +378,7 @@ impl Attachments for Shelf<'_> {
                     given.sent += 1;
                     self.sent += 1;
                     self.remote.moved_on();
-                    pace.landed(self.index);
+                    pace.landed(self.index, one.len);
                 }
                 Ok(Sent::Spoiled(seen)) => {
                     self.index
@@ -383,7 +387,7 @@ impl Attachments for Shelf<'_> {
                     self.index.shelved(&one.reference, seen);
                     self.unsent(&one.reference, "up there with other bytes");
                     self.remote.moved_on();
-                    pace.passed();
+                    pace.went(one.len);
                 }
                 Err(hitch) => {
                     let remaining = all[at..]
@@ -394,7 +398,7 @@ impl Attachments for Shelf<'_> {
                     if self.refuse(hitch, &one.reference, remaining)? {
                         self.unsent(&one.reference, "the cloud would not take it");
                     }
-                    pace.passed();
+                    pace.went(one.len);
                 }
             }
         }
@@ -544,6 +548,19 @@ fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
         && !index.spoiled(reference)
         && seen.bytes <= HELD_UP_TO
         && !std::fs::metadata(&target).is_ok_and(|one| one.is_file() && one.len() == seen.bytes)
+}
+
+fn paused_for(reason: Reason) -> &'static str {
+    match reason {
+        Reason::Limit => "limit",
+        Reason::Budget => "budget",
+        Reason::Paused => "paused",
+        Reason::Busy => "busy",
+        Reason::Offline => "offline",
+        Reason::Changed => "changed",
+        Reason::Troubled => "troubled",
+        Reason::Unsent => "unsent",
+    }
 }
 
 fn kind_of(hitch: &Hitch) -> &'static str {

@@ -204,6 +204,14 @@ pub enum Reached {
         sha256: String,
         bytes: u64,
     },
+    /// What goes up to a cloud, told by each part of a round that sends: history, documents and attachments.
+    Sending {
+        part: u64,
+        done: usize,
+        whole: usize,
+        sent: u64,
+        weighs: u64,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -211,8 +219,6 @@ pub enum Stage {
     Log,
     Papers,
     Attachments,
-    /// What goes up to a cloud, file by file, so a long push is never a silent one.
-    Uploading,
 }
 
 pub fn carry_holding(
