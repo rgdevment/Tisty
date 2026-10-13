@@ -373,3 +373,196 @@ fn a_folder_left_keeps_a_note_for_whoever_opens_it_until_this_machine_chooses_it
         "the note stayed once the folder was chosen again"
     );
 }
+
+/// Hands every request to the provider it wraps, except the listing and each delete in turn it was told to fail.
+struct Unsteady {
+    inner: Arc<dyn Counting>,
+    listing: Option<Hitch>,
+    deleting: std::sync::Mutex<std::collections::VecDeque<Option<Hitch>>>,
+}
+
+impl Unsteady {
+    fn over(setting: &Setting, listing: Option<Hitch>, deleting: Vec<Option<Hitch>>) -> Cloud {
+        let unsteady: Arc<dyn Remote> = Arc::new(Unsteady {
+            inner: counting(setting).clone(),
+            listing,
+            deleting: std::sync::Mutex::new(deleting.into()),
+        });
+        Cloud::over(unsteady, home_of(setting, "dev_a"))
+    }
+}
+
+impl Remote for Unsteady {
+    fn limits(&self) -> crate::Limits {
+        self.inner.limits()
+    }
+    fn list(&self, under: &str) -> Result<Vec<crate::Seen>, Hitch> {
+        match &self.listing {
+            Some(hitch) => Err(hitch.clone()),
+            None => self.inner.list(under),
+        }
+    }
+    fn fetch(
+        &self,
+        name: &str,
+        from: u64,
+        into: &mut dyn std::io::Write,
+    ) -> Result<crate::Seen, Hitch> {
+        self.inner.fetch(name, from, into)
+    }
+    fn put(
+        &self,
+        name: &str,
+        from: &std::path::Path,
+        expect: Expect,
+    ) -> Result<crate::Seen, Hitch> {
+        self.inner.put(name, from, expect)
+    }
+    fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
+        let failing = self.deleting.lock().unwrap().pop_front().flatten();
+        match failing {
+            Some(hitch) => Err(hitch),
+            None => self.inner.delete(name, expect),
+        }
+    }
+    fn hash_of(&self, local: &std::path::Path) -> std::io::Result<String> {
+        self.inner.hash_of(local)
+    }
+    fn about(&self, name: &str) -> Result<Option<crate::Seen>, Hitch> {
+        self.inner.about(name)
+    }
+    fn changes(&self, since: Option<&str>) -> Result<crate::Changes, Hitch> {
+        self.inner.changes(since)
+    }
+}
+
+fn left_to_wipe(setting: &Setting) -> Desk {
+    let one = desk(setting, "dev_a");
+    one.wrote("algo");
+    one.filed(DOC, "contenido");
+    one.round(Way::Both);
+    one.carrier.leave_word("se fue").unwrap();
+    one
+}
+
+fn still_there(setting: &Setting) -> Vec<String> {
+    counting(setting)
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|seen| seen.name)
+        .filter(|name| name != tisty_core::moved::NAMED)
+        .collect()
+}
+
+fn the_word_stays(setting: &Setting) -> bool {
+    counting(setting)
+        .about(tisty_core::moved::NAMED)
+        .unwrap()
+        .is_some()
+}
+
+#[test]
+fn a_wipe_cut_by_a_long_pause_says_not_now_and_the_next_wipe_bins_only_the_rest() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let one = left_to_wipe(&setting);
+        let copies = still_there(&setting).len();
+        let cut = Unsteady::over(
+            &setting,
+            None,
+            vec![
+                None,
+                Some(Hitch::Limited {
+                    wait: Duration::from_secs(61),
+                }),
+            ],
+        );
+
+        let paused = cut.wipe();
+        let between = still_there(&setting).len();
+        let rest = one.carrier.wipe();
+
+        assert!(copies >= 2, "{who}: {copies}");
+        assert!(
+            matches!(paused, Err(Trouble::NotNow(_))),
+            "{who}: {paused:?}"
+        );
+        assert_eq!(between, copies - 1, "{who}");
+        assert_eq!(rest, Ok(copies - 1), "{who}");
+        assert!(still_there(&setting).is_empty(), "{who}");
+        assert!(the_word_stays(&setting), "{who}");
+    }
+}
+
+#[test]
+fn a_wipe_waits_out_short_pauses_on_a_delete_and_still_bins_everything() {
+    for setting in clouds() {
+        let who = &setting.name;
+        left_to_wipe(&setting);
+        let copies = still_there(&setting).len();
+        let slow = Unsteady::over(
+            &setting,
+            None,
+            vec![
+                Some(Hitch::Limited {
+                    wait: Duration::ZERO,
+                }),
+                Some(Hitch::Busy {
+                    wait: Duration::ZERO,
+                }),
+            ],
+        );
+
+        let gone = slow.wipe();
+
+        assert_eq!(gone, Ok(copies), "{who}");
+        assert!(still_there(&setting).is_empty(), "{who}");
+        assert!(the_word_stays(&setting), "{who}");
+    }
+}
+
+#[test]
+fn a_wipe_refused_by_a_cloud_that_lost_its_access_says_so_and_keeps_every_copy() {
+    for setting in clouds() {
+        let who = &setting.name;
+        left_to_wipe(&setting);
+        let copies = still_there(&setting).len();
+        let provider = counting(&setting).limits().provider.to_string();
+        let lost = Unsteady::over(&setting, None, vec![Some(Hitch::Lost)]);
+
+        let refused = lost.wipe();
+
+        assert_eq!(refused, Err(Trouble::CloudLost { provider }), "{who}");
+        assert_eq!(still_there(&setting).len(), copies, "{who}");
+        assert!(the_word_stays(&setting), "{who}");
+    }
+}
+
+#[test]
+fn a_wipe_that_cannot_list_the_cloud_waits_on_a_pause_and_stops_on_a_lost_access() {
+    for setting in clouds() {
+        let who = &setting.name;
+        left_to_wipe(&setting);
+        let copies = still_there(&setting).len();
+        let provider = counting(&setting).limits().provider.to_string();
+        let limited = Unsteady::over(
+            &setting,
+            Some(Hitch::Limited {
+                wait: Duration::from_secs(9),
+            }),
+            Vec::new(),
+        );
+        let lost = Unsteady::over(&setting, Some(Hitch::Lost), Vec::new());
+
+        let paused = limited.wipe();
+        let refused = lost.wipe();
+
+        assert!(
+            matches!(paused, Err(Trouble::NotNow(_))),
+            "{who}: {paused:?}"
+        );
+        assert_eq!(refused, Err(Trouble::CloudLost { provider }), "{who}");
+        assert_eq!(still_there(&setting).len(), copies, "{who}");
+    }
+}

@@ -2337,8 +2337,9 @@ describe("the first-run assistant", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
 
-    const said = await screen.findByRole("alert");
-    expect(said.textContent).toContain("239");
+    expect(await screen.findByText(fill("keepersStrays", "239"))).toBeTruthy();
+    expect(screen.getByText(t("keepersStraysWhy"))).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("stays quiet about strays when the folder accounts for everything", async () => {

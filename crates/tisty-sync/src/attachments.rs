@@ -99,6 +99,22 @@ pub struct Beside<'a> {
 impl Attachments for Beside<'_> {
     fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
         let mut carried = Vec::new();
+        let owed = owed_beside(
+            &round.data.join(HELD),
+            &self.dest.join(HELD),
+            round.buried,
+            round.again,
+        );
+        let mut copied = 0;
+        if owed > 0 {
+            (round.saying)(Reached::Sending {
+                part: 0,
+                done: 0,
+                whole: owed,
+                sent: 0,
+                weighs: 0,
+            });
+        }
         let sent = copy_held(
             &round.data.join(HELD),
             &self.dest.join(HELD),
@@ -109,8 +125,28 @@ impl Attachments for Beside<'_> {
             None,
             Some(&mut carried),
             round.avowed,
-            &mut |_| {},
+            &mut |far| {
+                if let Reached::Kept { .. } = far {
+                    copied += 1;
+                    (round.saying)(Reached::Sending {
+                        part: 0,
+                        done: copied,
+                        whole: owed,
+                        sent: 0,
+                        weighs: 0,
+                    });
+                }
+            },
         )?;
+        if owed > copied {
+            (round.saying)(Reached::Sending {
+                part: 0,
+                done: owed,
+                whole: owed,
+                sent: 0,
+                weighs: 0,
+            });
+        }
         let (freed, let_go) = match round.holds {
             Holds::Shared => let_go_of(
                 round.data,
@@ -148,4 +184,40 @@ impl Attachments for Beside<'_> {
         )?;
         Ok(Taken { brought, took_in })
     }
+}
+
+// Only what the copy would carry is told, so a round with nothing to copy says nothing.
+fn owed_beside(from: &Path, into: &Path, buried: &BTreeSet<String>, again: bool) -> usize {
+    let Ok(shelves) = std::fs::read_dir(from) else {
+        return 0;
+    };
+    let len = |at: &Path| std::fs::metadata(at).map(|one| one.len()).ok();
+    shelves
+        .filter_map(|shelf| shelf.ok())
+        .filter_map(|shelf| {
+            std::fs::read_dir(shelf.path())
+                .ok()
+                .map(|files| (shelf, files))
+        })
+        .flat_map(|(shelf, files)| {
+            files
+                .filter_map(|file| file.ok())
+                .map(move |file| (shelf.file_name(), file))
+        })
+        .filter(|(shelf, file)| {
+            let (Some(under), Some(named)) = (
+                shelf.to_str(),
+                file.file_name().to_str().map(str::to_string),
+            ) else {
+                return false;
+            };
+            let at = file.path();
+            at.is_file()
+                && tisty_core::attach::shelved(under, &named)
+                && !buried.contains(&format!("attachments/{under}/{named}"))
+                && len(&at).is_some_and(|weighs| weighs <= tisty_core::attach::HELD_UP_TO)
+                && !tisty_core::holes::a_hole(&at)
+                && (again || len(&at) != len(&into.join(under).join(&named)))
+        })
+        .count()
 }

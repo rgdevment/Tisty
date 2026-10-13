@@ -1,6 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { cloudStanding, type Exit, STORAGE } from "../cloudState";
+import { carding, unstuck } from "../coming";
 import {
   type Carrying,
   type CloudStatus,
@@ -17,7 +18,7 @@ import {
 import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { named } from "../previews";
-import { saidPlainly } from "../refusal";
+import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import type { Run, Which, Word } from "./Card";
 import Here from "./Here";
@@ -34,9 +35,12 @@ interface Props {
   onMove: () => void;
 }
 
+const SIGNED = new Set(["cloudLost", "cloudElsewhere"]);
+
 export default function Clouded({ state, busy, said, trouble, run, fail, carry, onMove }: Props) {
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [which, setWhich] = useState(false);
+  const [signedAt, setSignedAt] = useState<number>();
   const held = busy !== null;
 
   const look = useCallback(() => {
@@ -47,7 +51,19 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
 
   useEffect(look, [look, state.last, busy]);
 
-  const standing = status ? cloudStanding(status) : null;
+  const last = status?.last;
+  // A sign-in that went through answers the round that found the door shut, before the next round ends.
+  const answered =
+    last !== undefined && last !== null && last.at === signedAt && SIGNED.has(last.code);
+  const standing = status && !answered ? cloudStanding(status) : null;
+  const carded = standing?.exit && last ? last.code : null;
+  const repeats =
+    carded !== null && trouble?.text === plainly({ code: carded, name: last?.name ?? undefined });
+
+  useEffect(() => {
+    carding(carded);
+    return () => carding(null);
+  }, [carded]);
   const paused = status?.pausedHere ?? false;
   const left = status?.last?.left ?? 0;
 
@@ -63,6 +79,8 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
     }
     await cloudChoose(account.account, account.email);
     if (was && was !== account.account) await cloudForget(was).catch(() => undefined);
+    setSignedAt(status?.last?.at);
+    unstuck();
   };
 
   const reconnect = () => run("sync", reconnected(), () => carry());
@@ -225,7 +243,9 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
       </div>
 
       <Here held={held} />
-      {trouble?.card === "sync" && <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>}
+      {trouble?.card === "sync" && !repeats && (
+        <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
+      )}
       {said?.card === "sync" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
     </>
   );

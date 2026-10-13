@@ -4,17 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { t } from "../locales";
 import { natural } from "../ui/viewer/Stage";
-import Viewing from "../Viewing";
+import Viewing, { SIDE_FROM } from "../Viewing";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   shown: null as unknown,
+  facts: null as unknown,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
+    if (cmd === "view_facts") return Promise.resolve(ipc.facts);
     if (cmd === "view_import")
       return Promise.resolve({ id: "D1", file: "f1", title: "Notas", place: "" });
     if (cmd === "widget_lend") return Promise.resolve("w1");
@@ -84,18 +86,21 @@ const tisty: Showing = {
 beforeEach(() => {
   ipc.calls = [];
   ipc.shown = file;
+  ipc.facts = null;
+  window.innerWidth = SIDE_FROM - 1;
   localStorage.clear();
 });
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
 describe("the viewer", () => {
-  it("shows a file from outside, read only, with its contents and page open", async () => {
+  it("shows a file from outside, read only, with its contents and page a press away", async () => {
     render(<Viewing />);
 
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
-    expect(screen.getByText(t("viewInFile"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+    expect(await screen.findByText(t("viewInFile"))).toBeTruthy();
     expect(screen.getByText(t("viewPage"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
@@ -123,7 +128,8 @@ describe("the viewer", () => {
 
     expect(asked("view_import")[0].args).toEqual({ open: true });
     await waitFor(() => expect(screen.getByText(new RegExp(t("viewNowIn")))).toBeTruthy());
-    expect(screen.getByText(t("viewInDoc"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+    expect(await screen.findByText(t("viewInDoc"))).toBeTruthy();
   });
 
   it("says plainly why a file could not be opened", async () => {
@@ -161,16 +167,17 @@ describe("a widget's own width", () => {
 });
 
 describe("reading in the viewer", () => {
-  it("previews a Tisty document as a PDF, signs it, saves it and closes on Esc", async () => {
+  it("previews a Tisty document as a PDF signed by default, unsigns it, saves it and closes on Esc", async () => {
     ipc.shown = tisty;
     render(<Viewing />);
     await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
 
     pressed("p");
     expect(await screen.findByTitle(t("seePdf"))).toBeTruthy();
+    expect(screen.getByText(t("seePdf")).parentElement?.className).toContain("pr-[7.5rem]");
     await userEvent.click(screen.getByRole("checkbox", { name: t("viewWithSign") }));
     await waitFor(() =>
-      expect(asked("pdf").map((one) => one.args.signed)).toEqual([null, "Firmado"]),
+      expect(asked("pdf").map((one) => one.args.signed)).toEqual(["Firmado", null]),
     );
     await userEvent.click(screen.getByRole("button", { name: t("toPdf") }));
     await waitFor(() => expect(asked("keep_pdf")).toHaveLength(1));
@@ -179,22 +186,82 @@ describe("reading in the viewer", () => {
     expect(screen.queryByTitle(t("seePdf"))).toBeNull();
   });
 
-  it("hides and shows the contents, sizes the page, and reads the source by keys", async () => {
+  it("opens with the contents folded in a narrow window, shows and hides them, sizes the page, and reads the source by keys", async () => {
     render(<Viewing />);
     await screen.findByText("notas.md");
 
+    expect(screen.queryByText(t("viewPage"))).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+    expect(await screen.findByText(t("viewPage"))).toBeTruthy();
+    pressed("\\");
     expect(screen.queryByText(t("viewPage"))).toBeNull();
     pressed("\\");
     await userEvent.click(await screen.findByRole("button", { name: t("leafLetter") }));
-    expect(JSON.parse(localStorage.getItem("tisty.viewer") ?? "{}")).toEqual({
-      side: true,
-      leaf: "letter",
-    });
+    expect(JSON.parse(localStorage.getItem("tisty.viewer") ?? "{}")).toEqual({ leaf: "letter" });
     pressed("M", { shiftKey: true });
     expect(await screen.findByRole("button", { name: t("viewCopy") })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("viewCopy") }));
     expect(await screen.findByRole("button", { name: t("viewCopied") })).toBeTruthy();
+  });
+
+  it("opens with the contents beside the page only in a window wide enough for both", async () => {
+    const was = window.innerWidth;
+    window.innerWidth = SIDE_FROM;
+    render(<Viewing />);
+    await screen.findByText("notas.md");
+    window.innerWidth = was;
+
+    expect(screen.getByText(t("viewPage"))).toBeTruthy();
+  });
+
+  it("opens folded one pixel short of that width", async () => {
+    const was = window.innerWidth;
+    window.innerWidth = SIDE_FROM - 1;
+    render(<Viewing />);
+    await screen.findByText("notas.md");
+    window.innerWidth = was;
+
+    expect(screen.queryByText(t("viewPage"))).toBeNull();
+  });
+
+  it("tells who wrote a Tisty document and how big it is beside its contents", async () => {
+    ipc.shown = tisty;
+    ipc.facts = {
+      made: 1_790_000_000,
+      wrote: 1_790_000_600,
+      bytes: 12_700,
+      pages: 2,
+      author: "rgdevment",
+      editor: null,
+      born: null,
+    };
+    render(<Viewing />);
+    await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+
+    expect(await screen.findByText("rgdevment")).toBeTruthy();
+    expect(screen.getByText(t("aboutPaper"))).toBeTruthy();
+    expect(screen.getByText(t("paperWeighs"))).toBeTruthy();
+    expect(ipc.calls.filter((one) => one.cmd === "view_facts")).toHaveLength(1);
+  });
+
+  it("tells what the disk knows of a file from outside, with no author it cannot know", async () => {
+    ipc.facts = {
+      made: 1_790_000_000,
+      wrote: 1_790_000_600,
+      bytes: 2_600,
+      pages: 0,
+      author: null,
+      editor: null,
+      born: null,
+    };
+    render(<Viewing />);
+    await screen.findByText("notas.md");
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
+
+    expect(await screen.findByText(t("aboutFile"))).toBeTruthy();
+    expect(screen.getByText(t("paperMade"))).toBeTruthy();
+    expect(screen.queryByText(t("paperAuthor"))).toBeNull();
   });
 
   it("finds in the text from the menu, and lets go of the search on Esc", async () => {

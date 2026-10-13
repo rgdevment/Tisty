@@ -269,3 +269,150 @@ fn a_cloud_is_left_only_through_a_move_once_this_machine_carried_into_it() {
     assert!(choosing(Sync::alone(), false)(&mut never).is_none());
     assert_eq!(never.sync, Some(Sync::alone()));
 }
+
+fn step(stage: &'static str, done: usize, whole: usize) -> Bringing {
+    Bringing {
+        stage,
+        done,
+        whole,
+        joining: false,
+        up: None,
+    }
+}
+
+fn shown(step: Option<Bringing>) -> Option<(&'static str, usize)> {
+    step.map(|one| (one.stage, one.done))
+}
+
+fn after(first: std::time::Instant, millis: u64) -> std::time::Instant {
+    first + std::time::Duration::from_millis(millis)
+}
+
+#[test]
+fn the_first_step_of_a_stage_is_said_at_once() {
+    let mut pacing = Pacing::default();
+
+    assert_eq!(
+        shown(pacing.told(step("log", 1, 9), std::time::Instant::now())),
+        Some(("log", 1))
+    );
+    assert!(pacing.flushed().is_none());
+}
+
+#[test]
+fn a_step_of_the_same_stage_too_soon_after_the_last_is_held_not_said() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("log", 1, 9), first);
+
+    assert!(pacing.told(step("log", 2, 9), after(first, 249)).is_none());
+    assert_eq!(shown(pacing.flushed()), Some(("log", 2)));
+    assert!(
+        pacing.flushed().is_none(),
+        "a held step was said twice on flush"
+    );
+}
+
+#[test]
+fn only_the_latest_held_step_is_said_on_flush() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("log", 1, 9), first);
+    pacing.told(step("log", 2, 9), after(first, 10));
+    pacing.told(step("log", 3, 9), after(first, 20));
+
+    assert_eq!(shown(pacing.flushed()), Some(("log", 3)));
+}
+
+#[test]
+fn a_step_of_the_same_stage_a_full_beat_later_is_said() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("log", 1, 9), first);
+
+    assert_eq!(
+        shown(pacing.told(step("log", 2, 9), after(first, 250))),
+        Some(("log", 2))
+    );
+}
+
+#[test]
+fn a_step_of_another_stage_is_said_however_soon_it_comes() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("log", 1, 9), first);
+
+    assert_eq!(
+        shown(pacing.told(step("uploading", 1, 9), after(first, 1))),
+        Some(("uploading", 1))
+    );
+}
+
+#[test]
+fn the_last_step_of_a_stage_is_said_however_soon_it_comes() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("papers", 1, 3), first);
+
+    assert_eq!(
+        shown(pacing.told(step("papers", 3, 3), after(first, 1))),
+        Some(("papers", 3))
+    );
+}
+
+#[test]
+fn a_step_said_clears_the_one_held_before_it() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("log", 1, 9), first);
+    pacing.told(step("log", 2, 9), after(first, 10));
+    pacing.told(step("log", 3, 9), after(first, 300));
+
+    assert!(
+        pacing.flushed().is_none(),
+        "a step already passed was said again on flush"
+    );
+}
+
+#[test]
+fn the_beat_counts_from_the_last_step_said_not_the_first() {
+    let mut pacing = Pacing::default();
+    let first = std::time::Instant::now();
+    pacing.told(step("log", 1, 9), first);
+    pacing.told(step("log", 2, 9), after(first, 300));
+
+    assert!(pacing.told(step("log", 3, 9), after(first, 400)).is_none());
+}
+
+#[test]
+fn an_upload_step_tells_the_window_its_part_and_bytes() {
+    let sending = Bringing {
+        stage: "uploading",
+        done: 2,
+        whole: 5,
+        joining: true,
+        up: Some(Up {
+            part: 7,
+            sent: 1024,
+            weighs: 4096,
+        }),
+    };
+
+    assert_eq!(
+        serde_json::to_value(sending).unwrap(),
+        serde_json::json!({
+            "stage": "uploading",
+            "done": 2,
+            "whole": 5,
+            "joining": true,
+            "up": {"part": 7, "sent": 1024, "weighs": 4096},
+        })
+    );
+}
+
+#[test]
+fn a_step_that_sends_nothing_carries_no_upload_at_all() {
+    let value = serde_json::to_value(step("log", 1, 9)).unwrap();
+
+    assert!(value.get("up").is_none(), "{value}");
+}

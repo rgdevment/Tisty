@@ -33,7 +33,7 @@ const Grown = () => (
   </svg>
 );
 
-export default function WindowChrome() {
+export default function WindowChrome({ flush = false }: { flush?: boolean }) {
   const held = useRef<ReturnType<typeof getCurrentWindow>>(null);
   held.current ??= getCurrentWindow();
   const win = held.current;
@@ -129,9 +129,12 @@ export default function WindowChrome() {
     { key: "close", glyph: "✕", danger: true },
   ];
 
-  // The content pane is inset by `my-2 mr-2` and rounded-md; these sit inside it.
+  // The main window's pane is inset by `my-2 mr-2`; a window drawn edge to edge centres them on its bar.
+  const placed = flush
+    ? "top-0 right-0 h-11 items-center pr-2"
+    : "top-2 right-2 pt-1.5 pr-1.5 pl-2";
   return (
-    <div data-chrome className="fixed top-2 right-2 z-[60] flex gap-0.5 pt-1.5 pr-1.5 pl-2">
+    <div data-chrome className={`fixed z-[60] flex gap-0.5 ${placed}`}>
       {buttons.map((button) => (
         <button
           type="button"

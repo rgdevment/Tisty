@@ -319,6 +319,7 @@ const en = {
   viewPage: "Page",
   viewPageAbout: "{name} px to read in, and the page of the PDF",
   viewWithSign: "Signed",
+  previewBack: "← Back to the document",
   viewClose: "Close",
   viewWidgetOf: "Widget from «{name}»",
   viewFit: "Fit",
@@ -471,6 +472,7 @@ const en = {
   family_fun: "Doing things",
   family_flags: "Flags",
   saveCopy: "Save a copy",
+  bandApart: "Window",
   bandPdf: "PDF",
   bandText: "Markdown",
   exportIt: "Export",
@@ -478,6 +480,7 @@ const en = {
   onlyClear: "Every list",
   beside: "About the document",
   besideShut: "Close this column",
+  aboutFile: "About this file",
   aboutPaper: "About this document",
   paperMade: "Created",
   paperAuthor: "Author",
@@ -1337,6 +1340,23 @@ const en = {
   moveLeftOne: "1 file still to move ({other}).",
   moveStuck: "Some files couldn't be brought yet. Try again in a while.",
   moveAgain: "Carry on",
+  moveAgainWhy: "Carry on picks the move up where it stopped.",
+  moveStep: "Step {name} of {other}",
+  moveChecking: "Checking your data…",
+  moveBringingFolder: "Bringing from the folder",
+  moveBringingCloud: "Bringing from your cloud",
+  moveUploading: "Uploading to Google Drive",
+  moveCopying: "Copying to the folder",
+  movePreparing: "Getting the upload ready…",
+  moveFiles: "{name} of {other} files",
+  moveRetryIn: "trying again in {name} s…",
+  moveLimit: "Google asked for a pause",
+  moveOffline: "No internet connection",
+  moveTroubled: "Google didn't answer properly a moment ago",
+  moveOfflineWhy:
+    "This computer has no internet connection. Your copies are safe here, and what is left goes up once it is back.",
+  moveTroubledWhy:
+    "Google didn't answer properly several times in a row. Your copies are safe on this computer.",
   moveLater: "Later",
   moveDone: "Done, your copies are now in {name}",
   moveDoneAlone: "Done, your copies are now only on this computer",
@@ -1345,6 +1365,8 @@ const en = {
   moveWipeSure:
     "Tisty's copies are deleted from your Google Drive for good: Tisty's space there has no bin, so they can't be brought back. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in Drive.",
   moveWipeKeep: "Leave them there",
+  moveWiping:
+    "Working on it: checking that everything is on this computer and deleting your copies from Google Drive. It can take a few minutes.",
   moveWiped: "{name} copies were deleted from your Google Drive.",
   moveWipedOne: "1 copy was deleted from your Google Drive.",
   movePending: "A move to {name} is halfway.",
@@ -1362,6 +1384,8 @@ const en = {
     "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
   wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
+  wipeStopped:
+    "Google did not answer, so the deleting stopped. Whatever was deleted stays deleted and everything is still on this computer; press the button again in a while to delete the rest.",
   wipeNotHome:
     "Not everything in that cloud is on this computer yet, so its copies stay. Sync, settle anything waiting for you, and try again.",
   forgetUntold:
@@ -1795,7 +1819,7 @@ const en = {
   comingLog: "Bringing the history…",
   comingPapers: "Bringing documents…",
   comingAttachments: "Bringing attachments…",
-  comingUploading: "Uploading to Google Drive…",
+  comingUploading: "Sending your changes…",
   comingOf: "{name} of {other}",
   knockOne: "«{name}» wants to sync",
   knockUnnamed: "A new machine wants to sync",
@@ -1873,9 +1897,9 @@ const en = {
   keepersUnreadable: "This folder's history could not be read",
   keepersUnreadableWhy:
     "It may still be arriving, or this machine may not be allowed to read it. Choosing it now would look like an empty folder and start a history of its own beside the one already there.",
-  keepersStrays: "{name} documents here belong to no history",
+  keepersStrays: "{name} documents another computer left in this folder",
   keepersStraysWhy:
-    "They were written by a machine whose log is not in this folder. Until that machine syncs here too, Tisty cannot open them and they stay where they are.",
+    "That computer wrote them here, but what it did has not reached this folder yet. Nothing of yours is lost: they stay in the folder untouched, and they show up once that computer syncs here.",
 };
 
 type Catalog = typeof en;
@@ -2193,7 +2217,7 @@ const es: Catalog = {
   viewMore: "Más",
   viewFind: "Buscar en el texto",
   viewBigger: "Texto más grande",
-  viewSmaller: "Texto más chico",
+  viewSmaller: "Texto más pequeño",
   viewCopyMd: "Copiar como Markdown",
   viewCopy: "Copiar",
   viewCopied: "Copiado",
@@ -2205,6 +2229,7 @@ const es: Catalog = {
   viewPage: "Página",
   viewPageAbout: "{name} px de lectura y la página del PDF",
   viewWithSign: "Con firma",
+  previewBack: "← Volver al documento",
   viewClose: "Cerrar",
   viewWidgetOf: "Widget de «{name}»",
   viewFit: "Ajustar",
@@ -2358,6 +2383,7 @@ const es: Catalog = {
   family_fun: "Hacer cosas",
   family_flags: "Banderas",
   saveCopy: "Guardar una copia",
+  bandApart: "Ventana",
   bandPdf: "PDF",
   bandText: "Markdown",
   exportIt: "Exportar",
@@ -2365,6 +2391,7 @@ const es: Catalog = {
   onlyClear: "Todas las listas",
   beside: "Sobre el documento",
   besideShut: "Cerrar esta columna",
+  aboutFile: "Sobre este archivo",
   aboutPaper: "Sobre este documento",
   paperMade: "Creado",
   paperAuthor: "Autor",
@@ -3228,6 +3255,23 @@ const es: Catalog = {
   moveLeftOne: "Falta 1 archivo por mover ({other}).",
   moveStuck: "Algunos archivos todavía no se pudieron traer. Vuelve a intentarlo en un rato.",
   moveAgain: "Seguir",
+  moveAgainWhy: "«Seguir» retoma la mudanza donde quedó.",
+  moveStep: "Paso {name} de {other}",
+  moveChecking: "Revisando tus datos…",
+  moveBringingFolder: "Trayendo desde la carpeta",
+  moveBringingCloud: "Trayendo desde tu nube",
+  moveUploading: "Subiendo a Google Drive",
+  moveCopying: "Copiando a la carpeta",
+  movePreparing: "Preparando la subida…",
+  moveFiles: "{name} de {other} archivos",
+  moveRetryIn: "reintentando en {name} s…",
+  moveLimit: "Google pidió una pausa",
+  moveOffline: "Sin conexión a internet",
+  moveTroubled: "Google no respondió bien hace un momento",
+  moveOfflineWhy:
+    "Este computador no tiene conexión a internet. Tus copias están a salvo aquí, y lo que falta sube cuando vuelva.",
+  moveTroubledWhy:
+    "Google no respondió bien varias veces seguidas. Tus copias están a salvo en este computador.",
   moveLater: "Después",
   moveDone: "Listo, tus copias ya están en {name}",
   moveDoneAlone: "Listo, tus copias ya están solo en este equipo",
@@ -3237,6 +3281,8 @@ const es: Catalog = {
   moveWipeSure:
     "Las copias de Tisty se borran para siempre de tu Google Drive: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En Drive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   moveWipeKeep: "Dejarlas ahí",
+  moveWiping:
+    "Procesando: revisamos que todo esté en este equipo y borramos tus copias de Google Drive. Puede tardar unos minutos.",
   moveWiped: "Se borraron {name} copias de tu Google Drive.",
   moveWipedOne: "Se borró 1 copia de tu Google Drive.",
   movePending: "Hay una mudanza a medias hacia {name}.",
@@ -3254,6 +3300,8 @@ const es: Catalog = {
     "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
   wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
+  wipeStopped:
+    "Google no respondió y el borrado se detuvo. Lo que alcanzó a borrarse queda borrado y todo sigue en este equipo; vuelve a pulsar el botón en un rato para borrar el resto.",
   wipeNotHome:
     "Todavía no está todo lo de esa nube en este equipo, así que sus copias se quedan. Sincroniza, resuelve lo que esté esperando tu decisión y vuelve a intentarlo.",
   forgetUntold:
@@ -3688,7 +3736,7 @@ const es: Catalog = {
   comingLog: "Trayendo la historia…",
   comingPapers: "Trayendo documentos…",
   comingAttachments: "Trayendo adjuntos…",
-  comingUploading: "Subiendo a Google Drive…",
+  comingUploading: "Enviando tus cambios…",
   comingOf: "{name} de {other}",
   knockOne: "«{name}» quiere sincronizar",
   knockUnnamed: "Un equipo nuevo quiere sincronizar",
@@ -3766,9 +3814,9 @@ const es: Catalog = {
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
   keepersUnreadableWhy:
     "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",
-  keepersStrays: "{name} documentos de aquí no pertenecen a ningún historial",
+  keepersStrays: "{name} documentos que otro computador dejó en esta carpeta",
   keepersStraysWhy:
-    "Los escribió un equipo cuyo registro no está en esta carpeta. Hasta que ese equipo también sincronice aquí, Tisty no puede abrirlos y se quedan donde están.",
+    "Ese computador los escribió aquí, pero lo que hizo todavía no llega a esta carpeta. No se pierde nada tuyo: se quedan en la carpeta sin tocar, y aparecen cuando ese computador sincronice aquí.",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

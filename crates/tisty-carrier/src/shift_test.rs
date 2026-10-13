@@ -583,13 +583,36 @@ fn leaving_a_place_that_holds_nothing_more_than_here_never_says_it_brings_attach
     }
 }
 
+fn sent_of(heard: &[Reached]) -> std::collections::BTreeMap<u64, Vec<(usize, usize, u64, u64)>> {
+    let mut parts: std::collections::BTreeMap<u64, Vec<_>> = Default::default();
+    for far in heard {
+        if let Reached::Sending {
+            part,
+            done,
+            whole,
+            sent,
+            weighs,
+        } = far
+        {
+            parts
+                .entry(*part)
+                .or_default()
+                .push((*done, *whole, *sent, *weighs));
+        }
+    }
+    parts
+}
+
 #[test]
-fn a_move_into_the_cloud_tells_each_upload_as_it_goes_up_to_the_whole() {
+fn a_move_into_the_cloud_tells_one_upload_of_history_documents_and_attachments_to_the_whole() {
     for (setting, _) in each_kind(|fake| fake) {
         let who = &setting.name;
         let (one, _) = pair(&setting);
+        let mut photos = 0;
         for at in 0..3 {
-            let kept = one.kept(&format!("foto{at}"), format!("foto {at}").as_bytes());
+            let bytes = format!("foto {at}");
+            photos += bytes.len() as u64;
+            let kept = one.kept(&format!("foto{at}"), bytes.as_bytes());
             one.store().append(kept.told()).unwrap();
         }
         one.wrote("con fotos");
@@ -597,14 +620,61 @@ fn a_move_into_the_cloud_tells_each_upload_as_it_goes_up_to_the_whole() {
         let (done, heard) = heard_while(&one, None, Some(&*one.carrier));
 
         assert_eq!(done, Shift::Ready, "{who}");
-        let told = told_of(&heard, crate::Stage::Uploading);
-        assert!(told.contains(&(0, 3)), "{who}: {told:?}");
-        assert!(told.contains(&(3, 3)), "{who}: {told:?}");
+        let parts = sent_of(&heard);
+        let last: Vec<_> = parts.values().filter_map(|told| told.last()).collect();
+        let files: usize = last.iter().map(|(_, whole, _, _)| whole).sum();
+        let weighs: u64 = last.iter().map(|(_, _, _, weighs)| weighs).sum();
         assert!(
-            told.iter().all(|(done, whole)| done <= whole),
-            "{who}: {told:?}"
+            files > 3,
+            "{who}: history and documents were not counted: {parts:?}"
+        );
+        assert!(weighs > photos, "{who}: {parts:?}");
+        assert!(
+            last.iter()
+                .all(|(done, whole, sent, weighs)| done == whole && sent == weighs),
+            "{who}: a part never reached its whole: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .flatten()
+                .any(|(done, _, sent, _)| *done == 0 && *sent == 0),
+            "{who}: the whole was not told before the first byte: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .flatten()
+                .all(|(done, whole, sent, weighs)| done <= whole && sent <= weighs),
+            "{who}: {parts:?}"
         );
     }
+}
+
+#[test]
+fn a_move_into_a_folder_tells_what_it_copies_as_its_second_step_and_never_what_it_looks_over() {
+    let setting = settings().remove(0);
+    let (one, _) = pair(&setting);
+    one.attached(PHOTO);
+    let into = Folder::at(setting.room.path().join("into"));
+    std::fs::create_dir_all(setting.room.path().join("into")).unwrap();
+
+    let (_, heard) = heard_while(&one, None, Some(&into));
+
+    assert!(
+        heard
+            .iter()
+            .all(|far| !matches!(far, Reached::Along { .. })),
+        "what the push looked over was told as if it came home: {heard:?}"
+    );
+    let parts = sent_of(&heard);
+    assert!(
+        parts
+            .get(&0)
+            .and_then(|told| told.last())
+            .is_some_and(|(done, whole, _, _)| done == whole && *whole > 0),
+        "{heard:?}"
+    );
 }
 
 #[test]
@@ -833,5 +903,193 @@ fn a_cloud_left_after_its_store_was_deleted_up_there_takes_everything_when_chose
             "{who}: the store never went up again"
         );
         assert!(crate::filling(&*one.carrier, &one.here).nothing(), "{who}");
+    }
+}
+
+type Told = (usize, usize, u64, u64);
+
+fn reached_its_whole_only_at_the_end(told: &[Told]) -> bool {
+    let Some(((done, whole, sent, weighs), before)) = told.split_last() else {
+        return false;
+    };
+    done == whole && sent == weighs && before.iter().all(|(done, whole, ..)| done < whole)
+}
+
+#[test]
+fn a_push_cut_by_a_document_changed_meanwhile_counts_it_and_the_stamp_held_back_as_gone_through() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("algo");
+        one.filed(DOC, "# Plan\n\nlo primero\n");
+        fake.refusing(&doc_name(), Hitch::Changed(doc_name()));
+        let stamped = |fake: &Fake| {
+            fake.about(tisty_sync::NAMED)
+                .unwrap()
+                .map(|one| one.revision)
+        };
+        let before = stamped(&fake);
+
+        let mut heard = Vec::new();
+        crate::shift(
+            None,
+            Some(&*one.carrier),
+            &one.here,
+            &[DOC.to_string()],
+            &mut |far| heard.push(far),
+        )
+        .unwrap();
+        let held_back = stamped(&fake);
+        fake.refusing("nothing/", Hitch::Broke("never".into()));
+        step(&one, None, Some(&*one.carrier));
+
+        let parts = sent_of(&heard);
+        assert!(!parts.is_empty(), "{who}: {heard:?}");
+        assert!(
+            parts
+                .values()
+                .all(|told| reached_its_whole_only_at_the_end(told)),
+            "{who}: what was passed over was never counted: {parts:?}"
+        );
+        assert_eq!(
+            held_back, before,
+            "{who}: the stamp went up past a document left behind"
+        );
+        assert!(
+            fake.about(tisty_sync::NAMED).unwrap().is_some(),
+            "{who}: the stamp never went up"
+        );
+    }
+}
+
+#[test]
+fn an_attachment_too_big_for_the_cloud_is_never_counted_among_what_goes_up() {
+    for (setting, _) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let big =
+            tisty_core::attach::resolve("attachments/00/grande-0123456789.bin", &one.here.data)
+                .unwrap();
+        std::fs::create_dir_all(big.parent().unwrap()).unwrap();
+        std::fs::File::create(&big)
+            .unwrap()
+            .set_len(tisty_core::attach::HELD_UP_TO + 1)
+            .unwrap();
+        one.attached(PHOTO);
+
+        let (_, heard) = heard_while(&one, None, Some(&*one.carrier));
+
+        let parts = sent_of(&heard);
+        assert!(
+            parts
+                .values()
+                .any(|told| told.first() == Some(&(0, 1, 0, PHOTO.len() as u64))),
+            "{who}: the photo alone was not what the attachments owed: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .all(|told| reached_its_whole_only_at_the_end(told)),
+            "{who}: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .flatten()
+                .all(|(_, _, _, weighs)| *weighs < tisty_core::attach::HELD_UP_TO),
+            "{who}: {parts:?}"
+        );
+    }
+}
+
+#[test]
+fn a_move_from_a_folder_into_the_cloud_and_on_into_another_folder_tells_each_push_to_its_whole() {
+    for (setting, _) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.attached(PHOTO);
+        let old = origin(&one, setting.room.path());
+        let next = Folder::at(setting.room.path().join("next"));
+        std::fs::create_dir_all(setting.room.path().join("next")).unwrap();
+
+        let (into_cloud, up) = heard_while(&one, Some(&old), Some(&*one.carrier));
+        let (into_folder, across) = heard_while(&one, Some(&*one.carrier), Some(&next));
+
+        assert_eq!(into_cloud, Shift::Ready, "{who}");
+        assert_eq!(into_folder, Shift::Ready, "{who}");
+        let up = sent_of(&up);
+        assert!(!up.is_empty() && !up.contains_key(&0), "{who}: {up:?}");
+        assert!(
+            up.values()
+                .all(|told| reached_its_whole_only_at_the_end(told)),
+            "{who}: {up:?}"
+        );
+        let weighs: u64 = up
+            .values()
+            .filter_map(|told| told.last())
+            .map(|(_, _, _, weighs)| weighs)
+            .sum();
+        assert!(weighs > PHOTO.len() as u64, "{who}: {up:?}");
+        assert_eq!(
+            sent_of(&across).get(&0).and_then(|told| told.last()),
+            Some(&(1, 1, 0, 0)),
+            "{who}: {across:?}"
+        );
+        assert!(
+            across.iter().all(|far| !matches!(
+                far,
+                Reached::Along {
+                    stage: crate::Stage::Attachments,
+                    ..
+                }
+            )),
+            "{who}: {across:?}"
+        );
+    }
+}
+
+#[test]
+fn a_move_into_the_cloud_taken_up_again_counts_only_the_attachments_still_owed() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let mut refs: Vec<(String, u64)> = (0..3)
+            .map(|at| {
+                let body = format!("los bytes de la foto {at}");
+                let kept = one.kept(&format!("foto{at}"), body.as_bytes());
+                one.store().append(kept.told()).unwrap();
+                (kept.at, body.len() as u64)
+            })
+            .collect();
+        one.wrote("con fotos");
+        refs.sort();
+        fake.refusing(
+            &refs[1].0,
+            Hitch::Limited {
+                wait: Duration::from_secs(30),
+            },
+        );
+        let (cut, _) = heard_while(&one, None, Some(&*one.carrier));
+        fake.refusing("nothing/", Hitch::Broke("never".into()));
+        waited_out(&setting, "dev_a");
+
+        let (done, heard) = heard_while(&one, None, Some(&*one.carrier));
+
+        assert!(matches!(cut, Shift::Filling { .. }), "{who}: {cut:?}");
+        assert_eq!(done, Shift::Ready, "{who}");
+        let parts = sent_of(&heard);
+        let left = refs[1].1 + refs[2].1;
+        assert!(
+            parts
+                .values()
+                .any(|told| told.first() == Some(&(0, 2, 0, left))),
+            "{who}: what had landed was counted again: {parts:?}"
+        );
+        assert!(
+            parts
+                .values()
+                .all(|told| reached_its_whole_only_at_the_end(told)),
+            "{who}: {parts:?}"
+        );
     }
 }

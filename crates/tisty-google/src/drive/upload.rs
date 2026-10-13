@@ -39,8 +39,35 @@ impl Drive {
             None => (format!("{}/files", self.at.upload), Method::POST),
         };
         match bytes <= WHOLE_AT_MOST.min(self.chunk) {
-            true => self.sent_whole(&url, method, &meta, from, carried),
+            true => self.sent_whole_again(name, (&url, method), &meta, from, carried),
             false => self.sent_in_parts(&url, method, &meta, (name, from, bytes), carried),
+        }
+    }
+
+    // A passing fault would otherwise pause a whole move for one small file.
+    fn sent_whole_again(
+        &self,
+        name: &str,
+        (url, method): (&str, Method),
+        meta: &serde_json::Value,
+        from: &Path,
+        carried: &mut u64,
+    ) -> Result<File, Hitch> {
+        let mut failed = 0;
+        loop {
+            match self.sent_whole(url, method.clone(), meta, from, carried) {
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(_)) if failed + 1 < TRIES => {}
+                other => return other,
+            }
+            failed += 1;
+            std::thread::sleep(PAUSE * failed);
+            // A create that failed on its way back may have landed, and sending it again would leave a twin.
+            if method == Method::POST
+                && let Ok(found) = self.looked_up(name)
+                && let Some(landed) = found.into_iter().find(|one| sent_from(one, from))
+            {
+                return Ok(landed);
+            }
         }
     }
 
@@ -284,4 +311,14 @@ fn stored(answer: &reqwest::blocking::Response) -> u64 {
         .and_then(|one| one.rsplit('-').next())
         .and_then(|last| last.trim().parse::<u64>().ok())
         .map_or(0, |last| last + 1)
+}
+
+fn sent_from(file: &File, from: &Path) -> bool {
+    let Ok((hex, bytes)) = tisty_core::attach::hashed(from) else {
+        return false;
+    };
+    match file.sha256_checksum.as_deref() {
+        Some(theirs) => theirs == hex,
+        None => file.size.as_deref().and_then(|one| one.parse().ok()) == Some(bytes),
+    }
 }

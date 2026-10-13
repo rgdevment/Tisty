@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { DOC } from "../markdown";
-import { counted, worded } from "../ui/Beside";
 import Docs from "../ui/Docs";
+import { counted, worded } from "../ui/PaperFacts";
 
 const store = vi.hoisted(() => ({
   ran: [] as string[],
@@ -378,7 +378,7 @@ describe("what the column offers for the document", () => {
     expect(named()).toEqual(["Preview", "Export", "Copy", "Save a copy"]);
   });
 
-  it("asks before a PDF leaves, and signs it only when it was asked to", async () => {
+  it("asks before a PDF leaves, signed unless the person unticks it", async () => {
     store.author = "rgdevment";
     widen(1500);
     show();
@@ -388,8 +388,9 @@ describe("what the column offers for the document", () => {
 
     const box = await screen.findByText("Add who wrote it and when");
     const tick = within(box.closest("label") as HTMLElement).getByRole("checkbox");
-    expect((tick as HTMLInputElement).checked).toBe(false);
+    expect((tick as HTMLInputElement).checked).toBe(true);
     await userEvent.click(tick);
+    expect((tick as HTMLInputElement).checked).toBe(false);
     await userEvent.click(screen.getByRole("button", { name: /^export pdf$/i }));
 
     await waitFor(() => expect(store.sent).toContain("keep_pdf"));
@@ -404,12 +405,13 @@ describe("what the column offers for the document", () => {
     expect(screen.getByText("Markdown")).toBeTruthy();
   });
 
-  it("says Close, not the name of another panel", async () => {
+  it("says it goes back to the document, never a Close beside the window's own", async () => {
     widen(1500);
     show();
     await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
 
-    expect(await screen.findByRole("button", { name: "Close" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "← Back to the document" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
   });
 
   it("lets the preview go when the section is left, instead of leaking it", async () => {
@@ -420,7 +422,7 @@ describe("what the column offers for the document", () => {
     widen(1500);
     const view = show();
     await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
-    expect(screen.queryByRole("button", { name: "Close" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "← Back to the document" })).toBeTruthy();
 
     view.unmount();
 
@@ -431,9 +433,9 @@ describe("what the column offers for the document", () => {
     widen(1500);
     show();
     await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Close" }));
+    await userEvent.click(await screen.findByRole("button", { name: "← Back to the document" }));
 
-    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "← Back to the document" })).toBeNull();
   });
 
   it("says how often the writing leans on each tag it carries", async () => {

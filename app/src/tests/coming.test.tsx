@@ -115,6 +115,25 @@ describe("what is coming from the folder", () => {
     expect(screen.getByRole("alert").textContent).toBe(fill("syncNewer", "dev_b"));
   });
 
+  it("adds the parts of a round that sends into one count, and forgets them when it ends", () => {
+    const long = Date.now() - SHOWN_AFTER;
+    const part = (n: number, done: number, whole: number, at?: number) =>
+      heard({ stage: "uploading", done, whole, up: { part: n, sent: 0, weighs: 0 } }, at);
+    render(<Coming />);
+
+    act(() => part(1, 1, 4, long));
+    act(() => part(2, 2, 3));
+    expect(screen.getByRole("status").textContent).toContain(fill("comingOf", "3", "7"));
+
+    act(() => heard(null));
+    act(() => part(2, 1, 2, long));
+    expect(screen.getByRole("status").textContent).toContain(fill("comingOf", "1", "2"));
+
+    act(() => ended(null));
+    act(() => part(3, 1, 5, long));
+    expect(screen.getByRole("status").textContent).toContain(fill("comingOf", "1", "5"));
+  });
+
   it("lets go of the stop when the folder is left or changed", () => {
     render(<Coming />);
     act(() => ended({ code: "syncNewer", name: "dev_b" }));

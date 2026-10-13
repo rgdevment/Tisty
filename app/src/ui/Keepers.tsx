@@ -139,8 +139,8 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly 
 
         {(strays?.adrift ?? 0) > 0 && (
           <div
-            role="alert"
-            className="rounded-[10px] border border-hue-amber/40 px-3 py-2 text-[11.5px] leading-relaxed text-soft"
+            role="status"
+            className="rounded-[10px] border border-hair bg-accent-soft px-3 py-2 text-[11.5px] leading-relaxed text-soft"
           >
             <span className="block text-[12.5px] font-semibold text-ink">
               {fill("keepersStrays", `${strays?.adrift}`)}

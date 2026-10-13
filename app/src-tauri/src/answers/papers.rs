@@ -134,6 +134,21 @@ pub struct Facts {
     born: Option<String>,
 }
 
+/// A file from outside Tisty tells only what the disk knows of it; no log names its author.
+pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
+    let about =
+        std::fs::metadata(at).map_err(|_| Refusal::about("noSuchDoc", at.display().to_string()))?;
+    Ok(Facts {
+        made: seconds(about.created()),
+        wrote: seconds(about.modified()),
+        bytes: about.len(),
+        pages: 0,
+        author: None,
+        editor: None,
+        born: None,
+    })
+}
+
 fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
     at.ok()?
         .duration_since(std::time::UNIX_EPOCH)
