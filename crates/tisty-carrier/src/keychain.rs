@@ -13,7 +13,7 @@ pub struct Keychain {
 }
 
 impl Keychain {
-    /// `scope` keeps apart what two stores or two profiles of one person hold for the same account.
+    /// `scope` keeps apart what two stores of one person hold for the same account.
     pub fn native(scope: &str) -> Result<Self, Hitch> {
         native_store()
             .map(|store| Self::over(store, scope))
