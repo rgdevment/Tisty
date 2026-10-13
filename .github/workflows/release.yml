@@ -1236,13 +1236,17 @@ jobs:
                      "dist/tisty-$v-macos-x86_64.app.tar.gz"; do
             [ -s "$one" ] || continue
             base64 -d < "$one.sig" > one.sig
-            if ! minisign -Vm "$one" -p tisty.pub -x one.sig; then
+            if ! signed=$(bash scripts/signed-version.sh "$one" one.sig tisty.pub); then
               echo "::error::$one was signed with a key that is not the one in tauri.conf.json, so no copy could verify this update. Nothing was published."
+              exit 1
+            fi
+            if [ "$signed" != "$(printf '%s' "${v#v}" | sed 's/+.*//')" ]; then
+              echo "::error::$one is signed for «${signed:-no version}», not $v, and every copy refuses that. Nothing was published."
               exit 1
             fi
           done
           rm -f tisty.pub one.sig
-          echo "the signatures and the shipped key are halves of the same pair"
+          echo "the signatures answer to the shipped key and name $v"
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
@@ -1566,14 +1570,11 @@ jobs:
             url=$(jq -r --arg os "$os" '.platforms[$os].url' channel.json)
             jq -r --arg os "$os" '.platforms[$os].signature' channel.json | base64 -d > one.sig
             curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o one.bin "$url"
-            if ! trusted=$(minisign -Vm one.bin -p tisty.pub -x one.sig); then
+            if ! signed=$(bash scripts/signed-version.sh one.bin one.sig tisty.pub); then
               echo "::error::$os does not verify against the key this build ships"
               exit 1
             fi
-            # Copies refuse a signature that does not name the version it was cut for.
-            signed=$(printf '%s\n' "$trusted" | sed -n 's/^Trusted comment: //p' | tr '\t' '\n' \
-              | sed -n 's/^version://p')
-            if [ "$signed" != "$v" ]; then
+            if [ "$signed" != "$(printf '%s' "${v#v}" | sed 's/+.*//')" ]; then
               echo "::error::$os verifies but is signed for «${signed:-no version}», not $v, so no copy will take it"
               exit 1
             fi

@@ -14,14 +14,12 @@ pub struct Keychain {
 
 impl Keychain {
     /// `scope` keeps apart what two stores or two profiles of one person hold for the same account.
-    #[cfg(not(windows))]
     pub fn native(scope: &str) -> Result<Self, Hitch> {
         native_store()
             .map(|store| Self::over(store, scope))
             .map_err(trouble)
     }
 
-    #[cfg(any(not(windows), test))]
     pub(crate) fn over(store: Arc<CredentialStore>, scope: &str) -> Self {
         Self {
             store,
@@ -46,7 +44,6 @@ impl Secrets for Keychain {
         }
     }
 
-    // Written as bytes: Credential Manager holds a password as UTF-16, which halves the room a long token has.
     fn write(&self, key: &str, value: &str) -> Result<(), Hitch> {
         self.entry(key)?
             .set_secret(value.as_bytes())
