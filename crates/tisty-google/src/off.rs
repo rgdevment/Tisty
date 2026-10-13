@@ -105,6 +105,10 @@ impl<R: Remote> Remote for OffRuntime<R> {
     fn spent_beyond(&self) -> u64 {
         self.0.spent_beyond()
     }
+
+    fn room(&self) -> Result<Option<u64>, Hitch> {
+        away(|| self.0.room())
+    }
 }
 
 #[cfg(test)]

@@ -57,6 +57,8 @@ const plan = {
   fromCloud: true,
   toCloud: false,
   others: 0,
+  free: null,
+  short: 0,
 };
 
 const opened = (over: Partial<Parameters<typeof Relocating>[0]> = {}) => {
@@ -110,6 +112,22 @@ describe("moving to another place", () => {
 
     expect(await screen.findByText(t("moveKeepsDrive"))).toBeTruthy();
     expect(screen.queryByText(t("moveOthersFollow"))).toBeNull();
+  });
+
+  it("will not move into a Drive that has no room and says how much is missing", async () => {
+    ipc.answers.move_plan = () =>
+      Promise.resolve({
+        ...plan,
+        toCloud: true,
+        up: { files: 9, bytes: 4_000_000 },
+        free: 1_000_000,
+        short: 3_000_000,
+      });
+    opened();
+
+    expect(await screen.findByText(fill("moveNoRoom", "3.0 MB", "1.0 MB"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("checkbox"));
+    expect(screen.getByRole("button", { name: t("moveGo") }).hasAttribute("disabled")).toBe(true);
   });
 
   it("moves only once the person says they understand", async () => {

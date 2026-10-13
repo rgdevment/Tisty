@@ -152,6 +152,11 @@ pub trait Remote: Send + Sync {
         Ok(None)
     }
 
+    /// Bytes the account can still take, or None where the provider sets no ceiling or does not say.
+    fn room(&self) -> Result<Option<u64>, Hitch> {
+        Ok(None)
+    }
+
     /// Units spent on requests no verb's cost covers since last asked, so the budget counts them too.
     fn spent_beyond(&self) -> u64 {
         0

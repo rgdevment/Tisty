@@ -743,6 +743,29 @@ impl Remote for Drive {
         Ok(())
     }
 
+    fn room(&self) -> Result<Option<u64>, Hitch> {
+        #[derive(Deserialize)]
+        struct Quota {
+            limit: Option<String>,
+            usage: Option<String>,
+        }
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct About {
+            storage_quota: Quota,
+        }
+        self.vouched_for()?;
+        let url = format!("{}/about", self.at.api);
+        self.spent(READ);
+        let about: About = json(self.call(Some(ASKED_WITHIN), |http| {
+            http.get(&url)
+                .query(&[("fields", "storageQuota(limit,usage)")])
+        })?)?;
+        let bytes = |one: Option<String>| one.and_then(|one| one.parse::<u64>().ok());
+        Ok(bytes(about.storage_quota.limit)
+            .map(|limit| limit.saturating_sub(bytes(about.storage_quota.usage).unwrap_or(0))))
+    }
+
     fn spent_beyond(&self) -> u64 {
         self.beyond.swap(0, std::sync::atomic::Ordering::Relaxed)
     }

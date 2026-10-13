@@ -139,6 +139,11 @@ export function Plan({
           {plan.others > 0 && <li>{t("moveOthersFollow")}</li>}
         </ul>
       )}
+      {plan && plan.short > 0 && (
+        <p role="alert" className="text-[12.5px] leading-relaxed text-ink">
+          {fill("moveNoRoom", weigh(plan.short), weigh(plan.free ?? 0))}
+        </p>
+      )}
       <label className="flex items-start gap-2 text-[12.5px] text-soft">
         <input
           type="checkbox"
@@ -154,7 +159,7 @@ export function Plan({
         </button>
         <button
           type="button"
-          disabled={!agreed || !plan || busy}
+          disabled={!agreed || !plan || busy || plan.short > 0}
           onClick={onMove}
           className={`ml-auto ${go}`}
         >

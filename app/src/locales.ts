@@ -1305,6 +1305,8 @@ const en = {
     "Once in the cloud, your other computers bring attachments down only when you open them.",
   moveOldFolderSpace:
     "If the folder you leave is in Google Drive, it still takes space there until you empty it.",
+  moveNoRoom:
+    "Your Google Drive has room for {other} and this move needs {name} more. Free up space in Drive, or get more, and come back.",
   moveResumes:
     "If it's cut off, it carries on where it left off. Nothing changes place until everything is there.",
   moveKeepsDrive: "Nothing is deleted in your Google Drive: it stays there until you remove it.",
@@ -3184,6 +3186,8 @@ const es: Catalog = {
   moveOnDemand: "Ya en la nube, tus otros equipos bajan los adjuntos solo cuando los abres.",
   moveOldFolderSpace:
     "Si la carpeta que dejas está en Google Drive, sigue ocupando espacio ahí hasta que la vacíes.",
+  moveNoRoom:
+    "A tu Google Drive le caben {other} y a esta mudanza le faltan {name} más. Libera espacio en Drive, o consigue más, y vuelve.",
   moveResumes: "Si se corta, sigue donde quedó. No se cambia de lugar hasta tenerlo todo.",
   moveKeepsDrive: "En tu Google Drive no se borra nada: queda ahí hasta que tú lo quites.",
   moveOthersFollow:

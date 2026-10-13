@@ -767,6 +767,8 @@ export interface MovePlan {
   fromCloud: boolean;
   toCloud: boolean;
   others: number;
+  free: number | null;
+  short: number;
 }
 export type Moving =
   | {

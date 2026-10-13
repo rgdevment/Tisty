@@ -132,6 +132,10 @@ pub trait Carrier: Send + std::marker::Sync {
     fn wipe(&self) -> Result<usize, Trouble> {
         Ok(0)
     }
+    /// Bytes the place can still take, where it says; a folder's disk is never asked.
+    fn room(&self) -> Option<u64> {
+        None
+    }
     /// Who else writes here, as far as this machine has read the place.
     fn others(&self, here: &Here) -> Vec<String> {
         self.place()

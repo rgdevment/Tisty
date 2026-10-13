@@ -46,6 +46,9 @@ pub struct Plan {
     to_cloud: bool,
     /// Machines still writing in the place left: only those that confirmed this one follow its word.
     others: usize,
+    /// What the cloud can still take, where it says, and how much of the upload would not fit.
+    free: Option<u64>,
+    short: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -175,12 +178,20 @@ pub async fn move_plan(session: tauri::State<'_, Mutex<Session>>, toward: Toward
             (_, Some(_)) => down,
             _ => tisty_carrier::Owed::default(),
         };
+        let up = Weight {
+            files: up.files + also.files,
+            bytes: up.bytes + also.bytes,
+        };
+        let free = ends
+            .to
+            .as_deref()
+            .filter(|to| to.frees_space() && up.files > 0)
+            .and_then(|to| to.room());
         Plan {
             down: down.into(),
-            up: Weight {
-                files: up.files + also.files,
-                bytes: up.bytes + also.bytes,
-            },
+            up,
+            free,
+            short: free.map_or(0, |free| up.bytes.saturating_sub(free)),
             from_cloud: ends.from.as_ref().is_some_and(|from| from.frees_space()),
             to_cloud: ends.to.as_ref().is_some_and(|to| to.frees_space()),
             others: ends

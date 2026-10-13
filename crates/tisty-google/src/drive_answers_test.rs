@@ -352,3 +352,25 @@ fn a_long_upload_cut_short_goes_on_next_round_from_where_google_kept_it() {
         "a finished upload is still written down"
     );
 }
+
+#[test]
+fn the_room_left_is_the_ceiling_less_what_is_used_and_no_ceiling_is_no_limit() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said(
+            "200 OK",
+            r#"{"storageQuota":{"limit":"16106127360","usage":"16000000000"}}"#,
+        ),
+        said("200 OK", r#"{"storageQuota":{"usage":"5"}}"#),
+    ]);
+    let drive = drive(at, home.path());
+
+    assert_eq!(drive.room(), Ok(Some(106_127_360)));
+    assert_eq!(drive.room(), Ok(None));
+    assert!(
+        asked.join().unwrap()[0]
+            .line
+            .contains("fields=storageQuota"),
+        "the room was not asked of the quota"
+    );
+}

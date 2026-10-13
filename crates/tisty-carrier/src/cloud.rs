@@ -569,6 +569,20 @@ impl Carrier for Cloud {
         tisty_sync::others_in(&self.fresh(), &here.device)
     }
 
+    fn room(&self) -> Option<u64> {
+        match self.remote.room() {
+            Ok(room) => room,
+            Err(hitch) => {
+                tisty_core::witness::note(
+                    tisty_core::witness::channel::CLOUD,
+                    "how much the cloud can still take could not be asked",
+                    &[("why", tisty_core::witness::Fact::Why(format!("{hitch:?}")))],
+                );
+                None
+            }
+        }
+    }
+
     fn signed(&self) -> Signed {
         tisty_sync::signed_here(&self.looked_again())
     }
