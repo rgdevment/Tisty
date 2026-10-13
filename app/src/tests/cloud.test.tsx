@@ -114,6 +114,10 @@ describe("what the cloud's state says", () => {
     expect(of("deferred-limit")?.said).toBe("stateWait");
     expect(of("deferred-busy")?.said).toBe("stateWait");
     expect(of("cloudNotNow")?.said).toBe("stateWait");
+    expect(of("deferred-troubled")?.said).toBe("stateTroubled");
+    expect(of("deferred-unsent")?.said).toBe("stateUnsent");
+    expect(of("cloudSpent")?.said).toBe("stateBudget");
+    expect(of("syncStuckDoc")?.said).toBe("stateFailed");
     expect(of("ok")).toBeNull();
     expect(of("deferred-paused")).toBeNull();
   });
@@ -296,6 +300,14 @@ describe("the cloud when things change under it", () => {
     const said = cloudStanding(status({ last: round("syncBroke", { name: "boom" }) }));
     expect(said?.said).toBe("stateFailed");
     expect(said?.told).toBe(fill("syncBroke", "boom"));
+  });
+
+  it("says the hour a spent day turns here rather than tomorrow", () => {
+    const day = 86_400;
+    const last = round("deferred-budget", { at: 10 * day + 5 });
+    const said = cloudStanding(status({ last }), 10 * day + 100);
+    expect(said?.told).toMatch(/(today|tomorrow) at \d/);
+    expect(said?.told).not.toMatch(/\{name\}/);
   });
 
   it("forgets yesterday's limit once the day has turned", () => {

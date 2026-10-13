@@ -801,10 +801,11 @@ export interface Settled {
   unprojected: boolean;
   joined: string[];
   deferred?: Waiting | null;
+  refused?: { code: string; name?: string | null } | null;
 }
 
 export type Waiting = {
-  reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused";
+  reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused" | "troubled" | "unsent";
   left: number;
   names: string[];
 };
@@ -823,6 +824,8 @@ const WAITS = {
   limit: "deferredLimit",
   offline: "deferredOffline",
   paused: "deferredPaused",
+  troubled: "deferredTroubled",
+  unsent: "deferredUnsent",
 } as const;
 
 // A round left for later is no error, and a busy or changed one retries by itself, so only these are said.

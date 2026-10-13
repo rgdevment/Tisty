@@ -1006,6 +1006,12 @@ const en = {
   cloudNotOffered:
     "This copy syncs with Google Drive, and this build of Tisty was made without access to it. Install Tisty from rgdevment.com or the Microsoft Store; nothing was changed.",
   cloudDenied: "Google was not given access, so nothing was connected.",
+  cloudNoAnswer:
+    "The browser never came back from Google, so nothing was connected. Try again when you are ready.",
+  cloudBinned:
+    "The Tisty folder in {name} is in the bin. Take it out of the bin and sync again; nothing here was changed.",
+  cloudSpent:
+    "{name} reached what Tisty may ask of it today, so nothing was done. It can be done again {other}.",
   changeUnbacked:
     "Tisty could not keep a copy of your tasks and documents before changing how they sync, so nothing was changed.",
   movedAway:
@@ -1013,7 +1019,15 @@ const en = {
   movedAlone:
     "Your other machines stopped syncing here. This copy stopped too, so nothing goes on alone; choose again how it syncs in Settings.",
   deferredBudget:
-    "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on tomorrow.",
+    "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on {name}.",
+  budgetResetsToday: "today at {name}",
+  budgetResetsTomorrow: "tomorrow at {name}",
+  deferredTroubled:
+    "Google is having trouble on its side. What you write stays safe here, and Tisty tries again on the next sync.",
+  deferredUnsent:
+    "Some attachments could not go up and stay safe on this machine: one may be open in another program, changed since it was attached, or too big for the cloud.",
+  deferredBusy: "Tisty was already talking to your cloud. It carries on in a moment.",
+  deferredChanged: "Your cloud changed meanwhile. What is left goes on the next step.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
   deferredPaused: "The cloud is paused. Your changes stay on this machine until it goes on.",
   deferredLeft: "{name} left for later: {other}.",
@@ -1039,6 +1053,12 @@ const en = {
     "{name} is locked here and another machine carries a different text, so nothing was written over it. Unlock it to decide which version stays.",
   syncUnreadable: "What came back does not read: {name}",
   syncBroke: "The copy could not be finished: {name}",
+  syncFailed:
+    "The sync could not be finished. Tisty tries again on the next one, and the log says what happened.",
+  syncStuckDoc:
+    "«{name}» could not go up to the cloud, so what comes after it waits. Tisty tries again on the next sync; the log says why.",
+  syncStuckHistory:
+    "Part of your history ({name}) could not go up to the cloud, so what comes after it waits. Tisty tries again on the next sync; the log says why.",
   notAllowed:
     "This machine was removed from the shared folder, so it no longer writes to it. It brought what is there; to write again it has to join, and joining resets what it holds.",
   bothChanged:
@@ -1241,7 +1261,7 @@ const en = {
     "Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space or get more.",
   stateFullDo: "See storage",
   stateBudget: "Your cloud reached today's limit",
-  stateBudgetWhy: "What you write stays here and syncing carries on tomorrow.",
+  stateBudgetWhy: "What you write stays here and syncing carries on {name}.",
   stateWait: "Google asked to wait a little",
   stateWaitWhy: "What's left goes in the next sync. There's nothing to do.",
   stateOff: "The cloud is off on this computer",
@@ -1250,6 +1270,11 @@ const en = {
   stateHalted: "The cloud is paused for now",
   stateHaltedWhy: "Tisty paused it on every computer for a while. What you write stays here.",
   stateFailed: "Your cloud's last sync didn't go through",
+  stateTroubled: "Google is having trouble",
+  stateTroubledWhy: "Tisty will try again by itself. What you write stays here meanwhile.",
+  stateUnsent: "Some attachments could not go up",
+  stateUnsentWhy:
+    "They stay safe on this computer. One may be open in another program, changed since it was attached, or too big for the cloud.",
   cloudStop: "Stop using the cloud",
   cloudToday: "Cloud use today",
   cloudTodayUnits: "{name} of {other} requests",
@@ -2839,6 +2864,12 @@ const es: Catalog = {
   cloudNotOffered:
     "Esta copia sincroniza con Google Drive, y esta versión de Tisty se hizo sin acceso a él. Instala Tisty desde rgdevment.com o la Microsoft Store; no se cambió nada.",
   cloudDenied: "No se le dio acceso a Google, así que no se conectó nada.",
+  cloudNoAnswer:
+    "El navegador nunca volvió de Google, así que no se conectó nada. Vuelve a intentarlo cuando quieras.",
+  cloudBinned:
+    "La carpeta Tisty de {name} está en la papelera. Sácala de la papelera y vuelve a sincronizar; aquí no se cambió nada.",
+  cloudSpent:
+    "{name} llegó a lo que Tisty puede pedirle hoy, así que no se hizo nada. Se puede volver a hacer {other}.",
   changeUnbacked:
     "Tisty no pudo guardar una copia de tus tareas y documentos antes de cambiar cómo se sincronizan, así que no se cambió nada.",
   movedAway:
@@ -2846,7 +2877,15 @@ const es: Catalog = {
   movedAlone:
     "Tus otros equipos dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; vuelve a elegir cómo sincroniza en Ajustes.",
   deferredBudget:
-    "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue mañana.",
+    "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue {name}.",
+  budgetResetsToday: "hoy a las {name}",
+  budgetResetsTomorrow: "mañana a las {name}",
+  deferredTroubled:
+    "Google tiene problemas de su lado. Lo que escribas queda guardado aquí y Tisty vuelve a intentarlo en la próxima sincronización.",
+  deferredUnsent:
+    "Algunos adjuntos no se pudieron subir y siguen a salvo en este equipo: puede que estén abiertos en otro programa, que hayan cambiado desde que los adjuntaste o que sean demasiado grandes para la nube.",
+  deferredBusy: "Tisty ya estaba hablando con tu nube. Sigue en un momento.",
+  deferredChanged: "Tu nube cambió mientras tanto. Lo que falta va en el próximo paso.",
   deferredLimit: "Tu nube pidió esperar un momento. Lo que falta va en la próxima sincronización.",
   deferredPaused: "La nube está en pausa. Tus cambios quedan en este equipo hasta que siga.",
   deferredLeft: "Quedan {name} para después: {other}.",
@@ -2872,6 +2911,12 @@ const es: Catalog = {
     "{name} está bloqueado aquí y otra máquina trae un texto distinto, así que no se escribió nada encima. Desbloquéalo para decidir qué versión queda.",
   syncUnreadable: "Lo que llegó no se puede leer: {name}",
   syncBroke: "No se pudo terminar la copia: {name}",
+  syncFailed:
+    "No se pudo terminar la sincronización. Tisty vuelve a intentarlo en la próxima, y el registro dice qué pasó.",
+  syncStuckDoc:
+    "«{name}» no se pudo subir a la nube, así que lo que viene después espera. Tisty vuelve a intentarlo en la próxima sincronización; el registro dice por qué.",
+  syncStuckHistory:
+    "Una parte de tu historial ({name}) no se pudo subir a la nube, así que lo que viene después espera. Tisty vuelve a intentarlo en la próxima sincronización; el registro dice por qué.",
   notAllowed:
     "Esta máquina fue removida de la carpeta compartida, así que ya no escribe en ella. Trajo lo que había; para volver a escribir tiene que unirse, y unirse reinicia lo que guarda.",
   bothChanged:
@@ -3075,7 +3120,7 @@ const es: Catalog = {
     "Tisty sube primero tus tareas; lo demás, incluido lo que envían tus otros equipos, espera hasta que liberes espacio o consigas más.",
   stateFullDo: "Ver espacio",
   stateBudget: "Tu nube llegó a su límite de hoy",
-  stateBudgetWhy: "Lo que escribas queda aquí y la sincronización sigue mañana.",
+  stateBudgetWhy: "Lo que escribas queda aquí y la sincronización sigue {name}.",
   stateWait: "Google pidió esperar un poco",
   stateWaitWhy: "Lo que falta va en la próxima sincronización. No hace falta hacer nada.",
   stateOff: "La nube está apagada en este equipo",
@@ -3084,6 +3129,11 @@ const es: Catalog = {
   stateHalted: "La nube está en pausa por ahora",
   stateHaltedWhy: "Tisty la pausó en todos los equipos por un tiempo. Lo que escribas queda aquí.",
   stateFailed: "La última sincronización con tu nube no se completó",
+  stateTroubled: "Google tiene problemas",
+  stateTroubledWhy: "Tisty vuelve a intentarlo solo. Mientras tanto, lo que escribas queda aquí.",
+  stateUnsent: "Algunos adjuntos no se pudieron subir",
+  stateUnsentWhy:
+    "Siguen a salvo en este equipo. Puede que estén abiertos en otro programa, que hayan cambiado desde que los adjuntaste o que sean demasiado grandes para la nube.",
   cloudStop: "Dejar de usar la nube",
   cloudToday: "Uso de hoy en la nube",
   cloudTodayUnits: "{name} de {other} pedidos",
