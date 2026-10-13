@@ -320,7 +320,14 @@ fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_rea
     fake.refusing(&doc_name(), Hitch::Changed(doc_name()));
     let mut saying = |_| {};
 
-    let shifted = crate::shift(None, Some(&*one.carrier), &one.here, &[], &mut saying).unwrap();
+    let shifted = crate::shift(
+        None,
+        Some(&*one.carrier),
+        &one.here,
+        &[DOC.to_string()],
+        &mut saying,
+    )
+    .unwrap();
 
     assert!(
         matches!(shifted, crate::Shift::Filling { .. }),
