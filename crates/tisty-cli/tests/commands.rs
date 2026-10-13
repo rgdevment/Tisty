@@ -2974,3 +2974,112 @@ fn the_cloud_is_never_left_from_the_command_line() {
     }
     assert_eq!(std::fs::read(&file).unwrap(), before);
 }
+
+#[test]
+fn the_doctor_tells_the_cloud_from_this_disk_alone() {
+    let cli = Cli::new();
+    syncing_with_the_cloud(&cli);
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let home = paths.cloud_home("google", "0123");
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::write(home.join("paused-here"), b"").unwrap();
+    std::fs::write(home.join("cloud-policy.json"), r#"{"serial":3}"#).unwrap();
+
+    let out = cli.ok(&["doctor"]);
+
+    assert!(out.contains("Google Drive · ana@example.com"), "{out}");
+    assert!(out.contains("never read yet"), "{out}");
+    assert!(out.contains("by its own switch"), "{out}");
+    assert!(out.contains("number 3"), "{out}");
+}
+
+#[test]
+fn the_doctor_says_when_the_place_left_behind_is_still_owed_its_word() {
+    let cli = Cli::new();
+    cli.ok(&["a task so the settings exist"]);
+    let cache = cli.home.path().join("cache");
+    std::fs::create_dir_all(&cache).unwrap();
+    std::fs::write(cache.join(tisty_core::moved::OWED), "{}").unwrap();
+
+    let out = cli.ok(&["doctor"]);
+
+    assert!(out.contains("still has to be told"), "{out}");
+}
+
+fn word_from_another_machine(cli: &Cli, to: &str) -> String {
+    let key = tisty_core::signing::SigningKey::from_bytes(&[9; 32]);
+    let other = tisty_core::DeviceId("dev_otro".into());
+    tisty_core::vouched::confirm(
+        &cli.home.path().join("data"),
+        &other,
+        &tisty_core::signing::shown(&key),
+    );
+    tisty_core::moved::said(&key, &other, to, 1_760_000_000)
+}
+
+#[test]
+fn the_doctor_tells_a_cloud_already_read_what_waits_a_pause_from_afar_and_who_left() {
+    let cli = Cli::new();
+    syncing_with_the_cloud(&cli);
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let home = paths.cloud_home("google", "0123");
+    std::fs::create_dir_all(home.join("tree")).unwrap();
+    std::fs::write(
+        home.join("index.json"),
+        r#"{"cursor":"5","confirmed":true,"tree":{},"shelf":{}}"#,
+    )
+    .unwrap();
+    std::fs::write(home.join("forgotten"), "dev_a-0001\ndev_a-0002\n").unwrap();
+    std::fs::write(
+        home.join(tisty_carrier::OWED_BACK),
+        r#"[{"owed":"unbinned","id":"A"}]"#,
+    )
+    .unwrap();
+    let until = tisty_carrier::policy::now() + 3600;
+    std::fs::write(
+        home.join("cloud-policy.json"),
+        format!(r#"{{"serial":4,"halted_until":{until}}}"#),
+    )
+    .unwrap();
+    let word = word_from_another_machine(&cli, "cloud:otra@example.com");
+    std::fs::write(home.join("tree").join(tisty_core::moved::NAMED), word).unwrap();
+
+    let out = cli.ok(&["doctor"]);
+
+    assert!(out.contains("0 files mirrored"), "{out}");
+    assert!(out.contains("2 to delete there"), "{out}");
+    assert!(out.contains("1 to put back"), "{out}");
+    assert!(out.contains("from afar until"), "{out}");
+    assert!(out.contains("Google Drive · otra@example.com"), "{out}");
+}
+
+#[test]
+fn the_doctor_names_who_left_a_folder_and_who_stopped_syncing_there() {
+    let cli = Cli::new();
+    cli.ok(&["a task so the settings exist"]);
+    let shared = tempfile::tempdir().unwrap();
+    cli.ok(&[
+        "config",
+        "set",
+        "remote",
+        &shared.path().display().to_string(),
+    ]);
+
+    std::fs::write(
+        shared.path().join(tisty_core::moved::NAMED),
+        word_from_another_machine(&cli, "folder:elsewhere"),
+    )
+    .unwrap();
+    let moved = cli.ok(&["doctor"]);
+    std::fs::write(
+        shared.path().join(tisty_core::moved::NAMED),
+        word_from_another_machine(&cli, "alone"),
+    )
+    .unwrap();
+    let stopped = cli.ok(&["doctor"]);
+
+    assert!(moved.contains("left this place (elsewhere)"), "{moved}");
+    assert!(stopped.contains("stopped syncing here"), "{stopped}");
+}

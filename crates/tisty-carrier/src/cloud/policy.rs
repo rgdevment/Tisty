@@ -82,7 +82,7 @@ pub fn applied(mut limits: Limits, policy: Option<&Policy>) -> Limits {
     limits
 }
 
-fn within(shipped: u64, said: Option<u64>) -> u64 {
+pub(super) fn within(shipped: u64, said: Option<u64>) -> u64 {
     said.map_or(shipped, |said| {
         said.min(shipped.saturating_mul(RAISED_AT_MOST))
     })
