@@ -1,17 +1,19 @@
-import { goesOnAt } from "../format";
 import { t } from "../locales";
 import { dismissMove, type Run, useMove } from "../relocation";
-import { doneSaid } from "./RelocatingSteps";
+import { alongSaid, doneSaid, pauseSaid, useTicking, waitingSaid } from "./RelocatingSteps";
 
 const said = (run: Run): string => {
   if (run.failed) return t("moveStopped");
-  if (run.going) return t("moveMoving");
-  if (run.pausedUntil !== undefined) return goesOnAt(run.pausedUntil);
+  if (run.going) return alongSaid(run) ?? t("moveMoving");
+  const paused = pauseSaid(run);
+  if (paused) return paused;
+  if (run.result?.state === "waiting") return waitingSaid(run.result);
   return run.result?.state === "done" ? doneSaid(run.toward) : t("moveWaiting");
 };
 
 export default function MoveNotice({ onOpen }: { onOpen: () => void }) {
   const run = useMove();
+  useTicking(run?.pausedUntil !== undefined);
   if (!run || run.watched) return null;
   const done = run.result?.state === "done" && !run.going;
   // What becomes of the copies in a cloud left behind is asked only in the move's last step.

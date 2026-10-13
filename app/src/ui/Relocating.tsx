@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
-import { useComing } from "../coming";
 import {
   type Carrying,
   cloudForget,
@@ -34,7 +33,6 @@ const firstStep = (heading?: Heading, resume?: Toward): Step =>
 
 export default function Relocating({ state, heading, resume, onClose }: Props) {
   const now = useMove();
-  const along = useComing();
   const [chosen, setStep] = useState<Step>(now ? "plan" : firstStep(heading, resume));
   const [toward, setToward] = useState<Toward | undefined>(now?.toward ?? resume);
   const [plan, setPlan] = useState<MovePlan>();
@@ -96,7 +94,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const move = () => {
     if (!toward || busy) return;
     setTrouble(undefined);
-    startMove(toward);
+    startMove(toward, state.mode);
   };
 
   const drop = () => {
@@ -175,9 +173,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
         />
       )}
 
-      {step === "moving" && (
-        <Underway along={along ?? undefined} pausedUntil={now?.pausedUntil} onHide={close} />
-      )}
+      {step === "moving" && now && <Underway run={now} onHide={close} />}
 
       {step === "waiting" && result?.state === "waiting" && (
         <Waiting result={result} busy={busy} onDrop={drop} onLater={close} onAgain={move} />

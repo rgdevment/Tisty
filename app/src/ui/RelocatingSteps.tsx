@@ -1,21 +1,9 @@
-import type { Stage } from "../coming";
+import { useEffect, useState } from "react";
 import type { Carrying, MovePlan, Moving, Toward } from "../core";
 import { goesOnAt, weigh } from "../format";
-import { fill, t } from "../locales";
+import { fill, t, type Word } from "../locales";
+import type { Run, Waited } from "../relocation";
 import { waitSaid } from "../syncSaid";
-
-export interface Along {
-  stage: Stage;
-  done: number;
-  whole: number;
-}
-
-const STAGE = {
-  log: "comingLog",
-  papers: "comingPapers",
-  attachments: "comingAttachments",
-  uploading: "comingUploading",
-} as const;
 
 const WAITS = {
   budget: "deferredBudget",
@@ -28,6 +16,78 @@ const WAITS = {
   unsent: "deferredUnsent",
   unsettled: "moveUnsettled",
 } as const;
+
+const offlineNow = () => typeof navigator !== "undefined" && navigator.onLine === false;
+
+// A line Google cut, or a fault it answered with, is no lost connection while this computer is online.
+const plainWait = (waited: Waited): Word =>
+  waited === "limit"
+    ? "moveLimit"
+    : waited === "offline" && offlineNow()
+      ? "moveOffline"
+      : "moveTroubled";
+
+export const useTicking = (on: boolean) => {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!on) return;
+    const ticking = setInterval(() => tick((was) => was + 1), 1_000);
+    return () => clearInterval(ticking);
+  }, [on]);
+};
+
+export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
+  if (run.pausedUntil === undefined) return undefined;
+  if (run.waited === "offline" || run.waited === "troubled") {
+    const left = Math.max(0, Math.ceil((run.pausedUntil - now) / 1000));
+    return `${t(plainWait(run.waited))} · ${fill("moveRetryIn", String(left))}`;
+  }
+  return goesOnAt(run.pausedUntil);
+};
+
+export const alongSaid = (run: Run): string | undefined => {
+  const along = run.along;
+  if (!along) return undefined;
+  const two = run.from !== undefined && run.from !== "alone" && run.toward.kind !== "alone";
+  const step = two ? `${fill("moveStep", String(along.step), "2")} · ` : "";
+  if (along.step === 1) {
+    if (!along.bringing) return `${step}${t("moveChecking")}`;
+    const from = t(run.from === "cloud" ? "moveBringingCloud" : "moveBringingFolder");
+    const { done, whole } = along.bringing;
+    return `${step}${from} · ${fill("comingOf", String(done), String(whole))}`;
+  }
+  const where = t(run.toward.kind === "cloud" ? "moveUploading" : "moveCopying");
+  if (along.done === 0 && along.sent === 0) return `${step}${where} · ${t("movePreparing")}`;
+  const files = fill("moveFiles", String(along.done), String(along.whole));
+  return along.weighs > 0
+    ? `${step}${where} · ${fill("comingOf", weigh(along.sent), weigh(along.weighs))} · ${files}`
+    : `${step}${where} · ${files}`;
+};
+
+const shareOf = (run: Run): number => {
+  const along = run.along;
+  const part = (done: number, whole: number) => (whole > 0 ? done / whole : 0);
+  if (along?.step === 2)
+    return along.weighs > 0 ? part(along.sent, along.weighs) : part(along.done, along.whole);
+  if (along?.bringing) return part(along.bringing.done, along.bringing.whole);
+  return 0.1;
+};
+
+type Waits = Extract<Moving, { state: "waiting" }>;
+
+const waitWhy = (result: Waits): string => {
+  if (result.reason === "offline") return t(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy");
+  if (result.reason === "troubled") return t("moveTroubledWhy");
+  return result.reason && result.reason in WAITS
+    ? waitSaid(WAITS[result.reason as keyof typeof WAITS])
+    : t("moveStuck");
+};
+
+/** A waiting move said in a line, never a bare "waiting". */
+export const waitingSaid = (result: Waits): string =>
+  result.reason === "offline" || result.reason === "troubled" || result.reason === "limit"
+    ? `${t("moveWaiting")} · ${t(plainWait(result.reason))}`
+    : `${t("moveWaiting")} · ${waitWhy(result)}`;
 
 const row =
   "flex w-full items-center gap-2.5 rounded-[10px] border border-line px-3 py-2 text-left hover:bg-hover disabled:opacity-50";
@@ -171,28 +231,17 @@ export function Plan({
   );
 }
 
-export function Underway({
-  along,
-  pausedUntil,
-  onHide,
-}: {
-  along?: Along;
-  pausedUntil?: number;
-  onHide: () => void;
-}) {
-  const share = along?.whole ? Math.min(100, Math.round((along.done / along.whole) * 100)) : 10;
+export function Underway({ run, onHide }: { run: Run; onHide: () => void }) {
+  useTicking(run.pausedUntil !== undefined);
+  const share = Math.min(100, Math.round(shareOf(run) * 100));
+  const paused = pauseSaid(run);
+  const along = alongSaid(run);
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       <p className="text-[13px] font-semibold">{t("moveMoving")}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveMovingWhy")}</p>
-      {pausedUntil !== undefined && (
-        <p className="text-[11.5px] text-faint tabular-nums">{goesOnAt(pausedUntil)}</p>
-      )}
-      {along && pausedUntil === undefined && (
-        <p className="text-[11.5px] text-faint tabular-nums">
-          {t(STAGE[along.stage])} · {fill("comingOf", String(along.done), String(along.whole))}
-        </p>
-      )}
+      {paused && <p className="text-[11.5px] text-faint tabular-nums">{paused}</p>}
+      {along && <p className="text-[11.5px] text-faint tabular-nums">{along}</p>}
       <span aria-hidden="true" className="block h-1 overflow-hidden rounded-full bg-line">
         <span
           className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
@@ -219,10 +268,7 @@ export function Waiting({
   onLater: () => void;
   onAgain: () => void;
 }) {
-  const why =
-    result.reason && result.reason in WAITS
-      ? waitSaid(WAITS[result.reason as keyof typeof WAITS])
-      : t("moveStuck");
+  const why = waitWhy(result);
   return (
     <div className="flex flex-col gap-3">
       <div className={box}>
@@ -232,6 +278,7 @@ export function Waiting({
           (result.left.files === 1
             ? fill("moveLeftOne", "1", weigh(result.left.bytes))
             : fill("moveLeft", String(result.left.files), weigh(result.left.bytes)))}
+        <span className="mt-1 block">{t("moveAgainWhy")}</span>
       </div>
       <div className="flex items-center gap-4">
         <button type="button" onClick={onDrop} className={quiet}>
