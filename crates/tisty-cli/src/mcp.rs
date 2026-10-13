@@ -18,7 +18,7 @@ use papers::paging::page_doc;
 use papers::reading::{export_doc, outline_doc, read_doc};
 use papers::writing::{append_doc, restore_doc, write_doc};
 
-use asked::{only_what_it_takes, short_and_plain, text};
+use asked::{only_what_it_takes, short_and_plain, text, without_nulls};
 
 use attaching::attach;
 use catalogue::{instructions, tools};
@@ -161,7 +161,7 @@ enum Refused {
 
 fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
     let name = params.get("name").and_then(Value::as_str).unwrap_or("");
-    let args = params.get("arguments").cloned().unwrap_or(json!({}));
+    let args = without_nulls(name, params.get("arguments").cloned().unwrap_or(json!({})));
     only_what_it_takes(name, &args)?;
     short_and_plain(&args)?;
 

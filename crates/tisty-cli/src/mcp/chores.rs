@@ -21,6 +21,11 @@ use super::{
 /// conversation it has to send again each time, not the writing.
 pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(many) = args.get("tasks") else {
+        if text(args, "title").is_none() {
+            return Err(Refused::Tool(
+                "send a `title` for one task, or `tasks` for several.".into(),
+            ));
+        }
         return proposed(paths, args);
     };
     let Some(many) = many.as_array() else {
@@ -29,6 +34,14 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .into(),
         ));
     };
+    if let Some(beside) = args
+        .as_object()
+        .and_then(|all| all.keys().find(|key| *key != "tasks"))
+    {
+        return Err(Refused::Tool(format!(
+            "with `tasks`, every field goes inside each task, so `{beside}` beside them would be              lost. Nothing was written."
+        )));
+    }
     if many.is_empty() {
         return Err(Refused::Tool(
             "`tasks` came empty, so nothing was written.".into(),
