@@ -10,7 +10,7 @@ use tisty_sync::{
 
 use super::index::Index;
 use super::judge::{Judged, judge};
-use super::mirror::resembles;
+use super::mirror::{self, resembles};
 use crate::{Deferred, Elsewhere, Expect, Hitch, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
@@ -21,6 +21,8 @@ pub struct Shelf<'a> {
     paused: Option<Deferred>,
     sent: usize,
     fetching: bool,
+    tree: Option<&'a Path>,
+    early: usize,
 }
 
 struct Local {
@@ -39,7 +41,30 @@ impl<'a> Shelf<'a> {
             paused: None,
             sent: 0,
             fetching: false,
+            tree: None,
+            early: 0,
         }
+    }
+
+    pub fn history_first(mut self, tree: &'a Path) -> Self {
+        self.tree = Some(tree);
+        self
+    }
+
+    pub fn early(&self) -> usize {
+        self.early
+    }
+
+    fn history_sent(&mut self) -> Option<Hitch> {
+        let tree = self.tree.take()?;
+        let (pushed, hitch) = mirror::push(self.remote, tree, self.index);
+        self.early += pushed.put;
+        hitch.filter(|hitch| {
+            !matches!(
+                hitch,
+                Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
+            )
+        })
     }
 
     pub fn fetching_all(remote: &'a dyn Remote, index: &'a mut Index) -> Self {
@@ -235,6 +260,15 @@ impl Attachments for Shelf<'_> {
                 continue;
             }
             if !self.owed(one, &round) {
+                continue;
+            }
+            if let Some(hitch) = self.history_sent() {
+                let remaining = all[at..]
+                    .iter()
+                    .filter(|rest| self.owed(rest, &round))
+                    .map(|rest| rest.reference.clone())
+                    .collect();
+                self.refuse(hitch, &one.reference, remaining)?;
                 continue;
             }
             let (sha256, _) = match attach::hashed(&one.at) {
@@ -530,3 +564,7 @@ pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting)
     }
     done
 }
+
+#[cfg(test)]
+#[path = "shelf_test.rs"]
+mod tests;
