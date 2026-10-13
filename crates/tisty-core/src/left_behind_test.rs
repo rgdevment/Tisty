@@ -29,6 +29,14 @@ fn a_folder_left_for_the_cloud_says_where_its_copies_went_in_both_languages_and_
     assert!(note.contains("Google Drive (ana@example.com)"), "{note}");
     assert!(note.contains("elige esta carpeta"), "{note}");
     assert!(note.contains("choose this folder"), "{note}");
+    assert!(
+        note.contains("Configuración › Tus datos"),
+        "the note names a place the app does not: {note}"
+    );
+    assert!(
+        note.contains("Settings › Your data"),
+        "the note names a place the app does not: {note}"
+    );
     assert!(note.contains("2025-10-0"), "the date is missing: {note}");
 }
 
