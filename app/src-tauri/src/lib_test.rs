@@ -1142,7 +1142,7 @@ fn a_refusal_the_window_showed_says_what_it_was_about() {
     note_trouble("noSuchDoc".into(), None);
     note_trouble("comprar pan".into(), Some("ycqcwz50-0008".into()));
     note_trouble("cloudElsewhere".into(), Some("someone@example.com".into()));
-    note_trouble("archivedList".into(), Some("Compras del mes".into()));
+    note_trouble("noSuchList".into(), Some("Compras del mes".into()));
 
     let seen = tisty_core::witness::recent(&paths, 50);
     let shown: Vec<&String> = seen
