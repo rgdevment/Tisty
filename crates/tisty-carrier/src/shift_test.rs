@@ -788,3 +788,42 @@ fn leaving_a_cloud_whose_store_was_deleted_up_there_is_ready_and_loses_nothing_h
         );
     }
 }
+
+#[test]
+fn a_cloud_left_after_its_store_was_deleted_up_there_takes_everything_when_chosen_again() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        let kept = one.attached(PHOTO);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+        let room = setting.room.path().join("new");
+        std::fs::create_dir_all(&room).unwrap();
+        let folder = Folder::at(room);
+        assert_eq!(
+            step(&one, Some(&*one.carrier), Some(&folder)),
+            Shift::Ready,
+            "{who}"
+        );
+        let sent_before = fake.uploaded().len();
+
+        let back = step(&one, Some(&folder), Some(&*one.carrier));
+
+        assert_eq!(
+            back,
+            Shift::Ready,
+            "{who}: the cloud left behind was still taken for emptied"
+        );
+        let sent: Vec<String> = fake.uploaded()[sent_before..].to_vec();
+        assert!(sent.contains(&kept.at), "{who}: {sent:?}");
+        assert!(sent.contains(&format!("docs/{DOC}.md")), "{who}: {sent:?}");
+        assert!(
+            one.carrier.holds_a_store(),
+            "{who}: the store never went up again"
+        );
+        assert!(crate::filling(&*one.carrier, &one.here).nothing(), "{who}");
+    }
+}

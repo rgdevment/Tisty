@@ -105,12 +105,8 @@ impl Cloud {
     }
 
     // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.
-    fn started_over(&self) -> Result<(), Trouble> {
-        tisty_core::witness::note(
-            tisty_core::witness::channel::CLOUD,
-            "the cloud's index was of an older layout, so the mirror starts over",
-            &[],
-        );
+    fn started_over(&self, why: &'static str) -> Result<(), Trouble> {
+        tisty_core::witness::note(tisty_core::witness::channel::CLOUD, why, &[]);
         let broke = |e: std::io::Error| Trouble::Broke(e.to_string());
         index::forget(&self.home).map_err(broke)?;
         match std::fs::remove_dir_all(self.tree()) {
@@ -166,8 +162,12 @@ impl Cloud {
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
         let emptied = self.home.join(EMPTIED);
-        if (again && emptied.exists()) || index::outdated(&self.home) {
-            self.started_over()?;
+        if index::outdated(&self.home) {
+            self.started_over(
+                "the cloud's index was of an older layout, so the mirror starts over",
+            )?;
+        } else if again && emptied.exists() {
+            self.started_over("everything is sent again to a store deleted up there")?;
         }
         let tree = self.tree();
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
@@ -180,17 +180,22 @@ impl Cloud {
         let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes);
         // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.
         if self.still_emptied(&pulled, &index) && (turn.homes || here.is_some()) {
-            let _ = index.save(&self.home);
             return match turn.homes {
-                true => Ok(Done {
-                    value: None,
-                    deferred: None,
-                    stopped: None,
-                    uploaded: 0,
-                }),
-                false => Err(Trouble::CloudEmptied {
-                    provider: self.remote.limits().provider.to_string(),
-                }),
+                true => {
+                    self.left_emptied(&mut index)?;
+                    Ok(Done {
+                        value: None,
+                        deferred: None,
+                        stopped: None,
+                        uploaded: 0,
+                    })
+                }
+                false => {
+                    let _ = index.save(&self.home);
+                    Err(Trouble::CloudEmptied {
+                        provider: self.remote.limits().provider.to_string(),
+                    })
+                }
             };
         }
         let held_back = match pulled {
@@ -296,6 +301,20 @@ impl Cloud {
             _ => {}
         }
         !stands && emptied.exists()
+    }
+
+    // Leaving takes the deletion as read, so coming back later is a first round; the cursor and what vanished stay, so nothing is owed from up there.
+    fn left_emptied(&self, index: &mut Index) -> Result<(), Trouble> {
+        self.started_over(
+            "a store deleted up there is left, so coming back starts the mirror over",
+        )?;
+        let read = Index {
+            cursor: index.cursor.take(),
+            vanished: std::mem::take(&mut index.vanished),
+            ..Index::default()
+        };
+        read.save(&self.home)
+            .map_err(|e| Trouble::Broke(e.to_string()))
     }
 
     // The wait a provider asked for outlives this round, so the window's own pace does not ask again before it.
