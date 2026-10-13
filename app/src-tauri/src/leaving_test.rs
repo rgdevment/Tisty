@@ -613,3 +613,56 @@ fn a_cloud_lost_for_good_is_left_for_this_machine_alone_without_telling_it() {
         "a word was owed to a cloud nobody can reach"
     );
 }
+
+#[test]
+fn a_word_owed_to_a_cloud_nobody_can_reach_again_is_dropped_and_frees_its_account() {
+    let room = tempfile::tempdir().unwrap();
+    let one = machine(room.path(), "one");
+    let folder = Sync::folder(room.path().join("unplugged"));
+    owe(&one.paths, &ana(), "me fui");
+    owe(&one.paths, &folder, "para la carpeta");
+
+    let _ = owing(&one.paths, &one.reach, None);
+
+    assert!(
+        !owed_to(&one.paths, "0123"),
+        "a lost cloud kept its word forever"
+    );
+    assert_eq!(owed_all(&one.paths).len(), 1);
+}
+
+#[test]
+fn a_word_dropped_for_one_account_keeps_every_other() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = paths_in(room.path());
+    let other = Sync::cloud(CloudAt {
+        provider: "google".into(),
+        account: "9999".into(),
+        email: "otra@example.com".into(),
+    });
+    owe(&paths, &ana(), "me fui");
+    owe(&paths, &other, "y de esta también");
+
+    owed_no_more_to(&paths, "0123");
+
+    assert!(!owed_to(&paths, "0123"));
+    assert!(owed_to(&paths, "9999"));
+}
+
+#[test]
+fn words_owed_from_many_threads_at_once_are_all_kept() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = paths_in(room.path());
+    let places: Vec<Sync> = (0..16)
+        .map(|at| Sync::folder(room.path().join(format!("lugar-{at}"))))
+        .collect();
+
+    std::thread::scope(|scope| {
+        for place in &places {
+            let paths = &paths;
+            scope.spawn(move || owe(paths, place, "me fui"));
+        }
+    });
+
+    assert_eq!(owed_all(&paths).len(), places.len());
+}

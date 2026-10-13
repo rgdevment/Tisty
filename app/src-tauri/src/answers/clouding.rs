@@ -157,11 +157,17 @@ pub async fn cloud_forget(
     account: Option<String>,
 ) -> Answer<()> {
     let account = whose(&session, account)?;
-    let paths = held(&session).paths.clone();
-    if crate::leaving::owed_to(&paths, &account) {
-        return Err(Refusal::of("forgetUntold"));
-    }
+    let (paths, home) = {
+        let session = held(&session);
+        (session.paths.clone(), home_for(&session.reach, &account))
+    };
     tauri::async_runtime::spawn_blocking(move || {
+        if crate::leaving::owed_to(&paths, &account) {
+            if !lost_for_good_at(&home, &account) {
+                return Err(Refusal::of("forgetUntold"));
+            }
+            crate::leaving::owed_no_more_to(&paths, &account);
+        }
         forgotten(&account)?;
         let_go_held(&app, &account);
         Ok(())
@@ -234,6 +240,36 @@ fn let_go_held(app: &tauri::AppHandle, account: &str) {
     }
 }
 
+/// Only a keychain that answers it holds nothing counts: one that cannot be read now may answer later.
+fn access_gone(account: &str) -> bool {
+    matches!(
+        secrets_for(account).and_then(|kept| kept.read(KEPT_AS)),
+        Ok(None)
+    )
+}
+
+fn home_for(reach: &crate::reaching::Reaching, account: &str) -> std::path::PathBuf {
+    reach.home_of(&CloudAt {
+        provider: GOOGLE.to_string(),
+        account: account.to_string(),
+        email: String::new(),
+    })
+}
+
+/// Read off this disk and the keychain alone, so it can be asked of the chosen cloud or one left behind.
+pub(crate) fn lost_for_good_at(home: &std::path::Path, account: &str) -> bool {
+    let last = tisty_carrier::standing(home).last;
+    lost_for_good(
+        crate::reaching::offered(),
+        access_gone(account),
+        last.as_ref().map(|one| one.code.as_str()),
+    )
+}
+
+pub(crate) fn lost_for_good(offered: bool, gone: bool, last: Option<&str>) -> bool {
+    !offered || gone || last == Some("cloudLost")
+}
+
 pub(crate) fn has_access(account: &str) -> Answer<()> {
     let kept = secrets_for(account)
         .and_then(|kept| kept.read(KEPT_AS))
@@ -294,11 +330,7 @@ pub async fn cloud_status(
     tauri::async_runtime::spawn_blocking(move || {
         let joined = tisty_carrier::cloud_joined(&home, &here);
         let mut status = status_of(&at, &home, joined);
-        status.lost = super::relocating::lost_for_good(
-            crate::reaching::offered(),
-            has_access(&at.account).is_ok(),
-            status.last.as_ref().map(|one| one.code.as_str()),
-        );
+        status.lost = lost_for_good_at(&home, &at.account);
         Some(status)
     })
     .await

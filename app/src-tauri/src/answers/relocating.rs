@@ -425,20 +425,10 @@ fn lost_cloud(session: &Session) -> Answer<CloudAt> {
     let at = tisty_carrier::cloud_of(session.config.sync.as_ref())
         .cloned()
         .ok_or_else(|| Refusal::of("noRemote"))?;
-    let last = tisty_carrier::standing(&session.reach.home_of(&at)).last;
-    let lost = lost_for_good(
-        crate::reaching::offered(),
-        super::clouding::has_access(&at.account).is_ok(),
-        last.as_ref().map(|one| one.code.as_str()),
-    );
-    match lost {
+    match super::clouding::lost_for_good_at(&session.reach.home_of(&at), &at.account) {
         true => Ok(at),
         false => Err(Refusal::of("cloudNotLost")),
     }
-}
-
-pub(crate) fn lost_for_good(offered: bool, access: bool, last: Option<&str>) -> bool {
-    !offered || !access || last == Some("cloudLost")
 }
 
 /// What would stay only in Drive, read off this disk, so the person knows before letting it go.

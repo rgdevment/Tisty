@@ -13,7 +13,7 @@ use tisty_core::moved::OWED;
 
 const TOLD_AGAIN: std::time::Duration = std::time::Duration::from_secs(15 * 60);
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 struct Owed {
     way: Sync,
     said: String,
@@ -106,8 +106,10 @@ pub fn word_for(
 }
 
 pub fn owed_to(paths: &Paths, account: &str) -> bool {
-    owed_all(paths).iter().any(|owed| {
-        tisty_carrier::cloud_of(Some(&owed.way)).is_some_and(|at| at.account == account)
+    changing(paths, |all| {
+        all.iter().any(|owed| {
+            tisty_carrier::cloud_of(Some(&owed.way)).is_some_and(|at| at.account == account)
+        })
     })
 }
 
@@ -115,8 +117,24 @@ fn owed_at(paths: &Paths) -> PathBuf {
     paths.private().join(OWED)
 }
 
+static OWING: Mutex<()> = Mutex::new(());
+
+// The timer, a round and a change of way all rewrite this list, so one at a time or a word goes missing.
+fn changing<T>(paths: &Paths, change: impl FnOnce(&mut Vec<Owed>) -> T) -> T {
+    let _one = OWING
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let (mut all, older) = owed_read(paths);
+    let before = serde_json::to_vec(&all).ok();
+    let done = change(&mut all);
+    if older || serde_json::to_vec(&all).ok() != before {
+        owed_kept(paths, &all);
+    }
+    done
+}
+
 // Kept in the cache by the builds before, where a restore or a reset wipes it: read there once and carried over.
-fn owed_all(paths: &Paths) -> Vec<Owed> {
+fn owed_read(paths: &Paths) -> (Vec<Owed>, bool) {
     let read = |at: &Path| {
         let bytes = std::fs::read(at).ok()?;
         Some(
@@ -126,13 +144,17 @@ fn owed_all(paths: &Paths) -> Vec<Owed> {
         )
     };
     if let Some(all) = read(&owed_at(paths)) {
-        return all;
+        return (all, false);
     }
-    let Some(all) = read(&paths.cache().join(OWED)) else {
-        return Vec::new();
-    };
-    owed_kept(paths, &all);
-    all
+    match read(&paths.cache().join(OWED)) {
+        Some(all) => (all, true),
+        None => (Vec::new(), false),
+    }
+}
+
+#[cfg(test)]
+fn owed_all(paths: &Paths) -> Vec<Owed> {
+    changing(paths, |all| all.clone())
 }
 
 fn owed_kept(paths: &Paths, all: &[Owed]) {
@@ -162,32 +184,35 @@ fn owed_kept(paths: &Paths, all: &[Owed]) {
 }
 
 pub fn owe(paths: &Paths, left: &Sync, said: &str) {
-    let mut all = owed_all(paths);
-    all.retain(|owed| !same_place(&owed.way, left));
-    all.push(Owed {
-        way: left.clone(),
-        said: said.to_string(),
+    changing(paths, |all| {
+        all.retain(|owed| !same_place(&owed.way, left));
+        all.push(Owed {
+            way: left.clone(),
+            said: said.to_string(),
+        });
     });
-    owed_kept(paths, &all);
 }
 
 // Only the word that landed goes: one written meanwhile for the same place is still owed.
 fn landed(paths: &Paths, left: &Sync, said: &str) {
-    let mut all = owed_all(paths);
-    let before = all.len();
-    all.retain(|owed| !(same_place(&owed.way, left) && owed.said == said));
-    if all.len() != before {
-        owed_kept(paths, &all);
-    }
+    changing(paths, |all| {
+        all.retain(|owed| !(same_place(&owed.way, left) && owed.said == said));
+    });
 }
 
 pub fn owed_no_more(paths: &Paths, chosen: &Sync) {
-    let mut all = owed_all(paths);
-    let before = all.len();
-    all.retain(|owed| !same_place(&owed.way, chosen));
-    if all.len() != before {
-        owed_kept(paths, &all);
-    }
+    changing(paths, |all| {
+        all.retain(|owed| !same_place(&owed.way, chosen))
+    });
+}
+
+/// A cloud nobody can reach again is owed nothing, or its word would hold its access and copies forever.
+pub fn owed_no_more_to(paths: &Paths, account: &str) {
+    changing(paths, |all| {
+        all.retain(|owed| {
+            tisty_carrier::cloud_of(Some(&owed.way)).is_none_or(|at| at.account != account)
+        });
+    });
 }
 
 pub struct Owing {
@@ -199,15 +224,19 @@ pub struct Owing {
 }
 
 pub fn owing(paths: &Paths, reach: &Reaching, now: Option<&Sync>) -> Vec<Owing> {
-    let mut all = owed_all(paths);
-    let before = all.len();
-    all.retain(|owed| {
-        owed.way.leaving() != tisty_core::config::Leaving::Free
-            && !now.is_some_and(|now| same_place(&owed.way, now))
+    let lost = |way: &Sync| {
+        tisty_carrier::cloud_of(Some(way)).is_some_and(|at| {
+            crate::answers::clouding::lost_for_good_at(&reach.home_of(at), &at.account)
+        })
+    };
+    let all = changing(paths, |all| {
+        all.retain(|owed| {
+            owed.way.leaving() != tisty_core::config::Leaving::Free
+                && !now.is_some_and(|now| same_place(&owed.way, now))
+                && !lost(&owed.way)
+        });
+        all.clone()
     });
-    if all.len() != before {
-        owed_kept(paths, &all);
-    }
     let heading_back = crate::answers::relocating::pending_cloud(paths);
     all.into_iter()
         .filter_map(|owed| {

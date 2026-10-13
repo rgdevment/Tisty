@@ -131,3 +131,27 @@ fn the_status_of_a_cloud_says_the_account_the_day_s_spend_the_switch_and_the_las
         Some("cloudFull".to_string())
     );
 }
+
+#[test]
+fn a_cloud_is_lost_for_good_only_when_this_build_can_never_reach_it_again() {
+    assert!(
+        lost_for_good(false, false, None),
+        "a build made without Google"
+    );
+    assert!(lost_for_good(true, true, None), "an access let go of");
+    assert!(
+        lost_for_good(true, false, Some("cloudLost")),
+        "an access withdrawn"
+    );
+    assert!(!lost_for_good(true, false, Some("cloudFull")));
+    assert!(!lost_for_good(true, false, Some("deferred-offline")));
+    assert!(!lost_for_good(true, false, None));
+}
+
+#[test]
+fn a_keychain_that_holds_no_token_is_an_access_gone() {
+    let home = tempfile::tempdir().unwrap();
+
+    assert!(access_gone("sin-token"));
+    assert!(lost_for_good_at(home.path(), "sin-token"));
+}
