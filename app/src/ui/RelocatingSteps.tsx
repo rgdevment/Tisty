@@ -328,7 +328,7 @@ export function Done({
           <span aria-hidden="true" className="block h-1 overflow-hidden rounded-full bg-line">
             <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
           </span>
-          <p role="status" className="text-[12px] text-soft">
+          <p role="status" className="text-[12.5px] text-soft">
             {t("moveWiping")}
           </p>
         </div>

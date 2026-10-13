@@ -89,6 +89,7 @@ const KNOWN = [
   "moveToUnreachable",
   "wipeChosen",
   "wipeNotHome",
+  "wipeStopped",
   "forgetUntold",
   "cloudNotLost",
   "backupCloudOff",
