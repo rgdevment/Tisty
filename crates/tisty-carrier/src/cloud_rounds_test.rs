@@ -184,3 +184,78 @@ fn bringing_home_takes_only_what_the_log_answers_for() {
         );
     }
 }
+
+#[test]
+fn a_wait_the_provider_asked_for_is_kept_by_the_next_rounds_without_asking_it_again() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.wrote("lo de uno");
+        fake.fail_next(Hitch::Limited {
+            wait: Duration::from_secs(600),
+        });
+        assert_eq!(
+            one.round(Way::Both).deferred.map(|one| one.reason),
+            Some(Reason::Limit),
+            "{who}"
+        );
+        fake.forget_counts();
+
+        let again = one.round(Way::Both);
+        let polled = one.carrier.stirring();
+
+        let deferred = again.deferred.expect(who);
+        assert_eq!(deferred.reason, Reason::Limit, "{who}");
+        assert!(deferred.retry_after.is_some(), "{who}");
+        assert_eq!(polled, 0, "{who}");
+        assert_eq!(
+            fake.counts().requests,
+            0,
+            "{who}: the provider was asked again before its wait"
+        );
+        waited_out(&setting, "dev_a");
+        assert_eq!(one.round(Way::Both).deferred, None, "{who}");
+    }
+}
+
+#[test]
+fn what_the_person_asks_for_on_a_spent_day_says_it_is_today_s_budget() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nlo primero\n");
+        one.round(Way::Both);
+        spent_today(&setting, "dev_a", fake.limits().units_a_day);
+
+        let refused = one.carrier.both_papers(&one.here, DOC);
+
+        assert!(
+            matches!(refused, Err(Trouble::CloudSpent { .. })),
+            "{who}: {refused:?}"
+        );
+    }
+}
+
+#[test]
+fn a_forgetting_written_aside_while_its_list_was_held_is_still_forgotten() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, _) = pair(&setting);
+        one.filed(DOC, "# Plan\n\nuno\n");
+        one.round(Way::Both);
+        std::fs::remove_file(one.here.data.join("docs").join(format!("{DOC}.md"))).unwrap();
+        let home = home_of(&setting, "dev_a");
+        let aside = home.join(format!(
+            "{}9-9{}",
+            super::super::FORGOTTEN_ASIDE,
+            super::super::ASIDE_LIST
+        ));
+        std::fs::write(&aside, format!("{DOC}\n")).unwrap();
+
+        one.round(Way::Both);
+
+        assert_eq!(remote.about(&doc_name()).unwrap(), None, "{who}");
+        assert!(!aside.exists(), "{who}: read and kept");
+    }
+}

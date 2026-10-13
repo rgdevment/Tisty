@@ -20,6 +20,7 @@ mod judge;
 pub(crate) mod lock;
 mod mirror;
 pub mod policy;
+mod resting;
 mod shelf;
 pub mod standing;
 
@@ -31,6 +32,8 @@ use shelf::{Letting, Shelf};
 const TREE: &str = "tree";
 const FORGOTTEN: &str = "forgotten";
 const FORGETTING: &str = "forgotten.working";
+const FORGOTTEN_ASIDE: &str = "forgotten.aside.";
+const ASIDE_LIST: &str = ".list";
 const PATIENCE: Duration = Duration::from_secs(5);
 const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
@@ -98,6 +101,9 @@ impl Cloud {
         turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
+        if let Some(left) = resting::left(&self.home) {
+            return Ok(Done::deferred(Reason::Limit, Some(left)));
+        }
         let taken = match turn.waits {
             true => lock::Round::wait_for(&self.home, PATIENCE),
             false => lock::Round::take(&self.home),
@@ -120,7 +126,11 @@ impl Cloud {
             Err(hitch) => {
                 let _ = index.save(&self.home);
                 return match judge(hitch, self.remote.limits().provider) {
-                    Judged::Pause(reason, wait) => Ok(Done::deferred(reason, wait)),
+                    Judged::Pause(reason, wait) => {
+                        let deferred = Done::deferred(reason, wait);
+                        self.heeded(deferred.deferred.as_ref());
+                        Ok(deferred)
+                    }
                     Judged::Stop(trouble) => Err(trouble),
                 };
             }
@@ -191,12 +201,24 @@ impl Cloud {
         if let Err(why) = index.save(&self.home) {
             stopped = stopped.or(Some(Trouble::Broke(why.to_string())));
         }
+        self.heeded(deferred.as_ref());
         Ok(Done {
             value: Some(value),
             deferred,
             stopped,
             uploaded: pushed.put,
         })
+    }
+
+    // The wait a provider asked for outlives this round, so the window's own pace does not ask again before it.
+    fn heeded(&self, deferred: Option<&Deferred>) {
+        match deferred
+            .filter(|one| one.reason == Reason::Limit)
+            .and_then(|one| one.retry_after)
+        {
+            Some(wait) => resting::rest(&self.home, wait),
+            None => resting::rested(&self.home),
+        }
     }
 
     fn only<T>(
@@ -207,9 +229,12 @@ impl Cloud {
         let done = self.with_mirror(here, ASKED, |tree, index, remote| {
             Ok((work(tree, index, remote)?, None))
         })?;
-        match done.value {
-            Some(value) => Ok(value),
-            None => Err(Trouble::NotNow(unavailable(done.deferred))),
+        match (done.value, done.deferred) {
+            (Some(value), _) => Ok(value),
+            (None, Some(spent)) if spent.reason == Reason::Budget => Err(Trouble::CloudSpent {
+                provider: self.remote.limits().provider.to_string(),
+            }),
+            (None, deferred) => Err(Trouble::NotNow(unavailable(deferred))),
         }
     }
 
@@ -276,6 +301,9 @@ impl Cloud {
         if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
+        if resting::left(&self.home).is_some() {
+            return stir.mark;
+        }
         stir.asked_ms = now;
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
@@ -286,7 +314,10 @@ impl Cloud {
                 poll
             }
             Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
-            Err(crate::Hitch::Limited { wait }) => wait.max(poll),
+            Err(crate::Hitch::Limited { wait }) => {
+                resting::rest(&self.home, wait);
+                wait.max(poll)
+            }
             Err(_) => every.max(poll),
         };
         stir.every_ms = u64::try_from(next.as_millis()).unwrap_or(u64::MAX);
@@ -323,6 +354,15 @@ impl Cloud {
                 tisty_sync::forget_paper(tree, id);
             }
             let _ = std::fs::remove_file(&working);
+        }
+        for aside in asked_aside(&self.home) {
+            let Ok(text) = std::fs::read_to_string(&aside) else {
+                continue;
+            };
+            for id in text.lines().filter(|line| !line.is_empty()) {
+                tisty_sync::forget_paper(tree, id);
+            }
+            let _ = std::fs::remove_file(&aside);
         }
     }
 }
@@ -709,7 +749,16 @@ pub fn forgotten_later(home: &Path, id: &str) -> bool {
     {
         return false;
     }
-    let _writing = lock::Held::wait_for(home, lock::FORGETTING, ASKED_WAITED_OUT);
+    let Ok(Some(_writing)) = lock::Held::wait_for(home, lock::FORGETTING, ASKED_WAITED_OUT) else {
+        // Never appended unheld, where a round taking the list could read it before the line lands.
+        let aside = format!(
+            "{FORGOTTEN_ASIDE}{}-{}{ASIDE_LIST}",
+            std::process::id(),
+            now_ms()
+        );
+        return tisty_core::store::write_atomic(&home.join(aside), format!("{id}\n").as_bytes())
+            .is_ok();
+    };
     let asked = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -718,6 +767,20 @@ pub fn forgotten_later(home: &Path, id: &str) -> bool {
         Ok(mut list) => writeln!(list, "{id}").is_ok(),
         Err(_) => false,
     }
+}
+
+fn asked_aside(home: &Path) -> Vec<PathBuf> {
+    let Ok(all) = std::fs::read_dir(home) else {
+        return Vec::new();
+    };
+    all.filter_map(|one| one.ok())
+        .filter(|one| {
+            one.file_name().to_str().is_some_and(|named| {
+                named.starts_with(FORGOTTEN_ASIDE) && named.ends_with(ASIDE_LIST)
+            })
+        })
+        .map(|one| one.path())
+        .collect()
 }
 
 fn now_ms() -> u64 {
