@@ -11,6 +11,7 @@ import {
 import { daysFrom, stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { endMove, useMove } from "../relocation";
 import type { Run, Which, Word } from "./Card";
 import Clouded from "./Clouded";
 import Here from "./Here";
@@ -33,6 +34,7 @@ interface Props {
 
 function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward) => void }) {
   const [pending, setPending] = useState<Toward | null>(null);
+  const running = useMove();
 
   useEffect(() => {
     if (!state) return;
@@ -41,7 +43,7 @@ function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward)
       .catch(() => setPending(null));
   }, [state]);
 
-  if (!pending) return null;
+  if (!pending || running) return null;
   const where =
     pending.kind === "cloud"
       ? `Google Drive · ${pending.email}`
@@ -56,11 +58,12 @@ function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward)
       <span className="min-w-0 flex-1 text-[12.5px] text-ink">{fill("movePending", where)}</span>
       <button
         type="button"
-        onClick={() =>
+        onClick={() => {
+          endMove();
           void moveDropped()
             .then(() => setPending(null))
-            .catch(() => undefined)
-        }
+            .catch(() => undefined);
+        }}
         className={mild}
       >
         {t("moveDrop")}

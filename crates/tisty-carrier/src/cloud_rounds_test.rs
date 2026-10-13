@@ -334,3 +334,170 @@ fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_rea
         "a document left behind was hidden by an attachment that can never go: {shifted:?}"
     );
 }
+
+#[test]
+fn an_index_of_an_older_layout_starts_the_mirror_over_into_the_new_space() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let one = desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nantes\n");
+    one.wrote("de la rc.1");
+    one.round(Way::Both);
+    let home = home_of(&setting, "dev_a");
+    let mut old: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
+    old.as_object_mut().unwrap().remove("layout");
+    std::fs::write(home.join("index.json"), old.to_string()).unwrap();
+    let stale = home.join("tree").join("stale.md");
+    std::fs::write(&stale, "de la carpeta vieja").unwrap();
+    let space = Arc::new(Fake::drive());
+    let anew = Desk {
+        here: one.here.clone(),
+        carrier: Arc::new(Cloud::over(space.clone(), home.clone())),
+    };
+
+    let done = anew.round(Way::Both);
+
+    assert!(done.refused.is_none(), "{done:?}");
+    assert!(!stale.exists(), "the old mirror was kept");
+    assert!(
+        space.about(&doc_name()).unwrap().is_some(),
+        "the new space was taken for already in step: {:?}",
+        space.uploaded()
+    );
+    let now: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
+    assert_eq!(
+        now["layout"],
+        serde_json::json!(crate::cloud::index::LAYOUT)
+    );
+}
+
+#[test]
+fn a_store_deleted_whole_up_there_is_said_so_and_sending_it_all_again_writes_it_back() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.wrote("algo");
+        one.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+
+        let stopped = one.carry(Way::Both, Holds::Everywhere);
+
+        assert!(
+            matches!(stopped, Err(Trouble::CloudEmptied { .. })),
+            "{who}: {stopped:?}"
+        );
+        assert_eq!(one.titles(), ["algo"], "{who}: something here changed");
+        let again = one.carry(Way::Again, Holds::Everywhere);
+        assert!(again.is_ok(), "{who}: {again:?}");
+        assert!(
+            fake.about(&doc_name()).unwrap().is_some(),
+            "{who}: sending it all again left the cloud empty"
+        );
+    }
+}
+
+fn emptied_up_there(one: &Desk, fake: &Fake) {
+    one.filed(DOC, "# Plan\n\nlo escrito\n");
+    one.wrote("algo");
+    one.round(Way::Both);
+    for there in fake.list("").unwrap() {
+        fake.delete(&there.name, None).unwrap();
+    }
+    assert!(matches!(
+        one.carry(Way::Both, Holds::Everywhere),
+        Err(Trouble::CloudEmptied { .. })
+    ));
+}
+
+#[test]
+fn sending_it_all_again_turned_away_by_a_busy_round_is_not_carried_out_by_a_later_look() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        emptied_up_there(&one, &fake);
+        let round = crate::cloud::lock::Round::take(&home_of(&setting, "dev_a"))
+            .unwrap()
+            .unwrap();
+        let busy = one.round(Way::Again);
+        assert_eq!(
+            busy.deferred.map(|one| one.reason),
+            Some(Reason::Busy),
+            "{who}"
+        );
+        drop(round);
+
+        one.carrier.kin(&one.here);
+
+        assert!(
+            matches!(
+                one.carry(Way::Both, Holds::Everywhere),
+                Err(Trouble::CloudEmptied { .. })
+            ),
+            "{who}: the mirror started over though nobody asked again"
+        );
+    }
+}
+
+#[test]
+fn sending_it_all_again_put_off_by_the_provider_s_wait_is_not_carried_out_by_a_later_ask() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        emptied_up_there(&one, &fake);
+        crate::cloud::resting::rest(&home_of(&setting, "dev_a"), Duration::from_secs(60));
+        let resting = one.round(Way::Again);
+        assert_eq!(
+            resting.deferred.map(|one| one.reason),
+            Some(Reason::Limit),
+            "{who}"
+        );
+        waited_out(&setting, "dev_a");
+
+        let _ = one.carrier.stitch(&one.here, one.key());
+
+        assert!(
+            matches!(
+                one.carry(Way::Both, Holds::Everywhere),
+                Err(Trouble::CloudEmptied { .. })
+            ),
+            "{who}: the mirror started over though nobody asked again"
+        );
+    }
+}
+
+#[test]
+fn a_store_written_back_up_there_by_another_machine_keeps_a_later_send_again_from_starting_over() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("algo");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+        assert!(one.carry(Way::Both, Holds::Everywhere).is_err(), "{who}");
+        assert!(two.carry(Way::Both, Holds::Everywhere).is_err(), "{who}");
+        two.round(Way::Again);
+        one.round(Way::Both);
+        assert!(
+            !home_of(&setting, "dev_a")
+                .join(crate::cloud::EMPTIED)
+                .exists(),
+            "{who}: the store came back and the mark of its deletion stayed"
+        );
+        fake.forget_counts();
+
+        one.round(Way::Again);
+
+        assert_eq!(
+            fake.counts().fetches,
+            0,
+            "{who}: sending it all again started the mirror over"
+        );
+    }
+}

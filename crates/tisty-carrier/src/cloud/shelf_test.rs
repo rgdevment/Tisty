@@ -12,12 +12,14 @@ fn a_full_drive_while_the_history_goes_first_is_told_as_full() {
         let mut index = Index::default();
         fake.fail_next(Hitch::Full);
         let mut shelf = Shelf::over(remote, &mut index).history_first(room.path(), remote);
+        let mut quiet = |_| {};
+        let mut pace = Pace::new(None, &mut quiet);
 
-        let hitch = shelf.history_sent();
+        let hitch = shelf.history_sent(&mut pace);
 
         assert!(matches!(hitch, Some(Hitch::Full)), "{who}: {hitch:?}");
         assert!(
-            shelf.history_sent().is_none(),
+            shelf.history_sent(&mut pace).is_none(),
             "{who}: the history goes ahead only once"
         );
     }
@@ -35,7 +37,13 @@ fn a_passing_hitch_on_the_history_ahead_is_left_to_the_round_s_own_push() {
         let mut index = Index::default();
         fake.fail_next(Hitch::Broke("a moment".into()));
         let mut shelf = Shelf::over(remote, &mut index).history_first(room.path(), remote);
+        let mut quiet = |_| {};
 
-        assert!(shelf.history_sent().is_none(), "{who}");
+        assert!(
+            shelf
+                .history_sent(&mut Pace::new(None, &mut quiet))
+                .is_none(),
+            "{who}"
+        );
     }
 }

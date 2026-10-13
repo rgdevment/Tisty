@@ -16,6 +16,7 @@ pub mod herald;
 pub mod holes;
 pub mod keepers;
 pub mod lately;
+pub mod left_behind;
 pub mod machine;
 mod masked;
 pub mod merge;

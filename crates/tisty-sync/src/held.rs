@@ -349,14 +349,14 @@ pub(crate) fn copy_held(
     }
     // Said once a round: one line per file, every round, buried everything else the log had to say.
     if retired_there > 0 {
-        witness::note(
+        witness::standing(
             channel::SYNC,
             "retired attachments were left where they were instead of coming back",
             &[("count", Fact::Count(retired_there))],
         );
     }
     if left > 0 {
-        witness::note(
+        witness::standing(
             channel::SYNC,
             "this folder's history does not account for its documents, so files nothing names were left up there",
             &[("left", Fact::Count(left))],

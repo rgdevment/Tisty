@@ -1560,3 +1560,43 @@ fn bytes_let_go_here_and_attached_again_under_another_name_come_back_where_the_l
         "the ledger grew a second line"
     );
 }
+
+#[test]
+fn an_attachment_carried_into_another_store_keeps_its_one_stamp_instead_of_adding_a_second() {
+    let (_src, file) = dropped("x.png", b"a picture brought by a parcel");
+    let first = tempfile::tempdir().unwrap();
+    let kept = keep(&file, first.path(), COPIED_UP_TO).unwrap();
+    let stamp = kept.sha256[2..10].to_string();
+
+    let second = tempfile::tempdir().unwrap();
+    let again = keep(&first.path().join(&kept.at), second.path(), COPIED_UP_TO).unwrap();
+
+    assert!(
+        again.at.ends_with(&format!("/x-{stamp}.png")),
+        "{}",
+        again.at
+    );
+}
+
+#[test]
+fn a_name_that_already_repeats_the_stamp_is_given_it_once() {
+    let source = Path::new("x-c471259d-c471259d-c471259d.png");
+
+    assert_eq!(named(source, "c471259d", ".png"), "x-c471259d.png");
+    assert_eq!(
+        named(Path::new("x-c471259d0123abcd.png"), "c471259d", ".png"),
+        "x-c471259d.png"
+    );
+    assert_eq!(
+        named(source, "c471259d0123abcd", ".png"),
+        "x-c471259d0123abcd.png"
+    );
+}
+
+#[test]
+fn a_hex_word_that_is_not_the_stamp_stays_in_the_name() {
+    assert_eq!(
+        named(Path::new("build-deadbeef.png"), "c471259d", ".png"),
+        "build-deadbeef-c471259d.png"
+    );
+}

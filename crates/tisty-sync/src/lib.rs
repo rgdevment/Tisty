@@ -60,15 +60,16 @@ pub enum Trouble {
     CloudFull {
         provider: String,
     },
+    /// The store up there was deleted whole, outside Tisty; sending it all again writes it back.
+    CloudEmptied {
+        provider: String,
+    },
     CloudLost {
         provider: String,
     },
     CloudElsewhere {
         provider: String,
         found: String,
-    },
-    CloudBinned {
-        provider: String,
     },
     /// Today's budget for the cloud is spent, so what was asked by hand waits for the next day.
     CloudSpent {
@@ -210,6 +211,8 @@ pub enum Stage {
     Log,
     Papers,
     Attachments,
+    /// What goes up to a cloud, file by file, so a long push is never a silent one.
+    Uploading,
 }
 
 pub fn carry_holding(
@@ -393,6 +396,7 @@ pub fn carry_through(
             avowed: &told.kept,
             again,
             holds,
+            saying: &mut *saying,
         })?;
         moved.sent += given.sent;
         (moved.freed, moved.let_go) = (given.freed, given.let_go);

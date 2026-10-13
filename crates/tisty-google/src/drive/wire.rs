@@ -1,8 +1,10 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use reqwest::blocking::{Client as Http, RequestBuilder, Response};
+use reqwest::Method;
+use reqwest::blocking::{Client as Http, Request, RequestBuilder, Response};
 use serde::Deserialize;
 use tisty_carrier::Hitch;
+use tisty_core::witness::{self, Fact, channel};
 
 use super::Drive;
 use crate::{WAITED_UNTOLD, told, waited};
@@ -49,9 +51,22 @@ impl Drive {
             if let Some(patience) = patience {
                 asked = asked.timeout(patience);
             }
-            let answer = asked
-                .send()
+            let asked = asked
+                .build()
                 .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+            let shown = witness::keeping_all().then(|| {
+                let sent = asked
+                    .body()
+                    .and_then(|body| body.as_bytes())
+                    .map_or(0, |body| body.len() as u64);
+                (asked.method().clone(), kind_of(&asked), sent)
+            });
+            let began = Instant::now();
+            let answer = self.http.execute(asked);
+            if let Some((verb, kind, sent)) = &shown {
+                traced(verb, kind, answer.as_ref().ok(), began, *sent);
+            }
+            let answer = answer.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
             if answer.status().as_u16() == 401 && !renewed {
                 self.tokens.spoiled(&access);
                 renewed = true;
@@ -59,6 +74,81 @@ impl Drive {
             }
             return judged(answer);
         }
+    }
+}
+
+/// One line for each ask at the finest trail: never where it went, what it named or who asked.
+pub(super) fn traced(
+    verb: &Method,
+    kind: &'static str,
+    answer: Option<&Response>,
+    began: Instant,
+    sent: u64,
+) {
+    if !witness::keeping_all() {
+        return;
+    }
+    witness::trace(
+        channel::CLOUD,
+        "Google Drive was asked",
+        &[
+            ("verb", Fact::Word(verb_of(verb))),
+            ("kind", Fact::Word(kind)),
+            (
+                "status",
+                answer.map_or(Fact::Word("none"), |one| {
+                    Fact::Count(one.status().as_u16().into())
+                }),
+            ),
+            (
+                "ms",
+                Fact::Count(usize::try_from(began.elapsed().as_millis()).unwrap_or(usize::MAX)),
+            ),
+            ("sent", Fact::Bytes(sent)),
+            (
+                "received",
+                Fact::Bytes(answer.and_then(Response::content_length).unwrap_or(0)),
+            ),
+        ],
+    );
+}
+
+fn verb_of(verb: &Method) -> &'static str {
+    match *verb {
+        Method::GET => "GET",
+        Method::POST => "POST",
+        Method::PUT => "PUT",
+        Method::PATCH => "PATCH",
+        Method::DELETE => "DELETE",
+        _ => "OTHER",
+    }
+}
+
+pub(super) fn kind_of(asked: &Request) -> &'static str {
+    let url = asked.url();
+    let path = url.path();
+    let wanted = |key: &str| {
+        url.query_pairs()
+            .find(|(one, _)| one == key)
+            .map(|(_, value)| value.into_owned())
+    };
+    let upload = wanted("uploadType");
+    match (asked.method(), path) {
+        (_, _) if upload.as_deref() == Some("resumable") => "upload-open",
+        (_, _) if upload.is_some() => "upload",
+        (&Method::DELETE, _) => "delete",
+        (_, path) if path.ends_with("/about") => "about",
+        (_, path) if path.contains("/changes") => "changes",
+        (_, path) if path.contains("/revisions") && wanted("alt").is_some() => "revision-download",
+        (_, path) if path.contains("/revisions") => "revisions",
+        (&Method::PATCH, _) => "edit",
+        (&Method::POST, _) => "folder",
+        (_, _) if wanted("alt").is_some() => "download",
+        (_, path) if path.ends_with("/files") => match wanted("q") {
+            Some(q) if q.contains("name =") => "search",
+            _ => "list",
+        },
+        _ => "get",
     }
 }
 
@@ -111,10 +201,18 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
         | (429, _) => Hitch::Limited {
             wait: wait.unwrap_or(WAITED_UNTOLD),
         },
-        (403, "insufficientPermissions") => Hitch::Lost,
+        // A grant from before Tisty kept to its own space cannot read it, and only signing in again mends that.
+        (403, "insufficientPermissions" | "insufficientScopes") => Hitch::Lost,
+        (403, _)
+            if message
+                .to_ascii_lowercase()
+                .contains("application data folder") =>
+        {
+            Hitch::Lost
+        }
         // Signing in again does not hand Tisty a file another app or person holds, so it stops and says so.
         (403, "appNotAuthorizedToFile" | "insufficientFilePermissions") => Hitch::Broke(format!(
-            "Google Drive holds a file in the Tisty folder that Tisty may not change: {message}"
+            "Google Drive holds a file in Tisty's space that Tisty may not change: {message}"
         )),
         (403, "domainPolicy") => Hitch::Broke(
             "the administrators of this Google account turned off apps like Tisty in Drive".into(),

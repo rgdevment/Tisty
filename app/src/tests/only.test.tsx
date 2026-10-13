@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { List } from "../core";
+import { t } from "../locales";
+import { SliceBar } from "../ui/Bars";
 import Only, { said } from "../ui/Only";
 import { A_COLUMN, asView } from "../views";
 
@@ -135,5 +137,56 @@ describe("the filter reaching the store", () => {
       lists: ["01A", "01B"],
       most: A_COLUMN,
     });
+  });
+});
+
+describe("the slice pills with some lists picked", () => {
+  const counts = {
+    tasks: 34,
+    upcoming: 27,
+    repeating: 1,
+    all: 61,
+    "tasks@01A": 3,
+    "tasks@01C": 2,
+    "upcoming@01A": 4,
+    "upcoming@01C": 0,
+    "repeating@01A": 0,
+    "repeating@01C": 0,
+    "all@01A": 9,
+    "all@01C": 5,
+  };
+
+  const pill = (word: string) => screen.getByRole("button", { name: new RegExp(`^${word}`) });
+
+  it("count only what the picked lists hold", () => {
+    render(
+      <SliceBar
+        chosen={{ named: "tasks", slice: "today", lists: ["01A", "01C"] }}
+        counts={counts}
+        lists={lists}
+        setChosen={vi.fn()}
+        setSelected={vi.fn()}
+      />,
+    );
+
+    expect(pill(t("today")).textContent).toBe(`${t("today")}5`);
+    expect(pill(t("upcoming")).textContent).toBe(`${t("upcoming")}4`);
+    expect(pill(t("repeating")).textContent).toBe(t("repeating"));
+    expect(pill(t("sliceAll")).textContent).toBe(`${t("sliceAll")}14`);
+  });
+
+  it("count everything when no list is picked", () => {
+    render(
+      <SliceBar
+        chosen={{ named: "tasks", slice: "today" }}
+        counts={counts}
+        lists={lists}
+        setChosen={vi.fn()}
+        setSelected={vi.fn()}
+      />,
+    );
+
+    expect(pill(t("today")).textContent).toBe(`${t("today")}34`);
+    expect(pill(t("sliceAll")).textContent).toBe(`${t("sliceAll")}61`);
   });
 });

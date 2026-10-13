@@ -325,3 +325,30 @@ fn the_same_warning_over_and_over_is_written_once() {
     let seen = recent(&paths, 20);
     assert_eq!(seen.len(), 2, "{seen:?}");
 }
+
+#[test]
+fn a_standing_note_found_every_round_is_written_again_only_when_it_changes() {
+    let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    keeps(file(&paths), false);
+
+    for _ in 0..5 {
+        standing(
+            channel::SYNC,
+            "files nothing names were left up there",
+            &[("left", Fact::Count(14))],
+        );
+    }
+    standing(
+        channel::SYNC,
+        "files nothing names were left up there",
+        &[("left", Fact::Count(15))],
+    );
+    note(channel::SYNC, "an ordinary note", &[]);
+    note(channel::SYNC, "an ordinary note", &[]);
+
+    let seen = recent(&paths, 20);
+    assert_eq!(seen.len(), 4, "{seen:?}");
+    stops();
+}

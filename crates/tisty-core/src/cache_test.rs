@@ -1240,3 +1240,32 @@ fn the_mark_only_ever_climbs() {
     cache.mark("c");
     assert_eq!(cache.meta("last_key").as_deref(), Some("c"));
 }
+
+#[test]
+fn a_write_another_process_finishes_meanwhile_does_not_cost_the_cache_its_rows() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let mut state = project(&f.store_root, &f.cache_dir).unwrap();
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let said = store
+        .append(Op::TaskLog {
+            id: f.task,
+            d: LogAdd::new(Ulid::generate(), "the window wrote while the assistant did"),
+        })
+        .unwrap();
+    state.apply(&said);
+
+    let other = rusqlite::Connection::open(f.cache_dir.join("read.db")).unwrap();
+    other
+        .execute_batch("BEGIN IMMEDIATE; INSERT OR REPLACE INTO meta VALUES ('elsewhere', 'x');")
+        .unwrap();
+    let finishing = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        other.execute_batch("COMMIT").unwrap();
+    });
+    let print = advance(cache.as_mut(), &state, &[said], &f.store_root, false);
+    finishing.join().unwrap();
+
+    let cache = cache.unwrap();
+    assert_eq!(cache.meta("fingerprint"), Some(print));
+}

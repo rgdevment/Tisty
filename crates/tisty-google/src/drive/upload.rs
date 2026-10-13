@@ -7,7 +7,7 @@ use tisty_carrier::Hitch;
 use super::Drive;
 use super::sessions::key_of;
 use super::tree::{FILE_FIELDS, File};
-use super::wire::{given, json, judged};
+use super::wire::{given, json, judged, traced};
 use crate::ASKED_WITHIN;
 use crate::told;
 
@@ -23,6 +23,7 @@ impl Drive {
         from: &Path,
         file: Option<&File>,
         parent: &str,
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let bytes = std::fs::metadata(from)?.len();
         let leaf = name.rsplit('/').next().unwrap_or(name);
@@ -38,8 +39,8 @@ impl Drive {
             None => (format!("{}/files", self.at.upload), Method::POST),
         };
         match bytes <= WHOLE_AT_MOST.min(self.chunk) {
-            true => self.sent_whole(&url, method, &meta, from),
-            false => self.sent_in_parts(&url, method, &meta, (name, from), bytes),
+            true => self.sent_whole(&url, method, &meta, from, carried),
+            false => self.sent_in_parts(&url, method, &meta, (name, from, bytes), carried),
         }
     }
 
@@ -50,6 +51,7 @@ impl Drive {
         method: Method,
         meta: &serde_json::Value,
         from: &Path,
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let boundary = format!("tisty-{}", crate::random_text(18)?);
         let mut body = format!(
@@ -59,6 +61,7 @@ impl Drive {
         body.extend(std::fs::read(from)?);
         body.extend(format!("\r\n--{boundary}--\r\n").into_bytes());
         let weighs = body.len() as u64;
+        *carried += 1;
         json(self.call(Some(given(weighs)), |http| {
             http.request(method.clone(), url)
                 .query(&[("uploadType", "multipart"), ("fields", FILE_FIELDS)])
@@ -76,8 +79,8 @@ impl Drive {
         url: &str,
         method: Method,
         meta: &serde_json::Value,
-        (name, from): (&str, &Path),
-        bytes: u64,
+        (name, from, bytes): (&str, &Path, u64),
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let key = key_of(url, &format!("{name}\u{0}{meta}"), from, bytes);
         let (session, at) = match self.reopened(key.as_deref(), bytes)? {
@@ -91,7 +94,7 @@ impl Drive {
                 (session, 0)
             }
         };
-        let done = self.sent_from(&session, from, bytes, at);
+        let done = self.sent_from(&session, from, (bytes, at), carried);
         if let (Ok(_), Some(key)) = (&done, &key) {
             self.session_closed(key);
         }
@@ -144,8 +147,8 @@ impl Drive {
         &self,
         session: &str,
         from: &Path,
-        bytes: u64,
-        mut at: u64,
+        (bytes, mut at): (u64, u64),
+        carried: &mut u64,
     ) -> Result<File, Hitch> {
         let mut file = std::fs::File::open(from)?;
         let mut failed = 0;
@@ -154,6 +157,8 @@ impl Drive {
             file.seek(SeekFrom::Start(at))?;
             let mut part = vec![0u8; usize::try_from(take).unwrap_or(usize::MAX)];
             file.read_exact(&mut part)?;
+            let began = std::time::Instant::now();
+            *carried += 1;
             let sent = self
                 .http
                 .put(session)
@@ -164,6 +169,13 @@ impl Drive {
                 )
                 .body(part)
                 .send();
+            traced(
+                &Method::PUT,
+                "upload-chunk",
+                sent.as_ref().ok(),
+                began,
+                take,
+            );
             // Google may have kept part of a cut chunk, so resending from our own offset would misalign the file.
             let broke = match &sent {
                 Ok(answer) => answer.status().is_server_error(),
@@ -225,13 +237,21 @@ impl Drive {
     }
 
     fn kept_so_far(&self, session: &str, bytes: u64) -> Result<Kept, Hitch> {
+        let began = std::time::Instant::now();
         let answer = self
             .http
             .put(session)
             .timeout(ASKED_WITHIN)
             .header(reqwest::header::CONTENT_RANGE, format!("bytes */{bytes}"))
-            .send()
-            .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+            .send();
+        traced(
+            &Method::PUT,
+            "upload-status",
+            answer.as_ref().ok(),
+            began,
+            0,
+        );
+        let answer = answer.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
         match answer.status().as_u16() {
             308 => Ok(Kept::At(stored(&answer))),
             200 | 201 => Ok(Kept::Done(Box::new(json(answer)?))),

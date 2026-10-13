@@ -518,9 +518,13 @@ ways, and the rest it does on its own.
 
 **Your Google Drive, directly.** Choose *Your cloud service* and **Connect**:
 your browser opens, you sign in to Google, and Google asks whether Tisty may
-keep its copies there. Tisty only ever sees the files it creates — nothing else
-in your Drive — and you do not need Google's desktop program installed or
-running. The first time, everything you already have goes up; after that only
+keep its copies there. They live in a hidden space of your Drive that only
+Tisty opens — it sees nothing else in your Drive, and they do not show up among
+your files — and you do not need Google's desktop program installed or running.
+Disconnecting keeps them there, in Tisty and in Drive alike; to take them out,
+move to a folder from Tisty. In Google Drive › Settings › Manage apps, only
+*Delete hidden app data* deletes them. The first
+time, everything you already have goes up; after that only
 what is new travels, and a dropped connection carries on where it left off.
 Attachments stay on the computer they were added on and come down on another
 one when you open them there; *Free space* lets go of the ones you have not
@@ -566,8 +570,9 @@ the shared folder is found to hash the same.
 
 And because what uploads a folder is your provider's program and not Tisty, if
 you ever change something on one machine and it does not turn up on the other,
-[FAQ.md](docs/FAQ.md) lists the causes worth checking, in order — and what each
-message about Google Drive means, from *Reconnect* to a full Drive.
+[the wiki](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#something-changed-on-one-machine-and-is-not-on-the-other)
+lists the causes worth checking, in order — and what each message about Google
+Drive means, from *Reconnect* to a full Drive.
 
 ## A Command Line, If You Want One
 
@@ -733,7 +738,8 @@ again, and until you do everything it tries is refused.
 
 **Can I use it on two computers?**
 Yes, two ways. Connect your own Google Drive in the window, and Tisty talks to
-it directly, seeing only the files it creates there. Or use a folder you
+it directly, keeping its copies in a hidden space of your Drive and seeing
+nothing else there. Or use a folder you
 already sync: Google Drive, OneDrive, iCloud, Dropbox, a NAS, a drive you plug
 in on Fridays. Either way there is no server of mine in between, no account of
 mine, and you can move from one to the other whenever you like.

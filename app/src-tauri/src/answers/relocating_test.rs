@@ -76,6 +76,28 @@ fn a_move_that_has_to_wait_says_how_far_and_why() {
 
     assert_eq!(
         serde_json::to_value(said).unwrap(),
-        serde_json::json!({"state": "waiting", "stage": "homing", "left": {"files": 3, "bytes": 900}, "reason": null})
+        serde_json::json!({"state": "waiting", "stage": "homing", "left": {"files": 3, "bytes": 900}, "reason": null, "wait": null})
+    );
+}
+
+#[test]
+fn a_move_the_provider_asked_to_pause_says_for_how_long_so_the_window_can_go_on_by_itself() {
+    let said = waiting(
+        "filling",
+        tisty_carrier::Owed {
+            files: 2,
+            bytes: 40,
+        },
+        Some(tisty_carrier::Deferred {
+            reason: tisty_carrier::Reason::Limit,
+            left: 2,
+            retry_after: Some(std::time::Duration::from_secs(90)),
+            names: Vec::new(),
+        }),
+    );
+
+    assert_eq!(
+        serde_json::to_value(said).unwrap(),
+        serde_json::json!({"state": "waiting", "stage": "filling", "left": {"files": 2, "bytes": 40}, "reason": "limit", "wait": 90})
     );
 }

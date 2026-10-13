@@ -252,6 +252,12 @@ describe("the cloud in Settings", () => {
     expect(carry).toHaveBeenCalled();
   });
 
+  it("says the copies live in a hidden space of Drive and how they leave it", async () => {
+    card();
+    expect(await screen.findByText(ANA.email)).toBeTruthy();
+    expect(screen.getByText(t("cloudWhere"))).toBeTruthy();
+  });
+
   it("turns the cloud off on this machine", async () => {
     card();
     await userEvent.click(await screen.findByRole("button", { name: t("cloudTurnOff") }));

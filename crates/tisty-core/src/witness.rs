@@ -131,6 +131,11 @@ pub fn note(channel: &'static str, said: &'static str, facts: &[(&'static str, F
     write(Gravity::Note, channel, said, facts);
 }
 
+/// A note a round finds again every time, written again only when what it says changes or a while has passed.
+pub fn standing(channel: &'static str, said: &'static str, facts: &[(&'static str, Fact)]) {
+    written(Gravity::Note, true, channel, said, facts);
+}
+
 pub fn warn(channel: &'static str, said: &'static str, facts: &[(&'static str, Fact)]) {
     write(Gravity::Warn, channel, said, facts);
 }
@@ -149,6 +154,16 @@ fn write(
     said: &'static str,
     facts: &[(&'static str, Fact)],
 ) {
+    written(gravity, gravity == Gravity::Warn, channel, said, facts);
+}
+
+fn written(
+    gravity: Gravity,
+    quiet: bool,
+    channel: &'static str,
+    said: &'static str,
+    facts: &[(&'static str, Fact)],
+) {
     if gravity < Gravity::Note && !ALL.load(Ordering::Relaxed) {
         return;
     }
@@ -163,7 +178,7 @@ fn write(
     if let Some(at) = at {
         roll(&at);
         let line = lined(jiff::Zoned::now(), gravity, channel, said, facts);
-        if gravity == Gravity::Warn && said_lately(&at, &line) {
+        if quiet && said_lately(&at, &line) {
             INSIDE.with(|inside| inside.set(false));
             return;
         }

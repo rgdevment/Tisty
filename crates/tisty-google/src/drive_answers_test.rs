@@ -211,8 +211,16 @@ fn a_file_the_lagging_listing_does_not_show_yet_is_still_read_from_the_changes_t
 #[test]
 fn a_debt_owed_while_another_was_being_repaid_stays_owed() {
     use super::super::owed::{Owed, unpaid};
-    let paid = Owed::Unbinned { id: "A".into() };
-    let meanwhile = Owed::Unbinned { id: "B".into() };
+    let owed = |id: &str| Owed::Back {
+        name: "a.md".into(),
+        id: id.into(),
+        checked_head: None,
+        checked_md5: None,
+        landed_head: None,
+        landed_md5: None,
+    };
+    let paid = owed("A");
+    let meanwhile = owed("B");
 
     let left = unpaid(vec![paid.clone(), meanwhile.clone()], &[paid]);
 
@@ -225,7 +233,7 @@ fn a_repayment_already_running_elsewhere_is_not_run_twice() {
     let (at, asked) = google(Vec::new());
     let drive = drive(at, home.path()).owing_at(home.path());
     let owed = home.path().join(tisty_carrier::OWED_BACK);
-    std::fs::write(&owed, br#"[{"owed":"unbinned","id":"A"}]"#).unwrap();
+    std::fs::write(&owed, br#"[{"owed":"back","name":"a.md","id":"A"}]"#).unwrap();
     let running = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
@@ -239,7 +247,7 @@ fn a_repayment_already_running_elsewhere_is_not_run_twice() {
     assert!(asked.join().unwrap().is_empty());
     assert_eq!(
         std::fs::read(&owed).unwrap(),
-        br#"[{"owed":"unbinned","id":"A"}]"#
+        br#"[{"owed":"back","name":"a.md","id":"A"}]"#
     );
 }
 
@@ -343,4 +351,64 @@ fn a_long_upload_cut_short_goes_on_next_round_from_where_google_kept_it() {
         !home.path().join("uploading.json").exists(),
         "a finished upload is still written down"
     );
+}
+
+#[test]
+fn the_room_left_is_the_ceiling_less_what_is_used_and_no_ceiling_is_no_limit() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, asked) = google(vec![
+        said(
+            "200 OK",
+            r#"{"storageQuota":{"limit":"16106127360","usage":"16000000000"}}"#,
+        ),
+        said("200 OK", r#"{"storageQuota":{"usage":"5"}}"#),
+    ]);
+    let drive = drive(at, home.path());
+
+    assert_eq!(drive.room(), Ok(Some(106_127_360)));
+    assert_eq!(drive.room(), Ok(None));
+    assert!(
+        asked.join().unwrap()[0]
+            .line
+            .contains("fields=storageQuota"),
+        "the room was not asked of the quota"
+    );
+}
+
+#[test]
+fn a_grant_from_before_tisty_kept_to_its_own_space_asks_to_connect_again() {
+    let home = tempfile::tempdir().unwrap();
+    let refused = |reason: &str, message: &str| {
+        format!(r#"{{"error":{{"message":"{message}","errors":[{{"reason":"{reason}"}}]}}}}"#)
+    };
+    let (at, _) = google(vec![
+        said(
+            "403 Forbidden",
+            &refused("insufficientScopes", "Insufficient Permission"),
+        ),
+        said(
+            "403 Forbidden",
+            &refused(
+                "forbidden",
+                "The granted scopes do not give access to all of the requested spaces: Application Data folder.",
+            ),
+        ),
+    ]);
+    let drive = drive(at, home.path());
+
+    assert_eq!(drive.list(""), Err(Hitch::Lost));
+    assert_eq!(drive.list(""), Err(Hitch::Lost));
+}
+
+#[test]
+fn a_debt_of_a_kind_no_longer_owed_is_dropped_and_never_hides_the_others() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _) = google(Vec::new());
+    let drive = drive(at, home.path()).owing_at(home.path());
+    let owed = home.path().join(tisty_carrier::OWED_BACK);
+    std::fs::write(&owed, br#"[{"owed":"unbinned","id":"A"}]"#).unwrap();
+
+    drive.repaid();
+
+    assert!(!owed.exists(), "a debt of the old kind was kept forever");
 }

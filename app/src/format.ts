@@ -34,6 +34,15 @@ export function budgetResets(now = new Date()): string {
   return fill(one ? "budgetResetsTomorrowAtOne" : "budgetResetsTomorrow", clock);
 }
 
+// A pause lasts minutes, so only the hour is said, and «a la» goes with one o'clock in Spanish.
+export function goesOnAt(at: number): string {
+  const when = new Date(at);
+  return fill(
+    when.getHours() === 1 ? "movePausedAtOne" : "movePaused",
+    formats().clock.format(when),
+  );
+}
+
 export function stamped(iso: string, now = new Date()): string {
   const at = new Date(iso);
   const time = formats().clock.format(at);

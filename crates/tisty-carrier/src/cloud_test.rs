@@ -804,7 +804,12 @@ fn a_file_rewritten_with_the_same_size_in_the_same_instant_is_still_sent() {
     let mut index = super::index::Index::default();
     let at = tree.join("docs").join(format!("{DOC}.md"));
     std::fs::write(&at, b"[ ] una tarea").unwrap();
-    let (_, hitch) = super::mirror::push(&remote, &tree, &mut index);
+    let (_, hitch) = super::mirror::push(
+        &remote,
+        &tree,
+        &mut index,
+        &mut super::pace::Pace::new(None, &mut |_| {}),
+    );
     assert_eq!(hitch, None);
     let stamped = std::fs::metadata(&at).unwrap().modified().unwrap();
     std::fs::write(&at, b"[x] una tarea").unwrap();
@@ -815,7 +820,12 @@ fn a_file_rewritten_with_the_same_size_in_the_same_instant_is_still_sent() {
         .set_modified(stamped)
         .unwrap();
 
-    let (_, hitch) = super::mirror::push(&remote, &tree, &mut index);
+    let (_, hitch) = super::mirror::push(
+        &remote,
+        &tree,
+        &mut index,
+        &mut super::pace::Pace::new(None, &mut |_| {}),
+    );
 
     assert_eq!(hitch, None);
     let mut up = Vec::new();
@@ -918,6 +928,7 @@ fn the_index_survives_being_saved_and_read_back() {
         .shelf
         .insert("attachments/ab/foto-1a2b3c4d.png".to_string(), seen);
 
+    index.layout = super::index::LAYOUT;
     index.save(room.path()).unwrap();
 
     assert_eq!(super::index::Index::load(room.path()), index);

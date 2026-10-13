@@ -36,8 +36,8 @@ report will never be dismissed for being inconvenient.
   headers.
 - **A cloud account is reached only if you choose it.** Since 1.30, Tisty can
   sync straight with your own Google Drive; OneDrive or Dropbox may come later,
-  and none is promised. It talks only to Google, asks only for `drive.file` — so
-  it sees the files it created and nothing else in your Drive — and gives back
+  and none is promised. It talks only to Google, asks only for `drive.appdata` —
+  so it sees its own hidden space and nothing else in your Drive — and gives back
   any access granted wider than that. It keeps the access it was given in the
   system keychain on macOS and Linux and, on Windows, in a file sealed for your
   user with DPAPI under your profile that uninstalling removes, and masks tokens

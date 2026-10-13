@@ -7,6 +7,7 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_sync::{MARKER, NAMED, STORE};
 
 use super::index::{Index, Mirrored, digest_of, on_shelf, path_of, stamp_of};
+use super::pace::Pace;
 use crate::{Changes, Expect, Hitch, Remote, Seen};
 
 const PAPERS: &str = "docs";
@@ -36,6 +37,7 @@ pub fn pull(
     tree: &Path,
     index: &mut Index,
     data: Option<&Path>,
+    homing: bool,
 ) -> Result<usize, Hitch> {
     heal(tree, index);
     let told = match remote.changes(index.cursor.as_deref()) {
@@ -50,6 +52,20 @@ pub fn pull(
         }
         told => told?,
     };
+    let emptied = |listed_nothing: bool, gone: &BTreeSet<&str>| {
+        index.tree.contains_key(tisty_sync::NAMED)
+            && (listed_nothing || index.tree.keys().all(|name| gone.contains(name.as_str())))
+    };
+    let emptied = match &told {
+        Changes::Whole { seen, .. } => emptied(seen.is_empty(), &BTreeSet::new()),
+        Changes::Since { changed, gone, .. } => {
+            changed.is_empty() && emptied(false, &gone.iter().map(String::as_str).collect())
+        }
+    };
+    // Moving home reads an emptied store through, so the move learns nothing is left up there and goes on.
+    if emptied && !homing {
+        return Err(Hitch::Emptied);
+    }
     let (changed, gone, cursor) = match told {
         Changes::Whole { seen, cursor } => {
             let listed: BTreeSet<&str> = seen.iter().map(|one| one.name.as_str()).collect();
@@ -95,7 +111,10 @@ pub fn pull(
         }
     }
     index.cursor = Some(cursor);
-    Ok(index.owed.len())
+    match emptied {
+        true => Err(Hitch::Emptied),
+        false => Ok(index.owed.len()),
+    }
 }
 
 fn heal(tree: &Path, index: &mut Index) {
@@ -295,7 +314,12 @@ fn fetch_whole(remote: &dyn Remote, name: &str, part: &Path) -> Result<Seen, Hit
     Ok(got)
 }
 
-pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Option<Hitch>) {
+pub fn push(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &mut Index,
+    pace: &mut Pace,
+) -> (Pushed, Option<Hitch>) {
     let mut done = Pushed::default();
     let mut here = Vec::new();
     let sound = walk(tree, tree, &mut here);
@@ -315,7 +339,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
 
     for (at, one) in rest.iter().enumerate() {
-        if let Err(hitch) = upload(remote, index, one, &mut done) {
+        if let Err(hitch) = upload(remote, index, one, &mut done, pace) {
             done.left += rest.len() - at + gone.len() + stamp.len();
             done.stuck = matches!(hitch, Hitch::Broke(_)).then(|| one.name.clone());
             return (done, Some(hitch));
@@ -325,6 +349,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
         match remote.delete(name, Some(revision)) {
             Ok(()) | Err(Hitch::Missing(_)) => {
                 index.tree.remove(name);
+                pace.carried(index);
             }
             Err(Hitch::Changed(_)) => {
                 done.left += 1;
@@ -341,7 +366,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
         return (done, None);
     }
     for one in stamp {
-        if let Err(hitch) = upload(remote, index, one, &mut done) {
+        if let Err(hitch) = upload(remote, index, one, &mut done, pace) {
             done.left += 1;
             return (done, Some(hitch));
         }
@@ -376,6 +401,7 @@ fn upload(
     index: &mut Index,
     one: &Found,
     done: &mut Pushed,
+    pace: &mut Pace,
 ) -> Result<(), Hitch> {
     let expect = match index.tree.get(&one.name) {
         Some(kept) => Expect::Revision(kept.seen.revision.clone()),
@@ -395,6 +421,7 @@ fn upload(
                 },
             );
             done.put += 1;
+            pace.carried(index);
             Ok(())
         }
         Err(Hitch::Changed(_) | Hitch::Missing(_)) => {
@@ -408,14 +435,14 @@ fn upload(
 
 // What refused a write is read again, since a change the provider never tells would leave the write refused every round.
 fn read_again(remote: &dyn Remote, index: &mut Index, name: &str) {
-    match remote.about(name) {
-        Ok(Some(seen)) => {
-            index.owed.insert(name.to_string(), seen);
-        }
-        Ok(None) => {
-            index.tree.remove(name);
-        }
-        Err(_) => {}
+    let learned = match remote.about(name) {
+        Ok(Some(seen)) => index.owed.insert(name.to_string(), seen.clone()) != Some(seen),
+        Ok(None) => index.tree.remove(name).is_some(),
+        Err(_) => false,
+    };
+    // A refusal that leaves what changed written down is progress, so a push of many refused files is no loop.
+    if learned {
+        remote.moved_on();
     }
 }
 
@@ -545,3 +572,7 @@ fn is_history(name: &str) -> bool {
 pub(super) fn mirrored(name: &str) -> bool {
     name == NAMED || name == tisty_core::moved::NAMED || is_history(name) || is_doc(name)
 }
+
+#[cfg(test)]
+#[path = "mirror_test.rs"]
+mod tests;

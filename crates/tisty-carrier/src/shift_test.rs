@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Owed, Shift};
+use crate::{Owed, Reached, Shift};
 
 const PHOTO: &[u8] = b"los bytes de una foto";
 
@@ -534,5 +534,304 @@ fn a_move_from_one_account_to_another_brings_everything_and_leaves_the_first_as_
             before,
             "{who}: the first account was emptied by moving"
         );
+    }
+}
+
+fn heard_while(
+    desk: &Desk,
+    from: Option<&dyn Carrier>,
+    to: Option<&dyn Carrier>,
+) -> (Shift, Vec<Reached>) {
+    let mut heard = Vec::new();
+    let mut saying = |far| heard.push(far);
+    let done = crate::shift(from, to, &desk.here, &[], &mut saying).unwrap();
+    (done, heard)
+}
+
+fn told_of(heard: &[Reached], wanted: crate::Stage) -> Vec<(usize, usize)> {
+    heard
+        .iter()
+        .filter_map(|far| match far {
+            Reached::Along { stage, done, whole } if *stage == wanted => Some((*done, *whole)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn leaving_a_place_that_holds_nothing_more_than_here_never_says_it_brings_attachments() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        one.attached(PHOTO);
+        let old = origin(&one, setting.room.path());
+
+        let (_, quiet) = heard_while(&one, Some(&old), None);
+        let kept = one.attached(b"otra foto que solo tiene el origen");
+        origin(&one, setting.room.path());
+        let_go_here(&one, &kept.at);
+        let (_, bringing) = heard_while(&one, Some(&old), None);
+
+        assert!(
+            told_of(&quiet, crate::Stage::Attachments).is_empty(),
+            "{who}: {quiet:?}"
+        );
+        assert!(
+            !told_of(&bringing, crate::Stage::Attachments).is_empty(),
+            "{who}: what did come home was never told"
+        );
+    }
+}
+
+#[test]
+fn a_move_into_the_cloud_tells_each_upload_as_it_goes_up_to_the_whole() {
+    for (setting, _) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        for at in 0..3 {
+            let kept = one.kept(&format!("foto{at}"), format!("foto {at}").as_bytes());
+            one.store().append(kept.told()).unwrap();
+        }
+        one.wrote("con fotos");
+
+        let (done, heard) = heard_while(&one, None, Some(&*one.carrier));
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        let told = told_of(&heard, crate::Stage::Uploading);
+        assert!(told.contains(&(0, 3)), "{who}: {told:?}");
+        assert!(told.contains(&(3, 3)), "{who}: {told:?}");
+        assert!(
+            told.iter().all(|(done, whole)| done <= whole),
+            "{who}: {told:?}"
+        );
+    }
+}
+
+#[test]
+fn a_move_into_the_cloud_cut_by_a_pause_keeps_what_landed_as_it_went_and_sends_only_the_rest() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let mut refs: Vec<String> = (0..24)
+            .map(|at| {
+                let kept = one.kept(
+                    &format!("foto{at}"),
+                    format!("los bytes de la foto {at}").as_bytes(),
+                );
+                one.store().append(kept.told()).unwrap();
+                kept.at
+            })
+            .collect();
+        one.wrote("con fotos");
+        refs.sort();
+        let home = home_of(&setting, "dev_a");
+        let then: Arc<std::sync::Mutex<Option<Vec<String>>>> = Arc::default();
+        let noting = then.clone();
+        let reading = home.clone();
+        fake.in_the_gap(&refs[21], move || {
+            let kept = super::super::index::Index::load(&reading);
+            *noting.lock().unwrap() = Some(kept.shelf.into_keys().collect());
+        });
+        fake.refusing(
+            &refs[22],
+            Hitch::Limited {
+                wait: Duration::from_secs(30),
+            },
+        );
+
+        let stopped = step(&one, None, Some(&*one.carrier));
+
+        let Shift::Filling { owed, deferred } = stopped else {
+            panic!("{who}: {stopped:?}");
+        };
+        assert_eq!(deferred.map(|one| one.reason), Some(Reason::Limit), "{who}");
+        assert_eq!(owed.files, 2, "{who}");
+        let then = then.lock().unwrap().clone().expect(who);
+        assert!(
+            !then.is_empty(),
+            "{who}: nothing that landed was written down before the round ended"
+        );
+        assert!(
+            then.iter().all(|one| refs[..21].contains(one)),
+            "{who}: what was written down had not landed yet: {then:?}"
+        );
+        let after = super::super::index::Index::load(&home);
+        assert!(
+            refs[..22].iter().all(|one| after.shelf.contains_key(one)),
+            "{who}"
+        );
+
+        fake.refusing("nothing/", Hitch::Broke("never".into()));
+        waited_out(&setting, "dev_a");
+        let before = fake.uploaded().len();
+        let done = step(&one, None, Some(&*one.carrier));
+
+        assert_eq!(done, Shift::Ready, "{who}");
+        let again: Vec<String> = fake.uploaded()[before..]
+            .iter()
+            .filter(|name| name.starts_with("attachments/"))
+            .cloned()
+            .collect();
+        assert_eq!(
+            again,
+            refs[22..].to_vec(),
+            "{who}: what had landed went up again"
+        );
+    }
+}
+
+#[test]
+fn a_cloud_left_for_a_folder_and_chosen_again_is_the_same_store_and_takes_up_only_what_is_new() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let (one, _) = pair(&setting);
+        let alive = vec![DOC.to_string()];
+        one.filed(DOC, "# Plan\n\nantes\n");
+        let before = one.attached(PHOTO);
+        one.round(Way::Both);
+        let room = setting.room.path().join("carpeta");
+        std::fs::create_dir_all(&room).unwrap();
+        let folder = Folder::at(room);
+        let mut quiet = |_| {};
+
+        let out = crate::shift(
+            Some(&*one.carrier),
+            Some(&folder),
+            &one.here,
+            &alive,
+            &mut quiet,
+        );
+        assert_eq!(out, Ok(Shift::Ready), "{who}");
+        one.carrier.leave_word("se fue a una carpeta").unwrap();
+        one.wrote("en la carpeta");
+        let after = one.kept("nueva", b"una foto tomada en la carpeta");
+        one.store().append(after.told()).unwrap();
+        folder
+            .carry(
+                &one.here,
+                Round {
+                    way: Way::Both,
+                    alive: &alive,
+                    holds: Holds::Everywhere,
+                    saying: &mut quiet,
+                },
+            )
+            .unwrap();
+        let sent_before = fake.uploaded().len();
+
+        let back = crate::shift(
+            Some(&folder),
+            Some(&*one.carrier),
+            &one.here,
+            &alive,
+            &mut quiet,
+        );
+        one.carrier.forget_word().unwrap();
+
+        assert_eq!(
+            back,
+            Ok(Shift::Ready),
+            "{who}: the store it left was not taken back"
+        );
+        assert!(
+            matches!(one.carrier.kin(&one.here), crate::Kin::SameLineage),
+            "{who}: the store it left was read as another one"
+        );
+        assert!(
+            fake.about(tisty_core::moved::NAMED).unwrap().is_none(),
+            "{who}: the word it left stayed up there"
+        );
+        let sent: Vec<String> = fake.uploaded()[sent_before..].to_vec();
+        assert!(sent.contains(&after.at), "{who}: {sent:?}");
+        assert!(
+            !sent.contains(&before.at) && !sent.contains(&format!("docs/{DOC}.md")),
+            "{who}: what was already up there went up again: {sent:?}"
+        );
+    }
+}
+
+#[test]
+fn leaving_a_cloud_whose_store_was_deleted_up_there_is_ready_and_loses_nothing_here() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        let kept = one.attached(PHOTO);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+        let into = Folder::at(setting.room.path().join("new"));
+        std::fs::create_dir_all(setting.room.path().join("new")).unwrap();
+
+        let alone = step(&one, Some(&*one.carrier), None);
+        let done = step(&one, Some(&*one.carrier), Some(&into));
+
+        assert_eq!(alone, Shift::Ready, "{who}");
+        assert_eq!(done, Shift::Ready, "{who}");
+        assert_eq!(one.titles(), ["con foto"], "{who}");
+        assert_eq!(one.held(&kept.at).as_deref(), Some(PHOTO), "{who}");
+        assert_eq!(
+            one.doc(DOC).as_deref(),
+            Some("# Plan\n\nlo escrito\n"),
+            "{who}"
+        );
+        assert!(
+            tisty_core::store::inhabited(setting.room.path().join("new").join(STORE)),
+            "{who}: the new place was not filled"
+        );
+        let left = one.carrier.leave_word("se fue a otra carpeta");
+        assert!(left.is_ok(), "{who}: {left:?}");
+        assert!(
+            fake.about(tisty_core::moved::NAMED).unwrap().is_some(),
+            "{who}: the others were never told where it went"
+        );
+    }
+}
+
+#[test]
+fn a_cloud_left_after_its_store_was_deleted_up_there_takes_everything_when_chosen_again() {
+    for (setting, fake) in each_kind(|fake| fake) {
+        let who = &setting.name;
+        let one = desk(&setting, "dev_a");
+        let kept = one.attached(PHOTO);
+        one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.round(Way::Both);
+        for there in fake.list("").unwrap() {
+            fake.delete(&there.name, None).unwrap();
+        }
+        let room = setting.room.path().join("new");
+        std::fs::create_dir_all(&room).unwrap();
+        let folder = Folder::at(room);
+        assert_eq!(
+            step(&one, Some(&*one.carrier), Some(&folder)),
+            Shift::Ready,
+            "{who}"
+        );
+        let sent_before = fake.uploaded().len();
+
+        let mut saying = |_| {};
+        let back = crate::shift(
+            Some(&folder),
+            Some(&*one.carrier),
+            &one.here,
+            &[DOC.to_string()],
+            &mut saying,
+        )
+        .unwrap();
+
+        assert_eq!(
+            back,
+            Shift::Ready,
+            "{who}: the cloud left behind was still taken for emptied"
+        );
+        let sent: Vec<String> = fake.uploaded()[sent_before..].to_vec();
+        assert!(sent.contains(&kept.at), "{who}: {sent:?}");
+        assert!(sent.contains(&format!("docs/{DOC}.md")), "{who}: {sent:?}");
+        assert!(
+            one.carrier.holds_a_store(),
+            "{who}: the store never went up again"
+        );
+        assert!(crate::filling(&*one.carrier, &one.here).nothing(), "{who}");
     }
 }

@@ -35,6 +35,15 @@ describe("what is coming from the folder", () => {
     expect(screen.getByText(t("comingSlow"))).toBeTruthy();
   });
 
+  it("says it keeps uploading while a move goes up, not that it brings", () => {
+    render(<Coming />);
+    act(() => heard({ stage: "uploading", done: 4, whole: 9 }, Date.now() - SLOW_AFTER));
+    act(() => vi.advanceTimersByTime(1_000));
+
+    expect(screen.getByText(t("comingSlowUp"))).toBeTruthy();
+    expect(screen.queryByText(t("comingSlow"))).toBeNull();
+  });
+
   it("keeps the start of a round as the stages move on", () => {
     render(<Coming />);
     act(() => heard({ stage: "log", done: 0, whole: 2 }, Date.now() - SHOWN_AFTER));

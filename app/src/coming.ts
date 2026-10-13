@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
 
-export type Stage = "log" | "papers" | "attachments";
+export type Stage = "log" | "papers" | "attachments" | "uploading";
 
 interface Heard {
   stage: Stage;

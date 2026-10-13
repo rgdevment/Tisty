@@ -401,6 +401,9 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::Needs(release) => Refusal::about("syncNeeds", release),
         tisty_carrier::Trouble::Unshaped(at) => Refusal::about("syncUnshaped", at),
         tisty_carrier::Trouble::CloudFull { provider } => Refusal::about("cloudFull", provider),
+        tisty_carrier::Trouble::CloudEmptied { provider } => {
+            Refusal::about("cloudEmptied", provider)
+        }
         tisty_carrier::Trouble::CloudLost { provider } => Refusal::about("cloudLost", provider),
         tisty_carrier::Trouble::CloudElsewhere { provider, found } => {
             Refusal::about("cloudElsewhere", format!("{provider} · {found}"))
@@ -408,7 +411,6 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::SameName(who) => {
             Refusal::about("sameName", tisty_core::config::nicknamed(&who))
         }
-        tisty_carrier::Trouble::CloudBinned { provider } => Refusal::about("cloudBinned", provider),
         tisty_carrier::Trouble::CloudSpent { provider } => Refusal::about("cloudSpent", provider),
         tisty_carrier::Trouble::StuckOn { name, why } => {
             told_in_the_log(&why);

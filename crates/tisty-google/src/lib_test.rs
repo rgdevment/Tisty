@@ -243,7 +243,7 @@ fn a_browser_that_sends_many_headers_still_reads_the_whole_page() {
 }
 
 #[test]
-fn a_grant_wider_than_drive_file_is_refused_and_handed_back() {
+fn a_grant_wider_than_drive_appdata_is_refused_and_handed_back() {
     let (at, asked) = provider(vec![
         reply(
             "200 OK",
@@ -383,18 +383,21 @@ fn waiting_for_as_long_as_it_takes_does_not_overflow() {
 }
 
 #[test]
-fn only_a_grant_of_drive_file_alone_counts() {
-    assert!(only_drive_file(Some(SCOPE)));
-    assert!(!only_drive_file(Some(
+fn only_a_grant_of_tisty_s_own_space_alone_counts() {
+    assert!(only_app_data(Some(SCOPE)));
+    assert!(!only_app_data(Some(
+        "https://www.googleapis.com/auth/drive.file"
+    )));
+    assert!(!only_app_data(Some(
         "https://www.googleapis.com/auth/drive"
     )));
-    assert!(!only_drive_file(Some(&format!(
+    assert!(!only_app_data(Some(&format!(
         "{SCOPE} https://www.googleapis.com/auth/drive"
     ))));
-    assert!(!only_drive_file(None));
+    assert!(!only_app_data(None));
     assert!(
-        !only_drive_file(Some("")),
-        "a grant that left drive.file unticked was taken as connected"
+        !only_app_data(Some("")),
+        "a grant that left drive.appdata unticked was taken as connected"
     );
 }
 

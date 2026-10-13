@@ -2,7 +2,7 @@ use std::path::Path;
 
 use tisty_core::config::Holds;
 
-use crate::{Carrier, Deferred, Here, Moved, Reached, Round, STORE, Trouble, Way};
+use crate::{Carrier, Deferred, Here, Moved, Reached, Round, STORE, Stage, Trouble, Way};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Owed {
@@ -56,13 +56,28 @@ pub fn shift(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Shift, Trouble> {
     if let Some(from) = from {
+        // Looking over attachments already here is no bringing, so the window is not told it brings any.
+        let bringing = !homing(from, here).nothing();
+        let mut heard = |far: Reached| {
+            if bringing
+                || !matches!(
+                    far,
+                    Reached::Along {
+                        stage: Stage::Attachments,
+                        ..
+                    }
+                )
+            {
+                saying(far);
+            }
+        };
         let moved = from.bring_home(
             here,
             Round {
                 way: Way::Pull,
                 alive,
                 holds: Holds::Everywhere,
-                saying,
+                saying: &mut heard,
             },
         )?;
         let Some(moved) = settled(moved)? else {

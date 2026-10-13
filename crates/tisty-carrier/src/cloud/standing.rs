@@ -7,8 +7,8 @@ use crate::{BYTES_A_DAY, UNITS_A_DAY};
 
 /// Another machine's bytes a provider still has to put back, written by the provider beside the mirror.
 pub const OWED_BACK: &str = "owed-back.json";
-const LAST_ROUND: &str = "last-round.json";
-const CARRIED: &str = "carried-here";
+pub(super) const LAST_ROUND: &str = "last-round.json";
+pub(super) const CARRIED: &str = "carried-here";
 
 /// How the last round ended, in the words the window already reads: `ok`, a refusal's code, or `deferred-<reason>`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

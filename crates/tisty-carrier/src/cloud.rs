@@ -19,6 +19,7 @@ mod index;
 mod judge;
 pub(crate) mod lock;
 mod mirror;
+mod pace;
 pub mod policy;
 mod resting;
 mod shelf;
@@ -27,6 +28,7 @@ pub mod standing;
 use budget::{Class, Metered};
 use index::Index;
 use judge::{Judged, judge};
+use pace::Pace;
 use shelf::{Letting, Shelf};
 
 const TREE: &str = "tree";
@@ -38,28 +40,35 @@ const PATIENCE: Duration = Duration::from_secs(5);
 const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
 const STIRRING: &str = "stirring.json";
+// Written when the store up there was found deleted whole, so only then does sending it all again start the mirror over.
+const EMPTIED: &str = "emptied-there";
 
 #[derive(Clone, Copy)]
 struct Turn {
     waits: bool,
     sends: bool,
+    homes: bool,
 }
 
 const ASKED: Turn = Turn {
     waits: true,
     sends: true,
+    homes: false,
 };
 const PASSING: Turn = Turn {
     waits: false,
     sends: true,
+    homes: false,
 };
 const HOMING: Turn = Turn {
     waits: false,
     sends: false,
+    homes: true,
 };
 const BINNING: Turn = Turn {
     waits: true,
     sends: false,
+    homes: false,
 };
 
 struct Done<T> {
@@ -95,11 +104,49 @@ impl Cloud {
         self.home.join(TREE)
     }
 
+    // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.
+    fn started_over(&self, why: &'static str) -> Result<(), Trouble> {
+        tisty_core::witness::note(tisty_core::witness::channel::CLOUD, why, &[]);
+        let broke = |e: std::io::Error| Trouble::Broke(e.to_string());
+        index::forget(&self.home).map_err(broke)?;
+        match std::fs::remove_dir_all(self.tree()) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(broke(e)),
+            _ => {}
+        }
+        for left in [
+            standing::OWED_BACK,
+            standing::CARRIED,
+            standing::LAST_ROUND,
+            EMPTIED,
+        ] {
+            let _ = std::fs::remove_file(self.home.join(left));
+        }
+        Ok(())
+    }
+
     fn with_mirror<T>(
         &self,
         here: Option<&Here>,
         turn: Turn,
         work: impl FnOnce(&Path, &mut Index, &dyn Remote) -> Result<(T, Option<Deferred>), Trouble>,
+    ) -> Result<Done<T>, Trouble> {
+        self.with_mirror_along(here, turn, false, &mut |_| {}, |tree, index, remote, _| {
+            work(tree, index, remote)
+        })
+    }
+
+    fn with_mirror_along<T>(
+        &self,
+        here: Option<&Here>,
+        turn: Turn,
+        again: bool,
+        along: &mut dyn FnMut(crate::Reached),
+        work: impl FnOnce(
+            &Path,
+            &mut Index,
+            &dyn Remote,
+            &mut dyn FnMut(crate::Reached),
+        ) -> Result<(T, Option<Deferred>), Trouble>,
     ) -> Result<Done<T>, Trouble> {
         // What the person asked for is tried anyway; only the window's own pace waits.
         if let Some(left) = resting::left(&self.home).filter(|_| !turn.waits) {
@@ -114,6 +161,14 @@ impl Cloud {
             Ok(None) => return Ok(Done::deferred(Reason::Busy, None)),
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
+        let emptied = self.home.join(EMPTIED);
+        if index::outdated(&self.home) {
+            self.started_over(
+                "the cloud's index was of an older layout, so the mirror starts over",
+            )?;
+        } else if again && emptied.exists() {
+            self.started_over("everything is sent again to a store deleted up there")?;
+        }
         let tree = self.tree();
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
         self.forget_asked(&tree);
@@ -122,7 +177,28 @@ impl Cloud {
         let remote: &dyn Remote = &metered;
         let mut index = Index::load(&self.home);
         let data = here.map(|here| here.data.as_path());
-        let held_back = match mirror::pull(remote, &tree, &mut index, data) {
+        let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes);
+        // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.
+        if self.still_emptied(&pulled, &index) && (turn.homes || here.is_some()) {
+            return match turn.homes {
+                true => {
+                    self.left_emptied(&mut index)?;
+                    Ok(Done {
+                        value: None,
+                        deferred: None,
+                        stopped: None,
+                        uploaded: 0,
+                    })
+                }
+                false => {
+                    let _ = index.save(&self.home);
+                    Err(Trouble::CloudEmptied {
+                        provider: self.remote.limits().provider.to_string(),
+                    })
+                }
+            };
+        }
+        let held_back = match pulled {
             Ok(held_back) => held_back,
             Err(hitch) => {
                 let _ = index.save(&self.home);
@@ -143,7 +219,8 @@ impl Cloud {
             forget_carried_to(&here.aside, &tree);
         }
         metered.as_class(Class::Attachments);
-        let worked = work(&tree, &mut index, remote);
+        let mut pace = Pace::new(Some(&self.home), along);
+        let worked = work(&tree, &mut index, remote, pace.saying());
         metered.as_class(Class::History);
         let (value, held) = match worked {
             Ok(worked) => worked,
@@ -158,7 +235,7 @@ impl Cloud {
                 .is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Busy));
         let (pushed, hitch) = match quiet {
             true => (mirror::Pushed::default(), None),
-            false => mirror::push(remote, &tree, &mut index),
+            false => mirror::push(remote, &tree, &mut index, &mut pace),
         };
         let left_there = (held_back > 0).then_some(Deferred {
             reason: Reason::Changed,
@@ -211,6 +288,35 @@ impl Cloud {
         })
     }
 
+    fn still_emptied(&self, pulled: &Result<usize, crate::Hitch>, index: &Index) -> bool {
+        let emptied = self.home.join(EMPTIED);
+        let stands = index.tree.contains_key(tisty_sync::NAMED);
+        match pulled {
+            Err(crate::Hitch::Emptied) => {
+                let _ = std::fs::write(&emptied, b"");
+            }
+            Ok(_) if stands => {
+                let _ = std::fs::remove_file(&emptied);
+            }
+            _ => {}
+        }
+        !stands && emptied.exists()
+    }
+
+    // Leaving takes the deletion as read, so coming back later is a first round; the cursor and what vanished stay, so nothing is owed from up there.
+    fn left_emptied(&self, index: &mut Index) -> Result<(), Trouble> {
+        self.started_over(
+            "a store deleted up there is left, so coming back starts the mirror over",
+        )?;
+        let read = Index {
+            cursor: index.cursor.take(),
+            vanished: std::mem::take(&mut index.vanished),
+            ..Index::default()
+        };
+        read.save(&self.home)
+            .map_err(|e| Trouble::Broke(e.to_string()))
+    }
+
     // The wait a provider asked for outlives this round, so the window's own pace does not ask again before it.
     fn heeded(&self, deferred: Option<&Deferred>) {
         let reason = deferred.map(|one| one.reason);
@@ -251,30 +357,43 @@ impl Cloud {
             true => HOMING,
             false => PASSING,
         };
-        let done = self.with_mirror(Some(here), turn, |tree, index, remote| {
-            shelf::sweep(&here.data);
-            let history = Metered::over(&*self.remote, &self.home, Class::History);
-            let shelf = match fetching {
-                true => Shelf::fetching_all(remote, index),
-                false => Shelf::over(remote, index),
-            };
-            let mut shelf = shelf.history_first(tree, &history);
-            let moved = carry_through(
-                &here.data,
-                Some(&here.aside),
-                &here.device,
-                tree,
-                round.way,
-                round.alive,
-                round.holds,
-                round.saying,
-                &mut shelf,
-            )?;
-            Ok((
-                (moved, shelf.sent(), shelf.early(), shelf.full()),
-                shelf.paused(),
-            ))
-        })?;
+        let Round {
+            way,
+            alive,
+            holds,
+            saying,
+        } = round;
+        let again = matches!(way, crate::Way::Again);
+        let done = self.with_mirror_along(
+            Some(here),
+            turn,
+            again,
+            saying,
+            |tree, index, remote, saying| {
+                shelf::sweep(&here.data);
+                let history = Metered::over(&*self.remote, &self.home, Class::History);
+                let shelf = match fetching {
+                    true => Shelf::fetching_all(remote, index),
+                    false => Shelf::over(remote, index),
+                };
+                let mut shelf = shelf.history_first(tree, &history).kept_in(&self.home);
+                let moved = carry_through(
+                    &here.data,
+                    Some(&here.aside),
+                    &here.device,
+                    tree,
+                    way,
+                    alive,
+                    holds,
+                    saying,
+                    &mut shelf,
+                )?;
+                Ok((
+                    (moved, shelf.sent(), shelf.early(), shelf.full()),
+                    shelf.paused(),
+                ))
+            },
+        )?;
         let (mut moved, attached, early, full) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
         moved.sent = attached + mirrored.min(done.uploaded + early);
@@ -540,6 +659,20 @@ impl Carrier for Cloud {
 
     fn others(&self, here: &Here) -> Vec<String> {
         tisty_sync::others_in(&self.fresh(), &here.device)
+    }
+
+    fn room(&self) -> Option<u64> {
+        match self.remote.room() {
+            Ok(room) => room,
+            Err(hitch) => {
+                tisty_core::witness::note(
+                    tisty_core::witness::channel::CLOUD,
+                    "how much the cloud can still take could not be asked",
+                    &[("why", tisty_core::witness::Fact::Why(format!("{hitch:?}")))],
+                );
+                None
+            }
+        }
     }
 
     fn signed(&self) -> Signed {

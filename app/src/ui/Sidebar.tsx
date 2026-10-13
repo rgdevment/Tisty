@@ -7,6 +7,7 @@ import Coming from "./Coming";
 import Glyph from "./Glyph";
 import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
+import MoveNotice from "./MoveNotice";
 import Tree from "./Tree";
 
 interface Props {
@@ -127,6 +128,11 @@ export default function Sidebar({
       </div>
 
       <Knocking />
+      <MoveNotice
+        onOpen={() =>
+          onChoose({ named: "keeping", tab: "data", move: "pick", movedAt: Date.now() })
+        }
+      />
       <Coming
         onOpen={(move) => onChoose({ named: "keeping", tab: "data", move, movedAt: Date.now() })}
       />

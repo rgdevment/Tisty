@@ -1,10 +1,11 @@
+import type { Stage } from "../coming";
 import type { Carrying, MovePlan, Moving, Toward } from "../core";
-import { weigh } from "../format";
+import { goesOnAt, weigh } from "../format";
 import { fill, t } from "../locales";
 import { waitSaid } from "../syncSaid";
 
 export interface Along {
-  stage: "log" | "papers" | "attachments";
+  stage: Stage;
   done: number;
   whole: number;
 }
@@ -13,6 +14,7 @@ const STAGE = {
   log: "comingLog",
   papers: "comingPapers",
   attachments: "comingAttachments",
+  uploading: "comingUploading",
 } as const;
 
 const WAITS = {
@@ -47,6 +49,11 @@ export const towardOf = (toward: Toward): string =>
     : toward.kind === "folder"
       ? toward.at
       : t("welcomeAlone");
+
+export const doneSaid = (toward: Toward): string =>
+  toward.kind === "alone"
+    ? t("moveDoneAlone")
+    : fill("moveDone", toward.kind === "cloud" ? t("cloudGoogle") : toward.at);
 
 function Option({ said, why, onPick }: { said: string; why: string; onPick: () => void }) {
   return (
@@ -103,6 +110,7 @@ export function Plan({
   onCancel: () => void;
   onMove: () => void;
 }) {
+  const bringing = state.mode !== "alone" && (plan?.down.files ?? 0) > 0;
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveWhy")}</p>
@@ -121,13 +129,21 @@ export function Plan({
       </div>
       {plan && (
         <ul className={`${box} list-disc pl-7`}>
-          {plan.down.files > 0 && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
+          {bringing && plan.fromCloud && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
+          {bringing && !plan.fromCloud && <li>{t("moveHomeFirst")}</li>}
           {plan.toCloud && plan.up.files > 0 && <li>{fill("moveUp", weigh(plan.up.bytes))}</li>}
+          {plan.toCloud && <li>{t("moveOnDemand")}</li>}
+          {plan.toCloud && state.mode === "folder" && <li>{t("moveOldFolderSpace")}</li>}
           <li>{t("moveResumes")}</li>
           {plan.fromCloud && <li>{t("moveKeepsDrive")}</li>}
           {plan.fromCloud && toward.kind === "folder" && <li>{t("moveDesktopTip")}</li>}
           {plan.others > 0 && <li>{t("moveOthersFollow")}</li>}
         </ul>
+      )}
+      {plan && plan.short > 0 && (
+        <p role="alert" className="text-[12.5px] leading-relaxed text-ink">
+          {fill("moveNoRoom", weigh(plan.short), weigh(plan.free ?? 0))}
+        </p>
       )}
       <label className="flex items-start gap-2 text-[12.5px] text-soft">
         <input
@@ -144,7 +160,7 @@ export function Plan({
         </button>
         <button
           type="button"
-          disabled={!agreed || !plan || busy}
+          disabled={!agreed || !plan || busy || plan.short > 0}
           onClick={onMove}
           className={`ml-auto ${go}`}
         >
@@ -155,13 +171,24 @@ export function Plan({
   );
 }
 
-export function Underway({ along }: { along?: Along }) {
+export function Underway({
+  along,
+  pausedUntil,
+  onHide,
+}: {
+  along?: Along;
+  pausedUntil?: number;
+  onHide: () => void;
+}) {
   const share = along?.whole ? Math.min(100, Math.round((along.done / along.whole) * 100)) : 10;
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       <p className="text-[13px] font-semibold">{t("moveMoving")}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveMovingWhy")}</p>
-      {along && (
+      {pausedUntil !== undefined && (
+        <p className="text-[11.5px] text-faint tabular-nums">{goesOnAt(pausedUntil)}</p>
+      )}
+      {along && pausedUntil === undefined && (
         <p className="text-[11.5px] text-faint tabular-nums">
           {t(STAGE[along.stage])} · {fill("comingOf", String(along.done), String(along.whole))}
         </p>
@@ -172,6 +199,9 @@ export function Underway({ along }: { along?: Along }) {
           style={{ width: `${share}%` }}
         />
       </span>
+      <button type="button" onClick={onHide} className={`mt-1 self-end ${go}`}>
+        {t("moveHide")}
+      </button>
     </div>
   );
 }
@@ -199,7 +229,9 @@ export function Waiting({
         <span className="block text-[12.5px] font-semibold text-ink">{t("moveWaiting")}</span>
         {why}{" "}
         {result.left.files > 0 &&
-          fill("moveLeft", String(result.left.files), weigh(result.left.bytes))}
+          (result.left.files === 1
+            ? fill("moveLeftOne", "1", weigh(result.left.bytes))
+            : fill("moveLeft", String(result.left.files), weigh(result.left.bytes)))}
       </div>
       <div className="flex items-center gap-4">
         <button type="button" onClick={onDrop} className={quiet}>
@@ -237,7 +269,7 @@ export function Done({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[13px] font-semibold">{fill("moveDone", towardOf(toward))}</p>
+      <p className="text-[13px] font-semibold">{doneSaid(toward)}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">
         {t(untold ? "moveUntold" : "moveDoneWhy")}
       </p>

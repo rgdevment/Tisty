@@ -300,7 +300,10 @@ impl Cache {
         if !state.has_bodies() {
             return Ok(());
         }
-        let tx = match self.db.transaction() {
+        let tx = match self
+            .db
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        {
             Ok(tx) => tx,
             Err(_) => return Ok(()),
         };
@@ -831,10 +834,8 @@ fn reached(
         return print;
     }
 
-    // One transaction for the lot: a bulk of thousands would otherwise stamp the fingerprint
-    // row by row, and a process cut halfway would leave a cache that calls itself current
-    // while still holding tasks the log had already buried.
-    let _ = cache.db.execute_batch("BEGIN");
+    // One write transaction taken up front: cut halfway the cache would call itself current, and a read first would lock out other writers.
+    let _ = cache.db.execute_batch("BEGIN IMMEDIATE");
     // A row left behind under a fingerprint that calls the whole cache current would be served stale.
     let carried = events
         .iter()

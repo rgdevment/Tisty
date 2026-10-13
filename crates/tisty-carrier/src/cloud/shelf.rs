@@ -11,6 +11,7 @@ use tisty_sync::{
 use super::index::Index;
 use super::judge::{Judged, judge};
 use super::mirror::{self, resembles};
+use super::pace::Pace;
 use crate::{Deferred, Elsewhere, Expect, Hitch, Reason, Remote, Seen, Told};
 
 static TURN: AtomicU64 = AtomicU64::new(0);
@@ -25,6 +26,7 @@ pub struct Shelf<'a> {
     early: usize,
     unsent: Vec<String>,
     full: Option<Trouble>,
+    home: Option<&'a Path>,
 }
 
 enum Sent {
@@ -53,7 +55,14 @@ impl<'a> Shelf<'a> {
             early: 0,
             unsent: Vec::new(),
             full: None,
+            home: None,
         }
+    }
+
+    /// Where what landed is written down as the shelf goes, not only once the round ends.
+    pub fn kept_in(mut self, home: &'a Path) -> Self {
+        self.home = Some(home);
+        self
     }
 
     pub fn history_first(mut self, tree: &'a Path, history: &'a dyn Remote) -> Self {
@@ -65,9 +74,9 @@ impl<'a> Shelf<'a> {
         self.early
     }
 
-    fn history_sent(&mut self) -> Option<Hitch> {
+    fn history_sent(&mut self, pace: &mut Pace) -> Option<Hitch> {
         let (tree, history) = self.tree.take()?;
-        let (pushed, hitch) = mirror::push(history, tree, self.index);
+        let (pushed, hitch) = mirror::push(history, tree, self.index, pace);
         self.early += pushed.put;
         hitch.filter(|hitch| {
             !matches!(
@@ -124,11 +133,11 @@ impl<'a> Shelf<'a> {
         self.sent
     }
 
-    fn owed(&self, one: &Local, round: &Giving) -> bool {
+    fn owed(&self, one: &Local, round: &Round) -> bool {
         one.len <= HELD_UP_TO && self.not_up_there(one, round)
     }
 
-    fn not_up_there(&self, one: &Local, round: &Giving) -> bool {
+    fn not_up_there(&self, one: &Local, round: &Round) -> bool {
         !round.buried.contains(&one.reference)
             && attach::shelved(&one.under, &one.leaf)
             && (round.again
@@ -242,6 +251,11 @@ fn fetched_part(remote: &dyn Remote, reference: &str, target: &Path) -> Result<P
     }
 }
 
+struct Round<'r> {
+    buried: &'r BTreeSet<String>,
+    again: bool,
+}
+
 pub fn named_well(reference: &str) -> bool {
     placed(reference).is_some_and(|(under, leaf)| attach::shelved(under, leaf))
 }
@@ -296,9 +310,24 @@ pub fn brought(
 }
 
 impl Attachments for Shelf<'_> {
-    fn give(&mut self, round: Giving) -> Result<Given, Trouble> {
+    fn give(&mut self, giving: Giving) -> Result<Given, Trouble> {
+        let Giving {
+            data,
+            buried,
+            avowed,
+            again,
+            saying,
+            ..
+        } = giving;
+        let round = Round { buried, again };
+        let mut pace = Pace::new(self.home, saying);
         let mut given = Given::default();
-        let (all, mut asked_for) = locals(round.data, round.buried);
+        let (all, mut asked_for) = locals(data, buried);
+        let whole = all
+            .iter()
+            .filter(|one| self.owed(one, &round) && !tisty_core::holes::a_hole(&one.at))
+            .count();
+        let mut begun = false;
         for (at, one) in all.iter().enumerate() {
             if self.stopped() {
                 break;
@@ -314,7 +343,7 @@ impl Attachments for Shelf<'_> {
             if !self.owed(one, &round) {
                 continue;
             }
-            if let Some(hitch) = self.history_sent() {
+            if let Some(hitch) = self.history_sent(&mut pace) {
                 let remaining = all[at..]
                     .iter()
                     .filter(|rest| self.owed(rest, &round))
@@ -323,14 +352,20 @@ impl Attachments for Shelf<'_> {
                 self.refuse(hitch, &one.reference, remaining)?;
                 continue;
             }
+            if !begun {
+                pace.begun(whole);
+                begun = true;
+            }
             let Ok((sha256, _)) = attach::hashed(&one.at) else {
                 self.unsent(&one.reference, "could not be read here");
+                pace.passed();
                 continue;
             };
             if !attach::vouched(&one.under, &one.leaf, &sha256)
-                || !attach::as_kept(round.avowed, &one.reference, &sha256)
+                || !attach::as_kept(avowed, &one.reference, &sha256)
             {
                 self.unsent(&one.reference, "does not hold what its name or the log say");
+                pace.passed();
                 continue;
             }
             match self.send(one) {
@@ -338,6 +373,8 @@ impl Attachments for Shelf<'_> {
                     self.index.shelved(&one.reference, seen);
                     given.sent += 1;
                     self.sent += 1;
+                    self.remote.moved_on();
+                    pace.landed(self.index);
                 }
                 Ok(Sent::Spoiled(seen)) => {
                     self.index
@@ -345,6 +382,8 @@ impl Attachments for Shelf<'_> {
                         .insert(one.reference.clone(), seen.revision.clone());
                     self.index.shelved(&one.reference, seen);
                     self.unsent(&one.reference, "up there with other bytes");
+                    self.remote.moved_on();
+                    pace.passed();
                 }
                 Err(hitch) => {
                     let remaining = all[at..]
@@ -355,9 +394,11 @@ impl Attachments for Shelf<'_> {
                     if self.refuse(hitch, &one.reference, remaining)? {
                         self.unsent(&one.reference, "the cloud would not take it");
                     }
+                    pace.passed();
                 }
             }
         }
+        pace.kept(self.index);
         tisty_core::holes::ask_for(asked_for);
         given.unsent = self.told_unsent();
         Ok(given)
