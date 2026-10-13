@@ -1700,6 +1700,9 @@ mod converge;
 #[path = "shift_test.rs"]
 mod shift;
 
+#[path = "leaving_place_test.rs"]
+mod leaving_place;
+
 #[path = "freed_test.rs"]
 mod freed;
 

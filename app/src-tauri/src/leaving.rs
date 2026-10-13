@@ -53,7 +53,7 @@ fn where_to(chosen: &Sync) -> String {
     }
 }
 
-/// The word goes where this machine used to sync; a place out of reach gets it at the next round that reaches it.
+#[cfg(test)]
 pub fn leave_word(
     paths: &tisty_core::Paths,
     config: &tisty_core::Config,
@@ -61,19 +61,45 @@ pub fn leave_word(
     old: Option<tisty_carrier::Shared>,
     chosen: &Sync,
 ) {
-    let Some(key) = tisty_core::signing::mine(paths, &config.device_id) else {
-        return;
-    };
-    let said = tisty_core::moved::said(
+    if let Some(said) = word_for(paths, config, chosen) {
+        left_said(paths.cache(), left, &said, old);
+    }
+}
+
+pub fn left_said(
+    cache: &Path,
+    left: &Sync,
+    said: &str,
+    old: Option<tisty_carrier::Shared>,
+) -> bool {
+    let reached = old.is_some_and(|old| old.leave_word(said).is_ok());
+    if !reached {
+        owe(cache, left, said);
+    }
+    reached
+}
+
+pub fn word_for(
+    paths: &tisty_core::Paths,
+    config: &tisty_core::Config,
+    chosen: &Sync,
+) -> Option<String> {
+    let key = tisty_core::signing::mine(paths, &config.device_id)?;
+    Some(tisty_core::moved::said(
         &key,
         &config.device_id,
         &where_to(chosen),
         jiff::Timestamp::now().as_second().unsigned_abs(),
-    );
-    let reached = old.is_some_and(|old| old.leave_word(&said).is_ok());
-    if !reached {
-        owe(paths.cache(), left, &said);
-    }
+    ))
+}
+
+pub fn owed_to(cache: &Path, account: &str) -> bool {
+    std::fs::read(cache.join(OWED))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Owed>(&bytes).ok())
+        .is_some_and(|owed| {
+            tisty_carrier::cloud_of(Some(&owed.way)).is_some_and(|at| at.account == account)
+        })
 }
 
 fn owe(cache: &Path, left: &Sync, said: &str) {
@@ -114,10 +140,11 @@ pub struct Owing {
     at: PathBuf,
     old: tisty_carrier::Shared,
     said: String,
+    release: Option<String>,
 }
 
-pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
-    let at = cache.join(OWED);
+pub fn owing(paths: &tisty_core::Paths, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
+    let at = paths.cache().join(OWED);
     let owed: Owed = serde_json::from_slice(&std::fs::read(&at).ok()?).ok()?;
     let nobody_there = owed.way.leaving() == tisty_core::config::Leaving::Free;
     if nobody_there || now.is_some_and(|now| same_place(&owed.way, now)) {
@@ -125,10 +152,15 @@ pub fn owing(cache: &Path, reach: &Reaching, now: Option<&Sync>) -> Option<Owing
         return None;
     }
     let old = tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier?;
+    let heading_back = crate::answers::relocating::pending_cloud(paths);
+    let release = tisty_carrier::cloud_of(Some(&owed.way))
+        .map(|at| at.account.clone())
+        .filter(|account| heading_back.as_ref() != Some(account));
     Some(Owing {
         at,
         old,
         said: owed.said,
+        release,
     })
 }
 
@@ -137,6 +169,9 @@ impl Owing {
         let reached = self.old.leave_word(&self.said).is_ok();
         if reached {
             let _ = std::fs::remove_file(self.at);
+            if let Some(account) = &self.release {
+                crate::answers::clouding::let_go_of(account);
+            }
         }
         reached
     }
@@ -146,7 +181,7 @@ impl Owing {
 pub fn heeded(said: Option<&str>, data: &Path, me: &tisty_core::DeviceId) -> Option<Refusal> {
     let word = tisty_core::moved::heeded(said, data, me)?;
     Some(match word.to.split_once(':') {
-        Some(("cloud", email)) => Refusal::about("movedAway", format!("Google Drive · {email}")),
+        Some(("cloud", email)) => Refusal::about("movedToCloud", email.to_string()),
         Some(("folder", named)) => Refusal::about("movedAway", named.to_string()),
         _ => Refusal::of("movedAlone"),
     })

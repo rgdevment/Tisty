@@ -16,17 +16,19 @@ import {
   type Settings,
   shortcut,
   syncState,
+  type Toward,
   type Waking,
   waking,
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import type { Tab } from "../views";
+import type { Heading, Tab } from "../views";
 import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which, type Word } from "./Card";
 import Choosing from "./Choosing";
 import General from "./General";
 import Modal from "./Modal";
+import Relocating from "./Relocating";
 import { strong } from "./Rows";
 import { useSigning } from "./Signing";
 import Upkeep from "./Upkeep";
@@ -48,6 +50,8 @@ interface Props {
   onDoc: (paper: string) => void;
   greeted?: number;
   start?: Tab;
+  move?: Heading;
+  movedAt?: number;
 }
 
 export default function Keeping({
@@ -58,6 +62,8 @@ export default function Keeping({
   onDoc,
   greeted,
   start,
+  move,
+  movedAt,
 }: Props) {
   const [tab, setTab] = useState<Tab>(start ?? "general");
   const [state, setState] = useState<Carrying | null>(null);
@@ -136,6 +142,13 @@ export default function Keeping({
   };
 
   const [picking, setPicking] = useState(false);
+  const [moving, setMoving] = useState<{ heading?: Heading; resume?: Toward } | null>(null);
+
+  useEffect(() => {
+    if (!move) return;
+    setTab("data");
+    setMoving({ heading: move });
+  }, [move, movedAt]);
   const [was, setWas] = useState<string>();
   const held = busy !== null;
 
@@ -227,6 +240,22 @@ export default function Keeping({
           )}
         </Modal>
       )}
+      {moving && (
+        <Relocating
+          state={state}
+          heading={moving.heading}
+          resume={moving.resume}
+          onClose={() => {
+            setMoving(null);
+            look();
+          }}
+          onMoved={() => {
+            look();
+            onChanged();
+            void carryNow();
+          }}
+        />
+      )}
       {carrying.shown}
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="scroller mx-auto w-full max-w-[560px] px-6 pb-12">
@@ -262,8 +291,6 @@ export default function Keeping({
             wake={wake}
             setWake={setWake}
             keys={keys}
-            reach={reach}
-            setReach={setReach}
             busy={busy}
             said={said}
             trouble={trouble}
@@ -292,6 +319,7 @@ export default function Keeping({
             fail={setTrouble}
             carry={(way) => void carryNow(way)}
             pickFolder={pickFolder}
+            onMove={(resume) => setMoving({ resume })}
             remember={remember}
             onPack={onPack}
             onUnpack={onUnpack}

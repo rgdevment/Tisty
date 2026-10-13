@@ -32,7 +32,20 @@ pub enum Shift {
         owed: Owed,
         deferred: Option<Deferred>,
     },
+    Unsettled,
     Ready,
+}
+
+pub(crate) fn settled(moved: Moved) -> Result<Option<Moved>, Trouble> {
+    if let Some(trouble) = moved.refused {
+        return Err(trouble);
+    }
+    let open = moved.unprojected
+        || !moved.undecided.is_empty()
+        || !moved.astray.is_empty()
+        || !moved.coming.is_empty()
+        || !moved.waiting.is_empty();
+    Ok((!open).then_some(moved))
 }
 
 pub fn shift(
@@ -52,6 +65,9 @@ pub fn shift(
                 saying,
             },
         )?;
+        let Some(moved) = settled(moved)? else {
+            return Ok(Shift::Unsettled);
+        };
         let owed = homing(from, here);
         if !owed.nothing() || moved.deferred.is_some() {
             return Ok(Shift::Homing {
@@ -62,6 +78,9 @@ pub fn shift(
     }
     if let Some(to) = to {
         let moved = carried(to, here, Way::Push, alive, saying)?;
+        let Some(moved) = settled(moved)? else {
+            return Ok(Shift::Unsettled);
+        };
         let owed = filling(to, here);
         if !owed.nothing() || moved.deferred.is_some() {
             return Ok(Shift::Filling {
@@ -87,9 +106,11 @@ pub fn homing(from: &dyn Carrier, here: &Here) -> Owed {
 
 pub fn filling(to: &dyn Carrier, here: &Here) -> Owed {
     let there = to.shelf();
+    let takes = |bytes: u64| !to.frees_space() || bytes <= tisty_core::attach::HELD_UP_TO;
     known(here)
         .filter(|(reference, bytes)| {
-            at_home(here, reference, *bytes)
+            takes(*bytes)
+                && at_home(here, reference, *bytes)
                 && there
                     .as_ref()
                     .is_none_or(|there| there.get(reference) != Some(bytes))

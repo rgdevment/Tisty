@@ -103,14 +103,9 @@ pub fn keep_settings(
 ) -> Answer<Settings> {
     let mut session = held(&session);
     let quiet = settings.quiet.clone();
-    let up_to = settings.attach_up_to.clamp(
-        tisty_core::attach::COPIED_LEAST,
-        tisty_core::attach::COPIED_MOST,
-    );
     let holds = settings.holds;
     session.keep(|config| {
         config.quiet = (!quiet.is_empty()).then_some(quiet);
-        config.attach_up_to = Some(up_to);
         config.holds = Some(holds);
     })?;
     let now = as_settings(&session);

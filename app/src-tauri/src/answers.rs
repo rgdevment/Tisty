@@ -8,6 +8,7 @@ pub mod knocking;
 pub mod merging;
 pub mod papers;
 pub mod parts;
+pub mod relocating;
 pub mod reporting;
 pub mod rifts;
 pub mod settings;

@@ -216,6 +216,7 @@ const card = (over: Partial<CloudStatus> = {}) => {
       run={run as never}
       fail={() => {}}
       carry={carry}
+      onMove={() => {}}
     />,
   );
   return { carry, run, failed };
@@ -382,15 +383,24 @@ describe("around the cloud", () => {
     const open = vi.fn();
     render(<Coming onOpen={open} />);
     act(() => ended({ code: "movedAway", name: "a folder" }));
-    await userEvent.click(await screen.findByRole("button", { name: t("movedChoose") }));
-    expect(open).toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole("button", { name: t("movedFollowFolder") }));
+    expect(open).toHaveBeenCalledWith("folder");
+    act(() => unstuck());
+  });
+
+  it("heads to the cloud the others moved to", async () => {
+    const open = vi.fn();
+    render(<Coming onOpen={open} />);
+    act(() => ended({ code: "movedToCloud", name: "ana@example.com" }));
+    await userEvent.click(await screen.findByRole("button", { name: t("movedFollowCloud") }));
+    expect(open).toHaveBeenCalledWith("cloud");
     act(() => unstuck());
   });
 
   it("offers no way out for a stop that is not a move", async () => {
     render(<Coming onOpen={() => {}} />);
     act(() => ended({ code: "syncBroke", name: "x" }));
-    expect(screen.queryByRole("button", { name: t("movedChoose") })).toBeNull();
+    expect(screen.queryByRole("button", { name: t("movedFollowFolder") })).toBeNull();
     act(() => unstuck());
   });
 });

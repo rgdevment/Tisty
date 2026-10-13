@@ -8,14 +8,11 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-pub const COPIED_UP_TO: u64 = 50 * 1024 * 1024;
-pub const COPIED_AT_FIRST: u64 = 5 * 1024 * 1024;
-pub const COPIED_IN_DOC: u64 = 750 * 1024 * 1024;
+pub const COPIED_UP_TO: u64 = 25 * 1024 * 1024;
+pub const COPIED_IN_DOC: u64 = 650 * 1024 * 1024;
+pub const HELD_UP_TO: u64 = 750 * 1024 * 1024;
 
 const SHORTENS_TO: usize = 56;
-
-pub const COPIED_LEAST: u64 = 64 * 1024;
-pub const COPIED_MOST: u64 = COPIED_UP_TO;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Kept {
@@ -738,7 +735,7 @@ pub fn twins(root: &Path) -> Vec<Twins> {
             let Ok(told) = std::fs::metadata(&shown) else {
                 continue;
             };
-            if told.len() > COPIED_IN_DOC {
+            if told.len() > HELD_UP_TO {
                 continue;
             }
             let Some(who) = told_apart(&told, &shown, &one) else {

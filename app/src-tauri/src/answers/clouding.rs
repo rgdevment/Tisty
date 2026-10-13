@@ -104,13 +104,7 @@ pub async fn cloud_choose(app: tauri::AppHandle, account: String, email: String)
 }
 
 fn chosen_cloud_now(app: &tauri::AppHandle, account: String, email: String) -> Answer<()> {
-    let has_token = secrets_for(&account)
-        .and_then(|kept| kept.read(KEPT_AS))
-        .map_err(|e| refused(e, "Google Drive"))?
-        .is_some();
-    if !has_token {
-        return Err(Refusal::about("cloudLost", "Google Drive".to_string()));
-    }
+    has_access(&account)?;
     let chosen = Sync::cloud(CloudAt {
         provider: GOOGLE.to_string(),
         account,
@@ -163,6 +157,10 @@ pub async fn cloud_forget(
     account: Option<String>,
 ) -> Answer<()> {
     let account = whose(&session, account)?;
+    let cache = held(&session).paths.cache().to_path_buf();
+    if crate::leaving::owed_to(&cache, &account) {
+        return Ok(());
+    }
     tauri::async_runtime::spawn_blocking(move || {
         forgotten(&account)?;
         let_go_held(&app, &account);
@@ -232,6 +230,26 @@ fn let_go_held(app: &tauri::AppHandle, account: &str) {
                 left: 0,
                 names: Vec::new(),
             },
+        );
+    }
+}
+
+pub(crate) fn has_access(account: &str) -> Answer<()> {
+    let kept = secrets_for(account)
+        .and_then(|kept| kept.read(KEPT_AS))
+        .map_err(|e| refused(e, "Google Drive"))?;
+    match kept {
+        Some(_) => Ok(()),
+        None => Err(Refusal::about("cloudLost", "Google Drive".to_string())),
+    }
+}
+
+pub(crate) fn let_go_of(account: &str) {
+    if let Err(why) = forgotten(account) {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::CLOUD,
+            "the access of a cloud never used here could not be let go of",
+            &[("why", tisty_core::witness::Fact::Why(why.code.to_string()))],
         );
     }
 }

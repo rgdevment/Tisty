@@ -403,3 +403,30 @@ fn an_attachment_no_history_answers_for_is_brought_and_handed_back_to_be_written
         assert_eq!((sha256, bytes), (kept.sha256.clone(), kept.bytes), "{who}");
     }
 }
+
+#[test]
+fn a_round_that_stopped_or_left_things_to_decide_never_counts_as_brought_over() {
+    let stopped = crate::Moved {
+        refused: Some(crate::Trouble::Broke("lleno".into())),
+        ..Default::default()
+    };
+    assert!(crate::shift::settled(stopped).is_err());
+
+    let astray = crate::Moved {
+        astray: vec!["docs/notas.md".into()],
+        ..Default::default()
+    };
+    assert_eq!(crate::shift::settled(astray).unwrap(), None);
+
+    let unprojected = crate::Moved {
+        unprojected: true,
+        ..Default::default()
+    };
+    assert_eq!(crate::shift::settled(unprojected).unwrap(), None);
+
+    assert!(
+        crate::shift::settled(crate::Moved::default())
+            .unwrap()
+            .is_some()
+    );
+}

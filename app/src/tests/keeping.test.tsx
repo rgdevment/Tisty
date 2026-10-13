@@ -113,6 +113,7 @@ const carrying = {
   sharedWasLater: undefined as boolean | undefined,
   later: undefined as boolean | undefined,
   freesSpace: false,
+  mode: undefined as string | undefined,
 };
 
 const arriving = {
@@ -160,6 +161,7 @@ beforeEach(() => {
   ];
   Object.assign(carrying, {
     chosen: undefined,
+    mode: undefined,
     asked: true,
     last: undefined,
     loose: 0,
@@ -193,7 +195,11 @@ beforeEach(() => {
         return Promise.resolve(many);
       }
       case "sync_state":
-        return Promise.resolve({ ...carrying });
+        return Promise.resolve({
+          ...carrying,
+          mode:
+            carrying.mode ?? (carrying.freesSpace ? "cloud" : carrying.chosen ? "folder" : "alone"),
+        });
       case "signed":
         return Promise.resolve({ ...signing });
       case "sign": {
@@ -609,10 +615,10 @@ describe("the maintenance panel", () => {
     await userEvent.click(await screen.findByRole("switch", { name: /a short tone/i }));
     await data();
 
-    const size = await screen.findByRole("combobox", { name: /take files up to/i });
-    await waitFor(() => expect(size.hasAttribute("disabled")).toBe(true));
-    expect(size.className).toContain("disabled:text-soft");
-    expect(size.className).not.toContain("opacity-50");
+    const where = await screen.findByRole("combobox", { name: /where large attachments/i });
+    await waitFor(() => expect(where.hasAttribute("disabled")).toBe(true));
+    expect(where.className).toContain("disabled:text-soft");
+    expect(where.className).not.toContain("opacity-50");
   });
 
   it("offers where the big attachments live, and says when the choice is idle", async () => {
@@ -2954,27 +2960,6 @@ describe("the first-run assistant", () => {
     expect(sent("take_out_of_reach")).toHaveLength(0);
   });
 
-  it("takes it back off when asked, and says it is being retired", async () => {
-    standing.withinReach = true;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
-    expect(await screen.findByText(/terminal finds/i)).toBeTruthy();
-    expect(screen.getByText(/being retired/i)).toBeTruthy();
-
-    await userEvent.click(screen.getByRole("button", { name: /take it back out/i }));
-
-    await waitFor(() => expect(sent("take_out_of_reach")).toHaveLength(1));
-    await waitFor(() => expect(screen.queryByText(/terminal finds/i)).toBeNull());
-  });
-
   it("says nothing when there is no command line to offer", async () => {
     standing.shipped = false;
     render(
@@ -3061,7 +3046,7 @@ describe("the command line on a Mac", () => {
       );
       await ready();
 
-      await screen.findByText(/terminal finds/i);
+      expect(screen.queryByText(/terminal finds/i)).toBeNull();
       expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
       expect(screen.queryByText(/brew install/)).toBeNull();
       unmount();

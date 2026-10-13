@@ -750,6 +750,39 @@ export const cloudForget = (account?: string): Promise<void> => invoke("cloud_fo
 export const cloudRevoke = (account?: string): Promise<void> => invoke("cloud_revoke", { account });
 export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
 export const cloudStatus = (): Promise<CloudStatus | null> => invoke("cloud_status");
+
+export type Toward =
+  | { kind: "alone" }
+  | { kind: "folder"; at: string }
+  | { kind: "cloud"; account: string; email: string };
+export interface Weight {
+  files: number;
+  bytes: number;
+}
+export interface MovePlan {
+  down: Weight;
+  up: Weight;
+  fromCloud: boolean;
+  toCloud: boolean;
+}
+export type Moving =
+  | {
+      state: "done";
+      told: boolean;
+      leftCloud?: { provider: string; account: string; email: string } | null;
+    }
+  | {
+      state: "waiting";
+      stage: "homing" | "filling";
+      left: Weight;
+      reason?: Waiting["reason"] | "unsettled" | null;
+    };
+export const movePlan = (toward: Toward): Promise<MovePlan> => invoke("move_plan", { toward });
+export const moveTo = (toward: Toward): Promise<Moving> => invoke("move_to", { toward });
+export const movePending = (): Promise<Toward | null> => invoke("move_pending");
+export const moveDropped = (): Promise<void> => invoke("move_dropped");
+export const cloudWipe = (account: string, email: string): Promise<number> =>
+  invoke("cloud_wipe", { account, email });
 export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {

@@ -10,6 +10,7 @@ interface Props {
   onTrouble: (said?: string) => void;
   onBack: () => void;
   onDone: (at: string) => void;
+  onConnected?: (account: Connected) => void;
 }
 
 const row = "flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2 text-left";
@@ -42,7 +43,7 @@ function Points({ title, points }: { title: string; points: string[] }) {
   );
 }
 
-export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
+export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected }: Props) {
   const [waiting, setWaiting] = useState(false);
   const [held, setHeld] = useState(false);
   const [connected, setConnected] = useState<Connected>();
@@ -93,6 +94,10 @@ export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
 
   const start = () => {
     if (stuck || !connected) return;
+    if (onConnected) {
+      unused.current = undefined;
+      return onConnected(connected);
+    }
     setHeld(true);
     onTrouble(undefined);
     cloudChoose(connected.account, connected.email)
@@ -137,7 +142,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone }: Props) {
             {t("welcomeBack")}
           </button>
           <button type="button" disabled={stuck} onClick={start} className={go}>
-            {t("cloudStart")}
+            {onConnected ? t("welcomeNext") : t("cloudStart")}
           </button>
         </div>
       </div>

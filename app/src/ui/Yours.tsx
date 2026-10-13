@@ -10,6 +10,7 @@ import {
   revealed,
   type Settings,
   stopFreeing,
+  type Toward,
 } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
@@ -19,8 +20,6 @@ import Backup from "./Backup";
 import type { Run, Which, Word } from "./Card";
 import { Band, Line, mild, off } from "./Rows";
 import Syncing from "./Syncing";
-
-const SIZES = [256 * 1024, 1024 * 1024, 5 * 1024 * 1024, 20 * 1024 * 1024, 50 * 1024 * 1024];
 
 interface Props {
   state: Carrying;
@@ -36,6 +35,7 @@ interface Props {
   fail: (word?: Word) => void;
   carry: (way?: "again") => void;
   pickFolder: () => void;
+  onMove: (resume?: Toward) => void;
   remember: (next: Settings, card: Which) => void;
   onPack: () => void;
   onUnpack: () => void;
@@ -56,6 +56,7 @@ export default function Yours({
   fail,
   carry,
   pickFolder,
+  onMove,
   remember,
   onPack,
   onUnpack,
@@ -110,90 +111,73 @@ export default function Yours({
         fail={fail}
         carry={carry}
         pickFolder={pickFolder}
+        onMove={onMove}
       />
 
-      <Band label={t("attachTitle")} />
-      <div className="border-t border-hair">
-        {kept && (
-          <Line
-            title={t("attachRow")}
-            why={t("attachWhy")}
-            which="attach"
-            said={said}
-            trouble={trouble}
-          >
-            <select
-              aria-label={t("attachUpTo")}
-              value={String(kept.attachUpTo)}
-              disabled={held}
-              onChange={(e) => remember({ ...kept, attachUpTo: Number(e.target.value) }, "attach")}
-              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-            >
-              {SIZES.map((bytes) => (
-                <option key={bytes} value={bytes}>
-                  {weigh(bytes)}
-                </option>
-              ))}
-            </select>
-          </Line>
-        )}
-
-        {kept && !state.freesSpace && (
-          <Line
-            title={t("holdsTitle")}
-            why={
-              kept.shares ? fill("holdsWhy", weigh(kept.onlySharedAbove)) : t("holdsNeedsShared")
-            }
-            which="holds"
-            said={said}
-            trouble={trouble}
-            more={
-              freeing && (
-                <div className="mt-2 flex items-center gap-2.5">
-                  <span className="text-[11.5px] leading-relaxed text-soft">
-                    {fill(freeing.done ? "holdsFreed" : "holdsFreeing", weigh(freeing.freed))}
-                  </span>
-                  {!freeing.done && (
-                    <button
-                      type="button"
-                      onClick={() => void stopFreeing()}
-                      className="rounded-md border border-line px-2.5 py-0.5 text-[11.5px] text-soft hover:border-urgent hover:text-urgent"
-                    >
-                      {t("holdsStop")}
-                    </button>
-                  )}
-                </div>
-              )
-            }
-          >
-            <select
-              aria-label={t("holdsTitle")}
-              value={kept.holds}
-              disabled={held || !kept.shares}
-              onChange={(e) => {
-                const holds = e.target.value as Holds;
-                remember({ ...kept, holds }, "holds");
-                if (holds === "shared") {
-                  setFreeing({ gone: 0, freed: 0, done: false });
-                  freeUp().catch((e) => {
-                    setFreeing(null);
-                    fail({ card: "holds", text: saidPlainly(e) });
-                  });
+      {!state.freesSpace && (
+        <>
+          <Band label={t("attachTitle")} />
+          <div className="border-t border-hair">
+            {kept && (
+              <Line
+                title={t("holdsTitle")}
+                why={
+                  kept.shares
+                    ? fill("holdsWhy", weigh(kept.onlySharedAbove))
+                    : t("holdsNeedsShared")
                 }
-                if (holds === "everywhere") {
-                  carry();
+                which="holds"
+                said={said}
+                trouble={trouble}
+                more={
+                  freeing && (
+                    <div className="mt-2 flex items-center gap-2.5">
+                      <span className="text-[11.5px] leading-relaxed text-soft">
+                        {fill(freeing.done ? "holdsFreed" : "holdsFreeing", weigh(freeing.freed))}
+                      </span>
+                      {!freeing.done && (
+                        <button
+                          type="button"
+                          onClick={() => void stopFreeing()}
+                          className="rounded-md border border-line px-2.5 py-0.5 text-[11.5px] text-soft hover:border-urgent hover:text-urgent"
+                        >
+                          {t("holdsStop")}
+                        </button>
+                      )}
+                    </div>
+                  )
                 }
-              }}
-              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-            >
-              <option value="everywhere">{t("holdsEverywhere")}</option>
-              <option value="mine">{t("holdsMine")}</option>
-              <option value="shared">{t("holdsShared")}</option>
-            </select>
-          </Line>
-        )}
-      </div>
-      <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
+              >
+                <select
+                  aria-label={t("holdsTitle")}
+                  value={kept.holds}
+                  disabled={held || !kept.shares}
+                  onChange={(e) => {
+                    const holds = e.target.value as Holds;
+                    remember({ ...kept, holds }, "holds");
+                    if (holds === "shared") {
+                      setFreeing({ gone: 0, freed: 0, done: false });
+                      freeUp().catch((e) => {
+                        setFreeing(null);
+                        fail({ card: "holds", text: saidPlainly(e) });
+                      });
+                    }
+                    if (holds === "everywhere") {
+                      carry();
+                    }
+                  }}
+                  className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+                >
+                  <option value="everywhere">{t("holdsEverywhere")}</option>
+                  <option value="mine">{t("holdsMine")}</option>
+                  <option value="shared">{t("holdsShared")}</option>
+                </select>
+              </Line>
+            )}
+          </div>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
+        </>
+      )}
 
       <Band label={t("bandParcels")} />
       <div className="border-t border-hair">

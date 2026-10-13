@@ -53,6 +53,10 @@ const HOMING: Turn = Turn {
     waits: false,
     sends: false,
 };
+const BINNING: Turn = Turn {
+    waits: true,
+    sends: false,
+};
 
 struct Done<T> {
     value: Option<T>,
@@ -608,6 +612,38 @@ impl Carrier for Cloud {
                 Err(hitch) => Err(Trouble::Broke(format!("{hitch:?}"))),
             }
         })
+    }
+
+    fn holds_a_store(&self) -> bool {
+        tisty_core::store::inhabited(self.tree().join(STORE))
+    }
+
+    fn wipe(&self) -> Result<usize, Trouble> {
+        let done = self.with_mirror(None, BINNING, |_, index, remote| {
+            let all = remote
+                .list("")
+                .map_err(|e| Trouble::Broke(format!("{e:?}")))?;
+            let mut gone = 0;
+            for one in all
+                .iter()
+                .filter(|one| one.name != tisty_core::moved::NAMED)
+            {
+                match remote.delete(&one.name, Some(&one.revision)) {
+                    Ok(()) | Err(crate::Hitch::Missing(_)) => {
+                        index.tree.remove(&one.name);
+                        index.shelf.remove(&one.name);
+                        gone += 1;
+                    }
+                    Err(hitch) => return Err(Trouble::Broke(format!("{hitch:?}"))),
+                }
+            }
+            Ok((gone, None))
+        })?;
+        let gone = done
+            .value
+            .ok_or_else(|| Trouble::NotNow(unavailable(done.deferred)))?;
+        let _ = std::fs::remove_dir_all(&self.home);
+        Ok(gone)
     }
 
     fn forget_paper(&self, id: &str) {

@@ -51,7 +51,7 @@ struct Bringing {
 }
 
 /// What landed is told in handfuls, so a round cut short still owns what it already brought.
-struct Telling {
+pub(crate) struct Telling {
     app: tauri::AppHandle,
     kept: Vec<(String, String, u64)>,
     kept_at: std::time::Instant,
@@ -60,7 +60,7 @@ struct Telling {
 }
 
 impl Telling {
-    fn new(app: tauri::AppHandle, joining: bool) -> Self {
+    pub(crate) fn new(app: tauri::AppHandle, joining: bool) -> Self {
         Self {
             app,
             kept: Vec::new(),
@@ -70,7 +70,7 @@ impl Telling {
         }
     }
 
-    fn hear(&mut self, far: tisty_carrier::Reached) {
+    pub(crate) fn hear(&mut self, far: tisty_carrier::Reached) {
         match far {
             tisty_carrier::Reached::Log => {
                 let _ = self.app.emit("carried", "log");
@@ -110,7 +110,7 @@ impl Telling {
         }
     }
 
-    fn flush(&mut self) {
+    pub(crate) fn flush(&mut self) {
         self.kept_at = std::time::Instant::now();
         if self.kept.is_empty() {
             return;
@@ -186,11 +186,7 @@ pub async fn settle_in(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
-            crate::leaving::owing(
-                session.paths.cache(),
-                &session.reach,
-                session.config.sync.as_ref(),
-            ),
+            crate::leaving::owing(&session.paths, &session.reach, session.config.sync.as_ref()),
         )
     };
 
@@ -531,7 +527,7 @@ pub(crate) fn cloud_joined(session: &Session) -> bool {
     joined_on(session, session.config.sync.as_ref())
 }
 
-fn joined_on(session: &Session, way: Option<&tisty_core::config::Sync>) -> bool {
+pub(crate) fn joined_on(session: &Session, way: Option<&tisty_core::config::Sync>) -> bool {
     tisty_carrier::cloud_of(way)
         .is_none_or(|at| tisty_carrier::cloud_joined(&session.reach.home_of(at), &session.here()))
 }
@@ -575,21 +571,7 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
         .map(|one| one.trim().to_string())
         .filter(|one| !one.is_empty())
     {
-        Some(dest) => {
-            let at = std::path::PathBuf::from(&dest);
-            let data = session.paths.data();
-            let tangled = at.starts_with(data)
-                || data.starts_with(&at)
-                || at
-                    .canonicalize()
-                    .ok()
-                    .zip(data.canonicalize().ok())
-                    .is_some_and(|(a, b)| a.starts_with(&b) || b.starts_with(&a));
-            if tangled {
-                return Err(Refusal::about("remoteInsideStore", dest));
-            }
-            tisty_core::config::Sync::folder(at)
-        }
+        Some(dest) => folder_way(session, dest)?,
         None => tisty_core::config::Sync::alone(),
     };
     if let Some(at) = chosen.place()
@@ -604,12 +586,83 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
     changed_to(session, chosen, |one| choosing(one, joined))
 }
 
+pub(crate) fn folder_way(session: &Session, dest: String) -> Answer<tisty_core::config::Sync> {
+    let at = std::path::PathBuf::from(&dest);
+    let data = session.paths.data();
+    let tangled = at.starts_with(data)
+        || data.starts_with(&at)
+        || at
+            .canonicalize()
+            .ok()
+            .zip(data.canonicalize().ok())
+            .is_some_and(|(a, b)| a.starts_with(&b) || b.starts_with(&a));
+    if tangled {
+        return Err(Refusal::about("remoteInsideStore", dest));
+    }
+    Ok(tisty_core::config::Sync::folder(at))
+}
+
 /// Tasks and documents are kept first, the place left behind is told, and a place chosen again is the person's.
 pub(crate) fn changed_to<F>(
     session: &mut Session,
     chosen: tisty_core::config::Sync,
     choosing: impl Fn(tisty_core::config::Sync) -> F,
 ) -> Answer<()>
+where
+    F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
+{
+    let joins = Joins {
+        rejoined: joined_on(session, Some(&chosen)),
+        left: joined_on(session, session.config.sync.as_ref()),
+    };
+    let after = changed_with(session, chosen, choosing, joins)?;
+    after.done_now(session);
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct Joins {
+    pub(crate) rejoined: bool,
+    pub(crate) left: bool,
+}
+
+pub(crate) struct After {
+    pub(crate) word: Option<(
+        tisty_core::config::Sync,
+        String,
+        Option<tisty_carrier::Shared>,
+    )>,
+    pub(crate) owes_word: bool,
+    pub(crate) unword: Option<tisty_carrier::Shared>,
+}
+
+impl After {
+    fn done_now(self, session: &Session) {
+        if let Some((left, said, old)) = self.word {
+            crate::leaving::left_said(session.paths.cache(), &left, &said, old);
+        }
+        if let Some(now) = self.unword {
+            forget_word_in(&now);
+        }
+    }
+}
+
+pub(crate) fn forget_word_in(now: &tisty_carrier::Shared) {
+    if let Err(why) = now.forget_word() {
+        witness::warn(
+            channel::SYNC,
+            "a word that other machines moved away stayed in the place chosen again",
+            &[("why", Fact::Why(format!("{why:?}")))],
+        );
+    }
+}
+
+pub(crate) fn changed_with<F>(
+    session: &mut Session,
+    chosen: tisty_core::config::Sync,
+    choosing: impl Fn(tisty_core::config::Sync) -> F,
+    joins: Joins,
+) -> Answer<After>
 where
     F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
 {
@@ -631,33 +684,31 @@ where
         crate::leaving::backed_up(&session.paths)?;
     }
     let old = session.carrier();
-    let rejoined = joined_on(session, Some(&chosen));
     session.keep_unless(choosing(chosen.clone()))?;
-    // Until the move exists only a cloud never carried into is left, and a word there would move someone else's.
-    let told = |left: &tisty_core::config::Sync| {
-        !matches!(
-            left.leaving(),
-            tisty_core::config::Leaving::Free | tisty_core::config::Leaving::Cloud
-        )
+    super::relocating::pending_kept(&session.paths, None);
+    let told = |left: &tisty_core::config::Sync| match left.leaving() {
+        tisty_core::config::Leaving::Free => false,
+        tisty_core::config::Leaving::Cloud => joins.left,
+        _ => true,
     };
-    if let Some(left) = was.filter(told) {
-        crate::leaving::leave_word(&session.paths, &session.config, &left, old, &chosen);
+    if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !joins.left) {
+        crate::answers::clouding::let_go_of(&at.account);
     }
+    let owes_word = was.as_ref().is_some_and(told);
+    let word = was.filter(told).and_then(|left| {
+        crate::leaving::word_for(&session.paths, &session.config, &chosen)
+            .map(|said| (left, said, old))
+    });
     crate::leaving::owed_no_more(session.paths.cache(), &chosen);
-    // A cloud this machine never carried into keeps the word others left there for its own machines.
     let a_place = chosen.place().is_some() || tisty_carrier::cloud_of(Some(&chosen)).is_some();
-    if a_place
-        && rejoined
-        && let Some(now) = session.carrier()
-        && let Err(why) = now.forget_word()
-    {
-        witness::warn(
-            channel::SYNC,
-            "a word that other machines moved away stayed in the place chosen again",
-            &[("why", Fact::Why(format!("{why:?}")))],
-        );
-    }
-    Ok(())
+    let unword = (a_place && joins.rejoined)
+        .then(|| session.carrier())
+        .flatten();
+    Ok(After {
+        word,
+        owes_word,
+        unword,
+    })
 }
 
 #[tauri::command]
@@ -786,11 +837,7 @@ async fn carried_round(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
-            crate::leaving::owing(
-                session.paths.cache(),
-                &session.reach,
-                session.config.sync.as_ref(),
-            ),
+            crate::leaving::owing(&session.paths, &session.reach, session.config.sync.as_ref()),
         )
     };
     heeded_first(&carrier, &home, owing).await?;
