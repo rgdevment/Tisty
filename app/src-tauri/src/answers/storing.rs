@@ -608,11 +608,11 @@ where
         .filter(|was| !crate::leaving::same_place(was, &chosen));
     let changing = was.is_some() || session.config.sync.is_none();
     // Asked first on what is on disk, so a change that would be refused keeps no copy and pushes out no real one.
-    let Some(mut trial) = session.settings_on_disk() else {
+    let Some(on_disk) = session.settings_on_disk() else {
         return Err(Refusal::of("settingsUnreadable"));
     };
-    if let Some(refused) = choosing(chosen.clone())(&mut trial) {
-        session.config = trial;
+    if let Some(refused) = choosing(chosen.clone())(&mut on_disk.clone()) {
+        session.config = on_disk;
         return Err(refused);
     }
     if changing {
