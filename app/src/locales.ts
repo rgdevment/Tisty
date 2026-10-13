@@ -994,7 +994,7 @@ const en = {
     "The settings file says something this version cannot read, most likely written by a newer Tisty. Nothing was written; update Tisty before changing settings.",
   noMeetingPlace: "{name} cannot be reached — is the folder synced, or the drive plugged in?",
   cloudFull:
-    "{name} has no room left. Tisty sends your tasks first; the rest follows once you free up space in {name} or get more. Everything you write stays safe on this machine meanwhile.",
+    "{name} has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in {name} or get more. Everything you write stays safe on this machine meanwhile.",
   cloudLost:
     "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this machine.",
   cloudElsewhere:
@@ -1239,7 +1239,7 @@ const en = {
   stateElsewhereDo: "Change account",
   stateFull: "Your Google Drive is full",
   stateFullWhy:
-    "Tisty sends your tasks first; the rest follows once you free up space or get more, file by file.",
+    "Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space or get more.",
   stateFullDo: "See storage",
   stateBudget: "Your cloud reached today's limit",
   stateBudgetWhy: "What you write stays here and syncing carries on tomorrow.",
@@ -2812,7 +2812,7 @@ const es: Catalog = {
     "El archivo de ajustes dice algo que esta versión no sabe leer, seguramente escrito por un Tisty más nuevo. No se escribió nada; actualiza Tisty antes de cambiar ajustes.",
   noMeetingPlace: "No se llega a {name} — ¿está la carpeta sincronizada, o el disco conectado?",
   cloudFull:
-    "{name} no tiene más espacio. Tisty sube primero tus tareas; lo demás sigue cuando liberes espacio en {name} o consigas más. Mientras tanto, todo lo que escribas queda a salvo en este equipo.",
+    "{name} no tiene más espacio. Tisty sube primero tus tareas; lo demás, incluido lo que envían tus otros equipos, espera hasta que liberes espacio en {name} o consigas más. Mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudLost:
     "{name} ya no deja entrar a Tisty: el acceso se retiró o venció. Vuelve a conectar {name}; mientras tanto, todo lo que escribas queda a salvo en este equipo.",
   cloudElsewhere:
@@ -3059,7 +3059,7 @@ const es: Catalog = {
   stateElsewhereDo: "Cambiar cuenta",
   stateFull: "Tu Google Drive está lleno",
   stateFullWhy:
-    "Tisty sube primero tus tareas; lo demás sigue cuando liberes espacio o consigas más, archivo por archivo.",
+    "Tisty sube primero tus tareas; lo demás, incluido lo que envían tus otros equipos, espera hasta que liberes espacio o consigas más.",
   stateFullDo: "Ver espacio",
   stateBudget: "Tu nube llegó a su límite de hoy",
   stateBudgetWhy: "Lo que escribas queda aquí y la sincronización sigue mañana.",
