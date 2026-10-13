@@ -519,7 +519,7 @@ pub fn convert_paper(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn settle_paper(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
