@@ -105,7 +105,9 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
 pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(title) = text(args, "title") else {
-        return Err(Refused::Tool("a task needs a `title`.".into()));
+        return Err(Refused::Tool(
+            "a task needs a `title`, and several go together in `tasks`.".into(),
+        ));
     };
     steps_fit(&strings(args, "steps")?)?;
     let (state, mut store) = opened(paths)?;

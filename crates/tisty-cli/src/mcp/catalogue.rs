@@ -251,7 +251,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task. Reading a thread that holds several, send them \
+            "description": "Propose a task: send `title` for one, or `tasks` for several. Reading a thread that holds several, send them \
                             together in `tasks` rather than one call each: each one is judged on \
                             its own and told apart in the answer, so a bad one does not take the \
                             good ones with it. Size the work first: a step is one line of a \
@@ -323,8 +323,7 @@ pub(super) fn tools() -> Value {
                         "type": "boolean",
                         "description": "Only when the person wants done again what was already proposed from this source and closed since: files a new task despite the source being known. Say in the description how the last one ended. Never for a source whose task is still open"
                     }
-                },
-                "anyOf": [{ "required": ["title"] }, { "required": ["tasks"] }]
+                }
             }))
         },
         {
@@ -714,7 +713,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "page_doc",
             "title": "Make one document, or several, into pages, put their pages in order, or take them back out",
-            "description": "Hang a document from another as one of its pages, or take a page out \
+            "description": "Send `doc` to hang or unhang pages, or `order` with `page_of` to put them in order. Hang a document from another as one of its pages, or take a page out \
                             by leaving `page_of` out, which makes it a document of its own again, \
                             back in the folder it came from. A page goes with its document \
                             everywhere — folder, archive and deletion — and holds no pages of its \
@@ -764,8 +763,7 @@ pub(super) fn tools() -> Value {
                                         send for a document whose pages no line names yet, \
                                         since there is no page there to name"
                     }
-                },
-                "anyOf": [{ "required": ["doc"] }, { "required": ["order", "page_of"] }]
+                }
             }))
         },
         {
@@ -1013,7 +1011,7 @@ fn steps_by_text(doing: &str) -> Value {
 
 fn many_docs_field(what: &str) -> Value {
     json!({
-        "oneOf": [
+        "anyOf": [
             { "type": "string" },
             { "type": "array", "items": { "type": "string" }, "minItems": 1 }
         ],

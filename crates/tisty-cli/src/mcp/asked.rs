@@ -79,7 +79,10 @@ pub(super) fn kinds_of(shape: &Value) -> Vec<String> {
         _ => Vec::new(),
     };
     let mut out = shape.get("type").map(named).unwrap_or_default();
-    if let Some(all) = shape.get("oneOf").and_then(Value::as_array) {
+    for all in ["anyOf", "oneOf"]
+        .into_iter()
+        .filter_map(|key| shape.get(key).and_then(Value::as_array))
+    {
         for one in all {
             out.extend(one.get("type").map(named).unwrap_or_default());
         }
