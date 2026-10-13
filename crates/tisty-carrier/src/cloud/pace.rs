@@ -49,8 +49,13 @@ impl<'s> Pace<'s> {
     }
 
     pub fn landed(&mut self, index: &Index) {
-        self.unkept += 1;
         self.passed();
+        self.carried(index);
+    }
+
+    // History and documents are written down as they land but never move the bar, which counts attachments alone.
+    pub fn carried(&mut self, index: &Index) {
+        self.unkept += 1;
         if self.unkept >= KEPT_EVERY_FILES || self.kept_at.elapsed() >= KEPT_EVERY {
             self.kept(index);
         }

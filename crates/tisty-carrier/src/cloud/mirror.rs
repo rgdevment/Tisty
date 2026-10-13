@@ -319,7 +319,6 @@ pub fn push(
     let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) =
         dirty.into_iter().partition(|one| one.name == NAMED);
     rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
-    pace.begun(rest.len() + gone.len() + stamp.len());
 
     for (at, one) in rest.iter().enumerate() {
         if let Err(hitch) = upload(remote, index, one, &mut done, pace) {
@@ -332,12 +331,11 @@ pub fn push(
         match remote.delete(name, Some(revision)) {
             Ok(()) | Err(Hitch::Missing(_)) => {
                 index.tree.remove(name);
-                pace.landed(index);
+                pace.carried(index);
             }
             Err(Hitch::Changed(_)) => {
                 done.left += 1;
                 read_again(remote, index, name);
-                pace.passed();
             }
             Err(hitch) => {
                 done.left += gone.len() - at + stamp.len();
@@ -405,13 +403,12 @@ fn upload(
                 },
             );
             done.put += 1;
-            pace.landed(index);
+            pace.carried(index);
             Ok(())
         }
         Err(Hitch::Changed(_) | Hitch::Missing(_)) => {
             done.left += 1;
             read_again(remote, index, &one.name);
-            pace.passed();
             Ok(())
         }
         Err(other) => Err(other),
