@@ -925,6 +925,7 @@ pub fn run() {
             answers::clouding::cloud_forget,
             answers::clouding::cloud_revoke,
             answers::clouding::cloud_pause,
+            answers::clouding::cloud_status,
             answers::freeing::free_up,
             answers::freeing::stop_freeing,
             answers::freeing::unused_attachments,

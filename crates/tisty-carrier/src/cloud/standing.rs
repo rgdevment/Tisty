@@ -7,6 +7,55 @@ use crate::{BYTES_A_DAY, UNITS_A_DAY};
 
 /// Another machine's bytes a provider still has to put back, written by the provider beside the mirror.
 pub const OWED_BACK: &str = "owed-back.json";
+const LAST_ROUND: &str = "last-round.json";
+const CARRIED: &str = "carried-here";
+
+/// How the last round ended, in the words the window already reads: `ok`, a refusal's code, or `deferred-<reason>`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LastRound {
+    pub at: u64,
+    pub code: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub left: usize,
+    #[serde(default)]
+    pub names: Vec<String>,
+}
+
+/// A cloud chosen anew starts with no word of a round it never ran.
+pub fn round_forgotten(home: &Path) {
+    let _ = std::fs::remove_file(home.join(LAST_ROUND));
+}
+
+/// Only this machine's own trace counts: a first round mirrors what it pulls before it ever sends.
+pub fn cloud_joined(home: &Path, here: &crate::Here) -> bool {
+    home.join(CARRIED).exists()
+        || tisty_sync::been_here(&here.aside, &home.join(super::TREE), &here.device)
+}
+
+pub fn round_noted(home: &Path, round: &LastRound) {
+    // Kept beside the mirror rather than in the cache, which the system may empty.
+    if round.code == "ok" && !home.join(CARRIED).exists() {
+        let _ = std::fs::create_dir_all(home)
+            .and_then(|_| std::fs::write(home.join(CARRIED), round.at.to_string()));
+    }
+    let written = serde_json::to_vec(round)
+        .map_err(std::io::Error::other)
+        .and_then(|bytes| {
+            std::fs::create_dir_all(home)?;
+            tisty_core::store::write_atomic(&home.join(LAST_ROUND), &bytes)
+                .map_err(std::io::Error::other)
+        });
+    if let Err(why) = written {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::CLOUD,
+            "how the last round ended could not be written down",
+            &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
+        );
+    }
+}
 
 /// What `tisty doctor` says about a cloud, read off this disk alone: no request, no keychain.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,6 +74,7 @@ pub struct Standing {
     pub paused_here: bool,
     pub halted_until: Option<u64>,
     pub serial: Option<u64>,
+    pub last: Option<LastRound>,
 }
 
 pub fn standing(home: &Path) -> Standing {
@@ -57,6 +107,9 @@ pub fn standing(home: &Path) -> Standing {
             .filter(|one| policy::halted(Some(one), now))
             .and_then(|one| one.halted_until),
         serial: kept.map(|one| one.serial),
+        last: std::fs::read(home.join(LAST_ROUND))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok()),
     }
 }
 

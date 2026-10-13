@@ -4,6 +4,7 @@ import { daysFrom, stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import type { Run, Which, Word } from "./Card";
+import Clouded from "./Clouded";
 import Here from "./Here";
 import { Band, mild, strong, Warned } from "./Rows";
 
@@ -34,6 +35,23 @@ export default function Syncing({
 }: Props) {
   const held = busy !== null;
   const carrying = busy === "sync";
+  if (state.mode === "cloud")
+    return (
+      <>
+        <Band label={t("syncing")} />
+        <section className="rounded-[10px] border border-hair px-4 py-3.5">
+          <Clouded
+            state={state}
+            busy={busy}
+            said={said}
+            trouble={trouble}
+            run={run}
+            fail={fail}
+            carry={carry}
+          />
+        </section>
+      </>
+    );
   return (
     <>
       <Band label={t("syncing")} />

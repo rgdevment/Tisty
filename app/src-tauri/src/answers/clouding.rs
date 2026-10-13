@@ -95,13 +95,15 @@ fn connected(
 }
 
 /// Only a copy that shares with nobody starts on the cloud here; any other way has things to bring over first.
-#[tauri::command]
-pub fn cloud_choose(
-    app: tauri::AppHandle,
-    session: tauri::State<'_, Mutex<Session>>,
-    account: String,
-    email: String,
-) -> Answer<()> {
+#[tauri::command(async)]
+pub async fn cloud_choose(app: tauri::AppHandle, account: String, email: String) -> Answer<()> {
+    // Choosing may reach the cloud to clear a word left there, so it runs away from the window's thread.
+    tauri::async_runtime::spawn_blocking(move || chosen_cloud_now(&app, account, email))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
+}
+
+fn chosen_cloud_now(app: &tauri::AppHandle, account: String, email: String) -> Answer<()> {
     let has_token = secrets_for(&account)
         .and_then(|kept| kept.read(KEPT_AS))
         .map_err(|e| refused(e, "Google Drive"))?
@@ -114,16 +116,23 @@ pub fn cloud_choose(
         account,
         email,
     });
-    let mut session = held(&session);
+    let state = app.state::<Mutex<Session>>();
+    let mut session = held(&state);
     session.refresh_settings();
-    super::storing::changed_to(&mut session, chosen, choosing_cloud)?;
+    let joined = super::storing::cloud_joined(&session);
+    let home = tisty_carrier::cloud_of(Some(&chosen)).map(|at| session.reach.home_of(at));
+    super::storing::changed_to(&mut session, chosen, |one| choosing_cloud(one, joined))?;
     drop(session);
+    if let Some(home) = home {
+        tisty_carrier::round_forgotten(&home);
+    }
     let _ = app.emit("unstuck", ());
     Ok(())
 }
 
 pub(crate) fn choosing_cloud(
     chosen: Sync,
+    joined: bool,
 ) -> impl FnOnce(&mut tisty_core::Config) -> Option<Refusal> {
     let same =
         |was: &CloudAt, now: &CloudAt| was.provider == now.provider && was.account == now.account;
@@ -132,11 +141,12 @@ pub(crate) fn choosing_cloud(
             config.sync = Some(chosen);
             None
         }
-        // The account outlives a change of address, so the new address is only written down.
+        // One never carried into holds nothing, and the same account under a new address is only written down.
         Some(Leaving::Cloud)
-            if tisty_carrier::cloud_of(config.sync.as_ref())
-                .zip(tisty_carrier::cloud_of(Some(&chosen)))
-                .is_some_and(|(was, now)| same(was, now)) =>
+            if !joined
+                || tisty_carrier::cloud_of(config.sync.as_ref())
+                    .zip(tisty_carrier::cloud_of(Some(&chosen)))
+                    .is_some_and(|(was, now)| same(was, now)) =>
         {
             config.sync = Some(chosen);
             None
@@ -200,14 +210,29 @@ fn let_go_held(app: &tauri::AppHandle, account: &str) {
     let Some(session) = app.try_state::<Mutex<Session>>() else {
         return;
     };
-    let tokens = {
+    let (tokens, home) = {
         let session = held(&session);
         let chosen = tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .is_some_and(|at| at.account == account);
-        chosen.then(|| session.reach.taken()).flatten()
+            .filter(|at| at.account == account)
+            .map(|at| session.reach.home_of(at));
+        let tokens = chosen.as_ref().and_then(|_| session.reach.taken());
+        (tokens, chosen)
     };
     if let Some(tokens) = tokens {
         tokens.let_go();
+    }
+    // Settings says so at once, not only after a round finds the door shut.
+    if let Some(home) = home {
+        tisty_carrier::round_noted(
+            &home,
+            &tisty_carrier::LastRound {
+                at: jiff::Timestamp::now().as_second().unsigned_abs(),
+                code: "cloudLost".into(),
+                name: Some("Google Drive".into()),
+                left: 0,
+                names: Vec::new(),
+            },
+        );
     }
 }
 
@@ -215,6 +240,62 @@ fn forgotten(account: &str) -> Answer<()> {
     secrets_for(account)
         .and_then(|kept| kept.forget(KEPT_AS))
         .map_err(|e| refused(e, "Google Drive"))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudStatus {
+    provider: String,
+    account: String,
+    email: String,
+    joined: bool,
+    units_spent: u64,
+    units_a_day: u64,
+    bytes_spent: u64,
+    bytes_a_day: u64,
+    paused_here: bool,
+    halted_until: Option<u64>,
+    owed: usize,
+    last: Option<tisty_carrier::LastRound>,
+}
+
+/// What Settings and Maintenance say of the chosen cloud, read off this disk with no request.
+#[tauri::command(async)]
+pub async fn cloud_status(
+    session: tauri::State<'_, Mutex<Session>>,
+) -> Answer<Option<CloudStatus>> {
+    let (at, home, here) = {
+        let session = held(&session);
+        let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
+            return Ok(None);
+        };
+        let home = session.reach.home_of(&at);
+        (at, home, session.here())
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let joined = tisty_carrier::cloud_joined(&home, &here);
+        Some(status_of(&at, &home, joined))
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))
+}
+
+pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path, joined: bool) -> CloudStatus {
+    let told = tisty_carrier::standing(home);
+    CloudStatus {
+        provider: at.provider.clone(),
+        account: at.account.clone(),
+        email: at.email.clone(),
+        joined,
+        units_spent: told.units_spent,
+        units_a_day: told.units_a_day,
+        bytes_spent: told.bytes_spent,
+        bytes_a_day: told.bytes_a_day,
+        paused_here: told.paused_here,
+        halted_until: told.halted_until,
+        owed: told.owed + told.forgotten,
+        last: told.last,
+    }
 }
 
 #[tauri::command]

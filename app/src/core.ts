@@ -713,6 +713,43 @@ export const checked = (): Promise<Reviewed> => invoke("checked");
 export const twinned = (): Promise<Twins[]> => invoke("twinned");
 export const syncState = (): Promise<Carrying> => invoke("sync_state");
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
+
+export interface Connected {
+  provider: string;
+  account: string;
+  email: string;
+}
+
+export interface LastRound {
+  at: number;
+  code: string;
+  name?: string | null;
+  left: number;
+  names: string[];
+}
+
+export interface CloudStatus {
+  provider: string;
+  account: string;
+  email: string;
+  joined: boolean;
+  unitsSpent: number;
+  unitsADay: number;
+  bytesSpent: number;
+  bytesADay: number;
+  pausedHere: boolean;
+  haltedUntil?: number | null;
+  owed: number;
+  last?: LastRound | null;
+}
+
+export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
+export const cloudChoose = (account: string, email: string): Promise<void> =>
+  invoke("cloud_choose", { account, email });
+export const cloudForget = (account?: string): Promise<void> => invoke("cloud_forget", { account });
+export const cloudRevoke = (account?: string): Promise<void> => invoke("cloud_revoke", { account });
+export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
+export const cloudStatus = (): Promise<CloudStatus | null> => invoke("cloud_status");
 export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {

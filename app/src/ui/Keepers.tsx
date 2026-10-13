@@ -18,7 +18,7 @@ interface Props {
   busy: boolean;
   onTrouble: (said: string) => void;
   onDeciding?: (deciding: boolean) => void;
-  onDone: (at?: string) => void;
+  onDone: (at: string) => void;
 }
 
 interface Standing {
@@ -86,7 +86,7 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
     setStanding({ at: one.into, keeper: "cloud", named: one.named });
   };
 
-  const settle = (work: Promise<unknown>, at?: string) => {
+  const settle = (work: Promise<unknown>, at: string) => {
     setHeld(true);
     work
       .then(() => onDone(at))
@@ -102,11 +102,6 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
       makeRoom(standing.at).then(() => chooseSync(standing.at)),
       standing.at,
     );
-  };
-
-  const alone = () => {
-    if (stuck) return;
-    settle(chooseSync(undefined));
   };
 
   if (standing) {
@@ -219,18 +214,6 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone }: Props) 
           <span className="block truncate text-[11.5px] text-faint">{t("keepersOtherWhy")}</span>
         </span>
       </button>
-
-      <div className="mt-1 border-t border-hair pt-3">
-        <button type="button" disabled={stuck} onClick={alone} className={`${row} border-line`}>
-          <span className="grid size-6 flex-none place-items-center rounded-md bg-soft text-[11.5px] font-semibold text-bg">
-            1
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-medium">{t("welcomeAlone")}</span>
-            <span className="block truncate text-[11.5px] text-faint">{t("welcomeAloneWhy")}</span>
-          </span>
-        </button>
-      </div>
     </div>
   );
 }

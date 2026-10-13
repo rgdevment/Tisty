@@ -1,0 +1,195 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { useCallback, useEffect, useState } from "react";
+import { cloudStanding, type Exit, STORAGE } from "../cloudState";
+import {
+  type Carrying,
+  type CloudStatus,
+  chooseSync,
+  cloudChoose,
+  cloudConnect,
+  cloudForget,
+  cloudPause,
+  cloudRevoke,
+  cloudStatus,
+} from "../core";
+import { stamped } from "../format";
+import { fill, t } from "../locales";
+import { named } from "../previews";
+import { saidPlainly } from "../refusal";
+import { sure } from "../sure";
+import type { Run, Which, Word } from "./Card";
+import Here from "./Here";
+import { mild, risky, strong } from "./Rows";
+
+interface Props {
+  state: Carrying;
+  busy: Which | null;
+  said?: Word;
+  trouble?: Word;
+  run: Run;
+  fail: (word?: Word) => void;
+  carry: (way?: "again") => void;
+}
+
+export default function Clouded({ state, busy, said, trouble, run, fail, carry }: Props) {
+  const [status, setStatus] = useState<CloudStatus | null>(null);
+  const [which, setWhich] = useState(false);
+  const held = busy !== null;
+
+  const look = useCallback(() => {
+    cloudStatus()
+      .then(setStatus)
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(look, [look, state.last, busy]);
+
+  const standing = status ? cloudStanding(status) : null;
+  const paused = status?.pausedHere ?? false;
+  const left = status?.last?.left ?? 0;
+
+  const switched = (on: boolean) => run("sync", cloudPause(!on), look);
+
+  // A copy this machine already carried stays with its account; one never carried may change it.
+  const reconnected = async () => {
+    const account = await cloudConnect();
+    const was = status?.account;
+    if (was && was !== account.account && status?.joined) {
+      await cloudForget(account.account).catch(() => undefined);
+      throw { code: "cloudElsewhere", name: account.email };
+    }
+    await cloudChoose(account.account, account.email);
+    if (was && was !== account.account) await cloudForget(was).catch(() => undefined);
+  };
+
+  const reconnect = () => run("sync", reconnected(), () => carry());
+
+  const stop = () => {
+    const was = status?.account;
+    run(
+      "sync",
+      chooseSync(undefined).then(() => (was ? cloudForget(was) : undefined)),
+      () => {},
+    );
+  };
+
+  const exit = (how: Exit) => {
+    if (how === "reconnect") return reconnect();
+    if (how === "turnOn") return switched(true);
+    openUrl(STORAGE).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
+  };
+
+  const forget = async () => {
+    if (held || !(await sure(t("cloudForgetHereSure")))) return;
+    run("sync", cloudForget(), look);
+  };
+
+  const revoke = async () => {
+    if (held || !(await sure(t("cloudRevokeAllSure")))) return;
+    run("sync", cloudRevoke(), look);
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-2.5 rounded-[10px] border border-hair px-3 py-2">
+        <span className="grid size-6 flex-none place-items-center rounded-md bg-[#1a73e8] text-[11.5px] font-semibold text-white">
+          G
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-medium">{t("cloudGoogle")}</span>
+          <span className="block truncate text-[11.5px] text-faint">
+            {status?.email ?? state.cloud}
+          </span>
+        </span>
+        {!standing && (
+          <span className="flex-none rounded-md bg-hue-green/10 px-1.5 py-0.5 text-[10.5px] text-hue-green">
+            {t("cloudConnectedTag")}
+          </span>
+        )}
+      </div>
+
+      {standing && (
+        <div
+          role="status"
+          className="mt-2.5 flex items-start gap-2.5 rounded-[10px] border border-hue-amber/40 px-3 py-2"
+        >
+          <span className="min-w-0 flex-1 text-[11.5px] leading-relaxed text-soft">
+            <span className="block text-[12.5px] font-semibold text-ink">
+              {standing.name ? fill(standing.said, standing.name) : t(standing.said)}
+            </span>
+            {standing.why ? t(standing.why) : standing.told}
+          </span>
+          {standing.exit && standing.exitSaid && (
+            <button
+              type="button"
+              disabled={held}
+              onClick={() => standing.exit && exit(standing.exit)}
+              className={strong}
+            >
+              {t(standing.exitSaid)}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+        <button type="button" disabled={held || paused} onClick={() => carry()} className={strong}>
+          {busy === "sync" ? t("syncing_") : t("syncNow")}
+        </button>
+        {standing?.exit !== "turnOn" && (
+          <button type="button" disabled={held} onClick={() => switched(paused)} className={mild}>
+            {paused ? t("cloudTurnOn") : t("cloudTurnOff")}
+          </button>
+        )}
+        <span className="ml-auto text-[11.5px] text-faint">
+          {fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))}
+        </span>
+      </div>
+
+      {left > 0 && (
+        <p className="mt-2 text-[12.5px] text-soft">
+          {t("cloudForLater")}: {fill("cloudForLaterCount", String(left))}
+          {(status?.last?.names.length ?? 0) > 0 && (
+            <>
+              {" · "}
+              <button
+                type="button"
+                aria-expanded={which}
+                onClick={() => setWhich(!which)}
+                className="text-accent hover:underline"
+              >
+                {t("cloudSeeWhich")}
+              </button>
+            </>
+          )}
+        </p>
+      )}
+      {which && left > 0 && (
+        <ul className="mt-1 list-disc pl-5 text-[11.5px] text-faint">
+          {status?.last?.names.map((one) => (
+            <li key={one}>{named(one)}</li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
+        <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
+        {status && !status.joined && (
+          <button type="button" disabled={held} onClick={stop} className={mild}>
+            {t("cloudStop")}
+          </button>
+        )}
+        <button type="button" disabled={held} onClick={forget} className={mild}>
+          {t("cloudForgetHere")}
+        </button>
+        <button type="button" disabled={held} onClick={revoke} className={risky}>
+          {t("cloudRevokeAll")}
+        </button>
+      </div>
+
+      <Here held={held} />
+      {trouble?.card === "sync" && <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>}
+      {said?.card === "sync" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
+    </>
+  );
+}
