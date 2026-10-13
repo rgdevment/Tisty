@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type Stage, useComing, useStuck } from "../coming";
+import { type Stage, useCarded, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
 import { underway, useMove } from "../relocation";
@@ -26,7 +26,9 @@ const followed = (stuck: unknown): { heading: Heading; said: Word } => {
 
 export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void }) {
   const coming = useComing();
-  const stuck = useStuck();
+  const told = useStuck();
+  const carded = useCarded();
+  const stuck = (told as { code?: string } | null)?.code === carded && carded ? null : told;
   const move = useMove();
   const [, tick] = useState(0);
 

@@ -33,6 +33,7 @@ export interface Sum {
 
 let now: Coming | null = null;
 let stuck: unknown = null;
+let carded: string | null = null;
 let hearing = false;
 const told = new Set<() => void>();
 const hearers = new Set<(step: Heard) => void>();
@@ -84,6 +85,13 @@ export const ended = (why: unknown) => {
   tell();
 };
 
+/** The trouble a card in Settings already shows with its own way out, so it is not said again elsewhere. */
+export const carding = (code: string | null) => {
+  if (carded === code) return;
+  carded = code;
+  tell();
+};
+
 export const unstuck = () => {
   stuck = null;
   tell();
@@ -108,3 +116,5 @@ const subscribe = (change: () => void) => {
 export const useComing = (): Coming | null => useSyncExternalStore(subscribe, () => now);
 
 export const useStuck = (): unknown => useSyncExternalStore(subscribe, () => stuck);
+
+export const useCarded = (): string | null => useSyncExternalStore(subscribe, () => carded);
