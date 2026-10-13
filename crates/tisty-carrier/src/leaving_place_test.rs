@@ -49,7 +49,7 @@ fn a_folder_has_nothing_to_wipe() {
 }
 
 #[test]
-fn a_round_sends_the_history_and_the_documents_before_the_attachments() {
+fn a_round_sends_the_history_before_the_attachments() {
     for setting in clouds() {
         let who = &setting.name;
         let one = desk(&setting, "dev_a");
@@ -66,9 +66,7 @@ fn a_round_sends_the_history_and_the_documents_before_the_attachments() {
         let first_attachment = sent
             .iter()
             .position(|name| name.starts_with("attachments/"));
-        let last_rest = sent
-            .iter()
-            .rposition(|name| name.starts_with("store/") || name.starts_with("docs/"));
+        let last_rest = sent.iter().rposition(|name| name.starts_with("store/"));
         assert!(
             first_attachment.is_some() && last_rest.is_some(),
             "{who}: {sent:?}"

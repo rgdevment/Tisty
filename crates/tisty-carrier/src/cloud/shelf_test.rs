@@ -1,21 +1,15 @@
 use super::*;
 
 #[test]
-fn a_full_drive_stops_the_attachments_without_stopping_the_round() {
+fn a_shelf_with_nothing_owed_sends_no_history_ahead() {
     for fake in crate::fakes::every() {
         let remote: &dyn Remote = &*fake;
+        let room = tempfile::tempdir().unwrap();
         let mut index = Index::default();
-        let mut shelf = Shelf::over(remote, &mut index);
+        let mut shelf = Shelf::over(remote, &mut index).history_first(room.path());
 
-        let said = shelf.refuse(Hitch::Full, "attachments/ab/foto.jpg", Vec::new());
-
-        assert!(said.is_ok(), "{}", fake.who());
-        assert!(
-            matches!(shelf.full(), Some(Trouble::CloudFull { .. })),
-            "{}: {:?}",
-            fake.who(),
-            shelf.full()
-        );
-        assert!(shelf.paused().is_none(), "{}", fake.who());
+        assert!(shelf.history_sent().is_ok(), "{}", fake.who());
+        assert!(shelf.history_sent().is_ok(), "{}", fake.who());
+        assert_eq!(shelf.early(), 0, "{}", fake.who());
     }
 }

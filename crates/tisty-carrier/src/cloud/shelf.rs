@@ -23,7 +23,6 @@ pub struct Shelf<'a> {
     fetching: bool,
     tree: Option<&'a Path>,
     early: usize,
-    full: Option<Trouble>,
 }
 
 struct Local {
@@ -44,7 +43,6 @@ impl<'a> Shelf<'a> {
             fetching: false,
             tree: None,
             early: 0,
-            full: None,
         }
     }
 
@@ -57,15 +55,18 @@ impl<'a> Shelf<'a> {
         self.early
     }
 
-    pub fn full(&self) -> Option<Trouble> {
-        self.full.clone()
-    }
-
-    fn history_sent(&mut self) -> Option<Hitch> {
-        let tree = self.tree.take()?;
+    fn history_sent(&mut self) -> Result<(), Trouble> {
+        let Some(tree) = self.tree.take() else {
+            return Ok(());
+        };
         let (pushed, hitch) = mirror::push(self.remote, tree, self.index);
         self.early += pushed.put;
-        hitch
+        match hitch {
+            Some(Hitch::Full) => Err(Trouble::CloudFull {
+                provider: self.remote.limits().provider.to_string(),
+            }),
+            _ => Ok(()),
+        }
     }
 
     pub fn fetching_all(remote: &'a dyn Remote, index: &'a mut Index) -> Self {
@@ -102,12 +103,6 @@ impl<'a> Shelf<'a> {
         reference: &str,
         remaining: Vec<String>,
     ) -> Result<(), Trouble> {
-        if matches!(hitch, Hitch::Full) {
-            if let Judged::Stop(trouble) = judge(hitch, self.remote.limits().provider) {
-                self.full = Some(trouble);
-            }
-            return Ok(());
-        }
         if matches!(
             hitch,
             Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)
@@ -259,7 +254,7 @@ impl Attachments for Shelf<'_> {
         let mut given = Given::default();
         let (all, mut asked_for) = locals(round.data, round.buried);
         for (at, one) in all.iter().enumerate() {
-            if self.paused.is_some() || self.full.is_some() {
+            if self.paused.is_some() {
                 break;
             }
             if tisty_core::holes::a_hole(&one.at) {
@@ -269,15 +264,7 @@ impl Attachments for Shelf<'_> {
             if !self.owed(one, &round) {
                 continue;
             }
-            if let Some(hitch) = self.history_sent() {
-                let remaining = all[at..]
-                    .iter()
-                    .filter(|rest| self.owed(rest, &round))
-                    .map(|rest| rest.reference.clone())
-                    .collect();
-                self.refuse(hitch, &one.reference, remaining)?;
-                continue;
-            }
+            self.history_sent()?;
             let (sha256, _) = match attach::hashed(&one.at) {
                 Ok(read) => read,
                 Err(e) => {

@@ -11,7 +11,7 @@ pub fn unreachable(found: Sought, reference: String) -> Refusal {
         Sought::Away => Refusal::of("sharedAway"),
         Sought::Torn => Refusal::about("attachmentTorn", reference),
         Sought::Held => Refusal::about("heldAway", reference),
-        _ => Refusal::about("cannotRead", reference),
+        _ => Refusal::about("attachNotYet", reference),
     }
 }
 
@@ -174,7 +174,9 @@ fn brought(
             Ok(found)
         }
         tisty_carrier::Brought::Later => Err(Refusal::about("cloudLater", reference.to_string())),
-        tisty_carrier::Brought::Absent => Err(Refusal::about("cannotRead", reference.to_string())),
+        tisty_carrier::Brought::Absent => {
+            Err(Refusal::about("attachNotYet", reference.to_string()))
+        }
     }
 }
 

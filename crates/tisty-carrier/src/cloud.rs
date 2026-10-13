@@ -235,15 +235,12 @@ impl Cloud {
                 round.saying,
                 &mut shelf,
             )?;
-            Ok((
-                (moved, shelf.sent(), shelf.early(), shelf.full()),
-                shelf.paused(),
-            ))
+            Ok(((moved, shelf.sent(), shelf.early()), shelf.paused()))
         })?;
-        let (mut moved, attached, early, full) = done.value.unwrap_or_default();
+        let (mut moved, attached, early) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
         moved.sent = attached + mirrored.min(done.uploaded + early);
-        if let Some(trouble) = done.stopped.or(full) {
+        if let Some(trouble) = done.stopped {
             if moved == Moved::default() {
                 return Err(trouble);
             }

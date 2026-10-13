@@ -143,7 +143,7 @@ fn an_attachment_the_cloud_no_longer_has_cannot_be_read() {
 
     let absent = handed_over(ASKED, &looking(data.path(), Brought::Absent));
 
-    assert!(absent.is_err_and(|refused| format!("{refused:?}").contains("cannotRead")));
+    assert!(absent.is_err_and(|refused| format!("{refused:?}").contains("attachNotYet")));
 }
 
 #[test]

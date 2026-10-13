@@ -63,6 +63,7 @@ const KNOWN = [
   "syncRefused",
   "syncBroke",
   "cloudFull",
+  "attachNotYet",
   "cloudLost",
   "cloudElsewhere",
   "cloudNotNow",

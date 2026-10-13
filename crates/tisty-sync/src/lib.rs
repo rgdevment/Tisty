@@ -365,6 +365,17 @@ pub fn carry_through(
         .collect();
     let buried = buried_now(&told, data);
     let adrift = taking && matches!(unclaimed_leaning_on(dest, &told), Holding::Strays(_));
+    if giving {
+        let given = attachments.give(Giving {
+            data,
+            buried: &buried,
+            avowed: &told.kept,
+            again,
+            holds,
+        })?;
+        moved.sent += given.sent;
+        (moved.freed, moved.let_go) = (given.freed, given.let_go);
+    }
     if !alive.is_empty() {
         let papers = carry_papers_leaning_on(
             data,
@@ -399,17 +410,6 @@ pub fn carry_through(
         if papers.brought > 0 {
             saying(Reached::Papers);
         }
-    }
-    if giving {
-        let given = attachments.give(Giving {
-            data,
-            buried: &buried,
-            avowed: &told.kept,
-            again,
-            holds,
-        })?;
-        moved.sent += given.sent;
-        (moved.freed, moved.let_go) = (given.freed, given.let_go);
     }
     if taking && attachments.takes() {
         let reachable = adrift.then(|| named_now(&told, data));
