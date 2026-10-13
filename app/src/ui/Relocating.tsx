@@ -1,25 +1,24 @@
-import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
+import { useComing } from "../coming";
 import {
   type Carrying,
   cloudForget,
   cloudWipe,
   type MovePlan,
-  type Moving,
   moveDropped,
   movePlan,
-  moveTo,
   type Toward,
 } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { endMove, startMove, underway, useMove, watchMove } from "../relocation";
 import { sure } from "../sure";
 import type { Heading } from "../views";
 import Clouding from "./Clouding";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
-import { type Along, Done, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
+import { Done, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
 
 interface Props {
   state: Carrying;
@@ -31,37 +30,40 @@ interface Props {
 
 type Step = "pick" | "folder" | "cloud" | "plan" | "moving" | "waiting" | "done";
 
-// A pause Google asks for that ends within minutes is waited out here; a longer one leaves the choice to the person.
-const SHORT_PAUSE = 180;
-const MARGIN = 2;
-
-const shortPause = (now: Moving): number | undefined =>
-  now.state === "waiting" &&
-  now.reason === "limit" &&
-  typeof now.wait === "number" &&
-  now.wait <= SHORT_PAUSE
-    ? now.wait
-    : undefined;
-
 const firstStep = (heading?: Heading, resume?: Toward): Step =>
   resume ? "plan" : heading === "cloud" ? "cloud" : heading === "folder" ? "folder" : "pick";
 
 export default function Relocating({ state, heading, resume, onClose, onMoved }: Props) {
-  const [step, setStep] = useState<Step>(firstStep(heading, resume));
-  const [toward, setToward] = useState<Toward | undefined>(resume);
+  const now = useMove();
+  const along = useComing();
+  const [chosen, setStep] = useState<Step>(now ? "plan" : firstStep(heading, resume));
+  const [toward, setToward] = useState<Toward | undefined>(now?.toward ?? resume);
   const [plan, setPlan] = useState<MovePlan>();
   const [agreed, setAgreed] = useState(false);
-  const [along, setAlong] = useState<Along>();
-  const [result, setResult] = useState<Moving>();
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const [pausedUntil, setPausedUntil] = useState<number>();
   const settled = useRef(false);
-  const resuming = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const again = useRef<() => void>(() => undefined);
 
-  useEffect(() => () => clearTimeout(resuming.current), []);
+  useEffect(watchMove, []);
+
+  useEffect(() => {
+    if (!now?.failed) return;
+    setTrouble(saidPlainly(now.failed));
+    setToward(now.toward);
+    setStep("plan");
+    endMove();
+  }, [now]);
+
+  const result = now?.failed ? undefined : now?.result;
+  const step: Step =
+    now && !now.failed
+      ? underway(now)
+        ? "moving"
+        : result?.state === "done"
+          ? "done"
+          : "waiting"
+      : chosen;
 
   useEffect(() => {
     if (step !== "plan" || !toward) return;
@@ -70,14 +72,6 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
       .then(setPlan)
       .catch((e) => setTrouble(saidPlainly(e)));
   }, [step, toward]);
-
-  useEffect(() => {
-    if (step !== "moving") return;
-    const off = listen<Along>("bringing", ({ payload }) => setAlong(payload));
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, [step]);
 
   const chose = (next: Toward) => {
     setTrouble(undefined);
@@ -91,45 +85,27 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
 
   const close = () => {
     if (busy) return;
-    clearTimeout(resuming.current);
-    if (connectedHere && toward?.kind === "cloud" && !result) letGoUnused(toward.account);
+    if (now && underway(now)) {
+      onClose();
+      return;
+    }
+    if (connectedHere && toward?.kind === "cloud" && !now) letGoUnused(toward.account);
     if (leftCloud && !settled.current) void cloudForget(leftCloud.account).catch(() => undefined);
     if (done) onMoved();
+    endMove();
     onClose();
   };
 
   const move = () => {
     if (!toward || busy) return;
-    clearTimeout(resuming.current);
-    setPausedUntil(undefined);
-    setBusy(true);
     setTrouble(undefined);
-    setAlong(undefined);
-    setStep("moving");
-    moveTo(toward)
-      .then((now) => {
-        const wait = shortPause(now);
-        if (wait !== undefined) {
-          const until = Date.now() + (wait + MARGIN) * 1000;
-          setResult(now);
-          setPausedUntil(until);
-          resuming.current = setTimeout(() => again.current(), until - Date.now());
-          return;
-        }
-        setResult(now);
-        setStep(now.state === "done" ? "done" : "waiting");
-      })
-      .catch((e) => {
-        setTrouble(saidPlainly(e));
-        setStep("plan");
-      })
-      .finally(() => setBusy(false));
+    startMove(toward);
   };
-  again.current = move;
 
   const drop = () => {
     void moveDropped().catch(() => undefined);
     if (toward?.kind === "cloud") letGoUnused(toward.account);
+    endMove();
     onClose();
   };
 
@@ -202,7 +178,9 @@ export default function Relocating({ state, heading, resume, onClose, onMoved }:
         />
       )}
 
-      {step === "moving" && <Underway along={along} pausedUntil={pausedUntil} />}
+      {step === "moving" && (
+        <Underway along={along ?? undefined} pausedUntil={now?.pausedUntil} onHide={close} />
+      )}
 
       {step === "waiting" && result?.state === "waiting" && (
         <Waiting result={result} busy={busy} onDrop={drop} onLater={close} onAgain={move} />

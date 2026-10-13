@@ -66,7 +66,6 @@ const KNOWN = [
   "syncFailed",
   "syncStuckDoc",
   "syncStuckHistory",
-  "cloudBinned",
   "cloudSpent",
   "cloudNoAnswer",
   "cloudDropped",

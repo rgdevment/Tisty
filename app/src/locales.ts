@@ -1011,8 +1011,6 @@ const en = {
   cloudNoAnswer:
     "The browser never came back from Google, so nothing was connected. Try again when you are ready.",
   cloudDropped: "The sign-in was stopped, so nothing was connected.",
-  cloudBinned:
-    "The Tisty folder in {name} is in the bin. Take it out of the bin and sync again; nothing here was changed.",
   cloudSpent:
     "{name} reached what Tisty may ask of it today, so nothing was done. It can be done again {other}.",
   changeUnbacked:
@@ -1212,7 +1210,10 @@ const en = {
   cloudConnectWhy:
     "Your browser opens, you sign in to your account and Google asks whether Tisty may keep its copies there.",
   cloudGoogle: "Google Drive",
-  cloudGoogleWhy: "Tisty only sees the files it creates. Nothing else in your Drive.",
+  cloudGoogleWhy:
+    "Tisty keeps its copies in a hidden space of your Drive and sees nothing else in it.",
+  cloudWhere:
+    "Your copies live in a hidden space of your Google Drive that only Tisty opens. To take them out, move to a folder from Tisty; a backup keeps your tasks and documents. Disconnecting keeps them; removing Tisty in Google Drive › Settings › Manage apps deletes them.",
   cloudOneDrive: "OneDrive",
   cloudDropbox: "Dropbox",
   cloudConnectDo: "Connect",
@@ -1248,7 +1249,7 @@ const en = {
   cloudTurnOn: "Turn on",
   cloudForgetHere: "Disconnect this computer",
   cloudForgetHereSure:
-    "This computer stops reaching Google Drive; your other computers keep syncing. You can connect again whenever you like.",
+    "This computer stops reaching Google Drive; your other computers keep syncing. Your copies stay in your Google Drive, and you can connect again whenever you like.",
   cloudRevokeAll: "Remove Tisty's access on every computer",
   cloudRevokeAllSure:
     "Google takes Tisty's access away from this account on every computer at once. Your copies stay in your Drive, and each computer will have to connect again.",
@@ -1298,6 +1299,12 @@ const en = {
   moveDown:
     "First what lives only in your cloud comes down ({name}), and then it goes to the new place.",
   moveUp: "{name} goes up to the new place, as fast as your connection allows.",
+  moveHomeFirst:
+    "Everything that lives only in the place you leave comes to this computer first, because after the move Tisty no longer reads it.",
+  moveOnDemand:
+    "Once in the cloud, your other computers bring attachments down only when you open them.",
+  moveOldFolderSpace:
+    "If the folder you leave is in Google Drive, it still takes space there until you empty it.",
   moveResumes:
     "If it's cut off, it carries on where it left off. Nothing changes place until everything is there.",
   moveKeepsDrive: "Nothing is deleted in your Google Drive: it stays there until you remove it.",
@@ -1308,7 +1315,11 @@ const en = {
   moveAgree: "I understand the move takes time and can't be left halfway.",
   moveGo: "Move my copies",
   moveMoving: "Moving your copies",
-  moveMovingWhy: "Everything keeps working meanwhile. Keep Tisty open until it ends.",
+  moveMovingWhy:
+    "You can keep working: hide this window and the progress stays at the bottom of the sidebar. Keep Tisty open until it ends.",
+  moveHide: "Hide and keep working",
+  moveShow: "Show",
+  moveStopped: "The move stopped",
   moveWaiting: "The move is waiting",
   movePaused: "Google asked for a pause; it goes on at {name}",
   moveLeft: "{name} files still to move ({other}).",
@@ -1316,12 +1327,13 @@ const en = {
   moveAgain: "Carry on",
   moveLater: "Later",
   moveDone: "Done, your copies are now in {name}",
+  moveDoneAlone: "Done, your copies are now only on this computer",
   moveDoneWhy: "Your other computers were told where you went; each one follows when it syncs.",
-  moveWipe: "Delete my copies in Google Drive",
+  moveWipe: "Delete my copies in Google Drive for good",
   moveWipeSure:
-    "Tisty's copies go to your Google Drive bin, where Google keeps them for 30 days before deleting them for good. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in Drive.",
+    "Tisty's copies are deleted from your Google Drive for good: Tisty's space there has no bin, so they can't be brought back. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in Drive.",
   moveWipeKeep: "Leave them there",
-  moveWiped: "{name} copies went to your Google Drive bin.",
+  moveWiped: "{name} copies were deleted from your Google Drive.",
   movePending: "A move to {name} is halfway.",
   moveDrop: "Drop it",
   moveSamePlace: "This copy already syncs there, so there is nothing to move.",
@@ -1820,7 +1832,8 @@ const en = {
   machineSince: "writing since {name}",
   machineCarried: "accepted on update",
   machineRotated: "followed its earlier key",
-  comingSlow: "The cloud is slow. It keeps bringing; you can work meanwhile.",
+  comingSlow: "This takes a while. It keeps bringing your copies; you can keep working.",
+  comingSlowUp: "This takes a while. It keeps uploading; you can keep working.",
   comingHistory: "Your history is on its way",
   comingHistoryWhy:
     "Tasks show up here as they arrive from the folder. If you close Tisty, it picks up where it left off next time.",
@@ -2878,8 +2891,6 @@ const es: Catalog = {
   cloudNoAnswer:
     "El navegador nunca volvió de Google, así que no se conectó nada. Vuelve a intentarlo cuando quieras.",
   cloudDropped: "Se detuvo el inicio de sesión, así que no se conectó nada.",
-  cloudBinned:
-    "La carpeta Tisty de {name} está en la papelera. Sácala de la papelera y vuelve a sincronizar; aquí no se cambió nada.",
   cloudSpent:
     "{name} llegó a lo que Tisty puede pedirle hoy, así que no se hizo nada. Se puede volver a hacer {other}.",
   changeUnbacked:
@@ -3081,7 +3092,9 @@ const es: Catalog = {
   cloudConnectWhy:
     "Se abre tu navegador, entras en tu cuenta y Google te pregunta si Tisty puede guardar ahí sus copias.",
   cloudGoogle: "Google Drive",
-  cloudGoogleWhy: "Tisty solo ve los archivos que él mismo crea. Nada más de tu Drive.",
+  cloudGoogleWhy: "Tisty guarda sus copias en un espacio oculto de tu Drive y no ve nada más.",
+  cloudWhere:
+    "Tus copias viven en un espacio oculto de tu Google Drive que solo abre Tisty. Para sacarlas, múdate a una carpeta desde Tisty; un respaldo guarda tus tareas y documentos. Desconectar las conserva; quitar Tisty en Google Drive › Configuración › Administrar apps las borra.",
   cloudOneDrive: "OneDrive",
   cloudDropbox: "Dropbox",
   cloudConnectDo: "Conectar",
@@ -3116,7 +3129,7 @@ const es: Catalog = {
   cloudTurnOn: "Encender",
   cloudForgetHere: "Desconectar este equipo",
   cloudForgetHereSure:
-    "Este equipo deja de llegar a Google Drive; tus otros equipos siguen sincronizando. Puedes volver a conectarlo cuando quieras.",
+    "Este equipo deja de llegar a Google Drive; tus otros equipos siguen sincronizando. Tus copias quedan en tu Google Drive, y puedes volver a conectarlo cuando quieras.",
   cloudRevokeAll: "Quitar el acceso de Tisty en todos tus equipos",
   cloudRevokeAllSure:
     "Google le quita a Tisty el acceso a esta cuenta en todos tus equipos a la vez. Tus copias quedan en tu Drive, y cada equipo tendrá que conectarse de nuevo.",
@@ -3166,6 +3179,11 @@ const es: Catalog = {
   moveDown:
     "Primero se baja lo que solo vive en tu nube ({name}), y después se lleva al nuevo lugar.",
   moveUp: "Se suben {name} al nuevo lugar, tan rápido como lo permita tu conexión.",
+  moveHomeFirst:
+    "Primero llega a este equipo todo lo que solo vive en el lugar que dejas, porque después de la mudanza Tisty ya no lo lee.",
+  moveOnDemand: "Ya en la nube, tus otros equipos bajan los adjuntos solo cuando los abres.",
+  moveOldFolderSpace:
+    "Si la carpeta que dejas está en Google Drive, sigue ocupando espacio ahí hasta que la vacíes.",
   moveResumes: "Si se corta, sigue donde quedó. No se cambia de lugar hasta tenerlo todo.",
   moveKeepsDrive: "En tu Google Drive no se borra nada: queda ahí hasta que tú lo quites.",
   moveOthersFollow:
@@ -3175,7 +3193,11 @@ const es: Catalog = {
   moveAgree: "Entiendo que la mudanza tarda y que no se puede dejar a medias.",
   moveGo: "Mover mis copias",
   moveMoving: "Moviendo tus copias",
-  moveMovingWhy: "Mientras tanto todo funciona igual. Deja Tisty abierto hasta que termine.",
+  moveMovingWhy:
+    "Puedes seguir trabajando: oculta esta ventana y el avance queda abajo en la barra lateral. Deja Tisty abierto hasta que termine.",
+  moveHide: "Ocultar y seguir trabajando",
+  moveShow: "Ver",
+  moveStopped: "La mudanza se detuvo",
   moveWaiting: "La mudanza quedó en espera",
   movePaused: "Google pidió una pausa; sigue a las {name}",
   moveLeft: "Faltan {name} archivos por mover ({other}).",
@@ -3183,13 +3205,14 @@ const es: Catalog = {
   moveAgain: "Seguir",
   moveLater: "Después",
   moveDone: "Listo, tus copias ya están en {name}",
+  moveDoneAlone: "Listo, tus copias ya están solo en este equipo",
   moveDoneWhy:
     "Tus otros equipos quedaron avisados de adónde te fuiste; cada uno te sigue cuando sincroniza.",
-  moveWipe: "Borrar mis copias en Google Drive",
+  moveWipe: "Borrar para siempre mis copias en Google Drive",
   moveWipeSure:
-    "Las copias de Tisty van a la papelera de tu Google Drive, donde Google las guarda 30 días antes de borrarlas para siempre. Todo sigue en este equipo y en el nuevo lugar. En Drive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
+    "Las copias de Tisty se borran para siempre de tu Google Drive: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En Drive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   moveWipeKeep: "Dejarlas ahí",
-  moveWiped: "{name} copias quedaron en la papelera de tu Google Drive.",
+  moveWiped: "Se borraron {name} copias de tu Google Drive.",
   movePending: "Hay una mudanza a medias hacia {name}.",
   moveDrop: "Dejarla",
   moveSamePlace: "Esta copia ya sincroniza ahí, así que no hay nada que mover.",
@@ -3689,7 +3712,8 @@ const es: Catalog = {
   machineSince: "escribe desde {name}",
   machineCarried: "aceptado al actualizar",
   machineRotated: "siguió a su clave anterior",
-  comingSlow: "La nube va lenta. Sigue trayendo; puedes trabajar mientras.",
+  comingSlow: "Esto toma un rato. Sigue trayendo tus copias; puedes seguir trabajando.",
+  comingSlowUp: "Esto toma un rato. Sigue subiendo; puedes seguir trabajando.",
   comingHistory: "Tu historia viene en camino",
   comingHistoryWhy:
     "Las tareas aparecen aquí en cuanto llegan desde la carpeta. Si cierras Tisty, sigue donde quedó la próxima vez.",

@@ -50,6 +50,11 @@ export const towardOf = (toward: Toward): string =>
       ? toward.at
       : t("welcomeAlone");
 
+export const doneSaid = (toward: Toward): string =>
+  toward.kind === "alone"
+    ? t("moveDoneAlone")
+    : fill("moveDone", toward.kind === "cloud" ? t("cloudGoogle") : toward.at);
+
 function Option({ said, why, onPick }: { said: string; why: string; onPick: () => void }) {
   return (
     <button type="button" className={row} onClick={onPick}>
@@ -124,7 +129,10 @@ export function Plan({
       {plan && (
         <ul className={`${box} list-disc pl-7`}>
           {plan.down.files > 0 && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
+          <li>{t("moveHomeFirst")}</li>
           {plan.toCloud && plan.up.files > 0 && <li>{fill("moveUp", weigh(plan.up.bytes))}</li>}
+          {plan.toCloud && <li>{t("moveOnDemand")}</li>}
+          {plan.toCloud && state.mode === "folder" && <li>{t("moveOldFolderSpace")}</li>}
           <li>{t("moveResumes")}</li>
           {plan.fromCloud && <li>{t("moveKeepsDrive")}</li>}
           {plan.fromCloud && toward.kind === "folder" && <li>{t("moveDesktopTip")}</li>}
@@ -157,7 +165,15 @@ export function Plan({
   );
 }
 
-export function Underway({ along, pausedUntil }: { along?: Along; pausedUntil?: number }) {
+export function Underway({
+  along,
+  pausedUntil,
+  onHide,
+}: {
+  along?: Along;
+  pausedUntil?: number;
+  onHide: () => void;
+}) {
   const share = along?.whole ? Math.min(100, Math.round((along.done / along.whole) * 100)) : 10;
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
@@ -179,6 +195,9 @@ export function Underway({ along, pausedUntil }: { along?: Along; pausedUntil?: 
           style={{ width: `${share}%` }}
         />
       </span>
+      <button type="button" onClick={onHide} className={`mt-1 self-end ${go}`}>
+        {t("moveHide")}
+      </button>
     </div>
   );
 }
@@ -244,7 +263,7 @@ export function Done({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[13px] font-semibold">{fill("moveDone", towardOf(toward))}</p>
+      <p className="text-[13px] font-semibold">{doneSaid(toward)}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">
         {t(untold ? "moveUntold" : "moveDoneWhy")}
       </p>

@@ -1,8 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Carrying } from "../core";
 import { adopt, fill, t } from "../locales";
+import { endMove } from "../relocation";
+import MoveNotice from "../ui/MoveNotice";
 import Relocating from "../ui/Relocating";
 
 const ipc = vi.hoisted(() => ({
@@ -84,6 +86,8 @@ beforeEach(() => {
   adopt("en");
 });
 
+afterEach(() => act(() => endMove()));
+
 describe("moving to another place", () => {
   it("says what comes down from the cloud and that nothing is deleted there", async () => {
     opened({ resume: { kind: "folder", at: "G:/Mi unidad/Tisty" } });
@@ -117,7 +121,7 @@ describe("moving to another place", () => {
     await agreedAndMoved();
 
     expect(sent("move_to")[0].args.toward).toEqual({ kind: "alone" });
-    expect(await screen.findByText(fill("moveDone", t("welcomeAlone")))).toBeTruthy();
+    expect(await screen.findByText(t("moveDoneAlone"))).toBeTruthy();
   });
 
   it("says why a move waits and how much is left, and carries on when asked", async () => {
@@ -157,7 +161,7 @@ describe("moving to another place", () => {
     ).toBeTruthy();
     expect(screen.queryByText(t("moveWaiting"))).toBeNull();
     await waitFor(() => expect(sent("move_to")).toHaveLength(2), { timeout: 5_000 });
-    expect(await screen.findByText(fill("moveDone", t("welcomeAlone")))).toBeTruthy();
+    expect(await screen.findByText(t("moveDoneAlone"))).toBeTruthy();
   });
 
   it("leaves a long pause to the person instead of waiting it out", async () => {
@@ -192,7 +196,7 @@ describe("moving to another place", () => {
     expect(closed).toHaveBeenCalled();
   });
 
-  it("bins the copies left in the cloud once the person is sure, then closes", async () => {
+  it("deletes the copies left in the cloud for good once the person is sure, then closes", async () => {
     ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: ANA });
     ipc.answers.cloud_wipe = () => Promise.resolve(12);
     const { moved } = opened();
@@ -274,5 +278,58 @@ describe("a move whose word could not reach the others", () => {
 
     expect(sent("cloud_status")).toHaveLength(0);
     expect(sent("cloud_forget")).toHaveLength(0);
+  });
+});
+
+describe("a move that runs out of sight", () => {
+  it("hides while it moves and goes on telling it in the sidebar", async () => {
+    ipc.answers.move_to = () => new Promise(() => undefined);
+    const closed = vi.fn();
+    const { unmount } = render(
+      <Relocating
+        state={cloud}
+        resume={{ kind: "cloud", account: ANA.account, email: ANA.email }}
+        onClose={closed}
+        onMoved={() => undefined}
+      />,
+    );
+    await agreedAndMoved();
+    await userEvent.click(await screen.findByRole("button", { name: t("moveHide") }));
+    unmount();
+    render(<MoveNotice onOpen={() => undefined} />);
+
+    expect(closed).toHaveBeenCalled();
+    expect(sent("cloud_forget")).toHaveLength(0);
+    expect(screen.getByText(t("moveMoving"))).toBeTruthy();
+  });
+
+  it("tells a finished move nobody watched, and opens it when asked", async () => {
+    ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: null });
+    const open = vi.fn();
+    const { unmount } = render(
+      <Relocating
+        state={cloud}
+        resume={{ kind: "cloud", account: ANA.account, email: ANA.email }}
+        onClose={() => undefined}
+        onMoved={() => undefined}
+      />,
+    );
+    await agreedAndMoved();
+    await screen.findByText(fill("moveDone", t("cloudGoogle")));
+    unmount();
+    render(<MoveNotice onOpen={open} />);
+
+    expect(screen.getByText(fill("moveDone", t("cloudGoogle")))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("moveShow") }));
+    expect(open).toHaveBeenCalled();
+  });
+
+  it("stays quiet while the move window is open", async () => {
+    ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: null });
+    render(<MoveNotice onOpen={() => undefined} />);
+    opened();
+    await agreedAndMoved();
+
+    expect(await screen.findAllByText(t("moveDoneAlone"))).toHaveLength(1);
   });
 });
