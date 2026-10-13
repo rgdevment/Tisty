@@ -169,7 +169,12 @@ impl Cloud {
                     }),
                 );
             }
-            Some(Judged::Stop(trouble)) => stopped = Some(trouble),
+            Some(Judged::Stop(trouble)) => {
+                stopped = Some(match (trouble, pushed.stuck.clone()) {
+                    (Trouble::Broke(why), Some(name)) => Trouble::StuckOn { name, why },
+                    (trouble, _) => trouble,
+                })
+            }
             None if pushed.left > 0 => {
                 deferred = merged(
                     deferred,
@@ -237,18 +242,22 @@ impl Cloud {
                 round.saying,
                 &mut shelf,
             )?;
-            Ok(((moved, shelf.sent(), shelf.early()), shelf.paused()))
+            Ok((
+                (moved, shelf.sent(), shelf.early(), shelf.full()),
+                shelf.paused(),
+            ))
         })?;
-        let (mut moved, attached, early) = done.value.unwrap_or_default();
+        let (mut moved, attached, early, full) = done.value.unwrap_or_default();
         let mirrored = moved.sent.saturating_sub(attached);
         moved.sent = attached + mirrored.min(done.uploaded + early);
-        if let Some(trouble) = done.stopped {
+        let unsent = moved.deferred.take();
+        if let Some(trouble) = done.stopped.or(full) {
             if moved == Moved::default() {
                 return Err(trouble);
             }
             moved.refused = Some(trouble);
         }
-        moved.deferred = done.deferred;
+        moved.deferred = merged(unsent, done.deferred);
         Ok(moved)
     }
 
@@ -370,10 +379,12 @@ fn idle(here: &Here, unused_since: SystemTime) -> Result<BTreeSet<String>, Troub
 // What the person can do least about speaks: a spent day outlasts a file that changed mid-round.
 fn weight(reason: Reason) -> u8 {
     match reason {
-        Reason::Paused => 5,
-        Reason::Budget => 4,
-        Reason::Offline => 3,
-        Reason::Limit => 2,
+        Reason::Paused => 7,
+        Reason::Budget => 6,
+        Reason::Offline => 5,
+        Reason::Troubled => 4,
+        Reason::Limit => 3,
+        Reason::Unsent => 2,
         Reason::Busy => 1,
         Reason::Changed => 0,
     }

@@ -28,9 +28,12 @@ pub(super) fn quoted(text: &str) -> String {
     text.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
+// A line cut while the body was still coming is no connection, never a shape Tisty misreads.
 pub(super) fn json<T: serde::de::DeserializeOwned>(answer: Response) -> Result<T, Hitch> {
-    serde_json::from_reader(answer)
-        .map_err(|_| Hitch::Broke("Google Drive answered in a shape Tisty does not read".into()))
+    serde_json::from_reader(answer).map_err(|e| match e.is_io() {
+        true => Hitch::Unreachable(e.to_string()),
+        false => Hitch::Broke("Google Drive answered in a shape Tisty does not read".into()),
+    })
 }
 
 impl Drive {
@@ -124,7 +127,7 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
         (412, _) => Hitch::Changed(message),
         (500.., _) => match wait {
             Some(wait) => Hitch::Limited { wait },
-            None => Hitch::Unreachable(format!("Google Drive answered {status}")),
+            None => Hitch::Troubled(format!("Google Drive answered {status}")),
         },
         _ => Hitch::Broke(format!("Google Drive refused: {status} {reason} {message}")),
     })

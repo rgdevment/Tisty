@@ -69,11 +69,9 @@ pub fn shift(
             return Ok(Shift::Unsettled);
         };
         let owed = homing(from, here);
-        if !owed.nothing() || moved.deferred.is_some() {
-            return Ok(Shift::Homing {
-                owed,
-                deferred: moved.deferred,
-            });
+        let deferred = holding_back(moved.deferred);
+        if !owed.nothing() || deferred.is_some() {
+            return Ok(Shift::Homing { owed, deferred });
         }
     }
     if let Some(to) = to {
@@ -82,11 +80,9 @@ pub fn shift(
             return Ok(Shift::Unsettled);
         };
         let owed = filling(to, here);
-        if !owed.nothing() || moved.deferred.is_some() {
-            return Ok(Shift::Filling {
-                owed,
-                deferred: moved.deferred,
-            });
+        let deferred = holding_back(moved.deferred);
+        if !owed.nothing() || deferred.is_some() {
+            return Ok(Shift::Filling { owed, deferred });
         }
     }
     Ok(Shift::Ready)
@@ -106,7 +102,12 @@ pub fn all_home(from: &dyn Carrier, here: &Here, alive: &[String]) -> Result<boo
     let Some(moved) = settled(moved)? else {
         return Ok(false);
     };
-    Ok(moved.brought == 0 && moved.deferred.is_none() && homing(from, here).nothing())
+    Ok(moved.brought == 0 && holding_back(moved.deferred).is_none() && homing(from, here).nothing())
+}
+
+// What can never go up, too big for the cloud, is already left out of what is owed, so it holds no move back.
+fn holding_back(deferred: Option<Deferred>) -> Option<Deferred> {
+    deferred.filter(|one| one.reason != crate::Reason::Unsent)
 }
 
 pub fn homing(from: &dyn Carrier, here: &Here) -> Owed {

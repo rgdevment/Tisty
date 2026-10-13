@@ -1909,3 +1909,6 @@ fn a_word_left_in_the_place_reaches_the_other_machine_and_forgetting_it_takes_it
         );
     }
 }
+
+#[path = "cloud_rounds_test.rs"]
+mod rounds;

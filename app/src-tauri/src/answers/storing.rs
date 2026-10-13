@@ -6,7 +6,7 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
     Answer, Carrying, Filter, OneAtATime, Refusal, Scope, Session, Settling, blamed, elsewhere,
-    glimpse, held, report, room, said, session, show, today, within,
+    glimpse, held, report, room, said, said_carrying, session, show, today, within,
 };
 
 fn said_now_held(session: &tauri::State<'_, Mutex<Session>>, took_in: &[(String, String, u64)]) {
@@ -742,6 +742,7 @@ pub async fn sync_now(
             unprojected: false,
             joined: Vec::new(),
             deferred: None,
+            refused: None,
         });
     };
     let (was, home) = {
@@ -779,6 +780,16 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) {
     let at = jiff::Timestamp::now().as_second().unsigned_abs();
     let round = match done {
         Ok(settled) if settled.carried == "busy" => return,
+        Ok(Settled {
+            refused: Some(stuck),
+            ..
+        }) => tisty_carrier::LastRound {
+            at,
+            code: stuck.code.into(),
+            name: stuck.name.clone(),
+            left: 0,
+            names: Vec::new(),
+        },
         Ok(settled) => match &settled.deferred {
             Some(waiting) => tisty_carrier::LastRound {
                 at,
@@ -910,7 +921,9 @@ async fn carried_round(
         done
     })
     .await;
-    let done = done.map_err(|_| Refusal::of("internal"))?.map_err(said)?;
+    let done = done
+        .map_err(|_| Refusal::of("internal"))?
+        .map_err(|trouble| said_carrying(&paths, trouble))?;
     answering(session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
@@ -999,10 +1012,21 @@ async fn carried_round(
         );
     }
     let heard = done.brought > 0;
-    let _ = session.keep(|c| {
-        c.synced_at = Some(jiff::Timestamp::now());
-        if heard {
-            c.heard_at = c.synced_at;
+    // A round left for later that moved nothing did not sync, so the window does not say it just did.
+    let idle = done.deferred.is_some() && carried == 0 && !moved;
+    if !idle {
+        let _ = session.keep(|c| {
+            c.synced_at = Some(jiff::Timestamp::now());
+            if heard {
+                c.heard_at = c.synced_at;
+            }
+        });
+    }
+    let refused = done.refused.clone().map(|trouble| {
+        let refusal = said_carrying(&paths, trouble);
+        Stuck {
+            code: refusal.code,
+            name: refusal.name,
         }
     });
     Ok(Settled {
@@ -1028,10 +1052,13 @@ async fn carried_round(
                 tisty_carrier::Reason::Busy => "busy",
                 tisty_carrier::Reason::Paused => "paused",
                 tisty_carrier::Reason::Changed => "changed",
+                tisty_carrier::Reason::Troubled => "troubled",
+                tisty_carrier::Reason::Unsent => "unsent",
             },
             left: deferred.left,
             names: deferred.names,
         }),
+        refused,
     })
 }
 
@@ -1048,6 +1075,8 @@ pub struct Settled {
     unprojected: bool,
     joined: Vec<String>,
     deferred: Option<Waiting>,
+    /// What stopped the round after part of it went through, said as a refusal would be.
+    refused: Option<Stuck>,
 }
 
 #[derive(serde::Serialize)]

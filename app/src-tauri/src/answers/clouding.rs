@@ -23,7 +23,15 @@ pub(crate) fn refused(hitch: Hitch, provider: &str) -> Refusal {
         Hitch::Lost => Refusal::about("cloudLost", provider.to_string()),
         Hitch::Elsewhere { found } => Refusal::about("cloudElsewhere", found),
         Hitch::Full => Refusal::about("cloudFull", provider.to_string()),
-        Hitch::Broke(why) => Refusal::about("syncBroke", why),
+        Hitch::Binned => Refusal::about("cloudBinned", provider.to_string()),
+        Hitch::Broke(why) => {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::CLOUD,
+                "the cloud refused what was asked",
+                &[("why", tisty_core::witness::Fact::Why(why))],
+            );
+            Refusal::of("syncFailed")
+        }
         _ => Refusal::of("cloudNotNow"),
     }
 }

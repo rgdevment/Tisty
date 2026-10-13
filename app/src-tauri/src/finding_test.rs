@@ -104,7 +104,6 @@ fn looking(data: &Path, answer: Brought) -> Where {
                 device: "dev_a".into(),
             },
         )),
-        unvouched: Default::default(),
         weight: None,
     }
 }
@@ -116,11 +115,10 @@ fn an_attachment_not_here_is_asked_of_the_cloud_and_served_from_where_it_landed(
     let at = looking(data.path(), Brought::At(landed.clone()));
 
     assert_eq!(handed_over(ASKED, &at).unwrap(), landed);
-    assert!(at.unvouched.lock().unwrap().is_none());
 }
 
 #[test]
-fn what_came_down_with_no_history_behind_it_is_kept_to_be_written_down() {
+fn what_came_down_with_no_history_behind_it_is_served_and_left_unvouched() {
     let data = tempfile::tempdir().unwrap();
     let landed = data.path().join("landed.png");
     let at = looking(
@@ -133,8 +131,10 @@ fn what_came_down_with_no_history_behind_it_is_kept_to_be_written_down() {
     );
 
     assert_eq!(handed_over(ASKED, &at).unwrap(), landed);
-    let held = at.unvouched.lock().unwrap().take().unwrap();
-    assert_eq!((held.at.as_str(), held.bytes), (ASKED, 7));
+    assert!(
+        tisty_core::store::read_all(data.path().join("store")).map_or(true, |all| all.is_empty()),
+        "a name alone was written into the log as held"
+    );
 }
 
 #[test]

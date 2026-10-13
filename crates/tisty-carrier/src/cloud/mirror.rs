@@ -16,10 +16,12 @@ const LITTER_AFTER: Duration = Duration::from_secs(24 * 60 * 60);
 
 static TURN: AtomicU64 = AtomicU64::new(0);
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Pushed {
     pub put: usize,
     pub left: usize,
+    /// The file whose broken write stopped the push, so the person learns which one holds the rest back.
+    pub stuck: Option<String>,
 }
 
 struct Found {
@@ -313,6 +315,7 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
     for (at, one) in rest.iter().enumerate() {
         if let Err(hitch) = upload(remote, index, one, &mut done) {
             done.left += rest.len() - at + gone.len() + stamp.len();
+            done.stuck = matches!(hitch, Hitch::Broke(_)).then(|| one.name.clone());
             return (done, Some(hitch));
         }
     }
@@ -321,7 +324,10 @@ pub fn push(remote: &dyn Remote, tree: &Path, index: &mut Index) -> (Pushed, Opt
             Ok(()) | Err(Hitch::Missing(_)) => {
                 index.tree.remove(name);
             }
-            Err(Hitch::Changed(_)) => done.left += 1,
+            Err(Hitch::Changed(_)) => {
+                done.left += 1;
+                read_again(remote, index, name);
+            }
             Err(hitch) => {
                 done.left += gone.len() - at + stamp.len();
                 return (done, Some(hitch));
@@ -391,9 +397,23 @@ fn upload(
         }
         Err(Hitch::Changed(_) | Hitch::Missing(_)) => {
             done.left += 1;
+            read_again(remote, index, &one.name);
             Ok(())
         }
         Err(other) => Err(other),
+    }
+}
+
+// What refused a write is read again, since a change the provider never tells would leave the write refused every round.
+fn read_again(remote: &dyn Remote, index: &mut Index, name: &str) {
+    match remote.about(name) {
+        Ok(Some(seen)) => {
+            index.owed.insert(name.to_string(), seen);
+        }
+        Ok(None) => {
+            index.tree.remove(name);
+        }
+        Err(_) => {}
     }
 }
 

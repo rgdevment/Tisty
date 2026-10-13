@@ -63,9 +63,14 @@ fn what_google_answers_reads_as_what_the_window_can_say() {
         refused(Hitch::Unreachable("sin red".into()), "Google Drive").code,
         "cloudNotNow"
     );
+    let broke = refused(
+        Hitch::Broke("Google Drive refused: 400".into()),
+        "Google Drive",
+    );
+    assert_eq!(broke.code, "syncFailed");
     assert_eq!(
-        refused(Hitch::Broke("x".into()), "Google Drive").code,
-        "syncBroke"
+        broke.name, None,
+        "a provider's English reached a window that may speak Spanish"
     );
 }
 

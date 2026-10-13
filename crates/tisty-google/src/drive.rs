@@ -246,9 +246,7 @@ impl Drive {
         }
         let roots = roots_in(ROOT, &all);
         if roots.is_empty() && self.binned()? {
-            return Err(Hitch::Broke(
-                "the Tisty folder in Google Drive is in the bin; take it out, and nothing here was changed".into(),
-            ));
+            return Err(Hitch::Binned);
         }
         if let Ok(mut held) = self.roots.lock() {
             *held = Some(roots.clone());
