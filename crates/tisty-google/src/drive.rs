@@ -56,9 +56,11 @@ struct Known {
     tree: Tree,
     cursor: Option<String>,
     // Each cursor reached with the paths that moved to reach it, so one asked from an older cursor hears all of them again.
-    passed: Vec<(String, BTreeSet<String>)>,
+    passed: Passed,
     current_at: Instant,
 }
+
+type Passed = Vec<(String, BTreeSet<String>)>;
 
 const PASSED_AT_MOST: usize = 64;
 
@@ -352,18 +354,35 @@ impl Drive {
             .caught_up(&cursor, &theirs, &next, remembered)
             .is_none()
         {
-            self.listed(Some(next))?;
+            let before = self.known.lock().ok().and_then(|held| {
+                held.as_ref()
+                    .map(|known| (known.tree.clone(), known.passed.clone()))
+            });
+            self.listed(Some(next.clone()))?;
             self.laid_over(&theirs);
+            self.passed_kept(before, &next);
         }
         Ok(true)
     }
 
+    // The cursor a round asks from stays known across a listing taken between rounds, with every path it changed, so that round lists nothing again.
+    fn passed_kept(&self, before: Option<(Tree, Passed)>, cursor: &str) {
+        let Some((was, passed)) = before else {
+            return;
+        };
+        if let Ok(mut held) = self.known.lock()
+            && let Some(known) = held.as_mut()
+        {
+            let touched = tree::differing(&was, &known.tree);
+            known.passed = passed;
+            known.moved_to(cursor, touched);
+        }
+    }
+
+    // The verb's own look pays for this ask, so it goes unmetered here.
     fn fresh(&self, file: &File, name: &str) -> Result<Option<File>, Hitch> {
-        let url = format!("{}/files/{}", self.at.api, file.id);
-        let now: File = match self.call(Some(ASKED_WITHIN), |http| {
-            http.get(&url).query(&[("fields", FILE_FIELDS)])
-        }) {
-            Ok(answer) => json(answer)?,
+        let now = match self.file_now(&file.id) {
+            Ok(now) => now,
             Err(Hitch::Missing(_)) => return Ok(None),
             Err(other) => return Err(other),
         };
@@ -745,11 +764,7 @@ impl Remote for Drive {
             self.set_aside(name, first)?;
         }
         for one in &all {
-            let url = format!("{}/files/{}", self.at.api, one.id);
-            match self.call(Some(ASKED_WITHIN), |http| http.delete(&url)) {
-                Ok(_) | Err(Hitch::Missing(_)) => self.owned(&one.id, None),
-                Err(other) => return Err(other),
-            }
+            self.deleted_for_good(&one.id)?;
         }
         self.noted(|tree| {
             tree.files.remove(name);

@@ -77,7 +77,7 @@ impl Drive {
             Ok(None) => return Ok(()),
             Ok(Some(restored)) => restored,
             Err(failed) => {
-                self.owe(Owed::back(name, landed, checked));
+                self.owe(Owed::back(name, landed, checked))?;
                 return Err(failed);
             }
         };

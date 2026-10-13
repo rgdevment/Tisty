@@ -250,3 +250,54 @@ fn a_folder_a_current_tree_does_not_hold_is_searched_once_so_two_machines_meet_i
     assert_eq!(searched(&asked), 0);
     assert!(String::from_utf8_lossy(&asked[5].body).contains(r#""parents":["B"]"#));
 }
+
+#[test]
+fn a_listing_taken_between_rounds_still_knows_the_cursor_the_next_round_asks_from() {
+    let home = tempfile::tempdir().unwrap();
+    let renamed = r#"{"id":"H","name":"attachments2","parents":["R"],"mimeType":"application/vnd.google-apps.folder"},
+    {"id":"B","name":"ab","parents":["H"],"mimeType":"application/vnd.google-apps.folder"}"#;
+    let (at, asked) = google(vec![
+        said("200 OK", r#"{"startPageToken":"10"}"#),
+        said("200 OK", &whole(&format!("{SHARD},{LANDED}"))),
+        said(
+            "200 OK",
+            r#"{"changes":[{"fileId":"H","file":{"id":"H","name":"attachments2","parents":["R"],"mimeType":"application/vnd.google-apps.folder"}}],"newStartPageToken":"11"}"#,
+        ),
+        said("200 OK", &whole(&format!("{renamed},{LANDED}"))),
+        said("200 OK", r#"{"changes":[],"newStartPageToken":"11"}"#),
+    ]);
+    let drive = drive(at, home.path());
+    drive.changes(None).unwrap();
+    aged(&drive);
+    assert_eq!(drive.about("attachments/ab/m.bin"), Ok(None));
+
+    let round = drive.changes(Some("10")).unwrap();
+
+    let Changes::Since {
+        changed,
+        gone,
+        cursor,
+    } = round
+    else {
+        panic!("{round:?}");
+    };
+    assert_eq!(cursor, "11");
+    assert_eq!(gone, vec!["attachments/ab/n.bin".to_string()]);
+    assert_eq!(
+        changed
+            .iter()
+            .map(|one| one.name.as_str())
+            .collect::<Vec<_>>(),
+        ["attachments2/ab/n.bin"]
+    );
+    let asked = asked.join().unwrap();
+    assert_eq!(asked.len(), 5, "{asked:?}");
+    assert_eq!(
+        asked
+            .iter()
+            .filter(|one| one.line.contains("q=trashed"))
+            .count(),
+        2,
+        "the round listed the drive again right after a listing between rounds"
+    );
+}

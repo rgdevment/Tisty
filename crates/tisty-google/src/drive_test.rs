@@ -1700,3 +1700,6 @@ mod answers;
 
 #[path = "drive_fresh_test.rs"]
 mod fresh;
+
+#[path = "drive_bin_test.rs"]
+mod bin;

@@ -6,7 +6,7 @@ use tisty_carrier::Hitch;
 use super::Drive;
 use super::tree::File;
 
-/// Another machine's bytes a write covered and could not yet put back, kept until they are.
+/// Bytes a write covered or a deletion set aside and could not yet put back, kept until they are.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "owed", rename_all = "lowercase")]
 pub(super) enum Owed {
@@ -17,6 +17,12 @@ pub(super) enum Owed {
         checked_md5: Option<String>,
         landed_head: Option<String>,
         landed_md5: Option<String>,
+    },
+    Unbinned {
+        name: String,
+        id: String,
+        parent: String,
+        bin: String,
     },
 }
 
@@ -30,6 +36,10 @@ impl Owed {
             landed_head: landed.head_revision_id.clone(),
             landed_md5: landed.md5_checksum.clone(),
         }
+    }
+
+    pub(super) fn puts_back(&self, file: &str) -> bool {
+        matches!(self, Self::Unbinned { id, .. } if id == file)
     }
 }
 
@@ -58,7 +68,7 @@ impl Drive {
     }
 
     // Read one by one, so a debt of a kind this build no longer owes never hides the others; None is a list that could not be read.
-    fn owed(&self) -> Option<Vec<Owed>> {
+    pub(super) fn owed(&self) -> Option<Vec<Owed>> {
         let Some(at) = &self.owing else {
             return Some(Vec::new());
         };
@@ -118,13 +128,19 @@ impl Drive {
         taken.then_some(file)
     }
 
-    pub(super) fn owe(&self, one: Owed) {
+    // A list that cannot be read is never written over, since the debts it holds would go with it.
+    pub(super) fn owe(&self, one: Owed) -> Result<(), Hitch> {
         let _writing = self.held(WRITING, true);
-        let mut all = self.owed().unwrap_or_default();
+        let mut all = self.owed().ok_or_else(|| {
+            Hitch::Broke(
+                "what Drive still owes could not be read, so no more is written down".into(),
+            )
+        })?;
         if !all.contains(&one) {
             all.push(one);
         }
         self.keep_owing(&all);
+        Ok(())
     }
 
     // Paid before any change is read, so the bytes it puts back come in as another machine's change.
@@ -174,6 +190,12 @@ impl Drive {
                 }
                 self.restored(name, &landed, &checked).map(|_| ())
             }
+            Owed::Unbinned {
+                name,
+                id,
+                parent,
+                bin,
+            } => self.put_back(name, id, (bin, parent)),
         }
     }
 

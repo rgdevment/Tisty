@@ -50,6 +50,21 @@ pub(super) struct Tree {
     pub binned: Vec<File>,
 }
 
+pub(super) fn differing(was: &Tree, now: &Tree) -> BTreeSet<String> {
+    let first = |tree: &Tree, path: &str| {
+        tree.files
+            .get(path)
+            .and_then(|copies| copies.first())
+            .map(|one| (one.id.clone(), one.version.clone()))
+    };
+    was.files
+        .keys()
+        .chain(now.files.keys())
+        .filter(|path| first(was, path) != first(now, path))
+        .cloned()
+        .collect()
+}
+
 pub(super) fn in_bin(path: &str) -> bool {
     path.strip_prefix(BIN)
         .is_some_and(|rest| rest.starts_with('/'))
