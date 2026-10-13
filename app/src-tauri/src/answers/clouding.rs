@@ -116,7 +116,7 @@ pub fn cloud_choose(
     });
     let mut session = held(&session);
     session.refresh_settings();
-    session.keep_unless(choosing_cloud(chosen))?;
+    super::storing::changed_to(&mut session, chosen, choosing_cloud)?;
     drop(session);
     let _ = app.emit("unstuck", ());
     Ok(())

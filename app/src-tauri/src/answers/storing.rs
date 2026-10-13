@@ -166,7 +166,7 @@ pub async fn settle_in(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Settling> {
     let here = env!("CARGO_PKG_VERSION");
-    let (was, keeping, paths, home, store, alive, holds) = {
+    let (was, mut keeping, paths, home, store, alive, holds, owing) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
         if was.as_deref() == Some(here) {
@@ -186,19 +186,31 @@ pub async fn settle_in(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
+            crate::leaving::owing(session.paths.cache(), &session.reach),
         )
     };
 
     let mut brought = false;
     let mut stuck = None;
+    if let Some(carrier) = keeping.carrier.as_ref()
+        && let Err(refusal) = heeded_first(carrier, &home, owing).await
+    {
+        stuck = Some(refusal);
+        keeping.carrier = None;
+    }
     let mut arrived = Vec::new();
     if keeping.chosen == tisty_carrier::Chosen::Later {
         stuck = Some(Refusal::of("syncLater"));
     }
-    if keeping.chosen == tisty_carrier::Chosen::Cloud && keeping.carrier.is_none() {
+    if stuck.is_none()
+        && keeping.chosen == tisty_carrier::Chosen::Cloud
+        && keeping.carrier.is_none()
+    {
         stuck = held(&session).carrying().err();
     }
-    let mut carried = keeping.carrier.is_none() && keeping.chosen != tisty_carrier::Chosen::Cloud;
+    let mut carried = keeping.carrier.is_none()
+        && keeping.chosen != tisty_carrier::Chosen::Cloud
+        && stuck.is_none();
     if let Some(carrier) = keeping.carrier
         && let Some(_done) = alone.inner().claim()
     {
@@ -573,7 +585,44 @@ pub(crate) fn choose(session: &mut Session, dest: Option<String>) -> Answer<()> 
     if let Some(refusal) = stranded_by_leaving(session, &chosen) {
         return Err(refusal);
     }
-    session.keep_unless(choosing(chosen))
+    changed_to(session, chosen, choosing)
+}
+
+/// Tasks and documents are kept first, the place left behind is told, and a place chosen again is the person's.
+pub(crate) fn changed_to<F>(
+    session: &mut Session,
+    chosen: tisty_core::config::Sync,
+    choosing: impl FnOnce(tisty_core::config::Sync) -> F,
+) -> Answer<()>
+where
+    F: FnOnce(&mut tisty_core::Config) -> Option<Refusal>,
+{
+    let was = session
+        .config
+        .sync
+        .clone()
+        .filter(|was| !crate::leaving::same_place(was, &chosen));
+    let changing = was.is_some() || session.config.sync.is_none();
+    if changing {
+        crate::leaving::backed_up(&session.paths)?;
+    }
+    let old = session.carrier();
+    session.keep_unless(choosing(chosen.clone()))?;
+    if let Some(left) = &was {
+        crate::leaving::leave_word(&session.paths, &session.config, left, old, &chosen);
+    }
+    if changing
+        && chosen.place().is_some()
+        && let Some(now) = session.carrier()
+        && let Err(why) = now.forget_word()
+    {
+        witness::warn(
+            channel::SYNC,
+            "a word that other machines moved away stayed in the place chosen again",
+            &[("why", Fact::Why(format!("{why:?}")))],
+        );
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -608,6 +657,27 @@ pub async fn sync_now(
     done
 }
 
+// The place left behind is told first, and a place others left stops this machine before it writes there alone.
+async fn heeded_first(
+    carrier: &tisty_carrier::Shared,
+    home: &tisty_carrier::Here,
+    owing: Option<crate::leaving::Owing>,
+) -> Answer<()> {
+    let (carrier, home) = (carrier.clone(), home.clone());
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Some(owing) = owing {
+            owing.delivered();
+        }
+        let me = tisty_core::DeviceId(home.device.clone());
+        match crate::leaving::heeded(carrier.word_left().as_deref(), &home.data, &me) {
+            Some(refusal) => Err(refusal),
+            None => Ok(()),
+        }
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?
+}
+
 fn stuck_after(
     why: Option<&Refusal>,
     was: &Option<tisty_core::config::Sync>,
@@ -627,7 +697,7 @@ async fn carried_round(
     session: &tauri::State<'_, Mutex<Session>>,
     way: Option<String>,
 ) -> Answer<Settled> {
-    let (carrier, paths, home, store, alive, holds) = {
+    let (carrier, paths, home, store, alive, holds, owing) = {
         let session = held(session);
         let carrier = session.carrying()?;
         if went_back_on(&session, carrier.theirs()) {
@@ -641,8 +711,10 @@ async fn carried_round(
             session.paths.store(),
             session.alive(),
             session.config.holds(),
+            crate::leaving::owing(session.paths.cache(), &session.reach),
         )
     };
+    heeded_first(&carrier, &home, owing).await?;
 
     let before = tisty_core::cache::fingerprint(&store);
     let way = match way.as_deref() {

@@ -168,4 +168,21 @@ impl Carrier for Folder {
     fn forget_paper(&self, id: &str) {
         tisty_sync::forget_paper(&self.at, id)
     }
+
+    fn leave_word(&self, said: &str) -> Result<(), Trouble> {
+        tisty_core::store::write_atomic(&self.at.join(tisty_core::moved::NAMED), said.as_bytes())
+            .map_err(|_| Trouble::NotThere(self.at.display().to_string()))
+    }
+
+    fn word_left(&self) -> Option<String> {
+        std::fs::read_to_string(self.at.join(tisty_core::moved::NAMED)).ok()
+    }
+
+    fn forget_word(&self) -> Result<(), Trouble> {
+        match std::fs::remove_file(self.at.join(tisty_core::moved::NAMED)) {
+            Ok(()) => Ok(()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(_) => Err(Trouble::NotThere(self.at.display().to_string())),
+        }
+    }
 }

@@ -807,6 +807,23 @@ cache directory (where memos live) and this machine's device id.
 | `could_free`, `set_free` | What freeing space would let go of, and letting go of it: local copies of attachments unused since a moment, that the place holds with the same size and provider's hash (a provider that gives no hash frees nothing). Answered as `LetGo`, like `let_go`, so the caller writes `AttachLetGo` for each. Only the cloud frees anything; a folder answers nothing |
 | `shelf` | Every attachment the place holds, with its size, read once; `None` when it cannot tell (a folder out of reach, a cloud not yet listed) |
 | `paper_waiting`, `paper_print`, `both_papers`, `settle`, `forget_paper` | Look at, compare, settle and delete one document's body there |
+| `leave_word`, `word_left`, `forget_word` | `moved.json` in the place: the word a machine leaves when it stops syncing there. A folder keeps it as a file; the cloud mirrors it and takes it down by name |
+
+**Changing the way of syncing** (`answers/storing.rs::changed_to`, `leaving.rs`).
+Before any change, tasks and documents as they are on this disk are kept in
+`<config>/private/before-a-change/` (`backup::before_a_change`: `store`, `docs`
+and `originals`, the last five), and the change is refused when they cannot
+be. Nothing is brought down to keep them. The place left behind then gets a
+word signed with this machine's key (`tisty_core::moved`): who left, where to
+and when. A place out of reach is owed it (`<cache>/word-owed.json`) and gets
+it at the start of the next round that reaches it. A machine still there
+heeds a word only from another machine whose key the person confirmed here,
+and then stops before writing alone (`movedAway`, `movedAlone`); a word it
+cannot vouch for is logged and ignored, so writing a file in a shared folder
+cannot stop anyone. Choosing a place again takes its word away, and the same
+cloud account under a new address is the same place. Leaving the cloud is
+never this change: it goes through the move, which brings everything home
+first.
 
 ### `Folder`
 

@@ -1290,3 +1290,36 @@ fn an_attachment_the_copy_carries_is_not_counted_as_left_out() {
 
     assert_eq!((made.left_out, made.left_out_bytes), (0, 0), "{made:?}");
 }
+
+#[test]
+fn before_a_change_tasks_and_documents_are_kept_and_only_the_last_five_stay() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let first: jiff::Timestamp = "2026-10-12T10:00:00Z".parse().unwrap();
+
+    let mut made = Vec::new();
+    for step in 0..7 {
+        let at = first + jiff::SignedDuration::from_secs(step);
+        made.push(before_a_change(&paths, at).unwrap());
+    }
+
+    let kept: Vec<PathBuf> = std::fs::read_dir(paths.private().join("before-a-change"))
+        .unwrap()
+        .map(|one| one.unwrap().path())
+        .collect();
+    assert_eq!(kept.len(), 5);
+    assert!(!made[0].exists() && !made[1].exists() && made[6].exists());
+    let zip = zip::ZipArchive::new(std::fs::File::open(&made[6]).unwrap()).unwrap();
+    let names: Vec<&str> = zip.file_names().collect();
+    assert!(
+        names.iter().any(|one| one.starts_with("store/")),
+        "{names:?}"
+    );
+    assert!(names.contains(&"docs/a3f1-0001.md"), "{names:?}");
+    assert!(names.contains(&"originals/a3f1-0001.md"), "{names:?}");
+    assert!(
+        !names.iter().any(|one| one.starts_with("attachments/")),
+        "attachments weigh the change down: {names:?}"
+    );
+}
