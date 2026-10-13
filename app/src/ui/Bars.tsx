@@ -15,6 +15,11 @@ const sliceWord = (slice: Slice) =>
         ? ("repeating" as const)
         : ("sliceAll" as const);
 
+const counted = (counts: Snapshot["counts"], key: string, lists?: string[]) =>
+  lists?.length
+    ? lists.reduce((sum, list) => sum + (counts[`${key}@${list}`] ?? 0), 0)
+    : counts[key];
+
 interface Steering {
   chosen: Chosen;
   counts: Snapshot["counts"];
@@ -33,7 +38,7 @@ export function SliceBar({
     <div className="flex gap-1 px-2.5 pb-1">
       {SLICES.map((slice) => {
         const on = (chosen.slice ?? "today") === slice;
-        const many = counts[slice === "today" ? "tasks" : slice];
+        const many = counted(counts, slice === "today" ? "tasks" : slice, chosen.lists);
         return (
           <button
             key={slice}

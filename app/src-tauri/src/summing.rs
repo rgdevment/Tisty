@@ -229,6 +229,9 @@ pub fn asked_about() -> Vec<(&'static str, Filter)> {
     asked
 }
 
+/// The slices the task bar shows, also counted per list so a bar narrowed to some lists counts only them.
+pub const SLICED: [&str; 4] = ["tasks", "upcoming", "repeating", "all"];
+
 pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     let today = today();
     let asked = asked_about();
@@ -252,6 +255,11 @@ pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             };
             if fits && filter.matches(task, today) {
                 *counts.entry((*key).to_string()).or_default() += 1;
+                if let Some(list) = task.list
+                    && SLICED.contains(key)
+                {
+                    *counts.entry(format!("{key}@{list}")).or_default() += 1;
+                }
             }
         }
         if !open {
@@ -280,7 +288,19 @@ pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
             list.id.to_string(),
             in_list.get(&list.id).copied().unwrap_or(0),
         );
+        for key in SLICED {
+            counts.entry(format!("{key}@{}", list.id)).or_insert(0);
+        }
     }
+    let active: std::collections::BTreeSet<String> = state
+        .ordered_lists()
+        .iter()
+        .map(|one| one.id.to_string())
+        .collect();
+    counts.retain(|key, _| {
+        key.split_once('@')
+            .is_none_or(|(_, list)| active.contains(list))
+    });
     counts
 }
 

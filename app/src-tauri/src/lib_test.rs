@@ -1303,10 +1303,55 @@ fn counted_one_by_one(state: &State) -> std::collections::BTreeMap<String, usize
             .filter(|task| crate::summing::waits_in_the_tray(task))
             .count(),
     );
+    let asked = crate::summing::asked_about();
     for list in state.ordered_lists() {
         counts.insert(list.id.to_string(), state.tasks_in(list.id).count());
+        for (key, filter) in asked
+            .iter()
+            .filter(|(key, _)| crate::summing::SLICED.contains(key))
+        {
+            let narrowed = Filter {
+                lists: vec![list.id],
+                ..filter.clone()
+            };
+            counts.insert(
+                format!("{key}@{}", list.id),
+                state.matching(&narrowed, today()).len(),
+            );
+        }
     }
     counts
+}
+
+#[test]
+fn a_slice_narrowed_to_one_list_counts_what_that_list_holds_in_it() {
+    let mut state = State::default();
+    let work = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "trabajo", "a0");
+    let home = tisty_core::model::List::new(tisty_core::model::ListId::generate(), "casa", "a1");
+    state.lists.insert(work.id, work.clone());
+    state.lists.insert(home.id, home.clone());
+    for (title, list) in [
+        ("informe", Some(work.id)),
+        ("planilla", Some(work.id)),
+        ("regar", Some(home.id)),
+        ("suelta", None),
+    ] {
+        let mut task = held(title);
+        task.list = list;
+        task.date = Some(tisty_core::model::DateSpec::all_day(
+            today(),
+            "America/Santiago",
+        ));
+        kept(&mut state, task);
+    }
+
+    let counts = crate::summing::tally(&state);
+
+    assert_eq!(counts["tasks"], 4);
+    assert_eq!(counts[&format!("tasks@{}", work.id)], 2);
+    assert_eq!(counts[&format!("tasks@{}", home.id)], 1);
+    assert_eq!(counts[&format!("all@{}", work.id)], 2);
+    assert_eq!(counts[&format!("repeating@{}", work.id)], 0);
 }
 
 #[test]
