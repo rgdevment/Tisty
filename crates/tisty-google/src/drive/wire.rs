@@ -31,7 +31,7 @@ pub(super) fn quoted(text: &str) -> String {
 // A line cut while the body was still coming is no connection, never a shape Tisty misreads.
 pub(super) fn json<T: serde::de::DeserializeOwned>(answer: Response) -> Result<T, Hitch> {
     serde_json::from_reader(answer).map_err(|e| match e.is_io() {
-        true => Hitch::Unreachable(e.to_string()),
+        true => Hitch::Unreachable("the line was cut while Google Drive was answering".into()),
         false => Hitch::Broke("Google Drive answered in a shape Tisty does not read".into()),
     })
 }
