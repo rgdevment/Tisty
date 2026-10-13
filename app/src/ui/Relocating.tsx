@@ -39,6 +39,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
+  const [wiping, setWiping] = useState(false);
   const [busy, setBusy] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
@@ -108,13 +109,17 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const wipe = async () => {
     if (!leftCloud || busy || !(await sure(t("moveWipeSure")))) return;
     setBusy(true);
+    setWiping(true);
     cloudWipe(leftCloud.account, leftCloud.email)
       .then((gone) => {
         settled.current = true;
         setWiped(gone === 1 ? t("moveWipedOne") : fill("moveWiped", String(gone)));
       })
       .catch((e) => setTrouble(saidPlainly(e)))
-      .finally(() => setBusy(false));
+      .finally(() => {
+        setWiping(false);
+        setBusy(false);
+      });
   };
 
   const keep = () => {
@@ -188,6 +193,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           toward={toward}
           untold={done?.told === false}
           wiped={wiped}
+          wiping={wiping}
           offersWipe={Boolean(leftCloud)}
           busy={busy}
           onKeep={keep}

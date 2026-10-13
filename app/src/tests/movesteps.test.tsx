@@ -250,3 +250,26 @@ describe("a move that waits", () => {
     expect(screen.getByText(uploading(100, 400, 1, 4))).toBeTruthy();
   });
 });
+
+describe("deleting the copies left in Google Drive", () => {
+  it("says it is working while the copies go, and nothing once done", async () => {
+    const { Done } = await import("../ui/RelocatingSteps");
+    const shown = (wiping: boolean) => (
+      <Done
+        toward={{ kind: "folder", at: "G:Tisty" } as never}
+        untold={false}
+        wiping={wiping}
+        offersWipe
+        busy={wiping}
+        onKeep={() => {}}
+        onWipe={() => {}}
+        onClose={() => {}}
+      />
+    );
+    const { rerender } = render(shown(true));
+    expect(screen.getByRole("status").textContent).toBe(t("moveWiping"));
+
+    rerender(shown(false));
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+});

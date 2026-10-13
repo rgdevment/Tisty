@@ -299,6 +299,7 @@ export function Done({
   toward,
   untold,
   wiped,
+  wiping,
   offersWipe,
   busy,
   onKeep,
@@ -308,6 +309,7 @@ export function Done({
   toward: Toward;
   untold: boolean;
   wiped?: string;
+  wiping?: boolean;
   offersWipe: boolean;
   busy: boolean;
   onKeep: () => void;
@@ -321,6 +323,11 @@ export function Done({
         {t(untold ? "moveUntold" : "moveDoneWhy")}
       </p>
       {wiped && <p className="text-[11.5px] text-faint">{wiped}</p>}
+      {wiping && (
+        <p role="status" className="text-[12px] text-soft">
+          {t("moveWiping")}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-2.5">
         {offersWipe && !wiped && (
           <>

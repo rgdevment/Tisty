@@ -1362,6 +1362,8 @@ const en = {
   moveWipeSure:
     "Tisty's copies are deleted from your Google Drive for good: Tisty's space there has no bin, so they can't be brought back. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in Drive.",
   moveWipeKeep: "Leave them there",
+  moveWiping:
+    "Working on it: checking that everything is on this computer and deleting your copies from Google Drive. It can take a few minutes.",
   moveWiped: "{name} copies were deleted from your Google Drive.",
   moveWipedOne: "1 copy was deleted from your Google Drive.",
   movePending: "A move to {name} is halfway.",
@@ -3271,6 +3273,8 @@ const es: Catalog = {
   moveWipeSure:
     "Las copias de Tisty se borran para siempre de tu Google Drive: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En Drive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   moveWipeKeep: "Dejarlas ahí",
+  moveWiping:
+    "Procesando: revisamos que todo esté en este equipo y borramos tus copias de Google Drive. Puede tardar unos minutos.",
   moveWiped: "Se borraron {name} copias de tu Google Drive.",
   moveWipedOne: "Se borró 1 copia de tu Google Drive.",
   movePending: "Hay una mudanza a medias hacia {name}.",
