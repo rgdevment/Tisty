@@ -174,6 +174,7 @@ describe("moving to another place", () => {
       { state: "done", told: true, leftCloud: null },
     ];
     ipc.answers.move_to = () => Promise.resolve(answers.shift());
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     opened();
     await agreedAndMoved();
 
@@ -181,7 +182,6 @@ describe("moving to another place", () => {
       await screen.findByText((text) => text.startsWith(fill("movePaused", "").trim())),
     ).toBeTruthy();
     expect(screen.queryByText(t("moveWaiting"))).toBeNull();
-    vi.useFakeTimers();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5_000);
     });
@@ -199,9 +199,9 @@ describe("moving to another place", () => {
         reason: "limit",
         wait: 0,
       });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     opened();
     await agreedAndMoved();
-    vi.useFakeTimers();
     for (let pause = 0; pause < 4; pause += 1) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(5_000);
