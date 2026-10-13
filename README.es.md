@@ -526,8 +526,11 @@ formas, y el resto lo hace solo.
 
 **Tu Google Drive, directo.** Elige *Tu servicio de nube* y **Conectar**: se
 abre tu navegador, entras a Google y Google te pregunta si Tisty puede guardar
-sus copias ahí. Tisty solo ve los archivos que él mismo crea —nada más de tu
-Drive— y no necesitas el programa de escritorio de Google instalado ni abierto.
+sus copias ahí. Viven en un espacio oculto de tu Drive que solo abre Tisty
+—no ve nada más de tu Drive, y no aparecen entre tus archivos— y no necesitas el
+programa de escritorio de Google instalado ni abierto. Desconectar las conserva
+ahí; para sacarlas, múdate a una carpeta desde Tisty; quitar Tisty en Google
+Drive › Configuración › Administrar apps las borra.
 La primera vez sube todo lo que ya tienes; después solo viaja lo nuevo, y si se
 corta la conexión sigue donde quedó. Los adjuntos se quedan en el equipo donde
 se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los
@@ -745,7 +748,8 @@ y hasta que la abras todo lo que intente se rechaza.
 
 **¿Puedo usarlo en dos equipos?**
 Sí, de dos formas. Conecta tu propio Google Drive en la ventana y Tisty habla
-con él directo, viendo solo los archivos que crea ahí. O usa una carpeta que ya
+con él directo, guardando sus copias en un espacio oculto de tu Drive y sin
+ver nada más ahí. O usa una carpeta que ya
 sincronizas: Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que
 enchufas los viernes. En los dos casos no hay ningún servidor mío en medio, ni
 cuenta mía, y puedes mudarte de una a otra cuando quieras.

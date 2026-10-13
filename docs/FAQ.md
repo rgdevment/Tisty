@@ -101,8 +101,9 @@ this machine and goes up once the cause is gone.
 
 **Settings → Syncing → Your cloud service → Google Drive → Connect.** Your
 browser opens on Google's own page; sign in and allow Tisty to keep its copies
-there. Tisty asks only for the files it creates, so it cannot see anything else
-in your Drive. Then **Start uploading**: the first time everything you have goes
+there. Tisty asks only for a hidden space of its own in your Drive, so it cannot
+see anything else there, and its copies do not show up among your files. Then
+**Start uploading**: the first time everything you have goes
 up, and if you close Tisty or lose the network it carries on where it left off.
 Do the same on your other computer, with the same Google account.
 
@@ -164,8 +165,17 @@ only, until you turn it on again.
 machine alone. Tisty first brings home everything that lived only in Drive,
 then tells your other computers where you went so each one follows when it
 syncs. Nothing is deleted in Drive unless you ask; **Delete my copies in Google
-Drive** sends them to its bin afterwards. To stop one computer without moving
-the others, use **Disconnect this computer**.
+Drive for good** deletes them afterwards, and since Tisty's space in Drive has
+no bin, they cannot be brought back. To stop one computer without moving the
+others, use **Disconnect this computer**: the copies stay in Drive.
+
+### Where are my copies in Drive?
+
+In a hidden space of your Drive that belongs to Tisty: they do not show up among
+your files, and only Tisty opens them. To take them out, move to a folder from
+Tisty. Disconnecting keeps them, and coming back later to the same account picks
+them up again. Removing Tisty in **Google Drive › Settings › Manage apps**
+deletes them, as does **Delete my copies in Google Drive for good**.
 
 ## One of my machines stopped syncing after an update
 
