@@ -87,9 +87,13 @@ fn a_word_the_old_place_could_not_take_is_owed_and_delivered_once_it_can() {
     leave_word(&one.paths, &one.config, &left, old, &Sync::alone());
 
     assert!(one.paths.cache().join(OWED).is_file());
-    assert!(owing(&one.paths, &one.reach, None).is_some_and(|owed| !owed.delivered()));
+    let owed = owing(&one.paths, &one.reach, None);
+    assert_eq!(owed.len(), 1);
+    assert!(!owed.into_iter().all(Owing::delivered));
     std::fs::create_dir_all(&gone).unwrap();
-    assert!(owing(&one.paths, &one.reach, None).is_some_and(Owing::delivered));
+    let owed = owing(&one.paths, &one.reach, None);
+    assert_eq!(owed.len(), 1);
+    assert!(owed.into_iter().all(Owing::delivered));
     assert!(word_in(&gone).is_some_and(|said| said.contains("alone")));
     assert!(!one.paths.cache().join(OWED).exists());
 }
@@ -146,7 +150,7 @@ fn a_word_owed_to_a_place_this_machine_came_back_to_is_never_delivered() {
     crate::answers::storing::choose(&mut one, Some(shared.display().to_string())).unwrap();
 
     assert!(!one.paths.cache().join(OWED).exists());
-    assert!(owing(&one.paths, &one.reach, one.config.sync.as_ref()).is_none());
+    assert!(owing(&one.paths, &one.reach, one.config.sync.as_ref()).is_empty());
     assert_eq!(word_in(&shared), None);
 }
 
@@ -159,7 +163,7 @@ fn a_word_owed_is_dropped_when_the_way_now_chosen_is_that_place() {
     let left = Sync::folder(&shared);
     owe(one.paths.cache(), &left, "un aviso");
 
-    assert!(owing(&one.paths, &one.reach, Some(&left)).is_none());
+    assert!(owing(&one.paths, &one.reach, Some(&left)).is_empty());
     assert!(!one.paths.cache().join(OWED).exists());
 }
 
@@ -179,11 +183,10 @@ fn leaving_this_machine_alone_owes_nobody_and_keeps_the_word_owed_to_a_real_plac
 
     crate::answers::storing::choose(&mut one, Some(elsewhere.display().to_string())).unwrap();
 
-    let owed: Owed =
-        serde_json::from_slice(&std::fs::read(one.paths.cache().join(OWED)).unwrap()).unwrap();
+    let owed = owed_all(one.paths.cache());
     assert_eq!(
-        owed.way,
-        Sync::folder(&unplugged),
+        owed.iter().map(|one| &one.way).collect::<Vec<_>>(),
+        [&Sync::folder(&unplugged)],
         "a word to nobody pushed out a real one"
     );
 }
@@ -194,8 +197,36 @@ fn a_word_owed_to_no_place_is_dropped_instead_of_kept_forever() {
     let one = machine(room.path(), "one");
     owe(one.paths.cache(), &Sync::alone(), "a nadie");
 
-    assert!(owing(&one.paths, &one.reach, None).is_none());
+    assert!(owing(&one.paths, &one.reach, None).is_empty());
     assert!(!one.paths.cache().join(OWED).exists());
+}
+
+#[test]
+fn a_word_that_cannot_be_delivered_holds_back_none_owed_after_it() {
+    let room = tempfile::tempdir().unwrap();
+    let unplugged = room.path().join("unplugged");
+    let reachable = room.path().join("reachable");
+    std::fs::create_dir_all(&reachable).unwrap();
+    let one = machine(room.path(), "one");
+    owe(
+        one.paths.cache(),
+        &Sync::folder(&unplugged),
+        "para la desconectada",
+    );
+    owe(
+        one.paths.cache(),
+        &Sync::folder(&reachable),
+        "para la que responde",
+    );
+
+    for owed in owing(&one.paths, &one.reach, None) {
+        owed.delivered();
+    }
+
+    assert!(word_in(&reachable).is_some_and(|said| said.contains("responde")));
+    let left = owed_all(one.paths.cache());
+    assert_eq!(left.len(), 1);
+    assert_eq!(left[0].way, Sync::folder(&unplugged));
 }
 
 #[test]

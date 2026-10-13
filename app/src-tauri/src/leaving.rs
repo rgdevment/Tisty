@@ -156,7 +156,7 @@ pub struct Owing {
     release: Option<String>,
 }
 
-pub fn owing(paths: &tisty_core::Paths, reach: &Reaching, now: Option<&Sync>) -> Option<Owing> {
+pub fn owing(paths: &tisty_core::Paths, reach: &Reaching, now: Option<&Sync>) -> Vec<Owing> {
     let cache = paths.cache().to_path_buf();
     let mut all = owed_all(&cache);
     let before = all.len();
@@ -168,22 +168,24 @@ pub fn owing(paths: &tisty_core::Paths, reach: &Reaching, now: Option<&Sync>) ->
         owed_kept(&cache, &all);
     }
     let heading_back = crate::answers::relocating::pending_cloud(paths);
-    all.into_iter().find_map(|owed| {
-        let old = match tisty_carrier::cloud_of(Some(&owed.way)) {
-            Some(at) => reach.apart(at),
-            None => tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier,
-        }?;
-        let release = tisty_carrier::cloud_of(Some(&owed.way))
-            .map(|at| at.account.clone())
-            .filter(|account| heading_back.as_ref() != Some(account));
-        Some(Owing {
-            cache: cache.clone(),
-            way: owed.way,
-            old,
-            said: owed.said,
-            release,
+    all.into_iter()
+        .filter_map(|owed| {
+            let old = match tisty_carrier::cloud_of(Some(&owed.way)) {
+                Some(at) => reach.apart(at),
+                None => tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier,
+            }?;
+            let release = tisty_carrier::cloud_of(Some(&owed.way))
+                .map(|at| at.account.clone())
+                .filter(|account| heading_back.as_ref() != Some(account));
+            Some(Owing {
+                cache: cache.clone(),
+                way: owed.way,
+                old,
+                said: owed.said,
+                release,
+            })
         })
-    })
+        .collect()
 }
 
 impl Owing {
