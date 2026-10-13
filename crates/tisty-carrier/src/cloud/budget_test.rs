@@ -1,5 +1,5 @@
 use super::*;
-use crate::fakes::Fake;
+use crate::fakes::{Counting, Fake};
 
 #[test]
 fn meters_spending_at_the_same_time_are_all_counted() {
@@ -270,12 +270,39 @@ fn many_cheap_asks_with_nothing_landing_stop_a_round_too() {
     let meter = Metered::over(&fake, home.path(), Class::History);
 
     let mut asked = 0;
-    while meter.about("nada/aqui.md").is_ok() {
-        asked += 1;
+    loop {
+        fake.fail_after(0, Hitch::Broke("an answer that did not read".into()));
+        match meter.about("nada/aqui.md") {
+            Err(Hitch::Troubled(_)) => break,
+            _ => asked += 1,
+        }
         assert!(asked < 1_000, "a round of cheap asks was never stopped");
     }
 
     assert_eq!(asked, STALLED_ASKS);
+}
+
+#[test]
+fn answers_that_say_how_things_stand_never_take_a_round_for_a_loop() {
+    let home = tempfile::tempdir().unwrap();
+    let fake = Fake::drive();
+    let meter = Metered::over(&fake, home.path(), Class::Attachments);
+    let local = home.path().join("local.md");
+    std::fs::write(&local, b"hola").unwrap();
+    meter.put("aqui.md", &local, Expect::Absent).unwrap();
+
+    for at in 0..(2 * STALLED_ASKS) {
+        let mut sink = Vec::new();
+        assert!(matches!(
+            meter.fetch(&format!("gone/{at}.md"), 0, &mut sink),
+            Err(Hitch::Missing(_))
+        ));
+        assert!(matches!(
+            meter.put("aqui.md", &local, Expect::Absent),
+            Err(Hitch::Changed(_))
+        ));
+        assert!(meter.about("nada/aqui.md").is_ok());
+    }
 }
 
 #[test]

@@ -74,6 +74,11 @@ fn went_out<T>(answer: &Result<T, Hitch>) -> bool {
     !matches!(answer, Err(Hitch::Unreachable(_)))
 }
 
+// An answer that says how things stand is no sign of a loop: only an ask that ends without one counts toward the guard.
+fn answered<T>(answer: &Result<T, Hitch>) -> bool {
+    matches!(answer, Ok(_) | Err(Hitch::Missing(_) | Hitch::Changed(_)))
+}
+
 fn today() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -150,6 +155,14 @@ impl<'a> Metered<'a> {
         Err(Hitch::Troubled(
             "the round kept asking the cloud with nothing landing".into(),
         ))
+    }
+
+    fn weighed<T>(&self, answer: &Result<T, Hitch>, units: u64) {
+        match answer {
+            Ok(_) => self.moved_on(),
+            _ if answered(answer) => {}
+            _ => self.idled(units),
+        }
     }
 
     fn idled(&self, units: u64) {
@@ -286,10 +299,7 @@ impl Remote for Metered<'_> {
         let got = self.remote.fetch(name, from, &mut tallied);
         if went_out(&got) || tallied.bytes > 0 {
             let units = self.charge_checked(1, self.limits.costs.fetch, tallied.bytes);
-            self.idled(units);
-        }
-        if got.is_ok() {
-            self.moved_on();
+            self.weighed(&got, units);
         }
         got
     }
@@ -304,10 +314,7 @@ impl Remote for Metered<'_> {
             _ => self.limits.requests_to_put(weighs),
         };
         let units = self.charge_checked(requests, self.limits.costs.put, 0);
-        self.idled(units);
-        if put.is_ok() {
-            self.moved_on();
-        }
+        self.weighed(&put, units);
         put
     }
 
@@ -316,10 +323,7 @@ impl Remote for Metered<'_> {
         let gone = self.remote.delete(name, expect);
         if went_out(&gone) {
             let units = self.charge_checked(1, self.limits.costs.delete, 0);
-            self.idled(units);
-        }
-        if gone.is_ok() {
-            self.moved_on();
+            self.weighed(&gone, units);
         }
         gone
     }
@@ -333,7 +337,7 @@ impl Remote for Metered<'_> {
         let seen = self.remote.about(name);
         if went_out(&seen) {
             let units = self.charge(1, self.limits.costs.about, 0);
-            self.idled(units);
+            self.weighed(&seen, units);
         }
         seen
     }
@@ -371,7 +375,7 @@ impl Remote for Metered<'_> {
         self.allowed()?;
         let lent = self.remote.lends(name);
         let units = self.charge(1, self.limits.costs.about, 0);
-        self.idled(units);
+        self.weighed(&lent, units);
         lent
     }
 
