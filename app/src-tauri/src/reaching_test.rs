@@ -116,3 +116,18 @@ fn what_kept_a_cloud_from_being_built_is_said_and_nothing_was_kept() {
     assert!(reaching.taken().is_none());
     assert!(reaching.cloud(&elsewhere).is_none());
 }
+
+#[test]
+fn a_cloud_built_apart_leaves_the_one_kept_for_the_chosen_account_alone() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(room.path().join("data"), room.path().join("config"));
+    let reaching = Reaching::of(&paths);
+    let other = CloudAt {
+        provider: "elsewhere".into(),
+        account: "9999".into(),
+        email: "otra@example.com".into(),
+    };
+
+    assert!(reaching.apart(&other).is_none());
+    assert!(reaching.built.lock().unwrap().is_none());
+}

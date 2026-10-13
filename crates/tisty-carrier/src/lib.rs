@@ -32,7 +32,7 @@ pub use remote::{
     BYTES_A_DAY, Changes, Costs, Expect, Hitch, Limits, Remote, Seen, UNITS_A_DAY, Watch,
     named_well,
 };
-pub use shift::{Owed, Shift, filling, homing, shift};
+pub use shift::{Owed, Shift, filling, homing, homing_up_to, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

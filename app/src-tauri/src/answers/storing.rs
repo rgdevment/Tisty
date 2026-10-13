@@ -787,12 +787,12 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) {
 async fn heeded_first(
     carrier: &tisty_carrier::Shared,
     home: &tisty_carrier::Here,
-    owing: Option<crate::leaving::Owing>,
+    owing: Vec<crate::leaving::Owing>,
 ) -> Answer<()> {
     let (carrier, home) = (carrier.clone(), home.clone());
     tauri::async_runtime::spawn_blocking(move || {
-        if let Some(owing) = owing {
-            owing.delivered();
+        for owed in owing {
+            owed.delivered();
         }
         let me = tisty_core::DeviceId(home.device.clone());
         match crate::leaving::heeded(carrier.word_left().as_deref(), &home.data, &me) {

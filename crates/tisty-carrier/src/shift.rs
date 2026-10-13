@@ -93,10 +93,15 @@ pub fn shift(
 }
 
 pub fn homing(from: &dyn Carrier, here: &Here) -> Owed {
+    homing_up_to(from, here, u64::MAX)
+}
+
+pub fn homing_up_to(from: &dyn Carrier, here: &Here, at_most: u64) -> Owed {
     let there = from.shelf();
     known(here)
         .filter(|(reference, bytes)| {
-            !at_home(here, reference, *bytes)
+            *bytes <= at_most
+                && !at_home(here, reference, *bytes)
                 && there
                     .as_ref()
                     .is_none_or(|there| there.get(reference) == Some(bytes))

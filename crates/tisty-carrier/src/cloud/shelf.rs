@@ -21,7 +21,7 @@ pub struct Shelf<'a> {
     paused: Option<Deferred>,
     sent: usize,
     fetching: bool,
-    tree: Option<&'a Path>,
+    tree: Option<(&'a Path, &'a dyn Remote)>,
     early: usize,
 }
 
@@ -46,8 +46,8 @@ impl<'a> Shelf<'a> {
         }
     }
 
-    pub fn history_first(mut self, tree: &'a Path) -> Self {
-        self.tree = Some(tree);
+    pub fn history_first(mut self, tree: &'a Path, history: &'a dyn Remote) -> Self {
+        self.tree = Some((tree, history));
         self
     }
 
@@ -56,8 +56,8 @@ impl<'a> Shelf<'a> {
     }
 
     fn history_sent(&mut self) -> Option<Hitch> {
-        let tree = self.tree.take()?;
-        let (pushed, hitch) = mirror::push(self.remote, tree, self.index);
+        let (tree, history) = self.tree.take()?;
+        let (pushed, hitch) = mirror::push(history, tree, self.index);
         self.early += pushed.put;
         hitch.filter(|hitch| {
             !matches!(

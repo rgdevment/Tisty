@@ -48,6 +48,13 @@ impl Reaching {
         self.why_not.lock().ok().and_then(|held| held.clone())
     }
 
+    pub fn apart(&self, at: &CloudAt) -> Option<Shared> {
+        let home = self.home_of(at);
+        tisty_google::away(|| cloud_of(&home, at))
+            .ok()
+            .map(|(carrier, _)| carrier)
+    }
+
     // Handed out rather than let go here, so the caller can do it without holding the session.
     pub fn taken(&self) -> Option<Arc<Tokens>> {
         self.built.lock().ok()?.take().map(|was| was.tokens)

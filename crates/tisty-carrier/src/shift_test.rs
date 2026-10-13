@@ -430,3 +430,21 @@ fn a_round_that_stopped_or_left_things_to_decide_never_counts_as_brought_over() 
             .is_some()
     );
 }
+
+#[test]
+fn what_comes_home_is_counted_up_to_a_size_when_asked() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.attached(PHOTO);
+        one.round(Way::Both);
+        two.round(Way::Pull);
+        let_go_here(&two, &kept.at);
+
+        let all = crate::homing(&*two.carrier, &two.here);
+        let small = crate::homing_up_to(&*two.carrier, &two.here, PHOTO.len() as u64 - 1);
+
+        assert_eq!(all.files, 1, "{who}");
+        assert!(small.nothing(), "{who}");
+    }
+}
