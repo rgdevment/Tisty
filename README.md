@@ -570,8 +570,9 @@ the shared folder is found to hash the same.
 
 And because what uploads a folder is your provider's program and not Tisty, if
 you ever change something on one machine and it does not turn up on the other,
-[FAQ.md](docs/FAQ.md) lists the causes worth checking, in order — and what each
-message about Google Drive means, from *Reconnect* to a full Drive.
+[the wiki](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#something-changed-on-one-machine-and-is-not-on-the-other)
+lists the causes worth checking, in order — and what each message about Google
+Drive means, from *Reconnect* to a full Drive.
 
 ## A Command Line, If You Want One
 

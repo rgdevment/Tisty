@@ -580,9 +580,9 @@ Tisty te lo dice con todas las letras cuando no. Una copia solo se suelta despu�
 de comprobar que la de la carpeta compartida tiene el mismo sha.
 
 Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
-día cambias algo en un equipo y no aparece en el otro, [FAQ.md](docs/FAQ.md)
+día cambias algo en un equipo y no aparece en el otro, [la wiki](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
 enumera las causas en el orden en que conviene revisarlas, y qué significa cada
-aviso de Google Drive, de *Reconectar* a un Drive lleno (en inglés).
+aviso de Google Drive, de *Reconectar* a un Drive lleno.
 
 ## Una línea de comandos, si la quieres
 
