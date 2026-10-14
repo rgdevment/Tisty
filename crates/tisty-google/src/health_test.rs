@@ -120,3 +120,64 @@ fn only_googles_api_host_is_ever_asked() {
     assert!(PROBED_WITHIN <= Duration::from_secs(10));
     assert!(REACHED_WITHIN < PROBED_WITHIN);
 }
+
+fn asked(url: &str, within: Duration) -> reqwest::Error {
+    reqwest::blocking::Client::builder()
+        .timeout(within)
+        .connect_timeout(within)
+        .build()
+        .unwrap()
+        .get(url)
+        .send()
+        .unwrap_err()
+}
+
+#[test]
+fn a_round_reads_a_failed_request_the_way_the_check_before_connecting_does() {
+    let silent = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let quiet = format!("http://{}/drive/v3/files", silent.local_addr().unwrap());
+    let shut = TcpListener::bind(("127.0.0.1", 0))
+        .unwrap()
+        .local_addr()
+        .unwrap();
+
+    assert!(matches!(
+        unreachable(asked(&quiet, SOON)),
+        Hitch::Unreachable(Cause::Slow, _)
+    ));
+    assert!(matches!(
+        unreachable(asked(
+            &format!("http://{shut}/drive/v3/files"),
+            Duration::from_secs(8)
+        )),
+        Hitch::Unreachable(Cause::Blocked, _)
+    ));
+    drop(silent);
+}
+
+#[test]
+fn what_was_found_in_the_way_keeps_its_name_on_the_way_to_the_window() {
+    assert_eq!(Health::Inspected.cause(), Cause::Filtered);
+    assert_eq!(Health::Slow.cause(), Cause::Slow);
+    assert_eq!(Health::Blocked.cause(), Cause::Blocked);
+    assert_eq!(
+        failed("invalid peer certificate: UnknownIssuer"),
+        Health::Inspected
+    );
+    assert_eq!(answered(503), Health::Troubled);
+}
+
+#[test]
+fn what_a_failed_request_leaves_behind_never_names_where_it_went() {
+    let silent = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let at = format!(
+        "http://{}/drive/v3/files?q=secret-name",
+        silent.local_addr().unwrap()
+    );
+
+    let (health, said) = kind_of(asked(&at, SOON));
+
+    assert_eq!(health, Health::Slow);
+    assert!(!said.contains("secret-name"), "{said}");
+    drop(silent);
+}

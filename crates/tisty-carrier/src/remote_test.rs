@@ -679,7 +679,7 @@ fn a_refusal_comes_back_as_the_provider_gave_it_and_changes_nothing() {
             Hitch::Elsewhere {
                 found: "otra".into(),
             },
-            Hitch::Unreachable("sin red".into()),
+            Hitch::Unreachable(crate::Cause::Blocked, "sin red".into()),
             Hitch::Broke("raro".into()),
         ];
         for hitch in hitches {

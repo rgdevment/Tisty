@@ -93,6 +93,7 @@ fn a_move_the_provider_asked_to_pause_says_for_how_long_so_the_window_can_go_on_
             left: 2,
             retry_after: Some(std::time::Duration::from_secs(90)),
             names: Vec::new(),
+            cause: None,
         }),
     );
 

@@ -637,7 +637,7 @@ fn revoking_takes_the_token_to_google_and_one_already_gone_is_no_failure() {
     assert_eq!(revoke_everywhere("1//refresh", &at), Ok(()));
     assert!(matches!(
         revoke_everywhere("1//refresh", &at),
-        Err(Hitch::Unreachable(_))
+        Err(Hitch::Unreachable(..))
     ));
     let asked = asked.join().unwrap();
     assert!(asked[0].starts_with("POST /revoke"));

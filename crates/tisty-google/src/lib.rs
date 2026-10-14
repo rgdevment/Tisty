@@ -371,12 +371,10 @@ fn post_form(
         )
         .body(body)
         .send()
-        .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+        .map_err(crate::health::unreachable)?;
     let status = answer.status();
     let wait = waited(answer.headers());
-    let text = answer
-        .text()
-        .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+    let text = answer.text().map_err(crate::health::unreachable)?;
     match status.as_u16() {
         200 => serde_json::from_str(&text).map_err(|_| {
             Hitch::Broke("Google answered the sign-in in a shape Tisty does not read".into())
@@ -386,7 +384,7 @@ fn post_form(
         }),
         500.. => match wait {
             Some(wait) => Err(Hitch::Limited { wait }),
-            None => Err(Hitch::Unreachable(format!("Google answered {status}"))),
+            None => Err(Hitch::Troubled(format!("Google answered {status}"))),
         },
         _ => {
             let error = serde_json::from_str::<TokenRefusal>(&text)
@@ -433,7 +431,7 @@ pub fn revoke_everywhere(token: &str, at: &Endpoints) -> Result<(), Hitch> {
         )
         .body(body)
         .send()
-        .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+        .map_err(crate::health::unreachable)?;
     match answer.status().as_u16() {
         200 => Ok(()),
         // A token Google no longer knows was already revoked, which is what was asked.
@@ -441,7 +439,10 @@ pub fn revoke_everywhere(token: &str, at: &Endpoints) -> Result<(), Hitch> {
         429 => Err(Hitch::Limited {
             wait: waited(answer.headers()).unwrap_or(WAITED_UNTOLD),
         }),
-        status => Err(Hitch::Unreachable(format!("Google answered {status}"))),
+        status => Err(Hitch::Unreachable(
+            tisty_carrier::Cause::Blocked,
+            format!("Google answered {status}"),
+        )),
     }
 }
 

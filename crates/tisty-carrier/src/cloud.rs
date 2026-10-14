@@ -152,7 +152,7 @@ impl Cloud {
     ) -> Result<Done<T>, Trouble> {
         // What the person asked for is tried anyway; only the window's own pace waits.
         if let Some(left) = resting::left(&self.home).filter(|_| !turn.waits) {
-            return Ok(Done::deferred(Reason::Limit, Some(left)));
+            return Ok(Done::deferred(Reason::Limit, Some(left), None));
         }
         let taken = match turn.waits {
             true => lock::Round::wait_for(&self.home, PATIENCE),
@@ -160,7 +160,7 @@ impl Cloud {
         };
         let _round = match taken {
             Ok(Some(round)) => round,
-            Ok(None) => return Ok(Done::deferred(Reason::Busy, None)),
+            Ok(None) => return Ok(Done::deferred(Reason::Busy, None, None)),
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
         let emptied = self.home.join(EMPTIED);
@@ -205,8 +205,8 @@ impl Cloud {
             Err(hitch) => {
                 let _ = index.save(&self.home);
                 return match judge(hitch, self.remote.limits().provider) {
-                    Judged::Pause(reason, wait) => {
-                        let deferred = Done::deferred(reason, wait);
+                    Judged::Pause(reason, wait, cause) => {
+                        let deferred = Done::deferred(reason, wait, cause);
                         self.heeded(deferred.deferred.as_ref());
                         Ok(deferred)
                     }
@@ -244,11 +244,12 @@ impl Cloud {
             left: held_back,
             retry_after: None,
             names: Vec::new(),
+            cause: None,
         });
         let mut deferred = merged(held, left_there);
         let mut stopped = None;
         match hitch.map(|hitch| judge(hitch, remote.limits().provider)) {
-            Some(Judged::Pause(reason, wait)) => {
+            Some(Judged::Pause(reason, wait, cause)) => {
                 deferred = merged(
                     deferred,
                     Some(Deferred {
@@ -256,6 +257,7 @@ impl Cloud {
                         left: pushed.left,
                         retry_after: wait,
                         names: Vec::new(),
+                        cause,
                     }),
                 );
             }
@@ -273,6 +275,7 @@ impl Cloud {
                         left: pushed.left,
                         retry_after: None,
                         names: Vec::new(),
+                        cause: None,
                     }),
                 );
             }
@@ -492,7 +495,7 @@ impl Cloud {
 }
 
 impl<T> Done<T> {
-    fn deferred(reason: Reason, wait: Option<Duration>) -> Self {
+    fn deferred(reason: Reason, wait: Option<Duration>, cause: Option<crate::Cause>) -> Self {
         Self {
             value: None,
             deferred: Some(Deferred {
@@ -500,6 +503,7 @@ impl<T> Done<T> {
                 left: 0,
                 retry_after: wait,
                 names: Vec::new(),
+                cause,
             }),
             stopped: None,
             uploaded: 0,
@@ -561,6 +565,10 @@ fn merged(first: Option<Deferred>, second: Option<Deferred>) -> Option<Deferred>
             reason: match weight(other.reason) > weight(one.reason) {
                 true => other.reason,
                 false => one.reason,
+            },
+            cause: match weight(other.reason) > weight(one.reason) {
+                true => other.cause,
+                false => one.cause,
             },
             left: one.left + other.left,
             retry_after: one.retry_after.max(other.retry_after),
@@ -842,7 +850,7 @@ impl Carrier for Cloud {
     fn wipe(&self) -> Result<usize, Trouble> {
         let provider = self.remote.limits().provider;
         let stopped = |hitch| match judge(hitch, provider) {
-            Judged::Pause(reason, _) => Trouble::NotNow(format!("{reason:?}")),
+            Judged::Pause(reason, ..) => Trouble::NotNow(format!("{reason:?}")),
             Judged::Stop(trouble) => trouble,
         };
         let done = self.with_mirror(None, BINNING, |_, index, remote| {
@@ -992,7 +1000,7 @@ fn patiently(mut once: impl FnMut() -> Result<(), crate::Hitch>) -> Result<(), c
     let mut failed = 0;
     loop {
         let wait = match once() {
-            Err(crate::Hitch::Unreachable(_) | crate::Hitch::Troubled(_))
+            Err(crate::Hitch::Unreachable(..) | crate::Hitch::Troubled(_))
                 if failed + 1 < DELETE_TRIES =>
             {
                 Duration::from_secs(2u64.pow(failed))

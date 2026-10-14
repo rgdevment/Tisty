@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use tisty_carrier::{Cause, Hitch};
+
 /// Asked with no account and no token: Google answers 401 at once when the way to it is open.
 pub const PROBED: &str = "https://www.googleapis.com/drive/v3/about";
 pub const PROBED_WITHIN: Duration = Duration::from_secs(10);
@@ -26,6 +28,14 @@ impl Health {
             Health::Troubled => "troubled",
         }
     }
+
+    pub fn cause(self) -> Cause {
+        match self {
+            Health::Inspected => Cause::Filtered,
+            Health::Slow => Cause::Slow,
+            Health::Reachable | Health::Blocked | Health::Troubled => Cause::Blocked,
+        }
+    }
 }
 
 /// Goes through whatever proxy the system names, like every other request: never around it.
@@ -43,9 +53,23 @@ pub fn probe_at(url: &str, reached_within: Duration, within: Duration) -> Health
     };
     match http.get(url).send() {
         Ok(answer) => answered(answer.status().as_u16()),
-        Err(e) if e.is_timeout() => Health::Slow,
-        Err(e) => failed(&crate::told(&e.without_url())),
+        Err(e) => kind_of(e).0,
     }
+}
+
+/// One reading of a failed request, shared by the check before connecting and every round after it.
+pub fn kind_of(e: reqwest::Error) -> (Health, String) {
+    let slow = e.is_timeout();
+    let said = crate::told(&e.without_url());
+    match slow {
+        true => (Health::Slow, said),
+        false => (failed(&said), said),
+    }
+}
+
+pub(crate) fn unreachable(e: reqwest::Error) -> Hitch {
+    let (health, said) = kind_of(e);
+    Hitch::Unreachable(health.cause(), said)
 }
 
 pub fn answered(status: u16) -> Health {

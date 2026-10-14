@@ -60,7 +60,11 @@ fn what_google_answers_reads_as_what_the_window_can_say() {
     assert_eq!(elsewhere.code, "cloudElsewhere");
     assert_eq!(elsewhere.name.as_deref(), Some("otra@example.com"));
     assert_eq!(
-        refused(Hitch::Unreachable("sin red".into()), "Google Drive").code,
+        refused(
+            Hitch::Unreachable(tisty_carrier::Cause::Blocked, "sin red".into()),
+            "Google Drive"
+        )
+        .code,
         "cloudNotNow"
     );
     let broke = refused(

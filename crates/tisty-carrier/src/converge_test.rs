@@ -75,7 +75,10 @@ fn converges(kind: usize, lag: u64, machines: usize, steps: &[Step]) -> Result<(
                 let done = desks[*on].carry(*way, Holds::Everywhere);
                 prop_assert!(done.is_ok(), "{}: a round failed: {done:?}", setting.name);
             }
-            Step::Cut(after) => remote.fail_after(*after, Hitch::Unreachable("sin red".into())),
+            Step::Cut(after) => remote.fail_after(
+                *after,
+                Hitch::Unreachable(crate::Cause::Blocked, "sin red".into()),
+            ),
         }
     }
     for _ in 0..SETTLING_ROUNDS {

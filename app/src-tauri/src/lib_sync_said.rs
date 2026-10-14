@@ -69,6 +69,7 @@ fn a_round_left_for_later_that_moved_nothing_is_not_said_to_have_just_synced() {
         left: 1,
         retry_after: None,
         names: Vec::new(),
+        cause: None,
     };
 
     let offline = waiting(tisty_carrier::Reason::Offline);
