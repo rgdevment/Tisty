@@ -1,6 +1,7 @@
 {
   "name": "tisty",
   "private": true,
+  "homepage": "https://www.tisty.app/",
   "repository": "github:rgdevment/Tisty",
   "devDependencies": {
     "js-yaml": "^5.4.2",
