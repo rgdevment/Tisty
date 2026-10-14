@@ -319,6 +319,13 @@ export default function About({
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => openLink(t("aboutSiteAt")).catch(onError)}
+              className={mild}
+            >
+              {t("aboutSite")}
+            </button>
+            <button
+              type="button"
               onClick={() => openLink(build.repository).catch(onError)}
               className={mild}
             >

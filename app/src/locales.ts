@@ -770,6 +770,8 @@ const en = {
   updateUnanswered:
     "The Microsoft Store did not answer, so nothing is known about updates right now. What it last said still stands.",
   aboutStore: "Store",
+  aboutSite: "Visit www.tisty.app",
+  aboutSiteAt: "https://www.tisty.app/",
   aboutRepo: "Open the repository",
   aboutNotices: "Third-party notices",
   aboutLicences: "Licence texts",
@@ -2720,6 +2722,8 @@ const es: Catalog = {
   updateUnanswered:
     "La Microsoft Store no respondió, así que ahora mismo no se sabe nada de actualizaciones. Sigue valiendo lo último que dijo.",
   aboutStore: "Almacén",
+  aboutSite: "Visitar www.tisty.app",
+  aboutSiteAt: "https://www.tisty.app/es/",
   aboutRepo: "Abrir el repositorio",
   aboutNotices: "Avisos de terceros",
   aboutLicences: "Textos de las licencias",
