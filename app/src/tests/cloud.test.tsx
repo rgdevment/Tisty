@@ -398,6 +398,17 @@ describe("the cloud when things change under it", () => {
     expect(sent("cloud_choose")).toHaveLength(0);
   });
 
+  it("lets go of the old account when a copy never carried reconnects with another", async () => {
+    const BEA = { provider: "google", account: "9999", email: "bea@example.com" };
+    ipc.answers.cloud_connect = () => Promise.resolve(BEA);
+    const { carry } = card({ joined: false, last: round("cloudLost") });
+    await userEvent.click(await screen.findByRole("button", { name: t("stateReconnectDo") }));
+
+    await waitFor(() => expect(carry).toHaveBeenCalled());
+    expect(sent("cloud_choose")[0].args).toEqual(BEA);
+    expect(sent("cloud_forget")[0].args).toEqual({ account: ANA.account, provider: "google" });
+  });
+
   it("lets a cloud never carried into be left, and its access with it", async () => {
     card({ joined: false });
     await userEvent.click(await screen.findByRole("button", { name: t("cloudStop") }));

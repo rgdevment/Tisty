@@ -109,7 +109,7 @@ export default function Clouded({
     const was = status?.account;
     run(
       "sync",
-      chooseSync(undefined).then(() => (was ? cloudForget(was, status?.provider) : undefined)),
+      chooseSync().then(() => (was ? cloudForget(was, status?.provider) : undefined)),
       () => {},
     );
   };
