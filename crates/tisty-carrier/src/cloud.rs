@@ -800,9 +800,15 @@ impl Carrier for Cloud {
         })
     }
 
-    fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
+    fn settle(
+        &self,
+        here: &Here,
+        id: &str,
+        keep: Keep,
+        seen: Option<&str>,
+    ) -> Result<Option<String>, Trouble> {
         self.only(Some(here), |tree, _, _| {
-            tisty_sync::settle(&here.data, tree, id, keep)
+            tisty_sync::settle(&here.data, tree, id, keep, seen)
         })
     }
 
