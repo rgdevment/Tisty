@@ -297,6 +297,7 @@ fn a_cursor_onedrive_let_lapse_lists_everything_again() {
                 "410 Gone",
                 r#"{"error":{"code":"resyncRequired","message":"gone"}}"#,
             ),
+            said("200 OK", ROOT),
             whole(base, &[file("F", "a.tisty", "R", "e2")], "d2"),
         ]
     });
@@ -312,7 +313,93 @@ fn a_cursor_onedrive_let_lapse_lists_everything_again() {
     };
     assert_eq!(seen[0].revision, "e2");
     assert!(cursor.ends_with("token=d2"));
-    assert_eq!(served.join().unwrap().len(), 4);
+    assert_eq!(served.join().unwrap().len(), 5);
+}
+
+#[test]
+fn a_folder_onedrive_made_anew_is_found_again_under_its_new_id() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            whole(base, &[file("F", "a.tisty", "R", "e1")], "d1"),
+            said("404 Not Found", r#"{"error":{"code":"itemNotFound"}}"#),
+            said("200 OK", r#"{"id":"R2"}"#),
+            whole(base, &[file("G", "a.tisty", "R2", "e9")], "d9"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let Changes::Whole { cursor, .. } = drive.changes(None).unwrap() else {
+        panic!("a first look sees everything");
+    };
+    let Changes::Whole { seen, .. } = drive.changes(Some(&cursor)).unwrap() else {
+        panic!("a cursor of a folder that went is never read as nothing changed");
+    };
+
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].revision, "e9");
+}
+
+#[test]
+fn a_round_asking_from_an_older_cursor_still_hears_what_a_poll_passed_over() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            whole(base, &[file("F", "a.tisty", "R", "e1")], "d1"),
+            whole(base, &[file("F", "a.tisty", "R", "e2")], "d2"),
+            whole(base, &[], "d3"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let Changes::Whole { cursor: first, .. } = drive.changes(None).unwrap() else {
+        panic!("a first look sees everything");
+    };
+    drive.changes(Some(&first)).unwrap();
+    let Changes::Since { changed, gone, .. } = drive.changes(Some(&first)).unwrap() else {
+        panic!("a cursor passed is still followed");
+    };
+
+    assert_eq!(changed.len(), 1);
+    assert_eq!(changed[0].revision, "e2");
+    assert!(gone.is_empty());
+    let asked = served.join().unwrap();
+    assert!(
+        asked[3].line.contains("token=d2"),
+        "never asked again from d1: {}",
+        asked[3].line
+    );
+}
+
+#[test]
+fn every_ask_no_verb_pays_for_is_counted_once() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            said(
+                "200 OK",
+                &page(
+                    &[],
+                    "@odata.nextLink",
+                    &format!("{base}/v1.0/me/drive/special/approot/delta?token=p2"),
+                ),
+            ),
+            whole(base, &[], "d1"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    drive.list("").unwrap();
+
+    assert_eq!(
+        drive.spent_beyond(),
+        2,
+        "the folder's id and the second page"
+    );
+    assert_eq!(drive.spent_beyond(), 0);
 }
 
 #[test]
@@ -720,4 +807,89 @@ fn the_pieces_of_an_upload_are_what_onedrive_takes_and_names_fold_case() {
     assert!(limits.folds_case);
     assert_eq!(limits.chunk % (320 * 1024), 0);
     assert!(limits.chunk < 60 * 1024 * 1024);
+}
+
+#[test]
+fn a_large_write_over_a_revision_goes_whole_so_the_revision_is_checked_as_it_lands() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| vec![said("200 OK", &file("F", "big.tisty", "R", "e2"))]);
+    let drive = onedrive(at, home.path()).with_chunk(4);
+
+    drive
+        .put(
+            "big.tisty",
+            &written(&home, b"0123456789"),
+            Expect::Revision("e1".into()),
+        )
+        .unwrap();
+
+    let asked = served.join().unwrap();
+    assert_eq!(asked.len(), 1);
+    assert!(asked[0].line.contains(":/content?"), "{}", asked[0].line);
+    assert_eq!(header(&asked[0], "if-match").as_deref(), Some("e1"));
+    assert_eq!(asked[0].body, b"0123456789");
+}
+
+#[test]
+fn a_folder_is_never_deleted_in_place_of_a_file() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| vec![said("200 OK", &folder("S", "store", "R"))]);
+    let drive = onedrive(at, home.path());
+
+    assert!(matches!(
+        drive.delete("store", None),
+        Err(Hitch::Missing(_))
+    ));
+    assert_eq!(served.join().unwrap().len(), 1);
+}
+
+#[test]
+fn a_file_already_all_here_is_not_asked_for_past_its_end() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![said(
+            "200 OK",
+            &format!(
+                r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+            ),
+        )]
+    });
+    let drive = onedrive(at, home.path());
+    let mut got = Vec::new();
+
+    let seen = drive.fetch("a.tisty", 6, &mut got).unwrap();
+
+    assert!(got.is_empty());
+    assert_eq!(seen.bytes, 6);
+    assert_eq!(served.join().unwrap().len(), 1);
+}
+
+#[test]
+fn every_verb_asks_whose_drive_it_is_before_touching_it() {
+    let home = tempfile::tempdir().unwrap();
+    let elsewhere = r#"{"id":"other","userPrincipalName":"otra@outlook.com"}"#;
+    let (at, served) = graph(|_| {
+        vec![
+            said("200 OK", elsewhere),
+            said("200 OK", elsewhere),
+            said("200 OK", elsewhere),
+        ]
+    });
+    let drive = onedrive(at, home.path()).for_account("mine");
+    let refused = Hitch::Elsewhere {
+        found: "otra@outlook.com".into(),
+    };
+
+    assert_eq!(drive.about("a.tisty"), Err(refused.clone()));
+    assert_eq!(
+        drive.fetch("a.tisty", 0, &mut Vec::new()).err(),
+        Some(refused.clone())
+    );
+    assert_eq!(drive.delete("a.tisty", None), Err(refused));
+    let asked = served.join().unwrap();
+    assert!(
+        asked
+            .iter()
+            .all(|one| one.line.starts_with("GET /v1.0/me?"))
+    );
 }

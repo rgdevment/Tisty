@@ -1,6 +1,7 @@
+use std::collections::BTreeSet;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -21,6 +22,10 @@ const MIB: u64 = 1024 * 1024;
 const GIB: u64 = 1024 * MIB;
 // Thirty-two of the 320 KiB pieces an upload session takes, well below the 60 MiB it refuses.
 const CHUNK: u64 = 10 * MIB;
+// What a single request may carry; only it checks a revision at the moment the bytes land.
+const WHOLE_AT_MOST: u64 = 250 * 1000 * 1000;
+// Cursors passed with the paths each one moved, so a round asking from an older one still hears them all.
+const PASSED_AT_MOST: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphAt {
@@ -44,6 +49,33 @@ pub struct Account {
 struct Known {
     tree: Tree,
     cursor: String,
+    passed: Vec<(String, BTreeSet<String>)>,
+}
+
+impl Known {
+    fn holds(&self, since: &str) -> bool {
+        self.passed.iter().any(|(one, _)| one == since)
+    }
+
+    fn moved_to(&mut self, cursor: &str, touched: BTreeSet<String>) {
+        self.cursor = cursor.to_string();
+        match self.passed.last_mut() {
+            Some((last, kept)) if last == cursor => kept.extend(touched),
+            _ => self.passed.push((cursor.to_string(), touched)),
+        }
+        if self.passed.len() > PASSED_AT_MOST {
+            self.passed.remove(0);
+        }
+    }
+
+    fn touched_since(&self, since: &str) -> BTreeSet<String> {
+        self.passed
+            .iter()
+            .skip_while(|(one, _)| one != since)
+            .skip(1)
+            .flat_map(|(_, touched)| touched.iter().cloned())
+            .collect()
+    }
 }
 
 enum Walked {
@@ -57,10 +89,10 @@ pub struct OneDrive {
     http: Http,
     at: GraphAt,
     chunk: u64,
-    root: Mutex<Option<String>>,
     known: Mutex<Option<Known>>,
     expected: Option<String>,
     vouched: AtomicBool,
+    beyond: AtomicU64,
 }
 
 impl OneDrive {
@@ -70,10 +102,10 @@ impl OneDrive {
             http: transfer_http()?,
             at,
             chunk: CHUNK,
-            root: Mutex::new(None),
             known: Mutex::new(None),
             expected: None,
             vouched: AtomicBool::new(false),
+            beyond: AtomicU64::new(0),
         })
     }
 
@@ -81,6 +113,10 @@ impl OneDrive {
     pub fn for_account(mut self, id: &str) -> Self {
         self.expected = Some(id.to_string());
         self
+    }
+
+    pub(super) fn spent(&self, asks: u64) {
+        self.beyond.fetch_add(asks, Ordering::Relaxed);
     }
 
     #[cfg(test)]
@@ -128,24 +164,20 @@ impl OneDrive {
             return Ok(());
         };
         if !self.vouched.load(Ordering::Acquire) {
+            self.spent(1);
             self.verify(expected)?;
             self.vouched.store(true, Ordering::Release);
         }
         Ok(())
     }
 
-    // The folder stays the app's own however the person renames or moves it, so it is asked for by what it is.
+    // Asked again with every whole listing: the person may rename, move or delete the folder, and OneDrive makes it anew.
     fn root(&self) -> Result<String, Hitch> {
-        if let Some(root) = self.root.lock().ok().and_then(|held| held.clone()) {
-            return Ok(root);
-        }
         let url = format!("{}/me/drive/special/approot", self.at.api);
+        self.spent(1);
         let root: DriveItem = json(self.call(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[("$select", "id")])
         })?)?;
-        if let Ok(mut held) = self.root.lock() {
-            *held = Some(root.id.clone());
-        }
         Ok(root.id)
     }
 
@@ -161,10 +193,16 @@ impl OneDrive {
         }
         let mut link = from.to_string();
         let mut all = Vec::new();
+        let mut pages = 0;
         loop {
             self.ours(&link)?;
+            if pages > 0 {
+                self.spent(1);
+            }
+            pages += 1;
             let answer = self.sent(Some(ASKED_WITHIN), |http| http.get(&link))?;
-            if answer.status().as_u16() == 410 {
+            // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
+            if matches!(answer.status().as_u16(), 404 | 410) {
                 return Ok(Walked::Gone);
             }
             let page: Page = json(judged(answer)?)?;
@@ -194,7 +232,11 @@ impl OneDrive {
                 let mut tree = Tree::under(&root);
                 tree.applied(items);
                 if let Ok(mut held) = self.known.lock() {
-                    *held = Some(Known { tree, cursor });
+                    *held = Some(Known {
+                        tree,
+                        passed: vec![(cursor.clone(), BTreeSet::new())],
+                        cursor,
+                    });
                 }
                 return Ok(());
             }
@@ -229,18 +271,41 @@ impl OneDrive {
             .and_then(|held| held.as_ref().map(|known| known.cursor.clone()))
     }
 
+    // Followed from where the tree stands, never again from the older cursor, so nothing is applied twice.
+    fn held_from(&self, since: &str) -> Option<String> {
+        self.known
+            .lock()
+            .ok()?
+            .as_ref()
+            .filter(|known| known.holds(since))
+            .map(|known| known.cursor.clone())
+    }
+
     // Applied to the tree already held, so a change elsewhere costs one ask and not the whole folder again.
-    fn caught_up(&self, items: Vec<DriveItem>, cursor: String) -> Option<Changes> {
+    fn caught_up(&self, since: &str, items: Vec<DriveItem>, cursor: &str) -> Option<Changes> {
         let mut held = self.known.lock().ok()?;
         let known = held.as_mut()?;
         let before = known.tree.files();
         known.tree.applied(items);
-        let (changed, gone) = moved(&before, &known.tree.files());
-        known.cursor = cursor.clone();
+        let now = known.tree.files();
+        let (changed, gone) = moved(&before, &now);
+        let touched = changed
+            .into_iter()
+            .map(|one| one.name)
+            .chain(gone)
+            .collect();
+        known.moved_to(cursor, touched);
+        let (mut changed, mut gone) = (Vec::new(), Vec::new());
+        for path in known.touched_since(since) {
+            match now.get(&path) {
+                Some(seen) => changed.push(seen.clone()),
+                None => gone.push(path),
+            }
+        }
         Some(Changes::Since {
             changed,
             gone,
-            cursor,
+            cursor: cursor.to_string(),
         })
     }
 
@@ -301,6 +366,7 @@ impl Remote for OneDrive {
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
         names::fitting(name)?;
+        self.vouched_for()?;
         Ok(self
             .item(name, Some(ITEM_FIELDS))?
             .filter(DriveItem::is_file)
@@ -309,10 +375,15 @@ impl Remote for OneDrive {
 
     fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
         names::fitting(name)?;
+        self.vouched_for()?;
         let item = self
             .item(name, None)?
             .filter(DriveItem::is_file)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
+        // Everything is already here: a range past the end would be refused.
+        if item.size.is_some_and(|bytes| from >= bytes) {
+            return Ok(item.seen(name));
+        }
         let link = item.download.clone().ok_or_else(|| {
             Hitch::Broke("OneDrive gave no address to bring the file from".into())
         })?;
@@ -354,17 +425,26 @@ impl Remote for OneDrive {
         names::fitting(name)?;
         self.vouched_for()?;
         let bytes = std::fs::metadata(from)?.len();
-        let landed = match bytes <= self.chunk {
-            true => self.whole(name, from, &expect)?,
-            false => self.in_parts(name, from, &expect, bytes)?,
+        // A session checks the revision only when it opens, so a write over one always goes whole.
+        let landed = match &expect {
+            _ if bytes <= self.chunk => self.whole(name, from, &expect)?,
+            Expect::Revision(_) if bytes <= WHOLE_AT_MOST => self.whole(name, from, &expect)?,
+            Expect::Revision(_) => {
+                return Err(Hitch::Broke(format!(
+                    "OneDrive cannot write «{name}» over a revision at this size"
+                )));
+            }
+            Expect::Absent | Expect::Any => self.in_parts(name, from, &expect, bytes)?,
         };
         Ok(landed.seen(name))
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         names::fitting(name)?;
+        self.vouched_for()?;
         let item = self
             .item(name, Some(ITEM_FIELDS))?
+            .filter(DriveItem::is_file)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
         if expect.is_some_and(|wanted| item.etag.as_deref() != Some(wanted)) {
             return Err(Hitch::Changed(name.to_string()));
@@ -405,17 +485,21 @@ impl Remote for OneDrive {
             .map(|left| u64::try_from(left).unwrap_or(0)))
     }
 
+    fn spent_beyond(&self) -> u64 {
+        self.beyond.swap(0, Ordering::Relaxed)
+    }
+
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         crate::quickxor::of_file(local).map(|hash| format!("quickxor:{hash}"))
     }
 
     fn changes(&self, since: Option<&str>) -> Result<Changes, Hitch> {
         if let Some(since) = since
-            && self.cursor().as_deref() == Some(since)
+            && let Some(from) = self.held_from(since)
         {
             self.vouched_for()?;
-            if let Walked::Done(items, cursor) = self.walked(since)?
-                && let Some(caught_up) = self.caught_up(items, cursor)
+            if let Walked::Done(items, cursor) = self.walked(&from)?
+                && let Some(caught_up) = self.caught_up(since, items, &cursor)
             {
                 return Ok(caught_up);
             }

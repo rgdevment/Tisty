@@ -147,7 +147,6 @@ pub(super) fn within(path: &str, under: &str) -> bool {
             .is_some_and(|rest| rest.is_empty() || rest.starts_with('/'))
 }
 
-/// What moved between two views of the tree: files new or changed, and paths no longer there.
 pub(super) fn moved(
     before: &BTreeMap<String, Seen>,
     after: &BTreeMap<String, Seen>,

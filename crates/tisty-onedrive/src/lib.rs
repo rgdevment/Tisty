@@ -9,7 +9,6 @@ pub mod quickxor;
 pub use graph::{Account, GraphAt, OneDrive};
 pub use names::fitting;
 
-/// Only the app's own folder, a refresh token to keep, and who signed in.
 pub const SCOPES: &str = "Files.ReadWrite.AppFolder offline_access User.Read";
 pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
 const WAITED_AT_LEAST: Duration = Duration::from_secs(1);

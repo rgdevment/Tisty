@@ -135,10 +135,13 @@ impl OneDrive {
     fn landed(&self, name: &str, answer: Response) -> Result<Response, Hitch> {
         match answer.status().as_u16() {
             409 => Err(Hitch::Changed(name.to_string())),
-            412 => match self.item(name, Some(ITEM_FIELDS))? {
-                Some(_) => Err(Hitch::Changed(name.to_string())),
-                None => Err(Hitch::Missing(name.to_string())),
-            },
+            412 => {
+                self.spent(1);
+                match self.item(name, Some(ITEM_FIELDS))? {
+                    Some(_) => Err(Hitch::Changed(name.to_string())),
+                    None => Err(Hitch::Missing(name.to_string())),
+                }
+            }
             _ => judged(answer),
         }
     }
