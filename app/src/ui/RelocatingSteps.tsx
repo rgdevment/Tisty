@@ -59,16 +59,21 @@ export const alongSaid = (run: Run): string | undefined => {
   const where = t(run.toward.kind === "cloud" ? "moveUploading" : "moveCopying");
   if (along.done === 0 && along.sent === 0) return `${step}${where} · ${t("movePreparing")}`;
   const files = fill("moveFiles", String(along.done), String(along.whole));
-  return along.weighs > 0
-    ? `${step}${where} · ${fill("comingOf", weigh(along.sent), weigh(along.weighs))} · ${files}`
-    : `${step}${where} · ${files}`;
+  if (along.weighs === 0) return `${step}${where} · ${files}`;
+  const said = `${step}${where} · ${fill("comingOf", weigh(along.sent), weigh(along.weighs))} · ${files}`;
+  const left = along.whole - along.done;
+  // Once the bytes are all up, the small files still to go would hide behind a size that rounds away.
+  if (along.sent < along.weighs || left <= 0) return said;
+  return `${said} · ${left === 1 ? t("moveFileLeft") : fill("moveFilesLeft", String(left))}`;
 };
 
 const shareOf = (run: Run): number => {
   const along = run.along;
   const part = (done: number, whole: number) => (whole > 0 ? done / whole : 0);
   if (along?.step === 2)
-    return along.weighs > 0 ? part(along.sent, along.weighs) : part(along.done, along.whole);
+    return along.weighs > 0
+      ? Math.min(part(along.sent, along.weighs), part(along.done, along.whole))
+      : part(along.done, along.whole);
   if (along?.bringing) return part(along.bringing.done, along.bringing.whole);
   return 0.1;
 };
