@@ -929,6 +929,9 @@ para cualquier cosa que no sea un arreglo: Tisty es deliberadamente mínimo, y u
 función bien escrita se puede rechazar igual — normalmente porque convertiría la
 herramienta en otra cosa.
 
+Quien participe —en issues, pull requests, discusiones o la wiki— sigue el
+[código de conducta](CODE_OF_CONDUCT.md), que está en inglés.
+
 ## Licencia
 
 [AGPL-3.0](LICENSE), y disponible bajo

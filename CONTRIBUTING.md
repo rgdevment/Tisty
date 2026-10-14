@@ -1,6 +1,7 @@
 # Contributing to Tisty
 
-Bug reports, feature discussions and pull requests are all welcome.
+Bug reports, feature discussions and pull requests are all welcome. Everyone
+taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Before you write code
 

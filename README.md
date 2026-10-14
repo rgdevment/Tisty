@@ -916,6 +916,9 @@ anything beyond a fix: Tisty is deliberately minimal, and a well-written feature
 can still be declined — usually because it would make the tool something other
 than what it is.
 
+Everyone taking part — in issues, pull requests, discussions or the wiki —
+follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Licence
 
 [AGPL-3.0](LICENSE), and available under
