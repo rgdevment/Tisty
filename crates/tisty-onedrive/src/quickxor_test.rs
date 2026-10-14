@@ -73,10 +73,16 @@ Mr5OtmupNMXPwuG3EQlqWUVpQoYpUYKLsk7a5Mvg6UFkiH596y5IbJEVCI1Kb3D1",
     ),
 ];
 
+// The longer inputs are wrapped across lines as rclone keeps them.
+fn decoded(input: &str) -> Vec<u8> {
+    let joined: String = input.split_whitespace().collect();
+    STANDARD.decode(joined).unwrap()
+}
+
 #[test]
 fn the_hash_matches_what_onedrive_computes_for_every_known_input() {
     for (size, input, expected) in VECTORS {
-        let input = STANDARD.decode(input).unwrap();
+        let input = decoded(input);
         assert_eq!(input.len(), *size);
         let mut hash = QuickXor::default();
         hash.update(&input);
@@ -87,7 +93,7 @@ fn the_hash_matches_what_onedrive_computes_for_every_known_input() {
 #[test]
 fn bytes_fed_in_pieces_hash_as_when_fed_at_once() {
     let (_, input, expected) = VECTORS.last().unwrap();
-    let input = STANDARD.decode(input).unwrap();
+    let input = decoded(input);
     for cut in [1, 7, 20, 64, 160, 161] {
         let mut hash = QuickXor::default();
         for piece in input.chunks(cut) {
@@ -102,6 +108,6 @@ fn a_file_is_hashed_as_its_bytes() {
     let (_, input, expected) = VECTORS.last().unwrap();
     let dir = tempfile::tempdir().unwrap();
     let at = dir.path().join("one.bin");
-    std::fs::write(&at, STANDARD.decode(input).unwrap()).unwrap();
+    std::fs::write(&at, decoded(input)).unwrap();
     assert_eq!(of_file(&at).unwrap(), *expected);
 }
