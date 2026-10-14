@@ -256,7 +256,7 @@ pub async fn settle_in(
         && keeping.chosen != tisty_carrier::Chosen::Cloud
         && stuck.is_none();
     if let Some(carrier) = keeping.carrier
-        && let Some(_done) = alone.inner().claim()
+        && let Some(_done) = alone.inner().claim_round()
     {
         carried = true;
         let before = tisty_core::cache::fingerprint(&store);
@@ -778,9 +778,9 @@ pub async fn sync_now(
     alone: tauri::State<'_, OneAtATime>,
     way: Option<String>,
 ) -> Answer<Settled> {
-    let Some(_done) = alone.inner().claim() else {
+    let Some(_done) = alone.inner().claim_round() else {
         return Ok(Settled {
-            running: alone.inner().held_for(),
+            running: alone.inner().round_held_for(),
             carried: "busy",
             undecided: Vec::new(),
             unreadable: Vec::new(),
@@ -795,6 +795,7 @@ pub async fn sync_now(
             adopted: false,
         });
     };
+    let began = jiff::Timestamp::now().as_second().unsigned_abs();
     let (was, home) = {
         let session = held(&session);
         let home = tisty_carrier::cloud_of(session.config.sync.as_ref())
@@ -812,7 +813,7 @@ pub async fn sync_now(
         }
     }
     if let Some(home) = home
-        && let Some(kept) = noted(&home, &done)
+        && let Some(kept) = noted(&home, &done, began)
         && let Ok(Settled {
             deferred: Some(waiting),
             ..
@@ -853,7 +854,11 @@ pub fn place_raised_told(session: tauri::State<'_, Mutex<Session>>) {
 }
 
 /// How a round with the cloud ended stays written beside its mirror, so Settings can say it later.
-fn noted(home: &std::path::Path, done: &Answer<Settled>) -> Option<tisty_carrier::LastRound> {
+fn noted(
+    home: &std::path::Path,
+    done: &Answer<Settled>,
+    began: u64,
+) -> Option<tisty_carrier::LastRound> {
     let at = jiff::Timestamp::now().as_second().unsigned_abs();
     let round = match done {
         Ok(settled) if settled.carried == "busy" => return None,
@@ -864,6 +869,7 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) -> Option<tisty_carrier
             at,
             code: stuck.code.into(),
             name: stuck.name.clone(),
+            since: began,
             ..Default::default()
         },
         Ok(settled) => match &settled.deferred {
@@ -873,11 +879,13 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) -> Option<tisty_carrier
                 left: waiting.left,
                 names: waiting.names.clone(),
                 cause: waiting.cause.map(Into::into),
+                since: began,
                 ..Default::default()
             },
             None => tisty_carrier::LastRound {
                 at,
                 code: "ok".into(),
+                since: began,
                 ..Default::default()
             },
         },
@@ -885,6 +893,7 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) -> Option<tisty_carrier
             at,
             code: refused.code.into(),
             name: refused.name.clone(),
+            since: began,
             ..Default::default()
         },
     };

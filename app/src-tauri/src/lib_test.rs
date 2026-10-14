@@ -1716,14 +1716,8 @@ fn a_folder_that_is_not_there_yet_is_named_as_it_was_given() {
     assert_eq!(crate::as_asked_for(&at), at);
 }
 
-static TURN_LET_GO: crate::OneAtATime = crate::OneAtATime(
-    std::sync::atomic::AtomicBool::new(false),
-    std::sync::atomic::AtomicU64::new(0),
-);
-static TURN_KEPT: crate::OneAtATime = crate::OneAtATime(
-    std::sync::atomic::AtomicBool::new(false),
-    std::sync::atomic::AtomicU64::new(0),
-);
+static TURN_LET_GO: crate::OneAtATime = crate::OneAtATime::idle();
+static TURN_KEPT: crate::OneAtATime = crate::OneAtATime::idle();
 
 #[test]
 fn a_backup_asked_for_as_the_dialog_closes_waits_out_the_round_its_focus_started() {
@@ -1751,4 +1745,25 @@ fn a_round_that_keeps_the_turn_past_the_wait_still_refuses_the_backup() {
         tauri::async_runtime::block_on(TURN_KEPT.waited(std::time::Duration::from_millis(250)));
 
     assert!(backup.is_err(), "a stuck round let a backup in beside it");
+}
+
+#[test]
+fn only_a_round_with_the_cloud_is_timed_and_its_time_ends_with_it() {
+    let alone = crate::OneAtATime::idle();
+
+    let merge = alone.claim().expect("the merge takes the turn");
+    assert_eq!(alone.round_held_for(), 0);
+    assert!(alone.claim_round().is_none());
+    drop(merge);
+
+    let round = alone.claim_round().expect("the round takes the turn");
+    alone
+        .round_began
+        .store(crate::now_secs() - 90, std::sync::atomic::Ordering::Release);
+    assert!(alone.round_held_for() >= 90);
+    drop(round);
+
+    assert_eq!(alone.round_held_for(), 0);
+    let _rebuild = alone.claim().expect("the turn is free again");
+    assert_eq!(alone.round_held_for(), 0);
 }
