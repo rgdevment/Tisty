@@ -190,9 +190,8 @@ impl Watching {
         let mut read = true;
         let mut stirred = false;
         if print != self.print {
-            // The same catch-up the window uses: replaying the whole history every half minute
-            // costs the years, not the minute that passed.
-            match tisty_core::cache::project(&paths.store(), paths.cache()) {
+            // Reminders need titles and times, not bodies; the window keeps the cache current.
+            match tisty_core::cache::summarised(&paths.store(), paths.cache()) {
                 Ok(state) => {
                     self.state = state;
                     stirred = self.looked;

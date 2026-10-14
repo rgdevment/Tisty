@@ -16,7 +16,6 @@ pub struct Session {
     /// Each document put to the person, with how the other side and this one printed when asked.
     pub asked: std::collections::HashMap<String, (String, Option<String>)>,
     pub locale: Option<String>,
-    pub log: Option<(String, Vec<Event>)>,
     /// The fingerprint is read from the directory entry, which lags a write on Windows, so what
     /// was committed here is counted rather than measured.
     writes: u64,
@@ -116,7 +115,6 @@ impl Session {
             print,
             minded: std::collections::HashMap::new(),
             asked: std::collections::HashMap::new(),
-            log: None,
             writes: 0,
             behind: false,
         };
@@ -240,7 +238,7 @@ impl Session {
         let Ok(log) = self.log() else {
             return;
         };
-        let said = match tisty_core::agent::vouch(&config, &paths, log) {
+        let said = match tisty_core::agent::vouch(&config, &paths, &log) {
             Some(key) => Some(tisty_core::Op::DeviceHost {
                 d: agent.clone(),
                 of: config.device_id.clone(),
@@ -265,16 +263,9 @@ impl Session {
         let _ = self.config.save(&self.paths);
     }
 
-    pub fn log(&mut self) -> tisty_core::Result<&[Event]> {
-        let held = self
-            .log
-            .as_ref()
-            .is_some_and(|(print, _)| *print == self.print);
-        if !held {
-            let read = tisty_core::store::read_all(self.paths.store())?;
-            self.log = Some((self.print.clone(), read));
-        }
-        Ok(&self.log.as_ref().expect("just filled").1)
+    /// Read afresh each time: the whole history is milliseconds away and megabytes to keep.
+    pub fn log(&self) -> tisty_core::Result<Vec<Event>> {
+        tisty_core::store::read_all(self.paths.store())
     }
 
     pub fn reproject(&mut self) -> tisty_core::Result<()> {
@@ -299,7 +290,6 @@ impl Session {
             || tisty_core::cache::fingerprint(&self.paths.store()) != fresh.print;
         self.state = fresh.state;
         self.print = fresh.print;
-        self.log = None;
     }
 
     pub fn keeping(&self) -> tisty_carrier::Keeping {
@@ -763,9 +753,8 @@ impl Session {
         &mut self,
         id: tisty_core::model::DocId,
     ) -> tisty_core::Result<tisty_core::event::Filed> {
-        self.log()?;
-        let told = &self.log.as_ref().expect("just read").1;
-        Ok(tisty_core::undo::unhung(told, &self.state, id))
+        let told = self.log()?;
+        Ok(tisty_core::undo::unhung(&told, &self.state, id))
     }
 
     pub fn books_among(&self, files: &[String]) -> Vec<String> {
