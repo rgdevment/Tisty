@@ -5,6 +5,7 @@ import { fill, t, type Word } from "../locales";
 const SAID: Record<Exclude<Health, "reachable">, Word> = {
   blocked: "healthBlocked",
   inspected: "healthInspected",
+  slow: "healthSlow",
   troubled: "healthTroubled",
 };
 
@@ -34,9 +35,12 @@ export default function CloudHealth({ name }: { name: string }) {
         {fill("healthChecking", name)}
       </p>
     );
+  const slow = health === "slow";
   return (
-    <div role="alert" className="flex flex-col gap-1.5">
-      <p className="text-[11.5px] leading-relaxed text-urgent">{fill(SAID[health], name)}</p>
+    <div role={slow ? "status" : "alert"} className="flex flex-col gap-1.5">
+      <p className={`text-[11.5px] leading-relaxed ${slow ? "text-soft" : "text-urgent"}`}>
+        {fill(SAID[health], name)}
+      </p>
       <button
         type="button"
         onClick={check}

@@ -25,11 +25,11 @@ fn answering(status: &'static str) -> String {
 #[test]
 fn a_refusal_to_a_stranger_is_google_answering() {
     assert_eq!(
-        probe_at(&answering("401 Unauthorized"), SOON),
+        probe_at(&answering("401 Unauthorized"), SOON, SOON),
         Health::Reachable
     );
     assert_eq!(
-        probe_at(&answering("403 Forbidden"), SOON),
+        probe_at(&answering("403 Forbidden"), SOON, SOON),
         Health::Reachable
     );
 }
@@ -37,21 +37,21 @@ fn a_refusal_to_a_stranger_is_google_answering() {
 #[test]
 fn google_failing_on_its_side_is_told_apart_from_a_blocked_way() {
     assert_eq!(
-        probe_at(&answering("503 Service Unavailable"), SOON),
+        probe_at(&answering("503 Service Unavailable"), SOON, SOON),
         Health::Troubled
     );
     assert_eq!(answered(500), Health::Troubled);
 }
 
 #[test]
-fn a_way_that_never_answers_is_blocked_and_given_up_on_soon() {
+fn a_way_that_opens_but_never_answers_is_slow_not_blocked_and_given_up_on_soon() {
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let at = listener.local_addr().unwrap();
     let started = std::time::Instant::now();
 
-    let health = probe_at(&format!("http://{at}/drive/v3/about"), SOON);
+    let health = probe_at(&format!("http://{at}/drive/v3/about"), SOON, SOON);
 
-    assert_eq!(health, Health::Blocked);
+    assert_eq!(health, Health::Slow);
     assert!(started.elapsed() < Duration::from_secs(5));
     drop(listener);
 }
@@ -64,7 +64,7 @@ fn a_door_shut_at_once_is_blocked() {
         .unwrap();
 
     assert_eq!(
-        probe_at(&format!("http://{at}/drive/v3/about"), SOON),
+        probe_at(&format!("http://{at}/drive/v3/about"), SOON, SOON),
         Health::Blocked
     );
 }
@@ -75,10 +75,18 @@ fn a_name_that_resolves_nowhere_is_blocked() {
         failed("error sending request: dns error: failed to lookup address information"),
         Health::Blocked
     );
-    assert_eq!(failed("operation timed out"), Health::Blocked);
     assert_eq!(
         failed("tcp connect error: connection reset by peer (os error 104)"),
         Health::Blocked
+    );
+}
+
+#[test]
+fn a_way_that_took_too_long_is_slow_not_blocked() {
+    assert_eq!(failed("operation timed out"), Health::Slow);
+    assert_eq!(
+        failed("error sending request: client error (Connect): connection timeout"),
+        Health::Slow
     );
 }
 
@@ -100,6 +108,7 @@ fn every_answer_has_a_word_the_window_reads() {
     assert_eq!(Health::Reachable.code(), "reachable");
     assert_eq!(Health::Inspected.code(), "inspected");
     assert_eq!(Health::Blocked.code(), "blocked");
+    assert_eq!(Health::Slow.code(), "slow");
     assert_eq!(Health::Troubled.code(), "troubled");
 }
 
@@ -107,4 +116,5 @@ fn every_answer_has_a_word_the_window_reads() {
 fn only_googles_api_host_is_ever_asked() {
     assert!(PROBED.starts_with("https://www.googleapis.com/"));
     assert!(PROBED_WITHIN <= Duration::from_secs(10));
+    assert!(REACHED_WITHIN < PROBED_WITHIN);
 }

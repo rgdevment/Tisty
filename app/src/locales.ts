@@ -1180,6 +1180,8 @@ const en = {
   healthInspected:
     "A filter on your network is inspecting secure connections and Tisty cannot trust it, so it will not send your things through it. If you are on a work network, ask for Tisty to be let through to {name}, or use another network.",
   healthTroubled: "{name} is having problems right now; try again later.",
+  healthSlow:
+    "{name} took a while to answer; it may be a slow network or a filter. You can try connecting anyway.",
   healthAgain: "Check again",
   restoredApart:
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
@@ -3132,6 +3134,8 @@ const es: Catalog = {
   healthInspected:
     "Un filtro de tu red está revisando las conexiones seguras y Tisty no puede confiar en él, así que no enviará tus cosas a través de él. Si estás en una red de trabajo, pide que dejen pasar Tisty hacia {name}, o usa otra red.",
   healthTroubled: "{name} tiene problemas ahora; intenta más tarde.",
+  healthSlow:
+    "{name} tardó en responder; puede ser una red lenta o un filtro. Puedes intentar conectarte igual.",
   healthAgain: "Revisar de nuevo",
   restoredApart:
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",

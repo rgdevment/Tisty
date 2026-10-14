@@ -148,7 +148,6 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
           <span className={heading}>{t("cloudGooglePace")}</span>
           {t("cloudGooglePaceWhy")}
         </div>
-        <CloudHealth name={t("cloudGoogle")} />
         <div className="flex items-center gap-4 text-[11.5px]">
           <button type="button" disabled={busy || held} onClick={leave} className={back}>
             {t("welcomeBack")}

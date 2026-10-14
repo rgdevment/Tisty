@@ -755,7 +755,7 @@ export const cloudRevoke = (account?: string): Promise<void> => invoke("cloud_re
 export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
 export const cloudStatus = (): Promise<CloudStatus | null> => invoke("cloud_status");
 
-export type Health = "reachable" | "inspected" | "blocked" | "troubled";
+export type Health = "reachable" | "inspected" | "blocked" | "slow" | "troubled";
 
 export const cloudHealth = (): Promise<Health> => invoke("cloud_health");
 
