@@ -128,13 +128,6 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 > **Es para una persona, a propósito.** Sin responsables, sin permisos, sin
 > tableros. Si necesitas llevar un equipo, Tisty no va a sostener eso.
 
-<p align="center">
-  <img
-    src="assets/mascot/tisty-head.svg"
-    height="110"
-    alt="Tisty, el castor, con un lápiz detrás de la oreja"/>
-</p>
-
 ## Contenido
 
 - [Por qué lo hice](#por-qué-lo-hice)

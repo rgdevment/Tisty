@@ -127,13 +127,6 @@ productivity tool** that lives on your machine and nowhere else.
 > **It is for one person, by design.** No assignees, no permissions, no boards.
 > If you need to run a team, Tisty will not carry that.
 
-<p align="center">
-  <img
-    src="assets/mascot/tisty-head.svg"
-    height="110"
-    alt="Tisty the beaver, with a pencil behind its ear"/>
-</p>
-
 ## Table of Contents
 
 - [Why I Built This](#why-i-built-this)
