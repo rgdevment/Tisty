@@ -1470,7 +1470,7 @@ SOFTWARE.
 
 ## Text 17
 
-Carried by `atomic-waker` 1.1.2, `base64` 0.22.1, `base64` 0.23.1, `bitflags` 2.13.1, `bumpalo` 3.20.3, `cfg-if` 1.0.4, `core-foundation` 0.9.4, `core-foundation` 0.10.1, `core-foundation-sys` 0.8.7, `core-graphics` 0.25.0, `core-graphics-types` 0.2.0, `crossbeam-channel` 0.5.16, `crossbeam-utils` 0.8.22, `equivalent` 1.0.2, `errno` 0.3.14, `fastrand` 2.5.0, `filetime` 0.2.29, `flate2` 1.1.9, `fnv` 1.0.7, `form_urlencoded` 1.2.2, `fs4` 1.1.0, `glob` 0.3.4, `global-hotkey` 0.8.0, `hashbrown` 0.17.1, `heck` 0.5.0, `httparse` 1.10.1, `hyper-rustls` 0.27.9, `idna` 1.1.0, `idna_adapter` 1.2.2, `indexmap` 2.14.0, `keyboard-types` 0.7.0, `keyboard-types` 0.8.3, `lock_api` 0.4.14, `log` 0.4.34, `mime` 0.3.17, `muda` 0.20.0, `num-traits` 0.2.19, `once_cell` 1.21.4, `parking_lot` 0.12.5, `parking_lot_core` 0.9.12, `percent-encoding` 2.3.2, `png` 0.18.1, `regex` 1.13.1, `regex-automata` 0.4.18, `regex-syntax` 0.8.11, `rustix` 1.1.4, `rustls` 0.23.45, `scopeguard` 1.2.0, `security-framework` 3.7.0, `security-framework-sys` 2.17.0, `serde_with` 3.21.0, `smallvec` 1.15.2, `socket2` 0.6.5, `stable_deref_trait` 1.2.1, `system-configuration` 0.7.0, `system-configuration-sys` 0.6.0, `tar` 0.4.46, `tempfile` 3.27.0, `thread_local` 1.1.10, `tray-icon` 0.25.1, `unicode-normalization` 0.1.25, `unicode-segmentation` 1.13.3, `unicode-width` 0.2.2, `url` 2.5.8, `uuid` 1.24.0, `weezl` 0.1.12, `window-vibrancy` 0.8.1, `wry` 0.57.0, `xattr` 1.6.1.
+Carried by `atomic-waker` 1.1.2, `base64` 0.22.1, `base64` 0.23.1, `bitflags` 2.13.1, `bumpalo` 3.20.3, `cfg-if` 1.0.4, `core-foundation` 0.9.4, `core-foundation` 0.10.1, `core-foundation-sys` 0.8.7, `core-graphics` 0.25.0, `core-graphics-types` 0.2.0, `crossbeam-channel` 0.5.16, `crossbeam-utils` 0.8.22, `equivalent` 1.0.2, `errno` 0.3.14, `fastrand` 2.5.0, `filetime` 0.2.29, `flate2` 1.1.9, `fnv` 1.0.7, `form_urlencoded` 1.2.2, `fs4` 1.1.0, `glob` 0.3.4, `global-hotkey` 0.8.0, `hashbrown` 0.17.1, `heck` 0.5.0, `httparse` 1.10.1, `hyper-rustls` 0.27.9, `idna` 1.1.0, `idna_adapter` 1.2.2, `indexmap` 2.14.0, `keyboard-types` 0.7.0, `keyboard-types` 0.8.3, `lock_api` 0.4.14, `log` 0.4.34, `mime` 0.3.17, `muda` 0.20.0, `num-traits` 0.2.19, `once_cell` 1.21.4, `parking_lot` 0.12.5, `parking_lot_core` 0.9.12, `percent-encoding` 2.3.2, `png` 0.18.1, `regex` 1.13.1, `regex-automata` 0.4.18, `regex-syntax` 0.8.11, `rustix` 1.1.4, `rustls` 0.23.46, `scopeguard` 1.2.0, `security-framework` 3.7.0, `security-framework-sys` 2.17.0, `serde_with` 3.21.0, `smallvec` 1.15.2, `socket2` 0.6.5, `stable_deref_trait` 1.2.1, `system-configuration` 0.7.0, `system-configuration-sys` 0.6.0, `tar` 0.4.46, `tempfile` 3.27.0, `thread_local` 1.1.10, `tray-icon` 0.25.1, `unicode-normalization` 0.1.25, `unicode-segmentation` 1.13.3, `unicode-width` 0.2.2, `url` 2.5.8, `uuid` 1.24.0, `weezl` 0.1.12, `window-vibrancy` 0.8.1, `wry` 0.57.0, `xattr` 1.6.1.
 
 ```text
 Apache License
@@ -7178,7 +7178,7 @@ THE SOFTWARE.
 
 ## Text 102
 
-Carried by `hyper-rustls` 0.27.9, `rustls` 0.23.45.
+Carried by `hyper-rustls` 0.27.9, `rustls` 0.23.46.
 
 ```text
 ISC License (ISC)
@@ -7200,7 +7200,7 @@ THIS SOFTWARE.
 
 ## Text 103
 
-Carried by `hyper-rustls` 0.27.9, `rustls` 0.23.45.
+Carried by `hyper-rustls` 0.27.9, `rustls` 0.23.46.
 
 ```text
 Copyright (c) 2016 Joseph Birr-Pixton <jpixton@gmail.com>
