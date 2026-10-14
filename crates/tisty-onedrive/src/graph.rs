@@ -284,7 +284,8 @@ impl OneDrive {
     // Applied to the tree already held, so a change elsewhere costs one ask and not the whole folder again.
     fn caught_up(&self, since: &str, items: Vec<DriveItem>, cursor: &str) -> Option<Changes> {
         let mut held = self.known.lock().ok()?;
-        let known = held.as_mut()?;
+        // A whole listing taken meanwhile forgets the cursors passed, and then only a whole one says what changed.
+        let known = held.as_mut().filter(|known| known.holds(since))?;
         let before = known.tree.files();
         known.tree.applied(items);
         let now = known.tree.files();
