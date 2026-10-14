@@ -13,9 +13,16 @@ main=$(git symbolic-ref -q --short "refs/remotes/$remote/HEAD" 2> /dev/null || e
 
 nothing=0000000000000000000000000000000000000000
 status=0
-while read -r _ mine _ theirs; do
+while read -r ref mine _ theirs; do
   [ -n "${mine:-}" ] || continue
   [ "$mine" != "$nothing" ] || continue
+  # A tag is the last moment to notice the version it names has nothing to tell whoever installs it.
+  case ${ref:-} in
+    refs/tags/v*)
+      bash scripts/news.sh "${ref#refs/tags/v}" || status=1
+      continue
+      ;;
+  esac
   if base=$(git merge-base "$mine" "$main" 2> /dev/null) && [ -n "$base" ]; then
     range="$base..$mine"
   elif [ "${theirs:-$nothing}" != "$nothing" ]; then

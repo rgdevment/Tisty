@@ -300,6 +300,13 @@ pub async fn move_to(
     match shifted {
         tisty_carrier::Shift::Homing { owed, deferred } => Ok(waiting("homing", owed, deferred)),
         tisty_carrier::Shift::Filling { owed, deferred } => Ok(waiting("filling", owed, deferred)),
+        tisty_carrier::Shift::Fetching { owed } => Ok(Moving::Waiting {
+            stage: "homing",
+            left: owed.into(),
+            reason: Some("fetching"),
+            wait: None,
+            cause: None,
+        }),
         tisty_carrier::Shift::Unsettled => Ok(Moving::Waiting {
             stage: "homing",
             left: Weight::default(),

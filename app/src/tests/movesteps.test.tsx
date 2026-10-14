@@ -204,6 +204,71 @@ describe("a move that waits", () => {
     ).toBeTruthy();
   });
 
+  it("waits for the folder's program to bring files down, then says what to look at", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    ipc.answers.move_to = () => Promise.resolve(waiting("fetching", 4));
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    render(<MoveNotice onOpen={() => undefined} />);
+    expect(
+      screen.getByText(`${t("moveFetching")} · ${fill("moveRetryIn", String(RETRY_IN))}`),
+    ).toBeTruthy();
+
+    for (let tried = 0; tried < 8; tried += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+      });
+    }
+    vi.useRealTimers();
+    watched();
+
+    expect(sent("move_to")).toHaveLength(7);
+    expect(await screen.findByText(t("moveWaiting"))).toBeTruthy();
+    expect(screen.getAllByText((text) => text.includes(t("moveUnfetched"))).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByRole("button", { name: t("moveDrop") })).toBeTruthy();
+  });
+
+  it("gives Google its own tries once downloads have spent theirs, then hands the move over", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const answers: unknown[] = [1, 2, 3, 4, 5].map(() => waiting("fetching", 4));
+    ipc.answers.move_to = () => Promise.resolve(answers.shift() ?? waiting("troubled", 4));
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    for (let tried = 0; tried < 10; tried += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+      });
+    }
+
+    expect(sent("move_to")).toHaveLength(8);
+  });
+
+  it("hands it to the person even when downloads and Google's stumbles take turns", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let tries = 0;
+    ipc.answers.move_to = () => {
+      tries += 1;
+      return Promise.resolve(waiting(tries % 2 ? "fetching" : "troubled", 4));
+    };
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    for (let tried = 0; tried < 20; tried += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+      });
+    }
+
+    expect(sent("move_to").length).toBeLessThan(10);
+  });
+
   it("hands it to the person in plain words once tries in a row moved nothing", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     ipc.answers.move_to = () => Promise.resolve(waiting("troubled", 6));

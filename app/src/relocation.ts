@@ -7,7 +7,7 @@ export type MoveAlong =
   | { step: 1; bringing?: { done: number; whole: number } }
   | ({ step: 2 } & Sum);
 
-export type Waited = "limit" | "offline" | "troubled";
+export type Waited = "limit" | "offline" | "troubled" | "fetching";
 
 export interface Run {
   toward: Toward;
@@ -27,6 +27,8 @@ export interface Run {
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
 const STALLS = 3;
+// Two minutes with no file come down is long enough to hand the person what to look at.
+const FETCH_STALLS = 6;
 export const RETRY_IN = 20;
 
 let run: Run | null = null;
@@ -34,6 +36,8 @@ let watchers = 0;
 let resuming: ReturnType<typeof setTimeout> | undefined;
 let stalled = 0;
 let lastLeft: number | undefined;
+let wasFetching = false;
+let fetchStalled = 0;
 let failing: Run["failing"];
 // Bumped whenever a run is let go of, so an answer or a timer of the run before never brings it back.
 let epoch = 0;
@@ -80,7 +84,11 @@ onHeard((step) => {
 });
 
 const waitOf = (now: Moving): { wait: number; waited: Waited } | undefined => {
-  if (stalled >= STALLS || now.state !== "waiting") return undefined;
+  if (now.state !== "waiting") return undefined;
+  // A large file the folder's program brings down can take minutes and leave nothing new between tries.
+  if (now.reason === "fetching")
+    return fetchStalled >= FETCH_STALLS ? undefined : { wait: RETRY_IN, waited: "fetching" };
+  if (stalled >= STALLS) return undefined;
   if (now.reason === "limit" && typeof now.wait === "number" && now.wait <= SHORT_PAUSE)
     return { wait: now.wait + MARGIN, waited: "limit" };
   if (now.reason === "offline" || now.reason === "troubled")
@@ -108,10 +116,21 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
       if (now.state === "done") for (const one of afterMoves) one();
       const along = run?.along;
       const left = now.state === "waiting" ? now.left.files : undefined;
+      // Downloads and other waits count files apart, so each keeps its own tally of tries that moved nothing.
+      const fetching = now.state === "waiting" && now.reason === "fetching";
+      const switched = lastLeft !== undefined && fetching !== wasFetching;
+      wasFetching = fetching;
       const moved =
-        lastLeft === undefined ? sentSoFar() > before : left !== undefined && left < lastLeft;
-      if (moved) stalled = 0;
-      else if (left !== undefined && lastLeft !== undefined) stalled += 1;
+        lastLeft === undefined || switched
+          ? sentSoFar() > before
+          : left !== undefined && left < lastLeft;
+      if (moved) {
+        stalled = 0;
+        fetchStalled = 0;
+      } else if (left !== undefined && lastLeft !== undefined) {
+        if (fetching) fetchStalled += 1;
+        else stalled += 1;
+      }
       lastLeft = left;
       const waits = waitOf(now);
       if (waits === undefined) {
@@ -145,6 +164,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
 export const startMove = (toward: Toward, from?: Carrying["mode"]) => {
   if (run?.going) return;
   stalled = 0;
+  fetchStalled = 0;
   const goesOn = run?.result?.state === "waiting";
   if (!goesOn) {
     lastLeft = undefined;
@@ -158,7 +178,9 @@ export const endMove = () => {
   epoch += 1;
   clearTimeout(resuming);
   stalled = 0;
+  fetchStalled = 0;
   lastLeft = undefined;
+  wasFetching = false;
   failing = undefined;
   forgetUps();
   set(null);

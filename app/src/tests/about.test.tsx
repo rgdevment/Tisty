@@ -75,10 +75,12 @@ describe("the other tools", () => {
   });
 
   it("draws an icon for each, not a bullet", async () => {
-    const { container } = render(<About ready={null} onError={() => {}} />);
+    render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
-    expect(container.querySelectorAll("img").length).toBe(2);
+    for (const name of [/CopyPaste/, /LinkUnbound/]) {
+      expect(screen.getByRole("button", { name }).querySelector("img")).toBeTruthy();
+    }
   });
 
   it("opens the coffee page for anyone who wants to help", async () => {

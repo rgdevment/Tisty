@@ -3,6 +3,7 @@ import { useEffect, useId, useRef } from "react";
 interface Props {
   title: string;
   wide?: boolean;
+  art?: React.ReactNode;
   onClose?: () => void;
   children: React.ReactNode;
 }
@@ -10,7 +11,7 @@ interface Props {
 const REACHABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export default function Modal({ title, wide, onClose, children }: Props) {
+export default function Modal({ title, wide, art, onClose, children }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const heading = useId();
 
@@ -58,7 +59,8 @@ export default function Modal({ title, wide, onClose, children }: Props) {
         ref={box}
         className={`w-full ${wide ? "max-w-lg" : "max-w-md"} rounded-[10px] border border-hair bg-bg p-6 shadow-lift-tall`}
       >
-        <h2 id={heading} className="mb-3.5 text-[21px] font-semibold">
+        {art}
+        <h2 id={heading} className={`mb-3.5 text-[21px] font-semibold ${art ? "text-center" : ""}`}>
           {title}
         </h2>
         {children}

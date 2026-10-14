@@ -173,6 +173,49 @@ fn history_only_the_old_place_holds_comes_along_even_with_nothing_owed_home() {
     }
 }
 
+fn left_as_a_sidecar() -> Shift {
+    let room = tempfile::tempdir().unwrap();
+    let setting = Setting {
+        name: "folder".to_string(),
+        place: Place::Folder(room.path().join("shared")),
+        room,
+    };
+    std::fs::create_dir_all(setting.room.path().join("shared")).unwrap();
+    let (one, two) = pair(&setting);
+    let kept = one.attached(PHOTO);
+    one.round(Way::Both);
+    two.round(Way::Pull);
+    let_go_here(&two, &kept.at);
+    let there = tisty_core::attach::resolve(&kept.at, &setting.room.path().join("shared")).unwrap();
+    let name = there.file_name().unwrap().to_str().unwrap().to_string();
+    std::fs::rename(&there, there.with_file_name(format!(".{name}.icloud"))).unwrap();
+    step(&two, Some(&*two.carrier), None)
+}
+
+#[cfg(target_os = "macos")]
+#[test]
+fn leaving_a_folder_waits_for_what_its_program_still_brings_down_and_says_so() {
+    let stopped = left_as_a_sidecar();
+
+    assert_eq!(
+        stopped,
+        Shift::Fetching {
+            owed: Owed {
+                files: 1,
+                bytes: PHOTO.len() as u64
+            }
+        }
+    );
+}
+
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn a_sidecar_nothing_here_can_ask_for_never_holds_a_move_as_coming_down() {
+    let stopped = left_as_a_sidecar();
+
+    assert!(!matches!(stopped, Shift::Fetching { .. }), "{stopped:?}");
+}
+
 #[test]
 fn a_copy_of_the_wrong_size_in_a_folder_counts_as_not_there() {
     let room = tempfile::tempdir().unwrap();

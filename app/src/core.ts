@@ -795,7 +795,7 @@ export type Moving =
       state: "waiting";
       stage: "homing" | "filling";
       left: Weight;
-      reason?: Waiting["reason"] | "unsettled" | null;
+      reason?: Waiting["reason"] | "unsettled" | "fetching" | null;
       wait?: number | null;
       cause?: Cause | null;
     };
