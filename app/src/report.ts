@@ -49,7 +49,14 @@ export function written(facts: Facts, now = new Date()): string {
   ]);
 
   block(t("reportSettings"), [
-    [t("wordSyncs"), facts.syncs ? t(facts.shared ? "yesShared" : "yesLocal") : t("noSync")],
+    [
+      t("wordSyncs"),
+      !facts.syncs
+        ? t("noSync")
+        : facts.cloud
+          ? fill("yesCloud", facts.cloud)
+          : t(facts.shared ? "yesShared" : "yesLocal"),
+    ],
     [
       t("wordBackup"),
       `${t("backupAvailable")} · ${facts.backedUpAt ? stamped(facts.backedUpAt, now) : t("backupNever")}`,
