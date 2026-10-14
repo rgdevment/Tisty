@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import copypaste from "../assets/copypaste.png";
-import linkunbound from "../assets/linkunbound.png";
+import copanda from "../assets/copanda.svg";
+import linkunbound from "../assets/linkunbound.svg";
 import tisty from "../assets/tisty.svg";
 import {
   about,
@@ -29,7 +29,7 @@ const SHELF = "ms-windows-store://downloadsandupdates";
 
 const TOOLS = [
   {
-    icon: copypaste,
+    icon: copanda,
     name: "CopyPaste",
     said: "toolCopyPaste",
     at: "https://rgdevment.com/copypaste/",
@@ -302,7 +302,11 @@ export default function About({
             onClick={() => openLink(tool.at).catch(onError)}
             className="mb-2 flex w-full items-start gap-3 rounded-[10px] border border-hair px-3.5 py-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <img src={tool.icon} alt="" className="mt-px size-6 shrink-0 rounded-md" />
+            <img
+              src={tool.icon}
+              alt=""
+              className="mt-px size-7 shrink-0 object-contain dark:drop-shadow-[0_0_1px_rgb(248_250_255/0.9)]"
+            />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-semibold">{tool.name}</span>
               <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
