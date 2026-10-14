@@ -15,7 +15,7 @@ const WAITS = {
   troubled: "deferredTroubled",
   unsent: "deferredUnsent",
   unsettled: "moveUnsettled",
-  fetching: "moveFetching",
+  fetching: "moveUnfetched",
 } as const;
 
 // A line Google cut, or a fault it answered with, is no lost connection while this computer is online.
@@ -50,8 +50,8 @@ export const useTicking = (on: boolean) => {
 export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
   if (run.pausedUntil === undefined) return undefined;
   const left = Math.max(0, Math.ceil((run.pausedUntil - now) / 1000));
-  if (run.waited === "fetching" || run.waited === "unfetched")
-    return `${t(run.waited === "fetching" ? "moveFetching" : "moveUnfetched")} · ${fill("moveRetryIn", String(left))}`;
+  if (run.waited === "fetching")
+    return `${t("moveFetching")} · ${fill("moveRetryIn", String(left))}`;
   if (run.waited === "offline" || run.waited === "troubled") {
     return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", String(left))}`;
   }

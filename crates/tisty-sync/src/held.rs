@@ -372,7 +372,7 @@ pub(crate) fn copy_held(
     if !asked_for.is_empty() {
         witness::standing(
             channel::SYNC,
-            "attachments the folder's own program has not brought down yet were asked for",
+            "attachments the folder's own program has not brought down yet were left for a later round",
             &[("count", Fact::Count(asked_for.len()))],
         );
     }

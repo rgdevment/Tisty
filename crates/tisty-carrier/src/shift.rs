@@ -87,11 +87,13 @@ pub fn shift(
         let Some(moved) = settled(moved)? else {
             return Ok(Shift::Unsettled);
         };
-        let owed = homing(from, here);
         let deferred = holding_back(moved.deferred);
-        if deferred.is_none() && coming_down(from, here) {
-            return Ok(Shift::Fetching { owed });
+        // Only when nothing else holds the move back, so a lasting fault is never hidden behind a download.
+        let (rest, coming) = still_away(from, here);
+        if deferred.is_none() && rest.nothing() && !coming.nothing() {
+            return Ok(Shift::Fetching { owed: coming });
         }
+        let owed = homing(from, here);
         if !owed.nothing() || deferred.is_some() {
             return Ok(Shift::Homing { owed, deferred });
         }
@@ -162,16 +164,40 @@ pub(crate) fn owed_against(
         .fold(Owed::default(), |owed, (_, bytes)| owed.add(bytes))
 }
 
-fn coming_down(from: &dyn Carrier, here: &Here) -> bool {
-    let Some(shelf) = from.lends_from() else {
-        return false;
-    };
-    known(here).any(|(reference, bytes)| {
-        !at_home(here, &reference, bytes)
-            && reference
-                .strip_prefix("attachments/")
-                .is_some_and(|rest| tisty_core::holes::a_hole(&shelf.join(rest)))
-    })
+/// What is owed home apart, and what the folder's own program can still bring down to this disk.
+fn still_away(from: &dyn Carrier, here: &Here) -> (Owed, Owed) {
+    let there = from.shelf();
+    let root = from
+        .lends_from()
+        .and_then(|at| at.parent().map(Path::to_path_buf));
+    known(here)
+        .filter(|(reference, bytes)| !at_home(here, reference, *bytes))
+        .fold(
+            (Owed::default(), Owed::default()),
+            |(rest, coming), (reference, bytes)| {
+                if root
+                    .as_deref()
+                    .is_some_and(|root| fetchable(root, &reference, bytes))
+                {
+                    (rest, coming.add(bytes))
+                } else if there
+                    .as_ref()
+                    .is_none_or(|there| there.get(&reference) == Some(&bytes))
+                {
+                    (rest.add(bytes), coming)
+                } else {
+                    (rest, coming)
+                }
+            },
+        )
+}
+
+fn fetchable(root: &Path, reference: &str, bytes: u64) -> bool {
+    bytes <= tisty_core::attach::HELD_UP_TO
+        && tisty_core::attach::resolve(reference, root).is_ok_and(|at| {
+            let left = tisty_core::holes::left_in_place(&at);
+            tisty_core::holes::can_ask(&left) || tisty_core::holes::comes_by_reading(&left)
+        })
 }
 
 pub fn filling(to: &dyn Carrier, here: &Here) -> Owed {

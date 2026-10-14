@@ -216,14 +216,37 @@ describe("a move that waits", () => {
       screen.getByText(`${t("moveFetching")} · ${fill("moveRetryIn", String(RETRY_IN))}`),
     ).toBeTruthy();
 
-    for (let tried = 0; tried < 7; tried += 1) {
+    for (let tried = 0; tried < 8; tried += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+      });
+    }
+    vi.useRealTimers();
+    watched();
+
+    expect(sent("move_to")).toHaveLength(7);
+    expect(await screen.findByText(t("moveWaiting"))).toBeTruthy();
+    expect(screen.getAllByText((text) => text.includes(t("moveUnfetched"))).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByRole("button", { name: t("moveDrop") })).toBeTruthy();
+  });
+
+  it("counts tries spent on downloads for nothing once the move waits on Google instead", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const answers: unknown[] = [1, 2, 3, 4, 5].map(() => waiting("fetching", 4));
+    ipc.answers.move_to = () => Promise.resolve(answers.shift() ?? waiting("troubled", 4));
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    for (let tried = 0; tried < 6; tried += 1) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
       });
     }
 
-    expect(sent("move_to")).toHaveLength(8);
-    expect(screen.getByText((text) => text.startsWith(t("moveUnfetched")))).toBeTruthy();
+    expect(sent("move_to")).toHaveLength(7);
   });
 
   it("hands it to the person in plain words once tries in a row moved nothing", async () => {
