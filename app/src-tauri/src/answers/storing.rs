@@ -1332,6 +1332,8 @@ pub fn confirm_machine_key(
     if says.as_deref() != Some(key.as_str()) {
         return Err(Refusal::of("keyMoved"));
     }
+    // Written under the lock again, so two confirms or a round never rewrite the waiting list at once.
+    let _held = held(&session);
     if !tisty_core::vouched::confirm(paths.data(), &who, &key) {
         return Err(Refusal::of("keyNotConfirmed"));
     }

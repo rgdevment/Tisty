@@ -26,13 +26,13 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         confirm,
         force,
     } = asked;
+    let keeping = carrier::chosen(app.config().sync.as_ref());
     if let Some(whose) = confirm {
         let Some(dest) = carrier::histories_of(&app.paths, app.config().sync.as_ref()) else {
-            anyhow::bail!("{}", lang.get("no-remote"));
+            anyhow::bail!("{}", nothing_to_carry_with(app, keeping.chosen, lang));
         };
         return answered_for(app, &dest, &whose, force, lang);
     }
-    let keeping = carrier::chosen(app.config().sync.as_ref());
     let Some(via) = keeping.carrier else {
         anyhow::bail!("{}", nothing_to_carry_with(app, keeping.chosen, lang));
     };
