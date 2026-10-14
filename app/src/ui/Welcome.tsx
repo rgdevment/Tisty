@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
+import { toldAside } from "../coming";
 import {
   ALIAS_AT_MOST,
   chooseSync,
@@ -19,7 +20,7 @@ import {
 } from "../core";
 import { adopt, fill, t } from "../locales";
 import { folderAhead, saidPlainly } from "../refusal";
-import { causeSaid } from "../syncSaid";
+import { causeSaid, lasts } from "../syncSaid";
 import Apart, { type Door } from "./Apart";
 import Bringing from "./Bringing";
 import Choosing from "./Choosing";
@@ -75,6 +76,21 @@ function Choice({
 const NAME_COMING_TRIES = 10;
 const NAME_COMING_EVERY = 3000;
 
+// A round that never reached the place leaves its mirror short, so it settles nothing about what the place holds.
+const reached = (how?: Settled): boolean =>
+  !!how &&
+  how.carried !== "busy" &&
+  how.deferred?.reason !== "offline" &&
+  how.deferred?.reason !== "troubled";
+
+const failedSaid = (how?: Settled): string | null => {
+  const waiting = how?.deferred;
+  if (waiting?.reason === "offline")
+    return (lasts(waiting) && causeSaid(waiting.cause)) || t("deferredOffline");
+  if (waiting?.reason === "troubled") return t("deferredTroubled");
+  return null;
+};
+
 export default function Welcome({ onDone }: Props) {
   const [step, setStep] = useState<Step>("tongue");
   const [busy, setBusy] = useState(false);
@@ -91,6 +107,8 @@ export default function Welcome({ onDone }: Props) {
   const [toCloud, setToCloud] = useState(false);
   const went = useRef(false);
   const joined = useRef(false);
+  const held = useRef<boolean | null>(false);
+  const sowOwed = useRef(false);
 
   useEffect(() => {
     syncState()
@@ -115,11 +133,13 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
+  // Starter lists and the guide are only for a place that held nothing; one not known yet is sown once it is.
   const finish = useCallback(() => {
     if (went.current) return Promise.resolve();
     went.current = true;
     const settling = Promise.allSettled([wakeFor(true), keepClosing("hide")]);
-    if (joined.current) return settling.then(() => onDone(undefined));
+    sowOwed.current = !joined.current && held.current === null;
+    if (joined.current || held.current !== false) return settling.then(() => onDone(undefined));
     return settling
       .then(() => sowLists())
       .catch(() => undefined)
@@ -162,6 +182,29 @@ export default function Welcome({ onDone }: Props) {
       )
       .catch(() => undefined);
 
+  // A look that failed before the round is taken again from what the round mirrored here.
+  const decided = (how?: Settled): Promise<void> => {
+    if (held.current !== null || !reached(how)) return Promise.resolve();
+    return joining()
+      .then((there) => there.holds)
+      .catch(() => true)
+      .then((holds) => {
+        held.current = holds;
+        if (holds) joined.current = true;
+      });
+  };
+
+  // The person already went in: what is left is told on the bottom line, never by pulling them back here.
+  const afterHiding = (how?: Settled) => {
+    if (how?.carried === "busy") return toldAside(t("syncBusy"));
+    const failed = failedSaid(how);
+    if (failed) return toldAside(failed);
+    if (sowOwed.current && held.current === false && !joined.current) {
+      sowOwed.current = false;
+      void sowLists().catch(() => undefined);
+    }
+  };
+
   const carryOn = (name?: string) => {
     setBusy(true);
     setTrouble(undefined);
@@ -169,19 +212,22 @@ export default function Welcome({ onDone }: Props) {
     setCarrying(true);
     return round()
       .then(async (how) => {
-        if (went.current) return;
+        await decided(how);
+        if (went.current) return afterHiding(how);
         if (how?.carried === "busy") {
           setCarrying(false);
           setStuck({ said: t("syncBusy") });
           return;
         }
-        const away = how?.deferred?.reason === "offline" ? causeSaid(how.deferred.cause) : null;
-        if (away || how?.deferred?.reason === "troubled") {
+        // A blip lets the person in while later rounds keep trying; only what lasts stops them here.
+        const lasting = how?.deferred && lasts(how.deferred) ? failedSaid(how) : null;
+        if (lasting) {
           setCarrying(false);
-          setStuck({ said: away ?? t("deferredTroubled") });
+          setStuck({ said: lasting });
           return;
         }
         const signed = name ?? (joined.current ? await signedThere() : undefined);
+        if (went.current) return;
         if (signed) setNamed(signed);
         return next(signed);
       })
@@ -200,9 +246,12 @@ export default function Welcome({ onDone }: Props) {
   const settle = (): Promise<void> =>
     placePeek()
       .then((peeked) => {
+        held.current = peeked.holds;
         if (peeked.fresh && peeked.holds) joined.current = true;
       })
-      .catch(() => undefined)
+      .catch(() => {
+        held.current = null;
+      })
       .then(() => {
         setBusy(false);
         return carryOn();
@@ -225,6 +274,7 @@ export default function Welcome({ onDone }: Props) {
     chooseSync()
       .then(() => {
         joined.current = false;
+        held.current = false;
         setNamed(undefined);
         chose();
       })
@@ -383,7 +433,7 @@ export default function Welcome({ onDone }: Props) {
         ) : carrying ? (
           <Bringing
             from={toCloud ? t("cloudGoogle") : t("syncTheFolder")}
-            onHide={() => void next(named)}
+            onHide={() => void finish()}
           />
         ) : (
           <Choosing

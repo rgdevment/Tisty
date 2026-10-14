@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { heard } from "../coming";
+import { heard, toldAside } from "../coming";
 import { adopt, fill, t } from "../locales";
+import Coming from "../ui/Coming";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
 
@@ -2486,7 +2487,8 @@ describe("the first-run assistant", () => {
   };
 
   it("counts what comes while the round brings, and lets the person go in meanwhile", async () => {
-    render(<Welcome onDone={vi.fn()} />);
+    const done = vi.fn();
+    render(<Welcome onDone={done} />);
     await halfway();
     expect(screen.getByText(fill("welcomeBringing", t("syncTheFolder")))).toBeTruthy();
 
@@ -2495,18 +2497,92 @@ describe("the first-run assistant", () => {
     expect(await screen.findByText(`${t("comingLog")} ${fill("comingOf", "0", "2")}`)).toBeTruthy();
     expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: t("welcomeKeepWorking") }));
-    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+    await waitFor(() => expect(done).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
     act(() => heard(null));
   });
 
-  it("says what stands in the way when the first round cannot reach the place", async () => {
+  const hiddenThen = async (ends: unknown) => {
+    let letGo: () => void = () => {};
+    let over = false;
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd !== "sync_now") return answered(cmd, args);
+      if (over) return Promise.resolve(ends);
+      return new Promise((keep) => {
+        letGo = () => {
+          over = true;
+          keep(ends);
+        };
+      });
+    };
+    const done = vi.fn();
+    render(
+      <>
+        <Welcome onDone={done} />
+        <Coming />
+      </>,
+    );
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeKeepWorking") }));
+    await waitFor(() => expect(done).toHaveBeenCalledTimes(1));
+    letGo();
+    return done;
+  };
+
+  it("tells on the bottom line how a round the person went in on ended, never pulling them back", async () => {
+    const done = await hiddenThen({
+      carried: "same",
+      undecided: [],
+      deferred: { reason: "offline", left: 0, names: [], cause: "filtered", rounds: 1 },
+    });
+
+    expect(await screen.findByText(t("deferredOffline"))).toBeTruthy();
+    expect(screen.queryByText(t("roundFiltered")), "a single blip named a filter").toBeNull();
+    expect(done).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(t("welcomeCarryStuck"))).toBeNull();
+    act(() => toldAside(null));
+  });
+
+  it("tells a round turned away after the person went in, too", async () => {
+    await hiddenThen({ carried: "busy", undecided: [] });
+
+    expect(await screen.findByText(t("syncBusy"), {}, { timeout: 4000 })).toBeTruthy();
+    act(() => toldAside(null));
+  });
+
+  it("lets the person in on a first blip and keeps trying, without a cause it cannot be sure of", async () => {
+    const done = vi.fn();
     const answered = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "sync_now"
         ? Promise.resolve({
             carried: "same",
             undecided: [],
-            deferred: { reason: "offline", left: 0, names: [], cause: "filtered" },
+            deferred: { reason: "offline", left: 0, names: [], cause: "filtered", rounds: 1 },
+          })
+        : answered(cmd, args);
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+    expect(screen.queryByText(t("roundFiltered"))).toBeNull();
+    expect(screen.queryByRole("button", { name: t("welcomeAnyway") })).toBeNull();
+  });
+
+  it("says what stands in the way once the first round keeps failing the same way", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({
+            carried: "same",
+            undecided: [],
+            deferred: { reason: "offline", left: 0, names: [], cause: "filtered", rounds: 2 },
           })
         : answered(cmd, args);
     render(<Welcome onDone={vi.fn()} />);
@@ -2517,6 +2593,34 @@ describe("the first-run assistant", () => {
 
     expect(await screen.findByText(t("roundFiltered"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("welcomeAnyway") })).toBeTruthy();
+  });
+
+  it("decides from what the round brought when the look before it failed", async () => {
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "place_peek" ? Promise.reject({ code: "cloudNotNow" }) : answered(cmd, args);
+    const done = vi.fn();
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(sent("sow_lists"), "lists were sown over the history it brought").toHaveLength(0);
+    expect(sent("guide"), "a second guide over the history it brought").toHaveLength(0);
+    expect(sent("sign")).toHaveLength(0);
+  });
+
+  it("sows a place found empty only once the round says so, after the person went in", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "place_peek" ? Promise.reject({ code: "cloudNotNow" }) : answered(cmd, args);
+    await hiddenThen({ carried: "sent", undecided: [] });
+
+    await waitFor(() => expect(sent("sow_lists")).toHaveLength(1));
+    expect(sent("guide"), "a guide opened under what the person is doing").toHaveLength(0);
   });
 
   const olderThanTheFolder = async () => {

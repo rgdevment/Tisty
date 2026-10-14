@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { toldAside } from "./coming";
 import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
@@ -62,6 +63,7 @@ export function carrying(
           owed = owing(owed, way);
           stalled = true;
         }
+        if (answer.carried !== "busy" && !answer.deferred) toldAside(null);
         if (mine !== round) return answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is

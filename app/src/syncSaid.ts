@@ -39,19 +39,22 @@ export const offlineNow = () => typeof navigator !== "undefined" && navigator.on
 export const causeSaid = (cause?: Cause | null): string | null =>
   cause && cause in CAUSES && !offlineNow() ? fill(CAUSES[cause], t("cloudGoogle")) : null;
 
-interface Failing {
+export interface Failing {
   cause?: Cause | null;
   rounds?: number;
   since?: number;
   at?: number;
 }
 
-// One failed round is a blip; only the same cause twice in a row, or for two minutes, is said.
-export const lastingCause = (said: Failing, now = Date.now() / 1000): string | null => {
+// One failed round is a blip; only a second in a row, or two minutes failing, is said.
+export const lasts = (said: Failing, now = Date.now() / 1000): boolean => {
   const rounds = said.rounds ?? 0;
   const lasted = said.since ? (said.at ?? now) - said.since : 0;
-  return rounds >= LASTING_ROUNDS || lasted >= LASTING_SECS ? causeSaid(said.cause) : null;
+  return rounds >= LASTING_ROUNDS || lasted >= LASTING_SECS;
 };
+
+export const lastingCause = (said: Failing, now = Date.now() / 1000): string | null =>
+  lasts(said, now) ? causeSaid(said.cause) : null;
 
 /** Why a round waits, with a spent day told by the hour it turns here. */
 export const waitSaid = (key: Parameters<typeof t>[0], now = new Date()): string =>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
-import { choose } from "../coming";
+import { choose, toldAside } from "../coming";
 import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../core";
 import { decideAll, putOffSaid } from "../deciding";
 import { fill, t } from "../locales";
@@ -59,6 +59,7 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
         fail({ card: "sync", text: t("wouldReset") });
         return "declined";
       }
+      if (answer.carried !== "busy" && !answer.deferred) toldAside(null);
       const { said, putOff } = await decideAll(answer.undecided, true);
       const amiss = whatWentAmiss(answer);
       const waits = whatWaits(answer);
