@@ -63,8 +63,10 @@ fn a_door_shut_at_once_is_blocked() {
         .local_addr()
         .unwrap();
 
+    // Windows answers a closed local port only after its own retries, about two seconds in.
+    let patient = Duration::from_secs(8);
     assert_eq!(
-        probe_at(&format!("http://{at}/drive/v3/about"), SOON, SOON),
+        probe_at(&format!("http://{at}/drive/v3/about"), patient, patient),
         Health::Blocked
     );
 }
