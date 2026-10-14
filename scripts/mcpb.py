@@ -21,7 +21,8 @@ MANIFEST = {
     "version": VERSION,
     "description": SAID,
     "author": {"name": REPO.split("/")[0], "url": f"https://github.com/{REPO.split('/')[0]}"},
-    "homepage": f"https://github.com/{REPO}",
+    "homepage": "https://www.tisty.app/",
+    "repository": {"type": "git", "url": f"https://github.com/{REPO}"},
     "server": {
         "type": "binary",
         "entry_point": "server/tisty",

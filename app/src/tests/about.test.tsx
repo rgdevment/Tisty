@@ -98,6 +98,15 @@ describe("the other tools", () => {
 
     expect(opened.urls).toContain("https://github.com/rgdevment/tisty");
   });
+
+  it("opens Tisty's own site as a url", async () => {
+    render(<About ready={null} onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    await userEvent.click(screen.getByRole("button", { name: /www\.tisty\.app/i }));
+
+    expect(opened.urls).toEqual(["https://www.tisty.app/"]);
+  });
 });
 
 const upward = (named: string): string => {
