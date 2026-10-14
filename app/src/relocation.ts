@@ -20,6 +20,8 @@ export interface Run {
   along?: MoveAlong;
   /** Tries in a row that could not reach the place, and since when, so a blip names no cause. */
   failing?: { rounds: number; since: number };
+  /** Bytes still to come down when the wait on the folder's program began, so the bar shows what arrived. */
+  fetchingFrom?: number;
   watched: boolean;
 }
 
@@ -27,8 +29,8 @@ export interface Run {
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
 const STALLS = 3;
-// Two minutes with no file come down is long enough to hand the person what to look at.
-const FETCH_STALLS = 6;
+// A large file can take minutes to come down; five with none arriving is long enough to hand the move over.
+const FETCH_STALLS = 15;
 export const RETRY_IN = 20;
 
 let run: Run | null = null;
@@ -38,6 +40,7 @@ let stalled = 0;
 let lastLeft: number | undefined;
 let wasFetching = false;
 let fetchStalled = 0;
+let fetchingFrom: number | undefined;
 let failing: Run["failing"];
 // Bumped whenever a run is let go of, so an answer or a timer of the run before never brings it back.
 let epoch = 0;
@@ -47,7 +50,7 @@ const ups = new Map<number, Sum>();
 let upBefore: Sum = { done: 0, whole: 0, sent: 0, weighs: 0 };
 
 const set = (next: Run | null) => {
-  run = next && { ...next, watched: watchers > 0 };
+  run = next && { ...next, fetchingFrom, watched: watchers > 0 };
   for (const one of told) one();
 };
 
@@ -104,7 +107,16 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
   settleUps();
   const before = sentSoFar();
   const began = Math.floor(Date.now() / 1000);
-  set({ toward, from, going: true, along, watched: false });
+  // Looking again while the folder's program brings files down still says what it waits for.
+  const fetching = run?.waited === "fetching";
+  set({
+    toward,
+    from,
+    going: true,
+    along,
+    watched: false,
+    ...(fetching ? { waited: "fetching", result: run?.result } : {}),
+  });
   moveTo(toward)
     .then((now) => {
       if (mine !== epoch) return;
@@ -114,11 +126,14 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
           ? { rounds: (failing?.rounds ?? 0) + 1, since: failing?.since ?? began }
           : undefined;
       if (now.state === "done") for (const one of afterMoves) one();
-      const along = run?.along;
+      // Files still coming down put the move back at its first step, with nothing yet to count as brought.
+      const along: MoveAlong | undefined =
+        now.state === "waiting" && now.reason === "fetching" ? { step: 1 } : run?.along;
       const left = now.state === "waiting" ? now.left.files : undefined;
       // Downloads and other waits count files apart, so each keeps its own tally of tries that moved nothing.
       const fetching = now.state === "waiting" && now.reason === "fetching";
       const switched = lastLeft !== undefined && fetching !== wasFetching;
+      const freshWait = fetching && !wasFetching;
       wasFetching = fetching;
       const moved =
         lastLeft === undefined || switched
@@ -132,6 +147,8 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
         else stalled += 1;
       }
       lastLeft = left;
+      const bytes = now.state === "waiting" ? now.left.bytes : 0;
+      if (fetching) fetchingFrom = freshWait ? bytes : Math.max(fetchingFrom ?? 0, bytes);
       const waits = waitOf(now);
       if (waits === undefined) {
         set({ toward, from, going: false, result: now, along, failing, watched: false });
@@ -168,6 +185,7 @@ export const startMove = (toward: Toward, from?: Carrying["mode"]) => {
   const goesOn = run?.result?.state === "waiting";
   if (!goesOn) {
     lastLeft = undefined;
+    fetchingFrom = undefined;
     failing = undefined;
     forgetUps();
   }
@@ -181,6 +199,7 @@ export const endMove = () => {
   fetchStalled = 0;
   lastLeft = undefined;
   wasFetching = false;
+  fetchingFrom = undefined;
   failing = undefined;
   forgetUps();
   set(null);

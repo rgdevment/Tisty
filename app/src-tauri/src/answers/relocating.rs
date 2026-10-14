@@ -30,6 +30,16 @@ pub enum Toward {
     },
 }
 
+impl Toward {
+    fn kind(&self) -> &'static str {
+        match self {
+            Toward::Alone => "alone",
+            Toward::Folder { .. } => "folder",
+            Toward::Cloud { .. } => "cloud",
+        }
+    }
+}
+
 fn google() -> String {
     GOOGLE.to_string()
 }
@@ -255,10 +265,63 @@ pub async fn move_to(
     alone: tauri::State<'_, OneAtATime>,
     toward: Toward,
 ) -> Answer<Moving> {
+    let kind = toward.kind();
+    let answer = moving(app, &session, &alone, toward).await;
+    noted(&answer, kind);
+    answer
+}
+
+// Every try of a move leaves a line, so a report says why one waits without anyone reading the code.
+fn noted(answer: &Answer<Moving>, toward: &'static str) {
+    use tisty_core::witness::{self, Fact};
+    match answer {
+        Ok(Moving::Done { told, .. }) => witness::note(
+            channel::SYNC,
+            "a move ended",
+            &[
+                ("toward", Fact::Word(toward)),
+                ("told", Fact::Word(if *told { "yes" } else { "no" })),
+            ],
+        ),
+        Ok(Moving::Waiting {
+            stage,
+            left,
+            reason,
+            cause,
+            ..
+        }) => witness::standing(
+            channel::SYNC,
+            "a move waits",
+            &[
+                ("toward", Fact::Word(toward)),
+                ("stage", Fact::Word(stage)),
+                ("reason", Fact::Word(reason.unwrap_or("none"))),
+                ("cause", Fact::Word(cause.unwrap_or("none"))),
+                ("files", Fact::Count(left.files)),
+                ("bytes", Fact::Bytes(left.bytes)),
+            ],
+        ),
+        Err(refusal) => witness::warn(
+            channel::SYNC,
+            "a move stopped",
+            &[
+                ("toward", Fact::Word(toward)),
+                ("code", Fact::Code(refusal.code)),
+            ],
+        ),
+    }
+}
+
+async fn moving(
+    app: tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    alone: &tauri::State<'_, OneAtATime>,
+    toward: Toward,
+) -> Answer<Moving> {
     let _done = alone.inner().waited(WAITED).await?;
     accessible(&toward).await?;
     let (mut end, paths, left) = {
-        let mut session = held(&session);
+        let mut session = held(session);
         let end = ends(&mut session, &toward)?;
         let left = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned();
         (end, session.paths.clone(), left)
@@ -273,17 +336,17 @@ pub async fn move_to(
     };
     if let Some(refusal) = apart
         && let Some(theirs) =
-            super::joining::will_adopt(&session, end.to.clone(), refusal.code, refusal.name).await
-        && super::joining::adopted_quietly(&session, theirs).await
+            super::joining::will_adopt(session, end.to.clone(), refusal.code, refusal.name).await
+        && super::joining::adopted_quietly(session, theirs).await
     {
-        end = ends(&mut held(&session), &toward)?;
+        end = ends(&mut held(session), &toward)?;
         shifted = shifting(&app, &end).await?;
     }
     let Ends {
         from, way, joins, ..
     } = end;
     let caught = catching_up(
-        &session,
+        session,
         &paths,
         "the store would not project after a move brought things home",
         channel::SYNC,
@@ -315,7 +378,7 @@ pub async fn move_to(
             cause: None,
         }),
         tisty_carrier::Shift::Ready => {
-            let after = changed_with(&mut held(&session), way.clone(), moving_in, joins)?;
+            let after = changed_with(&mut held(session), way.clone(), moving_in, joins)?;
             pending_kept(&paths, None);
             let at = paths.clone();
             let told = tauri::async_runtime::spawn_blocking(move || delivered(&at, after, from))
