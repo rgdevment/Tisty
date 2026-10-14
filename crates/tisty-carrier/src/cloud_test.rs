@@ -448,12 +448,16 @@ fn a_cut_connection_defers_the_round_and_loses_nothing() {
         let remote = counting(&setting);
         let (one, two) = pair(&setting);
         one.wrote("lo de uno");
-        remote.fail_next(Hitch::Unreachable("sin red".into()));
+        remote.fail_next(Hitch::Unreachable(
+            Some(crate::Cause::Filtered),
+            "sin red".into(),
+        ));
 
         let cut = one.round(Way::Both);
 
         let deferred = cut.deferred.unwrap();
         assert_eq!(deferred.reason, Reason::Offline, "{who}");
+        assert_eq!(deferred.cause, Some(crate::Cause::Filtered), "{who}");
         assert_eq!((cut.sent, cut.brought), (0, 0), "{who}");
         one.round(Way::Both);
         two.round(Way::Pull);
@@ -1002,7 +1006,10 @@ fn an_attachment_that_fails_offline_does_not_hold_back_the_history_and_both_are_
         let (one, _) = pair(&setting);
         one.kept("foto", b"los bytes de una foto");
         one.wrote("lo de uno");
-        remote.fail_after(1, Hitch::Unreachable("sin red".into()));
+        remote.fail_after(
+            1,
+            Hitch::Unreachable(Some(crate::Cause::Blocked), "sin red".into()),
+        );
         remote.fail_next(Hitch::Limited {
             wait: Duration::from_secs(4),
         });
@@ -1467,7 +1474,10 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
             one.store().append(other.told()).unwrap();
             one.round(Way::Both);
             two.round(Way::Pull);
-            remote.fail_next(Hitch::Unreachable("sin red".into()));
+            remote.fail_next(Hitch::Unreachable(
+                Some(crate::Cause::Blocked),
+                "sin red".into(),
+            ));
             assert_eq!(
                 two.carrier.brought(&two.here, &other.at).unwrap(),
                 crate::Brought::Later,
@@ -1732,12 +1742,14 @@ fn a_round_held_back_twice_names_the_reason_the_person_can_do_least_about() {
         left: 1,
         retry_after: None,
         names: vec!["attachments/ab/a.png".into()],
+        cause: None,
     });
     let spent = Some(crate::Deferred {
         reason: Reason::Budget,
         left: 2,
         retry_after: None,
         names: vec!["attachments/cd/b.pdf".into(), "attachments/ef/c.mp4".into()],
+        cause: None,
     });
 
     let said = super::merged(owed.clone(), spent.clone()).unwrap();
@@ -1938,7 +1950,10 @@ fn a_wipe_waits_out_a_slow_answer_or_a_short_pause_and_gives_up_on_anything_else
     let once = super::patiently(|| {
         asked += 1;
         match asked {
-            1 => Err(crate::Hitch::Unreachable("timed out".into())),
+            1 => Err(crate::Hitch::Unreachable(
+                Some(crate::Cause::Blocked),
+                "timed out".into(),
+            )),
             2 => Err(crate::Hitch::Limited {
                 wait: std::time::Duration::ZERO,
             }),
@@ -2017,4 +2032,150 @@ fn a_wipe_tries_again_after_the_provider_failed_on_its_side_and_asks_no_more_onc
     });
     assert_eq!(went, Ok(()));
     assert_eq!(first, 1);
+}
+
+#[test]
+fn a_store_up_there_is_seen_in_one_look_before_anything_is_pulled() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        assert_eq!(
+            two.carrier.peeks_a_store(false),
+            Some(false),
+            "{who}: an empty place held a store"
+        );
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        remote.forget_counts();
+
+        assert_eq!(two.carrier.peeks_a_store(false), Some(true), "{who}");
+        assert!(
+            !two.carrier.holds_a_store(),
+            "{who}: the look pulled the store"
+        );
+        assert_eq!(remote.counts().fetches, 0, "{who}");
+    }
+}
+
+#[test]
+fn a_first_round_counts_what_it_reads_from_up_there_from_the_first_file() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.filed(DOC, "# Plan\n");
+        one.round(Way::Both);
+        let counted = |desk: &Desk| {
+            let mut heard = Vec::new();
+            let mut saying = |far| {
+                if let crate::Reached::Along {
+                    stage: tisty_sync::Stage::Log,
+                    done,
+                    whole,
+                } = far
+                {
+                    heard.push((done, whole));
+                }
+            };
+            desk.carrier
+                .carry(
+                    &desk.here,
+                    Round {
+                        way: Way::Both,
+                        alive: &[],
+                        holds: Holds::Everywhere,
+                        saying: &mut saying,
+                    },
+                )
+                .unwrap();
+            heard
+        };
+
+        let first = counted(&two);
+
+        let (done, whole) = *first
+            .first()
+            .expect("a first round said nothing while it read");
+        assert_eq!(done, 0, "{who}: {first:?}");
+        assert!(whole > 0, "{who}: {first:?}");
+        assert!(first.contains(&(whole, whole)), "{who}: {first:?}");
+    }
+}
+
+#[test]
+fn a_computer_that_never_wrote_takes_the_place_history_on_its_first_round_without_asking() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        drop(two.store());
+        assert!(
+            !tisty_core::store::inhabited(two.here.data.join(STORE)),
+            "{who}"
+        );
+
+        let first = two.carry(Way::Both, Holds::Everywhere);
+
+        assert!(first.is_ok(), "{who}: {first:?}");
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+    }
+}
+
+#[test]
+fn a_mirror_left_here_is_trusted_only_for_the_place_chosen_and_carried_lately() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        remote.forget_counts();
+
+        assert_eq!(two.carrier.peeks_a_store(true), Some(true), "{who}");
+        assert_eq!(
+            remote.counts().requests,
+            1,
+            "{who}: a mirror never carried lately was trusted"
+        );
+
+        super::standing::round_noted(
+            &home_of(&setting, "dev_b"),
+            &super::standing::LastRound {
+                at: super::policy::now(),
+                code: "ok".into(),
+                ..Default::default()
+            },
+        );
+        remote.forget_counts();
+        assert_eq!(two.carrier.peeks_a_store(true), Some(true), "{who}");
+        assert_eq!(remote.counts().requests, 0, "{who}");
+
+        assert_eq!(two.carrier.peeks_a_store(false), Some(true), "{who}");
+        assert_eq!(
+            remote.counts().requests,
+            1,
+            "{who}: a place not chosen was read off its old mirror"
+        );
+    }
+}
+
+#[test]
+fn a_look_at_a_cloud_not_chosen_yet_spends_nothing_here_and_an_unanswered_one_is_unknown() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let two = desk(&setting, "dev_b");
+
+        assert_eq!(two.carrier.peeks_a_store(false), Some(false), "{who}");
+        assert!(
+            !home_of(&setting, "dev_b").join("budget.json").exists(),
+            "{who}: a cloud not chosen kept a spending of its own"
+        );
+
+        remote.fail_next(Hitch::Unreachable(None, "sin red".into()));
+        assert_eq!(two.carrier.peeks_a_store(false), None, "{who}");
+    }
 }

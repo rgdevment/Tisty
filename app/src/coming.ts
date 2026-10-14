@@ -34,10 +34,12 @@ export interface Sum {
 let now: Coming | null = null;
 let stuck: unknown = null;
 let carded: string | null = null;
+let aside: string | null = null;
 let choosing = false;
 let hearing = false;
 const told = new Set<() => void>();
 const hearers = new Set<(step: Heard) => void>();
+const enders = new Set<() => void>();
 const parts = new Map<number, Sum>();
 
 const tell = () => {
@@ -83,6 +85,27 @@ export const ended = (why: unknown) => {
   now = null;
   parts.clear();
   stuck = why ?? null;
+  for (const one of [...enders]) one();
+  tell();
+};
+
+/** Called once, when the next round with the place ends, whoever ran it. */
+export const onEnded = (then: () => void) => {
+  hear();
+  const once = () => {
+    enders.delete(once);
+    then();
+  };
+  enders.add(once);
+  return () => {
+    enders.delete(once);
+  };
+};
+
+/** How a round the person stopped watching ended, told on the bottom line until a later round goes well. */
+export const toldAside = (said: string | null) => {
+  if (aside === said) return;
+  aside = said;
   tell();
 };
 
@@ -136,6 +159,8 @@ export const useComing = (): Coming | null => useSyncExternalStore(subscribe, ()
 export const useStuck = (): unknown => useSyncExternalStore(subscribe, () => stuck);
 
 export const useCarded = (): string | null => useSyncExternalStore(subscribe, () => carded);
+
+export const useAside = (): string | null => useSyncExternalStore(subscribe, () => aside);
 
 export const useChoosing = (): boolean => useSyncExternalStore(subscribe, () => choosing);
 

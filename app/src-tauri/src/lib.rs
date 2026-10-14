@@ -640,24 +640,58 @@ impl Packing {
     }
 }
 
-struct Releasing<'a>(&'a std::sync::atomic::AtomicBool);
+struct Releasing<'a>(&'a OneAtATime);
 
 impl Drop for Releasing<'_> {
     fn drop(&mut self) {
-        self.0.store(false, std::sync::atomic::Ordering::Release);
+        use std::sync::atomic::Ordering;
+        self.0.round_began.store(0, Ordering::Release);
+        self.0.held.store(false, Ordering::Release);
     }
 }
 
-#[derive(Default)]
-struct OneAtATime(std::sync::atomic::AtomicBool);
+/// When a round with the cloud took the hold, so one turned away can say how long it has run.
+struct OneAtATime {
+    held: std::sync::atomic::AtomicBool,
+    round_began: std::sync::atomic::AtomicU64,
+}
+
+impl Default for OneAtATime {
+    fn default() -> Self {
+        Self::idle()
+    }
+}
 
 impl OneAtATime {
+    const fn idle() -> Self {
+        Self {
+            held: std::sync::atomic::AtomicBool::new(false),
+            round_began: std::sync::atomic::AtomicU64::new(0),
+        }
+    }
+
     fn claim(&self) -> Option<Releasing<'_>> {
         use std::sync::atomic::Ordering;
-        self.0
+        self.held
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
-            .then(|| Releasing(&self.0))
+            .then(|| Releasing(self))
+    }
+
+    fn claim_round(&self) -> Option<Releasing<'_>> {
+        let claimed = self.claim()?;
+        self.round_began
+            .store(now_secs(), std::sync::atomic::Ordering::Release);
+        Some(claimed)
+    }
+
+    // Zero while a merge, a move or a rebuild holds it, or in the instant before a round says when it began.
+    fn round_held_for(&self) -> u64 {
+        use std::sync::atomic::Ordering;
+        match self.round_began.load(Ordering::Acquire) {
+            0 => 0,
+            began => now_secs().saturating_sub(began),
+        }
     }
 
     fn taken(&self) -> Answer<Releasing<'_>> {
@@ -677,6 +711,10 @@ impl OneAtATime {
                 tauri::async_runtime::spawn_blocking(|| std::thread::sleep(TURN_ASKED_AGAIN)).await;
         }
     }
+}
+
+fn now_secs() -> u64 {
+    jiff::Timestamp::now().as_second().unsigned_abs()
 }
 
 const TURN_ASKED_AGAIN: std::time::Duration = std::time::Duration::from_millis(100);
@@ -1044,6 +1082,7 @@ pub fn run() {
             answers::joining::merge_stores,
             answers::joining::sync_kin,
             answers::joining::joining,
+            answers::joining::place_peek,
             answers::joining::folder_astir,
             answers::storing::remove_machine,
             answers::storing::confirm_machine_key,

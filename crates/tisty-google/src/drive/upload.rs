@@ -9,7 +9,6 @@ use super::sessions::key_of;
 use super::tree::{FILE_FIELDS, File};
 use super::wire::{given, json, judged, traced};
 use crate::ASKED_WITHIN;
-use crate::told;
 
 // Google takes a multipart upload up to 5 MB; anything larger goes through a session.
 const WHOLE_AT_MOST: u64 = 5 * 1000 * 1000;
@@ -56,7 +55,7 @@ impl Drive {
         let mut failed = 0;
         loop {
             match self.sent_whole(url, method.clone(), meta, from, carried) {
-                Err(Hitch::Troubled(_) | Hitch::Unreachable(_)) if failed + 1 < TRIES => {}
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
                 other => return other,
             }
             failed += 1;
@@ -160,7 +159,7 @@ impl Drive {
                 self.session_closed(key);
                 Ok(Reopened::Done(file))
             }
-            Err(waits @ (Hitch::Unreachable(_) | Hitch::Troubled(_) | Hitch::Limited { .. })) => {
+            Err(waits @ (Hitch::Unreachable(..) | Hitch::Troubled(_) | Hitch::Limited { .. })) => {
                 Err(waits)
             }
             _ => {
@@ -214,7 +213,7 @@ impl Drive {
                     Kept::At(next) => at = next,
                     Kept::Done(file) => return Ok(*file),
                     Kept::Lost => {
-                        return Err(Hitch::Unreachable(
+                        return Err(Hitch::Troubled(
                             "Google let go of the upload session, so it starts over".into(),
                         ));
                     }
@@ -226,7 +225,7 @@ impl Drive {
                 }
                 continue;
             }
-            let answer = sent.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+            let answer = sent.map_err(crate::health::unreachable)?;
             match answer.status().as_u16() {
                 200 | 201 => return json(answer),
                 308 => {
@@ -252,7 +251,7 @@ impl Drive {
         loop {
             match self.kept_so_far(session, bytes) {
                 Ok(kept) => return Ok(kept),
-                Err(Hitch::Unreachable(_) | Hitch::Troubled(_) | Hitch::Limited { .. })
+                Err(Hitch::Unreachable(..) | Hitch::Troubled(_) | Hitch::Limited { .. })
                     if *failed + 1 < TRIES =>
                 {
                     *failed += 1;
@@ -278,7 +277,7 @@ impl Drive {
             began,
             0,
         );
-        let answer = answer.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+        let answer = answer.map_err(crate::health::unreachable)?;
         match answer.status().as_u16() {
             308 => Ok(Kept::At(stored(&answer))),
             200 | 201 => Ok(Kept::Done(Box::new(json(answer)?))),

@@ -1,8 +1,10 @@
 import { listen } from "@tauri-apps/api/event";
+import { toldAside } from "./coming";
 import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
+import { lastingCause } from "./syncSaid";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
@@ -15,7 +17,8 @@ export type Awry =
   | { why: "slow" }
   | { why: "busy" }
   | { why: "broke"; said: string }
-  | { why: "amiss"; said: string };
+  | { why: "amiss"; said: string }
+  | { why: "away"; said: string };
 
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
@@ -60,6 +63,7 @@ export function carrying(
           owed = owing(owed, way);
           stalled = true;
         }
+        if (answer.carried !== "busy" && !answer.deferred) toldAside(null);
         if (mine !== round) return answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is
@@ -67,12 +71,15 @@ export function carrying(
         if (answer.unconfirmed?.length) void knock();
         else if (answer.carried !== "busy" && way !== "push") settled();
         const amiss = whatWentAmiss({ ...answer, unconfirmed: [] });
+        const away = answer.deferred?.reason === "offline" ? lastingCause(answer.deferred) : null;
         awry(
           answer.carried === "busy"
             ? { why: "busy" }
             : amiss
               ? { why: "amiss", said: t(amiss) }
-              : null,
+              : away
+                ? { why: "away", said: away }
+                : null,
         );
         return answer.carried;
       })

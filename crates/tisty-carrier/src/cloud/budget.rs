@@ -70,7 +70,7 @@ fn unreadable_once(why: &serde_json::Error) {
 
 // A request that never left this machine cost the provider nothing.
 fn went_out<T>(answer: &Result<T, Hitch>) -> bool {
-    !matches!(answer, Err(Hitch::Unreachable(_)))
+    !matches!(answer, Err(Hitch::Unreachable(..)))
 }
 
 // An answer that says how things stand is no sign of a loop by its cost, only by how many there are.

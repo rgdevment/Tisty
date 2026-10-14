@@ -20,13 +20,16 @@ import { fill, t } from "../locales";
 import { named } from "../previews";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
+import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import Here from "./Here";
 import { mild, risky, strong } from "./Rows";
+import { useSince } from "./useSince";
 
 interface Props {
   state: Carrying;
   busy: Which | null;
+  busySince?: number;
   said?: Word;
   trouble?: Word;
   run: Run;
@@ -37,12 +40,23 @@ interface Props {
 
 const SIGNED = new Set(["cloudLost", "cloudElsewhere"]);
 
-export default function Clouded({ state, busy, said, trouble, run, fail, carry, onMove }: Props) {
+export default function Clouded({
+  state,
+  busy,
+  busySince,
+  said,
+  trouble,
+  run,
+  fail,
+  carry,
+  onMove,
+}: Props) {
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
   const held = busy !== null;
   const waiting = useAwaitsChoice();
+  const running = useSince(busy === "sync", busySince);
 
   const look = useCallback(() => {
     cloudStatus()
@@ -60,7 +74,9 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
   const awaits = waiting || standing?.exit === "choose";
   const carded = standing?.exit && last ? last.code : null;
   const repeats =
-    carded !== null && trouble?.text === plainly({ code: carded, name: last?.name ?? undefined });
+    (carded !== null &&
+      trouble?.text === plainly({ code: carded, name: last?.name ?? undefined })) ||
+    (standing?.urgent === true && trouble?.text === standing.told);
 
   useEffect(() => {
     carding(carded);
@@ -165,7 +181,13 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
             <span className="block text-[12.5px] font-semibold text-ink">
               {standing.name ? fill(standing.said, standing.name) : t(standing.said)}
             </span>
-            {standing.why ? t(standing.why) : standing.told}
+            {standing.why ? (
+              t(standing.why)
+            ) : standing.urgent ? (
+              <span className="text-urgent">{standing.told}</span>
+            ) : (
+              standing.told
+            )}
           </span>
           {standing.exit && standing.exitSaid && (
             <button
@@ -182,7 +204,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
         <button type="button" disabled={held || paused} onClick={() => carry()} className={strong}>
-          {busy === "sync" ? t("syncing_") : t("syncNow")}
+          {busy === "sync" ? syncingSaid(running) : t("syncNow")}
         </button>
         {standing?.exit !== "turnOn" && (
           <button type="button" disabled={held} onClick={() => switched(paused)} className={mild}>
@@ -251,7 +273,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
       {trouble?.card === "sync" && !repeats && (
         <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
       )}
-      {said?.card === "sync" && !(awaits && said.text === t("syncBusy")) && (
+      {said?.card === "sync" && !(awaits && said.busy) && (
         <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>
       )}
     </>

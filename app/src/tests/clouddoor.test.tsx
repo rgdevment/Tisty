@@ -186,7 +186,7 @@ describe("a cloud that already holds another Tisty", () => {
       <Clouded
         state={carrying()}
         busy={null}
-        said={{ card: "sync", text: t("syncBusy") }}
+        said={{ card: "sync", text: t("syncBusy"), busy: true }}
         run={vi.fn() as never}
         fail={() => {}}
         carry={vi.fn()}
@@ -196,6 +196,25 @@ describe("a cloud that already holds another Tisty", () => {
 
     expect(await screen.findByText(t("syncChoosing"))).toBeTruthy();
     expect(screen.queryByText(t("syncBusy"))).toBeNull();
+  });
+
+  it("never says how long another round has run while the choice waits, either", async () => {
+    ipc.answers.cloud_status = () => Promise.resolve(status({ last: round("wouldReset") }));
+    act(() => ended({ code: "wouldReset" }));
+    render(
+      <Clouded
+        state={carrying()}
+        busy={null}
+        said={{ card: "sync", text: fill("syncingFor", "3"), busy: true }}
+        run={vi.fn() as never}
+        fail={() => {}}
+        carry={vi.fn()}
+        onMove={() => {}}
+      />,
+    );
+
+    expect(await screen.findByText(t("syncChoosing"))).toBeTruthy();
+    expect(screen.queryByText(fill("syncingFor", "3"))).toBeNull();
   });
 
   it("waits on nobody when this machine will take the other history on its own", async () => {

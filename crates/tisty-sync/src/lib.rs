@@ -138,6 +138,25 @@ pub enum Reason {
     Unsent,
 }
 
+/// What stood between this machine and the provider, read off the failed request alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Cause {
+    Blocked,
+    /// Something on the way opens secure connections and signs them itself.
+    Filtered,
+    Slow,
+}
+
+impl Cause {
+    pub fn code(self) -> &'static str {
+        match self {
+            Cause::Blocked => "blocked",
+            Cause::Filtered => "filtered",
+            Cause::Slow => "slow",
+        }
+    }
+}
+
 /// How many of what is left a round names; the rest is only counted.
 pub const NAMED_AT_MOST: usize = 20;
 
@@ -147,6 +166,7 @@ pub struct Deferred {
     pub left: usize,
     pub retry_after: Option<std::time::Duration>,
     pub names: Vec<String>,
+    pub cause: Option<Cause>,
 }
 
 impl Moved {

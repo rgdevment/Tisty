@@ -8,8 +8,8 @@ use tisty_core::signing::SigningKey;
 
 pub use tisty_core::turned;
 pub use tisty_sync::{
-    Deferred, Holding, Keep, Kin, LetGo, Moved, NEEDS, Reached, Reason, SHAPE, STORE, Signed,
-    Stage, Stitched, Trouble, Undecided, Way, raised, raised_told,
+    Cause, Deferred, Holding, Keep, Kin, LetGo, Moved, NEEDS, Reached, Reason, SHAPE, STORE,
+    Signed, Stage, Stitched, Trouble, Undecided, Way, raised, raised_told,
 };
 
 mod cloud;
@@ -125,6 +125,11 @@ pub trait Carrier: Send + std::marker::Sync {
     }
     fn forget_word(&self) -> Result<(), Trouble> {
         Ok(())
+    }
+    /// Asked of the place in one look, never a whole pull, so a first round can be told apart before it starts.
+    /// `ours` is the place chosen now; `None` is a place that could not be asked.
+    fn peeks_a_store(&self, _ours: bool) -> Option<bool> {
+        Some(self.holds_a_store())
     }
     fn holds_a_store(&self) -> bool {
         self.place()

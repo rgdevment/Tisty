@@ -477,6 +477,19 @@ fn being_told_to_wait_waits_as_long_as_google_says_and_never_less_than_a_second(
 }
 
 #[test]
+fn a_sign_in_that_fails_on_googles_side_is_out_of_reach_with_nothing_named_in_the_way() {
+    let (at, _) = provider(vec![reply("503 Service Unavailable", "")]);
+
+    let renewed = GoogleRenew::new(CLIENT, at).unwrap().renew("1//old");
+
+    assert!(
+        matches!(renewed, Err(Hitch::Unreachable(None, _))),
+        "{:?}",
+        renewed.err()
+    );
+}
+
+#[test]
 fn a_build_without_a_client_id_and_its_secret_offers_no_cloud() {
     assert_eq!(client_of(None, None), None);
     assert_eq!(client_of(Some("id"), None), None);
@@ -637,7 +650,7 @@ fn revoking_takes_the_token_to_google_and_one_already_gone_is_no_failure() {
     assert_eq!(revoke_everywhere("1//refresh", &at), Ok(()));
     assert!(matches!(
         revoke_everywhere("1//refresh", &at),
-        Err(Hitch::Unreachable(_))
+        Err(Hitch::Troubled(_))
     ));
     let asked = asked.join().unwrap();
     assert!(asked[0].starts_with("POST /revoke"));

@@ -63,11 +63,64 @@ fn how_the_last_round_ended_is_kept_and_read_back() {
         name: None,
         left: 3,
         names: vec!["attachments/ab/foto.png".into()],
+        ..LastRound::default()
     };
 
-    round_noted(home.path(), &round);
+    let kept = round_noted(home.path(), &round);
 
-    assert_eq!(standing(home.path()).last, Some(round));
+    assert_eq!(standing(home.path()).last, Some(kept));
+}
+
+#[test]
+fn a_round_that_fails_the_same_way_again_carries_on_the_streak_and_another_way_starts_anew() {
+    let home = tempfile::tempdir().unwrap();
+    let round = |at: u64, code: &str, cause: Option<&str>| LastRound {
+        at,
+        code: code.into(),
+        cause: cause.map(Into::into),
+        ..LastRound::default()
+    };
+
+    let first = round_noted(
+        home.path(),
+        &round(100, "deferred-offline", Some("filtered")),
+    );
+    let second = round_noted(
+        home.path(),
+        &round(160, "deferred-offline", Some("filtered")),
+    );
+    let other = round_noted(
+        home.path(),
+        &round(220, "deferred-offline", Some("blocked")),
+    );
+    let healed = round_noted(home.path(), &round(280, "ok", None));
+    let anew = round_noted(home.path(), &round(340, "deferred-limit", None));
+
+    assert_eq!((first.rounds, first.since), (1, 100));
+    assert_eq!((second.rounds, second.since), (2, 100));
+    assert_eq!((other.rounds, other.since), (3, 100));
+    assert_eq!(other.cause.as_deref(), Some("blocked"));
+    assert_eq!((healed.rounds, healed.since), (1, 280));
+    assert_eq!((anew.rounds, anew.since), (1, 340));
+    assert_eq!(standing(home.path()).last.map(|one| one.rounds), Some(1));
+}
+
+#[test]
+fn a_streak_counts_from_when_its_first_round_began_not_when_it_ended() {
+    let home = tempfile::tempdir().unwrap();
+    let round = |began: u64, at: u64| LastRound {
+        at,
+        since: began,
+        code: "deferred-offline".into(),
+        cause: Some("slow".into()),
+        ..LastRound::default()
+    };
+
+    let long = round_noted(home.path(), &round(100, 260));
+    let next = round_noted(home.path(), &round(300, 320));
+
+    assert_eq!((long.rounds, long.since), (1, 100));
+    assert_eq!((next.rounds, next.since), (2, 100));
 }
 
 #[test]
@@ -96,6 +149,7 @@ fn a_cloud_is_joined_once_a_round_here_finished_not_when_it_only_pulled() {
         name: None,
         left: 0,
         names: Vec::new(),
+        ..LastRound::default()
     };
 
     round_noted(home.path(), &round("wouldReset"));

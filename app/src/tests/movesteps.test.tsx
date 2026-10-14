@@ -549,6 +549,26 @@ describe("what a move hears", () => {
 });
 
 describe("when a move tries again by itself", () => {
+  it("names what stands in the way only once a second try fails to reach the place", async () => {
+    vi.useFakeTimers();
+    ipc.answers.move_to = () => Promise.resolve({ ...waiting("offline", 3), cause: "filtered" });
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    render(<MoveNotice onOpen={() => undefined} />);
+
+    expect(screen.getByText((text) => text.startsWith(t("moveTroubled")))).toBeTruthy();
+    expect(screen.queryByText((text) => text.includes(t("roundFiltered")))).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+    });
+
+    expect(sent("move_to")).toHaveLength(2);
+    expect(screen.getByText((text) => text.startsWith(t("roundFiltered")))).toBeTruthy();
+  });
+
   it("waits out Google's pause with two seconds to spare", async () => {
     vi.useFakeTimers();
     ipc.answers.move_to = () => Promise.resolve({ ...waiting("limit", 2), wait: 0 });

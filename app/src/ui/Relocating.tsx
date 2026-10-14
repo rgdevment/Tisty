@@ -186,7 +186,14 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
       {step === "moving" && now && <Underway run={now} onHide={close} />}
 
       {step === "waiting" && result?.state === "waiting" && (
-        <Waiting result={result} busy={busy} onDrop={drop} onLater={close} onAgain={move} />
+        <Waiting
+          result={result}
+          failing={now?.failing}
+          busy={busy}
+          onDrop={drop}
+          onLater={close}
+          onAgain={move}
+        />
       )}
 
       {step === "done" && toward && (

@@ -176,7 +176,7 @@ impl Drive {
         let mut held = tempfile::NamedTempFile::new()?;
         answer
             .copy_to(&mut held)
-            .map_err(|e| Hitch::Unreachable(crate::told(&e.without_url())))?;
+            .map_err(crate::health::unreachable)?;
         held.flush()?;
         Ok(held)
     }

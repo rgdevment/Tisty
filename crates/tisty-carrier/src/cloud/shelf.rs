@@ -126,6 +126,7 @@ impl<'a> Shelf<'a> {
             left: self.unsent.len(),
             retry_after: None,
             names: self.unsent.iter().take(NAMED_AT_MOST).cloned().collect(),
+            cause: None,
         })
     }
 
@@ -172,7 +173,7 @@ impl<'a> Shelf<'a> {
             return Ok(true);
         }
         match judge(hitch, self.remote.limits().provider) {
-            Judged::Pause(reason, wait) => {
+            Judged::Pause(reason, wait, cause) => {
                 witness::note(
                     channel::CLOUD,
                     "the shelf pauses, so what is left of it goes on a later round",
@@ -186,6 +187,7 @@ impl<'a> Shelf<'a> {
                     left: remaining.len(),
                     retry_after: wait,
                     names: remaining.into_iter().take(NAMED_AT_MOST).collect(),
+                    cause,
                 });
                 Ok(false)
             }

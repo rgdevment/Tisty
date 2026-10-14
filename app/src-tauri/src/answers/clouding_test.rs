@@ -60,7 +60,11 @@ fn what_google_answers_reads_as_what_the_window_can_say() {
     assert_eq!(elsewhere.code, "cloudElsewhere");
     assert_eq!(elsewhere.name.as_deref(), Some("otra@example.com"));
     assert_eq!(
-        refused(Hitch::Unreachable("sin red".into()), "Google Drive").code,
+        refused(
+            Hitch::Unreachable(Some(tisty_carrier::Cause::Blocked), "sin red".into()),
+            "Google Drive"
+        )
+        .code,
         "cloudNotNow"
     );
     let broke = refused(
@@ -121,6 +125,7 @@ fn the_status_of_a_cloud_says_the_account_the_day_s_spend_the_switch_and_the_las
             name: Some("Google Drive".into()),
             left: 0,
             names: Vec::new(),
+            ..Default::default()
         },
     );
 

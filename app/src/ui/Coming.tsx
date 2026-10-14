@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apartWaits, type Stage, useCarded, useComing, useStuck } from "../coming";
+import { apartWaits, type Stage, useAside, useCarded, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
 import { underway, useMove } from "../relocation";
@@ -27,6 +27,7 @@ const followed = (stuck: unknown): { heading: Heading; said: Word } => {
 export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void }) {
   const coming = useComing();
   const told = useStuck();
+  const aside = useAside();
   const carded = useCarded();
   const stuck = (told as { code?: string } | null)?.code === carded && carded ? null : told;
   const move = useMove();
@@ -42,7 +43,7 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
   // A move tells its own steps beside this, so the round's raw stages would only say them twice.
   const moving = move !== null && underway(move);
   const shown = coming !== null && long >= SHOWN_AFTER && !moving;
-  if (!shown && !stuck) return null;
+  if (!shown && !stuck && !aside) return null;
   const far = coming?.whole ? Math.min(100, Math.round((coming.done / coming.whole) * 100)) : 0;
 
   return (
@@ -69,6 +70,11 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
             </span>
           )}
         </div>
+      )}
+      {aside && stuck == null && (
+        <p role="alert" className="text-[11.5px] text-soft">
+          {aside}
+        </p>
       )}
       {stuck != null && (
         <p role="alert" className="text-[11.5px] text-urgent">
