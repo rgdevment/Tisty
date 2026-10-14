@@ -878,6 +878,17 @@ the rest follows from it.
 
 ## Other Tools by the Same Author
 
+<p align="center">
+  <img
+    src="assets/mascot/tisty-head.svg"
+    height="88"
+    alt="Tisty the beaver, with a pencil behind its ear"/>
+  &nbsp;&nbsp;
+  <img src="app/src/assets/copanda.svg" height="88" alt="The CoPanda panda"/>
+  &nbsp;&nbsp;
+  <img src="app/src/assets/linkunbound.svg" height="88" alt="The LinkUnbound bear"/>
+</p>
+
 Same idea, same terms: free, open source, no ads, no telemetry, everything
 local.
 

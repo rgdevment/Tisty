@@ -892,6 +892,17 @@ sale de ahí.
 
 ## Otras herramientas del mismo autor
 
+<p align="center">
+  <img
+    src="assets/mascot/tisty-head.svg"
+    height="88"
+    alt="Tisty, el castor, con un lápiz detrás de la oreja"/>
+  &nbsp;&nbsp;
+  <img src="app/src/assets/copanda.svg" height="88" alt="El panda de CoPanda"/>
+  &nbsp;&nbsp;
+  <img src="app/src/assets/linkunbound.svg" height="88" alt="El oso de LinkUnbound"/>
+</p>
+
 Misma idea, mismos términos: gratis, código abierto, sin anuncios, sin
 telemetría, todo local.
 
