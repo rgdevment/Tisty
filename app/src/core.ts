@@ -755,10 +755,12 @@ export interface CloudStatus {
 
 export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
 export const cloudConnectCancel = (): Promise<void> => invoke("cloud_connect_cancel");
-export const cloudChoose = (account: string, email: string): Promise<void> =>
-  invoke("cloud_choose", { account, email });
-export const cloudForget = (account?: string): Promise<void> => invoke("cloud_forget", { account });
-export const cloudRevoke = (account?: string): Promise<void> => invoke("cloud_revoke", { account });
+export const cloudChoose = (account: string, email: string, provider?: string): Promise<void> =>
+  invoke("cloud_choose", { account, email, provider });
+export const cloudForget = (account?: string, provider?: string): Promise<void> =>
+  invoke("cloud_forget", { account, provider });
+export const cloudRevoke = (account?: string, provider?: string): Promise<void> =>
+  invoke("cloud_revoke", { account, provider });
 export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
 export const cloudStatus = (): Promise<CloudStatus | null> => invoke("cloud_status");
 
@@ -769,7 +771,7 @@ export const cloudHealth = (): Promise<Health> => invoke("cloud_health");
 export type Toward =
   | { kind: "alone" }
   | { kind: "folder"; at: string }
-  | { kind: "cloud"; account: string; email: string };
+  | { kind: "cloud"; account: string; email: string; provider?: string };
 export interface Weight {
   files: number;
   bytes: number;
@@ -801,8 +803,8 @@ export const movePlan = (toward: Toward): Promise<MovePlan> => invoke("move_plan
 export const moveTo = (toward: Toward): Promise<Moving> => invoke("move_to", { toward });
 export const movePending = (): Promise<Toward | null> => invoke("move_pending");
 export const moveDropped = (): Promise<void> => invoke("move_dropped");
-export const cloudWipe = (account: string, email: string): Promise<number> =>
-  invoke("cloud_wipe", { account, email });
+export const cloudWipe = (account: string, email: string, provider?: string): Promise<number> =>
+  invoke("cloud_wipe", { account, email, provider });
 export const cloudStranded = (): Promise<Weight> => invoke("cloud_stranded");
 export const cloudAbandon = (): Promise<void> => invoke("cloud_abandon");
 export const placeRaised = (): Promise<string | null> => invoke("place_raised");

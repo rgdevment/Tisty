@@ -139,7 +139,7 @@ fn syncing(app: &App, lang: Lang) {
         .unwrap_or_default();
     if let Some(at) = tisty_carrier::cloud_of(config.sync.as_ref()) {
         let home = app.paths.cloud_home(&at.provider, &at.account);
-        cloud(&tisty_carrier::standing(&home), &at.email, lang);
+        cloud(&tisty_carrier::standing(&home), at, lang);
         moved_word(
             std::fs::read_to_string(
                 tisty_carrier::mirrored_at(&home).join(tisty_core::moved::NAMED),
@@ -162,10 +162,10 @@ fn syncing(app: &App, lang: Lang) {
     }
 }
 
-fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
+fn cloud(told: &tisty_carrier::Standing, at: &tisty_core::config::CloudAt, lang: Lang) {
     line(
         lang.get("cloud"),
-        &lang.fill("cloud-is", &[("email", email)]),
+        &lang.fill("cloud-is", &[("cloud", at.shown()), ("email", &at.email)]),
     );
     line(
         lang.get("cloud-read"),

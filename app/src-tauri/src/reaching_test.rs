@@ -37,6 +37,19 @@ fn a_provider_this_build_does_not_know_is_never_built() {
 }
 
 #[test]
+fn google_s_token_stays_where_1_30_kept_it_and_another_provider_is_named_first() {
+    let other = CloudAt {
+        provider: "onedrive".into(),
+        ..ana()
+    };
+
+    assert_eq!(scope_of(&ana()), "0123");
+    assert_eq!(scope_of(&other), "onedrive-0123");
+    assert!(offers(GOOGLE) == offered());
+    assert!(!offers("onedrive"));
+}
+
+#[test]
 fn each_account_keeps_its_own_home() {
     let home = tempfile::tempdir().unwrap();
     let paths = Paths::new(home.path().join("data"), home.path().join("config"));

@@ -161,9 +161,56 @@ fn a_cloud_is_lost_for_good_only_when_this_build_can_never_reach_it_again() {
 #[test]
 fn a_keychain_that_holds_no_token_is_an_access_gone() {
     let home = tempfile::tempdir().unwrap();
+    let at = drive_of("sin-token");
 
-    assert!(access_gone("sin-token"));
-    assert!(lost_for_good_at(home.path(), "sin-token"));
+    assert!(access_gone(&at));
+    assert!(lost_for_good_at(home.path(), &at));
+}
+
+#[test]
+fn a_token_kept_for_one_provider_is_never_another_s_by_the_same_account() {
+    let google = drive_of("same-id");
+    let other = tisty_core::config::CloudAt {
+        provider: "elsewhere".into(),
+        ..google.clone()
+    };
+    crate::reaching::secrets_for(&google)
+        .unwrap()
+        .write(crate::reaching::KEPT_AS, "token")
+        .unwrap();
+
+    assert!(has_access(&google).is_ok());
+    assert!(access_gone(&other));
+    assert_eq!(
+        has_access(&other).unwrap_err().code,
+        "cloudLost",
+        "a provider this build does not know is never reached with Google's token"
+    );
+    forgotten(&google).unwrap();
+}
+
+#[test]
+fn a_provider_this_build_does_not_offer_is_lost_for_good() {
+    let home = tempfile::tempdir().unwrap();
+    let other = tisty_core::config::CloudAt {
+        provider: "elsewhere".into(),
+        ..drive_of("kept-elsewhere")
+    };
+    crate::reaching::secrets_for(&other)
+        .unwrap()
+        .write(crate::reaching::KEPT_AS, "token")
+        .unwrap();
+
+    assert!(lost_for_good_at(home.path(), &other));
+    forgotten(&other).unwrap();
+}
+
+fn drive_of(account: &str) -> tisty_core::config::CloudAt {
+    tisty_core::config::CloudAt {
+        provider: crate::reaching::GOOGLE.into(),
+        account: account.into(),
+        email: "ana@example.com".into(),
+    }
 }
 
 #[test]

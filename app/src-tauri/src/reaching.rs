@@ -6,9 +6,9 @@ use std::time::Duration;
 use tisty_carrier::{Cloud, Hitch, Reach, Secrets, Shared, Tokens, policy};
 use tisty_core::Paths;
 use tisty_core::config::CloudAt;
+pub use tisty_core::config::GOOGLE;
 use tisty_core::witness::{self, Fact, channel};
 
-pub const GOOGLE: &str = "google";
 pub const KEPT_AS: &str = "refresh";
 
 const POLICY: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json";
@@ -88,15 +88,23 @@ pub fn offered() -> bool {
     tisty_google::client().is_some()
 }
 
-fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
-    if at.provider != GOOGLE {
-        return Err(format!(
-            "this build does not know the cloud {}",
-            at.provider
-        ));
+pub fn offers(provider: &str) -> bool {
+    match provider {
+        GOOGLE => offered(),
+        _ => false,
     }
+}
+
+fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+    match at.provider.as_str() {
+        GOOGLE => google_of(home, at),
+        other => Err(format!("this build does not know the cloud {other}")),
+    }
+}
+
+fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
     let client = tisty_google::client().ok_or("this build has no access to Google Drive")?;
-    let secrets = secrets_for(&at.account).map_err(|e| format!("{e:?}"))?;
+    let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let renew = tisty_google::GoogleRenew::new(client, tisty_google::Endpoints::google())
         .map_err(|e| format!("{e:?}"))?;
     let tokens = Arc::new(Tokens::new(secrets, Arc::new(renew), KEPT_AS, home));
@@ -108,22 +116,30 @@ fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> 
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
+// Google's tokens stay where 1.30 kept them, under the account alone; every later provider is named first.
+fn scope_of(at: &CloudAt) -> String {
+    match at.provider.as_str() {
+        GOOGLE => at.account.clone(),
+        other => format!("{other}-{}", at.account),
+    }
+}
+
 #[cfg(all(windows, not(test)))]
-pub fn secrets_for(account: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
     let home = crate::sealed::home()
         .ok_or_else(|| Hitch::Broke("Windows named no local folder for this person".into()))?;
-    Ok(Arc::new(crate::sealed::Sealed::under(&home, account)))
+    Ok(Arc::new(crate::sealed::Sealed::under(&home, &scope_of(at))))
 }
 
 #[cfg(all(not(windows), not(test)))]
-pub fn secrets_for(account: &str) -> Result<Arc<dyn Secrets>, Hitch> {
-    Ok(Arc::new(tisty_carrier::Keychain::native(account)?))
+pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(tisty_carrier::Keychain::native(&scope_of(at))?))
 }
 
 // Tests keep tokens in memory, so none ever reaches the keychain of whoever runs them.
 #[cfg(test)]
-pub fn secrets_for(account: &str) -> Result<Arc<dyn Secrets>, Hitch> {
-    Ok(Arc::new(InMemory(account.to_string())))
+pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(InMemory(scope_of(at))))
 }
 
 #[cfg(test)]
