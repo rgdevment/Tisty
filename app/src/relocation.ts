@@ -18,6 +18,8 @@ export interface Run {
   pausedUntil?: number;
   waited?: Waited;
   along?: MoveAlong;
+  /** Tries in a row that could not reach the place, and since when, so a blip names no cause. */
+  failing?: { rounds: number; since: number };
   watched: boolean;
 }
 
@@ -32,6 +34,7 @@ let watchers = 0;
 let resuming: ReturnType<typeof setTimeout> | undefined;
 let stalled = 0;
 let lastLeft: number | undefined;
+let failing: Run["failing"];
 // Bumped whenever a run is let go of, so an answer or a timer of the run before never brings it back.
 let epoch = 0;
 const told = new Set<() => void>();
@@ -92,11 +95,16 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
   heard(null);
   settleUps();
   const before = sentSoFar();
+  const began = Math.floor(Date.now() / 1000);
   set({ toward, from, going: true, along, watched: false });
   moveTo(toward)
     .then((now) => {
       if (mine !== epoch) return;
       heard(null);
+      failing =
+        now.state === "waiting" && now.reason === "offline"
+          ? { rounds: (failing?.rounds ?? 0) + 1, since: failing?.since ?? began }
+          : undefined;
       if (now.state === "done") for (const one of afterMoves) one();
       const along = run?.along;
       const left = now.state === "waiting" ? now.left.files : undefined;
@@ -107,7 +115,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
       lastLeft = left;
       const waits = waitOf(now);
       if (waits === undefined) {
-        set({ toward, from, going: false, result: now, along, watched: false });
+        set({ toward, from, going: false, result: now, along, failing, watched: false });
         return;
       }
       const until = Date.now() + waits.wait * 1000;
@@ -119,6 +127,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
         pausedUntil: until,
         waited: waits.waited,
         along,
+        failing,
         watched: false,
       });
       resuming = setTimeout(() => {
@@ -139,6 +148,7 @@ export const startMove = (toward: Toward, from?: Carrying["mode"]) => {
   const goesOn = run?.result?.state === "waiting";
   if (!goesOn) {
     lastLeft = undefined;
+    failing = undefined;
     forgetUps();
   }
   go(toward, from ?? run?.from, goesOn ? run?.along : undefined);
@@ -149,6 +159,7 @@ export const endMove = () => {
   clearTimeout(resuming);
   stalled = 0;
   lastLeft = undefined;
+  failing = undefined;
   forgetUps();
   set(null);
 };

@@ -196,13 +196,15 @@ describe("rounds nobody asked for", () => {
 
 describe("a move paused by what stands in the way", () => {
   const NOW = 100_000;
-  const run = (cause?: "filtered" | "slow"): Run =>
+  const LASTING = { rounds: 2, since: NOW / 1000 - 30 };
+  const run = (cause?: "filtered" | "slow", failing: Run["failing"] = LASTING): Run =>
     ({
       toward: { kind: "cloud", account: "0123", email: "ana@example.com" },
       going: false,
       watched: true,
       waited: "offline",
       pausedUntil: NOW + 5_000,
+      failing,
       result: {
         state: "waiting",
         stage: "filling",
@@ -212,19 +214,28 @@ describe("a move paused by what stands in the way", () => {
       },
     }) as Run;
 
-  it("names the cause instead of a vague fault", () => {
+  it("names the cause once it lasts instead of a vague fault", () => {
     expect(pauseSaid(run("filtered"), NOW)).toBe(
       `${t("roundFiltered")} · ${fill("moveRetryIn", "5")}`,
     );
     expect(
-      waitingSaid({
-        state: "waiting",
-        stage: "filling",
-        left: { files: 1, bytes: 1 },
-        reason: "offline",
-        cause: "slow",
-      }),
+      waitingSaid(
+        {
+          state: "waiting",
+          stage: "filling",
+          left: { files: 1, bytes: 1 },
+          reason: "offline",
+          cause: "slow",
+        },
+        LASTING,
+      ),
     ).toBe(`${t("moveWaiting")} · ${fill("roundSlow", DRIVE)}`);
+  });
+
+  it("names nothing in the way on the first try that fails", () => {
+    expect(pauseSaid(run("filtered", { rounds: 1, since: NOW / 1000 }), NOW)).toBe(
+      `${t("moveTroubled")} · ${fill("moveRetryIn", "5")}`,
+    );
   });
 
   it("still says there is no internet when this computer is offline", () => {
