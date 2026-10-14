@@ -313,6 +313,14 @@ impl Session {
         tisty_carrier::place_of(self.config.sync.as_ref())
     }
 
+    /// Where the other machines' histories lie on this disk: the shared folder, or the cloud's mirror.
+    pub fn histories(&self) -> Option<std::path::PathBuf> {
+        self.place().or_else(|| {
+            tisty_carrier::cloud_of(self.config.sync.as_ref())
+                .map(|at| tisty_carrier::mirrored_at(&self.reach.home_of(at)))
+        })
+    }
+
     pub fn here(&self) -> tisty_carrier::Here {
         tisty_carrier::Here::of(&self.paths, &self.config)
     }

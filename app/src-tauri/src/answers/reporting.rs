@@ -86,7 +86,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
                 hosts: &session.state.hosts,
             },
             &session.paths,
-            session.place().as_deref(),
+            session.histories().as_deref(),
         ),
         log_bytes: report::weighed(&session.paths.store()),
         docs_bytes: report::weighed(&session.paths.docs()),

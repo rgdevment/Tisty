@@ -1316,7 +1316,7 @@ pub fn confirm_machine_key(
     let session = held(&session);
     let who = tisty_core::event::DeviceId(id.clone());
     let says = session.state.keys.get(&who).cloned().or_else(|| {
-        let at = session.place()?;
+        let at = session.histories()?;
         tisty_core::store::key_said_in(&at.join(tisty_carrier::STORE).join(&id), &who)
     });
     if says.as_deref() != Some(key.as_str()) {

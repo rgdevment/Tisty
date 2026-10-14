@@ -44,6 +44,11 @@ pub fn cloud_joined(home: &Path, here: &crate::Here) -> bool {
         || tisty_sync::been_here(&here.aside, &home.join(super::TREE), &here.device)
 }
 
+/// The place as last mirrored here, laid out as a shared folder is: the histories that wait are read from it.
+pub fn mirrored_at(home: &Path) -> std::path::PathBuf {
+    home.join(super::TREE)
+}
+
 /// How this machine's history stands to the place as last mirrored here, asking the provider nothing.
 pub fn kin_mirrored(home: &Path, here: &crate::Here) -> crate::Kin {
     tisty_sync::kinship(&here.data.join(tisty_sync::STORE), &home.join(super::TREE))
