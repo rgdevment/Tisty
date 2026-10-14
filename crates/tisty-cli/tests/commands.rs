@@ -3003,8 +3003,13 @@ fn a_folder_that_may_hold_the_only_copy_of_attachments_is_not_left_from_the_comm
 fn a_machine_waiting_in_the_cloud_s_mirror_is_answered_for_from_this_disk() {
     let shared = tempfile::tempdir().unwrap();
     let met = shared.path().display().to_string();
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
     let other = Cli::new();
     other.ok(&["config", "set", "remote", &met]);
+    other.ok(&["sync"]);
     other.ok(&["call the bank"]);
     other.ok(&["sync"]);
     let cli = Cli::new();
