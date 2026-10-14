@@ -83,7 +83,12 @@ export default function Keeping({
     };
   }, []);
   const [build, setBuild] = useState<About | null>(null);
-  const [busy, setBusy] = useState<Which | null>(null);
+  const [busy, setHeld] = useState<Which | null>(null);
+  const [busySince, setBusySince] = useState(0);
+  const setBusy = useCallback((card: Which | null) => {
+    setHeld(card);
+    setBusySince(card ? Date.now() : 0);
+  }, []);
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
   const signs = useSigning();
@@ -316,6 +321,7 @@ export default function Keeping({
             freeing={freeing}
             setFreeing={setFreeing}
             busy={busy}
+            busySince={busySince}
             said={said}
             trouble={trouble}
             run={run}

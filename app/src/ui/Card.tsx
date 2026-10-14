@@ -28,7 +28,8 @@ export type Which =
   | "tongue"
   | "look"
   | "closing";
-export type Word = { card: Which; text: string };
+/** `busy` marks a round turned away by another, whatever its words say. */
+export type Word = { card: Which; text: string; busy?: boolean };
 
 export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) => void;
 

@@ -29,6 +29,7 @@ interface Props {
   freeing: Freeing | null;
   setFreeing: (freeing: Freeing | null) => void;
   busy: Which | null;
+  busySince?: number;
   said?: Word;
   trouble?: Word;
   run: Run;
@@ -50,6 +51,7 @@ export default function Yours({
   freeing,
   setFreeing,
   busy,
+  busySince,
   said,
   trouble,
   run,
@@ -105,6 +107,7 @@ export default function Yours({
         state={state}
         kept={kept}
         busy={busy}
+        busySince={busySince}
         said={said}
         trouble={trouble}
         run={run}

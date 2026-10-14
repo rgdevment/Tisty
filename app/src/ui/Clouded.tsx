@@ -29,6 +29,7 @@ import { useSince } from "./useSince";
 interface Props {
   state: Carrying;
   busy: Which | null;
+  busySince?: number;
   said?: Word;
   trouble?: Word;
   run: Run;
@@ -39,13 +40,23 @@ interface Props {
 
 const SIGNED = new Set(["cloudLost", "cloudElsewhere"]);
 
-export default function Clouded({ state, busy, said, trouble, run, fail, carry, onMove }: Props) {
+export default function Clouded({
+  state,
+  busy,
+  busySince,
+  said,
+  trouble,
+  run,
+  fail,
+  carry,
+  onMove,
+}: Props) {
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
   const held = busy !== null;
   const waiting = useAwaitsChoice();
-  const running = useSince(busy === "sync");
+  const running = useSince(busy === "sync", busySince);
 
   const look = useCallback(() => {
     cloudStatus()
@@ -262,7 +273,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
       {trouble?.card === "sync" && !repeats && (
         <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
       )}
-      {said?.card === "sync" && !(awaits && said.text === t("syncBusy")) && (
+      {said?.card === "sync" && !(awaits && said.busy) && (
         <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>
       )}
     </>

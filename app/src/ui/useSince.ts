@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 const TICK = 10_000;
 
-/** Seconds since `on` last turned true, ticking while it stays so. */
-export const useSince = (on: boolean): number => {
+/** Seconds since `from`, or since `on` last turned true when no start is known, ticking while it stays so. */
+export const useSince = (on: boolean, from?: number): number => {
   const [began, setBegan] = useState<number>();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -12,10 +12,10 @@ export const useSince = (on: boolean): number => {
       return;
     }
     const at = Date.now();
-    setBegan(at);
+    setBegan(from || at);
     setNow(at);
     const ticking = setInterval(() => setNow(Date.now()), TICK);
     return () => clearInterval(ticking);
-  }, [on]);
+  }, [on, from]);
   return began === undefined ? 0 : Math.max(0, Math.floor((now - began) / 1000));
 };

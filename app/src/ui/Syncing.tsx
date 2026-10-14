@@ -26,6 +26,7 @@ interface Props {
   state: Carrying;
   kept: Settings | null;
   busy: Which | null;
+  busySince?: number;
   said?: Word;
   trouble?: Word;
   run: Run;
@@ -82,6 +83,7 @@ export default function Syncing({
   state,
   kept,
   busy,
+  busySince,
   said,
   trouble,
   run,
@@ -92,9 +94,9 @@ export default function Syncing({
 }: Props) {
   const held = busy !== null;
   const carrying = busy === "sync";
-  const running = useSince(carrying);
+  const running = useSince(carrying, busySince);
   const awaits = useAwaitsChoice();
-  const told = said?.card === "sync" && !(awaits && said.text === t("syncBusy"));
+  const told = said?.card === "sync" && !(awaits && said.busy);
   if (state.mode === "cloud")
     return (
       <>
@@ -104,6 +106,7 @@ export default function Syncing({
           <Clouded
             state={state}
             busy={busy}
+            busySince={busySince}
             said={said}
             trouble={trouble}
             run={run}

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
-import { choose, toldAside } from "../coming";
+import { choose, onEnded, toldAside } from "../coming";
 import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../core";
 import { decideAll, putOffSaid } from "../deciding";
 import { fill, t } from "../locales";
@@ -22,6 +22,9 @@ interface Hands {
 export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: Hands) {
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
   const [kin, setKin] = useState<Kin>("unsure");
+  const forget = useRef<() => void>(undefined);
+
+  useEffect(() => () => forget.current?.(), []);
 
   useEffect(() => {
     choose(apart !== null);
@@ -43,6 +46,7 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
   const carryNow = async (way?: "again"): Promise<"done" | "declined" | "failed"> => {
     if (held) return "failed";
     setBusy("sync");
+    forget.current?.();
     tell(undefined);
     fail(undefined);
     try {
@@ -86,6 +90,10 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
           card: "sync",
           text: [waitSaid(waits), whatsLeft(answer)].filter(Boolean).join(" "),
         });
+      } else if (answer.carried === "busy") {
+        tell({ card: "sync", text: syncSaid(answer), busy: true });
+        // Whoever held the turn says how long it ran; once it ends, that says nothing true.
+        forget.current = onEnded(() => tell(undefined));
       } else {
         tell({ card: "sync", text: syncSaid(answer) });
       }
