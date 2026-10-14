@@ -113,13 +113,13 @@
     "es": [
       {
         "title": "Una mudanza que espera dice qué espera",
-        "said": "si tu carpeta todavía está bajando archivos a este equipo, la mudanza muestra cuántos faltan y cuánto pesan, cómo hacer que lleguen antes y cuándo vuelve a revisar. Sigue sola con el paso 2 apenas llegan."
+        "said": "si tu carpeta todavía está bajando archivos a este equipo, la mudanza muestra cuántos faltan y cuánto pesan, cómo hacer que lleguen antes y cuándo vuelve a revisar, y dice cuándo empieza a subirlos. Sigue sola apenas llegan."
       }
     ],
     "en": [
       {
         "title": "A move that waits says what it waits for",
-        "said": "if your folder is still bringing files down to this computer, the move shows how many are left and how much they weigh, how to bring them sooner and when it looks again. It carries on to step 2 by itself as soon as they arrive."
+        "said": "if your folder is still bringing files down to this computer, the move shows how many are left and how much they weigh, how to bring them sooner and when it looks again, and says when it starts sending them on. It carries on by itself as soon as they arrive."
       }
     ]
   }

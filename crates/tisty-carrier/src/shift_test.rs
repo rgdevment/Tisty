@@ -157,6 +157,41 @@ fn a_new_place_whose_history_waits_for_tomorrow_is_not_ready() {
 }
 
 #[test]
+fn the_second_step_is_told_before_anything_is_asked_of_the_new_place() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("para llevar");
+        one.round(Way::Both);
+        let new = Folder::at(setting.room.path().join("new"));
+        std::fs::create_dir_all(setting.room.path().join("new")).unwrap();
+        let mut heard = Vec::new();
+        let mut saying = |far: Reached| heard.push(far);
+
+        crate::shift(Some(&*two.carrier), Some(&new), &two.here, &[], &mut saying).unwrap();
+
+        let first = heard
+            .iter()
+            .position(|far| matches!(far, Reached::Sending { .. }))
+            .unwrap_or_else(|| panic!("{who}: the second step was never told"));
+        assert!(
+            matches!(
+                heard[first],
+                Reached::Sending {
+                    done: 0,
+                    whole: 0,
+                    sent: 0,
+                    weighs: 0,
+                    ..
+                }
+            ),
+            "{who}: {:?}",
+            heard[first]
+        );
+    }
+}
+
+#[test]
 fn history_only_the_old_place_holds_comes_along_even_with_nothing_owed_home() {
     for setting in settings() {
         let who = &setting.name;

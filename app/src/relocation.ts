@@ -29,8 +29,8 @@ export interface Run {
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
 const STALLS = 3;
-// A large file can take minutes to come down; ten with none arriving is long enough to hand the move over.
-const FETCH_STALLS = 30;
+// A large file can take minutes to come down; five with none arriving is long enough to hand the move over.
+const FETCH_STALLS = 15;
 export const RETRY_IN = 20;
 
 let run: Run | null = null;
@@ -50,7 +50,7 @@ const ups = new Map<number, Sum>();
 let upBefore: Sum = { done: 0, whole: 0, sent: 0, weighs: 0 };
 
 const set = (next: Run | null) => {
-  run = next && { ...next, watched: watchers > 0 };
+  run = next && { ...next, fetchingFrom, watched: watchers > 0 };
   for (const one of told) one();
 };
 
@@ -115,7 +115,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
     going: true,
     along,
     watched: false,
-    ...(fetching ? { waited: "fetching", result: run?.result, fetchingFrom } : {}),
+    ...(fetching ? { waited: "fetching", result: run?.result } : {}),
   });
   moveTo(toward)
     .then((now) => {
@@ -145,7 +145,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
       }
       lastLeft = left;
       const bytes = now.state === "waiting" ? now.left.bytes : 0;
-      fetchingFrom = fetching ? Math.max(fetchingFrom ?? 0, bytes) : undefined;
+      if (fetching) fetchingFrom = Math.max(fetchingFrom ?? 0, bytes);
       const waits = waitOf(now);
       if (waits === undefined) {
         set({ toward, from, going: false, result: now, along, failing, watched: false });
@@ -161,7 +161,6 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
         waited: waits.waited,
         along,
         failing,
-        fetchingFrom,
         watched: false,
       });
       resuming = setTimeout(() => {
@@ -183,6 +182,7 @@ export const startMove = (toward: Toward, from?: Carrying["mode"]) => {
   const goesOn = run?.result?.state === "waiting";
   if (!goesOn) {
     lastLeft = undefined;
+    fetchingFrom = undefined;
     failing = undefined;
     forgetUps();
   }

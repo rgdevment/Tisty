@@ -218,7 +218,7 @@ describe("a move that waits", () => {
       ),
     ).toBeTruthy();
 
-    for (let tried = 0; tried < 32; tried += 1) {
+    for (let tried = 0; tried < 17; tried += 1) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
       });
@@ -226,7 +226,7 @@ describe("a move that waits", () => {
     vi.useRealTimers();
     watched();
 
-    expect(sent("move_to")).toHaveLength(31);
+    expect(sent("move_to")).toHaveLength(16);
     expect(await screen.findByText(t("moveWaiting"))).toBeTruthy();
     expect(screen.getAllByText((text) => text.includes(t("moveUnfetched"))).length).toBeGreaterThan(
       0,

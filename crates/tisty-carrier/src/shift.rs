@@ -99,6 +99,14 @@ pub fn shift(
         }
     }
     if let Some(to) = to {
+        // Said before anything is asked of the new place, so the window leaves step 1 the moment it is done.
+        saying(Reached::Sending {
+            part: 0,
+            done: 0,
+            whole: 0,
+            sent: 0,
+            weighs: 0,
+        });
         let mut sending = |far: Reached| match far {
             Reached::Along { .. } => {}
             other => saying(other),

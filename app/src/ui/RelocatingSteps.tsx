@@ -52,27 +52,32 @@ const comingDownSaid = (left: Weight): string =>
     ? fill("moveComingDownOne", weigh(left.bytes))
     : fill("moveComingDown", String(left.files), weigh(left.bytes));
 
-// What the folder's program still has to bring down, said instead of how many files were looked over.
+// A look again that already reached the new place is past the wait, though its last answer is still held.
 const fetchingLeft = (run: Run): Weight | undefined =>
-  run.waited === "fetching" && run.result?.state === "waiting" && run.along?.step !== 2
+  run.waited === "fetching" &&
+  run.result?.state === "waiting" &&
+  !(run.going && run.along?.step === 2)
     ? run.result.left
     : undefined;
+
+const secondsLeft = (until: number, now: number): string =>
+  String(Math.max(0, Math.ceil((until - now) / 1000)));
 
 export const looksAgainSaid = (run: Run, now = Date.now()): string | undefined =>
   run.pausedUntil === undefined
     ? undefined
-    : fill("moveLooksAgainIn", String(Math.max(0, Math.ceil((run.pausedUntil - now) / 1000))));
+    : fill("moveLooksAgainIn", secondsLeft(run.pausedUntil, now));
 
 export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
   if (run.pausedUntil === undefined) return undefined;
-  const left = Math.max(0, Math.ceil((run.pausedUntil - now) / 1000));
+  const left = secondsLeft(run.pausedUntil, now);
   if (run.waited === "fetching") {
     const waiting = fetchingLeft(run);
-    const again = looksAgainSaid(run, now) ?? "";
+    const again = fill("moveLooksAgainIn", left);
     return waiting ? `${comingDownSaid(waiting)} · ${again}` : again;
   }
   if (run.waited === "offline" || run.waited === "troubled") {
-    return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", String(left))}`;
+    return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", left)}`;
   }
   return goesOnAt(run.pausedUntil);
 };
@@ -80,8 +85,10 @@ export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
 export const alongSaid = (run: Run): string | undefined => {
   const along = run.along;
   const two = run.from !== undefined && run.from !== "alone" && run.toward.kind !== "alone";
-  const step = two ? `${fill("moveStep", String(along?.step ?? 1), "2")} · ` : "";
   const waiting = fetchingLeft(run);
+  // Files still coming down are always the first step, whatever an earlier try got to.
+  const at = waiting ? 1 : (along?.step ?? 1);
+  const step = two ? `${fill("moveStep", String(at), "2")} · ` : "";
   if (waiting) return `${step}${comingDownSaid(waiting)}`;
   if (!along) return undefined;
   if (along.step === 1) {
@@ -105,7 +112,9 @@ const shareOf = (run: Run): number => {
   const along = run.along;
   const part = (done: number, whole: number) => (whole > 0 ? done / whole : 0);
   const waiting = fetchingLeft(run);
-  if (waiting && run.fetchingFrom) return part(run.fetchingFrom - waiting.bytes, run.fetchingFrom);
+  // Never emptier than a move just begun, so waiting on downloads never reads as going backwards.
+  if (waiting && run.fetchingFrom)
+    return Math.max(0.1, part(run.fetchingFrom - waiting.bytes, run.fetchingFrom));
   if (along?.step === 2)
     return along.weighs > 0
       ? Math.min(part(along.sent, along.weighs), part(along.done, along.whole))
