@@ -60,14 +60,11 @@ export const alongSaid = (run: Run): string | undefined => {
   if (along.done === 0 && along.sent === 0) return `${step}${where} · ${t("movePreparing")}`;
   const files = fill("moveFiles", String(along.done), String(along.whole));
   if (along.weighs === 0) return `${step}${where} · ${files}`;
-  // Once the bytes are all up, what is left is small files the size would round away.
-  if (along.sent >= along.weighs && along.done < along.whole)
-    return `${step}${where} · ${weigh(along.sent)} · ${
-      along.whole - along.done === 1
-        ? t("moveFileLeft")
-        : fill("moveFilesLeft", String(along.whole - along.done))
-    }`;
-  return `${step}${where} · ${fill("comingOf", weigh(along.sent), weigh(along.weighs))} · ${files}`;
+  const said = `${step}${where} · ${fill("comingOf", weigh(along.sent), weigh(along.weighs))} · ${files}`;
+  const left = along.whole - along.done;
+  // Once the bytes are all up, the small files still to go would hide behind a size that rounds away.
+  if (along.sent < along.weighs || left <= 0) return said;
+  return `${said} · ${left === 1 ? t("moveFileLeft") : fill("moveFilesLeft", String(left))}`;
 };
 
 const shareOf = (run: Run): number => {

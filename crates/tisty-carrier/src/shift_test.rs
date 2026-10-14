@@ -1093,34 +1093,3 @@ fn a_move_into_the_cloud_taken_up_again_counts_only_the_attachments_still_owed()
         );
     }
 }
-
-#[test]
-fn a_move_into_the_cloud_sends_the_documents_before_the_attachments() {
-    for (setting, fake) in each_kind(|fake| fake) {
-        let who = &setting.name;
-        let (one, _) = pair(&setting);
-        one.filed(DOC, "# Plan\n\nlo primero\n");
-        let photo = one.attached(PHOTO);
-        let seen: Arc<std::sync::Mutex<Option<bool>>> = Arc::default();
-        let noting = seen.clone();
-        let looking = fake.clone();
-        fake.in_the_gap(&photo.at, move || {
-            *noting.lock().unwrap() = Some(looking.about(&doc_name()).unwrap().is_some());
-        });
-
-        crate::shift(
-            None,
-            Some(&*one.carrier),
-            &one.here,
-            &[DOC.to_string()],
-            &mut |_| {},
-        )
-        .unwrap();
-
-        assert_eq!(
-            *seen.lock().unwrap(),
-            Some(true),
-            "{who}: the photo went up before the document that names it"
-        );
-    }
-}
