@@ -1,13 +1,15 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type Awry, carrying } from "../carrying";
 import { cloudStanding } from "../cloudState";
+import { ended } from "../coming";
 import type { Carrying, CloudStatus, Settled } from "../core";
 import { adopt, fill, t } from "../locales";
 import type { Run } from "../relocation";
 import { causeSaid, lastingCause, syncingSaid, syncSaid } from "../syncSaid";
 import Clouded from "../ui/Clouded";
 import { pauseSaid, waitingSaid } from "../ui/RelocatingSteps";
+import { useCarry } from "../ui/useCarry";
 
 const ipc = vi.hoisted(() => ({
   answers: {} as Record<string, () => Promise<unknown>>,
@@ -156,6 +158,50 @@ describe("a round that runs long", () => {
 
     expect(screen.getByRole("button", { name: fill("syncingFor", "1") })).toBeTruthy();
   });
+
+  it("counts from when the round began, not from when the card came into view", () => {
+    vi.useFakeTimers();
+    ipc.answers.cloud_status = () => new Promise(() => undefined);
+    render(
+      <Clouded
+        state={{ mode: "cloud", cloud: "ana@example.com" } as Carrying}
+        busy="sync"
+        busySince={Date.now() - 125_000}
+        run={vi.fn() as never}
+        fail={() => {}}
+        carry={() => {}}
+        onMove={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: fill("syncingFor", "2") })).toBeTruthy();
+  });
+
+  it("marks a round turned away as busy whatever it says, and lets its words go once the other ends", async () => {
+    ipc.answers.sync_now = () =>
+      Promise.resolve({ carried: "busy", undecided: [], joined: [], running: 130 });
+    const tell = vi.fn();
+    const { result } = renderHook(() =>
+      useCarry({
+        held: false,
+        setBusy: () => {},
+        tell,
+        fail: () => {},
+        look: () => {},
+        onChanged: () => {},
+      }),
+    );
+
+    await act(() => result.current.carryNow());
+
+    expect(tell).toHaveBeenLastCalledWith({
+      card: "sync",
+      text: fill("syncingFor", "2"),
+      busy: true,
+    });
+    act(() => ended(null));
+    expect(tell).toHaveBeenLastCalledWith(undefined);
+  });
 });
 
 describe("rounds nobody asked for", () => {
@@ -191,6 +237,49 @@ describe("rounds nobody asked for", () => {
     carried.stop();
 
     expect(told[told.length - 1]).toEqual({ why: "away", said: fill("roundBlocked", DRIVE) });
+  });
+
+  const failingRound = async (deferred: Record<string, unknown>) => {
+    ipc.answers.sync_state = () => Promise.resolve({ chosen: "cloud", asked: true });
+    ipc.answers.sync_now = () =>
+      Promise.resolve({
+        carried: "same",
+        undecided: [],
+        deferred: { reason: "offline", left: 0, names: [], ...deferred },
+      });
+    const told: (Awry | null)[] = [];
+    const carried = carrying(
+      () => {},
+      () => {},
+      (why) => told.push(why),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    carried.stop();
+    return told[told.length - 1];
+  };
+
+  it("say a single round that kept failing past two minutes", async () => {
+    vi.useFakeTimers();
+
+    const said = await failingRound({
+      cause: "slow",
+      rounds: 1,
+      since: Math.floor(Date.now() / 1000) - 150,
+    });
+
+    expect(said).toEqual({ why: "away", said: fill("roundSlow", DRIVE) });
+  });
+
+  it("say the latest cause once two rounds failed, even when the cause changed between them", async () => {
+    vi.useFakeTimers();
+
+    const said = await failingRound({
+      cause: "blocked",
+      rounds: 2,
+      since: Math.floor(Date.now() / 1000) - 30,
+    });
+
+    expect(said).toEqual({ why: "away", said: fill("roundBlocked", DRIVE) });
   });
 });
 
