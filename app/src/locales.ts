@@ -1171,6 +1171,9 @@ const en = {
   stateApartWhy:
     "Nothing travels until you choose how the two come together. A backup is written before anything changes.",
   stateApartDo: "Choose",
+  stateRestoredApart: "This computer went back to a copy",
+  stateRestoredApartWhy:
+    "Your {name} still holds what that copy undid. Nothing travels until you choose which side wins. A backup is written before anything changes.",
   healthChecking: "Checking the connection with {name}…",
   healthBlocked:
     "Something is blocking the connection with {name}: it may be a proxy, a filter at your company or an antivirus. If you are on a work network, ask for Tisty to be let through, or try again later.",
@@ -3120,6 +3123,9 @@ const es: Catalog = {
   stateApartWhy:
     "No viaja nada hasta que elijas cómo se juntan los dos. Antes de cambiar algo se guarda un respaldo.",
   stateApartDo: "Elegir",
+  stateRestoredApart: "Este equipo volvió a una copia",
+  stateRestoredApartWhy:
+    "Tu {name} todavía guarda lo que esa copia deshizo. No viaja nada hasta que elijas qué lado manda. Antes de cambiar algo se guarda un respaldo.",
   healthChecking: "Revisando la conexión con {name}…",
   healthBlocked:
     "Algo está bloqueando la conexión con {name}: puede ser un proxy, un filtro de tu empresa o un antivirus. Si estás en una red de trabajo, pide que dejen pasar Tisty, o intenta más tarde.",

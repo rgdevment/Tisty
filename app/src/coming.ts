@@ -99,10 +99,16 @@ export const choose = (now: boolean) => {
   tell();
 };
 
-const APART = new Set(["wouldReset", "otherStore", "restoredApart"]);
+const APART = new Set(["wouldReset", "otherStore"]);
 
-export const apartWaits = (said: unknown): boolean =>
-  APART.has((said as { code?: string } | null)?.code ?? "");
+const codeOf = (said: unknown): string => (said as { code?: string } | null)?.code ?? "";
+
+/** The place holds another Tisty and the person has to say how the two come together. */
+export const apartWaits = (said: unknown): boolean => APART.has(codeOf(said));
+
+/** Anything that leaves sync waiting on the person's choice, a copy gone back on included. */
+export const choiceWaits = (said: unknown): boolean =>
+  apartWaits(said) || codeOf(said) === "restoredApart";
 
 export const unstuck = () => {
   stuck = null;
@@ -136,5 +142,5 @@ export const useChoosing = (): boolean => useSyncExternalStore(subscribe, () => 
 export const useAwaitsChoice = (): boolean => {
   const open = useChoosing();
   const told = useStuck();
-  return open || apartWaits(told);
+  return open || choiceWaits(told);
 };

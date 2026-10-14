@@ -111,6 +111,13 @@ describe("the sidebar while a place holds another history", () => {
     expect(screen.getByRole("alert").textContent).toBe(t("stuckChoosing"));
   });
 
+  it("names a copy gone back on as itself, not as another Tisty", () => {
+    render(<Coming />);
+    act(() => ended({ code: "restoredApart", name: "Google Drive" }));
+
+    expect(screen.getByRole("alert").textContent).toBe(fill("restoredApart", "Google Drive"));
+  });
+
   it("still names any other trouble as it always did", () => {
     render(<Coming />);
     act(() => ended({ code: "syncFailed" }));
@@ -128,6 +135,18 @@ describe("the cloud card while a place holds another history", () => {
       expect(standing?.exit).toBe("choose");
       expect(standing?.name).toBe(t("cloudGoogle"));
     }
+  });
+
+  it("says nothing of a choice when this machine takes the other history on its own", () => {
+    expect(cloudStanding({ ...status("otherStore"), adopts: true })).toBeNull();
+  });
+
+  it("tells a copy gone back on in its own words, still offering to choose", () => {
+    const standing = cloudStanding(status("restoredApart"));
+
+    expect(standing?.said).toBe("stateRestoredApart");
+    expect(standing?.told).toBe(fill("stateRestoredApartWhy", t("cloudGoogle")));
+    expect(standing?.exit).toBe("choose");
   });
 
   it("leaves every other ending as it was", () => {

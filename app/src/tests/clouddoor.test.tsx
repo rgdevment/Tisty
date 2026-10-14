@@ -197,4 +197,26 @@ describe("a cloud that already holds another Tisty", () => {
     expect(await screen.findByText(t("syncChoosing"))).toBeTruthy();
     expect(screen.queryByText(t("syncBusy"))).toBeNull();
   });
+
+  it("waits on nobody when this machine will take the other history on its own", async () => {
+    ipc.answers.cloud_status = () =>
+      Promise.resolve(status({ last: round("otherStore"), adopts: true }));
+    render(
+      <Clouded
+        state={carrying({ last: "2026-10-12T10:00:00Z" })}
+        busy={null}
+        run={vi.fn() as never}
+        fail={() => {}}
+        carry={vi.fn()}
+        onMove={() => {}}
+      />,
+    );
+
+    expect(await screen.findByText(t("syncNow"))).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.queryByText(fill("stateApart", t("cloudGoogle")))).toBeNull(),
+    );
+    expect(screen.queryByText(t("syncChoosing"))).toBeNull();
+    expect(screen.queryByRole("button", { name: t("stateApartDo") })).toBeNull();
+  });
 });

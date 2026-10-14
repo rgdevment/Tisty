@@ -743,6 +743,7 @@ export interface CloudStatus {
   owed: number;
   last?: LastRound | null;
   lost?: boolean;
+  adopts?: boolean;
 }
 
 export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");

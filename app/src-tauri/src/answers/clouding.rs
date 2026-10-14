@@ -395,6 +395,8 @@ pub struct CloudStatus {
     owed: usize,
     last: Option<tisty_carrier::LastRound>,
     lost: bool,
+    /// The place holds another history, and the next round takes it on its own instead of asking.
+    adopts: bool,
 }
 
 /// What Settings and Maintenance say of the chosen cloud, read off this disk with no request.
@@ -402,18 +404,34 @@ pub struct CloudStatus {
 pub async fn cloud_status(
     session: tauri::State<'_, Mutex<Session>>,
 ) -> Answer<Option<CloudStatus>> {
-    let (at, home, here) = {
+    let (at, home, here, paths, took) = {
         let session = held(&session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
             return Ok(None);
         };
         let home = session.reach.home_of(&at);
-        (at, home, session.here())
+        (
+            at,
+            home,
+            session.here(),
+            session.paths.clone(),
+            session.config.took_quietly.clone(),
+        )
     };
     tauri::async_runtime::spawn_blocking(move || {
         let joined = tisty_carrier::cloud_joined(&home, &here);
         let mut status = status_of(&at, &home, joined);
         status.lost = lost_for_good_at(&home, &at.account);
+        status.adopts = status.last.as_ref().is_some_and(|last| {
+            last.code == "otherStore"
+                && super::joining::new_here(&paths)
+                && super::joining::may_adopt(
+                    &last.code,
+                    last.name.as_deref(),
+                    &tisty_carrier::kin_mirrored(&home, &here),
+                    took.as_deref(),
+                )
+        });
         Some(status)
     })
     .await
@@ -436,6 +454,7 @@ pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path, joined: bool) -> C
         owed: told.owed + told.forgotten,
         last: told.last,
         lost: false,
+        adopts: false,
     }
 }
 
