@@ -106,19 +106,74 @@ pub fn ask_for(all: Vec<PathBuf>) {
     if fresh.is_empty() {
         return;
     }
-    std::thread::spawn(move || {
-        for at in fresh {
-            if sidecar(&at).is_some() {
-                fetched(&at);
-            } else if let Ok(mut file) = std::fs::File::open(&at) {
-                let mut one = [0u8; 1];
-                let _ = std::io::Read::read(&mut file, &mut one);
+    // Each read waits for its whole file, so a few at once let the folder's program bring them side by side.
+    let workers = fresh.len().min(ASKING_AT_ONCE);
+    let queue = std::sync::Arc::new(std::sync::Mutex::new(
+        fresh.into_iter().collect::<std::collections::VecDeque<_>>(),
+    ));
+    for _ in 0..workers {
+        let queue = queue.clone();
+        std::thread::spawn(move || {
+            while let Some(at) = queue.lock().ok().and_then(|mut left| left.pop_front()) {
+                asked_down(&at);
             }
-            if let Ok(mut asked) = in_flight().lock() {
-                asked.remove(&at);
-            }
+        });
+    }
+}
+
+const ASKING_AT_ONCE: usize = 4;
+
+fn asked_down(at: &Path) {
+    use crate::witness::{self, Fact, channel};
+    witness::note(
+        channel::SYNC,
+        "a file the folder keeps only in the cloud was asked for",
+        &[("at", Fact::Path(at.to_path_buf()))],
+    );
+    let since = std::time::Instant::now();
+    let read = match sidecar(at).is_some() {
+        true => {
+            fetched(at);
+            Ok(())
         }
-    });
+        false => std::fs::File::open(at).and_then(|mut file| {
+            let mut one = [0u8; 1];
+            std::io::Read::read(&mut file, &mut one).map(|_| ())
+        }),
+    };
+    // A refusal is the one thing waiting never mends: the system's permission, or a file the folder's program holds.
+    if let Err(why) = read {
+        let said = match why.kind() {
+            std::io::ErrorKind::PermissionDenied => {
+                "this system would not let Tisty read a file in the folder"
+            }
+            _ => "the folder's program would not hand over a file Tisty asked for",
+        };
+        witness::warn(
+            channel::SYNC,
+            said,
+            &[
+                ("at", Fact::Path(at.to_path_buf())),
+                ("why", Fact::Why(why.to_string())),
+            ],
+        );
+    }
+    let took = usize::try_from(since.elapsed().as_secs()).unwrap_or(usize::MAX);
+    let said = match a_hole(at) {
+        true => "a file asked of the folder's program is still on its way",
+        false => "a file asked of the folder's program came down",
+    };
+    witness::note(
+        channel::SYNC,
+        said,
+        &[
+            ("at", Fact::Path(at.to_path_buf())),
+            ("seconds", Fact::Count(took)),
+        ],
+    );
+    if let Ok(mut asked) = in_flight().lock() {
+        asked.remove(at);
+    }
 }
 
 // A file another machine rewrites all day is back in the cloud by the next round: read it now.

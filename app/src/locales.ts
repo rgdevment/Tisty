@@ -1427,7 +1427,7 @@ const en = {
   moveFromUnused:
     "This computer never synced with this cloud, so there is nothing to bring from it: stop using it from its card instead.",
   moveUnfetched:
-    "The program that syncs your folder hasn't brought these files down yet. Check it is open and signed in, then right-click the Tisty folder and keep it on this computer (“Available offline”, “Always keep on this device” or, in iCloud, “Keep Downloaded”).",
+    "The program that syncs your folder hasn't brought these files down yet. Check it is open and signed in, then right-click the Tisty folder and keep it on this computer (“Available offline”, “Always keep on this device” or, in iCloud, “Keep Downloaded”). If your system asked whether Tisty may read that folder, allow it in its privacy settings.",
   moveFetching:
     "Tisty takes them as they arrive and carries on to step 2 by itself. To bring them sooner, right-click the Tisty folder and choose “Available offline” (in iCloud, “Keep Downloaded”).",
   moveComingDown:
@@ -3395,7 +3395,7 @@ const es: Catalog = {
   moveFromUnused:
     "Este equipo nunca sincronizó con esta nube, así que no hay nada que traer de ahí: deja de usarla desde su tarjeta.",
   moveUnfetched:
-    "El programa que sincroniza tu carpeta todavía no baja estos archivos. Revisa que esté abierto y con tu cuenta, y luego haz clic derecho en la carpeta Tisty y déjala en este equipo («Disponible sin conexión», «Mantener siempre en este dispositivo» o, en iCloud, «Mantener descargado»).",
+    "El programa que sincroniza tu carpeta todavía no baja estos archivos. Revisa que esté abierto y con tu cuenta, y luego haz clic derecho en la carpeta Tisty y déjala en este equipo («Disponible sin conexión», «Mantener siempre en este dispositivo» o, en iCloud, «Mantener descargado»). Si tu sistema preguntó si Tisty puede leer esa carpeta, permítelo en su configuración de privacidad.",
   moveFetching:
     "Tisty los toma a medida que llegan y sigue solo con el paso 2. Para que lleguen antes, haz clic derecho en la carpeta Tisty y elige «Disponible sin conexión» (en iCloud, «Mantener descargado»).",
   moveComingDown:
