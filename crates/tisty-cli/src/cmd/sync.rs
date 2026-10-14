@@ -362,6 +362,7 @@ fn said(trouble: &carrier::Trouble, lang: Lang) -> ExitCode {
             lang.fill("sync-stuck-on", &[("name", name), ("why", why)])
         }
         carrier::Trouble::NotNow(_) => lang.fill("cloud-not-now", &[]),
+        carrier::Trouble::Moved(id) => lang.fill("sync-refused", &[("why", id)]),
     };
     eprintln!("{text}");
     ExitCode::from(EXIT_ERROR)

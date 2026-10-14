@@ -185,6 +185,7 @@ pub(crate) fn carry_papers_leaning_on(
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
+                        mine: ours.clone(),
                     });
                     continue;
                 }
@@ -247,6 +248,7 @@ pub(crate) fn carry_papers_leaning_on(
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
+                        mine: ours,
                     });
                 }
                 Move::TheyDecide if shut.contains(id) => {
@@ -258,6 +260,7 @@ pub(crate) fn carry_papers_leaning_on(
                     done.undecided.push(Undecided {
                         id: id.clone(),
                         theirs: yours.unwrap_or_default(),
+                        mine: ours,
                     });
                 }
                 Move::Bring => {
@@ -306,6 +309,7 @@ pub(crate) fn carry_papers_leaning_on(
                         None => done.undecided.push(Undecided {
                             id: id.clone(),
                             theirs: yours.unwrap_or_default(),
+                            mine: ours,
                         }),
                     }
                 }
