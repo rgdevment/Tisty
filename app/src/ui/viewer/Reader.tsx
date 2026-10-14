@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
-import Editor from "../Editor";
 import PaperFacts from "../PaperFacts";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
 import type { Head } from "../writing";
 import { button, Segments } from "./Glyphs";
+
+const Editor = lazy(() => import("../Editor"));
 
 interface Props {
   body: string;
@@ -145,16 +146,18 @@ export default function Reader(props: Props) {
             className="mx-auto flex min-h-0 w-full flex-1 flex-col px-5 transition-[max-width]"
             style={{ maxWidth: wide, zoom }}
           >
-            <Editor
-              value={body}
-              reading
-              stranger={stranger}
-              label={title}
-              paper={props.paper}
-              onWrite={() => {}}
-              onOutline={setHeads}
-              onDoc={props.onDoc}
-            />
+            <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
+              <Editor
+                value={body}
+                reading
+                stranger={stranger}
+                label={title}
+                paper={props.paper}
+                onWrite={() => {}}
+                onOutline={setHeads}
+                onDoc={props.onDoc}
+              />
+            </Suspense>
           </div>
         )}
       </div>
