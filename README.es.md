@@ -532,7 +532,8 @@ programa de escritorio de Google instalado ni abierto. Desconectar las conserva
 ahí, tanto en Tisty como en Drive; para sacarlas, múdate a una carpeta desde
 Tisty. En Google Drive › Configuración › Administrar apps, solo «Eliminar datos
 ocultos de la app» las borra.
-La primera vez sube todo lo que ya tienes; después solo viaja lo nuevo, y si se
+La primera vez sube todo lo que ya tienes —o, si tu Drive ya tiene tu Tisty, lo
+trae—; después solo viaja lo nuevo, y si se
 corta la conexión sigue donde quedó. Los adjuntos se quedan en el equipo donde
 se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los
 que no abres hace tiempo. Cada equipo tiene un cupo diario, para que ninguna
@@ -540,6 +541,12 @@ copia gaste la cuota que Google le da al proyecto: si se acaba, lo que escribas
 queda a salvo aquí y la sincronización sigue al día siguiente. Conectar se hace
 solo desde la ventana. OneDrive y Dropbox podrían llegar más adelante; no hay
 nada prometido.
+
+Antes de que entres a tu cuenta, y antes de una mudanza a Drive, Tisty revisa
+que Google responda, con una sola petición que no lleva nada tuyo. Si un proxy,
+un filtro de tu trabajo o un antivirus se interpone, te lo dice con palabras
+simples —ahí, y en la tarjeta si se repite mientras sincroniza— y nunca lo
+rodea: lo que escribas queda aquí y sube en cuanto el camino se despeja.
 
 **Una carpeta.** Las carpetas de Google Drive, OneDrive, iCloud y Dropbox —las
 que encuentre instaladas, ya resueltas— o cualquier otra que tus dos
@@ -549,9 +556,14 @@ No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Qui�
 mantenga esa carpeta o ese Drive es asunto tuyo, no de Tisty. Si no sincronizas
 nada, no abre una conexión para eso en su vida. Cambiar de idea después es una
 mudanza, no un interruptor: *Mudarme a otro lugar…* lleva tus copias entre este
-equipo, una carpeta y Google Drive, primero trae a casa lo que vivía solo en la
-nube, y les avisa a tus otros equipos adónde te fuiste para que cada uno te
-siga.
+equipo, una carpeta y Google Drive en dos pasos —primero trae a casa lo que
+vivía solo en el lugar que dejas, después lleva todo al nuevo—, te dice cuándo
+Google pide una pausa, y les avisa a tus otros equipos adónde te fuiste para que
+cada uno te siga.
+
+**Un computador nuevo se une solo.** Si todavía no guarda nada tuyo, toma lo que
+ya guarda la carpeta o tu Drive, después de dejar un respaldo, y puedes trabajar
+mientras llega el resto. Uno que sí guarda tu trabajo pregunta antes.
 
 Dos equipos sí pueden escribir el mismo documento a la vez, y ahí Tisty los junta
 **bloque a bloque**: editas la introducción en uno, alguien edita el cierre en el
@@ -582,7 +594,8 @@ de comprobar que la de la carpeta compartida tiene el mismo sha.
 Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
 día cambias algo en un equipo y no aparece en el otro, [la wiki](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
 enumera las causas en el orden en que conviene revisarlas, y qué significa cada
-aviso de Google Drive, de *Reconectar* a un Drive lleno.
+aviso de Google Drive, de *Reconectar* a un Drive lleno o
+[algo que bloquea el camino](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).
 
 ## Una línea de comandos, si la quieres
 

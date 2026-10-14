@@ -524,7 +524,8 @@ your files — and you do not need Google's desktop program installed or running
 Disconnecting keeps them there, in Tisty and in Drive alike; to take them out,
 move to a folder from Tisty. In Google Drive › Settings › Manage apps, only
 *Delete hidden app data* deletes them. The first
-time, everything you already have goes up; after that only
+time, everything you already have goes up — or, if your Drive already holds
+your Tisty, it comes down instead; after that only
 what is new travels, and a dropped connection carries on where it left off.
 Attachments stay on the computer they were added on and come down on another
 one when you open them there; *Free space* lets go of the ones you have not
@@ -532,6 +533,12 @@ opened in a while. Each computer has a daily allowance, so no single copy can
 spend the quota Google grants the project: when it runs out, what you write
 stays safe here and syncing carries on the next day. Connecting happens only in
 the window. OneDrive and Dropbox may come later; nothing is promised.
+
+Before you sign in, and before a move to Drive, Tisty checks that Google
+answers, with one request that carries nothing of yours. If a proxy, a filter
+at work or an antivirus stands in the way, it says so in plain words — there,
+and on the card if it keeps happening while syncing — and it never goes around
+it: what you write stays here and goes up once the way is clear.
 
 **A folder.** Google Drive, OneDrive, iCloud and Dropbox's own folders —
 whichever it finds installed, folder already worked out — or any other folder
@@ -541,8 +548,14 @@ There is nothing of mine in the middle: no account, no server, no daemon. Who
 runs that folder or that Drive is your business, not Tisty's. If you sync
 nothing, it never opens a connection for it at all. Changing your mind later is
 a move, not a switch: *Move to another place…* takes your copies between this
-machine, a folder and Google Drive, brings home what lived only in the cloud
-first, and tells your other machines where you went so each one follows.
+machine, a folder and Google Drive in two steps — first it brings home what
+lived only in the place you leave, then it takes everything to the new one —
+says so when Google asks for a pause, and tells your other machines where you
+went so each one follows.
+
+**A new computer joins on its own.** If it holds nothing of yours yet, it
+takes what the folder or your Drive already holds, after keeping a backup, and
+you can work while the rest arrives. One that does hold your work asks first.
 
 Two machines can genuinely write the same document at once, and there Tisty
 merges them **block by block** — you edit the introduction on one, someone edits
@@ -572,7 +585,8 @@ And because what uploads a folder is your provider's program and not Tisty, if
 you ever change something on one machine and it does not turn up on the other,
 [the wiki](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#something-changed-on-one-machine-and-is-not-on-the-other)
 lists the causes worth checking, in order — and what each message about Google
-Drive means, from *Reconnect* to a full Drive.
+Drive means, from *Reconnect* to a full Drive or
+[something blocking the way](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#when-something-stands-in-the-way-of-google).
 
 ## A Command Line, If You Want One
 
