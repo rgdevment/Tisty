@@ -21,3 +21,6 @@ sha2.workspace = true
 rand_core.workspace = true
 tempfile.workspace = true
 tokio = { version = "1", default-features = false, features = ["rt"] }
+
+[dev-dependencies]
+tisty-carrier = { workspace = true, features = ["testing"] }

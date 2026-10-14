@@ -1,11 +1,12 @@
 use std::collections::HashMap;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::io::Write;
+use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use tisty_carrier::{Renew, Renewed, Secrets, Tokens};
+use tisty_carrier::Tokens;
+use tisty_carrier::testing::{Asked, Fresh, Kept, heard};
 
 use super::{Account, Drive, DriveAt, wire};
 use tisty_carrier::{Changes, Expect, Hitch, Remote, Seen};
@@ -21,44 +22,6 @@ fn said(status: &'static str, body: &str) -> Said {
         status,
         headers: String::new(),
         body: body.to_string(),
-    }
-}
-
-#[derive(Debug)]
-struct Asked {
-    line: String,
-    head: String,
-    body: Vec<u8>,
-}
-
-fn heard(stream: &mut TcpStream) -> Asked {
-    let mut got = Vec::new();
-    let mut chunk = [0u8; 8192];
-    loop {
-        let read = stream.read(&mut chunk).unwrap_or(0);
-        got.extend_from_slice(&chunk[..read]);
-        if let Some(end) = got.windows(4).position(|one| one == b"\r\n\r\n") {
-            let head = String::from_utf8_lossy(&got[..end]).to_string();
-            let wants = head
-                .lines()
-                .find_map(|one| {
-                    one.to_ascii_lowercase()
-                        .strip_prefix("content-length:")
-                        .map(|n| n.trim().parse::<usize>().unwrap())
-                })
-                .unwrap_or(0);
-            if got.len() >= end + 4 + wants {
-                let line = head.lines().next().unwrap_or_default().to_string();
-                return Asked {
-                    line,
-                    head,
-                    body: got[end + 4..end + 4 + wants].to_vec(),
-                };
-            }
-        }
-        if read == 0 {
-            panic!("the request ended early");
-        }
     }
 }
 
@@ -99,36 +62,6 @@ fn google_at(scripted: impl FnOnce(&str) -> Vec<Said>) -> (DriveAt, JoinHandle<V
         },
         served,
     )
-}
-
-struct Kept(Mutex<HashMap<String, String>>);
-
-impl Secrets for Kept {
-    fn read(&self, key: &str) -> Result<Option<String>, Hitch> {
-        Ok(self.0.lock().unwrap().get(key).cloned())
-    }
-    fn write(&self, key: &str, value: &str) -> Result<(), Hitch> {
-        self.0.lock().unwrap().insert(key.into(), value.into());
-        Ok(())
-    }
-    fn forget(&self, key: &str) -> Result<(), Hitch> {
-        self.0.lock().unwrap().remove(key);
-        Ok(())
-    }
-}
-
-struct Fresh(Mutex<u32>);
-
-impl Renew for Fresh {
-    fn renew(&self, _: &str) -> Result<Renewed, Hitch> {
-        let mut given = self.0.lock().unwrap();
-        *given += 1;
-        Ok(Renewed {
-            access: format!("access-{given}"),
-            lasts: Duration::from_secs(3600),
-            refresh: None,
-        })
-    }
 }
 
 fn drive(at: DriveAt, home: &std::path::Path) -> Drive {

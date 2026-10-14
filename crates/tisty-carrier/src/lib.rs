@@ -17,7 +17,10 @@ mod folder;
 #[cfg(not(windows))]
 mod keychain;
 mod remote;
+pub mod said;
 mod shift;
+#[cfg(feature = "testing")]
+pub mod testing;
 mod tokens;
 
 pub use cloud::standing::{
