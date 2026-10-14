@@ -14,8 +14,35 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # `paths` on the trigger leaves a required check unreported for good; a skipped job counts as met.
+  changes:
+    name: what the branch touched
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      mutable: ${{ steps.look.outputs.mutable }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: look
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          watched='^(crates/|app/src/|\.cargo/mutants\.toml$|app/stryker\.config\.json$|\.github/workflows/mutants\.yml$)'
+          from=$(git merge-base "$BASE" HEAD)
+          if git diff --name-only --diff-filter=d "$from" HEAD | grep -qE "$watched"; then
+            echo "mutable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mutable=false" >> "$GITHUB_OUTPUT"
+          fi
+
   crates-on-the-branch:
     name: crates / part ${{ matrix.part }} of 4
+    needs: changes
+    if: needs.changes.outputs.mutable == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
@@ -80,17 +107,23 @@ jobs:
   crates-summed:
     name: crates / the lines this branch changed
     if: always()
-    needs: crates-on-the-branch
+    needs: [changes, crates-on-the-branch]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Every part of the mutants passed
+      - name: Every part of the mutants passed, or nothing mutable changed
         env:
+          LOOKED: ${{ needs.changes.result }}
           RESULT: ${{ needs.crates-on-the-branch.result }}
-        run: '[ "$RESULT" = "success" ] || { echo "::error::the mutants ended as $RESULT"; exit 1; }'
+        run: |
+          [ "$LOOKED" = "success" ] || { echo "::error::what the branch touched could not be read ($LOOKED)"; exit 1; }
+          [ "$RESULT" = "success" ] || [ "$RESULT" = "skipped" ] \
+            || { echo "::error::the mutants ended as $RESULT"; exit 1; }
 
   window-on-the-branch:
     name: window / the lines this branch changed
+    needs: changes
+    if: needs.changes.outputs.mutable == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
