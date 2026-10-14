@@ -289,9 +289,11 @@ pub async fn settle_in(
                     "the carry on opening did not finish",
                     &[("code", Fact::Code(refusal.code))],
                 );
-                // A new machine takes the place's history on the next round, so there is nothing to choose.
-                let quiet = super::joining::apart(refusal.code)
-                    && tisty_core::untouched::untouched(&paths.store(), &paths.docs());
+                // The next round takes the place's history on its own, and says so if it cannot.
+                let quiet =
+                    super::joining::will_adopt(&session, None, refusal.code, refusal.name.clone())
+                        .await
+                        .is_some();
                 stuck = (!quiet).then_some(refusal);
             }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
@@ -799,7 +801,10 @@ pub async fn sync_now(
         (session.config.sync.clone(), home)
     };
     let mut done = carried_round(&app, &session, way.clone()).await;
-    if held_apart(&done) && super::joining::adopted_quietly(&session).await {
+    let (code, theirs) = held_apart(&done);
+    if let Some(theirs) = super::joining::will_adopt(&session, None, code, theirs).await
+        && super::joining::adopted_quietly(&session, theirs).await
+    {
         done = carried_round(&app, &session, way).await;
         if let Ok(settled) = done.as_mut() {
             settled.adopted = true;
@@ -817,12 +822,15 @@ pub async fn sync_now(
     done
 }
 
-fn held_apart(done: &Answer<Settled>) -> bool {
-    let code = match done {
-        Ok(settled) => settled.refused.as_ref().map(|one| one.code),
-        Err(refusal) => Some(refusal.code),
-    };
-    code.is_some_and(super::joining::apart)
+fn held_apart(done: &Answer<Settled>) -> (&'static str, Option<String>) {
+    match done {
+        Ok(Settled {
+            refused: Some(stuck),
+            ..
+        }) => (stuck.code, stuck.name.clone()),
+        Ok(_) => ("", None),
+        Err(refusal) => (refusal.code, refusal.name.clone()),
+    }
 }
 
 /// This copy raised a place the builds before 1.30 no longer write in, and the person has not been told yet.

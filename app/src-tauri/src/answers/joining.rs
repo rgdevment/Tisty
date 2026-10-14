@@ -210,17 +210,73 @@ pub(crate) fn apart(code: &str) -> bool {
     matches!(code, "wouldReset" | "otherStore")
 }
 
+/// A new machine takes a place's history on its own only when the place names whose history it is,
+/// that history is not one this machine's names clash with or cannot read, and it was not taken once already.
+pub(crate) fn may_adopt(
+    code: &str,
+    theirs: Option<&str>,
+    kin: &tisty_carrier::Kin,
+    took: Option<&str>,
+) -> bool {
+    let theirs = theirs.map(str::trim).filter(|one| !one.is_empty());
+    code == "otherStore"
+        && theirs.is_some_and(|one| took.map(str::trim) != Some(one))
+        && !matches!(
+            kin,
+            tisty_carrier::Kin::Clash(_) | tisty_carrier::Kin::Unsure(_)
+        )
+}
+
+pub(crate) fn new_here(paths: &tisty_core::Paths) -> bool {
+    tisty_core::paths::profile().is_none()
+        && tisty_core::store::inhabited(paths.store())
+        && tisty_core::untouched::untouched(&paths.store(), &paths.docs())
+}
+
+/// The place's history a round held apart will be taken without asking, if it will; read with the session let go of.
+pub(crate) async fn will_adopt(
+    session: &tauri::State<'_, Mutex<Session>>,
+    toward: Option<tisty_carrier::Shared>,
+    code: &'static str,
+    theirs: Option<String>,
+) -> Option<String> {
+    if !apart(code) {
+        return None;
+    }
+    let (carrier, here, paths, took) = {
+        let session = held(session);
+        (
+            toward.or_else(|| session.carrying().ok())?,
+            session.here(),
+            session.paths.clone(),
+            session.config.took_quietly.clone(),
+        )
+    };
+    elsewhere(move || {
+        let theirs = theirs?;
+        let may = new_here(&paths)
+            && may_adopt(code, Some(&theirs), &carrier.kin(&here), took.as_deref());
+        may.then_some(theirs)
+    })
+    .await
+    .ok()
+    .flatten()
+}
+
 /// A machine holding only what its first opening sowed takes the place's history without asking,
 /// once a backup of what it had has landed. Nothing happens to one that holds anything of the person's.
 pub(crate) fn quietly_joined(paths: &tisty_core::Paths) -> Option<std::path::PathBuf> {
-    if tisty_core::paths::profile().is_some()
-        || !tisty_core::untouched::untouched(&paths.store(), &paths.docs())
-    {
+    if !new_here(paths) {
         return None;
     }
     let into = tisty_core::backup::kept_before_joining(paths, jiff::Timestamp::now()).ok()?;
-    match tisty_core::backup::reset(paths, &into, paths.cache(), None) {
-        Ok(_) => {
+    let landed = tisty_core::backup::write(paths.data(), &into, paths.cache(), None);
+    // Asked again once the backup has landed: a command line or agent that wrote meanwhile is never reset away.
+    if landed.is_ok() && !new_here(paths) {
+        return None;
+    }
+    match landed.and_then(|_| tisty_core::backup::set_aside(paths)) {
+        Ok(()) => {
             witness::note(
                 channel::SYNC,
                 "this machine held only what it starts with, so it took the place's history without asking",
@@ -239,10 +295,14 @@ pub(crate) fn quietly_joined(paths: &tisty_core::Paths) -> Option<std::path::Pat
     }
 }
 
-// Read and reset under the session's lock, so nothing the person writes meanwhile slips between the two.
-pub(crate) async fn adopted_quietly(session: &tauri::State<'_, Mutex<Session>>) -> bool {
+// Under the session's lock, so nothing written through this window slips between the check and the reset.
+pub(crate) async fn adopted_quietly(
+    session: &tauri::State<'_, Mutex<Session>>,
+    theirs: String,
+) -> bool {
     let joined = {
-        let session = held(session);
+        let mut session = held(session);
+        let _ = session.keep(|c| c.took_quietly = Some(theirs));
         quietly_joined(&session.paths).is_some()
     };
     if !joined {

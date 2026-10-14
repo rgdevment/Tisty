@@ -550,6 +550,43 @@ fn a_machine_that_only_opened_once_takes_up_the_folder_once_what_it_sowed_is_set
     assert_eq!(titles(&fresh.store), vec!["lo de uno".to_string()]);
 }
 
+fn a_machine_that_only_opened_once_meets_another_history_as_a_stranger(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    let fresh = blank("dos");
+    signing(&fresh)
+        .append_batch(tisty_core::model::sown("es"))
+        .unwrap();
+
+    let Err(Trouble::OtherStore { theirs }) = shared.carry(&fresh, Way::Both, &[]) else {
+        panic!("a marked place was not named as another history");
+    };
+    assert!(!theirs.trim().is_empty());
+    assert_eq!(shared.kin(&fresh), Kin::Strangers);
+}
+
+fn a_new_machine_set_aside_still_meets_a_place_with_no_marker_as_one_to_choose(shared: &Shared) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    std::fs::remove_file(shared.path().join(STORE).join(MARKER)).unwrap();
+    let fresh = blank("dos");
+    signing(&fresh)
+        .append_batch(tisty_core::model::sown("es"))
+        .unwrap();
+    let asked = shared.carry(&fresh, Way::Both, &[]);
+    assert!(matches!(asked, Err(Trouble::WouldReset { .. })), "{asked:?}");
+
+    let paths = tisty_core::Paths::new(fresh.data.clone(), fresh.data.join("config"));
+    let backup = fresh.data.with_file_name("before-joining.zip");
+    tisty_core::backup::reset(&paths, &backup, &fresh.data.with_file_name("aside"), None).unwrap();
+
+    let again = shared.carry(&fresh, Way::Both, &[]);
+    assert!(
+        matches!(again, Err(Trouble::WouldReset { .. })),
+        "setting it aside again would never end: {again:?}"
+    );
+}
+
 fn signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history(
     shared: &Shared,
 ) {
@@ -1110,6 +1147,8 @@ both_sides! {
     a_seat_nobody_ever_wrote_in_is_not_taken_home,
     a_machine_that_wrote_nothing_takes_up_the_folder_it_is_pointed_at,
     a_machine_that_only_opened_once_takes_up_the_folder_once_what_it_sowed_is_set_aside,
+    a_machine_that_only_opened_once_meets_another_history_as_a_stranger,
+    a_new_machine_set_aside_still_meets_a_place_with_no_marker_as_one_to_choose,
     signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history,
     a_store_with_no_list_yet_lets_everyone_write,
     a_machine_on_the_list_writes_as_it_always_did,

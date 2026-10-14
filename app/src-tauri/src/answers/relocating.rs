@@ -223,9 +223,14 @@ pub async fn move_to(
 
     let mut shifted = shifting(&app, &end).await?;
     // Only a machine syncing nowhere yet is new enough to take the place's history without asking.
-    if end.from.is_none()
-        && shifted.as_ref().is_err_and(held_apart)
-        && super::joining::adopted_quietly(&session).await
+    let apart = match (&end.from, &shifted) {
+        (None, Err(trouble)) => Some(said(trouble.clone())),
+        _ => None,
+    };
+    if let Some(refusal) = apart
+        && let Some(theirs) =
+            super::joining::will_adopt(&session, end.to.clone(), refusal.code, refusal.name).await
+        && super::joining::adopted_quietly(&session, theirs).await
     {
         end = ends(&mut held(&session), &toward)?;
         shifted = shifting(&app, &end).await?;
@@ -269,13 +274,6 @@ pub async fn move_to(
             Ok(Moving::Done { left_cloud, told })
         }
     }
-}
-
-fn held_apart(trouble: &tisty_carrier::Trouble) -> bool {
-    matches!(
-        trouble,
-        tisty_carrier::Trouble::WouldReset { .. } | tisty_carrier::Trouble::OtherStore { .. }
-    )
 }
 
 async fn shifting(

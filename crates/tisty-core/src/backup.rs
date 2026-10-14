@@ -455,9 +455,14 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
 }
 
 pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
-    let data = paths.data();
-    let made = write(data, into, aside, also)?;
+    let made = write(paths.data(), into, aside, also)?;
+    set_aside(paths)?;
+    Ok(made)
+}
 
+/// Moves this machine's history out of the way under a new name, for a backup already written.
+pub fn set_aside(paths: &Paths) -> Result<()> {
+    let data = paths.data();
     let mut config = Config::load_or_init(paths)?;
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
@@ -487,7 +492,7 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> R
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
     crate::docs::forget_what_was_carried(data);
-    Ok(made)
+    Ok(())
 }
 
 fn rescued(dest: &Path) {
