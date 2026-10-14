@@ -4,6 +4,7 @@ import { openLink } from "../core";
 import { t } from "../locales";
 import { headline, newsSeen, newsWaiting, toldFor } from "../news";
 import Modal from "./Modal";
+import { go } from "./RelocatingSteps";
 
 const RELEASES = "https://github.com/rgdevment/Tisty/releases";
 
@@ -38,7 +39,7 @@ export default function News() {
           />
           <span className="flex items-center gap-2 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
             {t("newsOver")}
-            <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-accent normal-case tracking-normal">
+            <span className="rounded-full bg-accent/10 px-2 py-0.5 font-mono text-accent normal-case tracking-normal">
               {versions[0]}
             </span>
           </span>
@@ -72,11 +73,7 @@ export default function News() {
         >
           {t("newsAll")}
         </button>
-        <button
-          type="button"
-          onClick={close}
-          className="ml-auto rounded-[8px] bg-accent px-3.5 py-1.5 text-[12.5px] font-medium text-white hover:brightness-110"
-        >
+        <button type="button" onClick={close} className={`ml-auto ${go}`}>
           {t("newsOk")}
         </button>
       </div>
