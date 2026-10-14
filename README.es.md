@@ -82,7 +82,7 @@
 
   <p>
     <sub>Sitio y ayuda:
-    <a href="https://rgdevment.com/es/tisty/">rgdevment.com/es/tisty</a></sub>
+    <a href="https://www.tisty.app/es/">www.tisty.app/es</a></sub>
   </p>
 
 </div>

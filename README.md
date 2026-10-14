@@ -82,7 +82,7 @@
 
   <p>
     <sub>Site and docs:
-    <a href="https://rgdevment.com/tisty/">rgdevment.com/tisty</a></sub>
+    <a href="https://www.tisty.app/">www.tisty.app</a></sub>
   </p>
 
 </div>
