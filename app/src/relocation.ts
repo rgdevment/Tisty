@@ -126,11 +126,14 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
           ? { rounds: (failing?.rounds ?? 0) + 1, since: failing?.since ?? began }
           : undefined;
       if (now.state === "done") for (const one of afterMoves) one();
-      const along = run?.along;
+      // Files still coming down put the move back at its first step, with nothing yet to count as brought.
+      const along: MoveAlong | undefined =
+        now.state === "waiting" && now.reason === "fetching" ? { step: 1 } : run?.along;
       const left = now.state === "waiting" ? now.left.files : undefined;
       // Downloads and other waits count files apart, so each keeps its own tally of tries that moved nothing.
       const fetching = now.state === "waiting" && now.reason === "fetching";
       const switched = lastLeft !== undefined && fetching !== wasFetching;
+      const freshWait = fetching && !wasFetching;
       wasFetching = fetching;
       const moved =
         lastLeft === undefined || switched
@@ -145,7 +148,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
       }
       lastLeft = left;
       const bytes = now.state === "waiting" ? now.left.bytes : 0;
-      if (fetching) fetchingFrom = Math.max(fetchingFrom ?? 0, bytes);
+      if (fetching) fetchingFrom = freshWait ? bytes : Math.max(fetchingFrom ?? 0, bytes);
       const waits = waitOf(now);
       if (waits === undefined) {
         set({ toward, from, going: false, result: now, along, failing, watched: false });

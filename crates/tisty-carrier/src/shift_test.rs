@@ -671,6 +671,8 @@ fn sent_of(heard: &[Reached]) -> std::collections::BTreeMap<u64, Vec<(usize, usi
             sent,
             weighs,
         } = far
+            // The word that step 2 began carries nothing and is no part of what a push sends.
+            && (*whole, *weighs) != (0, 0)
         {
             parts
                 .entry(*part)

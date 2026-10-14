@@ -106,16 +106,30 @@ pub fn ask_for(all: Vec<PathBuf>) {
     if fresh.is_empty() {
         return;
     }
-    // Each read waits for its whole file, so a few at once let the folder's program bring them side by side.
-    let workers = fresh.len().min(ASKING_AT_ONCE);
-    let queue = std::sync::Arc::new(std::sync::Mutex::new(
-        fresh.into_iter().collect::<std::collections::VecDeque<_>>(),
-    ));
-    for _ in 0..workers {
-        let queue = queue.clone();
-        std::thread::spawn(move || {
-            while let Some(at) = queue.lock().ok().and_then(|mut left| left.pop_front()) {
-                asked_down(&at);
+    let Ok(mut waiting) = asking().lock() else {
+        return;
+    };
+    waiting.queue.extend(fresh);
+    // Each read waits for its whole file: a few at once across every round, so the folder's program brings them side by side.
+    let more = ASKING_AT_ONCE
+        .saturating_sub(waiting.workers)
+        .min(waiting.queue.len());
+    waiting.workers += more;
+    drop(waiting);
+    for _ in 0..more {
+        std::thread::spawn(|| {
+            loop {
+                let next = match asking().lock() {
+                    Ok(mut waiting) => match waiting.queue.pop_front() {
+                        Some(at) => at,
+                        None => {
+                            waiting.workers -= 1;
+                            return;
+                        }
+                    },
+                    Err(_) => return,
+                };
+                asked_down(&next);
             }
         });
     }
@@ -123,19 +137,30 @@ pub fn ask_for(all: Vec<PathBuf>) {
 
 const ASKING_AT_ONCE: usize = 4;
 
+#[derive(Default)]
+struct Asking {
+    queue: std::collections::VecDeque<PathBuf>,
+    workers: usize,
+}
+
+fn asking() -> &'static std::sync::Mutex<Asking> {
+    static ASKING: std::sync::OnceLock<std::sync::Mutex<Asking>> = std::sync::OnceLock::new();
+    ASKING.get_or_init(Default::default)
+}
+
 fn asked_down(at: &Path) {
     use crate::witness::{self, Fact, channel};
-    witness::note(
+    witness::trace(
         channel::SYNC,
         "a file the folder keeps only in the cloud was asked for",
         &[("at", Fact::Path(at.to_path_buf()))],
     );
     let since = std::time::Instant::now();
     let read = match sidecar(at).is_some() {
-        true => {
-            fetched(at);
-            Ok(())
-        }
+        true => match fetched(at) {
+            true => Ok(()),
+            false => Err(std::io::Error::other("iCloud would not start the download")),
+        },
         false => std::fs::File::open(at).and_then(|mut file| {
             let mut one = [0u8; 1];
             std::io::Read::read(&mut file, &mut one).map(|_| ())
@@ -159,18 +184,22 @@ fn asked_down(at: &Path) {
         );
     }
     let took = usize::try_from(since.elapsed().as_secs()).unwrap_or(usize::MAX);
-    let said = match a_hole(at) {
-        true => "a file asked of the folder's program is still on its way",
-        false => "a file asked of the folder's program came down",
-    };
-    witness::note(
-        channel::SYNC,
-        said,
-        &[
-            ("at", Fact::Path(at.to_path_buf())),
-            ("seconds", Fact::Count(took)),
-        ],
-    );
+    let facts = [
+        ("at", Fact::Path(at.to_path_buf())),
+        ("seconds", Fact::Count(took)),
+    ];
+    match a_hole(at) {
+        true => witness::trace(
+            channel::SYNC,
+            "a file asked of the folder's program is still on its way",
+            &facts,
+        ),
+        false => witness::note(
+            channel::SYNC,
+            "a file asked of the folder's program came down",
+            &facts,
+        ),
+    }
     if let Ok(mut asked) = in_flight().lock() {
         asked.remove(at);
     }

@@ -60,8 +60,8 @@ pub fn shift(
     saying: &mut dyn FnMut(Reached),
 ) -> Result<Shift, Trouble> {
     if let Some(from) = from {
-        // Looking over attachments already here is no bringing, so the window is not told it brings any.
-        let bringing = !homing(from, here).nothing();
+        // Looking over files already here, or still coming down through the folder's program, is no bringing.
+        let bringing = !still_away(from, here).0.nothing();
         let mut heard = |far: Reached| {
             if bringing
                 || !matches!(

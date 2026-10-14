@@ -289,7 +289,7 @@ fn noted(answer: &Answer<Moving>, toward: &'static str) {
             reason,
             cause,
             ..
-        }) => witness::note(
+        }) => witness::standing(
             channel::SYNC,
             "a move waits",
             &[
