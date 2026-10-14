@@ -881,9 +881,9 @@ the rest follows from it.
 Same idea, same terms: free, open source, no ads, no telemetry, everything
 local.
 
-- **[CopyPaste](https://rgdevment.com/copypaste/)** — a clipboard manager
-  for Windows and macOS.
-- **[LinkUnbound](https://rgdevment.com/linkunbound/)** — a browser
+- **[CoPanda](https://www.copanda.app/)** — a clipboard manager for
+  Windows and macOS, once called CopyPaste.
+- **[LinkUnbound](https://www.linkunbound.app/)** — a browser
   selector for Windows and macOS: it asks which browser should open a link
   instead of assuming. If it is installed, the web links you open from Tisty go
   through it.

@@ -895,9 +895,9 @@ sale de ahí.
 Misma idea, mismos términos: gratis, código abierto, sin anuncios, sin
 telemetría, todo local.
 
-- **[CopyPaste](https://rgdevment.com/copypaste/)** — un gestor de
-  portapapeles para Windows y macOS.
-- **[LinkUnbound](https://rgdevment.com/linkunbound/)** — un selector de
+- **[CoPanda](https://www.copanda.app/)** — un gestor de portapapeles para
+  Windows y macOS, antes llamado CopyPaste.
+- **[LinkUnbound](https://www.linkunbound.app/)** — un selector de
   navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de
   suponerlo. Si está instalado, los enlaces web que abres desde Tisty pasan por
   él.

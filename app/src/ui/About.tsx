@@ -30,15 +30,15 @@ const SHELF = "ms-windows-store://downloadsandupdates";
 const TOOLS = [
   {
     icon: copanda,
-    name: "CopyPaste",
-    said: "toolCopyPaste",
-    at: "https://rgdevment.com/copypaste/",
+    name: "CoPanda",
+    said: "toolCoPanda",
+    at: "https://www.copanda.app/",
   },
   {
     icon: linkunbound,
     name: "LinkUnbound",
     said: "toolLinkUnbound",
-    at: "https://rgdevment.com/linkunbound/",
+    at: "https://www.linkunbound.app/",
   },
 ] as const;
 
