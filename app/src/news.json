@@ -122,5 +122,20 @@
         "said": "if your folder is still bringing files down to this computer, the move shows how many are left and how much they weigh, how to bring them sooner and when it looks again, and says when it starts sending them on. It carries on by itself as soon as they arrive."
       }
     ]
+  },
+  {
+    "version": "1.30.4",
+    "es": [
+      {
+        "title": "CoPanda y LinkUnbound con su mascota",
+        "said": "en Acerca de, las otras herramientas del mismo autor aparecen con su mascota y llevan a sus propios sitios. CopyPaste ahora se llama CoPanda."
+      }
+    ],
+    "en": [
+      {
+        "title": "CoPanda and LinkUnbound with their mascots",
+        "said": "in About, the author's other tools show their mascots and take you to their own sites. CopyPaste is now called CoPanda."
+      }
+    ]
   }
 ]
