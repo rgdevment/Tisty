@@ -9,8 +9,8 @@ import { docCard } from "../markdown";
 import Asking from "./Asking";
 import { useEdge } from "./edge";
 import Papers from "./Papers";
+import { labelled } from "./plain";
 import Row from "./Row";
-import { labelled } from "./writing";
 
 interface Props {
   steps?: string[];

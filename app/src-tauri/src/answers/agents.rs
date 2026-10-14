@@ -44,7 +44,7 @@ pub fn assistants(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Assis
     session.reload()?;
     let assistants = session.state.assistants.clone();
     let events = session.log()?;
-    Ok(hands(events, &assistants, &wiring::seen()))
+    Ok(hands(&events, &assistants, &wiring::seen()))
 }
 
 /// One row per hand, keyed by the id a known client is wired under so what `codex-mcp-client`

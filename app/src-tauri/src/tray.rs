@@ -148,22 +148,34 @@ pub fn quicken<R: Runtime>(app: &AppHandle<R>) {
         return;
     };
     if window.is_visible().unwrap_or(false) {
-        let _ = window.hide();
+        tuck(app);
         return;
     }
-    let _ = window.center();
-    let _ = window.show();
-    let _ = window.set_focus();
+    bring(&window);
 }
 
 pub fn sow<R: Runtime>(app: &AppHandle<R>, priority: Option<String>) {
     let Some(window) = app.get_webview_window("quick") else {
         return;
     };
+    bring(&window);
+    let _ = window.emit("sow", priority);
+}
+
+fn bring<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+    let _ = window.as_ref().show();
     let _ = window.center();
     let _ = window.show();
     let _ = window.set_focus();
-    let _ = window.emit("sow", priority);
+}
+
+/// Hiding the window alone leaves WebView2 drawing for nobody; the webview itself has to be told.
+pub fn tuck<R: Runtime>(app: &AppHandle<R>) {
+    let Some(window) = app.get_webview_window("quick") else {
+        return;
+    };
+    let _ = window.hide();
+    let _ = window.as_ref().hide();
 }
 
 pub fn surface<R: Runtime>(app: &AppHandle<R>) {

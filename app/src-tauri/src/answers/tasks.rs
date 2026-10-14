@@ -105,7 +105,7 @@ pub fn task_story(
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
     session.reload()?;
-    let told = tisty_core::story::story(session.log()?, id);
+    let told = tisty_core::story::story(&session.log()?, id);
     Ok(told)
 }
 

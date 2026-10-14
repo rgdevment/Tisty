@@ -921,6 +921,12 @@ pub(crate) fn opened(
 }
 
 fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if window.label() == "quick" {
+        if let tauri::WindowEvent::Focused(false) = event {
+            tray::tuck(window.app_handle());
+        }
+        return;
+    }
     if window.label() != "main" {
         return;
     }
