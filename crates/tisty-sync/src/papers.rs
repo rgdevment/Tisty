@@ -262,7 +262,11 @@ pub(crate) fn carry_papers_leaning_on(
                 }
                 Move::Bring => {
                     std::fs::create_dir_all(&here).map_err(io)?;
-                    let _held = docs_lock(&here, id);
+                    let held = docs_lock(&here, id);
+                    if held.is_none() || !untouched(&mine, ours.as_deref(), id) {
+                        done.coming.push(id.clone());
+                        continue;
+                    }
                     let checked = yours.as_deref().unwrap_or_default();
                     let Some(bytes) = taken(&mut prints, &theirs, checked, id, &mut done) else {
                         continue;
@@ -380,6 +384,20 @@ fn taken(
         false => done.astray.push(id.to_string()),
     }
     None
+}
+
+// What was written here after both sides were read is somebody's writing, and only the next round can weigh it.
+fn untouched(mine: &Path, ours: Option<&str>, id: &str) -> bool {
+    let now = tisty_core::docs::print_of(mine);
+    if now.as_ref().is_ok_and(|now| now.as_deref() == ours) {
+        return true;
+    }
+    witness::warn(
+        channel::SYNC,
+        "a document changed here while the round was reading it, so it waits for the next round",
+        &[("at", Fact::Id(id.to_string()))],
+    );
+    false
 }
 
 fn a_body(print: Option<String>, allowed: bool, holds: bool, id: &str) -> Option<String> {

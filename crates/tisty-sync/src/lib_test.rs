@@ -437,6 +437,99 @@ fn a_base_is_never_kept_for_a_document_neither_side_has() {
     assert!(tisty_core::docs::read_carried(&one.data, "uno-0001").is_none());
 }
 
+#[test]
+fn a_body_written_here_after_the_round_read_it_is_never_covered_by_the_other_side() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let mine = one.data.join(PAPERS).join("uno-0001.md");
+    let there = shared.path().join(PAPERS);
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+lo de antes
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    std::fs::write(
+        there.join("uno-0001.md"),
+        "# Kit
+
+lo de alli
+",
+    )
+    .unwrap();
+
+    // Same length and stamp, so the round still reads the print it kept and sees nothing written here.
+    let when = std::fs::metadata(&mine).unwrap().modified().unwrap();
+    std::fs::write(
+        &mine,
+        "# Kit
+
+lo de ahora
+",
+    )
+    .unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(&mine)
+        .unwrap()
+        .set_modified(when)
+        .unwrap();
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(&mine).unwrap(),
+        "# Kit
+
+lo de ahora
+",
+        "what was written here was covered by the other side"
+    );
+    assert_eq!(done.brought, 0);
+    assert_eq!(done.coming, vec!["uno-0001".to_string()]);
+}
+
+#[test]
+fn a_body_from_the_other_side_waits_while_somebody_here_holds_the_document() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let here = one.data.join(PAPERS);
+    let there = shared.path().join(PAPERS);
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+lo mio
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    std::fs::write(
+        there.join("uno-0001.md"),
+        "# Kit
+
+lo de alli
+",
+    )
+    .unwrap();
+
+    let held = tisty_core::docs::hold(&here).unwrap();
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    drop(held);
+
+    assert_eq!(
+        std::fs::read_to_string(here.join("uno-0001.md")).unwrap(),
+        "# Kit
+
+lo mio
+",
+        "a document somebody held was written over"
+    );
+    assert_eq!(done.coming, vec!["uno-0001".to_string()]);
+}
+
 fn wrote_body(at: &Path, id: &str, body: &str) {
     std::fs::create_dir_all(at).unwrap();
     std::fs::write(at.join(format!("{id}.md")), body).unwrap();
