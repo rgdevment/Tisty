@@ -1579,7 +1579,7 @@ const en = {
   terminal: "Command line",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
-  toolCopyPaste:
+  toolCoPanda:
     "Free, open source clipboard manager for Windows and macOS. Same philosophy: no ads, no telemetry, everything local.",
   toolLinkUnbound:
     "Open source browser selector for Windows and macOS. Same philosophy: no ads, no telemetry, everything local.",
@@ -3547,7 +3547,7 @@ const es: Catalog = {
   terminal: "Línea de comandos",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
-  toolCopyPaste:
+  toolCoPanda:
     "Gestor de portapapeles gratuito y de código abierto para Windows y macOS. Misma filosofía: sin anuncios, sin telemetría, todo local.",
   toolLinkUnbound:
     "Selector de navegadores de código abierto para Windows y macOS. Misma filosofía: sin anuncios, sin telemetría, todo local.",
