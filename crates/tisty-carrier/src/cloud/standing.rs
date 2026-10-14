@@ -26,6 +26,7 @@ pub struct LastRound {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cause: Option<String>,
     /// How many rounds in a row ended this same way, and since when, so a blip is told from what lasts.
+    /// Handed in as when this round began; written back as when the streak began.
     #[serde(default)]
     pub rounds: u32,
     #[serde(default)]
@@ -76,18 +77,24 @@ pub fn round_noted(home: &Path, round: &LastRound) -> LastRound {
     round
 }
 
+// Whatever stood in the way may change from round to round; the provider stays out of reach all the same.
 fn streaked(before: Option<&LastRound>, mut round: LastRound) -> LastRound {
-    match before.filter(|was| was.code == round.code && was.cause == round.cause) {
+    let began = match round.since {
+        0 => round.at,
+        began => began.min(round.at),
+    };
+    match before.filter(|was| was.code == round.code) {
         Some(was) => {
             round.rounds = was.rounds.max(1) + 1;
             round.since = match was.since {
                 0 => was.at,
                 since => since,
-            };
+            }
+            .min(began);
         }
         None => {
             round.rounds = 1;
-            round.since = round.at;
+            round.since = began;
         }
     }
     round
