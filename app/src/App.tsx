@@ -6,6 +6,7 @@ import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
 import Layers from "./ui/Layers";
 import Margins from "./ui/Margins";
+import News from "./ui/News";
 import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
@@ -55,6 +56,7 @@ export default function App() {
         <WindowChrome />
 
         <Layers parcels={desk.parcels.shown} />
+        <News />
 
         <Sidebar
           lists={data.lists}

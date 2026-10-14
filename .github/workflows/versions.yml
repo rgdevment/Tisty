@@ -52,7 +52,7 @@ jobs:
       # The releases carry a command line for Windows and macOS only.
       matrix:
         os: [windows-latest, macos-latest]
-        release: ["1.23.1", "1.24.4", "1.25.0", "1.25.1"]
+        release: ["1.23.1", "1.24.4", "1.25.0", "1.25.1", "1.30.0"]
         include:
           - release: "1.23.1"
             schema: 15
@@ -66,6 +66,9 @@ jobs:
           - release: "1.25.1"
             schema: 17
             shape: 1
+          - release: "1.30.0"
+            schema: 17
+            shape: 2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

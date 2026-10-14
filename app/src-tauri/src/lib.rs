@@ -11,6 +11,7 @@ mod herald;
 mod leaving;
 mod linking;
 mod moving;
+mod news;
 mod reaching;
 mod refusing;
 mod report;
@@ -817,6 +818,12 @@ pub(crate) fn opened(
         }
     }
 
+    news::raise(
+        app,
+        session.paths.config(),
+        !tisty_core::store::inhabited(session.paths.store()),
+    );
+
     let attachments = session.paths.attachments();
     if let Err(why) = std::fs::create_dir_all(&attachments) {
         witness::error(
@@ -1102,6 +1109,8 @@ pub fn run() {
             answers::reporting::twinned,
             answers::reporting::rebuild,
             answers::settings::about,
+            news::news,
+            news::news_seen,
             answers::settings::notices,
             answers::settings::licences,
             widgets::widget_lend,
