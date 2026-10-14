@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 use tisty_carrier::{Hitch, Renew, Renewed};
 
 mod drive;
+pub mod health;
 mod off;
 
 pub use drive::{Account, Drive, DriveAt};

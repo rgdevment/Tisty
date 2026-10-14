@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { turnedOff } from "../apart";
+import { useAwaitsChoice } from "../coming";
 import {
   type Carrying,
   moveDropped,
@@ -89,6 +90,8 @@ export default function Syncing({
 }: Props) {
   const held = busy !== null;
   const carrying = busy === "sync";
+  const awaits = useAwaitsChoice();
+  const told = said?.card === "sync" && !(awaits && said.text === t("syncBusy"));
   if (state.mode === "cloud")
     return (
       <>
@@ -151,11 +154,13 @@ export default function Syncing({
             )
           )}
           <span className="ml-auto text-[11.5px] text-faint">
-            {state.chosen
-              ? fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))
-              : state.later
-                ? ""
-                : t("noDestination")}
+            {state.chosen && awaits
+              ? t("syncChoosing")
+              : state.chosen
+                ? fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))
+                : state.later
+                  ? ""
+                  : t("noDestination")}
           </span>
         </div>
         {state.chosen && (
@@ -205,7 +210,7 @@ export default function Syncing({
         {trouble?.card === "sync" && (
           <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
         )}
-        {said?.card === "sync" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
+        {told && said && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
       </section>
     </>
   );

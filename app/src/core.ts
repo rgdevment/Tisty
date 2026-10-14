@@ -743,6 +743,7 @@ export interface CloudStatus {
   owed: number;
   last?: LastRound | null;
   lost?: boolean;
+  adopts?: boolean;
 }
 
 export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
@@ -753,6 +754,10 @@ export const cloudForget = (account?: string): Promise<void> => invoke("cloud_fo
 export const cloudRevoke = (account?: string): Promise<void> => invoke("cloud_revoke", { account });
 export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
 export const cloudStatus = (): Promise<CloudStatus | null> => invoke("cloud_status");
+
+export type Health = "reachable" | "inspected" | "blocked" | "slow" | "troubled";
+
+export const cloudHealth = (): Promise<Health> => invoke("cloud_health");
 
 export type Toward =
   | { kind: "alone" }
@@ -808,6 +813,7 @@ export interface Settled {
   joined: string[];
   deferred?: Waiting | null;
   refused?: { code: string; name?: string | null } | null;
+  adopted?: boolean;
 }
 
 export type Waiting = {

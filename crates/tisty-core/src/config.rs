@@ -334,6 +334,9 @@ pub struct Config {
     pub asked_for_a_star: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asked_to_wire: Option<bool>,
+    /// The place's history this machine took without asking, so it never takes that one again on its own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub took_quietly: Option<String>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
@@ -386,6 +389,7 @@ impl Config {
             here_since: Some(jiff::Timestamp::now()),
             asked_for_a_star: None,
             asked_to_wire: None,
+            took_quietly: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };

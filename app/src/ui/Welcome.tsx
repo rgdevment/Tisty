@@ -150,12 +150,14 @@ export default function Welcome({ onDone }: Props) {
     };
   }, [carrying, next]);
 
+  // A machine that held only what it starts with took the place's history, so nothing is sown on top of it.
   const round = (left = TRIES): Promise<string | undefined> =>
-    syncNow().then((how) =>
-      how?.carried === "busy" && left > 0
-        ? new Promise((soon) => setTimeout(soon, BREATH)).then(() => round(left - 1))
-        : how?.carried,
-    );
+    syncNow().then((how) => {
+      if (how?.adopted) joined.current = true;
+      return how?.carried === "busy" && left > 0
+        ? new Promise<void>((soon) => setTimeout(soon, BREATH)).then(() => round(left - 1))
+        : how?.carried;
+    });
 
   const carryOn = (name?: string) => {
     setBusy(true);
@@ -263,6 +265,7 @@ export default function Welcome({ onDone }: Props) {
     return (
       <Apart
         kin={kin}
+        cloud={toCloud ? t("cloudGoogle") : undefined}
         onPick={(door) => closed(door)}
         onElse={() => closed("else")}
         onClose={() => closed(null)}

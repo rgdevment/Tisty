@@ -978,6 +978,7 @@ pub fn run() {
             answers::clouding::cloud_revoke,
             answers::clouding::cloud_pause,
             answers::clouding::cloud_status,
+            answers::clouding::cloud_health,
             answers::relocating::move_plan,
             answers::relocating::move_to,
             answers::relocating::move_pending,

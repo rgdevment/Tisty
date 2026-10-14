@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-pub const WRITTEN_BY: &str = "Tisty";
+pub const WRITTEN_BY: &str = tisty_core::untouched::SOWN_BY;
 
 pub const PICTURES: &[&str] = &[
     "captura.png",
@@ -138,7 +138,8 @@ pub fn guide(
         let code = tisty_core::model::spoken(session.locale.as_deref());
         if code.starts_with("es") { "es" } else { "en" }
     };
-    let called = if tongue == "es" { "Guía" } else { "Guide" };
+    let [english, castilian] = tisty_core::untouched::GUIDE_FOLDERS;
+    let called = if tongue == "es" { castilian } else { english };
     let told = if tongue == "es" { GUIDE_ES } else { GUIDE_EN };
     let leaves = if tongue == "es" {
         GUIDE_PAGES_ES

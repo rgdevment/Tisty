@@ -21,7 +21,8 @@ mod shift;
 mod tokens;
 
 pub use cloud::standing::{
-    LastRound, OWED_BACK, Standing, cloud_joined, round_forgotten, round_noted, standing,
+    LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, round_forgotten, round_noted,
+    standing,
 };
 pub use cloud::{Cloud, forgotten_later, only_up_there, policy};
 pub use folder::Folder;

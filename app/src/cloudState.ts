@@ -1,11 +1,12 @@
+import { apartWaits } from "./coming";
 import { type CloudStatus, cloudForget, cloudStatus } from "./core";
 import { budgetResets } from "./format";
-import { fill, type t } from "./locales";
+import { fill, t } from "./locales";
 import { plainly } from "./refusal";
 
 type Key = Parameters<typeof t>[0];
 
-export type Exit = "reconnect" | "storage" | "turnOn" | "again";
+export type Exit = "reconnect" | "storage" | "turnOn" | "again" | "choose";
 
 export interface Standing {
   said: Key;
@@ -46,6 +47,13 @@ const BY_CODE: Record<string, Standing> = {
   cloudNotNow: { said: "stateWait", why: "stateWaitWhy" },
 };
 
+const APART: Standing = {
+  said: "stateApart",
+  why: "stateApartWhy",
+  exit: "choose",
+  exitSaid: "stateApartDo",
+};
+
 const QUIET = new Set(["ok", "deferred-changed", "deferred-paused"]);
 
 const DAY = 86_400;
@@ -64,6 +72,14 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
     return {
       said: "stateBudget",
       told: fill("stateBudgetWhy", budgetResets(new Date(now * 1000))),
+    };
+  if (apartWaits(last)) return status.adopts ? null : { ...APART, name: t("cloudGoogle") };
+  if (last.code === "restoredApart")
+    return {
+      said: "stateRestoredApart",
+      told: fill("stateRestoredApartWhy", t("cloudGoogle")),
+      exit: "choose",
+      exitSaid: "stateApartDo",
     };
   const name = last.name ?? undefined;
   const found = BY_CODE[last.code];

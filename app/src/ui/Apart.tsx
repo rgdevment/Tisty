@@ -1,11 +1,12 @@
 import type { Kin } from "../core";
-import { t, type Word } from "../locales";
+import { fill, t, type Word } from "../locales";
 import Modal from "./Modal";
 
 export type Door = "merge" | "mine" | "theirs";
 
 interface Props {
   kin: Kin;
+  cloud?: string;
   onPick: (door: Door) => void;
   onElse: () => void;
   onClose: () => void;
@@ -17,11 +18,30 @@ const DOORS: { key: Door; name: Word; why: Word; how: Word }[] = [
   { key: "theirs", name: "apartTheirs", why: "apartTheirsWhy", how: "apartTheirsHow" },
 ];
 
-export default function Apart({ kin, onPick, onElse, onClose }: Props) {
+const CLOUDED: Partial<Record<Word, Word>> = {
+  apartTitle: "apartTitleCloud",
+  apartHomeTitle: "apartHomeTitleCloud",
+  apartHomeWhy: "apartHomeWhyCloud",
+  apartHomeDo: "apartHomeDoCloud",
+  apartUnsureTitle: "apartUnsureTitleCloud",
+  apartUnsureWhy: "apartUnsureWhyCloud",
+  apartMineWhy: "apartMineWhyCloud",
+  apartMineHow: "apartMineHowCloud",
+  apartTheirs: "apartTheirsCloud",
+  apartTheirsHow: "apartTheirsHowCloud",
+};
+
+const placed = (key: Word, cloud?: string): string => {
+  const clouded = CLOUDED[key];
+  return cloud && clouded ? fill(clouded, cloud) : t(key);
+};
+
+export default function Apart({ kin, cloud, onPick, onElse, onClose }: Props) {
+  const say = (key: Word) => placed(key, cloud);
   if (kin === "unsure") {
     return (
-      <Modal title={t("apartUnsureTitle")} onClose={onClose}>
-        <p className="px-1 text-[13px] leading-relaxed text-soft">{t("apartUnsureWhy")}</p>
+      <Modal title={say("apartUnsureTitle")} onClose={onClose}>
+        <p className="px-1 text-[13px] leading-relaxed text-soft">{say("apartUnsureWhy")}</p>
         <div className="mt-4 flex justify-end">
           <button
             type="button"
@@ -37,8 +57,8 @@ export default function Apart({ kin, onPick, onElse, onClose }: Props) {
 
   if (kin === "sameLineage") {
     return (
-      <Modal title={t("apartHomeTitle")} onClose={onClose}>
-        <p className="px-1 text-[13px] leading-relaxed text-soft">{t("apartHomeWhy")}</p>
+      <Modal title={say("apartHomeTitle")} onClose={onClose}>
+        <p className="px-1 text-[13px] leading-relaxed text-soft">{say("apartHomeWhy")}</p>
 
         <div className="mt-4 flex justify-end gap-2">
           <button
@@ -53,7 +73,7 @@ export default function Apart({ kin, onPick, onElse, onClose }: Props) {
             onClick={() => onPick("merge")}
             className="rounded-md border border-ink bg-ink px-3 py-1 text-[12.5px] text-bg"
           >
-            {t("apartHomeDo")}
+            {say("apartHomeDo")}
           </button>
         </div>
       </Modal>
@@ -63,7 +83,7 @@ export default function Apart({ kin, onPick, onElse, onClose }: Props) {
   const shown = kin === "clash" ? DOORS.filter((one) => one.key !== "merge") : DOORS;
 
   return (
-    <Modal title={t("apartTitle")} onClose={onClose}>
+    <Modal title={say("apartTitle")} onClose={onClose}>
       <p className="px-1 text-[13px] leading-relaxed text-soft">
         {t(kin === "clash" ? "apartClashWhy" : "apartWhy")}
       </p>
@@ -76,10 +96,10 @@ export default function Apart({ kin, onPick, onElse, onClose }: Props) {
               onClick={() => onPick(door.key)}
               className="w-full rounded-[10px] border border-line px-3 py-2.5 text-left hover:border-ink hover:bg-hover"
             >
-              <span className="block text-[13px] font-semibold">{t(door.name)}</span>
-              <span className="mt-0.5 block text-[12.5px] text-faint">{t(door.why)}</span>
+              <span className="block text-[13px] font-semibold">{say(door.name)}</span>
+              <span className="mt-0.5 block text-[12.5px] text-faint">{say(door.why)}</span>
               <span className="mt-1.5 block text-[12.5px] leading-relaxed whitespace-pre-line text-soft">
-                {t(door.how)}
+                {say(door.how)}
               </span>
             </button>
           </li>

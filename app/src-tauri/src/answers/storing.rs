@@ -289,7 +289,12 @@ pub async fn settle_in(
                     "the carry on opening did not finish",
                     &[("code", Fact::Code(refusal.code))],
                 );
-                stuck = Some(refusal);
+                // The next round takes the place's history on its own, and says so if it cannot.
+                let quiet =
+                    super::joining::will_adopt(&session, None, refusal.code, refusal.name.clone())
+                        .await
+                        .is_some();
+                stuck = (!quiet).then_some(refusal);
             }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
             Ok(Ok(done)) => {
@@ -786,6 +791,7 @@ pub async fn sync_now(
             joined: Vec::new(),
             deferred: None,
             refused: None,
+            adopted: false,
         });
     };
     let (was, home) = {
@@ -794,7 +800,16 @@ pub async fn sync_now(
             .map(|at| session.reach.home_of(at));
         (session.config.sync.clone(), home)
     };
-    let done = carried_round(&app, &session, way).await;
+    let mut done = carried_round(&app, &session, way.clone()).await;
+    let (code, theirs) = held_apart(&done);
+    if let Some(theirs) = super::joining::will_adopt(&session, None, code, theirs).await
+        && super::joining::adopted_quietly(&session, theirs).await
+    {
+        done = carried_round(&app, &session, way).await;
+        if let Ok(settled) = done.as_mut() {
+            settled.adopted = true;
+        }
+    }
     if let Some(home) = home {
         noted(&home, &done);
     }
@@ -805,6 +820,17 @@ pub async fn sync_now(
     );
     drop(now);
     done
+}
+
+fn held_apart(done: &Answer<Settled>) -> (&'static str, Option<String>) {
+    match done {
+        Ok(Settled {
+            refused: Some(stuck),
+            ..
+        }) => (stuck.code, stuck.name.clone()),
+        Ok(_) => ("", None),
+        Err(refusal) => (refusal.code, refusal.name.clone()),
+    }
 }
 
 /// This copy raised a place the builds before 1.30 no longer write in, and the person has not been told yet.
@@ -1105,6 +1131,7 @@ async fn carried_round(
             names: deferred.names,
         }),
         refused,
+        adopted: false,
     })
 }
 
@@ -1135,6 +1162,9 @@ pub struct Settled {
     deferred: Option<Waiting>,
     /// What stopped the round after part of it went through, said as a refusal would be.
     refused: Option<Stuck>,
+    /// This machine held only what it starts with and took the place's history without asking.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    adopted: bool,
 }
 
 #[derive(serde::Serialize)]

@@ -155,6 +155,7 @@ export default function Keeping({
 
   const carrying = useCarry({
     held,
+    cloud: state?.mode === "cloud" ? t("cloudGoogle") : undefined,
     setBusy,
     tell: setSaid,
     fail: setTrouble,
