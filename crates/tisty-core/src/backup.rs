@@ -44,23 +44,30 @@ pub fn before_a_change(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
         at.subsec_millisecond()
     ));
     written(paths.data(), &into, paths.cache(), None, &TASKS_AND_DOCS)?;
-    let mut all: Vec<PathBuf> = std::fs::read_dir(&kept)?
+    pruned(&kept, BEFORE_KEPT)?;
+    Ok(into)
+}
+
+fn pruned(kept: &Path, leave: usize) -> Result<()> {
+    let mut all: Vec<PathBuf> = std::fs::read_dir(kept)?
         .filter_map(|one| one.ok().map(|one| one.path()))
         .filter(|one| one.extension().is_some_and(|ext| ext == "zip"))
         .collect();
     all.sort();
-    let over = all.len().saturating_sub(BEFORE_KEPT);
+    let over = all.len().saturating_sub(leave);
     for old in all.into_iter().take(over) {
         let _ = std::fs::remove_file(old);
     }
-    Ok(into)
+    Ok(())
 }
 
-/// Where a machine that held nothing of the person's keeps what it had before taking a place's history.
+/// Where a machine that held nothing of the person's keeps what it had before taking a place's history;
+/// the last few stay.
 pub fn kept_before_joining(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
     let kept = paths.private().join(BEFORE_JOINING);
     std::fs::create_dir_all(&kept)?;
     let _ = crate::paths::ours_alone(&kept);
+    pruned(&kept, BEFORE_KEPT - 1)?;
     Ok(kept.join(format!(
         "{}-{:03}.zip",
         at.strftime("%Y%m%d-%H%M%S"),
