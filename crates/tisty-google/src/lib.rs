@@ -384,7 +384,11 @@ fn post_form(
         }),
         500.. => match wait {
             Some(wait) => Err(Hitch::Limited { wait }),
-            None => Err(Hitch::Troubled(format!("Google answered {status}"))),
+            // Never Drive itself, so a round's spending and its stall guard leave it out.
+            None => Err(Hitch::Unreachable(
+                None,
+                format!("Google answered {status}"),
+            )),
         },
         _ => {
             let error = serde_json::from_str::<TokenRefusal>(&text)
