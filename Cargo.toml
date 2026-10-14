@@ -102,6 +102,6 @@ opt-level = 3
 opt-level = 3
 
 [profile.release]
-lto = true
-codegen-units = 1
+# Not a resident process: release build time matters more than the last few percent of size.
+lto = "thin"
 strip = true

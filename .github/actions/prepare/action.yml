@@ -12,11 +12,9 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: The toolchain rust-toolchain.toml names
-      shell: bash
-      env:
-        TARGETS: ${{ inputs.targets }}
-      run: rustup toolchain install --no-self-update && rustup target add ${TARGETS//,/ }
+    - uses: ./.github/actions/toolchain
+      with:
+        targets: ${{ inputs.targets }}
 
     - name: Stamp the version
       shell: bash
