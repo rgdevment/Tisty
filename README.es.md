@@ -82,7 +82,7 @@
 
   <p>
     <sub>Sitio y ayuda:
-    <a href="https://rgdevment.com/es/tisty/">rgdevment.com/es/tisty</a></sub>
+    <a href="https://www.tisty.app/es/">www.tisty.app/es</a></sub>
   </p>
 
 </div>
@@ -309,7 +309,8 @@ Homebrew elige sola.
 ## Qué hace
 
 **La primera vez que se abre**, Tisty pregunta dos cosas —en qué idioma y dónde
-quieres tus copias— y después te escribe una guía y te la abre. Lo demás lo
+quieres tus copias— y después te escribe una guía y te la abre, salvo que el
+lugar que elegiste ya tenga tu Tisty: entonces lo trae en su lugar. Lo demás lo
 decide por ti y lo puedes cambiar luego: arranca con el equipo y espera
 apartado, porque eran preguntas con una respuesta evidente. La guía es un
 documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
@@ -462,6 +463,16 @@ escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
 con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
 de exportarlo.
 
+**Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
+*Abrir con* para un archivo `.md`, o sigue un enlace `tisty://open?path=…`, y se
+abre en solo lectura en una ventana propia, sin entrar a tu almacén: su índice
+al costado, qué es el archivo, el ancho de la página y el PDF que saldría, con
+**← Volver al documento**. **Editar en Tisty** lo trae como documento y deja el
+original donde estaba. Un documento tuyo se abre igual desde su panel, *Abrir en
+una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
+firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
+un escritorio. Más en [la wiki](https://github.com/rgdevment/Tisty/wiki/Documentos#abrir-un-archivo-markdown-de-afuera).
+
 **Y salen enteros.** Un documento se copia como Markdown, se escribe en una
 carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
 archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
@@ -532,7 +543,8 @@ programa de escritorio de Google instalado ni abierto. Desconectar las conserva
 ahí, tanto en Tisty como en Drive; para sacarlas, múdate a una carpeta desde
 Tisty. En Google Drive › Configuración › Administrar apps, solo «Eliminar datos
 ocultos de la app» las borra.
-La primera vez sube todo lo que ya tienes; después solo viaja lo nuevo, y si se
+La primera vez sube todo lo que ya tienes —o, si tu Drive ya tiene tu Tisty, lo
+trae—; después solo viaja lo nuevo, y si se
 corta la conexión sigue donde quedó. Los adjuntos se quedan en el equipo donde
 se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los
 que no abres hace tiempo. Cada equipo tiene un cupo diario, para que ninguna
@@ -540,6 +552,16 @@ copia gaste la cuota que Google le da al proyecto: si se acaba, lo que escribas
 queda a salvo aquí y la sincronización sigue al día siguiente. Conectar se hace
 solo desde la ventana. OneDrive y Dropbox podrían llegar más adelante; no hay
 nada prometido.
+
+Antes de que entres a tu cuenta, y antes de una mudanza a Drive, Tisty revisa
+que Google responda, con una sola petición que no lleva nada tuyo. Si un proxy,
+un filtro de tu trabajo o un antivirus se interpone, te lo dice con palabras
+simples —ahí, y en la tarjeta cuando la sincronización sigue fallando: una
+segunda ronda seguida, o dos minutos después de la primera—. Una ronda fallida
+suelta, o una conexión que se corta a medio camino, solo se reintenta. Nunca
+rodea lo que se interpone: lo que escribas queda aquí y sube en cuanto el camino
+se despeja. Una ronda larga dice cuánto lleva, para que nunca parezca
+congelada.
 
 **Una carpeta.** Las carpetas de Google Drive, OneDrive, iCloud y Dropbox —las
 que encuentre instaladas, ya resueltas— o cualquier otra que tus dos
@@ -549,9 +571,20 @@ No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Qui�
 mantenga esa carpeta o ese Drive es asunto tuyo, no de Tisty. Si no sincronizas
 nada, no abre una conexión para eso en su vida. Cambiar de idea después es una
 mudanza, no un interruptor: *Mudarme a otro lugar…* lleva tus copias entre este
-equipo, una carpeta y Google Drive, primero trae a casa lo que vivía solo en la
-nube, y les avisa a tus otros equipos adónde te fuiste para que cada uno te
-siga.
+equipo, una carpeta y Google Drive en dos pasos —primero trae a casa lo que
+vivía solo en el lugar que dejas, después lleva todo al nuevo—, cuenta los
+archivos que faltan, te dice cuándo Google pide una pausa, te deja ocultarla y
+seguir trabajando, y les avisa a tus otros equipos adónde te fuiste para que
+cada uno te siga.
+
+**Un computador nuevo se une solo.** Si todavía no guarda nada tuyo, toma lo que
+ya guarda la carpeta o tu Drive, después de dejar un respaldo; al conectar Drive
+ahí, dice *Tu Google Drive ya tiene tu Tisty* y ofrece **Sincronizar** en vez de
+una primera subida. Lo trae con una barra en movimiento y los conteos a medida
+que llega, y **Seguir trabajando mientras llega** te deja entrar a la app
+mientras la ronda sigue; el pie de la barra lateral sigue contando y avisa si no
+pudo terminar. Uno que sí guarda tu trabajo pregunta antes, nombrando el lugar:
+fusionar las dos, conservar esta máquina o quedarte con lo del lugar.
 
 Dos equipos sí pueden escribir el mismo documento a la vez, y ahí Tisty los junta
 **bloque a bloque**: editas la introducción en uno, alguien edita el cierre en el
@@ -582,7 +615,8 @@ de comprobar que la de la carpeta compartida tiene el mismo sha.
 Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
 día cambias algo en un equipo y no aparece en el otro, [la wiki](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
 enumera las causas en el orden en que conviene revisarlas, y qué significa cada
-aviso de Google Drive, de *Reconectar* a un Drive lleno.
+aviso de Google Drive, de *Reconectar* a un Drive lleno o
+[algo que bloquea el camino](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).
 
 ## Una línea de comandos, si la quieres
 
@@ -928,6 +962,9 @@ Lee [CONTRIBUTING.md](CONTRIBUTING.md). Abre un issue antes de escribir código
 para cualquier cosa que no sea un arreglo: Tisty es deliberadamente mínimo, y una
 función bien escrita se puede rechazar igual — normalmente porque convertiría la
 herramienta en otra cosa.
+
+Quien participe —en issues, pull requests, discusiones o la wiki— sigue el
+[código de conducta](CODE_OF_CONDUCT.md), que está en inglés.
 
 ## Licencia
 
