@@ -1422,6 +1422,10 @@ const en = {
   moveSamePlace: "This copy already syncs there, so there is nothing to move.",
   moveFromUnused:
     "This computer never synced with this cloud, so there is nothing to bring from it: stop using it from its card instead.",
+  moveUnfetched:
+    "The program that syncs your folder hasn't brought these files down yet. Check it is open and signed in, then right-click the Tisty folder and keep it on this computer (“Available offline” or “Always keep on this device”). Tisty keeps trying meanwhile.",
+  moveFetching:
+    "The program that syncs your folder is still bringing these files down to this computer; Tisty carries on by itself as they arrive.",
   moveUnsettled:
     "Some documents or computers are waiting for you to decide. Sync now and settle them; then carry on with the move.",
   moveUntold:
@@ -3378,6 +3382,10 @@ const es: Catalog = {
   moveSamePlace: "Esta copia ya sincroniza ahí, así que no hay nada que mover.",
   moveFromUnused:
     "Este equipo nunca sincronizó con esta nube, así que no hay nada que traer de ahí: deja de usarla desde su tarjeta.",
+  moveUnfetched:
+    "El programa que sincroniza tu carpeta todavía no baja estos archivos. Revisa que esté abierto y con tu cuenta, y luego haz clic derecho en la carpeta Tisty y déjala en este equipo («Disponible sin conexión» o «Mantener siempre en este dispositivo»). Mientras tanto, Tisty sigue intentándolo.",
+  moveFetching:
+    "El programa que sincroniza tu carpeta todavía está bajando estos archivos a este equipo; Tisty sigue solo a medida que llegan.",
   moveUnsettled:
     "Hay documentos o equipos esperando que decidas. Sincroniza y resuélvelos; después sigue con la mudanza.",
   moveUntold:

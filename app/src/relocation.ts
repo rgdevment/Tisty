@@ -7,7 +7,7 @@ export type MoveAlong =
   | { step: 1; bringing?: { done: number; whole: number } }
   | ({ step: 2 } & Sum);
 
-export type Waited = "limit" | "offline" | "troubled";
+export type Waited = "limit" | "offline" | "troubled" | "fetching" | "unfetched";
 
 export interface Run {
   toward: Toward;
@@ -27,6 +27,8 @@ export interface Run {
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
 const STALLS = 3;
+// Two minutes with no file come down is long enough to tell the person what to look at.
+const FETCH_STALLS = 6;
 export const RETRY_IN = 20;
 
 let run: Run | null = null;
@@ -80,7 +82,11 @@ onHeard((step) => {
 });
 
 const waitOf = (now: Moving): { wait: number; waited: Waited } | undefined => {
-  if (stalled >= STALLS || now.state !== "waiting") return undefined;
+  if (now.state !== "waiting") return undefined;
+  // A large file the folder's program brings down can take minutes and leave nothing new between tries.
+  if (now.reason === "fetching")
+    return { wait: RETRY_IN, waited: stalled >= FETCH_STALLS ? "unfetched" : "fetching" };
+  if (stalled >= STALLS) return undefined;
   if (now.reason === "limit" && typeof now.wait === "number" && now.wait <= SHORT_PAUSE)
     return { wait: now.wait + MARGIN, waited: "limit" };
   if (now.reason === "offline" || now.reason === "troubled")

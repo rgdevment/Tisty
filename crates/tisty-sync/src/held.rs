@@ -369,6 +369,13 @@ pub(crate) fn copy_held(
     });
     asked_for.sort();
     asked_for.dedup();
+    if !asked_for.is_empty() {
+        witness::standing(
+            channel::SYNC,
+            "attachments the folder's own program has not brought down yet were asked for",
+            &[("count", Fact::Count(asked_for.len()))],
+        );
+    }
     tisty_core::holes::ask_for(asked_for);
     Ok(done)
 }

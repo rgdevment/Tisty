@@ -32,6 +32,10 @@ pub enum Shift {
         owed: Owed,
         deferred: Option<Deferred>,
     },
+    /// The place's own program is still bringing files down to this disk, and was asked to: trying again brings them.
+    Fetching {
+        owed: Owed,
+    },
     Unsettled,
     Ready,
 }
@@ -85,6 +89,9 @@ pub fn shift(
         };
         let owed = homing(from, here);
         let deferred = holding_back(moved.deferred);
+        if deferred.is_none() && coming_down(from, here) {
+            return Ok(Shift::Fetching { owed });
+        }
         if !owed.nothing() || deferred.is_some() {
             return Ok(Shift::Homing { owed, deferred });
         }
@@ -153,6 +160,18 @@ pub(crate) fn owed_against(
                 && there.is_none_or(|there| there.get(reference) == Some(bytes))
         })
         .fold(Owed::default(), |owed, (_, bytes)| owed.add(bytes))
+}
+
+fn coming_down(from: &dyn Carrier, here: &Here) -> bool {
+    let Some(shelf) = from.lends_from() else {
+        return false;
+    };
+    known(here).any(|(reference, bytes)| {
+        !at_home(here, &reference, bytes)
+            && reference
+                .strip_prefix("attachments/")
+                .is_some_and(|rest| tisty_core::holes::a_hole(&shelf.join(rest)))
+    })
 }
 
 pub fn filling(to: &dyn Carrier, here: &Here) -> Owed {

@@ -204,6 +204,28 @@ describe("a move that waits", () => {
     ).toBeTruthy();
   });
 
+  it("waits for the folder's program to bring files down, then says what to look at", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    ipc.answers.move_to = () => Promise.resolve(waiting("fetching", 4));
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    render(<MoveNotice onOpen={() => undefined} />);
+    expect(
+      screen.getByText(`${t("moveFetching")} · ${fill("moveRetryIn", String(RETRY_IN))}`),
+    ).toBeTruthy();
+
+    for (let tried = 0; tried < 7; tried += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+      });
+    }
+
+    expect(sent("move_to")).toHaveLength(8);
+    expect(screen.getByText((text) => text.startsWith(t("moveUnfetched")))).toBeTruthy();
+  });
+
   it("hands it to the person in plain words once tries in a row moved nothing", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     ipc.answers.move_to = () => Promise.resolve(waiting("troubled", 6));

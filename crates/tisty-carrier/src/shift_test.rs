@@ -174,6 +174,29 @@ fn history_only_the_old_place_holds_comes_along_even_with_nothing_owed_home() {
 }
 
 #[test]
+fn leaving_a_folder_waits_for_what_its_program_still_brings_down_and_says_so() {
+    let room = tempfile::tempdir().unwrap();
+    let setting = Setting {
+        name: "folder".to_string(),
+        place: Place::Folder(room.path().join("shared")),
+        room,
+    };
+    std::fs::create_dir_all(setting.room.path().join("shared")).unwrap();
+    let (one, two) = pair(&setting);
+    let kept = one.attached(PHOTO);
+    one.round(Way::Both);
+    two.round(Way::Pull);
+    let_go_here(&two, &kept.at);
+    let there = tisty_core::attach::resolve(&kept.at, &setting.room.path().join("shared")).unwrap();
+    let name = there.file_name().unwrap().to_str().unwrap().to_string();
+    std::fs::rename(&there, there.with_file_name(format!(".{name}.icloud"))).unwrap();
+
+    let stopped = step(&two, Some(&*two.carrier), None);
+
+    assert!(matches!(stopped, Shift::Fetching { .. }), "{stopped:?}");
+}
+
+#[test]
 fn a_copy_of_the_wrong_size_in_a_folder_counts_as_not_there() {
     let room = tempfile::tempdir().unwrap();
     let setting = Setting {
