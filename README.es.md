@@ -892,26 +892,36 @@ sale de ahí.
 
 ## Otras herramientas del mismo autor
 
-<p align="center">
-  <img
-    src="assets/mascot/tisty-head.svg"
-    height="88"
-    alt="Tisty, el castor, con un lápiz detrás de la oreja"/>
-  &nbsp;&nbsp;
-  <img src="app/src/assets/copanda.svg" height="88" alt="El panda de CoPanda"/>
-  &nbsp;&nbsp;
-  <img src="app/src/assets/linkunbound.svg" height="88" alt="El oso de LinkUnbound"/>
-</p>
-
 Misma idea, mismos términos: gratis, código abierto, sin anuncios, sin
 telemetría, todo local.
 
-- **[CoPanda](https://www.copanda.app/)** — un gestor de portapapeles para
-  Windows y macOS, antes llamado CopyPaste.
-- **[LinkUnbound](https://www.linkunbound.app/)** — un selector de
-  navegadores para Windows y macOS: pregunta cuál debe abrir un enlace en vez de
-  suponerlo. Si está instalado, los enlaces web que abres desde Tisty pasan por
-  él.
+<table>
+  <tr>
+    <td width="96" align="center">
+      <a href="https://www.copanda.app/"><img
+        src="app/src/assets/copanda.svg"
+        alt="El panda de CoPanda"
+        width="72"/></a>
+    </td>
+    <td><strong><a
+      href="https://www.copanda.app/">CoPanda</a></strong>, antes
+      CopyPaste — un gestor de portapapeles que guarda todo en tu equipo,
+      con un historial que se busca y que ignora lo que viene de un gestor
+      de contraseñas. Windows y macOS.</td>
+  </tr>
+  <tr>
+    <td width="96" align="center">
+      <a href="https://www.linkunbound.app/"><img
+        src="app/src/assets/linkunbound.svg"
+        alt="El oso de LinkUnbound"
+        width="72"/></a>
+    </td>
+    <td><strong><a href="https://www.linkunbound.app/">LinkUnbound</a></strong>
+      — un selector de navegadores que pregunta cuál debe abrir un enlace
+      en vez de suponerlo. Si está instalado, los enlaces web que abres
+      desde Tisty pasan por él. Windows y macOS.</td>
+  </tr>
+</table>
 
 ## Apoyar el proyecto
 
