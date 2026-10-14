@@ -127,6 +127,13 @@ productivity tool** that lives on your machine and nowhere else.
 > **It is for one person, by design.** No assignees, no permissions, no boards.
 > If you need to run a team, Tisty will not carry that.
 
+<p align="center">
+  <img
+    src="assets/mascot/tisty-head.svg"
+    height="110"
+    alt="Tisty the beaver, with a pencil behind its ear"/>
+</p>
+
 ## Table of Contents
 
 - [Why I Built This](#why-i-built-this)
@@ -878,26 +885,36 @@ the rest follows from it.
 
 ## Other Tools by the Same Author
 
-<p align="center">
-  <img
-    src="assets/mascot/tisty-head.svg"
-    height="88"
-    alt="Tisty the beaver, with a pencil behind its ear"/>
-  &nbsp;&nbsp;
-  <img src="app/src/assets/copanda.svg" height="88" alt="The CoPanda panda"/>
-  &nbsp;&nbsp;
-  <img src="app/src/assets/linkunbound.svg" height="88" alt="The LinkUnbound bear"/>
-</p>
-
 Same idea, same terms: free, open source, no ads, no telemetry, everything
 local.
 
-- **[CoPanda](https://www.copanda.app/)** — a clipboard manager for
-  Windows and macOS, once called CopyPaste.
-- **[LinkUnbound](https://www.linkunbound.app/)** — a browser
-  selector for Windows and macOS: it asks which browser should open a link
-  instead of assuming. If it is installed, the web links you open from Tisty go
-  through it.
+<table>
+  <tr>
+    <td width="96" align="center">
+      <a href="https://www.copanda.app/"><img
+        src="app/src/assets/copanda.svg"
+        alt="The CoPanda panda"
+        width="72"/></a>
+    </td>
+    <td><strong><a
+      href="https://www.copanda.app/">CoPanda</a></strong>, formerly
+      CopyPaste — a local-first clipboard manager that keeps a searchable
+      history and ignores what comes from a password manager. Windows and
+      macOS.</td>
+  </tr>
+  <tr>
+    <td width="96" align="center">
+      <a href="https://www.linkunbound.app/"><img
+        src="app/src/assets/linkunbound.svg"
+        alt="The LinkUnbound bear"
+        width="72"/></a>
+    </td>
+    <td><strong><a href="https://www.linkunbound.app/">LinkUnbound</a></strong>
+      — a browser selector that asks which browser should open a link
+      instead of assuming. If it is installed, the web links you open from
+      Tisty go through it. Windows and macOS.</td>
+  </tr>
+</table>
 
 ## Support the Project
 

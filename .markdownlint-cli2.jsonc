@@ -27,7 +27,10 @@
         "mark",
         "p",
         "strong",
-        "sub"
+        "sub",
+        "table",
+        "td",
+        "tr"
       ]
     },
     "MD041": false,
