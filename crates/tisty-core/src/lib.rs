@@ -42,6 +42,7 @@ pub mod text;
 pub mod tidy;
 pub mod turned;
 pub mod undo;
+pub mod untouched;
 pub mod unvouched;
 pub mod view;
 pub mod vouched;

@@ -9,6 +9,7 @@ use crate::{
 const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
 const TASKS_AND_DOCS: [&str; 3] = ["store", "docs", "originals"];
 const BEFORE_A_CHANGE: &str = "before-a-change";
+const BEFORE_JOINING: &str = "before-joining";
 const BEFORE_KEPT: usize = 5;
 pub const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
@@ -53,6 +54,18 @@ pub fn before_a_change(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
         let _ = std::fs::remove_file(old);
     }
     Ok(into)
+}
+
+/// Where a machine that held nothing of the person's keeps what it had before taking a place's history.
+pub fn kept_before_joining(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
+    let kept = paths.private().join(BEFORE_JOINING);
+    std::fs::create_dir_all(&kept)?;
+    let _ = crate::paths::ours_alone(&kept);
+    Ok(kept.join(format!(
+        "{}-{:03}.zip",
+        at.strftime("%Y%m%d-%H%M%S"),
+        at.subsec_millisecond()
+    )))
 }
 
 fn written(
