@@ -51,7 +51,7 @@
 
   <p>
     <img
-      src="assets/Store/en-01-record.png"
+      src="assets/store/en-01-record.png"
       width="92%"
       alt="Tisty: not a list you empty, a record of what you worked out. The
       window shows today's tasks with their steps beside the tree of documents,
@@ -335,7 +335,7 @@ window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words](assets/Store/en-02-tasks.png)
+![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words](assets/store/en-02-tasks.png)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -354,7 +354,7 @@ to the whole page it gains a column of its own trail — how long it has been
 open, how much of it is done, and every change it has been through, which until
 now sat at the bottom where nobody scrolled.
 
-![One card for each part of life: every list with its own icon and name, its open items and their due dates](assets/Store/en-05-lists.png)
+![One card for each part of life: every list with its own icon and name, its open items and their due dates](assets/store/en-05-lists.png)
 
 **Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
 of the Eisenhower matrix — the method President Dwight D. Eisenhower is
@@ -371,7 +371,7 @@ quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
 
-![The Eisenhower matrix in Tisty: every task sorted into do, schedule, delegate or minor, with the unclassified pile on the side](assets/Store/en-03-priorities.png)
+![The Eisenhower matrix in Tisty: every task sorted into do, schedule, delegate or minor, with the unclassified pile on the side](assets/store/en-03-priorities.png)
 
 **The spread deals your days, one row at a time.** Priorities sort what matters;
 the spread decides when. It runs as a river of days you scroll through rather
@@ -387,7 +387,7 @@ dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
 so a square with nothing written on it is only a square with nothing written on
 it — never a promise that the day is yours.
 
-![The spread: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/Store/en-04-spread.png)
+![The spread: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-04-spread.png)
 
 **Documents** live beside the tasks, for reference material that has no date and
 never gets ticked. They are Markdown files you edit as documents — tables,
@@ -480,7 +480,7 @@ than as a stranger's. Either way, not one line of the history travels inside.
 Write an alias — optional, and yours to choose — and every document is signed
 with it, while whatever arrives from somebody else keeps theirs.
 
-![Documents that can do the maths: formulas, diagrams, code and small widgets drawn inside Tisty, with nothing fetched](assets/Store/en-06-documents.png)
+![Documents that can do the maths: formulas, diagrams, code and small widgets drawn inside Tisty, with nothing fetched](assets/store/en-06-documents.png)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
@@ -504,7 +504,7 @@ is only ever hidden.
 
 ## Your Data and Privacy
 
-![Tisty the beaver: free and open source, with no account, no subscription and no telemetry, and your files stay on your computer](assets/Store/en-08-free.png)
+![Tisty the beaver: free and open source, with no account, no subscription and no telemetry, and your files stay on your computer](assets/store/en-08-free.png)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -636,7 +636,7 @@ reaches it.
 
 ## An Assistant, If You Use One
 
-![Bring your favourite agents through MCP and let them organise, document, schedule and prioritise your tasks, while everything stays on your computer](assets/Store/en-07-mcp.png)
+![Bring your favourite agents through MCP and let them organise, document, schedule and prioritise your tasks, while everything stays on your computer](assets/store/en-07-mcp.png)
 
 **Tisty is not AI and has none inside.** The natural language that turns "call
 the bank at 3" into a task is rules running on your machine: no model, no
