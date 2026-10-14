@@ -237,6 +237,8 @@ const swift = {
   markString(this: Scanning, mark: Marked, open: boolean, parent: unknown, index: number): string {
     const info = this.marks[mark.type.name];
     if (info.expelEnclosingWhitespace) {
+      // A quote's `> ` lands with a line's first write, so a mark opening the line must start after it.
+      if (open) this.write();
       const at = inkOf(this).len;
       if (open) this.inlines.push({ start: at, delimiter: info.open });
       else this.inlines.push({ ...(this.inlines.pop() as Inline), end: at });

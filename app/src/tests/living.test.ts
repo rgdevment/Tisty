@@ -484,6 +484,37 @@ describe("the keys a person actually presses", () => {
   });
 });
 
+describe("a mark that opens a quoted line keeps the line in its quote", () => {
+  it.each([
+    ["bold", "> [!NOTE]\n> **Ojo:** esto importa"],
+    ["italic", "> [!TIP]\n> *Antes* de todo"],
+    ["strike", "> [!WARNING]\n> ~~Viejo~~ y nuevo"],
+    ["highlight", "> [!IMPORTANT]\n> ==Clave== aquí"],
+  ])("writes a callout whose words open in %s back as it was", (_, was) => {
+    const one = opened(was);
+    expect(one.editor.state.doc.firstChild?.type.name).toBe("callout");
+    expect(one.markdown()).toBe(was);
+    one.shut();
+  });
+
+  it("keeps a callout the same however many times it is saved", () => {
+    const was = "> [!NOTE]\n> **Al 12/10:** ya está";
+    const one = opened(was);
+    const first = one.markdown();
+    one.shut();
+    const again = opened(first);
+    expect(again.markdown()).toBe(was);
+    again.shut();
+  });
+
+  it("keeps a bold second paragraph inside a plain quote", () => {
+    const was = "> uno\n>\n> **dos** tres";
+    const one = opened(was);
+    expect(one.markdown()).toBe(was);
+    one.shut();
+  });
+});
+
 describe("a rule under the marker does not swallow the callout", () => {
   it("keeps the callout when the rule is the whole body", () => {
     const one = opened("> [!NOTE]\n> ---");
