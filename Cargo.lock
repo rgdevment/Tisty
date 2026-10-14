@@ -5595,6 +5595,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-onedrive"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tisty-carrier",
+ "url",
+]
+
+[[package]]
 name = "tisty-sync"
 version = "0.1.0"
 dependencies = [

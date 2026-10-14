@@ -1,0 +1,723 @@
+use std::collections::HashMap;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
+use std::time::Duration;
+
+use tisty_carrier::{Changes, Expect, Hitch, Remote, Renew, Renewed, Secrets, Tokens};
+
+use super::{GraphAt, OneDrive};
+
+struct Said {
+    status: &'static str,
+    headers: String,
+    body: String,
+}
+
+fn said(status: &'static str, body: &str) -> Said {
+    Said {
+        status,
+        headers: String::new(),
+        body: body.to_string(),
+    }
+}
+
+fn said_with(status: &'static str, headers: &str, body: &str) -> Said {
+    Said {
+        status,
+        headers: format!("{headers}\r\n"),
+        body: body.to_string(),
+    }
+}
+
+#[derive(Debug)]
+struct Asked {
+    line: String,
+    head: String,
+    body: Vec<u8>,
+}
+
+fn heard(stream: &mut TcpStream) -> Asked {
+    let mut got = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        let read = stream.read(&mut chunk).unwrap_or(0);
+        got.extend_from_slice(&chunk[..read]);
+        if let Some(end) = got.windows(4).position(|one| one == b"\r\n\r\n") {
+            let head = String::from_utf8_lossy(&got[..end]).to_string();
+            let wants = head
+                .lines()
+                .find_map(|one| {
+                    one.to_ascii_lowercase()
+                        .strip_prefix("content-length:")
+                        .map(|n| n.trim().parse::<usize>().unwrap())
+                })
+                .unwrap_or(0);
+            if got.len() >= end + 4 + wants {
+                let line = head.lines().next().unwrap_or_default().to_string();
+                return Asked {
+                    line,
+                    head,
+                    body: got[end + 4..end + 4 + wants].to_vec(),
+                };
+            }
+        }
+        if read == 0 {
+            panic!("the request ended early");
+        }
+    }
+}
+
+fn graph(scripted: impl FnOnce(&str) -> Vec<Said>) -> (GraphAt, JoinHandle<Vec<Asked>>) {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    let script = scripted(&base);
+    let served = std::thread::spawn(move || {
+        script
+            .into_iter()
+            .map(|one| {
+                let (mut stream, _) = listener.accept().unwrap();
+                let asked = heard(&mut stream);
+                write!(
+                    stream,
+                    "HTTP/1.1 {}\r\nContent-Type: application/json\r\n{}Content-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    one.status,
+                    one.headers,
+                    one.body.len(),
+                    one.body
+                )
+                .unwrap();
+                asked
+            })
+            .collect()
+    });
+    (
+        GraphAt {
+            api: format!("{base}/v1.0"),
+        },
+        served,
+    )
+}
+
+struct Kept(Mutex<HashMap<String, String>>);
+
+impl Secrets for Kept {
+    fn read(&self, key: &str) -> Result<Option<String>, Hitch> {
+        Ok(self.0.lock().unwrap().get(key).cloned())
+    }
+    fn write(&self, key: &str, value: &str) -> Result<(), Hitch> {
+        self.0.lock().unwrap().insert(key.into(), value.into());
+        Ok(())
+    }
+    fn forget(&self, key: &str) -> Result<(), Hitch> {
+        self.0.lock().unwrap().remove(key);
+        Ok(())
+    }
+}
+
+struct Fresh(Mutex<u32>);
+
+impl Renew for Fresh {
+    fn renew(&self, _: &str) -> Result<Renewed, Hitch> {
+        let mut given = self.0.lock().unwrap();
+        *given += 1;
+        Ok(Renewed {
+            access: format!("access-{given}"),
+            lasts: Duration::from_secs(3600),
+            refresh: None,
+        })
+    }
+}
+
+fn onedrive(at: GraphAt, home: &std::path::Path) -> OneDrive {
+    let kept = Kept(Mutex::new(HashMap::from([(
+        "onedrive-me".to_string(),
+        "refresh".to_string(),
+    )])));
+    let tokens = Tokens::new(
+        Arc::new(kept),
+        Arc::new(Fresh(Mutex::new(0))),
+        "onedrive-me",
+        home,
+    );
+    OneDrive::new(Arc::new(tokens), at).unwrap()
+}
+
+fn header(asked: &Asked, name: &str) -> Option<String> {
+    asked
+        .head
+        .lines()
+        .find(|one| one.to_ascii_lowercase().starts_with(&format!("{name}:")))
+        .map(|one| one.split_once(':').unwrap().1.trim().to_string())
+}
+
+fn written(home: &tempfile::TempDir, body: &[u8]) -> std::path::PathBuf {
+    let local = home.path().join("local.bin");
+    std::fs::write(&local, body).unwrap();
+    local
+}
+
+const ROOT: &str = r#"{"id":"R"}"#;
+
+fn folder(id: &str, name: &str, parent: &str) -> String {
+    format!(
+        r#"{{"id":"{id}","name":"{name}","folder":{{}},"parentReference":{{"id":"{parent}"}}}}"#
+    )
+}
+
+fn file(id: &str, name: &str, parent: &str, etag: &str) -> String {
+    format!(
+        r#"{{"id":"{id}","name":"{name}","eTag":"{etag}","size":4,"file":{{"hashes":{{"quickXorHash":"Q{id}"}}}},"parentReference":{{"id":"{parent}"}}}}"#
+    )
+}
+
+fn page(items: &[String], link: &str, cursor: &str) -> String {
+    format!(r#"{{"value":[{}],"{link}":"{cursor}"}}"#, items.join(","))
+}
+
+fn whole(base: &str, items: &[String], cursor: &str) -> Said {
+    said(
+        "200 OK",
+        &page(
+            items,
+            "@odata.deltaLink",
+            &format!("{base}/v1.0/me/drive/special/approot/delta?token={cursor}"),
+        ),
+    )
+}
+
+#[test]
+fn every_file_under_the_app_s_folder_is_named_by_its_path_across_pages() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            said(
+                "200 OK",
+                &page(
+                    &[
+                        folder("S", "store", "R"),
+                        file("F", "active.tisty", "S", "e1"),
+                    ],
+                    "@odata.nextLink",
+                    &format!("{base}/v1.0/me/drive/special/approot/delta?token=p2"),
+                ),
+            ),
+            whole(base, &[file("T", "tisty.toml", "R", "e2")], "d1"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let listed = drive.list("").unwrap();
+    let store = drive.shown("store");
+
+    let names: Vec<&str> = listed.iter().map(|one| one.name.as_str()).collect();
+    assert_eq!(names, ["store/active.tisty", "tisty.toml"]);
+    assert_eq!(listed[0].hash, "quickxor:QF");
+    assert_eq!(listed[0].revision, "e1");
+    assert_eq!(store.len(), 1);
+    let asked = served.join().unwrap();
+    assert!(
+        asked[0]
+            .line
+            .starts_with("GET /v1.0/me/drive/special/approot?"),
+        "{}",
+        asked[0].line
+    );
+    assert!(
+        asked[1].line.contains("/approot/delta?"),
+        "{}",
+        asked[1].line
+    );
+    assert!(asked[2].line.contains("token=p2"), "{}", asked[2].line);
+    assert_eq!(
+        header(&asked[1], "authorization").as_deref(),
+        Some("Bearer access-1")
+    );
+}
+
+#[test]
+fn changes_from_the_cursor_held_bring_only_what_moved_and_a_renamed_folder_moves_its_files() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            whole(
+                base,
+                &[
+                    folder("S", "store", "R"),
+                    file("F", "a.tisty", "S", "e1"),
+                    file("G", "b.tisty", "R", "e1"),
+                ],
+                "d1",
+            ),
+            whole(
+                base,
+                &[
+                    folder("S", "kept", "R"),
+                    r#"{"id":"G","name":"b.tisty","deleted":{}}"#.to_string(),
+                ],
+                "d2",
+            ),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let Changes::Whole { cursor, seen } = drive.changes(None).unwrap() else {
+        panic!("a first look sees everything");
+    };
+    assert_eq!(seen.len(), 2);
+    let Changes::Since {
+        changed,
+        mut gone,
+        cursor: next,
+    } = drive.changes(Some(&cursor)).unwrap()
+    else {
+        panic!("a cursor held is followed");
+    };
+
+    assert_eq!(changed.len(), 1);
+    assert_eq!(changed[0].name, "kept/a.tisty");
+    gone.sort();
+    assert_eq!(gone, ["b.tisty", "store/a.tisty"]);
+    assert!(next.ends_with("token=d2"));
+    let asked = served.join().unwrap();
+    assert!(asked[2].line.contains("token=d1"), "{}", asked[2].line);
+}
+
+#[test]
+fn a_cursor_onedrive_let_lapse_lists_everything_again() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            whole(base, &[file("F", "a.tisty", "R", "e1")], "d1"),
+            said(
+                "410 Gone",
+                r#"{"error":{"code":"resyncRequired","message":"gone"}}"#,
+            ),
+            whole(base, &[file("F", "a.tisty", "R", "e2")], "d2"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let Changes::Whole { cursor, .. } = drive.changes(None).unwrap() else {
+        panic!("a first look sees everything");
+    };
+    let again = drive.changes(Some(&cursor)).unwrap();
+
+    let Changes::Whole { seen, cursor } = again else {
+        panic!("a lapsed cursor is never read as nothing changed");
+    };
+    assert_eq!(seen[0].revision, "e2");
+    assert!(cursor.ends_with("token=d2"));
+    assert_eq!(served.join().unwrap().len(), 4);
+}
+
+#[test]
+fn a_cursor_this_copy_never_held_lists_everything() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            whole(base, &[file("F", "a.tisty", "R", "e1")], "d2"),
+        ]
+    });
+    let drive = onedrive(at.clone(), home.path());
+
+    let said = drive
+        .changes(Some(&format!(
+            "{}/me/drive/special/approot/delta?token=old",
+            at.api
+        )))
+        .unwrap();
+
+    assert!(matches!(said, Changes::Whole { .. }));
+    let asked = served.join().unwrap();
+    assert!(!asked.iter().any(|one| one.line.contains("token=old")));
+}
+
+#[test]
+fn a_link_that_leaves_graph_is_never_followed_with_the_token() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("200 OK", ROOT),
+            said(
+                "200 OK",
+                &page(&[], "@odata.nextLink", "https://elsewhere.example/steal"),
+            ),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert!(matches!(drive.list(""), Err(Hitch::Broke(_))));
+    assert_eq!(served.join().unwrap().len(), 2);
+}
+
+#[test]
+fn a_file_is_brought_from_its_own_address_without_the_token_and_from_where_it_was_left() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said(
+                "200 OK",
+                &format!(
+                    r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+                ),
+            ),
+            said("206 Partial Content", "cdef"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+    let mut got = Vec::new();
+
+    let seen = drive.fetch("store/a.tisty", 2, &mut got).unwrap();
+
+    assert_eq!(got, b"cdef");
+    assert_eq!(seen.revision, "e1");
+    let asked = served.join().unwrap();
+    assert!(
+        asked[0]
+            .line
+            .starts_with("GET /v1.0/me/drive/special/approot:/store/a.tisty:"),
+        "{}",
+        asked[0].line
+    );
+    assert_eq!(asked[1].line, "GET /dl/F HTTP/1.1");
+    assert_eq!(header(&asked[1], "range").as_deref(), Some("bytes=2-"));
+    assert_eq!(header(&asked[1], "authorization"), None);
+}
+
+#[test]
+fn a_range_onedrive_ignored_passes_over_what_was_already_here() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|base| {
+        vec![
+            said(
+                "200 OK",
+                &format!(
+                    r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+                ),
+            ),
+            said("200 OK", "abcdef"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+    let mut got = Vec::new();
+
+    drive.fetch("a.tisty", 2, &mut got).unwrap();
+
+    assert_eq!(got, b"cdef");
+}
+
+#[test]
+fn a_file_not_there_is_missing_when_brought_and_absent_when_asked_about() {
+    let home = tempfile::tempdir().unwrap();
+    let gone = r#"{"error":{"code":"itemNotFound","message":"no"}}"#;
+    let (at, _served) = graph(|_| vec![said("404 Not Found", gone), said("404 Not Found", gone)]);
+    let drive = onedrive(at, home.path());
+
+    assert!(matches!(
+        drive.fetch("a.tisty", 0, &mut Vec::new()),
+        Err(Hitch::Missing(name)) if name == "a.tisty"
+    ));
+    assert_eq!(drive.about("a.tisty").unwrap(), None);
+}
+
+#[test]
+fn a_new_small_file_lands_whole_and_only_where_nothing_is() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| vec![said("201 Created", &file("F", "a b#c.tisty", "S", "e1"))]);
+    let drive = onedrive(at, home.path());
+
+    let seen = drive
+        .put(
+            "store/a b#c.tisty",
+            &written(&home, b"abcd"),
+            Expect::Absent,
+        )
+        .unwrap();
+
+    assert_eq!(seen.name, "store/a b#c.tisty");
+    assert_eq!(seen.revision, "e1");
+    let asked = served.join().unwrap();
+    assert!(
+        asked[0]
+            .line
+            .starts_with("PUT /v1.0/me/drive/special/approot:/store/a%20b%23c.tisty:/content?"),
+        "{}",
+        asked[0].line
+    );
+    assert!(
+        asked[0].line.contains("conflictBehavior=fail"),
+        "{}",
+        asked[0].line
+    );
+    assert_eq!(asked[0].body, b"abcd");
+    assert_eq!(header(&asked[0], "if-match"), None);
+}
+
+#[test]
+fn a_new_file_that_finds_one_there_already_is_told_it_changed() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|_| {
+        vec![said(
+            "409 Conflict",
+            r#"{"error":{"code":"nameAlreadyExists","message":"taken"}}"#,
+        )]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert!(matches!(
+        drive.put("a.tisty", &written(&home, b"abcd"), Expect::Absent),
+        Err(Hitch::Changed(_))
+    ));
+}
+
+#[test]
+fn a_write_over_a_revision_names_it_and_tells_a_newer_one_from_a_file_that_left() {
+    let home = tempfile::tempdir().unwrap();
+    let mismatch = r#"{"error":{"code":"resourceModified","message":"etag"}}"#;
+    let (at, served) = graph(|_| {
+        vec![
+            said("412 Precondition Failed", mismatch),
+            said("200 OK", &file("F", "a.tisty", "R", "e2")),
+            said("412 Precondition Failed", mismatch),
+            said("404 Not Found", r#"{"error":{"code":"itemNotFound"}}"#),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+    let local = written(&home, b"abcd");
+
+    let newer = drive.put("a.tisty", &local, Expect::Revision("\"e1\"".into()));
+    let left = drive.put("a.tisty", &local, Expect::Revision("\"e1\"".into()));
+
+    assert!(matches!(newer, Err(Hitch::Changed(_))));
+    assert!(matches!(left, Err(Hitch::Missing(_))));
+    let asked = served.join().unwrap();
+    assert_eq!(header(&asked[0], "if-match").as_deref(), Some("\"e1\""));
+    assert!(
+        asked[0].line.contains("conflictBehavior=replace"),
+        "{}",
+        asked[0].line
+    );
+}
+
+#[test]
+fn a_large_file_goes_up_in_pieces_without_the_token_and_lands_on_the_last_one() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/1"}}"#)),
+            said("202 Accepted", r#"{"nextExpectedRanges":["4-"]}"#),
+            said("202 Accepted", r#"{"nextExpectedRanges":["8-"]}"#),
+            said("201 Created", &file("F", "big.pdf", "A", "e1")),
+        ]
+    });
+    let drive = onedrive(at, home.path()).with_chunk(4);
+
+    let seen = drive
+        .put(
+            "attachments/big.pdf",
+            &written(&home, b"0123456789"),
+            Expect::Absent,
+        )
+        .unwrap();
+
+    assert_eq!(seen.revision, "e1");
+    let asked = served.join().unwrap();
+    assert!(
+        asked[0].line.contains(":/createUploadSession"),
+        "{}",
+        asked[0].line
+    );
+    assert!(String::from_utf8_lossy(&asked[0].body).contains(r#""fail""#));
+    let ranges: Vec<String> = asked[1..]
+        .iter()
+        .map(|one| header(one, "content-range").unwrap())
+        .collect();
+    assert_eq!(ranges, ["bytes 0-3/10", "bytes 4-7/10", "bytes 8-9/10"]);
+    assert_eq!(asked[3].body, b"89");
+    assert!(
+        asked[1..]
+            .iter()
+            .all(|one| header(one, "authorization").is_none())
+    );
+}
+
+#[test]
+fn an_upload_refused_on_its_last_piece_is_let_go_of_up_there() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/1"}}"#)),
+            said("202 Accepted", "{}"),
+            said("409 Conflict", r#"{"error":{"code":"nameAlreadyExists"}}"#),
+            said("204 No Content", ""),
+        ]
+    });
+    let drive = onedrive(at, home.path()).with_chunk(4);
+
+    let refused = drive.put("big.pdf", &written(&home, b"01234567"), Expect::Absent);
+
+    assert!(matches!(refused, Err(Hitch::Changed(_))));
+    let asked = served.join().unwrap();
+    assert_eq!(asked[3].line, "DELETE /up/1 HTTP/1.1");
+}
+
+#[test]
+fn a_file_is_deleted_only_at_the_revision_named() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("200 OK", &file("F!1", "a.tisty", "R", "e1")),
+            said("204 No Content", ""),
+            said("200 OK", &file("F!1", "a.tisty", "R", "e2")),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    drive.delete("a.tisty", Some("e1")).unwrap();
+    let newer = drive.delete("a.tisty", Some("e1"));
+
+    assert!(matches!(newer, Err(Hitch::Changed(_))));
+    let asked = served.join().unwrap();
+    assert_eq!(asked.len(), 3, "a newer revision is never asked to go");
+    assert_eq!(asked[1].line, "DELETE /v1.0/me/drive/items/F!1 HTTP/1.1");
+    assert_eq!(header(&asked[1], "if-match").as_deref(), Some("e1"));
+}
+
+#[test]
+fn the_room_left_is_what_the_drive_says_remains() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![said(
+            "200 OK",
+            r#"{"quota":{"total":100,"used":40,"remaining":60}}"#,
+        )]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert_eq!(drive.room().unwrap(), Some(60));
+    let asked = served.join().unwrap();
+    assert!(
+        asked[0].line.starts_with("GET /v1.0/me/drive?"),
+        "{}",
+        asked[0].line
+    );
+}
+
+#[test]
+fn each_refusal_onedrive_gives_is_read_as_what_it_means() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|_| {
+        vec![
+            said_with("429 Too Many Requests", "Retry-After: 7", "{}"),
+            said(
+                "507 Insufficient Storage",
+                r#"{"error":{"code":"quotaLimitReached"}}"#,
+            ),
+            said("403 Forbidden", r#"{"error":{"code":"accessDenied"}}"#),
+            said("503 Service Unavailable", "{}"),
+            said(
+                "400 Bad Request",
+                r#"{"error":{"code":"invalidRequest","innerError":{"code":"quotaLimitReached"}}}"#,
+            ),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert_eq!(
+        drive.about("a.tisty"),
+        Err(Hitch::Limited {
+            wait: Duration::from_secs(7)
+        })
+    );
+    assert_eq!(drive.about("a.tisty"), Err(Hitch::Full));
+    assert_eq!(drive.about("a.tisty"), Err(Hitch::Lost));
+    assert!(matches!(drive.about("a.tisty"), Err(Hitch::Troubled(_))));
+    assert_eq!(drive.about("a.tisty"), Err(Hitch::Full));
+}
+
+#[test]
+fn a_token_onedrive_turns_down_is_renewed_once_and_then_the_access_is_lost() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("401 Unauthorized", "{}"),
+            said("401 Unauthorized", "{}"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert_eq!(drive.about("a.tisty"), Err(Hitch::Lost));
+    let asked = served.join().unwrap();
+    assert_eq!(
+        header(&asked[0], "authorization").as_deref(),
+        Some("Bearer access-1")
+    );
+    assert_eq!(
+        header(&asked[1], "authorization").as_deref(),
+        Some("Bearer access-2")
+    );
+}
+
+#[test]
+fn another_account_is_refused_before_anything_is_read() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![said(
+            "200 OK",
+            r#"{"id":"other","mail":null,"userPrincipalName":"otra@outlook.com"}"#,
+        )]
+    });
+    let drive = onedrive(at, home.path()).for_account("mine");
+
+    assert_eq!(
+        drive.list(""),
+        Err(Hitch::Elsewhere {
+            found: "otra@outlook.com".into()
+        })
+    );
+    assert_eq!(served.join().unwrap().len(), 1);
+}
+
+#[test]
+fn a_name_onedrive_would_refuse_never_reaches_it() {
+    let home = tempfile::tempdir().unwrap();
+    let drive = onedrive(
+        GraphAt {
+            api: "http://127.0.0.1:9/v1.0".into(),
+        },
+        home.path(),
+    );
+
+    assert!(matches!(
+        drive.put("store/a:b", &written(&home, b"x"), Expect::Any),
+        Err(Hitch::Broke(_))
+    ));
+    assert!(matches!(drive.about("con"), Err(Hitch::Broke(_))));
+}
+
+#[test]
+fn a_file_here_is_printed_as_onedrive_prints_its_own() {
+    let home = tempfile::tempdir().unwrap();
+    let drive = onedrive(GraphAt::microsoft(), home.path());
+
+    let hash = drive.hash_of(&written(&home, b"J")).unwrap();
+
+    assert_eq!(hash, "quickxor:SgAAAAAAAAAAAAAAAQAAAAAAAAA=");
+}
+
+#[test]
+fn the_pieces_of_an_upload_are_what_onedrive_takes_and_names_fold_case() {
+    let home = tempfile::tempdir().unwrap();
+    let limits = onedrive(GraphAt::microsoft(), home.path()).limits();
+
+    assert_eq!(limits.provider, "OneDrive");
+    assert!(limits.folds_case);
+    assert_eq!(limits.chunk % (320 * 1024), 0);
+    assert!(limits.chunk < 60 * 1024 * 1024);
+}
