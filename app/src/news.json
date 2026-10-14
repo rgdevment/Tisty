@@ -1,0 +1,53 @@
+[
+  {
+    "version": "1.30.0",
+    "headline": {
+      "es": "Tisty ahora se sincroniza con tu Google Drive",
+      "en": "Tisty now syncs with your Google Drive"
+    },
+    "es": [
+      {
+        "title": "Tu Google Drive, sin carpetas de por medio",
+        "said": "tus tareas y documentos viajan en un espacio oculto de tu Drive que solo Tisty abre. No hay cuenta de Tisty ni servidores nuestros: entras con Google y te vas cuando quieras."
+      },
+      {
+        "title": "Cámbiate cuando quieras",
+        "said": "pasa entre este equipo, una carpeta y Google Drive desde Ajustes. La mudanza muestra lo que falta, sigue sola cuando Google pide una pausa y tus otros equipos te siguen."
+      },
+      {
+        "title": "Un equipo nuevo se suma solo",
+        "said": "trae lo que ya está en tu Drive o en tu carpeta, con una barra mientras llega. Si ese equipo tiene algo tuyo, te pregunta antes de juntarlos."
+      },
+      {
+        "title": "Sabes qué se interpone",
+        "said": "si tu red, un filtro de la empresa o un antivirus bloquea a Google, Tisty te lo dice en palabras simples. Lo tuyo queda a salvo en este equipo mientras tanto."
+      },
+      {
+        "title": "Documentos en su propia ventana",
+        "said": "abre archivos Markdown o cualquier documento de Tisty en una ventana amplia de lectura, con su índice al lado, y expórtalo como PDF."
+      }
+    ],
+    "en": [
+      {
+        "title": "Your Google Drive, no folder in between",
+        "said": "your tasks and documents travel in a hidden space of your Drive that only Tisty opens. There is no Tisty account and no server of ours: you sign in with Google and leave whenever you want."
+      },
+      {
+        "title": "Move whenever you like",
+        "said": "switch between this computer, a folder and Google Drive from Settings. A move shows what is left, carries on by itself when Google asks for a pause, and your other computers follow you."
+      },
+      {
+        "title": "A new computer joins on its own",
+        "said": "it brings what your Drive or folder already holds, with a bar while it arrives. If that computer holds anything of yours, it asks before joining the two."
+      },
+      {
+        "title": "Know what is in the way",
+        "said": "if your network, a company filter or an antivirus blocks Google, Tisty tells you in plain words. Your work stays safe on this computer meanwhile."
+      },
+      {
+        "title": "Documents in their own window",
+        "said": "open Markdown files or any Tisty document in a wide reading window with its contents beside the page, and export it as PDF."
+      }
+    ]
+  }
+]
