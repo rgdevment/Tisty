@@ -137,5 +137,36 @@
         "said": "in About, the author's other tools show their mascots and take you to their own sites. CopyPaste is now called CoPanda."
       }
     ]
+  },
+  {
+    "version": "1.30.5",
+    "es": [
+      {
+        "title": "Google Drive ya no pregunta por versiones que no existen",
+        "said": "si un documento se edita varias veces seguidas con Google Drive conectado, Tisty ya no pide elegir entre dos versiones ni trae de vuelta una copia anterior."
+      },
+      {
+        "title": "Los avisos se guardan como los escribiste",
+        "said": "un aviso que empieza con negrita, cursiva, tachado o resaltado ya no se sale de su recuadro al guardarlo."
+      },
+      {
+        "title": "Tisty pesa menos",
+        "said": "cada ventana carga solo lo que necesita, la captura rápida deja de trabajar mientras está oculta y Tisty guarda menos en memoria mientras la usas."
+      }
+    ],
+    "en": [
+      {
+        "title": "Google Drive no longer asks about versions that don't exist",
+        "said": "if a document is edited several times in a row with Google Drive connected, Tisty no longer asks you to pick between two versions or brings back an older copy."
+      },
+      {
+        "title": "Callouts are saved as you wrote them",
+        "said": "a callout that starts with bold, italic, strikethrough or a highlight no longer falls out of its box when saved."
+      },
+      {
+        "title": "Tisty is lighter",
+        "said": "each window loads only what it needs, quick capture stops working while it's hidden, and Tisty keeps less in memory while you use it."
+      }
+    ]
   }
 ]

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { bared } from "../ui/writing";
+import { bared } from "../ui/plain";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

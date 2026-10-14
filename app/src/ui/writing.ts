@@ -19,11 +19,9 @@ import { isMark } from "../marks";
 import type { Moved } from "../paging";
 import { spared } from "./Icons";
 import { Listed, Tightened } from "./listing";
+import { labelled } from "./plain";
 import { TONGUES } from "./tongues";
 import { besideWidget, iconed, type Lending, lend, locked } from "./widgeting";
-
-/// A bracket left bare closes the label early, and the reference stops naming anything.
-export const labelled = (said: string): string => said.replace(/([[\]\\])/g, "\\$1");
 
 const cardAt = (editor: Writing, file: string): number => {
   let found = -1;
@@ -1286,22 +1284,6 @@ export const asMarkdown = (editor: Writing): string | null => {
   const kept = (editor.storage as unknown as { markdown?: { getMarkdown?: () => string } })
     .markdown;
   return typeof kept?.getMarkdown === "function" ? kept.getMarkdown() : null;
-};
-
-export const bared = (markdown: string): string => {
-  const fence = /^\s*(?:```|~~~)/;
-  let inside = false;
-  return markdown
-    .split("\n")
-    .map((line) => {
-      if (fence.test(line)) {
-        inside = !inside;
-        return line;
-      }
-      if (inside) return line;
-      return line.replace(/<\/?u\b[^>]*>/gi, "");
-    })
-    .join("\n");
 };
 
 export interface Head {

@@ -1,14 +1,15 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
 import { broke } from "./broke";
 import { locale } from "./locales";
-import Moving from "./Moving";
-import Quick from "./Quick";
 import Standing from "./Standing";
-import Viewing from "./Viewing";
 import "./index.css";
+
+const App = lazy(() => import("./App"));
+const Moving = lazy(() => import("./Moving"));
+const Quick = lazy(() => import("./Quick"));
+const Viewing = lazy(() => import("./Viewing"));
 
 document.addEventListener("contextmenu", (e) => {
   const writes = (e.target as HTMLElement).closest("input, textarea, [contenteditable]");
@@ -39,15 +40,17 @@ if (quick) document.documentElement.classList.add("quick");
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <Standing>
-      {label === "moving" ? (
-        <Moving />
-      ) : label.startsWith("view-") ? (
-        <Viewing />
-      ) : quick ? (
-        <Quick />
-      ) : (
-        <App />
-      )}
+      <Suspense fallback={null}>
+        {label === "moving" ? (
+          <Moving />
+        ) : label.startsWith("view-") ? (
+          <Viewing />
+        ) : quick ? (
+          <Quick />
+        ) : (
+          <App />
+        )}
+      </Suspense>
     </Standing>
   </React.StrictMode>,
 );
