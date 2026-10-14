@@ -93,11 +93,12 @@ export default function Clouded({
     const account = await cloudConnect();
     const was = status?.account;
     if (was && was !== account.account && status?.joined) {
-      await cloudForget(account.account).catch(() => undefined);
+      await cloudForget(account.account, account.provider).catch(() => undefined);
       throw { code: "cloudElsewhere", name: account.email };
     }
-    await cloudChoose(account.account, account.email);
-    if (was && was !== account.account) await cloudForget(was).catch(() => undefined);
+    await cloudChoose(account.account, account.email, account.provider);
+    if (was && was !== account.account)
+      await cloudForget(was, status?.provider).catch(() => undefined);
     setSignedAt(status?.last?.at);
     unstuck();
   };
@@ -108,7 +109,7 @@ export default function Clouded({
     const was = status?.account;
     run(
       "sync",
-      chooseSync(undefined).then(() => (was ? cloudForget(was) : undefined)),
+      chooseSync(undefined).then(() => (was ? cloudForget(was, status?.provider) : undefined)),
       () => {},
     );
   };

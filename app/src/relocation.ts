@@ -168,7 +168,7 @@ export const endMove = () => {
 export const dismissMove = (forget = true) => {
   const done = run?.result?.state === "done" ? run.result : undefined;
   if (forget && done?.told && done.leftCloud)
-    void cloudForget(done.leftCloud.account).catch(() => undefined);
+    void cloudForget(done.leftCloud.account, done.leftCloud.provider).catch(() => undefined);
   endMove();
 };
 

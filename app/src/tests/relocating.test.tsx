@@ -282,7 +282,7 @@ describe("moving to another place", () => {
     await userEvent.click(await screen.findByRole("button", { name: t("moveWipe") }));
 
     expect(await screen.findByText(fill("moveWiped", "12"))).toBeTruthy();
-    expect(sent("cloud_wipe")[0].args).toEqual({ account: ANA.account, email: ANA.email });
+    expect(sent("cloud_wipe")[0].args).toEqual(ANA);
     expect(moved).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole("button", { name: t("close") }));
     expect(moved).toHaveBeenCalledTimes(1);

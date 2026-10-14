@@ -10,6 +10,7 @@ use crate::reaching::{GOOGLE, KEPT_AS, secrets_for};
 use crate::{Answer, Refusal, Session, held};
 
 const CONSENT_WAITED: Duration = Duration::from_secs(5 * 60);
+const GOOGLE_SHOWN: &str = "Google Drive";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -110,7 +111,7 @@ pub async fn cloud_connect(
 ) -> Answer<Connected> {
     let client = tisty_google::client().ok_or_else(|| Refusal::of("cloudNotOffered"))?;
     let aside = held(&session).paths.cache().to_path_buf();
-    let consent = tisty_google::Consent::begin(client).map_err(|e| refused(e, "Google Drive"))?;
+    let consent = tisty_google::Consent::begin(client).map_err(|e| refused(e, GOOGLE_SHOWN))?;
     let dropping = consent.dropping();
     consenting.waits_on(dropping.clone());
     tauri_plugin_opener::open_url(&consent.url, None::<&str>)
@@ -120,14 +121,14 @@ pub async fn cloud_connect(
         .map_err(|_| Refusal::of("internal"))?;
     consenting.done_with(&dropping);
     // A token kept from before the new grant must not be written back over it.
-    let in_use = |account: &str| {
+    let in_use = |now: &Connected| {
         let session = held(&session);
         tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .is_some_and(|at| at.account == account)
+            .is_some_and(|at| at.provider == now.provider && at.account == now.account)
             .then(|| session.reach.taken())
             .flatten()
     };
-    if let Some(tokens) = done.as_ref().ok().and_then(|now| in_use(&now.account)) {
+    if let Some(tokens) = done.as_ref().ok().and_then(in_use) {
         tokens.let_go();
     }
     done
@@ -146,25 +147,29 @@ fn connected(
     let at = tisty_google::Endpoints::google();
     let granted = consent.finish(CONSENT_WAITED, &at).map_err(ended)?;
     let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
-    let renew =
-        tisty_google::GoogleRenew::new(client, at).map_err(|e| refused(e, "Google Drive"))?;
+    let renew = tisty_google::GoogleRenew::new(client, at).map_err(|e| refused(e, GOOGLE_SHOWN))?;
     let tokens = Tokens::new(unfiled.clone(), Arc::new(renew), KEPT_AS, aside);
     let account = tisty_google::Drive::new(Arc::new(tokens), tisty_google::DriveAt::google())
         .and_then(|drive| drive.account())
-        .map_err(|e| refused(e, "Google Drive"))?;
+        .map_err(|e| refused(e, GOOGLE_SHOWN))?;
     // Learning the account may have renewed it, and Google can hand back a new one then.
     let refresh = unfiled
         .read(KEPT_AS)
         .ok()
         .flatten()
         .unwrap_or(granted.refresh);
-    secrets_for(&account.id)
-        .and_then(|kept| kept.write(KEPT_AS, &refresh))
-        .map_err(|e| refused(e, "Google Drive"))?;
-    Ok(Connected {
-        provider: GOOGLE,
+    let at = CloudAt {
+        provider: GOOGLE.to_string(),
         account: account.id,
         email: account.email,
+    };
+    secrets_for(&at)
+        .and_then(|kept| kept.write(KEPT_AS, &refresh))
+        .map_err(|e| refused(e, at.shown()))?;
+    Ok(Connected {
+        provider: GOOGLE,
+        account: at.account,
+        email: at.email,
     })
 }
 
@@ -173,26 +178,32 @@ pub(crate) fn ended(how: tisty_google::Ended) -> Refusal {
         tisty_google::Ended::NoAnswer => Refusal::of("cloudNoAnswer"),
         tisty_google::Ended::Dropped => Refusal::of("cloudDropped"),
         tisty_google::Ended::Failed(Hitch::Lost) => Refusal::of("cloudDenied"),
-        tisty_google::Ended::Failed(other) => refused(other, "Google Drive"),
+        tisty_google::Ended::Failed(other) => refused(other, GOOGLE_SHOWN),
     }
 }
 
 /// Only a copy that shares with nobody starts on the cloud here; any other way has things to bring over first.
 #[tauri::command(async)]
-pub async fn cloud_choose(app: tauri::AppHandle, account: String, email: String) -> Answer<()> {
+pub async fn cloud_choose(
+    app: tauri::AppHandle,
+    account: String,
+    email: String,
+    provider: Option<String>,
+) -> Answer<()> {
+    let at = CloudAt {
+        provider: provider.unwrap_or_else(|| GOOGLE.to_string()),
+        account,
+        email,
+    };
     // Choosing may reach the cloud to clear a word left there, so it runs away from the window's thread.
-    tauri::async_runtime::spawn_blocking(move || chosen_cloud_now(&app, account, email))
+    tauri::async_runtime::spawn_blocking(move || chosen_cloud_now(&app, at))
         .await
         .map_err(|_| Refusal::of("internal"))?
 }
 
-fn chosen_cloud_now(app: &tauri::AppHandle, account: String, email: String) -> Answer<()> {
-    has_access(&account)?;
-    let chosen = Sync::cloud(CloudAt {
-        provider: GOOGLE.to_string(),
-        account,
-        email,
-    });
+fn chosen_cloud_now(app: &tauri::AppHandle, at: CloudAt) -> Answer<()> {
+    has_access(&at)?;
+    let chosen = Sync::cloud(at);
     let state = app.state::<Mutex<Session>>();
     let mut session = held(&state);
     session.refresh_settings();
@@ -238,21 +249,22 @@ pub async fn cloud_forget(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     account: Option<String>,
+    provider: Option<String>,
 ) -> Answer<()> {
-    let account = whose(&session, account)?;
+    let at = whose(&session, account, provider)?;
     let (paths, home) = {
         let session = held(&session);
-        (session.paths.clone(), home_for(&session.reach, &account))
+        (session.paths.clone(), session.reach.home_of(&at))
     };
     tauri::async_runtime::spawn_blocking(move || {
-        if crate::leaving::owed_to(&paths, &account) {
-            if !lost_for_good_at(&home, &account) {
+        if crate::leaving::owed_to(&paths, &at.account) {
+            if !lost_for_good_at(&home, &at) {
                 return Err(Refusal::of("forgetUntold"));
             }
-            crate::leaving::owed_no_more_to(&paths, &account);
+            crate::leaving::owed_no_more_to(&paths, &at.account);
         }
-        forgotten(&account)?;
-        let_go_held(&app, &account);
+        forgotten(&at)?;
+        let_go_held(&app, &at);
         Ok(())
     })
     .await
@@ -265,17 +277,21 @@ pub async fn cloud_revoke(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     account: Option<String>,
+    provider: Option<String>,
 ) -> Answer<()> {
-    let account = whose(&session, account)?;
+    let at = whose(&session, account, provider)?;
+    if at.provider != GOOGLE {
+        return Err(Refusal::of("cloudNotOffered"));
+    }
     tauri::async_runtime::spawn_blocking(move || {
-        let kept = secrets_for(&account).map_err(|e| refused(e, "Google Drive"))?;
+        let kept = secrets_for(&at).map_err(|e| refused(e, at.shown()))?;
         // Revoked before it is forgotten, so a revoke that fails can be asked again with the token still here.
-        if let Some(token) = kept.read(KEPT_AS).map_err(|e| refused(e, "Google Drive"))? {
+        if let Some(token) = kept.read(KEPT_AS).map_err(|e| refused(e, at.shown()))? {
             tisty_google::revoke_everywhere(&token, &tisty_google::Endpoints::google())
-                .map_err(|e| refused(e, "Google Drive"))?;
+                .map_err(|e| refused(e, at.shown()))?;
         }
-        forgotten(&account)?;
-        let_go_held(&app, &account);
+        forgotten(&at)?;
+        let_go_held(&app, &at);
         Ok(())
     })
     .await
@@ -283,25 +299,38 @@ pub async fn cloud_revoke(
 }
 
 // A connected account not chosen yet has a token too, so it can be let go of by name.
-fn whose(session: &tauri::State<'_, Mutex<Session>>, account: Option<String>) -> Answer<String> {
+fn whose(
+    session: &tauri::State<'_, Mutex<Session>>,
+    account: Option<String>,
+    provider: Option<String>,
+) -> Answer<CloudAt> {
     let session = held(session);
-    account
-        .or_else(|| {
-            tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| at.account.clone())
-        })
-        .ok_or_else(|| Refusal::of("noRemote"))
+    match account {
+        Some(account) => Ok(CloudAt {
+            provider: provider.unwrap_or_else(|| GOOGLE.to_string()),
+            account,
+            email: String::new(),
+        }),
+        None => tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .cloned()
+            .ok_or_else(|| Refusal::of("noRemote")),
+    }
+}
+
+fn same_account(one: &CloudAt, other: &CloudAt) -> bool {
+    one.provider == other.provider && one.account == other.account
 }
 
 // Taken only once the stored token is gone, so whatever builds the cloud anew finds nothing to renew.
-fn let_go_held(app: &tauri::AppHandle, account: &str) {
+fn let_go_held(app: &tauri::AppHandle, at: &CloudAt) {
     let Some(session) = app.try_state::<Mutex<Session>>() else {
         return;
     };
     let (tokens, home) = {
         let session = held(&session);
         let chosen = tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .filter(|at| at.account == account)
-            .map(|at| session.reach.home_of(at));
+            .filter(|now| same_account(now, at))
+            .map(|now| session.reach.home_of(now));
         let tokens = chosen.as_ref().and_then(|_| session.reach.taken());
         (tokens, chosen)
     };
@@ -315,7 +344,7 @@ fn let_go_held(app: &tauri::AppHandle, account: &str) {
             &tisty_carrier::LastRound {
                 at: jiff::Timestamp::now().as_second().unsigned_abs(),
                 code: "cloudLost".into(),
-                name: Some("Google Drive".into()),
+                name: Some(at.shown().to_string()),
                 ..Default::default()
             },
         );
@@ -323,27 +352,19 @@ fn let_go_held(app: &tauri::AppHandle, account: &str) {
 }
 
 /// Only a keychain that answers it holds nothing counts: one that cannot be read now may answer later.
-fn access_gone(account: &str) -> bool {
+fn access_gone(at: &CloudAt) -> bool {
     matches!(
-        secrets_for(account).and_then(|kept| kept.read(KEPT_AS)),
+        secrets_for(at).and_then(|kept| kept.read(KEPT_AS)),
         Ok(None)
     )
 }
 
-fn home_for(reach: &crate::reaching::Reaching, account: &str) -> std::path::PathBuf {
-    reach.home_of(&CloudAt {
-        provider: GOOGLE.to_string(),
-        account: account.to_string(),
-        email: String::new(),
-    })
-}
-
 /// Read off this disk and the keychain alone, so it can be asked of the chosen cloud or one left behind.
-pub(crate) fn lost_for_good_at(home: &std::path::Path, account: &str) -> bool {
+pub(crate) fn lost_for_good_at(home: &std::path::Path, at: &CloudAt) -> bool {
     let last = tisty_carrier::standing(home).last;
     lost_for_good(
-        crate::reaching::offered(),
-        access_gone(account),
+        crate::reaching::offers(&at.provider),
+        access_gone(at),
         last.as_ref().map(|one| one.code.as_str()),
     )
 }
@@ -352,18 +373,18 @@ pub(crate) fn lost_for_good(offered: bool, gone: bool, last: Option<&str>) -> bo
     !offered || gone || last == Some("cloudLost")
 }
 
-pub(crate) fn has_access(account: &str) -> Answer<()> {
-    let kept = secrets_for(account)
+pub(crate) fn has_access(at: &CloudAt) -> Answer<()> {
+    let kept = secrets_for(at)
         .and_then(|kept| kept.read(KEPT_AS))
-        .map_err(|e| refused(e, "Google Drive"))?;
+        .map_err(|e| refused(e, at.shown()))?;
     match kept {
         Some(_) => Ok(()),
-        None => Err(Refusal::about("cloudLost", "Google Drive".to_string())),
+        None => Err(Refusal::about("cloudLost", at.shown().to_string())),
     }
 }
 
-pub(crate) fn let_go_of(account: &str) {
-    if let Err(why) = forgotten(account) {
+pub(crate) fn let_go_of(at: &CloudAt) {
+    if let Err(why) = forgotten(at) {
         tisty_core::witness::warn(
             tisty_core::witness::channel::CLOUD,
             "the access of a cloud never used here could not be let go of",
@@ -372,10 +393,10 @@ pub(crate) fn let_go_of(account: &str) {
     }
 }
 
-fn forgotten(account: &str) -> Answer<()> {
-    secrets_for(account)
+fn forgotten(at: &CloudAt) -> Answer<()> {
+    secrets_for(at)
         .and_then(|kept| kept.forget(KEPT_AS))
-        .map_err(|e| refused(e, "Google Drive"))
+        .map_err(|e| refused(e, at.shown()))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -420,7 +441,7 @@ pub async fn cloud_status(
     tauri::async_runtime::spawn_blocking(move || {
         let joined = tisty_carrier::cloud_joined(&home, &here);
         let mut status = status_of(&at, &home, joined);
-        status.lost = lost_for_good_at(&home, &at.account);
+        status.lost = lost_for_good_at(&home, &at);
         status.adopts = status.last.as_ref().is_some_and(|last| {
             last.code == "otherStore"
                 && super::joining::new_here(&paths)

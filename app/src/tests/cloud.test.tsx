@@ -171,7 +171,7 @@ describe("choosing where the copies go", () => {
     await userEvent.click(screen.getByRole("button", { name: t("cloudStart") }));
 
     await waitFor(() => expect(done).toHaveBeenCalledWith("cloud"));
-    expect(sent("cloud_choose")[0].args).toEqual({ account: ANA.account, email: ANA.email });
+    expect(sent("cloud_choose")[0].args).toEqual(ANA);
   });
 
   it("offers to bring a Tisty the cloud already holds instead of a first upload", async () => {

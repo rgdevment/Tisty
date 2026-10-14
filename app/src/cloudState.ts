@@ -93,8 +93,18 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
 };
 
 // An account connected and then left is let go of, unless it is the one this copy syncs with by now.
-export const letGoUnused = (account: string): void => {
+export const letGoUnused = ({
+  account,
+  provider,
+}: {
+  account: string;
+  provider?: string;
+}): void => {
   cloudStatus()
-    .then((now) => (now?.account === account ? undefined : cloudForget(account)))
+    .then((now) =>
+      now?.account === account && (!provider || now.provider === provider)
+        ? undefined
+        : cloudForget(account, provider),
+    )
     .catch(() => undefined);
 };

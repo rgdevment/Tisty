@@ -18,8 +18,37 @@ const WAITED: std::time::Duration = std::time::Duration::from_secs(30);
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Toward {
     Alone,
-    Folder { at: String },
-    Cloud { account: String, email: String },
+    Folder {
+        at: String,
+    },
+    Cloud {
+        account: String,
+        email: String,
+        // A move written down by 1.30 named no provider, and Google was the only one then.
+        #[serde(default = "google")]
+        provider: String,
+    },
+}
+
+fn google() -> String {
+    GOOGLE.to_string()
+}
+
+impl Toward {
+    fn cloud(&self) -> Option<CloudAt> {
+        match self {
+            Toward::Cloud {
+                account,
+                email,
+                provider,
+            } => Some(CloudAt {
+                provider: provider.clone(),
+                account: account.clone(),
+                email: email.clone(),
+            }),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, serde::Serialize)]
@@ -75,8 +104,12 @@ fn way_of(session: &Session, toward: &Toward) -> Answer<Sync> {
     match toward {
         Toward::Alone => Ok(Sync::alone()),
         Toward::Folder { at } => folder_way(session, at.trim().to_string()),
-        Toward::Cloud { account, email } => Ok(Sync::cloud(CloudAt {
-            provider: GOOGLE.to_string(),
+        Toward::Cloud {
+            account,
+            email,
+            provider,
+        } => Ok(Sync::cloud(CloudAt {
+            provider: provider.clone(),
             account: account.clone(),
             email: email.clone(),
         })),
@@ -151,11 +184,10 @@ fn ends(session: &mut Session, toward: &Toward) -> Answer<Ends> {
 }
 
 async fn accessible(toward: &Toward) -> Answer<()> {
-    let Toward::Cloud { account, .. } = toward else {
+    let Some(at) = toward.cloud() else {
         return Ok(());
     };
-    let account = account.clone();
-    tauri::async_runtime::spawn_blocking(move || super::clouding::has_access(&account))
+    tauri::async_runtime::spawn_blocking(move || super::clouding::has_access(&at))
         .await
         .map_err(|_| Refusal::of("internal"))?
 }
@@ -360,13 +392,10 @@ pub(crate) fn moving_in(chosen: Sync) -> impl FnOnce(&mut tisty_core::Config) ->
     }
 }
 
-pub(crate) fn pending_cloud(paths: &tisty_core::Paths) -> Option<String> {
+pub(crate) fn pending_cloud(paths: &tisty_core::Paths) -> Option<CloudAt> {
     let toward: Toward =
         serde_json::from_slice(&std::fs::read(paths.private().join(PENDING)).ok()?).ok()?;
-    match toward {
-        Toward::Cloud { account, .. } => Some(account),
-        _ => None,
-    }
+    toward.cloud()
 }
 
 pub(crate) fn pending_kept(paths: &tisty_core::Paths, toward: Option<&Toward>) {
@@ -403,14 +432,14 @@ pub fn move_pending(session: tauri::State<'_, Mutex<Session>>) -> Option<Toward>
 #[tauri::command]
 pub fn move_dropped(session: tauri::State<'_, Mutex<Session>>) {
     let session = held(&session);
-    let dropped = pending_cloud(&session.paths).filter(|account| {
+    let dropped = pending_cloud(&session.paths).filter(|at| {
         tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .is_none_or(|now| &now.account != account)
-            && !crate::leaving::owed_to(&session.paths, account)
+            .is_none_or(|now| now.provider != at.provider || now.account != at.account)
+            && !crate::leaving::owed_to(&session.paths, &at.account)
     });
     pending_kept(&session.paths, None);
-    if let Some(account) = dropped {
-        super::clouding::let_go_of(&account);
+    if let Some(at) = dropped {
+        super::clouding::let_go_of(&at);
     }
 }
 
@@ -420,17 +449,18 @@ pub async fn cloud_wipe(
     alone: tauri::State<'_, OneAtATime>,
     account: String,
     email: String,
+    provider: Option<String>,
 ) -> Answer<usize> {
     let _done = alone.inner().waited(WAITED).await?;
     let at = CloudAt {
-        provider: GOOGLE.to_string(),
+        provider: provider.unwrap_or_else(google),
         account,
         email,
     };
     let (carrier, paths, here, alive) = {
         let session = held(&session);
         if tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .is_some_and(|now| now.account == at.account)
+            .is_some_and(|now| now.provider == at.provider && now.account == at.account)
         {
             return Err(Refusal::of("wipeChosen"));
         }
@@ -441,7 +471,7 @@ pub async fn cloud_wipe(
             session.alive(),
         )
     };
-    let carrier = carrier.ok_or_else(|| Refusal::about("cloudLost", "Google Drive".to_string()))?;
+    let carrier = carrier.ok_or_else(|| Refusal::about("cloudLost", at.shown().to_string()))?;
     if crate::leaving::owed_to(&paths, &at.account) {
         return Err(Refusal::of("wipeUntold"));
     }
@@ -456,7 +486,7 @@ pub async fn cloud_wipe(
     )
     .await?;
     let gone = gone?;
-    super::clouding::let_go_of(&at.account);
+    super::clouding::let_go_of(&at);
     Ok(gone)
 }
 
@@ -483,7 +513,7 @@ fn lost_cloud(session: &Session) -> Answer<CloudAt> {
     let at = tisty_carrier::cloud_of(session.config.sync.as_ref())
         .cloned()
         .ok_or_else(|| Refusal::of("noRemote"))?;
-    match super::clouding::lost_for_good_at(&session.reach.home_of(&at), &at.account) {
+    match super::clouding::lost_for_good_at(&session.reach.home_of(&at), &at) {
         true => Ok(at),
         false => Err(Refusal::of("cloudNotLost")),
     }

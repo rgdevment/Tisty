@@ -221,9 +221,9 @@ export default function Keeping({
     onChanged();
     if (!at) return;
     if ((await carryNow()) !== "declined") return;
-    const brought = at === "cloud" ? (await cloudStatus().catch(() => null))?.account : undefined;
+    const brought = at === "cloud" ? await cloudStatus().catch(() => null) : undefined;
     await chooseSync(was)
-      .then(() => (brought ? cloudForget(brought) : undefined))
+      .then(() => (brought ? cloudForget(brought.account, brought.provider) : undefined))
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
     look();
     onChanged();

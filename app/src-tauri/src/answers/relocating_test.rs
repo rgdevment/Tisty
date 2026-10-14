@@ -43,6 +43,7 @@ fn where_a_move_goes_is_written_down_until_it_ends() {
     let toward = Toward::Cloud {
         account: "0123".into(),
         email: "ana@example.com".into(),
+        provider: "google".into(),
     };
 
     pending_kept(&paths, Some(&toward));
@@ -61,6 +62,24 @@ fn the_window_names_each_way_a_move_can_go() {
 
     assert_eq!(folder, Toward::Folder { at: "G:/x".into() });
     assert_eq!(alone, Toward::Alone);
+}
+
+#[test]
+fn a_move_to_the_cloud_written_down_by_1_30_still_goes_to_google_drive() {
+    let home = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(home.path().join("data"), home.path().join("config"));
+    std::fs::create_dir_all(paths.private()).unwrap();
+    std::fs::write(
+        paths.private().join(PENDING),
+        r#"{"kind":"cloud","account":"0123","email":"ana@example.com"}"#,
+    )
+    .unwrap();
+
+    let pending = pending_cloud(&paths).unwrap();
+
+    assert_eq!(pending.provider, "google");
+    assert_eq!(pending.account, "0123");
+    assert_eq!(pending.shown(), "Google Drive");
 }
 
 #[test]

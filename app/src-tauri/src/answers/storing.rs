@@ -757,7 +757,7 @@ where
     }
     super::relocating::pending_kept(&session.paths, None);
     if let Some(at) = tisty_carrier::cloud_of(was.as_ref()).filter(|_| !joins.left) {
-        crate::answers::clouding::let_go_of(&at.account);
+        crate::answers::clouding::let_go_of(at);
     }
     crate::leaving::owed_no_more(&session.paths, &chosen);
     let a_place = chosen.place().is_some() || tisty_carrier::cloud_of(Some(&chosen)).is_some();

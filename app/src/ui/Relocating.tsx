@@ -88,7 +88,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
       onClose();
       return;
     }
-    if (connectedHere && toward?.kind === "cloud" && !now) letGoUnused(toward.account);
+    if (connectedHere && toward?.kind === "cloud" && !now) letGoUnused(toward);
     dismissMove(!settled.current);
     onClose();
   };
@@ -101,7 +101,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
 
   const drop = () => {
     void moveDropped().catch(() => undefined);
-    if (toward?.kind === "cloud") letGoUnused(toward.account);
+    if (toward?.kind === "cloud") letGoUnused(toward);
     endMove();
     onClose();
   };
@@ -111,7 +111,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
     setBusy(true);
     setWiping(true);
     setTrouble(undefined);
-    cloudWipe(leftCloud.account, leftCloud.email)
+    cloudWipe(leftCloud.account, leftCloud.email, leftCloud.provider)
       .then((gone) => {
         settled.current = true;
         setWiped(gone === 1 ? t("moveWipedOne") : fill("moveWiped", String(gone)));
@@ -126,7 +126,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const keep = () => {
     if (!leftCloud) return;
     settled.current = true;
-    void cloudForget(leftCloud.account).catch(() => undefined);
+    void cloudForget(leftCloud.account, leftCloud.provider).catch(() => undefined);
     close();
   };
 
@@ -165,7 +165,12 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           onBack={() => setStep("pick")}
           onDone={() => undefined}
           onConnected={(account) =>
-            chose({ kind: "cloud", account: account.account, email: account.email })
+            chose({
+              kind: "cloud",
+              account: account.account,
+              email: account.email,
+              provider: account.provider,
+            })
           }
         />
       )}

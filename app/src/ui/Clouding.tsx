@@ -61,7 +61,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
   const [weight, setWeight] = useState<number>();
   const [holds, setHolds] = useState(false);
   const gone = useRef(false);
-  const unused = useRef<string | undefined>(undefined);
+  const unused = useRef<Connected | undefined>(undefined);
 
   useEffect(() => {
     gone.current = false;
@@ -80,7 +80,12 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
       .then((state) => !gone.current && setWeight(state.weight))
       .catch(() => undefined);
     if (onConnected) return;
-    placePeek({ kind: "cloud", account: connected.account, email: connected.email })
+    placePeek({
+      kind: "cloud",
+      account: connected.account,
+      email: connected.email,
+      provider: connected.provider,
+    })
       // A computer with a history of its own goes through how the two come together, never «bring it».
       .then((peeked) => !gone.current && setHolds(peeked.fresh && peeked.holds === true))
       .catch(() => undefined);
@@ -95,8 +100,8 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
     const mine = ++asking;
     cloudConnect()
       .then((account) => {
-        if (gone.current) return mine === asking ? letGoUnused(account.account) : undefined;
-        unused.current = account.account;
+        if (gone.current) return mine === asking ? letGoUnused(account) : undefined;
+        unused.current = account;
         setConnected(account);
       })
       .catch((e) => !gone.current && e?.code !== "cloudDropped" && onTrouble(saidPlainly(e)))
@@ -111,7 +116,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
   const leave = () => {
     if (busy || held) return;
     onTrouble(undefined);
-    if (connected) letGoUnused(connected.account);
+    if (connected) letGoUnused(connected);
     unused.current = undefined;
     setConnected(undefined);
     if (!connected) onBack();
@@ -125,7 +130,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
     }
     setHeld(true);
     onTrouble(undefined);
-    cloudChoose(connected.account, connected.email)
+    cloudChoose(connected.account, connected.email, connected.provider)
       .then(() => {
         unused.current = undefined;
         onDone("cloud");
