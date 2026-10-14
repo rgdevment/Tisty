@@ -3,6 +3,7 @@ import { stillApart, walkThrough } from "../apart";
 import { choose, onEnded, toldAside } from "../coming";
 import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../core";
 import { decideAll, putOffSaid } from "../deciding";
+import { knock } from "../knocking";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { lastingCause, syncSaid, waitSaid, whatsLeft } from "../syncSaid";
@@ -65,6 +66,7 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
       }
       if (answer.carried !== "busy" && !answer.deferred) toldAside(null);
       const { said, putOff } = await decideAll(answer.undecided, true);
+      if (answer.unconfirmed?.length) void knock();
       const amiss = whatWentAmiss(answer);
       const waits = whatWaits(answer);
       const cause = answer.deferred?.reason === "offline" ? lastingCause(answer.deferred) : null;

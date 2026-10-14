@@ -270,6 +270,32 @@ fn a_cloud_is_left_only_through_a_move_once_this_machine_carried_into_it() {
     assert_eq!(never.sync, Some(Sync::alone()));
 }
 
+#[test]
+fn the_histories_that_wait_are_read_from_the_cloud_s_mirror_as_from_a_folder() {
+    let home = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(home.path().join("data"), home.path().join("config"));
+    let mut session = Session::at(paths.clone()).unwrap();
+    let ana = tisty_core::config::CloudAt {
+        provider: "google".into(),
+        account: "0123".into(),
+        email: "ana@example.com".into(),
+    };
+
+    assert_eq!(session.histories(), None);
+    session.config.sync = Some(Sync::folder("G:/compartida"));
+    assert_eq!(
+        session.histories(),
+        Some(std::path::PathBuf::from("G:/compartida"))
+    );
+    session.config.sync = Some(Sync::cloud(ana.clone()));
+    assert_eq!(
+        session.histories(),
+        Some(tisty_carrier::mirrored_at(
+            &paths.cloud_home(&ana.provider, &ana.account)
+        ))
+    );
+}
+
 fn step(stage: &'static str, done: usize, whole: usize) -> Bringing {
     Bringing {
         stage,

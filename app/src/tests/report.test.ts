@@ -115,6 +115,13 @@ describe("the report a bug gets attached to", () => {
     expect(paper).not.toContain("none yet");
   });
 
+  it("names the cloud it syncs with rather than calling it this machine only", () => {
+    const paper = written({ ...seen, shared: false, cloud: "Google Drive" }, at);
+
+    expect(paper).toMatch(/syncs\s+yes, Google Drive/);
+    expect(paper).not.toContain("this machine only");
+  });
+
   it("says «none yet» where no copy has ever been made", () => {
     const paper = written({ ...seen, shared: false, backedUpAt: null }, at);
 

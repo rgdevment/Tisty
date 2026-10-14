@@ -27,6 +27,12 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
         force,
     } = asked;
     let keeping = carrier::chosen(app.config().sync.as_ref());
+    if let Some(whose) = confirm {
+        let Some(dest) = carrier::histories_of(&app.paths, app.config().sync.as_ref()) else {
+            anyhow::bail!("{}", nothing_to_carry_with(app, keeping.chosen, lang));
+        };
+        return answered_for(app, &dest, &whose, force, lang);
+    }
     let Some(via) = keeping.carrier else {
         anyhow::bail!("{}", nothing_to_carry_with(app, keeping.chosen, lang));
     };
@@ -35,10 +41,6 @@ pub fn sync(app: &mut App, asked: Asked, lang: Lang) -> anyhow::Result<ExitCode>
     };
 
     let data = app.paths.data().to_path_buf();
-
-    if let Some(whose) = confirm {
-        return answered_for(app, &dest, &whose, force, lang);
-    }
 
     let way = match (push, pull, again) {
         (true, _, _) => carrier::Way::Push,

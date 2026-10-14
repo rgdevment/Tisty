@@ -480,7 +480,7 @@ written once with the crates that carry it.
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | `rusqlite` | 0.40.2 | MIT |
 | `rustix` | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
-| `rustls` | 0.23.45 | Apache-2.0 OR ISC OR MIT |
+| `rustls` | 0.23.46 | Apache-2.0 OR ISC OR MIT |
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
 | `rustls-platform-verifier` | 0.7.0 | MIT OR Apache-2.0 |
 | `rustls-webpki` | 0.103.14 | ISC |

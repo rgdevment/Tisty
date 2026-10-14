@@ -3000,6 +3000,39 @@ fn a_folder_that_may_hold_the_only_copy_of_attachments_is_not_left_from_the_comm
 }
 
 #[test]
+fn a_machine_waiting_in_the_cloud_s_mirror_is_answered_for_from_this_disk() {
+    let shared = tempfile::tempdir().unwrap();
+    let met = shared.path().display().to_string();
+    let first = Cli::new();
+    first.ok(&["config", "set", "remote", &met]);
+    first.ok(&["buy bread"]);
+    first.ok(&["sync"]);
+    let other = Cli::new();
+    other.ok(&["config", "set", "remote", &met]);
+    other.ok(&["sync"]);
+    other.ok(&["call the bank"]);
+    other.ok(&["sync"]);
+    let cli = Cli::new();
+    syncing_with_the_cloud(&cli);
+    let paths =
+        tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));
+    let mirrored = tisty_carrier::mirrored_at(&paths.cloud_home("google", "0123")).join("store");
+    copy_dirs(&shared.path().join("store"), &mirrored);
+
+    let out = cli.ok(&["sync", "--confirm", &named(&other), "--force"]);
+
+    assert!(
+        out.contains(&format!("answered for {}", named(&other))),
+        "{out}"
+    );
+    assert!(
+        tisty_core::vouched::confirmed(paths.data(), &tisty_core::DeviceId(named(&other)))
+            .is_some(),
+        "the key was not kept"
+    );
+}
+
+#[test]
 fn the_doctor_tells_the_cloud_from_this_disk_alone() {
     let cli = Cli::new();
     syncing_with_the_cloud(&cli);

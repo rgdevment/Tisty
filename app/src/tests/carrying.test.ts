@@ -23,13 +23,21 @@ vi.mock("@tauri-apps/api/event", () => ({
   },
 }));
 
-const state = { chosen: undefined as string | undefined, asked: true, loose: 0 };
+const state = {
+  chosen: undefined as string | undefined,
+  asked: true,
+  loose: 0,
+  mode: "folder",
+  cloud: null as string | null,
+};
 let carried: ReturnType<typeof carrying> | undefined;
 
 beforeEach(() => {
   vi.useFakeTimers();
   ipc.calls = [];
   state.chosen = "G:/My Drive/tisty";
+  state.mode = "folder";
+  state.cloud = null;
   ipc.answer = (cmd) =>
     cmd === "sync_state"
       ? Promise.resolve({ ...state })
@@ -298,6 +306,22 @@ describe("carrying on its own", () => {
 
     expect(sent("sync_now").length).toBe(1);
     expect(sent("sync_now")[0].args.way).toBe("pull");
+  });
+
+  it("carries a cloud reached through its API on its own, though it names no folder", async () => {
+    state.chosen = undefined;
+    state.mode = "cloud";
+    state.cloud = "ana@example.com";
+    carried = carrying(() => {});
+    await settle();
+
+    expect(sent("sync_now").length).toBe(1);
+    expect(sent("sync_now")[0].args.way).toBe("pull");
+
+    ipc.calls = [];
+    carried.changed();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(sent("sync_now").map((one) => one.args.way)).toEqual(["push"]);
   });
 
   it("stays put when no folder was ever chosen", async () => {

@@ -1,6 +1,13 @@
 import { listen } from "@tauri-apps/api/event";
 import { toldAside } from "./coming";
-import { type Carried, folderAstir, syncNow, syncState, whatWentAmiss } from "./core";
+import {
+  type Carried,
+  type Carrying,
+  folderAstir,
+  syncNow,
+  syncState,
+  whatWentAmiss,
+} from "./core";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -19,6 +26,10 @@ export type Awry =
   | { why: "broke"; said: string }
   | { why: "amiss"; said: string }
   | { why: "away"; said: string };
+
+// A cloud reached through its API has no folder to name, and is carried with all the same.
+const chosenPlace = (state: Carrying): string | undefined =>
+  state.chosen ?? (state.mode === "cloud" ? `cloud:${state.cloud ?? ""}` : undefined);
 
 const owing = (held: Way | null, next: Way): Way =>
   held === null || held === next ? next : undefined;
@@ -110,7 +121,7 @@ export function carrying(
       .then((state) => {
         if (gone) return;
         const was = folder;
-        folder = state.chosen ?? undefined;
+        folder = chosenPlace(state);
         then?.(was);
       })
       .catch(() => {});

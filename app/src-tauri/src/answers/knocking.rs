@@ -19,7 +19,7 @@ pub fn waiting_machines(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec
         let session = held(&session);
         (
             session.paths.clone(),
-            session.place(),
+            session.histories(),
             session.config.device_id.0.clone(),
             session.state.dropped.clone(),
             session.state.assistants.clone(),

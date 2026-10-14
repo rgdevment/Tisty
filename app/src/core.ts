@@ -604,6 +604,7 @@ export interface Facts {
   weight: number;
   syncs: boolean;
   shared: boolean;
+  cloud?: string | null;
   backedUpAt: string | null;
   quiet: string[];
   attachUpTo: number;

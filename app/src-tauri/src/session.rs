@@ -313,6 +313,10 @@ impl Session {
         tisty_carrier::place_of(self.config.sync.as_ref())
     }
 
+    pub fn histories(&self) -> Option<std::path::PathBuf> {
+        tisty_carrier::histories_of(&self.paths, self.config.sync.as_ref())
+    }
+
     pub fn here(&self) -> tisty_carrier::Here {
         tisty_carrier::Here::of(&self.paths, &self.config)
     }

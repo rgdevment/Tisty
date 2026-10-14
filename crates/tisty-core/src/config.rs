@@ -32,6 +32,18 @@ pub struct CloudAt {
     pub email: String,
 }
 
+pub const GOOGLE: &str = "google";
+
+impl CloudAt {
+    /// The provider as a person reads it; one this build does not know is named by its own id.
+    pub fn shown(&self) -> &str {
+        match self.provider.as_str() {
+            GOOGLE => "Google Drive",
+            other => other,
+        }
+    }
+}
+
 impl Sync {
     pub fn cloud(at: CloudAt) -> Self {
         Self::Cloud(at)
