@@ -1489,7 +1489,7 @@ fn still_asked(session: &tauri::State<'_, Mutex<Session>>, undecided: &[tisty_ca
     held(session).asked.extend(
         undecided
             .iter()
-            .map(|one| (one.id.clone(), one.theirs.clone())),
+            .map(|one| (one.id.clone(), (one.theirs.clone(), one.mine.clone()))),
     );
 }
 

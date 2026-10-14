@@ -424,6 +424,7 @@ fn said(trouble: tisty_carrier::Trouble) -> Refusal {
             }
         }
         tisty_carrier::Trouble::NotNow(_) => Refusal::of("cloudNotNow"),
+        tisty_carrier::Trouble::Moved(_) => Refusal::of("movedUnderfoot"),
     }
 }
 

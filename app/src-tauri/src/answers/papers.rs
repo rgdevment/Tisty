@@ -562,12 +562,13 @@ pub async fn settle_paper(
     let (asking, there, at) = (carrier.clone(), here.clone(), id.clone());
     let brought = elsewhere(move || {
         if !matches!(keep, tisty_carrier::Keep::Theirs)
-            && let Some(shown) = shown
-            && asking.paper_print(&at).as_ref() != Some(&shown)
+            && let Some((theirs, _)) = &shown
+            && asking.paper_print(&at).as_ref() != Some(theirs)
         {
             return Err(Refusal::of("movedUnderfoot"));
         }
-        asking.settle(&there, &at, keep).map_err(said)
+        let seen = shown.as_ref().and_then(|(_, mine)| mine.as_deref());
+        asking.settle(&there, &at, keep, seen).map_err(said)
     })
     .await??;
 
@@ -585,7 +586,7 @@ pub async fn settle_paper(
     let at = id.clone();
     elsewhere(move || {
         carrier
-            .settle(&here, &at, tisty_carrier::Keep::Mine)
+            .settle(&here, &at, tisty_carrier::Keep::Mine, None)
             .map_err(said)
     })
     .await??;

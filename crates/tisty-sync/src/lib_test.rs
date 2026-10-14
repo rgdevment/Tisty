@@ -43,7 +43,7 @@ impl Shared {
     }
 
     fn settle(&self, who: &Machine, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
-        settle(&who.data, self.path(), id, keep)
+        settle(&who.data, self.path(), id, keep, None)
     }
 
     fn stitch(
@@ -310,7 +310,7 @@ fn keeping_theirs_never_reads_through_a_link_either() {
     std::fs::create_dir_all(&there).unwrap();
     std::os::unix::fs::symlink(&secret, there.join("uno-0001.md")).unwrap();
 
-    let outcome = settle(&one.data, shared.path(), "uno-0001", Keep::Theirs);
+    let outcome = settle(&one.data, shared.path(), "uno-0001", Keep::Theirs, None);
 
     assert!(matches!(outcome, Err(Trouble::Refused(_))), "{outcome:?}");
     assert_eq!(
@@ -435,6 +435,154 @@ fn a_base_is_never_kept_for_a_document_neither_side_has() {
     carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
 
     assert!(tisty_core::docs::read_carried(&one.data, "uno-0001").is_none());
+}
+
+#[test]
+fn a_body_written_here_after_the_round_read_it_is_never_covered_by_the_other_side() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let mine = one.data.join(PAPERS).join("uno-0001.md");
+    let there = shared.path().join(PAPERS);
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+lo de antes
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    std::fs::write(
+        there.join("uno-0001.md"),
+        "# Kit
+
+lo de alli
+",
+    )
+    .unwrap();
+
+    // Same length and stamp, so the round still reads the print it kept and sees nothing written here.
+    let when = std::fs::metadata(&mine).unwrap().modified().unwrap();
+    std::fs::write(
+        &mine,
+        "# Kit
+
+lo de ahora
+",
+    )
+    .unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(&mine)
+        .unwrap()
+        .set_modified(when)
+        .unwrap();
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(&mine).unwrap(),
+        "# Kit
+
+lo de ahora
+",
+        "what was written here was covered by the other side"
+    );
+    assert_eq!(done.brought, 0);
+    assert_eq!(done.coming, vec!["uno-0001".to_string()]);
+}
+
+#[test]
+fn the_base_kept_for_a_sent_body_is_never_newer_than_the_print_the_ledger_names() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let mine = one.data.join(PAPERS).join("uno-0001.md");
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+lo de antes
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    // The round reads a print it kept, so a write of the same length and stamp lands after what it read.
+    std::fs::write(
+        &mine,
+        "# Kit
+
+lo de luego
+",
+    )
+    .unwrap();
+    let mut prints = tisty_core::docs::Prints::read(&one.data);
+    prints.of(&mine).unwrap();
+    prints.save(&one.data);
+    let when = std::fs::metadata(&mine).unwrap().modified().unwrap();
+    std::fs::write(
+        &mine,
+        "# Kit
+
+lo de ahora
+",
+    )
+    .unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(&mine)
+        .unwrap()
+        .set_modified(when)
+        .unwrap();
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    assert_eq!(done.sent, 1, "{done:?}");
+    let named = tisty_core::docs::Carried::read(&one.data)
+        .of("uno-0001")
+        .map(str::to_string);
+    let kept = tisty_core::docs::carried_print(&one.data, "uno-0001");
+    assert!(
+        kept.is_none() || kept == named,
+        "the base kept is not the body the ledger names"
+    );
+}
+
+#[test]
+fn a_body_from_the_other_side_waits_while_somebody_here_holds_the_document() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let here = one.data.join(PAPERS);
+    let there = shared.path().join(PAPERS);
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+lo mio
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    std::fs::write(
+        there.join("uno-0001.md"),
+        "# Kit
+
+lo de alli
+",
+    )
+    .unwrap();
+
+    let held = tisty_core::docs::hold(&here).unwrap();
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+    drop(held);
+
+    assert_eq!(
+        std::fs::read_to_string(here.join("uno-0001.md")).unwrap(),
+        "# Kit
+
+lo mio
+",
+        "a document somebody held was written over"
+    );
+    assert_eq!(done.coming, vec!["uno-0001".to_string()]);
 }
 
 fn wrote_body(at: &Path, id: &str, body: &str) {
@@ -625,7 +773,7 @@ fn settling_a_document_in_another_place_sets_the_folder_s_base_aside_instead_of_
         "# Kit\n\nlo de la nube\n",
     );
 
-    settle(&one.data, cloud.path(), "uno-0001", Keep::Both).unwrap();
+    settle(&one.data, cloud.path(), "uno-0001", Keep::Both, None).unwrap();
     wrote_body(
         &here,
         "uno-0001",
@@ -759,7 +907,7 @@ fn keeping_mine_leaves_the_folder_holding_mine_and_asks_no_more() {
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
 
-    let brought = settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    let brought = settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
 
     assert_eq!(brought, None);
     assert_eq!(body(shared.path(), "dev_a-0001"), "# Minuta\n\nlo mio");
@@ -775,7 +923,7 @@ fn what_is_written_after_settling_travels_instead_of_being_asked_about_again() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
 
     paper(&one, "dev_a-0001", "# Minuta\n\nlo mio, y algo mas");
     let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
@@ -797,7 +945,7 @@ fn keeping_theirs_takes_it_home_and_asks_no_more() {
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
 
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Theirs).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Theirs, None).unwrap();
 
     assert_eq!(body(&one.data, "dev_a-0001"), "# Minuta\n\nlo suyo");
     let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
@@ -807,13 +955,75 @@ fn keeping_theirs_takes_it_home_and_asks_no_more() {
     );
 }
 
+fn asked_about(one: &Machine, shared: &Path, alive: &[String]) -> Option<String> {
+    let done = carry_papers(&one.data, shared, alive).unwrap();
+    assert_eq!(done.undecided.len(), 1, "{done:?}");
+    done.undecided[0].mine.clone()
+}
+
+#[test]
+fn keeping_theirs_never_covers_what_was_written_here_after_the_person_was_asked() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let alive = at_odds(&one, shared.path());
+    let seen = asked_about(&one, shared.path(), &alive);
+    paper(
+        &one,
+        "dev_a-0001",
+        "# Minuta
+
+lo mio, y lo que escribio el agente",
+    );
+
+    let outcome = settle(
+        &one.data,
+        shared.path(),
+        "dev_a-0001",
+        Keep::Theirs,
+        seen.as_deref(),
+    );
+
+    assert!(matches!(outcome, Err(Trouble::Moved(_))), "{outcome:?}");
+    assert_eq!(
+        body(&one.data, "dev_a-0001"),
+        "# Minuta
+
+lo mio, y lo que escribio el agente"
+    );
+}
+
+#[test]
+fn keeping_theirs_over_what_the_person_was_asked_about_still_takes_it_home() {
+    let one = machine("dev_a");
+    let shared = tempfile::tempdir().unwrap();
+    let alive = at_odds(&one, shared.path());
+    let seen = asked_about(&one, shared.path(), &alive);
+    assert!(seen.is_some());
+
+    settle(
+        &one.data,
+        shared.path(),
+        "dev_a-0001",
+        Keep::Theirs,
+        seen.as_deref(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        body(&one.data, "dev_a-0001"),
+        "# Minuta
+
+lo suyo"
+    );
+}
+
 #[test]
 fn keeping_both_hands_back_the_other_body_before_anything_is_overwritten() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
 
-    let brought = settle(&one.data, shared.path(), "dev_a-0001", Keep::Both).unwrap();
+    let brought = settle(&one.data, shared.path(), "dev_a-0001", Keep::Both, None).unwrap();
 
     assert_eq!(brought.as_deref(), Some("# Minuta\n\nlo suyo"));
     assert_eq!(
@@ -831,9 +1041,9 @@ fn keeping_both_settles_once_the_other_version_is_safe() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Both).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Both, None).unwrap();
 
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
 
     assert_eq!(body(shared.path(), "dev_a-0001"), "# Minuta\n\nlo mio");
     let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
@@ -1217,7 +1427,7 @@ fn settling_with_theirs_also_lets_the_next_edit_travel_alone() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Theirs).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Theirs, None).unwrap();
 
     paper(&one, "dev_a-0001", "# Minuta\n\nlo suyo, y algo mas");
     let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
@@ -1238,8 +1448,8 @@ fn settling_with_both_lets_a_later_local_edit_travel_alone() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Both).unwrap();
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Both, None).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
 
     paper(&one, "dev_a-0001", "# Minuta\n\nlo mio, y algo mas");
     let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
@@ -1256,8 +1466,8 @@ fn settling_with_both_lets_a_later_remote_edit_travel_alone() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let alive = at_odds(&one, shared.path());
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Both).unwrap();
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Both, None).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
 
     theirs(
         shared.path(),
@@ -1532,7 +1742,7 @@ fn after_a_decision_by_hand_the_base_on_disk_is_what_the_ledger_says_it_is() {
     let done = carry_papers(&one.data, shared.path(), &alive).unwrap();
     assert_eq!(done.undecided.len(), 1, "no llego a preguntar");
 
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
     carry_papers(&one.data, shared.path(), &alive).unwrap();
     carry_papers(&one.data, shared.path(), &alive).unwrap();
 
@@ -1567,7 +1777,7 @@ fn a_stale_base_left_by_a_decision_does_not_turn_a_silent_merge_into_a_question(
         "# Minuta\n\nparrafo uno de windows\n\nparrafo dos\n",
     );
     carry_papers(&one.data, shared.path(), &alive).unwrap();
-    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine).unwrap();
+    settle(&one.data, shared.path(), "dev_a-0001", Keep::Mine, None).unwrap();
     carry_papers(&one.data, shared.path(), &alive).unwrap();
 
     paper(
@@ -2252,15 +2462,15 @@ fn settling_any_hostile_identifier_is_always_refused_before_anything_moves() {
 
     for id in hostile_ids() {
         assert!(
-            settle(&one.data, shared.path(), &id, Keep::Theirs).is_err(),
+            settle(&one.data, shared.path(), &id, Keep::Theirs, None).is_err(),
             "{id:?} settled with theirs"
         );
         assert!(
-            settle(&one.data, shared.path(), &id, Keep::Mine).is_err(),
+            settle(&one.data, shared.path(), &id, Keep::Mine, None).is_err(),
             "{id:?} settled with mine"
         );
         assert!(
-            settle(&one.data, shared.path(), &id, Keep::Both).is_err(),
+            settle(&one.data, shared.path(), &id, Keep::Both, None).is_err(),
             "{id:?} settled with both"
         );
     }

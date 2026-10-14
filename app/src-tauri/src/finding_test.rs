@@ -80,7 +80,13 @@ impl Carrier for Opening {
     fn both_papers(&self, _: &Here, _: &str) -> Result<(String, String), Trouble> {
         unreachable!()
     }
-    fn settle(&self, _: &Here, _: &str, _: Keep) -> Result<Option<String>, Trouble> {
+    fn settle(
+        &self,
+        _: &Here,
+        _: &str,
+        _: Keep,
+        _: Option<&str>,
+    ) -> Result<Option<String>, Trouble> {
         unreachable!()
     }
     fn forget_paper(&self, _: &str) {

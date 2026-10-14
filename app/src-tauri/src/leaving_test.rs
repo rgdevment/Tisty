@@ -483,6 +483,7 @@ impl tisty_carrier::Carrier for Refusing {
         _: &tisty_carrier::Here,
         _: &str,
         _: tisty_carrier::Keep,
+        _: Option<&str>,
     ) -> Result<Option<String>, tisty_carrier::Trouble> {
         unreachable!()
     }

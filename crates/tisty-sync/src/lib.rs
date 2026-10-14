@@ -82,6 +82,8 @@ pub enum Trouble {
     },
     /// The cloud could not be asked first (another round, no connection, a limit): try again later.
     NotNow(String),
+    /// The document here changed or is being written since the person was asked about it.
+    Moved(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,6 +98,7 @@ pub enum Way {
 pub struct Undecided {
     pub id: String,
     pub theirs: String,
+    pub mine: Option<String>,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -877,7 +880,14 @@ pub fn both_papers(data: &Path, dest: &Path, id: &str) -> Result<(String, String
     Ok((mine, theirs))
 }
 
-pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
+/// `seen` is what this side printed as when the person was asked, so keeping theirs never covers a later write.
+pub fn settle(
+    data: &Path,
+    dest: &Path,
+    id: &str,
+    keep: Keep,
+    seen: Option<&str>,
+) -> Result<Option<String>, Trouble> {
     use tisty_core::docs::{Carried, print_of};
 
     straight(&dest.join(PAPERS), dest)?;
@@ -904,18 +914,14 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
         return Ok(Some(body));
     }
 
-    match keep {
-        Keep::Theirs => {
-            let body = tisty_core::docs::read(&dest.join(PAPERS), id)
-                .map_err(|e| Trouble::Unreadable(e.to_string()))?;
-            std::fs::create_dir_all(data.join(PAPERS)).map_err(io)?;
-            written(&mine, body.as_bytes())?;
-        }
+    let _alone = match keep {
+        Keep::Theirs => Some(theirs_over_mine(data, dest, id, &mine, seen)?),
         _ => {
             std::fs::create_dir_all(dest.join(PAPERS)).map_err(io)?;
             copy_onto(&mine, &theirs)?;
+            None
         }
-    }
+    };
 
     match print_of(&mine) {
         Ok(Some(print)) => {
@@ -956,6 +962,30 @@ pub fn settle(data: &Path, dest: &Path, id: &str, keep: Keep) -> Result<Option<S
         ],
     );
     Ok(None)
+}
+
+fn theirs_over_mine(
+    data: &Path,
+    dest: &Path,
+    id: &str,
+    mine: &Path,
+    seen: Option<&str>,
+) -> Result<tisty_core::docs::Alone, Trouble> {
+    let body = tisty_core::docs::read(&dest.join(PAPERS), id)
+        .map_err(|e| Trouble::Unreadable(e.to_string()))?;
+    let alone =
+        tisty_core::docs::hold(&data.join(PAPERS)).ok_or_else(|| Trouble::Moved(id.to_string()))?;
+    let now = tisty_core::docs::print_of(mine).ok().flatten();
+    if seen.is_some_and(|seen| now.as_deref() != Some(seen)) {
+        witness::warn(
+            channel::SYNC,
+            "a document changed here after the person was asked about it, so theirs was not kept over it",
+            &[("at", Fact::Id(id.to_string()))],
+        );
+        return Err(Trouble::Moved(id.to_string()));
+    }
+    written(mine, body.as_bytes())?;
+    Ok(alone)
 }
 
 pub(crate) fn joined(

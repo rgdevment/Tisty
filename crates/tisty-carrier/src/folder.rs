@@ -161,8 +161,14 @@ impl Carrier for Folder {
         tisty_sync::both_papers(&here.data, &self.at, id)
     }
 
-    fn settle(&self, here: &Here, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
-        tisty_sync::settle(&here.data, &self.at, id, keep)
+    fn settle(
+        &self,
+        here: &Here,
+        id: &str,
+        keep: Keep,
+        seen: Option<&str>,
+    ) -> Result<Option<String>, Trouble> {
+        tisty_sync::settle(&here.data, &self.at, id, keep, seen)
     }
 
     fn forget_paper(&self, id: &str) {

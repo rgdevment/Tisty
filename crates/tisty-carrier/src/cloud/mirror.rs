@@ -221,7 +221,17 @@ fn learn(
         let Some(data) = data else {
             return Ok(true);
         };
-        forget_base(data, &seen.name);
+        match ours_still(remote, index, &seen, &at) {
+            Ok(true) => {
+                if let Some(kept) = index.tree.get_mut(&seen.name) {
+                    kept.seen = seen;
+                }
+                return Ok(false);
+            }
+            Ok(false) | Err(Hitch::Missing(_)) => forget_base(data, &seen.name),
+            Err(Hitch::Broke(_)) => return Ok(true),
+            Err(other) => return Err(other),
+        }
     }
     match download(remote, &at, &seen.name) {
         Ok(got) => note(index, got, &at),
@@ -250,6 +260,23 @@ fn pending(index: &Index, name: &str, at: &Path) -> bool {
         }
         None => meta.is_file(),
     }
+}
+
+// Drive moves a file past a write of ours on its own, so a revision we never wrote can still hold the bytes we last sent.
+fn ours_still(remote: &dyn Remote, index: &Index, seen: &Seen, at: &Path) -> Result<bool, Hitch> {
+    let Some(kept) = index.tree.get(&seen.name) else {
+        return Ok(false);
+    };
+    if !seen.hash.is_empty() && !kept.seen.hash.is_empty() {
+        return Ok(seen.hash == kept.seen.hash);
+    }
+    if seen.bytes != kept.len || kept.digest.is_empty() {
+        return Ok(false);
+    }
+    let part = tisty_core::parting::beside(at, TURN.fetch_add(1, Ordering::Relaxed));
+    let fetched = fetch_whole(remote, &seen.name, &part).map(|_| digest_of(&part));
+    let _ = std::fs::remove_file(&part);
+    Ok(fetched?.is_some_and(|digest| digest == kept.digest))
 }
 
 fn forget_base(data: &Path, name: &str) {

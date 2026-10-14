@@ -76,7 +76,7 @@ impl Shared {
 
     fn settle(&self, who: &Machine, id: &str, keep: Keep) -> Result<Option<String>, Trouble> {
         let (cloud, here) = self.cloud(&who.device, &who.data);
-        cloud.settle(&here, id, keep)
+        cloud.settle(&here, id, keep, None)
     }
 
     fn stitch(
