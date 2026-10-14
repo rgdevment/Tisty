@@ -2095,3 +2095,23 @@ fn a_first_round_counts_what_it_reads_from_up_there_from_the_first_file() {
         assert!(first.contains(&(whole, whole)), "{who}: {first:?}");
     }
 }
+
+#[test]
+fn a_computer_that_never_wrote_takes_the_place_history_on_its_first_round_without_asking() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        drop(two.store());
+        assert!(
+            !tisty_core::store::inhabited(two.here.data.join(STORE)),
+            "{who}"
+        );
+
+        let first = two.carry(Way::Both, Holds::Everywhere);
+
+        assert!(first.is_ok(), "{who}: {first:?}");
+        assert_eq!(two.titles(), ["lo de uno"], "{who}");
+    }
+}
