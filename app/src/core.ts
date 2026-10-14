@@ -980,6 +980,15 @@ export interface Joining {
 
 export const joining = (): Promise<Joining> => invoke("joining");
 
+/** Whether a place already holds a store, in one look: `fresh` is this machine never having written. */
+export interface Peeked {
+  fresh: boolean;
+  holds: boolean;
+}
+
+export const placePeek = (toward?: Toward): Promise<Peeked> =>
+  invoke("place_peek", { toward: toward ?? null });
+
 export const folderAstir = (): Promise<string> => invoke("folder_astir");
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 

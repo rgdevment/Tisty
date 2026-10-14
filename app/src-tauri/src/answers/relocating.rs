@@ -83,6 +83,16 @@ fn way_of(session: &Session, toward: &Toward) -> Answer<Sync> {
     }
 }
 
+/// The carrier a way would use, built without choosing it.
+pub(crate) fn carrier_toward(session: &Session, toward: &Toward) -> Answer<tisty_carrier::Shared> {
+    let way = way_of(session, toward)?;
+    match tisty_carrier::cloud_of(Some(&way)) {
+        Some(at) => session.reach.apart(at),
+        None => tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier,
+    }
+    .ok_or_else(|| Refusal::of("moveToUnreachable"))
+}
+
 struct Ends {
     from: Option<tisty_carrier::Shared>,
     to: Option<tisty_carrier::Shared>,

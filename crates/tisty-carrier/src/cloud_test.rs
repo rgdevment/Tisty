@@ -2027,3 +2027,26 @@ fn a_wipe_tries_again_after_the_provider_failed_on_its_side_and_asks_no_more_onc
     assert_eq!(went, Ok(()));
     assert_eq!(first, 1);
 }
+
+#[test]
+fn a_store_up_there_is_seen_in_one_look_before_anything_is_pulled() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        assert!(
+            !two.carrier.peeks_a_store(),
+            "{who}: an empty place held a store"
+        );
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        remote.forget_counts();
+
+        assert!(two.carrier.peeks_a_store(), "{who}");
+        assert!(
+            !two.carrier.holds_a_store(),
+            "{who}: the look pulled the store"
+        );
+        assert_eq!(remote.counts().fetches, 0, "{who}");
+    }
+}

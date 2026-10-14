@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
-import { type Connected, cloudChoose, cloudConnect, cloudConnectCancel, syncState } from "../core";
+import {
+  type Connected,
+  cloudChoose,
+  cloudConnect,
+  cloudConnectCancel,
+  placePeek,
+  syncState,
+} from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -52,6 +59,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
   const [held, setHeld] = useState(false);
   const [connected, setConnected] = useState<Connected>();
   const [weight, setWeight] = useState<number>();
+  const [holds, setHolds] = useState(false);
   const gone = useRef(false);
   const unused = useRef<string | undefined>(undefined);
 
@@ -67,10 +75,15 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
 
   useEffect(() => {
     if (!connected) return;
+    setHolds(false);
     syncState()
       .then((state) => !gone.current && setWeight(state.weight))
       .catch(() => undefined);
-  }, [connected]);
+    if (onConnected) return;
+    placePeek({ kind: "cloud", account: connected.account, email: connected.email })
+      .then((peeked) => !gone.current && setHolds(peeked.holds))
+      .catch(() => undefined);
+  }, [connected, onConnected]);
 
   const stuck = busy || held || waiting;
 
@@ -136,14 +149,21 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
             {t("cloudConnectedTag")}
           </span>
         </div>
-        <Points
-          title={t("cloudFirstUpload")}
-          points={[
-            ...(weight === undefined ? [] : [fill("cloudToUpload", weigh(weight))]),
-            t("cloudResumes"),
-            t("cloudAttachmentsStay"),
-          ]}
-        />
+        {holds ? (
+          <div className={box}>
+            <span className={heading}>{fill("cloudHolds", t("cloudGoogle"))}</span>
+            {t("cloudHoldsWhy")}
+          </div>
+        ) : (
+          <Points
+            title={t("cloudFirstUpload")}
+            points={[
+              ...(weight === undefined ? [] : [fill("cloudToUpload", weigh(weight))]),
+              t("cloudResumes"),
+              t("cloudAttachmentsStay"),
+            ]}
+          />
+        )}
         <div className={`${box} bg-accent-soft`}>
           <span className={heading}>{t("cloudGooglePace")}</span>
           {t("cloudGooglePaceWhy")}
@@ -153,7 +173,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
             {t("welcomeBack")}
           </button>
           <button type="button" disabled={stuck} onClick={start} className={go}>
-            {onConnected ? t("welcomeNext") : t("cloudStart")}
+            {onConnected ? t("welcomeNext") : holds ? t("cloudBring") : t("cloudStart")}
           </button>
         </div>
       </div>

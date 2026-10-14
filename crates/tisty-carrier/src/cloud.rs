@@ -847,6 +847,13 @@ impl Carrier for Cloud {
         tisty_core::store::inhabited(self.tree().join(STORE))
     }
 
+    fn peeks_a_store(&self) -> bool {
+        self.holds_a_store()
+            || Metered::over(&*self.remote, &self.home, Class::Asked)
+                .about(&format!("{STORE}/{}", tisty_sync::MARKER))
+                .is_ok_and(|seen| seen.is_some())
+    }
+
     fn wipe(&self) -> Result<usize, Trouble> {
         let provider = self.remote.limits().provider;
         let stopped = |hitch| match judge(hitch, provider) {

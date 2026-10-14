@@ -126,6 +126,10 @@ pub trait Carrier: Send + std::marker::Sync {
     fn forget_word(&self) -> Result<(), Trouble> {
         Ok(())
     }
+    /// Asked of the place in one look, never a whole pull, so a first round can be told apart before it starts.
+    fn peeks_a_store(&self) -> bool {
+        self.holds_a_store()
+    }
     fn holds_a_store(&self) -> bool {
         self.place()
             .is_some_and(|dest| tisty_core::store::inhabited(dest.join(STORE)))

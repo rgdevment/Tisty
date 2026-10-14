@@ -139,3 +139,35 @@ fn a_machine_already_set_aside_is_not_set_aside_again() {
         .count();
     assert_eq!(kept, 1);
 }
+
+#[test]
+fn a_look_at_the_place_tells_a_store_already_there_from_an_empty_place() {
+    let room = tempfile::tempdir().unwrap();
+    let place = room.path().join("place");
+    let mine = room.path().join("mine").join("store");
+    let folder = tisty_carrier::considering(&place);
+
+    assert_eq!(
+        peeked(&*folder, &mine),
+        Peeked {
+            fresh: true,
+            holds: false
+        }
+    );
+
+    Store::open(place.join(tisty_carrier::STORE), DeviceId("win_b".into()))
+        .unwrap()
+        .append(Op::TaskAdd {
+            id: ulid::Ulid::generate(),
+            d: TaskAdd::new("Lo de otro equipo", "a0"),
+        })
+        .unwrap();
+
+    assert_eq!(
+        peeked(&*folder, &mine),
+        Peeked {
+            fresh: true,
+            holds: true
+        }
+    );
+}

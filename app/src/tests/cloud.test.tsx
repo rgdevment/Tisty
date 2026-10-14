@@ -174,6 +174,43 @@ describe("choosing where the copies go", () => {
     expect(sent("cloud_choose")[0].args).toEqual({ account: ANA.account, email: ANA.email });
   });
 
+  it("offers to bring a Tisty the cloud already holds instead of a first upload", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    ipc.answers.sync_state = () => Promise.resolve(carrying());
+    ipc.answers.place_peek = () => Promise.resolve({ fresh: true, holds: true });
+    const done = choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+
+    expect(await screen.findByText(fill("cloudHolds", t("cloudGoogle")))).toBeTruthy();
+    expect(screen.getByText(t("cloudHoldsWhy"))).toBeTruthy();
+    expect(screen.queryByText(t("cloudFirstUpload"))).toBeNull();
+    expect(screen.queryByRole("button", { name: t("cloudStart") })).toBeNull();
+    expect(sent("place_peek")[0].args.toward).toEqual({
+      kind: "cloud",
+      account: ANA.account,
+      email: ANA.email,
+    });
+    await userEvent.click(screen.getByRole("button", { name: t("cloudBring") }));
+
+    await waitFor(() => expect(done).toHaveBeenCalledWith("cloud"));
+  });
+
+  it("keeps the first upload for a cloud that holds nothing yet", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    ipc.answers.sync_state = () => Promise.resolve(carrying());
+    ipc.answers.place_peek = () => Promise.resolve({ fresh: true, holds: false });
+    choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+
+    expect(await screen.findByText(fill("cloudToUpload", "3.0 MB"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("cloudStart") })).toBeTruthy();
+    expect(screen.queryByText(fill("cloudHolds", t("cloudGoogle")))).toBeNull();
+  });
+
   it("lets a sign-in the browser never answers be stopped, and says nothing of it", async () => {
     ipc.answers.cloud_connect = () => new Promise(() => {});
     const trouble = vi.fn();

@@ -1061,6 +1061,7 @@ pub fn run() {
             answers::joining::merge_stores,
             answers::joining::sync_kin,
             answers::joining::joining,
+            answers::joining::place_peek,
             answers::joining::folder_astir,
             answers::storing::remove_machine,
             answers::storing::confirm_machine_key,

@@ -1287,6 +1287,10 @@ const en = {
   cloudGooglePaceWhy:
     "If Google asks to slow down, Tisty waits as long as it says and carries on by itself. You don't need to do anything, and what you write stays here meanwhile.",
   cloudStart: "Start uploading",
+  cloudHolds: "Your {name} already holds your Tisty",
+  cloudHoldsWhy:
+    "Nothing has to go up first: Tisty brings what is there to this computer. If it is a lot, you can keep working while it arrives.",
+  cloudBring: "Sync",
   cloudForLater: "For later",
   cloudForLaterCount: "{name} files",
   cloudSeeWhich: "see which",
@@ -3247,6 +3251,10 @@ const es: Catalog = {
   cloudGooglePaceWhy:
     "Si Google pide ir más despacio, Tisty espera lo que pide y sigue solo. No tienes que hacer nada, y lo que escribas queda aquí mientras tanto.",
   cloudStart: "Empezar a subir",
+  cloudHolds: "Tu {name} ya tiene tu Tisty",
+  cloudHoldsWhy:
+    "No hay nada que subir primero: Tisty trae a este equipo lo que hay ahí. Si es mucho, puedes seguir trabajando mientras llega.",
+  cloudBring: "Sincronizar",
   cloudForLater: "Para después",
   cloudForLaterCount: "{name} archivos",
   cloudSeeWhich: "ver cuáles",
