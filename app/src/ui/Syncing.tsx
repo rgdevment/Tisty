@@ -15,7 +15,7 @@ import { endMove, useMove } from "../relocation";
 import type { Run, Which, Word } from "./Card";
 import Clouded from "./Clouded";
 import Here from "./Here";
-import { Band, mild, strong, Warned } from "./Rows";
+import { Band, mild, risky, strong, Warned } from "./Rows";
 
 const QUIET_DAYS = 3;
 
@@ -169,33 +169,35 @@ export default function Syncing({
               </p>
             )}
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-faint">{t("syncOnlyFolder")}</p>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
-              <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
-              <button type="button" disabled={held} onClick={pickFolder} className={mild}>
-                {t("changeFolder")}
-              </button>
-              {state.cloudOffered && (
-                <button type="button" disabled={held} onClick={() => onMove()} className={mild}>
-                  {t("moveOpen")}
+            <div className="mt-3 border-t border-hair pt-3">
+              <p className="mb-2 text-[11.5px] text-faint">{t("syncSetUp")}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" disabled={held} onClick={pickFolder} className={mild}>
+                  {t("changeFolder")}
                 </button>
-              )}
-              <button
-                type="button"
-                disabled={held}
-                onClick={() => run("sync", turnedOff(kept), () => {})}
-                className={mild}
-              >
-                {t("syncOffNow")}
-              </button>
-              <button
-                type="button"
-                disabled={held}
-                title={t("syncAgainWhy")}
-                onClick={() => carry("again")}
-                className={mild}
-              >
-                {t("syncAgain")}
-              </button>
+                {state.cloudOffered && (
+                  <button type="button" disabled={held} onClick={() => onMove()} className={mild}>
+                    {t("moveOpen")}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={held}
+                  title={t("syncAgainWhy")}
+                  onClick={() => carry("again")}
+                  className={mild}
+                >
+                  {t("syncAgain")}
+                </button>
+                <button
+                  type="button"
+                  disabled={held}
+                  onClick={() => run("sync", turnedOff(kept), () => {})}
+                  className={risky}
+                >
+                  {t("syncOffNow")}
+                </button>
+              </div>
             </div>
           </>
         )}
