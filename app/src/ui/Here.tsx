@@ -38,30 +38,33 @@ export default function Here({ held }: { held: boolean }) {
   };
 
   return (
-    <div className="mt-2.5 border-t border-hair pt-2.5">
-      <p className="text-[12.5px] text-soft">{fill("thisMachineIs", name)}</p>
-      {here.code && (
-        <p className="mt-1 text-[12.5px] text-soft" title={t("thisMachineCodeWhy")}>
-          {t("thisMachineCode")} <span className="font-mono text-ink">{here.code}</span>
-        </p>
-      )}
-      {naming === null ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2.5">
-          {here.code && (
-            <button type="button" onClick={() => setBig(true)} className={mild}>
-              {t("showBig")}
-            </button>
-          )}
+    <div className="mt-3 border-t border-hair pt-3">
+      <div className="flex items-center justify-between gap-2.5">
+        <p className="min-w-0 truncate text-[12.5px] text-soft">{fill("thisMachineIs", name)}</p>
+        {naming === null && (
           <button
             type="button"
             disabled={held}
             onClick={() => setNaming(here.name ?? "")}
-            className={mild}
+            className={`${mild} shrink-0`}
           >
             {t("renameMachine")}
           </button>
+        )}
+      </div>
+      {here.code && (
+        <div className="mt-1.5 flex items-center justify-between gap-2.5">
+          <p className="min-w-0 text-[12.5px] text-soft" title={t("thisMachineCodeWhy")}>
+            {t("thisMachineCode")} <span className="font-mono text-ink">{here.code}</span>
+          </p>
+          {naming === null && (
+            <button type="button" onClick={() => setBig(true)} className={`${mild} shrink-0`}>
+              {t("showBig")}
+            </button>
+          )}
         </div>
-      ) : (
+      )}
+      {naming !== null && (
         <form
           className="mt-2"
           onSubmit={(event) => {

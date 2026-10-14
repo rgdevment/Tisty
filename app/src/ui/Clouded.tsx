@@ -217,8 +217,8 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
         </ul>
       )}
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-hair pt-2.5">
-        <span className="text-[11.5px] text-faint">{t("syncSetUp")}</span>
+      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-hair pt-3">
+        <p className="col-span-2 text-[11.5px] text-faint">{t("syncSetUp")}</p>
         {status?.joined && (
           <button type="button" disabled={held} onClick={onMove} className={mild}>
             {t("moveOpen")}
