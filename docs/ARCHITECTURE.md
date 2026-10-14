@@ -25,11 +25,12 @@ shared folder both computers can reach: a folder a cloud client keeps in step, a
 NAS, an external drive. Tisty only reads and writes local paths there and does
 not know which provider, if any, stands behind it.
 
-Syncing through a provider's API is built for Google Drive and not offered yet.
-The `Cloud` carrier, the `Remote` contract it speaks and token renewal are
-tested against simulated Drive, OneDrive and Dropbox providers, and
-`tisty_google::Drive` implements `Remote` for real. A setting selects it
-(`Sync::Cloud`) and the window builds it, but no screen chooses it yet.
+Since 1.30 the person can also sync through Google Drive's API, chosen and
+connected in the window only. The `Cloud` carrier, the `Remote` contract it
+speaks and token renewal are tested against simulated Drive, OneDrive and
+Dropbox providers, and `tisty_google::Drive` implements `Remote` for real. A
+setting selects it (`Sync::Cloud`); a build without the Google client id and
+secret offers no cloud at all.
 *Carriers* says exactly what exists.
 
 ### Rules that hold everywhere
@@ -408,7 +409,7 @@ the data home*) and sets the folder hidden and private to the account.
 | `<config>/private/<device>.device-key` | Ed25519 signing key (32 bytes) | never | never |
 | `<config>/private/<store-id>.store-key` | The secret that seals parcels | never | never |
 | `<config>/private/tisty.log` | The local log (rolls at 256 KiB to `tisty.log.1`) | never | never |
-| `<config>/cloud/<provider>-<account>-<hash>/` | Where `Paths::cloud_home` puts a cloud carrier's mirror, index and caches; nothing creates it outside tests | never | never |
+| `<config>/cloud/<provider>-<account>-<hash>/` | Where `Paths::cloud_home` puts a cloud carrier's mirror, index, caches and how its last round ended | never | never |
 | `<cache>/read.db` | The read cache | never | never |
 | `<cache>/selection.json`, `vouched.json`, `glimpses/` | CLI listing numbers; digests of shared-folder attachments; link previews | never | never |
 | `<cache>/carried-to`, `adopting` | Memo that this machine has been to a folder; machines to take up | never | never |
