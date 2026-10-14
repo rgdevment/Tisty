@@ -15,6 +15,17 @@ pub(crate) fn settled_body(data: &Path, id: &str, mine: &Path, theirs: &Path) {
     settled_text(data, id, said.as_deref());
 }
 
+// Only a body that prints as the ledger will name it is a base; one written since would be a base nobody shares.
+fn settled_as(data: &Path, id: &str, at: &Path, print: &str) {
+    let sent = tisty_core::docs::read_as_printed(at, print).ok().flatten();
+    settled_text(
+        data,
+        id,
+        sent.as_deref()
+            .and_then(|bytes| std::str::from_utf8(bytes).ok()),
+    );
+}
+
 fn settled_text(data: &Path, id: &str, said: Option<&str>) {
     let Some(said) = said else {
         tisty_core::docs::forget_carried(data, id);
@@ -235,7 +246,7 @@ pub(crate) fn carry_papers_leaning_on(
                     copy_onto(&mine, &theirs)?;
                     done.sent += 1;
                     if let Some(print) = ours {
-                        settled_body(data, id, &mine, &theirs);
+                        settled_as(data, id, &theirs, &print);
                         said.keep(id, &print);
                     }
                 }

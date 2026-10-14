@@ -492,6 +492,61 @@ lo de ahora
 }
 
 #[test]
+fn the_base_kept_for_a_sent_body_is_never_newer_than_the_print_the_ledger_names() {
+    let one = machine("uno");
+    let shared = tempfile::tempdir().unwrap();
+    let mine = one.data.join(PAPERS).join("uno-0001.md");
+    filed(
+        &one,
+        "uno-0001",
+        "# Kit
+
+lo de antes
+",
+    );
+    carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    // The round reads a print it kept, so a write of the same length and stamp lands after what it read.
+    std::fs::write(
+        &mine,
+        "# Kit
+
+lo de luego
+",
+    )
+    .unwrap();
+    let mut prints = tisty_core::docs::Prints::read(&one.data);
+    prints.of(&mine).unwrap();
+    prints.save(&one.data);
+    let when = std::fs::metadata(&mine).unwrap().modified().unwrap();
+    std::fs::write(
+        &mine,
+        "# Kit
+
+lo de ahora
+",
+    )
+    .unwrap();
+    std::fs::File::options()
+        .write(true)
+        .open(&mine)
+        .unwrap()
+        .set_modified(when)
+        .unwrap();
+    let done = carry_papers(&one.data, shared.path(), &["uno-0001".into()]).unwrap();
+
+    assert_eq!(done.sent, 1, "{done:?}");
+    let named = tisty_core::docs::Carried::read(&one.data)
+        .of("uno-0001")
+        .map(str::to_string);
+    let kept = tisty_core::docs::carried_print(&one.data, "uno-0001");
+    assert!(
+        kept.is_none() || kept == named,
+        "the base kept is not the body the ledger names"
+    );
+}
+
+#[test]
 fn a_body_from_the_other_side_waits_while_somebody_here_holds_the_document() {
     let one = machine("uno");
     let shared = tempfile::tempdir().unwrap();
