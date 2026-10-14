@@ -8,6 +8,7 @@ fn round(code: &str, left: usize) -> tisty_carrier::LastRound {
         name: None,
         left,
         names: Vec::new(),
+        ..Default::default()
     }
 }
 

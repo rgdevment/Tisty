@@ -207,7 +207,10 @@ fn a_request_that_never_left_this_machine_costs_nothing() {
     let home = tempfile::tempdir().unwrap();
     let fake = Fake::drive();
     let meter = Metered::over(&fake, home.path(), Class::History);
-    fake.fail_next(Hitch::Unreachable("sin red".into()));
+    fake.fail_next(Hitch::Unreachable(
+        Some(crate::Cause::Blocked),
+        "sin red".into(),
+    ));
 
     assert!(meter.list("").is_err());
 

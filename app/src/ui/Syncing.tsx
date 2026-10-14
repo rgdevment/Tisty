@@ -13,10 +13,12 @@ import { daysFrom, stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { endMove, useMove } from "../relocation";
+import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import Clouded from "./Clouded";
 import Here from "./Here";
 import { Band, mild, risky, strong, Warned } from "./Rows";
+import { useSince } from "./useSince";
 
 const QUIET_DAYS = 3;
 
@@ -24,6 +26,7 @@ interface Props {
   state: Carrying;
   kept: Settings | null;
   busy: Which | null;
+  busySince?: number;
   said?: Word;
   trouble?: Word;
   run: Run;
@@ -80,6 +83,7 @@ export default function Syncing({
   state,
   kept,
   busy,
+  busySince,
   said,
   trouble,
   run,
@@ -90,8 +94,9 @@ export default function Syncing({
 }: Props) {
   const held = busy !== null;
   const carrying = busy === "sync";
+  const running = useSince(carrying, busySince);
   const awaits = useAwaitsChoice();
-  const told = said?.card === "sync" && !(awaits && said.text === t("syncBusy"));
+  const told = said?.card === "sync" && !(awaits && said.busy);
   if (state.mode === "cloud")
     return (
       <>
@@ -101,6 +106,7 @@ export default function Syncing({
           <Clouded
             state={state}
             busy={busy}
+            busySince={busySince}
             said={said}
             trouble={trouble}
             run={run}
@@ -132,7 +138,7 @@ export default function Syncing({
           {state.chosen ? (
             <>
               <button type="button" disabled={held} onClick={() => carry()} className={strong}>
-                {carrying ? t("syncing_") : t("syncNow")}
+                {carrying ? syncingSaid(running) : t("syncNow")}
               </button>
               <button
                 type="button"

@@ -124,6 +124,44 @@ fn carrier_and_here(
     Ok((session.carrying()?, session.here()))
 }
 
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Peeked {
+    /// This machine has never written a history of its own.
+    fresh: bool,
+    /// Unknown when the place could not be asked, so the window decides again once a round has run.
+    holds: Option<bool>,
+}
+
+/// Whether a place already holds a store, in one look and never a pull, so a first round is told before it starts.
+#[tauri::command(async)]
+pub async fn place_peek(
+    session: tauri::State<'_, Mutex<Session>>,
+    toward: Option<super::relocating::Toward>,
+) -> Answer<Peeked> {
+    let (carrier, store) = {
+        let session = held(&session);
+        let carrier = match &toward {
+            Some(toward) => super::relocating::carrier_toward(&session, toward)?,
+            None => session.carrying()?,
+        };
+        (carrier, session.paths.store())
+    };
+    let ours = toward.is_none();
+    elsewhere(move || peeked(&*carrier, &store, ours)).await
+}
+
+pub(crate) fn peeked(
+    carrier: &dyn tisty_carrier::Carrier,
+    store: &std::path::Path,
+    ours: bool,
+) -> Peeked {
+    Peeked {
+        fresh: !tisty_core::store::inhabited(store),
+        holds: carrier.peeks_a_store(ours),
+    }
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Joining {

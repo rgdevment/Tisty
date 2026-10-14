@@ -3,6 +3,7 @@ import { type CloudStatus, cloudForget, cloudStatus } from "./core";
 import { budgetResets } from "./format";
 import { fill, t } from "./locales";
 import { plainly } from "./refusal";
+import { lastingCause } from "./syncSaid";
 
 type Key = Parameters<typeof t>[0];
 
@@ -15,6 +16,8 @@ export interface Standing {
   exit?: Exit;
   exitSaid?: Key;
   name?: string;
+  /** Said in red: what keeps standing in the way, not a wait that ends by itself. */
+  urgent?: boolean;
 }
 
 export const STORAGE = "https://drive.google.com/settings/storage";
@@ -81,6 +84,8 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
       exit: "choose",
       exitSaid: "stateApartDo",
     };
+  const cause = last.code === "deferred-offline" ? lastingCause(last, now) : null;
+  if (cause) return { said: "stateOffline", told: cause, urgent: true };
   const name = last.name ?? undefined;
   const found = BY_CODE[last.code];
   if (found) return { ...found, name };

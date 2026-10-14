@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import type { Carrying, MovePlan, Moving, Toward } from "../core";
+import type { Carrying, Cause, MovePlan, Moving, Toward } from "../core";
 import { goesOnAt, weigh } from "../format";
 import { fill, t, type Word } from "../locales";
 import type { Run, Waited } from "../relocation";
-import { waitSaid } from "../syncSaid";
+import { causeSaid, type Failing, lasts, offlineNow, waitSaid } from "../syncSaid";
 
 const WAITS = {
   budget: "deferredBudget",
@@ -17,15 +17,25 @@ const WAITS = {
   unsettled: "moveUnsettled",
 } as const;
 
-const offlineNow = () => typeof navigator !== "undefined" && navigator.onLine === false;
-
 // A line Google cut, or a fault it answered with, is no lost connection while this computer is online.
-const plainWait = (waited: Waited): Word =>
+const plainWord = (waited: Waited): Word =>
   waited === "limit"
     ? "moveLimit"
     : waited === "offline" && offlineNow()
       ? "moveOffline"
       : "moveTroubled";
+
+const lastingCause = (cause?: Cause | null, failing?: Failing, now = Date.now()): string | null =>
+  failing && lasts(failing, now / 1000) ? causeSaid(cause) : null;
+
+const plainWait = (
+  waited: Waited,
+  cause?: Cause | null,
+  failing?: Failing,
+  now = Date.now(),
+): string => (waited === "offline" && lastingCause(cause, failing, now)) || t(plainWord(waited));
+
+const causeOf = (run: Run) => (run.result?.state === "waiting" ? run.result.cause : undefined);
 
 export const useTicking = (on: boolean) => {
   const [, tick] = useState(0);
@@ -40,7 +50,7 @@ export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
   if (run.pausedUntil === undefined) return undefined;
   if (run.waited === "offline" || run.waited === "troubled") {
     const left = Math.max(0, Math.ceil((run.pausedUntil - now) / 1000));
-    return `${t(plainWait(run.waited))} · ${fill("moveRetryIn", String(left))}`;
+    return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", String(left))}`;
   }
   return goesOnAt(run.pausedUntil);
 };
@@ -80,8 +90,11 @@ const shareOf = (run: Run): number => {
 
 type Waits = Extract<Moving, { state: "waiting" }>;
 
-const waitWhy = (result: Waits): string => {
-  if (result.reason === "offline") return t(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy");
+const waitWhy = (result: Waits, failing?: Failing): string => {
+  if (result.reason === "offline")
+    return (
+      lastingCause(result.cause, failing) ?? t(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy")
+    );
   if (result.reason === "troubled") return t("moveTroubledWhy");
   return result.reason && result.reason in WAITS
     ? waitSaid(WAITS[result.reason as keyof typeof WAITS])
@@ -89,10 +102,10 @@ const waitWhy = (result: Waits): string => {
 };
 
 /** A waiting move said in a line, never a bare "waiting". */
-export const waitingSaid = (result: Waits): string =>
+export const waitingSaid = (result: Waits, failing?: Failing): string =>
   result.reason === "offline" || result.reason === "troubled" || result.reason === "limit"
-    ? `${t("moveWaiting")} · ${t(plainWait(result.reason))}`
-    : `${t("moveWaiting")} · ${waitWhy(result)}`;
+    ? `${t("moveWaiting")} · ${plainWait(result.reason, result.cause, failing)}`
+    : `${t("moveWaiting")} · ${waitWhy(result, failing)}`;
 
 const row =
   "flex w-full items-center gap-2.5 rounded-[10px] border border-line px-3 py-2 text-left hover:bg-hover disabled:opacity-50";
@@ -262,18 +275,20 @@ export function Underway({ run, onHide }: { run: Run; onHide: () => void }) {
 
 export function Waiting({
   result,
+  failing,
   busy,
   onDrop,
   onLater,
   onAgain,
 }: {
   result: Extract<Moving, { state: "waiting" }>;
+  failing?: Failing;
   busy: boolean;
   onDrop: () => void;
   onLater: () => void;
   onAgain: () => void;
 }) {
-  const why = waitWhy(result);
+  const why = waitWhy(result, failing);
   return (
     <div className="flex flex-col gap-3">
       <div className={box}>

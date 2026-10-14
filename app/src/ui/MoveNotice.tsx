@@ -7,7 +7,7 @@ const said = (run: Run): string => {
   if (run.going) return alongSaid(run) ?? t("moveMoving");
   const paused = pauseSaid(run);
   if (paused) return paused;
-  if (run.result?.state === "waiting") return waitingSaid(run.result);
+  if (run.result?.state === "waiting") return waitingSaid(run.result, run.failing);
   return run.result?.state === "done" ? doneSaid(run.toward) : t("moveWaiting");
 };
 

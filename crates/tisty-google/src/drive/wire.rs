@@ -33,7 +33,10 @@ pub(super) fn quoted(text: &str) -> String {
 // A line cut while the body was still coming is no connection, never a shape Tisty misreads.
 pub(super) fn json<T: serde::de::DeserializeOwned>(answer: Response) -> Result<T, Hitch> {
     serde_json::from_reader(answer).map_err(|e| match e.is_io() {
-        true => Hitch::Unreachable("the line was cut while Google Drive was answering".into()),
+        true => Hitch::Unreachable(
+            None,
+            "the line was cut while Google Drive was answering".into(),
+        ),
         false => Hitch::Broke("Google Drive answered in a shape Tisty does not read".into()),
     })
 }
@@ -51,9 +54,7 @@ impl Drive {
             if let Some(patience) = patience {
                 asked = asked.timeout(patience);
             }
-            let asked = asked
-                .build()
-                .map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+            let asked = asked.build().map_err(crate::health::unreachable)?;
             let shown = witness::keeping_all().then(|| {
                 let sent = asked
                     .body()
@@ -66,7 +67,7 @@ impl Drive {
             if let Some((verb, kind, sent)) = &shown {
                 traced(verb, kind, answer.as_ref().ok(), began, *sent);
             }
-            let answer = answer.map_err(|e| Hitch::Unreachable(told(&e.without_url())))?;
+            let answer = answer.map_err(crate::health::unreachable)?;
             if answer.status().as_u16() == 401 && !renewed {
                 self.tokens.spoiled(&access);
                 renewed = true;

@@ -66,6 +66,8 @@ pub enum Moving {
         reason: Option<&'static str>,
         /// Seconds the provider asked to wait, so a short pause goes on by itself.
         wait: Option<u64>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cause: Option<&'static str>,
     },
 }
 
@@ -79,6 +81,16 @@ fn way_of(session: &Session, toward: &Toward) -> Answer<Sync> {
             email: email.clone(),
         })),
     }
+}
+
+/// The carrier a way would use, built without choosing it.
+pub(crate) fn carrier_toward(session: &Session, toward: &Toward) -> Answer<tisty_carrier::Shared> {
+    let way = way_of(session, toward)?;
+    match tisty_carrier::cloud_of(Some(&way)) {
+        Some(at) => session.reach.apart(at),
+        None => tisty_carrier::chosen_with(Some(&way), Some(&session.reach)).carrier,
+    }
+    .ok_or_else(|| Refusal::of("moveToUnreachable"))
 }
 
 struct Ends {
@@ -261,6 +273,7 @@ pub async fn move_to(
             left: Weight::default(),
             reason: Some("unsettled"),
             wait: None,
+            cause: None,
         }),
         tisty_carrier::Shift::Ready => {
             let after = changed_with(&mut held(&session), way.clone(), moving_in, joins)?;
@@ -320,6 +333,10 @@ fn waiting(
             .as_ref()
             .and_then(|one| one.retry_after)
             .map(|wait| wait.as_secs()),
+        cause: deferred
+            .as_ref()
+            .and_then(|one| one.cause)
+            .map(tisty_carrier::Cause::code),
         reason: deferred.map(|one| match one.reason {
             tisty_carrier::Reason::Budget => "budget",
             tisty_carrier::Reason::Limit => "limit",

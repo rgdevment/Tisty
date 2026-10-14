@@ -89,6 +89,7 @@ fn unsent_beside(data: &Path, dest: &Path, buried: &BTreeSet<String>) -> Option<
         left: unsent.len(),
         retry_after: None,
         names: unsent.into_iter().take(NAMED_AT_MOST).collect(),
+        cause: None,
     })
 }
 

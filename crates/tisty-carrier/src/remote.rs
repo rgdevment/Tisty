@@ -35,7 +35,8 @@ pub enum Hitch {
     Elsewhere {
         found: String,
     },
-    Unreachable(String),
+    /// What stood in the way travels with it, so the window can say why the provider stays out of reach.
+    Unreachable(Option<crate::Cause>, String),
     /// The provider failed on its side and gave no wait, so the round is tried again later.
     Troubled(String),
     /// Everything the store held up there is gone at once, deleted outside Tisty, and is never read as each file deleted.

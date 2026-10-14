@@ -180,7 +180,7 @@ fn a_line_cut_while_an_answer_was_coming_is_no_connection_and_never_a_broken_dri
     let cut = drive(at, home.path()).list("");
 
     served.join().unwrap();
-    assert!(matches!(cut, Err(Hitch::Unreachable(_))), "{cut:?}");
+    assert!(matches!(cut, Err(Hitch::Unreachable(None, _))), "{cut:?}");
 }
 
 #[test]

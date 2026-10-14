@@ -1183,6 +1183,11 @@ const en = {
   healthSlow:
     "{name} took a while to answer; it may be a slow network or a filter. You can try connecting anyway.",
   healthAgain: "Check again",
+  roundBlocked:
+    "Something has been blocking the connection with {name} for a while: it may be a proxy, a filter at your company or an antivirus. Your changes stay saved on this computer and Tisty keeps trying.",
+  roundFiltered:
+    "A filter on your network or an antivirus is inspecting secure connections and Tisty cannot trust it. If you are on a work network, ask for Tisty to be let through. Your changes stay saved on this computer.",
+  roundSlow: "{name} is taking a while to answer from this network. Tisty keeps trying.",
   restoredApart:
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another Tisty",
@@ -1282,6 +1287,10 @@ const en = {
   cloudGooglePaceWhy:
     "If Google asks to slow down, Tisty waits as long as it says and carries on by itself. You don't need to do anything, and what you write stays here meanwhile.",
   cloudStart: "Start uploading",
+  cloudHolds: "Your {name} already holds your Tisty",
+  cloudHoldsWhy:
+    "Nothing has to go up first: Tisty brings what is there to this computer. If it is a lot, you can keep working while it arrives.",
+  cloudBring: "Sync",
   cloudForLater: "For later",
   cloudForLaterCount: "{name} files",
   cloudSeeWhich: "see which",
@@ -1459,6 +1468,7 @@ const en = {
   syncAgainWhy:
     "Copies everything of this machine's to the folder again, without asking whether it is already there. For a folder that lost a file, or a cloud client that missed one.",
   syncing_: "Syncing…",
+  syncingFor: "Syncing for {name} min…",
   syncCame: "something came back",
   syncSent: "this machine's changes were written to the folder",
   syncBoth: "this machine's changes were written to the folder, and something came back",
@@ -1850,9 +1860,10 @@ const en = {
   aliasLike: "your name here",
   welcomeRedundancy:
     "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
-  welcomeCarrying: "Bringing what the folder already holds",
+  welcomeBringing: "Bringing your Tisty from {name}…",
   welcomeCarryingWhy:
-    "The first round reads everything that is up there. You go in as soon as it starts: your tasks arrive first, and documents and attachments keep landing behind you while you work.",
+    "The first round reads everything that is there, and the more it holds the longer it takes. Your tasks arrive first, and documents and attachments keep landing behind you while you work.",
+  welcomeKeepWorking: "Keep working while it arrives",
   comingLog: "Bringing the history…",
   comingPapers: "Bringing documents…",
   comingAttachments: "Bringing attachments…",
@@ -1920,17 +1931,6 @@ const en = {
     "«{name}» writes with a newer Tisty. So the two versions never mix, this one stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
   welcomeStayHere: "Stay on this machine only",
   welcomeOtherFolder: "Choose another folder",
-  welcomeFolderHolds: "This folder already holds a Tisty",
-  welcomeCloudHolds: "Your cloud already holds a Tisty",
-  welcomeCloudHoldsHow:
-    "Its tasks and its documents come along, and this machine joins that history. Nothing in your cloud is lost.",
-  welcomeFolderHoldsWhy: "It looks like the history of another machine of yours. Bring it here?",
-  welcomeFolderHoldsHow:
-    "Its tasks and its documents come along, and this machine joins that history. Nothing in the folder is lost.",
-  welcomeFolderHoldsAs:
-    "Its tasks and its documents come along, and you will sign as {name}. This machine joins that history, and nothing in the folder is lost.",
-  welcomeBringIt: "Yes, bring it",
-  welcomeMoreDoors: "More choices",
   keepersUnreadable: "This folder's history could not be read",
   keepersUnreadableWhy:
     "It may still be arriving, or this machine may not be allowed to read it. Choosing it now would look like an empty folder and start a history of its own beside the one already there.",
@@ -3137,6 +3137,11 @@ const es: Catalog = {
   healthSlow:
     "{name} tardó en responder; puede ser una red lenta o un filtro. Puedes intentar conectarte igual.",
   healthAgain: "Revisar de nuevo",
+  roundBlocked:
+    "Algo está bloqueando la conexión con {name} desde hace un rato: puede ser un proxy, un filtro de tu empresa o un antivirus. Tus cambios quedan guardados en este equipo y Tisty lo sigue intentando.",
+  roundFiltered:
+    "Un filtro de tu red o un antivirus está revisando las conexiones seguras y Tisty no puede confiar en él. Si estás en una red de trabajo, pide que dejen pasar Tisty. Tus cambios quedan guardados en este equipo.",
+  roundSlow: "{name} está tardando en responder desde esta red. Tisty lo sigue intentando.",
   restoredApart:
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro Tisty",
@@ -3236,6 +3241,10 @@ const es: Catalog = {
   cloudGooglePaceWhy:
     "Si Google pide ir más despacio, Tisty espera lo que pide y sigue solo. No tienes que hacer nada, y lo que escribas queda aquí mientras tanto.",
   cloudStart: "Empezar a subir",
+  cloudHolds: "Tu {name} ya tiene tu Tisty",
+  cloudHoldsWhy:
+    "No hay nada que subir primero: Tisty trae a este equipo lo que hay ahí. Si es mucho, puedes seguir trabajando mientras llega.",
+  cloudBring: "Sincronizar",
   cloudForLater: "Para después",
   cloudForLaterCount: "{name} archivos",
   cloudSeeWhich: "ver cuáles",
@@ -3412,6 +3421,7 @@ const es: Catalog = {
   syncAgainWhy:
     "Copia otra vez a la carpeta todo lo de este equipo, sin preguntar si ya está. Para una carpeta que perdió un archivo, o un cliente de nube que se saltó uno.",
   syncing_: "Sincronizando…",
+  syncingFor: "Sincronizando desde hace {name} min…",
   syncCame: "llegó algo",
   syncSent: "lo de aquí quedó escrito en la carpeta",
   syncBoth: "lo de aquí quedó escrito en la carpeta, y llegó algo",
@@ -3804,9 +3814,10 @@ const es: Catalog = {
   aliasLike: "tu nombre aquí",
   welcomeRedundancy:
     "Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.",
-  welcomeCarrying: "Trayendo lo que ya hay en la carpeta",
+  welcomeBringing: "Trayendo tu Tisty desde {name}…",
   welcomeCarryingWhy:
-    "La primera vuelta lee todo lo que hay allá arriba. Entras en cuanto empieza: primero llegan tus tareas, y los documentos y adjuntos siguen llegando mientras trabajas.",
+    "La primera vuelta lee todo lo que hay ahí, y mientras más guarda, más tarda. Primero llegan tus tareas, y los documentos y adjuntos siguen llegando mientras trabajas.",
+  welcomeKeepWorking: "Seguir trabajando mientras llega",
   comingLog: "Trayendo la historia…",
   comingPapers: "Trayendo documentos…",
   comingAttachments: "Trayendo adjuntos…",
@@ -3874,17 +3885,6 @@ const es: Catalog = {
     "«{name}» escribe con un Tisty más nuevo. Para no mezclar versiones, este queda por ahora solo en este equipo. Cuando lo actualices, vuelve a elegir la carpeta en Configuración › Sincronizar.",
   welcomeStayHere: "Seguir solo en este equipo",
   welcomeOtherFolder: "Elegir otra carpeta",
-  welcomeFolderHolds: "Esta carpeta ya trae un Tisty",
-  welcomeCloudHolds: "Tu nube ya trae un Tisty",
-  welcomeCloudHoldsHow:
-    "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de tu nube.",
-  welcomeFolderHoldsWhy: "Parece la historia de otra máquina tuya. ¿La traemos aquí?",
-  welcomeFolderHoldsHow:
-    "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de la carpeta.",
-  welcomeFolderHoldsAs:
-    "Llegan sus tareas y sus documentos, y firmarás como {name}. Esta máquina se suma a esa historia y no se pierde nada de la carpeta.",
-  welcomeBringIt: "Sí, traerla",
-  welcomeMoreDoors: "Ver más opciones",
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
   keepersUnreadableWhy:
     "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",
