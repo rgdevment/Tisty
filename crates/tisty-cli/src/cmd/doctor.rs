@@ -141,7 +141,10 @@ fn syncing(app: &App, lang: Lang) {
         let home = app.paths.cloud_home(&at.provider, &at.account);
         cloud(&tisty_carrier::standing(&home), &at.email, lang);
         moved_word(
-            std::fs::read_to_string(home.join("tree").join(tisty_core::moved::NAMED)).ok(),
+            std::fs::read_to_string(
+                tisty_carrier::mirrored_at(&home).join(tisty_core::moved::NAMED),
+            )
+            .ok(),
             data,
             &place,
             &config.device_id,

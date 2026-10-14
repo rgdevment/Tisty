@@ -17,6 +17,7 @@ import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import Clouded from "./Clouded";
 import Here from "./Here";
+import { ConfirmHere } from "./Knocking";
 import { Band, mild, risky, strong, Warned } from "./Rows";
 import { useSince } from "./useSince";
 
@@ -213,6 +214,7 @@ export default function Syncing({
           </>
         )}
         {state.chosen && <Here held={held} />}
+        {state.chosen && <ConfirmHere />}
         {trouble?.card === "sync" && (
           <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
         )}

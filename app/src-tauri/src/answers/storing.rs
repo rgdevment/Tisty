@@ -1307,26 +1307,38 @@ pub fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> 
 
 /// The key travels back from the window so a claim that changed between the reading and the
 /// answering is refused instead of confirmed.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn confirm_machine_key(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     key: String,
 ) -> Answer<()> {
-    let session = held(&session);
+    if !tisty_core::store::is_device_name(&id) {
+        return Err(Refusal::of("keyNotConfirmed"));
+    }
     let who = tisty_core::event::DeviceId(id.clone());
-    let says = session.state.keys.get(&who).cloned().or_else(|| {
-        let at = session.place()?;
-        tisty_core::store::key_said_in(&at.join(tisty_carrier::STORE).join(&id), &who)
+    // Read out under the lock and let go of it: a waiting history may be long.
+    let (known, histories, paths) = {
+        let session = held(&session);
+        (
+            session.state.keys.get(&who).cloned(),
+            session.histories(),
+            session.paths.clone(),
+        )
+    };
+    let says = known.or_else(|| {
+        tisty_core::store::key_said_in(&histories?.join(tisty_carrier::STORE).join(&id), &who)
     });
     if says.as_deref() != Some(key.as_str()) {
         return Err(Refusal::of("keyMoved"));
     }
-    if !tisty_core::vouched::confirm(session.paths.data(), &who, &key) {
+    // Written under the lock again, so two confirms or a round never rewrite the waiting list at once.
+    let _held = held(&session);
+    if !tisty_core::vouched::confirm(paths.data(), &who, &key) {
         return Err(Refusal::of("keyNotConfirmed"));
     }
 
-    tisty_carrier::turned::let_through(session.paths.data(), &id);
+    tisty_carrier::turned::let_through(paths.data(), &id);
 
     witness::note(
         channel::SYNC,

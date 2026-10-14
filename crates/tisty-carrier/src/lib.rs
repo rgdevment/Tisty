@@ -21,8 +21,8 @@ mod shift;
 mod tokens;
 
 pub use cloud::standing::{
-    LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, round_forgotten, round_noted,
-    standing,
+    LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, mirrored_at, round_forgotten,
+    round_noted, standing,
 };
 pub use cloud::{Cloud, forgotten_later, only_up_there, policy};
 pub use folder::Folder;
@@ -221,6 +221,13 @@ pub fn place_of(sync: Option<&Sync>) -> Option<PathBuf> {
     chosen(sync)
         .carrier
         .and_then(|carrier| carrier.place().map(Path::to_path_buf))
+}
+
+// A cloud's mirror is laid out as a shared folder, so a history that waits is read alike from either.
+pub fn histories_of(paths: &tisty_core::Paths, sync: Option<&Sync>) -> Option<PathBuf> {
+    place_of(sync).or_else(|| {
+        cloud_of(sync).map(|at| mirrored_at(&paths.cloud_home(&at.provider, &at.account)))
+    })
 }
 
 #[cfg(test)]

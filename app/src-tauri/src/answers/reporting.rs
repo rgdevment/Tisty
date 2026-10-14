@@ -86,7 +86,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
                 hosts: &session.state.hosts,
             },
             &session.paths,
-            session.place().as_deref(),
+            session.histories().as_deref(),
         ),
         log_bytes: report::weighed(&session.paths.store()),
         docs_bytes: report::weighed(&session.paths.docs()),
@@ -198,6 +198,8 @@ pub fn facts(
         weight: report::weighed(session.paths.data()),
         syncs: session.config.sync.is_some(),
         shared: session.config.shares(),
+        cloud: tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .map(|at| at.shown().to_string()),
         backed_up_at: session.config.backed_up_at.map(|at| at.to_string()),
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),

@@ -41,12 +41,16 @@ pub fn round_forgotten(home: &Path) {
 /// Only this machine's own trace counts: a first round mirrors what it pulls before it ever sends.
 pub fn cloud_joined(home: &Path, here: &crate::Here) -> bool {
     home.join(CARRIED).exists()
-        || tisty_sync::been_here(&here.aside, &home.join(super::TREE), &here.device)
+        || tisty_sync::been_here(&here.aside, &mirrored_at(home), &here.device)
+}
+
+pub fn mirrored_at(home: &Path) -> std::path::PathBuf {
+    home.join(super::TREE)
 }
 
 /// How this machine's history stands to the place as last mirrored here, asking the provider nothing.
 pub fn kin_mirrored(home: &Path, here: &crate::Here) -> crate::Kin {
-    tisty_sync::kinship(&here.data.join(tisty_sync::STORE), &home.join(super::TREE))
+    tisty_sync::kinship(&here.data.join(tisty_sync::STORE), &mirrored_at(home))
 }
 
 /// Writes how the round ended, carrying on the streak of the rounds before that ended the same way.

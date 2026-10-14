@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Machine } from "../core";
 import { askAbout, done, knock, knocking, settled } from "../knocking";
 import { fill, t } from "../locales";
-import Knocking, { KnockDot } from "../ui/Knocking";
+import Knocking, { ConfirmHere, KnockDot } from "../ui/Knocking";
 
 const calls: { cmd: string; args: unknown }[] = [];
 let waiting: Machine[] = [];
@@ -243,5 +243,25 @@ describe("a computer waiting to be confirmed", () => {
     await flush();
 
     expect(screen.getByText(fill("confirmTitle", "iMac"))).toBeTruthy();
+  });
+});
+
+describe("the sync card while a computer waits to be confirmed", () => {
+  it("offers to confirm it right there, without sending the person to the sidebar", async () => {
+    render(<ConfirmHere />);
+    await flush();
+
+    expect(screen.getByText(fill("knockOne", "MacBook Pro de Rodrigo"))).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: t("knockConfirm") }));
+
+    expect(knocking().asking).toBe(true);
+  });
+
+  it("says nothing once no computer waits", async () => {
+    waiting = [];
+    const { container } = render(<ConfirmHere />);
+    await flush();
+
+    expect(container.textContent).toBe("");
   });
 });

@@ -28,6 +28,7 @@ pub struct Facts {
     pub weight: u64,
     pub syncs: bool,
     pub shared: bool,
+    pub cloud: Option<String>,
     pub backed_up_at: Option<String>,
     pub quiet: Vec<String>,
     pub attach_up_to: u64,

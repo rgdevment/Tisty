@@ -1,7 +1,14 @@
 import { useEffect } from "react";
+import type { Machine } from "../core";
 import { ask, hush, knock, shownAs, useKnocking } from "../knocking";
 import { fill, t } from "../locales";
 import Confirming from "./Confirming";
+
+const waitingSaid = (waiting: Machine[]): string => {
+  const one = waiting.length === 1 ? waiting[0] : null;
+  if (!one) return fill("knockMany", String(waiting.length));
+  return one.name ? fill("knockOne", shownAs(one)) : t("knockUnnamed");
+};
 
 export default function Knocking() {
   const { waiting, quiet, asking, asked } = useKnocking();
@@ -20,11 +27,7 @@ export default function Knocking() {
         >
           <span className="flex items-center gap-2 text-[12.5px] font-semibold">
             <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-hue-amber" />
-            {one
-              ? one.name
-                ? fill("knockOne", shownAs(one))
-                : t("knockUnnamed")
-              : fill("knockMany", String(waiting.length))}
+            {waitingSaid(waiting)}
           </span>
           <span className="text-[11.5px] leading-relaxed text-soft">
             {t(one ? "knockWhy" : "knockManyWhy")}
@@ -61,5 +64,28 @@ export function KnockDot() {
       aria-label={t("knockDot")}
       className="absolute top-1 right-1 h-[7px] w-[7px] rounded-full bg-hue-amber"
     />
+  );
+}
+
+export function ConfirmHere() {
+  const { waiting } = useKnocking();
+  useEffect(() => {
+    void knock();
+  }, []);
+  if (waiting.length === 0) return null;
+  return (
+    <div
+      role="status"
+      className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-hue-amber/40 bg-hue-amber/10 px-3 py-2"
+    >
+      <span className="text-[12.5px] font-semibold">{waitingSaid(waiting)}</span>
+      <button
+        type="button"
+        onClick={ask}
+        className="shrink-0 rounded-md bg-accent px-3 py-1 text-[12.5px] font-semibold text-bg"
+      >
+        {t("knockConfirm")}
+      </button>
+    </div>
   );
 }
