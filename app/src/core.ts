@@ -983,7 +983,8 @@ export const joining = (): Promise<Joining> => invoke("joining");
 /** Whether a place already holds a store, in one look: `fresh` is this machine never having written. */
 export interface Peeked {
   fresh: boolean;
-  holds: boolean;
+  /** Null when the place could not be asked. */
+  holds: boolean | null;
 }
 
 export const placePeek = (toward?: Toward): Promise<Peeked> =>

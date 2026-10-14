@@ -211,6 +211,21 @@ describe("choosing where the copies go", () => {
     expect(screen.queryByText(fill("cloudHolds", t("cloudGoogle")))).toBeNull();
   });
 
+  it("keeps today's words for a computer with a history of its own, even if the cloud holds one", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    ipc.answers.sync_state = () => Promise.resolve(carrying());
+    ipc.answers.place_peek = () => Promise.resolve({ fresh: false, holds: true });
+    choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+
+    expect(await screen.findByText(fill("cloudToUpload", "3.0 MB"))).toBeTruthy();
+    await waitFor(() => expect(sent("place_peek")).toHaveLength(1));
+    expect(screen.getByRole("button", { name: t("cloudStart") })).toBeTruthy();
+    expect(screen.queryByText(fill("cloudHolds", t("cloudGoogle")))).toBeNull();
+  });
+
   it("lets a sign-in the browser never answers be stopped, and says nothing of it", async () => {
     ipc.answers.cloud_connect = () => new Promise(() => {});
     const trouble = vi.fn();

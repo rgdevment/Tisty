@@ -81,7 +81,8 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
       .catch(() => undefined);
     if (onConnected) return;
     placePeek({ kind: "cloud", account: connected.account, email: connected.email })
-      .then((peeked) => !gone.current && setHolds(peeked.holds))
+      // A computer with a history of its own goes through how the two come together, never «bring it».
+      .then((peeked) => !gone.current && setHolds(peeked.fresh && peeked.holds === true))
       .catch(() => undefined);
   }, [connected, onConnected]);
 
