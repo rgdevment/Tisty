@@ -110,7 +110,7 @@ impl Cloud {
     }
 
     fn tree(&self) -> PathBuf {
-        self.home.join(TREE)
+        standing::mirrored_at(&self.home)
     }
 
     // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.

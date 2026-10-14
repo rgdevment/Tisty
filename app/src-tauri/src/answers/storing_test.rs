@@ -290,7 +290,9 @@ fn the_histories_that_wait_are_read_from_the_cloud_s_mirror_as_from_a_folder() {
     session.config.sync = Some(Sync::cloud(ana.clone()));
     assert_eq!(
         session.histories(),
-        Some(paths.cloud_home(&ana.provider, &ana.account).join("tree"))
+        Some(tisty_carrier::mirrored_at(
+            &paths.cloud_home(&ana.provider, &ana.account)
+        ))
     );
 }
 
