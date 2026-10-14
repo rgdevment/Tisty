@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use tisty_carrier::{Cause, Hitch, Renew, Renewed};
 
+pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, told};
+
 mod graph;
 mod names;
 pub mod quickxor;
@@ -11,8 +13,6 @@ pub use names::fitting;
 
 pub const SCOPES: &str = "Files.ReadWrite.AppFolder offline_access User.Read";
 pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
-const WAITED_AT_LEAST: Duration = Duration::from_secs(1);
-pub(crate) const WAITED_UNTOLD: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Client {
@@ -50,23 +50,12 @@ pub(crate) fn http() -> Result<reqwest::blocking::Client, Hitch> {
         .map_err(|e| Hitch::Broke(told(&e.without_url())))
 }
 
-pub(crate) fn told(error: &dyn std::error::Error) -> String {
-    let mut said = error.to_string();
-    let mut under = error.source();
-    while let Some(one) = under {
-        said.push_str(": ");
-        said.push_str(&one.to_string());
-        under = one.source();
-    }
-    said
-}
-
 pub(crate) fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
-    headers
-        .get(reqwest::header::RETRY_AFTER)
-        .and_then(|one| one.to_str().ok())
-        .and_then(|one| one.trim().parse::<u64>().ok())
-        .map(|secs| Duration::from_secs(secs).max(WAITED_AT_LEAST))
+    tisty_carrier::said::retry_after(
+        headers
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|one| one.to_str().ok()),
+    )
 }
 
 // Only a way that never opened says what stood in it; a line cut mid-answer is tried again with no cause.
@@ -104,11 +93,6 @@ struct TokenAnswer {
     access_token: String,
     expires_in: u64,
     refresh_token: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-struct TokenRefusal {
-    error: Option<String>,
 }
 
 pub struct MicrosoftRenew {
@@ -162,31 +146,13 @@ impl Renew for MicrosoftRenew {
                     refresh: granted.refresh_token,
                 })
             }
-            429 => Err(Hitch::Limited {
-                wait: wait.unwrap_or(WAITED_UNTOLD),
-            }),
-            500.. => match wait {
-                Some(wait) => Err(Hitch::Limited { wait }),
-                // Never OneDrive itself, so a round's spending and its stall guard leave it out.
-                None => Err(Hitch::Unreachable(
-                    None,
-                    format!("Microsoft answered {status}"),
-                )),
-            },
-            _ => {
-                let error = serde_json::from_str::<TokenRefusal>(&text)
-                    .ok()
-                    .and_then(|one| one.error)
-                    .unwrap_or_default();
-                match error.as_str() {
-                    "invalid_grant" | "interaction_required" | "consent_required" => {
-                        Err(Hitch::Lost)
-                    }
-                    other => Err(Hitch::Broke(format!(
-                        "Microsoft refused the token: {other}"
-                    ))),
-                }
-            }
+            status => Err(tisty_carrier::said::token_refused(
+                "Microsoft",
+                status,
+                wait,
+                &text,
+                &["invalid_grant", "interaction_required", "consent_required"],
+            )),
         }
     }
 }
