@@ -307,7 +307,8 @@ by itself.
 ## What It Does
 
 **The first time it opens**, Tisty asks two things — which language, and where
-your copies should go — and then writes you a guide and opens it. Everything
+your copies should go — and then writes you a guide and opens it, unless the
+place you chose already holds your Tisty: then it brings that instead. Everything
 else it decides for you and lets you change later: it starts with the computer
 and waits out of the way, because those were questions with an obvious answer.
 The guide is a document in your own store, in a folder of its own: yours to
@@ -456,6 +457,16 @@ outline. **Tisty makes its own PDF** — A4, Letter or Tabloid, with its
 own margins and the attachments carried inside — and shows it to you before you
 export it.
 
+**A Markdown file from anywhere opens to read.** Pick Tisty under *Open with*
+for a `.md` file, or follow a `tisty://open?path=…` link, and it opens
+read-only in a window of its own without coming into your store: its contents
+at the side, what the file is, the width of the page, and the PDF it would make,
+with **← Back to the document**. **Edit in Tisty** brings it in as a document
+and leaves the original where it was. A document of yours opens the same way
+from its panel, *Open in a window of its own*, and its PDF there is signed
+unless you untick **Signed**. A widget opens apart too, at phone, tablet or
+desktop width. More in [the wiki](https://github.com/rgdevment/Tisty/wiki/Documents#opening-a-markdown-file-from-outside).
+
 **And they leave whole.** A document copies as Markdown, writes out into a
 folder with its pages and attachments beside it, or is exported for Tisty into a
 `.tistyx` file that also carries what Markdown cannot say: folders with their order,
@@ -537,8 +548,11 @@ the window. OneDrive and Dropbox may come later; nothing is promised.
 Before you sign in, and before a move to Drive, Tisty checks that Google
 answers, with one request that carries nothing of yours. If a proxy, a filter
 at work or an antivirus stands in the way, it says so in plain words — there,
-and on the card if it keeps happening while syncing — and it never goes around
-it: what you write stays here and goes up once the way is clear.
+and on the card once syncing keeps failing: a second round in a row, or two
+minutes after the first. A single failed round, or a connection cut halfway, is
+only tried again. It never goes around what stands in the way: what you write
+stays here and goes up once the way is clear. A round that runs long says for
+how long, so it never looks frozen.
 
 **A folder.** Google Drive, OneDrive, iCloud and Dropbox's own folders —
 whichever it finds installed, folder already worked out — or any other folder
@@ -550,12 +564,18 @@ nothing, it never opens a connection for it at all. Changing your mind later is
 a move, not a switch: *Move to another place…* takes your copies between this
 machine, a folder and Google Drive in two steps — first it brings home what
 lived only in the place you leave, then it takes everything to the new one —
-says so when Google asks for a pause, and tells your other machines where you
-went so each one follows.
+counting the files left, says so when Google asks for a pause, lets you hide
+it and keep working, and tells your other machines where you went so each one
+follows.
 
 **A new computer joins on its own.** If it holds nothing of yours yet, it
-takes what the folder or your Drive already holds, after keeping a backup, and
-you can work while the rest arrives. One that does hold your work asks first.
+takes what the folder or your Drive already holds, after keeping a backup —
+connecting Drive there says *Your Google Drive already holds your Tisty* and
+offers **Sync** instead of a first upload. It brings it with a moving bar and
+counts as things arrive, and **Keep working while it arrives** lets you into
+the app while the round goes on; the foot of the sidebar keeps counting and
+says if it could not finish. One that does hold your work asks first, naming
+the place: merge the two, keep this machine, or take what the place has.
 
 Two machines can genuinely write the same document at once, and there Tisty
 merges them **block by block** — you edit the introduction on one, someone edits
