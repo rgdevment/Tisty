@@ -2050,3 +2050,48 @@ fn a_store_up_there_is_seen_in_one_look_before_anything_is_pulled() {
         assert_eq!(remote.counts().fetches, 0, "{who}");
     }
 }
+
+#[test]
+fn a_first_round_counts_what_it_reads_from_up_there_from_the_first_file() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.filed(DOC, "# Plan\n");
+        one.round(Way::Both);
+        let counted = |desk: &Desk| {
+            let mut heard = Vec::new();
+            let mut saying = |far| {
+                if let crate::Reached::Along {
+                    stage: tisty_sync::Stage::Log,
+                    done,
+                    whole,
+                } = far
+                {
+                    heard.push((done, whole));
+                }
+            };
+            desk.carrier
+                .carry(
+                    &desk.here,
+                    Round {
+                        way: Way::Both,
+                        alive: &[],
+                        holds: Holds::Everywhere,
+                        saying: &mut saying,
+                    },
+                )
+                .unwrap();
+            heard
+        };
+
+        let first = counted(&two);
+
+        let (done, whole) = *first
+            .first()
+            .expect("a first round said nothing while it read");
+        assert_eq!(done, 0, "{who}: {first:?}");
+        assert!(whole > 0, "{who}: {first:?}");
+        assert!(first.contains(&(whole, whole)), "{who}: {first:?}");
+    }
+}

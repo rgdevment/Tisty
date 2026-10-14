@@ -38,8 +38,10 @@ pub fn pull(
     index: &mut Index,
     data: Option<&Path>,
     homing: bool,
+    along: &mut dyn FnMut(crate::Reached),
 ) -> Result<usize, Hitch> {
     heal(tree, index);
+    let first = index.cursor.is_none();
     let told = match remote.changes(index.cursor.as_deref()) {
         Err(Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)) if index.cursor.is_some() => {
             witness::warn(
@@ -96,8 +98,21 @@ pub fn pull(
     for seen in changed {
         due.insert(seen.name.clone(), seen);
     }
-    let mut due = due.into_values();
-    while let Some(seen) = due.next() {
+    let whole = due.len();
+    let mut due = due.into_values().enumerate();
+    // Only a first read is long enough to need counting: a later one brings a handful.
+    let mut told = |done: usize| {
+        if first && whole > 0 {
+            along(crate::Reached::Along {
+                stage: crate::Stage::Log,
+                done,
+                whole,
+            });
+        }
+    };
+    told(0);
+    while let Some((done, seen)) = due.next() {
+        told(done + 1);
         match learn(remote, tree, index, data, seen.clone()) {
             Ok(false) => {}
             Ok(true) => {
@@ -105,7 +120,9 @@ pub fn pull(
             }
             Err(hitch) => {
                 index.owed.insert(seen.name.clone(), seen);
-                index.owed.extend(due.map(|one| (one.name.clone(), one)));
+                index
+                    .owed
+                    .extend(due.map(|(_, one)| (one.name.clone(), one)));
                 return Err(hitch);
             }
         }
