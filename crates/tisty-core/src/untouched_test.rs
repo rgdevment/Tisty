@@ -29,6 +29,15 @@ impl Here {
     }
 
     fn guide(&mut self, named: &str, said: impl Fn(&str) -> Said) -> (DocId, String) {
+        self.guide_reading(named, "# Guía\n\nAsí se usa Tisty.\n", said)
+    }
+
+    fn guide_reading(
+        &mut self,
+        named: &str,
+        body: &str,
+        said: impl Fn(&str) -> Said,
+    ) -> (DocId, String) {
         let folder = Ulid::generate();
         self.store
             .append_batch(vec![
@@ -51,7 +60,6 @@ impl Here {
                 },
             ])
             .unwrap();
-        let body = "# Guía\n\nAsí se usa Tisty.\n";
         let made =
             crate::docs::create(&self.paths.docs(), &DeviceId("mac_a".into()), body).unwrap();
         let id = Ulid::generate();
@@ -76,6 +84,8 @@ impl Here {
         self.guide("Guía", Said::of)
     }
 }
+
+const SHIPPED_PAGE: &str = include_str!("../../../app/src-tauri/resources/guide/es/pagina.md");
 
 fn as_in_1_24_4(body: &str) -> Said {
     Said {
@@ -116,7 +126,7 @@ fn the_guide_sown_twice_by_two_openings_is_still_untouched() {
 fn a_guide_sown_by_1_24_4_and_read_back_since_is_untouched() {
     let mut here = here();
     here.sow("es");
-    let (id, file) = here.guide("Guía", as_in_1_24_4);
+    let (id, file) = here.guide_reading("Guía", SHIPPED_PAGE, as_in_1_24_4);
     let body = crate::docs::read(&here.paths.docs(), &file).unwrap();
     for _ in 0..2 {
         here.store
@@ -357,6 +367,62 @@ fn a_store_that_cannot_be_read_is_never_taken_for_new() {
     let device = here.paths.store().join("pc_b");
     std::fs::create_dir_all(&device).unwrap();
     std::fs::write(device.join("active.tisty"), b"\x00\x01 not a log").unwrap();
+
+    assert!(!here.untouched());
+}
+
+#[test]
+fn a_guide_sown_by_1_24_4_and_never_read_back_is_untouched() {
+    let mut here = here();
+    here.sow("es");
+    here.guide_reading("Guía", SHIPPED_PAGE, as_in_1_24_4);
+
+    assert!(here.untouched());
+}
+
+#[test]
+fn a_guide_sown_by_1_24_4_keeps_its_untouched_reading_wherever_its_links_point() {
+    let mut here = here();
+    here.sow("es");
+    let moved = SHIPPED_PAGE.replacen("](", "](tisty:doc/mac_a-0002", 1);
+    here.guide_reading("Guía", &moved, as_in_1_24_4);
+
+    assert!(here.untouched());
+}
+
+#[test]
+fn a_guide_sown_by_1_24_4_and_edited_outside_with_its_title_kept_is_the_persons() {
+    let mut here = here();
+    here.sow("es");
+    let (_, file) = here.guide_reading("Guía", SHIPPED_PAGE, as_in_1_24_4);
+    let edited = format!("{SHIPPED_PAGE}\nalgo mío\n");
+    crate::docs::write(&here.paths.docs(), &file, &edited).unwrap();
+
+    assert!(!here.untouched());
+}
+
+#[test]
+fn a_guide_sown_by_1_24_4_edited_and_read_back_is_the_persons() {
+    let mut here = here();
+    here.sow("es");
+    let (id, file) = here.guide_reading("Guía", SHIPPED_PAGE, as_in_1_24_4);
+    let edited = format!("{SHIPPED_PAGE}\nalgo mío\n");
+    crate::docs::write(&here.paths.docs(), &file, &edited).unwrap();
+    here.store
+        .append(Op::DocSaid {
+            id,
+            d: Said::of(&edited),
+        })
+        .unwrap();
+
+    assert!(!here.untouched());
+}
+
+#[test]
+fn a_guide_sown_without_a_print_that_no_release_shipped_is_the_persons() {
+    let mut here = here();
+    here.sow("es");
+    here.guide("Guía", as_in_1_24_4);
 
     assert!(!here.untouched());
 }
