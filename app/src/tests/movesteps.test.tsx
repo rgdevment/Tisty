@@ -232,7 +232,7 @@ describe("a move that waits", () => {
     expect(screen.getByRole("button", { name: t("moveDrop") })).toBeTruthy();
   });
 
-  it("counts tries spent on downloads for nothing once the move waits on Google instead", async () => {
+  it("gives Google its own tries once downloads have spent theirs, then hands the move over", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const answers: unknown[] = [1, 2, 3, 4, 5].map(() => waiting("fetching", 4));
     ipc.answers.move_to = () => Promise.resolve(answers.shift() ?? waiting("troubled", 4));
@@ -240,13 +240,13 @@ describe("a move that waits", () => {
       startMove(TOWARD, "folder");
       await vi.advanceTimersByTimeAsync(0);
     });
-    for (let tried = 0; tried < 6; tried += 1) {
+    for (let tried = 0; tried < 10; tried += 1) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
       });
     }
 
-    expect(sent("move_to")).toHaveLength(7);
+    expect(sent("move_to")).toHaveLength(8);
   });
 
   it("hands it to the person even when downloads and Google's stumbles take turns", async () => {
