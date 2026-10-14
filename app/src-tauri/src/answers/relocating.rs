@@ -213,38 +213,31 @@ pub async fn move_to(
 ) -> Answer<Moving> {
     let _done = alone.inner().waited(WAITED).await?;
     accessible(&toward).await?;
-    let (ends, paths, left) = {
+    let (mut end, paths, left) = {
         let mut session = held(&session);
-        let ends = ends(&mut session, &toward)?;
+        let end = ends(&mut session, &toward)?;
         let left = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned();
-        (ends, session.paths.clone(), left)
+        (end, session.paths.clone(), left)
     };
     pending_kept(&paths, Some(&toward));
 
-    let mut telling = Telling::new(app.clone(), false);
+    let mut shifted = shifting(&app, &end).await?;
+    // Only a machine syncing nowhere yet is new enough to take the place's history without asking.
+    let apart = match (&end.from, &shifted) {
+        (None, Err(trouble)) => Some(said(trouble.clone())),
+        _ => None,
+    };
+    if let Some(refusal) = apart
+        && let Some(theirs) =
+            super::joining::will_adopt(&session, end.to.clone(), refusal.code, refusal.name).await
+        && super::joining::adopted_quietly(&session, theirs).await
+    {
+        end = ends(&mut held(&session), &toward)?;
+        shifted = shifting(&app, &end).await?;
+    }
     let Ends {
-        from,
-        to,
-        way,
-        here,
-        alive,
-        joins,
-    } = ends;
-    let shifting = from.clone();
-    let shifted = tauri::async_runtime::spawn_blocking(move || {
-        let mut saying = |far| telling.hear(far);
-        let done = tisty_carrier::shift(
-            shifting.as_deref(),
-            to.as_deref(),
-            &here,
-            &alive,
-            &mut saying,
-        );
-        telling.flush();
-        done
-    })
-    .await
-    .map_err(|_| Refusal::of("internal"))?;
+        from, way, joins, ..
+    } = end;
     let caught = catching_up(
         &session,
         &paths,
@@ -281,6 +274,27 @@ pub async fn move_to(
             Ok(Moving::Done { left_cloud, told })
         }
     }
+}
+
+async fn shifting(
+    app: &tauri::AppHandle,
+    end: &Ends,
+) -> Answer<Result<tisty_carrier::Shift, tisty_carrier::Trouble>> {
+    let mut telling = Telling::new(app.clone(), false);
+    let (from, to, here, alive) = (
+        end.from.clone(),
+        end.to.clone(),
+        end.here.clone(),
+        end.alive.clone(),
+    );
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut saying = |far| telling.hear(far);
+        let done = tisty_carrier::shift(from.as_deref(), to.as_deref(), &here, &alive, &mut saying);
+        telling.flush();
+        done
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))
 }
 
 fn delivered(paths: &tisty_core::Paths, after: After, from: Option<tisty_carrier::Shared>) -> bool {

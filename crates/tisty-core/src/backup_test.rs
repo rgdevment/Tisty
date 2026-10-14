@@ -1323,3 +1323,24 @@ fn before_a_change_tasks_and_documents_are_kept_and_only_the_last_five_stay() {
         "attachments weigh the change down: {names:?}"
     );
 }
+
+#[test]
+fn before_joining_only_the_last_five_stay() {
+    let dir = tempfile::tempdir().unwrap();
+    let paths = quarters(&dir);
+    let first: jiff::Timestamp = "2026-10-12T10:00:00Z".parse().unwrap();
+
+    let mut made = Vec::new();
+    for step in 0..7 {
+        let at = first + jiff::SignedDuration::from_secs(step);
+        let into = kept_before_joining(&paths, at).unwrap();
+        std::fs::write(&into, b"zip").unwrap();
+        made.push(into);
+    }
+
+    let kept = std::fs::read_dir(paths.private().join("before-joining"))
+        .unwrap()
+        .count();
+    assert_eq!(kept, 5);
+    assert!(!made[0].exists() && !made[1].exists() && made[6].exists());
+}

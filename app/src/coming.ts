@@ -34,6 +34,7 @@ export interface Sum {
 let now: Coming | null = null;
 let stuck: unknown = null;
 let carded: string | null = null;
+let choosing = false;
 let hearing = false;
 const told = new Set<() => void>();
 const hearers = new Set<(step: Heard) => void>();
@@ -92,6 +93,23 @@ export const carding = (code: string | null) => {
   tell();
 };
 
+export const choose = (now: boolean) => {
+  if (choosing === now) return;
+  choosing = now;
+  tell();
+};
+
+const APART = new Set(["wouldReset", "otherStore"]);
+
+const codeOf = (said: unknown): string => (said as { code?: string } | null)?.code ?? "";
+
+/** The place holds another Tisty and the person has to say how the two come together. */
+export const apartWaits = (said: unknown): boolean => APART.has(codeOf(said));
+
+/** Anything that leaves sync waiting on the person's choice, a copy gone back on included. */
+export const choiceWaits = (said: unknown): boolean =>
+  apartWaits(said) || codeOf(said) === "restoredApart";
+
 export const unstuck = () => {
   stuck = null;
   tell();
@@ -118,3 +136,11 @@ export const useComing = (): Coming | null => useSyncExternalStore(subscribe, ()
 export const useStuck = (): unknown => useSyncExternalStore(subscribe, () => stuck);
 
 export const useCarded = (): string | null => useSyncExternalStore(subscribe, () => carded);
+
+export const useChoosing = (): boolean => useSyncExternalStore(subscribe, () => choosing);
+
+export const useAwaitsChoice = (): boolean => {
+  const open = useChoosing();
+  const told = useStuck();
+  return open || choiceWaits(told);
+};

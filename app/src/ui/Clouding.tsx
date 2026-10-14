@@ -4,6 +4,7 @@ import { type Connected, cloudChoose, cloudConnect, cloudConnectCancel, syncStat
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import CloudHealth from "./CloudHealth";
 
 interface Props {
   busy: boolean;
@@ -184,6 +185,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
           </span>
         </div>
       ))}
+      <CloudHealth name={t("cloudGoogle")} />
       <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), t("cloudNoPassword")]} />
       <Points
         title={t("cloudLimitIsGoogle")}

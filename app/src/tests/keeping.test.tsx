@@ -1753,6 +1753,28 @@ describe("the maintenance panel", () => {
     await waitFor(() => expect(sent("sync_now")).toHaveLength(1));
   });
 
+  it("says a computer that only had what Tisty starts with took what the folder holds", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({ carried: "came", undecided: [], adopted: true })
+        : otherwise(cmd, args);
+    await carried();
+
+    expect(await screen.findByText(fill("syncAdopted", t("syncTheFolder")))).toBeTruthy();
+    expect(screen.queryByText(/already holds another tisty/i)).toBeNull();
+  });
+
+  it("says the card waits on the person while the doors are open, not that a round runs", async () => {
+    apart();
+    await carried();
+
+    await screen.findByText(/already holds another tisty/i);
+    expect(screen.getByText(t("syncChoosing"))).toBeTruthy();
+    expect(screen.queryByText(/my last round/i)).toBeNull();
+    expect(screen.queryByText(t("syncBusy"))).toBeNull();
+  });
+
   it("opens the doors on picking a folder that already holds another history", async () => {
     apart();
     asked.folder = "G:/My Drive/tisty";
@@ -2353,6 +2375,26 @@ describe("the first-run assistant", () => {
 
     await screen.findByRole("button", { name: /save here/i });
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("sows nothing on top of the history a new computer took without asking", async () => {
+    const done = vi.fn();
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({ carried: "came", undecided: [], adopted: true })
+        : answered(cmd, args);
+    render(<Welcome onDone={done} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNotNow") }));
+
+    await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(screen.queryByText(/already holds another tisty/i)).toBeNull();
+    expect(sent("sow_lists")).toHaveLength(0);
+    expect(sent("guide")).toHaveLength(0);
   });
 
   it("says a carry that would not finish instead of going quiet", async () => {

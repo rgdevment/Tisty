@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
+import { choose } from "../coming";
 import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../core";
 import { decideAll, putOffSaid } from "../deciding";
 import { fill, t } from "../locales";
@@ -10,6 +11,7 @@ import type { Which, Word } from "./Card";
 
 interface Hands {
   held: boolean;
+  cloud?: string;
   setBusy: (which: Which | null) => void;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
@@ -17,9 +19,14 @@ interface Hands {
   onChanged: () => void;
 }
 
-export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) {
+export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: Hands) {
   const [apart, setApart] = useState<((door: Door | "else" | null) => void) | null>(null);
   const [kin, setKin] = useState<Kin>("unsure");
+
+  useEffect(() => {
+    choose(apart !== null);
+    return () => choose(false);
+  }, [apart]);
 
   const closed = (door: Door | "else" | null) => {
     apart?.(door);
@@ -66,6 +73,8 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
         fail({ card: "sync", text: said });
       } else if (putOff.length) {
         tell({ card: "sync", text: putOffSaid(putOff.length) });
+      } else if (answer.adopted) {
+        tell({ card: "sync", text: fill("syncAdopted", cloud ?? t("syncTheFolder")) });
       } else if (answer.joined?.length) {
         tell({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
       } else if (waits) {
@@ -92,6 +101,7 @@ export function useCarry({ held, setBusy, tell, fail, look, onChanged }: Hands) 
       {apart && (
         <Apart
           kin={kin}
+          cloud={cloud}
           onPick={(door) => closed(door)}
           onElse={() => closed("else")}
           onClose={() => closed(null)}

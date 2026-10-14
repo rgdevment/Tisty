@@ -9,6 +9,7 @@ use crate::{
 const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
 const TASKS_AND_DOCS: [&str; 3] = ["store", "docs", "originals"];
 const BEFORE_A_CHANGE: &str = "before-a-change";
+const BEFORE_JOINING: &str = "before-joining";
 const BEFORE_KEPT: usize = 5;
 pub const AT_MOST: u64 = 8 * 1024 * 1024 * 1024;
 const AT_MOST_FILES: usize = 200_000;
@@ -43,16 +44,35 @@ pub fn before_a_change(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
         at.subsec_millisecond()
     ));
     written(paths.data(), &into, paths.cache(), None, &TASKS_AND_DOCS)?;
-    let mut all: Vec<PathBuf> = std::fs::read_dir(&kept)?
+    pruned(&kept, BEFORE_KEPT)?;
+    Ok(into)
+}
+
+fn pruned(kept: &Path, leave: usize) -> Result<()> {
+    let mut all: Vec<PathBuf> = std::fs::read_dir(kept)?
         .filter_map(|one| one.ok().map(|one| one.path()))
         .filter(|one| one.extension().is_some_and(|ext| ext == "zip"))
         .collect();
     all.sort();
-    let over = all.len().saturating_sub(BEFORE_KEPT);
+    let over = all.len().saturating_sub(leave);
     for old in all.into_iter().take(over) {
         let _ = std::fs::remove_file(old);
     }
-    Ok(into)
+    Ok(())
+}
+
+/// Where a machine that held nothing of the person's keeps what it had before taking a place's history;
+/// the last few stay.
+pub fn kept_before_joining(paths: &Paths, at: jiff::Timestamp) -> Result<PathBuf> {
+    let kept = paths.private().join(BEFORE_JOINING);
+    std::fs::create_dir_all(&kept)?;
+    let _ = crate::paths::ours_alone(&kept);
+    pruned(&kept, BEFORE_KEPT - 1)?;
+    Ok(kept.join(format!(
+        "{}-{:03}.zip",
+        at.strftime("%Y%m%d-%H%M%S"),
+        at.subsec_millisecond()
+    )))
 }
 
 fn written(
@@ -435,9 +455,14 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
 }
 
 pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
-    let data = paths.data();
-    let made = write(data, into, aside, also)?;
+    let made = write(paths.data(), into, aside, also)?;
+    set_aside(paths)?;
+    Ok(made)
+}
 
+/// Moves this machine's history out of the way under a new name, for a backup already written.
+pub fn set_aside(paths: &Paths) -> Result<()> {
+    let data = paths.data();
     let mut config = Config::load_or_init(paths)?;
     config.device_id = crate::DeviceId(crate::config::new_device_id());
     config.synced_at = None;
@@ -467,7 +492,7 @@ pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> R
     let _ = std::fs::remove_dir_all(&old);
     let _ = std::fs::remove_dir_all(paths.cache());
     crate::docs::forget_what_was_carried(data);
-    Ok(made)
+    Ok(())
 }
 
 fn rescued(dest: &Path) {

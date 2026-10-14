@@ -35,6 +35,11 @@ pub fn cloud_joined(home: &Path, here: &crate::Here) -> bool {
         || tisty_sync::been_here(&here.aside, &home.join(super::TREE), &here.device)
 }
 
+/// How this machine's history stands to the place as last mirrored here, asking the provider nothing.
+pub fn kin_mirrored(home: &Path, here: &crate::Here) -> crate::Kin {
+    tisty_sync::kinship(&here.data.join(tisty_sync::STORE), &home.join(super::TREE))
+}
+
 pub fn round_noted(home: &Path, round: &LastRound) {
     // Kept beside the mirror rather than in the cache, which the system may empty.
     if round.code == "ok" && !home.join(CARRIED).exists() {
