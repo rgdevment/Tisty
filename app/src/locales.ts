@@ -1148,9 +1148,39 @@ const en = {
     "This machine is backed up and then holds what the folder holds.\n\nWhat you have here now leaves the app and stays only in the backup, which opens without Tisty.",
   apartElse: "Pick another folder",
   apartUndo: "A backup is written first. This cannot be undone from the app.",
+  apartTitleCloud: "Your {name} already holds another Tisty",
+  apartHomeTitleCloud: "Your {name} already holds this machine's history",
+  apartHomeWhyCloud:
+    "It went by another name, which is why syncing stopped. Nothing has to be chosen and nothing is lost: this machine takes the name it has in {name} and keeps everything it has, including what it never sent.",
+  apartHomeDoCloud: "Take the name it has in {name}",
+  apartUnsureTitleCloud: "{name} could not be read well enough to tell",
+  apartUnsureWhyCloud:
+    "One machine's history in {name} cannot be opened right now, so Tisty cannot say whether it is yours or someone else's — and it will not guess, because the two answers lead opposite ways. It is usually a file still arriving. Try again in a moment.",
+  apartMineWhyCloud: "{name} becomes this machine's.",
+  apartMineHowCloud:
+    "{name} is backed up and then holds what this machine holds.\n\nThe other machine will stop syncing and will have to make this same choice next time it opens. Nothing of its own is lost: it still has it.",
+  apartTheirsCloud: "Take what {name} has",
+  apartTheirsHowCloud:
+    "This machine is backed up and then holds what {name} holds.\n\nWhat you have here now leaves the app and stays only in the backup, which opens without Tisty.",
+  syncTheFolder: "the folder",
+  syncAdopted:
+    "This computer only had what Tisty starts with, so it took what {name} holds without asking. What it had is kept in a backup.",
+  syncChoosing: "waiting for you to choose",
+  stuckChoosing: "Sync is waiting for you to choose what happens with the other Tisty.",
+  stateApart: "Your {name} already holds another Tisty",
+  stateApartWhy:
+    "Nothing travels until you choose how the two come together. A backup is written before anything changes.",
+  stateApartDo: "Choose",
+  healthChecking: "Checking the connection with {name}…",
+  healthBlocked:
+    "Something is blocking the connection with {name}: it may be a proxy, a filter at your company or an antivirus. If you are on a work network, ask for Tisty to be let through, or try again later.",
+  healthInspected:
+    "A filter on your network is inspecting secure connections and Tisty cannot trust it, so it will not send your things through it. If you are on a work network, ask for Tisty to be let through to {name}, or use another network.",
+  healthTroubled: "{name} is having problems right now; try again later.",
+  healthAgain: "Check again",
   restoredApart:
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
-  otherStore: "That belongs to another store ({name})",
+  otherStore: "That belongs to another Tisty",
   attachmentTooBig:
     "That file is over {name}, the most a task takes. Attach it inside a document instead, which takes up to 650 MB.",
   attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
@@ -3067,9 +3097,39 @@ const es: Catalog = {
     "Esta máquina se respalda y queda con lo que guarda la carpeta.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
   apartElse: "Elegir otra carpeta",
   apartUndo: "Se guarda un respaldo antes. No se deshace desde la aplicación.",
+  apartTitleCloud: "Tu {name} ya guarda otro Tisty",
+  apartHomeTitleCloud: "Tu {name} ya guarda la historia de esta máquina",
+  apartHomeWhyCloud:
+    "Iba con otro nombre, y por eso dejó de sincronizar. No hay que elegir nada y no se pierde nada: esta máquina toma el nombre que tiene en {name} y conserva todo lo que tiene, incluso lo que nunca envió.",
+  apartHomeDoCloud: "Tomar el nombre que tiene en {name}",
+  apartUnsureTitleCloud: "{name} no se pudo leer lo bastante para saberlo",
+  apartUnsureWhyCloud:
+    "El historial de una máquina en {name} no se puede abrir ahora mismo, así que Tisty no puede decir si es tuyo o de otra persona — y no lo va a adivinar, porque las dos respuestas llevan a lados opuestos. Suele ser un archivo que todavía está llegando. Prueba otra vez en un momento.",
+  apartMineWhyCloud: "{name} pasa a ser de aquí.",
+  apartMineHowCloud:
+    "{name} se respalda y queda con lo que tiene este equipo.\n\nLa otra máquina dejará de sincronizar y tendrá que elegir esto mismo la próxima vez que abra. Lo suyo no se pierde: sigue en ella.",
+  apartTheirsCloud: "Quedarme con lo de {name}",
+  apartTheirsHowCloud:
+    "Esta máquina se respalda y queda con lo que guarda {name}.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
+  syncTheFolder: "la carpeta",
+  syncAdopted:
+    "Este computador solo tenía lo que trae Tisty al empezar, así que tomó lo que guarda {name} sin preguntarte. Lo que tenía quedó en un respaldo.",
+  syncChoosing: "esperando que elijas",
+  stuckChoosing: "La sincronización espera que elijas qué pasa con el otro Tisty.",
+  stateApart: "Tu {name} ya guarda otro Tisty",
+  stateApartWhy:
+    "No viaja nada hasta que elijas cómo se juntan los dos. Antes de cambiar algo se guarda un respaldo.",
+  stateApartDo: "Elegir",
+  healthChecking: "Revisando la conexión con {name}…",
+  healthBlocked:
+    "Algo está bloqueando la conexión con {name}: puede ser un proxy, un filtro de tu empresa o un antivirus. Si estás en una red de trabajo, pide que dejen pasar Tisty, o intenta más tarde.",
+  healthInspected:
+    "Un filtro de tu red está revisando las conexiones seguras y Tisty no puede confiar en él, así que no enviará tus cosas a través de él. Si estás en una red de trabajo, pide que dejen pasar Tisty hacia {name}, o usa otra red.",
+  healthTroubled: "{name} tiene problemas ahora; intenta más tarde.",
+  healthAgain: "Revisar de nuevo",
   restoredApart:
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
-  otherStore: "Eso es de otro almacén ({name})",
+  otherStore: "Eso es de otro Tisty",
   attachmentTooBig:
     "Ese archivo pasa de {name}, el máximo de una tarea. Adjúntalo mejor dentro de un documento, que admite hasta 650 MB.",
   attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
