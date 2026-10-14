@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::Manager;
 use tisty_core::Paths;
-use tisty_core::config::Sync;
+use tisty_core::config::{CloudAt, Sync};
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::reaching::Reaching;
@@ -220,14 +220,13 @@ pub struct Owing {
     way: Sync,
     old: tisty_carrier::Shared,
     said: String,
-    release: Option<String>,
+    release: Option<CloudAt>,
 }
 
 pub fn owing(paths: &Paths, reach: &Reaching, now: Option<&Sync>) -> Vec<Owing> {
     let lost = |way: &Sync| {
-        tisty_carrier::cloud_of(Some(way)).is_some_and(|at| {
-            crate::answers::clouding::lost_for_good_at(&reach.home_of(at), &at.account)
-        })
+        tisty_carrier::cloud_of(Some(way))
+            .is_some_and(|at| crate::answers::clouding::lost_for_good_at(&reach.home_of(at), at))
     };
     let all = changing(paths, |all| {
         all.retain(|owed| {
@@ -245,8 +244,12 @@ pub fn owing(paths: &Paths, reach: &Reaching, now: Option<&Sync>) -> Vec<Owing> 
                 None => tisty_carrier::chosen_with(Some(&owed.way), Some(reach)).carrier,
             }?;
             let release = tisty_carrier::cloud_of(Some(&owed.way))
-                .map(|at| at.account.clone())
-                .filter(|account| heading_back.as_ref() != Some(account));
+                .cloned()
+                .filter(|at| {
+                    heading_back.as_ref().is_none_or(|back| {
+                        back.provider != at.provider || back.account != at.account
+                    })
+                });
             Some(Owing {
                 paths: paths.clone(),
                 way: owed.way,
@@ -263,8 +266,8 @@ impl Owing {
         let reached = self.old.leave_word(&self.said).is_ok();
         if reached {
             landed(&self.paths, &self.way, &self.said);
-            if let Some(account) = &self.release {
-                crate::answers::clouding::let_go_of(account);
+            if let Some(at) = &self.release {
+                crate::answers::clouding::let_go_of(at);
             }
         }
         reached

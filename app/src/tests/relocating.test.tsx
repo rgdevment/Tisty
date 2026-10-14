@@ -282,7 +282,7 @@ describe("moving to another place", () => {
     await userEvent.click(await screen.findByRole("button", { name: t("moveWipe") }));
 
     expect(await screen.findByText(fill("moveWiped", "12"))).toBeTruthy();
-    expect(sent("cloud_wipe")[0].args).toEqual({ account: ANA.account, email: ANA.email });
+    expect(sent("cloud_wipe")[0].args).toEqual(ANA);
     expect(moved).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole("button", { name: t("close") }));
     expect(moved).toHaveBeenCalledTimes(1);
@@ -555,5 +555,32 @@ describe("a finished move told in the sidebar", () => {
 
     expect(open).not.toHaveBeenCalled();
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("a cloud connected for the move itself", () => {
+  it("plans toward it with its provider, and lets it go when the move is closed unmade", async () => {
+    ipc.answers.cloud_connect = () => Promise.resolve(ANA);
+    const alone = { ...cloud, mode: "alone", cloud: null } as Carrying;
+    const { closed } = opened({ state: alone, heading: "cloud", resume: undefined });
+    await userEvent.click(screen.getByRole("button", { name: t("cloudOpenGoogle") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("welcomeNext") }));
+
+    await waitFor(() =>
+      expect(sent("move_plan")[0]?.args.toward).toEqual({ kind: "cloud", ...ANA }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: t("cancel") }));
+    expect(closed).toHaveBeenCalled();
+    expect(sent("cloud_forget")[0].args).toEqual({ account: ANA.account, provider: "google" });
+  });
+
+  it("lets the old cloud's access go when a finished move is closed without settling it", async () => {
+    ipc.answers.move_to = () => Promise.resolve({ state: "done", told: true, leftCloud: ANA });
+    opened();
+    await agreedAndMoved();
+    expect(await screen.findByRole("button", { name: t("moveWipe") })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("close") }));
+
+    expect(sent("cloud_forget")[0].args).toEqual({ account: ANA.account, provider: "google" });
   });
 });
