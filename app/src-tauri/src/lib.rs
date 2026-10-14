@@ -675,7 +675,7 @@ impl OneAtATime {
         self.held
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
-            .then_some(Releasing(self))
+            .then(|| Releasing(self))
     }
 
     fn claim_round(&self) -> Option<Releasing<'_>> {
