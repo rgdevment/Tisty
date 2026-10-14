@@ -96,7 +96,7 @@ export function useListening({
         const now = why?.why ?? null;
         if (now === wasAwry.current) return;
         wasAwry.current = now;
-        if (why?.why === "broke" || why?.why === "amiss") {
+        if (why?.why === "broke" || why?.why === "amiss" || why?.why === "away") {
           noted(why.said, 6000);
         }
       },

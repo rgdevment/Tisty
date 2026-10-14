@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import type { Carrying, MovePlan, Moving, Toward } from "../core";
+import type { Carrying, Cause, MovePlan, Moving, Toward } from "../core";
 import { goesOnAt, weigh } from "../format";
 import { fill, t, type Word } from "../locales";
 import type { Run, Waited } from "../relocation";
-import { waitSaid } from "../syncSaid";
+import { causeSaid, offlineNow, waitSaid } from "../syncSaid";
 
 const WAITS = {
   budget: "deferredBudget",
@@ -17,15 +17,18 @@ const WAITS = {
   unsettled: "moveUnsettled",
 } as const;
 
-const offlineNow = () => typeof navigator !== "undefined" && navigator.onLine === false;
-
 // A line Google cut, or a fault it answered with, is no lost connection while this computer is online.
-const plainWait = (waited: Waited): Word =>
+const plainWord = (waited: Waited): Word =>
   waited === "limit"
     ? "moveLimit"
     : waited === "offline" && offlineNow()
       ? "moveOffline"
       : "moveTroubled";
+
+const plainWait = (waited: Waited, cause?: Cause | null): string =>
+  (waited === "offline" && causeSaid(cause)) || t(plainWord(waited));
+
+const causeOf = (run: Run) => (run.result?.state === "waiting" ? run.result.cause : undefined);
 
 export const useTicking = (on: boolean) => {
   const [, tick] = useState(0);
@@ -40,7 +43,7 @@ export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
   if (run.pausedUntil === undefined) return undefined;
   if (run.waited === "offline" || run.waited === "troubled") {
     const left = Math.max(0, Math.ceil((run.pausedUntil - now) / 1000));
-    return `${t(plainWait(run.waited))} · ${fill("moveRetryIn", String(left))}`;
+    return `${plainWait(run.waited, causeOf(run))} · ${fill("moveRetryIn", String(left))}`;
   }
   return goesOnAt(run.pausedUntil);
 };
@@ -81,7 +84,8 @@ const shareOf = (run: Run): number => {
 type Waits = Extract<Moving, { state: "waiting" }>;
 
 const waitWhy = (result: Waits): string => {
-  if (result.reason === "offline") return t(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy");
+  if (result.reason === "offline")
+    return causeSaid(result.cause) ?? t(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy");
   if (result.reason === "troubled") return t("moveTroubledWhy");
   return result.reason && result.reason in WAITS
     ? waitSaid(WAITS[result.reason as keyof typeof WAITS])
@@ -91,7 +95,7 @@ const waitWhy = (result: Waits): string => {
 /** A waiting move said in a line, never a bare "waiting". */
 export const waitingSaid = (result: Waits): string =>
   result.reason === "offline" || result.reason === "troubled" || result.reason === "limit"
-    ? `${t("moveWaiting")} · ${t(plainWait(result.reason))}`
+    ? `${t("moveWaiting")} · ${plainWait(result.reason, result.cause)}`
     : `${t("moveWaiting")} · ${waitWhy(result)}`;
 
 const row =

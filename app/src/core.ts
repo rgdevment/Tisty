@@ -727,7 +727,13 @@ export interface LastRound {
   name?: string | null;
   left: number;
   names: string[];
+  cause?: Cause | null;
+  rounds?: number;
+  since?: number;
 }
+
+/** What stood between this computer and the cloud when a round could not reach it. */
+export type Cause = "blocked" | "filtered" | "slow";
 
 export interface CloudStatus {
   provider: string;
@@ -788,6 +794,7 @@ export type Moving =
       left: Weight;
       reason?: Waiting["reason"] | "unsettled" | null;
       wait?: number | null;
+      cause?: Cause | null;
     };
 export const movePlan = (toward: Toward): Promise<MovePlan> => invoke("move_plan", { toward });
 export const moveTo = (toward: Toward): Promise<Moving> => invoke("move_to", { toward });
@@ -803,6 +810,8 @@ export type Carried = "came" | "sent" | "both" | "same" | "busy";
 
 export interface Settled {
   carried: Carried;
+  /** Seconds the round that turned this one away has run. */
+  running?: number;
   undecided: string[];
   unreadable: string[];
   disowned: string[];
@@ -820,6 +829,9 @@ export type Waiting = {
   reason: "budget" | "limit" | "offline" | "busy" | "changed" | "paused" | "troubled" | "unsent";
   left: number;
   names: string[];
+  cause?: Cause | null;
+  rounds?: number;
+  since?: number;
 };
 
 export const whatWentAmiss = (said: Settled) =>

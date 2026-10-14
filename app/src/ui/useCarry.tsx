@@ -5,7 +5,7 @@ import { docs, type Kin, syncKin, syncNow, whatWaits, whatWentAmiss } from "../c
 import { decideAll, putOffSaid } from "../deciding";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
-import { syncSaid, waitSaid, whatsLeft } from "../syncSaid";
+import { lastingCause, syncSaid, waitSaid, whatsLeft } from "../syncSaid";
 import Apart, { type Door } from "./Apart";
 import type { Which, Word } from "./Card";
 
@@ -62,6 +62,7 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
       const { said, putOff } = await decideAll(answer.undecided, true);
       const amiss = whatWentAmiss(answer);
       const waits = whatWaits(answer);
+      const cause = answer.deferred?.reason === "offline" ? lastingCause(answer.deferred) : null;
       if (amiss) {
         fail({ card: "sync", text: t(amiss) });
       } else if (answer.refused) {
@@ -77,6 +78,8 @@ export function useCarry({ held, cloud, setBusy, tell, fail, look, onChanged }: 
         tell({ card: "sync", text: fill("syncAdopted", cloud ?? t("syncTheFolder")) });
       } else if (answer.joined?.length) {
         tell({ card: "sync", text: fill("someJoined", await namedDocs(answer.joined)) });
+      } else if (cause) {
+        fail({ card: "sync", text: cause });
       } else if (waits) {
         tell({
           card: "sync",

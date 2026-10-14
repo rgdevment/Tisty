@@ -1183,6 +1183,11 @@ const en = {
   healthSlow:
     "{name} took a while to answer; it may be a slow network or a filter. You can try connecting anyway.",
   healthAgain: "Check again",
+  roundBlocked:
+    "Something has been blocking the connection with {name} for a while: it may be a proxy, a filter at your company or an antivirus. Your changes stay saved on this computer and Tisty keeps trying.",
+  roundFiltered:
+    "A filter on your network or an antivirus is inspecting secure connections and Tisty cannot trust it. If you are on a work network, ask for Tisty to be let through. Your changes stay saved on this computer.",
+  roundSlow: "{name} is taking a while to answer from this network. Tisty keeps trying.",
   restoredApart:
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another Tisty",
@@ -1459,6 +1464,7 @@ const en = {
   syncAgainWhy:
     "Copies everything of this machine's to the folder again, without asking whether it is already there. For a folder that lost a file, or a cloud client that missed one.",
   syncing_: "Syncing…",
+  syncingFor: "Syncing for {name} min…",
   syncCame: "something came back",
   syncSent: "this machine's changes were written to the folder",
   syncBoth: "this machine's changes were written to the folder, and something came back",
@@ -3137,6 +3143,11 @@ const es: Catalog = {
   healthSlow:
     "{name} tardó en responder; puede ser una red lenta o un filtro. Puedes intentar conectarte igual.",
   healthAgain: "Revisar de nuevo",
+  roundBlocked:
+    "Algo está bloqueando la conexión con {name} desde hace un rato: puede ser un proxy, un filtro de tu empresa o un antivirus. Tus cambios quedan guardados en este equipo y Tisty lo sigue intentando.",
+  roundFiltered:
+    "Un filtro de tu red o un antivirus está revisando las conexiones seguras y Tisty no puede confiar en él. Si estás en una red de trabajo, pide que dejen pasar Tisty. Tus cambios quedan guardados en este equipo.",
+  roundSlow: "{name} está tardando en responder desde esta red. Tisty lo sigue intentando.",
   restoredApart:
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro Tisty",
@@ -3412,6 +3423,7 @@ const es: Catalog = {
   syncAgainWhy:
     "Copia otra vez a la carpeta todo lo de este equipo, sin preguntar si ya está. Para una carpeta que perdió un archivo, o un cliente de nube que se saltó uno.",
   syncing_: "Sincronizando…",
+  syncingFor: "Sincronizando desde hace {name} min…",
   syncCame: "llegó algo",
   syncSent: "lo de aquí quedó escrito en la carpeta",
   syncBoth: "lo de aquí quedó escrito en la carpeta, y llegó algo",
