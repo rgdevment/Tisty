@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { heard } from "../coming";
 import { adopt, fill, t } from "../locales";
 import Keeping from "../ui/Keeping";
 import Welcome from "../ui/Welcome";
@@ -229,6 +230,8 @@ beforeEach(() => {
         return Promise.resolve({ carried: "came", undecided: [] });
       case "joining":
         return Promise.resolve({ ...arriving });
+      case "place_peek":
+        return Promise.resolve({ fresh: arriving.fresh, holds: arriving.holds });
       case "reachable":
         return Promise.resolve({ ...standing });
       case "wiring":
@@ -2471,12 +2474,7 @@ describe("the first-run assistant", () => {
     letGo();
   });
 
-  const underway = async () => {
-    const waiting = new Promise<void>((keep) => setTimeout(keep, 0));
-    for (const heard of bus.heard.get("bringing") ?? [])
-      heard({ payload: { stage: "log", done: 0, whole: 2 } });
-    await waiting;
-  };
+  const underway = () => act(() => heard({ stage: "log", done: 0, whole: 2 }));
 
   const halfway = async () => {
     const answered = ipc.answer;
@@ -2487,13 +2485,38 @@ describe("the first-run assistant", () => {
     await screen.findByRole("status");
   };
 
-  it("moves on as soon as the round is underway, without waiting for anything to land", async () => {
+  it("counts what comes while the round brings, and lets the person go in meanwhile", async () => {
     render(<Welcome onDone={vi.fn()} />);
     await halfway();
+    expect(screen.getByText(fill("welcomeBringing", t("syncTheFolder")))).toBeTruthy();
 
     await underway();
 
+    expect(await screen.findByText(`${t("comingLog")} ${fill("comingOf", "0", "2")}`)).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: t("welcomeKeepWorking") }));
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
+    act(() => heard(null));
+  });
+
+  it("says what stands in the way when the first round cannot reach the place", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "sync_now"
+        ? Promise.resolve({
+            carried: "same",
+            undecided: [],
+            deferred: { reason: "offline", left: 0, names: [], cause: "filtered" },
+          })
+        : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
+
+    expect(await screen.findByText(t("roundFiltered"))).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("welcomeAnyway") })).toBeTruthy();
   });
 
   const olderThanTheFolder = async () => {
@@ -2538,7 +2561,6 @@ describe("the first-run assistant", () => {
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeBringIt") }));
     await screen.findByText(t("welcomeOlder"));
 
     await userEvent.click(screen.getByRole("button", { name: t("welcomeStayHere") }));
@@ -2560,17 +2582,23 @@ describe("the first-run assistant", () => {
     expect(await screen.findByText(fill("sharedAwayToLeave", "G:/x"))).toBeTruthy();
   });
 
+  const otherHistory = () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "sync_now" && sent("sync_now").length === 1)
+        return Promise.reject({ code: "otherStore", name: "01ABC" });
+      if (cmd === "sync_kin") return Promise.resolve("strangers");
+      return answered(cmd, args);
+    };
+  };
+
   it("says nothing moved when the other folder is not picked after all", async () => {
     asked.folder = null;
-    Object.assign(arriving, { holds: true, alias: "rgdevment" });
-    const answered = ipc.answer;
-    ipc.answer = (cmd, args) =>
-      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
+    otherHistory();
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
 
     await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
 
@@ -2579,19 +2607,16 @@ describe("the first-run assistant", () => {
 
   it("meets a newer folder picked from the doors the same way", async () => {
     asked.folder = "D:/Otra";
-    Object.assign(arriving, { holds: true, alias: "rgdevment" });
+    otherHistory();
     const answered = ipc.answer;
-    ipc.answer = (cmd, args) => {
-      if (cmd === "sync_kin") return Promise.resolve("strangers");
-      if (cmd === "choose_sync" && args.dest === "D:/Otra")
-        return Promise.reject({ code: "syncNewer", name: "dev_b" });
-      return answered(cmd, args);
-    };
+    ipc.answer = (cmd, args) =>
+      cmd === "choose_sync" && args.dest === "D:/Otra"
+        ? Promise.reject({ code: "syncNewer", name: "dev_b" })
+        : answered(cmd, args);
     render(<Welcome onDone={vi.fn()} />);
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
 
     await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
 
@@ -2642,25 +2667,12 @@ describe("the first-run assistant", () => {
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
 
-    await screen.findByText(/already holds a tisty/i);
-    await userEvent.click(screen.getByRole("button", { name: t("welcomeBringIt") }));
-
     await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(sent("sync_now"), "a machine that never wrote anything was asked first").toHaveLength(1);
     expect(sent("sign")).toHaveLength(0);
     expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
     expect(sent("sow_lists"), "the history it joins already has its lists").toHaveLength(0);
     expect(sent("guide"), "nor a second guide").toHaveLength(0);
-  });
-
-  it("says whose name it is taking before it takes it", async () => {
-    Object.assign(arriving, { holds: true, alias: "rgdevment" });
-    render(<Welcome onDone={vi.fn()} />);
-    await spoken();
-    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
-
-    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
-
-    expect(await screen.findByText(/sign as rgdevment/i)).toBeTruthy();
   });
 
   it("still asks for a name when the folder it joins never had one", async () => {
@@ -2670,41 +2682,23 @@ describe("the first-run assistant", () => {
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
 
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeBringIt") }));
-
     expect(await screen.findByRole("textbox", { name: /^alias$/i })).toBeTruthy();
   });
 
-  it("keeps every door within reach for whoever wants them", async () => {
-    Object.assign(arriving, { holds: true, alias: "rgdevment" });
-    const answered = ipc.answer;
-    ipc.answer = (cmd, args) =>
-      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
-    render(<Welcome onDone={vi.fn()} />);
-    await spoken();
-    await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
-    await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
-
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
-
-    expect(await screen.findByText(/already holds another tisty/i)).toBeTruthy();
-  });
-
   it("looks again at what it holds when another folder is picked from the doors", async () => {
-    Object.assign(arriving, { holds: true, alias: "rgdevment" });
     asked.folder = "D:/Otra";
-    const answered = ipc.answer;
-    ipc.answer = (cmd, args) =>
-      cmd === "sync_kin" ? Promise.resolve("strangers") : answered(cmd, args);
-    render(<Welcome onDone={vi.fn()} />);
+    otherHistory();
+    const done = vi.fn();
+    render(<Welcome onDone={done} />);
     await spoken();
     await userEvent.click(await screen.findByRole("button", { name: /google drive/i }));
     await userEvent.click(await screen.findByRole("button", { name: /save here/i }));
-    await userEvent.click(await screen.findByRole("button", { name: t("welcomeMoreDoors") }));
+    Object.assign(arriving, { holds: true, alias: "rgdevment" });
 
     await userEvent.click(await screen.findByRole("button", { name: t("apartElse") }));
 
-    expect(await screen.findByText(/already holds a tisty/i)).toBeTruthy();
+    await waitFor(() => expect(done).toHaveBeenCalled());
+    expect(sent("place_peek")).toHaveLength(2);
     expect(screen.queryByRole("textbox", { name: /^alias$/i })).toBeNull();
   });
 

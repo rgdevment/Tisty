@@ -1,15 +1,15 @@
-import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { stillApart, walkThrough } from "../apart";
 import {
   ALIAS_AT_MOST,
   chooseSync,
   guide,
-  type Joining,
   joining,
   type Kin,
   keepClosing,
   keepLocale,
+  placePeek,
+  type Settled,
   sign,
   sowLists,
   syncKin,
@@ -19,7 +19,9 @@ import {
 } from "../core";
 import { adopt, fill, t } from "../locales";
 import { folderAhead, saidPlainly } from "../refusal";
+import { causeSaid } from "../syncSaid";
 import Apart, { type Door } from "./Apart";
+import Bringing from "./Bringing";
 import Choosing from "./Choosing";
 import Modal from "./Modal";
 import Older from "./Older";
@@ -83,7 +85,6 @@ export default function Welcome({ onDone }: Props) {
   const [carrying, setCarrying] = useState(false);
   const [stuck, setStuck] = useState<{ said: string; by?: unknown }>();
   const [kin, setKin] = useState<Kin>();
-  const [offer, setOffer] = useState<Joining>();
   const [named, setNamed] = useState<string>();
   const [offered, setOffered] = useState(false);
   const [another, setAnother] = useState(false);
@@ -140,24 +141,26 @@ export default function Welcome({ onDone }: Props) {
     [finish, named],
   );
 
-  useEffect(() => {
-    if (!carrying) return;
-    const off = listen("bringing", () => {
-      void next();
-    });
-    return () => {
-      off.then((stop) => stop()).catch(() => {});
-    };
-  }, [carrying, next]);
-
   // A machine that held only what it starts with took the place's history, so nothing is sown on top of it.
-  const round = (left = TRIES): Promise<string | undefined> =>
+  const round = (left = TRIES): Promise<Settled | undefined> =>
     syncNow().then((how) => {
       if (how?.adopted) joined.current = true;
       return how?.carried === "busy" && left > 0
         ? new Promise<void>((soon) => setTimeout(soon, BREATH)).then(() => round(left - 1))
-        : how?.carried;
+        : how;
     });
+
+  // Read once the round brought the place home, so asking for it never pulls the whole place first.
+  const signedThere = (tries = 0): Promise<string | undefined> =>
+    joining()
+      .then((how) =>
+        how.coming && tries < NAME_COMING_TRIES
+          ? new Promise<void>((done) => window.setTimeout(done, NAME_COMING_EVERY)).then(() =>
+              signedThere(tries + 1),
+            )
+          : (how.alias ?? undefined),
+      )
+      .catch(() => undefined);
 
   const carryOn = (name?: string) => {
     setBusy(true);
@@ -165,11 +168,22 @@ export default function Welcome({ onDone }: Props) {
     setStuck(undefined);
     setCarrying(true);
     return round()
-      .then((how) => {
-        if (how !== "busy") return next(name);
-        setCarrying(false);
-        setStuck({ said: t("syncBusy") });
-        return Promise.resolve();
+      .then(async (how) => {
+        if (went.current) return;
+        if (how?.carried === "busy") {
+          setCarrying(false);
+          setStuck({ said: t("syncBusy") });
+          return;
+        }
+        const away = how?.deferred?.reason === "offline" ? causeSaid(how.deferred.cause) : null;
+        if (away || how?.deferred?.reason === "troubled") {
+          setCarrying(false);
+          setStuck({ said: away ?? t("deferredTroubled") });
+          return;
+        }
+        const signed = name ?? (joined.current ? await signedThere() : undefined);
+        if (signed) setNamed(signed);
+        return next(signed);
       })
       .catch((e) => {
         if (went.current) return;
@@ -182,19 +196,14 @@ export default function Welcome({ onDone }: Props) {
       .finally(() => setBusy(false));
   };
 
-  const settle = (tries = 0): Promise<void> =>
-    joining()
-      .then((how) => {
-        if (how.coming && tries < NAME_COMING_TRIES)
-          return new Promise<void>((done) => window.setTimeout(done, NAME_COMING_EVERY)).then(() =>
-            settle(tries + 1),
-          );
-        setBusy(false);
-        if (!how.fresh || !how.holds) return carryOn();
-        setCarrying(false);
-        setOffer(how);
+  // A machine that never wrote anything takes the place's Tisty without asking, and is told so while it comes.
+  const settle = (): Promise<void> =>
+    placePeek()
+      .then((peeked) => {
+        if (peeked.fresh && peeked.holds) joined.current = true;
       })
-      .catch(() => {
+      .catch(() => undefined)
+      .then(() => {
         setBusy(false);
         return carryOn();
       });
@@ -221,14 +230,6 @@ export default function Welcome({ onDone }: Props) {
       })
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => setBusy(false));
-  };
-
-  const takeItAll = () => {
-    joined.current = true;
-    const name = offer?.alias ?? undefined;
-    setOffer(undefined);
-    setNamed(name);
-    void carryOn(name);
   };
 
   const closed = (door: Door | "else" | null) => {
@@ -270,40 +271,6 @@ export default function Welcome({ onDone }: Props) {
         onElse={() => closed("else")}
         onClose={() => closed(null)}
       />
-    );
-  }
-
-  if (offer) {
-    return (
-      <Modal title={t(toCloud ? "welcomeCloudHolds" : "welcomeFolderHolds")}>
-        <p className="mt-3 text-[13px] leading-relaxed text-soft">{t("welcomeFolderHoldsWhy")}</p>
-        <p className="mt-2 text-[12.5px] leading-relaxed text-faint">
-          {offer.alias
-            ? fill("welcomeFolderHoldsAs", offer.alias)
-            : t(toCloud ? "welcomeCloudHoldsHow" : "welcomeFolderHoldsHow")}
-        </p>
-        <div className="mt-5 flex items-center gap-3 text-[11.5px]">
-          <button
-            type="button"
-            onClick={() => {
-              setOffer(undefined);
-              void syncKin()
-                .catch(() => "unsure" as const)
-                .then(setKin);
-            }}
-            className="text-faint hover:text-ink"
-          >
-            {t("welcomeMoreDoors")}
-          </button>
-          <button
-            type="button"
-            onClick={takeItAll}
-            className="ml-auto cursor-pointer rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-bg"
-          >
-            {t("welcomeBringIt")}
-          </button>
-        </div>
-      </Modal>
     );
   }
 
@@ -414,22 +381,10 @@ export default function Welcome({ onDone }: Props) {
             </button>
           </div>
         ) : carrying ? (
-          <div
-            role="status"
-            aria-live="polite"
-            className="rounded-[10px] border border-hair bg-accent-soft px-3 py-2 text-[11.5px] leading-relaxed text-soft"
-          >
-            <span className="block text-[12.5px] font-semibold text-ink">
-              {t("welcomeCarrying")}
-            </span>
-            {t("welcomeCarryingWhy")}
-            <span
-              aria-hidden="true"
-              className="mt-2 block h-1 overflow-hidden rounded-full bg-line"
-            >
-              <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
-            </span>
-          </div>
+          <Bringing
+            from={toCloud ? t("cloudGoogle") : t("syncTheFolder")}
+            onHide={() => void next(named)}
+          />
         ) : (
           <Choosing
             busy={busy}

@@ -1860,9 +1860,10 @@ const en = {
   aliasLike: "your name here",
   welcomeRedundancy:
     "Syncing gives you redundancy, not a way back in time: delete a task and the deletion travels too.",
-  welcomeCarrying: "Bringing what the folder already holds",
+  welcomeBringing: "Bringing your Tisty from {name}…",
   welcomeCarryingWhy:
-    "The first round reads everything that is up there. You go in as soon as it starts: your tasks arrive first, and documents and attachments keep landing behind you while you work.",
+    "The first round reads everything that is there, and the more it holds the longer it takes. Your tasks arrive first, and documents and attachments keep landing behind you while you work.",
+  welcomeKeepWorking: "Keep working while it arrives",
   comingLog: "Bringing the history…",
   comingPapers: "Bringing documents…",
   comingAttachments: "Bringing attachments…",
@@ -1930,17 +1931,6 @@ const en = {
     "«{name}» writes with a newer Tisty. So the two versions never mix, this one stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
   welcomeStayHere: "Stay on this machine only",
   welcomeOtherFolder: "Choose another folder",
-  welcomeFolderHolds: "This folder already holds a Tisty",
-  welcomeCloudHolds: "Your cloud already holds a Tisty",
-  welcomeCloudHoldsHow:
-    "Its tasks and its documents come along, and this machine joins that history. Nothing in your cloud is lost.",
-  welcomeFolderHoldsWhy: "It looks like the history of another machine of yours. Bring it here?",
-  welcomeFolderHoldsHow:
-    "Its tasks and its documents come along, and this machine joins that history. Nothing in the folder is lost.",
-  welcomeFolderHoldsAs:
-    "Its tasks and its documents come along, and you will sign as {name}. This machine joins that history, and nothing in the folder is lost.",
-  welcomeBringIt: "Yes, bring it",
-  welcomeMoreDoors: "More choices",
   keepersUnreadable: "This folder's history could not be read",
   keepersUnreadableWhy:
     "It may still be arriving, or this machine may not be allowed to read it. Choosing it now would look like an empty folder and start a history of its own beside the one already there.",
@@ -3824,9 +3814,10 @@ const es: Catalog = {
   aliasLike: "tu nombre aquí",
   welcomeRedundancy:
     "Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.",
-  welcomeCarrying: "Trayendo lo que ya hay en la carpeta",
+  welcomeBringing: "Trayendo tu Tisty desde {name}…",
   welcomeCarryingWhy:
-    "La primera vuelta lee todo lo que hay allá arriba. Entras en cuanto empieza: primero llegan tus tareas, y los documentos y adjuntos siguen llegando mientras trabajas.",
+    "La primera vuelta lee todo lo que hay ahí, y mientras más guarda, más tarda. Primero llegan tus tareas, y los documentos y adjuntos siguen llegando mientras trabajas.",
+  welcomeKeepWorking: "Seguir trabajando mientras llega",
   comingLog: "Trayendo la historia…",
   comingPapers: "Trayendo documentos…",
   comingAttachments: "Trayendo adjuntos…",
@@ -3894,17 +3885,6 @@ const es: Catalog = {
     "«{name}» escribe con un Tisty más nuevo. Para no mezclar versiones, este queda por ahora solo en este equipo. Cuando lo actualices, vuelve a elegir la carpeta en Configuración › Sincronizar.",
   welcomeStayHere: "Seguir solo en este equipo",
   welcomeOtherFolder: "Elegir otra carpeta",
-  welcomeFolderHolds: "Esta carpeta ya trae un Tisty",
-  welcomeCloudHolds: "Tu nube ya trae un Tisty",
-  welcomeCloudHoldsHow:
-    "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de tu nube.",
-  welcomeFolderHoldsWhy: "Parece la historia de otra máquina tuya. ¿La traemos aquí?",
-  welcomeFolderHoldsHow:
-    "Llegan sus tareas y sus documentos, y esta máquina se suma a esa historia. No se pierde nada de la carpeta.",
-  welcomeFolderHoldsAs:
-    "Llegan sus tareas y sus documentos, y firmarás como {name}. Esta máquina se suma a esa historia y no se pierde nada de la carpeta.",
-  welcomeBringIt: "Sí, traerla",
-  welcomeMoreDoors: "Ver más opciones",
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
   keepersUnreadableWhy:
     "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",
