@@ -37,6 +37,23 @@ pub(crate) fn refused(hitch: Hitch, provider: &str) -> Refusal {
     }
 }
 
+/// Asked only while the person chooses the cloud: one request to Google's API host with no account,
+/// no token and nothing of theirs, through whatever proxy the system names.
+#[tauri::command]
+pub async fn cloud_health() -> Answer<&'static str> {
+    let health = tauri::async_runtime::spawn_blocking(tisty_google::health::probe)
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
+    if health != tisty_google::health::Health::Reachable {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::CLOUD,
+            "the way to Google's API host did not answer as it should",
+            &[("health", tisty_core::witness::Fact::Code(health.code()))],
+        );
+    }
+    Ok(health.code())
+}
+
 /// Held in memory only until Google says whose account it is, so the token is filed under the right one.
 struct Unfiled(Mutex<Option<String>>);
 

@@ -789,6 +789,7 @@ pub async fn sync_now(
             joined: Vec::new(),
             deferred: None,
             refused: None,
+            adopted: false,
         });
     };
     let (was, home) = {
@@ -800,6 +801,9 @@ pub async fn sync_now(
     let mut done = carried_round(&app, &session, way.clone()).await;
     if held_apart(&done) && super::joining::adopted_quietly(&session).await {
         done = carried_round(&app, &session, way).await;
+        if let Ok(settled) = done.as_mut() {
+            settled.adopted = true;
+        }
     }
     if let Some(home) = home {
         noted(&home, &done);
@@ -1119,6 +1123,7 @@ async fn carried_round(
             names: deferred.names,
         }),
         refused,
+        adopted: false,
     })
 }
 
@@ -1149,6 +1154,9 @@ pub struct Settled {
     deferred: Option<Waiting>,
     /// What stopped the round after part of it went through, said as a refusal would be.
     refused: Option<Stuck>,
+    /// This machine held only what it starts with and took the place's history without asking.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    adopted: bool,
 }
 
 #[derive(serde::Serialize)]
