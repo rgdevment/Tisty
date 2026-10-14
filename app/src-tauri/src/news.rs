@@ -44,12 +44,8 @@ pub fn decide(fresh: bool, seen: Option<&str>, running: &str, told: &[String]) -
         Some(since) => parsed()
             .filter(|(one, _)| *one <= now && one > since)
             .collect(),
-        // Told nothing before, so how far back it was is unknown: the newest it already runs is enough.
-        None => parsed()
-            .filter(|(one, _)| *one <= now)
-            .max_by(|a, b| a.0.cmp(&b.0))
-            .into_iter()
-            .collect(),
+        // Told nothing before: everything up to what it runs is news to it.
+        None => parsed().filter(|(one, _)| *one <= now).collect(),
     };
     if fresh_news.is_empty() {
         fresh_news = parsed().filter(|(one, _)| is_minor_of(one, &now)).collect();

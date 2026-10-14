@@ -49,5 +49,63 @@
         "said": "open Markdown files or any Tisty document in a wide reading window with its contents beside the page, and export it as PDF."
       }
     ]
+  },
+  {
+    "version": "1.30.1",
+    "es": [
+      {
+        "title": "Google Drive se mantiene al día solo",
+        "said": "Tisty vuelve a sincronizar por su cuenta: poco después de que escribes, al volver a la ventana y cada cierto rato, sin pulsar Sincronizar ahora."
+      },
+      {
+        "title": "Confirma un equipo nuevo donde lo ves",
+        "said": "un computador que se suma a tu Google Drive se confirma desde Ajustes o desde el aviso de la barra lateral, con su código a la vista para compararlo."
+      }
+    ],
+    "en": [
+      {
+        "title": "Google Drive keeps itself in step",
+        "said": "Tisty syncs on its own again: shortly after you write, when you come back to the window and every little while, without pressing Sync now."
+      },
+      {
+        "title": "Confirm a new computer where you see it",
+        "said": "a computer that joins your Google Drive is confirmed from Settings or from the notice in the sidebar, with its code shown so you can compare it."
+      }
+    ]
+  },
+  {
+    "version": "1.30.2",
+    "headline": {
+      "es": "Conoce a Tisty",
+      "en": "Meet Tisty"
+    },
+    "es": [
+      {
+        "title": "Tisty tiene mascota",
+        "said": "un castor con un lápiz detrás de la oreja, que te saluda en Acerca de y en esta ventana."
+      },
+      {
+        "title": "Novedades al actualizar",
+        "said": "después de cada versión nueva, Tisty te cuenta una vez lo que trae."
+      },
+      {
+        "title": "La mudanza a Google Drive ya no se queda pegada",
+        "said": "si tu carpeta todavía está bajando adjuntos grandes, Tisty espera y sigue solo cuando llegan. Si no bajan, te dice qué revisar."
+      }
+    ],
+    "en": [
+      {
+        "title": "Tisty has a mascot",
+        "said": "a beaver with a pencil behind its ear, who greets you in About and in this window."
+      },
+      {
+        "title": "What's new after an update",
+        "said": "after every new version, Tisty tells you once what it brings."
+      },
+      {
+        "title": "Moving to Google Drive no longer gets stuck",
+        "said": "if your folder is still bringing down large attachments, Tisty waits and carries on by itself as they arrive. If they don't come, it tells you what to check."
+      }
+    ]
   }
 ]

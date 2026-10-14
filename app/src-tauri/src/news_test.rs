@@ -10,9 +10,12 @@ fn a_first_install_is_left_to_the_welcome() {
 }
 
 #[test]
-fn a_machine_told_nothing_before_hears_the_newest_it_already_runs() {
-    let all = said(&["1.29.0", "1.30.0", "1.31.0"]);
-    assert_eq!(decide(false, None, "1.30.2", &all), said(&["1.30.0"]));
+fn a_machine_told_nothing_before_hears_everything_up_to_what_it_runs() {
+    let all = said(&["1.29.0", "1.30.0", "1.30.1", "1.30.2", "1.31.0"]);
+    assert_eq!(
+        decide(false, None, "1.30.2", &all),
+        said(&["1.30.2", "1.30.1", "1.30.0", "1.29.0"])
+    );
 }
 
 #[test]
