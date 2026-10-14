@@ -65,20 +65,17 @@ describe("the other tools", () => {
     render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
-    await userEvent.click(screen.getByRole("button", { name: /CopyPaste/ }));
+    await userEvent.click(screen.getByRole("button", { name: /CoPanda/ }));
     await userEvent.click(screen.getByRole("button", { name: /LinkUnbound/ }));
 
-    expect(opened.urls).toEqual([
-      "https://rgdevment.com/copypaste/",
-      "https://rgdevment.com/linkunbound/",
-    ]);
+    expect(opened.urls).toEqual(["https://www.copanda.app/", "https://www.linkunbound.app/"]);
   });
 
   it("draws an icon for each, not a bullet", async () => {
     render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
-    for (const name of [/CopyPaste/, /LinkUnbound/]) {
+    for (const name of [/CoPanda/, /LinkUnbound/]) {
       expect(screen.getByRole("button", { name }).querySelector("img")).toBeTruthy();
     }
   });

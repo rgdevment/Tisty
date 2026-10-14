@@ -239,7 +239,7 @@ until you bring the file in.
 
 Tisty's own screens carry a few links of their own: the repository, the pages
 for sponsorship and for a coffee, the AlternativeTo listing, the pages of the
-author's two other tools, CopyPaste and LinkUnbound, and — on a copy the
+author's two other tools, CoPanda and LinkUnbound, and — on a copy the
 Microsoft Store keeps — the Store's own rating window. Where each one leads is
 fixed in the program, not fetched from anywhere, and they behave like any link
 above: nothing is requested, nothing is sent, and your browser opens only when
