@@ -2040,15 +2040,16 @@ fn a_store_up_there_is_seen_in_one_look_before_anything_is_pulled() {
         let who = &setting.name;
         let remote = counting(&setting);
         let (one, two) = pair(&setting);
-        assert!(
-            !two.carrier.peeks_a_store(),
+        assert_eq!(
+            two.carrier.peeks_a_store(false),
+            Some(false),
             "{who}: an empty place held a store"
         );
         one.wrote("lo de uno");
         one.round(Way::Both);
         remote.forget_counts();
 
-        assert!(two.carrier.peeks_a_store(), "{who}");
+        assert_eq!(two.carrier.peeks_a_store(false), Some(true), "{who}");
         assert!(
             !two.carrier.holds_a_store(),
             "{who}: the look pulled the store"
@@ -2119,5 +2120,62 @@ fn a_computer_that_never_wrote_takes_the_place_history_on_its_first_round_withou
 
         assert!(first.is_ok(), "{who}: {first:?}");
         assert_eq!(two.titles(), ["lo de uno"], "{who}");
+    }
+}
+
+#[test]
+fn a_mirror_left_here_is_trusted_only_for_the_place_chosen_and_carried_lately() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        remote.forget_counts();
+
+        assert_eq!(two.carrier.peeks_a_store(true), Some(true), "{who}");
+        assert_eq!(
+            remote.counts().requests,
+            1,
+            "{who}: a mirror never carried lately was trusted"
+        );
+
+        super::standing::round_noted(
+            &home_of(&setting, "dev_b"),
+            &super::standing::LastRound {
+                at: super::policy::now(),
+                code: "ok".into(),
+                ..Default::default()
+            },
+        );
+        remote.forget_counts();
+        assert_eq!(two.carrier.peeks_a_store(true), Some(true), "{who}");
+        assert_eq!(remote.counts().requests, 0, "{who}");
+
+        assert_eq!(two.carrier.peeks_a_store(false), Some(true), "{who}");
+        assert_eq!(
+            remote.counts().requests,
+            1,
+            "{who}: a place not chosen was read off its old mirror"
+        );
+    }
+}
+
+#[test]
+fn a_look_at_a_cloud_not_chosen_yet_spends_nothing_here_and_an_unanswered_one_is_unknown() {
+    for setting in clouds() {
+        let who = &setting.name;
+        let remote = counting(&setting);
+        let two = desk(&setting, "dev_b");
+
+        assert_eq!(two.carrier.peeks_a_store(false), Some(false), "{who}");
+        assert!(
+            !home_of(&setting, "dev_b").join("budget.json").exists(),
+            "{who}: a cloud not chosen kept a spending of its own"
+        );
+
+        remote.fail_next(Hitch::Unreachable(None, "sin red".into()));
+        assert_eq!(two.carrier.peeks_a_store(false), None, "{who}");
     }
 }

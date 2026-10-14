@@ -129,7 +129,8 @@ fn carrier_and_here(
 pub struct Peeked {
     /// This machine has never written a history of its own.
     fresh: bool,
-    holds: bool,
+    /// Unknown when the place could not be asked, so the window decides again once a round has run.
+    holds: Option<bool>,
 }
 
 /// Whether a place already holds a store, in one look and never a pull, so a first round is told before it starts.
@@ -146,13 +147,18 @@ pub async fn place_peek(
         };
         (carrier, session.paths.store())
     };
-    elsewhere(move || peeked(&*carrier, &store)).await
+    let ours = toward.is_none();
+    elsewhere(move || peeked(&*carrier, &store, ours)).await
 }
 
-pub(crate) fn peeked(carrier: &dyn tisty_carrier::Carrier, store: &std::path::Path) -> Peeked {
+pub(crate) fn peeked(
+    carrier: &dyn tisty_carrier::Carrier,
+    store: &std::path::Path,
+    ours: bool,
+) -> Peeked {
     Peeked {
         fresh: !tisty_core::store::inhabited(store),
-        holds: carrier.peeks_a_store(),
+        holds: carrier.peeks_a_store(ours),
     }
 }
 

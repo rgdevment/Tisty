@@ -38,6 +38,7 @@ const FORGOTTEN_ASIDE: &str = "forgotten.aside.";
 const ASIDE_LIST: &str = ".list";
 const PATIENCE: Duration = Duration::from_secs(5);
 const DELETE_TRIES: u32 = 4;
+const CARRIED_LATELY: u64 = 60 * 60;
 const WAITED_AT_MOST: Duration = Duration::from_secs(60);
 const ASKED_WAITED_OUT: Duration = Duration::from_secs(30);
 const QUIET_STRETCH: u32 = 4;
@@ -94,6 +95,12 @@ struct Stir {
 }
 
 impl Cloud {
+    fn carried_lately(&self) -> bool {
+        standing::last_round(&self.home).is_some_and(|last| {
+            last.code == "ok" && policy::now().saturating_sub(last.at) < CARRIED_LATELY
+        })
+    }
+
     pub fn over(remote: Arc<dyn Remote>, home: impl Into<PathBuf>) -> Self {
         Self {
             remote,
@@ -847,11 +854,15 @@ impl Carrier for Cloud {
         tisty_core::store::inhabited(self.tree().join(STORE))
     }
 
-    fn peeks_a_store(&self) -> bool {
-        self.holds_a_store()
-            || Metered::over(&*self.remote, &self.home, Class::Asked)
-                .about(&format!("{STORE}/{}", tisty_sync::MARKER))
-                .is_ok_and(|seen| seen.is_some())
+    // Unmetered: a cloud not chosen yet keeps no spending of its own on this disk.
+    fn peeks_a_store(&self, ours: bool) -> Option<bool> {
+        if ours && self.carried_lately() {
+            return Some(self.holds_a_store());
+        }
+        self.remote
+            .about(&format!("{STORE}/{}", tisty_sync::MARKER))
+            .ok()
+            .map(|seen| seen.is_some())
     }
 
     fn wipe(&self) -> Result<usize, Trouble> {

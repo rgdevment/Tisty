@@ -127,8 +127,9 @@ pub trait Carrier: Send + std::marker::Sync {
         Ok(())
     }
     /// Asked of the place in one look, never a whole pull, so a first round can be told apart before it starts.
-    fn peeks_a_store(&self) -> bool {
-        self.holds_a_store()
+    /// `ours` is the place chosen now; `None` is a place that could not be asked.
+    fn peeks_a_store(&self, _ours: bool) -> Option<bool> {
+        Some(self.holds_a_store())
     }
     fn holds_a_store(&self) -> bool {
         self.place()

@@ -51,10 +51,7 @@ pub fn kin_mirrored(home: &Path, here: &crate::Here) -> crate::Kin {
 
 /// Writes how the round ended, carrying on the streak of the rounds before that ended the same way.
 pub fn round_noted(home: &Path, round: &LastRound) -> LastRound {
-    let before = std::fs::read(home.join(LAST_ROUND))
-        .ok()
-        .and_then(|bytes| serde_json::from_slice::<LastRound>(&bytes).ok());
-    let round = streaked(before.as_ref(), round.clone());
+    let round = streaked(last_round(home).as_ref(), round.clone());
     // Kept beside the mirror rather than in the cache, which the system may empty.
     if round.code == "ok" && !home.join(CARRIED).exists() {
         let _ = std::fs::create_dir_all(home)
@@ -150,10 +147,14 @@ pub fn standing(home: &Path) -> Standing {
             .filter(|one| policy::halted(Some(one), now))
             .and_then(|one| one.halted_until),
         serial: kept.map(|one| one.serial),
-        last: std::fs::read(home.join(LAST_ROUND))
-            .ok()
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok()),
+        last: last_round(home),
     }
+}
+
+pub(super) fn last_round(home: &Path) -> Option<LastRound> {
+    std::fs::read(home.join(LAST_ROUND))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
 }
 
 #[cfg(test)]

@@ -148,10 +148,10 @@ fn a_look_at_the_place_tells_a_store_already_there_from_an_empty_place() {
     let folder = tisty_carrier::considering(&place);
 
     assert_eq!(
-        peeked(&*folder, &mine),
+        peeked(&*folder, &mine, true),
         Peeked {
             fresh: true,
-            holds: false
+            holds: Some(false)
         }
     );
 
@@ -164,10 +164,10 @@ fn a_look_at_the_place_tells_a_store_already_there_from_an_empty_place() {
         .unwrap();
 
     assert_eq!(
-        peeked(&*folder, &mine),
+        peeked(&*folder, &mine, true),
         Peeked {
             fresh: true,
-            holds: true
+            holds: Some(true)
         }
     );
 }
