@@ -648,16 +648,29 @@ impl Drop for Releasing<'_> {
     }
 }
 
+/// The second word is the second the hold was taken, so one turned away can say how long the other has run.
 #[derive(Default)]
-struct OneAtATime(std::sync::atomic::AtomicBool);
+struct OneAtATime(std::sync::atomic::AtomicBool, std::sync::atomic::AtomicU64);
 
 impl OneAtATime {
     fn claim(&self) -> Option<Releasing<'_>> {
         use std::sync::atomic::Ordering;
-        self.0
+        let claimed = self
+            .0
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .is_ok()
-            .then(|| Releasing(&self.0))
+            .is_ok();
+        if claimed {
+            self.1.store(now_secs(), Ordering::Release);
+        }
+        claimed.then(|| Releasing(&self.0))
+    }
+
+    fn held_for(&self) -> u64 {
+        use std::sync::atomic::Ordering;
+        match self.0.load(Ordering::Acquire) {
+            true => now_secs().saturating_sub(self.1.load(Ordering::Acquire)),
+            false => 0,
+        }
     }
 
     fn taken(&self) -> Answer<Releasing<'_>> {
@@ -677,6 +690,10 @@ impl OneAtATime {
                 tauri::async_runtime::spawn_blocking(|| std::thread::sleep(TURN_ASKED_AGAIN)).await;
         }
     }
+}
+
+fn now_secs() -> u64 {
+    jiff::Timestamp::now().as_second().unsigned_abs()
 }
 
 const TURN_ASKED_AGAIN: std::time::Duration = std::time::Duration::from_millis(100);

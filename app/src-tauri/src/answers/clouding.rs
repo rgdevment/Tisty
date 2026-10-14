@@ -316,8 +316,7 @@ fn let_go_held(app: &tauri::AppHandle, account: &str) {
                 at: jiff::Timestamp::now().as_second().unsigned_abs(),
                 code: "cloudLost".into(),
                 name: Some("Google Drive".into()),
-                left: 0,
-                names: Vec::new(),
+                ..Default::default()
             },
         );
     }

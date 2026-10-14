@@ -102,3 +102,22 @@ fn a_move_the_provider_asked_to_pause_says_for_how_long_so_the_window_can_go_on_
         serde_json::json!({"state": "waiting", "stage": "filling", "left": {"files": 2, "bytes": 40}, "reason": "limit", "wait": 90})
     );
 }
+
+#[test]
+fn a_move_paused_by_something_in_the_way_names_it_for_the_window() {
+    let said = waiting(
+        "filling",
+        tisty_carrier::Owed { files: 1, bytes: 5 },
+        Some(tisty_carrier::Deferred {
+            reason: tisty_carrier::Reason::Offline,
+            left: 1,
+            retry_after: None,
+            names: Vec::new(),
+            cause: Some(tisty_carrier::Cause::Filtered),
+        }),
+    );
+
+    let said = serde_json::to_value(said).unwrap();
+    assert_eq!(said["reason"], "offline");
+    assert_eq!(said["cause"], "filtered");
+}

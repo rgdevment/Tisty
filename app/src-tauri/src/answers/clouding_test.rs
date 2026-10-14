@@ -125,6 +125,7 @@ fn the_status_of_a_cloud_says_the_account_the_day_s_spend_the_switch_and_the_las
             name: Some("Google Drive".into()),
             left: 0,
             names: Vec::new(),
+            ..Default::default()
         },
     );
 

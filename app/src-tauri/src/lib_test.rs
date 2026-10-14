@@ -1716,9 +1716,14 @@ fn a_folder_that_is_not_there_yet_is_named_as_it_was_given() {
     assert_eq!(crate::as_asked_for(&at), at);
 }
 
-static TURN_LET_GO: crate::OneAtATime =
-    crate::OneAtATime(std::sync::atomic::AtomicBool::new(false));
-static TURN_KEPT: crate::OneAtATime = crate::OneAtATime(std::sync::atomic::AtomicBool::new(false));
+static TURN_LET_GO: crate::OneAtATime = crate::OneAtATime(
+    std::sync::atomic::AtomicBool::new(false),
+    std::sync::atomic::AtomicU64::new(0),
+);
+static TURN_KEPT: crate::OneAtATime = crate::OneAtATime(
+    std::sync::atomic::AtomicBool::new(false),
+    std::sync::atomic::AtomicU64::new(0),
+);
 
 #[test]
 fn a_backup_asked_for_as_the_dialog_closes_waits_out_the_round_its_focus_started() {

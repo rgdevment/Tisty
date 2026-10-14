@@ -780,6 +780,7 @@ pub async fn sync_now(
 ) -> Answer<Settled> {
     let Some(_done) = alone.inner().claim() else {
         return Ok(Settled {
+            running: alone.inner().held_for(),
             carried: "busy",
             undecided: Vec::new(),
             unreadable: Vec::new(),
@@ -810,8 +811,15 @@ pub async fn sync_now(
             settled.adopted = true;
         }
     }
-    if let Some(home) = home {
-        noted(&home, &done);
+    if let Some(home) = home
+        && let Some(kept) = noted(&home, &done)
+        && let Ok(Settled {
+            deferred: Some(waiting),
+            ..
+        }) = done.as_mut()
+    {
+        waiting.rounds = kept.rounds;
+        waiting.since = kept.since;
     }
     let now = held(&session);
     let _ = app.emit(
@@ -845,10 +853,10 @@ pub fn place_raised_told(session: tauri::State<'_, Mutex<Session>>) {
 }
 
 /// How a round with the cloud ended stays written beside its mirror, so Settings can say it later.
-fn noted(home: &std::path::Path, done: &Answer<Settled>) {
+fn noted(home: &std::path::Path, done: &Answer<Settled>) -> Option<tisty_carrier::LastRound> {
     let at = jiff::Timestamp::now().as_second().unsigned_abs();
     let round = match done {
-        Ok(settled) if settled.carried == "busy" => return,
+        Ok(settled) if settled.carried == "busy" => return None,
         Ok(Settled {
             refused: Some(stuck),
             ..
@@ -856,34 +864,31 @@ fn noted(home: &std::path::Path, done: &Answer<Settled>) {
             at,
             code: stuck.code.into(),
             name: stuck.name.clone(),
-            left: 0,
-            names: Vec::new(),
+            ..Default::default()
         },
         Ok(settled) => match &settled.deferred {
             Some(waiting) => tisty_carrier::LastRound {
                 at,
                 code: format!("deferred-{}", waiting.reason),
-                name: None,
                 left: waiting.left,
                 names: waiting.names.clone(),
+                cause: waiting.cause.map(Into::into),
+                ..Default::default()
             },
             None => tisty_carrier::LastRound {
                 at,
                 code: "ok".into(),
-                name: None,
-                left: 0,
-                names: Vec::new(),
+                ..Default::default()
             },
         },
         Err(refused) => tisty_carrier::LastRound {
             at,
             code: refused.code.into(),
             name: refused.name.clone(),
-            left: 0,
-            names: Vec::new(),
+            ..Default::default()
         },
     };
-    tisty_carrier::round_noted(home, &round);
+    Some(tisty_carrier::round_noted(home, &round))
 }
 
 // The place left behind is told first, and a place others left stops this machine before it writes there alone.
@@ -1102,6 +1107,7 @@ async fn carried_round(
         }
     });
     Ok(Settled {
+        running: 0,
         carried: match (done.sent > 0, moved || done.brought > 0) {
             (true, true) => "both",
             (true, false) => "sent",
@@ -1129,6 +1135,9 @@ async fn carried_round(
             },
             left: deferred.left,
             names: deferred.names,
+            cause: deferred.cause.map(tisty_carrier::Cause::code),
+            rounds: 0,
+            since: 0,
         }),
         refused,
         adopted: false,
@@ -1151,6 +1160,9 @@ pub(crate) fn synced_now(
 #[serde(rename_all = "camelCase")]
 pub struct Settled {
     carried: &'static str,
+    /// Seconds the round this one was turned away by has run.
+    #[serde(skip_serializing_if = "is_zero")]
+    running: u64,
     undecided: Vec<String>,
     unreadable: Vec<String>,
     disowned: Vec<String>,
@@ -1173,6 +1185,14 @@ pub struct Waiting {
     reason: &'static str,
     left: usize,
     names: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cause: Option<&'static str>,
+    rounds: u32,
+    since: u64,
+}
+
+fn is_zero(secs: &u64) -> bool {
+    *secs == 0
 }
 
 #[derive(Debug, serde::Serialize)]

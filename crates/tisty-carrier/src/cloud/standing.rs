@@ -11,7 +11,7 @@ pub(super) const LAST_ROUND: &str = "last-round.json";
 pub(super) const CARRIED: &str = "carried-here";
 
 /// How the last round ended, in the words the window already reads: `ok`, a refusal's code, or `deferred-<reason>`.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LastRound {
     pub at: u64,
@@ -22,6 +22,14 @@ pub struct LastRound {
     pub left: usize,
     #[serde(default)]
     pub names: Vec<String>,
+    /// What stood in the way of a round that could not reach the provider, as a word: never where it went.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cause: Option<String>,
+    /// How many rounds in a row ended this same way, and since when, so a blip is told from what lasts.
+    #[serde(default)]
+    pub rounds: u32,
+    #[serde(default)]
+    pub since: u64,
 }
 
 /// A cloud chosen anew starts with no word of a round it never ran.
@@ -40,13 +48,18 @@ pub fn kin_mirrored(home: &Path, here: &crate::Here) -> crate::Kin {
     tisty_sync::kinship(&here.data.join(tisty_sync::STORE), &home.join(super::TREE))
 }
 
-pub fn round_noted(home: &Path, round: &LastRound) {
+/// Writes how the round ended, carrying on the streak of the rounds before that ended the same way.
+pub fn round_noted(home: &Path, round: &LastRound) -> LastRound {
+    let before = std::fs::read(home.join(LAST_ROUND))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<LastRound>(&bytes).ok());
+    let round = streaked(before.as_ref(), round.clone());
     // Kept beside the mirror rather than in the cache, which the system may empty.
     if round.code == "ok" && !home.join(CARRIED).exists() {
         let _ = std::fs::create_dir_all(home)
             .and_then(|_| std::fs::write(home.join(CARRIED), round.at.to_string()));
     }
-    let written = serde_json::to_vec(round)
+    let written = serde_json::to_vec(&round)
         .map_err(std::io::Error::other)
         .and_then(|bytes| {
             std::fs::create_dir_all(home)?;
@@ -60,6 +73,24 @@ pub fn round_noted(home: &Path, round: &LastRound) {
             &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
         );
     }
+    round
+}
+
+fn streaked(before: Option<&LastRound>, mut round: LastRound) -> LastRound {
+    match before.filter(|was| was.code == round.code && was.cause == round.cause) {
+        Some(was) => {
+            round.rounds = was.rounds.max(1) + 1;
+            round.since = match was.since {
+                0 => was.at,
+                since => since,
+            };
+        }
+        None => {
+            round.rounds = 1;
+            round.since = round.at;
+        }
+    }
+    round
 }
 
 /// What `tisty doctor` says about a cloud, read off this disk alone: no request, no keychain.
