@@ -213,10 +213,12 @@ describe("a move that waits", () => {
     });
     render(<MoveNotice onOpen={() => undefined} />);
     expect(
-      screen.getByText(`${t("moveFetching")} · ${fill("moveRetryIn", String(RETRY_IN))}`),
+      screen.getByText(
+        `${fill("moveComingDown", "4", weigh(40))} · ${fill("moveLooksAgainIn", String(RETRY_IN))}`,
+      ),
     ).toBeTruthy();
 
-    for (let tried = 0; tried < 8; tried += 1) {
+    for (let tried = 0; tried < 17; tried += 1) {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
       });
@@ -224,12 +226,36 @@ describe("a move that waits", () => {
     vi.useRealTimers();
     watched();
 
-    expect(sent("move_to")).toHaveLength(7);
+    expect(sent("move_to")).toHaveLength(16);
     expect(await screen.findByText(t("moveWaiting"))).toBeTruthy();
     expect(screen.getAllByText((text) => text.includes(t("moveUnfetched"))).length).toBeGreaterThan(
       0,
     );
     expect(screen.getByRole("button", { name: t("moveDrop") })).toBeTruthy();
+  });
+
+  it("says what the folder still has to bring down, never how many files it looked over", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const answers: unknown[] = [
+      { ...waiting("fetching", 4), left: { files: 4, bytes: 400 } },
+      { ...waiting("fetching", 3), left: { files: 3, bytes: 100 } },
+    ];
+    ipc.answers.move_to = () => Promise.resolve(answers.shift() ?? new Promise(() => undefined));
+    await act(async () => {
+      startMove(TOWARD, "folder");
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    act(() => heard({ stage: "attachments", done: 245, whole: 245 }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RETRY_IN * 1000 + 100);
+    });
+    const { container } = watched();
+
+    expect(screen.getByText(t("moveFetching"))).toBeTruthy();
+    expect(screen.getByText(`${step(1)}${fill("moveComingDown", "3", weigh(100))}`)).toBeTruthy();
+    expect(screen.queryByText((text) => text.includes("245"))).toBeNull();
+    const bar = container.querySelector<HTMLElement>("[style*='width']");
+    expect(bar?.style.width).toBe("75%");
   });
 
   it("gives Google its own tries once downloads have spent theirs, then hands the move over", async () => {

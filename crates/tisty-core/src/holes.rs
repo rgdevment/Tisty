@@ -106,19 +106,103 @@ pub fn ask_for(all: Vec<PathBuf>) {
     if fresh.is_empty() {
         return;
     }
-    std::thread::spawn(move || {
-        for at in fresh {
-            if sidecar(&at).is_some() {
-                fetched(&at);
-            } else if let Ok(mut file) = std::fs::File::open(&at) {
-                let mut one = [0u8; 1];
-                let _ = std::io::Read::read(&mut file, &mut one);
+    let Ok(mut waiting) = asking().lock() else {
+        return;
+    };
+    waiting.queue.extend(fresh);
+    // Each read waits for its whole file: a few at once across every round, so the folder's program brings them side by side.
+    let more = ASKING_AT_ONCE
+        .saturating_sub(waiting.workers)
+        .min(waiting.queue.len());
+    waiting.workers += more;
+    drop(waiting);
+    for _ in 0..more {
+        std::thread::spawn(|| {
+            loop {
+                let next = match asking().lock() {
+                    Ok(mut waiting) => match waiting.queue.pop_front() {
+                        Some(at) => at,
+                        None => {
+                            waiting.workers -= 1;
+                            return;
+                        }
+                    },
+                    Err(_) => return,
+                };
+                asked_down(&next);
             }
-            if let Ok(mut asked) = in_flight().lock() {
-                asked.remove(&at);
+        });
+    }
+}
+
+const ASKING_AT_ONCE: usize = 4;
+
+#[derive(Default)]
+struct Asking {
+    queue: std::collections::VecDeque<PathBuf>,
+    workers: usize,
+}
+
+fn asking() -> &'static std::sync::Mutex<Asking> {
+    static ASKING: std::sync::OnceLock<std::sync::Mutex<Asking>> = std::sync::OnceLock::new();
+    ASKING.get_or_init(Default::default)
+}
+
+fn asked_down(at: &Path) {
+    use crate::witness::{self, Fact, channel};
+    witness::trace(
+        channel::SYNC,
+        "a file the folder keeps only in the cloud was asked for",
+        &[("at", Fact::Path(at.to_path_buf()))],
+    );
+    let since = std::time::Instant::now();
+    let read = match sidecar(at).is_some() {
+        true => match fetched(at) {
+            true => Ok(()),
+            false => Err(std::io::Error::other("iCloud would not start the download")),
+        },
+        false => std::fs::File::open(at).and_then(|mut file| {
+            let mut one = [0u8; 1];
+            std::io::Read::read(&mut file, &mut one).map(|_| ())
+        }),
+    };
+    // A refusal is the one thing waiting never mends: the system's permission, or a file the folder's program holds.
+    if let Err(why) = read {
+        let said = match why.kind() {
+            std::io::ErrorKind::PermissionDenied => {
+                "this system would not let Tisty read a file in the folder"
             }
-        }
-    });
+            _ => "the folder's program would not hand over a file Tisty asked for",
+        };
+        witness::warn(
+            channel::SYNC,
+            said,
+            &[
+                ("at", Fact::Path(at.to_path_buf())),
+                ("why", Fact::Why(why.to_string())),
+            ],
+        );
+    }
+    let took = usize::try_from(since.elapsed().as_secs()).unwrap_or(usize::MAX);
+    let facts = [
+        ("at", Fact::Path(at.to_path_buf())),
+        ("seconds", Fact::Count(took)),
+    ];
+    match a_hole(at) {
+        true => witness::trace(
+            channel::SYNC,
+            "a file asked of the folder's program is still on its way",
+            &facts,
+        ),
+        false => witness::note(
+            channel::SYNC,
+            "a file asked of the folder's program came down",
+            &facts,
+        ),
+    }
+    if let Ok(mut asked) = in_flight().lock() {
+        asked.remove(at);
+    }
 }
 
 // A file another machine rewrites all day is back in the cloud by the next round: read it now.

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Carrying, Cause, MovePlan, Moving, Toward } from "../core";
+import type { Carrying, Cause, MovePlan, Moving, Toward, Weight } from "../core";
 import { goesOnAt, weigh } from "../format";
 import { fill, t, type Word } from "../locales";
 import type { Run, Waited } from "../relocation";
@@ -47,22 +47,43 @@ export const useTicking = (on: boolean) => {
   }, [on]);
 };
 
+const comingDownSaid = (left: Weight): string =>
+  left.files === 1
+    ? fill("moveComingDownOne", weigh(left.bytes))
+    : fill("moveComingDown", String(left.files), weigh(left.bytes));
+
+// Only while paused: a look again shows what it finds as it goes, and the last answer it holds may be past.
+const fetchingLeft = (run: Run): Weight | undefined =>
+  !run.going && run.waited === "fetching" && run.result?.state === "waiting"
+    ? run.result.left
+    : undefined;
+
+const secondsLeft = (until: number, now: number): string =>
+  String(Math.max(0, Math.ceil((until - now) / 1000)));
+
+export const looksAgainSaid = (run: Run, now = Date.now()): string | undefined =>
+  run.pausedUntil === undefined
+    ? undefined
+    : fill("moveLooksAgainIn", secondsLeft(run.pausedUntil, now));
+
 export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
   if (run.pausedUntil === undefined) return undefined;
-  const left = Math.max(0, Math.ceil((run.pausedUntil - now) / 1000));
-  if (run.waited === "fetching")
-    return `${t("moveFetching")} · ${fill("moveRetryIn", String(left))}`;
+  const left = secondsLeft(run.pausedUntil, now);
+  const waiting = fetchingLeft(run);
+  if (waiting) return `${comingDownSaid(waiting)} · ${fill("moveLooksAgainIn", left)}`;
   if (run.waited === "offline" || run.waited === "troubled") {
-    return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", String(left))}`;
+    return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", left)}`;
   }
   return goesOnAt(run.pausedUntil);
 };
 
 export const alongSaid = (run: Run): string | undefined => {
   const along = run.along;
-  if (!along) return undefined;
   const two = run.from !== undefined && run.from !== "alone" && run.toward.kind !== "alone";
-  const step = two ? `${fill("moveStep", String(along.step), "2")} · ` : "";
+  const waiting = fetchingLeft(run);
+  const step = two ? `${fill("moveStep", String(along?.step ?? 1), "2")} · ` : "";
+  if (waiting) return `${step}${comingDownSaid(waiting)}`;
+  if (!along) return undefined;
   if (along.step === 1) {
     if (!along.bringing) return `${step}${t("moveChecking")}`;
     const from = t(run.from === "cloud" ? "moveBringingCloud" : "moveBringingFolder");
@@ -88,6 +109,11 @@ const shareOf = (run: Run): number => {
       ? Math.min(part(along.sent, along.weighs), part(along.done, along.whole))
       : part(along.done, along.whole);
   if (along?.bringing) return part(along.bringing.done, along.bringing.whole);
+  const waited =
+    run.waited === "fetching" && run.result?.state === "waiting" ? run.result : undefined;
+  // What already came down holds the bar while a look again finds nothing new to bring.
+  if (waited && run.fetchingFrom)
+    return Math.max(0.1, part(run.fetchingFrom - waited.left.bytes, run.fetchingFrom));
   return 0.1;
 };
 
@@ -255,14 +281,16 @@ export function Plan({
 export function Underway({ run, onHide }: { run: Run; onHide: () => void }) {
   useTicking(run.pausedUntil !== undefined);
   const share = Math.min(100, Math.round(shareOf(run) * 100));
-  const paused = pauseSaid(run);
+  const fetching = fetchingLeft(run) !== undefined;
+  const paused = fetching ? looksAgainSaid(run) : pauseSaid(run);
   const along = alongSaid(run);
   return (
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       <p className="text-[13px] font-semibold">{t("moveMoving")}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveMovingWhy")}</p>
-      {paused && <p className="text-[11.5px] text-faint tabular-nums">{paused}</p>}
+      {fetching && <p className="text-[12.5px] leading-relaxed text-ink">{t("moveFetching")}</p>}
       {along && <p className="text-[11.5px] text-faint tabular-nums">{along}</p>}
+      {paused && <p className="text-[11.5px] text-faint tabular-nums">{paused}</p>}
       <span aria-hidden="true" className="block h-1 overflow-hidden rounded-full bg-line">
         <span
           className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
