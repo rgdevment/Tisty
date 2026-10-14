@@ -23,6 +23,7 @@ import { sure } from "../sure";
 import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import Here from "./Here";
+import { ConfirmHere } from "./Knocking";
 import { mild, risky, strong } from "./Rows";
 import { useSince } from "./useSince";
 
@@ -270,6 +271,7 @@ export default function Clouded({
       </div>
 
       <Here held={held} />
+      <ConfirmHere />
       {trouble?.card === "sync" && !repeats && (
         <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
       )}

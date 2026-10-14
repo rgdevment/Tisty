@@ -1088,7 +1088,7 @@ const en = {
   someoneUnconfirmedHolds:
     "A computer not yet confirmed as yours changed documents, and they wait with it, untouched. Confirm it from the sidebar only if you recognise it, and they settle on the next sync. If you do not, remove it in Settings → Maintenance and you will be asked about them.",
   someoneUnconfirmed:
-    "A computer is waiting for you to confirm it is yours, so nothing it writes has come in yet. Look for the notice in the sidebar — what it wrote stays in the folder meanwhile and arrives whole.",
+    "A computer is waiting for you to confirm it is yours, so nothing it writes has come in yet. Confirm it right here or from the notice in the sidebar — what it wrote stays where it is meanwhile and arrives whole.",
   someoneUnreadable:
     "One machine's history in the shared folder could not be read, so it was left out and everything else went through. It usually means a file is still arriving; if it stays, that machine has to sync again.",
   someoneDisowned:
@@ -3045,7 +3045,7 @@ const es: Catalog = {
   someoneUnconfirmedHolds:
     "Un computador que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Mantenimiento y te preguntaremos por ellos.",
   someoneUnconfirmed:
-    "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Busca el aviso en la barra lateral — lo que escribió sigue en la carpeta mientras tanto y llega entero.",
+    "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Confírmalo aquí mismo o desde el aviso de la barra lateral — lo que escribió sigue donde está mientras tanto y llega entero.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:

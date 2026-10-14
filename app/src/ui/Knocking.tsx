@@ -63,3 +63,33 @@ export function KnockDot() {
     />
   );
 }
+
+export function ConfirmHere() {
+  const { waiting } = useKnocking();
+  useEffect(() => {
+    void knock();
+  }, []);
+  if (waiting.length === 0) return null;
+  const one = waiting.length === 1 ? waiting[0] : null;
+  return (
+    <div
+      role="status"
+      className="mt-3 flex items-center justify-between gap-3 rounded-[10px] border border-hue-amber/40 bg-hue-amber/10 px-3 py-2"
+    >
+      <span className="text-[12.5px] font-semibold">
+        {one
+          ? one.name
+            ? fill("knockOne", shownAs(one))
+            : t("knockUnnamed")
+          : fill("knockMany", String(waiting.length))}
+      </span>
+      <button
+        type="button"
+        onClick={ask}
+        className="shrink-0 rounded-md bg-accent px-3 py-1 text-[12.5px] font-semibold text-bg"
+      >
+        {t("knockConfirm")}
+      </button>
+    </div>
+  );
+}
