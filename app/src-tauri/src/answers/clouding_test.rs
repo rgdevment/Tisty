@@ -61,7 +61,7 @@ fn what_google_answers_reads_as_what_the_window_can_say() {
     assert_eq!(elsewhere.name.as_deref(), Some("otra@example.com"));
     assert_eq!(
         refused(
-            Hitch::Unreachable(tisty_carrier::Cause::Blocked, "sin red".into()),
+            Hitch::Unreachable(Some(tisty_carrier::Cause::Blocked), "sin red".into()),
             "Google Drive"
         )
         .code,

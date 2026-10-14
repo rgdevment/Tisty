@@ -143,14 +143,14 @@ fn a_round_reads_a_failed_request_the_way_the_check_before_connecting_does() {
 
     assert!(matches!(
         unreachable(asked(&quiet, SOON)),
-        Hitch::Unreachable(Cause::Slow, _)
+        Hitch::Unreachable(Some(Cause::Slow), _)
     ));
     assert!(matches!(
         unreachable(asked(
             &format!("http://{shut}/drive/v3/files"),
             Duration::from_secs(8)
         )),
-        Hitch::Unreachable(Cause::Blocked, _)
+        Hitch::Unreachable(Some(Cause::Blocked), _)
     ));
     drop(silent);
 }
@@ -180,4 +180,28 @@ fn what_a_failed_request_leaves_behind_never_names_where_it_went() {
     assert_eq!(health, Health::Slow);
     assert!(!said.contains("secret-name"), "{said}");
     drop(silent);
+}
+
+#[test]
+fn a_line_cut_once_google_was_answering_names_nothing_in_the_way() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let at = listener.local_addr().unwrap();
+    let served = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut asked = [0u8; 1024];
+        let _ = stream.read(&mut asked);
+        let _ = write!(
+            stream,
+            "HTTP/1.1 200 OK\r\nContent-Length: 500\r\nConnection: close\r\n\r\n{{\"files\""
+        );
+    });
+    let answer = reqwest::blocking::Client::new()
+        .get(format!("http://{at}/drive/v3/files"))
+        .send()
+        .unwrap();
+    served.join().unwrap();
+
+    let cut = unreachable(answer.text().unwrap_err());
+
+    assert!(matches!(cut, Hitch::Unreachable(None, _)), "{cut:?}");
 }

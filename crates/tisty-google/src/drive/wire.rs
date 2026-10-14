@@ -34,7 +34,7 @@ pub(super) fn quoted(text: &str) -> String {
 pub(super) fn json<T: serde::de::DeserializeOwned>(answer: Response) -> Result<T, Hitch> {
     serde_json::from_reader(answer).map_err(|e| match e.is_io() {
         true => Hitch::Unreachable(
-            tisty_carrier::Cause::Blocked,
+            None,
             "the line was cut while Google Drive was answering".into(),
         ),
         false => Hitch::Broke("Google Drive answered in a shape Tisty does not read".into()),

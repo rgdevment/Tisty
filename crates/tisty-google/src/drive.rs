@@ -689,7 +689,7 @@ impl Remote for Drive {
         loop {
             let read = answer.read(&mut block).map_err(|_| {
                 Hitch::Unreachable(
-                    tisty_carrier::Cause::Blocked,
+                    None,
                     "the line was cut while Google Drive was sending".into(),
                 )
             })?;

@@ -1367,7 +1367,7 @@ fn a_session_google_let_go_of_starts_the_upload_over_and_is_never_a_missing_file
 
     let landed = drive.put("big.bin", &local, Expect::Absent);
 
-    assert!(matches!(landed, Err(Hitch::Unreachable(..))), "{landed:?}");
+    assert!(matches!(landed, Err(Hitch::Troubled(_))), "{landed:?}");
 }
 
 #[test]

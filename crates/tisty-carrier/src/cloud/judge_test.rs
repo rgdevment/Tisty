@@ -15,7 +15,7 @@ fn waiting_on_another_process_renewing_is_busy_and_never_the_providers_limit() {
 #[test]
 fn a_provider_out_of_reach_pauses_saying_what_stood_in_the_way() {
     for cause in [Cause::Blocked, Cause::Filtered, Cause::Slow] {
-        let judged = judge(Hitch::Unreachable(cause, "said".into()), "drive");
+        let judged = judge(Hitch::Unreachable(Some(cause), "said".into()), "drive");
 
         assert!(
             matches!(judged, Judged::Pause(Reason::Offline, None, Some(kind)) if kind == cause),

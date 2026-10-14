@@ -213,8 +213,7 @@ impl Drive {
                     Kept::At(next) => at = next,
                     Kept::Done(file) => return Ok(*file),
                     Kept::Lost => {
-                        return Err(Hitch::Unreachable(
-                            tisty_carrier::Cause::Blocked,
+                        return Err(Hitch::Troubled(
                             "Google let go of the upload session, so it starts over".into(),
                         ));
                     }

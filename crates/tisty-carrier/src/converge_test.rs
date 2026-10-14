@@ -77,7 +77,7 @@ fn converges(kind: usize, lag: u64, machines: usize, steps: &[Step]) -> Result<(
             }
             Step::Cut(after) => remote.fail_after(
                 *after,
-                Hitch::Unreachable(crate::Cause::Blocked, "sin red".into()),
+                Hitch::Unreachable(Some(crate::Cause::Blocked), "sin red".into()),
             ),
         }
     }

@@ -111,7 +111,7 @@ fn a_word_the_cloud_would_not_take_is_never_taken_for_delivered_nor_lets_the_cop
         Hitch::Limited {
             wait: Duration::from_secs(9),
         },
-        Hitch::Unreachable(crate::Cause::Blocked, "sin red".into()),
+        Hitch::Unreachable(Some(crate::Cause::Blocked), "sin red".into()),
     ];
     for hitch in &refusals {
         for setting in clouds() {

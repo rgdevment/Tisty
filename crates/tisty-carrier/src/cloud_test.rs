@@ -448,7 +448,10 @@ fn a_cut_connection_defers_the_round_and_loses_nothing() {
         let remote = counting(&setting);
         let (one, two) = pair(&setting);
         one.wrote("lo de uno");
-        remote.fail_next(Hitch::Unreachable(crate::Cause::Filtered, "sin red".into()));
+        remote.fail_next(Hitch::Unreachable(
+            Some(crate::Cause::Filtered),
+            "sin red".into(),
+        ));
 
         let cut = one.round(Way::Both);
 
@@ -1005,7 +1008,7 @@ fn an_attachment_that_fails_offline_does_not_hold_back_the_history_and_both_are_
         one.wrote("lo de uno");
         remote.fail_after(
             1,
-            Hitch::Unreachable(crate::Cause::Blocked, "sin red".into()),
+            Hitch::Unreachable(Some(crate::Cause::Blocked), "sin red".into()),
         );
         remote.fail_next(Hitch::Limited {
             wait: Duration::from_secs(4),
@@ -1471,7 +1474,10 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
             one.store().append(other.told()).unwrap();
             one.round(Way::Both);
             two.round(Way::Pull);
-            remote.fail_next(Hitch::Unreachable(crate::Cause::Blocked, "sin red".into()));
+            remote.fail_next(Hitch::Unreachable(
+                Some(crate::Cause::Blocked),
+                "sin red".into(),
+            ));
             assert_eq!(
                 two.carrier.brought(&two.here, &other.at).unwrap(),
                 crate::Brought::Later,
@@ -1945,7 +1951,7 @@ fn a_wipe_waits_out_a_slow_answer_or_a_short_pause_and_gives_up_on_anything_else
         asked += 1;
         match asked {
             1 => Err(crate::Hitch::Unreachable(
-                crate::Cause::Blocked,
+                Some(crate::Cause::Blocked),
                 "timed out".into(),
             )),
             2 => Err(crate::Hitch::Limited {

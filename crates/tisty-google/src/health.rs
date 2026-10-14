@@ -67,9 +67,11 @@ pub fn kind_of(e: reqwest::Error) -> (Health, String) {
     }
 }
 
+// Only a way that never opened says what stood in it; a line cut mid-answer is tried again with no cause.
 pub(crate) fn unreachable(e: reqwest::Error) -> Hitch {
+    let opening = e.is_connect() || e.is_timeout();
     let (health, said) = kind_of(e);
-    Hitch::Unreachable(health.cause(), said)
+    Hitch::Unreachable(opening.then(|| health.cause()), said)
 }
 
 pub fn answered(status: u16) -> Health {

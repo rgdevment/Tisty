@@ -439,10 +439,7 @@ pub fn revoke_everywhere(token: &str, at: &Endpoints) -> Result<(), Hitch> {
         429 => Err(Hitch::Limited {
             wait: waited(answer.headers()).unwrap_or(WAITED_UNTOLD),
         }),
-        status => Err(Hitch::Unreachable(
-            tisty_carrier::Cause::Blocked,
-            format!("Google answered {status}"),
-        )),
+        status => Err(Hitch::Troubled(format!("Google answered {status}"))),
     }
 }
 
