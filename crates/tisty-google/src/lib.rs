@@ -9,6 +9,8 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use sha2::{Digest, Sha256};
 use tisty_carrier::{Hitch, Renew, Renewed};
 
+pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, told};
+
 mod drive;
 pub mod health;
 mod off;
@@ -22,8 +24,6 @@ const LISTENED_EVERY: Duration = Duration::from_millis(100);
 pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
 const HEARD_WITHIN: Duration = Duration::from_secs(2);
 const HEARD_AT_MOST: u64 = 16 * 1024;
-const WAITED_AT_LEAST: Duration = Duration::from_secs(1);
-pub(crate) const WAITED_UNTOLD: Duration = Duration::from_secs(60);
 const CONNECTED: &str = "Tisty is connected. You can close this tab.";
 const NOT_CONNECTED: &str =
     "Tisty could not connect. You can close this tab and try again from Tisty.";
@@ -323,11 +323,6 @@ struct TokenAnswer {
     scope: Option<String>,
 }
 
-#[derive(serde::Deserialize)]
-struct TokenRefusal {
-    error: Option<String>,
-}
-
 // Blocking on purpose: every carrier call already runs off the window's async runtime.
 pub(crate) fn http() -> Result<reqwest::blocking::Client, Hitch> {
     reqwest::blocking::Client::builder()
@@ -336,23 +331,12 @@ pub(crate) fn http() -> Result<reqwest::blocking::Client, Hitch> {
         .map_err(|e| Hitch::Broke(told(&e.without_url())))
 }
 
-pub(crate) fn told(error: &dyn std::error::Error) -> String {
-    let mut said = error.to_string();
-    let mut under = error.source();
-    while let Some(one) = under {
-        said.push_str(": ");
-        said.push_str(&one.to_string());
-        under = one.source();
-    }
-    said
-}
-
 pub(crate) fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
-    headers
-        .get(reqwest::header::RETRY_AFTER)
-        .and_then(|one| one.to_str().ok())
-        .and_then(|one| one.trim().parse::<u64>().ok())
-        .map(|secs| Duration::from_secs(secs).max(WAITED_AT_LEAST))
+    tisty_carrier::said::retry_after(
+        headers
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|one| one.to_str().ok()),
+    )
 }
 
 fn post_form(
@@ -379,27 +363,13 @@ fn post_form(
         200 => serde_json::from_str(&text).map_err(|_| {
             Hitch::Broke("Google answered the sign-in in a shape Tisty does not read".into())
         }),
-        429 => Err(Hitch::Limited {
-            wait: wait.unwrap_or(WAITED_UNTOLD),
-        }),
-        500.. => match wait {
-            Some(wait) => Err(Hitch::Limited { wait }),
-            // Never Drive itself, so a round's spending and its stall guard leave it out.
-            None => Err(Hitch::Unreachable(
-                None,
-                format!("Google answered {status}"),
-            )),
-        },
-        _ => {
-            let error = serde_json::from_str::<TokenRefusal>(&text)
-                .ok()
-                .and_then(|one| one.error)
-                .unwrap_or_default();
-            match error.as_str() {
-                "invalid_grant" => Err(Hitch::Lost),
-                other => Err(Hitch::Broke(format!("Google refused the token: {other}"))),
-            }
-        }
+        status => Err(tisty_carrier::said::token_refused(
+            "Google",
+            status,
+            wait,
+            &text,
+            &["invalid_grant"],
+        )),
     }
 }
 

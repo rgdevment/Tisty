@@ -9,6 +9,10 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Doubles and a request reader for the providers' own tests, never in a build that ships.
+testing = []
+
 [dependencies]
 tisty-core.workspace = true
 tisty-sync.workspace = true

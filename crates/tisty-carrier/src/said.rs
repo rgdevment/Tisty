@@ -1,0 +1,63 @@
+use std::time::Duration;
+
+use crate::Hitch;
+
+const WAITED_AT_LEAST: Duration = Duration::from_secs(1);
+pub const WAITED_UNTOLD: Duration = Duration::from_secs(60);
+
+/// What went wrong with every cause beneath it, the way a provider's client nests them.
+pub fn told(error: &dyn std::error::Error) -> String {
+    let mut said = error.to_string();
+    let mut under = error.source();
+    while let Some(one) = under {
+        said.push_str(": ");
+        said.push_str(&one.to_string());
+        under = one.source();
+    }
+    said
+}
+
+/// A `Retry-After` in seconds, never under one: a provider that says zero still means wait.
+pub fn retry_after(said: Option<&str>) -> Option<Duration> {
+    said.and_then(|one| one.trim().parse::<u64>().ok())
+        .map(|secs| Duration::from_secs(secs).max(WAITED_AT_LEAST))
+}
+
+#[derive(serde::Deserialize)]
+struct TokenRefusal {
+    error: Option<String>,
+}
+
+/// A token endpoint's refusal read alike for every provider; `lost` names the errors only signing in again mends.
+pub fn token_refused(
+    who: &str,
+    status: u16,
+    wait: Option<Duration>,
+    body: &str,
+    lost: &[&str],
+) -> Hitch {
+    match status {
+        429 => Hitch::Limited {
+            wait: wait.unwrap_or(WAITED_UNTOLD),
+        },
+        500.. => match wait {
+            Some(wait) => Hitch::Limited { wait },
+            // Never the provider's store itself, so a round's spending and its stall guard leave it out.
+            None => Hitch::Unreachable(None, format!("{who} answered {status}")),
+        },
+        _ => {
+            let error = serde_json::from_str::<TokenRefusal>(body)
+                .ok()
+                .and_then(|one| one.error)
+                .unwrap_or_default();
+            match lost.contains(&error.as_str()) {
+                true => Hitch::Lost,
+                false => Hitch::Broke(format!("{who} refused the token: {error}")),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "said_test.rs"]
+mod tests;

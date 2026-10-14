@@ -151,12 +151,12 @@ How an append stays safe (`Store`):
 ### Network
 
 `tisty-core`, `tisty-sync`, `tisty-nl`, `tisty-carrier` and the CLI contain no
-network code; `deny.toml` lets `reqwest` be wrapped by the window and
-`tisty-google` alone, on every target the release builds. `tisty-gui` holds the
-version check and the updater (`update.rs`, limited to GitHub hosts) and the
-preview of a link the person asks for (`glimpse.rs`). `tisty-google`, which
-only the window depends on, holds Google's sign-in and token renewal and the
-Drive `Remote`. The store lives in Drive's hidden `appDataFolder`
+network code; `deny.toml` lets `reqwest` be wrapped by the window,
+`tisty-google` and `tisty-onedrive` alone, on every target the release builds.
+`tisty-gui` holds the version check and the updater (`update.rs`, limited to
+GitHub hosts) and the preview of a link the person asks for (`glimpse.rs`).
+`tisty-google`, which only the window depends on, holds Google's sign-in and
+token renewal and the Drive `Remote`. The store lives in Drive's hidden `appDataFolder`
 (`spaces=appDataFolder`); its id comes out of the same whole listing as every
 file, as the one parent the listing does not hold, and Google's alias stands for
 it until then. The space has no bin of Drive's, so a deletion against a revision
@@ -1004,6 +1004,15 @@ stateDiagram-v2
   sign-in through the browser with PKCE). A build without
   `TISTY_GOOGLE_CLIENT_ID` and `TISTY_GOOGLE_CLIENT_SECRET` has no client and
   offers no cloud.
+- OneDrive's `Remote` in `crates/tisty-onedrive` (`OneDrive`, over Microsoft
+  Graph in the app's own folder, `Files.ReadWrite.AppFolder`), with
+  `MicrosoftRenew` and OneDrive's `quickXorHash`. Not wired into the window
+  yet: nothing builds it, and a build without `TISTY_MICROSOFT_CLIENT_ID` would
+  offer no OneDrive. Graph names nothing by path in its feed of changes, so the
+  folder is held by id and each path is rebuilt up to the app's folder; a feed
+  OneDrive let lapse (410) is listed again whole. A write lands whole up to
+  10 MiB, or in pieces of an upload session past it; `If-Match` with the eTag
+  and `conflictBehavior=fail` make every write conditional.
 - `Sync::Cloud` in `config.rs`, naming the provider and the account.
 - The window: the Google Drive card with its states, the local switch, the
   day's spend, *Free space*, and the move between this machine, a folder and
