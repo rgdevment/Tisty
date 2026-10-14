@@ -20,6 +20,8 @@ export interface Run {
   along?: MoveAlong;
   /** Tries in a row that could not reach the place, and since when, so a blip names no cause. */
   failing?: { rounds: number; since: number };
+  /** Bytes still to come down when the wait on the folder's program began, so the bar shows what arrived. */
+  fetchingFrom?: number;
   watched: boolean;
 }
 
@@ -27,8 +29,8 @@ export interface Run {
 const SHORT_PAUSE = 180;
 const MARGIN = 2;
 const STALLS = 3;
-// Two minutes with no file come down is long enough to hand the person what to look at.
-const FETCH_STALLS = 6;
+// A large file can take minutes to come down; ten with none arriving is long enough to hand the move over.
+const FETCH_STALLS = 30;
 export const RETRY_IN = 20;
 
 let run: Run | null = null;
@@ -38,6 +40,7 @@ let stalled = 0;
 let lastLeft: number | undefined;
 let wasFetching = false;
 let fetchStalled = 0;
+let fetchingFrom: number | undefined;
 let failing: Run["failing"];
 // Bumped whenever a run is let go of, so an answer or a timer of the run before never brings it back.
 let epoch = 0;
@@ -104,7 +107,16 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
   settleUps();
   const before = sentSoFar();
   const began = Math.floor(Date.now() / 1000);
-  set({ toward, from, going: true, along, watched: false });
+  // Looking again while the folder's program brings files down still says what it waits for.
+  const fetching = run?.waited === "fetching";
+  set({
+    toward,
+    from,
+    going: true,
+    along,
+    watched: false,
+    ...(fetching ? { waited: "fetching", result: run?.result, fetchingFrom } : {}),
+  });
   moveTo(toward)
     .then((now) => {
       if (mine !== epoch) return;
@@ -132,6 +144,8 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
         else stalled += 1;
       }
       lastLeft = left;
+      const bytes = now.state === "waiting" ? now.left.bytes : 0;
+      fetchingFrom = fetching ? Math.max(fetchingFrom ?? 0, bytes) : undefined;
       const waits = waitOf(now);
       if (waits === undefined) {
         set({ toward, from, going: false, result: now, along, failing, watched: false });
@@ -147,6 +161,7 @@ const go = (toward: Toward, from?: Carrying["mode"], along?: MoveAlong) => {
         waited: waits.waited,
         along,
         failing,
+        fetchingFrom,
         watched: false,
       });
       resuming = setTimeout(() => {
@@ -181,6 +196,7 @@ export const endMove = () => {
   fetchStalled = 0;
   lastLeft = undefined;
   wasFetching = false;
+  fetchingFrom = undefined;
   failing = undefined;
   forgetUps();
   set(null);
