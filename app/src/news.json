@@ -82,7 +82,7 @@
     "es": [
       {
         "title": "Tisty tiene mascota",
-        "said": "un castor con un lápiz detrás de la oreja, que te saluda en Acerca de y en esta ventana."
+        "said": "te saluda en Acerca de y en esta ventana."
       },
       {
         "title": "Novedades al actualizar",
@@ -96,7 +96,7 @@
     "en": [
       {
         "title": "Tisty has a mascot",
-        "said": "a beaver with a pencil behind its ear, who greets you in About and in this window."
+        "said": "it greets you in About and in this window."
       },
       {
         "title": "What's new after an update",
