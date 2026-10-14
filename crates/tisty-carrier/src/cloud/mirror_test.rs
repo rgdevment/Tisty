@@ -58,3 +58,60 @@ fn the_same_refusal_asked_again_and_again_still_stops_as_a_loop() {
 
     assert!(matches!(stopped, Hitch::Troubled(_)), "{stopped:?}");
 }
+
+fn echoed_while_owed(fake: Fake) {
+    let room = tempfile::tempdir().unwrap();
+    let (tree, data) = (room.path().join("tree"), room.path().join("data"));
+    let id = "dev_a-0001";
+    let name = format!("{PAPERS}/{id}.md");
+    let mut index = Index::default();
+    pull(&fake, &tree, &mut index, Some(&data), false, &mut |_| {}).unwrap();
+    std::fs::create_dir_all(tree.join(PAPERS)).unwrap();
+    std::fs::write(tree.join(&name), b"lo primero\n").unwrap();
+    let (pushed, _) = push(&fake, &tree, &mut index, &mut Pace::new(None, &mut |_| {}));
+    assert_eq!(pushed.put, 1);
+
+    let echo = room.path().join("echo");
+    std::fs::write(&echo, b"lo primero\n").unwrap();
+    fake.put(&name, &echo, Expect::Any).unwrap();
+    let ours = "lo primero\ny lo que vino despues\n";
+    std::fs::write(tree.join(&name), ours).unwrap();
+    let print = tisty_core::attach::printed(ours.as_bytes());
+    std::fs::create_dir_all(&data).unwrap();
+    let mut said = tisty_core::docs::Carried::read(&data);
+    said.keep(id, &print);
+    said.save(&data).unwrap();
+    tisty_core::docs::keep_carried(&data, id, ours).unwrap();
+
+    pull(&fake, &tree, &mut index, Some(&data), false, &mut |_| {}).unwrap();
+
+    assert_eq!(
+        tisty_core::docs::Carried::read(&data).of(id),
+        Some(print.as_str()),
+        "our own write coming back took the document's base away"
+    );
+    assert_eq!(
+        tisty_core::docs::read_carried(&data, id).as_deref(),
+        Some(ours)
+    );
+    assert_eq!(std::fs::read_to_string(tree.join(&name)).unwrap(), ours);
+    let (pushed, hitch) = push(&fake, &tree, &mut index, &mut Pace::new(None, &mut |_| {}));
+    assert_eq!(
+        (pushed.put, hitch),
+        (1, None),
+        "the change owed did not go up"
+    );
+    let mut up_there = Vec::new();
+    fake.fetch(&name, 0, &mut up_there).unwrap();
+    assert_eq!(up_there, ours.as_bytes());
+}
+
+#[test]
+fn our_own_write_coming_back_leaves_a_change_still_owed_with_its_base() {
+    echoed_while_owed(Fake::drive());
+}
+
+#[test]
+fn our_own_write_coming_back_without_a_hash_leaves_a_change_still_owed_with_its_base() {
+    echoed_while_owed(Fake::drive().without_hashes());
+}
