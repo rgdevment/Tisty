@@ -177,6 +177,15 @@ fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
             false => lang.get("cloud-never-read").to_string(),
         },
     );
+    if told.listed {
+        line(
+            lang.get("cloud-account"),
+            &match told.confirmed {
+                true => lang.get("cloud-account-confirmed").to_string(),
+                false => style::dim(lang.get("cloud-account-unconfirmed")),
+            },
+        );
+    }
     if told.owed + told.forgotten + told.owed_back > 0 {
         line(
             lang.get("cloud-waits"),
@@ -204,6 +213,9 @@ fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
     );
     if let Some(last) = &told.last {
         line(lang.get("cloud-last"), &ended(last, lang));
+        if let Some(lasted) = lasting(last, lang) {
+            line("", &style::dim(&lasted));
+        }
     }
     if told.paused_here {
         line(
@@ -212,9 +224,7 @@ fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
         );
     }
     if let Some(until) = told.halted_until {
-        let when = jiff::Timestamp::from_second(i64::try_from(until).unwrap_or(i64::MAX))
-            .map(|at| at.strftime("%Y-%m-%d %H:%M UTC").to_string())
-            .unwrap_or_default();
+        let when = stamped(until);
         line(
             lang.get("cloud-paused"),
             &style::paint(
@@ -233,13 +243,14 @@ fn cloud(told: &tisty_carrier::Standing, email: &str, lang: Lang) {
 }
 
 fn ended(last: &tisty_carrier::LastRound, lang: Lang) -> String {
-    let when = jiff::Timestamp::from_second(i64::try_from(last.at).unwrap_or(i64::MAX))
-        .map(|at| at.strftime("%Y-%m-%d %H:%M UTC").to_string())
-        .unwrap_or_default();
+    let when = stamped(last.at);
     match last.code.as_str() {
         "ok" => lang.fill("cloud-last-ok", &[("when", &when)]),
         code => match code.strip_prefix("deferred-") {
-            Some(reason @ ("budget" | "limit" | "offline" | "busy" | "paused" | "changed")) => {
+            Some(
+                reason @ ("budget" | "limit" | "offline" | "busy" | "paused" | "changed"
+                | "troubled" | "unsent"),
+            ) => {
                 let left = match last.left {
                     0 => String::new(),
                     left => format!(
@@ -262,6 +273,37 @@ fn ended(last: &tisty_carrier::LastRound, lang: Lang) -> String {
             ),
         },
     }
+}
+
+fn lasting(last: &tisty_carrier::LastRound, lang: Lang) -> Option<String> {
+    if last.code == "ok" {
+        return None;
+    }
+    let cause = last
+        .cause
+        .as_deref()
+        .filter(|cause| matches!(*cause, "blocked" | "filtered" | "slow"))
+        .map(|cause| lang.get(&format!("cause-{cause}")));
+    let streak = (last.rounds > 1).then(|| {
+        lang.fill(
+            "cloud-last-streak",
+            &[
+                ("rounds", &last.rounds.to_string()),
+                ("since", &stamped(last.since)),
+            ],
+        )
+    });
+    let told: Vec<String> = [cause.map(str::to_string), streak]
+        .into_iter()
+        .flatten()
+        .collect();
+    (!told.is_empty()).then(|| told.join("; "))
+}
+
+fn stamped(at: u64) -> String {
+    jiff::Timestamp::from_second(i64::try_from(at).unwrap_or(i64::MAX))
+        .map(|at| at.strftime("%Y-%m-%d %H:%M UTC").to_string())
+        .unwrap_or_default()
 }
 
 fn moved_word(
