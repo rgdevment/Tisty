@@ -430,6 +430,25 @@ describe("the bar of a move", () => {
     expect(width({ ...base, along: sending(0, 0, 0, 0) })).toBe("0%");
     expect(width({ ...base, along: sending(1, 1, 2_000, 1_000) })).toBe("100%");
   });
+
+  it("follows whichever is further behind, so all the bytes up never look like the end", () => {
+    expect(width({ ...base, along: sending(315, 553, 5_900, 5_900) })).toBe("57%");
+    expect(width({ ...base, along: sending(553, 553, 5_900, 5_900) })).toBe("100%");
+  });
+});
+
+describe("the last small files of a move", () => {
+  it("adds how many are left once the bytes are all up, keeping both totals in sight", () => {
+    const run = (done: number, whole: number, sent = 5_900_000_000) =>
+      ({ ...base, along: sending(done, whole, sent, 5_900_000_000) }) as Run;
+    const said = alongSaid(run(315, 553)) ?? "";
+
+    expect(said).toContain(fill("moveFiles", "315", "553"));
+    expect(said).toContain(fill("moveFilesLeft", "238"));
+    expect(alongSaid(run(552, 553))).toContain(t("moveFileLeft"));
+    expect(alongSaid(run(553, 553))).not.toContain(t("moveFileLeft"));
+    expect(alongSaid(run(315, 553, 5_000_000_000))).not.toContain(fill("moveFilesLeft", "238"));
+  });
 });
 
 describe("what a move hears", () => {
