@@ -187,11 +187,7 @@ describe("choosing where the copies go", () => {
     expect(screen.getByText(t("cloudHoldsWhy"))).toBeTruthy();
     expect(screen.queryByText(t("cloudFirstUpload"))).toBeNull();
     expect(screen.queryByRole("button", { name: t("cloudStart") })).toBeNull();
-    expect(sent("place_peek")[0].args.toward).toEqual({
-      kind: "cloud",
-      account: ANA.account,
-      email: ANA.email,
-    });
+    expect(sent("place_peek")[0].args.toward).toEqual({ kind: "cloud", ...ANA });
     await userEvent.click(screen.getByRole("button", { name: t("cloudBring") }));
 
     await waitFor(() => expect(done).toHaveBeenCalledWith("cloud"));
