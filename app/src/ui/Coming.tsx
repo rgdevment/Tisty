@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type Stage, useCarded, useComing, useStuck } from "../coming";
+import { apartWaits, type Stage, useCarded, useComing, useStuck } from "../coming";
 import { fill, locale, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
 import { underway, useMove } from "../relocation";
@@ -72,7 +72,7 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
       )}
       {stuck != null && (
         <p role="alert" className="text-[11.5px] text-urgent">
-          {plainly(stuck)}
+          {apartWaits(stuck) ? t("stuckChoosing") : plainly(stuck)}
         </p>
       )}
       {stuck != null && onOpen && leftBehind(stuck) && (

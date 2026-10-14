@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ended, unstuck } from "../coming";
 import type { Carrying, CloudStatus } from "../core";
-import { adopt, t } from "../locales";
+import { adopt, fill, t } from "../locales";
 import Clouded from "../ui/Clouded";
 import Coming from "../ui/Coming";
 
@@ -163,5 +163,38 @@ describe("a cloud Google shut its door on", () => {
     await waitFor(() => expect(carry).toHaveBeenCalled());
     expect(screen.queryByRole("button", { name: t("stateElsewhereDo") })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("a cloud that already holds another Tisty", () => {
+  it("waits on the person in the card, offers to choose, and the sidebar repeats nothing", async () => {
+    const { carry } = shown(undefined, "otherStore");
+
+    expect(await screen.findByText(fill("stateApart", t("cloudGoogle")))).toBeTruthy();
+    expect(screen.getByText(t("syncChoosing"))).toBeTruthy();
+    expect(screen.queryByText(/my last round/i)).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+
+    await userEvent.click(screen.getByRole("button", { name: t("stateApartDo") }));
+    expect(carry).toHaveBeenCalled();
+  });
+
+  it("never says a round is already running while the choice waits", async () => {
+    ipc.answers.cloud_status = () => Promise.resolve(status({ last: round("wouldReset") }));
+    act(() => ended({ code: "wouldReset" }));
+    render(
+      <Clouded
+        state={carrying()}
+        busy={null}
+        said={{ card: "sync", text: t("syncBusy") }}
+        run={vi.fn() as never}
+        fail={() => {}}
+        carry={vi.fn()}
+        onMove={() => {}}
+      />,
+    );
+
+    expect(await screen.findByText(t("syncChoosing"))).toBeTruthy();
+    expect(screen.queryByText(t("syncBusy"))).toBeNull();
   });
 });

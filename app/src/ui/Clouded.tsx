@@ -1,7 +1,7 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { cloudStanding, type Exit, STORAGE } from "../cloudState";
-import { carding, unstuck } from "../coming";
+import { carding, unstuck, useAwaitsChoice } from "../coming";
 import {
   type Carrying,
   type CloudStatus,
@@ -42,6 +42,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
   const held = busy !== null;
+  const waiting = useAwaitsChoice();
 
   const look = useCallback(() => {
     cloudStatus()
@@ -56,6 +57,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
   const answered =
     last !== undefined && last !== null && last.at === signedAt && SIGNED.has(last.code);
   const standing = status && !answered ? cloudStanding(status) : null;
+  const awaits = waiting || standing?.exit === "choose";
   const carded = standing?.exit && last ? last.code : null;
   const repeats =
     carded !== null && trouble?.text === plainly({ code: carded, name: last?.name ?? undefined });
@@ -101,6 +103,7 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
     }
     if (how === "reconnect") return reconnect();
     if (how === "turnOn") return switched(true);
+    if (how === "choose") return carry();
     openUrl(STORAGE).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
   };
 
@@ -187,7 +190,9 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
           </button>
         )}
         <span className="ml-auto text-[11.5px] text-faint">
-          {fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))}
+          {awaits
+            ? t("syncChoosing")
+            : fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))}
         </span>
       </div>
 
@@ -246,7 +251,9 @@ export default function Clouded({ state, busy, said, trouble, run, fail, carry, 
       {trouble?.card === "sync" && !repeats && (
         <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
       )}
-      {said?.card === "sync" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
+      {said?.card === "sync" && !(awaits && said.text === t("syncBusy")) && (
+        <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>
+      )}
     </>
   );
 }

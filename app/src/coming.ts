@@ -34,6 +34,7 @@ export interface Sum {
 let now: Coming | null = null;
 let stuck: unknown = null;
 let carded: string | null = null;
+let choosing = false;
 let hearing = false;
 const told = new Set<() => void>();
 const hearers = new Set<(step: Heard) => void>();
@@ -92,6 +93,17 @@ export const carding = (code: string | null) => {
   tell();
 };
 
+export const choose = (now: boolean) => {
+  if (choosing === now) return;
+  choosing = now;
+  tell();
+};
+
+const APART = new Set(["wouldReset", "otherStore", "restoredApart"]);
+
+export const apartWaits = (said: unknown): boolean =>
+  APART.has((said as { code?: string } | null)?.code ?? "");
+
 export const unstuck = () => {
   stuck = null;
   tell();
@@ -118,3 +130,11 @@ export const useComing = (): Coming | null => useSyncExternalStore(subscribe, ()
 export const useStuck = (): unknown => useSyncExternalStore(subscribe, () => stuck);
 
 export const useCarded = (): string | null => useSyncExternalStore(subscribe, () => carded);
+
+export const useChoosing = (): boolean => useSyncExternalStore(subscribe, () => choosing);
+
+export const useAwaitsChoice = (): boolean => {
+  const open = useChoosing();
+  const told = useStuck();
+  return open || apartWaits(told);
+};
