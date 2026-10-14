@@ -518,6 +518,38 @@ fn a_machine_that_wrote_nothing_takes_up_the_folder_it_is_pointed_at(shared: &Sh
     );
 }
 
+fn a_machine_that_only_opened_once_takes_up_the_folder_once_what_it_sowed_is_set_aside(
+    shared: &Shared,
+) {
+    let one = machine("uno");
+    shared.carry(&one, Way::Push, &[]).unwrap();
+    let fresh = blank("dos");
+    signing(&fresh)
+        .append_batch(tisty_core::model::sown("es"))
+        .unwrap();
+
+    let asked = shared.carry(&fresh, Way::Both, &[]);
+    assert!(
+        matches!(
+            asked,
+            Err(Trouble::OtherStore { .. }) | Err(Trouble::WouldReset { .. })
+        ),
+        "the round itself never decides for the person: {asked:?}"
+    );
+    assert!(tisty_core::untouched::untouched(
+        &fresh.store,
+        &fresh.data.join(PAPERS)
+    ));
+
+    let paths = tisty_core::Paths::new(fresh.data.clone(), fresh.data.join("config"));
+    let backup = fresh.data.with_file_name("before-joining.zip");
+    tisty_core::backup::reset(&paths, &backup, &fresh.data.with_file_name("aside"), None).unwrap();
+    shared.carry(&fresh, Way::Both, &[]).unwrap();
+
+    assert!(backup.is_file(), "what it had sowed was never kept aside");
+    assert_eq!(titles(&fresh.store), vec!["lo de uno".to_string()]);
+}
+
 fn signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history(
     shared: &Shared,
 ) {
@@ -1077,6 +1109,7 @@ both_sides! {
     a_document_the_other_machine_deleted_is_never_brought_back_by_the_new_reckoning,
     a_seat_nobody_ever_wrote_in_is_not_taken_home,
     a_machine_that_wrote_nothing_takes_up_the_folder_it_is_pointed_at,
+    a_machine_that_only_opened_once_takes_up_the_folder_once_what_it_sowed_is_set_aside,
     signing_before_the_folder_is_chosen_makes_a_new_machine_look_like_another_history,
     a_store_with_no_list_yet_lets_everyone_write,
     a_machine_on_the_list_writes_as_it_always_did,

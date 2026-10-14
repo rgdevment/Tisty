@@ -289,7 +289,10 @@ pub async fn settle_in(
                     "the carry on opening did not finish",
                     &[("code", Fact::Code(refusal.code))],
                 );
-                stuck = Some(refusal);
+                // A new machine takes the place's history on the next round, so there is nothing to choose.
+                let quiet = super::joining::apart(refusal.code)
+                    && tisty_core::untouched::untouched(&paths.store(), &paths.docs());
+                stuck = (!quiet).then_some(refusal);
             }
             Err(_) => witness::warn(channel::SYNC, "the carry on opening never ran", &[]),
             Ok(Ok(done)) => {
@@ -794,7 +797,10 @@ pub async fn sync_now(
             .map(|at| session.reach.home_of(at));
         (session.config.sync.clone(), home)
     };
-    let done = carried_round(&app, &session, way).await;
+    let mut done = carried_round(&app, &session, way.clone()).await;
+    if held_apart(&done) && super::joining::adopted_quietly(&session).await {
+        done = carried_round(&app, &session, way).await;
+    }
     if let Some(home) = home {
         noted(&home, &done);
     }
@@ -805,6 +811,14 @@ pub async fn sync_now(
     );
     drop(now);
     done
+}
+
+fn held_apart(done: &Answer<Settled>) -> bool {
+    let code = match done {
+        Ok(settled) => settled.refused.as_ref().map(|one| one.code),
+        Err(refusal) => Some(refusal.code),
+    };
+    code.is_some_and(super::joining::apart)
 }
 
 /// This copy raised a place the builds before 1.30 no longer write in, and the person has not been told yet.

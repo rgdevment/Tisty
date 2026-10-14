@@ -204,3 +204,67 @@ pub async fn merge_stores(
     *held(&session) = fresh;
     Ok(seam.stitch.is_some())
 }
+
+/// What a place answers when it holds another history: the two that open the choice of three doors.
+pub(crate) fn apart(code: &str) -> bool {
+    matches!(code, "wouldReset" | "otherStore")
+}
+
+/// A machine holding only what its first opening sowed takes the place's history without asking,
+/// once a backup of what it had has landed. Nothing happens to one that holds anything of the person's.
+pub(crate) fn quietly_joined(paths: &tisty_core::Paths) -> Option<std::path::PathBuf> {
+    if tisty_core::paths::profile().is_some()
+        || !tisty_core::untouched::untouched(&paths.store(), &paths.docs())
+    {
+        return None;
+    }
+    let into = tisty_core::backup::kept_before_joining(paths, jiff::Timestamp::now()).ok()?;
+    match tisty_core::backup::reset(paths, &into, paths.cache(), None) {
+        Ok(_) => {
+            witness::note(
+                channel::SYNC,
+                "this machine held only what it starts with, so it took the place's history without asking",
+                &[("backup", Fact::Path(into.clone()))],
+            );
+            Some(into)
+        }
+        Err(e) => {
+            witness::warn(
+                channel::BACKUP,
+                "a new machine was left as it was because its backup did not land",
+                &[("why", Fact::Why(e.to_string()))],
+            );
+            None
+        }
+    }
+}
+
+// Read and reset under the session's lock, so nothing the person writes meanwhile slips between the two.
+pub(crate) async fn adopted_quietly(session: &tauri::State<'_, Mutex<Session>>) -> bool {
+    let joined = {
+        let session = held(session);
+        quietly_joined(&session.paths).is_some()
+    };
+    if !joined {
+        return false;
+    }
+    match elsewhere(Session::open).await {
+        Ok(Ok(fresh)) => {
+            *held(session) = fresh;
+            let _ = held(session).keep(|c| c.restored_at = None);
+            true
+        }
+        _ => {
+            witness::error(
+                channel::BACKUP,
+                "the session would not reopen after a new machine took the place's history",
+                &[],
+            );
+            false
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "joining_test.rs"]
+mod tests;
