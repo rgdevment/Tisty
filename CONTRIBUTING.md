@@ -1,6 +1,7 @@
 # Contributing to Tisty
 
-Bug reports, feature discussions and pull requests are all welcome.
+Bug reports, feature discussions and pull requests are all welcome. Everyone
+taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Before you write code
 
@@ -98,6 +99,9 @@ once the change is merged, which is where a finding is read.
 
 Building an **installer** needs nothing more than `npm run tauri build`: the
 updater's signature is made later, in the release pipeline, over what ships.
+Syncing through Google Drive needs the project's Google client id and secret,
+which only the release pipeline holds, so a build of your own offers no cloud
+and makes none of its requests; everything else works the same.
 
 ## House style
 

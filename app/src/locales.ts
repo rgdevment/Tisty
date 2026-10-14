@@ -1011,7 +1011,7 @@ const en = {
   cloudNeedsMove:
     "This copy already syncs another way. Moving to the cloud brings everything over first, so nothing stays behind. Nothing was changed.",
   cloudNotOffered:
-    "This copy syncs with Google Drive, and this build of Tisty was made without access to it. Install Tisty from rgdevment.com or the Microsoft Store; nothing was changed.",
+    "This copy syncs with Google Drive, and this build of Tisty was made without access to it. Install Tisty from www.tisty.app or the Microsoft Store; nothing was changed.",
   cloudDenied: "Google was not given access, so nothing was connected.",
   cloudNoAnswer:
     "The browser never came back from Google, so nothing was connected. Try again when you are ready.",
@@ -2965,7 +2965,7 @@ const es: Catalog = {
   cloudNeedsMove:
     "Esta copia ya sincroniza de otra manera. Mudarse a la nube trae todo primero, para que nada quede atrás. No se cambió nada.",
   cloudNotOffered:
-    "Esta copia sincroniza con Google Drive, y esta versión de Tisty se hizo sin acceso a él. Instala Tisty desde rgdevment.com o la Microsoft Store; no se cambió nada.",
+    "Esta copia sincroniza con Google Drive, y esta versión de Tisty se hizo sin acceso a él. Instala Tisty desde www.tisty.app o la Microsoft Store; no se cambió nada.",
   cloudDenied: "No se le dio acceso a Google, así que no se conectó nada.",
   cloudNoAnswer:
     "El navegador nunca volvió de Google, así que no se conectó nada. Vuelve a intentarlo cuando quieras.",
