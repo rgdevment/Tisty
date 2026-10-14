@@ -143,3 +143,21 @@ jobs:
           else
             echo "no candidate is announced, and none is served"
           fi
+
+      # cloud.json and its signature are the maintainer's signed word, put there by hand; the rest is the release's.
+      - name: The branch holds only the feed
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          if ! held=$(gh api "repos/$GITHUB_REPOSITORY/contents?ref=manifest" -q '.[].name' | sort); then
+            echo "::warning::the manifest branch could not be listed, so what it holds was not looked at"
+            exit 0
+          fi
+          allowed=$(printf '%s\n' candidate.json cloud.json cloud.json.sig latest.json release-manifest.json | sort)
+          extra=$(comm -23 <(echo "$held") <(echo "$allowed"))
+          if [ -n "$extra" ]; then
+            echo "::warning::the manifest branch carries files that are not the feed: $(echo "$extra" | tr '\n' ' ')"
+          fi
+          echo "the branch holds: $(echo "$held" | tr '\n' ' ')"

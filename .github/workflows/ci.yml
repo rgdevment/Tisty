@@ -41,9 +41,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: The toolchain rust-toolchain.toml names
-        shell: bash
-        run: rustup toolchain install --no-self-update && rustup component add clippy
+      - uses: ./.github/actions/toolchain
+        with:
+          components: clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           shared-key: workspace
@@ -79,9 +79,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: The toolchain rust-toolchain.toml names
-        shell: bash
-        run: rustup toolchain install --no-self-update && rustup component add rustfmt
+      - uses: ./.github/actions/toolchain
+        with:
+          components: rustfmt
       - run: cargo fmt --all --check
 
   window:
@@ -130,6 +130,38 @@ jobs:
           persist-credentials: false
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
 
+  npm-audit:
+    name: npm advisories
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      # A warning, never a red check: an advisory published today would otherwise fail every pull request at once.
+      - name: Advisories at moderate or above, in the window and in the repository tooling
+        run: |
+          for dir in app .; do
+            npm audit --prefix "$dir" --package-lock-only --json > "$RUNNER_TEMP/audit.json" || true
+            if ! jq -e '.vulnerabilities' "$RUNNER_TEMP/audit.json" > /dev/null; then
+              echo "::warning::npm audit gave no report for $dir/package-lock.json"
+              continue
+            fi
+            found=$(jq -r '[.vulnerabilities[].via[] | objects
+              | select(.severity != "low" and .severity != "info") | "\(.severity) \(.name) \(.url)"]
+              | unique[]' "$RUNNER_TEMP/audit.json")
+            if [ -n "$found" ]; then
+              echo "$found"
+              echo "::warning::npm advisories at moderate or above in $dir/package-lock.json"
+            else
+              echo "$dir/package-lock.json: nothing at moderate or above"
+            fi
+          done
+
   coverage:
     name: coverage
     runs-on: ubuntu-24.04
@@ -139,9 +171,9 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: The toolchain rust-toolchain.toml names
-        shell: bash
-        run: rustup toolchain install --no-self-update && rustup component add llvm-tools-preview
+      - uses: ./.github/actions/toolchain
+        with:
+          components: llvm-tools-preview
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
