@@ -8,10 +8,11 @@
   <h1>Tisty — Notas, documentos y tareas, libres y de código abierto</h1>
 
   <p><strong>Notas, documentos y tareas que siguen siendo tuyos: Markdown llano
-  en tu disco, para Windows y macOS.<br/>No es una lista que se vacía, es el
-  historial de cómo resolviste las cosas, buscable años después, con una puerta
-  MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin
-  servidor.</strong></p>
+  en tu disco, para Windows y macOS.<br/>Documentos que crecen hasta ser
+  libros, con diagramas, fórmulas, código, widgets y su propio PDF — y tareas que
+  se vuelven el historial de cómo resolviste las cosas, buscable años después,
+  con una puerta MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones.
+  Sin telemetría. Sin servidor.</strong></p>
 
   <p>
     <a href="README.md">English</a> ·
@@ -93,6 +94,13 @@
 versiones estables que ya están publicadas. No hay nada oculto: todo es
 auditable.
 
+Es un lugar para escribir. Los **documentos** son archivos Markdown en tu
+propio disco que llevan mucho más que texto: un libro en páginas, diagramas que
+salen de unas pocas líneas, fórmulas, código con el nombre de su archivo,
+pequeños widgets, fotos y PDF que viajan con ellos, y un PDF propio al imprimir.
+La búsqueda los lee junto a las tareas, y un asistente también puede leerlos y
+escribirlos.
+
 No es una **aplicación de tareas** como la conoces. Una lista se vacía y se
 olvida. Aquí lo que cierras se queda: lo que hiciste, cuándo, y lo que fuiste
 averiguando por el camino. Meses después buscas cómo resolviste algo y está ahí:
@@ -111,6 +119,9 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
   sincronizas dos equipos, puedes pedirle a Tisty que deje los adjuntos más
   grandes en esa carpeta compartida en vez de llevarlos a cada disco; nunca lo
   hace si tú no lo eliges.
+- **Documentos que hacen más que texto** — libros en páginas, diagramas,
+  fórmulas, código, widgets y adjuntos, todo en Markdown corriente que cualquier
+  otro editor sigue abriendo.
 - **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
   período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
   para organizaciones que no puedan cumplirla.
@@ -133,6 +144,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Por qué lo hice](#por-qué-lo-hice)
 - [Qué es, y qué no es](#qué-es-y-qué-no-es)
 - [Qué lo hace distinto](#qué-lo-hace-distinto)
+- [Documentos](#documentos)
 - [Para quién es](#para-quién-es)
 - [La idea sobre la que está construido](#la-idea-sobre-la-que-está-construido)
 - [Instalación](#instalación)
@@ -185,6 +197,10 @@ dejó de molestarme, y lo dejé acá por si resulta ser lo que tú querías.
 útil. Las tareas llevan descripción, bitácora, pasos y adjuntos; al completar una
 pasa al archivo, y la búsqueda llega a todo, documentos incluidos.
 
+**Es también un lugar para escribir.** Los documentos no son un campo de notas
+pegado a las tareas: son archivos Markdown que crecen hasta ser libros, con
+diagramas, fórmulas, código y su propio PDF.
+
 **Es para una persona.** Sin responsables, sin permisos, sin tableros. Si
 necesitas llevar un equipo, Tisty no va a sostener eso, y mereces saberlo antes
 de instalarlo y no después.
@@ -199,8 +215,9 @@ seguiría ahí y seguiría teniendo sentido.
 
 ## Qué lo hace distinto
 
-Si buscas un **gestor de tareas libre, de código abierto, sin conexión, sin
-cuenta, sin suscripción y sin inteligencia artificial**, esto es Tisty:
+Si buscas un **lugar libre, de código abierto y sin conexión para tus
+documentos y tareas, sin cuenta, sin suscripción y sin inteligencia
+artificial**, esto es Tisty:
 
 | | |
 |---|---|
@@ -212,7 +229,12 @@ cuenta, sin suscripción y sin inteligencia artificial**, esto es Tisty:
 | Tu propio asistente | sí, por **MCP**, si decides abrir la puerta |
 | Prioridades | la **matriz de Eisenhower**, con su nombre |
 | Clasificación | listas, etiquetas, pasos y bitácora en cada tarea |
-| Documentos | se escriben y se buscan junto a las tareas, no en otra app |
+| Documentos | archivos Markdown con páginas, diagramas, fórmulas, código, widgets y su propio PDF |
+| Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
+| Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
+| Widgets | pequeñas páginas HTML con los colores de Tisty, aisladas de la red |
+| PDF | propio: A4, Carta o Tabloide, con los adjuntos dentro |
+| Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
 | Dos equipos | por una carpeta que ya sincronizas. Sin servidor nuestro |
@@ -220,6 +242,13 @@ cuenta, sin suscripción y sin inteligencia artificial**, esto es Tisty:
 | Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
 | Recordatorios | una hora que eliges, que suena en este equipo y en ningún otro |
 | Código | abierto, auditable, tuyo para bifurcar |
+
+**Documentos que crecen hasta ser libros.** Casi todos los gestores de tareas te
+dan un campo de notas. Aquí un documento es un archivo propio, escrito sobre una
+hoja iluminada, que lleva páginas como capítulos, dibuja el diagrama que
+describes, compone la fórmula, colorea el código y hace su propio PDF — y sigue
+siendo Markdown que GitHub, cualquier editor o `cat` leen igual. Una tarea puede
+apuntar a él, y la búsqueda encuentra a los dos.
 
 **La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
 importante, las dos o ninguna — *hacer*, *decidir*, *delegar*, *dejar*. Eso
@@ -251,12 +280,141 @@ función guardada para más adelante. La razón no es generosidad: un programa q
 guarda tu trabajo en tu disco y nunca llama a casa no tiene casi nada que cobrar,
 y pedirlo lo empeoraría.
 
+## Documentos
+
+La otra mitad de Tisty, y para mucha gente la más grande. Un documento es un
+archivo Markdown en tu propio disco —el mismo archivo que abre cualquier otro
+editor— y en Tisty lleva bastante más que texto:
+
+- **Un libro en páginas.** Un año de actas, un manual por capítulos, la vida de
+  un perro contada año a año: un documento con sus páginas, en el orden en que
+  el texto las nombra, con un índice al final y flechas de una a la siguiente.
+- **Diagramas con unas pocas líneas.** Un bloque que dice `mermaid` dibuja
+  flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
+  más, claros u oscuros según la ventana.
+- **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
+  lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
+  se inclinan sus columnas y con qué ancho las dibujaste.
+- **Widgets**: una pequeña página de HTML, estilos y un poco de script, dibujada
+  con los colores de Tisty y aislada de la red.
+- **Avisos, marcadores e íconos** —los avisos que GitHub lee, marcadores de
+  varios colores, un ícono que se busca por lo que dibuja— y casillas que se
+  marcan.
+- **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
+  de Tisty en vez de enlazados a una carpeta que se mueve.
+- **Un PDF propio**, A4, Carta o Tabloide, con los adjuntos dentro, que te
+  enseña antes de exportarlo.
+
+La guía que Tisty escribe la primera vez que se abre trae una página con uno de
+cada cosa, para que lo veas todo antes de escribir una línea.
+
+**Los documentos** viven junto a las tareas, para el material de consulta que no
+tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
+—tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
+tarea puede apuntar a un documento; un documento nunca crea tareas.
+
+**El árbol abre en silencio y se guarda entero.** Cada carpeta nace plegada, así
+que un almacén con cientos de documentos son cuatro filas hasta que vas a
+buscar. Cuando un trabajo termina archivas la carpeta, no sus documentos uno a
+uno: baja al estante del final del árbol con su icono, sus subcarpetas y sus
+páginas tal como las dejaste, cerrada a escribir y a que entre nada nuevo.
+Desarchívala y vuelve igual —incluidos los documentos que hubieras archivado a
+mano ahí dentro, que siguen archivados porque nadie dijo lo contrario.
+
+**Una página se archiva sola sin salir de su documento.** Algo largo por partes
+—un año de actas, un libro por capítulos— es un documento con páginas, y el
+capítulo que ya no aplica se va al archivo donde vive: atenuado, con el icono
+del archivo, se lee pero no se escribe. Archiva el documento entero y se guardan
+todas con él; desarchívalo y cada una vuelve como estaba, y la que habías
+apartado sigue apartada.
+
+**Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
+una frase y el documento queda archivado bajo ella. La etiqueta vive en la
+frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
+lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
+tareas de una etiqueta y debajo los documentos, y presionar una etiqueta
+dentro de un documento abre justo eso. Los acentos se pliegan y las mayúsculas también,
+así que `#camion` y `#camión` son una sola palabra la escribas como la
+escribas. Un número suelto no es una etiqueta —`#1234` es el ticket que
+alguien anotó, no un tema— y una sola letra tampoco: hacen falta dos
+caracteres y que alguno sea una letra.
+
+El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
+cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
+tablas conservan hacia dónde se inclinan sus columnas y con qué ancho las
+dibujaste, y un bloque de código dice de qué lenguaje es y se colorea para él,
+con sus líneas numeradas al lado del texto y no dentro, así copiar se lleva el
+código y nada más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
+debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
+`math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
+pequeña página —HTML, estilos y, si quieres, un poco de script— aislada de la
+red y de la ventana, y un archivo `.html` adjunto a un documento se dibuja
+igual.
+
+**Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
+misma: el nombre del sitio y las palabras que escribiste. No se descarga nada
+para dibujarla. Presiona **Traer la vista previa** y Tisty le pide a esa
+página una sola vez su título, su descripción y la imagen que ofrezca, guarda
+la respuesta
+aquí para no volver a preguntar, y no lee más de lo que necesita: una página no
+decide cuánto de tu equipo ocupa.
+
+**Sigue siendo Markdown**, y eso es lo importante, no un detalle: todo lo de
+arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
+Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
+ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
+lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
+el pedacito de HTML que sí lo dice, y lo vuelve a leer.
+Donde el editor se topa con una forma que se sabe que no conserva —una cabecera
+al principio, notas al pie, enlaces escritos por referencia, bloques de HTML—,
+lo dice y abre el documento en solo lectura en vez de destruirlo en silencio.
+Esa lista es lo que revisa, no una promesa sobre todo lo que puede llevar un
+archivo Markdown.
+
+Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
+el nombre del documento y su título —pasando por encima de una valla o de la
+marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
+abre una columna con de qué va el documento, el formato que el menú `/`
+escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
+con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
+de exportarlo.
+
+**Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
+*Abrir con* para un archivo `.md`, o sigue un enlace `tisty://open?path=…`, y se
+abre en solo lectura en una ventana propia, sin entrar a tu almacén: su índice
+al costado, qué es el archivo, el ancho de la página y el PDF que saldría, con
+**← Volver al documento**. **Editar en Tisty** lo trae como documento y deja el
+original donde estaba. Un documento tuyo se abre igual desde su panel, *Abrir en
+una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
+firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
+un escritorio. Más en [la wiki](https://github.com/rgdevment/Tisty/wiki/Documentos#abrir-un-archivo-markdown-de-afuera).
+
+**Y salen enteros.** Un documento se copia como Markdown, se escribe en una
+carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
+archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
+carpetas con su orden, su icono y su color, de qué documento cuelga cada
+página, qué está archivado y con qué alias se firmó. Lleva también un
+`README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty y
+sepa dónde encontrarlo si quiere lo demás. Al exportarlos todos te
+pregunta para quién son: abiertos, para dárselos a alguien, o cerrados con seis
+dígitos para otro equipo tuyo —que es lo que hace que allí lleguen como tuyos y
+no como de un desconocido—. En cualquiera de los dos casos, dentro no viaja ni
+una línea del historial. Si escribes un alias —opcional, y solo tú decides
+cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
+conserva el suyo.
+
+![Documentos que hacen las cuentas: fórmulas, diagramas, código y pequeños widgets dibujados dentro de Tisty, sin bajar nada](assets/store/es-06-documentos.png)
+
 ## Para quién es
 
 Para alguien que trabaja solo, o casi siempre solo, y cuyas tareas dejan un
 rastro que vale la pena guardar. Desarrolladores, administradores de sistemas,
 independientes, gente que investiga, quien estudia — cualquiera que haya
 resuelto dos veces el mismo problema y lo haya sabido la segunda vez.
+
+Y para quien escribe cosas que duran: un manual, las actas de un año, los
+apuntes de un curso, la documentación de un sistema, un libro por capítulos — y
+lo quiere en archivos propios y no en la base de datos de otro.
 
 Si lo que quieres es una lista para tachar y no volver a abrir, Tisty te va a
 parecer más de lo que pediste. Es un motivo razonable para dejarlo pasar.
@@ -275,6 +433,11 @@ resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
 - **Capturar tiene que seguir siendo instantáneo**, porque la mayoría de las
   tareas no son así. La llamada que tienes que hacer mañana nace y muere en un
   día y no deja nada que guardar — y anotarla no puede costar más de una línea.
+
+**Un documento es un archivo que guardas, no una fila en la base de datos de
+otro.** Dibuje Tisty lo que dibuje encima —páginas, diagramas, widgets, un PDF—,
+el archivo de abajo sigue siendo Markdown que otro lector abre igual, así que
+dejar Tisty nunca significa dejar atrás lo que escribiste.
 
 ## Instalación
 
@@ -391,103 +554,6 @@ así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunc
 la promesa de que ese día es tuyo.
 
 ![El reparto: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-04-agenda.png)
-
-**Los documentos** viven junto a las tareas, para el material de consulta que no
-tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
-—tablas, listas de control, código, imágenes— y la búsqueda también los lee. Una
-tarea puede apuntar a un documento; un documento nunca crea tareas.
-
-**El árbol abre en silencio y se guarda entero.** Cada carpeta nace plegada, así
-que un almacén con cientos de documentos son cuatro filas hasta que vas a
-buscar. Cuando un trabajo termina archivas la carpeta, no sus documentos uno a
-uno: baja al estante del final del árbol con su icono, sus subcarpetas y sus
-páginas tal como las dejaste, cerrada a escribir y a que entre nada nuevo.
-Desarchívala y vuelve igual —incluidos los documentos que hubieras archivado a
-mano ahí dentro, que siguen archivados porque nadie dijo lo contrario.
-
-**Una página se archiva sola sin salir de su documento.** Algo largo por partes
-—un año de actas, un libro por capítulos— es un documento con páginas, y el
-capítulo que ya no aplica se va al archivo donde vive: atenuado, con el icono
-del archivo, se lee pero no se escribe. Archiva el documento entero y se guardan
-todas con él; desarchívalo y cada una vuelve como estaba, y la que habías
-apartado sigue apartada.
-
-**Un documento se etiqueta como una tarea**: escribes `#contrato` en mitad de
-una frase y el documento queda archivado bajo ella. La etiqueta vive en la
-frase, no en una cabecera oculta, así que llevarte el archivo a otro editor se
-lleva la etiqueta contigo. Etiquetas es donde se encuentran: una pantalla, las
-tareas de una etiqueta y debajo los documentos, y presionar una etiqueta
-dentro de un documento abre justo eso. Los acentos se pliegan y las mayúsculas también,
-así que `#camion` y `#camión` son una sola palabra la escribas como la
-escribas. Un número suelto no es una etiqueta —`#1234` es el ticket que
-alguien anotó, no un tema— y una sola letra tampoco: hacen falta dos
-caracteres y que alguno sea una letra.
-
-El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
-cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
-tablas conservan hacia dónde se inclinan sus columnas y con qué ancho las
-dibujaste, y un bloque de código dice de qué lenguaje es y se colorea para él,
-con sus líneas numeradas al lado del texto y no dentro, así copiar se lleva el
-código y nada más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
-debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
-`math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
-pequeña página —HTML, estilos y, si quieres, un poco de script— aislada de la
-red y de la ventana, y un archivo `.html` adjunto a un documento se dibuja
-igual.
-
-**Un enlace solo en su línea se dibuja como tarjeta**, hecha con la dirección
-misma: el nombre del sitio y las palabras que escribiste. No se descarga nada
-para dibujarla. Presiona **Traer la vista previa** y Tisty le pide a esa
-página una sola vez su título, su descripción y la imagen que ofrezca, guarda
-la respuesta
-aquí para no volver a preguntar, y no lee más de lo que necesita: una página no
-decide cuánto de tu equipo ocupa.
-
-**Sigue siendo Markdown**, y eso es lo importante, no un detalle: todo lo de
-arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
-Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
-ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
-lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
-el pedacito de HTML que sí lo dice, y lo vuelve a leer.
-Donde el editor se topa con una forma que se sabe que no conserva —una cabecera
-al principio, notas al pie, enlaces escritos por referencia, bloques de HTML—,
-lo dice y abre el documento en solo lectura en vez de destruirlo en silencio.
-Esa lista es lo que revisa, no una promesa sobre todo lo que puede llevar un
-archivo Markdown.
-
-Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
-el nombre del documento y su título —pasando por encima de una valla o de la
-marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
-abre una columna con de qué va el documento, el formato que el menú `/`
-escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
-con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
-de exportarlo.
-
-**Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
-*Abrir con* para un archivo `.md`, o sigue un enlace `tisty://open?path=…`, y se
-abre en solo lectura en una ventana propia, sin entrar a tu almacén: su índice
-al costado, qué es el archivo, el ancho de la página y el PDF que saldría, con
-**← Volver al documento**. **Editar en Tisty** lo trae como documento y deja el
-original donde estaba. Un documento tuyo se abre igual desde su panel, *Abrir en
-una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
-firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
-un escritorio. Más en [la wiki](https://github.com/rgdevment/Tisty/wiki/Documentos#abrir-un-archivo-markdown-de-afuera).
-
-**Y salen enteros.** Un documento se copia como Markdown, se escribe en una
-carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
-archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
-carpetas con su orden, su icono y su color, de qué documento cuelga cada
-página, qué está archivado y con qué alias se firmó. Lleva también un
-`README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty y
-sepa dónde encontrarlo si quiere lo demás. Al exportarlos todos te
-pregunta para quién son: abiertos, para dárselos a alguien, o cerrados con seis
-dígitos para otro equipo tuyo —que es lo que hace que allí lleguen como tuyos y
-no como de un desconocido—. En cualquiera de los dos casos, dentro no viaja ni
-una línea del historial. Si escribes un alias —opcional, y solo tú decides
-cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
-conserva el suyo.
-
-![Documentos que hacen las cuentas: fórmulas, diagramas, código y pequeños widgets dibujados dentro de Tisty, sin bajar nada](assets/store/es-06-documentos.png)
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
