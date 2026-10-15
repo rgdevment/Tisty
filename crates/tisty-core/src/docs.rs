@@ -16,12 +16,12 @@ pub use carried::{
     keep_carried, kept_before, print_of, read_as_printed, read_before, read_carried,
 };
 pub use prints::{Prints, Seen};
+pub(crate) use text::nameless;
 use text::{Fencing, as_written, bullet, quoted, quoteless, unpictured, unspanned, wordless};
 pub use text::{
     Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,
     settled, spelled, titled,
 };
-pub(crate) use text::{fenced_spans, nameless};
 
 const EXTENSION: &str = "md";
 const DIGITS: usize = 4;

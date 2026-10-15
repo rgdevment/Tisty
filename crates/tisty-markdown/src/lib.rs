@@ -4,10 +4,13 @@ mod details;
 pub mod diagram;
 #[cfg(feature = "emoji")]
 mod emoji;
+pub mod fences;
 #[cfg(any(feature = "icons", feature = "pens"))]
 mod html;
 #[cfg(feature = "icons")]
 mod icons;
+#[cfg(any(feature = "tags", feature = "refs"))]
+mod marks;
 #[cfg(feature = "math")]
 pub mod math;
 #[cfg(feature = "outline")]
@@ -15,8 +18,10 @@ mod outline;
 #[cfg(feature = "pens")]
 mod pens;
 mod reading;
+pub mod refs;
 #[cfg(feature = "tables")]
 mod tables;
+pub mod tags;
 mod writing;
 
 #[cfg(feature = "outline")]
@@ -61,6 +66,8 @@ pub enum Mark {
     Pen { color: Option<String> },
     Math,
     Emoji { glyph: String },
+    Tag { name: String },
+    Ref { name: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

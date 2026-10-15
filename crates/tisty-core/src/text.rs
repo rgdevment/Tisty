@@ -1,5 +1,3 @@
-use unicode_normalization::UnicodeNormalization;
-
 pub fn plainly(text: &str) -> String {
     composed(
         &text
@@ -55,12 +53,7 @@ pub fn terms(query: &str) -> Vec<String> {
     found
 }
 
-pub fn composed(text: &str) -> String {
-    if text.is_ascii() {
-        return text.to_string();
-    }
-    text.nfc().collect()
-}
+pub use tisty_markdown::tags::composed;
 
 #[cfg(test)]
 #[path = "text_test.rs"]

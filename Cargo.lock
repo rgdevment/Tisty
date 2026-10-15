@@ -5747,6 +5747,7 @@ dependencies = [
  "sysinfo",
  "tempfile",
  "thiserror 2.0.21",
+ "tisty-markdown",
  "toml 1.1.6+spec-1.1.0",
  "ulid",
  "unicode-normalization",
@@ -5819,7 +5820,9 @@ dependencies = [
  "math-core",
  "mermaid-rs-renderer",
  "pulldown-cmark",
+ "serde",
  "serde_json",
+ "unicode-normalization",
 ]
 
 [[package]]
