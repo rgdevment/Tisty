@@ -102,7 +102,6 @@ Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 
 - Drag a file in to attach it — the photo from the vet, the insurance PDF.
 - Insert **another document**, which comes in as a card you can open.
-- Centre a paragraph or push it to the right.
 - Print, or save as PDF, from the panel itself.
 
 **Folders start folded** and open on the arrow. When something is over, archive the whole folder with the right button: it drops to the **Archived** shelf at the foot of the tree, with its icon and everything inside it just as it was. There it reads and exports, but nothing writes into it and nothing new goes in. Bring it back and it returns as it was.
@@ -110,6 +109,10 @@ Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 ### 8. What fits inside a document
 
 Everything below is ordinary Markdown. You write it with `/`, and the file left on disk reads the same to GitHub as it does to Tisty. This section does not describe it: it shows it to you.
+
+And for seeing all of it at once, one of each, there is a page of its own:
+
+![One of each](tisty:sample)
 
 #### The usual
 
@@ -278,18 +281,11 @@ A page is a document like any other — same file on disk, same way out — with
 
 At the end of the document, on its own sheet, comes the index: the pages the text names, numbered, and after a rule the ones it does not, one click from a place in the text. Inside a page you see which document it belongs to and where it sits, arrows to its sisters, and the step to the next one at the foot.
 
-What names a page is its card, the block Tisty writes when you make one. Writing about a page in a sentence — a link to it in the middle of a paragraph — points at it without giving it a place, the way a footnote points at a chapter without being one; a page you have only written about that way sits under the rule until you put a card in.
+What names a page is its card, the block Tisty writes when you make one. Writing about a page in a sentence — a link to it in the middle of a paragraph, like [this one to Rina](tisty:page) — points at it without giving it a place, the way a footnote points at a chapter without being one; a page you have only written about that way sits under the rule until you put a card in.
 
-In the tree, a document dropped on another becomes a page of it. If you have that document
-open, the line naming the page goes at the end of what you are reading, which is where it will
-sit, and you move it from there like any other chapter; if you do not, the page waits in the
-index, one click from a place in the text.
+In the tree, a document dropped on another becomes a page of it. If you have that document open, the line naming the page goes at the end of what you are reading, which is where it will sit, and you move it from there like any other chapter; if you do not, the page waits in the index, one click from a place in the text.
 
-**A page is put away on its own** with the right button, and it does not go down to the shelf: it
-stays where it lives, inside its document, with another icon and dimmed. There it reads and
-exports, but nothing writes in it. Put the whole document away and every page goes with it
-without being marked one by one; bring it back and each one returns as it was, and the one you
-had already set apart stays apart.
+**A page is put away on its own** with the right button, and it does not go down to the shelf: it stays where it lives, inside its document, with another icon and dimmed. There it reads and exports, but nothing writes in it. Put the whole document away and every page goes with it without being marked one by one; bring it back and each one returns as it was, and the one you had already set apart stays apart.
 
 This guide has one. It is named right here, and so here is where it goes:
 
