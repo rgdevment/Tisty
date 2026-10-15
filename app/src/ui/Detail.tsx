@@ -2,11 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { type Change, erasable, type List, readingOf, type Task, type Whole } from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
-import { composed } from "../markdown";
 import { placed, said } from "../quadrants";
 import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
 import Belongs from "./Belongs";
-import Composed from "./Composed";
 import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
@@ -17,6 +15,7 @@ import Section from "./Section";
 import { saidBy } from "./Spoke";
 import Steps from "./Steps";
 import Trail from "./Trail";
+import Written from "./Written";
 
 interface Props {
   task: Task;
@@ -227,14 +226,12 @@ export default function Detail({
       {task.description?.trim() && (
         <>
           <Section label={t("description")} />
-          <Composed
+          <Written
             label={t("description")}
             onError={onError}
             onDoc={onDoc}
-            html={composed(
-              task.description,
-              task.steps?.map((one) => one.text),
-            )}
+            text={task.description}
+            steps={task.steps?.map((one) => one.text)}
             className="prose px-1.5 py-1 text-[13px] leading-relaxed"
           />
         </>
@@ -275,14 +272,12 @@ export default function Detail({
                   <span className="block text-[11.5px] tabular-nums text-faint">
                     {wroteAt(entry.at, entry.tz)}
                   </span>
-                  <Composed
+                  <Written
                     label={t("journal")}
                     onError={onError}
                     onDoc={onDoc}
-                    html={composed(
-                      entry.body,
-                      task.steps?.map((one) => one.text),
-                    )}
+                    text={entry.body}
+                    steps={task.steps?.map((one) => one.text)}
                     className="prose text-[13px] leading-relaxed"
                   />
                 </li>

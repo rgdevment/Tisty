@@ -4,10 +4,10 @@ import { type DocFacts, docFacts, type Paper } from "../core";
 import { fill, t } from "../locales";
 import Glyph, { known } from "./Glyph";
 import PaperFacts from "./PaperFacts";
+import type { Head } from "./paging";
 import type { Block } from "./Slash";
 import { LEAVES, leafWord } from "./sheets";
 import { often } from "./tagging";
-import type { Head } from "./writing";
 
 export const SHAPES = [
   "h1",

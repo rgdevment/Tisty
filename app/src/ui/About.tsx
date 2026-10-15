@@ -15,10 +15,9 @@ import {
   updateReady,
 } from "../core";
 import { fill, t } from "../locales";
-import { composed } from "../markdown";
 import { offerMoved, saidPlainly } from "../refusal";
-import Composed from "./Composed";
 import Glyph from "./Glyph";
+import Written from "./Written";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
 const SPONSOR = "https://github.com/sponsors/rgdevment";
@@ -367,17 +366,17 @@ export default function About({
           </div>
         )}
         {said !== null && (
-          <Composed
+          <Written
             label={t("aboutNotices")}
-            html={composed(said)}
+            text={said}
             onError={onError}
             className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
           />
         )}
         {texts !== null && (
-          <Composed
+          <Written
             label={t("aboutLicences")}
-            html={composed(texts)}
+            text={texts}
             onError={onError}
             className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
           />

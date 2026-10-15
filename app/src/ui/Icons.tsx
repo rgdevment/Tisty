@@ -43,9 +43,6 @@ export function useCatalogue(): Catalogue {
   return all;
 }
 
-/// What another program shows where Tisty draws the glyph.
-export const spared = (key: string): string => (isMark(key) ? key : `:${key}:`);
-
 export const sifted = (all: string[], word: string): string[] => {
   const said = word.trim().toLowerCase();
   if (!said) return all;

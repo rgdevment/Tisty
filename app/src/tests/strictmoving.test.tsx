@@ -102,8 +102,5 @@ beforeEach(() => {
 
 describe("the index of a document React mounts once", () => both(false));
 
-/// The app mounts inside <React.StrictMode>, so a development build renders every component twice
-/// and builds two ProseMirror editors. Both fire TipTap's onCreate, and the handles Editor pushes
-/// up from there are kept last-wins, so Docs ends up holding the one belonging to the editor React
-/// threw away. Both of these fail.
+// The app mounts inside <React.StrictMode>, which renders every component twice in development.
 describe("the index of a document React mounts the way the app does", () => both(true));

@@ -5,9 +5,9 @@ carries its own licence, which allows that.
 
 Tisty also bundles other people's work rather than copying it. The parts that do
 the heavy lifting are [Tauri](https://tauri.app), [React](https://react.dev),
-[Tailwind CSS](https://tailwindcss.com), [TipTap](https://tiptap.dev) and
-[ProseMirror](https://prosemirror.net) for the editor,
-[markdown-it](https://github.com/markdown-it/markdown-it) for the prose,
+[Tailwind CSS](https://tailwindcss.com), [CodeMirror](https://codemirror.net)
+for the editor, [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
+and [ammonia](https://github.com/rust-ammonia/ammonia) for reading the Markdown,
 [Mermaid](https://mermaid.js.org) for the diagrams, [KaTeX](https://katex.org)
 for the formulas, [lowlight](https://github.com/wooorm/lowlight) and
 [highlight.js](https://highlightjs.org) for the code, and

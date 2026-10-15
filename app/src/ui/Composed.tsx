@@ -6,6 +6,8 @@ import { serve, showing } from "../inUse";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
+import { iconed } from "./dressing";
+import { saidKinds } from "./paging";
 
 interface Props {
   html: string;
@@ -38,6 +40,8 @@ export default function Composed({
     const holder = box.current;
     if (!holder) return;
     holder.innerHTML = html;
+    iconed(holder);
+    saidKinds(holder, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
     setLong(false);
     let live = true;
     const shown: (() => void)[] = [];

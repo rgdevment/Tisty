@@ -1,9 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { composed, docCard, docLink, docOf } from "../markdown";
+import { docCard, docLink, docOf } from "../markdown";
 import Composed from "../ui/Composed";
 import Insert from "../ui/Insert";
+import { composed } from "./crated";
 
 const shelf = vi.hoisted(() => ({
   docs: [
@@ -59,41 +60,16 @@ describe("a reference to a document of this Tisty", () => {
     expect(composed(docLink("mac0-0001", "Informe"))).toContain('class="paper"');
   });
 
-  it("survives a title with a loose bracket, which would end the link early", () => {
-    const written = docLink("mac0-0001", "Informe] borrador");
-
-    expect(composed(written)).toContain('href="tisty:doc/mac0-0001"');
-    expect(composed(written)).not.toContain("tisty:doc/mac0-0001)");
+  it("escapes a loose bracket in the title, which would end the link early", () => {
+    expect(docLink("mac0-0001", "Informe] borrador")).toBe(
+      "[Informe\\] borrador](tisty:doc/mac0-0001)",
+    );
   });
 
   it("is dressed apart from an address that leaves the app", () => {
     expect(composed(docLink("mac0-0001", "Informe"))).toContain('class="paper"');
     expect(composed("[Fuera](https://ejemplo.org)")).not.toContain("paper");
     expect(composed("[Un archivo](attachments/foto.png)")).not.toContain("paper");
-  });
-
-  it("keeps a card through the document editor, which drops schemes it was not told about", async () => {
-    const { Editor } = await import("@tiptap/core");
-    const { written, asMarkdown } = await import("../ui/writing");
-    const card = docCard("mac0-0007", "Informe");
-    const editor = new Editor({ extensions: written(), content: card });
-
-    expect(asMarkdown(editor)).toBe(card);
-    expect(editor.getHTML()).toContain("tisty:doc/mac0-0007");
-
-    editor.destroy();
-  });
-
-  it("survives the document editor, which drops schemes it was not told about", async () => {
-    const { Editor } = await import("@tiptap/core");
-    const { written, asMarkdown } = await import("../ui/writing");
-    const written_ = docLink("mac0-0007", "Informe");
-    const editor = new Editor({ extensions: written(), content: written_ });
-
-    expect(asMarkdown(editor)).toBe(written_);
-    expect(editor.getHTML()).toContain('href="tisty:doc/mac0-0007"');
-
-    editor.destroy();
   });
 
   it("opens the document instead of asking the system to open a file", async () => {

@@ -5,9 +5,9 @@ import { type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import Page from "./Page";
+import type { Head } from "./paging";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { translated } from "./translating";
-import type { Head } from "./writing";
 
 type Props = {
   readonly file?: string;

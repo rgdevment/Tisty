@@ -1,8 +1,5 @@
-import { GapCursor } from "@tiptap/pm/gapcursor";
-import { NodeSelection } from "@tiptap/pm/state";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { besideWidget, heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
-import { opened } from "./mounted";
+import { heard, lend, openable, SHORTEST, TALLEST, tall } from "../ui/widgeting";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args?: Record<string, unknown> }[],
@@ -261,109 +258,5 @@ describe("the frame a widget is drawn in", () => {
 
     await vi.waitFor(() => expect(drawn.querySelector(".lit-refused")).toBeTruthy());
     expect(drawn.querySelector("iframe")).toBeNull();
-  });
-});
-
-describe("a widget block in a document", () => {
-  it("folds its code away once it has some, and opens it on asking", () => {
-    const one = opened("```widget\n<p>hola</p>\n```");
-    const body = one.dom.querySelector<HTMLElement>(".lit-body");
-    const fold = one.dom.querySelector<HTMLButtonElement>(".lit-fold");
-
-    expect(fold?.hidden).toBe(false);
-    expect(body?.hidden).toBe(true);
-    expect(one.dom.querySelector(".lit")?.classList.contains("lit-folding")).toBe(true);
-    expect(fold?.getAttribute("aria-expanded")).toBe("false");
-
-    fold?.click();
-    expect(body?.hidden).toBe(false);
-    expect(fold?.getAttribute("aria-expanded")).toBe("true");
-    expect(one.markdown()).toBe("```widget\n<p>hola</p>\n```");
-    one.shut();
-  });
-
-  it("opens its code when the widget is refused, since that is what it says it shows", async () => {
-    ipc.refuse = true;
-    const one = opened("```widget\n<p>hola</p>\n```");
-
-    await vi.waitFor(() => expect(one.dom.querySelector(".lit-refused")).toBeTruthy());
-    expect(one.dom.querySelector<HTMLElement>(".lit-body")?.hidden).toBe(false);
-    one.shut();
-  });
-
-  it("takes the whole block on Backspace after it, rather than its hidden code", () => {
-    const one = opened("```widget\n<p>hola</p>\n```\n\ntexto");
-    let after = -1;
-    one.editor.state.doc.descendants((node, at) => {
-      if (node.type.name === "paragraph") after = at + 1;
-    });
-    one.at(after);
-
-    one.pressed("Backspace");
-
-    expect(one.editor.state.selection).toBeInstanceOf(NodeSelection);
-    expect(one.markdown()).toBe("```widget\n<p>hola</p>\n```\n\ntexto");
-    one.shut();
-  });
-
-  it("takes the whole block on Delete before it, rather than pulling its code up", () => {
-    const one = opened("antes\n\n```widget\n<p>hola</p>\n```");
-    one.at(6);
-
-    one.pressed("Delete");
-
-    expect(one.editor.state.selection).toBeInstanceOf(NodeSelection);
-    expect(one.markdown()).toBe("antes\n\n```widget\n<p>hola</p>\n```");
-    one.shut();
-  });
-
-  it("lets Backspace pass when the caret stands between blocks, not inside one", () => {
-    const one = opened("| a |\n| --- |\n| b |");
-    one.editor.view.dispatch(
-      one.editor.state.tr.setSelection(new GapCursor(one.editor.state.doc.resolve(0))),
-    );
-    expect(one.editor.state.selection.$from.depth).toBe(0);
-
-    expect(() => besideWidget(one.editor, true)).not.toThrow();
-    expect(besideWidget(one.editor, true)).toBe(false);
-    one.shut();
-  });
-
-  it("draws it again when the block turns into a widget with the same words", async () => {
-    const one = opened("```mermaid\n<p>hola</p>\n```");
-    one.editor.commands.command(({ tr }) => {
-      tr.setNodeAttribute(0, "language", "widget");
-      return true;
-    });
-
-    await vi.waitFor(() => expect(one.dom.querySelector(".lit-drawn iframe")).toBeTruthy());
-    expect(asked("widget_lend")[0].args).toEqual({ body: "<p>hola</p>" });
-    one.shut();
-  });
-
-  it("opens its code when the caret finds its way inside", () => {
-    const one = opened("```widget\n<p>hola</p>\n```");
-    const body = one.dom.querySelector<HTMLElement>(".lit-body");
-    expect(body?.hidden).toBe(true);
-
-    one.at(3);
-
-    expect(body?.hidden).toBe(false);
-    one.shut();
-  });
-
-  it("keeps an empty one open, or there would be nowhere to write it", () => {
-    const one = opened("```widget\n```");
-
-    expect(one.dom.querySelector<HTMLElement>(".lit-body")?.hidden).toBe(false);
-    one.shut();
-  });
-
-  it("offers no fold to a block that is not a widget", () => {
-    const one = opened("```mermaid\ngraph TD\n```");
-
-    expect(one.dom.querySelector<HTMLButtonElement>(".lit-fold")?.hidden).toBe(true);
-    expect(one.dom.querySelector<HTMLElement>(".lit-body")?.hidden).toBe(false);
-    one.shut();
   });
 });

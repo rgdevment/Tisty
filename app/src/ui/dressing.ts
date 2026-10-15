@@ -35,13 +35,14 @@ export const fitted = (page: Document, wide?: number, zoom?: number) => {
   root.style.setProperty("zoom", String(zoom ?? 1));
 };
 
-export const iconed = (page: Document) => {
+export const iconed = (page: Document | HTMLElement) => {
+  const made = "createElementNS" in page ? page : page.ownerDocument;
   for (const one of page.querySelectorAll<HTMLElement>("span.ico[data-ico]")) {
     const drawn = markup(one.dataset.ico ?? "");
     if (!drawn) continue;
     const hue = one.dataset.hue ?? "";
     if (HUES.includes(hue)) one.classList.add(`ico-${hue}`);
-    const glyph = page.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const glyph = made.createElementNS("http://www.w3.org/2000/svg", "svg");
     glyph.setAttribute("class", "glyph");
     glyph.setAttribute("viewBox", "0 0 24 24");
     glyph.setAttribute("aria-hidden", "true");

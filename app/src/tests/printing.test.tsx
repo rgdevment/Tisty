@@ -1,10 +1,7 @@
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
-import { Editor } from "@tiptap/core";
 import { describe, expect, it, vi } from "vitest";
-import Floats from "../ui/Floats";
 import Modal from "../ui/Modal";
-import { written } from "../ui/writing";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -33,37 +30,10 @@ describe("what the printed sheet leaves out", () => {
     expect(screen.getByRole("dialog").classList.contains("fixed")).toBe(true);
   });
 
-  it("floats the format panel and its link form alike", () => {
-    const editor = new Editor({ extensions: written(), content: "hola mundo" });
-    editor.commands.setTextSelection({ from: 1, to: 5 });
-
-    const { unmount } = render(<Floats editor={editor} at={{ x: 10, y: 40 }} />);
-    expect(screen.getByRole("toolbar").classList.contains("fixed")).toBe(true);
-    unmount();
-
-    render(<Floats editor={editor} at={{ x: 10, y: 40 }} asking />);
-    expect(
-      screen
-        .getByLabelText(/Address/)
-        .closest("form")
-        ?.classList.contains("fixed"),
-    ).toBe(true);
-
-    editor.destroy();
-  });
-
   it("drops the players, which on paper are a black rectangle, and keeps the cards", () => {
     const printed = sheet();
 
     expect(printed).toMatch(/\.preview-video[^{]*\{[^}]*display:\s*none/);
     expect(printed).toMatch(/\.beside[^{]*\{[^}]*border/);
-  });
-
-  it("puts a colour on paper for what the dark theme would leave invisible", () => {
-    const printed = sheet();
-
-    expect(printed).toMatch(/\.tisty-doc li::marker\s*\{[^}]*#/);
-    expect(printed).toMatch(/\.tisty-doc code\s*\{[^}]*background:\s*#/);
-    expect(printed).toMatch(/\.tisty-doc th\s*\{[^}]*background:\s*#/);
   });
 });
