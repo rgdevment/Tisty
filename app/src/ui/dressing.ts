@@ -12,7 +12,7 @@ export type Reaching = {
   readonly onDoc: (file: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
-  readonly onBlock?: (at: [number, number]) => void;
+  readonly onBlock?: (at: [number, number], block: HTMLElement) => void;
 };
 
 export type Worn = { lent: Lending[]; kept: (() => void)[] };
@@ -96,8 +96,16 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   if (asked.kind === "here") page.getElementById(asked.id)?.scrollIntoView({ block: "start" });
   if (asked.kind === "attachment") reach.onOpen?.(asked.reference);
   if (asked.kind === "tag") reach.onTag?.(asked.name);
-  if (asked.kind === "block")
-    reach.onBlock?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
+  if (asked.kind === "block") {
+    const block = page.querySelector<HTMLElement>(
+      `.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`,
+    );
+    const at: [number, number] = [
+      charsAt(reach.body, asked.at[0]),
+      charsAt(reach.body, asked.at[1]),
+    ];
+    if (block) reach.onBlock?.(at, block);
+  }
 };
 
 export const wired = (page: Document, reach: () => Reaching) => {

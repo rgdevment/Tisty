@@ -25,7 +25,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-vi.mock("../ui/Editor", () => ({
+vi.mock("../ui/Sheet", () => ({
   default: ({ value, reading }: { value: string; reading?: boolean }) => (
     <textarea aria-label="editor" readOnly={reading} value={value} />
   ),

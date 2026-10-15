@@ -52,7 +52,7 @@ const loaded = async (frame: HTMLIFrameElement) => {
   return page;
 };
 
-const drawn = (more: Partial<Parameters<typeof Page>[0]> = {}) => {
+const drawn = async (more: Partial<Parameters<typeof Page>[0]> = {}) => {
   const heard = {
     docs: [] as string[],
     blocks: [] as [number, number][],
@@ -75,7 +75,11 @@ const drawn = (more: Partial<Parameters<typeof Page>[0]> = {}) => {
       {...more}
     />,
   );
-  const frame = view.container.querySelector("iframe") as HTMLIFrameElement;
+  const frame = await waitFor(() => {
+    const found = view.container.querySelector("iframe");
+    expect(found).toBeTruthy();
+    return found as HTMLIFrameElement;
+  });
   return { heard, view, frame };
 };
 
@@ -87,7 +91,7 @@ beforeEach(() => {
 
 describe("a drawn page in the viewer", () => {
   it("shows the page, its outline, and answers a click on a card or a block", async () => {
-    const { heard, frame } = drawn();
+    const { heard, frame } = await drawn();
     const page = await loaded(frame);
     expect(frame.title).toBe("Notas");
     expect(page.querySelector(".page")?.hasAttribute("inert")).toBe(false);
@@ -103,7 +107,7 @@ describe("a drawn page in the viewer", () => {
   });
 
   it("follows a new sheet size or zoom without drawing again", async () => {
-    const { frame, view } = drawn();
+    const { frame, view } = await drawn();
     const page = await loaded(frame);
     view.rerender(
       <Page body={BODY} label="Notas" stranger={false} wide={1200} zoom={1.5} onDoc={() => {}} />,
@@ -113,7 +117,7 @@ describe("a drawn page in the viewer", () => {
   });
 
   it("follows the window when its theme changes", async () => {
-    const { frame } = drawn();
+    const { frame } = await drawn();
     const page = await loaded(frame);
     document.documentElement.dataset.theme = "dark";
     await waitFor(() => expect(page.documentElement.classList.contains("dark")).toBe(true));
@@ -122,7 +126,7 @@ describe("a drawn page in the viewer", () => {
   });
 
   it("hands its widgets and pictures back when it goes", async () => {
-    const { frame, view, heard } = drawn();
+    const { frame, view, heard } = await drawn();
     await loaded(frame);
     view.unmount();
     expect(ipc.dropped).toBe(1);
@@ -132,19 +136,26 @@ describe("a drawn page in the viewer", () => {
 
   it("shows the words as written when the page cannot be drawn", async () => {
     ipc.drawn = null;
-    const { frame } = drawn({ body: "<b>raw</b>" });
+    const { frame } = await drawn({ body: "<b>raw</b>" });
     await waitFor(() => expect(frame.srcdoc).toContain("<pre>&lt;b&gt;raw&lt;/b&gt;</pre>"));
   });
 
-  it("draws a new frame when the words change", async () => {
-    const { frame, view } = drawn();
+  it("draws the new words unseen, and shows them only once they are ready", async () => {
+    const { frame, view } = await drawn();
     await loaded(frame);
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
     view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
-    await waitFor(() => {
-      const now = view.container.querySelector("iframe") as HTMLIFrameElement;
-      expect(now).not.toBe(frame);
-      expect(now.srcdoc).toContain("Nuevo");
+    const next = await waitFor(() => {
+      const found = Array.from(view.container.querySelectorAll("iframe")).find((one) =>
+        one.srcdoc.includes("Nuevo"),
+      );
+      expect(found).toBeTruthy();
+      return found as HTMLIFrameElement;
     });
+    expect(next.classList.contains("invisible")).toBe(true);
+    expect(frame.classList.contains("invisible")).toBe(false);
+    await loaded(next);
+    await waitFor(() => expect(view.container.querySelectorAll("iframe")).toHaveLength(1));
+    expect(next.classList.contains("invisible")).toBe(false);
   });
 });

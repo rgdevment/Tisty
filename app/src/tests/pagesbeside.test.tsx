@@ -33,7 +33,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(true),
 }));
 
-vi.mock("../ui/Editor", () => ({
+vi.mock("../ui/Sheet", () => ({
   default: ({
     value,
     onWrite,

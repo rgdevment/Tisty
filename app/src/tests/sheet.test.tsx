@@ -1,0 +1,161 @@
+import { render, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import Sheet from "../ui/Sheet";
+
+const ipc = vi.hoisted(() => ({
+  drawn: "",
+  opened: [] as { said: string; change: (text: string) => void; leave: (text: string) => void }[],
+  left: 0,
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string) =>
+    cmd === "doc_drawn"
+      ? Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer)
+      : Promise.resolve(null),
+  convertFileSrc: (path: string) => path,
+}));
+
+vi.mock("../ui/blocking", () => ({
+  edited: (
+    block: HTMLElement,
+    said: string,
+    change: (text: string) => void,
+    leave: (text: string) => void,
+  ) => {
+    const host = block.ownerDocument.createElement("div");
+    host.className = "editing";
+    block.replaceWith(host);
+    ipc.opened.push({ said, change, leave });
+    return {
+      view: null,
+      leave: () => {
+        ipc.left += 1;
+        leave(said);
+      },
+    };
+  },
+}));
+
+const BODY = "# Compras\n\nleche\n\npan\n";
+const DRAWN =
+  '<h1 data-at="0-10">Compras</h1><p data-at="11-17">leche</p><p data-at="18-22">pan</p>';
+
+const loaded = async (frame: HTMLIFrameElement) => {
+  await waitFor(() => expect(frame.srcdoc).toContain("<article"));
+  const page = frame.contentDocument as Document;
+  page.open();
+  page.write(frame.srcdoc);
+  page.close();
+  frame.dispatchEvent(new Event("load"));
+  return page;
+};
+
+const shown = async (container: HTMLElement, said?: string) =>
+  waitFor(() => {
+    const found = Array.from(container.querySelectorAll("iframe")).find(
+      (one) => !said || one.srcdoc.includes(said),
+    );
+    expect(found).toBeTruthy();
+    return found as HTMLIFrameElement;
+  });
+
+beforeEach(() => {
+  ipc.drawn = DRAWN;
+  ipc.opened = [];
+  ipc.left = 0;
+});
+
+describe("the sheet in the main window", () => {
+  it("writes a block where it was clicked, and draws the page again once it is left", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
+    expect(page.querySelector(".editing")).not.toBeNull();
+
+    ipc.opened[0].change("leche y fruta");
+    expect(writes).toEqual(["# Compras\n\nleche y fruta\n\npan\n"]);
+
+    ipc.drawn = '<h1 data-at="0-10">Compras</h1><p data-at="11-25">leche y fruta</p>';
+    ipc.opened[0].leave("leche y fruta");
+    await shown(view.container, "leche y fruta");
+  });
+
+  it("leaves the block open when another is clicked, instead of opening a second one", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    page
+      .querySelector('p[data-at="18-22"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.opened).toHaveLength(1);
+    expect(ipc.left).toBe(1);
+  });
+
+  it("opens nothing to write while it is only being read", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.opened).toHaveLength(0);
+  });
+
+  it("puts a page's card at the end and moves it, writing the text", async () => {
+    const writes: string[] = [];
+    const got: {
+      put?: ((file: string, title: string) => boolean) | null;
+      move?: ((file: string, before: string | null) => string) | null;
+    } = {};
+    render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={(text) => writes.push(text)}
+        onInsert={(one) => {
+          got.put = one;
+        }}
+        onOrder={(one) => {
+          got.move = one;
+        }}
+      />,
+    );
+    await waitFor(() => expect(got.put).toBeTruthy());
+    expect(got.put?.("a3f1-0002", "Fruta")).toBe(true);
+    expect(writes[writes.length - 1]).toBe(
+      "# Compras\n\nleche\n\npan\n\n![Fruta](tisty:doc/a3f1-0002)\n",
+    );
+    expect(got.move?.("a3f1-0009", null)).toBe("unseen");
+  });
+
+  it("hands no way to put or move cards while it is only being read", async () => {
+    const puts: unknown[] = [];
+    render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        reading
+        onWrite={() => {}}
+        onInsert={(one) => puts.push(one)}
+      />,
+    );
+    await waitFor(() => expect(puts.length).toBeGreaterThan(0));
+    expect(puts.every((one) => one === null)).toBe(true);
+  });
+
+  it("follows new words from outside while nothing is being written", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    await loaded(await shown(view.container));
+    ipc.drawn = '<p data-at="0-6">Otra</p>';
+    view.rerender(<Sheet value="Otra.\n" label="Compras" onWrite={() => {}} />);
+    await shown(view.container, "Otra");
+  });
+});

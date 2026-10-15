@@ -55,7 +55,7 @@ vi.mock("@react-pdf/renderer", () => ({
   StyleSheet: { create: (one: unknown) => one },
 }));
 
-vi.mock("../ui/Editor", () => ({
+vi.mock("../ui/Sheet", () => ({
   default: ({
     value,
     onWrite,
@@ -249,21 +249,6 @@ describe("what the column carries", () => {
     show();
 
     expect(await screen.findByText("8.4 kB")).toBeTruthy();
-  });
-
-  it("keeps what shapes a paragraph apart from what inserts something new", async () => {
-    show();
-    await screen.findByRole("complementary", { name: "About this document" });
-
-    expect(await screen.findByText("Format")).toBeTruthy();
-    expect(await screen.findByText("Insert")).toBeTruthy();
-  });
-
-  it("runs the block the editor gave it", async () => {
-    show();
-    await userEvent.click(await screen.findByRole("button", { name: /Code block/ }));
-
-    expect(store.ran).toEqual(["code"]);
   });
 
   it("jumps to a heading from the outline", async () => {
