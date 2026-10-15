@@ -28,6 +28,8 @@ vi.mock("@tauri-apps/api/core", () => ({
       : Promise.resolve(null),
 }));
 
+vi.mock("../ui/Page", () => import("./pagestub"));
+
 const known: Filed[] = [
   {
     id: "01A",

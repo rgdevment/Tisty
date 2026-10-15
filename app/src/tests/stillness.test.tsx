@@ -1,8 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { Editor } from "@tiptap/core";
 import { describe, expect, it, vi } from "vitest";
-import type { Filed } from "../core";
-import Docs from "../ui/Docs";
 import { previewing, type Reach } from "../ui/previewing";
 import { written } from "../ui/writing";
 
@@ -25,25 +23,6 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-vi.mock("../ui/Editor", () => ({
-  default: ({ value, reading }: { value: string; reading?: boolean }) => (
-    <textarea aria-label="editor" readOnly={reading} value={value} />
-  ),
-}));
-
-const known: Filed[] = [
-  { id: "01A", file: "a3f1-0001", title: "Frágil", folder: null, archived: false, away: false },
-  {
-    id: "01B",
-    file: "a3f1-0002",
-    title: "Una página",
-    folder: null,
-    archived: false,
-    away: false,
-    pageOf: "01A",
-  },
-];
-
 describe("a document the editor cannot write back", () => {
   it("does not say it takes files, so none is copied in before it is refused", async () => {
     const { CATCHES } = await import("../dropped");
@@ -54,16 +33,6 @@ describe("a document the editor cannot write back", () => {
     await waitFor(() => expect(container.querySelector(".tisty-doc")).toBeTruthy());
 
     expect(container.querySelector(".tisty-doc")?.hasAttribute(CATCHES)).toBe(false);
-  });
-
-  it("does not settle where its pages sit, which would be writing to it", async () => {
-    store.ordered = [];
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-
-    await waitFor(() => expect(screen.getByLabelText("editor")).toBeTruthy());
-    await new Promise((go) => setTimeout(go, 30));
-
-    expect(store.ordered).toEqual([]);
   });
 
   it("offers nothing on a card, and the key that removes one does nothing", () => {

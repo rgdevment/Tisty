@@ -63,6 +63,7 @@ const opened = async (strict: boolean) => {
   );
   const { container } = render(strict ? <StrictMode>{tree}</StrictMode> : tree);
   await waitFor(() => expect(container.querySelector('[data-move="a3f1-0002:1"]')).toBeTruthy());
+  await waitFor(() => expect(container.querySelector(".tisty-sheet")).toBeTruthy());
   return container;
 };
 

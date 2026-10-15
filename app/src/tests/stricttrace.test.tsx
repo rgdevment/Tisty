@@ -21,8 +21,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-vi.mock("../ui/Editor", async () => {
-  const actual = await vi.importActual<typeof import("../ui/Editor")>("../ui/Editor");
+vi.mock("../ui/Sheet", async () => {
+  const actual = await vi.importActual<typeof import("../ui/Sheet")>("../ui/Sheet");
   const Real = actual.default;
   return {
     ...actual,
@@ -69,8 +69,8 @@ const book = [
   "",
 ].join("\n");
 
-const alts = (root: ParentNode) =>
-  Array.from(root.querySelectorAll(".tisty-doc img")).map((one) => one.getAttribute("alt"));
+const alts = (said: string | undefined) =>
+  Array.from((said ?? "").matchAll(/!\[([^\]]*)\]\(tisty:doc\//g)).map((one) => one[1]);
 
 describe("which editor the mover Docs keeps belongs to", () => {
   beforeEach(() => {
@@ -96,7 +96,8 @@ describe("which editor the mover Docs keeps belongs to", () => {
     store.writes = [];
     const said = held.length ? held[held.length - 1]("a3f1-0002", null) : "nothing";
     await new Promise((go) => setTimeout(go, 20));
-    return { said, writes: store.writes.length, dom: alts(container) };
+    void container;
+    return { said, writes: store.writes.length, dom: alts(store.writes[store.writes.length - 1]) };
   };
 
   /// A render React throws away builds an editor of its own and fires its `create`, so the last

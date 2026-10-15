@@ -1,0 +1,198 @@
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import type { Moved } from "../paging";
+import { type Editing, edited } from "./blocking";
+import { movedCard, putCard } from "./carded";
+import Page from "./Page";
+import { ASIDE_MARGIN, settles } from "./seeking";
+import type { Head } from "./writing";
+
+type Props = {
+  readonly value: string;
+  readonly label: string;
+  readonly reading?: boolean;
+  readonly seek?: number;
+  readonly anchor?: string;
+  readonly above?: ReactNode;
+  readonly below?: ReactNode;
+  readonly onSeen?: (at: number) => void;
+  readonly onWrite: (text: string) => void;
+  readonly onDoc?: (file: string) => void;
+  readonly onTag?: (tag: string) => void;
+  readonly onOpen?: (reference: string) => void;
+  readonly onOutline?: (heads: Head[]) => void;
+  readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
+  readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
+};
+
+export default function Sheet(props: Readonly<Props>) {
+  const { value, label, reading = false, above, below } = props;
+  const room = useRef<HTMLDivElement>(null);
+  const said = useRef(props);
+  said.current = props;
+  const [drawn, setDrawn] = useState(value);
+  const open = useRef<Editing | null>(null);
+  const showing = useRef(value);
+  showing.current = drawn;
+  const latest = useRef(value);
+  const shown = useRef<Window | null>(null);
+  const putting = useRef(-1);
+  const [ready, setReady] = useState(false);
+
+  const written = useCallback((text: string) => {
+    latest.current = text;
+    said.current.onWrite(text);
+  }, []);
+
+  const left = useCallback(() => {
+    const was = open.current;
+    if (!was) return;
+    open.current = null;
+    was.leave();
+  }, []);
+
+  useEffect(() => {
+    if (reading) left();
+  }, [reading, left]);
+
+  useEffect(() => () => left(), [left]);
+
+  useEffect(() => {
+    if (value === latest.current) return;
+    // Words from outside (a reload, a step back) end the block being written: it spoke of the old ones.
+    latest.current = value;
+    if (open.current) left();
+    else setDrawn(value);
+  }, [value, left]);
+
+  const block = (at: [number, number], element: HTMLElement) => {
+    if (open.current) return left();
+    // A click on the page still on screen while the next one is drawn names bytes of an older text.
+    if (reading || showing.current !== latest.current) return;
+    const [from] = at;
+    let end = at[1];
+    const piece = latest.current.slice(from, end);
+    const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
+    const spliced = (text: string) => {
+      const now = latest.current;
+      const next = `${now.slice(0, from)}${text}${tail}${now.slice(end)}`;
+      end = from + text.length + tail.length;
+      return next;
+    };
+    open.current = edited(
+      element,
+      piece,
+      (text) => written(spliced(text)),
+      () => {
+        open.current = null;
+        setDrawn(latest.current);
+      },
+    );
+  };
+
+  useEffect(() => {
+    said.current.onInsert?.(
+      reading
+        ? null
+        : (file, title) => {
+            left();
+            const put = putCard(latest.current, file, title);
+            if (put === null) return false;
+            written(put);
+            setDrawn(put);
+            return true;
+          },
+    );
+    said.current.onOrder?.(
+      reading
+        ? null
+        : (file, before) => {
+            left();
+            const done = movedCard(latest.current, file, before);
+            if (done.body !== latest.current) {
+              written(done.body);
+              setDrawn(done.body);
+            }
+            return done.moved;
+          },
+    );
+    return () => {
+      said.current.onInsert?.(null);
+      said.current.onOrder?.(null);
+    };
+  }, [reading, written, left]);
+
+  // The sheet takes the keys without a caret, so nothing pulls the view to where one would be.
+  useEffect(() => room.current?.focus({ preventScroll: true }), []);
+
+  const wanted = useRef(props.seek);
+  const marked = useRef(props.anchor);
+  useEffect(() => {
+    const want = wanted.current;
+    const mark = marked.current;
+    if (!ready || !room.current || (!want && !mark)) return;
+    const spot = () => {
+      const sheet = room.current;
+      if (!sheet) return null;
+      const page = shown.current?.document;
+      const found = mark ? page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) : null;
+      const box = found?.getBoundingClientRect();
+      if (!box || (!box.height && !box.top)) return want ?? null;
+      const frame = shown.current?.frameElement as HTMLElement | null | undefined;
+      const above = box.top + (frame?.getBoundingClientRect().top ?? 0);
+      return Math.max(
+        0,
+        Math.round(above - sheet.getBoundingClientRect().top + sheet.scrollTop - ASIDE_MARGIN),
+      );
+    };
+    putting.current = 0;
+    return settles({
+      at: () => room.current,
+      want: spot,
+      done: () => {
+        putting.current = -1;
+        const sheet = room.current;
+        if (!sheet || sheet.scrollHeight <= sheet.clientHeight) return;
+        said.current.onSeen?.(sheet.scrollTop);
+      },
+      put: (down) => {
+        putting.current = down;
+      },
+      watch: () => room.current?.querySelector<HTMLElement>("iframe, .page") ?? null,
+    });
+  }, [ready]);
+
+  return (
+    <div
+      ref={room}
+      tabIndex={-1}
+      onScroll={(one) => {
+        const sheet = one.currentTarget;
+        if (putting.current >= 0) return;
+        if (sheet.scrollHeight <= sheet.clientHeight) return;
+        said.current.onSeen?.(sheet.scrollTop);
+      }}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
+    >
+      {above}
+      <div className="tisty-sheet shrink-0 overflow-hidden rounded-[10px] bg-sheet">
+        <Page
+          body={drawn}
+          label={label}
+          stranger={false}
+          tall
+          onDoc={(file) => said.current.onDoc?.(file)}
+          onOpen={(reference) => said.current.onOpen?.(reference)}
+          onTag={(tag) => said.current.onTag?.(tag)}
+          onBlock={block}
+          onOutline={(heads) => said.current.onOutline?.(heads)}
+          onShown={(page) => {
+            shown.current = page;
+            if (page) setReady(true);
+          }}
+        />
+      </div>
+      {below}
+      {!below && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
+    </div>
+  );
+}

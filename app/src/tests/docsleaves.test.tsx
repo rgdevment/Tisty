@@ -17,7 +17,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       : Promise.resolve(null),
 }));
 
-vi.mock("../ui/Editor", () => ({
+vi.mock("../ui/Sheet", () => ({
   default: ({
     value,
     above,

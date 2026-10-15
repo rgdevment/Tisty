@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { settles } from "../ui/Editor";
+import { settles } from "../ui/seeking";
 
 const watchers: (() => void)[] = [];
 

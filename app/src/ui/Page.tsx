@@ -1,91 +1,89 @@
 import { useEffect, useRef, useState } from "react";
 import { docDrawn } from "../core";
-import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
-import { dressed, escaped, heads, shell } from "./paging";
+import type { Reaching } from "./dressing";
+import Frame from "./Frame";
+import { escaped, heads, shell } from "./paging";
 import type { Head } from "./writing";
 
 type Props = Reaching & {
   readonly label: string;
   readonly stranger: boolean;
+  readonly tall?: boolean;
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
   readonly onShown?: (page: Window | null) => void;
 };
 
-type Drawn = { html: string; turn: number };
+type Drawn = { html: string; turn: number; body: string };
 
+// A new drawing waits unseen until it is ready, so a redraw never blinks or jumps.
 export default function Page(props: Readonly<Props>) {
-  const { body, label, stranger, wide, zoom } = props;
-  const frame = useRef<HTMLIFrameElement>(null);
+  const { body, label, stranger, wide, zoom, tall = false } = props;
   const reach = useRef(props);
   reach.current = props;
-  const [drawn, setDrawn] = useState<Drawn | null>(null);
-  const scrolled = useRef(0);
+  const [frames, setFrames] = useState<Drawn[]>([]);
+  const [shown, setShown] = useState(0);
+  const showing = useRef(0);
+  const held = useRef(new Map<number, HTMLIFrameElement>());
+  const turns = useRef(0);
 
   useEffect(() => {
     let live = true;
-    const shown = (html: string) =>
-      live && setDrawn((was) => ({ html: shell(html), turn: (was?.turn ?? 0) + 1 }));
+    const drawn = (html: string) => {
+      if (!live) return;
+      turns.current += 1;
+      const turn = turns.current;
+      setFrames((were) => [
+        ...were.filter((one) => one.turn === showing.current),
+        { html: shell(html), turn, body },
+      ]);
+    };
     docDrawn(body)
-      .then(shown)
-      .catch(() => shown(`<pre>${escaped(body)}</pre>`));
+      .then(drawn)
+      .catch(() => drawn(`<pre>${escaped(body)}</pre>`));
     return () => {
       live = false;
     };
   }, [body]);
 
-  useEffect(() => {
-    const held = frame.current;
-    if (!held || !drawn) return;
-    let dressedUp: Worn = { lent: [], kept: [] };
-    let live = true;
-    const alive = () => live;
-    const retheme = () => {
-      if (held.contentDocument) dressed(held.contentDocument);
-    };
-    const loaded = () => {
-      const page = held.contentDocument;
-      if (!page?.querySelector(".page")) return;
-      wired(page, () => reach.current);
-      page.querySelector(".page")?.removeAttribute("inert");
-      dressed(page);
-      fitted(page, reach.current.wide, reach.current.zoom);
-      reach.current.onOutline?.(heads(page));
-      reach.current.onShown?.(held.contentWindow);
-      dressedUp = worn(page, stranger, alive);
-      held.contentWindow?.scrollTo(0, scrolled.current);
-    };
-    const watching = new MutationObserver(retheme);
-    watching.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    held.addEventListener("load", loaded);
-    held.srcdoc = drawn.html;
-    return () => {
-      live = false;
-      scrolled.current = held.contentWindow?.scrollY ?? 0;
-      watching.disconnect();
-      held.removeEventListener("load", loaded);
-      for (const one of dressedUp.lent) one.drop();
-      for (const one of dressedUp.kept) one();
-      reach.current.onShown?.(null);
-    };
-  }, [drawn, stranger]);
+  useEffect(() => () => reach.current.onShown?.(null), []);
 
-  useEffect(() => {
-    const page = frame.current?.contentDocument;
-    if (page?.querySelector(".page")) fitted(page, wide, zoom);
-  }, [wide, zoom]);
+  const ready = (turn: number, frame: HTMLIFrameElement) => {
+    held.current.set(turn, frame);
+    const was = held.current.get(showing.current);
+    if (!tall && was && was !== frame)
+      frame.contentWindow?.scrollTo(0, was.contentWindow?.scrollY ?? 0);
+    for (const one of held.current.keys()) if (one < turn) held.current.delete(one);
+    showing.current = turn;
+    setShown(turn);
+    setFrames((were) => were.filter((one) => one.turn >= turn));
+    const page = frame.contentDocument;
+    if (page) reach.current.onOutline?.(heads(page));
+    reach.current.onShown?.(frame.contentWindow);
+  };
 
   return (
-    <iframe
-      key={drawn?.turn ?? 0}
-      ref={frame}
-      title={label}
-      className="block min-h-0 w-full flex-1 border-0 bg-sheet"
-      referrerPolicy="no-referrer"
-    />
+    <div className={tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"}>
+      {frames.map((one) => (
+        <Frame
+          key={one.turn}
+          html={one.html}
+          label={label}
+          stranger={stranger}
+          tall={tall}
+          hidden={one.turn !== shown}
+          wide={wide}
+          zoom={zoom}
+          reach={() => ({
+            ...reach.current,
+            body: one.body,
+            // A page with a newer drawing on its way names bytes nobody is writing any more.
+            onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
+          })}
+          onReady={(frame) => ready(one.turn, frame)}
+        />
+      ))}
+    </div>
   );
 }

@@ -35,9 +35,11 @@ export const pdfOf = async (
     import("../markdown"),
   ]);
   const sheets = await Promise.all(
-    [first, ...rest.map((body) => generateJSON(composed(loosened(body)), shapes()))].map((one) =>
-      fetched(shapesOf(one), attached, at),
-    ),
+    [first, ...rest]
+      .map((one) =>
+        typeof one === "string" ? generateJSON(composed(loosened(one)), shapes()) : one,
+      )
+      .map((one) => fetched(shapesOf(one), attached, at)),
   );
   return pdf(<Papered sheets={sheets} leaf={leaf} signed={signed} />).toBlob();
 };

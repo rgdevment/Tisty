@@ -215,7 +215,7 @@ describe("dressing a drawn page", () => {
 
 describe("what a click on a drawn page does", () => {
   it("opens documents, the web, attachments, tags and blocks where each belongs", () => {
-    const drawn = page('<h2 id="here">Here</h2>');
+    const drawn = page('<h2 id="here">Here</h2><p data-at="11-19">Árbol.</p>');
     const { heard, reach } = reaching();
     answered(drawn, { kind: "doc", id: "ab12-0001" }, reach);
     answered(drawn, { kind: "web", href: "https://x.y" }, reach);
@@ -223,6 +223,7 @@ describe("what a click on a drawn page does", () => {
     answered(drawn, { kind: "tag", name: "work" }, reach);
     answered(drawn, { kind: "block", at: [11, 19] }, reach);
     answered(drawn, { kind: "here", id: "here" }, reach);
+    answered(drawn, { kind: "block", at: [0, 3] }, reach);
     answered(drawn, null, reach);
     expect(heard.docs).toEqual(["ab12-0001"]);
     expect(calls.links).toEqual(["https://x.y"]);
@@ -294,6 +295,32 @@ describe("a drawn page wired to the window", () => {
     window.removeEventListener("keydown", took);
     expect(find.defaultPrevented).toBe(true);
     expect(copy.defaultPrevented).toBe(false);
+  });
+
+  it("keeps the keys typed into a block to the block, bar the window's own shortcuts", () => {
+    const drawn = page('<div class="editing"><p>x</p></div>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    const heard: string[] = [];
+    const listen = (e: KeyboardEvent) => heard.push(e.key);
+    window.addEventListener("keydown", listen);
+    const inside = drawn.querySelector(".editing p") as HTMLElement;
+    for (const key of ["a", "Escape"]) {
+      inside.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    }
+    const taken = new KeyboardEvent("keydown", {
+      key: "z",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    taken.preventDefault();
+    inside.dispatchEvent(taken);
+    inside.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "w", ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    window.removeEventListener("keydown", listen);
+    expect(heard).toEqual(["w"]);
   });
 
   it("opens the document a widget asks for", () => {

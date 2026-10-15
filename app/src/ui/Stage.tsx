@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { discard, docPage, patch, sow } from "../core";
+import { discard, patch, sow } from "../core";
 import { useDesk } from "../desk";
 import { fill } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -107,11 +107,6 @@ export default function Stage() {
       onError={told}
       onShown={setShowing}
       onDoc={openDoc}
-      onOwned={(id) =>
-        docPage(id)
-          .then(papersChanged)
-          .catch((e) => setError(saidPlainly(e)))
-      }
       onDrop={dropDoc}
       onBack={bringBack}
       fresh={carried}
