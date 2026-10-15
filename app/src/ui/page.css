@@ -184,6 +184,9 @@ mark,
 .cm-under {
   text-decoration: underline;
 }
+.cm-ico {
+  color: var(--tisty-soft);
+}
 mark[data-pen="red"],
 .cm-pen-red {
   background: color-mix(in srgb, var(--tisty-hue-red) 28%, transparent);

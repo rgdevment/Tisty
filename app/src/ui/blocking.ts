@@ -44,15 +44,17 @@ const dressing = EditorView.theme({
 
 const marking = new MatchDecorator({
   regexp:
-    /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?|(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/gu,
+    /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?|(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])|(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/gu,
   decoration: (found) => {
     if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
+    if (found[4] !== undefined)
+      return Decoration.mark({ class: `cm-ico ico-${found[5] ?? "none"}` });
     const pen = found[2] ?? "yellow";
     return Decoration.mark({ class: `cm-pen cm-pen-${PENS.includes(pen) ? pen : "yellow"}` });
   },
 });
 
-// Pens and underlines show as they will read, so Tisty's own words never look like markup.
+// Pens, underlines and icons show as they will read, so Tisty's own words never look like markup.
 const marked = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
