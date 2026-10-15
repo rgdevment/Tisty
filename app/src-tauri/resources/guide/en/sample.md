@@ -41,6 +41,8 @@ This line is the same paragraph, one line down.
 2. Walk to the park
 3. Let her off by the pond
 
+Stages, ticked as they go:
+
 - [x] Bring Rina's record book
 - [x] Weigh her before the appointment
 - [ ] Ask about the tick tablet

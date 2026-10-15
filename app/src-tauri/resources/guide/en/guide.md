@@ -167,9 +167,9 @@ Four pens: ==yellow==, <mark data-pen="green">green</mark>, <mark data-pen="blue
 
 <span data-ico="dog" data-hue="orange">:dog:</span> An icon is looked up by what it draws: ask for «dog», «motorcycle» or «fist» and you get the one you expected. It marks a line without spending a heading on it.
 
-#### Steps
+#### Stages
 
-A list of boxes you tick. They are not Tisty tasks: they never close, they have no date and they never show up in Today. They are the steps of something you are writing.
+A list of boxes you tick. They are not Tisty tasks, nor a task's steps: they never close, they have no date and they never show up in Today. They are the stages of something you are writing.
 
 - [x] Bring Rina's record book
 - [x] Weigh her before the appointment

@@ -41,6 +41,8 @@ Esta línea es el mismo párrafo, una línea más abajo.
 2. Caminar hasta el parque
 3. Soltarla junto a la laguna
 
+Etapas, que se marcan:
+
 - [x] Llevar la libreta de Rina
 - [x] Pesarla antes de la hora
 - [ ] Preguntar por la pastilla de las garrapatas
@@ -209,7 +211,7 @@ gitGraph
 
 ```mermaid
 quadrantChart
-  title Tareas de la casa
+  title Quehaceres de la casa
   x-axis Fácil --> Difícil
   y-axis Aburrida --> Entretenida
   Paseo: [0.3, 0.8]

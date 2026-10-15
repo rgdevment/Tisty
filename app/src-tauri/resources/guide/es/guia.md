@@ -167,9 +167,9 @@ Cuatro colores de rotulador: ==amarillo==, <mark data-pen="green">verde</mark>, 
 
 <span data-ico="dog" data-hue="orange">:dog:</span> Un icono se busca por lo que dibuja, y en español: pide «perro», «moto» o «puño» y sale el que esperas. Sirve para marcar una línea sin gastar un título en ella.
 
-#### Pasos
+#### Etapas
 
-Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no tienen fecha y no salen en Hoy. Son los pasos de algo que estás escribiendo.
+Una lista de casillas que se marcan. No son tareas de Tisty ni sus pasos: no se cierran, no tienen fecha y no salen en Hoy. Son las etapas de algo que estás escribiendo.
 
 - [x] Llevar la cartilla de Rina
 - [x] Pesarla antes de la consulta
