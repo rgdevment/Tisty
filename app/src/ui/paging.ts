@@ -71,6 +71,7 @@ export type Went =
   | { kind: "attachment"; reference: string }
   | { kind: "block"; at: [number, number] }
   | { kind: "tag"; name: string }
+  | { kind: "apart"; at: [number, number] }
   | null;
 
 const spanned = (said: string | null): [number, number] | null => {
@@ -96,6 +97,12 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
+  const asked = target.closest<HTMLElement>(".widget-bar button");
+  if (asked) {
+    const at = spanned(asked.closest<HTMLElement>("figure.widget")?.dataset.at ?? null);
+    if (!at) return null;
+    return asked.dataset.asked === "apart" ? { kind: "apart", at } : { kind: "block", at };
+  }
   if (selecting || target.closest("summary, figure.widget")) return null;
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;

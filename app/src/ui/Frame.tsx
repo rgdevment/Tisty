@@ -53,7 +53,7 @@ export default function Frame(props: Readonly<Props>) {
       page.documentElement.classList.toggle("tall", tall);
       dressed(page);
       fitted(page, said.current.wide, said.current.zoom);
-      dressedUp = worn(page, stranger, alive);
+      dressedUp = worn(page, stranger, alive, said.current.reach());
       if (tall) stopGrowing = grows(held, page);
       said.current.onReady(held);
     };

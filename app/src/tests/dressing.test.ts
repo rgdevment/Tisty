@@ -191,6 +191,32 @@ describe("dressing a drawn page", () => {
     expect(theirs.querySelector(".lit-locked + figure.code")).not.toBeNull();
   });
 
+  it("gives a widget a bar with its name, and ways to its code and apart only where they lead", () => {
+    const code =
+      '<figure class="code" data-at="4-40"><figcaption>Rina</figcaption><pre><code class="language-widget">&lt;b&gt;42&lt;/b&gt;</code></pre></figure>';
+    const apart: string[] = [];
+    const reach = {
+      body: "",
+      onDoc: () => {},
+      onBlock: () => {},
+      onApart: (source: string) => apart.push(source),
+    };
+    const own = page(code);
+    widgets(own, false, reach);
+    const bar = own.querySelector(".widget-bar");
+    expect(bar?.querySelector(".widget-name")?.textContent).toBe("Rina");
+    expect(
+      Array.from(bar?.querySelectorAll<HTMLElement>("button") ?? []).map(
+        (one) => one.dataset.asked,
+      ),
+    ).toEqual(["code", "apart"]);
+    answered(own, { kind: "apart", at: [4, 40] }, reach);
+    expect(apart).toEqual(["<b>42</b>"]);
+    const read = page(code);
+    widgets(read, false, { body: "", onDoc: () => {} });
+    expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
+  });
+
   it("colours code in a language it knows and leaves the rest as written", async () => {
     const drawn = page(
       '<figure class="code"><pre><code class="language-ts">const a = "b";</code></pre></figure><figure class="code"><pre><code class="language-nope">x</code></pre></figure>',
