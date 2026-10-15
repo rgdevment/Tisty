@@ -19,6 +19,7 @@ import { isMark } from "../marks";
 import type { Moved } from "../paging";
 import { spared } from "./Icons";
 import { Listed, Tightened } from "./listing";
+import type { Head } from "./paging";
 import { labelled } from "./plain";
 import { TONGUES } from "./tongues";
 import { besideWidget, iconed, type Lending, lend, locked } from "./widgeting";
@@ -1285,13 +1286,6 @@ export const asMarkdown = (editor: Writing): string | null => {
     .markdown;
   return typeof kept?.getMarkdown === "function" ? kept.getMarkdown() : null;
 };
-
-export interface Head {
-  key: string;
-  level: number;
-  text: string;
-  go: () => void;
-}
 
 export const headed = (editor: Writing): Head[] => {
   if (editor.isDestroyed) return [];

@@ -1,7 +1,6 @@
 import { common, createLowlight } from "lowlight";
 import { DOC } from "../markdown";
 import sheet from "./page.css?raw";
-import type { Head } from "./writing";
 
 export const HUES = [
   "red",
@@ -109,6 +108,13 @@ export const went = (target: Element, selecting: boolean): Went => {
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };
+
+export interface Head {
+  key: string;
+  level: number;
+  text: string;
+  go: () => void;
+}
 
 export const heads = (page: Document): Head[] =>
   Array.from(page.querySelectorAll<HTMLElement>(".page > :is(h1, h2, h3, h4, h5, h6)")).map(
