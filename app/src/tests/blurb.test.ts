@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glimpsed } from "../ui/Editor";
+import { glimpsed } from "../ui/carding";
 
 describe("the blurb under a document's title", () => {
   it("reads an icon by the name it carries, not by the tag it travels in", () => {

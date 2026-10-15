@@ -25,6 +25,7 @@ import { DOC, docOf } from "../markdown";
 import { card, filed, type Moved, paged, pagesOf } from "../paging";
 import { named, pictured } from "../previews";
 import Asking from "./Asking";
+import { glimpsed } from "./carding";
 import Floats from "./Floats";
 import Glyphs from "./Glyphs";
 import Menu from "./Menu";
@@ -66,22 +67,6 @@ export const clicking =
     onOpen?.(target);
     return true;
   };
-
-const spanless = (line: string): string =>
-  line.replace(/<span[^>]*data-ico="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, ":$1:");
-
-export const glimpsed = (body: string): string =>
-  body
-    .split("\n")
-    .slice(1)
-    .map((line) =>
-      spanless(line)
-        .replace(/^[#>\s*+-]+/, "")
-        .trim(),
-    )
-    .filter(Boolean)
-    .join(" · ")
-    .slice(0, 160);
 
 export const perched = (empty: boolean, code: boolean, hushed: boolean, whole: boolean): boolean =>
   !hushed && !empty && !code && !whole;

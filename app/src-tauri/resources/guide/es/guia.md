@@ -274,7 +274,7 @@ Un año de actas, un libro por capítulos, la vida de un perro contada año a a�
 
 Una página es un documento como cualquier otro —mismo archivo en el disco, misma salida— con una sola cosa que la distingue: dice de qué documento es. Hay un nivel y no más: una página no tiene páginas.
 
-**Para añadirle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si el documento ya está escrito. Queda nombrada ahí mismo, dibujada como un hueco en la hoja con lo que esa página contiene debajo.
+**Para añadirle una**, escribe `/` donde quieras que empiece ese capítulo y elige **Una página nueva**, o **Una página que ya existe** si el documento ya está escrito. Queda nombrada ahí mismo, dibujada como una ficha con su título, sus primeras palabras y su lugar en el libro.
 
 > [!IMPORTANT]
 > El orden en que están nombradas en el texto es el orden en que van las páginas: en el árbol, en la exportación y al imprimir. Para mover un capítulo, usa las flechas de su fila en el índice del final del documento, o Alt y una tecla de flecha sobre la fila — o corta y pega su bloque, que es el mismo movimiento hecho a mano.
