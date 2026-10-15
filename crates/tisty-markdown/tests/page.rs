@@ -58,3 +58,54 @@ fn only_plain_inline_tags_are_kept() {
     assert!(drawn.contains("<kbd>Ctrl</kbd>"));
     assert!(drawn.contains("<u>go</u>"));
 }
+
+#[test]
+fn a_tag_left_open_is_shown_as_words() {
+    let drawn = page("Some <u>words\n\nNext.\n");
+    assert!(drawn.contains("&lt;u&gt;words"));
+    assert!(!drawn.contains("<u>"));
+}
+
+#[test]
+fn a_callout_marker_alone_on_its_line_leaves_only_the_body() {
+    let drawn = page("> [!NOTE]\n> Only body.\n");
+    assert!(drawn.contains("data-callout=\"note\""));
+    assert!(drawn.contains(">Only body.</p>"));
+    assert!(!drawn.contains("[!NOTE]"));
+}
+
+#[test]
+fn an_email_in_brackets_opens_the_mail() {
+    assert!(page("Write <ana@example.com>.\n").contains("href=\"mailto:ana@example.com\""));
+}
+
+#[test]
+fn inline_code_over_two_lines_of_a_quote_reads_as_one() {
+    assert!(page("> `a\n> b` end\n").contains("<code>a b</code>"));
+}
+
+#[cfg(feature = "html")]
+#[test]
+fn html_inside_a_quote_leaves_the_quote_marks_out() {
+    let drawn = page("> <div>\n> hi\n> </div>\n");
+    assert!(drawn.contains("<div>\nhi\n</div>"));
+    assert!(!drawn.contains("&gt; hi"));
+}
+
+#[cfg(feature = "math")]
+#[test]
+fn a_formula_keeps_every_symbol_between_its_dollars() {
+    let drawn = page("Sum $a+b$ here.\n");
+    assert!(drawn.contains("<mi>a</mi>"));
+    assert!(drawn.contains("<mi>b</mi>"));
+}
+
+#[cfg(feature = "mermaid")]
+#[test]
+fn a_diagram_source_holds_no_space_that_would_end_its_address() {
+    let drawn = page("```mermaid\ngraph TD; A-->B\n```\n");
+    let srcset = drawn.split("srcset=\"").nth(1).unwrap_or_default();
+    let url = srcset.split('"').next().unwrap_or_default();
+    assert!(url.starts_with("data:image/svg+xml,"));
+    assert!(!url.contains(' '));
+}

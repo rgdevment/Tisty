@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::ops::Range;
 
@@ -17,6 +18,7 @@ pub fn inline(spans: &[Span], text: &str, out: &mut String) {
         }
     }
     items.sort_by_key(|(at, _)| *at);
+    let kept = paired(spans, text);
     let containers: Vec<&Span> = spans.iter().filter(|one| holds(&one.mark)).collect();
     let mut open: Vec<&Span> = Vec::new();
     let mut next = 0;
@@ -33,7 +35,7 @@ pub fn inline(spans: &[Span], text: &str, out: &mut String) {
         }
         match item {
             Item::Words(piece) => words(&text[piece], out),
-            Item::Atom(one) => atomic(one, spans, text, out),
+            Item::Atom(one) => atomic(one, spans, text, &kept, out),
         }
     }
     while let Some(one) = open.pop() {
@@ -112,11 +114,11 @@ fn shut(mark: Option<&Mark>, out: &mut String) {
     });
 }
 
-fn atomic(one: &Span, spans: &[Span], text: &str, out: &mut String) {
+fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &mut String) {
     let said = &text[one.at.clone()];
     match &one.mark {
         Mark::Code => {
-            let _ = write!(out, "<code>{}</code>", escaped(code_words(said)));
+            let _ = write!(out, "<code>{}</code>", escaped(&code_words(said)));
         }
         Mark::Image { src } => pictured(src, &alt(one, spans, text), out),
         Mark::Icon { name, hue } => {
@@ -127,7 +129,18 @@ fn atomic(one: &Span, spans: &[Span], text: &str, out: &mut String) {
                 escaped(name)
             );
         }
-        Mark::Math => formula(said.trim_matches('$'), out),
+        Mark::Math => {
+            let wall = if said.len() >= 4 && said.starts_with("$$") {
+                2
+            } else {
+                1
+            };
+            formula(
+                said.get(wall..said.len().saturating_sub(wall))
+                    .unwrap_or(said),
+                out,
+            );
+        }
         Mark::Emoji { glyph } => out.push_str(&escaped(glyph)),
         Mark::Tag { name } => {
             let _ = write!(
@@ -145,7 +158,8 @@ fn atomic(one: &Span, spans: &[Span], text: &str, out: &mut String) {
             );
         }
         Mark::Break => out.push_str("<br>"),
-        Mark::Html => out.push_str(&kept_tag(said)),
+        Mark::Html if kept.contains(&one.at.start) => out.push_str(&said.to_ascii_lowercase()),
+        Mark::Html => out.push_str(&escaped(said)),
         _ => {}
     }
 }
@@ -165,15 +179,28 @@ fn words(said: &str, out: &mut String) {
     }
 }
 
-fn code_words(said: &str) -> &str {
+fn code_words(said: &str) -> String {
     let wall = said.chars().take_while(|c| *c == '`').count();
     let inner = &said[wall..said.len() - wall.min(said.len() - wall)];
-    match inner
+    let joined = inner
+        .split('\n')
+        .enumerate()
+        .map(|(index, line)| {
+            let line = line.strip_suffix('\r').unwrap_or(line);
+            if index == 0 {
+                line
+            } else {
+                crate::unquoted(line)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    match joined
         .strip_prefix(' ')
         .and_then(|one| one.strip_suffix(' '))
     {
-        Some(trimmed) if !inner.trim().is_empty() => trimmed,
-        _ => inner,
+        Some(trimmed) if !joined.trim().is_empty() => trimmed.to_string(),
+        _ => joined,
     }
 }
 
@@ -217,17 +244,34 @@ fn formula(latex: &str, out: &mut String) {
     let _ = write!(out, "<code class=\"math\">{}</code>", escaped(latex));
 }
 
-// Only plain inline tags are kept; anything with attributes or that can run is shown as words.
-fn kept_tag(said: &str) -> String {
-    const KEPT: &[&str] = &[
-        "<kbd>", "</kbd>", "<u>", "</u>", "<sub>", "</sub>", "<sup>", "</sup>", "<br>", "<br/>",
-        "<br />", "<mark>", "</mark>", "<small>", "</small>",
-    ];
-    if KEPT.contains(&said.to_ascii_lowercase().as_str()) {
-        said.to_ascii_lowercase()
-    } else {
-        escaped(said)
+// A tag left open would carry on through every block after it, so only matched pairs are kept.
+fn paired(spans: &[Span], text: &str) -> HashSet<usize> {
+    const PAIRS: &[&str] = &["kbd", "u", "sub", "sup", "mark", "small"];
+    const BREAKS: &[&str] = &["<br>", "<br/>", "<br />"];
+    let mut kept = HashSet::new();
+    let mut open: Vec<(&str, usize)> = Vec::new();
+    for one in spans.iter().filter(|one| one.mark == Mark::Html) {
+        let said = text[one.at.clone()].to_ascii_lowercase();
+        if BREAKS.contains(&said.as_str()) {
+            kept.insert(one.at.start);
+        } else if let Some(name) = said
+            .strip_prefix("</")
+            .and_then(|rest| rest.strip_suffix('>'))
+        {
+            if let Some(at) = open.iter().rposition(|(tag, _)| *tag == name) {
+                kept.insert(open[at].1);
+                kept.insert(one.at.start);
+                open.truncate(at);
+            }
+        } else if let Some(name) = said
+            .strip_prefix('<')
+            .and_then(|rest| rest.strip_suffix('>'))
+            && let Some(tag) = PAIRS.iter().find(|tag| **tag == name)
+        {
+            open.push((tag, one.at.start));
+        }
     }
+    kept
 }
 
 pub fn escaped(said: &str) -> String {
@@ -237,14 +281,15 @@ pub fn escaped(said: &str) -> String {
         .replace('"', "&quot;")
 }
 
-// A link may only go where a reader can safely follow it: the web, mail, Tisty or a file beside it.
+pub const SCHEMES: &[&str] = &["http", "https", "mailto", "tisty"];
+
 pub fn safe(to: &str) -> String {
     let lowered = to.trim().to_ascii_lowercase();
     let scheme = lowered.split_once(':').map(|(head, _)| head);
     let allowed = match scheme {
         None => true,
         Some(head) if head.contains(['/', '?', '#']) => true,
-        Some(head) => ["http", "https", "mailto", "tisty"].contains(&head),
+        Some(head) => SCHEMES.contains(&head),
     };
     if allowed {
         to.trim().to_string()

@@ -168,7 +168,6 @@ fn guarded<T>(draw: impl FnOnce() -> Option<T>) -> Option<T> {
 }
 
 // A block inside a quote or a callout carries the quote marks on every one of its lines.
-#[cfg(any(feature = "tables", feature = "outline"))]
 fn unquoted(line: &str) -> &str {
     let mut said = line.trim_start();
     while let Some(rest) = said.strip_prefix('>') {

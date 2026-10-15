@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use crate::inline::{escaped, inline};
-use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark};
+use crate::{Block, Callout, Column, Doc, Kind, Lean};
 
-/// The document as plain html for the reader: no scripts, and every block tells where it was written.
 pub fn html(doc: &Doc) -> String {
     let anchors = anchors(doc);
     let mut out = String::new();
@@ -67,7 +66,11 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
         }
         Kind::Table { columns } => table(columns, &at, block, text, out),
         Kind::Html => {
-            let _ = write!(out, "<div {at}>{}</div>", cleaned(&text[block.at.clone()]));
+            let _ = write!(
+                out,
+                "<div {at}>{}</div>",
+                cleaned(&unquoted_lines(&text[block.at.clone()]))
+            );
         }
         Kind::Rule => {
             let _ = write!(out, "<hr {at}>");
@@ -114,52 +117,8 @@ fn called(
         Callout::Warning => "warning",
         Callout::Caution => "caution",
     };
-    let _ = write!(
-        out,
-        "<blockquote class=\"callout\" data-callout=\"{name}\" {at}>"
-    );
-    for (index, inner) in block.inner.iter().enumerate() {
-        if index == 0 && inner.kind == Kind::Paragraph {
-            let spans = unmarked(&inner.spans, text);
-            if !spans.is_empty() {
-                let _ = write!(out, "<p data-at=\"{}-{}\">", inner.at.start, inner.at.end);
-                inline(&spans, text, out);
-                out.push_str("</p>");
-            }
-            continue;
-        }
-        draw(inner, text, anchors, out);
-    }
-    out.push_str("</blockquote>");
-}
-
-// The tokenizer splits `[!WARNING]` around its brackets, so the marker is cut in the bytes.
-fn unmarked(spans: &[crate::Span], text: &str) -> Vec<crate::Span> {
-    let Some(start) = spans.iter().map(|one| one.at.start).min() else {
-        return Vec::new();
-    };
-    let Some(close) = text[start..]
-        .strip_prefix("[!")
-        .and_then(|rest| rest.find(']'))
-    else {
-        return spans.to_vec();
-    };
-    let after = start + 2 + close + 1;
-    let rest = &text[after..];
-    let cut = after + (rest.len() - rest.trim_start_matches([' ', '\t']).len());
-    let mut kept: Vec<crate::Span> = spans
-        .iter()
-        .filter(|one| one.at.end > cut)
-        .cloned()
-        .map(|mut one| {
-            one.at.start = one.at.start.max(cut);
-            one
-        })
-        .collect();
-    if kept.first().is_some_and(|one| one.mark == Mark::Break) {
-        kept.remove(0);
-    }
-    kept
+    let open = format!("<blockquote class=\"callout\" data-callout=\"{name}\" {at}>");
+    wrapped(&open, "</blockquote>", block, text, anchors, out);
 }
 
 fn item(
@@ -218,7 +177,12 @@ fn code(
     );
 }
 
-// Formulas and diagrams are drawn here once; a fence that cannot be drawn falls back to its code.
+#[cfg(not(any(feature = "math", feature = "mermaid")))]
+fn drawn(_: Option<&str>, _: &str, _: &str, _: &mut String) -> bool {
+    false
+}
+
+#[cfg(any(feature = "math", feature = "mermaid"))]
 fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
     match tongue {
         #[cfg(feature = "math")]
@@ -242,10 +206,7 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
             }
             None => false,
         },
-        _ => {
-            let _ = (said, at, &out);
-            false
-        }
+        _ => false,
     }
 }
 
@@ -253,7 +214,7 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
 fn svg_url(svg: &str) -> String {
     let mut url = String::from("data:image/svg+xml,");
     for byte in svg.bytes() {
-        if byte.is_ascii_alphanumeric() || b" -_.~/:=;,'()".contains(&byte) {
+        if byte.is_ascii_alphanumeric() || b"-_.~/:=;'()".contains(&byte) {
             url.push(char::from(byte));
         } else {
             let _ = write!(url, "%{byte:02X}");
@@ -303,23 +264,24 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
     out.push_str("</table>");
 }
 
+// Inside a quote the block still carries each line's marker, which is not part of its html.
+fn unquoted_lines(source: &str) -> String {
+    source
+        .lines()
+        .map(|line| match line.trim_start().strip_prefix('>') {
+            Some(_) => crate::unquoted(line),
+            None => line,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn cleaned(html: &str) -> String {
     #[cfg(feature = "html")]
     return ammonia::Builder::default()
-        .add_tags([
-            "details",
-            "summary",
-            "kbd",
-            "mark",
-            "colgroup",
-            "col",
-            "figure",
-            "figcaption",
-        ])
+        .url_schemes(crate::inline::SCHEMES.iter().copied().collect())
         .add_tag_attributes("span", ["data-ico", "data-hue"])
         .add_tag_attributes("mark", ["data-pen"])
-        .add_tag_attributes("td", ["colspan", "rowspan"])
-        .add_tag_attributes("th", ["colspan", "rowspan"])
         .clean(html)
         .to_string();
     #[cfg(not(feature = "html"))]
