@@ -365,11 +365,11 @@ Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
 ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
 lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
 el pedacito de HTML que sí lo dice, y lo vuelve a leer.
-Donde el editor se topa con una forma que se sabe que no conserva —una cabecera
-al principio, notas al pie, enlaces escritos por referencia, bloques de HTML—,
-lo dice y abre el documento en solo lectura en vez de destruirlo en silencio.
-Esa lista es lo que revisa, no una promesa sobre todo lo que puede llevar un
-archivo Markdown.
+El editor trabaja sobre el texto tal como está escrito, bloque a bloque, así que
+abrir y guardar un documento nunca pierde nada de él: una forma fuera del
+lenguaje de Tisty —una cabecera al principio, notas al pie, enlaces escritos por
+referencia, bloques de HTML— se muestra tal como está escrita mientras la
+editas, y se conserva como estaba.
 
 Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
 el nombre del documento y su título —pasando por encima de una valla o de la
@@ -1031,9 +1031,10 @@ que ordena por tiempo y no necesita coordinación.
 
 **La ventana** — [React](https://react.dev) la dibuja y
 [Tailwind CSS](https://tailwindcss.com) la viste;
-[TipTap](https://tiptap.dev) y [ProseMirror](https://prosemirror.net) son el
-editor de documentos; [markdown-it](https://github.com/markdown-it/markdown-it)
-compone la prosa del resto; [Mermaid](https://mermaid.js.org) dibuja los
+[CodeMirror](https://codemirror.net) es donde se escribe un documento, bloque a
+bloque, mientras [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
+lee el Markdown en el núcleo y [ammonia](https://github.com/rust-ammonia/ammonia)
+deja inofensivo el HTML que traiga; [Mermaid](https://mermaid.js.org) dibuja los
 diagramas que describe un bloque de código y [KaTeX](https://katex.org) compone
 sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
 [highlight.js](https://highlightjs.org) colorean el código;

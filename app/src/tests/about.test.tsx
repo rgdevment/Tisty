@@ -143,12 +143,16 @@ describe("the notice every bundled licence asks for", () => {
   });
 
   it("draws the notice as prose, not as the markdown it is written in", async () => {
-    ipc.answer = (cmd) =>
-      cmd === "notices"
+    const table =
+      '<h2 data-at="0-15">In the window</h2><table data-at="17-60"><thead><tr><th>Package</th><th>Licence</th></tr></thead><tbody><tr><td>jiff</td><td>MIT</td></tr></tbody></table>';
+    ipc.answer = (cmd) => {
+      if (cmd === "note_drawn") return Promise.resolve(table);
+      return cmd === "notices"
         ? Promise.resolve(
             "## In the window\n\n| Package | Licence |\n| --- | --- |\n| jiff | MIT |",
           )
         : Promise.resolve(build);
+    };
     render(<About ready={null} onError={() => {}} />);
 
     await userEvent.click(await screen.findByText("Third-party notices"));

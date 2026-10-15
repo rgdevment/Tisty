@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { docDrawn } from "../core";
 import type { Reaching } from "./dressing";
 import Frame from "./Frame";
+import type { Head } from "./paging";
 import { escaped, heads, shell } from "./paging";
-import type { Head } from "./writing";
 
 type Props = Reaching & {
   readonly label: string;

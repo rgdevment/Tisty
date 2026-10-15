@@ -358,10 +358,10 @@ Tisty — a block's name is what Markdown keeps after the language, and a column
 width rides in how long its rule is drawn, which every other reader ignores and
 draws the same. Where Markdown genuinely cannot say a thing — an icon in a line
 of text — Tisty writes the small piece of HTML that can, and reads it back.
-Where the editor meets a shape it is known not to keep — front matter,
-footnotes, links written by reference, blocks of HTML — it says so and opens
-the document read-only rather than quietly destroying it. That list is what it
-checks, not a promise about everything a Markdown file can hold.
+The editor works on the text as it is written, a block at a time, so opening
+and saving a document never loses a thing in it: a shape outside Tisty's own
+words — front matter, footnotes, links written by reference, blocks of HTML —
+is shown as it is written while you edit it, and kept as it was.
 
 The writing sits on a lit page, and the first line with words in it is both the
 name of the document and its title — reading past a fence or an alert's marker to
@@ -1013,9 +1013,10 @@ sorts by time and needs no coordination.
 
 **The window** — [React](https://react.dev) draws it and
 [Tailwind CSS](https://tailwindcss.com) styles it;
-[TipTap](https://tiptap.dev) and [ProseMirror](https://prosemirror.net) are the
-document editor; [markdown-it](https://github.com/markdown-it/markdown-it)
-renders the prose everywhere else;
+[CodeMirror](https://codemirror.net) is where a document is written, a block at
+a time, while [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
+reads the Markdown in the core and [ammonia](https://github.com/rust-ammonia/ammonia)
+keeps any HTML in it harmless;
 [Mermaid](https://mermaid.js.org) draws the diagrams a code block describes and
 [KaTeX](https://katex.org) sets its formulas;
 [lowlight](https://github.com/wooorm/lowlight) and

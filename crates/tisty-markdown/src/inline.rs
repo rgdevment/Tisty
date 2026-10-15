@@ -48,11 +48,11 @@ enum Item<'a> {
     Atom(&'a Span),
 }
 
-fn atom(mark: &Mark) -> bool {
+pub(crate) fn atom(mark: &Mark) -> bool {
     !matches!(mark, Mark::Text) && !holds(mark)
 }
 
-fn holds(mark: &Mark) -> bool {
+pub(crate) fn holds(mark: &Mark) -> bool {
     matches!(
         mark,
         Mark::Emphasis | Mark::Strong | Mark::Strike | Mark::Link { .. } | Mark::Pen { .. }
@@ -60,7 +60,7 @@ fn holds(mark: &Mark) -> bool {
 }
 
 // The yellow pen is written between double equals, which mark it and are never shown.
-fn walls(spans: &[Span], text: &str) -> Vec<Range<usize>> {
+pub(crate) fn walls(spans: &[Span], text: &str) -> Vec<Range<usize>> {
     spans
         .iter()
         .filter(|one| one.mark == Mark::Pen { color: None })
@@ -69,7 +69,7 @@ fn walls(spans: &[Span], text: &str) -> Vec<Range<usize>> {
         .collect()
 }
 
-fn outside(within: Range<usize>, silent: &[Range<usize>]) -> Vec<Range<usize>> {
+pub(crate) fn outside(within: Range<usize>, silent: &[Range<usize>]) -> Vec<Range<usize>> {
     let mut pieces = vec![within];
     for one in silent {
         pieces = pieces
@@ -179,7 +179,7 @@ fn words(said: &str, out: &mut String) {
     }
 }
 
-fn code_words(said: &str) -> String {
+pub(crate) fn code_words(said: &str) -> String {
     let wall = said.chars().take_while(|c| *c == '`').count();
     let inner = &said[wall..said.len() - wall.min(said.len() - wall)];
     let joined = inner
@@ -204,7 +204,7 @@ fn code_words(said: &str) -> String {
     }
 }
 
-fn alt(image: &Span, spans: &[Span], text: &str) -> String {
+pub(crate) fn alt(image: &Span, spans: &[Span], text: &str) -> String {
     spans
         .iter()
         .filter(|one| {
@@ -245,7 +245,7 @@ fn formula(latex: &str, out: &mut String) {
 }
 
 // A tag left open would carry on through every block after it, so only matched pairs are kept.
-fn paired(spans: &[Span], text: &str) -> HashSet<usize> {
+pub(crate) fn paired(spans: &[Span], text: &str) -> HashSet<usize> {
     const PAIRS: &[&str] = &["kbd", "u", "sub", "sup", "mark", "small"];
     const BREAKS: &[&str] = &["<br>", "<br/>", "<br />"];
     let mut kept = HashSet::new();
@@ -289,6 +289,7 @@ pub fn safe(to: &str) -> String {
     let allowed = match scheme {
         None => true,
         Some(head) if head.contains(['/', '?', '#']) => true,
+        Some(head) if head.len() == 1 && head.chars().all(|c| c.is_ascii_alphabetic()) => true,
         Some(head) => SCHEMES.contains(&head),
     };
     if allowed {

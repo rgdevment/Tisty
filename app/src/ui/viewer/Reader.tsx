@@ -2,8 +2,8 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
+import type { Head } from "../paging";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
-import type { Head } from "../writing";
 import { button, Segments } from "./Glyphs";
 
 const Page = lazy(() => import("../Page"));

@@ -37,9 +37,9 @@ import type { Block } from "./Slash";
 
 const NO_BLOCKS: Block[] = [];
 
+import type { Head } from "./paging";
 import { PAPER, pageFor } from "./sheets";
 import { clearOfChrome } from "./WindowChrome";
-import type { Head } from "./writing";
 
 const Sheet = lazy(() => import("./Sheet"));
 
