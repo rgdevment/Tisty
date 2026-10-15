@@ -37,8 +37,7 @@ pub fn papers(text: &str) -> Vec<String> {
     found
 }
 
-/// Every line a page is named on, read with the same walk that decides the reading order, so the
-/// two can never disagree about what is code and what is a way in. A page named twice is here twice.
+// Read with the walk that decides the reading order, so the two never disagree about code.
 pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
     let mut lines: Vec<usize> = vec![0];
     for (at, one) in text.char_indices() {
@@ -56,11 +55,7 @@ pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
         .collect()
 }
 
-/// Where a page is read from is the card that stands for it, `![Title](tisty:doc/id)`, and only
-/// that: a plain link to the same page is a mention in the middle of a sentence, and a sentence is
-/// not a chapter. A page named inside a fenced block is an example of a way in, not one, so the
-/// reading order steps over code too. What keeps a file alive is deliberately more generous than
-/// either — see `extract`.
+// Only a card places a page: a plain link is a mention, and a card inside code is an example.
 fn papered(text: &str) -> Vec<(usize, String)> {
     let code = crate::fences::fenced_spans(text);
     let bytes = text.as_bytes();
@@ -145,11 +140,10 @@ fn past_code(text: &str, at: usize) -> usize {
 }
 
 fn named(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
-    let Some(end) = rest.find("]]") else {
+    let Some((end, name)) = wiki(rest) else {
         return at + 2;
     };
-    let name = rest[2..end].trim();
-    if !name.is_empty() && !name.contains(['\n', '[']) {
+    if let Some(name) = name {
         keep(Ref {
             kind: Kind::Doc,
             target: name.to_string(),
@@ -157,6 +151,16 @@ fn named(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
         });
     }
     at + end + 2
+}
+
+/// Where a `[[name]]` opening `rest` ends, and its name when it names something.
+pub(crate) fn wiki(rest: &str) -> Option<(usize, Option<&str>)> {
+    let end = rest.find("]]")?;
+    let name = rest[2..end].trim();
+    Some((
+        end,
+        (!name.is_empty() && !name.contains(['\n', '['])).then_some(name),
+    ))
 }
 
 pub fn shuts(rest: &str) -> Option<usize> {
@@ -222,15 +226,13 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     after + 1 + close + 1
 }
 
-/// An aligned paragraph is written as html, so what it points at is in an attribute, not in
-/// brackets. Missed here, a file nothing else names reads as loose and is swept away.
+// An aligned paragraph is html, and a file named only there would read as loose and be swept.
 fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let opens = rest[1..]
         .chars()
         .next()
         .is_some_and(|c| c.is_ascii_alphabetic() || c == '/');
-    // A tag ends on its own line. Anything else — prose, a comparison, an autolink, a comment —
-    // is read on, byte by byte, or one stray angle would swallow every reference after it.
+    // A tag ends on its own line, or one stray angle would swallow every reference after it.
     let shut = rest.find('\n').unwrap_or(rest.len());
     let Some(end) = opens.then(|| rest[..shut].find('>')).flatten() else {
         return at + 1;

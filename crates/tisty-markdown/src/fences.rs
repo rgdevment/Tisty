@@ -29,8 +29,7 @@ pub fn fenced_spans(text: &str) -> Vec<(usize, usize)> {
     out
 }
 
-/// A fence opens on three or more of one marker and closes on the same, at least as long.
-/// The quote prefix comes off first, or a fence written inside a quote is never seen.
+// The quote prefix comes off first, or a fence written inside a quote is never seen.
 #[derive(Default)]
 pub struct Fencing {
     pub open: Option<(char, usize, usize, usize)>,

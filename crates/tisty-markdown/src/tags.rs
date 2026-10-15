@@ -2,12 +2,7 @@ use std::ops::Range;
 
 use unicode_normalization::UnicodeNormalization;
 
-/// A hash pinned to a letter or a digit. `# Heading` carries a space and stays a heading, a colour
-/// or a fragment sits behind something that is not a separator, and a fenced block is skipped
-/// whole — the same fencing the title reader steps over.
-/// Past this a body is not being tagged, it is carrying something else — a stylesheet pasted
-/// outside a fence reads every colour as a tag. The log is append-only: a line of thousands of
-/// them is written once and kept forever, on every machine.
+// Past this a body is carrying something else, like a stylesheet whose colours all read as tags.
 pub const AT_MOST: usize = 64;
 
 pub fn tags_in(body: &str) -> Vec<String> {
@@ -18,8 +13,7 @@ pub fn tags_in(body: &str) -> Vec<String> {
         if fenced(line) {
             continue;
         }
-        // Composed first: text pasted from macOS carries «ñ» as two code points, and a reader
-        // that stops at the first mark would file #diseño under «disen».
+        // Composed first, or «ñ» pasted from macOS as two code points files #diseño under «disen».
         for (_, tag) in spots(&composed(line)) {
             if seen.insert(tag.clone()) {
                 found.push(tag);
@@ -32,12 +26,20 @@ pub fn tags_in(body: &str) -> Vec<String> {
     found
 }
 
-/// Every tag on one line with the bytes it takes, `#` included, and the name it is filed under.
+/// Every tag on one composed line, with the bytes it takes and the name it is filed under.
 pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
+    scan(line, false)
+}
+
+/// The same tags on a line as it was written, where an accent may still sit apart from its letter.
+pub fn spots_as_written(line: &str) -> Vec<(Range<usize>, String)> {
+    scan(line, true)
+}
+
+fn scan(line: &str, apart: bool) -> Vec<(Range<usize>, String)> {
     let mut found = Vec::new();
     let bytes = line.as_bytes();
-    // Only a backtick that closes marks code. One on its own is prose — a stray accent in a
-    // sentence must not swallow every tag written after it.
+    // A lone backtick is prose: only one that closes marks code.
     let mut code = false;
     let mut at = 0;
     while at < line.len() {
@@ -51,22 +53,25 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
             continue;
         }
         let before = line[..at].chars().next_back();
-        // Anything but a separator before the hash means it belongs to what came first: a colour
-        // in `bg-#fff`, the fragment of an address, a word someone hyphenated.
+        // Anything but a separator before the hash ties it to what came first, like bg-#fff or a URL.
         if before.is_some_and(|one| one.is_alphanumeric() || "#/-_.:".contains(one)) {
             at += 1;
             continue;
         }
         let rest = &line[at + 1..];
-        // A letter or a digit against the hash, or it is not a tag: `#-` and `#_` are how code
-        // and web addresses are written, not how anybody labels their own work.
+        // `#-` and `#_` are how code and addresses are written, never how anybody labels work.
         if !rest.chars().next().is_some_and(char::is_alphanumeric) {
             at += 1;
             continue;
         }
         let word: String = rest
             .chars()
-            .take_while(|one| one.is_alphanumeric() || *one == '-' || *one == '_')
+            .take_while(|one| {
+                one.is_alphanumeric()
+                    || *one == '-'
+                    || *one == '_'
+                    || (apart && unicode_normalization::char::is_combining_mark(*one))
+            })
             .collect();
         if let Some(tag) = named(&word).filter(|one| worth_reading(one)) {
             found.push((at..at + 1 + word.len(), tag));
@@ -77,8 +82,7 @@ pub fn spots(line: &str) -> Vec<(Range<usize>, String)> {
 }
 
 pub fn named(raw: &str) -> Option<String> {
-    // Accents come off: somebody writes #camion on Monday and #camión on Friday, and one tag
-    // is what they meant both times.
+    // Accents come off, so #camion on Monday and #camión on Friday are one tag.
     let normalised: String = composed(raw)
         .trim()
         .to_lowercase()

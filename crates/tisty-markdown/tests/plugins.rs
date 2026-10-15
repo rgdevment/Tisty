@@ -470,3 +470,45 @@ fn a_reference_between_double_brackets_is_one_mark_outside_code() {
         ]
     );
 }
+
+#[cfg(feature = "tags")]
+fn tag_names(text: &str) -> Vec<String> {
+    let doc = read(text);
+    let mut found = Vec::new();
+    for block in doc.blocks() {
+        for span in &block.spans {
+            if let Mark::Tag { name } = &span.mark {
+                found.push(name.clone());
+            }
+        }
+    }
+    found
+}
+
+#[cfg(feature = "tags")]
+#[test]
+fn a_tag_with_an_accent_apart_from_its_letter_is_marked_whole() {
+    assert_eq!(tag_names("Hecho #disen\u{303}o hoy"), vec!["diseno"]);
+}
+
+#[cfg(feature = "tags")]
+#[test]
+fn only_the_tags_the_core_files_are_marked() {
+    let many: String = (0..70).map(|n| format!("#tag{n}x ")).collect();
+    let found = tag_names(&many);
+    assert_eq!(found.len(), tisty_markdown::tags::AT_MOST);
+    assert_eq!(found, tisty_markdown::tags::tags_in(&many));
+}
+
+#[cfg(all(feature = "tags", feature = "refs"))]
+#[test]
+fn a_tag_inside_a_reference_is_part_of_the_reference() {
+    assert!(tag_names("See [[#plan]] now").is_empty());
+    assert_eq!(
+        marks("See [[#plan]] now")
+            .into_iter()
+            .filter(|(mark, _)| matches!(mark, Mark::Ref { .. }))
+            .count(),
+        1
+    );
+}
