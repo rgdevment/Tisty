@@ -2002,7 +2002,7 @@ body {
 }
 .peeking > .beaver-hidden {
   position: absolute;
-  left: 250px;
+  right: 12px;
   bottom: calc(100% - 24px);
   width: 96px;
   height: 90px;
@@ -2016,14 +2016,6 @@ body {
   transform: translateY(100%);
   scale: -1 1;
 }
-.peeking .pupil {
-  transform: translate(var(--look-x, 0px), var(--look-y, 0px));
-}
-@media (prefers-reduced-motion: no-preference) {
-  .peeking .pupil {
-    transition: transform 0.25s ease-out;
-  }
-}
 .peeking > .beaver-over {
   position: relative;
   z-index: 1;
@@ -2032,7 +2024,7 @@ body {
   position: absolute;
   z-index: 2;
   top: -10px;
-  left: 250px;
+  right: 12px;
   width: 96px;
   padding: 0 10px;
   opacity: 0;

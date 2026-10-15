@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { capture, fold } from "../core";
 import { useDesk } from "../desk";
 import { todayLong } from "../format";
@@ -6,7 +6,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { accepts, asView, headerCount, invite, nothing, title } from "../views";
 import { ArchiveBar, SliceBar } from "./Bars";
-import { Head, lookAt, Paws, useBeaver } from "./Beaver";
+import { Head, Paws, useBeaver } from "./Beaver";
 import CaptureField from "./CaptureField";
 import Search from "./Search";
 import Shelf from "./Shelf";
@@ -21,7 +21,6 @@ const AWAKES = 5;
 export default function Board() {
   const peeks = useBeaver();
   const [typed, setTyped] = useState(0);
-  const watching = useRef<HTMLDivElement>(null);
   const {
     act,
     asking,
@@ -172,10 +171,7 @@ export default function Board() {
           ) : chosen.named === "archive" ? (
             <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
           ) : accepts(chosen) ? (
-            <div
-              ref={watching}
-              className={peeks ? `peeking${typed >= AWAKES ? " awake" : ""}` : undefined}
-            >
+            <div className={peeks ? `peeking${typed >= AWAKES ? " awake" : ""}` : undefined}>
               {peeks && (
                 <span className="beaver-hidden">
                   <Head />
@@ -196,11 +192,7 @@ export default function Board() {
                     });
                   }}
                   onError={setError}
-                  onTyped={(text) => {
-                    setTyped(text.trim().length);
-                    const room = watching.current;
-                    if (room) requestAnimationFrame(() => lookAt(room));
-                  }}
+                  onTyped={(text) => setTyped(text.trim().length)}
                 />
               </div>
               {peeks && <Paws />}

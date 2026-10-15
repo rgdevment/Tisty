@@ -26,29 +26,6 @@ export function useBeaver(): boolean {
   return peeks;
 }
 
-let pen: CanvasRenderingContext2D | null = null;
-
-// The pupils rest looking right and down; they turn towards the caret, never out of the eye.
-export const lookAt = (room: HTMLElement) => {
-  const field = room.querySelector("input");
-  const head = room.querySelector(".beaver-hidden svg");
-  if (!field || !head) return;
-  pen ??= document.createElement("canvas").getContext("2d");
-  if (!pen) return;
-  const kind = getComputedStyle(field);
-  pen.font = `${kind.fontWeight} ${kind.fontSize} ${kind.fontFamily}`;
-  const written = field.value.slice(0, field.selectionStart ?? field.value.length);
-  const box = field.getBoundingClientRect();
-  const eyes = head.getBoundingClientRect();
-  const x =
-    box.left + pen.measureText(written).width - field.scrollLeft - (eyes.left + eyes.width / 2);
-  const y = box.top + box.height / 2 - (eyes.top + eyes.height * 0.55);
-  const far = Math.hypot(x, y) || 1;
-  // Drawn mirrored, so a turn to the right on screen is a turn to the left inside the drawing.
-  room.style.setProperty("--look-x", `${(-x / far) * 7 - 8}px`);
-  room.style.setProperty("--look-y", `${(y / far) * 7 - 4}px`);
-};
-
 export function Head({ className }: { readonly className?: string }) {
   return (
     <svg className={className} viewBox="44 24 362 302" aria-hidden="true">
@@ -130,10 +107,10 @@ export function Head({ className }: { readonly className?: string }) {
       <rect x="286" y="240" width="20" height="7" rx="3.5" fill="#F5F0E8" />
       <ellipse cx="146" cy="178" rx="17" ry="15" fill="#FFFFFF" stroke="#4A4640" strokeWidth="4" />
       <ellipse cx="254" cy="178" rx="17" ry="15" fill="#FFFFFF" stroke="#4A4640" strokeWidth="4" />
-      <circle className="pupil" cx="154" cy="182" r="8.5" fill="#4A4640" />
-      <circle className="pupil" cx="262" cy="182" r="8.5" fill="#4A4640" />
-      <circle className="pupil" cx="157" cy="179" r="2.6" fill="#FFFFFF" />
-      <circle className="pupil" cx="265" cy="179" r="2.6" fill="#FFFFFF" />
+      <circle cx="154" cy="182" r="8.5" fill="#4A4640" />
+      <circle cx="262" cy="182" r="8.5" fill="#4A4640" />
+      <circle cx="157" cy="179" r="2.6" fill="#FFFFFF" />
+      <circle cx="265" cy="179" r="2.6" fill="#FFFFFF" />
       <path
         d="M129 174 A17 15 0 0 1 163 174 Z"
         fill="#4A4640"
