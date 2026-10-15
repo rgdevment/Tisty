@@ -211,7 +211,11 @@ figure.widget {
 }
 figure.diagram img {
   max-width: 100%;
+  max-height: none;
   height: auto;
+  padding: 0;
+  background: none;
+  border: 0;
 }
 html:not(.dark) figure.diagram img.dark,
 html.dark figure.diagram img.light {
@@ -280,12 +284,6 @@ img {
   border: 1px solid var(--tisty-hair);
   border-radius: 12px;
   box-sizing: border-box;
-}
-figure.diagram img {
-  max-height: none;
-  padding: 0;
-  background: none;
-  border: 0;
 }
 table {
   margin: 14px 0;

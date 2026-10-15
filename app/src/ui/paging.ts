@@ -38,7 +38,7 @@ export const TOKENS = [
   ...PENS.map((one) => `pen-${one}`),
 ].map((one) => `--tisty-${one}`);
 
-const darkNow = () => document.documentElement.getAttribute("data-theme") === "dark";
+const darkNow = () => document.documentElement.dataset.theme === "dark";
 
 const worn = (): string => {
   const theirs = getComputedStyle(document.documentElement);
@@ -78,26 +78,26 @@ const spanned = (said: string | null): [number, number] | null => {
   return found ? [Number(found[1]), Number(found[2])] : null;
 };
 
+const linked = (link: HTMLAnchorElement): Went => {
+  const doc = link.dataset.doc;
+  if (doc) return { kind: "doc", id: doc };
+  const href = (link.getAttribute("href") ?? "").trim();
+  if (href.startsWith(DOC) && href.length > DOC.length)
+    return { kind: "doc", id: href.slice(DOC.length) };
+  if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };
+  if (href.startsWith("#")) return href.length > 1 ? { kind: "here", id: href.slice(1) } : null;
+  if (href && !/^[a-z][a-z0-9+.-]*:/i.test(href)) return { kind: "attachment", reference: href };
+  return null;
+};
+
 export const went = (target: Element, selecting: boolean): Went => {
   const link = target.closest("a");
-  if (link) {
-    const doc = link.getAttribute("data-doc");
-    if (doc) return { kind: "doc", id: doc };
-    const href = (link.getAttribute("href") ?? "").trim();
-    if (href.startsWith(DOC) && href.length > DOC.length)
-      return { kind: "doc", id: href.slice(DOC.length) };
-    if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };
-    if (href.startsWith("#")) return href.length > 1 ? { kind: "here", id: href.slice(1) } : null;
-    if (href && !/^[a-z][a-z0-9+.-]*:/i.test(href)) return { kind: "attachment", reference: href };
-    return null;
-  }
-  const ref = target.closest(".ref")?.getAttribute("data-ref");
-  if (ref) return null;
-  const tag = target.closest(".tag")?.getAttribute("data-tag");
+  if (link) return linked(link);
+  if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
+  const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest("summary, figure.widget")) return null;
-  const block = target.closest(".page > [data-at]");
-  const at = spanned(block?.getAttribute("data-at") ?? null);
+  const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };
 
@@ -113,7 +113,7 @@ export const heads = (page: Document): Head[] =>
 
 export const saidKinds = (page: Document, said: (kind: string) => string) => {
   for (const one of page.querySelectorAll<HTMLElement>("blockquote[data-callout]"))
-    one.setAttribute("data-said", said(one.getAttribute("data-callout") ?? "note"));
+    one.dataset.said = said(one.dataset.callout ?? "note");
 };
 
 const lowlight = createLowlight(common);

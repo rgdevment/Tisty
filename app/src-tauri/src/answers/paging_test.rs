@@ -1,4 +1,4 @@
-use super::*;
+use super::{DRAWN_BY, KEPT_AT_MOST, paged};
 
 #[test]
 fn a_page_is_drawn_once_and_then_read_from_the_shelf() {

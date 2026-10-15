@@ -88,7 +88,7 @@ function Finder({ onClose, within }: { onClose: () => void; within: () => Window
   );
 }
 
-export default function Reader(props: Props) {
+export default function Reader(props: Readonly<Props>) {
   const { body, title, stranger, side, raw, zoom, leaf, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
   const shown = useRef<Window | null>(null);
