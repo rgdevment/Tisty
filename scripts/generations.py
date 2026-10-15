@@ -22,16 +22,19 @@ def gh(*args):
     return done.stdout
 
 
-def listed(ref=None):
-    args = ["cache", "list", "--limit", "100", "--json", "key,ref,sizeInBytes,createdAt"]
+def listed(ref=None, key=None):
+    args = ["cache", "list", "--limit", "1000", "--json", "key,ref,sizeInBytes,createdAt"]
     if ref:
         args += ["--ref", ref]
+    # sccache leaves hundreds of small entries, which would push the rust ones past the limit.
+    if key:
+        args += ["--key", key]
     return json.loads(gh(*args))
 
 
 def superseded():
     households = {}
-    for one in listed(MAIN):
+    for one in listed(MAIN, "v0-rust-"):
         found = RUST.match(one["key"])
         if found:
             households.setdefault(found.group(1), []).append({**one, "ref": MAIN})
