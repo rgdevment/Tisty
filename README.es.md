@@ -98,6 +98,13 @@ olvida. Aquí lo que cierras se queda: lo que hiciste, cuándo, y lo que fuiste
 averiguando por el camino. Meses después buscas cómo resolviste algo y está ahí:
 la descripción, el diario, los pasos y los documentos en los que te apoyaste.
 
+Y es un lugar para escribir. Los **documentos** son archivos Markdown en tu
+propio disco que llevan mucho más que texto: un libro en páginas, diagramas que
+salen de unas pocas líneas, fórmulas, código con el nombre de su archivo,
+pequeños widgets, fotos y PDF que viajan con ellos, y un PDF propio al imprimir.
+La búsqueda los lee junto a las tareas, y un asistente también puede leerlos y
+escribirlos.
+
 No soy una empresa. Soy un desarrollador que resolvió dos veces el mismo
 problema, así que hice el **gestor de notas, documentos y tareas** que quería y
 lo regalé. Quiero que siga siendo pequeño y útil, no que crezca con mil funciones
@@ -111,6 +118,9 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
   sincronizas dos equipos, puedes pedirle a Tisty que deje los adjuntos más
   grandes en esa carpeta compartida en vez de llevarlos a cada disco; nunca lo
   hace si tú no lo eliges.
+- **Documentos que hacen más que texto** — libros en páginas, diagramas,
+  fórmulas, código, widgets y adjuntos, todo en Markdown corriente que cualquier
+  otro editor sigue abriendo.
 - **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
   período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
   para organizaciones que no puedan cumplirla.
@@ -136,6 +146,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Para quién es](#para-quién-es)
 - [La idea sobre la que está construido](#la-idea-sobre-la-que-está-construido)
 - [Instalación](#instalación)
+- [Documentos](#documentos)
 - [Qué hace](#qué-hace)
 - [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
@@ -185,6 +196,10 @@ dejó de molestarme, y lo dejé acá por si resulta ser lo que tú querías.
 útil. Las tareas llevan descripción, bitácora, pasos y adjuntos; al completar una
 pasa al archivo, y la búsqueda llega a todo, documentos incluidos.
 
+**Es también un lugar para escribir.** Los documentos no son un campo de notas
+pegado a las tareas: son archivos Markdown que crecen hasta ser libros, con
+diagramas, fórmulas, código y su propio PDF.
+
 **Es para una persona.** Sin responsables, sin permisos, sin tableros. Si
 necesitas llevar un equipo, Tisty no va a sostener eso, y mereces saberlo antes
 de instalarlo y no después.
@@ -199,8 +214,9 @@ seguiría ahí y seguiría teniendo sentido.
 
 ## Qué lo hace distinto
 
-Si buscas un **gestor de tareas libre, de código abierto, sin conexión, sin
-cuenta, sin suscripción y sin inteligencia artificial**, esto es Tisty:
+Si buscas un **lugar libre, de código abierto y sin conexión para tus
+documentos y tareas, sin cuenta, sin suscripción y sin inteligencia
+artificial**, esto es Tisty:
 
 | | |
 |---|---|
@@ -212,7 +228,7 @@ cuenta, sin suscripción y sin inteligencia artificial**, esto es Tisty:
 | Tu propio asistente | sí, por **MCP**, si decides abrir la puerta |
 | Prioridades | la **matriz de Eisenhower**, con su nombre |
 | Clasificación | listas, etiquetas, pasos y bitácora en cada tarea |
-| Documentos | se escriben y se buscan junto a las tareas, no en otra app |
+| Documentos | archivos Markdown con páginas, diagramas, fórmulas, código, widgets y su propio PDF |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
 | Dos equipos | por una carpeta que ya sincronizas. Sin servidor nuestro |
@@ -304,93 +320,33 @@ dos sistemas. En macOS hay dos imágenes: `aarch64` para Apple Silicon y
 `x86_64` para Intel — menú Apple › *Acerca de este Mac* dice cuál es la tuya.
 Homebrew elige sola.
 
-## Qué hace
+## Documentos
 
-**La primera vez que se abre**, Tisty pregunta dos cosas —en qué idioma y dónde
-quieres tus copias— y después te escribe una guía y te la abre, salvo que el
-lugar que elegiste ya tenga tu Tisty: entonces lo trae en su lugar. Lo demás lo
-decide por ti y lo puedes cambiar luego: arranca con el equipo y espera
-apartado, porque eran preguntas con una respuesta evidente. La guía es un
-documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
-o tirarla como cualquier otra cosa que escribas.
+La otra mitad de Tisty, y para mucha gente la más grande. Un documento es un
+archivo Markdown en tu propio disco —el mismo archivo que abre cualquier otro
+editor— y en Tisty lleva bastante más que texto:
 
-**La configuración responde cuatro preguntas en vez de llevar cinco etiquetas.**
-*General* es cómo se porta Tisty contigo: idioma, arranque, captura rápida,
-avisos, actualizaciones, y las dos cosas que ocurren fuera de la ventana —la
-línea de comandos y la bienvenida—. *Tus datos* es todo lo que toca tus
-archivos, con la sincronización como bloque propio porque tiene estado, un aviso
-que depende de quién guarde tu carpeta y cuatro acciones. *Asistentes* y
-*Mantenimiento* son lo que dicen.
+- **Un libro en páginas.** Un año de actas, un manual por capítulos, la vida de
+  un perro contada año a año: un documento con sus páginas, en el orden en que
+  el texto las nombra, con un índice al final y flechas de una a la siguiente.
+- **Diagramas con unas pocas líneas.** Un bloque que dice `mermaid` dibuja
+  flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
+  más, claros u oscuros según la ventana.
+- **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
+  lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
+  se inclinan sus columnas y con qué ancho las dibujaste.
+- **Widgets**: una pequeña página de HTML, estilos y un poco de script, dibujada
+  con los colores de Tisty y aislada de la red.
+- **Avisos, marcadores e íconos** —los avisos que GitHub lee, marcadores de
+  varios colores, un ícono que se busca por lo que dibuja— y casillas que se
+  marcan.
+- **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
+  de Tisty en vez de enlazados a una carpeta que se mueve.
+- **Un PDF propio**, A4, Carta o Tabloide, con los adjuntos dentro, que te
+  enseña antes de exportarlo.
 
-**Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
-abriste. Nada más en pantalla.
-
-**La lista se queda donde está.** No se va al centro de lo que sobra, así que
-abrir una tarea no mueve nada. Cuando la ventana da de sí, el sitio que se abre
-no se queda en blanco: una columna te cuenta el día —lo vencido, lo de hoy, lo
-que viene, los cuatro cuadrantes con sus cuentas, las listas con algo abierto y
-las etiquetas en uso—. Todo eso cuenta tu almacén entero, no lo que hay en
-pantalla, y cada cifra es una puerta. Estrecha la ventana y se aparta: una tarea
-siempre le gana el sitio.
-
-**Lee lo que escribes.** Escribes una frase y Tisty le saca la fecha, deja la
-frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
-que corriges con un clic.
-
-![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones como todos los martes se leen de palabras simples](assets/store/es-02-tareas.png)
-
-```text
-"desplegar mañana a las 10"        →  mañana 10:00
-"entregar el informe para viernes" →  límite vie
-"reservar vuelos @viaje #urgente"  →  @viaje · #urgente
-```
-
-Un día, una hora, o las dos. Nombres, distancias, fechas sueltas. Lo que no
-puede leer lo deja tal cual en vez de adivinar. Un límite no es lo mismo que un
-plan, y lo abren tres palabras: **antes de**, **para** y **hasta**.
-
-**La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas,
-prioridad, una descripción y una bitácora en Markdown, pasos que vas marcando de
-a uno, y lo que le hayas soltado encima. Completarla no aleja nada de eso.
-Abierta a toda la página gana una columna con su propio trayecto: cuántos días
-lleva abierta, cuánto va hecho y cada cambio por el que ha pasado, que hasta
-ahora vivía al final, donde nadie bajaba.
-
-![Una tarjeta para cada parte de tu vida: cada lista con su ícono y su nombre, lo que tiene abierto y sus fechas](assets/store/es-05-listas.png)
-
-**Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
-cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
-Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
-altamente efectiva*: ordena lo que tienes entre urgente e importante, y cada
-cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante,
-**Planificar** lo que importa y no corre prisa, **Delegar** lo urgente que no te
-toca, y dejar en **Prescindible** aquello de lo que podrías prescindir — cuando
-lo tengas claro, un botón lo descarta todo de una vez.
-
-Arrastra una tarea a su cuadrante, o tecléalo: `!hacer`, `!planificar`,
-`!delegar`. `!decidir` sigue funcionando, porque así se llamaba antes.
-Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
-puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
-dejaste.
-
-![La matriz de Eisenhower en Tisty: cada tarea en hacer, planificar, delegar o menor, con las sin clasificar al costado](assets/store/es-03-prioridades.png)
-
-**El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
-que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
-una semana que pasas de página: cada día es una fila, y la fila crece con lo que
-lleva, así que un viernes cargado es alto y un martes libre es una línea. Lo que
-escribiste sin día espera en una bandeja a la izquierda, y lo arrastras hasta un
-día —o lo devuelves a la bandeja para quitarle el día otra vez—. Si lo sueltas
-en un día que ya lleva tres, Tisty te lo dice y te ofrece el siguiente que está
-libre; nunca insiste.
-
-Un botón de **mes** está para mirar, no para repartir: lo pulsas y esos mismos
-días se ordenan en cuadrícula, pulsas un día y caes en él dentro del río. Ahí no
-se suelta nada, a propósito. Tisty no ve el calendario que llevas en otro sitio,
-así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunca
-la promesa de que ese día es tuyo.
-
-![El reparto: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-04-agenda.png)
+La guía que Tisty escribe la primera vez que se abre trae una página con uno de
+cada cosa, para que lo veas todo antes de escribir una línea.
 
 **Los documentos** viven junto a las tareas, para el material de consulta que no
 tiene fecha y nunca se tacha. Son archivos Markdown que editas como documentos
@@ -488,6 +444,94 @@ cuál—, cada documento queda firmado con él, y lo que te llegue de otra perso
 conserva el suyo.
 
 ![Documentos que hacen las cuentas: fórmulas, diagramas, código y pequeños widgets dibujados dentro de Tisty, sin bajar nada](assets/store/es-06-documentos.png)
+
+## Qué hace
+
+**La primera vez que se abre**, Tisty pregunta dos cosas —en qué idioma y dónde
+quieres tus copias— y después te escribe una guía y te la abre, salvo que el
+lugar que elegiste ya tenga tu Tisty: entonces lo trae en su lugar. Lo demás lo
+decide por ti y lo puedes cambiar luego: arranca con el equipo y espera
+apartado, porque eran preguntas con una respuesta evidente. La guía es un
+documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
+o tirarla como cualquier otra cosa que escribas.
+
+**La configuración responde cuatro preguntas en vez de llevar cinco etiquetas.**
+*General* es cómo se porta Tisty contigo: idioma, arranque, captura rápida,
+avisos, actualizaciones, y las dos cosas que ocurren fuera de la ventana —la
+línea de comandos y la bienvenida—. *Tus datos* es todo lo que toca tus
+archivos, con la sincronización como bloque propio porque tiene estado, un aviso
+que depende de quién guarde tu carpeta y cuatro acciones. *Asistentes* y
+*Mantenimiento* son lo que dicen.
+
+**Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
+abriste. Nada más en pantalla.
+
+**La lista se queda donde está.** No se va al centro de lo que sobra, así que
+abrir una tarea no mueve nada. Cuando la ventana da de sí, el sitio que se abre
+no se queda en blanco: una columna te cuenta el día —lo vencido, lo de hoy, lo
+que viene, los cuatro cuadrantes con sus cuentas, las listas con algo abierto y
+las etiquetas en uso—. Todo eso cuenta tu almacén entero, no lo que hay en
+pantalla, y cada cifra es una puerta. Estrecha la ventana y se aparta: una tarea
+siempre le gana el sitio.
+
+**Lee lo que escribes.** Escribes una frase y Tisty le saca la fecha, deja la
+frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
+que corriges con un clic.
+
+![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones como todos los martes se leen de palabras simples](assets/store/es-02-tareas.png)
+
+```text
+"desplegar mañana a las 10"        →  mañana 10:00
+"entregar el informe para viernes" →  límite vie
+"reservar vuelos @viaje #urgente"  →  @viaje · #urgente
+```
+
+Un día, una hora, o las dos. Nombres, distancias, fechas sueltas. Lo que no
+puede leer lo deja tal cual en vez de adivinar. Un límite no es lo mismo que un
+plan, y lo abren tres palabras: **antes de**, **para** y **hasta**.
+
+**La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas,
+prioridad, una descripción y una bitácora en Markdown, pasos que vas marcando de
+a uno, y lo que le hayas soltado encima. Completarla no aleja nada de eso.
+Abierta a toda la página gana una columna con su propio trayecto: cuántos días
+lleva abierta, cuánto va hecho y cada cambio por el que ha pasado, que hasta
+ahora vivía al final, donde nadie bajaba.
+
+![Una tarjeta para cada parte de tu vida: cada lista con su ícono y su nombre, lo que tiene abierto y sus fechas](assets/store/es-05-listas.png)
+
+**Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
+cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
+Dwight D. Eisenhower y que Stephen Covey popularizó en *Los 7 hábitos de la gente
+altamente efectiva*: ordena lo que tienes entre urgente e importante, y cada
+cuadrante te dice qué hacer con ello. **Hacer** lo urgente e importante,
+**Planificar** lo que importa y no corre prisa, **Delegar** lo urgente que no te
+toca, y dejar en **Prescindible** aquello de lo que podrías prescindir — cuando
+lo tengas claro, un botón lo descarta todo de una vez.
+
+Arrastra una tarea a su cuadrante, o tecléalo: `!hacer`, `!planificar`,
+`!delegar`. `!decidir` sigue funcionando, porque así se llamaba antes.
+Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
+puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
+dejaste.
+
+![La matriz de Eisenhower en Tisty: cada tarea en hacer, planificar, delegar o menor, con las sin clasificar al costado](assets/store/es-03-prioridades.png)
+
+**El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
+que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
+una semana que pasas de página: cada día es una fila, y la fila crece con lo que
+lleva, así que un viernes cargado es alto y un martes libre es una línea. Lo que
+escribiste sin día espera en una bandeja a la izquierda, y lo arrastras hasta un
+día —o lo devuelves a la bandeja para quitarle el día otra vez—. Si lo sueltas
+en un día que ya lleva tres, Tisty te lo dice y te ofrece el siguiente que está
+libre; nunca insiste.
+
+Un botón de **mes** está para mirar, no para repartir: lo pulsas y esos mismos
+días se ordenan en cuadrícula, pulsas un día y caes en él dentro del río. Ahí no
+se suelta nada, a propósito. Tisty no ve el calendario que llevas en otro sitio,
+así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunca
+la promesa de que ese día es tuyo.
+
+![El reparto: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-04-agenda.png)
 
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.

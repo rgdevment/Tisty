@@ -97,6 +97,12 @@ what you close stays: what you did, when, and what you worked out on the way.
 Months later you search for how you solved something and it is there — the
 description, the journal, the steps, the documents you leaned on.
 
+And it is a place to write. **Documents** are Markdown files on your own disk
+that hold far more than text: a book in pages, diagrams drawn from a few lines,
+formulas, code named after its file, small widgets, pictures and PDFs that
+travel with them, and a PDF of their own when you print. Search reads them with
+the tasks, and an assistant can read and write them too.
+
 I am not a company. I am a developer who kept solving the same problem twice, so
 I built the **notes, documents and task manager** I wanted and gave it away. It
 is meant to stay small and useful, not to grow a thousand features nobody uses.
@@ -110,6 +116,9 @@ productivity tool** that lives on your machine and nowhere else.
   you sync two machines, you can ask Tisty to leave the largest attachments in
   that shared folder instead of carrying them onto every disk; it never does
   that unless you choose it.
+- **Documents that do more than text** — books in pages, diagrams, formulas,
+  code, widgets and attachments, all of it plain Markdown any other editor
+  still opens.
 - **Truly free** — no premium tier, no feature gates, no trial. AGPL v3, and
   [commercial terms](docs/COMMERCIAL.md) only for organisations that cannot
   comply with it.
@@ -135,6 +144,7 @@ productivity tool** that lives on your machine and nowhere else.
 - [Who Is This For?](#who-is-this-for)
 - [The Idea It Is Built On](#the-idea-it-is-built-on)
 - [Getting Started](#getting-started)
+- [Documents](#documents)
 - [What It Does](#what-it-does)
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
@@ -184,6 +194,10 @@ its useful life. Tasks carry a description, a journal, steps and attachments;
 when you complete one it moves to the archive, and search reaches all of it,
 documents included.
 
+**It is a place to write**, too. Documents are not a notes field bolted onto the
+tasks: they are Markdown files that grow into books, with diagrams, formulas,
+code and their own PDF.
+
 **It is for one person.** No assignees, no permissions, no boards. If you need
 to run a team, Tisty will not carry that, and you deserve to know before you
 install it rather than after.
@@ -198,8 +212,8 @@ would still be there and still make sense.
 
 ## What Makes It Different
 
-If you are looking for a **free, open-source, offline task manager with no
-account, no subscription and no AI**, this is what Tisty is:
+If you are looking for a **free, open-source, offline place for your documents
+and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 
 | | |
 |---|---|
@@ -211,7 +225,7 @@ account, no subscription and no AI**, this is what Tisty is:
 | Your own assistant | yes, over **MCP**, if you choose to open the door |
 | Priorities | the **Eisenhower matrix**, by its name |
 | Sorting | lists, tags, steps and a journal on every task |
-| Documents | written and searched beside the tasks, not in another app |
+| Documents | Markdown files with pages, diagrams, formulas, code, widgets and their own PDF |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
 | Two machines | through a folder you already sync. No server of ours |
@@ -302,92 +316,32 @@ On macOS there are two images: `aarch64` for Apple Silicon and `x86_64` for
 Intel — Apple menu › *About This Mac* says which one yours is. Homebrew picks
 by itself.
 
-## What It Does
+## Documents
 
-**The first time it opens**, Tisty asks two things — which language, and where
-your copies should go — and then writes you a guide and opens it, unless the
-place you chose already holds your Tisty: then it brings that instead. Everything
-else it decides for you and lets you change later: it starts with the computer
-and waits out of the way, because those were questions with an obvious answer.
-The guide is a document in your own store, in a folder of its own: yours to
-read, edit, or throw away like anything else you wrote.
+The other half of Tisty, and for many people the larger one. A document is a
+Markdown file on your own disk — the same file any other editor opens — and in
+Tisty it holds a good deal more than text:
 
-**Settings answers four questions rather than wearing five labels.** *General*
-is how Tisty behaves towards you — language, start-up, the quick capture,
-notices, updates, and the two things that happen outside the window: the command
-line and the welcome. *Your data* is everything that touches your files, with
-syncing as a block of its own because it has a state, a warning that depends on
-who keeps your folder, and four actions. *Assistants* and *Maintenance* are what
-they say.
+- **A book in pages.** A year of minutes, a manual by chapters, a dog's life told
+  year by year: one document holding its pages, in the order the text names
+  them, with an index at the end and arrows from one to the next.
+- **Diagrams from a few lines.** A block that says `mermaid` draws flowcharts,
+  sequences, pies, timelines, mind maps, Gantt charts and more, light or dark
+  with the window.
+- **Formulas** set from a `math` block, **code** coloured by its language and
+  named after its file, and **tables** that keep how their columns lean and how
+  wide you drew them.
+- **Widgets**: a small page of HTML, styles and a little script, drawn in
+  Tisty's colours and sealed off from the network.
+- **Callouts, highlights and icons** — the callouts GitHub reads, pens in
+  several colours, an icon looked up by what it draws — and boxes you tick.
+- **Attachments that travel with it**: pictures, PDFs, sound and film, kept
+  inside Tisty rather than linked to a folder that moves.
+- **A PDF of its own**, A4, Letter or Tabloid, with the attachments inside,
+  shown to you before you export it.
 
-**Three columns at most:** what you are looking at, the list, and the task you
-opened. Nothing else on screen.
-
-**The list stands where it stands.** It does not drift to the middle of whatever
-room is left, so opening a task moves nothing. Where the window is wide enough,
-the space that opens up is not left blank: a column tells you the day — what is
-overdue, what is for today, what is ahead, the four quadrants with their counts,
-the lists holding something and the tags in use. All of it counts your whole
-store rather than the slice on screen, and every figure is a way in. Narrow the
-window and it steps aside; a task always wins the room over it.
-
-**It reads what you write.** You type a sentence and Tisty takes the date out of
-it, leaves the sentence readable, and shows you what it understood *before*
-anything is saved — as chips you can correct with one click.
-
-![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words](assets/store/en-02-tasks.png)
-
-```text
-"ship the release tomorrow at 10"   →  tomorrow 10:00
-"file the report before friday"     →  due fri
-"book the flights @travel #urgent"  →  @travel · #urgent
-```
-
-A day, a time, or both. Names, distances, plain dates. What it cannot read it
-leaves alone rather than guess. A deadline is a different thing from a plan, and
-three words open one: **before**, **due**, **until**.
-
-**A task opens beside the list**, not on top of it: dates, list, tags, priority,
-a description and a journal in Markdown, steps you tick one at a time, and
-whatever you dropped on it. Completing it puts none of that out of reach. Opened
-to the whole page it gains a column of its own trail — how long it has been
-open, how much of it is done, and every change it has been through, which until
-now sat at the bottom where nobody scrolled.
-
-![One card for each part of life: every list with its own icon and name, its open items and their due dates](assets/store/en-05-lists.png)
-
-**Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
-of the Eisenhower matrix — the method President Dwight D. Eisenhower is
-credited with, popularised by Stephen Covey in *The 7 Habits of Highly
-Effective People*: sort what you have by urgent against important, and each
-quadrant tells you what to do with it. **Do** what is urgent and important,
-**Schedule** what matters and is not urgent, **Delegate** what is urgent and is
-not yours, and leave in **Minor** whatever you could live without — when you are
-sure, one button drops the lot.
-
-Drag a task into its quadrant, or type it: `!do`, `!schedule`, `!delegate`.
-`!decide` still works, because it is what the quadrant used to be called. Each
-quadrant has a **+** that opens the quick capture with that quadrant already
-set, and whatever nobody has placed waits in a tray that opens the way you
-left it.
-
-![The Eisenhower matrix in Tisty: every task sorted into do, schedule, delegate or minor, with the unclassified pile on the side](assets/store/en-03-priorities.png)
-
-**The spread deals your days, one row at a time.** Priorities sort what matters;
-the spread decides when. It runs as a river of days you scroll through rather
-than a week you page: every day is a row, and the row grows with what it carries,
-so a heavy Friday is tall and a free Tuesday is a line. What you wrote with no
-day waits in a tray on the left, and you drag it onto a day — or drag it back to
-take the day away again. Drop one onto a day that already carries three and
-Tisty says so, and offers the next day that is free; it never insists.
-
-A **month** button is there for looking, not for dealing: press it and the same
-days lay out as a grid, press a day and you land on it in the river. Nothing is
-dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
-so a square with nothing written on it is only a square with nothing written on
-it — never a promise that the day is yours.
-
-![The spread: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-04-spread.png)
+The guide Tisty writes the first time it opens carries a page with one of each,
+so you can see all of it before you write a line.
 
 **Documents** live beside the tasks, for reference material that has no date and
 never gets ticked. They are Markdown files you edit as documents — tables,
@@ -481,6 +435,93 @@ Write an alias — optional, and yours to choose — and every document is signe
 with it, while whatever arrives from somebody else keeps theirs.
 
 ![Documents that can do the maths: formulas, diagrams, code and small widgets drawn inside Tisty, with nothing fetched](assets/store/en-06-documents.png)
+
+## What It Does
+
+**The first time it opens**, Tisty asks two things — which language, and where
+your copies should go — and then writes you a guide and opens it, unless the
+place you chose already holds your Tisty: then it brings that instead. Everything
+else it decides for you and lets you change later: it starts with the computer
+and waits out of the way, because those were questions with an obvious answer.
+The guide is a document in your own store, in a folder of its own: yours to
+read, edit, or throw away like anything else you wrote.
+
+**Settings answers four questions rather than wearing five labels.** *General*
+is how Tisty behaves towards you — language, start-up, the quick capture,
+notices, updates, and the two things that happen outside the window: the command
+line and the welcome. *Your data* is everything that touches your files, with
+syncing as a block of its own because it has a state, a warning that depends on
+who keeps your folder, and four actions. *Assistants* and *Maintenance* are what
+they say.
+
+**Three columns at most:** what you are looking at, the list, and the task you
+opened. Nothing else on screen.
+
+**The list stands where it stands.** It does not drift to the middle of whatever
+room is left, so opening a task moves nothing. Where the window is wide enough,
+the space that opens up is not left blank: a column tells you the day — what is
+overdue, what is for today, what is ahead, the four quadrants with their counts,
+the lists holding something and the tags in use. All of it counts your whole
+store rather than the slice on screen, and every figure is a way in. Narrow the
+window and it steps aside; a task always wins the room over it.
+
+**It reads what you write.** You type a sentence and Tisty takes the date out of
+it, leaves the sentence readable, and shows you what it understood *before*
+anything is saved — as chips you can correct with one click.
+
+![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words](assets/store/en-02-tasks.png)
+
+```text
+"ship the release tomorrow at 10"   →  tomorrow 10:00
+"file the report before friday"     →  due fri
+"book the flights @travel #urgent"  →  @travel · #urgent
+```
+
+A day, a time, or both. Names, distances, plain dates. What it cannot read it
+leaves alone rather than guess. A deadline is a different thing from a plan, and
+three words open one: **before**, **due**, **until**.
+
+**A task opens beside the list**, not on top of it: dates, list, tags, priority,
+a description and a journal in Markdown, steps you tick one at a time, and
+whatever you dropped on it. Completing it puts none of that out of reach. Opened
+to the whole page it gains a column of its own trail — how long it has been
+open, how much of it is done, and every change it has been through, which until
+now sat at the bottom where nobody scrolled.
+
+![One card for each part of life: every list with its own icon and name, its open items and their due dates](assets/store/en-05-lists.png)
+
+**Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
+of the Eisenhower matrix — the method President Dwight D. Eisenhower is
+credited with, popularised by Stephen Covey in *The 7 Habits of Highly
+Effective People*: sort what you have by urgent against important, and each
+quadrant tells you what to do with it. **Do** what is urgent and important,
+**Schedule** what matters and is not urgent, **Delegate** what is urgent and is
+not yours, and leave in **Minor** whatever you could live without — when you are
+sure, one button drops the lot.
+
+Drag a task into its quadrant, or type it: `!do`, `!schedule`, `!delegate`.
+`!decide` still works, because it is what the quadrant used to be called. Each
+quadrant has a **+** that opens the quick capture with that quadrant already
+set, and whatever nobody has placed waits in a tray that opens the way you
+left it.
+
+![The Eisenhower matrix in Tisty: every task sorted into do, schedule, delegate or minor, with the unclassified pile on the side](assets/store/en-03-priorities.png)
+
+**The spread deals your days, one row at a time.** Priorities sort what matters;
+the spread decides when. It runs as a river of days you scroll through rather
+than a week you page: every day is a row, and the row grows with what it carries,
+so a heavy Friday is tall and a free Tuesday is a line. What you wrote with no
+day waits in a tray on the left, and you drag it onto a day — or drag it back to
+take the day away again. Drop one onto a day that already carries three and
+Tisty says so, and offers the next day that is free; it never insists.
+
+A **month** button is there for looking, not for dealing: press it and the same
+days lay out as a grid, press a day and you land on it in the river. Nothing is
+dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
+so a square with nothing written on it is only a square with nothing written on
+it — never a promise that the day is yours.
+
+![The spread: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-04-spread.png)
 
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
