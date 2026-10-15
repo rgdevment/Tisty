@@ -36,8 +36,6 @@ vi.mock("../ui/widgeting", () => ({
   locked: () => document.createElement("div"),
 }));
 
-Element.prototype.scrollIntoView ??= () => {};
-
 const BODY = "# Título\n\nÁrbol.\n";
 const DRAWN =
   '<h1 id="titulo" data-at="0-10">Título</h1><p data-at="11-19">Árbol. <a class="card" data-doc="ab12-0001">Otro</a></p><figure class="code" data-at="20-40"><pre><code class="language-widget">w</code></pre></figure><p data-at="41-60"><img src="attachments/a.png" alt=""></p>';

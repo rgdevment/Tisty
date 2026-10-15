@@ -61,8 +61,6 @@ vi.mock("../glyphs", () => ({
   markup: (name: string) => (name === "star" ? '<path d="M1 1"/>' : null),
 }));
 
-Element.prototype.scrollIntoView ??= () => {};
-
 const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
 
 const reaching = () => {
