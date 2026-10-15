@@ -28,6 +28,7 @@ hmac.workspace = true
 ed25519-dalek.workspace = true
 zip.workspace = true
 unicode-normalization.workspace = true
+tisty-markdown = { workspace = true, default-features = false }
 sys-locale.workspace = true
 machine-uid.workspace = true
 

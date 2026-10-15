@@ -4,6 +4,7 @@ mod details;
 pub mod diagram;
 #[cfg(feature = "emoji")]
 mod emoji;
+pub mod fences;
 #[cfg(any(feature = "icons", feature = "pens"))]
 mod html;
 #[cfg(feature = "icons")]
@@ -15,8 +16,10 @@ mod outline;
 #[cfg(feature = "pens")]
 mod pens;
 mod reading;
+pub mod refs;
 #[cfg(feature = "tables")]
 mod tables;
+pub mod tags;
 mod writing;
 
 #[cfg(feature = "outline")]
