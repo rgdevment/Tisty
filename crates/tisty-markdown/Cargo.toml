@@ -9,8 +9,15 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["math", "mermaid"]
+math = ["dep:math-core"]
+mermaid = ["dep:mermaid-rs-renderer"]
+
 [dependencies]
 pulldown-cmark.workspace = true
+math-core = { workspace = true, optional = true }
+mermaid-rs-renderer = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true

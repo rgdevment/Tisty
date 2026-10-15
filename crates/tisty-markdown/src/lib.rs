@@ -1,3 +1,7 @@
+#[cfg(feature = "mermaid")]
+pub mod diagram;
+#[cfg(feature = "math")]
+pub mod math;
 mod reading;
 mod writing;
 
@@ -80,6 +84,14 @@ impl Doc {
         *self = read(&text);
         true
     }
+}
+
+// What another crate draws must never take the window down with it.
+#[cfg(any(feature = "math", feature = "mermaid"))]
+fn guarded<T>(draw: impl FnOnce() -> Option<T>) -> Option<T> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(draw))
+        .ok()
+        .flatten()
 }
 
 #[cfg(test)]
