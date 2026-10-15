@@ -15,7 +15,7 @@ minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
 tisty-core = { path = "crates/tisty-core" }
-tisty-markdown = { path = "crates/tisty-markdown" }
+tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-sync = { path = "crates/tisty-sync" }
 # `macos-private-api` pairs with `macOSPrivateApi` in tauri.conf.json, and the
