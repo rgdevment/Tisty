@@ -1,0 +1,583 @@
+[
+  {
+    "name": "plain-paragraph",
+    "text": "Una línea simple.",
+    "title": "Una línea simple.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "heading-levels",
+    "text": "# Título\n\n## Sección\n\n### Subsección\n\nTexto.",
+    "title": "Título",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "emphasis",
+    "text": "Texto con **negrita**, *cursiva*, ~~tachado~~ y `código`.",
+    "title": "Texto con **negrita**, *cursiva*, ~~tachado~~ y `código`.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "nested-emphasis",
+    "text": "***Negrita y cursiva*** y **negrita con *cursiva* dentro**.",
+    "title": "***Negrita y cursiva*** y **negrita con *cursiva* dentro**.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "snake-case",
+    "text": "Una variable snake_case y otra __dunder__ y un_guion_bajo.",
+    "now": "Una variable snake_case y otra **dunder** y un_guion_bajo.",
+    "title": "Una variable snake_case y otra __dunder__ y un_guion_bajo.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "specials",
+    "text": "Q&A, a < b > c y 5 * 3 = 15.",
+    "now": "Q&A, a < b > c y 5 \\* 3 = 15.",
+    "title": "Q&A, a < b > c y 5 * 3 = 15.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "brackets",
+    "text": "Corchetes [sueltos] y una barra \\ invertida.",
+    "now": "Corchetes \\[sueltos\\] y una barra \\\\ invertida.",
+    "title": "Corchetes [sueltos] y una barra \\ invertida.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "tilde",
+    "text": "Unos ~3.700 registros y ~1,9 GB.",
+    "now": "Unos \\~3.700 registros y \\~1,9 GB.",
+    "title": "Unos ~3.700 registros y ~1,9 GB.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "line-start-heading",
+    "text": "\\# no es un título",
+    "title": "\\# no es un título",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "line-start-list",
+    "text": "\\- no es una lista",
+    "title": "\\- no es una lista",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "line-start-ordered",
+    "text": "1\\. no es una lista numerada",
+    "title": "1\\. no es una lista numerada",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "line-start-quote",
+    "text": "\\> no es una cita",
+    "title": "\\> no es una cita",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "hard-break",
+    "text": "Primera línea\\\nsegunda línea",
+    "title": "Primera línea\\",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "soft-break",
+    "text": "Una línea\notra línea",
+    "now": "Una línea\\\notra línea",
+    "title": "Una línea",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "link",
+    "text": "Un [enlace](https://example.com) y otro [con título](https://example.com \"Título\").",
+    "title": "Un [enlace](https://example.com) y otro [con título](https://example.com \"Título\").",
+    "tags": [],
+    "refs": [
+      "Link:https://example.com"
+    ]
+  },
+  {
+    "name": "autolink",
+    "text": "Visita <https://example.com/ruta?x=1&y=2> hoy.",
+    "title": "Visita <https://example.com/ruta?x=1&y=2> hoy.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "bare-url",
+    "text": "Visita https://example.com/ruta hoy.",
+    "now": "Visita <https://example.com/ruta> hoy.",
+    "title": "Visita https://example.com/ruta hoy.",
+    "tags": [],
+    "refs": [
+      "Link:https://example.com/ruta"
+    ]
+  },
+  {
+    "name": "encoded-url",
+    "text": "Figma: <https://www.figma.com/design/k9A/Creaci%C3%B3n-de-cuenta?node-id=1-2>",
+    "now": "Figma: [https://www.figma.com/design/k9A/Creación-de-cuenta?node-id=1-2](https://www.figma.com/design/k9A/Creaci%C3%B3n-de-cuenta?node-id=1-2)",
+    "title": "Figma: <https://www.figma.com/design/k9A/Creaci%C3%B3n-de-cuenta?node-id=1-2>",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "image",
+    "text": "![Una imagen](attachments/ab/foto-1234.png)",
+    "title": "![Una imagen](attachments/ab/foto-1234.png)",
+    "tags": [],
+    "refs": [
+      "Link:attachments/ab/foto-1234.png"
+    ]
+  },
+  {
+    "name": "image-angle",
+    "text": "![Con espacios](<attachments/ab/con espacios.png>)",
+    "now": "![Con espacios](attachments/ab/con%20espacios.png)",
+    "title": "![Con espacios](<attachments/ab/con espacios.png>)",
+    "tags": [],
+    "refs": [
+      "Link:attachments/ab/con espacios.png"
+    ]
+  },
+  {
+    "name": "image-brackets",
+    "text": "![Alt [con] corchetes](attachments/ab/a.png)",
+    "now": "![Alt \\[con\\] corchetes](attachments/ab/a.png)",
+    "loss": "the brackets in the alt text are gone after the second save",
+    "title": "![Alt [con] corchetes](attachments/ab/a.png)",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "doc-card",
+    "text": "![Otro documento](tisty:doc/abcd1234-0001)",
+    "title": "![Otro documento](tisty:doc/abcd1234-0001)",
+    "tags": [],
+    "refs": [
+      "Link:tisty:doc/abcd1234-0001"
+    ]
+  },
+  {
+    "name": "doc-link",
+    "text": "Ver [el plan](tisty:doc/abcd1234-0002).",
+    "title": "Ver [el plan](tisty:doc/abcd1234-0002).",
+    "tags": [],
+    "refs": [
+      "Link:tisty:doc/abcd1234-0002"
+    ]
+  },
+  {
+    "name": "wiki-ref",
+    "text": "Ver [[Mi documento]] y el paso [[#2]].",
+    "now": "Ver \\[\\[Mi documento\\]\\] y el paso \\[\\[#2\\]\\].",
+    "loss": "the references are escaped and the core no longer finds them",
+    "title": "Ver [[Mi documento]] y el paso [[#2]].",
+    "tags": [],
+    "refs": [
+      "Doc:Mi documento",
+      "Doc:#2"
+    ]
+  },
+  {
+    "name": "tags",
+    "text": "Notas #proyecto y #mi_etiqueta, #Árbol y #2026x. Un color #fff y una url https://x.y/#ancla.",
+    "now": "Notas #proyecto y #mi_etiqueta, #Árbol y #2026x. Un color #fff y una url <https://x.y/#ancla>.",
+    "title": "Notas #proyecto y #mi_etiqueta, #Árbol y #2026x. Un color #fff y una url https://x.y/#ancla.",
+    "tags": [
+      "proyecto",
+      "mi-etiqueta",
+      "arbol",
+      "2026x",
+      "fff"
+    ],
+    "refs": [
+      "Link:https://x.y/#ancla"
+    ]
+  },
+  {
+    "name": "tags-in-code",
+    "text": "Esto `#no` es etiqueta y esto #sí.",
+    "title": "Esto `#no` es etiqueta y esto #sí.",
+    "tags": [
+      "si"
+    ],
+    "refs": []
+  },
+  {
+    "name": "bullet-list",
+    "text": "- uno\n- dos\n- tres",
+    "title": "- uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "bullet-nested",
+    "text": "- uno\n  - uno.uno\n  - uno.dos\n- dos",
+    "title": "- uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "ordered-list",
+    "text": "1. uno\n2. dos\n3. tres",
+    "title": "1. uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "ordered-start",
+    "text": "3. tres\n4. cuatro",
+    "title": "3. tres",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "loose-list",
+    "text": "- uno\n\n- dos\n\n- tres",
+    "title": "- uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "task-list",
+    "text": "- [ ] pendiente\n- [x] hecha",
+    "title": "- [ ] pendiente",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "mixed-list",
+    "text": "- uno\n- dos\n- [ ] tarea\n- [x] hecha",
+    "title": "- uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "list-then-tasks-apart",
+    "text": "- uno\n\n- [ ] tarea",
+    "title": "- uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "quote",
+    "text": "> Una cita\n> de dos líneas.",
+    "now": "> Una cita\\\n> de dos líneas.",
+    "title": "Una cita",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "quote-paragraphs",
+    "text": "> uno\n>\n> **dos** tres",
+    "title": "uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "callout-note",
+    "text": "> [!NOTE]\n> Una nota.",
+    "title": "Una nota.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "callout-each",
+    "text": "> [!TIP]\n> Consejo.\n\n> [!IMPORTANT]\n> Importante.\n\n> [!WARNING]\n> Cuidado.\n\n> [!CAUTION]\n> Atención.",
+    "title": "Consejo.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "callout-bold-first",
+    "text": "> [!NOTE]\n> **Ojo:** esto importa.",
+    "title": "**Ojo:** esto importa.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "callout-list",
+    "text": "> [!WARNING]\n> - uno\n> - dos",
+    "title": "- uno",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-fence",
+    "text": "```rust\nfn main() {}\n```",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-titled",
+    "text": "```ts title=\"src/main.ts\"\nconst a = 1;\n```",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-long-fence",
+    "text": "````md\nUn cerco ``` adentro\n````",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-tilde-fence",
+    "text": "~~~\nsin lenguaje\n~~~",
+    "now": "```\nsin lenguaje\n```",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-math",
+    "text": "```math\n\\int_0^1 x^2 dx\n```",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-mermaid",
+    "text": "```mermaid\ngraph TD\n  A --> B\n```",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "code-widget",
+    "text": "```widget\n<div class=\"card\">Hola</div>\n```",
+    "title": "",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "table-plain",
+    "text": "| a | b |\n| --- | --- |\n| 1 | 2 |",
+    "now": "| a | b |\n| --- | --- |\n| 1 | 2 |\n",
+    "title": "| a | b |",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "table-aligned",
+    "text": "| izq | centro | der |\n| :--- | :---: | ---: |\n| a | b | c |",
+    "now": "| izq | centro | der |\n| :--- | :---: | ---: |\n| a | b | c |\n",
+    "title": "| izq | centro | der |",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "table-short-rule",
+    "text": "| a | b |\n| :-- | :-- |\n| 1 | 2 |",
+    "now": "| a | b |\n| :--- | :--- |\n| 1 | 2 |\n",
+    "title": "| a | b |",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "table-widths",
+    "text": "| ancho | angosto |\n| ---------------- | --- |\n| a | b |",
+    "now": "| ancho | angosto |\n| ---------------- | --- |\n| a | b |\n",
+    "title": "| ancho | angosto |",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "table-pipe",
+    "text": "| a | b |\n| --- | --- |\n| uno \\| dos | tres |",
+    "now": "| a | b |\n| --- | --- |\n| uno \\| dos | tres |\n",
+    "title": "| a | b |",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "table-spans",
+    "text": "<table><tbody><tr><td colspan=\"2\"><p>junta</p></td></tr><tr><td><p>a</p></td><td><p>b</p></td></tr></tbody></table>",
+    "now": "<table style=\"min-width: 50px;\"><colgroup><col style=\"min-width: 25px;\"><col style=\"min-width: 25px;\"></colgroup><tbody><tr><td colspan=\"2\" rowspan=\"1\"><p>junta</p></td></tr><tr><td colspan=\"1\" rowspan=\"1\"><p>a</p></td><td colspan=\"1\" rowspan=\"1\"><p>b</p></td></tr></tbody></table>",
+    "title": "<table><tbody><tr><td colspan=\"2\"><p>junta</p></td></tr><tr><td><p>a</p></td><td><p>b</p></td></tr></tbody></table>",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "icon",
+    "text": "Un ícono <span data-ico=\"star\" data-hue=\"blue\">⭐</span> en línea.",
+    "now": "Un ícono <span data-ico=\"star\" data-hue=\"blue\">:star:</span> en línea.",
+    "title": "Un ícono ⭐ en línea.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "pens",
+    "text": "Resaltado ==amarillo== y <mark data-pen=\"green\">verde</mark>.",
+    "title": "Resaltado ==amarillo== y <mark data-pen=\"green\">verde</mark>.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "underline",
+    "text": "Texto <u>subrayado</u>.",
+    "title": "Texto <u>subrayado</u>.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "rule",
+    "text": "Arriba\n\n---\n\nAbajo",
+    "title": "Arriba",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "html-inline-unknown",
+    "text": "Texto con <kbd>Ctrl</kbd> en línea.",
+    "now": "Texto con Ctrl en línea.",
+    "loss": "the kbd tag is dropped",
+    "title": "Texto con <kbd>Ctrl</kbd> en línea.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "emoji-char",
+    "text": "Listo ✅ y 🎯.",
+    "title": "Listo ✅ y 🎯.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "dollar-prices",
+    "text": "Cuesta $5 y $10 en total.",
+    "title": "Cuesta $5 y $10 en total.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "entities-literal",
+    "text": "Escribe &amp; o &lt;div&gt; tal cual.",
+    "now": "Escribe & o <div> tal cual.",
+    "loss": "the second save reads the unescaped tag as HTML and the words vanish",
+    "title": "Escribe &amp; o &lt;div&gt; tal cual.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "trailing-spaces",
+    "text": "Una línea con espacios al final   \nsiguiente.",
+    "now": "Una línea con espacios al final\\\nsiguiente.",
+    "title": "Una línea con espacios al final",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "crlf",
+    "text": "Primera\r\nSegunda",
+    "canonical": "Primera\nSegunda",
+    "now": "Primera\\\nSegunda",
+    "title": "Primera",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "bom",
+    "text": "﻿Con marca de orden al inicio.",
+    "canonical": "Con marca de orden al inicio.",
+    "title": "Con marca de orden al inicio.",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "guide-en",
+    "file": "app/src-tauri/resources/guide/en/guide.md",
+    "falls_short": "drops the final newline and writes wrapped lines as hard breaks",
+    "title": "How Tisty works",
+    "tags": [
+      "home",
+      "health",
+      "shopping"
+    ],
+    "refs": [
+      "Link:capture.png",
+      "Link:priorities.png",
+      "Link:https://github.com/rgdevment/Tisty",
+      "Link:tisty:code",
+      "Link:tisty:page",
+      "Link:https://github.com/rgdevment",
+      "Link:https://github.com/rgdevment/CopyPaste",
+      "Link:https://github.com/rgdevment/LinkUnbound"
+    ]
+  },
+  {
+    "name": "guide-page-en",
+    "file": "app/src-tauri/resources/guide/en/page.md",
+    "falls_short": "drops the final newline",
+    "title": "Rina",
+    "tags": [],
+    "refs": [
+      "Link:rina.jpg"
+    ]
+  },
+  {
+    "name": "guide-code-en",
+    "file": "app/src-tauri/resources/guide/en/code.md",
+    "falls_short": "drops the final newline",
+    "title": "When what you keep is code",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "guide-es",
+    "file": "app/src-tauri/resources/guide/es/guia.md",
+    "falls_short": "drops the final newline and writes wrapped lines as hard breaks",
+    "title": "Cómo funciona Tisty",
+    "tags": [
+      "casa",
+      "salud",
+      "compras"
+    ],
+    "refs": [
+      "Link:captura.png",
+      "Link:prioridades.png",
+      "Link:https://github.com/rgdevment/Tisty",
+      "Link:tisty:code",
+      "Link:tisty:page",
+      "Link:https://github.com/rgdevment",
+      "Link:https://github.com/rgdevment/CopyPaste",
+      "Link:https://github.com/rgdevment/LinkUnbound"
+    ]
+  },
+  {
+    "name": "guide-page-es",
+    "file": "app/src-tauri/resources/guide/es/pagina.md",
+    "falls_short": "drops the final newline",
+    "title": "La Rina",
+    "tags": [],
+    "refs": [
+      "Link:rina.jpg"
+    ]
+  },
+  {
+    "name": "guide-code-es",
+    "file": "app/src-tauri/resources/guide/es/codigo.md",
+    "falls_short": "drops the final newline",
+    "title": "Cuando lo que apuntas es código",
+    "tags": [],
+    "refs": []
+  }
+]
