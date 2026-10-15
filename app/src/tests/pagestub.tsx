@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 type Props = {
   body: string;
@@ -8,10 +8,14 @@ type Props = {
 
 // The real page lives in a frame jsdom never loads; this one lays the words out in the document.
 export default function Page({ body, onShown, onOutline }: Props) {
+  const heard = useRef({ onShown, onOutline });
+  heard.current = { onShown, onOutline };
+  // Like the real page, it speaks once a drawing is ready, never because its listeners changed.
   useEffect(() => {
-    onShown?.(window);
-    onOutline?.([]);
-  }, [onShown, onOutline]);
+    if (body === undefined) return;
+    heard.current.onShown?.(window);
+    heard.current.onOutline?.([]);
+  }, [body]);
   return (
     <article className="page">
       {body.split(/\n{2,}/).map((one, at) => {
