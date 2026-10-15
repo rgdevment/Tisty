@@ -6,9 +6,10 @@ import Pick from "../ui/Pick";
 import { inTheRepo } from "./repo";
 
 const said = readFileSync(inTheRepo("crates/tisty-core/src/model/icon.rs"), "utf8");
+const words = readFileSync(inTheRepo("crates/tisty-markdown/src/vocab.rs"), "utf8");
 
 const named = (): string[] => {
-  const body = said.slice(said.indexOf("ICONS"), said.indexOf("];"));
+  const body = words.slice(words.indexOf("ICONS"), words.indexOf("];"));
   return [...body.matchAll(/"([a-z-]+)"/g)].map((found) => found[1]);
 };
 

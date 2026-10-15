@@ -59,9 +59,10 @@ fn doubled(spans: &mut Vec<Span>, text: &str) {
             at += 1;
             continue;
         }
+        let (color, worn) = suffix(&text[shut + 2..]);
         spans.push(Span {
-            mark: Mark::Pen { color: None },
-            at: open..shut + 2,
+            mark: Mark::Pen { color },
+            at: open..shut + 2 + worn,
         });
         at += 2;
     }
@@ -92,4 +93,18 @@ fn holder(spans: &[Span], wall: usize) -> Option<Range<usize>> {
         .filter(|one| one.at.start < wall && wall < one.at.end)
         .min_by_key(|one| one.at.end - one.at.start)
         .map(|one| one.at.clone())
+}
+
+// `==words=={green}` names its colour after the closing wall; yellow is the pen with no name.
+fn suffix(after: &str) -> (Option<String>, usize) {
+    let named = after
+        .strip_prefix('{')
+        .and_then(|rest| rest.split_once('}'))
+        .map(|(name, _)| name)
+        .filter(|name| crate::vocab::pen(name));
+    match named {
+        Some(name) if name == crate::vocab::YELLOW => (None, name.len() + 2),
+        Some(name) => (Some(name.to_string()), name.len() + 2),
+        None => (None, 0),
+    }
 }

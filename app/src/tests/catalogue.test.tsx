@@ -8,7 +8,7 @@ import Pick from "../ui/Pick";
 import { inTheRepo } from "./repo";
 
 const named = (): string[] => {
-  const at = inTheRepo("crates/tisty-core/src/model/icon.rs");
+  const at = inTheRepo("crates/tisty-markdown/src/vocab.rs");
   const said = readFileSync(at, "utf8");
   const body = said.slice(said.indexOf("ICONS"), said.indexOf("];"));
   return [...body.matchAll(/"([a-z-]+)"/g)].map((found) => found[1]);
