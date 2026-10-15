@@ -183,3 +183,60 @@ fn a_body_goes_to_disk_the_way_the_core_keeps_it() {
     assert_eq!(on_disk("already plain\n"), "already plain\n");
     assert_eq!(on_disk(""), "");
 }
+
+fn marks(text: &str) -> Vec<(Mark, String)> {
+    let doc = read(text);
+    doc.blocks()[0]
+        .spans
+        .iter()
+        .map(|one| (one.mark.clone(), doc.text()[one.at.clone()].to_string()))
+        .collect()
+}
+
+#[test]
+fn a_paragraph_knows_every_mark_in_it_and_where_it_sits() {
+    let found = marks("A **b**, *c*, ~~d~~, `e` and [f](https://x.y).");
+    let wanted: Vec<(Mark, &str)> = vec![
+        (Mark::Text, "A "),
+        (Mark::Strong, "**b**"),
+        (Mark::Text, "b"),
+        (Mark::Text, ", "),
+        (Mark::Emphasis, "*c*"),
+        (Mark::Text, "c"),
+        (Mark::Text, ", "),
+        (Mark::Strike, "~~d~~"),
+        (Mark::Text, "d"),
+        (Mark::Text, ", "),
+        (Mark::Code, "`e`"),
+        (Mark::Text, " and "),
+        (
+            Mark::Link {
+                to: "https://x.y".into(),
+            },
+            "[f](https://x.y)",
+        ),
+        (Mark::Text, "f"),
+        (Mark::Text, "."),
+    ];
+    let wanted: Vec<(Mark, String)> = wanted
+        .into_iter()
+        .map(|(m, s)| (m, s.to_string()))
+        .collect();
+    assert_eq!(found, wanted);
+}
+
+#[test]
+fn a_single_newline_breaks_the_line_and_html_is_kept_as_it_was_written() {
+    let found = marks("One\ntwo <kbd>K</kbd>");
+    assert_eq!(found[1], (Mark::Break, "\n".to_string()));
+    assert!(found.contains(&(Mark::Html, "<kbd>".to_string())));
+}
+
+#[test]
+fn code_holds_no_marks_of_its_own() {
+    assert!(
+        read("```rust\nfn *main*() {}\n```").blocks()[0]
+            .spans
+            .is_empty()
+    );
+}

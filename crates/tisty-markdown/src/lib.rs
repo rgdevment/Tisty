@@ -21,6 +21,26 @@ pub struct Block {
     pub kind: Kind,
     pub at: Range<usize>,
     pub inner: Vec<Block>,
+    pub spans: Vec<Span>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Span {
+    pub mark: Mark,
+    pub at: Range<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Mark {
+    Text,
+    Emphasis,
+    Strong,
+    Strike,
+    Code,
+    Link { to: String },
+    Image { src: String },
+    Html,
+    Break,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

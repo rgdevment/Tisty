@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use pulldown_cmark::{BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
 
-use crate::{Block, Callout, Doc, Kind};
+use crate::{Block, Callout, Doc, Kind, Mark, Span};
 
 pub fn read(text: &str) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
@@ -15,6 +15,8 @@ pub fn read(text: &str) -> Doc {
             Event::Start(tag) => {
                 if let Some(kind) = kind_of(&tag, &text[at.clone()]) {
                     open.push(leaf(kind, at));
+                } else if let Some(mark) = mark_of(&tag) {
+                    spot(&mut open, mark, at);
                 }
             }
             Event::End(end) if ends_block(end) => {
@@ -29,6 +31,11 @@ pub fn read(text: &str) -> Doc {
             }
             Event::Rule => shelve(&mut open, &mut blocks, leaf(Kind::Rule, at)),
             Event::TaskListMarker(ticked) => tick(&mut open, ticked),
+            Event::Text(_) => spot(&mut open, Mark::Text, at),
+            Event::Code(_) => spot(&mut open, Mark::Code, at),
+            Event::InlineHtml(_) => spot(&mut open, Mark::Html, at),
+            // A single newline breaks the line in Tisty, the way the window has always shown it.
+            Event::SoftBreak | Event::HardBreak => spot(&mut open, Mark::Break, at),
             _ => {}
         }
     }
@@ -52,7 +59,31 @@ fn leaf(kind: Kind, at: Range<usize>) -> Block {
         kind,
         at,
         inner: Vec::new(),
+        spans: Vec::new(),
     }
+}
+
+fn spot(open: &mut [Block], mark: Mark, at: Range<usize>) {
+    if let Some(block) = open.last_mut()
+        && !matches!(block.kind, Kind::Code { .. } | Kind::Html)
+    {
+        block.spans.push(Span { mark, at });
+    }
+}
+
+fn mark_of(tag: &Tag<'_>) -> Option<Mark> {
+    Some(match tag {
+        Tag::Emphasis => Mark::Emphasis,
+        Tag::Strong => Mark::Strong,
+        Tag::Strikethrough => Mark::Strike,
+        Tag::Link { dest_url, .. } => Mark::Link {
+            to: dest_url.to_string(),
+        },
+        Tag::Image { dest_url, .. } => Mark::Image {
+            src: dest_url.to_string(),
+        },
+        _ => return None,
+    })
 }
 
 fn shelve(open: &mut [Block], blocks: &mut Vec<Block>, done: Block) {
