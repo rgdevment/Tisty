@@ -34,6 +34,17 @@ fn a_diagram_from_the_guide_is_drawn_for_both_themes() {
 }
 
 #[test]
+fn a_pie_shows_the_same_hues_in_its_slices_and_its_legend_in_both_themes() {
+    let drawn =
+        diagram::drawn("pie title Walks\n  \"Morning\" : 7\n  \"Evening\" : 5").expect("a pie");
+    for svg in [&drawn.light, &drawn.dark] {
+        assert!(svg.contains("fill=\"#58aef0\""), "{svg}");
+        assert!(svg.contains("fill=\"#ff9d4d\""), "{svg}");
+        assert!(!svg.contains("opacity=\"0.700\""), "{svg}");
+    }
+}
+
+#[test]
 fn a_diagram_that_cannot_be_read_draws_nothing() {
     assert_eq!(diagram::drawn("flowchart TD\n  A --> "), None);
     assert_eq!(diagram::drawn(""), None);

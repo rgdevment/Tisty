@@ -30,6 +30,7 @@ export const iconed = (page: Document) => {
     const hue = one.dataset.hue ?? "";
     if (HUES.includes(hue)) one.classList.add(`ico-${hue}`);
     const glyph = page.createElementNS("http://www.w3.org/2000/svg", "svg");
+    glyph.setAttribute("class", "glyph");
     glyph.setAttribute("viewBox", "0 0 24 24");
     glyph.setAttribute("aria-hidden", "true");
     glyph.innerHTML = drawn;

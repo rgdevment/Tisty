@@ -207,6 +207,34 @@ describe("the sheet in the main window", () => {
     );
   });
 
+  it("keeps the last document's page in view until the next one is drawn", async () => {
+    const view = render(<Sheet file="a3f1-0001" value={BODY} label="Compras" onWrite={() => {}} />);
+    const first = await shown(view.container);
+    await loaded(first);
+    const room = view.container.querySelector<HTMLElement>(".scroller") as HTMLElement;
+    room.scrollTop = 500;
+    ipc.drawn = '<p data-at="0-6">Otra</p>';
+    view.rerender(<Sheet file="a3f1-0002" value="Otra.\n" label="Otra" onWrite={() => {}} />);
+    const next = await shown(view.container, "Otra");
+    expect(next.classList.contains("invisible")).toBe(true);
+    expect(first.classList.contains("invisible")).toBe(false);
+    expect(view.container.contains(first)).toBe(true);
+    await loaded(next);
+    await waitFor(() => expect(view.container.querySelectorAll("iframe")).toHaveLength(1));
+    expect(next.classList.contains("invisible")).toBe(false);
+    expect(room.scrollTop).toBe(0);
+  });
+
+  it("ends the block being written when another document comes in", async () => {
+    const view = render(<Sheet file="a3f1-0001" value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    view.rerender(<Sheet file="a3f1-0002" value="Otra.\n" label="Otra" onWrite={() => {}} />);
+    expect(ipc.left).toBe(1);
+  });
+
   it("follows new words from outside while nothing is being written", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));

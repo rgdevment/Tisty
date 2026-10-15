@@ -7,6 +7,7 @@ import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Head } from "./writing";
 
 type Props = {
+  readonly file?: string;
   readonly value: string;
   readonly label: string;
   readonly reading?: boolean;
@@ -25,7 +26,7 @@ type Props = {
 };
 
 export default function Sheet(props: Readonly<Props>) {
-  const { value, label, reading = false, above, below } = props;
+  const { file, value, label, reading = false, above, below } = props;
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
@@ -55,6 +56,22 @@ export default function Sheet(props: Readonly<Props>) {
   }, [reading, left]);
 
   useEffect(() => () => left(), [left]);
+
+  const wanted = useRef(props.seek);
+  const marked = useRef(props.anchor);
+  const onFile = useRef(file);
+  useEffect(() => {
+    if (file === onFile.current) return;
+    // Another document keeps this sheet, so its page stays in view until the next one is drawn.
+    onFile.current = file;
+    left();
+    latest.current = value;
+    wanted.current = said.current.seek;
+    marked.current = said.current.anchor;
+    putting.current = 0;
+    setReady(false);
+    setDrawn(value);
+  }, [file, value, left]);
 
   useEffect(() => {
     if (value === latest.current) return;
@@ -124,12 +141,16 @@ export default function Sheet(props: Readonly<Props>) {
   // The sheet takes the keys without a caret, so nothing pulls the view to where one would be.
   useEffect(() => room.current?.focus({ preventScroll: true }), []);
 
-  const wanted = useRef(props.seek);
-  const marked = useRef(props.anchor);
   useEffect(() => {
     const want = wanted.current;
     const mark = marked.current;
-    if (!ready || !room.current || (!want && !mark)) return;
+    if (!ready || !room.current) return;
+    if (!want && !mark) {
+      if (putting.current < 0) return;
+      room.current.scrollTop = 0;
+      putting.current = -1;
+      return;
+    }
     const spot = () => {
       const sheet = room.current;
       if (!sheet) return null;
@@ -171,7 +192,7 @@ export default function Sheet(props: Readonly<Props>) {
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       }}
-      className={`scroller gutter flex min-h-0 flex-1 flex-col${above || below ? " leafed" : ""}`}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}`}
     >
       {above}
       <div className="tisty-sheet shrink-0 overflow-hidden rounded-[10px] bg-sheet">
