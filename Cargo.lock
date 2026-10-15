@@ -5887,6 +5887,7 @@ dependencies = [
  "tisty-carrier",
  "tisty-core",
  "tisty-google",
+ "tisty-markdown",
  "tisty-nl",
  "toml 1.1.6+spec-1.1.0",
  "ulid",

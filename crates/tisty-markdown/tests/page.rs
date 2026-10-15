@@ -102,10 +102,13 @@ fn a_formula_keeps_every_symbol_between_its_dollars() {
 
 #[cfg(feature = "mermaid")]
 #[test]
-fn a_diagram_source_holds_no_space_that_would_end_its_address() {
+fn a_diagram_comes_light_and_dark_for_the_reader_to_pick() {
     let drawn = page("```mermaid\ngraph TD; A-->B\n```\n");
-    let srcset = drawn.split("srcset=\"").nth(1).unwrap_or_default();
-    let url = srcset.split('"').next().unwrap_or_default();
-    assert!(url.starts_with("data:image/svg+xml,"));
-    assert!(!url.contains(' '));
+    assert!(drawn.contains("<img class=\"light\""));
+    assert!(drawn.contains("<img class=\"dark\""));
+    for src in drawn.split("src=\"").skip(1) {
+        let url = src.split('"').next().unwrap_or_default();
+        assert!(url.starts_with("data:image/svg+xml,"));
+        assert!(!url.contains(' '));
+    }
 }

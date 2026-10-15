@@ -3,6 +3,7 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type DocFacts,
+  opened,
   type Paper,
   type Showing,
   viewFacts,
@@ -106,8 +107,23 @@ export default function Viewing() {
 
   useEffect(() => {
     if (shown?.kind !== "doc") return;
-    window.addEventListener("focus", look);
-    return () => window.removeEventListener("focus", look);
+    // Focus moving into the drawn page and back is not the window coming back.
+    let away = false;
+    const left = () => {
+      setTimeout(() => {
+        away = !document.hasFocus();
+      });
+    };
+    const back = () => {
+      if (away) look();
+      away = false;
+    };
+    window.addEventListener("blur", left);
+    window.addEventListener("focus", back);
+    return () => {
+      window.removeEventListener("blur", left);
+      window.removeEventListener("focus", back);
+    };
   }, [shown?.kind, look]);
 
   const editIn = (open: boolean) => {
@@ -209,7 +225,6 @@ export default function Viewing() {
           key={shown.kind === "doc" ? shown.paper.file : shown.path}
           body={body}
           title={title}
-          paper={paper?.file}
           stranger={shown.kind === "file"}
           side={side}
           raw={raw}
@@ -221,6 +236,9 @@ export default function Viewing() {
           onRaw={setRaw}
           onFound={() => setFinding(false)}
           onDoc={(file) => void viewGo(file).catch(fail)}
+          onOpen={
+            shown.kind === "doc" ? (reference) => void opened(reference).catch(fail) : undefined
+          }
         />
       )}
       {shown?.kind === "file" && !body.trim() && (

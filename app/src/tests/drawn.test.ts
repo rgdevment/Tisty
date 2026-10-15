@@ -1,0 +1,93 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { heads, shell, went } from "../ui/paging";
+
+const conf = JSON.parse(readFileSync("src-tauri/tauri.conf.json", "utf8"));
+
+const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
+
+const clicked = (html: string, selector: string, selecting = false) => {
+  const one = page(html).querySelector(selector);
+  if (!one) throw new Error(`nothing matches ${selector}`);
+  return went(one, selecting);
+};
+
+describe("a click on a drawn page", () => {
+  it("opens a card or a tisty link as the document it names", () => {
+    expect(clicked('<p data-at="0-9"><a class="card" data-doc="ab12-0001">A</a></p>', "a")).toEqual(
+      {
+        kind: "doc",
+        id: "ab12-0001",
+      },
+    );
+    expect(clicked('<p data-at="0-9"><a href="tisty:doc/ab12-0002">B</a></p>', "a")).toEqual({
+      kind: "doc",
+      id: "ab12-0002",
+    });
+  });
+
+  it("sends the web and mail outside, and an attachment to the app", () => {
+    expect(clicked('<p data-at="0-9"><a href="https://x.y/z">x</a></p>', "a")).toEqual({
+      kind: "web",
+      href: "https://x.y/z",
+    });
+    expect(clicked('<p data-at="0-9"><a href="mailto:a@b.c">x</a></p>', "a")).toEqual({
+      kind: "web",
+      href: "mailto:a@b.c",
+    });
+    expect(clicked('<p data-at="0-9"><a href="attachments/a.pdf">x</a></p>', "a")).toEqual({
+      kind: "attachment",
+      reference: "attachments/a.pdf",
+    });
+  });
+
+  it("follows nothing it does not know, and nothing a link was cleaned out of", () => {
+    expect(clicked('<p data-at="0-9"><a href="#">x</a></p>', "a")).toBeNull();
+    expect(clicked('<p data-at="0-9"><a href="ftp://x.y">x</a></p>', "a")).toBeNull();
+  });
+
+  it("names the whole block it fell on, by the bytes it was written in", () => {
+    expect(clicked('<ul data-at="4-30"><li data-at="4-12">one</li></ul>', "li")).toEqual({
+      kind: "block",
+      at: [4, 30],
+    });
+  });
+
+  it("asks nothing while words are being picked", () => {
+    expect(clicked('<p data-at="0-9">words</p>', "p", true)).toBeNull();
+  });
+
+  it("hands a tag back by its name", () => {
+    expect(
+      clicked('<p data-at="0-9"><span class="tag" data-tag="work">#work</span></p>', "span"),
+    ).toEqual({ kind: "tag", name: "work" });
+  });
+});
+
+describe("the outline of a drawn page", () => {
+  it("reads the headings in order with their level", () => {
+    const found = heads(
+      page('<h1 id="a" data-at="0-3">A</h1><p>x</p><h3 id="b" data-at="5-9">B</h3>'),
+    );
+    expect(found.map((one) => [one.level, one.text])).toEqual([
+      [1, "A"],
+      [3, "B"],
+    ]);
+  });
+});
+
+describe("the window's policy", () => {
+  it("lets no document change its base, embed objects or post a form", () => {
+    for (const said of [conf.app.security.csp, conf.app.security.devCsp]) {
+      expect(said).toContain("base-uri 'none'");
+      expect(said).toContain("object-src 'none'");
+      expect(said).toContain("form-action 'none'");
+    }
+  });
+
+  it("runs no inline script in production", () => {
+    const scripts = /script-src ([^;]*)/.exec(conf.app.security.csp)?.[1] ?? "";
+    expect(scripts).not.toContain("'unsafe-inline'");
+    expect(scripts).not.toContain("'unsafe-eval'");
+  });
+});

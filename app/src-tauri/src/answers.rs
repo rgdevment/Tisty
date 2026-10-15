@@ -6,6 +6,7 @@ pub mod freeing;
 pub mod joining;
 pub mod knocking;
 pub mod merging;
+pub mod paging;
 pub mod papers;
 pub mod parts;
 pub mod relocating;

@@ -38,6 +38,7 @@ windows-future = "0.3"
 tisty-carrier.workspace = true
 tisty-google.workspace = true
 tisty-core.workspace = true
+tisty-markdown = { workspace = true, features = ["default"] }
 tisty-nl.workspace = true
 tauri.workspace = true
 log.workspace = true

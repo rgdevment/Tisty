@@ -1106,6 +1106,8 @@ export const folderDrop = (id: string): Promise<void> => invoke("folder_drop", {
 export const docFile = (id: string, folder?: string, before?: string): Promise<void> =>
   invoke("doc_file", { id, folder, before });
 export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
+export const docDrawn = (body: string): Promise<string> =>
+  invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
 export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
   invoke("doc_write", { id, body, anyway });
 export const docBack = (id: string): Promise<Doc> => invoke("doc_back", { id });
