@@ -1237,7 +1237,7 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
             "en",
         ),
     ] {
-        assert_eq!(leaves.len(), 2, "the {tongue} guide lost a page");
+        assert_eq!(leaves.len(), 3, "the {tongue} guide lost a page");
         for (marker, leaf) in leaves {
             assert!(
                 told.contains(&format!("]({marker})")),
@@ -1261,18 +1261,39 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
             leaves.iter().any(|(_, one)| one.contains("```rust")),
             "no {tongue} page shows any code"
         );
+        for kind in [
+            ".pdf)",
+            ".mp3)",
+            ".webm)",
+            ".csv)",
+            ".html)",
+            ".html \"file\")",
+        ] {
+            assert!(
+                leaves.iter().any(|(_, one)| one.contains(kind)),
+                "no {tongue} page attaches a {kind}"
+            );
+        }
     }
 }
 
 #[test]
-fn every_picture_the_guide_names_is_where_the_bundler_looks() {
+fn every_attachment_the_guide_names_is_where_the_bundler_looks() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/guide");
     for (told, tongue) in [
         (answers::settings::GUIDE_ES, "es"),
         (answers::settings::GUIDE_EN, "en"),
     ] {
-        for shot in answers::settings::PICTURES {
-            if !told.contains(&format!("]({shot})")) {
+        let pages = if tongue == "es" {
+            answers::settings::GUIDE_PAGES_ES
+        } else {
+            answers::settings::GUIDE_PAGES_EN
+        };
+        for shot in answers::settings::ATTACHED {
+            let named = |one: &str| {
+                one.contains(&format!("]({shot})")) || one.contains(&format!("]({shot} \""))
+            };
+            if !named(told) && !pages.iter().any(|(_, one)| named(one)) {
                 continue;
             }
             assert!(root.join(tongue).join(shot).is_file(), "falta {shot}");

@@ -102,7 +102,6 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 
 - Arrastra un archivo dentro para adjuntarlo — la foto del veterinario, el PDF del seguro.
 - Inserta **otro documento**, que entra como una tarjeta que se puede abrir.
-- Centra un párrafo o llévalo a la derecha.
 - Imprime, o guarda en PDF, desde el propio panel.
 
 **Las carpetas nacen plegadas** y se abren con la flecha. Cuando un asunto ya pasó, archiva la carpeta entera con el botón derecho: baja al estante de **Archivados**, al final del árbol, con su icono y todo lo que tiene dentro tal cual. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo. Desarchívala y vuelve como estaba.
@@ -110,6 +109,10 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 ### 8. Lo que cabe dentro de un documento
 
 Todo lo de aquí abajo es Markdown corriente. Lo escribes con `/`, y el archivo que queda en el disco lo entiende GitHub igual que Tisty. Esta sección no lo cuenta: te lo enseña.
+
+Y para verlo todo junto, uno de cada cosa, hay una página aparte:
+
+![Uno de cada cosa](tisty:sample)
 
 #### Lo de siempre
 
@@ -164,9 +167,9 @@ Cuatro colores de rotulador: ==amarillo==, <mark data-pen="green">verde</mark>, 
 
 <span data-ico="dog" data-hue="orange">:dog:</span> Un icono se busca por lo que dibuja, y en español: pide «perro», «moto» o «puño» y sale el que esperas. Sirve para marcar una línea sin gastar un título en ella.
 
-#### Pasos
+#### Etapas
 
-Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no tienen fecha y no salen en Hoy. Son los pasos de algo que estás escribiendo.
+Una lista de casillas que se marcan. No son tareas de Tisty ni sus pasos: no se cierran, no tienen fecha y no salen en Hoy. Son las etapas de algo que estás escribiendo.
 
 - [x] Llevar la cartilla de Rina
 - [x] Pesarla antes de la consulta
@@ -278,17 +281,11 @@ Una página es un documento como cualquier otro —mismo archivo en el disco, mi
 
 Al final del documento, en su propia hoja, va el índice: las páginas que el texto nombra, numeradas, y tras una raya las que no, a un clic de tener su sitio en el texto. Dentro de una página verás arriba de qué documento es y en qué lugar va, flechas a sus hermanas, y abajo el paso a la siguiente.
 
-Lo que nombra una página es su tarjeta, el bloque que Tisty escribe al crearla. Hablar de una página en una frase —un enlace a ella en medio de un párrafo— la señala sin darle sitio, como una nota al pie señala un capítulo sin serlo; una página de la que solo has hablado así se queda bajo la raya hasta que le pongas una tarjeta.
+Lo que nombra una página es su tarjeta, el bloque que Tisty escribe al crearla. Hablar de una página en una frase —un enlace a ella en medio de un párrafo, como [este a la Rina](tisty:page)— la señala sin darle sitio, como una nota al pie señala un capítulo sin serlo; una página de la que solo has hablado así se queda bajo la raya hasta que le pongas una tarjeta.
 
-En el árbol, un documento soltado encima de otro se vuelve página suya. Si tienes ese documento
-abierto, la línea que la nombra va al final de lo que estás leyendo, que es donde quedará, y
-desde ahí la mueves como cualquier otro capítulo; si no, la página espera en el índice, a un clic
-de tener su sitio en el texto.
+En el árbol, un documento soltado encima de otro se vuelve página suya. Si tienes ese documento abierto, la línea que la nombra va al final de lo que estás leyendo, que es donde quedará, y desde ahí la mueves como cualquier otro capítulo; si no, la página espera en el índice, a un clic de tener su sitio en el texto.
 
-**Una página se archiva sola** con el botón derecho, y no baja al estante: se queda donde vive,
-dentro de su documento, con otro icono y atenuada. Ahí se lee y se exporta, pero no se escribe.
-Archiva el documento entero y se guardan todas con él sin marcarlas una a una; cuando lo
-desarchivas, cada una vuelve como estaba, y la que ya habías apartado tú sigue apartada.
+**Una página se archiva sola** con el botón derecho, y no baja al estante: se queda donde vive, dentro de su documento, con otro icono y atenuada. Ahí se lee y se exporta, pero no se escribe. Archiva el documento entero y se guardan todas con él sin marcarlas una a una; cuando lo desarchivas, cada una vuelve como estaba, y la que ya habías apartado tú sigue apartada.
 
 Esta guía tiene una. Aquí debajo está nombrada, y por eso aquí es donde va:
 

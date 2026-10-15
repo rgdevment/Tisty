@@ -14,3 +14,7 @@ fixtures/stores/** -text
 *.png binary
 *.ico binary
 *.icns binary
+*.jpg binary
+*.pdf binary
+*.mp3 binary
+*.webm binary

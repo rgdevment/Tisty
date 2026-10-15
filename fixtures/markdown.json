@@ -505,7 +505,7 @@
   {
     "name": "guide-en",
     "file": "app/src-tauri/resources/guide/en/guide.md",
-    "falls_short": "drops the final newline and writes wrapped lines as hard breaks",
+    "falls_short": "drops the final newline",
     "title": "How Tisty works",
     "tags": [
       "home",
@@ -515,6 +515,7 @@
     "refs": [
       "Link:capture.png",
       "Link:priorities.png",
+      "Link:tisty:sample",
       "Link:https://github.com/rgdevment/Tisty",
       "Link:tisty:code",
       "Link:tisty:page",
@@ -542,9 +543,28 @@
     "refs": []
   },
   {
+    "name": "guide-sample-en",
+    "file": "app/src-tauri/resources/guide/en/sample.md",
+    "falls_short": "drops the final newline",
+    "title": "One of each",
+    "tags": [
+      "rina",
+      "vet"
+    ],
+    "refs": [
+      "Link:https://github.com/rgdevment/Tisty",
+      "Link:rina.jpg",
+      "Link:vet-card.pdf",
+      "Link:bark.mp3",
+      "Link:walk.webm",
+      "Link:walks.csv",
+      "Link:walks.html"
+    ]
+  },
+  {
     "name": "guide-es",
     "file": "app/src-tauri/resources/guide/es/guia.md",
-    "falls_short": "drops the final newline and writes wrapped lines as hard breaks",
+    "falls_short": "drops the final newline",
     "title": "Cómo funciona Tisty",
     "tags": [
       "casa",
@@ -554,6 +574,7 @@
     "refs": [
       "Link:captura.png",
       "Link:prioridades.png",
+      "Link:tisty:sample",
       "Link:https://github.com/rgdevment/Tisty",
       "Link:tisty:code",
       "Link:tisty:page",
@@ -579,5 +600,24 @@
     "title": "Cuando lo que apuntas es código",
     "tags": [],
     "refs": []
+  },
+  {
+    "name": "guide-sample-es",
+    "file": "app/src-tauri/resources/guide/es/muestra.md",
+    "falls_short": "drops the final newline",
+    "title": "Uno de cada cosa",
+    "tags": [
+      "rina",
+      "veterinario"
+    ],
+    "refs": [
+      "Link:https://github.com/rgdevment/Tisty",
+      "Link:rina.jpg",
+      "Link:cartilla.pdf",
+      "Link:ladrido.mp3",
+      "Link:paseo.webm",
+      "Link:paseos.csv",
+      "Link:paseos.html"
+    ]
   }
 ]
