@@ -9,12 +9,14 @@ pub mod fences;
 mod html;
 #[cfg(feature = "icons")]
 mod icons;
+mod inline;
 #[cfg(any(feature = "tags", feature = "refs"))]
 mod marks;
 #[cfg(feature = "math")]
 pub mod math;
 #[cfg(feature = "outline")]
 mod outline;
+mod page;
 #[cfg(feature = "pens")]
 mod pens;
 mod reading;
@@ -26,6 +28,7 @@ mod writing;
 
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
+pub use page::html;
 pub use reading::read;
 pub use writing::on_disk;
 
@@ -165,7 +168,6 @@ fn guarded<T>(draw: impl FnOnce() -> Option<T>) -> Option<T> {
 }
 
 // A block inside a quote or a callout carries the quote marks on every one of its lines.
-#[cfg(any(feature = "tables", feature = "outline"))]
 fn unquoted(line: &str) -> &str {
     let mut said = line.trim_start();
     while let Some(rest) = said.strip_prefix('>') {
