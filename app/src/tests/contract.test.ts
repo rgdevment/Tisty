@@ -5,14 +5,19 @@ import { opened } from "./mounted";
 
 interface Case {
   name: string;
-  text: string;
+  text?: string;
+  file?: string;
   canonical?: string;
   now?: string;
+  falls_short?: string;
 }
 
-const cases: Case[] = JSON.parse(
-  readFileSync(join(__dirname, "../../../fixtures/markdown.json"), "utf8"),
-);
+const root = join(__dirname, "../../..");
+
+const cases: Case[] = JSON.parse(readFileSync(join(root, "fixtures/markdown.json"), "utf8"));
+
+const textOf = (one: Case): string =>
+  one.file ? readFileSync(join(root, one.file), "utf8") : (one.text ?? "");
 
 const saved = (text: string): string => {
   const one = opened(text);
@@ -27,19 +32,22 @@ describe("opening and saving a document leaves its bytes alone", () => {
   });
 
   for (const one of cases) {
-    const wanted = one.canonical ?? one.text;
-    if (one.now === undefined) {
+    const text = textOf(one);
+    const wanted = one.canonical ?? text;
+    if (one.now === undefined && one.falls_short === undefined) {
       it(one.name, () => {
-        expect(saved(one.text)).toBe(wanted);
+        expect(saved(text)).toBe(wanted);
       });
       continue;
     }
     // Where the editor falls short, what it writes today is pinned too, so a fix shows here first.
-    it(`${one.name}, as the editor writes it today`, () => {
-      expect(saved(one.text)).toBe(one.now);
-    });
+    if (one.now !== undefined) {
+      it(`${one.name}, as the editor writes it today`, () => {
+        expect(saved(text)).toBe(one.now);
+      });
+    }
     it.fails(`${one.name}, as it should be written`, () => {
-      expect(saved(one.text)).toBe(wanted);
+      expect(saved(text)).toBe(wanted);
     });
   }
 });

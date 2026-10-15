@@ -501,5 +501,83 @@
     "title": "Con marca de orden al inicio.",
     "tags": [],
     "refs": []
+  },
+  {
+    "name": "guide-en",
+    "file": "app/src-tauri/resources/guide/en/guide.md",
+    "falls_short": "drops the final newline and writes wrapped lines as hard breaks",
+    "title": "How Tisty works",
+    "tags": [
+      "home",
+      "health",
+      "shopping"
+    ],
+    "refs": [
+      "Link:capture.png",
+      "Link:priorities.png",
+      "Link:https://github.com/rgdevment/Tisty",
+      "Link:tisty:code",
+      "Link:tisty:page",
+      "Link:https://github.com/rgdevment",
+      "Link:https://github.com/rgdevment/CopyPaste",
+      "Link:https://github.com/rgdevment/LinkUnbound"
+    ]
+  },
+  {
+    "name": "guide-page-en",
+    "file": "app/src-tauri/resources/guide/en/page.md",
+    "falls_short": "drops the final newline",
+    "title": "Rina",
+    "tags": [],
+    "refs": [
+      "Link:rina.jpg"
+    ]
+  },
+  {
+    "name": "guide-code-en",
+    "file": "app/src-tauri/resources/guide/en/code.md",
+    "falls_short": "drops the final newline",
+    "title": "When what you keep is code",
+    "tags": [],
+    "refs": []
+  },
+  {
+    "name": "guide-es",
+    "file": "app/src-tauri/resources/guide/es/guia.md",
+    "falls_short": "drops the final newline and writes wrapped lines as hard breaks",
+    "title": "Cómo funciona Tisty",
+    "tags": [
+      "casa",
+      "salud",
+      "compras"
+    ],
+    "refs": [
+      "Link:captura.png",
+      "Link:prioridades.png",
+      "Link:https://github.com/rgdevment/Tisty",
+      "Link:tisty:code",
+      "Link:tisty:page",
+      "Link:https://github.com/rgdevment",
+      "Link:https://github.com/rgdevment/CopyPaste",
+      "Link:https://github.com/rgdevment/LinkUnbound"
+    ]
+  },
+  {
+    "name": "guide-page-es",
+    "file": "app/src-tauri/resources/guide/es/pagina.md",
+    "falls_short": "drops the final newline",
+    "title": "La Rina",
+    "tags": [],
+    "refs": [
+      "Link:rina.jpg"
+    ]
+  },
+  {
+    "name": "guide-code-es",
+    "file": "app/src-tauri/resources/guide/es/codigo.md",
+    "falls_short": "drops the final newline",
+    "title": "Cuando lo que apuntas es código",
+    "tags": [],
+    "refs": []
   }
 ]
