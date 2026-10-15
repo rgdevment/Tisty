@@ -103,10 +103,45 @@ fn a_task_item_in_a_loose_list_still_says_whether_it_is_done() {
 fn an_ordered_list_keeps_where_it_starts() {
     assert_eq!(
         kinds("3. three\n4. four"),
-        vec![Kind::List {
-            ordered: true,
-            start: 3
-        }]
+        vec![Kind::List { start: Some(3) }]
+    );
+}
+
+#[test]
+fn a_byte_order_mark_does_not_hide_the_first_block() {
+    let doc = read("\u{feff}# Title\n\nWords\n");
+    assert_eq!(doc.blocks()[0].kind, Kind::Heading(1));
+    assert_eq!(doc.said(&doc.blocks()[0]), "# Title\n");
+}
+
+#[test]
+fn a_callout_with_words_after_its_marker_is_still_a_callout() {
+    assert_eq!(
+        kinds("> [!WARNING] Careful here"),
+        vec![Kind::Callout(Callout::Warning)]
+    );
+    assert_eq!(kinds("> [!note]"), vec![Kind::Callout(Callout::Note)]);
+    assert_eq!(kinds("> [!WARNING]x"), vec![Kind::Quote]);
+    assert_eq!(kinds("> [!ODD] words"), vec![Kind::Quote]);
+}
+
+#[test]
+fn a_tongue_drops_its_escapes_and_a_wall_keeps_only_its_own_marks() {
+    assert_eq!(
+        kinds("```c\\+\\+\nint x;\n```"),
+        vec![fenced(Some("c++"), None)]
+    );
+    assert_eq!(
+        kinds("~~~`odd` title=\"x\"\ncode\n~~~"),
+        vec![fenced(Some("`odd`"), Some("x"))]
+    );
+}
+
+#[test]
+fn a_title_counts_after_any_mark_that_is_not_part_of_a_word() {
+    assert_eq!(
+        kinds("```ts x-title=\"a\"\ncode\n```"),
+        vec![fenced(Some("ts"), Some("a"))]
     );
 }
 
@@ -115,13 +150,7 @@ fn nested_blocks_sit_inside_their_parent() {
     let doc = read("> - one\n>   - two");
     let quote = &doc.blocks()[0];
     assert_eq!(quote.kind, Kind::Quote);
-    assert_eq!(
-        quote.inner[0].kind,
-        Kind::List {
-            ordered: false,
-            start: 1
-        }
-    );
+    assert_eq!(quote.inner[0].kind, Kind::List { start: None });
     assert!(quote.inner[0].at.start >= quote.at.start && quote.inner[0].at.end <= quote.at.end);
 }
 
@@ -150,7 +179,7 @@ fn a_range_off_the_text_is_refused_and_changes_nothing() {
 
 #[test]
 fn a_body_goes_to_disk_the_way_the_core_keeps_it() {
-    assert_eq!(on_disk("\u{feff}a\r\nb"), "a\nb\n");
+    assert_eq!(on_disk("\u{feff}a\r\nb"), "\u{feff}a\r\nb\n");
     assert_eq!(on_disk("already plain\n"), "already plain\n");
     assert_eq!(on_disk(""), "");
 }

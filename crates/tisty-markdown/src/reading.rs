@@ -5,21 +5,25 @@ use pulldown_cmark::{BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag,
 use crate::{Block, Callout, Doc, Kind};
 
 pub fn read(text: &str) -> Doc {
+    // The core and the window both read past a byte-order mark; the tokenizer does not.
+    let skip = text.len() - text.trim_start_matches('\u{feff}').len();
     let mut open: Vec<Block> = Vec::new();
     let mut blocks: Vec<Block> = Vec::new();
-    for (event, at) in tokens(text) {
+    for (event, at) in tokens(&text[skip..]) {
+        let at = at.start + skip..at.end + skip;
         match event {
             Event::Start(tag) => {
                 if let Some(kind) = kind_of(&tag, &text[at.clone()]) {
-                    open.push(Block {
-                        kind,
-                        at,
-                        inner: Vec::new(),
-                    });
+                    open.push(leaf(kind, at));
                 }
             }
             Event::End(end) if ends_block(end) => {
-                if let Some(done) = open.pop() {
+                if let Some(mut done) = open.pop() {
+                    if done.kind == Kind::Quote
+                        && let Some(said) = marked(&text[done.at.clone()])
+                    {
+                        done.kind = Kind::Callout(said);
+                    }
                     shelve(&mut open, &mut blocks, done);
                 }
             }
@@ -85,10 +89,7 @@ fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
             title: None,
         },
         Tag::HtmlBlock => Kind::Html,
-        Tag::List(start) => Kind::List {
-            ordered: start.is_some(),
-            start: start.unwrap_or(1),
-        },
+        Tag::List(start) => Kind::List { start: *start },
         Tag::Item => Kind::Item { done: None },
         Tag::Table(_) => Kind::Table,
         _ => return None,
@@ -119,10 +120,34 @@ fn callout(kind: BlockQuoteKind) -> Callout {
     }
 }
 
+// GitHub wants the marker alone on its line; the window also takes words after it.
+fn marked(source: &str) -> Option<Callout> {
+    let line = source
+        .lines()
+        .next()?
+        .trim_start()
+        .strip_prefix('>')?
+        .trim_start();
+    let rest = line.strip_prefix("[!")?;
+    let (word, after) = rest.split_once(']')?;
+    if !after.is_empty() && !after.starts_with(char::is_whitespace) {
+        return None;
+    }
+    Some(match word.to_ascii_lowercase().as_str() {
+        "note" => Callout::Note,
+        "tip" => Callout::Tip,
+        "important" => Callout::Important,
+        "warning" => Callout::Warning,
+        "caution" => Callout::Caution,
+        _ => return None,
+    })
+}
+
 // The tokenizer hands the info string back unescaped, and a title's own escapes need the raw one.
 fn fence_info(source: &str) -> &str {
     let line = source.lines().next().unwrap_or_default().trim_start();
-    line.trim_start_matches(['`', '~']).trim()
+    let wall = line.chars().next().unwrap_or('`');
+    line.trim_start_matches(wall).trim()
 }
 
 fn code(info: &str) -> Kind {
@@ -131,11 +156,23 @@ fn code(info: &str) -> Kind {
         Some((at, _)) => format!("{}{}", &info[..at.start], &info[at.end..]),
         None => info.to_string(),
     };
-    let tongue = rest.split_whitespace().next().map(str::to_string);
+    let tongue = rest.split_whitespace().next().map(unescaped);
     Kind::Code {
         tongue,
         title: title.map(|(_, said)| said),
     }
+}
+
+fn unescaped(raw: &str) -> String {
+    let mut said = String::new();
+    let mut chars = raw.chars().peekable();
+    while let Some(c) = chars.next() {
+        match chars.peek() {
+            Some(next) if c == '\\' && next.is_ascii_punctuation() => {}
+            _ => said.push(c),
+        }
+    }
+    said
 }
 
 fn titled(info: &str) -> Option<(Range<usize>, String)> {
@@ -144,7 +181,7 @@ fn titled(info: &str) -> Option<(Range<usize>, String)> {
         info[..*at]
             .chars()
             .next_back()
-            .is_none_or(char::is_whitespace)
+            .is_none_or(|before| !before.is_alphanumeric() && before != '_')
     })?;
     let body = from + OPEN.len();
     let mut said = String::new();

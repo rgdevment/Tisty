@@ -1,6 +1,6 @@
 use tisty_markdown::{Block, Callout, Kind, read};
 
-fn cases() -> Vec<(String, String, Option<String>)> {
+fn cases() -> Vec<(String, String)> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let raw = std::fs::read_to_string(root.join("fixtures/markdown.json"))
         .expect("the contract the window and the core keep too");
@@ -14,12 +14,7 @@ fn cases() -> Vec<(String, String, Option<String>)> {
                 }
                 None => one["text"].as_str().expect("text").to_string(),
             };
-            let canonical = one["canonical"].as_str().map(str::to_string);
-            (
-                one["name"].as_str().expect("name").to_string(),
-                text,
-                canonical,
-            )
+            (one["name"].as_str().expect("name").to_string(), text)
         })
         .collect()
 }
@@ -40,8 +35,8 @@ fn inside(text: &str, blocks: &[Block], within: std::ops::Range<usize>) -> bool 
 fn an_unchanged_document_is_written_back_byte_for_byte() {
     let all = cases();
     assert!(all.len() > 50);
-    for (name, text, canonical) in all {
-        let mut wanted = canonical.unwrap_or_else(|| text.clone());
+    for (name, text) in all {
+        let mut wanted = text.clone();
         if !wanted.is_empty() && !wanted.ends_with('\n') {
             wanted.push('\n');
         }
@@ -51,7 +46,7 @@ fn an_unchanged_document_is_written_back_byte_for_byte() {
 
 #[test]
 fn every_block_sits_in_order_inside_its_parent() {
-    for (name, text, _) in cases() {
+    for (name, text) in cases() {
         let doc = read(&text);
         assert!(
             inside(doc.text(), doc.blocks(), 0..doc.text().len()),
@@ -62,7 +57,7 @@ fn every_block_sits_in_order_inside_its_parent() {
 
 #[test]
 fn putting_each_block_back_as_it_was_changes_nothing() {
-    for (name, text, _) in cases() {
+    for (name, text) in cases() {
         let doc = read(&text);
         for at in doc.blocks().iter().map(|one| one.at.clone()) {
             let mut again = doc.clone();
@@ -77,10 +72,7 @@ fn putting_each_block_back_as_it_was_changes_nothing() {
 fn the_dialect_s_own_blocks_are_read_as_what_they_are() {
     let all = cases();
     let first = |wanted: &str| {
-        let (_, text, _) = all
-            .iter()
-            .find(|(name, _, _)| name == wanted)
-            .expect("a case");
+        let (_, text) = all.iter().find(|(name, _)| name == wanted).expect("a case");
         read(text).blocks()[0].kind.clone()
     };
     assert_eq!(first("callout-note"), Kind::Callout(Callout::Note));
@@ -102,11 +94,6 @@ fn the_dialect_s_own_blocks_are_read_as_what_they_are() {
     assert_eq!(first("table-widths"), Kind::Table);
     assert_eq!(first("table-spans"), Kind::Html);
     assert_eq!(first("quote"), Kind::Quote);
-    assert_eq!(
-        first("ordered-start"),
-        Kind::List {
-            ordered: true,
-            start: 3
-        }
-    );
+    assert_eq!(first("ordered-start"), Kind::List { start: Some(3) });
+    assert_eq!(first("bom"), Kind::Paragraph);
 }

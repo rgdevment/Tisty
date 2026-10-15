@@ -26,8 +26,7 @@ pub enum Kind {
     Quote,
     Callout(Callout),
     List {
-        ordered: bool,
-        start: u64,
+        start: Option<u64>,
     },
     Item {
         done: Option<bool>,
