@@ -174,7 +174,7 @@ export default function Board() {
             <div className={peeks ? `peeking${typed >= AWAKES ? " awake" : ""}` : undefined}>
               {peeks && (
                 <span className="beaver-hidden">
-                  <Head />
+                  <Head facing="left" />
                 </span>
               )}
               <div className="beaver-over">

@@ -26,9 +26,15 @@ export function useBeaver(): boolean {
   return peeks;
 }
 
-export function Head({ className }: { readonly className?: string }) {
-  return (
-    <svg className={className} viewBox="44 24 362 302" aria-hidden="true">
+export function Head({
+  className,
+  facing,
+}: {
+  readonly className?: string;
+  readonly facing?: "left";
+}) {
+  const drawing = (
+    <>
       <g transform="translate(266 126) rotate(34)">
         <rect
           x="-9"
@@ -154,6 +160,15 @@ export function Head({ className }: { readonly className?: string }) {
         strokeWidth="8"
         strokeLinejoin="round"
       />
+    </>
+  );
+  return facing === "left" ? (
+    <svg className={className} viewBox="-6 24 362 302" aria-hidden="true">
+      <g transform="translate(400 0) scale(-1 1)">{drawing}</g>
+    </svg>
+  ) : (
+    <svg className={className} viewBox="44 24 362 302" aria-hidden="true">
+      {drawing}
     </svg>
   );
 }

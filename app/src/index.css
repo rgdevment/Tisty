@@ -2014,7 +2014,6 @@ body {
   width: 96px;
   height: auto;
   transform: translateY(100%);
-  scale: -1 1;
 }
 .peeking > .beaver-over {
   position: relative;
