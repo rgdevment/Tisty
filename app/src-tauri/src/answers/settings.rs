@@ -22,6 +22,10 @@ pub const ATTACHED: &[&str] = &[
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
     (
+        "tisty:sample",
+        include_str!("../../resources/guide/es/muestra.md"),
+    ),
+    (
         "tisty:code",
         include_str!("../../resources/guide/es/codigo.md"),
     ),
@@ -29,13 +33,13 @@ pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
         "tisty:page",
         include_str!("../../resources/guide/es/pagina.md"),
     ),
-    (
-        "tisty:sample",
-        include_str!("../../resources/guide/es/muestra.md"),
-    ),
 ];
 
 pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
+    (
+        "tisty:sample",
+        include_str!("../../resources/guide/en/sample.md"),
+    ),
     (
         "tisty:code",
         include_str!("../../resources/guide/en/code.md"),
@@ -43,10 +47,6 @@ pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
     (
         "tisty:page",
         include_str!("../../resources/guide/en/page.md"),
-    ),
-    (
-        "tisty:sample",
-        include_str!("../../resources/guide/en/sample.md"),
     ),
 ];
 
@@ -214,7 +214,7 @@ pub fn guide(
         // A title after the path, as in `](walks.html "file")`, keeps the attachment drawn as a file.
         for (was, named) in [
             (format!("]({shot})"), format!("](<{}>)", kept.at)),
-            (format!("]({shot} "), format!("](<{}> ", kept.at)),
+            (format!("]({shot} \""), format!("](<{}> \"", kept.at)),
         ] {
             body = body.replace(&was, &named);
             for (_, one) in pages.iter_mut() {

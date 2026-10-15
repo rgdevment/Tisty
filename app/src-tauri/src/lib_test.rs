@@ -1291,7 +1291,7 @@ fn every_attachment_the_guide_names_is_where_the_bundler_looks() {
         };
         for shot in answers::settings::ATTACHED {
             let named = |one: &str| {
-                one.contains(&format!("]({shot})")) || one.contains(&format!("]({shot} "))
+                one.contains(&format!("]({shot})")) || one.contains(&format!("]({shot} \""))
             };
             if !named(told) && !pages.iter().any(|(_, one)| named(one)) {
                 continue;
