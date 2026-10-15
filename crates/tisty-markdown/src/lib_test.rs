@@ -1,7 +1,26 @@
 use super::*;
 
 fn kinds(text: &str) -> Vec<Kind> {
-    read(text).blocks.into_iter().map(|one| one.kind).collect()
+    read(text)
+        .blocks()
+        .iter()
+        .map(|one| one.kind.clone())
+        .collect()
+}
+
+fn items(text: &str) -> Vec<Kind> {
+    read(text).blocks()[0]
+        .inner
+        .iter()
+        .map(|one| one.kind.clone())
+        .collect()
+}
+
+fn fenced(tongue: Option<&str>, title: Option<&str>) -> Kind {
+    Kind::Code {
+        tongue: tongue.map(str::to_string),
+        title: title.map(str::to_string),
+    }
 }
 
 #[test]
@@ -15,7 +34,7 @@ fn a_document_reads_as_its_blocks_in_order() {
 #[test]
 fn every_block_knows_the_bytes_it_came_from() {
     let doc = read("# Title\n\nWords here.\n");
-    let said: Vec<&str> = doc.blocks.iter().map(|one| doc.said(one)).collect();
+    let said: Vec<&str> = doc.blocks().iter().map(|one| doc.said(one)).collect();
     assert_eq!(said, vec!["# Title\n", "Words here.\n"]);
 }
 
@@ -32,41 +51,50 @@ fn a_callout_is_told_from_a_plain_quote() {
 fn a_fence_gives_its_tongue_and_its_title() {
     assert_eq!(
         kinds("```ts title=\"src/main.ts\"\nconst a = 1;\n```"),
-        vec![Kind::Code {
-            tongue: Some("ts".into()),
-            title: Some("src/main.ts".into())
-        }]
+        vec![fenced(Some("ts"), Some("src/main.ts"))]
     );
+    assert_eq!(kinds("~~~\nplain\n~~~"), vec![fenced(None, None)]);
+}
+
+#[test]
+fn a_title_keeps_the_quotes_and_backslashes_it_escaped() {
     assert_eq!(
         kinds("```rust title=\"say \\\"hi\\\"\"\nfn main() {}\n```"),
-        vec![Kind::Code {
-            tongue: Some("rust".into()),
-            title: Some("say \"hi\"".into())
-        }]
+        vec![fenced(Some("rust"), Some("say \"hi\""))]
     );
     assert_eq!(
-        kinds("~~~\nplain\n~~~"),
-        vec![Kind::Code {
-            tongue: None,
-            title: None
-        }]
+        kinds("```text title=\"C:\\\\dir\"\nx\n```"),
+        vec![fenced(Some("text"), Some("C:\\dir"))]
+    );
+}
+
+#[test]
+fn only_a_word_of_its_own_names_the_title() {
+    assert_eq!(
+        kinds("```ts subtitle=\"x\"\ncode\n```"),
+        vec![fenced(Some("ts"), None)]
     );
 }
 
 #[test]
 fn a_task_item_says_whether_it_is_done() {
-    let doc = read("- [ ] open\n- [x] done\n- plain");
-    let items: Vec<Kind> = doc.blocks[0]
-        .inner
-        .iter()
-        .map(|one| one.kind.clone())
-        .collect();
     assert_eq!(
-        items,
+        items("- [ ] open\n- [x] done\n- plain"),
         vec![
             Kind::Item { done: Some(false) },
             Kind::Item { done: Some(true) },
             Kind::Item { done: None },
+        ]
+    );
+}
+
+#[test]
+fn a_task_item_in_a_loose_list_still_says_whether_it_is_done() {
+    assert_eq!(
+        items("- [ ] open\n\n- [x] done\n"),
+        vec![
+            Kind::Item { done: Some(false) },
+            Kind::Item { done: Some(true) }
         ]
     );
 }
@@ -85,7 +113,7 @@ fn an_ordered_list_keeps_where_it_starts() {
 #[test]
 fn nested_blocks_sit_inside_their_parent() {
     let doc = read("> - one\n>   - two");
-    let quote = &doc.blocks[0];
+    let quote = &doc.blocks()[0];
     assert_eq!(quote.kind, Kind::Quote);
     assert_eq!(
         quote.inner[0].kind,
@@ -100,17 +128,29 @@ fn nested_blocks_sit_inside_their_parent() {
 #[test]
 fn putting_a_block_back_changes_only_its_bytes() {
     let mut doc = read("# Title\n\nOld words.\n\nAfter.\n");
-    let at = doc.blocks[1].at.clone();
-    doc.put(at, "New words, *longer* now.\n");
-    assert_eq!(doc.text, "# Title\n\nNew words, *longer* now.\n\nAfter.\n");
-    assert_eq!(doc.blocks.len(), 3);
+    let at = doc.blocks()[1].at.clone();
+    assert!(doc.put(at, "New words, *longer* now.\n"));
+    assert_eq!(
+        doc.text(),
+        "# Title\n\nNew words, *longer* now.\n\nAfter.\n"
+    );
+    assert_eq!(doc.blocks().len(), 3);
 }
 
 #[test]
-fn writing_keeps_one_line_ending_and_no_byte_order_mark() {
-    assert_eq!(settled("\u{feff}a\r\nb"), "a\nb");
-    assert!(matches!(
-        settled("already plain\n"),
-        std::borrow::Cow::Borrowed(_)
-    ));
+fn a_range_off_the_text_is_refused_and_changes_nothing() {
+    let mut doc = read("ñandú\n");
+    let was = doc.clone();
+    assert!(!doc.put(1..2, "x"));
+    assert!(!doc.put(3..99, "x"));
+    let (from, to) = (4, 2);
+    assert!(!doc.put(from..to, "x"));
+    assert_eq!(doc, was);
+}
+
+#[test]
+fn a_body_goes_to_disk_the_way_the_core_keeps_it() {
+    assert_eq!(on_disk("\u{feff}a\r\nb"), "a\nb\n");
+    assert_eq!(on_disk("already plain\n"), "already plain\n");
+    assert_eq!(on_disk(""), "");
 }

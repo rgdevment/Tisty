@@ -27,8 +27,10 @@ fn cases() -> Vec<(String, String, Option<String>)> {
 fn inside(text: &str, blocks: &[Block], within: std::ops::Range<usize>) -> bool {
     let mut last = within.start;
     blocks.iter().all(|one| {
-        let fits =
-            one.at.start >= last && one.at.end <= within.end && text.is_char_boundary(one.at.start);
+        let fits = one.at.start >= last
+            && one.at.end <= within.end
+            && text.is_char_boundary(one.at.start)
+            && text.is_char_boundary(one.at.end);
         last = one.at.end;
         fits && inside(text, &one.inner, one.at.clone())
     })
@@ -39,7 +41,10 @@ fn an_unchanged_document_is_written_back_byte_for_byte() {
     let all = cases();
     assert!(all.len() > 50);
     for (name, text, canonical) in all {
-        let wanted = canonical.unwrap_or_else(|| text.clone());
+        let mut wanted = canonical.unwrap_or_else(|| text.clone());
+        if !wanted.is_empty() && !wanted.ends_with('\n') {
+            wanted.push('\n');
+        }
         assert_eq!(read(&text).write(), wanted, "{name}");
     }
 }
@@ -48,7 +53,10 @@ fn an_unchanged_document_is_written_back_byte_for_byte() {
 fn every_block_sits_in_order_inside_its_parent() {
     for (name, text, _) in cases() {
         let doc = read(&text);
-        assert!(inside(&doc.text, &doc.blocks, 0..doc.text.len()), "{name}");
+        assert!(
+            inside(doc.text(), doc.blocks(), 0..doc.text().len()),
+            "{name}"
+        );
     }
 }
 
@@ -56,10 +64,10 @@ fn every_block_sits_in_order_inside_its_parent() {
 fn putting_each_block_back_as_it_was_changes_nothing() {
     for (name, text, _) in cases() {
         let doc = read(&text);
-        for at in doc.blocks.iter().map(|one| one.at.clone()) {
+        for at in doc.blocks().iter().map(|one| one.at.clone()) {
             let mut again = doc.clone();
-            let said = doc.text[at.clone()].to_string();
-            again.put(at, &said);
+            let said = doc.text()[at.clone()].to_string();
+            assert!(again.put(at, &said), "{name}");
             assert_eq!(again, doc, "{name}");
         }
     }
@@ -73,7 +81,7 @@ fn the_dialect_s_own_blocks_are_read_as_what_they_are() {
             .iter()
             .find(|(name, _, _)| name == wanted)
             .expect("a case");
-        read(text).blocks[0].kind.clone()
+        read(text).blocks()[0].kind.clone()
     };
     assert_eq!(first("callout-note"), Kind::Callout(Callout::Note));
     assert_eq!(first("callout-bold-first"), Kind::Callout(Callout::Note));

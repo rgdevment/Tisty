@@ -1,11 +1,13 @@
-use std::borrow::Cow;
-
-/// What a body becomes when it is written: one kind of line ending and no byte-order mark.
-pub fn settled(text: &str) -> Cow<'_, str> {
+/// The same body the core keeps: Windows line endings folded, no byte-order mark, a final newline.
+pub fn on_disk(text: &str) -> String {
     let bare = text.strip_prefix('\u{feff}').unwrap_or(text);
-    if bare.contains('\r') {
-        Cow::Owned(bare.replace("\r\n", "\n"))
+    let mut body = if bare.contains("\r\n") {
+        bare.replace("\r\n", "\n")
     } else {
-        Cow::Borrowed(bare)
+        bare.to_string()
+    };
+    if !body.is_empty() && !body.ends_with('\n') {
+        body.push('\n');
     }
+    body
 }

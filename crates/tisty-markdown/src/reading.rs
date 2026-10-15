@@ -10,7 +10,7 @@ pub fn read(text: &str) -> Doc {
     for (event, at) in tokens(text) {
         match event {
             Event::Start(tag) => {
-                if let Some(kind) = kind_of(&tag) {
+                if let Some(kind) = kind_of(&tag, &text[at.clone()]) {
                     open.push(Block {
                         kind,
                         at,
@@ -24,15 +24,7 @@ pub fn read(text: &str) -> Doc {
                 }
             }
             Event::Rule => shelve(&mut open, &mut blocks, leaf(Kind::Rule, at)),
-            Event::TaskListMarker(ticked) => {
-                if let Some(Block {
-                    kind: Kind::Item { done },
-                    ..
-                }) = open.last_mut()
-                {
-                    *done = Some(ticked);
-                }
-            }
+            Event::TaskListMarker(ticked) => tick(&mut open, ticked),
             _ => {}
         }
     }
@@ -66,13 +58,28 @@ fn shelve(open: &mut [Block], blocks: &mut Vec<Block>, done: Block) {
     }
 }
 
-fn kind_of(tag: &Tag<'_>) -> Option<Kind> {
+// In a loose list the marker arrives inside the item's paragraph, not right under the item.
+fn tick(open: &mut [Block], ticked: bool) {
+    let item = open
+        .iter_mut()
+        .rev()
+        .find(|one| matches!(one.kind, Kind::Item { .. }));
+    if let Some(Block {
+        kind: Kind::Item { done },
+        ..
+    }) = item
+    {
+        *done = Some(ticked);
+    }
+}
+
+fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
     Some(match tag {
         Tag::Paragraph => Kind::Paragraph,
         Tag::Heading { level, .. } => Kind::Heading(*level as u8),
         Tag::BlockQuote(None) => Kind::Quote,
         Tag::BlockQuote(Some(kind)) => Kind::Callout(callout(*kind)),
-        Tag::CodeBlock(CodeBlockKind::Fenced(info)) => code(info),
+        Tag::CodeBlock(CodeBlockKind::Fenced(_)) => code(fence_info(source)),
         Tag::CodeBlock(CodeBlockKind::Indented) => Kind::Code {
             tongue: None,
             title: None,
@@ -112,7 +119,12 @@ fn callout(kind: BlockQuoteKind) -> Callout {
     }
 }
 
-/// A fence names its tongue first and may carry one `title="…"`, the way Tisty writes it.
+// The tokenizer hands the info string back unescaped, and a title's own escapes need the raw one.
+fn fence_info(source: &str) -> &str {
+    let line = source.lines().next().unwrap_or_default().trim_start();
+    line.trim_start_matches(['`', '~']).trim()
+}
+
 fn code(info: &str) -> Kind {
     let title = titled(info);
     let rest = match &title {
@@ -127,8 +139,14 @@ fn code(info: &str) -> Kind {
 }
 
 fn titled(info: &str) -> Option<(Range<usize>, String)> {
-    let from = info.find("title=\"")?;
-    let body = from + "title=\"".len();
+    const OPEN: &str = "title=\"";
+    let from = info.match_indices(OPEN).map(|(at, _)| at).find(|at| {
+        info[..*at]
+            .chars()
+            .next_back()
+            .is_none_or(char::is_whitespace)
+    })?;
+    let body = from + OPEN.len();
     let mut said = String::new();
     let mut escaped = false;
     for (step, c) in info[body..].char_indices() {

@@ -1,21 +1,15 @@
-//! Tisty's own Markdown: what a document says, read once and shared by every part of Tisty.
-//!
-//! A document is kept as the text it was written in, with each block knowing where it sits in
-//! that text. Writing an unchanged document gives back its bytes, and changing a block touches
-//! only that block's bytes.
-
 mod reading;
 mod writing;
 
 pub use reading::read;
-pub use writing::settled;
+pub use writing::on_disk;
 
 use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Doc {
-    pub text: String,
-    pub blocks: Vec<Block>,
+    text: String,
+    blocks: Vec<Block>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,20 +51,35 @@ pub enum Callout {
 }
 
 impl Doc {
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub fn blocks(&self) -> &[Block] {
+        &self.blocks
+    }
+
     pub fn said(&self, block: &Block) -> &str {
         &self.text[block.at.clone()]
     }
 
-    /// The document as it goes to disk.
     pub fn write(&self) -> String {
-        settled(&self.text).into_owned()
+        on_disk(&self.text)
     }
 
-    /// Puts `said` where `at` was and reads the document again; nothing outside `at` moves.
-    pub fn put(&mut self, at: Range<usize>, said: &str) {
+    /// A range that does not fall on this text's characters is refused rather than guessed at.
+    pub fn put(&mut self, at: Range<usize>, said: &str) -> bool {
+        let fits = at.start <= at.end
+            && at.end <= self.text.len()
+            && self.text.is_char_boundary(at.start)
+            && self.text.is_char_boundary(at.end);
+        if !fits {
+            return false;
+        }
         let mut text = std::mem::take(&mut self.text);
         text.replace_range(at, said);
         *self = read(&text);
+        true
     }
 }
 
