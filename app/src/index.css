@@ -1463,9 +1463,10 @@ body {
 .peeking {
   position: relative;
 }
+/* Clear of the grouping pill, which sits at the right end of the heading above the field. */
 .peeking > .beaver-hidden {
   position: absolute;
-  right: 12px;
+  right: 136px;
   bottom: calc(100% - 24px);
   width: 96px;
   height: 90px;
@@ -1486,7 +1487,7 @@ body {
   position: absolute;
   z-index: 2;
   top: -10px;
-  right: 12px;
+  right: 136px;
   width: 96px;
   padding: 0 10px;
   opacity: 0;
