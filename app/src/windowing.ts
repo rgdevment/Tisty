@@ -18,6 +18,7 @@ import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
 import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
+import { useBeaver } from "./ui/Beaver";
 import type { Asked, MenuOpen, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
 import { SETTLING_MS } from "./ui/Sure";
@@ -43,6 +44,8 @@ export function useWindow() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | undefined>();
   const [captured, setCaptured] = useState<Task | undefined>();
+  const [cheered, setCheered] = useState<Task | undefined>();
+  const peeks = useBeaver();
 
   const [dealing, setDealing] = useState(false);
 
@@ -120,6 +123,7 @@ export function useWindow() {
     say,
     setError,
     lookForAStar: () => lookForAStar(),
+    cheer: peeks ? setCheered : undefined,
   });
   const { reach, further } = useReach(chosen);
   const { data, load, latest, settling, stuck, setStuck } = useSnapshot({
@@ -184,6 +188,8 @@ export function useWindow() {
     setSelected,
     captured,
     setCaptured,
+    cheered,
+    setCheered,
     dealing,
     setDealing,
     reveal,
