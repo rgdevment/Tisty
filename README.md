@@ -8,9 +8,10 @@
   <h1>Tisty — Free Open Source Notes, Documents and Tasks</h1>
 
   <p><strong>Notes, documents and tasks that stay yours: plain Markdown on your
-  own disk, for Windows and macOS.<br/>Not a to-do list you empty — a record of
-  what you worked out, searchable years later, with an MCP door for your
-  assistant.<br/>No accounts. No subscriptions. No telemetry. No
+  own disk, for Windows and macOS.<br/>Documents that grow into books, with
+  diagrams, formulas, code, widgets and their own PDF — and tasks that become the
+  record of what you worked out, searchable years later, with an MCP door for
+  your assistant.<br/>No accounts. No subscriptions. No telemetry. No
   server.</strong></p>
 
   <p>
@@ -92,16 +93,16 @@
 **Tisty** is Opensource. Read it, build it, run it, or take one of the stable
 releases already out there. Nothing is hidden and all of it can be audited.
 
-It is not a **to-do app** as you know it. A list gets emptied and forgotten. Here
-what you close stays: what you did, when, and what you worked out on the way.
-Months later you search for how you solved something and it is there — the
-description, the journal, the steps, the documents you leaned on.
-
-And it is a place to write. **Documents** are Markdown files on your own disk
+It is a place to write. **Documents** are Markdown files on your own disk
 that hold far more than text: a book in pages, diagrams drawn from a few lines,
 formulas, code named after its file, small widgets, pictures and PDFs that
 travel with them, and a PDF of their own when you print. Search reads them with
 the tasks, and an assistant can read and write them too.
+
+It is not a **to-do app** as you know it. A list gets emptied and forgotten. Here
+what you close stays: what you did, when, and what you worked out on the way.
+Months later you search for how you solved something and it is there — the
+description, the journal, the steps, the documents you leaned on.
 
 I am not a company. I am a developer who kept solving the same problem twice, so
 I built the **notes, documents and task manager** I wanted and gave it away. It
@@ -141,10 +142,10 @@ productivity tool** that lives on your machine and nowhere else.
 - [Why I Built This](#why-i-built-this)
 - [What It Is / What It Isn't](#what-it-is--what-it-isnt)
 - [What Makes It Different](#what-makes-it-different)
+- [Documents](#documents)
 - [Who Is This For?](#who-is-this-for)
 - [The Idea It Is Built On](#the-idea-it-is-built-on)
 - [Getting Started](#getting-started)
-- [Documents](#documents)
 - [What It Does](#what-it-does)
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
@@ -226,6 +227,11 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Priorities | the **Eisenhower matrix**, by its name |
 | Sorting | lists, tags, steps and a journal on every task |
 | Documents | Markdown files with pages, diagrams, formulas, code, widgets and their own PDF |
+| A document with pages | a book, with its chapters in the order the text names them and an index |
+| Diagrams and formulas | drawn from a few lines of text, light or dark with the window |
+| Widgets | small pages of HTML in Tisty's colours, sealed off from the network |
+| PDF | its own: A4, Letter or Tabloid, with the attachments inside |
+| Any `.md` file | opens to read in a window of its own, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
 | Two machines | through a folder you already sync. No server of ours |
@@ -233,6 +239,12 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | When to do it | a spread of days you deal work onto, and a month for looking |
 | Reminders | an hour you choose, that rings on this machine and nowhere else |
 | Source | open, auditable, yours to fork |
+
+**Documents that grow into books.** Most task managers give you a notes field.
+Here a document is a file of its own, written on a lit page, that holds pages
+like chapters, draws the diagram you describe, sets the formula, colours the code
+and makes its own PDF — and it stays Markdown that GitHub, any editor or `cat`
+read the same. A task can point at it, and search finds both.
 
 **The Eisenhower matrix, not numbered priorities.** A task is urgent, important,
 both or neither — *do*, *decide*, *delegate*, *drop*. That names the decision
@@ -263,58 +275,6 @@ nothing that stops working the day a company changes its mind.
 back for later. The reason is not generosity: a program that keeps your work on
 your disk and never phones home has almost nothing to charge for, and asking
 would make it worse.
-
-## Who Is This For?
-
-Someone who works alone, or mostly alone, and whose tasks leave a trail worth
-keeping. Developers, sysadmins, freelancers, researchers, students — anyone who
-has ever solved the same problem twice and known it the second time.
-
-If what you want is a list to cross out and never open again, Tisty will feel
-like more than you asked for. That is a fair reason to walk away.
-
-## The Idea It Is Built On
-
-**A completed task is not finished. It is archived.**
-
-It stops being a reminder of what to do and becomes the record of how something
-got solved. Three things follow from that, and they shaped everything else:
-
-- **Search is the main way into the archive**, not a side feature.
-- **Deleting is the exception.** The normal ending is completing, which keeps
-  it. Erasing something for good is only for what is closed and reads as a
-  trace; a story is only hidden, and converting it to a trace is the deliberate
-  step that lets it go.
-- **Capture has to stay instant**, because most tasks are not like that at all.
-  The call you have to make tomorrow is born and dies within a day and leaves
-  nothing worth keeping — and writing it down must not cost more than one line.
-
-## Getting Started
-
-**Windows** — from the
-[Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), which keeps
-it updated for you. About asks the Store for one on the spot when you would
-rather not wait. Or with the Windows Package Manager, which takes the signed
-installer from the releases page and then stands aside, because Tisty keeps
-itself up to date:
-
-```console
-> winget install rgdevment.Tisty
-```
-
-**macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
-again. After that Tisty keeps itself up to date, so Homebrew stands aside:
-
-```console
-$ brew tap rgdevment/tap
-$ brew install --cask tisty
-```
-
-Or take the disk image and the installer straight from
-[Releases](https://github.com/rgdevment/Tisty/releases), on either system.
-On macOS there are two images: `aarch64` for Apple Silicon and `x86_64` for
-Intel — Apple menu › *About This Mac* says which one yours is. Homebrew picks
-by itself.
 
 ## Documents
 
@@ -435,6 +395,67 @@ Write an alias — optional, and yours to choose — and every document is signe
 with it, while whatever arrives from somebody else keeps theirs.
 
 ![Documents that can do the maths: formulas, diagrams, code and small widgets drawn inside Tisty, with nothing fetched](assets/store/en-06-documents.png)
+
+## Who Is This For?
+
+Someone who works alone, or mostly alone, and whose tasks leave a trail worth
+keeping. Developers, sysadmins, freelancers, researchers, students — anyone who
+has ever solved the same problem twice and known it the second time.
+
+And anyone who writes things that last: a manual, the minutes of a year, notes
+for a course, the documentation of a system, a book in chapters — and wants it
+in files of their own rather than in somebody else's database.
+
+If what you want is a list to cross out and never open again, Tisty will feel
+like more than you asked for. That is a fair reason to walk away.
+
+## The Idea It Is Built On
+
+**A completed task is not finished. It is archived.**
+
+It stops being a reminder of what to do and becomes the record of how something
+got solved. Three things follow from that, and they shaped everything else:
+
+- **Search is the main way into the archive**, not a side feature.
+- **Deleting is the exception.** The normal ending is completing, which keeps
+  it. Erasing something for good is only for what is closed and reads as a
+  trace; a story is only hidden, and converting it to a trace is the deliberate
+  step that lets it go.
+- **Capture has to stay instant**, because most tasks are not like that at all.
+  The call you have to make tomorrow is born and dies within a day and leaves
+  nothing worth keeping — and writing it down must not cost more than one line.
+
+**A document is a file you keep, not a row in somebody's database.** Whatever
+Tisty draws on top of it — pages, diagrams, widgets, a PDF — the file underneath
+stays Markdown another reader opens the same, so leaving Tisty never means
+leaving your writing behind.
+
+## Getting Started
+
+**Windows** — from the
+[Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), which keeps
+it updated for you. About asks the Store for one on the spot when you would
+rather not wait. Or with the Windows Package Manager, which takes the signed
+installer from the releases page and then stands aside, because Tisty keeps
+itself up to date:
+
+```console
+> winget install rgdevment.Tisty
+```
+
+**macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
+again. After that Tisty keeps itself up to date, so Homebrew stands aside:
+
+```console
+$ brew tap rgdevment/tap
+$ brew install --cask tisty
+```
+
+Or take the disk image and the installer straight from
+[Releases](https://github.com/rgdevment/Tisty/releases), on either system.
+On macOS there are two images: `aarch64` for Apple Silicon and `x86_64` for
+Intel — Apple menu › *About This Mac* says which one yours is. Homebrew picks
+by itself.
 
 ## What It Does
 

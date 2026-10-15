@@ -8,10 +8,11 @@
   <h1>Tisty — Notas, documentos y tareas, libres y de código abierto</h1>
 
   <p><strong>Notas, documentos y tareas que siguen siendo tuyos: Markdown llano
-  en tu disco, para Windows y macOS.<br/>No es una lista que se vacía, es el
-  historial de cómo resolviste las cosas, buscable años después, con una puerta
-  MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin
-  servidor.</strong></p>
+  en tu disco, para Windows y macOS.<br/>Documentos que crecen hasta ser
+  libros, con diagramas, fórmulas, código, widgets y su propio PDF — y tareas que
+  se vuelven el historial de cómo resolviste las cosas, buscable años después,
+  con una puerta MCP para tu asistente.<br/>Sin cuentas. Sin suscripciones.
+  Sin telemetría. Sin servidor.</strong></p>
 
   <p>
     <a href="README.md">English</a> ·
@@ -93,17 +94,17 @@
 versiones estables que ya están publicadas. No hay nada oculto: todo es
 auditable.
 
-No es una **aplicación de tareas** como la conoces. Una lista se vacía y se
-olvida. Aquí lo que cierras se queda: lo que hiciste, cuándo, y lo que fuiste
-averiguando por el camino. Meses después buscas cómo resolviste algo y está ahí:
-la descripción, el diario, los pasos y los documentos en los que te apoyaste.
-
-Y es un lugar para escribir. Los **documentos** son archivos Markdown en tu
+Es un lugar para escribir. Los **documentos** son archivos Markdown en tu
 propio disco que llevan mucho más que texto: un libro en páginas, diagramas que
 salen de unas pocas líneas, fórmulas, código con el nombre de su archivo,
 pequeños widgets, fotos y PDF que viajan con ellos, y un PDF propio al imprimir.
 La búsqueda los lee junto a las tareas, y un asistente también puede leerlos y
 escribirlos.
+
+No es una **aplicación de tareas** como la conoces. Una lista se vacía y se
+olvida. Aquí lo que cierras se queda: lo que hiciste, cuándo, y lo que fuiste
+averiguando por el camino. Meses después buscas cómo resolviste algo y está ahí:
+la descripción, el diario, los pasos y los documentos en los que te apoyaste.
 
 No soy una empresa. Soy un desarrollador que resolvió dos veces el mismo
 problema, así que hice el **gestor de notas, documentos y tareas** que quería y
@@ -143,10 +144,10 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Por qué lo hice](#por-qué-lo-hice)
 - [Qué es, y qué no es](#qué-es-y-qué-no-es)
 - [Qué lo hace distinto](#qué-lo-hace-distinto)
+- [Documentos](#documentos)
 - [Para quién es](#para-quién-es)
 - [La idea sobre la que está construido](#la-idea-sobre-la-que-está-construido)
 - [Instalación](#instalación)
-- [Documentos](#documentos)
 - [Qué hace](#qué-hace)
 - [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
@@ -229,6 +230,11 @@ artificial**, esto es Tisty:
 | Prioridades | la **matriz de Eisenhower**, con su nombre |
 | Clasificación | listas, etiquetas, pasos y bitácora en cada tarea |
 | Documentos | archivos Markdown con páginas, diagramas, fórmulas, código, widgets y su propio PDF |
+| Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
+| Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
+| Widgets | pequeñas páginas HTML con los colores de Tisty, aisladas de la red |
+| PDF | propio: A4, Carta o Tabloide, con los adjuntos dentro |
+| Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
 | Dos equipos | por una carpeta que ya sincronizas. Sin servidor nuestro |
@@ -236,6 +242,13 @@ artificial**, esto es Tisty:
 | Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
 | Recordatorios | una hora que eliges, que suena en este equipo y en ningún otro |
 | Código | abierto, auditable, tuyo para bifurcar |
+
+**Documentos que crecen hasta ser libros.** Casi todos los gestores de tareas te
+dan un campo de notas. Aquí un documento es un archivo propio, escrito sobre una
+hoja iluminada, que lleva páginas como capítulos, dibuja el diagrama que
+describes, compone la fórmula, colorea el código y hace su propio PDF — y sigue
+siendo Markdown que GitHub, cualquier editor o `cat` leen igual. Una tarea puede
+apuntar a él, y la búsqueda encuentra a los dos.
 
 **La matriz de Eisenhower, no prioridades numeradas.** Una tarea es urgente,
 importante, las dos o ninguna — *hacer*, *decidir*, *delegar*, *dejar*. Eso
@@ -266,59 +279,6 @@ que deje de funcionar el día que una empresa cambie de idea.
 función guardada para más adelante. La razón no es generosidad: un programa que
 guarda tu trabajo en tu disco y nunca llama a casa no tiene casi nada que cobrar,
 y pedirlo lo empeoraría.
-
-## Para quién es
-
-Para alguien que trabaja solo, o casi siempre solo, y cuyas tareas dejan un
-rastro que vale la pena guardar. Desarrolladores, administradores de sistemas,
-independientes, gente que investiga, quien estudia — cualquiera que haya
-resuelto dos veces el mismo problema y lo haya sabido la segunda vez.
-
-Si lo que quieres es una lista para tachar y no volver a abrir, Tisty te va a
-parecer más de lo que pediste. Es un motivo razonable para dejarlo pasar.
-
-## La idea sobre la que está construido
-
-**Una tarea completada no está terminada. Está archivada.**
-
-Deja de ser un recordatorio de qué hacer y pasa a ser el registro de cómo se
-resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
-
-- **La búsqueda es la entrada principal al archivo**, no una función lateral.
-- **Borrar es la excepción.** El final normal es completar, que conserva. Solo
-  se borra de verdad lo que está cerrado y se lee como rastro; una historia solo
-  se oculta, y convertirla en rastro es el paso deliberado que la deja ir.
-- **Capturar tiene que seguir siendo instantáneo**, porque la mayoría de las
-  tareas no son así. La llamada que tienes que hacer mañana nace y muere en un
-  día y no deja nada que guardar — y anotarla no puede costar más de una línea.
-
-## Instalación
-
-**Windows** — desde la
-[Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), que además se
-encarga de mantenerla al día. Si prefieres no esperar, Acerca de se la pide en
-el momento. O con el gestor de paquetes de Windows, que toma el instalador
-firmado de la página de releases y después se aparta, porque Tisty se mantiene
-al día sola:
-
-```console
-> winget install rgdevment.Tisty
-```
-
-**macOS** — con [Homebrew](https://brew.sh). El tap se agrega una sola vez y no
-se vuelve a tocar. Desde ahí Tisty se mantiene al día sola, y Homebrew se
-aparta:
-
-```console
-$ brew tap rgdevment/tap
-$ brew install --cask tisty
-```
-
-O toma la imagen de disco y el instalador directamente de
-[Releases](https://github.com/rgdevment/Tisty/releases), en cualquiera de los
-dos sistemas. En macOS hay dos imágenes: `aarch64` para Apple Silicon y
-`x86_64` para Intel — menú Apple › *Acerca de este Mac* dice cuál es la tuya.
-Homebrew elige sola.
 
 ## Documentos
 
@@ -444,6 +404,68 @@ cuál—, cada documento queda firmado con él, y lo que te llegue de otra perso
 conserva el suyo.
 
 ![Documentos que hacen las cuentas: fórmulas, diagramas, código y pequeños widgets dibujados dentro de Tisty, sin bajar nada](assets/store/es-06-documentos.png)
+
+## Para quién es
+
+Para alguien que trabaja solo, o casi siempre solo, y cuyas tareas dejan un
+rastro que vale la pena guardar. Desarrolladores, administradores de sistemas,
+independientes, gente que investiga, quien estudia — cualquiera que haya
+resuelto dos veces el mismo problema y lo haya sabido la segunda vez.
+
+Y para quien escribe cosas que duran: un manual, las actas de un año, los
+apuntes de un curso, la documentación de un sistema, un libro por capítulos — y
+lo quiere en archivos propios y no en la base de datos de otro.
+
+Si lo que quieres es una lista para tachar y no volver a abrir, Tisty te va a
+parecer más de lo que pediste. Es un motivo razonable para dejarlo pasar.
+
+## La idea sobre la que está construido
+
+**Una tarea completada no está terminada. Está archivada.**
+
+Deja de ser un recordatorio de qué hacer y pasa a ser el registro de cómo se
+resolvió algo. De ahí salen tres cosas, y esas moldearon todo lo demás:
+
+- **La búsqueda es la entrada principal al archivo**, no una función lateral.
+- **Borrar es la excepción.** El final normal es completar, que conserva. Solo
+  se borra de verdad lo que está cerrado y se lee como rastro; una historia solo
+  se oculta, y convertirla en rastro es el paso deliberado que la deja ir.
+- **Capturar tiene que seguir siendo instantáneo**, porque la mayoría de las
+  tareas no son así. La llamada que tienes que hacer mañana nace y muere en un
+  día y no deja nada que guardar — y anotarla no puede costar más de una línea.
+
+**Un documento es un archivo que guardas, no una fila en la base de datos de
+otro.** Dibuje Tisty lo que dibuje encima —páginas, diagramas, widgets, un PDF—,
+el archivo de abajo sigue siendo Markdown que otro lector abre igual, así que
+dejar Tisty nunca significa dejar atrás lo que escribiste.
+
+## Instalación
+
+**Windows** — desde la
+[Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), que además se
+encarga de mantenerla al día. Si prefieres no esperar, Acerca de se la pide en
+el momento. O con el gestor de paquetes de Windows, que toma el instalador
+firmado de la página de releases y después se aparta, porque Tisty se mantiene
+al día sola:
+
+```console
+> winget install rgdevment.Tisty
+```
+
+**macOS** — con [Homebrew](https://brew.sh). El tap se agrega una sola vez y no
+se vuelve a tocar. Desde ahí Tisty se mantiene al día sola, y Homebrew se
+aparta:
+
+```console
+$ brew tap rgdevment/tap
+$ brew install --cask tisty
+```
+
+O toma la imagen de disco y el instalador directamente de
+[Releases](https://github.com/rgdevment/Tisty/releases), en cualquiera de los
+dos sistemas. En macOS hay dos imágenes: `aarch64` para Apple Silicon y
+`x86_64` para Intel — menú Apple › *Acerca de este Mac* dice cuál es la tuya.
+Homebrew elige sola.
 
 ## Qué hace
 
