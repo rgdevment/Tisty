@@ -21,7 +21,11 @@ pub fn outline(doc: &Doc) -> Vec<Head> {
 fn walk(blocks: &[Block], text: &str, found: &mut Vec<Head>, taken: &mut HashMap<String, usize>) {
     for block in blocks {
         if let Kind::Heading(level) = block.kind {
-            let said = crate::reading::plain(&text[block.at.clone()]);
+            let source: Vec<&str> = text[block.at.clone()]
+                .lines()
+                .map(crate::unquoted)
+                .collect();
+            let said = crate::reading::plain(&source.join("\n"));
             if !said.is_empty() {
                 let id = unique(slug(&said), taken);
                 found.push(Head {

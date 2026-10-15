@@ -365,3 +365,61 @@ fn an_anchor_reads_entities_and_broken_lines_and_is_never_taken_twice() {
         .collect();
     assert_eq!(ids, wanted);
 }
+
+#[cfg(feature = "icons")]
+#[test]
+fn an_icon_never_closed_leaves_the_words_after_it_alone() {
+    let found = marks(r#"<span data-ico="star"> text <span class="x">hi</span>"#);
+    assert!(
+        found
+            .iter()
+            .all(|(mark, _)| !matches!(mark, Mark::Icon { .. }))
+    );
+    assert!(found.contains(&(Mark::Text, "hi".to_string())));
+}
+
+#[cfg(feature = "pens")]
+#[test]
+fn a_pen_never_cuts_across_another_mark_and_reads_its_colour_anywhere_in_the_tag() {
+    assert!(pens("**==a** b==").is_empty());
+    assert_eq!(
+        pens(r#"<mark class="x" data-pen="a&amp;b">w</mark>"#)[0].0,
+        Some("a&b".to_string())
+    );
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn a_details_block_reads_every_way_of_writing_open_and_its_summary() {
+    use tisty_markdown::Kind;
+    let doc =
+        read("<details open=\"\">\n\n<summary class=\"s\">More</summary>\n\nBody\n\n</details>");
+    assert_eq!(
+        doc.blocks()[0].kind,
+        Kind::Details {
+            summary: "More".into(),
+            open: true
+        }
+    );
+    assert_eq!(doc.blocks()[0].inner.len(), 1);
+}
+
+#[cfg(feature = "outline")]
+#[test]
+fn a_heading_keeps_its_formula_and_one_inside_a_quote_reads_clean() {
+    let doc = read("# Energy $E=mc^2$\n\n> Title\n> ===");
+    let said: Vec<String> = tisty_markdown::outline(&doc)
+        .into_iter()
+        .map(|one| one.said)
+        .collect();
+    assert_eq!(said, vec!["Energy E=mc^2", "Title"]);
+}
+
+#[cfg(feature = "mermaid")]
+#[test]
+fn a_diagram_with_too_many_parts_is_shown_as_code() {
+    let links: String = (0..600)
+        .map(|n| format!("  N{n} --> N{}\n", n + 1))
+        .collect();
+    assert!(tisty_markdown::diagram::drawn(&format!("graph TD\n{links}")).is_none());
+}

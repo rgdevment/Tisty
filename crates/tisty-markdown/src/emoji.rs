@@ -7,7 +7,6 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
         named(text, span.at.clone(), &mut found);
     }
     spans.extend(found);
-    spans.sort_by_key(|one| (one.at.start, std::cmp::Reverse(one.at.end)));
 }
 
 fn named(text: &str, within: std::ops::Range<usize>, found: &mut Vec<Span>) {

@@ -1,3 +1,4 @@
+use crate::html::attribute;
 use crate::{Mark, Span};
 
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
@@ -7,11 +8,7 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
             at += 1;
             continue;
         };
-        let shut = spans[at + 1..]
-            .iter()
-            .position(|one| one.mark == Mark::Html && &text[one.at.clone()] == "</span>")
-            .map(|step| at + 1 + step);
-        if let Some(shut) = shut {
+        if let Some(shut) = closing(spans, at, text) {
             let whole = spans[at].at.start..spans[shut].at.end;
             spans.splice(
                 at..=shut,
@@ -25,27 +22,25 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
     }
 }
 
+// Another span opening first means this one was never closed, and nothing is folded then.
+fn closing(spans: &[Span], from: usize, text: &str) -> Option<usize> {
+    let next = spans[from + 1..]
+        .iter()
+        .position(|one| {
+            let said = &text[one.at.clone()];
+            one.mark == Mark::Html && (said == "</span>" || said.starts_with("<span"))
+        })
+        .map(|step| from + 1 + step)?;
+    (&text[spans[next].at.clone()] == "</span>").then_some(next)
+}
+
 fn opened(span: &Span, text: &str) -> Option<(String, Option<String>)> {
     if span.mark != Mark::Html {
         return None;
     }
-    let tag = text[span.at.clone()]
-        .strip_prefix("<span ")?
+    let inside = text[span.at.clone()]
+        .strip_prefix("<span")?
         .strip_suffix('>')?;
-    let name = attribute(tag, "data-ico")?;
-    Some((name, attribute(tag, "data-hue")))
-}
-
-fn attribute(tag: &str, name: &str) -> Option<String> {
-    let open = format!("{name}=\"");
-    let from = tag.find(&open)? + open.len();
-    let to = from + tag[from..].find('"')?;
-    Some(unquoted(&tag[from..to]))
-}
-
-fn unquoted(said: &str) -> String {
-    said.replace("&quot;", "\"")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
+    let name = attribute(inside, "data-ico")?;
+    Some((name, attribute(inside, "data-hue")))
 }

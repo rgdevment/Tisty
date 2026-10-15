@@ -2,6 +2,8 @@ use mermaid_rs_renderer::{RenderOptions, Theme, compute_layout, parse_mermaid_st
 
 // Laying out a graph grows faster than its text: past this a fence is drawn as code instead.
 const AT_MOST: usize = 32 * 1024;
+// Text alone does not bound the layout: a short fence can still name thousands of links.
+const MOST_PARTS: usize = 1_000;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Drawn {
@@ -22,6 +24,9 @@ pub fn drawn(source: &str) -> Option<Drawn> {
             ..Theme::dark()
         };
         let parsed = parse_mermaid_strict(source).ok()?;
+        if parsed.graph.nodes.len() + parsed.graph.edges.len() > MOST_PARTS {
+            return None;
+        }
         let laid = compute_layout(&parsed.graph, &light.theme, &light.layout);
         Some(Drawn {
             light: render_svg(&laid, &light.theme, &light.layout),

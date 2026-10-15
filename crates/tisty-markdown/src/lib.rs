@@ -4,6 +4,8 @@ mod details;
 pub mod diagram;
 #[cfg(feature = "emoji")]
 mod emoji;
+#[cfg(any(feature = "icons", feature = "pens"))]
+mod html;
 #[cfg(feature = "icons")]
 mod icons;
 #[cfg(feature = "math")]
@@ -153,6 +155,16 @@ fn guarded<T>(draw: impl FnOnce() -> Option<T>) -> Option<T> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(draw))
         .ok()
         .flatten()
+}
+
+// A block inside a quote or a callout carries the quote marks on every one of its lines.
+#[cfg(any(feature = "tables", feature = "outline"))]
+fn unquoted(line: &str) -> &str {
+    let mut said = line.trim_start();
+    while let Some(rest) = said.strip_prefix('>') {
+        said = rest.trim_start();
+    }
+    said
 }
 
 #[cfg(test)]

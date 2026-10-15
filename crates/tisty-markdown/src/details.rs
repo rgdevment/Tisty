@@ -11,7 +11,17 @@ pub fn gather(blocks: &mut Vec<Block>, text: &str) {
             at += 1;
             continue;
         };
-        let inner: Vec<Block> = blocks.drain(at + 1..shut).collect();
+        let mut inner: Vec<Block> = blocks.drain(at + 1..shut).collect();
+        let summary = match (summary.is_empty(), inner.first()) {
+            (true, Some(first)) => match summoned(first, text) {
+                Some(said) => {
+                    inner.remove(0);
+                    said
+                }
+                None => summary,
+            },
+            _ => summary,
+        };
         let whole = blocks[at].at.start..blocks[at + 1].at.end;
         blocks.splice(
             at..at + 2,
@@ -36,15 +46,10 @@ fn opened(block: &Block, text: &str) -> Option<(String, bool)> {
                 return None;
             }
             let (attributes, rest) = tag.split_once('>')?;
-            let summary = rest
-                .trim()
-                .strip_prefix("<summary>")
-                .and_then(|inside| inside.split_once("</summary>"))
-                .map_or_else(String::new, |(summary, _)| summary.trim().to_string());
-            Some((
-                summary,
-                attributes.split_whitespace().any(|one| one == "open"),
-            ))
+            let open = attributes
+                .split_whitespace()
+                .any(|one| one == "open" || one.starts_with("open="));
+            Some((titled(rest).unwrap_or_default(), open))
         }
         Kind::Paragraph => {
             let summary = said.strip_prefix(":::details")?;
@@ -52,6 +57,23 @@ fn opened(block: &Block, text: &str) -> Option<(String, bool)> {
         }
         _ => None,
     }
+}
+
+fn titled(said: &str) -> Option<String> {
+    let tag = said.trim().strip_prefix("<summary")?;
+    if !tag.starts_with(['>', ' ']) {
+        return None;
+    }
+    let (_, inside) = tag.split_once('>')?;
+    let (summary, _) = inside.split_once("</summary>")?;
+    Some(summary.trim().to_string())
+}
+
+// A blank line between the two tags leaves the summary in a block of its own.
+fn summoned(block: &Block, text: &str) -> Option<String> {
+    (block.kind == Kind::Html)
+        .then(|| titled(&text[block.at.clone()]))
+        .flatten()
 }
 
 // A colon fence closes whichever colon container opened last, `:::tip` as much as `:::details`.

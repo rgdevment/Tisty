@@ -87,6 +87,9 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str) {
         for pass in PASSES {
             pass(&mut block.spans, text);
         }
+        block
+            .spans
+            .sort_by_key(|one| (one.at.start, std::cmp::Reverse(one.at.end)));
         polish_all(&mut block.inner, text);
     }
 }
@@ -113,7 +116,10 @@ pub(crate) fn plain(source: &str) -> String {
     let mut said = String::new();
     for (event, _) in tokens(source) {
         match event {
-            Event::Text(words) | Event::Code(words) => said.push_str(&words),
+            Event::Text(words)
+            | Event::Code(words)
+            | Event::InlineMath(words)
+            | Event::DisplayMath(words) => said.push_str(&words),
             Event::SoftBreak | Event::HardBreak => said.push(' '),
             _ => {}
         }
