@@ -110,6 +110,9 @@ export default function Sheet(props: Readonly<Props>) {
     };
   }, [reading, written]);
 
+  // The sheet takes the keys without a caret, so nothing pulls the view to where one would be.
+  useEffect(() => room.current?.focus({ preventScroll: true }), []);
+
   const wanted = useRef(props.seek);
   const marked = useRef(props.anchor);
   useEffect(() => {
@@ -121,9 +124,10 @@ export default function Sheet(props: Readonly<Props>) {
       if (!sheet) return null;
       const page = shown.current?.document;
       const found = mark ? page?.querySelector<HTMLElement>(`[data-doc="${mark}"]`) : null;
+      const box = found?.getBoundingClientRect();
+      if (!box || (!box.height && !box.top)) return want ?? null;
       const frame = shown.current?.frameElement as HTMLElement | null | undefined;
-      if (!found || !frame) return want ?? null;
-      const above = found.getBoundingClientRect().top + frame.getBoundingClientRect().top;
+      const above = box.top + (frame?.getBoundingClientRect().top ?? 0);
       return Math.max(
         0,
         Math.round(above - sheet.getBoundingClientRect().top + sheet.scrollTop - ASIDE_MARGIN),
@@ -142,7 +146,7 @@ export default function Sheet(props: Readonly<Props>) {
       put: (down) => {
         putting.current = down;
       },
-      watch: () => room.current?.querySelector<HTMLElement>("iframe") ?? null,
+      watch: () => room.current?.querySelector<HTMLElement>("iframe, .page") ?? null,
     });
   }, []);
 
