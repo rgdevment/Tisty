@@ -77,6 +77,8 @@ pulldown-cmark = { version = "0.13", default-features = false }
 math-core = "0.9"
 mermaid-rs-renderer = { version = "0.3", default-features = false }
 emojis = "0.9"
+# What a document carries as html reaches the reader cleaned of anything that could run.
+ammonia = "4"
 tempfile = "3"
 proptest = { version = "1", default-features = false, features = ["std"] }
 

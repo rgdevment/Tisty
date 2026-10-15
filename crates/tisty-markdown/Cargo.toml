@@ -10,9 +10,10 @@ publish.workspace = true
 workspace = true
 
 [features]
-default = ["details", "emoji", "icons", "math", "mermaid", "outline", "pens", "refs", "tables", "tags"]
+default = ["details", "emoji", "html", "icons", "math", "mermaid", "outline", "pens", "refs", "tables", "tags"]
 details = []
 emoji = ["dep:emojis"]
+html = ["dep:ammonia"]
 icons = []
 outline = []
 pens = []
@@ -29,6 +30,7 @@ unicode-normalization.workspace = true
 math-core = { workspace = true, optional = true }
 mermaid-rs-renderer = { workspace = true, optional = true }
 emojis = { workspace = true, optional = true }
+ammonia = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true
