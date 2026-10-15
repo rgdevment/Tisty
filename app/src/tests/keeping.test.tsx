@@ -2047,7 +2047,7 @@ describe("the maintenance panel", () => {
     expect(sent("take_over")).toHaveLength(0);
   });
 
-  it("names the documents that would open read only, and what each brings", async () => {
+  it("names the documents with markup outside Tisty's own words, and what each brings", async () => {
     render(
       <Keeping
         onPack={() => {}}
@@ -2067,7 +2067,7 @@ describe("the maintenance panel", () => {
     expect(screen.queryByText("Limpio")).toBeNull();
   });
 
-  it("says so plainly when every document survives being saved", async () => {
+  it("says so plainly when every document speaks Tisty's own words", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "doc_read" ? Promise.resolve("# Limpio\n\nun parrafo") : otherwise(cmd, args);
@@ -2085,7 +2085,7 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
 
-    expect(await screen.findByText(/every document survives being saved/i)).toBeTruthy();
+    expect(await screen.findByText(/every document speaks Tisty's own words/i)).toBeTruthy();
   });
 
   it("says what the review found", async () => {
