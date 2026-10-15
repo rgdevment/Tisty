@@ -111,3 +111,29 @@ fn what_only_looks_like_a_pen_is_left_alone() {
     assert!(pens("`==code==` stays").is_empty());
     assert!(pens("====").is_empty());
 }
+
+#[cfg(feature = "math")]
+fn formulas(text: &str) -> Vec<String> {
+    marks(text)
+        .into_iter()
+        .filter(|(mark, _)| *mark == Mark::Math)
+        .map(|(_, said)| said)
+        .collect()
+}
+
+#[cfg(feature = "math")]
+#[test]
+fn a_formula_inside_a_line_is_read_between_single_dollars() {
+    assert_eq!(formulas("Energy $E=mc^2$ here"), vec!["$E=mc^2$"]);
+    assert_eq!(formulas("$a_b$ and $c$"), vec!["$a_b$", "$c$"]);
+}
+
+#[cfg(feature = "math")]
+#[test]
+fn prices_and_escaped_dollars_never_become_formulas() {
+    assert!(formulas("Cuesta $5 y $10 en total.").is_empty());
+    assert!(formulas("From $ 3 to $ 4").is_empty());
+    assert!(formulas("Pay $20, then $30").is_empty());
+    assert!(formulas(r"A \$x\$ literal").is_empty());
+    assert!(formulas("`$x$` is code").is_empty());
+}

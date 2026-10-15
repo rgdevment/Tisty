@@ -47,6 +47,7 @@ pub enum Mark {
     Break,
     Icon { name: String, hue: Option<String> },
     Pen { color: Option<String> },
+    Math,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
