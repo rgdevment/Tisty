@@ -5,6 +5,7 @@ import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
 import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
 import Belongs from "./Belongs";
+import { useEdge } from "./edging";
 import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
@@ -85,6 +86,8 @@ export default function Detail({
   onStepToPart,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const edge = useEdge(card, expanded);
   const live = task.status === "open";
   const holding = live && !task.repeat && !task.after && !task.hidden;
   useEffect(() => {
@@ -316,14 +319,17 @@ export default function Detail({
           </button>
         </div>
         <div className="scroller @container flex-1 px-5 pb-6">
-          <div className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px]">
+          <div
+            ref={card}
+            className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px]"
+          >
             <div className="min-w-0">{shown}</div>
             <div className="min-w-0">{aside}</div>
           </div>
         </div>
         <Settled
           task={task}
-          wide
+          edge={edge}
           onComplete={onComplete}
           onDiscard={onDiscard}
           onReopen={onReopen}
@@ -383,9 +389,12 @@ export default function Detail({
   );
 }
 
+// The card's padding less the button's, less the footer's own: the label lines up with the title.
+const LINED = 32 - 8 - 12;
+
 function Settled({
   task,
-  wide,
+  edge,
   onComplete,
   onDiscard,
   onReopen,
@@ -397,7 +406,7 @@ function Settled({
   left,
 }: {
   task: Task;
-  wide?: boolean;
+  edge?: number;
   left?: number;
   onComplete: () => void;
   onDiscard: () => void;
@@ -476,11 +485,8 @@ function Settled({
         className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
       >
         <div
-          className={
-            wide
-              ? "mx-auto flex w-full max-w-[720px] items-center gap-1"
-              : "flex items-center gap-1"
-          }
+          className="flex items-center gap-1"
+          style={edge === undefined ? undefined : { paddingLeft: edge + LINED }}
         >
           {open ? (
             <>

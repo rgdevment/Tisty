@@ -1280,6 +1280,7 @@ body {
   [role="listbox"],
   [role="alert"],
   [role="status"],
+  .cheer,
   [data-chrome],
   [data-tauri-drag-region] {
     display: none !important;
@@ -1561,7 +1562,7 @@ body {
   height: auto;
   pointer-events: none;
 }
-.cheer > [role="status"] {
+.cheer > output {
   position: relative;
   z-index: 1;
 }
