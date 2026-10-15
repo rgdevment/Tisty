@@ -4,10 +4,11 @@ import { markup } from "../glyphs";
 import { serve, showing } from "../inUse";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
+import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, type Went, went } from "./paging";
 import { type Lending, lend, locked } from "./widgeting";
 
-export type Reaching = {
+export type Reaching = Carding & {
   readonly body: string;
   readonly onDoc: (file: string) => void;
   readonly onOpen?: (reference: string) => void;
@@ -113,6 +114,7 @@ export const worn = (
   iconed(page);
   const kept = pictures(page, live);
   const lent = widgets(page, stranger, reach);
+  if (reach && !stranger) carded(page, reach, live);
   colored(page, live);
   return { lent, kept };
 };

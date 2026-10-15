@@ -3,6 +3,7 @@ import { viewWidget } from "../core";
 import type { Moved } from "../paging";
 import { type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
+import type { Carded } from "./carding";
 import Page from "./Page";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { translated } from "./translating";
@@ -23,6 +24,8 @@ type Props = {
   readonly onTag?: (tag: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
+  readonly card?: (file: string) => Carded;
+  readonly blurb?: (file: string) => Promise<string>;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
 };
@@ -222,6 +225,8 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={block}
+          card={props.card}
+          blurb={props.blurb}
           onApart={(source) => {
             const from = said.current.file;
             viewWidget(

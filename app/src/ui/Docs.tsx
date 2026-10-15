@@ -29,6 +29,7 @@ import { sure } from "../sure";
 import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
+import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
@@ -390,6 +391,12 @@ export default function Docs({
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
+  const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
+  const blurbs = useRef(blurbing());
+  const blurb = useCallback(
+    (file: string) => blurbs.current(known.find((one) => one.file === file)),
+    [known],
+  );
 
   const [aboveTold, setAboveTold] = useState<string[]>();
   const upstairs = above?.file;
@@ -545,6 +552,8 @@ export default function Docs({
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Sheet
                 file={open.file}
+                card={cards}
+                blurb={blurb}
                 value={body}
                 seek={seek}
                 anchor={anchor}
