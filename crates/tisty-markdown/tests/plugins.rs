@@ -423,3 +423,50 @@ fn a_diagram_with_too_many_parts_is_shown_as_code() {
         .collect();
     assert!(tisty_markdown::diagram::drawn(&format!("graph TD\n{links}")).is_none());
 }
+
+#[cfg(feature = "tags")]
+#[test]
+fn a_tag_is_marked_where_the_core_reads_it_and_never_inside_code() {
+    let found: Vec<(Mark, String)> = marks("Notes #plan and #mi_etiqueta, `#no` and bg-#fff")
+        .into_iter()
+        .filter(|(mark, _)| matches!(mark, Mark::Tag { .. }))
+        .collect();
+    assert_eq!(
+        found,
+        vec![
+            (
+                Mark::Tag {
+                    name: "plan".into()
+                },
+                "#plan".to_string()
+            ),
+            (
+                Mark::Tag {
+                    name: "mi-etiqueta".into()
+                },
+                "#mi_etiqueta".to_string()
+            ),
+        ]
+    );
+}
+
+#[cfg(feature = "refs")]
+#[test]
+fn a_reference_between_double_brackets_is_one_mark_outside_code() {
+    let found: Vec<(Mark, String)> = marks("See [[My doc]] and step [[#2]], not `[[code]]`.")
+        .into_iter()
+        .filter(|(mark, _)| matches!(mark, Mark::Ref { .. }))
+        .collect();
+    assert_eq!(
+        found,
+        vec![
+            (
+                Mark::Ref {
+                    name: "My doc".into()
+                },
+                "[[My doc]]".to_string()
+            ),
+            (Mark::Ref { name: "#2".into() }, "[[#2]]".to_string()),
+        ]
+    );
+}

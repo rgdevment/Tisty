@@ -9,6 +9,8 @@ pub mod fences;
 mod html;
 #[cfg(feature = "icons")]
 mod icons;
+#[cfg(any(feature = "tags", feature = "refs"))]
+mod marks;
 #[cfg(feature = "math")]
 pub mod math;
 #[cfg(feature = "outline")]
@@ -64,6 +66,8 @@ pub enum Mark {
     Pen { color: Option<String> },
     Math,
     Emoji { glyph: String },
+    Tag { name: String },
+    Ref { name: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

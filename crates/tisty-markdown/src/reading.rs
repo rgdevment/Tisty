@@ -64,6 +64,10 @@ const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     crate::pens::fold,
     #[cfg(feature = "emoji")]
     crate::emoji::fold,
+    #[cfg(feature = "tags")]
+    crate::marks::tagged,
+    #[cfg(feature = "refs")]
+    crate::marks::named,
 ];
 
 const SHAPES: &[fn(&mut Block, &str)] = &[
