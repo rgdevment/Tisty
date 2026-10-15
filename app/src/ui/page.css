@@ -28,6 +28,18 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: auto 3lh;
 }
+html:not(.tall) {
+  background: var(--tisty-desk);
+}
+html:not(.tall) body {
+  padding: 24px 16px 40vh;
+}
+html:not(.tall) .page {
+  padding-bottom: 36px;
+  border-radius: 10px;
+  background: var(--tisty-sheet);
+  box-shadow: 0 1px 3px var(--tisty-cast);
+}
 html.tall {
   overflow: hidden;
 }
