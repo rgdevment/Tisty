@@ -1,5 +1,7 @@
 #[cfg(feature = "mermaid")]
 pub mod diagram;
+#[cfg(feature = "icons")]
+mod icons;
 #[cfg(feature = "math")]
 pub mod math;
 mod reading;
@@ -41,6 +43,7 @@ pub enum Mark {
     Image { src: String },
     Html,
     Break,
+    Icon { name: String, hue: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

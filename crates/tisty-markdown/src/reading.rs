@@ -39,9 +39,27 @@ pub fn read(text: &str) -> Doc {
             _ => {}
         }
     }
+    for block in &mut blocks {
+        polish(block, text);
+    }
     Doc {
         text: text.to_string(),
         blocks,
+    }
+}
+
+// Each plugin reads what the tokenizer could not: Tisty's own marks, in the order they run.
+const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
+    #[cfg(feature = "icons")]
+    crate::icons::fold,
+];
+
+fn polish(block: &mut Block, text: &str) {
+    for pass in PASSES {
+        pass(&mut block.spans, text);
+    }
+    for inner in &mut block.inner {
+        polish(inner, text);
     }
 }
 
