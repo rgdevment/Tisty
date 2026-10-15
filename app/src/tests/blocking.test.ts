@@ -76,6 +76,44 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("shows pens, underlines and icons as they will read, but never inside code or for unknown names", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "==a== ==b=={green} ==c=={silver} ++d++ ::dog orange:: ::star:: ::nope:: ::dog plaid:: `==e==`",
+      () => {},
+      () => {},
+    );
+    const classes = Array.from(page.querySelectorAll(".editing .cm-content span")).map(
+      (one) => `${one.className}:${one.textContent}`,
+    );
+    expect(classes).toContain("cm-pen cm-pen-yellow:==a==");
+    expect(classes).toContain("cm-pen cm-pen-green:==b=={green}");
+    expect(classes).toContain("cm-under:++d++");
+    expect(classes).toContain("cm-ico ico-orange:::dog orange::");
+    expect(classes).toContain("cm-ico:::star::");
+    expect(classes.some((one) => one.includes("silver"))).toBe(false);
+    expect(classes.some((one) => one.startsWith("cm-ico") && one.includes("nope"))).toBe(false);
+    expect(classes.some((one) => one.startsWith("cm-ico") && one.includes("plaid"))).toBe(false);
+    expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("==e=="))).toBe(false);
+    editing.leave();
+    page.remove();
+  });
+
+  it("paints nothing in a block shown as it was written", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "==a=={green} ++b++",
+      () => {},
+      () => {},
+      false,
+    );
+    expect(page.querySelector(".editing .cm-pen, .editing .cm-under")).toBeNull();
+    editing.leave();
+    page.remove();
+  });
+
   it("keeps the line endings the block was written with", () => {
     const { page, one } = block();
     const changes: string[] = [];

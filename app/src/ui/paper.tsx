@@ -188,6 +188,14 @@ const PENS: Record<string, string> = {
   green: "#d5f0e0",
   blue: "#d8e8fb",
   pink: "#f9dcea",
+  red: "#fbdcdf",
+  orange: "#fde4cc",
+  amber: "#f6e9bf",
+  teal: "#cfeee8",
+  indigo: "#dfe2fb",
+  purple: "#ebdff8",
+  brown: "#ece3da",
+  gray: "#e6e6e9",
 };
 
 const pens = StyleSheet.create(

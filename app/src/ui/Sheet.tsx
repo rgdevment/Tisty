@@ -4,6 +4,7 @@ import { type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import Page from "./Page";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import { translated } from "./translating";
 import type { Head } from "./writing";
 
 type Props = {
@@ -35,12 +36,14 @@ export default function Sheet(props: Readonly<Props>) {
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
+  const echoes = useRef<string[]>([]);
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
 
   const written = useCallback((text: string) => {
     latest.current = text;
+    echoes.current.push(text);
     said.current.onWrite(text);
   }, []);
 
@@ -66,6 +69,7 @@ export default function Sheet(props: Readonly<Props>) {
     onFile.current = file;
     left();
     latest.current = value;
+    echoes.current = [];
     wanted.current = said.current.seek;
     marked.current = said.current.anchor;
     putting.current = 0;
@@ -74,7 +78,17 @@ export default function Sheet(props: Readonly<Props>) {
   }, [file, value, left]);
 
   useEffect(() => {
-    if (value === latest.current) return;
+    if (value === latest.current) {
+      echoes.current = [];
+      return;
+    }
+    // Keys typed faster than the window draws come back late, in order; an older text of ours is not news.
+    const late = echoes.current.indexOf(value);
+    if (late >= 0) {
+      echoes.current = echoes.current.slice(late + 1);
+      return;
+    }
+    echoes.current = [];
     // Words from outside (a reload, a step back) end the block being written: it spoke of the old ones.
     latest.current = value;
     if (open.current) left();
@@ -89,6 +103,7 @@ export default function Sheet(props: Readonly<Props>) {
     let end = at[1];
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
+    const tisty = translated(piece);
     const spliced = (text: string) => {
       const now = latest.current;
       const next = `${now.slice(0, from)}${text}${tail}${now.slice(end)}`;
@@ -97,12 +112,13 @@ export default function Sheet(props: Readonly<Props>) {
     };
     open.current = edited(
       element,
-      piece,
-      (text) => written(spliced(text)),
+      tisty.shown,
+      (text) => written(spliced(tisty.stored(text))),
       () => {
         open.current = null;
         setDrawn(latest.current);
       },
+      tisty.active,
     );
   };
 
