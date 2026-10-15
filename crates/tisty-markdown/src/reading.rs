@@ -1,8 +1,10 @@
 use std::ops::Range;
 
-use pulldown_cmark::{BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{
+    Alignment, BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag, TagEnd,
+};
 
-use crate::{Block, Callout, Doc, Kind};
+use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn read(text: &str) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
@@ -15,6 +17,8 @@ pub fn read(text: &str) -> Doc {
             Event::Start(tag) => {
                 if let Some(kind) = kind_of(&tag, &text[at.clone()]) {
                     open.push(leaf(kind, at));
+                } else if let Some(mark) = mark_of(&tag) {
+                    spot(&mut open, mark, at);
                 }
             }
             Event::End(end) if ends_block(end) => {
@@ -29,22 +33,98 @@ pub fn read(text: &str) -> Doc {
             }
             Event::Rule => shelve(&mut open, &mut blocks, leaf(Kind::Rule, at)),
             Event::TaskListMarker(ticked) => tick(&mut open, ticked),
+            Event::Text(_) => spot(&mut open, Mark::Text, at),
+            Event::Code(_) => spot(&mut open, Mark::Code, at),
+            Event::InlineHtml(_) => spot(&mut open, Mark::Html, at),
+            Event::InlineMath(_) | Event::DisplayMath(_) => {
+                let mark = if priced(text, &at) {
+                    Mark::Text
+                } else {
+                    Mark::Math
+                };
+                spot(&mut open, mark, at);
+            }
+            // A single newline breaks the line in Tisty, the way the window has always shown it.
+            Event::SoftBreak | Event::HardBreak => spot(&mut open, Mark::Break, at),
             _ => {}
         }
     }
+    polish_all(&mut blocks, text);
     Doc {
         text: text.to_string(),
         blocks,
     }
 }
 
-/// The only place the tokenizer is named: swapping it for another touches nothing else.
+// The order matters: a later pass reads the marks an earlier one has already folded.
+const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
+    #[cfg(feature = "icons")]
+    crate::icons::fold,
+    #[cfg(feature = "pens")]
+    crate::pens::fold,
+    #[cfg(feature = "emoji")]
+    crate::emoji::fold,
+];
+
+const SHAPES: &[fn(&mut Block, &str)] = &[
+    #[cfg(feature = "tables")]
+    crate::tables::widen,
+];
+
+const GATHERS: &[fn(&mut Vec<Block>, &str)] = &[
+    #[cfg(feature = "details")]
+    crate::details::gather,
+];
+
+fn polish_all(blocks: &mut Vec<Block>, text: &str) {
+    for gather in GATHERS {
+        gather(blocks, text);
+    }
+    for block in blocks {
+        for shape in SHAPES {
+            shape(block, text);
+        }
+        for pass in PASSES {
+            pass(&mut block.spans, text);
+        }
+        block
+            .spans
+            .sort_by_key(|one| (one.at.start, std::cmp::Reverse(one.at.end)));
+        polish_all(&mut block.inner, text);
+    }
+}
+
+// The only place the tokenizer is named: swapping it for another touches nothing else.
 fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
-    let options = Options::ENABLE_TABLES
+    let mut options = Options::ENABLE_TABLES
         | Options::ENABLE_TASKLISTS
         | Options::ENABLE_STRIKETHROUGH
         | Options::ENABLE_GFM;
+    if cfg!(feature = "math") {
+        options |= Options::ENABLE_MATH;
+    }
     Parser::new_ext(text, options).into_offset_iter()
+}
+
+// A digit right after the closing dollar is a price written next to another one, not a formula.
+fn priced(text: &str, at: &Range<usize>) -> bool {
+    text[at.end..].starts_with(|c: char| c.is_ascii_digit())
+}
+
+#[cfg(feature = "outline")]
+pub(crate) fn plain(source: &str) -> String {
+    let mut said = String::new();
+    for (event, _) in tokens(source) {
+        match event {
+            Event::Text(words)
+            | Event::Code(words)
+            | Event::InlineMath(words)
+            | Event::DisplayMath(words) => said.push_str(&words),
+            Event::SoftBreak | Event::HardBreak => said.push(' '),
+            _ => {}
+        }
+    }
+    said.trim().to_string()
 }
 
 fn leaf(kind: Kind, at: Range<usize>) -> Block {
@@ -52,7 +132,31 @@ fn leaf(kind: Kind, at: Range<usize>) -> Block {
         kind,
         at,
         inner: Vec::new(),
+        spans: Vec::new(),
     }
+}
+
+fn spot(open: &mut [Block], mark: Mark, at: Range<usize>) {
+    if let Some(block) = open.last_mut()
+        && !matches!(block.kind, Kind::Code { .. } | Kind::Html)
+    {
+        block.spans.push(Span { mark, at });
+    }
+}
+
+fn mark_of(tag: &Tag<'_>) -> Option<Mark> {
+    Some(match tag {
+        Tag::Emphasis => Mark::Emphasis,
+        Tag::Strong => Mark::Strong,
+        Tag::Strikethrough => Mark::Strike,
+        Tag::Link { dest_url, .. } => Mark::Link {
+            to: dest_url.to_string(),
+        },
+        Tag::Image { dest_url, .. } => Mark::Image {
+            src: dest_url.to_string(),
+        },
+        _ => return None,
+    })
 }
 
 fn shelve(open: &mut [Block], blocks: &mut Vec<Block>, done: Block) {
@@ -91,9 +195,24 @@ fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
         Tag::HtmlBlock => Kind::Html,
         Tag::List(start) => Kind::List { start: *start },
         Tag::Item => Kind::Item { done: None },
-        Tag::Table(_) => Kind::Table,
+        Tag::Table(aligned) => Kind::Table {
+            columns: aligned.iter().map(column).collect(),
+        },
+        Tag::TableHead => Kind::Row { head: true },
+        Tag::TableRow => Kind::Row { head: false },
+        Tag::TableCell => Kind::Cell,
         _ => return None,
     })
+}
+
+fn column(aligned: &Alignment) -> Column {
+    let lean = match aligned {
+        Alignment::None => None,
+        Alignment::Left => Some(Lean::Left),
+        Alignment::Center => Some(Lean::Center),
+        Alignment::Right => Some(Lean::Right),
+    };
+    Column { lean, wide: None }
 }
 
 fn ends_block(end: TagEnd) -> bool {
@@ -107,6 +226,9 @@ fn ends_block(end: TagEnd) -> bool {
             | TagEnd::List(_)
             | TagEnd::Item
             | TagEnd::Table
+            | TagEnd::TableHead
+            | TagEnd::TableRow
+            | TagEnd::TableCell
     )
 }
 
