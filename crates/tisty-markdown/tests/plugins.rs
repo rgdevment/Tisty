@@ -204,3 +204,56 @@ fn a_table_written_without_a_leading_pipe_is_measured_the_same() {
     assert_eq!(found[0].wide, Some(90));
     assert_eq!(found[1].lean, Some(tisty_markdown::Lean::Center));
 }
+
+#[cfg(feature = "details")]
+fn tops(text: &str) -> Vec<tisty_markdown::Kind> {
+    read(text)
+        .blocks()
+        .iter()
+        .map(|one| one.kind.clone())
+        .collect()
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn what_sits_between_details_tags_folds_under_its_summary() {
+    use tisty_markdown::Kind;
+    let doc = read("<details><summary>More</summary>\n\nHidden.\n\n</details>\n\nAfter.");
+    assert_eq!(
+        doc.blocks()[0].kind,
+        Kind::Details {
+            summary: "More".into(),
+            open: false
+        }
+    );
+    assert_eq!(doc.blocks()[0].inner[0].kind, Kind::Paragraph);
+    assert_eq!(doc.blocks()[1].kind, Kind::Paragraph);
+    assert_eq!(
+        tops("<details open>\n<summary>Open</summary>\n\nIn.\n\n</details>"),
+        vec![Kind::Details {
+            summary: "Open".into(),
+            open: true
+        }]
+    );
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn the_colon_fence_is_read_as_a_details_block_too() {
+    assert_eq!(
+        tops(":::details Old style\n\nInside.\n\n:::"),
+        vec![tisty_markdown::Kind::Details {
+            summary: "Old style".into(),
+            open: false
+        }]
+    );
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn a_details_block_never_closed_is_left_as_it_was_written() {
+    assert_eq!(
+        tops("<details><summary>Open</summary>\n\nWords."),
+        vec![tisty_markdown::Kind::Html, tisty_markdown::Kind::Paragraph]
+    );
+}

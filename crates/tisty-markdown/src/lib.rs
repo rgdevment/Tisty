@@ -1,3 +1,5 @@
+#[cfg(feature = "details")]
+mod details;
 #[cfg(feature = "mermaid")]
 pub mod diagram;
 #[cfg(feature = "emoji")]
@@ -76,6 +78,10 @@ pub enum Kind {
     },
     Html,
     Rule,
+    Details {
+        summary: String,
+        open: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

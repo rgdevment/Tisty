@@ -41,9 +41,7 @@ pub fn read(text: &str) -> Doc {
             _ => {}
         }
     }
-    for block in &mut blocks {
-        polish(block, text);
-    }
+    polish_all(&mut blocks, text);
     Doc {
         text: text.to_string(),
         blocks,
@@ -68,15 +66,24 @@ const SHAPES: &[fn(&mut Block, &str)] = &[
     crate::tables::widen,
 ];
 
-fn polish(block: &mut Block, text: &str) {
-    for shape in SHAPES {
-        shape(block, text);
+// And the runs of sibling blocks that only mean something together.
+const GATHERS: &[fn(&mut Vec<Block>, &str)] = &[
+    #[cfg(feature = "details")]
+    crate::details::gather,
+];
+
+fn polish_all(blocks: &mut Vec<Block>, text: &str) {
+    for gather in GATHERS {
+        gather(blocks, text);
     }
-    for pass in PASSES {
-        pass(&mut block.spans, text);
-    }
-    for inner in &mut block.inner {
-        polish(inner, text);
+    for block in blocks {
+        for shape in SHAPES {
+            shape(block, text);
+        }
+        for pass in PASSES {
+            pass(&mut block.spans, text);
+        }
+        polish_all(&mut block.inner, text);
     }
 }
 
