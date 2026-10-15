@@ -217,7 +217,7 @@ describe("dressing a drawn page", () => {
 
 describe("what a click on a drawn page does", () => {
   it("opens documents, the web, attachments, tags and blocks where each belongs", () => {
-    const drawn = page('<h2 id="here">Here</h2>');
+    const drawn = page('<h2 id="here">Here</h2><p data-at="11-19">Árbol.</p>');
     const { heard, reach } = reaching();
     answered(drawn, { kind: "doc", id: "ab12-0001" }, reach);
     answered(drawn, { kind: "web", href: "https://x.y" }, reach);
@@ -225,6 +225,7 @@ describe("what a click on a drawn page does", () => {
     answered(drawn, { kind: "tag", name: "work" }, reach);
     answered(drawn, { kind: "block", at: [11, 19] }, reach);
     answered(drawn, { kind: "here", id: "here" }, reach);
+    answered(drawn, { kind: "block", at: [0, 3] }, reach);
     answered(drawn, null, reach);
     expect(heard.docs).toEqual(["ab12-0001"]);
     expect(calls.links).toEqual(["https://x.y"]);
