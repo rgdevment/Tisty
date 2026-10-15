@@ -2,8 +2,17 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirro
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import {
+  Decoration,
+  type DecorationSet,
+  EditorView,
+  keymap,
+  MatchDecorator,
+  ViewPlugin,
+  type ViewUpdate,
+} from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { PENS } from "./translating";
 
 export type Editing = {
   readonly view: EditorView;
@@ -32,6 +41,30 @@ const dressing = EditorView.theme({
     background: "var(--tisty-accent-soft)",
   },
 });
+
+const marking = new MatchDecorator({
+  regexp:
+    /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?|(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/gu,
+  decoration: (found) => {
+    if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
+    const pen = found[2] ?? "yellow";
+    return Decoration.mark({ class: `cm-pen cm-pen-${PENS.includes(pen) ? pen : "yellow"}` });
+  },
+});
+
+// Pens and underlines show as they will read, so Tisty's own words never look like markup.
+const marked = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = marking.createDeco(view);
+    }
+    update(update: ViewUpdate) {
+      this.decorations = marking.updateDeco(update, this.decorations);
+    }
+  },
+  { decorations: (one) => one.decorations },
+);
 
 export const edited = (
   block: HTMLElement,
@@ -74,6 +107,7 @@ export const edited = (
         ]),
         markdown(),
         syntaxHighlighting(inked),
+        marked,
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

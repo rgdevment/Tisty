@@ -235,6 +235,22 @@ describe("the sheet in the main window", () => {
     expect(ipc.left).toBe(1);
   });
 
+  it("opens a block in Tisty's own words and writes it back the way the file keeps it", async () => {
+    const writes: string[] = [];
+    const body = '# Compras\n\n<u>leche</u> y <mark data-pen="green">pan</mark>\n';
+    ipc.drawn = '<h1 data-at="0-10">Compras</h1><p data-at="11-60">leche y pan</p>';
+    const view = render(
+      <Sheet value={body} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-60"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.opened[0].said).toBe("++leche++ y ==pan=={green}\n");
+    ipc.opened[0].change("++leche++ y ==pan=={blue}");
+    expect(writes).toEqual(['# Compras\n\n<u>leche</u> y <mark data-pen="blue">pan</mark>\n']);
+  });
+
   it("follows new words from outside while nothing is being written", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));

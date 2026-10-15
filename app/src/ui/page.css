@@ -174,20 +174,59 @@ blockquote[data-callout="warning"] {
 blockquote[data-callout="caution"] {
   --said: var(--tisty-hue-red);
 }
-mark {
+mark,
+.cm-pen {
   background: var(--tisty-pen-yellow);
   color: inherit;
   border-radius: 3px;
   padding: 0 2px;
 }
-mark[data-pen="green"] {
+.cm-under {
+  text-decoration: underline;
+}
+mark[data-pen="red"],
+.cm-pen-red {
+  background: color-mix(in srgb, var(--tisty-hue-red) 28%, transparent);
+}
+mark[data-pen="orange"],
+.cm-pen-orange {
+  background: color-mix(in srgb, var(--tisty-hue-orange) 28%, transparent);
+}
+mark[data-pen="amber"],
+.cm-pen-amber {
+  background: color-mix(in srgb, var(--tisty-hue-amber) 28%, transparent);
+}
+mark[data-pen="green"],
+.cm-pen-green {
   background: var(--tisty-pen-green);
 }
-mark[data-pen="blue"] {
+mark[data-pen="teal"],
+.cm-pen-teal {
+  background: color-mix(in srgb, var(--tisty-hue-teal) 28%, transparent);
+}
+mark[data-pen="blue"],
+.cm-pen-blue {
   background: var(--tisty-pen-blue);
 }
-mark[data-pen="pink"] {
+mark[data-pen="indigo"],
+.cm-pen-indigo {
+  background: color-mix(in srgb, var(--tisty-hue-indigo) 28%, transparent);
+}
+mark[data-pen="purple"],
+.cm-pen-purple {
+  background: color-mix(in srgb, var(--tisty-hue-purple) 28%, transparent);
+}
+mark[data-pen="pink"],
+.cm-pen-pink {
   background: var(--tisty-pen-pink);
+}
+mark[data-pen="brown"],
+.cm-pen-brown {
+  background: color-mix(in srgb, var(--tisty-hue-brown) 28%, transparent);
+}
+mark[data-pen="gray"],
+.cm-pen-gray {
+  background: color-mix(in srgb, var(--tisty-hue-gray) 28%, transparent);
 }
 code {
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
