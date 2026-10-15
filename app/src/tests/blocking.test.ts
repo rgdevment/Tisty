@@ -60,4 +60,35 @@ describe("writing a block in place", () => {
     expect(left).toEqual(["Hola"]);
     page.remove();
   });
+
+  it("puts the drawn block back once it is left, so nothing is missing until the page is drawn again", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Leche y pan.",
+      () => {},
+      () => {},
+    );
+    expect(page.contains(one)).toBe(false);
+    editing.leave();
+    expect(page.contains(one)).toBe(true);
+    expect(page.querySelector(".editing")).toBeNull();
+    page.remove();
+  });
+
+  it("keeps the line endings the block was written with", () => {
+    const { page, one } = block();
+    const changes: string[] = [];
+    const editing = edited(
+      one,
+      "uno\r\ndos\r\n",
+      (text) => changes.push(text),
+      () => {},
+    );
+    expect(editing.view.state.doc.lines).toBe(2);
+    editing.view.dispatch({ changes: { from: 3, insert: "!" } });
+    expect(changes).toEqual(["uno!\r\ndos"]);
+    editing.leave();
+    page.remove();
+  });
 });

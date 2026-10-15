@@ -15,7 +15,7 @@ type Props = Reaching & {
   readonly onShown?: (page: Window | null) => void;
 };
 
-type Drawn = { html: string; turn: number };
+type Drawn = { html: string; turn: number; body: string };
 
 // A new drawing waits unseen until it is ready, so a redraw never blinks or jumps.
 export default function Page(props: Readonly<Props>) {
@@ -36,7 +36,7 @@ export default function Page(props: Readonly<Props>) {
       const turn = turns.current;
       setFrames((were) => [
         ...were.filter((one) => one.turn === showing.current),
-        { html: shell(html), turn },
+        { html: shell(html), turn, body },
       ]);
     };
     docDrawn(body)
@@ -75,7 +75,12 @@ export default function Page(props: Readonly<Props>) {
           hidden={one.turn !== shown}
           wide={wide}
           zoom={zoom}
-          reach={() => reach.current}
+          reach={() => ({
+            ...reach.current,
+            body: one.body,
+            // A page with a newer drawing on its way names bytes nobody is writing any more.
+            onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
+          })}
           onReady={(frame) => ready(one.turn, frame)}
         />
       ))}

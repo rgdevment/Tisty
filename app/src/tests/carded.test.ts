@@ -66,6 +66,12 @@ describe("moving a page's card", () => {
     expect(movedCard(top, "a3f1-0003", "a3f1-0002").moved).toBe("titled");
   });
 
+  it("reads a file name literally, never as a pattern", () => {
+    const odd = "# Libro\n\nAlgo.\n\n![Dos](tisty:doc/axb)\n\n![Uno](tisty:doc/a.b)\n";
+    expect(movedCard(odd, "a+b(", null).moved).toBe("unseen");
+    expect(movedCard(odd, "a.b", null)).toEqual({ moved: "done", body: odd });
+  });
+
   it("does not see a card written inside a code fence", () => {
     const fenced = "# Libro\n\n```\n![El pod](tisty:doc/a3f1-0002)\n```\n";
     expect(movedCard(fenced, "a3f1-0002", null).moved).toBe("unseen");

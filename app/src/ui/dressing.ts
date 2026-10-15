@@ -122,6 +122,8 @@ export const wired = (page: Document, reach: () => Reaching) => {
   }
   // The window's own shortcuts listen on the app, which never hears a key pressed in the page.
   page.addEventListener("keydown", (event) => {
+    const writing = (event.target as Element | null)?.closest?.(".editing");
+    if (writing && (event.defaultPrevented || !(event.ctrlKey || event.metaKey))) return;
     const passed = new KeyboardEvent("keydown", event);
     window.dispatchEvent(passed);
     if (passed.defaultPrevented) event.preventDefault();

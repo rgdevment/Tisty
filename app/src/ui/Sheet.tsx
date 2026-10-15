@@ -36,11 +36,7 @@ export default function Sheet(props: Readonly<Props>) {
   const latest = useRef(value);
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
-
-  useEffect(() => {
-    latest.current = value;
-    if (!open.current) setDrawn(value);
-  }, [value]);
+  const [ready, setReady] = useState(false);
 
   const written = useCallback((text: string) => {
     latest.current = text;
@@ -60,15 +56,28 @@ export default function Sheet(props: Readonly<Props>) {
 
   useEffect(() => () => left(), [left]);
 
+  useEffect(() => {
+    if (value === latest.current) return;
+    // Words from outside (a reload, a step back) end the block being written: it spoke of the old ones.
+    latest.current = value;
+    if (open.current) left();
+    else setDrawn(value);
+  }, [value, left]);
+
   const block = (at: [number, number], element: HTMLElement) => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
-    const base = latest.current;
-    const [from, to] = at;
-    const piece = base.slice(from, to);
-    const tail = piece.endsWith("\n") ? "\n" : "";
-    const spliced = (text: string) => `${base.slice(0, from)}${text}${tail}${base.slice(to)}`;
+    const [from] = at;
+    let end = at[1];
+    const piece = latest.current.slice(from, end);
+    const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
+    const spliced = (text: string) => {
+      const now = latest.current;
+      const next = `${now.slice(0, from)}${text}${tail}${now.slice(end)}`;
+      end = from + text.length + tail.length;
+      return next;
+    };
     open.current = edited(
       element,
       piece,
@@ -85,6 +94,7 @@ export default function Sheet(props: Readonly<Props>) {
       reading
         ? null
         : (file, title) => {
+            left();
             const put = putCard(latest.current, file, title);
             if (put === null) return false;
             written(put);
@@ -96,6 +106,7 @@ export default function Sheet(props: Readonly<Props>) {
       reading
         ? null
         : (file, before) => {
+            left();
             const done = movedCard(latest.current, file, before);
             if (done.body !== latest.current) {
               written(done.body);
@@ -108,7 +119,7 @@ export default function Sheet(props: Readonly<Props>) {
       said.current.onInsert?.(null);
       said.current.onOrder?.(null);
     };
-  }, [reading, written]);
+  }, [reading, written, left]);
 
   // The sheet takes the keys without a caret, so nothing pulls the view to where one would be.
   useEffect(() => room.current?.focus({ preventScroll: true }), []);
@@ -118,7 +129,7 @@ export default function Sheet(props: Readonly<Props>) {
   useEffect(() => {
     const want = wanted.current;
     const mark = marked.current;
-    if (!room.current || (!want && !mark)) return;
+    if (!ready || !room.current || (!want && !mark)) return;
     const spot = () => {
       const sheet = room.current;
       if (!sheet) return null;
@@ -148,7 +159,7 @@ export default function Sheet(props: Readonly<Props>) {
       },
       watch: () => room.current?.querySelector<HTMLElement>("iframe, .page") ?? null,
     });
-  }, []);
+  }, [ready]);
 
   return (
     <div
@@ -176,6 +187,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page) => {
             shown.current = page;
+            if (page) setReady(true);
           }}
         />
       </div>

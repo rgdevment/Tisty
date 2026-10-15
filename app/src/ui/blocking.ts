@@ -47,16 +47,18 @@ export const edited = (
   const leave = () => {
     if (gone) return;
     gone = true;
-    const text = view.state.doc.toString();
+    const text = view.state.sliceDoc();
     view.destroy();
+    host.replaceWith(block);
     onLeave(text);
   };
   const view = new EditorView({
     parent: host,
     root: page,
     state: EditorState.create({
-      doc: said.replace(/\n$/, ""),
+      doc: said.replace(/\r?\n$/, ""),
       extensions: [
+        EditorState.lineSeparator.of(said.includes("\r\n") ? "\r\n" : "\n"),
         history(),
         keymap.of([
           {
@@ -75,7 +77,7 @@ export const edited = (
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
-          if (update.docChanged) onChange(update.state.doc.toString());
+          if (update.docChanged) onChange(update.state.sliceDoc());
         }),
       ],
     }),

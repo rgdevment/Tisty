@@ -158,4 +158,31 @@ describe("a drawn page in the viewer", () => {
     await waitFor(() => expect(view.container.querySelectorAll("iframe")).toHaveLength(1));
     expect(next.classList.contains("invisible")).toBe(false);
   });
+
+  it("opens no block on a page whose newer drawing is still on its way", async () => {
+    const blocks: [number, number][] = [];
+    const { frame, view } = await drawn({ onBlock: (at) => blocks.push(at) });
+    const page = await loaded(frame);
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(
+      <Page
+        body="Nuevo"
+        label="Notas"
+        stranger={false}
+        onDoc={() => {}}
+        onBlock={(at) => blocks.push(at)}
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        Array.from(view.container.querySelectorAll("iframe")).some((one) =>
+          one.srcdoc.includes("Nuevo"),
+        ),
+      ).toBe(true),
+    );
+    page
+      .querySelector('p[data-at="11-19"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(blocks).toEqual([]);
+  });
 });

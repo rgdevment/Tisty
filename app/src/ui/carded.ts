@@ -1,41 +1,32 @@
 import { DOC } from "../markdown";
-import type { Moved } from "../paging";
+import { type Moved, unfenced } from "../paging";
 
 const escapedAlt = (title: string): string => title.replace(/[\\[\]]/g, (one) => `\\${one}`);
+
+const literal = (said: string): string => said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const cardOf = (file: string, title: string): string =>
   `![${escapedAlt(title)}](${DOC}${file})`;
 
-type Lines = { lines: string[]; fenced: boolean[] };
+type Lines = { lines: string[]; seen: string[] };
 
-const read = (body: string): Lines => {
-  const lines = body.split("\n");
-  const fenced: boolean[] = [];
-  let wall: string | null = null;
-  for (const line of lines) {
-    const fence = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1];
-    if (wall === null && fence) {
-      wall = fence;
-      fenced.push(true);
-      continue;
-    }
-    fenced.push(wall !== null);
-    if (wall !== null && fence && fence[0] === wall[0] && fence.length >= wall.length) wall = null;
-  }
-  return { lines, fenced };
-};
+const read = (body: string): Lines => ({
+  lines: body.split("\n"),
+  seen: unfenced(body).split("\n"),
+});
 
 const blank = (line: string | undefined): boolean => line === undefined || !line.trim();
 
 const cardIn = (line: string, file: string): boolean =>
-  new RegExp(`!\\[(?:\\\\[\\s\\S]|[^\\\\\\[\\]\\n])*\\]\\(\\s*<?${DOC}${file}[\\s)>]`).test(line);
+  new RegExp(
+    `!\\[(?:\\\\[\\s\\S]|[^\\\\\\[\\]\\n])*\\]\\(\\s*<?${literal(DOC + file)}[\\s)>]`,
+  ).test(line);
 
-const firstSaid = (said: Lines): number =>
-  said.lines.findIndex((line, at) => !said.fenced[at] && !blank(line));
+const firstSaid = (said: Lines): number => said.lines.findIndex((line) => !blank(line));
 
 // A card stands on its own only as a whole paragraph at the top of the document.
 const standing = (said: Lines, file: string): number => {
-  const at = said.lines.findIndex((line, i) => !said.fenced[i] && cardIn(line, file));
+  const at = said.seen.findIndex((line) => cardIn(line, file));
   if (at < 0) return -1;
   const line = said.lines[at];
   const alone = /^!\[/.test(line) && /\)\s*$/.test(line);

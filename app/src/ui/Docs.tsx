@@ -89,7 +89,6 @@ interface Props {
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onTag?: (tag: string) => void;
-  onOwned?: (id: string) => void;
   onShown?: (file: string | null) => void;
   onDrop?: (doc: Filed) => void;
   onBack?: (doc: Filed) => void;

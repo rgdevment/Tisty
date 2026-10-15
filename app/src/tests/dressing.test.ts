@@ -299,6 +299,32 @@ describe("a drawn page wired to the window", () => {
     expect(copy.defaultPrevented).toBe(false);
   });
 
+  it("keeps the keys typed into a block to the block, bar the window's own shortcuts", () => {
+    const drawn = page('<div class="editing"><p>x</p></div>');
+    const { reach } = reaching();
+    wired(drawn, () => reach);
+    const heard: string[] = [];
+    const listen = (e: KeyboardEvent) => heard.push(e.key);
+    window.addEventListener("keydown", listen);
+    const inside = drawn.querySelector(".editing p") as HTMLElement;
+    for (const key of ["a", "Escape"]) {
+      inside.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+    }
+    const taken = new KeyboardEvent("keydown", {
+      key: "z",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    taken.preventDefault();
+    inside.dispatchEvent(taken);
+    inside.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "w", ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    window.removeEventListener("keydown", listen);
+    expect(heard).toEqual(["w"]);
+  });
+
   it("opens the document a widget asks for", () => {
     const drawn = page("<p>x</p>");
     const { heard, reach } = reaching();

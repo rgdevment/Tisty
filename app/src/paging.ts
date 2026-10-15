@@ -3,7 +3,7 @@ import { DOC } from "./markdown";
 
 const bare = (line: string): string => line.replace(/^\s*(?:>\s?)*/, "").replace(/^[-*+]\s+/, "");
 
-const unfenced = (body: string): string => {
+export const unfenced = (body: string): string => {
   let open: { mark: string; wide: number } | null = null;
   return body
     .split("\n")

@@ -151,6 +151,62 @@ describe("the sheet in the main window", () => {
     expect(puts.every((one) => one === null)).toBe(true);
   });
 
+  it("splices each change into the latest text, however many come", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("leche y");
+    ipc.opened[0].change("leche y fruta");
+    ipc.opened[0].change("l");
+    expect(writes).toEqual([
+      "# Compras\n\nleche y\n\npan\n",
+      "# Compras\n\nleche y fruta\n\npan\n",
+      "# Compras\n\nl\n\npan\n",
+    ]);
+  });
+
+  it("ends the block being written when its words change from outside", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.drawn = '<p data-at="0-6">Otra</p>';
+    view.rerender(<Sheet value="Otra.\n" label="Compras" onWrite={() => {}} />);
+    expect(ipc.left).toBe(1);
+    await shown(view.container, "Otra");
+  });
+
+  it("ends the block being written before a page's card goes in, and keeps what was typed", async () => {
+    const writes: string[] = [];
+    const got: { put?: ((file: string, title: string) => boolean) | null } = {};
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={(text) => writes.push(text)}
+        onInsert={(one) => {
+          got.put = one;
+        }}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("leche y fruta");
+    expect(got.put?.("a3f1-0002", "Fruta")).toBe(true);
+    expect(ipc.left).toBe(1);
+    expect(writes[writes.length - 1]).toBe(
+      "# Compras\n\nleche y fruta\n\npan\n\n![Fruta](tisty:doc/a3f1-0002)\n",
+    );
+  });
+
   it("follows new words from outside while nothing is being written", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));
