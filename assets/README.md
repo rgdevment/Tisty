@@ -41,7 +41,9 @@ The beaver is called Tisto. `mascot/tisty-head.svg` is the colour drawing;
 `app/src/assets/tisty.svg` is the copy the window shows in About and in the news
 after an update.
 `mascot/tisty-head-mono.svg` is the same head in one ink, for places that print
-a single colour.
+a single colour. `mascot/tisty-head-left.svg` and `mascot/tisty-head-mono-left.svg`
+are the same two turned to look left; the window draws that one at the end of
+the tasks bar, so Tisto looks at what is being written.
 
 ## Store images
 
