@@ -1,5 +1,7 @@
 #[cfg(feature = "mermaid")]
 pub mod diagram;
+#[cfg(feature = "emoji")]
+mod emoji;
 #[cfg(feature = "icons")]
 mod icons;
 #[cfg(feature = "math")]
@@ -48,6 +50,7 @@ pub enum Mark {
     Icon { name: String, hue: Option<String> },
     Pen { color: Option<String> },
     Math,
+    Emoji { glyph: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

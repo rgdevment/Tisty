@@ -76,6 +76,7 @@ pulldown-cmark = { version = "0.13", default-features = false }
 # Formulas and diagrams drawn here, so the window shows them without running any script.
 math-core = "0.9"
 mermaid-rs-renderer = { version = "0.3", default-features = false }
+emojis = "0.9"
 tempfile = "3"
 proptest = { version = "1", default-features = false, features = ["std"] }
 

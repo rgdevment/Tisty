@@ -137,3 +137,31 @@ fn prices_and_escaped_dollars_never_become_formulas() {
     assert!(formulas(r"A \$x\$ literal").is_empty());
     assert!(formulas("`$x$` is code").is_empty());
 }
+
+#[cfg(feature = "emoji")]
+fn glyphs(text: &str) -> Vec<(String, String)> {
+    marks(text)
+        .into_iter()
+        .filter_map(|(mark, said)| match mark {
+            Mark::Emoji { glyph } => Some((glyph, said)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[cfg(feature = "emoji")]
+#[test]
+fn a_known_shortcode_reads_as_its_emoji() {
+    assert_eq!(
+        glyphs("Done :tada: and :+1:!"),
+        vec![("🎉".into(), ":tada:".into()), ("👍".into(), ":+1:".into())]
+    );
+}
+
+#[cfg(feature = "emoji")]
+#[test]
+fn what_only_looks_like_a_shortcode_is_left_alone() {
+    assert!(glyphs("At 10:30:00 sharp").is_empty());
+    assert!(glyphs("a:tada:b and :nothing_here:").is_empty());
+    assert!(glyphs("`:tada:` is code").is_empty());
+}

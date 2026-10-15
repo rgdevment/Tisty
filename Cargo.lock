@@ -1345,6 +1345,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ef6b89e5b37196644d8796de5268852ff179b44e96276cf4290264843743bb7"
 
 [[package]]
+name = "emojis"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b1514ced566c94991ed9563258ecf61e311fd773bf0a3f20606830386bf66e3"
+dependencies = [
+ "phf 0.13.1",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5806,6 +5815,7 @@ dependencies = [
 name = "tisty-markdown"
 version = "0.1.0"
 dependencies = [
+ "emojis",
  "math-core",
  "mermaid-rs-renderer",
  "pulldown-cmark",

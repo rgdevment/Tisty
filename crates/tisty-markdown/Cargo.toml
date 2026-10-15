@@ -10,7 +10,8 @@ publish.workspace = true
 workspace = true
 
 [features]
-default = ["icons", "math", "mermaid", "pens"]
+default = ["emoji", "icons", "math", "mermaid", "pens"]
+emoji = ["dep:emojis"]
 icons = []
 pens = []
 math = ["dep:math-core"]
@@ -20,6 +21,7 @@ mermaid = ["dep:mermaid-rs-renderer"]
 pulldown-cmark.workspace = true
 math-core = { workspace = true, optional = true }
 mermaid-rs-renderer = { workspace = true, optional = true }
+emojis = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true

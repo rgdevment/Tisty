@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (368 crates)
+## In the core (369 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -347,6 +347,7 @@ written once with the crates that carry it.
 | `ed25519` | 3.0.0 | Apache-2.0 OR MIT |
 | `ed25519-dalek` | 3.0.0 | BSD-3-Clause |
 | `embed_plist` | 1.2.2 | MIT OR Apache-2.0 |
+| `emojis` | 0.9.0 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `encode_unicode` | 1.0.0 | Apache-2.0 OR MIT |
 | `encoding_rs` | 0.8.35 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
 | `equivalent` | 1.0.2 | Apache-2.0 OR MIT |

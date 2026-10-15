@@ -56,6 +56,8 @@ const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     crate::pens::fold,
     #[cfg(feature = "math")]
     crate::math::fold,
+    #[cfg(feature = "emoji")]
+    crate::emoji::fold,
 ];
 
 fn polish(block: &mut Block, text: &str) {
