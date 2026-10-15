@@ -1031,9 +1031,10 @@ que ordena por tiempo y no necesita coordinación.
 
 **La ventana** — [React](https://react.dev) la dibuja y
 [Tailwind CSS](https://tailwindcss.com) la viste;
-[TipTap](https://tiptap.dev) y [ProseMirror](https://prosemirror.net) son el
-editor de documentos; [markdown-it](https://github.com/markdown-it/markdown-it)
-compone la prosa del resto; [Mermaid](https://mermaid.js.org) dibuja los
+[CodeMirror](https://codemirror.net) es donde se escribe un documento, bloque a
+bloque, mientras [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
+lee el Markdown en el núcleo y [ammonia](https://github.com/rust-ammonia/ammonia)
+deja inofensivo el HTML que traiga; [Mermaid](https://mermaid.js.org) dibuja los
 diagramas que describe un bloque de código y [KaTeX](https://katex.org) compone
 sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
 [highlight.js](https://highlightjs.org) colorean el código;

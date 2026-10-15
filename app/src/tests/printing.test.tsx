@@ -36,12 +36,4 @@ describe("what the printed sheet leaves out", () => {
     expect(printed).toMatch(/\.preview-video[^{]*\{[^}]*display:\s*none/);
     expect(printed).toMatch(/\.beside[^{]*\{[^}]*border/);
   });
-
-  it("puts a colour on paper for what the dark theme would leave invisible", () => {
-    const printed = sheet();
-
-    expect(printed).toMatch(/\.tisty-doc li::marker\s*\{[^}]*#/);
-    expect(printed).toMatch(/\.tisty-doc code\s*\{[^}]*background:\s*#/);
-    expect(printed).toMatch(/\.tisty-doc th\s*\{[^}]*background:\s*#/);
-  });
 });

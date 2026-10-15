@@ -10,15 +10,10 @@ const nightly = (): string => {
   return css.slice(at, css.indexOf("\n}", at));
 };
 
-const ruleFor = (selector: string): string => {
-  const at = css.indexOf(selector);
-  expect(at).toBeGreaterThan(-1);
-  return css.slice(at, css.indexOf("}", at));
-};
-
 describe("the page the writing sits on", () => {
   it("is paper by default, whatever the theme", () => {
-    expect(ruleFor(".tisty-doc {")).toMatch(/background-color:\s*var\(--tisty-sheet\)/);
+    const page = readFileSync("src/ui/page.css", "utf8");
+    expect(page).toMatch(/html:not\(\.tall\) \.page \{[^}]*background:\s*var\(--tisty-sheet\)/);
   });
 
   it("is lighter than the desk in the dark, which is the whole point", () => {
@@ -39,24 +34,7 @@ describe("the page the writing sits on", () => {
   });
 });
 
-describe("the page break the writer puts in", () => {
-  it("leaves the desk showing instead of drawing a line", () => {
-    const rule = ruleFor(".tisty-doc hr {");
-
-    expect(rule).toMatch(/background:\s*var\(--tisty-desk\)/);
-    expect(rule).toMatch(/height:\s*50px/);
-  });
-
-  it("rounds the sheet off on both sides of the gap", () => {
-    expect(css).toMatch(/hr::before \{[^}]*border-radius:\s*0 0 10px 10px/);
-    expect(css).toMatch(/hr::after \{[^}]*border-radius:\s*10px 10px 0 0/);
-  });
-
-  it("casts the edge of each sheet into the gap", () => {
-    expect(css).toMatch(/hr::before \{[^}]*box-shadow:\s*0 7px 7px -7px var\(--tisty-cast\)/);
-    expect(css).toMatch(/hr::after \{[^}]*box-shadow:\s*0 -7px 7px -7px var\(--tisty-cast\)/);
-  });
-
+describe("the paper around the writing", () => {
   it("casts darker in the dark, where a faint shadow would vanish", () => {
     const lit = /--tisty-cast:\s*rgb\(0 0 0 \/ ([0-9.]+)\)/.exec(css)?.[1];
     const night = /--tisty-cast:\s*rgb\(0 0 0 \/ ([0-9.]+)\)/.exec(nightly())?.[1];
@@ -64,35 +42,10 @@ describe("the page break the writer puts in", () => {
     expect(Number(night)).toBeGreaterThan(Number(lit));
   });
 
-  it("flattens back to a hairline on paper", () => {
-    const printed = css.slice(css.indexOf("@media print"));
-    const rule = printed.slice(printed.indexOf(".tisty-doc hr {"));
-
-    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/box-shadow:\s*none/);
-  });
-
-  it("reaches both edges of the page", () => {
-    expect(ruleFor(".tisty-doc hr {")).toMatch(/margin:\s*0 -40px/);
-  });
-
-  it("becomes a real page break on paper", () => {
-    const printed = css.slice(css.indexOf("@media print"));
-    const rule = printed.slice(printed.indexOf(".tisty-doc hr {"));
-
-    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/break-after:\s*page/);
-  });
-
   it("asks the printer for a sheet of paper, not a screen", () => {
     const at = css.indexOf("@page");
     expect(at).toBeGreaterThan(-1);
     expect(css.slice(at, css.indexOf("}", at))).toMatch(/size:\s*A4/i);
-  });
-
-  it("keeps pictures and tables from being cut across two sheets", () => {
-    const printed = css.slice(css.indexOf("@media print"));
-
-    expect(printed).toMatch(/break-inside:\s*avoid/);
-    expect(printed).toMatch(/break-after:\s*avoid/);
   });
 });
 

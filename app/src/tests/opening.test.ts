@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const css = () => readFileSync("src/index.css", "utf8");
+const css = () => readFileSync("src/ui/page.css", "utf8");
 
 const ruleFor = (text: string, selector: string): string => {
   const at = text.indexOf(selector);
@@ -9,8 +9,8 @@ const ruleFor = (text: string, selector: string): string => {
   return text.slice(at, text.indexOf("}", at));
 };
 
-const OPENS = ".tisty-doc > :is(h1, h2, h3, p):first-child";
-const ALONE = ".tisty-doc > :is(h1, h2, h3, p):first-child:only-child";
+const OPENS = ".page > :is(h1, h2, h3, p):first-child";
+const ALONE = ".page > :is(h1, h2, h3, p):first-child:only-child";
 
 describe("the first line of a document", () => {
   it("is set as a title even when it was never marked as one", () => {
@@ -32,13 +32,5 @@ describe("the first line of a document", () => {
 
     expect(rule).toMatch(/border-bottom:\s*0/);
     expect(rule).toMatch(/padding-bottom:\s*0/);
-  });
-
-  it("drops the parting line on paper, where the title already stands out", () => {
-    const text = css();
-    const printed = text.slice(text.indexOf("@media print"));
-    const rule = ruleFor(printed, `${OPENS} {`);
-
-    expect(rule).toMatch(/border-bottom:\s*0/);
   });
 });

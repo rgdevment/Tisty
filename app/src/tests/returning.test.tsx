@@ -173,7 +173,6 @@ describe("volver de una pagina a su documento", () => {
 
     expect(at.getAttribute("tabindex")).toBe("-1");
     expect(document.activeElement).toBe(at);
-    expect(at.querySelector(".ProseMirror")).not.toBe(document.activeElement);
   });
 
   it("nombra en el texto la pagina a la que se puede volver", async () => {
