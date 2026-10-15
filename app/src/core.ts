@@ -1108,6 +1108,7 @@ export const docFile = (id: string, folder?: string, before?: string): Promise<v
 export const docRead = (id: string): Promise<string> => invoke("doc_read", { id });
 export const docDrawn = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
+export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
 export const docPrinted = (body: string): Promise<unknown> => invoke("doc_printed", { body });
 export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
   invoke("doc_write", { id, body, anyway });

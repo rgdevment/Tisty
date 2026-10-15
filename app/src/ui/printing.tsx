@@ -17,7 +17,7 @@ export const signature = async (file: string): Promise<string | undefined> => {
 };
 
 export const pdfOf = async (
-  first: unknown,
+  first: string,
   rest: string[],
   leaf: Paper,
   signed?: string,
@@ -30,9 +30,7 @@ export const pdfOf = async (
   ]);
   registered();
   const sheets = await Promise.all(
-    [first, ...rest].map(async (one) =>
-      fetched(shapesOf(typeof one === "string" ? await docPrinted(one) : one), attached, at),
-    ),
+    [first, ...rest].map(async (one) => fetched(shapesOf(await docPrinted(one)), attached, at)),
   );
   return pdf(<Papered sheets={sheets} leaf={leaf} signed={signed} />).toBlob();
 };

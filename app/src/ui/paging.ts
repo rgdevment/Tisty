@@ -126,7 +126,7 @@ export const heads = (page: Document): Head[] =>
     }),
   );
 
-export const saidKinds = (page: Document, said: (kind: string) => string) => {
+export const saidKinds = (page: Document | HTMLElement, said: (kind: string) => string) => {
   for (const one of page.querySelectorAll<HTMLElement>("blockquote[data-callout]"))
     one.dataset.said = said(one.dataset.callout ?? "note");
 };

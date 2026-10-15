@@ -7,7 +7,7 @@ vi.mock("../core", async () => {
   const { crated } = await import("./crated");
   return {
     ...(await vi.importActual<typeof import("../core")>("../core")),
-    docDrawn: (body: string) => Promise.resolve(crated(body)),
+    noteDrawn: (body: string) => Promise.resolve(crated(body)),
   };
 });
 

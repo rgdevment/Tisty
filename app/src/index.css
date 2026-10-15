@@ -296,6 +296,67 @@ body {
   border-left: 2px solid var(--tisty-line);
   color: var(--tisty-soft);
 }
+.prose li.task {
+  list-style: none;
+  position: relative;
+}
+.prose .check {
+  position: absolute;
+  left: -18px;
+  top: 0.38em;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--tisty-faint);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.prose .check[data-done="true"] {
+  background: var(--tisty-accent);
+  border-color: var(--tisty-accent);
+}
+.prose .check[data-done="true"]::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 3px;
+  height: 6px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.prose li.task:has(> .check[data-done="true"]) {
+  color: var(--tisty-faint);
+}
+.prose blockquote.callout {
+  --said: var(--tisty-hue-blue);
+  padding: 6px 10px;
+  border-left: 3px solid var(--said);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--said) 7%, transparent);
+  color: var(--tisty-ink);
+}
+.prose blockquote.callout::before {
+  content: attr(data-said);
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--said);
+}
+.prose blockquote[data-callout="tip"] {
+  --said: var(--tisty-hue-green);
+}
+.prose blockquote[data-callout="important"] {
+  --said: var(--tisty-hue-indigo);
+}
+.prose blockquote[data-callout="warning"] {
+  --said: var(--tisty-hue-amber);
+}
+.prose blockquote[data-callout="caution"] {
+  --said: var(--tisty-hue-red);
+}
 .prose hr {
   margin: 14px 0;
   border-top: 1px solid var(--tisty-hair);

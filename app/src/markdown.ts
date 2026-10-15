@@ -33,6 +33,11 @@ export const dressed = (html: string, steps: string[] = []): string => {
   }
   for (const link of all.querySelectorAll("a[href]")) {
     const target = link.getAttribute("href") ?? "";
+    // The core sends a scheme it will not follow as "#", which here is words and not a way out.
+    if (target === "#") {
+      link.replaceWith(...link.childNodes);
+      continue;
+    }
     if (ours(target)) link.setAttribute(INSIDE, target);
     if (docOf(target)) link.classList.add("paper");
   }

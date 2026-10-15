@@ -147,6 +147,7 @@ export default function Prose({
     <div className="grid grid-cols-2 items-start gap-5">
       {source}
       <Written
+        typing
         label={t("composed")}
         onError={onError}
         onDoc={onDoc}

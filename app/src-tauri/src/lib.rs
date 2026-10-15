@@ -1155,6 +1155,7 @@ pub fn run() {
             answers::papers::doc_file,
             answers::paging::doc_drawn,
             answers::paging::doc_printed,
+            answers::paging::note_drawn,
             answers::papers::doc_read,
             answers::papers::doc_facts,
             answers::papers::keep_pdf,

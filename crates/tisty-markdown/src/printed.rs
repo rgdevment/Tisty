@@ -3,8 +3,6 @@ use serde_json::{Value, json};
 use crate::inline::{alt, atom, code_words, holds, outside, paired, walls};
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
-/// The same tree of nodes and marks the printed sheet has always been laid out from, so a
-/// document prints the same way it reads.
 pub fn printed(doc: &Doc) -> Value {
     let content: Vec<Value> = doc
         .blocks()
@@ -174,7 +172,7 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
             .collect();
         let said = &text[piece];
         let Some(span) = one else {
-            out.push(json!({ "type": "text", "text": said, "marks": marks }));
+            out.push(json!({ "type": "text", "text": decoded(said), "marks": marks }));
             continue;
         };
         let (words, code) = match &span.mark {
@@ -191,7 +189,12 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
                 continue;
             }
             Mark::Ref { name } => (name.clone(), false),
-            Mark::Html if kept.contains(&at) => continue,
+            Mark::Html if kept.contains(&at) => {
+                if said.to_ascii_lowercase().starts_with("<br") {
+                    out.push(json!({ "type": "hardBreak" }));
+                }
+                continue;
+            }
             Mark::Icon { .. } => continue,
             _ => (said.to_string(), false),
         };
@@ -205,4 +208,43 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
         out.push(json!({ "type": "text", "text": words, "marks": marks }));
     }
     out
+}
+
+// An entity reaches the sheet as its own piece of source; the window decodes it, paper must too.
+fn decoded(said: &str) -> String {
+    let Some(inner) = said
+        .strip_prefix('&')
+        .and_then(|rest| rest.strip_suffix(';'))
+    else {
+        return said.to_string();
+    };
+    let number = match inner.strip_prefix('#') {
+        Some(hex) if hex.starts_with(['x', 'X']) => u32::from_str_radix(&hex[1..], 16).ok(),
+        Some(digits) => digits.parse().ok(),
+        None => None,
+    };
+    if let Some(one) = number.and_then(char::from_u32) {
+        return one.to_string();
+    }
+    match inner {
+        "amp" => "&",
+        "lt" => "<",
+        "gt" => ">",
+        "quot" => "\"",
+        "apos" => "'",
+        "nbsp" => "\u{a0}",
+        "copy" => "©",
+        "reg" => "®",
+        "trade" => "™",
+        "mdash" => "—",
+        "ndash" => "–",
+        "hellip" => "…",
+        "laquo" => "«",
+        "raquo" => "»",
+        "middot" => "·",
+        "deg" => "°",
+        "euro" => "€",
+        _ => said,
+    }
+    .to_string()
 }
