@@ -25,17 +25,17 @@ export default function Cheer({ task, onUndo, onDismiss }: Props) {
       <Thumb className="cheer-thumb" />
       <div
         role="status"
-        className="flex items-center gap-3 rounded-[12px] border border-line bg-bg p-[12px_14px] shadow-lift"
+        className="flex items-center gap-3 rounded-[10px] border border-line bg-bg p-[12px_14px] shadow-lift"
       >
         <span
           aria-hidden="true"
-          className="grid size-[30px] flex-none place-items-center rounded-full bg-pen-green text-[14px] text-hue-green"
+          className="grid size-[30px] flex-none place-items-center rounded-full bg-pen-green text-[13px] text-hue-green"
         >
           ✓
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-semibold">{t("done")}</span>
-          <span className="block truncate text-[12px] text-faint">
+          <span className="block truncate text-[11.5px] text-faint">
             {fill("cheerKept", task.title)}
           </span>
         </span>
