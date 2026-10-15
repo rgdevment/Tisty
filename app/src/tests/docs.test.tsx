@@ -80,7 +80,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-vi.mock("../ui/Editor", () => ({
+vi.mock("../ui/Sheet", () => ({
   default: ({
     value,
     onWrite,
@@ -364,141 +364,16 @@ describe("the document being written", () => {
     expect(screen.queryByText(/adjuntos a la vista|attachments in view/)).toBeNull();
   });
 
-  it("says at the foot what it cannot keep, without standing in the way", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<details>\n<summary>ver</summary>\nalgo\n</details>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-
-    await screen.findByText(/needs to convert|necesita convertir/i);
-
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText(/needs to convert|necesita convertir/i)).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    ).toBeTruthy();
-  });
-
-  it("never leaves a document that will not convert with nothing to press", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
-    store.shape = "# Compras\n\n<div>sigue ahi</div>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByText(/needs to convert|necesita convertir/i);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    );
-    await screen.findByText(/could not be converted|no se pudo convertir/i);
-
-    const out = screen.getByRole("button", { name: /Edit it anyway|Editarlo igualmente/ });
-    await userEvent.click(out);
-
-    expect(screen.getByLabelText("editor").hasAttribute("readonly")).toBe(false);
-    expect(screen.getByText(/You are editing it|Lo estás editando/i)).toBeTruthy();
-  });
-
-  it("names what it cannot keep, rather than saying so in general", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-
-    await screen.findByText(/needs to convert|necesita convertir/i);
-    expect(
-      screen.getByText(/HTML, which loses its tags|HTML, que pierde sus etiquetas/),
-    ).toBeTruthy();
-  });
-
-  it("stays shut when the person turns the warning down", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
-    store.shape = "# Compras\n\n<div>sigue ahi</div>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByText(/needs to convert|necesita convertir/i);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    );
-    await screen.findByText(/could not be converted|no se pudo convertir/i);
-
-    store.agrees = false;
-    await userEvent.click(
-      screen.getByRole("button", { name: /Edit it anyway|Editarlo igualmente/ }),
-    );
-
-    expect(screen.getByLabelText("editor").hasAttribute("readonly")).toBe(true);
-  });
-
-  it("keeps what it was before rewriting it, and stops asking", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByText(/needs to convert|necesita convertir/i);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    );
-
-    await waitFor(() => expect(store.converted).toHaveLength(1));
-    expect(store.converted[0].was).toBe("# Compras\n\n<div>algo</div>");
-    expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\nalgo");
-    await waitFor(() =>
-      expect(screen.queryByText(/needs to convert|necesita convertir/i)).toBeNull(),
-    );
-    expect(screen.getByLabelText("editor").hasAttribute("readonly")).toBe(false);
-  });
-
-  it("does not ask again after coming back to a document it converted", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
-    const props = { known, onKept: vi.fn(), onError: vi.fn() };
-    const { rerender } = render(<Docs open="a3f1-0001" {...props} />);
-    await screen.findByText(/needs to convert|necesita convertir/i);
-    await userEvent.click(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    );
-    await waitFor(() => expect(store.converted).toHaveLength(1));
-
-    rerender(<Docs open="a3f1-0002" {...props} />);
-    await waitFor(() => expect(store.reads).toBeGreaterThan(1));
-    rerender(<Docs open="a3f1-0001" {...props} />);
-    await screen.findByLabelText("editor");
-
-    expect(screen.queryByText(/needs to convert|necesita convertir/i)).toBeNull();
-  });
-
-  it("says it could not be converted instead of asking again forever", async () => {
-    store.bodies["a3f1-0001"] = "# Compras\n\n<table><tr><td>a</td></tr></table>";
-    store.shape = "# Compras\n\n<table><tr><td>a</td></tr></table>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByText(/needs to convert|necesita convertir/i);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    );
-
-    await waitFor(() => expect(screen.getByText(/could not be converted|No se pudo convertir/i)));
-    expect(
-      screen.queryByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    ).toBeNull();
-  });
-
-  it("rewrites nothing when the editor never said what it would become", async () => {
-    store.mute = true;
-    store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
-    render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
-    await screen.findByText(/needs to convert|necesita convertir/i);
-
-    await userEvent.click(
-      screen.getByRole("button", { name: /Try converting it|Intentar convertirlo/ }),
-    );
-
-    expect(store.converted).toHaveLength(0);
-    expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\n<div>algo</div>");
-  });
-
-  it("writes nothing at all while it is only being read", async () => {
+  it("opens a document that carries html ready to write, warning of nothing and rewriting nothing", async () => {
     store.bodies["a3f1-0001"] = "# Compras\n\n<div>algo</div>";
     render(<Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
 
     const editor = await screen.findByLabelText("editor");
-    await userEvent.type(editor, "esto no debe guardarse");
+    expect(editor.hasAttribute("readonly")).toBe(false);
+    expect(screen.queryByText(/needs to convert|necesita convertir/i)).toBeNull();
     await settled();
-
     expect(store.writes).toHaveLength(0);
+    expect(store.converted).toHaveLength(0);
   });
 
   it("says nothing when the document is made of what the editor writes", async () => {

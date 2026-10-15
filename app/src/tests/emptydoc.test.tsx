@@ -22,7 +22,7 @@ describe("a document that was left with no title", () => {
   it("opens without taking the window down", async () => {
     render(<Docs open="914kqe8z-0001" known={known} onKept={vi.fn()} onError={vi.fn()} />);
 
-    await waitFor(() => expect(document.querySelector(".tisty-doc")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".tisty-sheet")).toBeTruthy());
   });
 
   it("survives being swapped for another document", async () => {
@@ -40,12 +40,12 @@ describe("a document that was left with no title", () => {
     const { rerender } = render(
       <Docs open="914kqe8z-0001" known={second} onKept={vi.fn()} onError={vi.fn()} />,
     );
-    await waitFor(() => expect(document.querySelector(".tisty-doc")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".tisty-sheet")).toBeTruthy());
 
     rerender(<Docs open="914kqe8z-0002" known={second} onKept={vi.fn()} onError={vi.fn()} />);
     rerender(<Docs open="914kqe8z-0001" known={second} onKept={vi.fn()} onError={vi.fn()} />);
 
-    await waitFor(() => expect(document.querySelector(".tisty-doc")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".tisty-sheet")).toBeTruthy());
   });
 
   it("can be picked from the tree", async () => {

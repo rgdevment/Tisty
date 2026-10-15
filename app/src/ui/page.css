@@ -28,6 +28,24 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: auto 3lh;
 }
+html.tall {
+  overflow: hidden;
+}
+html.tall .page {
+  padding-bottom: 36px;
+}
+html.tall .page > * {
+  content-visibility: visible;
+}
+.editing {
+  margin: 8px -12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--tisty-hover);
+}
+.page > [data-at] {
+  cursor: text;
+}
 .page > :is(h1, h2, h3, p):first-child {
   font-size: 1.65em;
   font-weight: 640;

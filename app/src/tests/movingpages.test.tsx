@@ -60,6 +60,7 @@ describe("moving a chapter from the index, through the real editor", () => {
       <Docs open="a3f1-0001" known={known} onKept={vi.fn()} onError={vi.fn()} onDoc={vi.fn()} />,
     );
     await waitFor(() => expect(container.querySelector('[data-move="a3f1-0002:1"]')).toBeTruthy());
+    await waitFor(() => expect(container.querySelector(".tisty-sheet")).toBeTruthy());
     return container;
   };
 
