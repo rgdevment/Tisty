@@ -50,6 +50,8 @@ pub fn read(text: &str) -> Doc {
         }
     }
     polish_all(&mut blocks, text);
+    #[cfg(feature = "tags")]
+    crate::marks::tagged(&mut blocks, text);
     Doc {
         text: text.to_string(),
         blocks,
@@ -64,6 +66,8 @@ const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     crate::pens::fold,
     #[cfg(feature = "emoji")]
     crate::emoji::fold,
+    #[cfg(feature = "refs")]
+    crate::marks::named,
 ];
 
 const SHAPES: &[fn(&mut Block, &str)] = &[

@@ -10,18 +10,22 @@ publish.workspace = true
 workspace = true
 
 [features]
-default = ["details", "emoji", "icons", "math", "mermaid", "outline", "pens", "tables"]
+default = ["details", "emoji", "icons", "math", "mermaid", "outline", "pens", "refs", "tables", "tags"]
 details = []
 emoji = ["dep:emojis"]
 icons = []
 outline = []
 pens = []
+refs = []
 tables = []
+tags = []
 math = ["dep:math-core"]
 mermaid = ["dep:mermaid-rs-renderer"]
 
 [dependencies]
 pulldown-cmark.workspace = true
+serde.workspace = true
+unicode-normalization.workspace = true
 math-core = { workspace = true, optional = true }
 mermaid-rs-renderer = { workspace = true, optional = true }
 emojis = { workspace = true, optional = true }

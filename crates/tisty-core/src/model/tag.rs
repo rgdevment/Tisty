@@ -1,7 +1,6 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use unicode_normalization::UnicodeNormalization;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("a tag needs two characters, one of them a letter")]
@@ -16,36 +15,14 @@ pub struct Tag(String);
 
 impl Tag {
     pub fn new(raw: &str) -> Result<Self, InvalidTag> {
-        // Accents come off: somebody writes #camion on Monday and #camión on Friday, and one tag
-        // is what they meant both times. Read back through serde, so tags already written fold
-        // themselves the next time the log is read.
-        let normalised: String = crate::text::composed(raw)
-            .trim()
-            .to_lowercase()
-            .nfd()
-            .filter(|c| !unicode_normalization::char::is_combining_mark(*c))
-            .map(|c| {
-                if c.is_whitespace() || c == '_' {
-                    '-'
-                } else {
-                    c
-                }
-            })
-            .filter(|c| c.is_alphanumeric() || *c == '-')
-            .collect();
-
-        let trimmed = normalised.trim_matches('-');
-        if !trimmed.chars().any(char::is_alphanumeric) {
-            return Err(InvalidTag);
-        }
-        Ok(Self(collapse_dashes(trimmed)))
+        tisty_markdown::tags::named(raw).map(Self).ok_or(InvalidTag)
     }
 
     /// What a reader may take from writing nobody meant as a label. It stands apart from `new`,
     /// which stays as forgiving as the log it reads back: «#1234» is a ticket, not a tag, but a
     /// tag saved before this rule still has to deserialise.
     pub fn worth_reading(&self) -> bool {
-        self.0.chars().nth(1).is_some() && self.0.chars().any(char::is_alphabetic)
+        tisty_markdown::tags::worth_reading(&self.0)
     }
 
     pub fn written(raw: &str) -> Result<Self, InvalidTag> {
@@ -58,23 +35,6 @@ impl Tag {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-}
-
-fn collapse_dashes(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    let mut previous_dash = false;
-    for c in s.chars() {
-        if c == '-' {
-            if !previous_dash {
-                out.push(c);
-            }
-            previous_dash = true;
-        } else {
-            out.push(c);
-            previous_dash = false;
-        }
-    }
-    out
 }
 
 impl fmt::Display for Tag {
