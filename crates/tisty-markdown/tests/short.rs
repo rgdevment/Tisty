@@ -62,14 +62,6 @@ fn double_plus_underlines_and_code_is_left_alone() {
 }
 
 #[test]
-fn the_underline_an_older_file_wrote_is_the_same_mark() {
-    let drawn = page("<u>viejo</u> y <U>mayus</U>");
-    assert_eq!(drawn.matches("<u>").count(), 2);
-    let said = marks("<u>viejo</u> y ++nuevo++");
-    assert_eq!(said.matches("\"underline\"").count(), 2);
-}
-
-#[test]
 fn paper_learns_the_new_marks_too() {
     let said = marks("**==negrita=={blue}** y ++sub++ y ~~no~~");
     assert!(said.contains("\"blue\""));

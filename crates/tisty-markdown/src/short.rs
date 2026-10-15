@@ -5,7 +5,6 @@ use crate::{Mark, Span};
 
 /// `::name hue::` is an icon and `++words++` is underlined, written the way the person types them.
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
-    tagged(spans, text);
     let mut found = Vec::new();
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         iconed(text, span.at.clone(), &mut found);
@@ -87,29 +86,4 @@ fn underlined(spans: &[Span], text: &str) -> Vec<Span> {
         }
     }
     found
-}
-
-// The `<u>` an older file holds is the same underline, so the page and the paper draw it alike.
-fn tagged(spans: &mut Vec<Span>, text: &str) {
-    let said = |one: &Span| text[one.at.clone()].to_ascii_lowercase();
-    let mut at = 0;
-    while at < spans.len() {
-        if spans[at].mark != Mark::Html || said(&spans[at]) != "<u>" {
-            at += 1;
-            continue;
-        }
-        let shut = spans[at + 1..]
-            .iter()
-            .position(|one| one.mark == Mark::Html && said(one) == "</u>")
-            .map(|step| at + 1 + step);
-        if let Some(shut) = shut {
-            let whole = spans[at].at.start..spans[shut].at.end;
-            spans.remove(shut);
-            spans[at] = Span {
-                mark: Mark::Underline,
-                at: whole,
-            };
-        }
-        at += 1;
-    }
 }
