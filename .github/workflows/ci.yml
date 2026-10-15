@@ -73,10 +73,28 @@ jobs:
             part: 1/2
           - os: macos-latest
             part: 2/2
+    env:
+      # A failing test needs a file and a line, not the whole debug info, which is most of what a build writes.
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # NTFS and the virus scanner are most of why Windows builds and tests slower; a trusted Dev Drive spares both.
+      - uses: samypr100/setup-dev-drive@562171fe8df7401fdf582d766cd3b6ab80d5b1a0 # v4.1.0
+        if: runner.os == 'Windows'
+        with:
+          drive-size: 25GB
+          drive-format: ReFS
+          drive-type: Dynamic
+          trusted-dev-drive: true
+          env-mapping: |
+            CARGO_TARGET_DIR,{{ DEV_DRIVE }}/target
+            TEMP,{{ DEV_DRIVE }}/tmp
+            TMP,{{ DEV_DRIVE }}/tmp
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: mkdir -p "$TEMP" "$CARGO_TARGET_DIR"
       - uses: ./.github/actions/toolchain
         with:
           components: clippy
@@ -84,6 +102,7 @@ jobs:
         with:
           shared-key: workspace
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          workspaces: ${{ runner.os == 'Windows' && format('. -> {0}/target', env.DEV_DRIVE) || '. -> target' }}
       # A fresh checkout makes cargo rebuild every crate of ours; sccache knows the ones a branch left alone.
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
       - name: Compile through sccache
