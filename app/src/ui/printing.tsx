@@ -1,4 +1,4 @@
-import { attached, docFacts, type Paper } from "../core";
+import { attached, docFacts, docPrinted, type Paper } from "../core";
 import { stamped } from "../format";
 import { fill } from "../locales";
 
@@ -29,26 +29,13 @@ export const pdfOf = async (
     import("./shaping"),
   ]);
   registered();
-  const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
-    import("@tiptap/core"),
-    import("./writing"),
-    import("../markdown"),
-  ]);
   const sheets = await Promise.all(
-    [first, ...rest]
-      .map((one) =>
-        typeof one === "string" ? generateJSON(composed(loosened(one)), shapes()) : one,
-      )
-      .map((one) => fetched(shapesOf(one), attached, at)),
+    [first, ...rest].map(async (one) =>
+      fetched(shapesOf(typeof one === "string" ? await docPrinted(one) : one), attached, at),
+    ),
   );
   return pdf(<Papered sheets={sheets} leaf={leaf} signed={signed} />).toBlob();
 };
 
-export const pdfOfText = async (body: string, leaf: Paper, signed?: string): Promise<Blob> => {
-  const [{ generateJSON }, { written: shapes, loosened }, { composed }] = await Promise.all([
-    import("@tiptap/core"),
-    import("./writing"),
-    import("../markdown"),
-  ]);
-  return pdfOf(generateJSON(composed(loosened(body)), shapes()), [], leaf, signed);
-};
+export const pdfOfText = (body: string, leaf: Paper, signed?: string): Promise<Blob> =>
+  pdfOf(body, [], leaf, signed);

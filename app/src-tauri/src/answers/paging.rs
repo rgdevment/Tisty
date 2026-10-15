@@ -14,6 +14,11 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
     tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
 }
 
+#[tauri::command(async)]
+pub fn doc_printed(body: String) -> serde_json::Value {
+    tisty_markdown::printed(&tisty_markdown::read(&body))
+}
+
 pub fn paged(shelf: &Path, body: &str) -> String {
     // A build under work keeps one version number while the drawing changes under it.
     if cfg!(debug_assertions) && !cfg!(test) {

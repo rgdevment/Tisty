@@ -19,6 +19,7 @@ mod outline;
 mod page;
 #[cfg(feature = "pens")]
 mod pens;
+mod printed;
 mod reading;
 pub mod refs;
 #[cfg(feature = "tables")]
@@ -29,6 +30,7 @@ mod writing;
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
 pub use page::html;
+pub use printed::printed;
 pub use reading::read;
 pub use writing::on_disk;
 

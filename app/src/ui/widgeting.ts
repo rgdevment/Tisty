@@ -1,12 +1,9 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { message } from "@tauri-apps/plugin-dialog";
-import type { Editor as Writing } from "@tiptap/core";
-import { NodeSelection } from "@tiptap/pm/state";
 import { type Borrowed, openLink, widgetLend, widgetLendKept, widgetTakeBack } from "../core";
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { saidPlainly } from "../refusal";
-import { drawn, type Shaped } from "./viewer/shapes";
+import { drawn } from "./viewer/shapes";
 
 export const SHORTEST = 40;
 export const TALLEST = 2400;
@@ -187,69 +184,6 @@ const drawnFrom = (
   };
 };
 
-export const besideWidget = (editor: Writing, back: boolean): boolean => {
-  const { selection, doc } = editor.state;
-  if (!selection.empty) return false;
-  const at = selection.$from;
-  if (at.depth === 0 || at.parent.type.name === "codeBlock") return false;
-  if (back ? at.parentOffset !== 0 : at.parentOffset !== at.parent.content.size) return false;
-  const edge = back ? at.before() : at.after();
-  const near = back ? doc.resolve(edge).nodeBefore : doc.resolve(edge).nodeAfter;
-  if (near?.type.name !== "codeBlock" || near.attrs.language !== "widget") return false;
-  const start = back ? edge - near.nodeSize : edge;
-  editor.view.dispatch(editor.state.tr.setSelection(NodeSelection.create(doc, start)));
-  return true;
-};
-
-export type Pick = { label: string; run: () => void };
-
-export const dropdown = (anchor: HTMLElement, picks: Pick[]): void => {
-  const card = document.createElement("div");
-  card.className = "widget-menu";
-  card.setAttribute("role", "menu");
-  const gone = () => {
-    card.remove();
-    document.removeEventListener("mousedown", away, true);
-    document.removeEventListener("keydown", keyed, true);
-  };
-  const away = (e: MouseEvent) => {
-    if (!card.contains(e.target as Node)) gone();
-  };
-  const keyed = (e: KeyboardEvent) => {
-    if (e.key === "Escape") gone();
-  };
-  for (const one of picks) {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.setAttribute("role", "menuitem");
-    item.textContent = one.label;
-    item.addEventListener("click", (e) => {
-      e.stopPropagation();
-      gone();
-      one.run();
-    });
-    card.append(item);
-  }
-  document.body.append(card);
-  const box = anchor.getBoundingClientRect();
-  const wide = card.getBoundingClientRect().width || 220;
-  card.style.left = `${Math.max(6, Math.min(box.right - wide, window.innerWidth - wide - 6))}px`;
-  card.style.top = `${box.bottom + 4}px`;
-  document.addEventListener("mousedown", away, true);
-  document.addEventListener("keydown", keyed, true);
-  card.querySelector<HTMLButtonElement>("button")?.focus();
-};
-
-export const iconed = (kind: Shaped, label: string, className: string) => {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = className;
-  button.title = label;
-  button.setAttribute("aria-label", label);
-  button.append(drawn(kind, 15));
-  return button;
-};
-
 export const locked = () => {
   const said = document.createElement("div");
   said.className = "lit-locked";
@@ -262,6 +196,3 @@ export const locked = () => {
   said.append(why);
   return said;
 };
-
-export const failed = (problem: unknown) =>
-  void message(saidPlainly(problem), { kind: "warning" }).catch(() => {});
