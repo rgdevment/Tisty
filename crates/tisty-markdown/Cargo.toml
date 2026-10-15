@@ -10,8 +10,9 @@ publish.workspace = true
 workspace = true
 
 [features]
-default = ["icons", "math", "mermaid"]
+default = ["icons", "math", "mermaid", "pens"]
 icons = []
+pens = []
 math = ["dep:math-core"]
 mermaid = ["dep:mermaid-rs-renderer"]
 

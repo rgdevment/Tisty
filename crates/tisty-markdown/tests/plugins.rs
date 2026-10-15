@@ -56,3 +56,58 @@ fn a_span_that_is_not_an_icon_is_left_as_it_was() {
             .all(|(mark, _)| !matches!(mark, Mark::Icon { .. }))
     );
 }
+
+#[test]
+fn plain_words_are_only_text() {
+    assert_eq!(
+        marks("Just words."),
+        vec![(Mark::Text, "Just words.".to_string())]
+    );
+}
+
+#[cfg(feature = "pens")]
+fn pens(text: &str) -> Vec<(Option<String>, String)> {
+    marks(text)
+        .into_iter()
+        .filter_map(|(mark, said)| match mark {
+            Mark::Pen { color } => Some((color, said)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[cfg(feature = "pens")]
+#[test]
+fn a_double_equals_pair_is_the_yellow_pen() {
+    assert_eq!(
+        pens("Read ==this== now"),
+        vec![(None, "==this==".to_string())]
+    );
+    assert_eq!(
+        pens("Read ==**bold** too== now"),
+        vec![(None, "==**bold** too==".to_string())]
+    );
+}
+
+#[cfg(feature = "pens")]
+#[test]
+fn a_coloured_pen_wraps_its_words_and_keeps_their_marks() {
+    let said = r#"A <mark data-pen="green">*green*</mark> word"#;
+    assert_eq!(
+        pens(said),
+        vec![(
+            Some("green".into()),
+            r#"<mark data-pen="green">*green*</mark>"#.to_string()
+        )]
+    );
+    assert!(marks(said).iter().any(|(mark, _)| *mark == Mark::Emphasis));
+}
+
+#[cfg(feature = "pens")]
+#[test]
+fn what_only_looks_like_a_pen_is_left_alone() {
+    assert!(pens("a == b == c").is_empty());
+    assert!(pens("a === b === c").is_empty());
+    assert!(pens("`==code==` stays").is_empty());
+    assert!(pens("====").is_empty());
+}

@@ -52,6 +52,8 @@ pub fn read(text: &str) -> Doc {
 const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     #[cfg(feature = "icons")]
     crate::icons::fold,
+    #[cfg(feature = "pens")]
+    crate::pens::fold,
 ];
 
 fn polish(block: &mut Block, text: &str) {

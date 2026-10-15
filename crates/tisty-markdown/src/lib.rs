@@ -4,6 +4,8 @@ pub mod diagram;
 mod icons;
 #[cfg(feature = "math")]
 pub mod math;
+#[cfg(feature = "pens")]
+mod pens;
 mod reading;
 mod writing;
 
@@ -44,6 +46,7 @@ pub enum Mark {
     Html,
     Break,
     Icon { name: String, hue: Option<String> },
+    Pen { color: Option<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
