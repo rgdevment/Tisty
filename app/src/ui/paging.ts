@@ -92,17 +92,19 @@ const linked = (link: HTMLAnchorElement): Went => {
 };
 
 export const went = (target: Element, selecting: boolean): Went => {
-  const link = target.closest("a");
-  if (link) return linked(link);
-  if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
-  const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
-  if (tag) return { kind: "tag", name: tag };
-  const asked = target.closest<HTMLElement>(".widget-bar button");
+  const asked = target.closest<HTMLElement>("button[data-asked]");
   if (asked) {
-    const at = spanned(asked.closest<HTMLElement>("figure.widget")?.dataset.at ?? null);
+    const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
     if (!at) return null;
     return asked.dataset.asked === "apart" ? { kind: "apart", at } : { kind: "block", at };
   }
+  const link = target.closest("a");
+  if (link) return linked(link);
+  const card = target.closest<HTMLElement>(".doc-card[data-doc]")?.dataset.doc;
+  if (card) return { kind: "doc", id: card };
+  if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
+  const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
+  if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest("summary, figure.widget")) return null;
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;

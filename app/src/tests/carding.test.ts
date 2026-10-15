@@ -39,8 +39,8 @@ const page = (html: string): Document => {
 describe("what a card says about the document it names", () => {
   it("numbers the pages of this book in the order the text names them", () => {
     const seen = cardsOf(known, "libro", ["cap2", "cap1"]);
-    expect(seen("cap2")).toEqual({ kind: "page", title: "cap2", at: 1, of: 3 });
-    expect(seen("cap1")).toEqual({ kind: "page", title: "cap1", at: 2, of: 3 });
+    expect(seen("cap2")).toEqual({ kind: "page", title: "cap2", at: 1, of: 2 });
+    expect(seen("cap1")).toEqual({ kind: "page", title: "cap1", at: 2, of: 2 });
   });
 
   it("tells this document, an archived one, an untitled one and a missing one apart", () => {
@@ -70,15 +70,27 @@ describe("a card drawn on the page", () => {
     );
     carded(
       drawn,
-      { card: cardsOf(known, "libro", ["cap1", "cap2"]), blurb: () => Promise.resolve("Hola.") },
+      {
+        card: cardsOf(known, "libro", ["cap1", "cap2"]),
+        blurb: () => Promise.resolve("Hola."),
+        onBlock: () => {},
+      },
       () => true,
     );
     const card = drawn.querySelector<HTMLElement>(".doc-card");
-    expect(card?.tagName).toBe("A");
+    expect(card?.getAttribute("role")).toBe("link");
     expect(card?.dataset.doc).toBe("cap1");
     expect(card?.className).toBe("doc-card is-page");
     expect(card?.querySelector(".card-name")?.textContent).toBe("cap1");
-    expect(card?.querySelector(".card-meta .chip")?.textContent).toBe("Page 1 of 3");
+    expect(card?.querySelector(".card-meta .chip")?.textContent).toBe("Page 1 of 2");
+    expect(card?.querySelector<HTMLElement>(".card-edit")?.dataset.asked).toBe("code");
+    let opened = 0;
+    card?.addEventListener("click", () => {
+      opened += 1;
+    });
+    card?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    card?.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
+    expect(opened).toBe(1);
     expect(drawn.querySelector('p a.card[data-doc="cap2"]')).not.toBeNull();
     await Promise.resolve();
     expect(card?.querySelector(".card-blurb")?.textContent).toBe("Hola.");
@@ -90,11 +102,17 @@ describe("a card drawn on the page", () => {
     );
     carded(drawn, { card: cardsOf(known, "libro", []) }, () => true);
     const [self, gone] = Array.from(drawn.querySelectorAll<HTMLElement>(".doc-card"));
-    expect(self.tagName).toBe("SPAN");
     expect(self.dataset.doc).toBeUndefined();
+    expect(self.querySelector(".card-edit")).toBeNull();
     expect(self.querySelector(".card-blurb")?.textContent).toBe("This very document");
     expect(gone.querySelector(".card-name")?.textContent).toBe("Viaje");
     expect(gone.querySelector(".chip.gone")?.textContent).toBe("Gone");
+  });
+
+  it("draws a card with blank words around it, and keeps the chips where the page knows nothing", () => {
+    const spaced = page('<p> <a class="card" data-doc="cap1">cap1</a> </p>');
+    carded(spaced, { card: cardsOf(known, "libro", []) }, () => true);
+    expect(spaced.querySelector(".doc-card")).not.toBeNull();
   });
 
   it("keeps the chips where the page knows nothing about documents", () => {

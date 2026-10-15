@@ -409,6 +409,24 @@ a.card:hover,
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+.card-edit {
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--tisty-faint);
+  font: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+.doc-card:hover .card-edit,
+.card-edit:focus-visible {
+  opacity: 1;
+}
+.card-edit:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
 .card-go {
   font-size: 1.4em;
   line-height: 1;

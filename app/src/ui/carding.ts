@@ -27,7 +27,7 @@ export const glimpsed = (body: string): string =>
     .slice(0, 160);
 
 export const cardsOf = (known: Filed[], here: string | undefined, told: string[]) => {
-  const pages = inTextOrder(pagesOf(known, here), told);
+  const pages = inTextOrder(pagesOf(known, here), told).filter((one) => !one.archived && !one.away);
   return (file: string): Carded => {
     const one = known.find((doc) => doc.file === file);
     if (!one || one.gone) return { kind: "gone" };
@@ -44,13 +44,13 @@ export const blurbing = () => {
   const kept = new Map<string, { wrote: string; said: Promise<string> }>();
   return (one: Filed | undefined): Promise<string> => {
     if (!one) return Promise.resolve("");
-    const wrote = one.wrote ?? "";
+    const wrote = one.wrote ?? (one.bytes == null ? null : `${one.bytes}`);
     const was = kept.get(one.file);
-    if (was && was.wrote === wrote) return was.said;
+    if (was && wrote !== null && was.wrote === wrote) return was.said;
     const said = docRead(one.file)
       .then(glimpsed)
       .catch(() => "");
-    kept.set(one.file, { wrote, said });
+    if (wrote !== null) kept.set(one.file, { wrote, said });
     return said;
   };
 };
@@ -58,6 +58,7 @@ export const blurbing = () => {
 export type Carding = {
   readonly card?: (file: string) => Carded;
   readonly blurb?: (file: string) => Promise<string>;
+  readonly onBlock?: unknown;
 };
 
 const piece = (page: Document, kind: string, said = "") => {
@@ -92,15 +93,22 @@ export const carded = (page: Document, reach: Carding, live: () => boolean) => {
   if (!reach.card) return;
   for (const link of page.querySelectorAll<HTMLAnchorElement>(".page > p > a.card[data-doc]")) {
     const held = link.parentElement;
-    if (!held || held.childNodes.length !== 1) continue;
+    if (!held || held.children.length !== 1) continue;
+    if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
     const file = link.dataset.doc ?? "";
     const seen = reach.card(file);
     const open = seen.kind !== "self" && seen.kind !== "gone";
-    const box = page.createElement(open ? "a" : "span");
+    const box = page.createElement("span");
     box.className = `doc-card is-${seen.kind}`;
     if (open) {
       box.dataset.doc = file;
       box.tabIndex = 0;
+      box.setAttribute("role", "link");
+      box.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        box.click();
+      });
     }
     const tile = piece(page, "card-tile");
     tile.append(drawn(page, GLYPH[seen.kind]));
@@ -110,6 +118,14 @@ export const carded = (page: Document, reach: Carding, live: () => boolean) => {
     if (seen.kind === "gone") blurb.textContent = t("goneDoc");
     const meta = piece(page, "card-meta");
     meta.append(metaOf(page, seen));
+    if (reach.onBlock) {
+      const edit = page.createElement("button");
+      edit.type = "button";
+      edit.className = "card-edit";
+      edit.dataset.asked = "code";
+      edit.textContent = t("cardEdit");
+      meta.append(edit);
+    }
     if (open) meta.append(piece(page, "card-go", "›"));
     box.append(tile, piece(page, "card-name", name), blurb, meta);
     link.replaceWith(box);

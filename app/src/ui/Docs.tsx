@@ -392,10 +392,24 @@ export default function Docs({
   const sisters = pagesOf(known, above?.file);
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
   const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
-  const blurbs = useRef(blurbing());
+  const [blurbs] = useState(blurbing);
+  const named = useMemo(() => namesIn(body), [body]);
+  // A card says what its document is now: a rename, an archive or a deletion draws the page again.
+  const again = useMemo(
+    () =>
+      named
+        .map((file) => {
+          const one = known.find((doc) => doc.file === file);
+          return one
+            ? `${file}:${one.title}:${one.archived}:${one.away}:${one.gone}:${one.pageOf ?? ""}`
+            : `${file}:-`;
+        })
+        .join("|"),
+    [known, named],
+  );
   const blurb = useCallback(
-    (file: string) => blurbs.current(known.find((one) => one.file === file)),
-    [known],
+    (file: string) => blurbs(known.find((one) => one.file === file)),
+    [known, blurbs],
   );
 
   const [aboveTold, setAboveTold] = useState<string[]>();
@@ -554,6 +568,7 @@ export default function Docs({
                 file={open.file}
                 card={cards}
                 blurb={blurb}
+                again={again}
                 value={body}
                 seek={seek}
                 anchor={anchor}

@@ -26,6 +26,7 @@ type Props = {
   readonly onOutline?: (heads: Head[]) => void;
   readonly card?: (file: string) => Carded;
   readonly blurb?: (file: string) => Promise<string>;
+  readonly again?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
 };
@@ -44,6 +45,7 @@ export default function Sheet(props: Readonly<Props>) {
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
+  const [stuck, setStuck] = useState(false);
 
   const written = useCallback((text: string) => {
     latest.current = text;
@@ -208,12 +210,12 @@ export default function Sheet(props: Readonly<Props>) {
       tabIndex={-1}
       onScroll={(one) => {
         const sheet = one.currentTarget;
-        sheet.classList.toggle("stuck", sheet.scrollTop > 8);
+        setStuck(sheet.scrollTop > 8);
         if (putting.current >= 0) return;
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       }}
-      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}`}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}`}
     >
       {above}
       <div className="tisty-sheet shrink-0 overflow-hidden rounded-[10px] bg-sheet">
@@ -228,6 +230,7 @@ export default function Sheet(props: Readonly<Props>) {
           onBlock={block}
           card={props.card}
           blurb={props.blurb}
+          again={props.again}
           onApart={(source) => {
             const from = said.current.file;
             viewWidget(
