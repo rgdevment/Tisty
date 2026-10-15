@@ -1,35 +1,3 @@
-import MarkdownIt from "markdown-it";
-
-const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
-
-md.inline.ruler.before("link", "wiki", (state, silent) => {
-  const { src, pos } = state;
-  if (src.charCodeAt(pos) !== 0x5b || src.charCodeAt(pos + 1) !== 0x5b) return false;
-
-  const shut = src.indexOf("]]", pos + 2);
-  if (shut < 0) return false;
-  const name = src.slice(pos + 2, shut).trim();
-  if (!name || name.includes("\n") || name.includes("[")) return false;
-
-  if (!silent) {
-    const token = state.push("wiki", "", 0);
-    token.content = name;
-  }
-  state.pos = shut + 2;
-  return true;
-});
-
-md.renderer.rules.wiki = (tokens, i, _options, env) => {
-  const said = tokens[i].content;
-  const step = /^#(\d{1,3})$/.exec(said);
-  if (!step) return `<span class="ref">${md.utils.escapeHtml(said)}</span>`;
-
-  const at = Number(step[1]);
-  const steps = (env as { steps?: string[] } | undefined)?.steps ?? [];
-  const named = steps[at - 1];
-  return `<span class="ref step" data-step="${at}">${md.utils.escapeHtml(named ?? `#${at}`)}</span>`;
-};
-
 export const INSIDE = "data-inside";
 
 export const DOC = "tisty:doc/";
@@ -46,26 +14,67 @@ const ours = (target: string): boolean =>
   !/^[a-z][a-z0-9+.-]*:/i.test(target) &&
   !/^[a-z]:/i.test(target) &&
   !target.startsWith("/") &&
-  !target.startsWith("\\\\");
+  !target.startsWith("\\\\") &&
+  !target.startsWith("#");
 
-const open = md.renderer.rules.link_open;
-md.renderer.rules.link_open = (tokens, i, options, env, self) => {
-  const target = String(tokens[i].attrGet("href") ?? "");
-  if (ours(target)) tokens[i].attrSet(INSIDE, target);
-  if (docOf(target)) tokens[i].attrJoin("class", "paper");
-  return open ? open(tokens, i, options, env, self) : self.renderToken(tokens, i, options);
-};
+const BARE = /\b(?:https?:\/\/|www\.)[^\s<>"]*[^\s<>".,;:!?)\]'*_]/gi;
 
-md.renderer.rules.image = (tokens, i, options, env, self) => {
-  const target = String(tokens[i].attrGet("src") ?? "");
-  tokens[i].attrSet("alt", self.renderInlineAsText(tokens[i].children ?? [], options, env));
-  if (ours(target) || docOf(target)) {
-    tokens[i].attrSet(INSIDE, target);
-    tokens[i].attrSet("src", "");
+// Notes were always written loosely, so a bare address still becomes a link here.
+export const dressed = (html: string, steps: string[] = []): string => {
+  const box = document.createElement("template");
+  box.innerHTML = html;
+  const all = box.content;
+  for (const one of all.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
+  for (const card of all.querySelectorAll("a.card[data-doc]")) {
+    const chip = document.createElement("img");
+    chip.alt = card.textContent ?? "";
+    chip.setAttribute(INSIDE, `${DOC}${card.getAttribute("data-doc")}`);
+    card.replaceWith(chip);
   }
-  return self.renderToken(tokens, i, options);
+  for (const link of all.querySelectorAll("a[href]")) {
+    const target = link.getAttribute("href") ?? "";
+    if (ours(target)) link.setAttribute(INSIDE, target);
+    if (docOf(target)) link.classList.add("paper");
+  }
+  for (const picture of all.querySelectorAll("img[src]")) {
+    const target = picture.getAttribute("src") ?? "";
+    if (!ours(target)) continue;
+    picture.setAttribute(INSIDE, target);
+    picture.setAttribute("src", "");
+  }
+  for (const ref of all.querySelectorAll("span.ref[data-ref]")) {
+    const step = /^#(\d{1,3})$/.exec(ref.getAttribute("data-ref") ?? "");
+    if (!step) continue;
+    const at = Number(step[1]);
+    ref.classList.add("step");
+    ref.setAttribute("data-step", String(at));
+    ref.textContent = steps[at - 1] ?? `#${at}`;
+  }
+  linked(all);
+  return box.innerHTML;
 };
 
-export const composed = (text: string, steps?: string[]): string => md.render(text, { steps });
-
-export const inline = (text: string, steps?: string[]): string => md.renderInline(text, { steps });
+const linked = (root: DocumentFragment) => {
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const loose: Text[] = [];
+  for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+    if (!node.parentElement?.closest("a, code, pre")) loose.push(node as Text);
+  }
+  for (const node of loose) {
+    const said = node.data;
+    const pieces = document.createDocumentFragment();
+    let from = 0;
+    for (const hit of said.matchAll(BARE)) {
+      const at = hit.index ?? 0;
+      pieces.append(said.slice(from, at));
+      const link = document.createElement("a");
+      link.href = hit[0].startsWith("www.") ? `https://${hit[0]}` : hit[0];
+      link.textContent = hit[0];
+      pieces.append(link);
+      from = at + hit[0].length;
+    }
+    if (from === 0) continue;
+    pieces.append(said.slice(from));
+    node.replaceWith(pieces);
+  }
+};

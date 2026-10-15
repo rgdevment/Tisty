@@ -1,32 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { composed, docLink, docOf } from "../markdown";
+import { docLink, docOf, dressed } from "../markdown";
 
-describe("what gets composed", () => {
-  it("keeps the ordinary Markdown a file needs to stay readable without Tisty", () => {
-    expect(composed("**firm** and *soft*")).toContain("<strong>firm</strong>");
-    expect(composed("### A heading")).toContain("<h3>A heading</h3>");
-    expect(composed("- one\n- two")).toContain("<li>one</li>");
-    expect(composed("run `PAY_SANDBOX=1`")).toContain("<code>PAY_SANDBOX=1</code>");
+describe("a note the core drew, readied for the window", () => {
+  it("drops the places in the source, which only the page needs", () => {
+    const html = dressed('<p data-at="0-19"><strong>firm</strong> and <em>soft</em></p>');
+    expect(html).toBe("<p><strong>firm</strong> and <em>soft</em></p>");
   });
 
-  it("paints a reference as one, without turning it into a link that goes nowhere", () => {
-    const html = composed("it came from [[OPS-3465]]");
-    expect(html).toContain('<span class="ref">OPS-3465</span>');
-    expect(html).not.toContain("<a");
+  it("asks for what lives under the data root by name, and leaves the address empty", () => {
+    const html = dressed(
+      '<p data-at="0-32"><img src="attachments/ab/cd.png" alt="shot" loading="lazy"></p>',
+    );
+    expect(html).toContain('data-inside="attachments/ab/cd.png"');
+    expect(html).toContain('src=""');
   });
 
-  it("leaves an unclosed reference as the text it is", () => {
-    expect(composed("[[never closed")).toContain("[[never closed");
-  });
-
-  it("marks what lives under the data root so the view can resolve it", () => {
-    const inside = composed("![shot](<attachments/ab/cd.png>)");
-    expect(inside).toContain('data-inside="attachments/ab/cd.png"');
-    expect(inside).toContain('src=""');
-
-    const outside = composed("[OPS-3465](https://jira.example/browse/OPS-3465)");
-    expect(outside).not.toContain("data-inside");
-    expect(outside).toContain('href="https://jira.example/browse/OPS-3465"');
+  it("leaves an address that leaves the machine alone", () => {
+    const html = dressed('<p><a href="https://jira.example/browse/OPS-3465">OPS-3465</a></p>');
+    expect(html).not.toContain("data-inside");
+    expect(html).toContain('href="https://jira.example/browse/OPS-3465"');
+    expect(
+      dressed('<p><img src="https://evil.example/p.png" alt="x" loading="lazy"></p>'),
+    ).toContain('src="https://evil.example/p.png"');
   });
 
   it("leaves an absolute path alone, whatever the platform writes", () => {
@@ -35,76 +30,45 @@ describe("what gets composed", () => {
       "/home/mario/clip.mkv",
       "//server/share/clip.mkv",
     ]) {
-      expect(composed(`[clip](<${at}>)`)).not.toContain("data-inside");
+      expect(dressed(`<p><a href="${at}">clip</a></p>`)).not.toContain("data-inside");
     }
-    expect(composed("![shot](<attachments/ab/cd.png>)")).toContain("data-inside");
   });
 
   it("finds a bare address without being asked", () => {
-    expect(composed("see https://x.example/1")).toContain('href="https://x.example/1"');
-  });
-});
-
-describe("what does not get through", () => {
-  it("escapes raw HTML instead of running it", () => {
-    const html = composed('<img src=x onerror="alert(1)">');
-    expect(html).not.toContain("<img");
-    expect(html).toContain("&lt;img");
+    const html = dressed('<p data-at="0-23">see https://x.example/1.</p>');
+    expect(html).toContain('<a href="https://x.example/1">https://x.example/1</a>.');
+    expect(dressed("<p>at www.x.example</p>")).toContain('href="https://www.x.example"');
   });
 
-  it("refuses a script scheme behind a well-behaved label", () => {
-    const html = composed("[press me](javascript:alert(1))");
-    expect(html).not.toContain("<a");
-    expect(html).toContain("[press me]");
+  it("does not make a link out of an address already in one, or in code", () => {
+    expect(dressed('<p><a href="https://a.b">https://a.b</a></p>').match(/<a /g)).toHaveLength(1);
+    expect(dressed("<p><code>https://a.b</code></p>")).not.toContain("<a ");
   });
 
-  it("escapes a reference that carries markup in its name", () => {
-    expect(composed("[[<b>bold</b>]]")).not.toContain("<b>");
+  it("turns a card for a document into a chip the view resolves", () => {
+    const html = dressed('<p><a class="card" data-doc="mac0-0007">el informe</a></p>');
+    expect(html).toContain('data-inside="tisty:doc/mac0-0007"');
+    expect(html).toContain('alt="el informe"');
+    expect(html).not.toContain("card");
+  });
+
+  it("dresses a link to a document apart from one that leaves the app", () => {
+    const html = dressed('<p><a href="tisty:doc/mac0-0001">Informe</a></p>');
+    expect(html).toContain('class="paper"');
+    expect(dressed('<p><a href="https://ejemplo.org">Fuera</a></p>')).not.toContain("paper");
   });
 });
 
 describe("a link to a document, built with a title nobody chose carefully", () => {
-  it("still makes a link out of a title with nothing in it", () => {
-    const html = composed(docLink("mac0-0001", ""));
-    expect(html).toContain('href="tisty:doc/mac0-0001"');
-    expect(html).toContain('class="paper"');
-  });
-
-  it("keeps a title made only of spaces instead of collapsing it away", () => {
-    const html = composed(docLink("mac0-0001", "   "));
-    expect(html).toContain('href="tisty:doc/mac0-0001"');
-    expect(html).toContain(">   <");
-  });
-
-  it("survives a title with a loose opening bracket too", () => {
-    const written = docLink("mac0-0001", "Informe [ borrador");
-
-    expect(composed(written)).toContain(">Informe [ borrador<");
-    expect(composed(written)).toContain('href="tisty:doc/mac0-0001"');
+  it("escapes the brackets and the backslash a title carries", () => {
+    expect(docLink("mac0-0001", "Informe [ borrador")).toBe(
+      "[Informe [ borrador](tisty:doc/mac0-0001)",
+    );
+    expect(docLink("mac0-0001", "a\b")).toBe("[a\\b](tisty:doc/mac0-0001)");
   });
 
   it("does not need to escape the parentheses a title carries", () => {
-    const written = docLink("mac0-0001", "Nota (borrador)");
-
-    expect(composed(written)).toContain(">Nota (borrador)<");
-  });
-
-  it("keeps one link, not two, when the title has a line break in it", () => {
-    const written = docLink("mac0-0001", "linea uno\nlinea dos");
-    const html = composed(written);
-
-    expect(html.match(/<a /g)).toHaveLength(1);
-    expect(html).toContain('href="tisty:doc/mac0-0001"');
-  });
-
-  it("shows a title that already looks like a link as plain text, not a nested one", () => {
-    const written = docLink("mac0-0001", "[ya es un link](http://evil.com)");
-    const html = composed(written);
-
-    expect(html.match(/<a /g)).toHaveLength(1);
-    expect(html).toContain(">[ya es un link](http://evil.com)<");
-    expect(html).toContain('href="tisty:doc/mac0-0001"');
-    expect(html).not.toContain('evil.com"');
+    expect(docLink("mac0-0001", "Nota (borrador)")).toBe("[Nota (borrador)](tisty:doc/mac0-0001)");
   });
 });
 

@@ -1,7 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Prose from "../ui/Prose";
+
+vi.mock("../core", async () => {
+  const { crated } = await import("./crated");
+  return {
+    ...(await vi.importActual<typeof import("../core")>("../core")),
+    docDrawn: (body: string) => Promise.resolve(crated(body)),
+  };
+});
 
 function field(over: Partial<React.ComponentProps<typeof Prose>> = {}) {
   const onWrite = vi.fn();
@@ -21,9 +29,9 @@ const region = () => screen.getByLabelText("Descripción");
 const box = () => screen.getByRole("textbox", { name: "Descripción" }) as HTMLTextAreaElement;
 
 describe("source where the cursor is, composed where it is not", () => {
-  it("starts composed, with no textbox to be seen", () => {
+  it("starts composed, with no textbox to be seen", async () => {
     field();
-    expect(region().querySelector("strong")?.textContent).toBe("contabilidad");
+    await waitFor(() => expect(region().querySelector("strong")?.textContent).toBe("contabilidad"));
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 
@@ -36,7 +44,7 @@ describe("source where the cursor is, composed where it is not", () => {
 
     await user.tab();
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(region().querySelector("strong")).toBeTruthy();
+    await waitFor(() => expect(region().querySelector("strong")).toBeTruthy());
   });
 
   it("reaches the same field with the keyboard alone", async () => {
@@ -71,7 +79,9 @@ describe("the second column", () => {
     field({ beside: true });
 
     await user.click(region());
-    expect(screen.getByLabelText("Composed").querySelector("strong")).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Composed").querySelector("strong")).toBeTruthy(),
+    );
   });
 });
 

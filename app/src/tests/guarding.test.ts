@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composed, inline } from "../markdown";
+import { dressed } from "../markdown";
 import { previewOf } from "../previews";
 
 describe("previewOf nunca trata como interno lo que sale de la máquina", () => {
@@ -57,19 +57,18 @@ describe("previewOf nunca trata como interno lo que sale de la máquina", () => 
   });
 });
 
-describe("markdown-it, que es lo que se pinta con innerHTML", () => {
-  it("escapa el html crudo en vez de dejarlo entrar", () => {
-    const html = composed("<img src=x onerror=alert(1)><script>alert(1)</script>");
+describe("lo que el núcleo dibuja y se pinta con innerHTML", () => {
+  it("convierte en ficha la imagen que el html crudo dejó, sin pedirla afuera", () => {
+    const html = dressed('<div data-at="0-30"><img src="x"></div>');
 
-    expect(html).not.toContain("<img");
-    expect(html).not.toContain("<script");
-    expect(html).toContain("&lt;img");
+    expect(html).toContain('data-inside="x"');
+    expect(html).toContain('src=""');
   });
 
-  it("no deja un href javascript: ni un src de otro esquema marcado como interno", () => {
-    expect(composed("[x](javascript:alert(1))")).not.toContain('href="javascript');
-    expect(composed("[x](JAVASCRIPT:alert(1))")).not.toContain('href="JAVASCRIPT');
-    expect(inline("![x](https://evil.example/p.png)")).toContain("https://evil.example/p.png");
-    expect(inline("![x](attachments/ab/cd.png)")).toContain('src=""');
+  it("no marca como interno un src de otro esquema", () => {
+    const html = dressed('<p><img src="https://evil.example/p.png" alt="x"></p>');
+
+    expect(html).toContain("https://evil.example/p.png");
+    expect(html).not.toContain("data-inside");
   });
 });

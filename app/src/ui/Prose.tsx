@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
-import { composed } from "../markdown";
-import Composed from "./Composed";
 import Insert from "./Insert";
+import Written from "./Written";
 
 interface Props {
   value: string;
@@ -126,10 +125,12 @@ export default function Prose({
 
   const read = (
     <div {...caught}>
-      <Composed
+      <Written
         tabIndex={0}
         label={label}
-        html={text.trim() ? composed(text, steps) : placeholder(hint)}
+        text={text}
+        steps={steps}
+        hint={hint}
         onEnter={() => setWriting(true)}
         onError={onError}
         onWhole={onWhole}
@@ -145,16 +146,14 @@ export default function Prose({
   return (
     <div className="grid grid-cols-2 items-start gap-5">
       {source}
-      <Composed
+      <Written
         label={t("composed")}
         onError={onError}
         onDoc={onDoc}
-        html={composed(text, steps)}
+        text={text}
+        steps={steps}
         className="prose px-1.5 py-1 text-[13px] leading-relaxed"
       />
     </div>
   );
 }
-
-const placeholder = (hint: string): string =>
-  `<p class="text-faint">${hint.replace(/[<>&]/g, "")}</p>`;

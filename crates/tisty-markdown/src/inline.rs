@@ -289,6 +289,7 @@ pub fn safe(to: &str) -> String {
     let allowed = match scheme {
         None => true,
         Some(head) if head.contains(['/', '?', '#']) => true,
+        Some(head) if head.len() == 1 && head.chars().all(|c| c.is_ascii_alphabetic()) => true,
         Some(head) => SCHEMES.contains(&head),
     };
     if allowed {

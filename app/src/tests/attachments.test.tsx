@@ -2,15 +2,18 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ONCE_A_DAY } from "../inUse";
-import { composed } from "../markdown";
 import Composed from "../ui/Composed";
 import Prose from "../ui/Prose";
+import { composed } from "./crated";
 
 const { served } = vi.hoisted(() => ({
   served: vi.fn((reference: string) => Promise.resolve(`C:\\data\\${reference}`)),
 }));
 
-vi.mock("../core", () => ({ served }));
+vi.mock("../core", async () => {
+  const { crated } = await import("./crated");
+  return { served, docDrawn: (body: string) => Promise.resolve(crated(body)) };
+});
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (at: string) => `http://asset.localhost/${encodeURIComponent(at)}`,

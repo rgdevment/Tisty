@@ -112,3 +112,17 @@ fn a_diagram_comes_light_and_dark_for_the_reader_to_pick() {
         assert!(!url.contains(' '));
     }
 }
+
+#[test]
+fn a_path_on_a_windows_drive_is_a_place_and_not_a_scheme() {
+    let drawn = page("[clip](<C:/Users/Mario/clip.mkv>) [b](vbscript:x)\n");
+    assert!(drawn.contains("href=\"C:/Users/Mario/clip.mkv\""));
+    assert!(!drawn.contains("vbscript:"));
+}
+
+#[test]
+fn a_step_named_in_a_note_keeps_its_number_for_the_window() {
+    let drawn = page("para arreglar [[#4]] ejecuté\nluego\n");
+    assert!(drawn.contains("data-ref=\"#4\""));
+    assert!(drawn.contains("<br>"));
+}
