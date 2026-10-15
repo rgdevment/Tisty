@@ -1,62 +1,40 @@
+import { GFM, parser } from "@lezer/markdown";
 import { known } from "../glyphs";
 import { HUES } from "./paging";
 
 export const PENS = ["yellow", ...HUES];
 
+export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
+export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
+export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
+
+export const CODE = new Set(["InlineCode", "FencedCode", "CodeBlock"]);
+
 export type Translated = {
   readonly shown: string;
   readonly stored: (text: string) => string;
+  readonly active: boolean;
 };
 
-const FENCE = /^(?:\s*>)*\s*(```|~~~)/;
+const reading = parser.configure(GFM);
 const KEPT = /\]\((<attachments\/[^<>\n]+>|attachments\/[^\s()<>]+)/g;
 const ICON = /<span data-ico="([a-z0-9-]+)"(?: data-hue="([a-z]+)")?>:([a-z0-9-]+):<\/span>/g;
-const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/gu;
+const every = (one: RegExp) => new RegExp(one.source, "gu");
 
-// Code keeps its words as written: a fence or a span is never translated either way.
 const prose = (text: string, change: (words: string) => string): string => {
   let out = "";
-  let fenced: string | null = null;
-  for (const line of text.split(/(?<=\n)/)) {
-    const fence = FENCE.exec(line)?.[1];
-    if (fenced) {
-      out += line;
-      if (fence === fenced) fenced = null;
-      continue;
-    }
-    if (fence) {
-      fenced = fence;
-      out += line;
-      continue;
-    }
-    out += spans(line, change);
-  }
-  return out;
-};
-
-const spans = (line: string, change: (words: string) => string): string => {
-  let out = "";
   let at = 0;
-  let from = 0;
-  while (at < line.length) {
-    if (line[at] !== "`") {
-      at += 1;
-      continue;
-    }
-    const run = /^`+/.exec(line.slice(at))?.[0] ?? "`";
-    const shut = line.indexOf(run, at + run.length);
-    if (shut < 0) {
-      at += run.length;
-      continue;
-    }
-    out += change(line.slice(from, at)) + line.slice(at, shut + run.length);
-    at = shut + run.length;
-    from = at;
-  }
-  return out + change(line.slice(from));
+  reading.parse(text).iterate({
+    enter: (node) => {
+      if (!CODE.has(node.name)) return;
+      out += change(text.slice(at, node.from)) + text.slice(node.from, node.to);
+      at = node.to;
+      return false;
+    },
+  });
+  return out + change(text.slice(at));
 };
 
-// An attachment is shown by the name it was given; the folder and the print Tisty adds stay on disk.
 const shortOf = (target: string): string => {
   const path = target.replace(/^<|>$/g, "");
   const file = path.slice(path.lastIndexOf("/") + 1);
@@ -72,11 +50,10 @@ const iconed = (all: string, name: string, hue: string | undefined, said: string
 const toTisty = (words: string, kept: Map<string, string>): string =>
   words
     .replace(/<u>(.+?)<\/u>/g, "++$1++")
-    .replace(/<mark>(.+?)<\/mark>/g, "==$1==")
-    .replace(/<mark data-pen="([a-z]+)">(.+?)<\/mark>/g, (all, pen: string, said: string) => {
-      if (pen === "yellow") return `==${said}==`;
-      return PENS.includes(pen) ? `==${said}=={${pen}}` : all;
-    })
+    .replace(/<mark>(.+?)<\/mark>/g, "==$1=={yellow}")
+    .replace(/<mark data-pen="([a-z]+)">(.+?)<\/mark>/g, (all, pen: string, said: string) =>
+      pen !== "yellow" && PENS.includes(pen) ? `==${said}=={${pen}}` : all,
+    )
     .replace(ICON, iconed)
     .replace(KEPT, (all, target: string) => {
       const name = shortOf(target);
@@ -85,12 +62,12 @@ const toTisty = (words: string, kept: Map<string, string>): string =>
 
 const toDisk = (words: string, kept: Map<string, string>): string =>
   words
-    .replace(/(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/gu, "<u>$1</u>")
-    .replace(/==(?=\S)((?:(?!==).)+?)(?<=\S)==\{([a-z]+)\}/g, (all, said: string, pen: string) => {
-      if (pen === "yellow") return `==${said}==`;
-      return PENS.includes(pen) ? `<mark data-pen="${pen}">${said}</mark>` : all;
+    .replace(every(UNDER), "<u>$1</u>")
+    .replace(every(PEN), (all, said: string, pen: string | undefined) => {
+      if (pen === undefined || !PENS.includes(pen)) return all;
+      return pen === "yellow" ? `<mark>${said}</mark>` : `<mark data-pen="${pen}">${said}</mark>`;
     })
-    .replace(NAMED, (all, name: string, hue: string | undefined) => {
+    .replace(every(NAMED), (all, name: string, hue: string | undefined) => {
       if (!known(name) || (hue !== undefined && !HUES.includes(hue))) return all;
       const tint = hue === undefined ? "" : ` data-hue="${hue}"`;
       return `<span data-ico="${name}"${tint}>:${name}:</span>`;
@@ -116,14 +93,10 @@ const keptIn = (text: string): Map<string, string> => {
   return kept;
 };
 
-// The yellow pen has three spellings on disk and one in Tisty: they all read the same.
-const yellowed = (text: string): string =>
-  prose(text, (words) => words.replace(/<mark(?: data-pen="yellow")?>(.+?)<\/mark>/g, "==$1=="));
-
 export const translated = (stored: string): Translated => {
   const kept = keptIn(stored);
   const shown = prose(stored, (words) => toTisty(words, kept));
   const back = (text: string) => prose(text, (words) => toDisk(words, kept));
-  if (back(shown) !== yellowed(stored)) return { shown: stored, stored: (text) => text };
-  return { shown, stored: back };
+  if (back(shown) !== stored) return { shown: stored, stored: (text) => text, active: false };
+  return { shown, stored: back, active: true };
 };

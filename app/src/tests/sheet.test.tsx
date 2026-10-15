@@ -197,6 +197,24 @@ describe("the sheet in the main window", () => {
     expect(writes[writes.length - 1]).toBe("# Compras\n\nleche y pan y fruta fresca\n\npan\n");
   });
 
+  it("ends the block when words from outside match an older text of its own once it went past it", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("leche y");
+    ipc.opened[0].change("leche y pan");
+    ipc.opened[0].change("leche y pan y fruta");
+    view.rerender(<Sheet value={writes[1]} label="Compras" onWrite={() => {}} />);
+    expect(ipc.left).toBe(0);
+    view.rerender(<Sheet value={writes[0]} label="Compras" onWrite={() => {}} />);
+    expect(ipc.left).toBe(1);
+  });
+
   it("ends the block being written when its words change from outside", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     const page = await loaded(await shown(view.container));

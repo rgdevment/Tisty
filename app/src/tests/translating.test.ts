@@ -13,14 +13,22 @@ describe("a block written in Tisty's own words", () => {
   it("writes what is typed in Tisty's words the way the file keeps them", () => {
     const one = translated("Nada.\n");
     expect(one.stored("Un ++subrayado++ y ==algo=={pink} y ==esto=={yellow}.")).toBe(
-      'Un <u>subrayado</u> y <mark data-pen="pink">algo</mark> y ==esto==.',
+      'Un <u>subrayado</u> y <mark data-pen="pink">algo</mark> y <mark>esto</mark>.',
     );
   });
 
-  it("reads every spelling of the yellow pen as the one Tisty writes", () => {
-    const one = translated('<mark>uno</mark> y <mark data-pen="yellow">dos</mark>\n');
-    expect(one.shown).toBe("==uno== y ==dos==\n");
-    expect(one.stored(one.shown)).toBe("==uno== y ==dos==\n");
+  it("keeps each spelling of the yellow pen as it was, so nothing untouched is rewritten", () => {
+    const stored = '==uno== y <mark>dos</mark> y <mark data-pen="yellow">tres</mark>\n';
+    const one = translated(stored);
+    expect(one.shown).toBe('==uno== y ==dos=={yellow} y <mark data-pen="yellow">tres</mark>\n');
+    expect(one.stored(one.shown)).toBe(stored);
+  });
+
+  it("shows a block as it was written when a pen could not be said the same way again", () => {
+    const stored = "Hola <mark> ojo</mark> y x=<mark>y</mark>\n";
+    const one = translated(stored);
+    expect(one.shown).toBe(stored);
+    expect(one.active).toBe(false);
   });
 
   it("leaves code as it was written, in a fence and in a span", () => {
@@ -28,6 +36,13 @@ describe("a block written in Tisty's own words", () => {
     const one = translated(stored);
     expect(one.shown).toBe(stored);
     expect(one.stored("Mira `++x++` aquí.")).toBe("Mira `++x++` aquí.");
+  });
+
+  it("leaves an indented block, a span over two lines and a span of three ticks as code", () => {
+    expect(translated("    <u>x</u>\n").shown).toBe("    <u>x</u>\n");
+    expect(translated("    ++x++\n").stored("    ++x++")).toBe("    ++x++");
+    expect(translated("Un `<u>a\nb</u>` aquí\n").shown).toBe("Un `<u>a\nb</u>` aquí\n");
+    expect(translated("```x``` y <u>z</u>\n").shown).toBe("```x``` y ++z++\n");
   });
 
   it("never reads a plus inside a word as an underline", () => {

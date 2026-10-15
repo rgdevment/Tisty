@@ -1,6 +1,6 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import {
   Decoration,
@@ -12,7 +12,9 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { PENS } from "./translating";
+import { known } from "../glyphs";
+import { HUES } from "./paging";
+import { CODE, NAMED, PEN, PENS, UNDER } from "./translating";
 
 export type Editing = {
   readonly view: EditorView;
@@ -42,15 +44,26 @@ const dressing = EditorView.theme({
   },
 });
 
+const coded = (view: EditorView, at: number): boolean => {
+  for (let node = syntaxTree(view.state).resolveInner(at, 1); node.parent; node = node.parent) {
+    if (CODE.has(node.name)) return true;
+  }
+  return false;
+};
+
 const marking = new MatchDecorator({
-  regexp:
-    /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?|(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])|(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/gu,
-  decoration: (found) => {
+  regexp: new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu"),
+  decoration: (found, view, at) => {
+    if (coded(view, at)) return null;
     if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
-    if (found[4] !== undefined)
-      return Decoration.mark({ class: `cm-ico ico-${found[5] ?? "none"}` });
-    const pen = found[2] ?? "yellow";
-    return Decoration.mark({ class: `cm-pen cm-pen-${PENS.includes(pen) ? pen : "yellow"}` });
+    if (found[4] !== undefined) {
+      const hue = found[5];
+      if (!known(found[4]) || (hue !== undefined && !HUES.includes(hue))) return null;
+      return Decoration.mark({ class: hue === undefined ? "cm-ico" : `cm-ico ico-${hue}` });
+    }
+    const pen = found[2];
+    if (pen === undefined) return Decoration.mark({ class: "cm-pen cm-pen-yellow" });
+    return PENS.includes(pen) ? Decoration.mark({ class: `cm-pen cm-pen-${pen}` }) : null;
   },
 });
 
@@ -73,6 +86,7 @@ export const edited = (
   said: string,
   onChange: (text: string) => void,
   onLeave: (text: string) => void,
+  tisty = true,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -109,7 +123,7 @@ export const edited = (
         ]),
         markdown(),
         syntaxHighlighting(inked),
-        marked,
+        tisty ? marked : [],
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
