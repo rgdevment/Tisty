@@ -88,8 +88,11 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str) {
         for shape in SHAPES {
             shape(block, text);
         }
-        for pass in PASSES {
-            pass(&mut block.spans, text);
+        // Code keeps its words as written: nothing in it is a pen, an emoji or a reference.
+        if !matches!(block.kind, Kind::Code { .. }) {
+            for pass in PASSES {
+                pass(&mut block.spans, text);
+            }
         }
         block
             .spans
@@ -142,7 +145,7 @@ fn leaf(kind: Kind, at: Range<usize>) -> Block {
 
 fn spot(open: &mut [Block], mark: Mark, at: Range<usize>) {
     if let Some(block) = open.last_mut()
-        && !matches!(block.kind, Kind::Code { .. } | Kind::Html)
+        && block.kind != Kind::Html
     {
         block.spans.push(Span { mark, at });
     }

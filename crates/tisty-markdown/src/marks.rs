@@ -48,7 +48,9 @@ pub fn tagged(blocks: &mut [Block], text: &str) {
 #[cfg(feature = "tags")]
 fn walk(blocks: &mut [Block], text: &str, filed: &HashSet<String>) {
     for block in blocks {
-        mark_lines(block, text, filed);
+        if !matches!(block.kind, crate::Kind::Code { .. }) {
+            mark_lines(block, text, filed);
+        }
         walk(&mut block.inner, text, filed);
     }
 }
