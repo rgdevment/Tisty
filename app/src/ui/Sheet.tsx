@@ -36,12 +36,14 @@ export default function Sheet(props: Readonly<Props>) {
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
+  const echoes = useRef(new Set<string>());
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
 
   const written = useCallback((text: string) => {
     latest.current = text;
+    echoes.current.add(text);
     said.current.onWrite(text);
   }, []);
 
@@ -67,6 +69,7 @@ export default function Sheet(props: Readonly<Props>) {
     onFile.current = file;
     left();
     latest.current = value;
+    echoes.current.clear();
     wanted.current = said.current.seek;
     marked.current = said.current.anchor;
     putting.current = 0;
@@ -75,7 +78,13 @@ export default function Sheet(props: Readonly<Props>) {
   }, [file, value, left]);
 
   useEffect(() => {
-    if (value === latest.current) return;
+    if (value === latest.current) {
+      echoes.current.clear();
+      return;
+    }
+    // Keys typed faster than the window draws come back late; an older text of ours is not news.
+    if (echoes.current.has(value)) return;
+    echoes.current.clear();
     // Words from outside (a reload, a step back) end the block being written: it spoke of the old ones.
     latest.current = value;
     if (open.current) left();

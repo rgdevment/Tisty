@@ -170,6 +170,33 @@ describe("the sheet in the main window", () => {
     ]);
   });
 
+  it("keeps the block open when its own words come back late, as they do under fast typing", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("leche y");
+    ipc.opened[0].change("leche y pan");
+    ipc.opened[0].change("leche y pan y fruta");
+    view.rerender(
+      <Sheet value={writes[0]} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    view.rerender(
+      <Sheet value={writes[1]} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    expect(ipc.left).toBe(0);
+    expect(page.querySelector(".editing")).not.toBeNull();
+    view.rerender(
+      <Sheet value={writes[2]} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    ipc.opened[0].change("leche y pan y fruta fresca");
+    expect(writes[writes.length - 1]).toBe("# Compras\n\nleche y pan y fruta fresca\n\npan\n");
+  });
+
   it("ends the block being written when its words change from outside", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     const page = await loaded(await shown(view.container));
