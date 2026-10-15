@@ -208,6 +208,7 @@ export default function Sheet(props: Readonly<Props>) {
       tabIndex={-1}
       onScroll={(one) => {
         const sheet = one.currentTarget;
+        sheet.classList.toggle("stuck", sheet.scrollTop > 8);
         if (putting.current >= 0) return;
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
