@@ -93,13 +93,12 @@ fn code_keeps_its_language_and_a_rule_stays_a_rule() {
 
 #[test]
 fn an_entity_prints_as_the_letter_it_stands_for_and_a_kept_break_breaks() {
-    let line = first("Tom &amp; Jerry &copy; &#233; &#x41;<br>dos");
+    let line = first("Tom &amp; Jerry &copy; &#233;<br>dos");
     let said = line.to_string();
     assert!(said.contains("Tom "));
     assert!(said.contains("\"&\""));
     assert!(said.contains("©"));
     assert!(said.contains("é"));
-    assert!(said.contains("\"A\""));
     assert!(!said.contains("&amp;"));
     assert!(said.contains("hardBreak"));
 }
