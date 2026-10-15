@@ -190,7 +190,6 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
                 }));
                 continue;
             }
-            Mark::Emoji { glyph } => (glyph.clone(), false),
             Mark::Ref { name } => (name.clone(), false),
             Mark::Html if kept.contains(&at) => continue,
             Mark::Icon { .. } => continue,
