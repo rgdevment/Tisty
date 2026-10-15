@@ -2,15 +2,29 @@ use std::sync::Mutex;
 
 pub const WRITTEN_BY: &str = tisty_core::untouched::SOWN_BY;
 
-pub const PICTURES: &[&str] = &[
+pub const ATTACHED: &[&str] = &[
     "captura.png",
     "prioridades.png",
     "capture.png",
     "priorities.png",
     "rina.jpg",
+    "cartilla.pdf",
+    "vet-card.pdf",
+    "ladrido.mp3",
+    "bark.mp3",
+    "paseo.webm",
+    "walk.webm",
+    "paseos.csv",
+    "walks.csv",
+    "paseos.html",
+    "walks.html",
 ];
 
 pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
+    (
+        "tisty:sample",
+        include_str!("../../resources/guide/es/muestra.md"),
+    ),
     (
         "tisty:code",
         include_str!("../../resources/guide/es/codigo.md"),
@@ -22,6 +36,10 @@ pub const GUIDE_PAGES_ES: &[(&str, &str)] = &[
 ];
 
 pub const GUIDE_PAGES_EN: &[(&str, &str)] = &[
+    (
+        "tisty:sample",
+        include_str!("../../resources/guide/en/sample.md"),
+    ),
     (
         "tisty:code",
         include_str!("../../resources/guide/en/code.md"),
@@ -182,7 +200,7 @@ pub fn guide(
         .iter()
         .map(|(named, one)| (*named, one.to_string()))
         .collect();
-    for shot in PICTURES {
+    for shot in ATTACHED {
         let Some(at) = from
             .as_ref()
             .map(|dir| dir.join(shot))
@@ -193,10 +211,15 @@ pub fn guide(
         let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         told_of.push(kept.told());
-        let named = format!("](<{}>)", kept.at);
-        body = body.replace(&format!("]({shot})"), &named);
-        for (_, one) in pages.iter_mut() {
-            *one = one.replace(&format!("]({shot})"), &named);
+        // A title after the path, as in `](walks.html "file")`, keeps the attachment drawn as a file.
+        for (was, named) in [
+            (format!("]({shot})"), format!("](<{}>)", kept.at)),
+            (format!("]({shot} \""), format!("](<{}> \"", kept.at)),
+        ] {
+            body = body.replace(&was, &named);
+            for (_, one) in pages.iter_mut() {
+                *one = one.replace(&was, &named);
+            }
         }
     }
 
