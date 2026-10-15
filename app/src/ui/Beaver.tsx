@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
-import { settings } from "../core";
+import { type Settings, settings } from "../core";
 
 export const QUIET = "beaver";
 export const TOLD = "beaver-told";
+
+export const switched = (kept: Settings): Settings => ({
+  ...kept,
+  quiet: kept.quiet.includes(QUIET)
+    ? kept.quiet.filter((one) => one !== QUIET)
+    : [...kept.quiet, QUIET],
+});
+
+export const tell = (kept: Settings) =>
+  window.dispatchEvent(new CustomEvent(TOLD, { detail: !kept.quiet.includes(QUIET) }));
 
 // On unless the person turned it off; a failed read keeps it away rather than guessing.
 export function useBeaver(): boolean {
   const [peeks, setPeeks] = useState(false);
   useEffect(() => {
     let live = true;
-    const look = () =>
+    const look = () => {
       settings()
         .then((kept) => {
           if (live) setPeeks(!kept.quiet.includes(QUIET));
@@ -17,6 +27,7 @@ export function useBeaver(): boolean {
         .catch(() => {
           if (live) setPeeks(false);
         });
+    };
     const told = (event: Event) => setPeeks((event as CustomEvent<boolean>).detail);
     look();
     window.addEventListener("focus", look);

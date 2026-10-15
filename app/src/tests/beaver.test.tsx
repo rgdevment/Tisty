@@ -1,6 +1,6 @@
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Task } from "../core";
+import type { Settings, Task } from "../core";
 
 const ipc = vi.hoisted(() => ({ quiet: [] as string[], fails: false }));
 
@@ -9,7 +9,7 @@ vi.mock("../core", () => ({
     ipc.fails ? Promise.reject(new Error("no")) : Promise.resolve({ quiet: ipc.quiet }),
 }));
 
-import { Head, Paws, QUIET, Thumb, TOLD, useBeaver } from "../ui/Beaver";
+import { Head, Paws, QUIET, switched, Thumb, TOLD, tell, useBeaver } from "../ui/Beaver";
 import Cheer from "../ui/Cheer";
 
 const task = { id: "01T", title: "Vacuna de Rina" } as Task;
@@ -48,6 +48,21 @@ describe("Tisto, the beaver that peeks in", () => {
       window.dispatchEvent(new CustomEvent(TOLD, { detail: false }));
     });
     expect(seen.result.current).toBe(false);
+  });
+
+  it("turns off and on from its switch, keeping every other quiet wish, and tells the window", () => {
+    const kept = { quiet: ["star"] } as unknown as Settings;
+    const hushed = switched(kept);
+    expect(hushed.quiet).toEqual(["star", QUIET]);
+    expect(switched(hushed).quiet).toEqual(["star"]);
+
+    const heard: boolean[] = [];
+    const listen = (event: Event) => heard.push((event as CustomEvent<boolean>).detail);
+    window.addEventListener(TOLD, listen);
+    tell(hushed);
+    tell(kept);
+    window.removeEventListener(TOLD, listen);
+    expect(heard).toEqual([false, true]);
   });
 
   it("draws its head, its paws with three fingers each, and its thumb", () => {
