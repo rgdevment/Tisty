@@ -555,6 +555,10 @@ la promesa de que ese día es tuyo.
 
 ![El reparto: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-04-agenda.png)
 
+**Tisto te acompaña.** El castor de Tisty se asoma sobre la barra mientras
+escribes una tarea y levanta el pulgar cuando terminas una. Nunca tapa nada, y
+se apaga desde Configuración.
+
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
 
@@ -578,7 +582,7 @@ se oculta.
 
 ## Tus datos y tu privacidad
 
-![Tisty, el castor: gratis y de código abierto, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/store/es-08-gratis.png)
+![Tisto, el castor de Tisty: gratis y de código abierto, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/store/es-08-gratis.png)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada

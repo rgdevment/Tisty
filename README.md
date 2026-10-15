@@ -544,6 +544,10 @@ it — never a promise that the day is yours.
 
 ![The spread: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-04-spread.png)
 
+**Tisto keeps you company.** Tisty's beaver peeks over the bar while you write a
+task and gives you a thumbs up when you finish one. It never covers anything,
+and Settings turns it off.
+
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
 
@@ -566,7 +570,7 @@ is only ever hidden.
 
 ## Your Data and Privacy
 
-![Tisty the beaver: free and open source, with no account, no subscription and no telemetry, and your files stay on your computer](assets/store/en-08-free.png)
+![Tisto, Tisty's beaver: free and open source, with no account, no subscription and no telemetry, and your files stay on your computer](assets/store/en-08-free.png)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.

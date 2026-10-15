@@ -6,6 +6,7 @@ import {
   folderRename,
   type Pick,
   type Rift,
+  reopen,
   updateInstall,
 } from "../core";
 import { useDesk } from "../desk";
@@ -13,6 +14,7 @@ import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
 import { Alarm, Progress } from "./Banners";
 import BringingBack from "./BringingBack";
+import Cheer from "./Cheer";
 import Closing from "./Closing";
 import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
@@ -46,6 +48,9 @@ export interface MenuOpen {
 
 export default function Layers({ parcels }: { parcels: ReactNode }) {
   const {
+    act,
+    cheered,
+    setCheered,
     afoot,
     aloud,
     asked,
@@ -249,6 +254,18 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
             carries.current?.recheck();
             if (paper) openDoc(paper);
           }}
+        />
+      )}
+
+      {cheered && (
+        <Cheer
+          key={`cheer:${cheered.id}`}
+          task={cheered}
+          onUndo={() => {
+            act(reopen(cheered.id));
+            setCheered(undefined);
+          }}
+          onDismiss={() => setCheered(undefined)}
         />
       )}
 

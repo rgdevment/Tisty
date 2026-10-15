@@ -27,7 +27,8 @@ export type Which =
   | "parcel"
   | "tongue"
   | "look"
-  | "closing";
+  | "closing"
+  | "beaver";
 /** `busy` marks a round turned away by another, whatever its words say. */
 export type Word = { card: Which; text: string; busy?: boolean };
 
@@ -48,6 +49,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   greet: "greetAgain",
   tongue: "tongue",
   closing: "closingSetting",
+  beaver: "beaverPeeks",
   look: "look",
   settings: "settingsTitle",
   notices: "bandNotices",

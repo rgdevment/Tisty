@@ -11,9 +11,10 @@ interface Hands {
   say: (words: string) => void;
   setError: (text: string | null) => void;
   lookForAStar: () => void;
+  cheer?: (task: Task) => void;
 }
 
-export function useMarking({ chosen, act, say, setError, lookForAStar }: Hands) {
+export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: Hands) {
   const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
   const asked = useRef(0);
 
@@ -30,7 +31,13 @@ export function useMarking({ chosen, act, say, setError, lookForAStar }: Hands) 
       .then((days) => {
         if (!days.length) {
           say(fill("saidDone", title));
-          act(complete(id));
+          const done = complete(id);
+          act(done);
+          done
+            .then((task) => {
+              if (!task.part_of && !task.repeat) cheer?.(task);
+            })
+            .catch(() => {});
           lookForAStar();
           return;
         }

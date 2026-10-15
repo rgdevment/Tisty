@@ -387,6 +387,11 @@ const en = {
   noticesWhy: "How Tisty tells you a reminder came due.",
   noticeScreen: "A notification from the system",
   noticeChime: "A short tone",
+  beaverPeeks: "Let Tisto peek in",
+  beaverPeeksWhy:
+    "Tisto looks over the bar while you write a task, and gives you a thumbs up when you finish one.",
+  cheerKept: "{name} · kept in the archive",
+  cheerUndo: "Undo",
   attachTitle: "Attachments",
   attachUpTo: "take files up to",
   tasks: "Tasks",
@@ -2354,6 +2359,11 @@ const es: Catalog = {
   noticesWhy: "Cómo te avisa Tisty de que vence un recordatorio.",
   noticeScreen: "Una notificación del sistema",
   noticeChime: "Un tono corto",
+  beaverPeeks: "Que Tisto se asome",
+  beaverPeeksWhy:
+    "Tisto se asoma sobre la barra mientras escribes una tarea y levanta el pulgar cuando terminas una.",
+  cheerKept: "{name} · queda en el archivo",
+  cheerUndo: "Deshacer",
   attachTitle: "Adjuntos",
   attachUpTo: "aceptar archivos de hasta",
   tasks: "Tareas",

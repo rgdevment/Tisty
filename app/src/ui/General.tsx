@@ -9,6 +9,7 @@ import {
   wakeFor,
 } from "../core";
 import { adopt, fill, t } from "../locales";
+import { QUIET, switched, tell as tellBeaver } from "./Beaver";
 import type { Run, Which, Word } from "./Card";
 import { Band, Knob, Line, mild, ON_MAC, off } from "./Rows";
 import Signing, { type Signs } from "./Signing";
@@ -163,6 +164,27 @@ export default function General({
                   });
                 })
               }
+            />
+          </Line>
+        )}
+
+        {kept && (
+          <Line
+            title={t("beaverPeeks")}
+            why={t("beaverPeeksWhy")}
+            which="beaver"
+            said={said}
+            trouble={trouble}
+          >
+            <Knob
+              on={!kept.quiet.includes(QUIET)}
+              label={t("beaverPeeks")}
+              disabled={held}
+              onPress={() => {
+                const next = switched(kept);
+                remember(next, "beaver");
+                tellBeaver(next);
+              }}
             />
           </Line>
         )}
