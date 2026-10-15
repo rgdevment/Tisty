@@ -286,6 +286,35 @@ figure.widget iframe {
   width: 100%;
   border: 0;
 }
+.widget-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: var(--tisty-faint);
+  text-align: left;
+}
+.widget-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.widget-bar button {
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--tisty-soft);
+  font: inherit;
+  cursor: pointer;
+}
+.widget-bar button:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
 div.math {
   margin: 12px 0;
   padding: 4px 0;
