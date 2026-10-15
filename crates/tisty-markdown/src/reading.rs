@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use pulldown_cmark::{
-    Alignment, BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag, TagEnd,
+    Alignment, BlockQuoteKind, CodeBlockKind, Event, LinkType, Options, Parser, Tag, TagEnd,
 };
 
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
@@ -27,6 +27,7 @@ pub fn read(text: &str) -> Doc {
                         && let Some(said) = marked(&text[done.at.clone()])
                     {
                         done.kind = Kind::Callout(said);
+                        unmark(&mut done, text);
                     }
                     shelve(&mut open, &mut blocks, done);
                 }
@@ -88,8 +89,11 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str) {
         for shape in SHAPES {
             shape(block, text);
         }
-        for pass in PASSES {
-            pass(&mut block.spans, text);
+        // Code keeps its words as written: nothing in it is a pen, an emoji or a reference.
+        if !matches!(block.kind, Kind::Code { .. }) {
+            for pass in PASSES {
+                pass(&mut block.spans, text);
+            }
         }
         block
             .spans
@@ -142,7 +146,7 @@ fn leaf(kind: Kind, at: Range<usize>) -> Block {
 
 fn spot(open: &mut [Block], mark: Mark, at: Range<usize>) {
     if let Some(block) = open.last_mut()
-        && !matches!(block.kind, Kind::Code { .. } | Kind::Html)
+        && block.kind != Kind::Html
     {
         block.spans.push(Span { mark, at });
     }
@@ -153,6 +157,13 @@ fn mark_of(tag: &Tag<'_>) -> Option<Mark> {
         Tag::Emphasis => Mark::Emphasis,
         Tag::Strong => Mark::Strong,
         Tag::Strikethrough => Mark::Strike,
+        Tag::Link {
+            link_type: LinkType::Email,
+            dest_url,
+            ..
+        } => Mark::Link {
+            to: format!("mailto:{dest_url}"),
+        },
         Tag::Link { dest_url, .. } => Mark::Link {
             to: dest_url.to_string(),
         },
@@ -267,6 +278,43 @@ fn marked(source: &str) -> Option<Callout> {
         "caution" => Callout::Caution,
         _ => return None,
     })
+}
+
+// The tokenizer only knows a marker alone on its line, so one with words after it is cut here.
+fn unmark(quote: &mut Block, text: &str) {
+    let Some(first) = quote.inner.first_mut() else {
+        return;
+    };
+    if first.kind != Kind::Paragraph {
+        return;
+    }
+    let Some(start) = first.spans.iter().map(|one| one.at.start).min() else {
+        return;
+    };
+    let Some(close) = text[start..]
+        .strip_prefix("[!")
+        .and_then(|rest| rest.find(']'))
+    else {
+        return;
+    };
+    let after = start + 2 + close + 1;
+    let rest = &text[after..];
+    let cut = after + (rest.len() - rest.trim_start_matches([' ', '\t']).len());
+    first.spans.retain(|one| one.at.end > cut);
+    for one in &mut first.spans {
+        one.at.start = one.at.start.max(cut);
+    }
+    first.spans.sort_by_key(|one| one.at.start);
+    if first
+        .spans
+        .first()
+        .is_some_and(|one| one.mark == Mark::Break)
+    {
+        first.spans.remove(0);
+    }
+    if first.spans.is_empty() {
+        quote.inner.remove(0);
+    }
 }
 
 // The tokenizer hands the info string back unescaped, and a title's own escapes need the raw one.

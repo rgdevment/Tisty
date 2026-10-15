@@ -243,10 +243,16 @@ fn a_single_newline_breaks_the_line_and_html_is_kept_as_it_was_written() {
 }
 
 #[test]
-fn code_holds_no_marks_of_its_own() {
-    assert!(
-        read("```rust\nfn *main*() {}\n```").blocks()[0]
-            .spans
-            .is_empty()
-    );
+fn code_holds_only_its_words_as_written() {
+    let doc = read("> ```rust\n> fn *main*() {} #tag\n> ```");
+    let code = &doc.blocks()[0].inner[0];
+    let said: String = code
+        .spans
+        .iter()
+        .map(|one| {
+            assert_eq!(one.mark, Mark::Text);
+            &doc.text()[one.at.clone()]
+        })
+        .collect();
+    assert_eq!(said, "fn *main*() {} #tag\n");
 }
