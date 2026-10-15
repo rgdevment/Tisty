@@ -13,6 +13,17 @@ export type Reaching = {
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
   readonly onBlock?: (at: [number, number], block: HTMLElement) => void;
+  readonly onApart?: (source: string) => void;
+};
+
+const sources = new WeakMap<Element, string>();
+
+const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
+  const one = page.createElement("button");
+  one.type = "button";
+  one.dataset.asked = asked;
+  one.textContent = said;
+  return one;
 };
 
 export type Worn = { lent: Lending[]; kept: (() => void)[] };
@@ -60,7 +71,7 @@ export const pictures = (page: Document, live: () => boolean): (() => void)[] =>
   return held;
 };
 
-export const widgets = (page: Document, stranger: boolean): Lending[] => {
+export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Lending[] => {
   const lent: Lending[] = [];
   for (const code of page.querySelectorAll<HTMLElement>(
     "figure.code > pre > code.language-widget",
@@ -75,17 +86,33 @@ export const widgets = (page: Document, stranger: boolean): Lending[] => {
     const drawn = page.createElement("figure");
     drawn.className = "widget";
     drawn.dataset.at = figure.dataset.at ?? "";
+    sources.set(drawn, source);
+    const bar = page.createElement("div");
+    bar.className = "widget-bar";
+    const name = page.createElement("span");
+    name.className = "widget-name";
+    name.textContent = figure.querySelector("figcaption")?.textContent ?? "";
+    bar.append(name);
+    if (reach?.onBlock) bar.append(asking(page, "code", t("codeShow")));
+    if (reach?.onApart) bar.append(asking(page, "apart", t("viewApart")));
+    const held = page.createElement("div");
+    drawn.append(bar, held);
     figure.replaceWith(drawn);
-    lent.push(lend(drawn, source));
+    lent.push(lend(held, source));
   }
   return lent;
 };
 
-export const worn = (page: Document, stranger: boolean, live: () => boolean): Worn => {
+export const worn = (
+  page: Document,
+  stranger: boolean,
+  live: () => boolean,
+  reach?: Reaching,
+): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   iconed(page);
   const kept = pictures(page, live);
-  const lent = widgets(page, stranger);
+  const lent = widgets(page, stranger, reach);
   colored(page, live);
   return { lent, kept };
 };
@@ -106,6 +133,13 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       charsAt(reach.body, asked.at[1]),
     ];
     if (block) reach.onBlock?.(at, block);
+  }
+  if (asked.kind === "apart") {
+    const drawn = page.querySelector(
+      `.page > figure.widget[data-at="${asked.at[0]}-${asked.at[1]}"]`,
+    );
+    const source = drawn ? sources.get(drawn) : undefined;
+    if (source !== undefined) reach.onApart?.(source);
   }
 };
 

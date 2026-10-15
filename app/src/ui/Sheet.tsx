@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { viewWidget } from "../core";
 import type { Moved } from "../paging";
 import { type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
@@ -221,6 +222,13 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={block}
+          onApart={(source) => {
+            const from = said.current.file;
+            viewWidget(
+              { source },
+              from ? { id: "", file: from, title: said.current.label, place: "" } : undefined,
+            ).catch(() => {});
+          }}
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page) => {
             shown.current = page;
