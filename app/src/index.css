@@ -1964,3 +1964,149 @@ body {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+.paws {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.paw {
+  position: relative;
+  width: 34px;
+  height: 21px;
+  border: 3px solid #4a4640;
+  border-radius: 16px 16px 10px 10px;
+  background: #c8902f;
+}
+.paw i {
+  position: absolute;
+  bottom: 2px;
+  width: 2.5px;
+  height: 8px;
+  border-radius: 2px;
+  background: #4a4640;
+}
+.paw i:nth-child(1) {
+  left: 8px;
+}
+.paw i:nth-child(2) {
+  left: 14px;
+}
+.paw i:nth-child(3) {
+  left: 20px;
+}
+
+.peeking {
+  position: relative;
+}
+.peeking > .beaver-hidden {
+  position: absolute;
+  left: 250px;
+  bottom: calc(100% - 24px);
+  width: 96px;
+  height: 90px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.peeking > .beaver-hidden svg {
+  display: block;
+  width: 96px;
+  height: auto;
+  transform: translateY(100%);
+  scale: -1 1;
+}
+.peeking .pupil {
+  transform: translate(var(--look-x, 0px), var(--look-y, 0px));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .peeking .pupil {
+    transition: transform 0.25s ease-out;
+  }
+}
+.peeking > .beaver-over {
+  position: relative;
+  z-index: 1;
+}
+.peeking > .paws {
+  position: absolute;
+  z-index: 2;
+  top: -10px;
+  left: 250px;
+  width: 96px;
+  padding: 0 10px;
+  opacity: 0;
+  transform: translateY(8px);
+}
+.peeking > .paws .paw {
+  width: 28px;
+  height: 18px;
+}
+.peeking > .paws .paw i {
+  height: 6px;
+}
+.peeking > .paws .paw i:nth-child(1) {
+  left: 6px;
+}
+.peeking > .paws .paw i:nth-child(2) {
+  left: 11px;
+}
+.peeking > .paws .paw i:nth-child(3) {
+  left: 16px;
+}
+.peeking.awake > .beaver-hidden svg {
+  transform: none;
+}
+.peeking.awake > .paws {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .peeking > .beaver-hidden svg {
+    transition: transform 0.55s 0.15s cubic-bezier(0.25, 0.8, 0.3, 1.1);
+  }
+  .peeking > .paws {
+    transition:
+      opacity 0.3s 0.45s,
+      transform 0.35s 0.45s;
+  }
+}
+
+.quick-beaver {
+  position: absolute;
+  right: 18px;
+  bottom: -40px;
+  width: 78px;
+  height: auto;
+  pointer-events: none;
+}
+
+.cheer {
+  position: fixed;
+  z-index: 40;
+  bottom: 28px;
+  left: 50%;
+  width: 360px;
+  transform: translateX(-50%);
+}
+.cheer > .cheer-head {
+  position: absolute;
+  bottom: calc(100% - 26px);
+  left: 60px;
+  width: 112px;
+  height: auto;
+  pointer-events: none;
+}
+.cheer > .cheer-thumb {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(100% - 6px);
+  left: 14px;
+  width: 40px;
+  height: auto;
+  pointer-events: none;
+}
+.cheer > [role="status"] {
+  position: relative;
+  z-index: 1;
+}

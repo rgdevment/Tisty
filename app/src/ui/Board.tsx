@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { capture, fold } from "../core";
 import { useDesk } from "../desk";
 import { todayLong } from "../format";
@@ -5,6 +6,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { accepts, asView, headerCount, invite, nothing, title } from "../views";
 import { ArchiveBar, SliceBar } from "./Bars";
+import { Head, lookAt, Paws, useBeaver } from "./Beaver";
 import CaptureField from "./CaptureField";
 import Search from "./Search";
 import Shelf from "./Shelf";
@@ -13,7 +15,13 @@ import Tagged from "./Tagged";
 import Tags from "./Tags";
 import TaskList from "./TaskList";
 
+// The beaver waits for a few words, so a stray key does not call it.
+const AWAKES = 5;
+
 export default function Board() {
+  const peeks = useBeaver();
+  const [typed, setTyped] = useState(0);
+  const watching = useRef<HTMLDivElement>(null);
   const {
     act,
     asking,
@@ -164,21 +172,39 @@ export default function Board() {
           ) : chosen.named === "archive" ? (
             <Search key="archive" fixed="archived" onFound={setFound} onError={setError} />
           ) : accepts(chosen) ? (
-            <CaptureField
-              invite={invite(chosen, data.lists)}
-              lists={data.lists}
-              tags={data.tags}
-              onCapture={(written, edits) => {
-                setError(null);
-                return capture(written, asView(seen), edits).then((task) => {
-                  say(fill("saidFiled", task.title));
-                  setCaptured(task);
-                  load();
-                  return task;
-                });
-              }}
-              onError={setError}
-            />
+            <div
+              ref={watching}
+              className={peeks ? `peeking${typed >= AWAKES ? " awake" : ""}` : undefined}
+            >
+              {peeks && (
+                <span className="beaver-hidden">
+                  <Head />
+                </span>
+              )}
+              <div className="beaver-over">
+                <CaptureField
+                  invite={invite(chosen, data.lists)}
+                  lists={data.lists}
+                  tags={data.tags}
+                  onCapture={(written, edits) => {
+                    setError(null);
+                    return capture(written, asView(seen), edits).then((task) => {
+                      say(fill("saidFiled", task.title));
+                      setCaptured(task);
+                      load();
+                      return task;
+                    });
+                  }}
+                  onError={setError}
+                  onTyped={(text) => {
+                    setTyped(text.trim().length);
+                    const room = watching.current;
+                    if (room) requestAnimationFrame(() => lookAt(room));
+                  }}
+                />
+              </div>
+              {peeks && <Paws />}
+            </div>
           ) : null}
         </TaskList>
       </div>

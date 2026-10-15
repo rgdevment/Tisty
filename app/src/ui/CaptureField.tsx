@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type Counted,
   type Edits,
@@ -21,6 +21,7 @@ interface Props {
   tags: Counted[];
   onCapture: (text: string, edits: Edits) => Promise<Task>;
   onError: (message: string) => void;
+  onTyped?: (text: string) => void;
 }
 
 const CALLED = /(^|\s)([/@#])(\S*)$/;
@@ -33,8 +34,11 @@ interface Read {
   seen: Parsed;
 }
 
-export default function CaptureField({ invite, lists, tags, onCapture, onError }: Props) {
+export default function CaptureField({ invite, lists, tags, onCapture, onError, onTyped }: Props) {
   const [text, setText] = useState("");
+  const typing = useRef(onTyped);
+  typing.current = onTyped;
+  useEffect(() => typing.current?.(text), [text]);
   const [last, setLast] = useState<Read | null>(null);
   const [edits, setEdits] = useState<Edits>({});
   const [picking, setPicking] = useState<"date" | "deadline" | null>(null);
