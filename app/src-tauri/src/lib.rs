@@ -1153,6 +1153,7 @@ pub fn run() {
             answers::shelves::folder_look,
             answers::shelves::folder_drop,
             answers::papers::doc_file,
+            answers::paging::doc_drawn,
             answers::papers::doc_read,
             answers::papers::doc_facts,
             answers::papers::keep_pdf,

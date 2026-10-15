@@ -1,0 +1,160 @@
+import { common, createLowlight } from "lowlight";
+import { DOC } from "../markdown";
+import sheet from "./page.css?raw";
+import type { Head } from "./writing";
+
+export const HUES = [
+  "red",
+  "orange",
+  "amber",
+  "green",
+  "teal",
+  "blue",
+  "indigo",
+  "purple",
+  "pink",
+  "brown",
+  "gray",
+];
+const PENS = ["yellow", "green", "blue", "pink"];
+
+export const TOKENS = [
+  "sheet",
+  "ink",
+  "soft",
+  "faint",
+  "accent",
+  "accent-soft",
+  "line",
+  "hair",
+  "hover",
+  "rail",
+  "desk",
+  "cast",
+  "mark-tag",
+  "mark-doc",
+  "mark-doc-lit",
+  ...HUES.map((one) => `hue-${one}`),
+  ...PENS.map((one) => `pen-${one}`),
+].map((one) => `--tisty-${one}`);
+
+const darkNow = () => document.documentElement.dataset.theme === "dark";
+
+const worn = (): string => {
+  const theirs = getComputedStyle(document.documentElement);
+  return TOKENS.map((token) => `${token}:${theirs.getPropertyValue(token).trim()}`)
+    .filter((one) => !/[<>{}]/.test(one))
+    .join(";");
+};
+
+export const escaped = (said: string): string =>
+  said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export const shell = (html: string): string =>
+  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${sheet}</style></head><body><article class="page" inert>${html}</article></body></html>`;
+
+export const dressed = (page: Document) => {
+  const theirs = getComputedStyle(document.documentElement);
+  const root = page.documentElement;
+  for (const token of TOKENS) root.style.setProperty(token, theirs.getPropertyValue(token));
+  root.classList.toggle("dark", darkNow());
+};
+
+// The page names blocks by their bytes in the file; whoever edits holds the text as characters.
+export const charsAt = (body: string, bytes: number): number =>
+  new TextDecoder().decode(new TextEncoder().encode(body).subarray(0, bytes)).length;
+
+export type Went =
+  | { kind: "doc"; id: string }
+  | { kind: "web"; href: string }
+  | { kind: "here"; id: string }
+  | { kind: "attachment"; reference: string }
+  | { kind: "block"; at: [number, number] }
+  | { kind: "tag"; name: string }
+  | null;
+
+const spanned = (said: string | null): [number, number] | null => {
+  const found = /^(\d+)-(\d+)$/.exec(said ?? "");
+  return found ? [Number(found[1]), Number(found[2])] : null;
+};
+
+const linked = (link: HTMLAnchorElement): Went => {
+  const doc = link.dataset.doc;
+  if (doc) return { kind: "doc", id: doc };
+  const href = (link.getAttribute("href") ?? "").trim();
+  if (href.startsWith(DOC) && href.length > DOC.length)
+    return { kind: "doc", id: href.slice(DOC.length) };
+  if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };
+  if (href.startsWith("#")) return href.length > 1 ? { kind: "here", id: href.slice(1) } : null;
+  if (href && !/^[a-z][a-z0-9+.-]*:/i.test(href)) return { kind: "attachment", reference: href };
+  return null;
+};
+
+export const went = (target: Element, selecting: boolean): Went => {
+  const link = target.closest("a");
+  if (link) return linked(link);
+  if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
+  const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
+  if (tag) return { kind: "tag", name: tag };
+  if (selecting || target.closest("summary, figure.widget")) return null;
+  const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  return at ? { kind: "block", at } : null;
+};
+
+export const heads = (page: Document): Head[] =>
+  Array.from(page.querySelectorAll<HTMLElement>(".page > :is(h1, h2, h3, h4, h5, h6)")).map(
+    (one, at) => ({
+      key: `${at}:${one.id}`,
+      level: Number(one.tagName.slice(1)),
+      text: one.textContent ?? "",
+      go: () => one.scrollIntoView({ block: "start" }),
+    }),
+  );
+
+export const saidKinds = (page: Document, said: (kind: string) => string) => {
+  for (const one of page.querySelectorAll<HTMLElement>("blockquote[data-callout]"))
+    one.dataset.said = said(one.dataset.callout ?? "note");
+};
+
+const lowlight = createLowlight(common);
+const FRAME_MS = 12;
+const PAINTED_AT_MOST = 64 * 1024;
+
+type Lit = {
+  type: string;
+  value?: string;
+  properties?: { className?: unknown };
+  children?: Lit[];
+};
+
+const grown = (page: Document, node: Lit): Node => {
+  if (node.type === "text") return page.createTextNode(node.value ?? "");
+  const span = page.createElement("span");
+  const named = node.properties?.className;
+  if (Array.isArray(named)) span.className = named.join(" ");
+  for (const one of node.children ?? []) span.append(grown(page, one));
+  return span;
+};
+
+const painted = (page: Document, code: HTMLElement) => {
+  const tongue = /language-(\S+)/.exec(code.className)?.[1];
+  const said = code.textContent ?? "";
+  if (!tongue || !lowlight.registered(tongue) || said.length > PAINTED_AT_MOST) return;
+  const tree = lowlight.highlight(tongue, said) as { children: Lit[] };
+  const nodes = tree.children.map((one) => grown(page, one));
+  code.replaceChildren(...nodes);
+};
+
+export const colored = (page: Document, live: () => boolean) => {
+  const codes = Array.from(page.querySelectorAll<HTMLElement>("figure.code > pre > code[class]"));
+  const step = (from: number) => {
+    const until = performance.now() + FRAME_MS;
+    let at = from;
+    while (live() && at < codes.length && performance.now() < until) {
+      painted(page, codes[at]);
+      at += 1;
+    }
+    if (live() && at < codes.length) requestAnimationFrame(() => step(at));
+  };
+  step(0);
+};

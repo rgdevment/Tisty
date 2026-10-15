@@ -45,7 +45,7 @@ export const CLIMBS_WITHIN = 250;
 
 export const clickedInto = (frame: HTMLIFrameElement): boolean => {
   const activation = (navigator as { userActivation?: { isActive: boolean } }).userActivation;
-  return Boolean(activation?.isActive) && document.activeElement === frame;
+  return Boolean(activation?.isActive) && frame.ownerDocument.activeElement === frame;
 };
 
 export const tall = (height: number): number =>
@@ -138,7 +138,9 @@ const drawnFrom = (
         }),
       );
   };
-  window.addEventListener("message", listening);
+  // Inside a drawn page the widget speaks to that page's window, not the app's.
+  const host = drawn.ownerDocument.defaultView ?? window;
+  host.addEventListener("message", listening);
 
   borrowed()
     .then((lent) => {
@@ -178,7 +180,7 @@ const drawnFrom = (
     drop: () => {
       gone = true;
       following.delete(retheme);
-      window.removeEventListener("message", listening);
+      host.removeEventListener("message", listening);
       if (id) widgetTakeBack(id).catch(() => {});
       id = null;
     },
