@@ -282,6 +282,7 @@ small,.label{display:block;font-size:12px;color:var(--faint);margin:0}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .stat,.card{border:1px solid var(--hair);border-radius:10px;background:var(--bg)}
 .stat{padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.stat .badge{align-self:flex-start}
 .stat b{font-size:24px;font-weight:650;letter-spacing:-0.01em;line-height:1.2}
 .card{padding:14px}
 .head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 10px}

@@ -291,6 +291,50 @@ a.card:hover,
   width: 1.05em;
   height: 1.05em;
 }
+.glyph {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.glyph .solid {
+  fill: currentColor;
+  stroke: none;
+}
+.ico-red {
+  color: var(--tisty-hue-red);
+}
+.ico-orange {
+  color: var(--tisty-hue-orange);
+}
+.ico-amber {
+  color: var(--tisty-hue-amber);
+}
+.ico-green {
+  color: var(--tisty-hue-green);
+}
+.ico-teal {
+  color: var(--tisty-hue-teal);
+}
+.ico-blue {
+  color: var(--tisty-hue-blue);
+}
+.ico-indigo {
+  color: var(--tisty-hue-indigo);
+}
+.ico-purple {
+  color: var(--tisty-hue-purple);
+}
+.ico-pink {
+  color: var(--tisty-hue-pink);
+}
+.ico-brown {
+  color: var(--tisty-hue-brown);
+}
+.ico-gray {
+  color: var(--tisty-hue-gray);
+}
 img {
   display: block;
   margin: 16px auto;
@@ -322,14 +366,19 @@ th {
   font-weight: 600;
 }
 hr {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--tisty-line);
+}
+.page > hr {
   position: relative;
   margin: 0 -40px;
   border: 0;
   height: 50px;
   background: var(--tisty-desk);
 }
-hr::before,
-hr::after {
+.page > hr::before,
+.page > hr::after {
   content: "";
   position: absolute;
   left: 0;
@@ -337,12 +386,12 @@ hr::after {
   height: 10px;
   background: var(--tisty-sheet);
 }
-hr::before {
+.page > hr::before {
   top: 0;
   border-radius: 0 0 10px 10px;
   box-shadow: 0 7px 7px -7px var(--tisty-cast);
 }
-hr::after {
+.page > hr::after {
   bottom: 0;
   border-radius: 10px 10px 0 0;
   box-shadow: 0 -7px 7px -7px var(--tisty-cast);

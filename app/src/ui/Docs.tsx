@@ -544,7 +544,7 @@ export default function Docs({
           <div style={wall} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Sheet
-                key={`${open.file}${bolted ? ":read" : ""}`}
+                file={open.file}
                 value={body}
                 seek={seek}
                 anchor={anchor}

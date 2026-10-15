@@ -138,7 +138,7 @@ describe("dressing a drawn page", () => {
     );
     iconed(drawn);
     const [blue, odd, unknown] = Array.from(drawn.querySelectorAll<HTMLElement>("span.ico"));
-    expect(blue.querySelector("svg")).not.toBeNull();
+    expect(blue.querySelector("svg")?.getAttribute("class")).toBe("glyph");
     expect(blue.classList.contains("ico-blue")).toBe(true);
     expect(odd.querySelector("svg")).not.toBeNull();
     expect(odd.className).toBe("ico");
