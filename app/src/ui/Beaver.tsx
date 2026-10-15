@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { settings } from "../core";
 
 export const QUIET = "beaver";
+export const TOLD = "beaver-told";
 
 // On unless the person turned it off; a failed read keeps it away rather than guessing.
 export function useBeaver(): boolean {
@@ -16,11 +17,14 @@ export function useBeaver(): boolean {
         .catch(() => {
           if (live) setPeeks(false);
         });
+    const told = (event: Event) => setPeeks((event as CustomEvent<boolean>).detail);
     look();
     window.addEventListener("focus", look);
+    window.addEventListener(TOLD, told);
     return () => {
       live = false;
       window.removeEventListener("focus", look);
+      window.removeEventListener(TOLD, told);
     };
   }, []);
   return peeks;

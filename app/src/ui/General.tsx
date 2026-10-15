@@ -9,7 +9,7 @@ import {
   wakeFor,
 } from "../core";
 import { adopt, fill, t } from "../locales";
-import { QUIET } from "./Beaver";
+import { QUIET, TOLD } from "./Beaver";
 import type { Run, Which, Word } from "./Card";
 import { Band, Knob, Line, mild, ON_MAC, off } from "./Rows";
 import Signing, { type Signs } from "./Signing";
@@ -180,17 +180,19 @@ export default function General({
               on={!kept.quiet.includes(QUIET)}
               label={t("beaverPeeks")}
               disabled={held}
-              onPress={() =>
+              onPress={() => {
+                const peeks = kept.quiet.includes(QUIET);
                 remember(
                   {
                     ...kept,
-                    quiet: kept.quiet.includes(QUIET)
+                    quiet: peeks
                       ? kept.quiet.filter((one) => one !== QUIET)
                       : [...kept.quiet, QUIET],
                   },
                   "beaver",
-                )
-              }
+                );
+                window.dispatchEvent(new CustomEvent(TOLD, { detail: peeks }));
+              }}
             />
           </Line>
         )}

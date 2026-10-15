@@ -9,7 +9,7 @@ vi.mock("../core", () => ({
     ipc.fails ? Promise.reject(new Error("no")) : Promise.resolve({ quiet: ipc.quiet }),
 }));
 
-import { Head, Paws, QUIET, Thumb, useBeaver } from "../ui/Beaver";
+import { Head, Paws, QUIET, Thumb, TOLD, useBeaver } from "../ui/Beaver";
 import Cheer from "../ui/Cheer";
 
 const task = { id: "01T", title: "Vacuna de Rina" } as Task;
@@ -39,6 +39,15 @@ describe("Tisto, the beaver that peeks in", () => {
     ipc.quiet = [QUIET];
     window.dispatchEvent(new Event("focus"));
     await waitFor(() => expect(seen.result.current).toBe(false));
+  });
+
+  it("follows the switch in Settings at once, in the same window", async () => {
+    const seen = renderHook(() => useBeaver());
+    await waitFor(() => expect(seen.result.current).toBe(true));
+    act(() => {
+      window.dispatchEvent(new CustomEvent(TOLD, { detail: false }));
+    });
+    expect(seen.result.current).toBe(false);
   });
 
   it("draws its head, its paws with three fingers each, and its thumb", () => {
