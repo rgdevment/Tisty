@@ -17,8 +17,41 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  # Anything not known to stay out of Rust's way counts as Rust, so a new path runs the whole suite.
+  changes:
+    name: what the branch touched
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      rust: ${{ steps.look.outputs.rust }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: look
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          aside='^(app/src/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|mutants|mutants-sweep|release|rules|versions)\.yml$)'
+          from=$(git merge-base "$BASE" HEAD)
+          changed=$(git diff --name-only "$from" HEAD)
+          first=$( { echo "$changed" | grep -x 'app/src/news.json'; echo "$changed" | grep -vE "$aside"; } \
+            | grep -v '^$' | head -1 || true)
+          [ -n "$first" ] && rust=true || rust=false
+          echo "rust=$rust" >> "$GITHUB_OUTPUT"
+          echo "the first path Rust has to answer for: ${first:-none}"
+
   test:
     name: test / ${{ matrix.os }}${{ matrix.part && format(' {0}', matrix.part) || '' }}
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -62,14 +95,19 @@ jobs:
   tests:
     name: tests
     if: always()
-    needs: test
+    needs: [changes, test]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Every part of the tests passed
+      - name: Every part of the tests passed, or the branch never touched Rust
         env:
+          LOOKED: ${{ needs.changes.result }}
+          RUST: ${{ needs.changes.outputs.rust }}
           RESULT: ${{ needs.test.result }}
-        run: '[ "$RESULT" = "success" ] || { echo "::error::the tests ended as $RESULT"; exit 1; }'
+        run: |
+          [ "$LOOKED" = "success" ] || { echo "::error::what the branch touched could not be read ($LOOKED)"; exit 1; }
+          [ "$RESULT" = "success" ] || { [ "$RUST" = "false" ] && [ "$RESULT" = "skipped" ]; } \
+            || { echo "::error::the tests ended as $RESULT"; exit 1; }
 
   lint:
     name: fmt
@@ -164,6 +202,9 @@ jobs:
 
   coverage:
     name: coverage
+    needs: changes
+    # A dependency bump changes no line of ours, so it pays for neither coverage nor Sonar.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -172,19 +213,29 @@ jobs:
           persist-credentials: false
 
       - uses: ./.github/actions/toolchain
+        if: needs.changes.outputs.rust == 'true'
         with:
           components: llvm-tools-preview
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        if: needs.changes.outputs.rust == 'true'
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        if: needs.changes.outputs.rust == 'true'
         with:
           tool: cargo-llvm-cov
       - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        if: needs.changes.outputs.rust == 'true'
         with:
           tool: nextest
 
+      # Sonar measures a pull request on its new lines only, and a branch that never touched Rust has none there.
+      - name: No Rust lines to measure on this branch
+        if: needs.changes.outputs.rust != 'true'
+        run: touch lcov-rust.info
+
       - name: The seven crates the window does not need to build
+        if: needs.changes.outputs.rust == 'true'
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive \
