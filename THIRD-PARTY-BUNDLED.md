@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (347 crates)
+## In the core (349 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -463,6 +463,7 @@ written once with the crates that carry it.
 | `potential_utf` | 0.1.5 | Unicode-3.0 |
 | `powerfmt` | 0.2.0 | MIT OR Apache-2.0 |
 | `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 |
+| `pulldown-cmark` | 0.13.4 | MIT |
 | `pxfm` | 0.1.30 | BSD-3-Clause OR Apache-2.0 |
 | `quick-error` | 2.0.1 | MIT/Apache-2.0 |
 | `quick-xml` | 0.41.0 | MIT |
@@ -560,6 +561,7 @@ written once with the crates that carry it.
 | `typeid` | 1.0.3 | MIT OR Apache-2.0 |
 | `typenum` | 1.20.1 | MIT OR Apache-2.0 |
 | `ulid` | 3.0.0 | MIT |
+| `unicase` | 2.10.0 | MIT OR Apache-2.0 |
 | `unicode-normalization` | 0.1.25 | MIT OR Apache-2.0 |
 | `unicode-segmentation` | 1.13.3 | MIT OR Apache-2.0 |
 | `unicode-width` | 0.2.2 | MIT OR Apache-2.0 |
