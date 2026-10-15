@@ -1,6 +1,26 @@
+#[cfg(feature = "details")]
+mod details;
+#[cfg(feature = "mermaid")]
+pub mod diagram;
+#[cfg(feature = "emoji")]
+mod emoji;
+#[cfg(any(feature = "icons", feature = "pens"))]
+mod html;
+#[cfg(feature = "icons")]
+mod icons;
+#[cfg(feature = "math")]
+pub mod math;
+#[cfg(feature = "outline")]
+mod outline;
+#[cfg(feature = "pens")]
+mod pens;
 mod reading;
+#[cfg(feature = "tables")]
+mod tables;
 mod writing;
 
+#[cfg(feature = "outline")]
+pub use outline::{Head, outline};
 pub use reading::read;
 pub use writing::on_disk;
 
@@ -17,6 +37,30 @@ pub struct Block {
     pub kind: Kind,
     pub at: Range<usize>,
     pub inner: Vec<Block>,
+    pub spans: Vec<Span>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Span {
+    pub mark: Mark,
+    pub at: Range<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Mark {
+    Text,
+    Emphasis,
+    Strong,
+    Strike,
+    Code,
+    Link { to: String },
+    Image { src: String },
+    Html,
+    Break,
+    Icon { name: String, hue: Option<String> },
+    Pen { color: Option<String> },
+    Math,
+    Emoji { glyph: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,9 +79,32 @@ pub enum Kind {
         tongue: Option<String>,
         title: Option<String>,
     },
-    Table,
+    Table {
+        columns: Vec<Column>,
+    },
+    Row {
+        head: bool,
+    },
+    Cell,
     Html,
     Rule,
+    Details {
+        summary: String,
+        open: bool,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Column {
+    pub lean: Option<Lean>,
+    pub wide: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lean {
+    Left,
+    Center,
+    Right,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -80,6 +147,24 @@ impl Doc {
         *self = read(&text);
         true
     }
+}
+
+// What another crate draws must never take the window down with it.
+#[cfg(any(feature = "math", feature = "mermaid"))]
+fn guarded<T>(draw: impl FnOnce() -> Option<T>) -> Option<T> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(draw))
+        .ok()
+        .flatten()
+}
+
+// A block inside a quote or a callout carries the quote marks on every one of its lines.
+#[cfg(any(feature = "tables", feature = "outline"))]
+fn unquoted(line: &str) -> &str {
+    let mut said = line.trim_start();
+    while let Some(rest) = said.strip_prefix('>') {
+        said = rest.trim_start();
+    }
+    said
 }
 
 #[cfg(test)]

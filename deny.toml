@@ -44,6 +44,11 @@ deny = [
 
 [advisories]
 yanked = "deny"
+ignore = [
+  # Unmaintained, not unsafe: it only reads the fonts installed on the machine, to measure labels
+  # while a diagram is laid out, never anything a document carries. Revisit once fontdb moves to skrifa.
+  { id = "RUSTSEC-2026-0192", reason = "ttf-parser only measures the system fonts for diagram layout" },
+]
 
 [sources]
 unknown-registry = "deny"

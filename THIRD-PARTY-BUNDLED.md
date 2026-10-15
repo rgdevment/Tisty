@@ -273,7 +273,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (349 crates)
+## In the core (369 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -320,6 +320,7 @@ written once with the crates that carry it.
 | `console` | 0.16.4 | MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.1 | MIT OR Apache-2.0 |
+| `core_maths` | 0.1.1 | MIT |
 | `core-foundation` | 0.9.4 | MIT OR Apache-2.0 |
 | `core-foundation` | 0.10.1 | MIT OR Apache-2.0 |
 | `core-foundation-sys` | 0.8.7 | MIT OR Apache-2.0 |
@@ -341,10 +342,12 @@ written once with the crates that carry it.
 | `dirs-sys` | 0.5.0 | MIT OR Apache-2.0 |
 | `dispatch2` | 0.3.1 | Zlib OR Apache-2.0 OR MIT |
 | `dpi` | 0.1.2 | Apache-2.0 AND MIT |
+| `dtoa` | 1.0.11 | MIT OR Apache-2.0 |
 | `dunce` | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 |
 | `ed25519` | 3.0.0 | Apache-2.0 OR MIT |
 | `ed25519-dalek` | 3.0.0 | BSD-3-Clause |
 | `embed_plist` | 1.2.2 | MIT OR Apache-2.0 |
+| `emojis` | 0.9.0 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `encode_unicode` | 1.0.0 | Apache-2.0 OR MIT |
 | `encoding_rs` | 0.8.35 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
 | `equivalent` | 1.0.2 | Apache-2.0 OR MIT |
@@ -360,6 +363,7 @@ written once with the crates that carry it.
 | `flate2` | 1.1.9 | MIT OR Apache-2.0 |
 | `fnv` | 1.0.7 | Apache-2.0 / MIT |
 | `foldhash` | 0.2.0 | Zlib |
+| `fontdb` | 0.23.0 | MIT |
 | `foreign-types` | 0.5.0 | MIT/Apache-2.0 |
 | `foreign-types-shared` | 0.3.1 | MIT/Apache-2.0 |
 | `form_urlencoded` | 1.2.2 | MIT OR Apache-2.0 |
@@ -413,18 +417,25 @@ written once with the crates that carry it.
 | `jiff-tzdb` | 0.1.8 | Unlicense OR MIT |
 | `jiff-tzdb-platform` | 0.1.3 | Unlicense OR MIT |
 | `json-patch` | 4.2.0 | MIT/Apache-2.0 |
+| `json5` | 1.3.2 | MIT |
 | `jsonptr` | 0.7.1 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.7.0 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.8.3 | MIT OR Apache-2.0 |
 | `keyring-core` | 1.0.0 | MIT OR Apache-2.0 |
+| `kstring` | 2.0.5 | MIT OR Apache-2.0 |
 | `libc` | 0.2.189 | MIT OR Apache-2.0 |
+| `libm` | 0.2.16 | MIT |
 | `libsqlite3-sys` | 0.38.2 | MIT |
 | `litemap` | 0.8.2 | Unicode-3.0 |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 |
 | `log` | 0.4.34 | MIT OR Apache-2.0 |
 | `mac-notification-sys` | 0.6.15 | MIT/Apache-2.0 |
 | `machine-uid` | 0.6.0 | MIT |
+| `math-core` | 0.9.0 | MIT |
+| `math-core-renderer-internal` | 0.9.0 | MIT |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
+| `memmap2` | 0.9.11 | MIT OR Apache-2.0 |
+| `mermaid-rs-renderer` | 0.3.1 | MIT |
 | `mime` | 0.3.17 | MIT OR Apache-2.0 |
 | `minisign-verify` | 0.2.5 | MIT |
 | `miniz_oxide` | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
@@ -455,7 +466,9 @@ written once with the crates that carry it.
 | `pbkdf2` | 0.13.0 | MIT OR Apache-2.0 |
 | `percent-encoding` | 2.3.2 | MIT OR Apache-2.0 |
 | `phf` | 0.13.1 | MIT |
+| `phf` | 0.14.0 | MIT |
 | `phf_shared` | 0.13.1 | MIT |
+| `phf_shared` | 0.14.0 | MIT |
 | `pin-project-lite` | 0.2.17 | Apache-2.0 OR MIT |
 | `plist` | 1.10.0 | MIT |
 | `png` | 0.18.1 | MIT OR Apache-2.0 |
@@ -480,6 +493,7 @@ written once with the crates that carry it.
 | `rfd` | 0.16.0 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | `rusqlite` | 0.40.2 | MIT |
+| `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
 | `rustix` | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | `rustls` | 0.23.46 | Apache-2.0 OR ISC OR MIT |
 | `rustls-pki-types` | 1.15.1 | MIT OR Apache-2.0 |
@@ -507,11 +521,15 @@ written once with the crates that carry it.
 | `simd-adler32` | 0.3.10 | MIT |
 | `siphasher` | 1.0.3 | MIT/Apache-2.0 |
 | `slab` | 0.4.12 | MIT |
+| `slotmap` | 1.1.1 | Zlib |
 | `smallvec` | 1.15.2 | MIT OR Apache-2.0 |
 | `socket2` | 0.6.5 | MIT OR Apache-2.0 |
 | `softbuffer` | 0.4.8 | MIT OR Apache-2.0 |
 | `stable_deref_trait` | 1.2.1 | MIT OR Apache-2.0 |
+| `stable-arena` | 0.3.0 | Apache-2.0 OR MIT |
+| `static_assertions` | 1.1.0 | MIT OR Apache-2.0 |
 | `strsim` | 0.11.1 | MIT |
+| `strum` | 0.28.0 | MIT |
 | `subtle` | 2.6.1 | BSD-3-Clause |
 | `sync_wrapper` | 1.0.2 | Apache-2.0 |
 | `sys-locale` | 0.3.2 | MIT OR Apache-2.0 |
@@ -557,9 +575,11 @@ written once with the crates that carry it.
 | `tracing-core` | 0.1.36 | MIT |
 | `tray-icon` | 0.25.1 | MIT OR Apache-2.0 |
 | `try-lock` | 0.2.5 | MIT |
+| `ttf-parser` | 0.25.1 | MIT OR Apache-2.0 |
 | `typed-path` | 0.12.3 | MIT OR Apache-2.0 |
 | `typeid` | 1.0.3 | MIT OR Apache-2.0 |
 | `typenum` | 1.20.1 | MIT OR Apache-2.0 |
+| `ucd-trie` | 0.1.7 | MIT OR Apache-2.0 |
 | `ulid` | 3.0.0 | MIT |
 | `unicase` | 2.10.0 | MIT OR Apache-2.0 |
 | `unicode-normalization` | 0.1.25 | MIT OR Apache-2.0 |
