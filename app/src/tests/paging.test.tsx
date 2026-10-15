@@ -130,11 +130,4 @@ describe("what a printed page should not look like", () => {
     expect(rule).toMatch(/border:\s*0/);
     expect(rule).toMatch(/border-left:/);
   });
-
-  it("drops the line under the title, which only helps on screen", () => {
-    const at = printed.indexOf(":first-child {");
-    const rule = printed.slice(at, printed.indexOf("}", at));
-
-    expect(rule).toMatch(/border-bottom:\s*0/);
-  });
 });

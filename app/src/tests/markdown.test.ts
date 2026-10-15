@@ -62,9 +62,9 @@ describe("a note the core drew, readied for the window", () => {
 describe("a link to a document, built with a title nobody chose carefully", () => {
   it("escapes the brackets and the backslash a title carries", () => {
     expect(docLink("mac0-0001", "Informe [ borrador")).toBe(
-      "[Informe [ borrador](tisty:doc/mac0-0001)",
+      String.raw`[Informe \[ borrador](tisty:doc/mac0-0001)`,
     );
-    expect(docLink("mac0-0001", "a\b")).toBe("[a\\b](tisty:doc/mac0-0001)");
+    expect(docLink("mac0-0001", String.raw`a\b`)).toBe(String.raw`[a\\b](tisty:doc/mac0-0001)`);
   });
 
   it("does not need to escape the parentheses a title carries", () => {
@@ -85,5 +85,12 @@ describe("what docOf makes of an address", () => {
 
   it("takes whatever comes after the scheme, slashes included", () => {
     expect(docOf("tisty:doc/a/b")).toBe("a/b");
+  });
+});
+
+describe("a link the core would not follow", () => {
+  it("reads as its words, with nothing to click", () => {
+    const html = dressed('<p><a href="#">press me</a> after</p>');
+    expect(html).toBe("<p>press me after</p>");
   });
 });
