@@ -15,6 +15,7 @@ minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
 tisty-core = { path = "crates/tisty-core" }
+tisty-markdown = { path = "crates/tisty-markdown" }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-sync = { path = "crates/tisty-sync" }
 # `macos-private-api` pairs with `macOSPrivateApi` in tauri.conf.json, and the
@@ -71,6 +72,7 @@ machine-uid = "0.6"
 # call this workspace forbids itself; the other platforms read /proc or ask ps.
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 unicode-normalization = "0.1"
+pulldown-cmark = { version = "0.13", default-features = false }
 tempfile = "3"
 proptest = { version = "1", default-features = false, features = ["std"] }
 
