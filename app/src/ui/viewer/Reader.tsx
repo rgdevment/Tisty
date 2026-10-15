@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
-import Page from "../Page";
 import PaperFacts from "../PaperFacts";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
 import type { Head } from "../writing";
 import { button, Segments } from "./Glyphs";
 
+const Page = lazy(() => import("../Page"));
+
 interface Props {
   body: string;
   title: string;
-  paper?: string;
   stranger: boolean;
   side: boolean;
   raw: boolean;
@@ -22,6 +22,7 @@ interface Props {
   onRaw: (raw: boolean) => void;
   onFound: () => void;
   onDoc: (file: string) => void;
+  onOpen?: (reference: string) => void;
 }
 
 const heading = "mx-2 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-faint";
@@ -93,9 +94,18 @@ export default function Reader(props: Props) {
   const shown = useRef<Window | null>(null);
   const wide = PAPER[leaf] + 40;
 
+  const sought = useRef<string | null>(null);
+  const outlined = (found: Head[]) => {
+    setHeads(found);
+    const pending = found.find((one) => one.key === sought.current);
+    sought.current = null;
+    pending?.go();
+  };
+
   const go = (one: Head) => {
-    if (raw) props.onRaw(false);
-    requestAnimationFrame(() => requestAnimationFrame(one.go));
+    if (!raw) return one.go();
+    sought.current = one.key;
+    props.onRaw(false);
   };
 
   return (
@@ -145,18 +155,21 @@ export default function Reader(props: Props) {
         {raw ? (
           <Raw body={body} wide={wide} />
         ) : (
-          <Page
-            body={body}
-            label={title}
-            stranger={stranger}
-            wide={wide}
-            zoom={zoom}
-            onOutline={setHeads}
-            onDoc={props.onDoc}
-            onShown={(at) => {
-              shown.current = at;
-            }}
-          />
+          <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
+            <Page
+              body={body}
+              label={title}
+              stranger={stranger}
+              wide={wide}
+              zoom={zoom}
+              onOutline={outlined}
+              onDoc={props.onDoc}
+              onOpen={props.onOpen}
+              onShown={(at) => {
+                shown.current = at;
+              }}
+            />
+          </Suspense>
         )}
       </div>
     </div>

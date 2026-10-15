@@ -3,7 +3,7 @@ import { DOC } from "../markdown";
 import sheet from "./page.css?raw";
 import type { Head } from "./writing";
 
-const HUES = [
+export const HUES = [
   "red",
   "orange",
   "amber",
@@ -38,10 +38,20 @@ export const TOKENS = [
   ...PENS.map((one) => `pen-${one}`),
 ].map((one) => `--tisty-${one}`);
 
-export const shell = (html: string): string =>
-  `<!doctype html><html><head><meta charset="utf-8"><style>${sheet}</style></head><body><article class="page">${html}</article></body></html>`;
-
 const darkNow = () => document.documentElement.getAttribute("data-theme") === "dark";
+
+const worn = (): string => {
+  const theirs = getComputedStyle(document.documentElement);
+  return TOKENS.map((token) => `${token}:${theirs.getPropertyValue(token).trim()}`)
+    .filter((one) => !/[<>{}]/.test(one))
+    .join(";");
+};
+
+export const escaped = (said: string): string =>
+  said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export const shell = (html: string): string =>
+  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${sheet}</style></head><body><article class="page" inert>${html}</article></body></html>`;
 
 export const dressed = (page: Document) => {
   const theirs = getComputedStyle(document.documentElement);
@@ -49,6 +59,10 @@ export const dressed = (page: Document) => {
   for (const token of TOKENS) root.style.setProperty(token, theirs.getPropertyValue(token));
   root.classList.toggle("dark", darkNow());
 };
+
+// The page names blocks by their bytes in the file; whoever edits holds the text as characters.
+export const charsAt = (body: string, bytes: number): number =>
+  new TextDecoder().decode(new TextEncoder().encode(body).subarray(0, bytes)).length;
 
 export type Went =
   | { kind: "doc"; id: string }
@@ -103,7 +117,8 @@ export const saidKinds = (page: Document, said: (kind: string) => string) => {
 };
 
 const lowlight = createLowlight(common);
-const BATCH = 40;
+const FRAME_MS = 12;
+const PAINTED_AT_MOST = 64 * 1024;
 
 type Lit = {
   type: string;
@@ -123,8 +138,9 @@ const grown = (page: Document, node: Lit): Node => {
 
 const painted = (page: Document, code: HTMLElement) => {
   const tongue = /language-(\S+)/.exec(code.className)?.[1];
-  if (!tongue || !lowlight.registered(tongue)) return;
-  const tree = lowlight.highlight(tongue, code.textContent ?? "") as { children: Lit[] };
+  const said = code.textContent ?? "";
+  if (!tongue || !lowlight.registered(tongue) || said.length > PAINTED_AT_MOST) return;
+  const tree = lowlight.highlight(tongue, said) as { children: Lit[] };
   const nodes = tree.children.map((one) => grown(page, one));
   code.replaceChildren(...nodes);
 };
@@ -132,9 +148,13 @@ const painted = (page: Document, code: HTMLElement) => {
 export const colored = (page: Document, live: () => boolean) => {
   const codes = Array.from(page.querySelectorAll<HTMLElement>("figure.code > pre > code[class]"));
   const step = (from: number) => {
-    if (!live() || from >= codes.length) return;
-    for (const code of codes.slice(from, from + BATCH)) painted(page, code);
-    requestAnimationFrame(() => step(from + BATCH));
+    const until = performance.now() + FRAME_MS;
+    let at = from;
+    while (live() && at < codes.length && performance.now() < until) {
+      painted(page, codes[at]);
+      at += 1;
+    }
+    if (live() && at < codes.length) requestAnimationFrame(() => step(at));
   };
   step(0);
 };

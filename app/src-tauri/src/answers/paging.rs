@@ -15,11 +15,16 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
 }
 
 pub fn paged(shelf: &Path, body: &str) -> String {
+    // A build under work keeps one version number while the drawing changes under it.
+    if cfg!(debug_assertions) && !cfg!(test) {
+        return tisty_markdown::html(&tisty_markdown::read(body));
+    }
     let kept = shelf.join(DRAWN_BY).join(format!(
         "{}.html",
         tisty_core::attach::printed(body.as_bytes())
     ));
     if let Ok(html) = std::fs::read_to_string(&kept) {
+        touched(&kept);
         return html;
     }
     let html = tisty_markdown::html(&tisty_markdown::read(body));
@@ -45,12 +50,21 @@ fn keep(shelf: &Path, kept: &Path, html: &str) -> tisty_core::Result<()> {
     tisty_core::store::write_atomic(kept, html.as_bytes())
 }
 
+// A page read again moves to the back of the line, so the shelf drops the ones nobody opens.
+fn touched(kept: &Path) {
+    let _ = std::fs::File::options()
+        .write(true)
+        .open(kept)
+        .and_then(|page| page.set_modified(std::time::SystemTime::now()));
+}
+
 // Every version of every document opened leaves a page, so the oldest go once there are too many.
 fn thinned(drawer: &Path) {
     let mut pages: Vec<(std::time::SystemTime, PathBuf)> = std::fs::read_dir(drawer)
         .into_iter()
         .flatten()
         .flatten()
+        .filter(|one| one.path().extension().is_some_and(|ext| ext == "html"))
         .filter_map(|one| Some((one.metadata().ok()?.modified().ok()?, one.path())))
         .collect();
     if pages.len() < KEPT_AT_MOST {
