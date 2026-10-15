@@ -1,11 +1,10 @@
-use std::ops::Range;
-
+#[cfg(feature = "icons")]
 use crate::vocab;
 use crate::{Mark, Span};
 
-/// `::name hue::` is an icon and `++words++` is underlined, written the way the person types them.
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
     let mut found = Vec::new();
+    #[cfg(feature = "icons")]
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         iconed(text, span.at.clone(), &mut found);
     }
@@ -13,11 +12,13 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
     spans.extend(found);
 }
 
+#[cfg(feature = "icons")]
 fn alone(at: Option<char>) -> bool {
     at.is_none_or(|c| !c.is_alphanumeric())
 }
 
-fn iconed(text: &str, within: Range<usize>, found: &mut Vec<Span>) {
+#[cfg(feature = "icons")]
+fn iconed(text: &str, within: std::ops::Range<usize>, found: &mut Vec<Span>) {
     let said = &text[within.clone()];
     let mut from = 0;
     while let Some(open) = said[from..].find("::").map(|at| from + at) {
@@ -59,7 +60,8 @@ fn underlined(spans: &[Span], text: &str) -> Vec<Span> {
         while at + 1 < bytes.len() {
             let run = bytes[at..].iter().take_while(|b| **b == b'+').count();
             if run == 2 {
-                walls.push(span.at.start + at);
+                let wall = span.at.start + at;
+                walls.push((wall, crate::inline::holder(spans, wall)));
             }
             at += run.max(1);
         }
@@ -68,9 +70,10 @@ fn underlined(spans: &[Span], text: &str) -> Vec<Span> {
     let mut found = Vec::new();
     let mut at = 0;
     while at + 1 < walls.len() {
-        let (open, shut) = (walls[at], walls[at + 1]);
+        let ((open, held), (shut, kept)) = (walls[at].clone(), walls[at + 1].clone());
         let inside = &text[open + 2..shut];
-        let fits = !inside.is_empty()
+        let fits = held == kept
+            && !inside.is_empty()
             && !inside.starts_with(char::is_whitespace)
             && !inside.ends_with(char::is_whitespace)
             && lone(text[..open].chars().next_back())

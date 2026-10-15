@@ -315,3 +315,12 @@ pub fn safe(to: &str) -> String {
         "#".to_string()
     }
 }
+
+pub(crate) fn holder(spans: &[Span], wall: usize) -> Option<Range<usize>> {
+    spans
+        .iter()
+        .filter(|one| !matches!(one.mark, Mark::Text | Mark::Break | Mark::Html))
+        .filter(|one| one.at.start < wall && wall < one.at.end)
+        .min_by_key(|one| one.at.end - one.at.start)
+        .map(|one| one.at.clone())
+}

@@ -78,3 +78,18 @@ fn every_word_the_language_has_is_known_once() {
     assert!(ICONS.iter().all(|one| icon(one)));
     assert!(!pen("chartreuse") && !icon("nadaquever"));
 }
+
+#[test]
+fn an_underline_never_crosses_the_edge_of_a_bold_or_a_link() {
+    assert_eq!(
+        page("**a ++b** c++"),
+        "<p data-at=\"0-13\"><strong>a ++b</strong> c++</p>"
+    );
+    assert!(page("**a ++b c++** d").contains("<strong>a <u>b c</u></strong>"));
+}
+
+#[test]
+fn a_colour_written_past_a_link_is_not_the_link_pen_colour() {
+    let drawn = page("[x ==a==](https://a.b){green} y");
+    assert!(drawn.contains("<a href=\"https://a.b\">x <mark>a</mark></a>{green}"));
+}
