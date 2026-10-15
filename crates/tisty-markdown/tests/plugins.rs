@@ -257,3 +257,27 @@ fn a_details_block_never_closed_is_left_as_it_was_written() {
         vec![tisty_markdown::Kind::Html, tisty_markdown::Kind::Paragraph]
     );
 }
+
+#[cfg(feature = "outline")]
+#[test]
+fn every_heading_is_listed_with_its_plain_words_and_an_anchor() {
+    let doc = read(
+        "# The **plan**\n\nText.\n\n## Step `one`\n\n> ### Quoted\n\n## Step one\n\n## ¿Qué sigue?",
+    );
+    let found: Vec<(u8, String, String)> = tisty_markdown::outline(&doc)
+        .into_iter()
+        .map(|one| (one.level, one.said, one.id))
+        .collect();
+    let wanted: Vec<(u8, &str, &str)> = vec![
+        (1, "The plan", "the-plan"),
+        (2, "Step one", "step-one"),
+        (3, "Quoted", "quoted"),
+        (2, "Step one", "step-one-1"),
+        (2, "¿Qué sigue?", "qué-sigue"),
+    ];
+    let wanted: Vec<(u8, String, String)> = wanted
+        .into_iter()
+        .map(|(level, said, id)| (level, said.to_string(), id.to_string()))
+        .collect();
+    assert_eq!(found, wanted);
+}

@@ -8,6 +8,8 @@ mod emoji;
 mod icons;
 #[cfg(feature = "math")]
 pub mod math;
+#[cfg(feature = "outline")]
+mod outline;
 #[cfg(feature = "pens")]
 mod pens;
 mod reading;
@@ -15,6 +17,8 @@ mod reading;
 mod tables;
 mod writing;
 
+#[cfg(feature = "outline")]
+pub use outline::{Head, outline};
 pub use reading::read;
 pub use writing::on_disk;
 
