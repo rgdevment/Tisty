@@ -91,7 +91,7 @@ fn the_dialect_s_own_blocks_are_read_as_what_they_are() {
             title: None
         }
     );
-    assert_eq!(first("table-widths"), Kind::Table);
+    assert!(matches!(first("table-widths"), Kind::Table { .. }));
     assert_eq!(first("table-spans"), Kind::Html);
     assert_eq!(first("quote"), Kind::Quote);
     assert_eq!(first("ordered-start"), Kind::List { start: Some(3) });

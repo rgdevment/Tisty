@@ -9,6 +9,8 @@ pub mod math;
 #[cfg(feature = "pens")]
 mod pens;
 mod reading;
+#[cfg(feature = "tables")]
+mod tables;
 mod writing;
 
 pub use reading::read;
@@ -69,9 +71,24 @@ pub enum Kind {
         tongue: Option<String>,
         title: Option<String>,
     },
-    Table,
+    Table {
+        columns: Vec<Column>,
+    },
     Html,
     Rule,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Column {
+    pub lean: Option<Lean>,
+    pub wide: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lean {
+    Left,
+    Center,
+    Right,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

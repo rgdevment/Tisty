@@ -27,7 +27,17 @@ fn fenced(tongue: Option<&str>, title: Option<&str>) -> Kind {
 fn a_document_reads_as_its_blocks_in_order() {
     assert_eq!(
         kinds("# Title\n\nWords.\n\n---\n\n| a |\n| --- |\n| 1 |"),
-        vec![Kind::Heading(1), Kind::Paragraph, Kind::Rule, Kind::Table]
+        vec![
+            Kind::Heading(1),
+            Kind::Paragraph,
+            Kind::Rule,
+            Kind::Table {
+                columns: vec![Column {
+                    lean: None,
+                    wide: None
+                }]
+            }
+        ]
     );
 }
 

@@ -1,8 +1,10 @@
 use std::ops::Range;
 
-use pulldown_cmark::{BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{
+    Alignment, BlockQuoteKind, CodeBlockKind, Event, Options, Parser, Tag, TagEnd,
+};
 
-use crate::{Block, Callout, Doc, Kind, Mark, Span};
+use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn read(text: &str) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
@@ -60,7 +62,16 @@ const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     crate::emoji::fold,
 ];
 
+// And the blocks whose own shape says more than the tokenizer reads from them.
+const SHAPES: &[fn(&mut Block, &str)] = &[
+    #[cfg(feature = "tables")]
+    crate::tables::widen,
+];
+
 fn polish(block: &mut Block, text: &str) {
+    for shape in SHAPES {
+        shape(block, text);
+    }
     for pass in PASSES {
         pass(&mut block.spans, text);
     }
@@ -146,9 +157,21 @@ fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
         Tag::HtmlBlock => Kind::Html,
         Tag::List(start) => Kind::List { start: *start },
         Tag::Item => Kind::Item { done: None },
-        Tag::Table(_) => Kind::Table,
+        Tag::Table(aligned) => Kind::Table {
+            columns: aligned.iter().map(column).collect(),
+        },
         _ => return None,
     })
+}
+
+fn column(aligned: &Alignment) -> Column {
+    let lean = match aligned {
+        Alignment::None => None,
+        Alignment::Left => Some(Lean::Left),
+        Alignment::Center => Some(Lean::Center),
+        Alignment::Right => Some(Lean::Right),
+    };
+    Column { lean, wide: None }
 }
 
 fn ends_block(end: TagEnd) -> bool {

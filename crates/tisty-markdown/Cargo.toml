@@ -10,10 +10,11 @@ publish.workspace = true
 workspace = true
 
 [features]
-default = ["emoji", "icons", "math", "mermaid", "pens"]
+default = ["emoji", "icons", "math", "mermaid", "pens", "tables"]
 emoji = ["dep:emojis"]
 icons = []
 pens = []
+tables = []
 math = ["dep:math-core"]
 mermaid = ["dep:mermaid-rs-renderer"]
 

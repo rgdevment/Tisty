@@ -165,3 +165,42 @@ fn what_only_looks_like_a_shortcode_is_left_alone() {
     assert!(glyphs("a:tada:b and :nothing_here:").is_empty());
     assert!(glyphs("`:tada:` is code").is_empty());
 }
+
+#[cfg(feature = "tables")]
+fn columns(text: &str) -> Vec<tisty_markdown::Column> {
+    match &read(text).blocks()[0].kind {
+        tisty_markdown::Kind::Table { columns } => columns.clone(),
+        other => panic!("not a table: {other:?}"),
+    }
+}
+
+#[cfg(feature = "tables")]
+#[test]
+fn a_column_keeps_its_width_in_its_dashes_and_its_lean_in_its_colons() {
+    use tisty_markdown::{Column, Lean};
+    assert_eq!(
+        columns("| wide | narrow | right |\n| :---------------- | --- | ------: |\n| a | b | c |"),
+        vec![
+            Column {
+                lean: Some(Lean::Left),
+                wide: Some(160)
+            },
+            Column {
+                lean: None,
+                wide: None
+            },
+            Column {
+                lean: Some(Lean::Right),
+                wide: Some(60)
+            },
+        ]
+    );
+}
+
+#[cfg(feature = "tables")]
+#[test]
+fn a_table_written_without_a_leading_pipe_is_measured_the_same() {
+    let found = columns("a | b\n--------- | :---:\n1 | 2");
+    assert_eq!(found[0].wide, Some(90));
+    assert_eq!(found[1].lean, Some(tisty_markdown::Lean::Center));
+}
