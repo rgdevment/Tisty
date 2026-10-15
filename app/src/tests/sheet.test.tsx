@@ -296,6 +296,18 @@ describe("the sheet in the main window", () => {
     expect(writes).toEqual(['# Compras\n\n<u>leche</u> y <mark data-pen="blue">pan</mark>\n']);
   });
 
+  it("marks its room once the page runs under the bar at the top, and unmarks it back at the top", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    await loaded(await shown(view.container));
+    const room = view.container.querySelector<HTMLElement>(".scroller") as HTMLElement;
+    room.scrollTop = 120;
+    room.dispatchEvent(new Event("scroll"));
+    await waitFor(() => expect(room.classList.contains("stuck")).toBe(true));
+    room.scrollTop = 0;
+    room.dispatchEvent(new Event("scroll"));
+    await waitFor(() => expect(room.classList.contains("stuck")).toBe(false));
+  });
+
   it("follows new words from outside while nothing is being written", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));

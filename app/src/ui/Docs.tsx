@@ -29,6 +29,7 @@ import { sure } from "../sure";
 import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
+import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
@@ -390,6 +391,26 @@ export default function Docs({
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
+  const cards = useMemo(() => cardsOf(known, open?.file, told), [known, open?.file, told]);
+  const [blurbs] = useState(blurbing);
+  const named = useMemo(() => namesIn(body), [body]);
+  // A card says what its document is now: a rename, an archive or a deletion draws the page again.
+  const again = useMemo(
+    () =>
+      named
+        .map((file) => {
+          const one = known.find((doc) => doc.file === file);
+          return one
+            ? `${file}:${one.title}:${one.archived}:${one.away}:${one.gone}:${one.pageOf ?? ""}`
+            : `${file}:-`;
+        })
+        .join("|"),
+    [known, named],
+  );
+  const blurb = useCallback(
+    (file: string) => blurbs(known.find((one) => one.file === file)),
+    [known, blurbs],
+  );
 
   const [aboveTold, setAboveTold] = useState<string[]>();
   const upstairs = above?.file;
@@ -545,6 +566,9 @@ export default function Docs({
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Sheet
                 file={open.file}
+                card={cards}
+                blurb={blurb}
+                again={again}
                 value={body}
                 seek={seek}
                 anchor={anchor}

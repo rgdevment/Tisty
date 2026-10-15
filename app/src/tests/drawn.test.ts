@@ -65,6 +65,13 @@ describe("a click on a drawn page", () => {
     ).toBeNull();
   });
 
+  it("opens a drawn card's document, and its block from its edit button", () => {
+    const card =
+      '<p data-at="4-30"><span class="doc-card" data-doc="ab12-0003"><span class="card-name">C</span><button data-asked="code">e</button></span></p>';
+    expect(clicked(card, ".card-name")).toEqual({ kind: "doc", id: "ab12-0003" });
+    expect(clicked(card, "button")).toEqual({ kind: "block", at: [4, 30] });
+  });
+
   it("asks nothing while words are being picked", () => {
     expect(clicked('<p data-at="0-9">words</p>', "p", true)).toBeNull();
   });

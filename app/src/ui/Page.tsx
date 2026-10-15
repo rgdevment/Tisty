@@ -13,13 +13,14 @@ type Props = Reaching & {
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
   readonly onShown?: (page: Window | null) => void;
+  readonly again?: string;
 };
 
 type Drawn = { html: string; turn: number; body: string };
 
 // A new drawing waits unseen until it is ready, so a redraw never blinks or jumps.
 export default function Page(props: Readonly<Props>) {
-  const { body, label, stranger, wide, zoom, tall = false } = props;
+  const { body, label, stranger, wide, zoom, tall = false, again } = props;
   const reach = useRef(props);
   reach.current = props;
   const [frames, setFrames] = useState<Drawn[]>([]);
@@ -45,7 +46,7 @@ export default function Page(props: Readonly<Props>) {
     return () => {
       live = false;
     };
-  }, [body]);
+  }, [body, again]);
 
   useEffect(() => () => reach.current.onShown?.(null), []);
 

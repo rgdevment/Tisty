@@ -274,7 +274,7 @@ A year of minutes, a book in chapters, a dog's life told year by year. That does
 
 A page is a document like any other — same file on disk, same way out — with one thing that sets it apart: it says which document it belongs to. There is one level and no more: a page holds no pages.
 
-**For adding one**, type `/` where that chapter should start and pick **A new page**, or **A page that already exists** if the document is already written. It stays named right there, drawn as a gap in the sheet with the leaves of that page under it.
+**For adding one**, type `/` where that chapter should start and pick **A new page**, or **A page that already exists** if the document is already written. It stays named right there, drawn as a card with its title, its first words and its place in the book.
 
 > [!IMPORTANT]
 > The order they are named in is the order the pages sit in: in the tree, in the export and in print. To move a chapter, use the arrows on its row in the index at the end of the document, or Alt and an arrow key on the row itself — or cut and paste its block, which is the same move written by hand.
