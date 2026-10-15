@@ -7,7 +7,7 @@ the code that reads it, in `app/src-tauri/icons/` and `app/src/assets/`.
 | Folder | What it holds | Where it goes |
 | --- | --- | --- |
 | `icons/` | The mark, from its SVG master | README, Store listing, press |
-| `mascot/` | Tisty the beaver, in colour and in one ink | Sources of the drawings the app and the Store use |
+| `mascot/` | Tisto, Tisty's beaver, in colour and in one ink | Sources of the drawings the app and the Store use |
 | `store/` | The Microsoft Store screenshots, one set per language | The Store listing, the READMEs and the wiki |
 
 ## Icons
@@ -37,8 +37,9 @@ repository.
 
 ## Mascot
 
-`mascot/tisty-head.svg` is the colour drawing; `app/src/assets/tisty.svg` is
-the copy the window shows in About and in the news after an update.
+The beaver is called Tisto. `mascot/tisty-head.svg` is the colour drawing;
+`app/src/assets/tisty.svg` is the copy the window shows in About and in the news
+after an update.
 `mascot/tisty-head-mono.svg` is the same head in one ink, for places that print
 a single colour.
 
