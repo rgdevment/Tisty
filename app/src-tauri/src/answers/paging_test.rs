@@ -1,0 +1,37 @@
+use super::*;
+
+#[test]
+fn a_page_is_drawn_once_and_then_read_from_the_shelf() {
+    let tmp = tempfile::tempdir().unwrap();
+    let shelf = tmp.path().join("pages");
+    let first = paged(&shelf, "# Title\n\nWords.\n");
+    assert!(first.contains("Title</h1>"));
+    let kept: Vec<_> = std::fs::read_dir(shelf.join(DRAWN_BY))
+        .unwrap()
+        .flatten()
+        .collect();
+    assert_eq!(kept.len(), 1);
+    std::fs::write(kept[0].path(), "kept").unwrap();
+    assert_eq!(paged(&shelf, "# Title\n\nWords.\n"), "kept");
+}
+
+#[test]
+fn pages_drawn_by_another_version_are_put_away() {
+    let tmp = tempfile::tempdir().unwrap();
+    let shelf = tmp.path().join("pages");
+    std::fs::create_dir_all(shelf.join("0.0.1")).unwrap();
+    paged(&shelf, "Words.\n");
+    assert!(!shelf.join("0.0.1").exists());
+    assert!(shelf.join(DRAWN_BY).exists());
+}
+
+#[test]
+fn the_shelf_keeps_only_so_many_pages() {
+    let tmp = tempfile::tempdir().unwrap();
+    let shelf = tmp.path().join("pages");
+    for n in 0..KEPT_AT_MOST + 3 {
+        paged(&shelf, &format!("Page {n}.\n"));
+    }
+    let kept = std::fs::read_dir(shelf.join(DRAWN_BY)).unwrap().count();
+    assert!(kept <= KEPT_AT_MOST);
+}

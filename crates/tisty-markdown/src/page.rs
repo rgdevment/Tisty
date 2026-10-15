@@ -198,9 +198,9 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
             Some(drawn) => {
                 let _ = write!(
                     out,
-                    "<picture class=\"diagram\" {at}><source media=\"(prefers-color-scheme: dark)\" srcset=\"{}\"><img alt=\"\" src=\"{}\"></picture>",
-                    svg_url(&drawn.dark),
-                    svg_url(&drawn.light)
+                    "<figure class=\"diagram\" {at}><img class=\"light\" alt=\"\" src=\"{}\"><img class=\"dark\" alt=\"\" src=\"{}\"></figure>",
+                    svg_url(&drawn.light),
+                    svg_url(&drawn.dark)
                 );
                 true
             }

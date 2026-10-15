@@ -1,12 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
+import Page from "../Page";
 import PaperFacts from "../PaperFacts";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
 import type { Head } from "../writing";
 import { button, Segments } from "./Glyphs";
-
-const Editor = lazy(() => import("../Editor"));
 
 interface Props {
   body: string;
@@ -61,12 +60,15 @@ function Raw({ body, wide }: { body: string; wide: number }) {
   );
 }
 
-function Finder({ onClose }: { onClose: () => void }) {
+type Finding = { find?: (...args: unknown[]) => boolean };
+
+function Finder({ onClose, within }: { onClose: () => void; within: () => Window | null }) {
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => field.current?.focus(), []);
   const seek = (said: string, back: boolean) => {
-    const finds = (window as unknown as { find?: (...args: unknown[]) => boolean }).find;
-    if (said.trim()) finds?.call(window, said, false, back, true);
+    const place = within() ?? window;
+    const finds = (place as unknown as Finding).find;
+    if (said.trim()) finds?.call(place, said, false, back, true);
   };
   return (
     <div className="absolute top-2 right-4 z-10 flex items-center gap-1.5 rounded-[10px] border border-line bg-sheet px-2 py-1.5 shadow-[0_10px_30px_rgb(0_0_0/0.16)]">
@@ -88,6 +90,7 @@ function Finder({ onClose }: { onClose: () => void }) {
 export default function Reader(props: Props) {
   const { body, title, stranger, side, raw, zoom, leaf, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
+  const shown = useRef<Window | null>(null);
   const wide = PAPER[leaf] + 40;
 
   const go = (one: Head) => {
@@ -138,27 +141,22 @@ export default function Reader(props: Props) {
         </nav>
       )}
       <div className="viewed-doc relative flex min-w-0 flex-1 flex-col">
-        {finding && <Finder onClose={props.onFound} />}
+        {finding && <Finder onClose={props.onFound} within={() => shown.current} />}
         {raw ? (
           <Raw body={body} wide={wide} />
         ) : (
-          <div
-            className="mx-auto flex min-h-0 w-full flex-1 flex-col px-5 transition-[max-width]"
-            style={{ maxWidth: wide, zoom }}
-          >
-            <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
-              <Editor
-                value={body}
-                reading
-                stranger={stranger}
-                label={title}
-                paper={props.paper}
-                onWrite={() => {}}
-                onOutline={setHeads}
-                onDoc={props.onDoc}
-              />
-            </Suspense>
-          </div>
+          <Page
+            body={body}
+            label={title}
+            stranger={stranger}
+            wide={wide}
+            zoom={zoom}
+            onOutline={setHeads}
+            onDoc={props.onDoc}
+            onShown={(at) => {
+              shown.current = at;
+            }}
+          />
         )}
       </div>
     </div>
