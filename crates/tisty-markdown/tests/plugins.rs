@@ -281,3 +281,87 @@ fn every_heading_is_listed_with_its_plain_words_and_an_anchor() {
         .collect();
     assert_eq!(found, wanted);
 }
+
+#[cfg(feature = "tables")]
+#[test]
+fn a_table_inside_a_quote_keeps_each_column_s_own_width() {
+    let doc = read("> | a | b |\n> | ---------- | ---- |\n> | 1 | 2 |");
+    let tisty_markdown::Kind::Table { columns } = &doc.blocks()[0].inner[0].kind else {
+        panic!("not a table");
+    };
+    assert_eq!(columns[0].wide, Some(100));
+    assert_eq!(columns[1].wide, Some(40));
+}
+
+#[cfg(feature = "pens")]
+#[test]
+fn a_mark_never_reaches_across_two_cells() {
+    let doc = read("| ==a | b== |\n| --- | --- |\n| c | d |");
+    let mut found = Vec::new();
+    for row in &doc.blocks()[0].inner {
+        for cell in &row.inner {
+            found.extend(
+                cell.spans
+                    .iter()
+                    .filter(|one| matches!(one.mark, Mark::Pen { .. })),
+            );
+        }
+    }
+    assert!(found.is_empty());
+}
+
+#[cfg(feature = "math")]
+#[test]
+fn a_formula_keeps_its_stars_and_a_digit_after_it_makes_it_a_price() {
+    let found = marks("$a*b$ and c*d");
+    assert_eq!(found[0], (Mark::Math, "$a*b$".to_string()));
+    assert!(!found.iter().any(|(mark, _)| *mark == Mark::Emphasis));
+    assert!(formulas("Pay $x$5 now").is_empty());
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn a_details_block_written_on_one_line_holds_nothing_to_fold() {
+    use tisty_markdown::Kind;
+    let doc = read(
+        "<details><summary>Outer</summary>\n\n<details><summary>A</summary>Body</details>\n\n</details>",
+    );
+    assert_eq!(
+        doc.blocks()[0].kind,
+        Kind::Details {
+            summary: "Outer".into(),
+            open: false
+        }
+    );
+    assert_eq!(doc.blocks()[0].inner[0].kind, Kind::Html);
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn a_colon_fence_closes_the_container_that_opened_last() {
+    let doc = read(":::details More\n\n:::tip\n\nHi\n\n:::\n\nStill hidden\n\n:::");
+    assert_eq!(doc.blocks().len(), 1);
+    assert_eq!(doc.blocks()[0].inner.len(), 4);
+}
+
+#[cfg(feature = "outline")]
+#[test]
+fn an_anchor_reads_entities_and_broken_lines_and_is_never_taken_twice() {
+    let doc = read("# Q&amp;A\n\nLine one\nLine two\n===\n\n# A\n\n# A\n\n# A 1");
+    let ids: Vec<(String, String)> = tisty_markdown::outline(&doc)
+        .into_iter()
+        .map(|one| (one.said, one.id))
+        .collect();
+    let wanted: Vec<(&str, &str)> = vec![
+        ("Q&A", "qa"),
+        ("Line one Line two", "line-one-line-two"),
+        ("A", "a"),
+        ("A", "a-1"),
+        ("A 1", "a-1-1"),
+    ];
+    let wanted: Vec<(String, String)> = wanted
+        .into_iter()
+        .map(|(said, id)| (said.to_string(), id.to_string()))
+        .collect();
+    assert_eq!(ids, wanted);
+}

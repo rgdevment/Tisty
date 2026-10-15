@@ -1,6 +1,5 @@
 use crate::{Block, Kind};
 
-/// What sits between `<details>` and `</details>` (or `:::details` and `:::`) folds under one block.
 pub fn gather(blocks: &mut Vec<Block>, text: &str) {
     let mut at = 0;
     while at < blocks.len() {
@@ -30,7 +29,8 @@ pub fn gather(blocks: &mut Vec<Block>, text: &str) {
 fn opened(block: &Block, text: &str) -> Option<(String, bool)> {
     let said = text[block.at.clone()].trim();
     match block.kind {
-        Kind::Html => {
+        // One written whole on a single line closes itself and holds no blocks to fold.
+        Kind::Html if !said.contains("</details>") => {
             let tag = said.strip_prefix("<details")?;
             if !tag.starts_with(['>', ' ']) {
                 return None;
@@ -54,16 +54,36 @@ fn opened(block: &Block, text: &str) -> Option<(String, bool)> {
     }
 }
 
+// A colon fence closes whichever colon container opened last, `:::tip` as much as `:::details`.
+fn colon_opens(block: &Block, text: &str) -> bool {
+    let said = text[block.at.clone()].trim();
+    block.kind == Kind::Paragraph
+        && !said.contains('\n')
+        && said
+            .strip_prefix(":::")
+            .is_some_and(|rest| rest.starts_with(|c: char| c.is_alphanumeric()))
+}
+
 fn closing(blocks: &[Block], from: usize, text: &str) -> Option<usize> {
+    let colon = blocks[from].kind == Kind::Paragraph;
     let mut deep = 0usize;
     for (at, block) in blocks.iter().enumerate().skip(from) {
         let said = text[block.at.clone()].trim();
-        if opened(block, text).is_some() {
+        let (opens, shuts) = if colon {
+            (
+                colon_opens(block, text),
+                block.kind == Kind::Paragraph && said == ":::",
+            )
+        } else {
+            (
+                opened(block, text).is_some(),
+                block.kind == Kind::Html && said == "</details>",
+            )
+        };
+        if opens {
             deep += 1;
-        } else if (block.kind == Kind::Html && said == "</details>")
-            || (block.kind == Kind::Paragraph && said == ":::")
-        {
-            deep -= 1;
+        } else if shuts {
+            deep = deep.saturating_sub(1);
             if deep == 0 {
                 return Some(at);
             }

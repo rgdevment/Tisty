@@ -80,6 +80,10 @@ pub enum Kind {
     Table {
         columns: Vec<Column>,
     },
+    Row {
+        head: bool,
+    },
+    Cell,
     Html,
     Rule,
     Details {

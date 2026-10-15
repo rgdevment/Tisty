@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::Range;
 
-use crate::{Block, Doc, Kind, Mark};
+use crate::{Block, Doc, Kind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Head {
@@ -11,7 +11,6 @@ pub struct Head {
     pub at: Range<usize>,
 }
 
-/// Every heading in reading order, with an id that stays the same while its words do.
 pub fn outline(doc: &Doc) -> Vec<Head> {
     let mut found = Vec::new();
     let mut taken: HashMap<String, usize> = HashMap::new();
@@ -22,7 +21,7 @@ pub fn outline(doc: &Doc) -> Vec<Head> {
 fn walk(blocks: &[Block], text: &str, found: &mut Vec<Head>, taken: &mut HashMap<String, usize>) {
     for block in blocks {
         if let Kind::Heading(level) = block.kind {
-            let said = words(block, text);
+            let said = crate::reading::plain(&text[block.at.clone()]);
             if !said.is_empty() {
                 let id = unique(slug(&said), taken);
                 found.push(Head {
@@ -37,18 +36,6 @@ fn walk(blocks: &[Block], text: &str, found: &mut Vec<Head>, taken: &mut HashMap
     }
 }
 
-fn words(block: &Block, text: &str) -> String {
-    let mut said = String::new();
-    for span in &block.spans {
-        match span.mark {
-            Mark::Text => said.push_str(&text[span.at.clone()]),
-            Mark::Code => said.push_str(text[span.at.clone()].trim_matches('`')),
-            _ => {}
-        }
-    }
-    said.trim().to_string()
-}
-
 // The same shape GitHub gives an anchor, so a link copied from either place keeps working.
 fn slug(said: &str) -> String {
     said.to_lowercase()
@@ -59,12 +46,12 @@ fn slug(said: &str) -> String {
 }
 
 fn unique(id: String, taken: &mut HashMap<String, usize>) -> String {
-    let seen = taken.entry(id.clone()).or_insert(0);
-    let named = if *seen == 0 {
-        id
-    } else {
-        format!("{id}-{seen}")
-    };
-    *seen += 1;
+    let mut named = id.clone();
+    while taken.contains_key(&named) {
+        let seen = taken.entry(id.clone()).or_insert(0);
+        *seen += 1;
+        named = format!("{id}-{seen}");
+    }
+    taken.insert(named.clone(), 0);
     named
 }

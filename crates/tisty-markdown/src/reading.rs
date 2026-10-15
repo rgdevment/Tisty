@@ -36,6 +36,14 @@ pub fn read(text: &str) -> Doc {
             Event::Text(_) => spot(&mut open, Mark::Text, at),
             Event::Code(_) => spot(&mut open, Mark::Code, at),
             Event::InlineHtml(_) => spot(&mut open, Mark::Html, at),
+            Event::InlineMath(_) | Event::DisplayMath(_) => {
+                let mark = if priced(text, &at) {
+                    Mark::Text
+                } else {
+                    Mark::Math
+                };
+                spot(&mut open, mark, at);
+            }
             // A single newline breaks the line in Tisty, the way the window has always shown it.
             Event::SoftBreak | Event::HardBreak => spot(&mut open, Mark::Break, at),
             _ => {}
@@ -48,25 +56,21 @@ pub fn read(text: &str) -> Doc {
     }
 }
 
-// Each plugin reads what the tokenizer could not: Tisty's own marks, in the order they run.
+// The order matters: a later pass reads the marks an earlier one has already folded.
 const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
     #[cfg(feature = "icons")]
     crate::icons::fold,
     #[cfg(feature = "pens")]
     crate::pens::fold,
-    #[cfg(feature = "math")]
-    crate::math::fold,
     #[cfg(feature = "emoji")]
     crate::emoji::fold,
 ];
 
-// And the blocks whose own shape says more than the tokenizer reads from them.
 const SHAPES: &[fn(&mut Block, &str)] = &[
     #[cfg(feature = "tables")]
     crate::tables::widen,
 ];
 
-// And the runs of sibling blocks that only mean something together.
 const GATHERS: &[fn(&mut Vec<Block>, &str)] = &[
     #[cfg(feature = "details")]
     crate::details::gather,
@@ -87,13 +91,34 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str) {
     }
 }
 
-/// The only place the tokenizer is named: swapping it for another touches nothing else.
+// The only place the tokenizer is named: swapping it for another touches nothing else.
 fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
-    let options = Options::ENABLE_TABLES
+    let mut options = Options::ENABLE_TABLES
         | Options::ENABLE_TASKLISTS
         | Options::ENABLE_STRIKETHROUGH
         | Options::ENABLE_GFM;
+    if cfg!(feature = "math") {
+        options |= Options::ENABLE_MATH;
+    }
     Parser::new_ext(text, options).into_offset_iter()
+}
+
+// A digit right after the closing dollar is a price written next to another one, not a formula.
+fn priced(text: &str, at: &Range<usize>) -> bool {
+    text[at.end..].starts_with(|c: char| c.is_ascii_digit())
+}
+
+#[cfg(feature = "outline")]
+pub(crate) fn plain(source: &str) -> String {
+    let mut said = String::new();
+    for (event, _) in tokens(source) {
+        match event {
+            Event::Text(words) | Event::Code(words) => said.push_str(&words),
+            Event::SoftBreak | Event::HardBreak => said.push(' '),
+            _ => {}
+        }
+    }
+    said.trim().to_string()
 }
 
 fn leaf(kind: Kind, at: Range<usize>) -> Block {
@@ -167,6 +192,9 @@ fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
         Tag::Table(aligned) => Kind::Table {
             columns: aligned.iter().map(column).collect(),
         },
+        Tag::TableHead => Kind::Row { head: true },
+        Tag::TableRow => Kind::Row { head: false },
+        Tag::TableCell => Kind::Cell,
         _ => return None,
     })
 }
@@ -192,6 +220,9 @@ fn ends_block(end: TagEnd) -> bool {
             | TagEnd::List(_)
             | TagEnd::Item
             | TagEnd::Table
+            | TagEnd::TableHead
+            | TagEnd::TableRow
+            | TagEnd::TableCell
     )
 }
 

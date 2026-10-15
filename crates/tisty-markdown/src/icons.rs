@@ -1,6 +1,5 @@
 use crate::{Mark, Span};
 
-/// Folds `<span data-ico="…">…</span>` into one icon, the way the editor has always written it.
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
     let mut at = 0;
     while at < spans.len() {

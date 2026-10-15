@@ -1,4 +1,4 @@
-use mermaid_rs_renderer::{RenderOptions, Theme, render_with_options};
+use mermaid_rs_renderer::{RenderOptions, Theme, compute_layout, parse_mermaid_strict, render_svg};
 
 // Laying out a graph grows faster than its text: past this a fence is drawn as code instead.
 const AT_MOST: usize = 32 * 1024;
@@ -9,18 +9,23 @@ pub struct Drawn {
     pub dark: String,
 }
 
-/// The diagram as SVG for each theme, or nothing when the fence cannot be read.
 pub fn drawn(source: &str) -> Option<Drawn> {
     if source.trim().is_empty() || source.len() > AT_MOST {
         return None;
     }
-    let light = crate::guarded(|| render_with_options(source, RenderOptions::modern()).ok())?;
-    let dark = crate::guarded(|| {
-        let options = RenderOptions {
-            theme: Theme::dark(),
-            ..RenderOptions::modern()
+    crate::guarded(|| {
+        let light = RenderOptions::modern();
+        // Both themes share one typeface, so one layout serves both and only the colours change.
+        let dark = Theme {
+            font_family: light.theme.font_family.clone(),
+            font_size: light.theme.font_size,
+            ..Theme::dark()
         };
-        render_with_options(source, options).ok()
-    })?;
-    Some(Drawn { light, dark })
+        let parsed = parse_mermaid_strict(source).ok()?;
+        let laid = compute_layout(&parsed.graph, &light.theme, &light.layout);
+        Some(Drawn {
+            light: render_svg(&laid, &light.theme, &light.layout),
+            dark: render_svg(&laid, &dark, &light.layout),
+        })
+    })
 }
