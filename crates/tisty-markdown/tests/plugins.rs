@@ -365,7 +365,11 @@ fn a_details_block_written_on_one_line_holds_nothing_to_fold() {
 fn a_colon_fence_closes_the_container_that_opened_last() {
     let doc = read(":::details More\n\n:::tip\n\nHi\n\n:::\n\nStill hidden\n\n:::");
     assert_eq!(doc.blocks().len(), 1);
-    assert_eq!(doc.blocks()[0].inner.len(), 4);
+    assert_eq!(doc.blocks()[0].inner.len(), 2);
+    assert_eq!(
+        doc.blocks()[0].inner[0].kind,
+        tisty_markdown::Kind::Callout(tisty_markdown::Callout::Tip)
+    );
 }
 
 #[cfg(feature = "outline")]

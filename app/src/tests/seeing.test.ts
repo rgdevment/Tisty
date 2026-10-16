@@ -143,7 +143,7 @@ describe("a block written as it reads", () => {
 
   it("pairs a section's fences as the page does, and opens them where the caret touches", () => {
     const nested = ":::details A\n\n:::tip\n\nx\n\n:::\n\ny\n\n:::\n\nfuera";
-    expect(read(state(nested, nested.length))).toBe("A\n\n:::tip\n\nx\n\n:::\n\ny\n\n\n\nfuera");
+    expect(read(state(nested, nested.length))).toBe("A\n\n\n\nx\n\n\n\ny\n\n\n\nfuera");
     expect(read(state(":::detailsTodo\n\nx\n\n:::", 16))).toBe("Todo\n\nx\n\n");
     expect(read(state(":::details A\n\nx\n\n:::", 0))).toBe(":::details A\n\nx\n\n");
     const fenced = "```\n:::details x\n```\n\ndespués";
