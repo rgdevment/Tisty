@@ -143,34 +143,40 @@ li.task {
 }
 .check {
   position: absolute;
-  left: -21px;
-  top: 0.42em;
-  width: 13px;
-  height: 13px;
+  left: -23px;
+  top: 0.32em;
+}
+.check,
+.cm-check {
+  width: 15px;
+  height: 15px;
   border: 1.5px solid var(--tisty-faint);
-  border-radius: 4px;
+  border-radius: 5px;
   box-sizing: border-box;
+  background: transparent center / 12px 12px no-repeat;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .ticking .check {
   cursor: pointer;
 }
-.check[data-done="true"] {
-  background: var(--tisty-accent);
+.ticking .check:hover,
+.cm-check:hover {
   border-color: var(--tisty-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tisty-accent) 18%, transparent);
 }
-.check[data-done="true"]::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 0;
-  width: 3px;
-  height: 7px;
-  border: solid #fff;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
+.check[data-done="true"],
+.cm-check[data-done="true"] {
+  background-color: var(--tisty-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Cpath d=%27M3.5 8.4l2.9 2.9 6.1-6.3%27 fill=%27none%27 stroke=%27white%27 stroke-width=%272.2%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E");
+  border-color: var(--tisty-accent);
 }
 li.task:has(> .check[data-done="true"]) {
   color: var(--tisty-soft);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--tisty-soft) 60%, transparent);
 }
 blockquote {
   margin: 12px 0;
@@ -817,33 +823,14 @@ kbd {
 }
 .cm-check {
   display: inline-block;
-  position: relative;
-  width: 13px;
-  height: 13px;
   margin: 0 9px 0 0;
-  vertical-align: -1px;
-  border: 1.5px solid var(--tisty-faint);
-  border-radius: 4px;
-  box-sizing: border-box;
+  vertical-align: -2px;
   cursor: pointer;
-}
-.cm-check[data-done="true"] {
-  background: var(--tisty-accent);
-  border-color: var(--tisty-accent);
-}
-.cm-check[data-done="true"]::after {
-  content: "";
-  position: absolute;
-  left: 3px;
-  top: 0;
-  width: 3px;
-  height: 7px;
-  border: solid #fff;
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
 }
 .cm-done {
   color: var(--tisty-soft);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--tisty-soft) 60%, transparent);
 }
 .cm-link {
   color: var(--tisty-accent);
