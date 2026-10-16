@@ -40,19 +40,11 @@ impl App {
             return;
         }
         let _ = tisty_core::backup::before_a_change(&self.paths, jiff::Timestamp::now());
-        match tisty_core::speaking::speak(&data, &docs) {
-            Ok(spoke) => {
-                for (file, _) in &spoke.docs {
-                    if let Ok(body) = tisty_core::docs::read(&docs, file) {
-                        self.retell(file, &body, None);
-                    }
-                }
+        let spoke = tisty_core::speaking::speak(&data, &docs);
+        for (file, _) in &spoke.docs {
+            if let Ok(body) = tisty_core::docs::read(&docs, file) {
+                self.retell(file, &body, None);
             }
-            Err(e) => tisty_core::witness::warn(
-                tisty_core::witness::channel::STORE,
-                "the store could not be turned into Tisty's own words",
-                &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
-            ),
         }
     }
 

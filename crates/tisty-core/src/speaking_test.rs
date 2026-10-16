@@ -75,7 +75,7 @@ fn a_store_speaks_once_and_its_documents_say_it_in_tisty_words() {
     let plain = crate::docs::create(&docs, &device, "# Nada\n\nsolo texto\n").unwrap();
 
     assert!(!spoken(data));
-    let spoke = speak(data, &docs).unwrap();
+    let spoke = speak(data, &docs);
 
     assert!(spoken(data));
     assert_eq!(spoke.moved, 1);
@@ -89,4 +89,18 @@ fn a_store_speaks_once_and_its_documents_say_it_in_tisty_words() {
         crate::docs::read(&docs, &plain.id).unwrap(),
         "# Nada\n\nsolo texto\n"
     );
+}
+
+#[test]
+fn a_turn_that_left_something_behind_is_not_marked_done() {
+    let dir = tempfile::tempdir().unwrap();
+    let data = dir.path();
+    let shed = data.join("attachments");
+    put(&shed.join("plano-0006bf09.png"), b"otra cosa");
+    put(&shed.join("23").join("plano-0006bf09.png"), b"plano");
+
+    let spoke = speak(data, &data.join("docs"));
+
+    assert_eq!(spoke.left, 1);
+    assert!(!spoken(data), "it would never be tried again");
 }

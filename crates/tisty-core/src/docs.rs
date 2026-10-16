@@ -530,13 +530,9 @@ fn laid_out(
     named: &str,
     also: Option<&Path>,
 ) -> Result<Taken> {
-    write_atomic(
-        &folder.join(named),
-        tisty_markdown::to_plain(body).as_bytes(),
-    )?;
-
     let held = data.join("attachments");
     let mut taken = Taken::default();
+    let mut copied = std::collections::BTreeSet::new();
     for one in crate::refs::extract(body).into_iter().map(|one| one.target) {
         if !one.starts_with("attachments/") {
             continue;
@@ -558,11 +554,22 @@ fn laid_out(
         }
         if std::fs::copy(&from, &at).is_ok() {
             taken.files += 1;
+            copied.extend(crate::attach::leaf_of(&one).map(str::to_string));
         } else {
             left_behind(&mut taken.left, one);
         }
     }
+    write_atomic(&folder.join(named), beside(body, &copied).as_bytes())?;
     Ok(taken)
+}
+
+// Only a file that was copied is named where it now sits; a link that merely looks like one stays.
+fn beside(body: &str, copied: &std::collections::BTreeSet<String>) -> String {
+    let mut out = tisty_markdown::to_plain(body);
+    for leaf in copied {
+        out = out.replace(&format!("]({leaf}"), &format!("](attachments/{leaf}"));
+    }
+    out
 }
 
 pub fn referenced(root: &Path) -> Vec<String> {

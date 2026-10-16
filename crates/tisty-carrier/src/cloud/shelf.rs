@@ -682,9 +682,7 @@ fn flat_name(name: &str) -> Option<String> {
         .then(|| format!("{HELD}/{leaf}"))
 }
 
-/// What an older build left on shelves up there moves to the one flat folder before a round reads
-/// it; a twin already flat is the same bytes by its stamp, so the shelved one only goes. Whatever
-/// the cloud would not take now is left for the next round.
+// A twin already flat is the same bytes by its stamp, so the shelved copy only goes.
 pub fn flattened(remote: &dyn Remote, index: &mut Index) -> usize {
     let shelved: Vec<(String, String)> = index
         .shelf
@@ -693,13 +691,18 @@ pub fn flattened(remote: &dyn Remote, index: &mut Index) -> usize {
         .collect();
     let mut moved = 0;
     for (from, to) in shelved {
-        let done = match index.shelf.contains_key(&to) {
+        let twin = index.shelf.contains_key(&to);
+        let done = match twin {
             true => remote.delete(&from, None),
             false => remote.renamed(&from, &to),
         };
+        // Gone already is not moved: the flat name is left for the round to carry up or bring down.
+        let landed = done.is_ok();
         match done {
             Ok(()) | Err(Hitch::Missing(_)) => {
-                if let Some(seen) = index.shelf.remove(&from) {
+                if let Some(seen) = index.shelf.remove(&from)
+                    && landed
+                {
                     index.shelf.entry(to.clone()).or_insert(Seen {
                         name: to.clone(),
                         ..seen

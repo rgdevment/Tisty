@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Refusal, Session, blamed, elsewhere, held};
+use crate::{Refusal, Session, elsewhere, held};
 
 // Before the first carry, so a document another machine already turned arrives as these same bytes.
 pub(crate) async fn spoken(
@@ -16,15 +16,7 @@ pub(crate) async fn spoken(
     let at = paths.clone();
     let _ =
         elsewhere(move || tisty_core::backup::before_a_change(&at, jiff::Timestamp::now())).await;
-    let spoke = elsewhere(move || tisty_core::speaking::speak(&data, &docs))
-        .await?
-        .map_err(|e| {
-            blamed(
-                channel::STORE,
-                "the store could not be turned into Tisty's own words",
-                e,
-            )
-        })?;
+    let spoke = elsewhere(move || tisty_core::speaking::speak(&data, &docs)).await?;
     witness::note(
         channel::STORE,
         "the store now speaks only Tisty's own words",
@@ -32,6 +24,7 @@ pub(crate) async fn spoken(
             ("docs", Fact::Count(spoke.docs.len())),
             ("moved", Fact::Count(spoke.moved)),
             ("left", Fact::Count(spoke.left)),
+            ("missed", Fact::Count(spoke.missed)),
         ],
     );
     let mut session = held(session);

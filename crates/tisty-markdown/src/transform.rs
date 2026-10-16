@@ -26,20 +26,32 @@ fn gather(block: &Block, text: &str, edits: &mut Vec<(Range<usize>, String)>) {
                 linked(span, text, target, edits)
             }
             _ if !tagged => {}
-            Mark::Pen { color } => {
+            // A colour the palette lacks has no Tisty word, so its tag stays and the page still paints it.
+            Mark::Pen { color } if color.as_deref().is_none_or(vocab::pen) => {
                 let shut = match color {
                     Some(color) => format!("=={{{color}}}"),
                     None => "==".to_string(),
                 };
                 walled(span, text, "==", &shut, edits);
             }
-            Mark::Underline => walled(span, text, "++", "++", edits),
+            Mark::Underline if !inside_a_word(span, text, '+') => {
+                walled(span, text, "++", "++", edits)
+            }
             Mark::Icon { name, hue } if vocab::icon(name) => {
                 let said = match hue.as_deref().filter(|one| vocab::hue(one)) {
                     Some(hue) => format!("::{name} {hue}::"),
                     None => format!("::{name}::"),
                 };
-                edits.push((span.at.clone(), said));
+                let before = text[..span.at.start].chars().next_back();
+                let after = text[span.at.end..].chars().next();
+                let room = |at: Option<char>| match at.is_some_and(char::is_alphanumeric) {
+                    true => " ",
+                    false => "",
+                };
+                edits.push((
+                    span.at.clone(),
+                    format!("{}{said}{}", room(before), room(after)),
+                ));
             }
             _ => {}
         }
@@ -47,6 +59,15 @@ fn gather(block: &Block, text: &str, edits: &mut Vec<(Range<usize>, String)>) {
     for inner in &block.inner {
         gather(inner, text, edits);
     }
+}
+
+// An underline the short walls cannot hold, mid-word or around a `++`, keeps the tag the page still reads.
+fn inside_a_word(span: &Span, text: &str, wall: char) -> bool {
+    let whole = &text[span.at.clone()];
+    let held = |at: Option<char>| at.is_some_and(|c| c.is_alphanumeric() || c == wall);
+    whole.contains("++")
+        || held(text[..span.at.start].chars().next_back())
+        || held(text[span.at.end..].chars().next())
 }
 
 // The new walls cannot touch a space on their inner side, so any space the old tags held moves out.
@@ -100,9 +121,7 @@ fn linked(span: &Span, text: &str, target: &str, edits: &mut Vec<(Range<usize>, 
     }
 }
 
-/// Tisty's own words for a reader outside it: what Markdown says stays, a pen and an icon go back
-/// to the tags any reader passes over, an underline Markdown has no word for goes, and an
-/// attachment is named where an export puts it.
+/// An underline goes, since Markdown has no word for it and the tag is what a stricter reader drops.
 pub fn to_plain(text: &str) -> String {
     let doc = crate::reading::read(text);
     let mut edits = Vec::new();
@@ -147,27 +166,10 @@ fn outward(block: &Block, text: &str, edits: &mut Vec<(Range<usize>, String)>) {
                     format!("<span data-ico=\"{name}\"{tint}>:{name}:</span>"),
                 ));
             }
-            Mark::Link { to: target } | Mark::Image { src: target } => {
-                placed(span, text, target, edits);
-            }
             _ => {}
         }
     }
     for inner in &block.inner {
         outward(inner, text, edits);
-    }
-}
-
-fn placed(span: &Span, text: &str, target: &str, edits: &mut Vec<(Range<usize>, String)>) {
-    let Some(leaf) = kept::leaf_of(target).filter(|leaf| *leaf == target) else {
-        return;
-    };
-    let said = &text[span.at.clone()];
-    let Some(open) = said.rfind("](") else {
-        return;
-    };
-    let start = span.at.start + open + 2;
-    if text[start..].starts_with(leaf) {
-        edits.push((start..start + leaf.len(), format!("{}/{leaf}", kept::SHED)));
     }
 }
