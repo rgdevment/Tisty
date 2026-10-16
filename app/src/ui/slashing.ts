@@ -17,6 +17,7 @@ export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon";
 
 export type Asking = {
   readonly kinds: readonly Asked[];
+  readonly tags?: readonly string[];
   readonly ask: (
     kind: Asked,
     at: { x: number; y: number },
@@ -114,6 +115,13 @@ export const SLASHED: readonly Slashed[] = [
     hint: "|",
     icon: "table",
     put: { block: "|  |  |\n| --- | --- |\n|  |  |", at: 2, blank: true },
+  },
+  {
+    key: "fold",
+    label: "foldSection",
+    hint: ":::",
+    icon: "list-down",
+    put: { block: ":::details \n\n\n\n:::", at: 11, blank: true },
   },
   {
     key: "rule",
@@ -307,6 +315,28 @@ export const offered =
     };
   };
 
+const TAGGED = /(?:^|[\s(])#[\p{L}\p{N}_-]*$/u;
+
+// Tags already in use are offered as a word after # is typed, so one tag is never spelled two ways.
+export const tagging =
+  (asking?: () => Asking | undefined) =>
+  (context: CompletionContext): CompletionResult | null => {
+    const found = context.matchBefore(TAGGED);
+    if (!found) return null;
+    const hash = found.from + found.text.indexOf("#");
+    const word = context.state.sliceDoc(hash + 1, context.pos);
+    if (!word || coded(context.state, hash)) return null;
+    const shown = (asking?.()?.tags ?? []).filter((one) => one !== word && matched(one, word));
+    if (shown.length === 0) return null;
+    return {
+      from: hash,
+      filter: false,
+      options: shown
+        .slice(0, 30)
+        .map((one) => ({ label: `#${one}`, apply: `#${one} `, type: "tag" })),
+    };
+  };
+
 const drawn = (completion: Completion, _: EditorState, view: EditorView): Node | null => {
   const path = completion.type ? markup(completion.type) : null;
   if (!path) return null;
@@ -414,7 +444,7 @@ const dressed = () =>
 
 export const slashing = (asking?: () => Asking | undefined) => [
   autocompletion({
-    override: [offered(asking)],
+    override: [offered(asking), tagging(asking)],
     icons: false,
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,

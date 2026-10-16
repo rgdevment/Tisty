@@ -123,6 +123,23 @@ describe("a block written as it reads", () => {
     expect(tags("# Hola, ticket #1234, color:#fff y `#code`")).toEqual([]);
   });
 
+  it("draws a collapsible section as its summary over an indented body", () => {
+    const one = state(":::details Más\n\nadentro\n\n:::\n\nfuera", 30);
+    const lines = looked(one)
+      .filter((it) => it.line)
+      .map((it) => `${it.from}:${it.line}`);
+    expect(lines).toEqual([
+      "0:cm-fold-head",
+      "15:cm-fold-body",
+      "16:cm-fold-body",
+      "24:cm-fold-body",
+      "25:cm-fold-end",
+    ]);
+    expect(read(one)).toBe("Más\n\nadentro\n\n\n\nfuera");
+    expect(read(state(":::details Más\n\n:::", 0, true))).toBe(":::details Más\n\n:::");
+    expect(looked(state(":::\n\nsolo", 0)).some((it) => it.line)).toBe(false);
+  });
+
   it("leaves code, cards and attachments exactly as written", () => {
     expect(read(state("```\n**x**\n```", 0))).toBe("```\n**x**\n```");
     expect(read(state("![Rina](tisty:doc/ab12-0003)", 0))).toBe("![Rina](tisty:doc/ab12-0003)");

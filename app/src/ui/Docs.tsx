@@ -88,6 +88,7 @@ interface Props {
   onError: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onTag?: (tag: string) => void;
+  tags?: readonly string[];
   onShown?: (file: string | null) => void;
   onDrop?: (doc: Filed) => void;
   onBack?: (doc: Filed) => void;
@@ -95,6 +96,8 @@ interface Props {
 }
 
 const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
+
+const NO_TAGS: readonly string[] = [];
 
 export default function Docs({
   open: asked,
@@ -106,6 +109,7 @@ export default function Docs({
   onError,
   onDoc,
   onTag,
+  tags = NO_TAGS,
   onShown,
   onDrop,
   onBack,
@@ -403,13 +407,14 @@ export default function Docs({
         ? undefined
         : {
             kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
+            tags,
             ask: (kind, at, put, first) => {
               // A card as a document's first words would become its title, which the core refuses.
               if (kind !== "icon" && first) return onError(t("leafNeedsTitle"));
               setPicked({ kind, at, put, file: open?.file });
             },
           },
-    [bolted, leafy, onError, open?.file],
+    [bolted, leafy, onError, open?.file, tags],
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);

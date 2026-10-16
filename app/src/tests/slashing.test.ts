@@ -4,7 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
 import { wrapped } from "../ui/formatting";
-import { type Asked, holding, offered, put, SLASHED, slashing } from "../ui/slashing";
+import { type Asked, holding, offered, put, SLASHED, slashing, tagging } from "../ui/slashing";
 
 const view = (doc: string) =>
   new EditorView({
@@ -37,6 +37,7 @@ describe("the / menu in a block", () => {
     expect(typed("/", "h1")).toEqual({ text: "# ", at: 2 });
     expect(typed("/tit", "h2")).toEqual({ text: "## ", at: 3 });
     expect(typed("/", "todo")).toEqual({ text: "- [ ] ", at: 6 });
+    expect(typed("/", "fold")).toEqual({ text: ":::details \n\n\n\n:::", at: 11 });
     expect(typed("Leche\n/", "bullets")).toEqual({ text: "Leche\n\n- ", at: 9 });
     expect(typed("Leche\n/", "h1")).toEqual({ text: "Leche\n# ", at: 8 });
   });
@@ -202,5 +203,30 @@ describe("the / menu in a block", () => {
     expect(editor.state.sliceDoc()).toBe("Ver ::star::");
     editor.destroy();
     expect(bring?.("::dog::")).toBe(false);
+  });
+});
+
+describe("tags offered after a #", () => {
+  const offeredTags = (doc: string) => {
+    const state = EditorState.create({ doc, extensions: [markdown()] });
+    const asking = { kinds: [], ask: () => {}, tags: ["compras", "casa", "trabajo"] };
+    return tagging(() => asking)(new CompletionContext(state, doc.length, false));
+  };
+
+  it("offers the tags in use that fit what is typed, as a word with a space after it", () => {
+    const found = offeredTags("leche #c");
+    expect(found?.from).toBe(6);
+    expect(found?.options.map((one) => one.label)).toEqual(["#compras", "#casa"]);
+    expect(found?.options[0].apply).toBe("#compras ");
+    expect(offeredTags("#tra")?.options.map((one) => one.label)).toEqual(["#trabajo"]);
+  });
+
+  it("stays shut on a lone #, a title, a word glued to the #, code, or a tag already whole", () => {
+    expect(offeredTags("leche #")).toBeNull();
+    expect(offeredTags("# Plan")).toBeNull();
+    expect(offeredTags("color#c")).toBeNull();
+    expect(offeredTags("`#c")).toBeNull();
+    expect(offeredTags("#casa")).toBeNull();
+    expect(offeredTags("#xyz")).toBeNull();
   });
 });

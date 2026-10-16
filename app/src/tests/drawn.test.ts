@@ -13,6 +13,13 @@ const clicked = (html: string, selector: string, selecting = false) => {
 };
 
 describe("a click on a drawn page", () => {
+  it("ticks a stage from its box, and opens the block from its words", () => {
+    const list =
+      '<ul data-at="0-20"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>uno</li></ul>';
+    expect(clicked(list, ".check")).toEqual({ kind: "tick", at: [0, 10] });
+    expect(clicked(list, "li")).toEqual({ kind: "block", at: [0, 20] });
+  });
+
   it("opens a card or a tisty link as the document it names", () => {
     expect(clicked('<p data-at="0-9"><a class="card" data-doc="ab12-0001">A</a></p>', "a")).toEqual(
       {

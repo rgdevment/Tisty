@@ -132,6 +132,52 @@ const tagged = (state: EditorState, from: number, to: number, out: Range<Decorat
 };
 
 // A format opens up while any selection touches it, edges included, so a letter typed there lands where it is seen.
+class Folding extends WidgetType {
+  constructor(readonly head: boolean) {
+    super();
+  }
+  eq(other: WidgetType) {
+    return other instanceof Folding && other.head === this.head;
+  }
+  toDOM(view: EditorView) {
+    const one = view.dom.ownerDocument.createElement("span");
+    one.className = this.head ? "cm-fold-mark" : "cm-fold-close";
+    if (this.head) one.textContent = "▾";
+    return one;
+  }
+}
+
+const FOLD = /^:::details(?: |$)/;
+
+// A collapsible section reads as its summary over an indented body, its colon fences out of sight.
+const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) => {
+  let deep = 0;
+  for (let at = 1; at <= state.doc.lines; at++) {
+    const line = state.doc.line(at);
+    const head = FOLD.exec(line.text);
+    if (head) {
+      deep += 1;
+      out.push(Decoration.line({ class: "cm-fold-head" }).range(line.from));
+      if (!shown)
+        out.push(
+          Decoration.replace({ widget: new Folding(true) }).range(
+            line.from,
+            line.from + head[0].length,
+          ),
+        );
+      continue;
+    }
+    if (deep && line.text.trim() === ":::") {
+      deep -= 1;
+      out.push(Decoration.line({ class: "cm-fold-end" }).range(line.from));
+      if (!shown)
+        out.push(Decoration.replace({ widget: new Folding(false) }).range(line.from, line.to));
+      continue;
+    }
+    if (deep) out.push(Decoration.line({ class: "cm-fold-body" }).range(line.from));
+  }
+};
+
 const touched = (state: EditorState, from: number, to: number) =>
   state.selection.ranges.some((one) => one.from <= to && one.to >= from);
 
@@ -264,6 +310,7 @@ export const seen = (
     owned(state, from, to, shown, out);
     tagged(state, from, to, out);
   }
+  folded(state, shown, out);
   if (!shown) waiting(state, out);
   return Decoration.set(out, true);
 };

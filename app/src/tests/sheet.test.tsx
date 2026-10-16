@@ -328,6 +328,18 @@ describe("the sheet in the main window", () => {
     expect(writes[writes.length - 1]).toBe("# Compras\n\npan\n");
   });
 
+  it("ticks a stage from its box on the page without opening the block", async () => {
+    const writes: string[] = [];
+    const body = "# Plan\n\n- [ ] uno\n- [x] dos\n";
+    ipc.drawn =
+      '<h1 data-at="0-6">Plan</h1><ul data-at="8-28"><li class="task" data-at="8-18"><span class="check" data-done="false"></span>uno</li><li class="task" data-at="18-28"><span class="check" data-done="true"></span>dos</li></ul>';
+    const view = render(<Sheet value={body} label="Plan" onWrite={(text) => writes.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(writes).toEqual(["# Plan\n\n- [x] uno\n- [x] dos\n"]);
+    expect(ipc.opened).toHaveLength(0);
+  });
+
   it("writes nothing more when words from outside end a block left empty", async () => {
     const writes: string[] = [];
     const view = render(
