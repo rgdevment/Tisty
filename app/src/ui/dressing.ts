@@ -13,8 +13,14 @@ export type Reaching = Carding & {
   readonly onDoc: (file: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
-  readonly onBlock?: (at: [number, number], block: HTMLElement) => void;
+  readonly onBlock?: (
+    at: [number, number],
+    block: HTMLElement,
+    seed?: string,
+    read?: string,
+  ) => void;
   readonly onApart?: (source: string) => void;
+  readonly onAway?: () => void;
 };
 
 const sources = new WeakMap<Element, string>();
@@ -105,6 +111,16 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
   return lent;
 };
 
+const titled = (page: Document) => {
+  const sheet = page.querySelector<HTMLElement>(".page");
+  if (!sheet) return;
+  sheet.setAttribute("data-empty", t("pageEmpty"));
+  if (sheet.firstElementChild) return;
+  const slot = page.createElement("h1");
+  slot.dataset.title = t("titleEmpty");
+  sheet.prepend(slot);
+};
+
 export const worn = (
   page: Document,
   stranger: boolean,
@@ -112,6 +128,7 @@ export const worn = (
   reach?: Reaching,
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
+  if (reach?.onBlock) titled(page);
   iconed(page);
   const kept = pictures(page, live);
   const lent = widgets(page, stranger, reach);
@@ -120,7 +137,7 @@ export const worn = (
   return { lent, kept };
 };
 
-export const answered = (page: Document, asked: Went, reach: Reaching) => {
+export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
@@ -135,7 +152,19 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       charsAt(reach.body, asked.at[0]),
       charsAt(reach.body, asked.at[1]),
     ];
-    if (block) reach.onBlock?.(at, block);
+    if (block) reach.onBlock?.(at, block, "", read);
+  }
+  if (asked.kind === "title" && reach.onBlock) {
+    const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
+    if (slot) reach.onBlock([0, 0], slot, "# ");
+  }
+  if (asked.kind === "end" && reach.onBlock) {
+    const sheet = page.querySelector(".page");
+    if (!sheet) return;
+    const fresh = page.createElement("p");
+    sheet.append(fresh);
+    reach.onBlock([reach.body.length, reach.body.length], fresh);
+    if (fresh.isConnected) fresh.remove();
   }
   if (asked.kind === "apart") {
     const drawn = page.querySelector(
@@ -146,6 +175,24 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   }
 };
 
+const below = (page: Document, target: Element, event: MouseEvent): boolean => {
+  const sheet = page.querySelector(".page");
+  if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))
+    return false;
+  const last = sheet.lastElementChild;
+  return !last || event.clientY > last.getBoundingClientRect().bottom;
+};
+
+const readTo = (page: Document, event: MouseEvent): string => {
+  const block = (event.target as Element | null)?.closest?.(".page > [data-at]");
+  const caret = page.caretRangeFromPoint?.(event.clientX, event.clientY);
+  if (!block || !caret || !block.contains(caret.startContainer)) return "";
+  const range = page.createRange();
+  range.setStart(block, 0);
+  range.setEnd(caret.startContainer, caret.startOffset);
+  return range.toString();
+};
+
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
   page.addEventListener("click", (event) => {
@@ -153,7 +200,9 @@ export const wired = (page: Document, reach: () => Reaching) => {
     if (event.button !== 0 || typeof target?.closest !== "function") return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
-    answered(page, went(target, selecting), reach());
+    const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
+    if (!asked && !target.closest(".editing")) reach().onAway?.();
+    answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
   });
   for (const kind of ["auxclick", "submit", "dragstart", "contextmenu"]) {
     page.addEventListener(kind, refused);

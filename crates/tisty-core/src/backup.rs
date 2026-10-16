@@ -625,8 +625,11 @@ fn unpack<R: Read + Seek>(
         if held.is_dir() {
             continue;
         }
-        let Some(rest) = safe(held.name()) else {
-            first.get_or_insert_with(|| held.name().to_string());
+        let named = held.name().map(|one| one.into_owned()).ok();
+        let Some(rest) = named.as_deref().and_then(safe) else {
+            first.get_or_insert_with(|| {
+                named.unwrap_or_else(|| String::from_utf8_lossy(held.name_raw()).into_owned())
+            });
             leftover += 1;
             continue;
         };

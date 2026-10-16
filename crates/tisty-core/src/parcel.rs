@@ -1377,7 +1377,8 @@ fn unpack<R: Read + Seek>(
         if held.is_dir() {
             continue;
         }
-        let Some(rest) = safe(held.name()) else {
+        let named = held.name().map(|one| one.into_owned()).ok();
+        let Some(rest) = named.as_deref().and_then(safe) else {
             continue;
         };
         if held.size() > AT_MOST.saturating_sub(bytes) {

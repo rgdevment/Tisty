@@ -409,7 +409,7 @@ fn what_proves_the_store_is_its_own_never_enters_a_copy() {
     let held = std::fs::read(&file).unwrap();
     let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
     let named: Vec<String> = (0..zip.len())
-        .map(|n| zip.by_index(n).unwrap().name().to_string())
+        .map(|n| zip.by_index(n).unwrap().name().unwrap().to_string())
         .collect();
     assert!(
         !named.iter().any(|one| one.contains(store::KEEP)),
@@ -440,7 +440,7 @@ fn a_copy_carries_everything_a_working_store_holds() {
 
     let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
     let inside: Vec<String> = (0..zip.len())
-        .map(|n| zip.by_index(n).unwrap().name().to_string())
+        .map(|n| zip.by_index(n).unwrap().name().unwrap().to_string())
         .collect();
 
     for one in walk(&data) {
@@ -567,7 +567,7 @@ fn the_configuration_never_travels() {
     let held = std::fs::File::open(&file).unwrap();
     let mut zip = zip::ZipArchive::new(held).unwrap();
     for i in 0..zip.len() {
-        let named = zip.by_index(i).unwrap().name().to_string();
+        let named = zip.by_index(i).unwrap().name().unwrap().to_string();
         assert!(
             !named.contains("config"),
             "the device id travelled: {named}"
@@ -636,7 +636,7 @@ fn a_backup_with_no_marker_is_refused_onto_a_store_that_has_one() {
         let mut to = zip::ZipWriter::new(std::fs::File::create(&stripped).unwrap());
         for i in 0..from.len() {
             let mut one = from.by_index(i).unwrap();
-            let named = one.name().to_string();
+            let named = one.name().unwrap().to_string();
             if named.ends_with(store::MARKER) {
                 continue;
             }
@@ -826,7 +826,7 @@ fn a_zip_full_of_refused_entries_does_not_roll_the_diary_away() {
         let mut to = zip::ZipWriter::new(std::fs::File::create(&hostile).unwrap());
         for i in 0..from.len() {
             let mut one = from.by_index(i).unwrap();
-            let named = one.name().to_string();
+            let named = one.name().unwrap().to_string();
             let mut body = Vec::new();
             one.read_to_end(&mut body).unwrap();
             to.start_file(named, zip::write::SimpleFileOptions::default())
@@ -979,7 +979,10 @@ fn a_copy_taken_where_the_folder_holds_the_big_ones_carries_them_too() {
     write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
 
     let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
-    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    let named: Vec<String> = zip
+        .file_names()
+        .map(|one| one.unwrap().into_owned())
+        .collect();
     assert!(
         named.contains(&"attachments/video-9f8e7d6c.mp4".to_string()),
         "a machine that let go of its copies would restore without them: {named:?}"
@@ -1006,7 +1009,9 @@ fn what_is_in_both_places_is_carried_once() {
     assert_eq!(zip.len(), made.files);
     assert_eq!(
         zip.file_names()
-            .filter(|one| one.ends_with("foto-a1b2c3d4.png"))
+            .filter(|one| one
+                .as_deref()
+                .is_ok_and(|one| one.ends_with("foto-a1b2c3d4.png")))
             .count(),
         1
     );
@@ -1042,7 +1047,10 @@ fn what_the_folder_holds_half_written_or_misnamed_does_not_ride_along() {
     write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
 
     let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
-    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    let named: Vec<String> = zip
+        .file_names()
+        .map(|one| one.unwrap().into_owned())
+        .collect();
     assert!(
         named.contains(&"attachments/video-9f8e7d6c.mp4".to_string()),
         "{named:?}"
@@ -1079,7 +1087,10 @@ fn a_document_that_only_the_folder_has_is_carried_and_a_lock_beside_it_is_not() 
     write(&data, &file, tmp().path(), Some(shared.path())).unwrap();
 
     let mut zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
-    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    let named: Vec<String> = zip
+        .file_names()
+        .map(|one| one.unwrap().into_owned())
+        .collect();
     assert!(
         named.contains(&"docs/dev_b-0007.md".to_string()),
         "it lives only up there, and the copy promises every machine: {named:?}"
@@ -1311,13 +1322,22 @@ fn before_a_change_tasks_and_documents_are_kept_and_only_the_last_five_stay() {
     assert_eq!(kept.len(), 5);
     assert!(!made[0].exists() && !made[1].exists() && made[6].exists());
     let zip = zip::ZipArchive::new(std::fs::File::open(&made[6]).unwrap()).unwrap();
-    let names: Vec<&str> = zip.file_names().collect();
+    let names: Vec<String> = zip
+        .file_names()
+        .map(|one| one.unwrap().into_owned())
+        .collect();
     assert!(
         names.iter().any(|one| one.starts_with("store/")),
         "{names:?}"
     );
-    assert!(names.contains(&"docs/a3f1-0001.md"), "{names:?}");
-    assert!(names.contains(&"originals/a3f1-0001.md"), "{names:?}");
+    assert!(
+        names.iter().any(|one| one == "docs/a3f1-0001.md"),
+        "{names:?}"
+    );
+    assert!(
+        names.iter().any(|one| one == "originals/a3f1-0001.md"),
+        "{names:?}"
+    );
     assert!(
         !names.iter().any(|one| one.starts_with("attachments/")),
         "attachments weigh the change down: {names:?}"

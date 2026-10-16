@@ -13,7 +13,7 @@ fn reworded(at: &std::path::Path, mut hand: impl FnMut(&mut serde_json::Value)) 
     let mut kept: Vec<(String, Vec<u8>)> = Vec::new();
     for n in 0..zip.len() {
         let mut one = zip.by_index(n).unwrap();
-        let named = one.name().to_string();
+        let named = one.name().unwrap().to_string();
         let mut body = Vec::new();
         std::io::Read::read_to_end(&mut one, &mut body).unwrap();
         kept.push((named, body));
@@ -301,7 +301,7 @@ fn a_parcel_carries_the_writing_and_not_one_line_of_the_log() {
     let file = std::fs::File::open(&box_at).unwrap();
     let mut zip = zip::ZipArchive::new(file).unwrap();
     let inside: Vec<String> = (0..zip.len())
-        .map(|i| zip.by_index(i).unwrap().name().to_string())
+        .map(|i| zip.by_index(i).unwrap().name().unwrap().to_string())
         .collect();
 
     assert!(
@@ -592,7 +592,7 @@ fn a_parcel_from_a_newer_tisty_is_turned_away_rather_than_half_understood() {
     let mut out = zip::ZipWriter::new(std::fs::File::create(&ahead).unwrap());
     for i in 0..zip.len() {
         let mut held = zip.by_index(i).unwrap();
-        let named = held.name().to_string();
+        let named = held.name().unwrap().to_string();
         let mut body = Vec::new();
         std::io::Read::read_to_end(&mut held, &mut body).unwrap();
         if named == "tisty-docs.json" {
@@ -2238,7 +2238,7 @@ fn with_manifest(
     let mut out = zip::ZipWriter::new(std::fs::File::create(&at).unwrap());
     for i in 0..zip.len() {
         let mut one = zip.by_index(i).unwrap();
-        let named = one.name().to_string();
+        let named = one.name().unwrap().to_string();
         let mut body = Vec::new();
         std::io::Read::read_to_end(&mut one, &mut body).unwrap();
         if named == "tisty-docs.json" {

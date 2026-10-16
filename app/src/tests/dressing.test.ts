@@ -358,3 +358,83 @@ describe("a drawn page wired to the window", () => {
     expect(heard.docs).toEqual(["ab12-0003"]);
   });
 });
+
+const writer = (body = "") => {
+  const asked: { at: [number, number]; seed?: string; read?: string }[] = [];
+  let away = 0;
+  const reach: Reaching = {
+    body,
+    onDoc: () => {},
+    onBlock: (at, _, seed, read) => asked.push({ at, seed, read }),
+    onAway: () => {
+      away += 1;
+    },
+  };
+  return { asked, reach, away: () => away };
+};
+
+const press = (on: Element | null, clientY = 900) =>
+  on?.dispatchEvent(
+    new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, clientY }),
+  );
+
+describe("a sheet with nothing written yet", () => {
+  it("shows where the title goes on an empty sheet, and nowhere else", () => {
+    const empty = page("");
+    worn(empty, false, () => true, writer().reach);
+    expect(empty.querySelector(".page > h1[data-title]")).not.toBeNull();
+    expect(empty.querySelector<HTMLElement>(".page")?.dataset.empty).toBeTruthy();
+
+    const said = page('<p data-at="0-5">Leche</p>');
+    worn(said, false, () => true, writer().reach);
+    expect(said.querySelector("h1[data-title]")).toBeNull();
+
+    const reading = page("");
+    worn(reading, false, () => true, { body: "", onDoc: () => {} });
+    expect(reading.querySelector("h1[data-title]")).toBeNull();
+  });
+
+  it("writes the title from its own slot, starting with its mark", () => {
+    const empty = page("");
+    const { asked, reach } = writer();
+    worn(empty, false, () => true, reach);
+    wired(empty, () => reach);
+    press(empty.querySelector("h1[data-title]"), 0);
+    expect(asked).toEqual([{ at: [0, 0], seed: "# " }]);
+  });
+
+  it("begins a new block past the last one, and leaves nothing behind when none is opened", () => {
+    const drawn = page('<p data-at="0-5">Leche</p>');
+    const { asked, reach } = writer("Leche");
+    wired(drawn, () => reach);
+    press(drawn.querySelector(".page"));
+    expect(asked.map((one) => one.at)).toEqual([[5, 5]]);
+    expect(drawn.querySelectorAll(".page > p")).toHaveLength(1);
+  });
+
+  it("ends the block being written on a press in an empty spot, never on one inside it", () => {
+    const drawn = page('<p data-at="0-5">Leche</p><div class="editing"><span>x</span></div>');
+    const { reach, away } = writer("Leche");
+    wired(drawn, () => reach);
+    press(drawn.querySelector(".editing span"), 0);
+    expect(away()).toBe(0);
+    press(drawn.body, 0);
+    expect(away()).toBe(1);
+  });
+
+  it("hands the block the words read before the click, so the caret lands there", () => {
+    const drawn = page('<p data-at="0-11">Leche y pan</p>');
+    const text = drawn.querySelector("p")?.firstChild as Text;
+    Object.assign(drawn, {
+      caretRangeFromPoint: () => {
+        const range = drawn.createRange();
+        range.setStart(text, 7);
+        return range;
+      },
+    });
+    const { asked, reach } = writer("Leche y pan");
+    wired(drawn, () => reach);
+    press(drawn.querySelector("p"), 0);
+    expect(asked[0]).toEqual({ at: [0, 11], seed: "", read: "Leche y" });
+  });
+});

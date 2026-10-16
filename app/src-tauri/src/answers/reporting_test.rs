@@ -21,7 +21,10 @@ version 0.1.0
     .unwrap();
 
     let mut zip = zip::ZipArchive::new(std::fs::File::open(&at).unwrap()).unwrap();
-    let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
+    let named: Vec<String> = zip
+        .file_names()
+        .map(|one| one.unwrap().into_owned())
+        .collect();
     assert!(named.contains(&"report.txt".to_string()), "{named:?}");
     assert!(named.contains(&"tisty.log".to_string()), "{named:?}");
 

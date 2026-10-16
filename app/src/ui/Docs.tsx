@@ -31,6 +31,7 @@ import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
+import Picking, { type Picked } from "./Picking";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import type { Block } from "./Slash";
@@ -39,6 +40,7 @@ const NO_BLOCKS: Block[] = [];
 
 import type { Head } from "./paging";
 import { PAPER, pageFor } from "./sheets";
+import type { Asking } from "./slashing";
 import { clearOfChrome } from "./WindowChrome";
 
 const Sheet = lazy(() => import("./Sheet"));
@@ -316,13 +318,17 @@ export default function Docs({
         if (typed.current !== wrote_at) return;
         const last = lastRead.current.get(wanted.file);
         const astir = last !== undefined && tailless(last) !== tailless(text);
+        // A round that brought other things reads this one again; the same words leave the block being written open.
+        const same = before === wanted.file && !astir;
         remembered(lastRead.current, wanted.file, text);
+        shaped.current = text;
         setStirred(astir);
         setOpen(wanted);
-        shaped.current = text;
-        setBody(text);
-        setPacked(crowd(text));
         setClashed(false);
+        if (!same) {
+          setBody(text);
+          setPacked(crowd(text));
+        }
         if (known.some((one) => one.pageOf === wanted.id)) {
           docOrder(wanted.file, text)
             .then((moved) => {
@@ -361,12 +367,9 @@ export default function Docs({
     typed.current = Date.now();
     setBody(text);
     const last = lastRead.current.get(open.file);
-    const back =
-      text === shaped.current || (last !== undefined && tailless(last) === tailless(text));
+    const back = last !== undefined && tailless(last) === tailless(text);
     if (back) {
-      // Coming back to what was read is not a change, and it undoes the one waiting: a chapter
-      // moved and moved back inside the beat would otherwise be written in the order it passed
-      // through, and the screen would show the other one.
+      // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       if (held.current?.id === open.file) {
         held.current = null;
         if (settling.current) clearTimeout(settling.current);
@@ -380,6 +383,7 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
+  const called = own?.title ?? open?.title ?? "";
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
@@ -388,6 +392,22 @@ export default function Docs({
   const seek = own?.file ? stood.current.get(own.file) : undefined;
   const anchor = own?.file && from.current?.doc === own.file ? from.current.page : undefined;
   const pages = pagesOf(known, open?.file);
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const leafy = Boolean(own && !own.pageOf);
+  const slashAsks = useMemo<Asking | undefined>(
+    () =>
+      bolted
+        ? undefined
+        : {
+            kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
+            ask: (kind, at, put, first) => {
+              // A card as a document's first words would become its title, which the core refuses.
+              if (kind !== "icon" && first) return onError(t("leafNeedsTitle"));
+              setPicked({ kind, at, put, file: open?.file });
+            },
+          },
+    [bolted, leafy, onError, open?.file],
+  );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
@@ -502,7 +522,7 @@ export default function Docs({
       const blob = await blobOf(said);
       if (!blob) return;
       const where = await intoFile({
-        defaultPath: `${open.title || t("untitledDoc")}.pdf`,
+        defaultPath: `${called || t("untitledDoc")}.pdf`,
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       });
       if (!where) return;
@@ -576,7 +596,7 @@ export default function Docs({
                   if (own?.file) stood.current.set(own.file, at);
                 }}
                 reading={bolted}
-                label={open.title || t("untitledDoc")}
+                label={called || t("untitledDoc")}
                 onDoc={onDoc}
                 onTag={onTag}
                 above={
@@ -633,6 +653,7 @@ export default function Docs({
                 onOrder={(move) => {
                   ordering.current = move;
                 }}
+                asking={slashAsks}
               />
             </Suspense>
           </div>
@@ -728,7 +749,7 @@ export default function Docs({
                     return;
                   }
                   docAway(which, false)
-                    .then(() => onKept({ id: open.id, title: open.title }))
+                    .then(() => onKept({ id: open.id, title: called }))
                     .catch((e) => onError(saidPlainly(e)));
                 }}
                 className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -754,7 +775,7 @@ export default function Docs({
               type="button"
               onClick={() =>
                 docAway(own.id, true)
-                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .then(() => onKept({ id: open.id, title: called }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -774,7 +795,7 @@ export default function Docs({
               type="button"
               onClick={() =>
                 docUnflag(own.id)
-                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .then(() => onKept({ id: open.id, title: called }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -798,7 +819,7 @@ export default function Docs({
                     .filter((one): one is string => typeof one === "string")
                     .map((one) => docLock(one, false)),
                 )
-                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .then(() => onKept({ id: open.id, title: called }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -862,9 +883,25 @@ export default function Docs({
         </Modal>
       )}
 
+      {picked && (
+        <Picking
+          picked={picked}
+          own={own}
+          pages={pages}
+          others={known.filter((one) => one.file !== open?.file && !one.away)}
+          onMade={onKept}
+          onLost={(doc) => {
+            if (picked.file !== open?.file) return;
+            putting.current?.({ ...doc, id: doc.file, folder: null, archived: false, away: false });
+          }}
+          onError={(problem) => onError(saidPlainly(problem))}
+          onDone={() => setPicked(null)}
+        />
+      )}
+
       {beside && open && (
         <Beside
-          title={open.title}
+          title={called}
           paper={open.file}
           body={body}
           tags={known.find((one) => one.file === open.file)?.tags ?? []}
@@ -907,7 +944,7 @@ export default function Docs({
             void viewDoc({
               id: open.id,
               file: open.file,
-              title: open.title || t("untitledDoc"),
+              title: called || t("untitledDoc"),
               place: trailed(folders, open.folder ?? null)
                 .map((one) => one.name)
                 .join(" / "),
