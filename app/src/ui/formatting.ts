@@ -15,6 +15,19 @@ export const coded = (state: EditorState, at: number): boolean => {
 export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
 export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
 export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
+export const TAG_EDGE = String.raw`(?<![\p{L}\p{N}#/\-_.:])`;
+export const TAG_TAIL = String.raw`[\p{L}\p{N}\p{M}_-]`;
+export const TAG_WORD = String.raw`[\p{L}\p{N}]${TAG_TAIL}*`;
+
+// A # in a link's address is an anchor, never a tag, even while the link is still being typed.
+export const anchored = (state: EditorState, at: number): boolean => {
+  if (/\]\([^)\s]*$/.test(state.sliceDoc(state.doc.lineAt(at).from, at))) return true;
+  for (let node = syntaxTree(state).resolveInner(at, 1); node.parent; node = node.parent) {
+    if (node.name === "URL" || node.name === "Link") return true;
+  }
+  return false;
+};
+
 export const owning = () => new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu");
 
 const FORMAT: Record<string, string> = {

@@ -21,6 +21,7 @@ export type Reaching = Carding & {
   ) => void;
   readonly onApart?: (source: string) => void;
   readonly onAway?: () => void;
+  readonly onTick?: (at: [number, number]) => void;
 };
 
 const sources = new WeakMap<Element, string>();
@@ -129,6 +130,7 @@ export const worn = (
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   if (reach?.onBlock) titled(page);
+  page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   const kept = pictures(page, live);
   const lent = widgets(page, stranger, reach);
@@ -144,6 +146,8 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   if (asked.kind === "here") page.getElementById(asked.id)?.scrollIntoView({ block: "start" });
   if (asked.kind === "attachment") reach.onOpen?.(asked.reference);
   if (asked.kind === "tag") reach.onTag?.(asked.name);
+  if (asked.kind === "tick")
+    reach.onTick?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "block") {
     const block = page.querySelector<HTMLElement>(
       `.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`,

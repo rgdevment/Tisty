@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { discard, patch, sow } from "../core";
 import { useDesk } from "../desk";
 import { fill } from "../locales";
@@ -59,6 +59,7 @@ export default function Stage() {
     told,
     underway,
   } = useDesk();
+  const tagNames = useMemo(() => data.tags.map((one) => one.tag), [data.tags]);
   const refreshed = () => {
     load();
     lookPapers();
@@ -105,6 +106,7 @@ export default function Stage() {
         setChosen({ named: "tags", tags: [tag] });
       }}
       onError={told}
+      tags={tagNames}
       onShown={setShowing}
       onDoc={openDoc}
       onDrop={dropDoc}
