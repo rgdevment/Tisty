@@ -4,14 +4,12 @@ import {
   type CompletionContext,
   type CompletionResult,
 } from "@codemirror/autocomplete";
-import { syntaxTree } from "@codemirror/language";
 import { type EditorState, Prec } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
-import type { SyntaxNode } from "@lezer/common";
 import { matched } from "../finding";
 import { markup } from "../glyphs";
 import { t } from "../locales";
-import { pend } from "./pending";
+import { coded, linking, wrapped } from "./formatting";
 
 type Said = Parameters<typeof t>[0];
 
@@ -148,15 +146,6 @@ export const SLASHED: readonly Slashed[] = [
   },
 ];
 
-const CODE = new Set(["InlineCode", "FencedCode", "CodeBlock"]);
-
-export const coded = (state: EditorState, at: number): boolean => {
-  for (let node = syntaxTree(state).resolveInner(at, 1); node.parent; node = node.parent) {
-    if (CODE.has(node.name)) return true;
-  }
-  return false;
-};
-
 // What goes before a block so it starts a line of its own, and a blank one where Markdown would glue it on.
 const opening = (state: EditorState, at: number, blank: boolean): string => {
   const line = state.doc.lineAt(at);
@@ -164,6 +153,16 @@ const opening = (state: EditorState, at: number, blank: boolean): string => {
   if (before.trim()) return blank ? "\n\n" : "\n";
   if (!blank || line.number === 1) return "";
   return state.doc.line(line.number - 1).text.trim() ? "\n" : "";
+};
+
+const spacesBefore = (state: EditorState, at: number) => {
+  const before = state.sliceDoc(state.doc.lineAt(at).from, at);
+  return before.length - before.trimEnd().length;
+};
+
+const spacesAfter = (state: EditorState, at: number) => {
+  const after = state.sliceDoc(at, state.doc.lineAt(at).to);
+  return after.length - after.trimStart().length;
 };
 
 // Words left after the slash would join a table, a quote or a fence, so they go below it, apart.
@@ -180,87 +179,14 @@ const blocked = (
 ) => {
   const { state } = view;
   const ahead = opening(state, from, blank);
+  const start = ahead ? from - spacesBefore(state, from) : from;
+  const after = closing(state, to);
+  const end = after ? to + spacesAfter(state, to) : to;
   view.dispatch({
-    changes: { from, to, insert: `${ahead}${text}${closing(state, to)}` },
-    selection: { anchor: from + ahead.length + at },
+    changes: { from: start, to: end, insert: `${ahead}${text}${after}` },
+    selection: { anchor: start + ahead.length + at },
     userEvent: "input.complete",
   });
-};
-
-export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
-export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
-export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
-export const owning = () => new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu");
-
-const FORMAT: Record<string, string> = {
-  "**": "StrongEmphasis",
-  "*": "Emphasis",
-  "~~": "Strikethrough",
-  "`": "InlineCode",
-};
-
-// The format already around the selection, so pressing it again takes it off instead of nesting marks.
-const around = (state: EditorState, mark: string, from: number, to: number) => {
-  const kind = FORMAT[mark];
-  if (kind) {
-    for (
-      let node: SyntaxNode | null = syntaxTree(state).resolveInner(from, 1);
-      node;
-      node = node.parent
-    ) {
-      if (node.name !== kind || node.from > from || node.to < to) continue;
-      const open = node.firstChild;
-      const shut = node.lastChild;
-      if (!open || !shut || open === shut) return undefined;
-      return { open: [open.from, open.to], shut: [shut.from, shut.to], tail: "" };
-    }
-    return undefined;
-  }
-  const found = mark === "==" ? PEN : mark === "++" ? UNDER : undefined;
-  if (!found) return undefined;
-  const line = state.doc.lineAt(from);
-  if (state.doc.lineAt(to).number !== line.number) return undefined;
-  for (const one of line.text.matchAll(new RegExp(found.source, "gu"))) {
-    const at = line.from + (one.index ?? 0);
-    const end = at + one[0].length;
-    if (at > from || end < to) continue;
-    const body = at + 2 + one[1].length;
-    return { open: [at, at + 2], shut: [body, end], tail: state.sliceDoc(body, end) };
-  }
-  return undefined;
-};
-
-export const wrapped = (view: EditorView, mark: string, close = mark): boolean => {
-  const main = view.state.selection.main;
-  const chosen = view.state.sliceDoc(main.from, main.to);
-  // A mark that touches a space is not read as one, so the spaces a selection caught stay outside.
-  const from = main.from + (chosen.length - chosen.trimStart().length);
-  const to = Math.max(from, main.to - (chosen.length - chosen.trimEnd().length));
-  const held = around(view.state, mark, from, to);
-  if (held) {
-    const swap = mark === "==" && held.tail !== close;
-    view.dispatch({
-      changes: [
-        { from: held.open[0], to: held.open[1], insert: swap ? mark : "" },
-        { from: held.shut[0], to: held.shut[1], insert: swap ? close : "" },
-      ],
-      userEvent: "input.format",
-    });
-    return true;
-  }
-  const inside = view.state.sliceDoc(from, to);
-  view.dispatch({
-    changes: { from, to, insert: `${mark}${inside}${close}` },
-    selection: inside
-      ? { anchor: from + mark.length, head: from + mark.length + inside.length }
-      : { anchor: from + mark.length },
-    effects:
-      inside || mark === "["
-        ? []
-        : pend.of({ from: from + mark.length, to: from + mark.length, mark, close }),
-    userEvent: "input.format",
-  });
-  return true;
 };
 
 // The window's own pickers sit outside the page, so the place they open at is the caret's on screen.
@@ -316,10 +242,13 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
     return;
   }
   if ("line" in how) {
-    const ahead = opening(state, from, false);
+    // An empty item cannot break into words above it, so a list or quote starts apart from them.
+    const ahead = opening(state, from, /^([-*+>]|\d)/.test(how.line));
+    const start = ahead ? from - spacesBefore(state, from) : from;
+    const end = to + spacesAfter(state, to);
     view.dispatch({
-      changes: { from, to, insert: `${ahead}${how.line}` },
-      selection: { anchor: from + ahead.length + how.line.length },
+      changes: { from: start, to: end, insert: `${ahead}${how.line}` },
+      selection: { anchor: start + ahead.length + how.line.length },
       userEvent: "input.complete",
     });
     return;
@@ -473,7 +402,7 @@ export const slashing = (asking?: () => Asking | undefined) => [
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,
   }),
-  Prec.high(keymap.of(formats)),
+  Prec.high(keymap.of([...formats, linking])),
   tooltips({ tooltipSpace: room }),
   dressed(),
 ];

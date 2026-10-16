@@ -39,6 +39,8 @@ describe("the bar over the block being written", () => {
     const nested = view("- uno\n  - dos\nfin", 6, 14);
     retyped(nested, "1. ");
     expect(nested.state.sliceDoc()).toBe("- uno\n  1. dos\nfin");
+    retyped(nested, "# ");
+    expect(nested.state.sliceDoc()).toBe("- uno\n# dos\nfin");
     nested.destroy();
   });
 

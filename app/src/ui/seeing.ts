@@ -11,9 +11,9 @@ import {
 import type { SyntaxNode } from "@lezer/common";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
+import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { waiting } from "./pending";
-import { coded, owning } from "./slashing";
 
 export const showMarks = StateEffect.define<boolean>();
 
