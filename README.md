@@ -22,16 +22,16 @@
   <p>
     <a href="https://github.com/rgdevment/Tisty/releases">
       <img
-        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=6C5CE7"
+        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=D9A13B"
         alt="Latest release"/>
     </a>
     <a href="#an-assistant-if-you-use-one">
       <img
-        src="https://img.shields.io/badge/MCP-Official_Registry-6C5CE7?style=flat-square"
+        src="https://img.shields.io/badge/MCP-Official_Registry-D9A13B?style=flat-square"
         alt="Tisty in the official MCP registry"/>
     </a>
     <img
-      src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-6C5CE7?style=flat-square"
+      src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-D9A13B?style=flat-square"
       alt="Platform: Windows and macOS"/>
     <a href="#licence">
       <img
@@ -54,9 +54,9 @@
     <img
       src="assets/store/en-01-record.png"
       width="92%"
-      alt="Tisty: not a list you empty, a record of what you worked out. The
-      window shows today's tasks with their steps beside the tree of documents,
-      and the day, the priorities and the lists down the side"/>
+      alt="Tisty: not a list you empty, a record of what you worked out. A
+      task opened to the whole page keeps its description, its steps and its
+      parts, with the trail of every change and the journal down the side"/>
   </p>
 
   <h4>Download Tisty</h4>
@@ -90,7 +90,7 @@
 
 ---
 
-**Tisty** is Opensource. Read it, build it, run it, or take one of the stable
+**Tisty** is open source: read it, build it, run it, or take one of the signed
 releases already out there. Nothing is hidden and all of it can be audited.
 
 It is a place to write. **Documents** are Markdown files on your own disk
@@ -300,6 +300,8 @@ Tisty it holds a good deal more than text:
 - **A PDF of its own**, A4, Letter or Tabloid, with the attachments inside,
   shown to you before you export it.
 
+![Markdown notes, plain files, any editor: formulas and a widget drawn inside a document, with the formatting and the PDF in the column beside it](assets/store/en-03-notes.png)
+
 The guide Tisty writes the first time it opens carries a page with one of each,
 so you can see all of it before you write a line.
 
@@ -393,8 +395,6 @@ machine of your own — which is what makes them arrive there as yours rather
 than as a stranger's. Either way, not one line of the history travels inside.
 Write an alias — optional, and yours to choose — and every document is signed
 with it, while whatever arrives from somebody else keeps theirs.
-
-![Documents that can do the maths: formulas, diagrams, code and small widgets drawn inside Tisty, with nothing fetched](assets/store/en-06-documents.png)
 
 ## Who Is This For?
 
@@ -490,7 +490,7 @@ window and it steps aside; a task always wins the room over it.
 it, leaves the sentence readable, and shows you what it understood *before*
 anything is saved — as chips you can correct with one click.
 
-![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words](assets/store/en-02-tasks.png)
+![Type it the way you say it: tags, lists, priority, dates and repeats like every tuesday are read from plain words, with the day, the quadrants and the lists counted down the side](assets/store/en-02-tasks.png)
 
 ```text
 "ship the release tomorrow at 10"   →  tomorrow 10:00
@@ -509,7 +509,7 @@ to the whole page it gains a column of its own trail — how long it has been
 open, how much of it is done, and every change it has been through, which until
 now sat at the bottom where nobody scrolled.
 
-![One card for each part of life: every list with its own icon and name, its open items and their due dates](assets/store/en-05-lists.png)
+![One card for each part of life: tasks grouped by list, each with its own icon and name, beside the task that is open](assets/store/en-06-lists.png)
 
 **Priorities are a matrix, not a ladder.** Tisty borrows the four quadrants
 of the Eisenhower matrix — the method President Dwight D. Eisenhower is
@@ -526,7 +526,7 @@ quadrant has a **+** that opens the quick capture with that quadrant already
 set, and whatever nobody has placed waits in a tray that opens the way you
 left it.
 
-![The Eisenhower matrix in Tisty: every task sorted into do, schedule, delegate or minor, with the unclassified pile on the side](assets/store/en-03-priorities.png)
+![Decide what matters, then do it: the Eisenhower matrix sorts every task into do, schedule, delegate or minor, with the unclassified pile on the side](assets/store/en-04-priorities.png)
 
 **The spread deals your days, one row at a time.** Priorities sort what matters;
 the spread decides when. It runs as a river of days you scroll through rather
@@ -542,7 +542,7 @@ dropped there on purpose. Tisty cannot see the calendar you keep somewhere else,
 so a square with nothing written on it is only a square with nothing written on
 it — never a promise that the day is yours.
 
-![The spread: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-04-spread.png)
+![Your week, laid out: every task lands on its day, the ones with no day wait on the left, and the month is a switch away](assets/store/en-05-spread.png)
 
 **Tisto keeps you company.** Tisty's beaver peeks over the bar while you write a
 task and gives you a thumbs up when you finish one. It never covers anything,
@@ -570,7 +570,7 @@ is only ever hidden.
 
 ## Your Data and Privacy
 
-![Tisto, Tisty's beaver: free and open source, with no account, no subscription and no telemetry, and your files stay on your computer](assets/store/en-08-free.png)
+![Yours, nothing else: Tisto, Tisty's beaver, beside what Tisty never asks of you — no account, no subscription, no telemetry, and your files stay on your computer](assets/store/en-08-free.png)
 
 Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
@@ -702,7 +702,7 @@ reaches it.
 
 ## An Assistant, If You Use One
 
-![Bring your favourite agents through MCP and let them organise, document, schedule and prioritise your tasks, while everything stays on your computer](assets/store/en-07-mcp.png)
+![Bring your favourite agents, they do the housekeeping: Settings › Assistants lists the ones installed on this computer and connects each through MCP, with no AI inside Tisty](assets/store/en-07-mcp.png)
 
 **Tisty is not AI and has none inside.** The natural language that turns "call
 the bank at 3" into a task is rules running on your machine: no model, no
