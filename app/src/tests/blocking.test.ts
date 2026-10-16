@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { completionStatus, startCompletion } from "@codemirror/autocomplete";
+import { describe, expect, it, vi } from "vitest";
 import { caretAt, edited } from "../ui/blocking";
+import { wrapped } from "../ui/slashing";
 
 const block = () => {
   const page = document.createElement("article");
@@ -61,6 +63,33 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("closes the / menu first with Escape, then leaves, and tidies a format typed with nothing selected", async () => {
+    const { page, one } = block();
+    const left: string[] = [];
+    const editing = edited(
+      one,
+      "Esto es ",
+      () => {},
+      (text) => left.push(text),
+    );
+    const view = editing.view;
+    const pressEscape = () =>
+      view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+      );
+    view.dispatch({ selection: { anchor: 8 } });
+    wrapped(view, "==");
+    view.dispatch({ changes: { from: 10, insert: "juan " }, selection: { anchor: 15 } });
+    view.dispatch({ changes: { from: 17, insert: " /" }, selection: { anchor: 19 } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
+    pressEscape();
+    expect(left).toEqual([]);
+    pressEscape();
+    expect(left).toEqual(["Esto es ==juan==  /"]);
+    page.remove();
+  });
+
   it("puts the drawn block back once it is left, so nothing is missing until the page is drawn again", () => {
     const { page, one } = block();
     const editing = edited(
@@ -76,7 +105,7 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
-  it("shows pens, underlines and icons as they will read, but never inside code or for unknown names", () => {
+  it("shows pens, underlines and icons as they will read, marks hidden, but never inside code or for unknown names", () => {
     const { page, one } = block();
     const editing = edited(
       one,
@@ -88,13 +117,16 @@ describe("writing a block in place", () => {
       (one) => `${one.className}:${one.textContent}`,
     );
     expect(classes).toContain("cm-pen cm-pen-yellow:==a==");
-    expect(classes).toContain("cm-pen cm-pen-green:==b=={green}");
-    expect(classes).toContain("cm-under:++d++");
-    expect(classes).toContain("cm-ico ico-orange:::dog orange::");
-    expect(classes).toContain("cm-ico:::star::");
-    expect(classes.some((one) => one.includes("silver"))).toBe(false);
-    expect(classes.some((one) => one.startsWith("cm-ico") && one.includes("nope"))).toBe(false);
-    expect(classes.some((one) => one.startsWith("cm-ico") && one.includes("plaid"))).toBe(false);
+    expect(classes).toContain("cm-pen cm-pen-green:b");
+    expect(classes).toContain("cm-under:d");
+    const icons = Array.from(page.querySelectorAll(".editing .cm-glyph")).map(
+      (one) => one.className,
+    );
+    expect(icons).toEqual(["cm-glyph ico-orange", "cm-glyph"]);
+    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("==c=={silver}");
+    expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("silver"))).toBe(false);
+    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("::nope::");
+    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("::dog plaid::");
     expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("==e=="))).toBe(false);
     editing.leave();
     page.remove();

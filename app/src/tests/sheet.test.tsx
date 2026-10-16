@@ -12,6 +12,7 @@ const ipc = vi.hoisted(() => ({
     caret: number;
   }[],
   left: 0,
+  kept: [] as boolean[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -47,6 +48,7 @@ vi.mock("../ui/blocking", () => ({
         ipc.left += 1;
         leave(said);
       },
+      kept: (yes: boolean) => ipc.kept.push(yes),
     };
   },
 }));
@@ -78,6 +80,7 @@ beforeEach(() => {
   ipc.drawn = DRAWN;
   ipc.opened = [];
   ipc.left = 0;
+  ipc.kept = [];
 });
 
 describe("the sheet in the main window", () => {
@@ -390,5 +393,15 @@ describe("the sheet in the main window", () => {
     const handed = ipc.opened[0].asking?.() as typeof asking;
     handed.ask("doc", { x: 0, y: 0 }, () => true, true);
     expect(firsts).toEqual([false]);
+  });
+
+  it("tells the block being written whether its words are kept yet", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} kept={false} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    view.rerender(<Sheet value={BODY} label="Compras" onWrite={() => {}} kept />);
+    expect(ipc.kept).toEqual([false, true]);
   });
 });
