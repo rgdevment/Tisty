@@ -625,8 +625,9 @@ fn unpack<R: Read + Seek>(
         if held.is_dir() {
             continue;
         }
-        let Some(rest) = safe(held.name()) else {
-            first.get_or_insert_with(|| held.name().to_string());
+        let named = held.name().map(|one| one.into_owned()).unwrap_or_default();
+        let Some(rest) = safe(&named) else {
+            first.get_or_insert_with(|| named.clone());
             leftover += 1;
             continue;
         };
