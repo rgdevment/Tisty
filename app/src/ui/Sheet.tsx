@@ -6,6 +6,7 @@ import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import Page from "./Page";
 import type { Head } from "./paging";
+import { closed, parting } from "./parting";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Asking } from "./slashing";
 
@@ -33,24 +34,6 @@ type Props = {
   readonly kept?: boolean;
 };
 
-// The newlines a new block needs from its neighbour, read on the side that touches it.
-const parting = (side: string, after: boolean): string => {
-  if (!side.trim()) return "";
-  const edge = after ? side.slice(0, 2) : side.slice(-2);
-  if (edge === "\n\n") return "";
-  return (after ? edge.startsWith("\n") : edge.endsWith("\n")) ? "\n" : "\n\n";
-};
-
-// A block written empty goes with the blank line that kept it apart, so no gap is left behind.
-export const closed = (text: string, from: number, end: number): string => {
-  const line = text.includes("\r\n") ? "\r\n" : "\n";
-  const head = text.slice(0, from).replace(/(?:\r?\n)+$/, "");
-  const rest = text.slice(end).replace(/^(?:\r?\n)+/, "");
-  if (!head) return rest;
-  if (!rest) return `${head}${line}`;
-  return `${head}${line}${line}${rest}`;
-};
-
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
   const room = useRef<HTMLDivElement>(null);
@@ -73,6 +56,7 @@ export default function Sheet(props: Readonly<Props>) {
     said.current.onWrite(text);
   }, []);
 
+  const quiet = useRef(false);
   const left = useCallback(() => {
     const was = open.current;
     if (!was) return;
@@ -84,7 +68,13 @@ export default function Sheet(props: Readonly<Props>) {
     if (reading) left();
   }, [reading, left]);
 
-  useEffect(() => () => left(), [left]);
+  useEffect(
+    () => () => {
+      quiet.current = true;
+      left();
+    },
+    [left],
+  );
 
   useEffect(() => {
     open.current?.kept(props.kept ?? true);
@@ -147,14 +137,18 @@ export default function Sheet(props: Readonly<Props>) {
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
     // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
     const fresh = from === end;
-    const ahead = fresh ? parting(latest.current.slice(0, from), false) : "";
-    const behind = fresh ? parting(latest.current.slice(end), true) : "";
+    const line = latest.current.includes("\r\n") ? "\r\n" : "\n";
+    const ahead = fresh ? parting(latest.current.slice(0, from), false, line) : "";
+    const behind = fresh ? parting(latest.current.slice(end), true, line) : "";
+    const home = onFile.current;
+    let mine = latest.current;
     const spliced = (text: string) => {
       const now = latest.current;
       const said = fresh && (text === seed || !text.trim()) ? "" : text;
       const [gap, rest] = said ? [ahead, behind] : ["", ""];
       const next = `${now.slice(0, from)}${gap}${said}${tail}${rest}${now.slice(end)}`;
       end = from + gap.length + said.length + tail.length + rest.length;
+      mine = next;
       return next;
     };
     open.current = edited(
@@ -163,7 +157,9 @@ export default function Sheet(props: Readonly<Props>) {
       (text) => written(spliced(text)),
       () => {
         open.current = null;
-        if (!fresh && !latest.current.slice(from, end).trim()) {
+        // Only a block left by the person closes its gap: text from outside or another file is not its own.
+        const own = !quiet.current && home === onFile.current && latest.current === mine;
+        if (own && !fresh && !latest.current.slice(from, end).trim()) {
           written(closed(latest.current, from, end));
         }
         setDrawn(latest.current);

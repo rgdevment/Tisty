@@ -1,6 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Sheet, { closed } from "../ui/Sheet";
+import { closed, parting } from "../ui/parting";
+import Sheet from "../ui/Sheet";
 
 const ipc = vi.hoisted(() => ({
   drawn: "",
@@ -327,6 +328,30 @@ describe("the sheet in the main window", () => {
     expect(writes[writes.length - 1]).toBe("# Compras\n\npan\n");
   });
 
+  it("writes nothing more when words from outside end a block left empty", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("");
+    const before = writes.length;
+    view.rerender(
+      <Sheet
+        value={"# Compras\n\n  \n\npan\n"}
+        label="Compras"
+        onWrite={(text) => writes.push(text)}
+      />,
+    );
+    expect(ipc.left).toBe(1);
+    expect(writes.length).toBe(before);
+    view.unmount();
+    expect(writes.length).toBe(before);
+  });
+
   it("marks its room once the page runs under the bar at the top, and unmarks it back at the top", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));
@@ -427,5 +452,14 @@ describe("a block written empty", () => {
     expect(closed(text, 13, 17)).toBe("# Plan\n\nuno\n");
     expect(closed("uno\n\ndos", 0, 4)).toBe("dos");
     expect(closed("a\r\n\r\nb\r\n\r\nc", 5, 8)).toBe("a\r\n\r\nc");
+  });
+
+  it("asks a new block for only the newlines its neighbour lacks, in the file's own line ending", () => {
+    expect(parting("uno", false)).toBe("\n\n");
+    expect(parting("uno\n", false)).toBe("\n");
+    expect(parting("uno\n\n", false)).toBe("");
+    expect(parting("uno\r\n\r\n", false, "\r\n")).toBe("");
+    expect(parting("\r\ndos", true, "\r\n")).toBe("\r\n");
+    expect(parting("  ", true)).toBe("");
   });
 });
