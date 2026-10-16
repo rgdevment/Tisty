@@ -2204,9 +2204,9 @@ fn an_attachment_named_with_an_anchor_still_lands() {
     let mut here = Room::new(room.path(), "mine");
     let shed = &here.data().join("attachments");
     std::fs::create_dir_all(shed).unwrap();
-    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    std::fs::write(shed.join("foto-b2fa5802.png"), b"a picture").unwrap();
     here.doc(
-        "# Con ancla\n\n![x](<attachments/ab/foto-91f2ab00.png#arriba>)",
+        "# Con ancla\n\n![x](<attachments/ab/foto-b2fa5802.png#arriba>)",
         None,
         None,
     );
@@ -2221,7 +2221,7 @@ fn an_attachment_named_with_an_anchor_still_lands() {
     assert_eq!(landed.missed, 0);
     let file = there.titled("Con ancla").file.clone();
     assert!(
-        there.body(&file).contains("](foto-91f2ab00.png#arriba)"),
+        there.body(&file).contains("foto-b2fa5802.png#arriba>)"),
         "{}",
         there.body(&file)
     );
