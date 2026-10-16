@@ -187,7 +187,7 @@ export function useListening({
           setError,
         ).then((written) => {
           if (written && !handTo(target, written, at)) setError(t("attachmentLost"));
-        });
+        }, setError);
       }),
     [setError],
   );

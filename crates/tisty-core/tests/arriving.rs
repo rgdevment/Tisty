@@ -456,3 +456,14 @@ fn a_tag_after_a_wide_space_is_fenced_rather_than_splitting_a_letter() {
 
     assert!(said.body.contains("div"), "{}", said.body);
 }
+
+#[test]
+fn a_colour_or_an_icon_tisty_has_not_got_comes_in_as_what_it_can_say() {
+    let made = tidied("un ==dato=={silver} y ::nope:: con ::dog plaid:: y `::nope::`\n");
+    assert_eq!(made.body, "un ==dato== y nope con ::dog:: y `::nope::`\n");
+    assert!(
+        made.changed
+            .contains(&"a colour or an icon Tisty does not have")
+    );
+    assert!(tisty_core::docs::survives(&made.body).is_ok());
+}

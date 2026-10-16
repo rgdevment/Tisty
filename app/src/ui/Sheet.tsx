@@ -218,9 +218,11 @@ export default function Sheet(props: Readonly<Props>) {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
     const now = latest.current;
-    const box = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s+\[[ xX]\]/.exec(now.slice(from, end));
-    if (!box) return;
-    const at = from + box[0].length - 3;
+    const said = now.slice(from, end);
+    const bracket = said.indexOf("[");
+    if (bracket < 0 || !/^[\s>]*(?:[-*+]|\d+[.)])\s+$/.test(said.slice(0, bracket))) return;
+    if (!/^\[[ xX]\]/.test(said.slice(bracket))) return;
+    const at = from + bracket;
     const next = `${now.slice(0, at)}${now.slice(at, at + 3) === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
     written(next);
     setDrawn(next);

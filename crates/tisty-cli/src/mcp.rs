@@ -8,6 +8,7 @@ mod jsonrpc;
 mod looking;
 mod mending;
 mod papers;
+mod spoken;
 mod unpathing;
 mod wholes;
 
@@ -30,6 +31,7 @@ use looking::{
     NEWEST_SHOWN, catch_up, find, gone, how_it_ended, language, lists, read, sum_up, tags,
 };
 use mending::{rename, reword_note, reword_step, unplan};
+use spoken::spoken;
 
 use jsonrpc::{
     discovered, fault, introduced, legacy_greeting, named_tool, reply, speaking_through, told,
@@ -181,10 +183,10 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "reword_note" => reword_note(paths, &args),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
-        "write_doc" => write_doc(paths, &args),
-        "append_doc" => append_doc(paths, &args),
+        "write_doc" => spoken(&args, "body", |args| write_doc(paths, args)),
+        "append_doc" => spoken(&args, "body", |args| append_doc(paths, args)),
         "restore_doc" => restore_doc(paths, &args),
-        "edit_doc" => edit_doc(paths, &args),
+        "edit_doc" => spoken(&args, "new", |args| edit_doc(paths, args)),
         "catch_up" => catch_up(paths, &args),
         "sum_up" => sum_up(paths, &args),
         "reschedule" => reschedule(paths, &args),
