@@ -181,10 +181,12 @@ pub(crate) fn known_as(at: &std::path::Path) -> Option<String> {
     } else {
         String::new()
     };
-    Some(format!(
-        "{}.{:x}.{named}",
-        info.ChangeTime, id.VolumeSerialNumber
-    ))
+    let changed = if given || info.ChangeTime != 0 {
+        info.ChangeTime
+    } else {
+        info.LastWriteTime
+    };
+    Some(format!("{changed}.{:x}.{named}", id.VolumeSerialNumber))
 }
 
 #[cfg(not(target_os = "macos"))]
