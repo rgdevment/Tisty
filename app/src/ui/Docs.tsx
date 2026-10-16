@@ -32,13 +32,9 @@ import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
 import Picking, { type Picked } from "./Picking";
+import type { Head } from "./paging";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import type { Block } from "./Slash";
-
-const NO_BLOCKS: Block[] = [];
-
-import type { Head } from "./paging";
 import { PAPER, pageFor } from "./sheets";
 import type { Asking } from "./slashing";
 import { clearOfChrome } from "./WindowChrome";
@@ -914,7 +910,6 @@ export default function Docs({
           body={body}
           tags={known.find((one) => one.file === open.file)?.tags ?? []}
           kept={saved}
-          blocks={NO_BLOCKS}
           heads={heads}
           pages={above ? sisters : pages}
           onPage={(one) => onDoc?.(one.file)}
