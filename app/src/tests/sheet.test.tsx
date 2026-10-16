@@ -340,6 +340,17 @@ describe("the sheet in the main window", () => {
     expect(ipc.opened).toHaveLength(0);
   });
 
+  it("ticks a stage inside a quote as well", async () => {
+    const writes: string[] = [];
+    const body = "# Plan\n\n> - [ ] uno\n";
+    ipc.drawn =
+      '<h1 data-at="0-6">Plan</h1><blockquote data-at="8-20"><ul><li class="task" data-at="8-20"><span class="check" data-done="false"></span>uno</li></ul></blockquote>';
+    const view = render(<Sheet value={body} label="Plan" onWrite={(text) => writes.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(writes).toEqual(["# Plan\n\n> - [x] uno\n"]);
+  });
+
   it("only ends the block being written when a box is pressed meanwhile, ticking nothing", async () => {
     const writes: string[] = [];
     const body = "# Plan\n\nnota\n\n- [ ] uno\n";

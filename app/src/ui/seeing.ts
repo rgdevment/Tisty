@@ -11,7 +11,7 @@ import {
 import type { SyntaxNode } from "@lezer/common";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
-import { coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
+import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
 import { HUES } from "./paging";
 import { waiting } from "./pending";
 
@@ -126,7 +126,8 @@ const TAG = new RegExp(`${TAG_EDGE}#(${TAG_WORD})`, "gu");
 const tagged = (state: EditorState, from: number, to: number, out: Range<Decoration>[]) => {
   for (const found of state.sliceDoc(from, to).matchAll(TAG)) {
     const at = from + (found.index ?? 0);
-    if (found[1].length < 2 || !/\p{L}/u.test(found[1]) || coded(state, at)) continue;
+    if (found[1].length < 2 || !/\p{L}/u.test(found[1]) || coded(state, at) || anchored(state, at))
+      continue;
     out.push(Decoration.mark({ class: "cm-tag" }).range(at, at + found[0].length));
   }
 };
@@ -150,39 +151,60 @@ class Folding extends WidgetType {
 const OPENS = /^:::[\p{L}\p{N}]/u;
 const DETAILS = /^:::details ?/;
 
-const alone = (state: EditorState, at: number) =>
-  (at === 1 || !state.doc.line(at - 1).text.trim()) &&
-  (at === state.doc.lines || !state.doc.line(at + 1).text.trim());
+type Fence = { readonly at: number; readonly head?: RegExpExecArray | null };
 
-// A collapsible section reads as its summary over an indented body; its fences open where the caret touches them.
-const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) => {
-  const open: boolean[] = [];
+// A fence counts only as a paragraph of its own, the way the page finds it.
+const fenced = (state: EditorState, at: number): string | null => {
+  const line = state.doc.line(at);
+  const text = line.text.trimStart();
+  const indent = line.text.length - text.length;
+  if (indent > 3 || !text.startsWith(":::")) return null;
+  for (
+    let one: SyntaxNode | null = syntaxTree(state).resolveInner(line.from + indent, 1);
+    one;
+    one = one.parent
+  ) {
+    if (one.name !== "Paragraph") continue;
+    const alone =
+      state.doc.lineAt(one.from).number === at && state.doc.lineAt(one.to).number === at;
+    return alone ? text : null;
+  }
+  return null;
+};
+
+const sections = (state: EditorState): [Fence, Fence][] => {
+  const open: Fence[] = [];
+  const found: [Fence, Fence][] = [];
   for (let at = 1; at <= state.doc.lines; at++) {
-    const line = state.doc.line(at);
-    const fence = alone(state, at) && !coded(state, line.from);
-    const hidden = !shown && !touched(state, line.from, line.to);
-    if (fence && OPENS.test(line.text)) {
-      const head = DETAILS.exec(line.text);
-      if (head && open.includes(true))
-        out.push(Decoration.line({ class: "cm-fold-body" }).range(line.from));
-      open.push(Boolean(head));
-      if (!head) continue;
-      out.push(Decoration.line({ class: "cm-fold-head" }).range(line.from));
-      if (hidden)
-        out.push(
-          Decoration.replace({ widget: new Folding(true) }).range(
-            line.from,
-            line.from + head[0].length,
-          ),
-        );
-      continue;
+    const text = fenced(state, at);
+    if (text === null) continue;
+    if (OPENS.test(text)) open.push({ at, head: DETAILS.exec(text) });
+    else if (text.trim() === ":::" && open.length) {
+      const head = open.pop() as Fence;
+      if (head.head) found.push([head, { at }]);
     }
-    if (fence && open.length && line.text.trim() === ":::") {
-      if (open.pop() && hidden)
-        out.push(Decoration.replace({ widget: new Folding(false) }).range(line.from, line.to));
-      continue;
-    }
-    if (open.includes(true)) out.push(Decoration.line({ class: "cm-fold-body" }).range(line.from));
+  }
+  return found;
+};
+
+const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) => {
+  if (!state.sliceDoc().includes(":::")) return;
+  for (const [head, shut] of sections(state)) {
+    const top = state.doc.line(head.at);
+    const from = top.from + top.text.length - top.text.trimStart().length;
+    out.push(Decoration.line({ class: "cm-fold-head" }).range(top.from));
+    if (!shown && !touched(state, top.from, top.to))
+      out.push(
+        Decoration.replace({ widget: new Folding(true) }).range(
+          from,
+          from + (head.head?.[0].length ?? 0),
+        ),
+      );
+    for (let at = head.at + 1; at < shut.at; at++)
+      out.push(Decoration.line({ class: "cm-fold-body" }).range(state.doc.line(at).from));
+    const end = state.doc.line(shut.at);
+    if (!shown && !touched(state, end.from, end.to))
+      out.push(Decoration.replace({ widget: new Folding(false) }).range(end.from, end.to));
   }
 };
 

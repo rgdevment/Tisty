@@ -149,6 +149,13 @@ describe("a block written as it reads", () => {
       false,
     );
     expect(looked(state(":::details A\nx\n\n:::", 14)).some((it) => it.widget)).toBe(false);
+    expect(read(state(":::details A\n\nsin cierre", 20))).toBe(":::details A\n\nsin cierre");
+    expect(read(state("## Tema\n:::details A\n\nx\n\n:::", 23))).toBe("Tema\nA\n\nx\n\n");
+    expect(read(state("  :::details A\n\nx\n\n:::", 18))).toBe("  A\n\nx\n\n");
+    const bodies = looked(state(nested, nested.length))
+      .filter((it) => it.line === "cm-fold-body")
+      .map((it) => it.from);
+    expect(bodies).toHaveLength(9);
   });
 
   it("leaves code, cards and attachments exactly as written", () => {

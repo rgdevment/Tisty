@@ -9,7 +9,7 @@ import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view"
 import { matched } from "../finding";
 import { markup } from "../glyphs";
 import { t } from "../locales";
-import { coded, linking, TAG_EDGE, TAG_WORD, wrapped } from "./formatting";
+import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "./formatting";
 
 type Said = Parameters<typeof t>[0];
 
@@ -316,7 +316,9 @@ export const offered =
   };
 
 const TAGGED = new RegExp(`${TAG_EDGE}#${TAG_WORD}$`, "u");
-const REST = /^[\p{L}\p{N}\p{M}_-]*/u;
+const REST = new RegExp(`^${TAG_TAIL}*`, "u");
+
+const plain = (word: string) => word.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
 // Tags already in use are offered as a word after # is typed, so one tag is never spelled two ways.
 export const tagging =
@@ -326,21 +328,24 @@ export const tagging =
     if (!found) return null;
     const hash = found.from;
     const word = found.text.slice(1);
-    if (!/\p{L}/u.test(word) || coded(context.state, hash)) return null;
-    const shown = (asking?.()?.tags ?? []).filter((one) => one !== word && matched(one, word));
+    if (!/\p{L}/u.test(word) || coded(context.state, hash) || anchored(context.state, hash))
+      return null;
+    const key = plain(word);
+    const tags = asking?.()?.tags ?? [];
+    if (tags.includes(key)) return null;
+    const shown = tags.filter((one) => one.startsWith(key));
     if (shown.length === 0) return null;
     const line = context.state.doc.lineAt(context.pos);
-    // The rest of the word under the caret goes too, and a space is added only where none follows.
     const to =
       context.pos + (REST.exec(context.state.sliceDoc(context.pos, line.to))?.[0].length ?? 0);
-    const spaced = /^[ \t]/.test(context.state.sliceDoc(to, to + 1)) ? "" : " ";
+    // What was typed comes first, so Enter keeps a new tag instead of swapping it for a longer one.
     return {
       from: hash,
       to,
       filter: false,
-      options: shown.slice(0, 30).map((one) => ({
+      options: [context.state.sliceDoc(hash + 1, to), ...shown.slice(0, 30)].map((one) => ({
         label: `#${one}`,
-        apply: `#${one}${spaced}`,
+        apply: `#${one}`,
         type: "tag",
       })),
     };
