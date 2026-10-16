@@ -7,6 +7,7 @@ const board = vi.hoisted(() => ({ text: null as string | null, refuses: false })
 
 vi.mock("../core", () => ({
   docRead: () => Promise.resolve(disk.body),
+  docPlain: (body: string) => Promise.resolve(`plain: ${body}`),
   copied: (text: string) => {
     if (board.refuses) return Promise.reject(new Error("no clipboard here"));
     board.text = text;
@@ -38,23 +39,15 @@ describe("copying a document as markdown", () => {
 
     await asPlain("mac0-0001");
 
-    expect(board.text).toBe("lo recién escrito");
+    expect(board.text).toBe("plain: lo recién escrito");
   });
 
-  it("hands over what markdown can say, with the underline gone", async () => {
-    disk.body = "algo <u>subrayado</u> aquí";
+  it("hands over the document as the core says it to a reader outside Tisty", async () => {
+    disk.body = "algo ++subrayado++ aquí";
 
     await asPlain("mac0-0001");
 
-    expect(board.text).toBe("algo subrayado aquí");
-  });
-
-  it("leaves an underline alone inside a code fence, where it is text", async () => {
-    disk.body = "```\n<u>esto es código</u>\n```";
-
-    await asPlain("mac0-0001");
-
-    expect(board.text).toContain("<u>esto es código</u>");
+    expect(board.text).toBe("plain: algo ++subrayado++ aquí");
   });
 
   it("says the clipboard failed, rather than blaming something internal", async () => {

@@ -343,7 +343,7 @@ fn a_log_that_grew_leaves_the_cache_behind() {
 
 fn an_attachment_that_answers_for_itself(body: &[u8]) -> (String, String) {
     let sha256 = crate::attach::printed(body);
-    let reference = format!("attachments/{}/charla-{}.mp4", &sha256[..2], &sha256[2..10]);
+    let reference = format!("attachments/charla-{}.mp4", &sha256[2..10]);
     (reference, sha256)
 }
 

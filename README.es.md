@@ -366,13 +366,15 @@ decide cuánto de tu equipo ocupa.
 arriba es sintaxis que otro lector ya entiende, así que el archivo sobrevive sin
 Tisty —el nombre de un bloque es lo que Markdown guarda tras el lenguaje, y el
 ancho de una columna viaja en lo largo que se dibuje su raya, que cualquier otro
-lector ignora y pinta igual—. Donde Markdown de verdad no alcanza, Tisty escribe
-el pedacito de HTML que sí lo dice, y lo vuelve a leer.
-El editor trabaja sobre el texto tal como está escrito, bloque a bloque, así que
-abrir y guardar un documento nunca pierde nada de él: una forma fuera del
-lenguaje de Tisty —una cabecera al principio, notas al pie, enlaces escritos por
-referencia, bloques de HTML— se muestra tal como está escrita mientras la
-editas, y se conserva como estaba.
+lector ignora y pinta igual—. Donde Markdown no tiene palabra para algo, Tisty
+suma unas pocas y cortas, nunca HTML: `==texto==` es un resaltado y
+`==texto=={green}` uno de otro color, `++texto++` va subrayado, `::star::` es un
+ícono, y un adjunto se nombra por su propio nombre, `![plano](plano-0006bf09.png)`.
+El editor muestra el archivo tal como está escrito, bloque a bloque, así que lo
+que ves al escribir es lo que hay en el disco. **Copiar como Markdown** y sacar
+un documento dicen esas pocas palabras como las entiende cualquier otro lector,
+y un archivo antiguo, una importación o un asistente que escriba en Markdown
+corriente se traduce a ellas al entrar.
 
 Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la vez
 el nombre del documento y su título —pasando por encima de una valla o de la

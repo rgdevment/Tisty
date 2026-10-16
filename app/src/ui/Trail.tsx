@@ -185,9 +185,13 @@ function unreadable(page: never): string {
 
 /// The trail is a record, not a page: a reference reads as what it was called, not as its syntax.
 function plainly(body: string): string {
-  return body
-    .replace(/<span[^>]*data-ico="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/span>/g, ":$1:")
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/<[^>]+>/g, "")
-    .trim();
+  return (
+    body
+      // The log is never rewritten, so what was written before Tisty had its own words still says it the old way.
+      .replace(/<span[^>]*data-ico="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/span>/g, ":$1:")
+      .replace(/::([a-z0-9-]+)(?: [a-z]+)?::/g, ":$1:")
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/<[^>]+>/g, "")
+      .trim()
+  );
 }

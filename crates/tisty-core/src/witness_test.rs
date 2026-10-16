@@ -98,7 +98,7 @@ fn nothing_under_attachments_is_named() {
 
 #[test]
 fn nothing_under_attachments_is_named_however_it_is_handed_over() {
-    let said = Fact::Id("attachments/ab/severance-juan-perez-91f2.pdf".into()).shown();
+    let said = Fact::Id("attachments/severance-juan-perez-91f2.pdf".into()).shown();
 
     assert!(!said.contains("severance"), "{said}");
     assert!(said.contains("attachments"), "{said}");

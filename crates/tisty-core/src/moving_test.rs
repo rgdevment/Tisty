@@ -242,28 +242,24 @@ fn an_attachment_keeps_its_own_extension_whatever_it_is() {
     wrote(&home.roots.real, "pay the bill");
     put(
         &home.roots.real,
-        "data/attachments/ab/0123-report.tmp",
+        "data/attachments/0123-report.tmp",
         "a real file",
     );
-    put(
-        &home.roots.real,
-        "data/attachments/ab/.0123-half.part",
-        "half",
-    );
+    put(&home.roots.real, "data/attachments/.0123-half.part", "half");
 
     settle(&home.roots);
 
     assert!(
         home.roots
             .new
-            .join("data/attachments/ab/0123-report.tmp")
+            .join("data/attachments/0123-report.tmp")
             .is_file()
     );
     assert!(
         !home
             .roots
             .new
-            .join("data/attachments/ab/.0123-half.part")
+            .join("data/attachments/.0123-half.part")
             .exists()
     );
 }
@@ -336,7 +332,7 @@ fn a_move_tells_how_far_it_has_come_until_it_has_copied_everything() {
     wrote(&home.roots.real, "a task to carry");
     put(
         &home.roots.real,
-        "data/attachments/aa/una-foto.png",
+        "data/attachments/una-foto.png",
         &"x".repeat(4096),
     );
     assert!(moves(&home.roots));

@@ -383,6 +383,7 @@ impl Cloud {
             saying,
             |tree, index, remote, saying| {
                 shelf::sweep(&here.data);
+                shelf::flattened(remote, index);
                 let history = Metered::over(&*self.remote, &self.home, Class::History);
                 let shelf = match fetching {
                     true => Shelf::fetching_all(remote, index),

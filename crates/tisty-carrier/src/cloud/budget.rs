@@ -332,6 +332,16 @@ impl Remote for Metered<'_> {
         self.remote.hash_of(local)
     }
 
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        self.allowed()?;
+        let moved = self.remote.renamed(from, to);
+        if went_out(&moved) {
+            let units = self.charge_checked(1, self.limits.costs.put, 0);
+            self.weighed(&moved, units, true);
+        }
+        moved
+    }
+
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
         self.allowed()?;
         let seen = self.remote.about(name);

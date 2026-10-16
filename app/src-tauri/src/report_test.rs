@@ -44,12 +44,12 @@ fn what_is_under_the_root_is_weighed_all_the_way_down() {
 }
 
 #[test]
-fn attachments_are_counted_across_shelves() {
+fn attachments_are_counted_in_the_one_flat_folder() {
     let tmp = tempfile::tempdir().unwrap();
-    for shelf in ["2026-08", "2026-07"] {
-        let at = tmp.path().join("attachments").join(shelf);
-        std::fs::create_dir_all(&at).unwrap();
-        std::fs::write(at.join("one.pdf"), b"1234").unwrap();
+    let at = tmp.path().join("attachments");
+    std::fs::create_dir_all(&at).unwrap();
+    for leaf in ["one-1a2b3c4d.pdf", "two-5e6f7a8b.pdf"] {
+        std::fs::write(at.join(leaf), b"1234").unwrap();
     }
 
     let held = attachments(tmp.path());

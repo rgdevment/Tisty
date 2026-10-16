@@ -6,11 +6,11 @@ Esta hoja es el muestrario de la guía: uno de todo lo que cabe en un documento,
 
 ## Palabras
 
-**Negrita**, *cursiva*, ***las dos a la vez***, ~~tachado~~, <u>subrayado</u> y `código suelto`. Un [enlace a un sitio](https://github.com/rgdevment/Tisty), y la misma dirección escrita tal cual entre ángulos: <https://github.com/rgdevment/Tisty>. Una dirección de correo funciona igual: <rina@example.com>.
+**Negrita**, *cursiva*, ***las dos a la vez***, ~~tachado~~, ++subrayado++ y `código suelto`. Un [enlace a un sitio](https://github.com/rgdevment/Tisty), y la misma dirección escrita tal cual entre ángulos: <https://github.com/rgdevment/Tisty>. Una dirección de correo funciona igual: <rina@example.com>.
 
-Cuatro marcadores: ==amarillo==, <mark data-pen="green">verde</mark>, <mark data-pen="blue">azul</mark> y <mark data-pen="pink">rosa</mark>.
+Cuatro marcadores: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}.
 
-Íconos, con color o sin él: <span data-ico="dog" data-hue="orange">:dog:</span> <span data-ico="bone" data-hue="amber">:bone:</span> <span data-ico="heart" data-hue="red">:heart:</span> <span data-ico="leaf" data-hue="green">:leaf:</span> <span data-ico="moon" data-hue="indigo">:moon:</span> <span data-ico="star">:star:</span>
+Íconos, con color o sin él: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
 
 Emojis por su nombre: :dog: :tada: :+1: :sunny:
 

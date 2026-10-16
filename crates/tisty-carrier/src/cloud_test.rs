@@ -1524,7 +1524,7 @@ fn an_attachment_whose_bytes_changed_up_there_is_never_brought() {
         );
         assert_eq!(
             two.carrier
-                .brought(&two.here, "attachments/ab/nada-0123456789.png")
+                .brought(&two.here, "attachments/nada-0123456789.png")
                 .unwrap(),
             crate::Brought::Later,
             "{who}: no history names it yet"
@@ -1711,7 +1711,7 @@ fn an_attachment_the_cloud_has_not_listed_yet_is_later_not_gone() {
 
         let asked = two
             .carrier
-            .brought(&two.here, "attachments/ab/nada-0123456789.png")
+            .brought(&two.here, "attachments/nada-0123456789.png")
             .unwrap();
 
         assert_eq!(asked, crate::Brought::Later, "{who}");

@@ -2,6 +2,7 @@ import type { DocFacts } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { DOC } from "../markdown";
+import { kept } from "../previews";
 
 export const worded = (body: string): number =>
   body
@@ -18,7 +19,7 @@ const dated = (when: number | null): string =>
 export default function PaperFacts({ facts, body }: { facts: DocFacts | null; body: string }) {
   const words = worded(body);
   const papers = counted(body, DOC);
-  const files = counted(body, "attachments/");
+  const files = [...body.matchAll(/\]\(<?([^)\s>]+)>?/g)].filter((one) => kept(one[1])).length;
   return (
     <dl className="flex flex-col gap-1.5 text-[12.5px]">
       {facts?.author && (

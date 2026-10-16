@@ -1047,9 +1047,8 @@ fn an_attachment_too_big_for_the_cloud_is_never_counted_among_what_goes_up() {
     for (setting, _) in each_kind(|fake| fake) {
         let who = &setting.name;
         let (one, _) = pair(&setting);
-        let big =
-            tisty_core::attach::resolve("attachments/00/grande-0123456789.bin", &one.here.data)
-                .unwrap();
+        let big = tisty_core::attach::resolve("attachments/grande-0123456789.bin", &one.here.data)
+            .unwrap();
         std::fs::create_dir_all(big.parent().unwrap()).unwrap();
         std::fs::File::create(&big)
             .unwrap()

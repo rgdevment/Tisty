@@ -754,6 +754,32 @@ impl Remote for Drive {
         Ok(landed)
     }
 
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        named_well(from)?;
+        named_well(to)?;
+        let copies = self.current(from)?;
+        let first = copies
+            .first()
+            .ok_or_else(|| Hitch::Missing(from.to_string()))?;
+        let parent = first
+            .parents
+            .first()
+            .ok_or_else(|| Hitch::Broke(format!("{from} sits in no folder in Drive")))?;
+        let (folders, leaf) = split(to);
+        let into = self
+            .folder_id(folders, true)?
+            .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?;
+        self.moved_into(&first.id, leaf, (parent, &into))?;
+        let mut landed = first.clone();
+        landed.name = leaf.to_string();
+        landed.parents = vec![into];
+        self.noted(|tree| {
+            tree.files.remove(from);
+            tree.files.insert(to.to_string(), vec![landed]);
+        });
+        Ok(())
+    }
+
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         named_well(name)?;
         let all = self.current(name)?;

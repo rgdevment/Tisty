@@ -389,29 +389,33 @@ impl State {
             }
             Op::Signed { d } => self.store_signed(d),
             Op::DeviceRemove { d } => self.device_removed(d),
+            // Every key is the one name an attachment has now, whatever shelf an older event put it on.
             Op::AttachKept { d } => {
-                if vouches_for_its_name(d) {
+                if let Some(at) =
+                    crate::attach::canonical(&d.at).filter(|_| vouches_for_its_name(d))
+                {
                     self.kept
-                        .insert(d.at.clone(), (d.sha256.to_ascii_lowercase(), d.bytes));
+                        .insert(at.clone(), (d.sha256.to_ascii_lowercase(), d.bytes));
                     self.holders
-                        .entry(d.at.clone())
+                        .entry(at)
                         .or_default()
                         .insert(event.device.clone());
                 }
             }
             Op::AttachLetGo { d } => {
-                if let Some(who) = self.holders.get_mut(d) {
+                let at = crate::attach::canonical(d).unwrap_or_else(|| d.clone());
+                if let Some(who) = self.holders.get_mut(&at) {
                     who.remove(&event.device);
                     if who.is_empty() {
-                        self.holders.remove(d);
+                        self.holders.remove(&at);
                     }
                 }
             }
             Op::AttachRetire { d } => {
-                if crate::attach::names_an_attachment(d) {
-                    self.retired.insert(d.clone());
-                    self.kept.remove(d);
-                    self.holders.remove(d);
+                if let Some(at) = crate::attach::canonical(d) {
+                    self.retired.insert(at.clone());
+                    self.kept.remove(&at);
+                    self.holders.remove(&at);
                 }
             }
             Op::StoresJoined { d } => {
@@ -1342,11 +1346,7 @@ fn vouches_for_its_name(said: &crate::event::Held) -> bool {
     if said.sha256.len() != 64 || !said.sha256.chars().all(|one| one.is_ascii_hexdigit()) {
         return false;
     }
-    let mut parts = said.at.rsplit('/');
-    let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
-        return false;
-    };
-    crate::attach::vouched(shelf, leaf, &said.sha256)
+    crate::attach::leaf_of(&said.at).is_some_and(|leaf| crate::attach::vouched(leaf, &said.sha256))
 }
 
 fn loose(name: &str) -> String {

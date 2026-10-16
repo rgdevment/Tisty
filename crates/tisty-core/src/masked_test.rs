@@ -46,7 +46,7 @@ fn what_a_person_needs_to_read_a_failure_stays() {
         "the provider answered 429 Too Many Requests; status code: 429",
         "signing key: permission denied (os error 5)",
         r"C:\Users\someone\AppData\Local\tisty\data\store\dev_a\0001.tisty",
-        "attachments/ab/foto-0123456789abcdef0123456789abcdef.png came short",
+        "attachments/foto-0123456789abcdef0123456789abcdef.png came short",
         "01J9ZK3M7Q8R2T4V6X8Z0B1C3D is not a revision the provider knows",
     ] {
         assert_eq!(masked(plain), plain);

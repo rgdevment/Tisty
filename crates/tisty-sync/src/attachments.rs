@@ -52,35 +52,27 @@ pub trait Attachments {
 // Whatever is here and not there after a copy did not go: unreadable, not what its name says, or too big.
 fn unsent_beside(data: &Path, dest: &Path, buried: &BTreeSet<String>) -> Option<Deferred> {
     let mut unsent = Vec::new();
-    let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
+    let Ok(files) = std::fs::read_dir(data.join(HELD)) else {
         return None;
     };
-    for shelf in shelves.filter_map(|one| one.ok()) {
-        let Some(under) = shelf.file_name().to_str().map(str::to_string) else {
+    for file in files.filter_map(|one| one.ok()) {
+        let Some(leaf) = file.file_name().to_str().map(str::to_string) else {
             continue;
         };
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
-            continue;
-        };
-        for file in files.filter_map(|one| one.ok()) {
-            let Some(leaf) = file.file_name().to_str().map(str::to_string) else {
-                continue;
-            };
-            let reference = format!("{HELD}/{under}/{leaf}");
-            let here = file.metadata().ok().filter(|meta| meta.is_file());
-            let there = std::fs::metadata(dest.join(HELD).join(&under).join(&leaf)).ok();
-            let missing = here
-                .as_ref()
-                .is_some_and(|here| there.is_none_or(|there| there.len() != here.len()));
-            if missing
-                && !leaf.ends_with(".part")
-                && !tisty_core::holes::marker(&leaf)
-                && tisty_core::attach::shelved(&under, &leaf)
-                && !buried.contains(&reference)
-                && !tisty_core::holes::a_hole(&file.path())
-            {
-                unsent.push(reference);
-            }
+        let reference = format!("{HELD}/{leaf}");
+        let here = file.metadata().ok().filter(|meta| meta.is_file());
+        let there = std::fs::metadata(dest.join(HELD).join(&leaf)).ok();
+        let missing = here
+            .as_ref()
+            .is_some_and(|here| there.is_none_or(|there| there.len() != here.len()));
+        if missing
+            && !leaf.ends_with(".part")
+            && !tisty_core::holes::marker(&leaf)
+            && tisty_core::attach::stamped(&leaf)
+            && !buried.contains(&reference)
+            && !tisty_core::holes::a_hole(&file.path())
+        {
+            unsent.push(reference);
         }
     }
     unsent.sort();
@@ -189,36 +181,23 @@ impl Attachments for Beside<'_> {
 
 // Only what the copy would carry is told, so a round with nothing to copy says nothing.
 fn owed_beside(from: &Path, into: &Path, buried: &BTreeSet<String>, again: bool) -> usize {
-    let Ok(shelves) = std::fs::read_dir(from) else {
+    let Ok(files) = std::fs::read_dir(from) else {
         return 0;
     };
     let len = |at: &Path| std::fs::metadata(at).map(|one| one.len()).ok();
-    shelves
-        .filter_map(|shelf| shelf.ok())
-        .filter_map(|shelf| {
-            std::fs::read_dir(shelf.path())
-                .ok()
-                .map(|files| (shelf, files))
-        })
-        .flat_map(|(shelf, files)| {
-            files
-                .filter_map(|file| file.ok())
-                .map(move |file| (shelf.file_name(), file))
-        })
-        .filter(|(shelf, file)| {
-            let (Some(under), Some(named)) = (
-                shelf.to_str(),
-                file.file_name().to_str().map(str::to_string),
-            ) else {
+    files
+        .filter_map(|file| file.ok())
+        .filter(|file| {
+            let Some(named) = file.file_name().to_str().map(str::to_string) else {
                 return false;
             };
             let at = file.path();
             at.is_file()
-                && tisty_core::attach::shelved(under, &named)
-                && !buried.contains(&format!("attachments/{under}/{named}"))
+                && tisty_core::attach::stamped(&named)
+                && !buried.contains(&format!("{HELD}/{named}"))
                 && len(&at).is_some_and(|weighs| weighs <= tisty_core::attach::HELD_UP_TO)
                 && !tisty_core::holes::a_hole(&at)
-                && (again || len(&at) != len(&into.join(under).join(&named)))
+                && (again || len(&at) != len(&into.join(&named)))
         })
         .count()
 }

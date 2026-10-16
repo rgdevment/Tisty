@@ -200,13 +200,10 @@ fn a_machine_folder_that_points_somewhere_else_never_receives_the_log() {
 #[test]
 fn a_shelf_that_points_somewhere_else_never_receives_an_attachment() {
     let one = machine("uno");
-    let kept = planted(&one.data, "foto.png", b"unos bytes cualesquiera");
-    let shelf = kept.split('/').nth(1).unwrap().to_string();
+    planted(&one.data, "foto.png", b"unos bytes cualesquiera");
     let shared = tempfile::tempdir().unwrap();
     let elsewhere = tempfile::tempdir().unwrap();
-    let there = shared.path().join(HELD);
-    std::fs::create_dir_all(&there).unwrap();
-    std::os::unix::fs::symlink(elsewhere.path(), there.join(&shelf)).unwrap();
+    std::os::unix::fs::symlink(elsewhere.path(), shared.path().join(HELD)).unwrap();
 
     let outcome = carry(&one.data, &one.device, shared.path(), Way::Push, &[]);
 
@@ -1148,8 +1145,7 @@ fn what_the_folder_offers_that_is_not_shaped_like_an_attachment_stays_there() {
     let one = machine("dev_a");
     let shared = tempfile::tempdir().unwrap();
     let real = planted(shared.path(), "contrato.pdf", b"a real one");
-    let under = real.split('/').nth(1).unwrap().to_string();
-    let shelf = shared.path().join(HELD).join(&under);
+    let shelf = shared.path().join(HELD);
     std::fs::write(shelf.join("factura.exe"), b"not yours").unwrap();
     std::fs::write(shelf.join("nota.command"), b"nor this").unwrap();
     let odd = shared.path().join(HELD).join("not-a-shelf");
@@ -1158,7 +1154,7 @@ fn what_the_folder_offers_that_is_not_shaped_like_an_attachment_stays_there() {
 
     carry(&one.data, &one.device, shared.path(), Way::Pull, &[]).unwrap();
 
-    let here = one.data.join(HELD).join(&under);
+    let here = one.data.join(HELD);
     assert!(one.data.join(&real).exists(), "it kept nothing");
     assert!(
         !here.join("factura.exe").exists(),
@@ -2626,7 +2622,7 @@ fn what_the_round_just_wrote_counts_as_landed_even_when_its_keeper_took_the_body
         &there,
         Some(&(sha256, bytes)),
         bytes,
-        "attachments/cd/charla-d5d43135.mp4",
+        "attachments/charla-d5d43135.mp4",
     );
     drop(shut);
 
@@ -2955,16 +2951,14 @@ fn a_folder_nobody_has_written_to_is_holding_nothing() {
 fn the_documents_are_home_before_a_single_attachment_is_fetched() {
     let one = machine("uno");
     filed(&one, "uno-0001", "# Lo que se lee\n");
-    let kept = planted(&one.data, "foto.png", b"unos bytes cualesquiera");
-    let shelf = kept.split('/').nth(1).unwrap().to_string();
+    planted(&one.data, "foto.png", b"unos bytes cualesquiera");
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
 
     let two = blank("dos");
-    let here = two.data.join(HELD);
-    std::fs::create_dir_all(&here).unwrap();
+    std::fs::create_dir_all(&two.data).unwrap();
     let elsewhere = tempfile::tempdir().unwrap();
-    std::os::unix::fs::symlink(elsewhere.path(), here.join(&shelf)).unwrap();
+    std::os::unix::fs::symlink(elsewhere.path(), two.data.join(HELD)).unwrap();
 
     let outcome = carry(&two.data, &two.device, shared.path(), Way::Pull, &[]);
 
@@ -3385,13 +3379,10 @@ fn taking_our_own_history_back_never_writes_over_a_live_writer() {
 fn an_interrupted_push_never_leaves_a_document_ahead_of_the_bytes_it_names() {
     let one = machine("uno");
     let kept = planted(&one.data, "foto.png", b"unos bytes cualesquiera");
-    let shelf = kept.split('/').nth(1).unwrap().to_string();
     filed(&one, "uno-0001", &format!("![foto]({kept})\n"));
     let shared = tempfile::tempdir().unwrap();
-    let there = shared.path().join(HELD);
-    std::fs::create_dir_all(&there).unwrap();
     let elsewhere = tempfile::tempdir().unwrap();
-    std::os::unix::fs::symlink(elsewhere.path(), there.join(&shelf)).unwrap();
+    std::os::unix::fs::symlink(elsewhere.path(), shared.path().join(HELD)).unwrap();
 
     let outcome = carry(&one.data, &one.device, shared.path(), Way::Both, &[]);
 

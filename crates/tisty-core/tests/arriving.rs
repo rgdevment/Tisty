@@ -41,13 +41,16 @@ fn html_that_markdown_cannot_say_is_dropped_rather_than_left_to_be_destroyed() {
 }
 
 #[test]
-fn the_four_tags_tisty_writes_itself_are_left_alone() {
+fn the_tags_an_older_tisty_wrote_come_in_its_own_words() {
     let said = "Un <mark data-pen=\"blue\">azul</mark> y un <u>subrayado</u>.\n";
 
     let out = tidied(said);
 
-    assert_eq!(out.body, said);
-    assert!(out.changed.is_empty(), "{:?}", out.changed);
+    assert_eq!(out.body, "Un ==azul=={blue} y un ++subrayado++.\n");
+    assert_eq!(
+        out.changed,
+        ["what an older Tisty wrote, in its own words now"]
+    );
 }
 
 #[test]

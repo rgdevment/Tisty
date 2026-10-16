@@ -5,7 +5,7 @@ fn every_name_tisty_writes_up_there_fits() {
     for name in [
         "tisty.toml",
         "store/dev_46zdmrtt/2026-10/segment-000012.tisty",
-        "attachments/ab/ab12cd34ef56.pdf",
+        "attachments/ab12cd34ef56.pdf",
         "keys/dev_46zdmrtt.join",
         "moved.json",
     ] {

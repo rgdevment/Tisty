@@ -7,6 +7,15 @@ use pulldown_cmark::{
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn read(text: &str) -> Doc {
+    reading(text, PASSES)
+}
+
+// What the transformer reads: Tisty's own words and, besides, the tags it wrote before them.
+pub fn read_old(text: &str) -> Doc {
+    reading(text, OLD)
+}
+
+fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
     let skip = text.len() - text.trim_start_matches('\u{feff}').len();
     let mut open: Vec<Block> = Vec::new();
@@ -50,7 +59,7 @@ pub fn read(text: &str) -> Doc {
             _ => {}
         }
     }
-    polish_all(&mut blocks, text);
+    polish_all(&mut blocks, text, passes);
     #[cfg(feature = "tags")]
     crate::marks::tagged(&mut blocks, text);
     Doc {
@@ -61,8 +70,18 @@ pub fn read(text: &str) -> Doc {
 
 // The order matters: a later pass reads the marks an earlier one has already folded.
 const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
-    #[cfg(feature = "icons")]
-    crate::icons::fold,
+    crate::short::fold,
+    #[cfg(feature = "pens")]
+    crate::pens::fold,
+    #[cfg(feature = "emoji")]
+    crate::emoji::fold,
+    #[cfg(feature = "refs")]
+    crate::marks::named,
+];
+
+// The same passes after the old tags are folded, which only the transformer asks for.
+const OLD: &[fn(&mut Vec<Span>, &str)] = &[
+    crate::old::fold,
     crate::short::fold,
     #[cfg(feature = "pens")]
     crate::pens::fold,
@@ -82,7 +101,7 @@ const GATHERS: &[fn(&mut Vec<Block>, &str)] = &[
     crate::details::gather,
 ];
 
-fn polish_all(blocks: &mut Vec<Block>, text: &str) {
+fn polish_all(blocks: &mut Vec<Block>, text: &str, passes: &[fn(&mut Vec<Span>, &str)]) {
     for gather in GATHERS {
         gather(blocks, text);
     }
@@ -92,14 +111,14 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str) {
         }
         // Code keeps its words as written: nothing in it is a pen, an emoji or a reference.
         if !matches!(block.kind, Kind::Code { .. }) {
-            for pass in PASSES {
+            for pass in passes {
                 pass(&mut block.spans, text);
             }
         }
         block
             .spans
             .sort_by_key(|one| (one.at.start, std::cmp::Reverse(one.at.end)));
-        polish_all(&mut block.inner, text);
+        polish_all(&mut block.inner, text, passes);
     }
 }
 

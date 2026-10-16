@@ -48,8 +48,8 @@ fn a_name_or_hue_the_language_does_not_have_is_left_as_words() {
 
 #[test]
 fn an_icon_is_not_read_a_second_time_as_the_emoji_inside_it() {
-    let drawn = page("::star:: y <span data-ico=\"star\">:star:</span>");
-    assert_eq!(drawn.matches("data-ico=\"star\"").count(), 2);
+    let drawn = page("::star:: y ::flag red::");
+    assert_eq!(drawn.matches("data-ico=").count(), 2);
     assert!(!drawn.contains('⭐'));
 }
 
@@ -92,4 +92,22 @@ fn an_underline_never_crosses_the_edge_of_a_bold_or_a_link() {
 fn a_colour_written_past_a_link_is_not_the_link_pen_colour() {
     let drawn = page("[x ==a==](https://a.b){green} y");
     assert!(drawn.contains("<a href=\"https://a.b\">x <mark>a</mark></a>{green}"));
+}
+
+#[test]
+fn an_attachment_name_carries_a_stamp_of_lower_hex() {
+    use tisty_markdown::kept::{leaf_of, stamped};
+    assert!(stamped("plano-0006bf09.png") && stamped("env-36481ea0"));
+    assert!(
+        !stamped("Plano-0006bf09.png") && !stamped("plano.png") && !stamped("plano-0006bf0.png")
+    );
+    assert_eq!(
+        leaf_of("<attachments/23/plano-0006bf09.png>"),
+        Some("plano-0006bf09.png")
+    );
+    assert_eq!(
+        leaf_of("plano-0006bf09.png#arriba"),
+        Some("plano-0006bf09.png")
+    );
+    assert_eq!(leaf_of("otra/carpeta/plano-0006bf09.png"), None);
 }

@@ -1,47 +1,9 @@
 use std::ops::Range;
 
-use crate::html::attribute;
 use crate::{Mark, Span};
 
-/// `==words==` is the yellow pen; every other colour is written as `<mark data-pen="…">`.
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
-    tagged(spans, text);
     doubled(spans, text);
-}
-
-fn tagged(spans: &mut Vec<Span>, text: &str) {
-    let mut at = 0;
-    while at < spans.len() {
-        let Some(color) = opened(&spans[at], text) else {
-            at += 1;
-            continue;
-        };
-        let shut = spans[at + 1..]
-            .iter()
-            .position(|one| one.mark == Mark::Html && &text[one.at.clone()] == "</mark>")
-            .map(|step| at + 1 + step);
-        if let Some(shut) = shut {
-            let whole = spans[at].at.start..spans[shut].at.end;
-            spans.remove(shut);
-            spans[at] = Span {
-                mark: Mark::Pen { color },
-                at: whole,
-            };
-        }
-        at += 1;
-    }
-}
-
-fn opened(span: &Span, text: &str) -> Option<Option<String>> {
-    if span.mark != Mark::Html {
-        return None;
-    }
-    let tag = &text[span.at.clone()];
-    if tag == "<mark>" {
-        return Some(None);
-    }
-    let inside = tag.strip_prefix("<mark")?.strip_suffix('>')?;
-    attribute(inside, "data-pen").map(Some)
 }
 
 fn doubled(spans: &mut Vec<Span>, text: &str) {

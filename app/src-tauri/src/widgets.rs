@@ -178,7 +178,8 @@ pub fn a_page(reference: &str) -> bool {
         .next()
         .unwrap_or("")
         .to_ascii_lowercase();
-    reference.starts_with("attachments/") && (named.ends_with(".html") || named.ends_with(".htm"))
+    tisty_core::attach::names_an_attachment(reference)
+        && (named.ends_with(".html") || named.ends_with(".htm"))
 }
 
 #[tauri::command]

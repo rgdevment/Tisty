@@ -10,14 +10,14 @@ fn room() -> (tempfile::TempDir, std::path::PathBuf) {
 fn an_attachment_nobody_reached_for_has_no_day() {
     let (_room, at) = room();
 
-    assert_eq!(last(&at, "attachments/ab/charla-00000000.mp4"), None);
+    assert_eq!(last(&at, "attachments/charla-00000000.mp4"), None);
     assert!(every(&at).is_empty());
 }
 
 #[test]
 fn the_day_it_was_reached_for_is_remembered_past_this_launch() {
     let (_room, at) = room();
-    let one = "attachments/ab/charla-00000000.mp4";
+    let one = "attachments/charla-00000000.mp4";
 
     used_on(&at, one, 1_700_000_000);
 
@@ -29,7 +29,7 @@ fn the_day_it_was_reached_for_is_remembered_past_this_launch() {
 #[test]
 fn reaching_for_it_again_moves_the_day_and_adds_no_row() {
     let (_room, at) = room();
-    let one = "attachments/ab/charla-00000000.mp4";
+    let one = "attachments/charla-00000000.mp4";
 
     used_on(&at, one, 1_700_000_000);
     used_on(&at, one, 1_800_000_000);
@@ -41,7 +41,7 @@ fn reaching_for_it_again_moves_the_day_and_adds_no_row() {
 #[test]
 fn reaching_for_it_again_the_same_day_writes_nothing() {
     let (_room, at) = room();
-    let one = "attachments/ab/charla-00000000.mp4";
+    let one = "attachments/charla-00000000.mp4";
 
     used_on(&at, one, 1_700_000_000);
     let first = std::fs::metadata(&at).unwrap().modified().unwrap();
@@ -68,15 +68,15 @@ fn reaching_for_it_again_the_same_day_writes_nothing() {
 fn each_attachment_keeps_its_own_day() {
     let (_room, at) = room();
 
-    used_on(&at, "attachments/ab/charla-00000000.mp4", 1_700_000_000);
-    used_on(&at, "attachments/cd/nota-11111111.txt", 1_800_000_000);
+    used_on(&at, "attachments/charla-00000000.mp4", 1_700_000_000);
+    used_on(&at, "attachments/nota-11111111.txt", 1_800_000_000);
 
     assert_eq!(
-        last(&at, "attachments/ab/charla-00000000.mp4"),
+        last(&at, "attachments/charla-00000000.mp4"),
         Some(1_700_000_000)
     );
     assert_eq!(
-        last(&at, "attachments/cd/nota-11111111.txt"),
+        last(&at, "attachments/nota-11111111.txt"),
         Some(1_800_000_000)
     );
 }
@@ -87,7 +87,7 @@ fn what_is_written_down_stops_growing_and_the_longest_untouched_goes_first() {
     let full: Used = (0..KEPT_AT_MOST)
         .map(|n| {
             (
-                format!("attachments/ab/one-{n:08}.txt"),
+                format!("attachments/one-{n:08}.txt"),
                 2_000_000_000 + n as u64,
             )
         })
@@ -97,18 +97,18 @@ fn what_is_written_down_stops_growing_and_the_longest_untouched_goes_first() {
 
     let held = every(&at);
     assert_eq!(held.len(), KEPT_AT_MOST);
-    assert!(held.contains_key("attachments/ab/one-00000000.txt"));
+    assert!(held.contains_key("attachments/one-00000000.txt"));
 
-    used_on(&at, "attachments/cd/late-99999999.txt", 3_000_000_000);
+    used_on(&at, "attachments/late-99999999.txt", 3_000_000_000);
 
     let held = every(&at);
     assert_eq!(held.len(), KEPT_AT_MOST, "it did not grow");
     assert!(
-        !held.contains_key("attachments/ab/one-00000000.txt"),
+        !held.contains_key("attachments/one-00000000.txt"),
         "the one nobody had reached for in longest is the one that went"
     );
     assert_eq!(
-        last(&at, "attachments/cd/late-99999999.txt"),
+        last(&at, "attachments/late-99999999.txt"),
         Some(3_000_000_000)
     );
 }
@@ -121,10 +121,10 @@ fn a_file_nobody_can_parse_reads_as_nothing_written_down_yet() {
 
     assert!(every(&at).is_empty());
 
-    used_on(&at, "attachments/ab/charla-00000000.mp4", 1_700_000_000);
+    used_on(&at, "attachments/charla-00000000.mp4", 1_700_000_000);
 
     assert_eq!(
-        last(&at, "attachments/ab/charla-00000000.mp4"),
+        last(&at, "attachments/charla-00000000.mp4"),
         Some(1_700_000_000)
     );
 }
@@ -134,9 +134,9 @@ fn the_day_it_says_is_the_day_the_clock_says() {
     let (_room, at) = room();
     let before = now();
 
-    used(&at, "attachments/ab/charla-00000000.mp4");
+    used(&at, "attachments/charla-00000000.mp4");
 
-    let said = last(&at, "attachments/ab/charla-00000000.mp4").expect("a day");
+    let said = last(&at, "attachments/charla-00000000.mp4").expect("a day");
     assert!(said >= before, "it cannot have been reached for before now");
     assert!(said <= now(), "nor after");
 }
@@ -144,12 +144,12 @@ fn the_day_it_says_is_the_day_the_clock_says() {
 #[test]
 fn a_day_still_to_come_is_written_over_by_the_next_use() {
     let (_room, at) = room();
-    used_on(&at, "attachments/ab/charla-00000000.mp4", u64::MAX);
+    used_on(&at, "attachments/charla-00000000.mp4", u64::MAX);
 
-    used_on(&at, "attachments/ab/charla-00000000.mp4", 1_700_000_000);
+    used_on(&at, "attachments/charla-00000000.mp4", 1_700_000_000);
 
     assert_eq!(
-        last(&at, "attachments/ab/charla-00000000.mp4"),
+        last(&at, "attachments/charla-00000000.mp4"),
         Some(1_700_000_000)
     );
 }
@@ -177,11 +177,11 @@ fn a_file_nobody_can_read_is_set_aside_and_counts_everything_as_used_from_now() 
 fn a_moment_inside_an_attachment_is_written_down_under_the_attachment() {
     let (_room, at) = room();
 
-    used_on(&at, "attachments/ab/charla-00000000.mp4#t=5", 1_700_000_000);
+    used_on(&at, "attachments/charla-00000000.mp4#t=5", 1_700_000_000);
 
     assert_eq!(
         every(&at).keys().collect::<Vec<_>>(),
-        ["attachments/ab/charla-00000000.mp4"]
+        ["attachments/charla-00000000.mp4"]
     );
 }
 
@@ -191,7 +191,7 @@ fn what_is_forgotten_to_stay_small_still_counts_as_reached_as_late_as_the_last_o
     let full: Used = (0..KEPT_AT_MOST)
         .map(|n| {
             (
-                format!("attachments/ab/one-{n:08}.txt"),
+                format!("attachments/one-{n:08}.txt"),
                 2_000_000_000 + n as u64,
             )
         })
@@ -199,22 +199,22 @@ fn what_is_forgotten_to_stay_small_still_counts_as_reached_as_late_as_the_last_o
     std::fs::create_dir_all(at.parent().unwrap()).unwrap();
     std::fs::write(&at, serde_json::to_vec(&full).unwrap()).unwrap();
 
-    used_on(&at, "attachments/cd/late-99999999.txt", 3_000_000_000);
-    used_on(&at, "attachments/cd/later-88888888.txt", 3_000_000_001);
+    used_on(&at, "attachments/late-99999999.txt", 3_000_000_000);
+    used_on(&at, "attachments/later-88888888.txt", 3_000_000_001);
 
-    assert_eq!(last(&at, "attachments/ab/one-00000000.txt"), None);
-    assert_eq!(last(&at, "attachments/ab/one-00000001.txt"), None);
+    assert_eq!(last(&at, "attachments/one-00000000.txt"), None);
+    assert_eq!(last(&at, "attachments/one-00000001.txt"), None);
     assert_eq!(
-        reached(&at, "attachments/ab/one-00000000.txt"),
+        reached(&at, "attachments/one-00000000.txt"),
         Some(2_000_000_001),
         "a use forgotten to keep the file small read as never reached"
     );
     assert_eq!(
-        reached(&at, "attachments/ab/one-00000002.txt"),
+        reached(&at, "attachments/one-00000002.txt"),
         Some(2_000_000_002)
     );
     assert_eq!(
-        reached(&at, "attachments/cd/late-99999999.txt"),
+        reached(&at, "attachments/late-99999999.txt"),
         Some(3_000_000_000)
     );
 }

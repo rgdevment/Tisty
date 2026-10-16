@@ -1,7 +1,16 @@
-use tisty_markdown::{Mark, read};
+use tisty_markdown::{Doc, Mark, read};
 
 fn marks(text: &str) -> Vec<(Mark, String)> {
-    let doc = read(text);
+    spans_of(read(text))
+}
+
+// The old tags are read only on their way into Tisty's own words, by the transformer.
+#[cfg(any(feature = "icons", feature = "pens"))]
+fn old_marks(text: &str) -> Vec<(Mark, String)> {
+    spans_of(tisty_markdown::read_old(text))
+}
+
+fn spans_of(doc: Doc) -> Vec<(Mark, String)> {
     doc.blocks()[0]
         .spans
         .iter()
@@ -14,7 +23,7 @@ fn marks(text: &str) -> Vec<(Mark, String)> {
 fn an_icon_is_one_mark_with_its_name_and_its_hue() {
     let said = r#"An <span data-ico="star" data-hue="blue">⭐</span> here."#;
     assert_eq!(
-        marks(said)[1],
+        old_marks(said)[1],
         (
             Mark::Icon {
                 name: "star".into(),
@@ -28,7 +37,7 @@ fn an_icon_is_one_mark_with_its_name_and_its_hue() {
 #[cfg(feature = "icons")]
 #[test]
 fn an_icon_without_a_hue_or_with_quoted_marks_keeps_its_name() {
-    let plain = marks(r#"<span data-ico="flag">:flag:</span>"#);
+    let plain = old_marks(r#"<span data-ico="flag">:flag:</span>"#);
     assert_eq!(
         plain[0].0,
         Mark::Icon {
@@ -36,7 +45,7 @@ fn an_icon_without_a_hue_or_with_quoted_marks_keeps_its_name() {
             hue: None
         }
     );
-    let quoted = marks(r#"<span data-ico="a&amp;b">x</span>"#);
+    let quoted = old_marks(r#"<span data-ico="a&amp;b">x</span>"#);
     assert_eq!(
         quoted[0].0,
         Mark::Icon {
@@ -67,7 +76,17 @@ fn plain_words_are_only_text() {
 
 #[cfg(feature = "pens")]
 fn pens(text: &str) -> Vec<(Option<String>, String)> {
-    marks(text)
+    pens_in(marks(text))
+}
+
+#[cfg(feature = "pens")]
+fn old_pens(text: &str) -> Vec<(Option<String>, String)> {
+    pens_in(old_marks(text))
+}
+
+#[cfg(feature = "pens")]
+fn pens_in(found: Vec<(Mark, String)>) -> Vec<(Option<String>, String)> {
+    found
         .into_iter()
         .filter_map(|(mark, said)| match mark {
             Mark::Pen { color } => Some((color, said)),
@@ -94,13 +113,17 @@ fn a_double_equals_pair_is_the_yellow_pen() {
 fn a_coloured_pen_wraps_its_words_and_keeps_their_marks() {
     let said = r#"A <mark data-pen="green">*green*</mark> word"#;
     assert_eq!(
-        pens(said),
+        old_pens(said),
         vec![(
             Some("green".into()),
             r#"<mark data-pen="green">*green*</mark>"#.to_string()
         )]
     );
-    assert!(marks(said).iter().any(|(mark, _)| *mark == Mark::Emphasis));
+    assert!(
+        old_marks(said)
+            .iter()
+            .any(|(mark, _)| *mark == Mark::Emphasis)
+    );
 }
 
 #[cfg(feature = "pens")]
@@ -369,7 +392,7 @@ fn an_anchor_reads_entities_and_broken_lines_and_is_never_taken_twice() {
 #[cfg(feature = "icons")]
 #[test]
 fn an_icon_never_closed_leaves_the_words_after_it_alone() {
-    let found = marks(r#"<span data-ico="star"> text <span class="x">hi</span>"#);
+    let found = old_marks(r#"<span data-ico="star"> text <span class="x">hi</span>"#);
     assert!(
         found
             .iter()
@@ -383,7 +406,7 @@ fn an_icon_never_closed_leaves_the_words_after_it_alone() {
 fn a_pen_never_cuts_across_another_mark_and_reads_its_colour_anywhere_in_the_tag() {
     assert!(pens("**==a** b==").is_empty());
     assert_eq!(
-        pens(r#"<mark class="x" data-pen="a&amp;b">w</mark>"#)[0].0,
+        old_pens(r#"<mark class="x" data-pen="a&amp;b">w</mark>"#)[0].0,
         Some("a&b".to_string())
     );
 }

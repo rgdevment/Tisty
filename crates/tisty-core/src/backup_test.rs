@@ -25,9 +25,9 @@ fn filled(named: &str) -> (tempfile::TempDir, PathBuf) {
         })
         .unwrap();
 
-    let shelf = data.join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("foto-a1b2c3d4.png"), b"a picture").unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-a1b2c3d4.png"), b"a picture").unwrap();
 
     let papers = data.join("docs");
     std::fs::create_dir_all(&papers).unwrap();
@@ -392,7 +392,7 @@ fn what_comes_back_is_what_went_in() {
     assert!(
         quarters(&fresh)
             .data()
-            .join("attachments/ab/foto-a1b2c3d4.png")
+            .join("attachments/foto-a1b2c3d4.png")
             .exists()
     );
 }
@@ -595,7 +595,7 @@ fn a_zip_that_is_not_a_backup_leaves_everything_where_it_was() {
         1,
         "the store was emptied by a zip full of photographs"
     );
-    assert!(data.join("attachments/ab/foto-a1b2c3d4.png").exists());
+    assert!(data.join("attachments/foto-a1b2c3d4.png").exists());
 }
 
 #[test]
@@ -877,8 +877,8 @@ fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
         Some(PathBuf::from("store/dev_a/active.tisty"))
     );
     assert_eq!(
-        safe("attachments/ab/foto-a1b2c3d4.png"),
-        Some(PathBuf::from("attachments/ab/foto-a1b2c3d4.png"))
+        safe("attachments/foto-a1b2c3d4.png"),
+        Some(PathBuf::from("attachments/foto-a1b2c3d4.png"))
     );
 
     for climbing in [
@@ -891,7 +891,7 @@ fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
         "store/.store-key",
         "store/dev_a/.store-key",
         "store/dev_a/.lock",
-        "attachments/ab/.4812.7.part",
+        "attachments/.4812.7.part",
         "originals/../../etc/passwd",
     ] {
         assert_eq!(safe(climbing), None, "«{climbing}» got out");
@@ -903,7 +903,7 @@ fn a_zip_cannot_name_its_way_out_of_the_data_directory() {
         "store/dev_a/notes.txt",
         "store/dev_a/active.torn",
         "docs/.spent-dev_a",
-        "attachments/ab/installer-a1b2c3d4.part",
+        "attachments/installer-a1b2c3d4.part",
     ] {
         assert!(
             safe(held).is_some(),
@@ -970,7 +970,7 @@ fn a_restore_says_in_the_log_that_the_machine_it_was_is_gone() {
 fn a_copy_taken_where_the_folder_holds_the_big_ones_carries_them_too() {
     let (_src, data) = filled("comprar pan");
     let shared = tempfile::tempdir().unwrap();
-    let theirs = shared.path().join("attachments").join("cd");
+    let theirs = shared.path().join("attachments");
     std::fs::create_dir_all(&theirs).unwrap();
     std::fs::write(theirs.join("video-9f8e7d6c.mp4"), b"what was let go of").unwrap();
 
@@ -981,11 +981,11 @@ fn a_copy_taken_where_the_folder_holds_the_big_ones_carries_them_too() {
     let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
     let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
     assert!(
-        named.contains(&"attachments/cd/video-9f8e7d6c.mp4".to_string()),
+        named.contains(&"attachments/video-9f8e7d6c.mp4".to_string()),
         "a machine that let go of its copies would restore without them: {named:?}"
     );
     assert!(
-        named.contains(&"attachments/ab/foto-a1b2c3d4.png".to_string()),
+        named.contains(&"attachments/foto-a1b2c3d4.png".to_string()),
         "{named:?}"
     );
 }
@@ -994,7 +994,7 @@ fn a_copy_taken_where_the_folder_holds_the_big_ones_carries_them_too() {
 fn what_is_in_both_places_is_carried_once() {
     let (_src, data) = filled("comprar pan");
     let shared = tempfile::tempdir().unwrap();
-    let theirs = shared.path().join("attachments").join("ab");
+    let theirs = shared.path().join("attachments");
     std::fs::create_dir_all(&theirs).unwrap();
     std::fs::write(theirs.join("foto-a1b2c3d4.png"), b"a picture").unwrap();
 
@@ -1016,24 +1016,24 @@ fn what_is_in_both_places_is_carried_once() {
 fn what_the_folder_holds_half_written_or_misnamed_does_not_ride_along() {
     let (_src, data) = filled("comprar pan");
     let shared = tempfile::tempdir().unwrap();
-    let shelf = shared.path().join("attachments").join("cd");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("video-9f8e7d6c.mp4"), b"what was let go of").unwrap();
+    let shed = shared.path().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("video-9f8e7d6c.mp4"), b"what was let go of").unwrap();
     std::fs::write(
-        shelf.join("foto-a1b2c3d4.4242.0.part"),
+        shed.join("foto-a1b2c3d4.4242.0.part"),
         b"half of a download",
     )
     .unwrap();
     std::fs::write(
-        shelf.join("not-an-attachment.txt"),
+        shed.join("not-an-attachment.txt"),
         b"somebody put this here",
     )
     .unwrap();
-    let loose = shared.path().join("attachments").join("zzz");
+    let loose = shed.join("zzz").join("yy");
     std::fs::create_dir_all(&loose).unwrap();
     std::fs::write(
         loose.join("video-9f8e7d6c.mp4"),
-        b"a shelf no name hashes to",
+        b"a folder deeper than any shelf",
     )
     .unwrap();
 
@@ -1044,13 +1044,13 @@ fn what_the_folder_holds_half_written_or_misnamed_does_not_ride_along() {
     let zip = zip::ZipArchive::new(std::fs::File::open(&file).unwrap()).unwrap();
     let named: Vec<String> = zip.file_names().map(str::to_owned).collect();
     assert!(
-        named.contains(&"attachments/cd/video-9f8e7d6c.mp4".to_string()),
+        named.contains(&"attachments/video-9f8e7d6c.mp4".to_string()),
         "{named:?}"
     );
     for out in [
-        "attachments/cd/foto-a1b2c3d4.4242.0.part",
-        "attachments/cd/not-an-attachment.txt",
-        "attachments/zzz/video-9f8e7d6c.mp4",
+        "attachments/foto-a1b2c3d4.4242.0.part",
+        "attachments/not-an-attachment.txt",
+        "attachments/zzz/yy/video-9f8e7d6c.mp4",
     ] {
         assert!(
             !named.contains(&out.to_string()),

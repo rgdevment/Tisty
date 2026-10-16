@@ -144,9 +144,9 @@ fn a_folder_that_was_not_told_but_already_says_its_shape_is_still_remembered() {
 #[test]
 fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_later() {
     assert!(!needs_later(NEEDS));
-    assert!(!needs_later("1.29.9"));
-    assert!(!needs_later("1.30.0-rc.1"));
-    assert!(needs_later("1.30.1"));
+    assert!(!needs_later("1.30.9"));
+    assert!(!needs_later("1.31.0-rc.1"));
+    assert!(needs_later("1.31.1"));
     assert!(needs_later("1.100.0"));
     assert!(needs_later("2.0.0"));
     assert!(needs_later("pronto"));

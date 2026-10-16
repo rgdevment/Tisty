@@ -26,11 +26,11 @@ The colours say what it understood, and these are them:
 
 | You write | It understands |
 | --- | --- |
-| <mark data-pen="blue">tomorrow 10am</mark> | a day and a time, said out loud |
-| <mark data-pen="blue">on friday</mark> | the next one coming |
-| <mark data-pen="pink">every tuesday</mark> | something that comes back |
-| <mark data-pen="pink">#home</mark> | a tag: what it is about |
-| <mark data-pen="green">@work</mark> | a list: where it happens |
+| ==tomorrow 10am=={blue} | a day and a time, said out loud |
+| ==on friday=={blue} | the next one coming |
+| ==every tuesday=={pink} | something that comes back |
+| ==#home=={pink} | a tag: what it is about |
+| ==@work=={green} | a list: where it happens |
 | ==!schedule== | do, schedule, delegate or minor |
 
 If a part stays plain, it simply belongs to the title, which is no great loss.
@@ -75,8 +75,8 @@ Drag a task into the box it belongs in. Whatever you leave unclassified waits in
 
 Two ways of sorting that do not compete:
 
-- A **list** says where it happens: <mark data-pen="green">@home</mark>, <mark data-pen="green">@work</mark>. A task belongs to one.
-- A **tag** says what it is about: <mark data-pen="pink">#health</mark>, <mark data-pen="pink">#shopping</mark>. A task carries as many as you like.
+- A **list** says where it happens: ==@home=={green}, ==@work=={green}. A task belongs to one.
+- A **tag** says what it is about: ==#health=={pink}, ==#shopping=={pink}. A task carries as many as you like.
 
 ### 6. What stays written
 
@@ -116,7 +116,7 @@ And for seeing all of it at once, one of each, there is a page of its own:
 
 #### The usual
 
-**Bold**, *italic*, ~~struck through~~, <u>underlined</u>, `loose code` and a [link to a website](https://github.com/rgdevment/Tisty). Bulleted lists, numbered ones, and quotes of the ordinary kind:
+**Bold**, *italic*, ~~struck through~~, ++underlined++, `loose code` and a [link to a website](https://github.com/rgdevment/Tisty). Bulleted lists, numbered ones, and quotes of the ordinary kind:
 
 > What is not written down did not happen.
 
@@ -161,11 +161,11 @@ And nearly anything fits inside a callout, not only text:
 
 #### Highlighting
 
-Four pens: ==yellow==, <mark data-pen="green">green</mark>, <mark data-pen="blue">blue</mark> and <mark data-pen="pink">pink</mark>. You pick the colour in the bar that appears when you select text.
+Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You pick the colour in the bar that appears when you select text.
 
 #### Icons
 
-<span data-ico="dog" data-hue="orange">:dog:</span> An icon is looked up by what it draws: ask for «dog», «motorcycle» or «fist» and you get the one you expected. It marks a line without spending a heading on it.
+::dog orange:: An icon is looked up by what it draws: ask for «dog», «motorcycle» or «fist» and you get the one you expected. It marks a line without spending a heading on it.
 
 #### Stages
 

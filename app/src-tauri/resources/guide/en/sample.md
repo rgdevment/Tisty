@@ -6,11 +6,11 @@ This page is the guide's sample case: one of everything a document can hold, all
 
 ## Words
 
-**Bold**, *italic*, ***both at once***, ~~struck through~~, <u>underlined</u> and `loose code`. A [link to a website](https://github.com/rgdevment/Tisty), and the same address written bare between angle brackets: <https://github.com/rgdevment/Tisty>. An address for mail works the same way: <rina@example.com>.
+**Bold**, *italic*, ***both at once***, ~~struck through~~, ++underlined++ and `loose code`. A [link to a website](https://github.com/rgdevment/Tisty), and the same address written bare between angle brackets: <https://github.com/rgdevment/Tisty>. An address for mail works the same way: <rina@example.com>.
 
-Four pens: ==yellow==, <mark data-pen="green">green</mark>, <mark data-pen="blue">blue</mark> and <mark data-pen="pink">pink</mark>.
+Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}.
 
-Icons, with a colour or without: <span data-ico="dog" data-hue="orange">:dog:</span> <span data-ico="bone" data-hue="amber">:bone:</span> <span data-ico="heart" data-hue="red">:heart:</span> <span data-ico="leaf" data-hue="green">:leaf:</span> <span data-ico="moon" data-hue="indigo">:moon:</span> <span data-ico="star">:star:</span>
+Icons, with a colour or without: ::dog orange:: ::bone amber:: ::heart red:: ::leaf green:: ::moon indigo:: ::star::
 
 Emoji by name: :dog: :tada: :+1: :sunny:
 

@@ -347,7 +347,7 @@ fn attaching_by_a_documents_name_puts_the_file_in_the_document() {
 
     let whole = cli.ok(&["doc", &name]);
     assert!(whole.contains("lo que se habló."), "{whole}");
-    assert!(whole.contains("![plano.png](<attachments/"), "{whole}");
+    assert!(whole.contains("![plano.png](plano-"), "{whole}");
 
     let paths =
         tisty_core::Paths::new(cli.home.path().join("data"), cli.home.path().join("config"));

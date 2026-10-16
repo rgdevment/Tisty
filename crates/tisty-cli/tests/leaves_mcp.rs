@@ -1556,10 +1556,7 @@ fn a_picture_beside_the_file_comes_in_with_it() {
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
-    assert!(
-        body.contains("attachments/"),
-        "the picture was not brought in: {body}"
-    );
+    assert!(kept_in(&body, ""), "the picture was not brought in: {body}");
     assert!(
         !body.contains("Risk%20Matrix"),
         "it still points outside Tisty: {body}"
@@ -1748,7 +1745,7 @@ fn a_key_beside_a_document_comes_in_as_a_copy_tisty_keeps() {
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
-    assert!(body.contains("attachments/"), "no se copio: {body}");
+    assert!(kept_in(&body, ""), "no se copio: {body}");
     assert!(body.contains("clave del servidor"), "{body}");
     let left = said["result"]["structuredContent"]["left_behind"].to_string();
     assert_eq!(left, "[]", "nada quedo fuera: {left}");
@@ -1799,7 +1796,7 @@ fn another_markdown_file_comes_in_and_is_named_as_one_to_import_too() {
 
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
-    assert!(body.contains("attachments/"), "{body}");
+    assert!(kept_in(&body, ""), "{body}");
     assert!(!body.contains("Sub/Otra.md"), "{body}");
 }
 
@@ -1963,10 +1960,7 @@ fn a_drawing_a_page_and_a_data_file_come_in_like_any_other() {
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
     let body = served.body_of(doc);
     for kind in ["svg", "html", "xml"] {
-        assert!(
-            body.contains("attachments/") && body.contains(kind),
-            "{kind} did not come in: {body}"
-        );
+        assert!(kept_in(&body, kind), "{kind} did not come in: {body}");
     }
     assert!(!body.contains("assets/"), "still pointing outside: {body}");
 }
@@ -4281,7 +4275,7 @@ fn a_file_kept_in_a_document_leaves_the_log_answering_for_what_it_now_holds() {
     );
 
     let body = served.body_of(&doc);
-    assert!(body.contains("attachments/"), "{said}");
+    assert!(body.contains("](plano-"), "{said}");
     let events = tisty_core::store::read_all(served.data().join("store")).unwrap();
     let state = tisty_core::State::replay(&events);
     let kept = state.docs.values().find(|one| one.file == doc).unwrap();
@@ -4391,4 +4385,11 @@ fn what_comes_beside_a_list_of_tasks_is_refused_instead_of_lost() {
             .contains("`source`"),
         "{said}"
     );
+}
+
+// A file brought in is named by its stamped name alone, so the link says nothing of where it lies.
+fn kept_in(body: &str, ending: &str) -> bool {
+    tisty_core::refs::extract(body).iter().any(|one| {
+        tisty_core::attach::names_an_attachment(&one.target) && one.target.ends_with(ending)
+    })
 }

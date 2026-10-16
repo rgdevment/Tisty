@@ -34,8 +34,8 @@ impl Kept {
 
     pub fn written(&self, label: &str) -> String {
         let name = spoken(label);
-        let target = self.at.clone();
-        format!("![{name}](<{target}>)")
+        let leaf = leaf_of(&self.at).unwrap_or(&self.at);
+        format!("![{name}]({leaf})")
     }
 }
 
@@ -44,9 +44,11 @@ fn written_at_most(label: &str) -> usize {
     spoken(label).len() + SHORTENS_TO + 64
 }
 
-/// How many files a body already carries, by the shape `written` gives them.
 pub fn counted(body: &str) -> usize {
-    body.matches("](<attachments/").count() + body.matches("](attachments/").count()
+    crate::refs::extract(body)
+        .iter()
+        .filter(|one| canonical(&one.target).is_some())
+        .count()
 }
 
 /// Where the window stops calling a document a document and starts warning that it is a shelf.
@@ -164,11 +166,9 @@ fn through(
         .map(|e| format!(".{e}"))
         .unwrap_or_default();
 
-    let (shelf, rest) = sha256.split_at(2);
+    let rest = &sha256[2..];
     let stamp = &rest[..8];
-    let folder = shed.join(shelf);
-    std::fs::create_dir_all(&folder)?;
-    let _ = crate::paths::ours_alone(&folder);
+    let folder = shed.to_path_buf();
 
     if let Some(at) = listed(root, &sha256) {
         match resolve(&at, root) {
@@ -214,7 +214,7 @@ fn through(
         }
     };
     let kept = Kept {
-        at: format!("attachments/{shelf}/{name}"),
+        at: format!("{SHED}/{name}"),
         sha256,
         bytes,
     };
@@ -266,7 +266,7 @@ fn listed(root: &Path, sha256: &str) -> Option<String> {
     text.lines()
         .filter_map(|line| serde_json::from_str::<Noted>(line).ok())
         .find(|one| one.sha256 == sha256)
-        .map(|one| one.at)
+        .map(|one| canonical(&one.at).unwrap_or(one.at))
 }
 
 pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)> {
@@ -275,7 +275,10 @@ pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)>
     };
     text.lines()
         .filter_map(|line| serde_json::from_str::<Noted>(line).ok())
-        .map(|one| (one.at, (one.sha256, one.bytes)))
+        .map(|one| {
+            let at = canonical(&one.at).unwrap_or(one.at);
+            (at, (one.sha256, one.bytes))
+        })
         .collect()
 }
 
@@ -484,15 +487,13 @@ impl Loose {
 }
 
 pub fn loose(root: &Path, referenced: &[String]) -> Loose {
-    let held: std::collections::BTreeSet<&str> = referenced
-        .iter()
-        .map(|one| one.trim_start_matches("attachments/"))
-        .collect();
+    let held: std::collections::BTreeSet<&str> =
+        referenced.iter().filter_map(|one| leaf_of(one)).collect();
 
     let mut found = Loose::default();
-    let at = root.join("attachments");
-    let shelves = match std::fs::read_dir(&at) {
-        Ok(shelves) => shelves,
+    let at = root.join(SHED);
+    let files = match std::fs::read_dir(&at) {
+        Ok(files) => files,
         Err(e) => {
             if e.kind() != std::io::ErrorKind::NotFound {
                 witness::warn(
@@ -504,37 +505,29 @@ pub fn loose(root: &Path, referenced: &[String]) -> Loose {
             return found;
         }
     };
-    for shelf in shelves.filter_map(|e| e.ok()) {
-        let Some(name) = shelf.file_name().to_str().map(str::to_owned) else {
+    for file in files.filter_map(|e| e.ok()) {
+        let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
             continue;
         };
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+        // A marker is the file iCloud took away, not a stray: taking it out is taking the file.
+        if crate::holes::marker(&leaf) || !stamped(&leaf) || held.contains(leaf.as_str()) {
             continue;
-        };
-        for file in files.filter_map(|e| e.ok()) {
-            let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
-                continue;
-            };
-            // A marker is the file iCloud took away, not a stray: taking it out is taking the file.
-            if crate::holes::marker(&leaf) || !shelved(&name, &leaf) {
-                continue;
-            }
-            if held.contains(format!("{name}/{leaf}").as_str()) {
-                continue;
-            }
-            let told = file.metadata().ok();
-            let bytes = told.as_ref().map(|m| m.len()).unwrap_or(0);
-            found.items.push(Astray {
-                shared: false,
-                at: format!("attachments/{name}/{leaf}"),
-                bytes,
-                when: told
-                    .and_then(|m| m.modified().ok())
-                    .map(since_epoch)
-                    .unwrap_or(0),
-            });
-            found.bytes += bytes;
         }
+        let told = file.metadata().ok();
+        if !told.as_ref().is_some_and(std::fs::Metadata::is_file) {
+            continue;
+        }
+        let bytes = told.as_ref().map(|m| m.len()).unwrap_or(0);
+        found.items.push(Astray {
+            shared: false,
+            at: format!("{SHED}/{leaf}"),
+            bytes,
+            when: told
+                .and_then(|m| m.modified().ok())
+                .map(since_epoch)
+                .unwrap_or(0),
+        });
+        found.bytes += bytes;
     }
     found
         .items
@@ -558,8 +551,14 @@ fn bin_ledger(root: &Path) -> PathBuf {
     root.join("bin.jsonl")
 }
 
+pub use tisty_markdown::kept::{SHED, leaf_of, lower_hex, stamped, stamped_by};
+
+pub fn canonical(reference: &str) -> Option<String> {
+    leaf_of(reference).map(|leaf| format!("{SHED}/{leaf}"))
+}
+
 pub fn names_an_attachment(reference: &str) -> bool {
-    reference.starts_with("attachments/")
+    leaf_of(reference).is_some()
 }
 
 pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
@@ -570,8 +569,10 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
     if !from.is_file() {
         return Err(Error::OutsideTheStore(reference.to_string()));
     }
-    let rest = reference.trim_start_matches("attachments/");
-    let into = bin(root).join(rest);
+    let Some(leaf) = leaf_of(reference) else {
+        return Err(Error::OutsideTheStore(reference.to_string()));
+    };
+    let into = bin(root).join(leaf);
     if let Some(folder) = into.parent() {
         std::fs::create_dir_all(folder)?;
         let _ = crate::paths::ours_alone(folder);
@@ -617,7 +618,8 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
 
     let mut gone = 0;
     for one in &stale {
-        let rest = one.at.trim_start_matches("attachments/");
+        // A bin filled before the shelves went keeps them, and the last step finds either.
+        let rest = leaf_of(&one.at).unwrap_or(one.at.trim_start_matches("attachments/"));
         let Ok(at) = resolve(&format!("bin/{rest}"), root) else {
             continue;
         };
@@ -645,31 +647,6 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
         );
     }
     gone
-}
-
-fn lower_hex(said: &str) -> bool {
-    said.bytes()
-        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-}
-
-pub fn stamped_by(leaf: &str) -> &str {
-    let stem = leaf.split('.').next().unwrap_or_default();
-    stem.rsplit('-').next().unwrap_or_default()
-}
-
-pub fn shelved(shelf: &str, leaf: &str) -> bool {
-    if shelf.len() != 2 || !lower_hex(shelf) {
-        return false;
-    }
-    let stamp = stamped_by(leaf);
-    (8..=16).contains(&stamp.len())
-        && lower_hex(stamp)
-        && leaf.len() <= 255
-        // A drive that ignores case would take another's name with only its extension in capitals.
-        && !leaf.chars().any(char::is_uppercase)
-        && !leaf.contains('/')
-        && !leaf.contains('\\')
-        && leaf.chars().all(|c| !c.is_control())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -700,30 +677,21 @@ fn told_apart(_told: &std::fs::Metadata, at: &Path, one: &str) -> Option<same_fi
 
 pub fn twins(root: &Path) -> Vec<Twins> {
     let mut alike: std::collections::BTreeMap<String, Vec<String>> = Default::default();
-    let at = root.join("attachments");
-    let Ok(shelves) = std::fs::read_dir(&at) else {
+    let Ok(files) = std::fs::read_dir(root.join(SHED)) else {
         return Vec::new();
     };
-    for shelf in shelves.filter_map(|one| one.ok()) {
-        let Some(under) = shelf.file_name().to_str().map(str::to_owned) else {
+    for file in files.filter_map(|one| one.ok()) {
+        let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
             continue;
         };
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+        if !file.file_type().is_ok_and(|kind| kind.is_file()) || !stamped(&leaf) {
             continue;
-        };
-        for file in files.filter_map(|one| one.ok()) {
-            let Some(leaf) = file.file_name().to_str().map(str::to_owned) else {
-                continue;
-            };
-            if !file.file_type().is_ok_and(|kind| kind.is_file()) || !shelved(&under, &leaf) {
-                continue;
-            }
-            let stamp: String = stamped_by(&leaf).chars().take(8).collect();
-            alike
-                .entry(format!("{under}/{stamp}"))
-                .or_default()
-                .push(format!("attachments/{under}/{leaf}"));
         }
+        let stamp: String = stamped_by(&leaf).chars().take(8).collect();
+        alike
+            .entry(stamp)
+            .or_default()
+            .push(format!("{SHED}/{leaf}"));
     }
 
     let written_down = digests(root);
@@ -796,17 +764,15 @@ pub fn as_kept(
 }
 
 fn named_for(reference: &str, sha256: &str) -> bool {
-    reference
-        .strip_prefix("attachments/")
-        .and_then(|rest| rest.split_once('/'))
-        .is_some_and(|(shelf, leaf)| vouched(shelf, leaf, sha256))
+    leaf_of(reference).is_some_and(|leaf| vouched(leaf, sha256))
 }
 
-pub fn vouched(shelf: &str, leaf: &str, sha256: &str) -> bool {
-    if !shelved(shelf, leaf) {
-        return false;
-    }
-    sha256.starts_with(shelf) && sha256[shelf.len()..].starts_with(stamped_by(leaf))
+// The stamp is the sha256 after its first two characters, which named a shelf when there were any.
+pub fn vouched(leaf: &str, sha256: &str) -> bool {
+    stamped(leaf)
+        && sha256
+            .get(2..)
+            .is_some_and(|rest| rest.starts_with(stamped_by(leaf)))
 }
 
 pub fn sweep(
@@ -897,6 +863,8 @@ pub fn found(reference: &str, root: &Path, also: Option<&Path>) -> Result<PathBu
 }
 
 pub fn resolve(reference: &str, root: &Path) -> Result<PathBuf> {
+    let flat = canonical(reference);
+    let reference = flat.as_deref().unwrap_or(reference);
     let cleaned = reference.split(['?', '#']).next().unwrap_or("");
     let refused = || Err(Error::OutsideTheStore(reference.to_string()));
     if cleaned.is_empty() {

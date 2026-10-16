@@ -55,7 +55,7 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let made = tisty_core::arriving::tidied(&raw);
     tisty_core::docs::survives(&made.body).map_err(|eats| {
         Refused::Tool(format!(
-            "{said:?} still holds {eats} after being tidied, so it would be destroyed the first time the person opens it. Nothing was written."
+            "{said:?} still holds {eats} after being tidied, which Tisty does not keep in its own words. Nothing was written."
         ))
     })?;
     short_and_plain(&json!({ "body": made.body }))?;

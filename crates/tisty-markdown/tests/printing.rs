@@ -69,7 +69,7 @@ fn lists_say_whether_they_count_tick_or_bullet() {
 
 #[test]
 fn inline_marks_reach_the_sheet_with_what_they_carry() {
-    let line = first("~~no~~ `x` [web](https://a.b) ==sí== <mark data-pen=\"green\">v</mark>\nfin");
+    let line = first("~~no~~ `x` [web](https://a.b) ==sí== ==v=={green}\nfin");
     let said = line.to_string();
     assert!(said.contains("\"strike\""));
     assert!(said.contains("\"code\""));

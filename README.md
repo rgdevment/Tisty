@@ -358,12 +358,15 @@ your machine it takes.
 above is syntax another reader already understands, so the file survives without
 Tisty — a block's name is what Markdown keeps after the language, and a column's
 width rides in how long its rule is drawn, which every other reader ignores and
-draws the same. Where Markdown genuinely cannot say a thing — an icon in a line
-of text — Tisty writes the small piece of HTML that can, and reads it back.
-The editor works on the text as it is written, a block at a time, so opening
-and saving a document never loses a thing in it: a shape outside Tisty's own
-words — front matter, footnotes, links written by reference, blocks of HTML —
-is shown as it is written while you edit it, and kept as it was.
+draws the same. Where Markdown has no word for a thing, Tisty adds a few short
+ones of its own, never HTML: `==words==` is a highlight and `==words=={green}`
+one in another colour, `++words++` is underlined, `::star::` is an icon, and an
+attachment is named by its own name, `![plan](plan-0006bf09.png)`. The editor
+shows the file exactly as it is written, a block at a time, so what you see while
+writing is what is on disk. **Copy as Markdown** and taking a document out say
+those few words the way any other reader understands them, and an older file, an
+import or an assistant writing in plain Markdown is turned into them on the way
+in.
 
 The writing sits on a lit page, and the first line with words in it is both the
 name of the document and its title — reading past a fence or an alert's marker to

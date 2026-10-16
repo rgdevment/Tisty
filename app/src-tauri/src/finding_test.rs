@@ -94,7 +94,7 @@ impl Carrier for Opening {
     }
 }
 
-const ASKED: &str = "attachments/ab/foto-0123456789.png";
+const ASKED: &str = "attachments/foto-0123456789.png";
 
 fn looking(data: &Path, answer: Brought) -> Where {
     Where {

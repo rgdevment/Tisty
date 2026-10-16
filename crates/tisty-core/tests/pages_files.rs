@@ -359,12 +359,12 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
     let original_page_body = docs::read(&data.join("docs"), &page_file).unwrap();
     assert_eq!(twin_body, original_page_body);
     assert!(
-        twin_body.contains(&kept.at),
+        twin_body.contains(kept.at.rsplit('/').next().unwrap()),
         "the same markdown link, not a fresh one"
     );
 
-    let shelf = data.join("attachments").join(&kept.sha256[..2]);
-    let on_disk: Vec<_> = std::fs::read_dir(&shelf).unwrap().collect();
+    let shed = data.join("attachments");
+    let on_disk: Vec<_> = std::fs::read_dir(&shed).unwrap().collect();
     assert_eq!(
         on_disk.len(),
         1,
@@ -676,8 +676,8 @@ fn a_pages_body_hits_the_same_attachment_count_ceiling_as_any_document() {
 
     let (parent, _) = add_doc(&mut state, data, &dev, &mut seq, "# Cuaderno\n\nnotas");
 
-    let link = "![x](<attachments/ab/x.png>)\n";
-    let full = format!("# Pagina llena\n\n{}", link.repeat(attach::KEPT_IN_A_DOC));
+    let links = |n: usize| -> String { (0..n).map(|i| format!("![x](x-{i:08x}.png)\n")).collect() };
+    let full = format!("# Pagina llena\n\n{}", links(attach::KEPT_IN_A_DOC));
     let (_, full_file) = add_page(&mut state, data, &dev, &mut seq, parent, &full);
     let stored = docs::read(&data.join("docs"), &full_file).unwrap();
 
@@ -688,7 +688,7 @@ fn a_pages_body_hits_the_same_attachment_count_ceiling_as_any_document() {
 
     let almost = format!(
         "# Pagina casi llena\n\n{}",
-        link.repeat(attach::KEPT_IN_A_DOC - 1)
+        links(attach::KEPT_IN_A_DOC - 1)
     );
     assert!(attach::fits(&almost, "otro mas").is_ok());
 }
@@ -767,12 +767,12 @@ fn two_sibling_pages_can_attach_different_files_that_share_a_name() {
     assert!(
         docs::read(&data.join("docs"), &page_a)
             .unwrap()
-            .contains(&one.at)
+            .contains(one.at.rsplit('/').next().unwrap())
     );
     assert!(
         docs::read(&data.join("docs"), &page_b)
             .unwrap()
-            .contains(&two.at)
+            .contains(two.at.rsplit('/').next().unwrap())
     );
     assert_eq!(
         std::fs::read(attach::resolve(&one.at, data).unwrap()).unwrap(),

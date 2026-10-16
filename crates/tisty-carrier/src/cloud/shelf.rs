@@ -37,7 +37,6 @@ enum Sent {
 
 struct Local {
     reference: String,
-    under: String,
     leaf: String,
     at: PathBuf,
     len: u64,
@@ -140,7 +139,7 @@ impl<'a> Shelf<'a> {
 
     fn not_up_there(&self, one: &Local, round: &Round) -> bool {
         !round.buried.contains(&one.reference)
-            && attach::shelved(&one.under, &one.leaf)
+            && attach::stamped(&one.leaf)
             && (round.again
                 || self.index.spoiled(&one.reference)
                 || !self
@@ -267,7 +266,7 @@ struct Round<'r> {
 }
 
 pub fn named_well(reference: &str) -> bool {
-    placed(reference).is_some_and(|(under, leaf)| attach::shelved(under, leaf))
+    attach::names_an_attachment(reference)
 }
 
 /// Where it lies, and what it read when no history answers for it yet.
@@ -279,14 +278,14 @@ pub fn brought(
     reference: &str,
     logged: Option<&str>,
 ) -> Result<Option<Fetched>, Hitch> {
-    let Some((under, leaf)) = placed(reference).filter(|_| named_well(reference)) else {
+    let Some(leaf) = placed(reference) else {
         return Ok(None);
     };
     let target = attach::resolve(reference, data).map_err(|e| Hitch::Broke(e.to_string()))?;
     let written_down = attach::digests(data);
     let holds = |at: &Path| {
         attach::hashed(at).ok().filter(|(sha256, _)| {
-            attach::vouched(under, leaf, sha256)
+            attach::vouched(leaf, sha256)
                 && match logged {
                     Some(logged) => sha256.eq_ignore_ascii_case(logged),
                     None => attach::as_kept(&written_down, reference, sha256),
@@ -367,7 +366,7 @@ impl Attachments for Shelf<'_> {
                 pace.went(one.len);
                 continue;
             };
-            if !attach::vouched(&one.under, &one.leaf, &sha256)
+            if !attach::vouched(&one.leaf, &sha256)
                 || !attach::as_kept(avowed, &one.reference, &sha256)
             {
                 self.unsent(&one.reference, "does not hold what its name or the log say");
@@ -459,7 +458,7 @@ impl Attachments for Shelf<'_> {
             if !wanted(&round, self.index, reference, seen) {
                 continue;
             }
-            let Some((under, leaf)) = placed(reference) else {
+            let Some(leaf) = placed(reference) else {
                 continue;
             };
             let Ok(target) = attach::resolve(reference, round.data) else {
@@ -479,8 +478,7 @@ impl Attachments for Shelf<'_> {
             };
             let read = attach::hashed(&part);
             let fits = read.as_ref().is_ok_and(|(sha256, _)| {
-                attach::vouched(under, leaf, sha256)
-                    && attach::as_kept(&written_down, reference, sha256)
+                attach::vouched(leaf, sha256) && attach::as_kept(&written_down, reference, sha256)
             });
             match read {
                 Ok((sha256, bytes)) if fits && std::fs::rename(&part, &target).is_ok() => {
@@ -528,21 +526,18 @@ impl Attachments for Shelf<'_> {
     }
 }
 
-fn placed(reference: &str) -> Option<(&str, &str)> {
-    reference
-        .strip_prefix("attachments/")
-        .and_then(|rest| rest.split_once('/'))
+fn placed(reference: &str) -> Option<&str> {
+    attach::leaf_of(reference)
 }
 
 fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
-    let Some((under, leaf)) = placed(reference) else {
+    if placed(reference).is_none() {
         return false;
-    };
+    }
     let Ok(target) = attach::resolve(reference, round.data) else {
         return false;
     };
-    attach::shelved(under, leaf)
-        && !round.buried.contains(reference)
+    !round.buried.contains(reference)
         && (round
             .reachable
             .is_none_or(|named| named.contains(reference))
@@ -596,42 +591,33 @@ pub fn sweep(data: &Path) {
 fn locals(data: &Path, buried: &BTreeSet<String>) -> (Vec<Local>, Vec<PathBuf>) {
     let mut all = Vec::new();
     let mut asked = Vec::new();
-    let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
+    let Ok(files) = std::fs::read_dir(data.join(HELD)) else {
         return (all, asked);
     };
-    for shelf in shelves.filter_map(|one| one.ok()) {
-        let Some(under) = shelf.file_name().to_str().map(str::to_string) else {
+    for file in files.filter_map(|one| one.ok()) {
+        let (Some(leaf), Ok(meta)) = (
+            file.file_name().to_str().map(str::to_string),
+            file.metadata(),
+        ) else {
             continue;
         };
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+        if let Some(real) = tisty_core::holes::marker(&leaf)
+            .then(|| tisty_core::holes::named_away(&leaf))
+            .flatten()
+        {
+            let reference = format!("{HELD}/{real}");
+            if attach::stamped(real) && !buried.contains(&reference) {
+                asked.push(data.join(HELD).join(real));
+            }
             continue;
-        };
-        for file in files.filter_map(|one| one.ok()) {
-            let (Some(leaf), Ok(meta)) = (
-                file.file_name().to_str().map(str::to_string),
-                file.metadata(),
-            ) else {
-                continue;
-            };
-            if let Some(real) = tisty_core::holes::marker(&leaf)
-                .then(|| tisty_core::holes::named_away(&leaf))
-                .flatten()
-            {
-                let reference = format!("{HELD}/{under}/{real}");
-                if attach::shelved(&under, real) && !buried.contains(&reference) {
-                    asked.push(shelf.path().join(real));
-                }
-                continue;
-            }
-            if meta.is_file() && !leaf.ends_with(".part") {
-                all.push(Local {
-                    reference: format!("{HELD}/{under}/{leaf}"),
-                    under: under.clone(),
-                    leaf,
-                    at: file.path(),
-                    len: meta.len(),
-                });
-            }
+        }
+        if meta.is_file() && !leaf.ends_with(".part") {
+            all.push(Local {
+                reference: format!("{HELD}/{leaf}"),
+                leaf,
+                at: file.path(),
+                len: meta.len(),
+            });
         }
     }
     all.sort_by(|one, other| one.reference.cmp(&other.reference));
@@ -688,3 +674,69 @@ pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting)
 #[cfg(test)]
 #[path = "shelf_test.rs"]
 mod tests;
+
+fn flat_name(name: &str) -> Option<String> {
+    let rest = name.strip_prefix(&format!("{HELD}/"))?;
+    let (shelf, leaf) = rest.split_once('/')?;
+    (shelf.len() == 2 && attach::lower_hex(shelf) && attach::stamped(leaf))
+        .then(|| format!("{HELD}/{leaf}"))
+}
+
+// A twin already flat is the same bytes by its stamp, so the shelved copy only goes.
+pub fn flattened(remote: &dyn Remote, index: &mut Index) -> usize {
+    let shelved: Vec<(String, String)> = index
+        .shelf
+        .keys()
+        .filter_map(|name| flat_name(name).map(|flat| (name.clone(), flat)))
+        .collect();
+    let mut moved = 0;
+    for (from, to) in shelved {
+        let twin = index.shelf.contains_key(&to);
+        let done = match twin {
+            true => remote.delete(&from, None),
+            false => remote.renamed(&from, &to),
+        };
+        // Gone already is not moved: the flat name is left for the round to carry up or bring down.
+        let landed = done.is_ok();
+        match done {
+            Ok(()) | Err(Hitch::Missing(_)) => {
+                if let Some(seen) = index.shelf.remove(&from)
+                    && landed
+                {
+                    index.shelf.entry(to.clone()).or_insert(Seen {
+                        name: to.clone(),
+                        ..seen
+                    });
+                }
+                if let Some(was) = index.spoiled.remove(&from) {
+                    index.spoiled.insert(to.clone(), was);
+                }
+                if let Some(seen) = index.owed.remove(&from) {
+                    index.owed.insert(
+                        to.clone(),
+                        Seen {
+                            name: to.clone(),
+                            ..seen
+                        },
+                    );
+                }
+                if index.vanished.remove(&from) {
+                    index.vanished.insert(to);
+                }
+                moved += 1;
+            }
+            Err(hitch) => {
+                witness::warn(
+                    channel::SYNC,
+                    "an attachment up there could not leave its shelf yet",
+                    &[
+                        ("at", Fact::Id(from)),
+                        ("why", Fact::Why(format!("{hitch:?}"))),
+                    ],
+                );
+                break;
+            }
+        }
+    }
+    moved
+}

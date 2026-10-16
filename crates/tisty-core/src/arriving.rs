@@ -28,14 +28,18 @@ const ENTITIES: [(&str, &str); 8] = [
 
 pub fn tidied(body: &str) -> Tidied {
     let windows = body.contains("\r\n");
-    let plain = match windows {
+    let even = match windows {
         true => body.replace("\r\n", "\n"),
         false => body.to_string(),
     };
-    let opened = match windows {
+    let plain = crate::speaking::turned(&even);
+    let mut opened = match windows {
         true => vec!["Windows line endings"],
         false => Vec::new(),
     };
+    if plain != even {
+        opened.push("what an older Tisty wrote, in its own words now");
+    }
     if crate::docs::survives(&plain).is_ok() {
         return Tidied {
             body: plain,

@@ -115,6 +115,16 @@ export const hosting = (href: string): string | null => {
   }
 };
 
+// The core's own test for an attachment's name: a stamp of hex after the last dash, all in lower case.
+export const kept = (href: string): boolean => {
+  const said = href.trim().replace(/^<|>$/g, "").split(/[?#]/)[0];
+  const leaf = said.startsWith("attachments/") ? (said.split("/").pop() ?? "") : said;
+  if (!leaf || leaf.includes("/") || leaf.includes("\\") || leaf !== leaf.toLowerCase())
+    return false;
+  const stamp = leaf.split(".")[0].split("-").pop() ?? "";
+  return /^[0-9a-f]{8,16}$/.test(stamp);
+};
+
 export const previewOf = (href: string): Preview | null => {
   const at = href.trim();
   if (!at) return null;
@@ -130,7 +140,7 @@ export const previewOf = (href: string): Preview | null => {
   const kind = ending(at);
   if (WATCHABLE.includes(kind)) return { as: "video", at };
   if (HEARABLE.includes(kind)) return { as: "audio", at };
-  if (!kind && !at.startsWith("attachments/")) return null;
+  if (!kind && !kept(at)) return null;
   return { as: "file", at, kind };
 };
 
