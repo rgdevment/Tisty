@@ -14,10 +14,11 @@ pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tau
     tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
 }
 
-// A note changes with every key, so it is drawn fresh and never left on the shelf.
+// A note changes with every key, so it is drawn fresh and never left on the shelf; a journal is
+// never rewritten, so what it said before Tisty had its own words is turned as it is drawn.
 #[tauri::command(async)]
 pub fn note_drawn(body: String) -> String {
-    tisty_markdown::html(&tisty_markdown::read(&body))
+    tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
 }
 
 #[tauri::command(async)]
