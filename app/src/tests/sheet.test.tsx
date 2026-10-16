@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import Sheet from "../ui/Sheet";
+import Sheet, { closed } from "../ui/Sheet";
 
 const ipc = vi.hoisted(() => ({
   drawn: "",
@@ -313,6 +313,20 @@ describe("the sheet in the main window", () => {
     expect(writes).toEqual(["# Compras\n\n++leche++ y ==pan=={blue}\n"]);
   });
 
+  it("takes the blank line of a block left empty along with it", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("");
+    ipc.opened[0].leave("");
+    expect(writes[writes.length - 1]).toBe("# Compras\n\npan\n");
+  });
+
   it("marks its room once the page runs under the bar at the top, and unmarks it back at the top", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     await loaded(await shown(view.container));
@@ -403,5 +417,15 @@ describe("the sheet in the main window", () => {
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     view.rerender(<Sheet value={BODY} label="Compras" onWrite={() => {}} kept />);
     expect(ipc.kept).toEqual([false, true]);
+  });
+});
+
+describe("a block written empty", () => {
+  it("goes with the blank line that kept it apart, wherever it was", () => {
+    const text = "# Plan\n\nuno\n\ndos\n";
+    expect(closed(text, 8, 12)).toBe("# Plan\n\ndos\n");
+    expect(closed(text, 13, 17)).toBe("# Plan\n\nuno\n");
+    expect(closed("uno\n\ndos", 0, 4)).toBe("dos");
+    expect(closed("a\r\n\r\nb\r\n\r\nc", 5, 8)).toBe("a\r\n\r\nc");
   });
 });

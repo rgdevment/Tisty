@@ -33,6 +33,24 @@ type Props = {
   readonly kept?: boolean;
 };
 
+// The newlines a new block needs from its neighbour, read on the side that touches it.
+const parting = (side: string, after: boolean): string => {
+  if (!side.trim()) return "";
+  const edge = after ? side.slice(0, 2) : side.slice(-2);
+  if (edge === "\n\n") return "";
+  return (after ? edge.startsWith("\n") : edge.endsWith("\n")) ? "\n" : "\n\n";
+};
+
+// A block written empty goes with the blank line that kept it apart, so no gap is left behind.
+export const closed = (text: string, from: number, end: number): string => {
+  const line = text.includes("\r\n") ? "\r\n" : "\n";
+  const head = text.slice(0, from).replace(/(?:\r?\n)+$/, "");
+  const rest = text.slice(end).replace(/^(?:\r?\n)+/, "");
+  if (!head) return rest;
+  if (!rest) return `${head}${line}`;
+  return `${head}${line}${line}${rest}`;
+};
+
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
   const room = useRef<HTMLDivElement>(null);
@@ -129,20 +147,8 @@ export default function Sheet(props: Readonly<Props>) {
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
     // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
     const fresh = from === end;
-    const before = latest.current.slice(0, from);
-    const ahead =
-      !fresh || !before.trim() || before.endsWith("\n\n")
-        ? ""
-        : before.endsWith("\n")
-          ? "\n"
-          : "\n\n";
-    const after = latest.current.slice(end);
-    const behind =
-      !fresh || !after.trim() || after.startsWith("\n\n")
-        ? ""
-        : after.startsWith("\n")
-          ? "\n"
-          : "\n\n";
+    const ahead = fresh ? parting(latest.current.slice(0, from), false) : "";
+    const behind = fresh ? parting(latest.current.slice(end), true) : "";
     const spliced = (text: string) => {
       const now = latest.current;
       const said = fresh && (text === seed || !text.trim()) ? "" : text;
@@ -157,6 +163,9 @@ export default function Sheet(props: Readonly<Props>) {
       (text) => written(spliced(text)),
       () => {
         open.current = null;
+        if (!fresh && !latest.current.slice(from, end).trim()) {
+          written(closed(latest.current, from, end));
+        }
         setDrawn(latest.current);
       },
       () => {
