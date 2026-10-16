@@ -11,6 +11,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { matched } from "../finding";
 import { markup } from "../glyphs";
 import { t } from "../locales";
+import { pend } from "./pending";
 
 type Said = Parameters<typeof t>[0];
 
@@ -253,6 +254,10 @@ export const wrapped = (view: EditorView, mark: string, close = mark): boolean =
     selection: inside
       ? { anchor: from + mark.length, head: from + mark.length + inside.length }
       : { anchor: from + mark.length },
+    effects:
+      inside || mark === "["
+        ? []
+        : pend.of({ from: from + mark.length, to: from + mark.length, mark, close }),
     userEvent: "input.format",
   });
   return true;

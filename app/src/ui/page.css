@@ -857,6 +857,18 @@ kbd {
 .cm-bar button:hover {
   background: var(--tisty-hover);
 }
+.cm-pending-strong {
+  font-weight: 640;
+}
+.cm-pending-em {
+  font-style: italic;
+}
+.cm-pending-struck {
+  text-decoration: line-through;
+}
+.cm-pending-code {
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
+}
 .cm-tag {
   background: var(--tisty-mark-tag);
   border-radius: 4px;

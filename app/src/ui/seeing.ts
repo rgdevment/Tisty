@@ -12,6 +12,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
 import { HUES } from "./paging";
+import { waiting } from "./pending";
 import { coded, owning } from "./slashing";
 
 export const showMarks = StateEffect.define<boolean>();
@@ -256,6 +257,7 @@ export const seen = (
     owned(state, from, to, shown, out);
     tagged(state, from, to, out);
   }
+  if (!shown) waiting(state, out);
   return Decoration.set(out, true);
 };
 

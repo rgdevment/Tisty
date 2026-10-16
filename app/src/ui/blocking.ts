@@ -1,7 +1,8 @@
+import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -15,6 +16,7 @@ import { tags } from "@lezer/highlight";
 import { known } from "../glyphs";
 import { barred, flipped } from "./barring";
 import { HUES } from "./paging";
+import { pendingFormat, settle } from "./pending";
 import { visual } from "./seeing";
 import { type Asking, coded, owning, slashing } from "./slashing";
 
@@ -117,6 +119,7 @@ export const edited = (
   const leave = () => {
     if (gone) return;
     gone = true;
+    settle(view);
     const text = view.state.sliceDoc();
     view.destroy();
     hint.remove();
@@ -131,21 +134,28 @@ export const edited = (
       extensions: [
         EditorState.lineSeparator.of(said.includes("\r\n") ? "\r\n" : "\n"),
         history(),
+        // A completion still thinking shows nothing, so only one in sight may keep Escape from leaving.
+        Prec.highest(
+          keymap.of([
+            {
+              key: "Escape",
+              run: (one) => {
+                if (completionStatus(one.state) === "active") return closeCompletion(one);
+                leave();
+                return true;
+              },
+            },
+          ]),
+        ),
         keymap.of([
           { key: "Mod-Shift-m", run: flipped },
-          {
-            key: "Escape",
-            run: () => {
-              leave();
-              return true;
-            },
-          },
           ...defaultKeymap,
           ...historyKeymap,
           indentWithTab,
         ]),
         markdown({ base: markdownLanguage }),
         visual,
+        pendingFormat,
         syntaxHighlighting(inked),
         marked,
         slashing(asking),

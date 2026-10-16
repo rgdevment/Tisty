@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { completionStatus, startCompletion } from "@codemirror/autocomplete";
+import { describe, expect, it, vi } from "vitest";
 import { caretAt, edited } from "../ui/blocking";
+import { wrapped } from "../ui/slashing";
 
 const block = () => {
   const page = document.createElement("article");
@@ -58,6 +60,33 @@ describe("writing a block in place", () => {
       new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
     );
     expect(left).toEqual(["Hola"]);
+    page.remove();
+  });
+
+  it("closes the / menu first with Escape, then leaves, and tidies a format typed with nothing selected", async () => {
+    const { page, one } = block();
+    const left: string[] = [];
+    const editing = edited(
+      one,
+      "Esto es ",
+      () => {},
+      (text) => left.push(text),
+    );
+    const view = editing.view;
+    const pressEscape = () =>
+      view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+      );
+    view.dispatch({ selection: { anchor: 8 } });
+    wrapped(view, "==");
+    view.dispatch({ changes: { from: 10, insert: "juan " }, selection: { anchor: 15 } });
+    view.dispatch({ changes: { from: 17, insert: " /" }, selection: { anchor: 19 } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(completionStatus(view.state)).toBe("active"));
+    pressEscape();
+    expect(left).toEqual([]);
+    pressEscape();
+    expect(left).toEqual(["Esto es ==juan==  /"]);
     page.remove();
   });
 
