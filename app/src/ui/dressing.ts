@@ -112,6 +112,8 @@ export const worn = (
   reach?: Reaching,
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
+  if (reach?.onBlock)
+    page.querySelector<HTMLElement>(".page")?.setAttribute("data-empty", t("pageEmpty"));
   iconed(page);
   const kept = pictures(page, live);
   const lent = widgets(page, stranger, reach);
@@ -137,6 +139,13 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
     ];
     if (block) reach.onBlock?.(at, block);
   }
+  if (asked.kind === "end" && reach.onBlock) {
+    const sheet = page.querySelector(".page");
+    if (!sheet) return;
+    const fresh = page.createElement("p");
+    sheet.append(fresh);
+    reach.onBlock([reach.body.length, reach.body.length], fresh);
+  }
   if (asked.kind === "apart") {
     const drawn = page.querySelector(
       `.page > figure.widget[data-at="${asked.at[0]}-${asked.at[1]}"]`,
@@ -146,6 +155,15 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
   }
 };
 
+// A click on the sheet past its last block is where a new one is written, and on an empty sheet the first.
+const below = (page: Document, target: Element, event: MouseEvent): boolean => {
+  const sheet = page.querySelector(".page");
+  if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))
+    return false;
+  const last = sheet.lastElementChild;
+  return !last || event.clientY > last.getBoundingClientRect().bottom;
+};
+
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
   page.addEventListener("click", (event) => {
@@ -153,7 +171,8 @@ export const wired = (page: Document, reach: () => Reaching) => {
     if (event.button !== 0 || typeof target?.closest !== "function") return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
-    answered(page, went(target, selecting), reach());
+    const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
+    answered(page, asked, reach());
   });
   for (const kind of ["auxclick", "submit", "dragstart", "contextmenu"]) {
     page.addEventListener(kind, refused);

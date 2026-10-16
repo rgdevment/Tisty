@@ -71,6 +71,7 @@ export type Went =
   | { kind: "block"; at: [number, number] }
   | { kind: "tag"; name: string }
   | { kind: "apart"; at: [number, number] }
+  | { kind: "end" }
   | null;
 
 const spanned = (said: string | null): [number, number] | null => {

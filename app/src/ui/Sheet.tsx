@@ -108,10 +108,19 @@ export default function Sheet(props: Readonly<Props>) {
     let end = at[1];
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
+    // A block begun past the last one is kept apart from it by a blank line, as Markdown needs.
+    const before = latest.current.slice(0, from);
+    const apart =
+      from < end || !before.trim() || before.endsWith("\n\n")
+        ? ""
+        : before.endsWith("\n")
+          ? "\n"
+          : "\n\n";
     const spliced = (text: string) => {
       const now = latest.current;
-      const next = `${now.slice(0, from)}${text}${tail}${now.slice(end)}`;
-      end = from + text.length + tail.length;
+      const gap = text ? apart : "";
+      const next = `${now.slice(0, from)}${gap}${text}${tail}${now.slice(end)}`;
+      end = from + gap.length + text.length + tail.length;
       return next;
     };
     open.current = edited(

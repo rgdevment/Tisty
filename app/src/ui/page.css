@@ -58,6 +58,14 @@ html.tall .page > * {
 .page > [data-at] {
   cursor: text;
 }
+.page[data-empty]:empty {
+  min-height: 240px;
+  cursor: text;
+}
+.page[data-empty]:empty::before {
+  content: attr(data-empty);
+  color: var(--tisty-faint);
+}
 .page > :is(h1, h2, h3, p):first-child {
   font-size: 1.65em;
   font-weight: 640;
