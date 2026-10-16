@@ -72,6 +72,7 @@ export default function Sheet(props: Readonly<Props>) {
     () => () => {
       quiet.current = true;
       left();
+      quiet.current = false;
     },
     [left],
   );
