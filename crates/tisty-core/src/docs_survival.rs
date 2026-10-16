@@ -15,7 +15,6 @@ fn what_the_editor_would_eat_is_refused_before_it_is_written() {
         ),
         ("# t\n\nSomething <!-- hidden --> more", "HTML comments"),
         ("# t\n\nfoo &amp; bar", "HTML entities"),
-        ("a claim[^1]\n\n[^1]: the source", "footnotes"),
         (
             "see [the thread][one]\n\n[one]: https://example.com",
             "reference links",
@@ -72,7 +71,6 @@ fn both_halves_read_the_same_corpus_the_same_way() {
             "HTML comments" => "comments",
             "HTML entities" => "entities",
             "maths written between dollars" => "maths",
-            "footnotes" => "notes",
             "reference links" => "refs",
             "what a fence says after its language" => "fence",
             "a list item that opens on a block" => "block",

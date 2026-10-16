@@ -740,6 +740,31 @@ details > summary + * {
 details > :last-child:not(summary) {
   margin-bottom: 12px;
 }
+sup.fnref {
+  line-height: 0;
+}
+sup.fnref a {
+  padding: 0 1px;
+  color: var(--tisty-accent);
+  font-size: 0.75em;
+  font-weight: 600;
+  text-decoration: none;
+}
+.footnote {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+  color: var(--tisty-soft);
+  font-size: 0.9em;
+}
+.footnote > .fn-label {
+  flex: none;
+  min-width: 1.2em;
+  font-weight: 600;
+}
+.footnote > p {
+  margin: 0;
+}
 kbd {
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.82em;

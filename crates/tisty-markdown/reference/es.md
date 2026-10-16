@@ -23,6 +23,7 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 | [Otros documentos y páginas](#otros-documentos-y-páginas) | `![Título](tisty:doc/…)` | no | no |
 | [Adjuntos](#adjuntos) | `![Etiqueta](archivo-1a2b3c4d.pdf)` | no | no |
 | [Referencias](#referencias) | `[[Nombre]]` `[[#2]]` | no | sí |
+| [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí | sí |
 | [Código](#bloques-de-código) | ` ```lenguaje title="nombre" ` | sí | sí |
 | [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí | sí |
 | [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` y `$x$` | sí | solo `$x$` |
@@ -283,6 +284,20 @@ Mira [[La cartilla de Rina]] y el paso [[#2]].
 - Un nombre vacío, o con un `[` o un salto de línea, no es referencia.
 - Obsidian lee `[[nombre]]` como enlace a una nota con ese nombre.
 
+## Notas al pie
+
+Una nota al pie del texto se llama con una etiqueta corta entre corchetes y con acento circunflejo, y se dice una vez en una línea propia:
+
+```markdown
+El veterinario lo confirmó[^vet].
+
+[^vet]: Visita del 3 de marzo, con el examen de sangre.
+```
+
+- La llamada se dibuja como una etiqueta pequeña y elevada que lleva a la nota; la nota queda donde está escrita, con su etiqueta al lado.
+- La etiqueta es cualquier palabra o número corto: `[^1]`, `[^vet]`.
+- GitHub y Obsidian las leen igual.
+
 ## Bloques de código
 
 Una valla de tres o más comillas invertidas (o virgulillas), el lenguaje detrás y, si quieres, un nombre:
@@ -365,7 +380,6 @@ Algunas cosas que escribe otro Markdown no tienen palabra en Tisty. Un documento
 - la cabecera (front matter) al principio del archivo (`---` … `---`),
 - el HTML de cualquier tipo: bloques, etiquetas dentro de una línea, comentarios y entidades como `&amp;`,
 - las fórmulas entre dólares dobles,
-- las notas al pie,
 - los enlaces escritos por referencia (`[palabras][uno]`),
 - lo que una valla de código diga después del lenguaje, aparte de un nombre,
 - un elemento de lista que empieza con un bloque en vez de palabras.

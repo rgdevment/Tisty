@@ -83,6 +83,13 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
             );
             wrapped(&head, "</details>", block, text, anchors, out);
         }
+        Kind::Note { label } => {
+            let head = format!(
+                "<div class=\"footnote\" id=\"fn-{0}\" {at}><span class=\"fn-label\">{0}</span>",
+                escaped(label)
+            );
+            wrapped(&head, "</div>", block, text, anchors, out);
+        }
         Kind::Row { .. } | Kind::Cell => {}
     }
 }

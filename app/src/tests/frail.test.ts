@@ -34,8 +34,8 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail('<div class="warn">Cuidado</div>')).toContain("frailHtml");
   });
 
-  it("sees a footnote, which comes back with its brackets escaped", () => {
-    expect(frail("una nota[^1]\n\n[^1]: el pie")).toContain("frailNotes");
+  it("lets a footnote through, now that the language keeps it", () => {
+    expect(frail("una nota[^1]\n\n[^1]: el pie")).toEqual([]);
   });
 
   it("sees a link by reference, whose definition is thrown away", () => {
@@ -62,7 +62,7 @@ describe("what a document brings that the editor cannot keep", () => {
   });
 
   it("still sees a note that is a note", () => {
-    expect(frail("una nota[^1] y su pie\n\n[^1]: el pie")).toContain("frailNotes");
+    expect(frail("una nota[^1] y su pie\n\n[^1]: el pie")).toEqual([]);
   });
 
   it("does not mistake two horizontal rules for a front matter", () => {
@@ -81,7 +81,7 @@ describe("what a document brings that the editor cannot keep", () => {
   it("names every kind it finds, not only the first", () => {
     const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie\n\n[uno]: https://x.dev";
 
-    expect(frail(messy)).toEqual(["frailFront", "frailHtml", "frailNotes", "frailRefs"]);
+    expect(frail(messy)).toEqual(["frailFront", "frailHtml", "frailRefs"]);
   });
 
   it("sees html that plays inline in the middle of a sentence, not only html standing on its own", () => {
@@ -132,7 +132,7 @@ describe("a fence ends where the quote that opened it ends", () => {
   });
 
   it("still sees a footnote past a fence left open inside a quote", () => {
-    expect(frail("> ```\n> code\n\nuna nota[^1]\n\n[^1]: el pie")).toContain("frailNotes");
+    expect(frail("> ```\n> code\n\nuna nota[^1]\n\n[^1]: el pie")).toEqual([]);
   });
 
   it("reads a fence nobody closed as code to the end, which is what markdown says", () => {
@@ -203,10 +203,8 @@ describe("what the agent is allowed to send opens for editing", () => {
     expect(frail("[uno] no es una definicion")).not.toContain("frailRefs");
   });
 
-  it("sees a footnote and not one whose bracket was escaped or left open", () => {
-    expect(frail("un texto[^1] con nota")).toContain("frailNotes");
-    expect(frail("un texto\\[^1] sin nota")).not.toContain("frailNotes");
-    expect(frail("un texto[^1 sin cerrar")).not.toContain("frailNotes");
+  it("takes a footnote, which the Tisty language keeps", () => {
+    expect(frail("un texto[^1] con nota")).toEqual([]);
   });
 
   it("keeps every tag the editor itself writes", () => {

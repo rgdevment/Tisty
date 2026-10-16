@@ -57,6 +57,14 @@ fn node(block: &Block, text: &str) -> Option<Value> {
             content.extend(inner(block));
             json!({ "type": "blockquote", "content": content })
         }
+        Kind::Note { label } => {
+            let mut content = vec![json!({
+                "type": "paragraph",
+                "content": [{ "type": "text", "text": label, "marks": [{ "type": "bold" }] }],
+            })];
+            content.extend(inner(block));
+            json!({ "type": "blockquote", "content": content })
+        }
         Kind::Html | Kind::Row { .. } | Kind::Cell => return None,
     })
 }
@@ -191,6 +199,7 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
                 continue;
             }
             Mark::Ref { name } => (name.clone(), false),
+            Mark::NoteRef { label } => (format!("[{label}]"), false),
             Mark::Html if kept.contains(&at) => {
                 if said.to_ascii_lowercase().starts_with("<br") {
                     out.push(json!({ "type": "hardBreak" }));

@@ -23,6 +23,7 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 | [Other documents and pages](#other-documents-and-pages) | `![Title](tisty:doc/…)` | no | no |
 | [Attachments](#attachments) | `![Label](file-1a2b3c4d.pdf)` | no | no |
 | [References](#references) | `[[Name]]` `[[#2]]` | no | yes |
+| [Footnotes](#footnotes) | `[^1]` … `[^1]: note` | yes | yes |
 | [Code](#code-blocks) | ` ```lang title="name" ` | yes | yes |
 | [Diagrams](#diagrams-formulas-and-widgets) | ` ```mermaid ` | yes | yes |
 | [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` and `$x$` | yes | `$x$` only |
@@ -283,6 +284,20 @@ See [[Rina's record]] and step [[#2]].
 - An empty name, or one with a `[` or a line break in it, is not a reference.
 - Obsidian reads `[[name]]` as a link to a note of that name.
 
+## Footnotes
+
+A note at the foot of the text is called by a short label in square brackets with a caret, and said once on a line of its own:
+
+```markdown
+The vet confirmed it[^vet].
+
+[^vet]: Visit of 3 March, with the blood test.
+```
+
+- The call is drawn as a small raised label that takes you to the note; the note sits where it is written, with its label beside it.
+- A label is any short word or number: `[^1]`, `[^vet]`.
+- GitHub and Obsidian read them the same way.
+
 ## Code blocks
 
 A fence of three or more backticks (or tildes), the language after it, and optionally a name:
@@ -365,7 +380,6 @@ A few things other Markdown writes have no word in Tisty. A document that holds 
 - front matter at the top of the file (`---` … `---`),
 - HTML of any kind — blocks, tags in a line, comments and entities like `&amp;`,
 - formulas between double dollars,
-- footnotes,
 - links written by reference (`[words][one]`),
 - whatever a code fence says after its language beyond a name,
 - a list item that opens on a block instead of words.
