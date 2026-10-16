@@ -1050,16 +1050,20 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
         return Err("YAML frontmatter");
     }
     let mut fence = Fencing::default();
+    let mut aside = false;
 
     for line in body.lines() {
         if fence.inside(line) {
             continue;
         }
-        if line.starts_with("    ") || line.starts_with('\t') {
+        if !aside && (line.starts_with("    ") || line.starts_with('\t')) {
             continue;
         }
 
-        let plain = outside_code_spans(line);
+        let plain: String = commented(&outside_code_spans(line), &mut aside)
+            .into_iter()
+            .filter_map(|(note, part)| (!note).then_some(part))
+            .collect();
         if let Some(why) = worded(&plain).or_else(|| markup(&plain)) {
             return Err(why);
         }
@@ -1166,6 +1170,27 @@ fn outside_code_spans(line: &str) -> String {
                 at += open;
             }
         }
+    }
+    out
+}
+
+/// A line cut where HTML comments start and end, each piece saying whether it sits inside one;
+/// `aside` carries a comment left open on to the next line.
+pub(crate) fn commented<'a>(line: &'a str, aside: &mut bool) -> Vec<(bool, &'a str)> {
+    let mut out = Vec::new();
+    let mut rest = line;
+    while !rest.is_empty() {
+        let (wall, len) = if *aside { ("-->", 3) } else { ("<!--", 0) };
+        let Some(at) = rest.find(wall) else {
+            out.push((*aside, rest));
+            break;
+        };
+        let cut = at + len;
+        if cut > 0 {
+            out.push((*aside, &rest[..cut]));
+        }
+        rest = &rest[cut..];
+        *aside = !*aside;
     }
     out
 }

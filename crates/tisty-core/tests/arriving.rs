@@ -64,6 +64,7 @@ fn the_standard_forms_the_language_adopts_come_in_as_they_were_written() {
         "```js showLineNumbers title=\"a.js\"\nconst a = 1;\n```\n",
         "- # Revisar la duda\n- * No deberia mostrar eso\n1. > citado\n",
         "Antes\n\n<!--\noculto\n-->\n\nDespues\n",
+        "Antes <!-- <b>borrador</b> --> y\n\n<!--\n<div>viejo</div>\n-->\n",
         "esto es &amp;amp; y listo\n",
         "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```\n\nDespues\n",
     ] {

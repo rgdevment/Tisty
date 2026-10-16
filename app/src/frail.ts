@@ -156,14 +156,26 @@ const markup = (line: string): string | null => {
 
 export const frail = (whole: string): string[] => {
   const text = whole.replace(/^\ufeff+/, "");
-  const bare = fenceless(text)
-    .replace(/^ {4}.*$/gm, "")
-    .replace(/^\t.*$/gm, "");
   const seen = new Set<string>();
+  let aside = false;
 
   if (fronted(text)) seen.add("frailFront");
-  for (const line of bare.split("\n")) {
-    const why = markup(spanless(line));
+  for (const line of fenceless(text).split("\n")) {
+    if (!aside && (line.startsWith("    ") || line.startsWith("\t"))) continue;
+    let plain = "";
+    let rest = spanless(line);
+    while (rest) {
+      const wall = rest.indexOf(aside ? "-->" : "<!--");
+      if (wall < 0) {
+        if (!aside) plain += rest;
+        break;
+      }
+      const cut = aside ? wall + 3 : wall;
+      if (!aside) plain += rest.slice(0, cut);
+      rest = rest.slice(cut);
+      aside = !aside;
+    }
+    const why = markup(plain);
     if (why) seen.add(why);
   }
 

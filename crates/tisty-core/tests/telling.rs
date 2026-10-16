@@ -202,7 +202,7 @@ graph TD
 }
 
 #[test]
-fn a_fence_that_says_more_than_it_should_is_still_trimmed() {
+fn a_fence_that_says_more_than_its_language_keeps_what_it_says() {
     let raw = r#"---
 title: viejo
 ---
@@ -215,14 +215,10 @@ fn main() {}
     let made = tisty_core::arriving::tidied(raw);
 
     assert!(
-        made.body.contains(
-            "```rust
-"
-        ),
+        made.body.contains("```rust vamos a ver que pasa\n"),
         "{}",
         made.body
     );
-    assert!(!made.body.contains("vamos a ver"), "{}", made.body);
 }
 
 #[test]

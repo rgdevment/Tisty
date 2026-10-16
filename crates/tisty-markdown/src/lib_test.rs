@@ -249,6 +249,23 @@ fn an_address_written_bare_is_a_link_without_the_full_stop_after_it() {
         .filter(|mark| matches!(mark, Mark::Link { .. }))
         .collect();
     assert_eq!(links, [&link("https://otro.z")]);
+
+    for (said, to) in [
+        ("==https://a.com==", "https://a.com"),
+        ("==https://a.com=={green}", "https://a.com"),
+        ("++https://a.com++", "https://a.com"),
+        (
+            "ver https://x.com/?a=1&amp;b=2 ya",
+            "https://x.com/?a=1&b=2",
+        ),
+        ("ver https://a.com/a\\_b ya", "https://a.com/a_b"),
+    ] {
+        let found = marks(said);
+        assert!(
+            found.iter().any(|(mark, _)| *mark == link(to)),
+            "{said:?} gave {found:?}"
+        );
+    }
 }
 
 #[test]

@@ -9,7 +9,7 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
         .map(|one| one.at.clone())
         .collect();
     let mut found = Vec::new();
-    for run in runs(spans) {
+    for run in runs(spans, text) {
         if linked
             .iter()
             .any(|one| one.start <= run.start && run.end <= one.end)
@@ -27,30 +27,33 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
             kept.push(span);
             continue;
         }
-        for piece in crate::inline::outside(span.at.clone(), &found) {
-            kept.push(Span {
-                mark: Mark::Text,
-                at: piece,
-            });
-        }
+        let inside = found.iter().filter_map(|one| {
+            let start = one.start.max(span.at.start);
+            let end = one.end.min(span.at.end);
+            (start < end).then_some(start..end)
+        });
+        let pieces: Vec<Range<usize>> = crate::inline::outside(span.at.clone(), &found)
+            .into_iter()
+            .chain(inside)
+            .collect();
+        kept.extend(pieces.into_iter().map(|at| Span {
+            mark: Mark::Text,
+            at,
+        }));
     }
     for at in found {
         kept.push(Span {
             mark: Mark::Link {
-                to: text[at.clone()].to_string(),
+                to: target(&text[at.clone()]),
             },
-            at: at.clone(),
-        });
-        kept.push(Span {
-            mark: Mark::Text,
             at,
         });
     }
     *spans = kept;
 }
 
-// Text arrives cut in pieces wherever the tokenizer paused, so an address may span several.
-fn runs(spans: &[Span]) -> Vec<Range<usize>> {
+// Text arrives cut wherever the tokenizer paused, an escaping backslash included, so an address may span several pieces.
+fn runs(spans: &[Span], text: &str) -> Vec<Range<usize>> {
     let mut texts: Vec<Range<usize>> = spans
         .iter()
         .filter(|one| one.mark == Mark::Text)
@@ -60,7 +63,9 @@ fn runs(spans: &[Span]) -> Vec<Range<usize>> {
     let mut out: Vec<Range<usize>> = Vec::new();
     for one in texts {
         match out.last_mut() {
-            Some(last) if last.end == one.start => last.end = one.end,
+            Some(last) if last.end == one.start || &text[last.end..one.start] == "\\" => {
+                last.end = one.end
+            }
             _ => out.push(one),
         }
     }
@@ -94,15 +99,26 @@ fn addresses(text: &str, run: Range<usize>) -> Vec<Range<usize>> {
     out
 }
 
-// What closes a sentence is not part of the address, and a bracket only when nothing opened it.
+// What closes a sentence or one of Tisty's own walls is not part of the address, and a bracket only when nothing opened it.
 fn trimmed(said: &str) -> usize {
     let mut end = said.len();
+    let opened = said.matches('(').count();
+    let mut shut = said.matches(')').count();
     loop {
-        let Some(last) = said[..end].chars().next_back() else {
+        let left = &said[..end];
+        if left.ends_with('}')
+            && let Some(wall) = left.rfind("=={")
+        {
+            end = wall;
+            continue;
+        }
+        if ["==", "++", "::"].iter().any(|wall| left.ends_with(wall)) {
+            end -= 2;
+            continue;
+        }
+        let Some(last) = left.chars().next_back() else {
             return end;
         };
-        let opened = said[..end].matches('(').count();
-        let shut = said[..end].matches(')').count();
         let stray = match last {
             '.' | ',' | ';' | ':' | '!' | '?' | '"' | '\'' | '*' | '_' | '~' => true,
             ')' => shut > opened,
@@ -111,6 +127,22 @@ fn trimmed(said: &str) -> usize {
         if !stray {
             return end;
         }
+        if last == ')' {
+            shut -= 1;
+        }
         end -= last.len_utf8();
     }
+}
+
+// The address as a browser wants it: no escaping backslash, and `&amp;` back to the `&` it stands for.
+fn target(said: &str) -> String {
+    let mut out = String::with_capacity(said.len());
+    let mut chars = said.chars().peekable();
+    while let Some(one) = chars.next() {
+        if one == '\\' && chars.peek().is_some_and(char::is_ascii_punctuation) {
+            continue;
+        }
+        out.push(one);
+    }
+    out.replace("&amp;", "&")
 }

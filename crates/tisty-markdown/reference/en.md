@@ -360,7 +360,7 @@ A formula inside a sentence goes between single dollars: `$E=mc^2$`.
   $$
   ```
 
-GitHub draws all three fences except `widget`, `$…$` and `$$…$$`. Obsidian draws `mermaid`, `$…$` and `$$…$$`, and shows a `math` block as code.
+GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too. Obsidian draws `mermaid`, `$…$` and `$$…$$`, and shows a `math` block as code.
 
 ## Tables
 

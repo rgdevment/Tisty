@@ -702,5 +702,25 @@
   {
     "text": "# t\n\n```mermaid showLineNumbers title=\"x\"\ngraph TD\n  A --> B\n```\n",
     "why": []
+  },
+  {
+    "text": "a <!-- <div>x</div> --> b",
+    "why": []
+  },
+  {
+    "text": "<!--\n<b>draft</b>\n-->\n\nfin",
+    "why": []
+  },
+  {
+    "text": "<!--\n    <div>x</div>\n-->\n\n<div>real</div>",
+    "why": [
+      "html"
+    ]
+  },
+  {
+    "text": "<!-- uno --> <span>dos</span>",
+    "why": [
+      "html"
+    ]
   }
 ]

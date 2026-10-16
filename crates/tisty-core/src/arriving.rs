@@ -77,6 +77,7 @@ pub fn tidied(body: &str) -> Tidied {
 
     let mut walked = String::with_capacity(whole.len());
     let mut fenced: Option<String> = None;
+    let mut aside = false;
     for line in whole.split_inclusive('\n') {
         let bare = line.trim_end_matches('\n');
         if let Some(open) = &fenced {
@@ -86,12 +87,17 @@ pub fn tidied(body: &str) -> Tidied {
             walked.push_str(line);
             continue;
         }
-        if let Some(open) = opens(bare) {
+        if let Some(open) = opens(bare).filter(|_| !aside) {
             fenced = Some(open);
             walked.push_str(line);
             continue;
         }
-        walked.push_str(&plainer(bare, &mut said, &mut note));
+        for (kept, part) in crate::docs::commented(bare, &mut aside) {
+            match kept {
+                true => walked.push_str(part),
+                false => walked.push_str(&plainer(part, &mut said, &mut note)),
+            }
+        }
         if line.ends_with('\n') {
             walked.push('\n');
         }
@@ -382,11 +388,6 @@ fn spaced(body: &str) -> String {
             }
             out.push(line.to_string());
             continue;
-        }
-        if line.trim_start().starts_with("```math")
-            && out.last().is_some_and(|one| !one.trim().is_empty())
-        {
-            out.push(String::new());
         }
         if let Some(open) = opens(line) {
             fence = Some(open);
