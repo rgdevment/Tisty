@@ -162,7 +162,8 @@ pub(crate) fn known_as(at: &std::path::Path) -> Option<String> {
     .ok()?;
     // Two files made in one tick can share every date on ReFS; only the file id tells them apart.
     let mut id = FILE_ID_INFO::default();
-    unsafe {
+    // FAT, exFAT and some shares give no id, and the change time alone still answers for a rewrite.
+    let given = unsafe {
         GetFileInformationByHandleEx(
             HANDLE(file.as_raw_handle()),
             FileIdInfo,
@@ -170,13 +171,16 @@ pub(crate) fn known_as(at: &std::path::Path) -> Option<String> {
             std::mem::size_of::<FILE_ID_INFO>() as u32,
         )
     }
-    .ok()?;
-    let named: String = id
-        .FileId
-        .Identifier
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect();
+    .is_ok();
+    let named: String = if given {
+        id.FileId
+            .Identifier
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
+    } else {
+        String::new()
+    };
     Some(format!(
         "{}.{:x}.{named}",
         info.ChangeTime, id.VolumeSerialNumber
