@@ -40,6 +40,9 @@ describe("a block written as it reads", () => {
     const one = state("# Plan semanal");
     expect(looked(one)).toContainEqual({ from: 0, to: 0, line: "cm-h1" });
     expect(read(one)).toBe("Plan semanal");
+    expect(looked(state("#"))).toEqual([]);
+    expect(read(state("# "))).toBe("");
+    expect(looked(state("# "))).toContainEqual({ from: 0, to: 0, line: "cm-h1" });
   });
 
   it("hides the marks of a format until the caret steps into it", () => {

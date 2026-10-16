@@ -228,6 +228,8 @@ export const seen = (
       to,
       enter: (node) => {
         const level = HEADING.exec(node.name);
+        // A lone # may still become a tag, so it reads as a title only once a space follows it.
+        if (level && /^#+$/.test(state.doc.lineAt(node.from).text)) return false;
         if (level)
           out.push(
             Decoration.line({ class: `cm-h${level[1]}` }).range(state.doc.lineAt(node.from).from),
