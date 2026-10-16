@@ -14,6 +14,11 @@ pub struct Spoke {
     pub left: usize,
 }
 
+/// What anything outside the window hands in, in Tisty's own words: an older Tisty's tags included.
+pub fn turned(body: &str) -> String {
+    tisty_markdown::to_tisty(body)
+}
+
 pub fn spoken(data: &Path) -> bool {
     data.join(SPOKEN).is_file()
 }

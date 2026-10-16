@@ -211,7 +211,7 @@ pub fn doc(
     lang: Lang,
 ) -> anyhow::Result<ExitCode> {
     if new {
-        let body = crate::cmd::text_or_stdin(Vec::new(), lang)?;
+        let body = tisty_core::speaking::turned(&crate::cmd::text_or_stdin(Vec::new(), lang)?);
         if let Err(eats) = tisty_core::docs::survives(&body) {
             anyhow::bail!("{}", lang.fill("doc-eaten", &[("what", eats)]));
         }

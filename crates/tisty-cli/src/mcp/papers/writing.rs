@@ -15,13 +15,10 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
+    let body = tisty_core::speaking::turned(&body);
     let (state, mut store) = opened(paths)?;
 
-    tisty_core::docs::survives(&body).map_err(|eats| {
-        Refused::Tool(format!(
-            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds plain HTML, CSS and script, drawn in a sealed frame with no network and the window's colours; its classes `grid`, `stat`, `card`, `head`, `badge`, `list`, `box` and `primary` buttons already look like Tisty, and a link in it can only open a `tisty:doc/` document or a web page. A page too large to write inline can be attached instead: `attach` an `.html` file to the document and it is drawn the same way. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
-        ))
-    })?;
+    tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
 
     let body = match warned(paths, &body).and_then(|notice| warned_into("", &body, &notice)) {
         Some(made) => made,
@@ -205,6 +202,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("adding needs a `body` to add.".into()));
     };
+    let body = tisty_core::speaking::turned(&body);
     let (state, mut store) = opened(paths)?;
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
@@ -222,12 +220,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
-    tisty_core::docs::survives(&body).map_err(|eats| {
-        Refused::Tool(format!(
-            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document. Send plain markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Four bits of HTML are kept as well, because the editor writes them itself and reads them back whole: <u>, <mark>, <mark data-pen=\"green\"> and its other colours, and the icon span. Any other tag is refused. Maths goes in a fence saying `math`, never between dollars: `$$` is not markdown, so the editor keeps it as words and escapes what looks like markup inside it. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds plain HTML, CSS and script, drawn in a sealed frame with no network and the window's colours; its classes `grid`, `stat`, `card`, `head`, `badge`, `list`, `box` and `primary` buttons already look like Tisty, and a link in it can only open a `tisty:doc/` document or a web page. A page too large to write inline can be attached instead: `attach` an `.html` file to the document and it is drawn the same way. Nothing else after the language: a second word is dropped when the person opens the document, so it is refused here instead."
-        ))
-    })?;
+    tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
 
     let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
     let body = match warned(paths, &body).and_then(|notice| warned_into(&before, &body, &notice)) {
@@ -674,7 +667,7 @@ pub(super) fn in_its_place(
         )));
     }
 
-    let new = new.replace('\r', "");
+    let new = tisty_core::speaking::turned(&new.replace('\r', ""));
     let tail = match new.is_empty() || new.ends_with('\n') {
         true => new,
         false => format!("{new}\n"),
@@ -691,12 +684,7 @@ pub(super) fn in_its_place(
     }
     let whole = format!("{head}{tail}{rest}");
 
-    tisty_core::docs::survives(&tail).map_err(|eats| {
-        Refused::Tool(format!(
-            "Tisty's editor cannot keep {eats}, and would destroy it the first time the person \
-             opens the document."
-        ))
-    })?;
+    tisty_core::docs::survives(&tail).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
 
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)
         .map_err(hitch)?
@@ -937,4 +925,10 @@ fn stays_beside(plain: &str) -> bool {
         }
     }
     true
+}
+
+pub(super) fn not_spoken(eats: &str) -> String {
+    format!(
+        "Tisty does not keep {eats} in its own words, so nothing was written. Send Tisty markdown: headings, lists, emphasis, inline links, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Underline is ++words++; a pen is ==words==, or ==words=={{green}} for another colour of the palette (red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray); an icon is ::name:: or ::name hue::; an attachment is named by its stamped name. An older Tisty's <u>, <mark> and icon span are turned into these on their way in; any other tag is refused. Maths goes in a fence saying `math`, never between dollars. A fence carries its language and, if you want, one name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds plain HTML, CSS and script, drawn in a sealed frame with no network and the window's colours; its classes `grid`, `stat`, `card`, `head`, `badge`, `list`, `box` and `primary` buttons already look like Tisty, and a link in it can only open a `tisty:doc/` document or a web page. A page too large to write inline can be attached instead: `attach` an `.html` file to the document and it is drawn the same way. Nothing else goes after the language."
+    )
 }
