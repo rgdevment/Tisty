@@ -66,6 +66,7 @@ describe("writing a block in place", () => {
   it("keeps files pasted from the clipboard as attachments, and leaves pasted words alone", async () => {
     const { page, one } = block();
     const pasted: string[] = [];
+    let lost = 0;
     const editing = edited(
       one,
       "Ver",
@@ -77,6 +78,9 @@ describe("writing a block in place", () => {
         pasted: (files) => {
           pasted.push(...files.map((file) => file.name));
           return Promise.resolve("![captura](captura.png)");
+        },
+        lost: () => {
+          lost += 1;
         },
       }),
     );
@@ -101,7 +105,9 @@ describe("writing a block in place", () => {
       expect(view.state.sliceDoc()).toBe("VerA1\tB1\n\n![captura](captura.png)"),
     );
     expect(pasted).toEqual(["captura.png"]);
+    paste([new File(["x"], "tarde.png")]);
     editing.leave();
+    await vi.waitFor(() => expect(lost).toBe(1));
     page.remove();
   });
 

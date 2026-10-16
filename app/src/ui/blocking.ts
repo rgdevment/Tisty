@@ -31,7 +31,9 @@ const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking 
   event.preventDefault();
   pasted(files)
     .then((text) => {
-      if (text && view.dom.isConnected) putBlock(view, text);
+      if (!text) return;
+      if (view.dom.isConnected) putBlock(view, text);
+      else asking?.()?.lost?.();
     })
     .catch(() => {});
   return true;

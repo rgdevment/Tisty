@@ -750,6 +750,27 @@ describe("files brought into a document being written", () => {
     await waitFor(() => expect(put).toHaveBeenCalledWith("![a.png](a.png)\n\n![b.pdf](b.pdf)"));
   });
 
+  it("asks for a title before a file becomes a document's first line, and refuses one too big", async () => {
+    const errors: string[] = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.kinds).toContain("file"));
+    store.asking?.ask("file", { x: 0, y: 0 }, () => true, true);
+    expect(errors).toEqual([t("fileNeedsTitle")]);
+    const huge = new File(["x"], "video.mp4");
+    Object.defineProperty(huge, "size", { value: 2 * 1024 * 1024 * 1024 });
+    expect(await store.asking?.pasted?.([huge])).toBe("");
+    expect(errors).toHaveLength(2);
+    store.asking?.lost?.();
+    expect(errors[2]).toBe(t("attachmentLost"));
+  });
+
   it("says the files were lost when the block closed while the dialog was open", async () => {
     const errors: string[] = [];
     render(

@@ -68,3 +68,13 @@ fn a_pasted_file_with_no_name_is_called_by_what_it_holds() {
     assert_eq!(pasted_name("..", "application/pdf"), "pasted.pdf");
     assert_eq!(pasted_name("", "application/x-thing"), "pasted.bin");
 }
+
+#[test]
+fn a_pasted_name_windows_would_misread_falls_back_to_a_plain_one() {
+    assert_eq!(pasted_name("C:evil.txt", "text/plain"), "pasted.txt");
+    assert_eq!(pasted_name("aux.png", "image/png"), "pasted.png");
+    assert_eq!(pasted_name("COM1.jpg", "image/jpeg"), "pasted.jpg");
+    assert_eq!(pasted_name("que?.pdf", "application/pdf"), "pasted.pdf");
+    assert_eq!(pasted_name("computer.png", "image/png"), "computer.png");
+    assert_eq!(pasted_name("company.png", "image/png"), "company.png");
+}

@@ -19,6 +19,7 @@ export type Asking = {
   readonly kinds: readonly Asked[];
   readonly tags?: readonly string[];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
+  readonly lost?: () => void;
   readonly ask: (
     kind: Asked,
     at: { x: number; y: number },

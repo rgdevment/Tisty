@@ -22,6 +22,7 @@ import {
   viewDoc,
 } from "../core";
 import { stamped } from "../format";
+import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
@@ -104,14 +105,6 @@ const NO_TAGS: readonly string[] = [];
 const listed = (chosen: string | string[] | null): string[] => {
   if (Array.isArray(chosen)) return chosen;
   return chosen ? [chosen] : [];
-};
-
-// One file that could not be kept is told, and the ones that could still go in.
-const keptAll = async (tries: Promise<string>[], onError: (said: string) => void) => {
-  const done = await Promise.allSettled(tries);
-  const failed = done.find((one) => one.status === "rejected");
-  if (failed) onError(saidPlainly(failed.reason));
-  return done.flatMap((one) => (one.status === "fulfilled" ? [one.value] : [])).join("\n\n");
 };
 
 export default function Docs({
@@ -428,14 +421,19 @@ export default function Docs({
             pasted: (files) =>
               keptAll(
                 files.map((one) =>
-                  one
-                    .arrayBuffer()
-                    .then((bytes) => attachPasted(one.name, one.type, new Uint8Array(bytes))),
+                  one.size > PASTED_UP_TO
+                    ? Promise.reject({ code: "attachmentTooBigHere", name: "650 MB" })
+                    : one
+                        .arrayBuffer()
+                        .then((bytes) => attachPasted(one.name, one.type, new Uint8Array(bytes))),
                 ),
                 onError,
               ),
+            lost: () => onError(t("attachmentLost")),
             ask: (kind, at, put, first) => {
               if (kind === "file") {
+                // An attachment as a document's first words would become its title.
+                if (first) return onError(t("fileNeedsTitle"));
                 pick({ multiple: true })
                   .then((chosen) =>
                     keptAll(

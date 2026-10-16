@@ -6,7 +6,7 @@ import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import Page from "./Page";
-import { charsAt, type Head } from "./paging";
+import { charsAt, type Head, spanned } from "./paging";
 import { closed, laid, parting } from "./parting";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { type Asking, putBlock } from "./slashing";
@@ -174,6 +174,7 @@ export default function Sheet(props: Readonly<Props>) {
           kinds: asking.kinds,
           tags: asking.tags,
           pasted: asking.pasted,
+          lost: asking.lost,
           ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
         };
       },
@@ -198,8 +199,8 @@ export default function Sheet(props: Readonly<Props>) {
             .elementFromPoint(at.left - frame.left, at.top - frame.top)
             ?.closest<HTMLElement>(".page > [data-at]")
         : null;
-    const bytes = /-(\d+)$/.exec(block?.dataset.at ?? "");
-    const next = laid(now, bytes ? charsAt(now, Number(bytes[1])) : now.length, text);
+    const span = spanned(block?.dataset.at ?? null);
+    const next = laid(now, span ? charsAt(now, span[1]) : now.length, text);
     written(next);
     setDrawn(next);
   };

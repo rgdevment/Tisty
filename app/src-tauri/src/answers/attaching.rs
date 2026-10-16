@@ -20,12 +20,28 @@ pub fn attach(
                 .map(str::to_string)
         })
         .unwrap_or_default();
-    kept_from(&session, &source, name, roomy)
+    let (root, ceiling) = room_for(&session, roomy);
+    let kept = kept_at(&source, &root, ceiling, &name, roomy.unwrap_or(false))?;
+    noted(&session, &kept);
+    Ok(kept.written(&name))
 }
 
 pub(crate) fn pasted_name(raw: &str, kind: &str) -> String {
     let leaf = raw.rsplit(['/', '\\']).next().unwrap_or_default().trim();
-    if !leaf.is_empty() && leaf != "." && leaf != ".." {
+    let stem = leaf
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
+    // A drive mark, a character Windows refuses or a device name would put the bytes somewhere else.
+    let reserved = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || (stem.len() == 4
+            && (stem.starts_with("COM") || stem.starts_with("LPT"))
+            && stem.ends_with(|one: char| one.is_ascii_digit()));
+    let refused = leaf
+        .chars()
+        .any(|one| one.is_control() || "<>:\"|?*".contains(one));
+    if !leaf.is_empty() && leaf != "." && leaf != ".." && !reserved && !refused {
         return leaf.to_string();
     }
     let ending = match kind {
@@ -42,9 +58,9 @@ pub(crate) fn pasted_name(raw: &str, kind: &str) -> String {
 
 static PASTED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-// The bytes come raw, not as a JSON list of numbers, so a large screenshot does not stall the window.
+// Raw bytes on a thread of its own, so a large screenshot never stalls the window.
 #[tauri::command]
-pub fn attach_pasted(
+pub async fn attach_pasted(
     session: tauri::State<'_, Mutex<Session>>,
     request: tauri::ipc::Request<'_>,
 ) -> Answer<String> {
@@ -64,51 +80,72 @@ pub fn attach_pasted(
     let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
         return Err(Refusal::about("cannotRead", name));
     };
+    let bytes = bytes.clone();
+    let (root, ceiling) = room_for(&session, Some(true));
+    let kept = crate::elsewhere(move || parked(&bytes, name, &root, ceiling)).await??;
+    noted(&session, &kept.0);
+    Ok(kept.0.written(&kept.1))
+}
+
+// A pasted file has no place on disk, so it waits in a folder of its own until it is kept.
+fn parked(
+    bytes: &[u8],
+    name: String,
+    root: &std::path::Path,
+    ceiling: u64,
+) -> Answer<(tisty_core::attach::Kept, String)> {
     let room = std::env::temp_dir().join(format!(
         "tisty-pasted-{}-{}",
         std::process::id(),
         PASTED.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
-    std::fs::create_dir_all(&room).map_err(|_| Refusal::about("cannotRead", name.clone()))?;
     let source = room.join(&name);
-    let written = std::fs::write(&source, bytes);
-    let kept = written
+    let kept = std::fs::create_dir_all(&room)
+        .and_then(|()| std::fs::write(&source, bytes))
         .map_err(|_| Refusal::about("cannotRead", name.clone()))
-        .and_then(|()| kept_from(&session, &source, name, Some(true)));
+        .and_then(|()| kept_at(&source, root, ceiling, &name, true))
+        .map(|kept| (kept, name));
     let _ = std::fs::remove_dir_all(&room);
     kept
 }
 
-fn kept_from(
+fn room_for(
     session: &tauri::State<'_, Mutex<Session>>,
-    source: &std::path::Path,
-    name: String,
     roomy: Option<bool>,
-) -> Answer<String> {
-    let (root, ceiling) = {
-        let session = held(session);
-        let ceiling = if roomy.unwrap_or(false) {
-            tisty_core::attach::COPIED_IN_DOC
-        } else {
-            session.config.copies_up_to()
-        };
-        (session.paths.data().to_path_buf(), ceiling)
+) -> (std::path::PathBuf, u64) {
+    let session = held(session);
+    let ceiling = if roomy.unwrap_or(false) {
+        tisty_core::attach::COPIED_IN_DOC
+    } else {
+        session.config.copies_up_to()
     };
-    let kept = tisty_core::attach::keep(source, &root, ceiling).map_err(|e| {
+    (session.paths.data().to_path_buf(), ceiling)
+}
+
+fn kept_at(
+    source: &std::path::Path,
+    root: &std::path::Path,
+    ceiling: u64,
+    name: &str,
+    roomy: bool,
+) -> Answer<tisty_core::attach::Kept> {
+    tisty_core::attach::keep(source, root, ceiling).map_err(|e| {
         witness::warn(channel::ATTACH, "the file could not be kept", &e.told());
         match e {
             tisty_core::Error::AttachmentTooBig { limit, .. } => Refusal::about(
-                if roomy.unwrap_or(false) {
+                if roomy {
                     "attachmentTooBigHere"
                 } else {
                     "attachmentTooBig"
                 },
                 weighed(limit),
             ),
-            _ => Refusal::about("cannotRead", name.clone()),
+            _ => Refusal::about("cannotRead", name.to_string()),
         }
-    })?;
+    })
+}
 
+fn noted(session: &tauri::State<'_, Mutex<Session>>, kept: &tisty_core::attach::Kept) {
     if let Err(e) = held(session).commit(kept.told()) {
         witness::warn(
             channel::ATTACH,
@@ -119,7 +156,6 @@ fn kept_from(
             ],
         );
     }
-    Ok(kept.written(&name))
 }
 
 #[tauri::command]
