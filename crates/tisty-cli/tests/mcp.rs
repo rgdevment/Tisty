@@ -205,6 +205,27 @@ fn it_files_into_a_list_that_exists_and_nowhere_else() {
 }
 
 #[test]
+fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let english = served.call("language", serde_json::json!({}));
+    let text = english["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or("");
+    assert!(text.starts_with("# "));
+    assert!(text.contains("=={green}"));
+    assert_eq!(english["result"]["structuredContent"]["lang"], "en");
+
+    let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
+    assert_eq!(spanish["result"]["structuredContent"]["lang"], "es");
+    assert_ne!(
+        spanish["result"]["content"][0]["text"],
+        english["result"]["content"][0]["text"]
+    );
+}
+
+#[test]
 fn it_can_read_which_tags_are_already_in_use_and_how_often() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
@@ -334,6 +355,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "read",
             "find",
             "lists",
+            "language",
             "tags"
         ]
     );

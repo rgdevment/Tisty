@@ -61,6 +61,15 @@ pub struct Span {
     pub at: Range<usize>,
 }
 
+/// The whole language, written for whoever asks: the window shows it and the assistant door hands it over.
+pub fn reference(spanish: bool) -> &'static str {
+    if spanish {
+        include_str!("../reference/es.md")
+    } else {
+        include_str!("../reference/en.md")
+    }
+}
+
 /// A link with nowhere to go yet reads as its words, never as a way back to its own page.
 pub(crate) fn nowhere(to: &str) -> bool {
     to.trim().is_empty()

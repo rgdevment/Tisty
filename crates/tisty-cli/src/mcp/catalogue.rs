@@ -150,6 +150,8 @@ name the document by its title and, when it helps them find it, the folder it si
 answers here are written that way already — the title in quotes, the id in brackets after \
 it — so what you read back to them is the part before the brackets.
 
+A document is kept in the Tisty language: Markdown plus a few words of Tisty's own — pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, collapsible sections, cards to other documents. Ask `language` once before writing anything beyond plain words; a colour or an icon Tisty does not know reaches the person as text to clean up.
+
 A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
 A whole folder can be in the archive too, and then everything under it is — every subfolder, every document, every page — without any of them being marked one by one. What the archive reaches that way is read, exported and packed as always, and written by nobody: no `write_doc`, no `append_doc`, no `edit_doc`, no `attach`, no `page_doc`, no `file_doc` in or out of it, and nothing new goes into that folder — `write_doc` with it as `folder`, `import_doc`, and `folder` naming it as `inside` are all refused, as is changing how it looks. A document in there has no door of its own: `archive_doc` will not hand it back, because only the folder can be brought back, and only by the person from the window. Its own mark is kept untouched while it waits, so a document somebody had archived by hand stays archived when the folder returns.
@@ -965,6 +967,20 @@ pub(super) fn tools() -> Value {
             "title": "The lists that exist",
             "description": "The names of the person's lists, so you can file a task into one. You cannot make a list; anything you propose without one lands in the inbox.",
             "inputSchema": { "type": "object", "additionalProperties": false }
+        }),
+        json!({
+            "name": "language",
+            "title": "How Tisty writes a document",
+            "description": "The whole Tisty language, the Markdown a document is kept in: headings, lists and stages, pens with their colours, underline, icons and their names, callouts, collapsible sections, tags, cards to other documents, attachments, references, code, diagrams, formulas and tables — each with how it is written on disk and the rules that decide when it counts. Ask for it once before writing anything beyond plain words, so a pen colour or an icon you use is one Tisty knows instead of text the person has to clean up. `lang` picks English or Spanish; the language itself is the same.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "lang": {
+                        "type": "string",
+                        "enum": ["en", "es"],
+                        "description": "en for English, es for Spanish. Left out, English"
+                    }
+                }
+            }))
         }),
         json!({
             "name": "tags",

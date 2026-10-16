@@ -582,6 +582,14 @@ pub(super) fn lists(paths: &Paths) -> Result<Value, Refused> {
     Ok(told(text, json!({ "lists": named })))
 }
 
+pub(super) fn language(args: &Value) -> Value {
+    let spanish = args["lang"].as_str() == Some("es");
+    told(
+        tisty_markdown::reference(spanish).to_string(),
+        json!({ "lang": if spanish { "es" } else { "en" } }),
+    )
+}
+
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let mut how: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
