@@ -546,7 +546,7 @@
   },
   {
     "text": "<mark data-pen=\"VERDE\">no</mark>",
-    "why": []
+    "why": ["html"]
   },
   {
     "text": "texto ==amarillo== normal",
@@ -714,7 +714,7 @@
   },
   {
     "text": "<span data-ico=\"rocket\" data-hue=\"blue\">:rocket:</span> despega",
-    "why": []
+    "why": ["html"]
   },
   {
     "text": "<span data-ico=\"house-plug\">:house-plug:</span> en casa",

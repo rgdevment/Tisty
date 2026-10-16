@@ -91,3 +91,29 @@ fn both_halves_read_the_same_corpus_the_same_way() {
         }
     }
 }
+
+#[test]
+fn a_colour_or_an_icon_the_language_has_not_got_is_refused() {
+    for (body, why) in [
+        ("un ==dato=={silver} ya", "a colour outside the palette"),
+        ("llamar ::nope:: hoy", "an icon name it does not know"),
+        ("el ::dog plaid:: duerme", "a colour outside the palette"),
+        ("<mark data-pen=\"rojo\">x</mark>", "HTML"),
+        ("<span data-ico=\"nope\"></span>", "HTML"),
+    ] {
+        assert_eq!(super::survives(body), Err(why), "{body:?}");
+    }
+}
+
+#[test]
+fn colours_and_icons_the_language_has_go_through_and_so_do_double_colons_in_words() {
+    for body in [
+        "un ==dato=={green} y ==otro==",
+        "el ::dog orange:: y ::star::",
+        "std::fs::write and a::b in prose",
+        "`::nope::` in code",
+        "<mark data-pen=\"green\">x</mark>",
+    ] {
+        assert_eq!(super::survives(body), Ok(()), "{body:?}");
+    }
+}

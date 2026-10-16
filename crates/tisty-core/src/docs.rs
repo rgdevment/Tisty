@@ -1045,8 +1045,8 @@ mod naming;
 #[path = "docs_test.rs"]
 mod tests;
 
-/// What the window's editor destroys the first time somebody opens a document. It rewrites the
-/// whole file, so anything it cannot represent is gone on the first keystroke.
+/// A rule written as a line of three or more marks, which is no list item even when it starts with
+/// the same dash.
 fn ruled(rest: &str) -> bool {
     let Some(mark) = rest.chars().find(|c| !c.is_whitespace()) else {
         return false;
@@ -1131,7 +1131,7 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
         }
 
         let plain = outside_code_spans(line);
-        if let Some(why) = markup(&plain) {
+        if let Some(why) = worded(&plain).or_else(|| markup(&plain)) {
             return Err(why);
         }
         let flat = plain.trim();
@@ -1146,6 +1146,62 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
         }
     }
     Ok(())
+}
+
+const UNKNOWN_COLOUR: &str = "a colour outside the palette";
+const UNKNOWN_ICON: &str = "an icon name it does not know";
+
+fn lowered(name: &str) -> bool {
+    !name.is_empty() && name.chars().all(|one| one.is_ascii_lowercase())
+}
+
+/// A pen or an icon written in the language's own words but naming what it has not got, with
+/// what it reads as once mended: the plain pen, the icon without the colour, or the word alone.
+pub(crate) fn strays(line: &str) -> Vec<(std::ops::Range<usize>, String, &'static str)> {
+    let mut found = Vec::new();
+    for (at, _) in line.match_indices("=={") {
+        let rest = &line[at + 3..];
+        if let Some(end) = rest.find('}')
+            && lowered(&rest[..end])
+            && !tisty_markdown::vocab::pen(&rest[..end])
+        {
+            found.push((at + 2..at + 4 + end, String::new(), UNKNOWN_COLOUR));
+        }
+    }
+    let joined = |one: Option<char>| one.is_some_and(char::is_alphanumeric);
+    for (at, _) in line.match_indices("::") {
+        if joined(line[..at].chars().next_back()) || found.iter().any(|one| one.0.contains(&at)) {
+            continue;
+        }
+        let rest = &line[at + 2..];
+        let Some(end) = rest.find("::") else {
+            continue;
+        };
+        if joined(rest[end + 2..].chars().next()) {
+            continue;
+        }
+        let said = &rest[..end];
+        let (name, hue) = said.split_once(' ').unwrap_or((said, ""));
+        let shaped = !name.is_empty()
+            && name
+                .chars()
+                .all(|one| one.is_ascii_lowercase() || one.is_ascii_digit() || one == '-');
+        if !shaped || (!hue.is_empty() && !lowered(hue)) {
+            continue;
+        }
+        let whole = at..at + 4 + end;
+        if !tisty_markdown::vocab::icon(name) {
+            found.push((whole, name.to_string(), UNKNOWN_ICON));
+        } else if !hue.is_empty() && !tisty_markdown::vocab::hue(hue) {
+            found.push((whole, format!("::{name}::"), UNKNOWN_COLOUR));
+        }
+    }
+    found.sort_by_key(|one| one.0.start);
+    found
+}
+
+fn worded(line: &str) -> Option<&'static str> {
+    strays(line).first().map(|one| one.2)
 }
 
 fn fronted(body: &str) -> bool {
@@ -1318,10 +1374,8 @@ fn named_or_marked(said: &str) -> Option<&str> {
     if value.is_empty() {
         return None;
     }
-    let plain = value
-        .chars()
-        .all(|one| one.is_ascii_alphanumeric() || one == '-');
-    (plain || crate::model::icon::a_mark(value)).then(|| after.trim_start())
+    (tisty_markdown::vocab::icon(value) || crate::model::icon::a_mark(value))
+        .then(|| after.trim_start())
 }
 
 fn iconed(inner: &str) -> bool {
@@ -1339,6 +1393,10 @@ fn iconed(inner: &str) -> bool {
         return true;
     }
     quotedly(after, "data-hue", |one| one.is_ascii_alphabetic()).is_some_and(str::is_empty)
+        && after
+            .strip_prefix("data-hue=\"")
+            .and_then(|one| one.split_once('"'))
+            .is_some_and(|(hue, _)| tisty_markdown::vocab::hue(hue))
 }
 
 pub(crate) fn kept(inner: &str) -> bool {
@@ -1363,7 +1421,7 @@ pub(crate) fn kept(inner: &str) -> bool {
     else {
         return false;
     };
-    !said.is_empty() && said.chars().all(|one| one.is_ascii_alphabetic())
+    tisty_markdown::vocab::pen(said)
 }
 
 fn anchored(said: &str) -> bool {

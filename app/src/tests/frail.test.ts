@@ -212,17 +212,18 @@ describe("what the agent is allowed to send opens for editing", () => {
   it("keeps every tag the editor itself writes", () => {
     expect(frail("un <u>subrayado</u>")).not.toContain("frailHtml");
     expect(frail("una <mark>marca</mark>")).not.toContain("frailHtml");
-    expect(frail('una <mark data-pen="rojo">marca</mark>')).not.toContain("frailHtml");
-    expect(frail('un <span data-ico="check"></span>')).not.toContain("frailHtml");
-    expect(frail('un <span data-ico="check" data-hue="verde"></span>')).not.toContain("frailHtml");
+    expect(frail('una <mark data-pen="red">marca</mark>')).not.toContain("frailHtml");
+    expect(frail('un <span data-ico="dog"></span>')).not.toContain("frailHtml");
+    expect(frail('un <span data-ico="dog" data-hue="green"></span>')).not.toContain("frailHtml");
     expect(frail('un <span data-ico="🎉"></span>')).not.toContain("frailHtml");
   });
 
   it("flags a tag the editor would lose, however close it looks to one it keeps", () => {
     expect(frail("un <div>bloque</div>")).toContain("frailHtml");
     expect(frail('un <span data-otro="x"></span>')).toContain("frailHtml");
-    expect(frail('una <mark data-pen="rojo2">marca</mark>')).toContain("frailHtml");
-    expect(frail('un <span data-ico="check" data-hue="verde2"></span>')).toContain("frailHtml");
+    expect(frail('una <mark data-pen="rojo">marca</mark>')).toContain("frailHtml");
+    expect(frail('un <span data-ico="nada-que-ver"></span>')).toContain("frailHtml");
+    expect(frail('un <span data-ico="dog" data-hue="verde"></span>')).toContain("frailHtml");
   });
 
   it("leaves an autolink and a target written between angles alone", () => {
