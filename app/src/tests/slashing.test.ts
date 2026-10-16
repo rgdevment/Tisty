@@ -1,7 +1,7 @@
 import { CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
 import { type Asked, offered, put, SLASHED, slashing, wrapped } from "../ui/slashing";
 
@@ -120,5 +120,34 @@ describe("the / menu in a block", () => {
   it("narrows by what follows the slash, by label or by key, and says so when nothing fits", () => {
     expect(asked("/mermaid")?.options.map((one) => one.detail)).toEqual(["```mermaid"]);
     expect(asked("/zzzz")).toBeNull();
+  });
+
+  it("formats what is selected with the keys the menu names", () => {
+    const editor = view("leche y pan");
+    const key = (init: KeyboardEventInit) =>
+      runScopeHandlers(editor, new KeyboardEvent("keydown", { ctrlKey: true, ...init }), "editor");
+    editor.dispatch({ selection: { anchor: 0, head: 5 } });
+    expect(key({ key: "b" })).toBe(true);
+    expect(editor.state.sliceDoc()).toBe("**leche** y pan");
+    editor.dispatch({ selection: { anchor: 12, head: 15 } });
+    expect(key({ key: "X", shiftKey: true })).toBe(true);
+    expect(editor.state.sliceDoc()).toBe("**leche** y ~~pan~~");
+    editor.destroy();
+  });
+
+  it("says a card was not written when its block closed while the window was asked", () => {
+    const editor = view("Ver /");
+    let bring: ((text: string) => boolean) | undefined;
+    put(editor, one("icon"), 4, 5, {
+      kinds: ["icon"],
+      ask: (_, __, given, first) => {
+        expect(first).toBe(false);
+        bring = given;
+      },
+    });
+    expect(bring?.("::star::")).toBe(true);
+    expect(editor.state.sliceDoc()).toBe("Ver ::star::");
+    editor.destroy();
+    expect(bring?.("::dog::")).toBe(false);
   });
 });

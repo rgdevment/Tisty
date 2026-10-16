@@ -4,7 +4,13 @@ import Sheet from "../ui/Sheet";
 
 const ipc = vi.hoisted(() => ({
   drawn: "",
-  opened: [] as { said: string; change: (text: string) => void; leave: (text: string) => void }[],
+  opened: [] as {
+    said: string;
+    change: (text: string) => void;
+    leave: (text: string) => void;
+    asking?: () => unknown;
+    caret: number;
+  }[],
   left: 0,
 }));
 
@@ -17,18 +23,26 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 vi.mock("../ui/blocking", () => ({
+  caretAt: (source: string, read: string) => (read ? source.indexOf(read) + read.length : 0),
   edited: (
     block: HTMLElement,
     said: string,
     change: (text: string) => void,
     leave: (text: string) => void,
+    asking?: () => unknown,
   ) => {
     const host = block.ownerDocument.createElement("div");
     host.className = "editing";
     block.replaceWith(host);
-    ipc.opened.push({ said, change, leave });
+    const opened = { said, change, leave, asking, caret: -1 };
+    ipc.opened.push(opened);
     return {
-      view: null,
+      view: {
+        state: { sliceDoc: () => said },
+        dispatch: (spec: { selection: { anchor: number } }) => {
+          opened.caret = spec.selection.anchor;
+        },
+      },
       leave: () => {
         ipc.left += 1;
         leave(said);
@@ -314,5 +328,67 @@ describe("the sheet in the main window", () => {
     ipc.drawn = '<p data-at="0-6">Otra</p>';
     view.rerender(<Sheet value="Otra.\n" label="Compras" onWrite={() => {}} />);
     await shown(view.container, "Otra");
+  });
+
+  it("writes a title from its empty slot, and nothing while only its mark is there", async () => {
+    const writes: string[] = [];
+    ipc.drawn = "";
+    const view = render(<Sheet value="" label="" onWrite={(text) => writes.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector(".page > h1[data-title]")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.opened.map((one) => [one.said, one.caret])).toEqual([["# ", 2]]);
+    ipc.opened[0].change("# ");
+    ipc.opened[0].change("# Plan");
+    expect(writes).toEqual(["", "# Plan"]);
+  });
+
+  it("begins a block past the last one, apart from it by a blank line", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector(".page")
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true, clientY: 9999 }));
+    expect(ipc.opened.map((one) => one.said)).toEqual([""]);
+    ipc.opened[0].change("fruta");
+    expect(writes).toEqual(["# Compras\n\nleche\n\npan\n\nfruta"]);
+  });
+
+  it("ends the block on a press elsewhere in the window, but not on a picker it opened", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const picker = document.createElement("div");
+    picker.dataset.keepsWriting = "";
+    document.body.append(picker);
+    picker.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(ipc.left).toBe(0);
+    document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(ipc.left).toBe(1);
+    picker.remove();
+  });
+
+  it("tells the window a card would come first only when nothing is written before the block", async () => {
+    const firsts: boolean[] = [];
+    const asking = {
+      kinds: ["doc"] as const,
+      ask: (_: unknown, __: unknown, ___: unknown, first: boolean) => firsts.push(first),
+    };
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} asking={asking as never} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const handed = ipc.opened[0].asking?.() as typeof asking;
+    handed.ask("doc", { x: 0, y: 0 }, () => true, true);
+    expect(firsts).toEqual([false]);
   });
 });
