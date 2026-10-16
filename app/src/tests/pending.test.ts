@@ -2,9 +2,9 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
+import { wrapped } from "../ui/formatting";
 import { pending, pendingFormat, settle } from "../ui/pending";
 import { visual } from "../ui/seeing";
-import { wrapped } from "../ui/slashing";
 
 const view = (doc: string, at = doc.length) =>
   new EditorView({

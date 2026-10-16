@@ -3,7 +3,8 @@ import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
-import { type Asked, offered, put, SLASHED, slashing, wrapped } from "../ui/slashing";
+import { wrapped } from "../ui/formatting";
+import { type Asked, holding, offered, put, SLASHED, slashing } from "../ui/slashing";
 
 const view = (doc: string) =>
   new EditorView({
@@ -36,17 +37,30 @@ describe("the / menu in a block", () => {
     expect(typed("/", "h1")).toEqual({ text: "# ", at: 2 });
     expect(typed("/tit", "h2")).toEqual({ text: "## ", at: 3 });
     expect(typed("/", "todo")).toEqual({ text: "- [ ] ", at: 6 });
-    expect(typed("Leche\n/", "bullets")).toEqual({ text: "Leche\n- ", at: 8 });
+    expect(typed("Leche\n/", "bullets")).toEqual({ text: "Leche\n\n- ", at: 9 });
+    expect(typed("Leche\n/", "h1")).toEqual({ text: "Leche\n# ", at: 8 });
   });
 
   it("starts a line of its own when it is asked in the middle of one", () => {
-    expect(typed("Leche /", "quote")).toEqual({ text: "Leche \n> ", at: 9 });
+    expect(typed("Leche /", "quote")).toEqual({ text: "Leche\n\n> ", at: 9 });
+    const editor = view("hola / mundo");
+    put(editor, one("h1"), 5, 6);
+    expect(editor.state.sliceDoc()).toBe("hola\n# mundo");
+    editor.destroy();
   });
 
   it("puts the words after the slash below a block, apart from it", () => {
     const editor = view("Leche /pan");
     put(editor, one("table"), 6, 7);
-    expect(editor.state.sliceDoc()).toBe("Leche \n\n|  |  |\n| --- | --- |\n|  |  |\n\npan");
+    expect(editor.state.sliceDoc()).toBe("Leche\n\n|  |  |\n| --- | --- |\n|  |  |\n\npan");
+    editor.destroy();
+  });
+
+  it("wraps what was selected when a format is picked from the bar's menu", () => {
+    const editor = view("uno dos /tres");
+    holding(editor, { from: 4, to: 7, slash: 8 });
+    put(editor, one("bold"), 8, 9);
+    expect(editor.state.sliceDoc()).toBe("uno **dos**tres");
     editor.destroy();
   });
 

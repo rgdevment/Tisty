@@ -1,5 +1,5 @@
 import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec } from "@codemirror/state";
@@ -14,11 +14,12 @@ import {
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { known } from "../glyphs";
-import { barred, flipped } from "./barring";
+import { barred, blockKeys, flipped } from "./barring";
+import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
-import { pendingFormat, settle } from "./pending";
+import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
-import { type Asking, coded, owning, slashing } from "./slashing";
+import { type Asking, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 
@@ -145,6 +146,9 @@ export const edited = (
                 return true;
               },
             },
+            ...pendingKeys,
+            ...blockKeys,
+            { key: "Mod-Shift-z", run: redo },
           ]),
         ),
         keymap.of([
