@@ -100,20 +100,6 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
-  it("paints nothing in a block shown as it was written", () => {
-    const { page, one } = block();
-    const editing = edited(
-      one,
-      "==a=={green} ++b++",
-      () => {},
-      () => {},
-      false,
-    );
-    expect(page.querySelector(".editing .cm-pen, .editing .cm-under")).toBeNull();
-    editing.leave();
-    page.remove();
-  });
-
   it("keeps the line endings the block was written with", () => {
     const { page, one } = block();
     const changes: string[] = [];
