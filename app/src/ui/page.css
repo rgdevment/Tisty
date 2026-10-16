@@ -857,6 +857,26 @@ kbd {
 .cm-bar button:hover {
   background: var(--tisty-hover);
 }
+.cm-tag {
+  background: var(--tisty-mark-tag);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+.cm-bar-more {
+  padding: 0 8px 0 4px;
+}
+.cm-bar-more kbd {
+  padding: 0 5px;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 4px;
+  font:
+    600 11.5px ui-monospace,
+    "Cascadia Mono",
+    "SF Mono",
+    Menlo,
+    monospace;
+  color: var(--tisty-soft);
+}
 .cm-bar-sep {
   width: 1px;
   height: 18px;

@@ -91,6 +91,42 @@ describe("the / menu in a block", () => {
     editor.destroy();
   });
 
+  it("keeps the spaces a selection caught outside the marks, so the format still reads", () => {
+    const editor = view("Hola mundo");
+    editor.dispatch({ selection: { anchor: 0, head: 5 } });
+    wrapped(editor, "==");
+    expect(editor.state.sliceDoc()).toBe("==Hola== mundo");
+    editor.dispatch({ selection: { anchor: 8, head: 14 } });
+    wrapped(editor, "**");
+    expect(editor.state.sliceDoc()).toBe("==Hola== **mundo**");
+    editor.destroy();
+  });
+
+  it("takes a format off when it is pressed again, and swaps a pen for another", () => {
+    const editor = view("leche ***y*** pan");
+    editor.dispatch({ selection: { anchor: 9 } });
+    wrapped(editor, "**");
+    expect(editor.state.sliceDoc()).toBe("leche *y* pan");
+    editor.dispatch({ selection: { anchor: 7 } });
+    wrapped(editor, "*");
+    expect(editor.state.sliceDoc()).toBe("leche y pan");
+
+    const pen = view("un ==dato=={green} y ++otro++");
+    pen.dispatch({ selection: { anchor: 6, head: 8 } });
+    wrapped(pen, "==", "=={blue}");
+    expect(pen.state.sliceDoc()).toBe("un ==dato=={blue} y ++otro++");
+    wrapped(pen, "==", "=={blue}");
+    expect(pen.state.sliceDoc()).toBe("un dato y ++otro++");
+    pen.dispatch({ selection: { anchor: 14 } });
+    wrapped(pen, "++");
+    expect(pen.state.sliceDoc()).toBe("un dato y otro");
+    pen.dispatch({ selection: { anchor: 3, head: 7 } });
+    wrapped(pen, "==");
+    expect(pen.state.sliceDoc()).toBe("un ==dato== y otro");
+    editor.destroy();
+    pen.destroy();
+  });
+
   it("hands a page, a document or an icon to the window and writes what it brings back", () => {
     const editor = view("Ver\n/");
     const asks: Asked[] = [];

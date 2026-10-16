@@ -12,7 +12,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
 import { HUES } from "./paging";
-import { coded } from "./slashing";
+import { coded, owning } from "./slashing";
 
 export const showMarks = StateEffect.define<boolean>();
 
@@ -35,10 +35,6 @@ const MARKS = new Set([
   "LinkTitle",
 ]);
 const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution)\])\s*$/i;
-const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
-const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
-const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
-const OWN = new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu");
 
 class Bullet extends WidgetType {
   eq() {
@@ -123,8 +119,38 @@ class Glyph extends WidgetType {
   }
 }
 
-const touched = (state: EditorState, from: number, to: number) =>
-  state.selection.ranges.some((one) => one.from <= to && one.to >= from);
+const TAG = /(?<![\p{L}\p{N}#/\-_.:])#([\p{L}\p{N}][\p{L}\p{N}\p{M}_-]*)/gu;
+
+// A tag reads as a chip once saved, so it wears one while it is written; «#1234» is a ticket, not a tag.
+const tagged = (state: EditorState, from: number, to: number, out: Range<Decoration>[]) => {
+  for (const found of state.sliceDoc(from, to).matchAll(TAG)) {
+    const at = from + (found.index ?? 0);
+    if (found[1].length < 2 || !/\p{L}/u.test(found[1]) || coded(state, at)) continue;
+    out.push(Decoration.mark({ class: "cm-tag" }).range(at, at + found[0].length));
+  }
+};
+
+const PAIRS = ["**", "~~", "++", "==", "*", "`"];
+
+// A format pressed with nothing selected waits empty around the caret; its marks stay out of sight too.
+const waiting = (state: EditorState, out: Range<Decoration>[]) => {
+  const { from, to } = state.selection.main;
+  if (from !== to) return;
+  const after = state.sliceDoc(to, to + 12);
+  for (const mark of PAIRS) {
+    if (state.sliceDoc(from - mark.length, from) !== mark) continue;
+    const shut =
+      mark === "=="
+        ? /^==(\{[a-z]+\})?/.exec(after)?.[0]
+        : after.startsWith(mark)
+          ? mark
+          : undefined;
+    if (!shut) continue;
+    out.push(Decoration.replace({}).range(from - mark.length, from));
+    out.push(Decoration.replace({}).range(to, to + shut.length));
+    return;
+  }
+};
 
 const spaced = (state: EditorState, at: number) => (state.sliceDoc(at, at + 1) === " " ? 1 : 0);
 
@@ -165,10 +191,10 @@ const owned = (
   out: Range<Decoration>[],
 ) => {
   const text = state.sliceDoc(from, to);
-  for (const found of text.matchAll(OWN)) {
+  for (const found of text.matchAll(owning())) {
     const at = from + (found.index ?? 0);
     const end = at + found[0].length;
-    if (shown || coded(state, at) || touched(state, at, end)) continue;
+    if (shown || coded(state, at)) continue;
     if (found[4] !== undefined) {
       const hue = found[5];
       if (!known(found[4]) || (hue !== undefined && !HUES.includes(hue))) continue;
@@ -211,7 +237,8 @@ export const seen = (
   const shown = state.field(marksShown, false) ?? false;
   const out: Range<Decoration>[] = [];
   const hide = (from: number, to: number) => {
-    if (!shown && to > from) out.push(Decoration.replace({}).range(from, to));
+    if (!shown && to > from && !state.sliceDoc(from, to).includes("\n"))
+      out.push(Decoration.replace({}).range(from, to));
   };
   for (const { from, to } of ranges) {
     syntaxTree(state).iterate({
@@ -236,14 +263,15 @@ export const seen = (
         if (MARKS.has(node.name)) {
           const parent = node.node.parent;
           if (parent?.name === "Link" && !parent.getChild("URL")) return true;
-          if (parent && INLINE.has(parent.name) && !touched(state, parent.from, parent.to))
-            hide(node.from, node.to);
+          if (parent && INLINE.has(parent.name)) hide(node.from, node.to);
         }
         return true;
       },
     });
     owned(state, from, to, shown, out);
+    tagged(state, from, to, out);
   }
+  if (!shown) waiting(state, out);
   return Decoration.set(out, true);
 };
 
@@ -266,5 +294,13 @@ const seeing = ViewPlugin.fromClass(
 export const visual = [
   marksShown,
   seeing,
-  EditorView.atomicRanges.of((view) => view.plugin(seeing)?.decorations ?? Decoration.none),
+  EditorView.atomicRanges.of((view) => {
+    const all = view.plugin(seeing)?.decorations;
+    if (!all) return Decoration.none;
+    const out: Range<Decoration>[] = [];
+    all.between(0, view.state.doc.length, (from, to, one) => {
+      if (from < to && !one.spec.class) out.push(one.range(from, to));
+    });
+    return Decoration.set(out);
+  }),
 ];

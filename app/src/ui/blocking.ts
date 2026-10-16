@@ -16,12 +16,9 @@ import { known } from "../glyphs";
 import { barred, flipped } from "./barring";
 import { HUES } from "./paging";
 import { visual } from "./seeing";
-import { type Asking, coded, slashing } from "./slashing";
+import { type Asking, coded, owning, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
-const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
-const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
-const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
 
 export type Editing = {
   readonly view: EditorView;
@@ -53,7 +50,7 @@ const dressing = EditorView.theme({
 });
 
 const marking = new MatchDecorator({
-  regexp: new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu"),
+  regexp: owning(),
   decoration: (found, view, at) => {
     if (coded(view.state, at)) return null;
     if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
@@ -156,9 +153,7 @@ export const edited = (
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());
-          if (update.docChanged || update.selectionSet || update.transactions.length > 0) {
-            follow(update.view);
-          }
+          if (update.transactions.length > 0) follow(update.view);
         }),
       ],
     }),

@@ -26,6 +26,7 @@ describe("the bar over the block being written", () => {
     expect(kindOf("2) dos")).toBe("numbers");
     expect(kindOf("> dicho")).toBe("quote");
     expect(kindOf("nada más")).toBe("paragraph");
+    expect(kindOf("  - hija")).toBe("bullets");
   });
 
   it("turns every line the selection touches into the kind asked for, in place of the old one", () => {
@@ -35,6 +36,10 @@ describe("the bar over the block being written", () => {
     retyped(editor, "");
     expect(editor.state.sliceDoc()).toBe("uno\ndos\ntres");
     editor.destroy();
+    const nested = view("- uno\n  - dos\nfin", 6, 14);
+    retyped(nested, "1. ");
+    expect(nested.state.sliceDoc()).toBe("- uno\n  1. dos\nfin");
+    nested.destroy();
   });
 
   it("switches the block's marks on and back off", () => {
@@ -70,6 +75,11 @@ describe("the bar over the block being written", () => {
     follow(editor);
     expect(editor.state.sliceDoc().startsWith("# ")).toBe(true);
     expect(bar.querySelector(".cm-bar-kind")?.textContent).toContain(t("bigTitle"));
+    bar.querySelector<HTMLButtonElement>(".cm-bar-kind")?.click();
+    bar
+      .querySelector(".cm-bar-switch")
+      ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    expect(bar.querySelector<HTMLElement>(".cm-bar-menu")?.hidden).toBe(true);
 
     kept(false);
     expect(hint.textContent).toContain(t("saving"));

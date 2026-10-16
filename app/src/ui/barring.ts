@@ -18,10 +18,10 @@ export const KINDS: readonly (readonly [Said, string])[] = [
   ["quote", "> "],
 ];
 
-const LEAD = /^(#{1,6} |[-*+] \[[ xX]\] |[-*+] |\d+[.)] |> ?)/;
+const LEAD = /^(\s*)(#{1,6} |[-*+] \[[ xX]\] |[-*+] |\d+[.)] |> ?)?/;
 
 export const kindOf = (line: string): Said => {
-  const lead = LEAD.exec(line)?.[0] ?? "";
+  const lead = LEAD.exec(line)?.[2] ?? "";
   if (lead.startsWith("#"))
     return lead.length === 2 ? "bigTitle" : lead.length === 3 ? "midTitle" : "smallTitle";
   if (lead.includes("[")) return "checks";
@@ -36,10 +36,13 @@ export const retyped = (view: EditorView, prefix: string): boolean => {
   const { state } = view;
   const { from, to } = state.selection.main;
   const changes = [];
-  for (let at = state.doc.lineAt(from).number; at <= state.doc.lineAt(to).number; at++) {
+  const last = state.doc.lineAt(to);
+  const end = to > from && to === last.from ? last.number - 1 : last.number;
+  for (let at = state.doc.lineAt(from).number; at <= end; at++) {
     const line = state.doc.line(at);
-    const lead = LEAD.exec(line.text)?.[0] ?? "";
-    changes.push({ from: line.from, to: line.from + lead.length, insert: prefix });
+    const [, space = "", lead = ""] = LEAD.exec(line.text) ?? [];
+    const start = line.from + space.length;
+    changes.push({ from: start, to: start + lead.length, insert: prefix });
   }
   view.dispatch({ changes, userEvent: "input.type" });
   view.focus();
@@ -148,19 +151,15 @@ export const barred = (view: EditorView): Barred => {
     one.append(made("span", `cm-bar-pen cm-pen-${hue}`));
     return one;
   });
-  const slash = button(
-    "cm-bar-button",
-    t("insertLabel"),
-    () => {
-      const { from } = view.state.selection.main;
-      const before = view.state.sliceDoc(Math.max(0, from - 1), from);
-      const insert = before && !/\s/.test(before) ? " /" : "/";
-      view.dispatch({ changes: { from, insert }, selection: { anchor: from + insert.length } });
-      view.focus();
-      startCompletion(view);
-    },
-    "/",
-  );
+  const slash = button("cm-bar-button cm-bar-more", t("insertLabel"), () => {
+    const { from } = view.state.selection.main;
+    const before = view.state.sliceDoc(Math.max(0, from - 1), from);
+    const insert = before && !/\s/.test(before) ? " /" : "/";
+    view.dispatch({ changes: { from, insert }, selection: { anchor: from + insert.length } });
+    view.focus();
+    startCompletion(view);
+  });
+  slash.append(made("kbd", "", "/"), page.createTextNode(t("more")));
 
   bar.append(toggle, made("span", "cm-bar-sep"), kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
@@ -186,11 +185,15 @@ export const barred = (view: EditorView): Barred => {
     toggle.classList.toggle("on", shown);
     const line = current.state.doc.lineAt(current.state.selection.main.head);
     kindSaid.textContent = t(kindOf(line.text));
+    menu.hidden = true;
   };
   const kept = (yes: boolean) => {
     state.textContent = yes ? `● ${t("keptNow")}` : t("saving");
     state.classList.toggle("on", yes);
   };
+  bar.addEventListener("mousedown", (event) => {
+    if (!kinds.contains(event.target as Node)) menu.hidden = true;
+  });
   follow(view);
   kept(true);
   return { bar, hint, follow, kept };

@@ -44,7 +44,12 @@ describe("a block written as it reads", () => {
 
   it("hides the marks of a format until the caret steps into it", () => {
     expect(read(state("toca **ordenar** hoy", 0))).toBe("toca ordenar hoy");
-    expect(read(state("toca **ordenar** hoy", 9))).toBe("toca **ordenar** hoy");
+    expect(read(state("toca **ordenar** hoy", 9))).toBe("toca ordenar hoy");
+    expect(read(state("toca **ordenar** hoy", 9, true))).toBe("toca **ordenar** hoy");
+    expect(read(state("toca **** hoy", 7))).toBe("toca  hoy");
+    expect(read(state("un ==== y", 5))).toBe("un  y");
+    expect(read(state("un ===={green} y", 5))).toBe("un  y");
+    expect(read(state("toca **** hoy", 0))).toBe("toca **** hoy");
     expect(read(state("un ~~no~~ y `si`", 0))).toBe("un no y si");
   });
 
@@ -88,6 +93,30 @@ describe("a block written as it reads", () => {
     expect(read(one)).toBe("ver el plano hoy");
     expect(looked(one).some((it) => it.mark === "cm-link")).toBe(true);
     expect(read(state("ver [nota] hoy", 0))).toBe("ver [nota] hoy");
+  });
+
+  it("lets the caret walk into a link's words, and never hides across a line", () => {
+    const view = new EditorView({
+      parent: document.body,
+      state: EditorState.create({
+        doc: "ver [el plano](https://x.y) hoy",
+        selection: EditorSelection.cursor(5),
+        extensions: [markdown({ base: markdownLanguage }), visual],
+      }),
+    });
+    view.dispatch({ selection: { anchor: 7 } });
+    expect(view.state.selection.main.head).toBe(7);
+    view.destroy();
+    expect(read(state('[a](http://x "uno\ndos") y', 0))).toContain("\n");
+  });
+
+  it("wears a tag's chip while it is written, but not on a ticket, a title or code", () => {
+    const tags = (doc: string) =>
+      looked(state(doc, 0))
+        .filter((it) => it.mark === "cm-tag")
+        .map((it) => doc.slice(it.from, it.to));
+    expect(tags("#Hola Mundo y #sdas")).toEqual(["#Hola", "#sdas"]);
+    expect(tags("# Hola, ticket #1234, color:#fff y `#code`")).toEqual([]);
   });
 
   it("leaves code, cards and attachments exactly as written", () => {
