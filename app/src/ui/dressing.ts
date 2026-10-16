@@ -20,6 +20,7 @@ export type Reaching = Carding & {
     read?: string,
   ) => void;
   readonly onApart?: (source: string) => void;
+  readonly onAway?: () => void;
 };
 
 const sources = new WeakMap<Element, string>();
@@ -202,6 +203,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
     const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
+    if (!asked && !target.closest(".editing")) reach().onAway?.();
     answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
   });
   for (const kind of ["auxclick", "submit", "dragstart", "contextmenu"]) {

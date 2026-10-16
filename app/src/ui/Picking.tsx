@@ -48,9 +48,15 @@ export default function Picking({
 
   return (
     <>
-      <span aria-hidden="true" className="fixed inset-0 z-30" onMouseDown={() => done()} />
+      <span
+        aria-hidden="true"
+        data-keeps-writing
+        className="fixed inset-0 z-30"
+        onMouseDown={() => done()}
+      />
       <div
         role="dialog"
+        data-keeps-writing
         style={placed}
         onKeyDown={(e) => {
           if (e.key !== "Escape") return;

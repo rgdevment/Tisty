@@ -67,6 +67,17 @@ export default function Sheet(props: Readonly<Props>) {
 
   useEffect(() => () => left(), [left]);
 
+  // A press anywhere in the window outside the page ends the block, as a click on another one does.
+  useEffect(() => {
+    const outside = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (!open.current || target?.closest?.("[data-keeps-writing]")) return;
+      left();
+    };
+    window.addEventListener("mousedown", outside, true);
+    return () => window.removeEventListener("mousedown", outside, true);
+  }, [left]);
+
   const wanted = useRef(props.seek);
   const marked = useRef(props.anchor);
   const onFile = useRef(file);
@@ -249,6 +260,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={block}
+          onAway={left}
           card={props.card}
           blurb={props.blurb}
           again={props.again}
