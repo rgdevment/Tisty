@@ -16,7 +16,6 @@ describe("a document opened in a window of its own", () => {
         body="# Notas"
         tags={[]}
         kept={0}
-        blocks={[]}
         heads={[]}
         pages={[]}
         leaf="a4"

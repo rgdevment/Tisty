@@ -140,6 +140,7 @@ fn marked(mark: &Mark) -> Option<Value> {
         Mark::Emphasis => Some(json!({ "type": "italic" })),
         Mark::Strike => Some(json!({ "type": "strike" })),
         Mark::Underline => Some(json!({ "type": "underline" })),
+        Mark::Link { to } if crate::nowhere(to) => None,
         Mark::Link { to } => Some(json!({ "type": "link", "attrs": { "href": to } })),
         Mark::Pen { color } => Some(json!({
             "type": "highlight",

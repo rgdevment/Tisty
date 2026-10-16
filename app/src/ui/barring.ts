@@ -226,8 +226,6 @@ export const barred = (view: EditorView): Barred => {
   const state = made("span", "cm-hint-kept");
   hint.append(
     key("/", t("hintInsert")),
-    key(pressed("B"), t("bold").toLocaleLowerCase()),
-    key(pressed("K"), t("linkIt").toLocaleLowerCase()),
     key("# ␣", t("bigTitle").toLocaleLowerCase()),
     key(pressed("Shift M"), t("hintMarks")),
     key("Esc", t("hintRead")),

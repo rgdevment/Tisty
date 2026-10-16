@@ -2,33 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { fill, t } from "../locales";
-import Glyph, { known } from "./Glyph";
+import Glyph from "./Glyph";
 import PaperFacts from "./PaperFacts";
 import type { Head } from "./paging";
-import type { Block } from "./Slash";
 import { LEAVES, leafWord } from "./sheets";
 import { often } from "./tagging";
-
-export const SHAPES = [
-  "h1",
-  "h2",
-  "bullets",
-  "numbers",
-  "todo",
-  "quote",
-  "callout-note",
-  "callout-tip",
-  "callout-important",
-  "callout-warning",
-  "callout-caution",
-  "code",
-  "mermaid",
-  "math",
-  "widget",
-  "table",
-  "rule",
-  "pen",
-];
 
 export const trailed = (folders: Folded[], at: string | null): Folded[] => {
   const by = new Map(folders.map((one) => [one.id, one]));
@@ -53,7 +31,6 @@ interface Props {
   body: string;
   tags: string[];
   kept: number;
-  blocks: Block[];
   heads: Head[];
   pages: Filed[];
   onPage?: (doc: Filed) => void;
@@ -76,7 +53,6 @@ export default function Beside({
   body,
   tags,
   kept,
-  blocks,
   heads,
   pages,
   onPage,
@@ -107,8 +83,6 @@ export default function Beside({
   }, [paper, kept]);
 
   const times = useMemo(() => often(body), [body]);
-  const shapes = blocks.filter((one) => SHAPES.includes(one.key));
-  const puts = blocks.filter((one) => !SHAPES.includes(one.key));
 
   return (
     <aside
@@ -238,9 +212,6 @@ export default function Beside({
           </div>
         </section>
 
-        <Band name={t("shaping")} blocks={shapes} />
-        <Band name={t("putting")} blocks={puts} />
-
         <section className="flex flex-col gap-2">
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("outline")}</h3>
           {heads.length === 0 && pages.length === 0 ? (
@@ -298,34 +269,5 @@ export default function Beside({
         </section>
       </div>
     </aside>
-  );
-}
-
-function Band({ name, blocks }: { name: string; blocks: Block[] }) {
-  if (blocks.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{name}</h3>
-      <div className="flex flex-col gap-px">
-        {blocks.map((one) => (
-          <button
-            key={one.key}
-            type="button"
-            onClick={one.run}
-            className="flex w-full items-center gap-2.5 rounded-md px-1.5 py-1 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
-          >
-            <span aria-hidden="true" className="flex w-4 shrink-0 justify-center text-[12.5px]">
-              {known(one.icon) ? <Glyph name={one.icon} className="h-[15px] w-[15px]" /> : one.icon}
-            </span>
-            <span className="min-w-0 flex-1 truncate">{one.label}</span>
-            {one.hint && (
-              <span className="shrink-0 rounded-md bg-hover px-1.5 py-px font-mono text-[10.5px] text-faint">
-                {one.hint}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-    </section>
   );
 }

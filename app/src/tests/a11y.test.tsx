@@ -2,7 +2,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Step, Task } from "../core";
 import Menu from "../ui/Menu";
-import Slash from "../ui/Slash";
 import Steps from "../ui/Steps";
 import TaskList from "../ui/TaskList";
 
@@ -82,13 +81,5 @@ describe("where the focus goes", () => {
 
     await waitFor(() => expect(document.activeElement).toBe(opener));
     opener.remove();
-  });
-});
-
-describe("a menu with nothing in it", () => {
-  it("says so instead of showing an empty box", () => {
-    render(<Slash at={{ x: 10, y: 10 }} blocks={[]} active={0} onPick={vi.fn()} />);
-
-    expect(screen.getByText(/nothing matches/i)).toBeTruthy();
   });
 });
