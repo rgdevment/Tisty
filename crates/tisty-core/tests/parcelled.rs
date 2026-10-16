@@ -184,7 +184,7 @@ impl Room {
 }
 
 fn filled(room: &mut Room) -> PathBuf {
-    let shed = &room.data().join("attachments").join("ab");
+    let shed = &room.data().join("attachments");
     std::fs::create_dir_all(shed).unwrap();
     std::fs::write(shed.join("plano-91f2ab00.png"), b"a picture").unwrap();
 
@@ -193,7 +193,7 @@ fn filled(room: &mut Room) -> PathBuf {
 
     let (book, book_file) = room.doc("# Obra\n\ntexto", Some(casa), None);
     let (_, page_file) = room.doc(
-        "# Plano\n\n![el plano](<attachments/ab/plano-91f2ab00.png>)",
+        "# Plano\n\n![el plano](plano-91f2ab00.png)",
         None,
         Some(book),
     );
@@ -264,13 +264,9 @@ fn what_a_document_points_at_still_points_at_it_under_its_new_name() {
     assert!(!said.contains("mine-"), "{said}");
 
     let carried = there.body(&plano.file);
-    let at = carried
-        .split_once("](<")
-        .and_then(|(_, rest)| rest.split_once(">)"))
-        .map(|(at, _)| at)
-        .unwrap();
+    let at = tisty_core::refs::extract(&carried)[0].target.clone();
     assert_eq!(
-        std::fs::read(attach::resolve(at, there.data()).unwrap()).unwrap(),
+        std::fs::read(attach::resolve(&at, there.data()).unwrap()).unwrap(),
         b"a picture"
     );
 }
@@ -382,7 +378,11 @@ fn a_file_that_is_not_in_the_store_is_named_rather_than_carried_in_silence() {
     let sent = parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
 
     assert_eq!(sent.files, 0);
-    assert_eq!(sent.left, ["attachments/6d/clip-da1d77da.mov"]);
+    assert_eq!(
+        sent.left,
+        ["attachments/clip-da1d77da.mov"],
+        "an old shelf in the link is named by the one key it has now"
+    );
 }
 
 #[test]
@@ -401,7 +401,6 @@ fn everything_written_plainly_stands_in_the_folders_it_was_kept_in() {
     assert!(obra.join("01 Plano.md").is_file());
     assert!(
         obra.join("attachments")
-            .join("ab")
             .join("plano-91f2ab00.png")
             .is_file()
     );
@@ -445,15 +444,11 @@ fn two_documents_called_the_same_thing_do_not_write_over_each_other() {
 fn what_is_too_heavy_to_keep_here_is_carried_from_the_folder_everyone_shares() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
-    here.doc(
-        "# Charla\n\n![el video](<attachments/6d/clip-da1d77da.mov>)",
-        None,
-        None,
-    );
+    here.doc("# Charla\n\n![el video](clip-da1d77da.mov)", None, None);
     let shared = room.path().join("drive");
-    let shelf = shared.join("attachments").join("6d");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("clip-da1d77da.mov"), b"a heavy video").unwrap();
+    let shed = shared.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("clip-da1d77da.mov"), b"a heavy video").unwrap();
 
     let box_at = room.path().join("con-video.tistyx");
     let sent = parcel::write(
@@ -475,13 +470,9 @@ fn what_is_too_heavy_to_keep_here_is_carried_from_the_folder_everyone_shares() {
     there.take_in(&box_at);
     let charla = there.titled("Charla");
     let said = there.body(&charla.file);
-    let at = said
-        .split_once("](<")
-        .and_then(|(_, rest)| rest.split_once(">)"))
-        .map(|(at, _)| at)
-        .unwrap();
+    let at = tisty_core::refs::extract(&said)[0].target.clone();
     assert_eq!(
-        std::fs::read(attach::resolve(at, there.data()).unwrap()).unwrap(),
+        std::fs::read(attach::resolve(&at, there.data()).unwrap()).unwrap(),
         b"a heavy video"
     );
 }
@@ -697,15 +688,11 @@ fn a_deep_tree_with_long_names_still_lands_on_a_system_that_counts_its_path_char
         at = Some(here.folder(long, at, "home"));
     }
     let titled = "titulo tan largo como Tisty permite antes de cortarlo por lo sano y algo mas";
-    let shed = &here.data().join("attachments").join("ab");
+    let shed = &here.data().join("attachments");
     std::fs::create_dir_all(shed).unwrap();
     let named = "un-nombre-de-adjunto-francamente-larguisimo-91f2ab00.png";
     std::fs::write(shed.join(named), b"a picture").unwrap();
-    here.doc(
-        &format!("# {titled}\n\n![una foto](<attachments/ab/{named}>)"),
-        at,
-        None,
-    );
+    here.doc(&format!("# {titled}\n\n![una foto]({named})"), at, None);
 
     let out = room
         .path()
@@ -723,7 +710,7 @@ fn a_deep_tree_with_long_names_still_lands_on_a_system_that_counts_its_path_char
         .unwrap()
         .path();
     assert!(
-        folder.join("attachments").join("ab").join(named).is_file(),
+        folder.join("attachments").join(named).is_file(),
         "{folder:?}"
     );
 }
@@ -2215,7 +2202,7 @@ fn a_wide_tree_keeps_every_folder_it_was_kept_in() {
 fn an_attachment_named_with_an_anchor_still_lands() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
-    let shed = &here.data().join("attachments").join("ab");
+    let shed = &here.data().join("attachments");
     std::fs::create_dir_all(shed).unwrap();
     std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
     here.doc(

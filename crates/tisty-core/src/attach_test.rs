@@ -26,13 +26,13 @@ fn a_retirement_that_names_the_log_never_deletes_it() {
 #[test]
 fn a_retirement_that_names_a_real_attachment_still_takes_it_out() {
     let root = tempfile::tempdir().unwrap();
-    let shelf = root.path().join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    let at = shelf.join("foto-a1b2c3d4.png");
+    let shed = root.path().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    let at = shed.join("foto-a1b2c3d4.png");
     std::fs::write(&at, b"unos bytes").unwrap();
 
     let retired: std::collections::BTreeSet<String> =
-        ["attachments/ab/foto-a1b2c3d4.png".to_string()].into();
+        ["attachments/foto-a1b2c3d4.png".to_string()].into();
     let gone = sweep(root.path(), &retired, &Default::default());
 
     assert_eq!(gone, 1);
@@ -55,10 +55,11 @@ fn a_small_file_is_copied_in_and_named_by_its_contents() {
     let Kept { at, sha256, .. } = keep(&file, root.path(), COPIED_UP_TO).unwrap();
 
     assert!(at.starts_with("attachments/"), "{at}");
+    assert_eq!(at.matches('/').count(), 1, "one flat folder: {at}");
     assert!(at.ends_with(".png"), "the extension is lowercased: {at}");
     assert!(
-        at.contains(&sha256[..2]),
-        "the shelf is the first two: {at}"
+        at.contains(&sha256[2..10]),
+        "the stamp follows the first two: {at}"
     );
     assert!(root.path().join(&at).exists());
 }
@@ -77,9 +78,9 @@ fn a_label_of_accents_is_measured_in_the_bytes_it_will_take() {
 
 #[test]
 fn a_document_already_carrying_its_fill_takes_no_more() {
-    let many = "![uno](<attachments/ab/uno.png>)
-"
-    .repeat(KEPT_IN_A_DOC);
+    let many: String = (0..KEPT_IN_A_DOC)
+        .map(|n| format!("![uno](uno-{n:08x}.png)\n"))
+        .collect();
 
     assert_eq!(fits(&many, "plano"), Err(NoRoom::Crowded(KEPT_IN_A_DOC)));
     assert!(fits(&many[..many.len() / 2], "plano").is_ok());
@@ -124,17 +125,24 @@ fn a_copy_that_could_not_be_filed_leaves_nothing_half_written() {
     let root = tempfile::tempdir().unwrap();
     let shed = root.path().join("attachments");
     std::fs::create_dir_all(&shed).unwrap();
-    let shelf = fingerprint(&bytes)[..2].to_string();
-    std::fs::write(shed.join(&shelf), b"a file where the shelf goes").unwrap();
+    let sha256 = fingerprint(&bytes);
+    let taken = [
+        format!("charla-{}.mp4", &sha256[2..10]),
+        format!("charla-{}.mp4", &sha256[2..18]),
+    ];
+    for name in &taken {
+        std::fs::create_dir_all(shed.join(name)).unwrap();
+    }
 
     assert!(keep(&file, root.path(), COPIED_UP_TO).is_err());
 
-    let left: Vec<_> = std::fs::read_dir(&shed)
+    let mut left: Vec<_> = std::fs::read_dir(&shed)
         .unwrap()
         .filter_map(|one| one.ok())
         .map(|one| one.file_name().to_string_lossy().into_owned())
         .collect();
-    assert_eq!(left, [shelf], "the copy it could not file was taken away");
+    left.sort();
+    assert_eq!(left, taken, "the copy it could not file was taken away");
 }
 
 #[test]
@@ -168,8 +176,8 @@ fn the_same_file_twice_is_one_file() {
         first, second,
         "the name comes from the contents, not the name"
     );
-    let shelves = std::fs::read_dir(root.path().join("attachments")).unwrap();
-    assert_eq!(shelves.count(), 1);
+    let files = std::fs::read_dir(root.path().join("attachments")).unwrap();
+    assert_eq!(files.count(), 1);
 }
 
 #[test]
@@ -187,11 +195,9 @@ fn a_stamp_worn_by_unlike_bytes_does_not_hand_back_the_wrong_file() {
         .next()
         .unwrap()
         .to_string();
-    let shelf = kept.at.split('/').nth(1).unwrap().to_string();
     let impostor = root
         .path()
         .join("attachments")
-        .join(&shelf)
         .join(format!("impostor-{stamp}.bin"));
     std::fs::write(&impostor, b"entirely other bytes, same stamp").unwrap();
     std::fs::remove_file(root.path().join("attachments.jsonl")).unwrap();
@@ -305,44 +311,46 @@ fn everything_that_is_kept_comes_in_as_a_card() {
     };
 
     assert_eq!(
-        held("attachments/ab/cd.png").written("the screen"),
-        "![the screen](<attachments/ab/cd.png>)"
+        held("attachments/cd-a3f9bb01.png").written("the screen"),
+        "![the screen](cd-a3f9bb01.png)"
     );
     assert_eq!(
-        held("attachments/ab/cd.pdf").written("the invoice"),
-        "![the invoice](<attachments/ab/cd.pdf>)",
+        held("attachments/cd-a3f9bb01.pdf").written("the invoice"),
+        "![the invoice](cd-a3f9bb01.pdf)",
         "the window draws a card for it, and only an image node gets one"
     );
 }
 
 #[test]
 fn a_path_with_spaces_is_still_held_together() {
-    let kept = Kept {
-        at: "attachments/ab/clip (1).mkv".into(),
-        sha256: "ab".into(),
-        bytes: 2,
-    };
+    let (_src, file) = dropped("clip (1).mkv", b"a clip");
+    let root = tempfile::tempdir().unwrap();
+    let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
     let written = kept.written("clip (1).mkv");
-    assert!(written.starts_with("![clip (1).mkv](<"), "{written}");
-    assert!(written.ends_with(">)"), "{written}");
+
+    assert!(written.starts_with("![clip (1).mkv]("), "{written}");
+    assert!(!kept.at.contains(' '), "{}", kept.at);
+    assert_eq!(
+        crate::refs::extract(&written)[0].target,
+        kept.at,
+        "{written}"
+    );
 }
 
 #[test]
 fn a_name_that_would_break_the_link_is_flattened() {
     let one = Kept {
-        at: "attachments/ab/cd.png".into(),
+        at: "attachments/cd-a3f9bb01.png".into(),
         sha256: "ab".into(),
         bytes: 2,
     };
     assert_eq!(
         one.written("shot](javascript:alert(1))["),
-        "![shot_(javascript:alert(1))_](<attachments/ab/cd.png>)"
+        "![shot_(javascript:alert(1))_](cd-a3f9bb01.png)"
     );
-    assert_eq!(
-        one.written("two\nlines"),
-        "![two lines](<attachments/ab/cd.png>)"
-    );
-    assert_eq!(one.written("   "), "![file](<attachments/ab/cd.png>)");
+    assert_eq!(one.written("two\nlines"), "![two lines](cd-a3f9bb01.png)");
+    assert_eq!(one.written("   "), "![file](cd-a3f9bb01.png)");
 }
 
 #[test]
@@ -640,14 +648,13 @@ fn what_the_ledger_already_knows_is_not_read_from_disk_again() {
 
 #[test]
 fn a_stamp_in_capitals_is_not_a_stamp() {
-    assert!(!shelved("ab", "charla-A3F9BB01.mp4"));
-    assert!(!shelved("AB", "charla-a3f9bb01.mp4"));
-    assert!(!vouched("ab", "charla-A3F9BB01.mp4", &printed(b"whatever")));
+    assert!(!stamped("charla-A3F9BB01.mp4"));
+    assert!(!vouched("charla-A3F9BB01.mp4", &printed(b"whatever")));
 }
 
 #[test]
 fn what_we_already_kept_is_measured_against_the_whole_digest() {
-    let mine = "attachments/ab/charla-a3f9bb01.mp4".to_string();
+    let mine = "attachments/charla-a3f9bb01.mp4".to_string();
     let written_down = std::collections::BTreeMap::from([(
         mine.clone(),
         (fingerprint(b"the bytes we trusted"), 20),
@@ -671,14 +678,14 @@ fn what_we_already_kept_is_measured_against_the_whole_digest() {
 #[test]
 fn what_we_never_kept_has_nothing_to_be_measured_against() {
     let written_down = std::collections::BTreeMap::from([(
-        "attachments/ab/otra-a3f9bb01.mp4".to_string(),
+        "attachments/otra-a3f9bb01.mp4".to_string(),
         (fingerprint(b"something else"), 14),
     )]);
 
     assert!(
         as_kept(
             &written_down,
-            "attachments/ab/nueva-a3f9bb01.mp4",
+            "attachments/nueva-a3f9bb01.mp4",
             &printed(b"brand new")
         ),
         "an attachment arriving for the first time was refused for being unknown"
@@ -687,10 +694,9 @@ fn what_we_never_kept_has_nothing_to_be_measured_against() {
 
 #[test]
 fn a_name_with_no_stamp_vouches_for_nothing() {
-    assert!(!vouched("ab", "", &printed(b"anything at all")));
-    assert!(!vouched("", "", &printed(b"anything at all")));
-    assert!(!vouched("ab", "charla-.mp4", &printed(b"anything at all")));
-    assert!(!vouched("ab", "charla.mp4", &printed(b"anything at all")));
+    assert!(!vouched("", &printed(b"anything at all")));
+    assert!(!vouched("charla-.mp4", &printed(b"anything at all")));
+    assert!(!vouched("charla.mp4", &printed(b"anything at all")));
 }
 
 #[test]
@@ -762,8 +768,7 @@ fn a_name_that_cannot_be_told_apart_is_not_room_to_win_back() {
 
     let leaf = other.file_name().unwrap().to_str().unwrap();
     let noted = format!(
-        "{{\"at\":\"attachments/{}/{leaf}\",\"sha256\":\"{}\",\"bytes\":{}}}\n",
-        &first.sha256[..2],
+        "{{\"at\":\"attachments/{leaf}\",\"sha256\":\"{}\",\"bytes\":{}}}\n",
         first.sha256,
         body.len()
     );
@@ -838,8 +843,8 @@ fn the_same_bytes_under_another_name_are_kept_once() {
         first.at, again.at,
         "a second copy was written under a new name"
     );
-    let shelf = root.path().join(&first.at).parent().unwrap().to_path_buf();
-    assert_eq!(std::fs::read_dir(shelf).unwrap().count(), 1);
+    let shed = root.path().join(&first.at).parent().unwrap().to_path_buf();
+    assert_eq!(std::fs::read_dir(shed).unwrap().count(), 1);
 }
 
 #[test]
@@ -863,12 +868,9 @@ fn a_name_vouches_for_the_bytes_it_was_given() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    let mut parts = at.split('/');
-    parts.next();
-    let shelf = parts.next().unwrap();
-    let leaf = parts.next().unwrap();
+    let leaf = at.rsplit('/').next().unwrap();
 
-    assert!(vouched(shelf, leaf, &printed(b"the bytes of a talk")));
+    assert!(vouched(leaf, &printed(b"the bytes of a talk")));
 }
 
 #[test]
@@ -876,57 +878,33 @@ fn a_name_refuses_to_vouch_for_bytes_that_are_not_the_ones() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
     let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    let mut parts = at.split('/');
-    parts.next();
-    let shelf = parts.next().unwrap();
-    let leaf = parts.next().unwrap();
+    let leaf = at.rsplit('/').next().unwrap();
 
-    assert!(!vouched(
-        shelf,
-        leaf,
-        &printed(b"someone else's bytes entirely")
-    ));
-    assert!(!vouched(shelf, leaf, &printed(b"")));
-    assert!(
-        !vouched("00", leaf, &printed(b"the bytes of a talk")),
-        "the shelf is not read"
-    );
+    assert!(!vouched(leaf, &printed(b"someone else's bytes entirely")));
+    assert!(!vouched(leaf, &printed(b"")));
 }
 
 #[test]
-fn the_right_shelf_alone_vouches_for_nothing() {
-    let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
-    let root = tempfile::tempdir().unwrap();
-    let Kept { at, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    let shelf = at.split('/').nth(1).unwrap();
+fn the_first_two_characters_alone_vouch_for_nothing() {
+    let sha256 = printed(b"the bytes of a talk");
 
     assert!(
-        !vouched(
-            shelf,
-            "charla-00000000.mp4",
-            &printed(b"the bytes of a talk")
-        ),
-        "the shelf matched and the stamp went unread"
+        !vouched(&format!("charla-{}.mp4", &sha256[..8]), &sha256),
+        "the stamp was read from the start of the digest"
     );
-    assert!(!vouched(
-        shelf,
-        "charla-ffffffff.mp4",
-        &printed(b"the bytes of a talk")
-    ));
+    assert!(!vouched("charla-00000000.mp4", &sha256));
+    assert!(!vouched("charla-ffffffff.mp4", &sha256));
 }
 
 #[test]
 fn a_longer_stamp_is_checked_to_its_full_length() {
     let (_src, one) = dropped("charla.mp4", b"the bytes of a talk");
     let root = tempfile::tempdir().unwrap();
-    let Kept { at, sha256, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
-    let mut parts = at.split('/');
-    parts.next();
-    let shelf = parts.next().unwrap();
+    let Kept { sha256, .. } = keep(&one, root.path(), COPIED_UP_TO).unwrap();
     let long = format!("charla-{}.mp4", &sha256[2..18]);
 
-    assert!(vouched(shelf, &long, &printed(b"the bytes of a talk")));
-    assert!(!vouched(shelf, &long, &printed(b"other bytes")));
+    assert!(vouched(&long, &printed(b"the bytes of a talk")));
+    assert!(!vouched(&long, &printed(b"other bytes")));
 }
 
 #[test]
@@ -1096,7 +1074,7 @@ fn a_retirement_that_already_happened_here_is_not_an_error() {
 
     let gone = sweep(
         root.path(),
-        &["attachments/ab/nada-a3f9.pdf".to_string()].into(),
+        &["attachments/nada-a3f90001.pdf".to_string()].into(),
         &Default::default(),
     );
 
@@ -1106,7 +1084,7 @@ fn a_retirement_that_already_happened_here_is_not_an_error() {
 #[test]
 fn a_retirement_can_never_name_its_way_out_of_the_store() {
     let root = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(root.path().join("attachments").join("ab")).unwrap();
+    std::fs::create_dir_all(root.path().join("attachments")).unwrap();
     let outside = root.path().join("mine.txt");
     std::fs::write(&outside, b"not yours to take").unwrap();
     let far = root.path().join("far.txt");
@@ -1307,9 +1285,8 @@ fn a_name_already_taken_by_other_content_gets_a_longer_stamp_instead_of_being_ov
     let root = tempfile::tempdir().unwrap();
     let bytes = b"the real bytes of the real file";
     let sha256 = fingerprint(bytes);
-    let (shelf, rest) = sha256.split_at(2);
-    let stamp = &rest[..8];
-    let folder = root.path().join("attachments").join(shelf);
+    let stamp = &sha256[2..10];
+    let folder = root.path().join("attachments");
     std::fs::create_dir_all(&folder).unwrap();
     let squatted = folder.join(format!("clash-{stamp}.bin"));
     std::fs::write(&squatted, b"unrelated content squatting the name").unwrap();
@@ -1520,7 +1497,7 @@ fn what_was_kept_says_its_name_its_digest_and_its_weight() {
     assert_eq!(d.sha256, kept.sha256);
     assert_eq!(d.bytes, kept.bytes);
     assert!(
-        vouched(&d.at[12..14], &d.at[15..], &d.sha256),
+        vouched(&d.at["attachments/".len()..], &d.sha256),
         "what it tells does not answer for the name it kept"
     );
 }
@@ -1528,15 +1505,14 @@ fn what_was_kept_says_its_name_its_digest_and_its_weight() {
 #[test]
 fn a_name_in_capitals_is_not_the_one_we_write_and_vouches_for_nothing() {
     let sha256 = printed(b"lo grabado");
-    let (shelf, rest) = sha256.split_at(2);
-    let stamp = &rest[..8];
+    let stamp = &sha256[2..10];
 
-    assert!(vouched(shelf, &format!("charla-{stamp}.mp4"), &sha256));
+    assert!(vouched(&format!("charla-{stamp}.mp4"), &sha256));
     assert!(
-        !vouched(shelf, &format!("charla-{stamp}.MP4"), &sha256),
+        !vouched(&format!("charla-{stamp}.MP4"), &sha256),
         "a capital extension stood for the file a drive that ignores case keeps under the same name"
     );
-    assert!(!vouched(shelf, &format!("Charla-{stamp}.mp4"), &sha256));
+    assert!(!vouched(&format!("Charla-{stamp}.mp4"), &sha256));
 }
 
 #[test]

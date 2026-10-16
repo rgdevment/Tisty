@@ -67,7 +67,9 @@ pub fn weight_of(
 /// does would freeze the window.
 pub fn where_to(session: &tauri::State<'_, Mutex<Session>>, reference: &str) -> Where {
     let session = held(session);
-    let kept = session.state.kept.get(plain(reference));
+    let key =
+        tisty_core::attach::canonical(reference).unwrap_or_else(|| plain(reference).to_string());
+    let kept = session.state.kept.get(&key);
     let cloud = session
         .carrier()
         .filter(|carrier| carrier.frees_space())

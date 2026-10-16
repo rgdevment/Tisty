@@ -83,8 +83,7 @@ pub fn vouching_kept(asked: String, said: String) {
 /// The whole digest the log wrote down is what answers for a file when there is one; the name's
 /// few bits are all that is left for one no machine ever brought home.
 pub fn vouches(at: &std::path::Path, reference: &str, avowed: Option<&str>) -> Option<bool> {
-    let mut parts = reference.rsplit('/');
-    let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
+    let Some(leaf) = tisty_core::attach::leaf_of(reference) else {
         return Some(false);
     };
     let told = std::fs::metadata(at).ok()?;
@@ -106,10 +105,7 @@ pub fn vouches(at: &std::path::Path, reference: &str, avowed: Option<&str>) -> O
             sha256
         }
     };
-    Some(
-        tisty_core::attach::vouched(shelf, leaf, &sha256)
-            && avowed.is_none_or(|avowed| avowed == sha256),
-    )
+    Some(tisty_core::attach::vouched(leaf, &sha256) && avowed.is_none_or(|avowed| avowed == sha256))
 }
 
 fn nanos(when: std::io::Result<std::time::SystemTime>) -> u128 {

@@ -206,10 +206,13 @@ pub fn carried_alone(root: &Path, at: &Path) -> bool {
         .components()
         .filter_map(|one| one.as_os_str().to_str())
         .collect();
-    let [shelf, leaf] = parts[..] else {
-        return false;
+    // A store from before the move to one flat folder still holds its shelves.
+    let leaf = match parts[..] {
+        [leaf] => leaf,
+        [shelf, leaf] if shelf.len() == 2 && shelf.bytes().all(|b| b.is_ascii_hexdigit()) => leaf,
+        _ => return false,
     };
-    !leaf.ends_with(".part") && crate::attach::shelved(shelf, leaf)
+    !leaf.ends_with(".part") && crate::attach::stamped(leaf)
 }
 
 fn packed(

@@ -71,10 +71,10 @@ fn nothing_retired_means_nobody_reads_every_document_to_find_out() {
 #[test]
 fn an_attachment_something_still_names_is_left_and_asked_about_again() {
     let (_room, paths) = desk();
-    let at = "attachments/ab/una-a3f90001.png";
-    let shelf = paths.data().join("attachments/ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+    let at = "attachments/una-a3f90001.png";
+    let shed = paths.data().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("una-a3f90001.png"), b"unos bytes").unwrap();
 
     let mut state = State::default();
     state.retired.insert(at.into());
@@ -90,7 +90,7 @@ fn an_attachment_something_still_names_is_left_and_asked_about_again() {
         ),
         0
     );
-    assert!(shelf.join("una-a3f90001.png").exists());
+    assert!(shed.join("una-a3f90001.png").exists());
     assert!(
         done.attachments.is_empty(),
         "it was not taken out, so it is asked about again when the document goes"
@@ -263,10 +263,10 @@ fn a_shared_folder_that_is_not_there_is_never_mistaken_for_a_tidy_one() {
 #[test]
 fn an_attachment_put_back_on_a_task_while_the_folders_are_walked_is_not_taken_out() {
     let (_room, paths) = desk();
-    let at = "attachments/ab/una-a3f90001.png";
-    let shelf = paths.data().join("attachments/ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+    let at = "attachments/una-a3f90001.png";
+    let shed = paths.data().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("una-a3f90001.png"), b"unos bytes").unwrap();
 
     let mut state = State::default();
     state.retired.insert(at.into());
@@ -283,7 +283,7 @@ fn an_attachment_put_back_on_a_task_while_the_folders_are_walked_is_not_taken_ou
 
     assert_eq!(swept.attachments, 0);
     assert!(
-        shelf.join("una-a3f90001.png").exists(),
+        shed.join("una-a3f90001.png").exists(),
         "it was put back on a task while the folders were being walked"
     );
     assert!(done.attachments.is_empty());
@@ -317,9 +317,9 @@ fn what_went_before_there_was_a_folder_still_reaches_the_folder_afterwards() {
 #[test]
 fn an_attachment_retired_before_there_was_a_folder_still_reaches_the_folder_afterwards() {
     let (room, paths) = desk();
-    let at = "attachments/ab/una-a3f90001.png";
+    let at = "attachments/una-a3f90001.png";
     for root in [paths.data().to_path_buf(), room.path().join("shared")] {
-        std::fs::create_dir_all(root.join("attachments/ab")).unwrap();
+        std::fs::create_dir_all(root.join("attachments")).unwrap();
         std::fs::write(root.join(at), b"unos bytes").unwrap();
     }
     let mut state = State::default();
@@ -348,9 +348,7 @@ fn a_store_with_no_folder_does_not_walk_the_same_deletions_every_time() {
     a_paper(&paths, "dev_a-0001");
     let mut state = State::default();
     state.shed.insert("dev_a-0001".into());
-    state
-        .retired
-        .insert("attachments/ab/una-a3f90001.png".into());
+    state.retired.insert("attachments/una-a3f90001.png".into());
     let mut done = Already::default();
 
     papers(&paths, &state.shed, None, &mut done);
@@ -379,10 +377,10 @@ fn a_store_with_no_folder_does_not_walk_the_same_deletions_every_time() {
 #[test]
 fn an_attachment_only_a_document_names_survives_the_walk() {
     let (_room, paths) = desk();
-    let at = "attachments/ab/una-a3f90001.png";
-    let shelf = paths.data().join("attachments/ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+    let at = "attachments/una-a3f90001.png";
+    let shed = paths.data().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("una-a3f90001.png"), b"unos bytes").unwrap();
     a_paper(&paths, "dev_a-0001");
     std::fs::write(
         paths.docs().join("dev_a-0001.md"),
@@ -398,7 +396,7 @@ fn an_attachment_only_a_document_names_survives_the_walk() {
 
     assert_eq!(swept.attachments, 0);
     assert!(
-        shelf.join("una-a3f90001.png").is_file(),
+        shed.join("una-a3f90001.png").is_file(),
         "the walk never read the documents, so what one of them names was taken out"
     );
 }
@@ -406,7 +404,7 @@ fn an_attachment_only_a_document_names_survives_the_walk() {
 #[test]
 fn an_attachment_something_still_names_is_not_written_off_for_being_away() {
     let (_room, paths) = desk();
-    let at = "attachments/ab/una-a3f90001.png";
+    let at = "attachments/una-a3f90001.png";
     let mut state = State::default();
     state.retired.insert(at.into());
     let mut done = Already::default();
@@ -456,12 +454,12 @@ fn a_deletion_that_reached_one_folder_is_still_owed_to_the_next_one() {
 #[test]
 fn a_folder_to_reach_never_makes_the_walk_forget_to_read_the_documents() {
     let (room, paths) = desk();
-    let at = "attachments/ab/una-a3f90001.png";
-    let shelf = paths.data().join("attachments/ab");
-    std::fs::create_dir_all(&shelf).unwrap();
+    let at = "attachments/una-a3f90001.png";
+    let shed = paths.data().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
     let mut state = State::default();
     state.retired.insert(at.into());
-    std::fs::write(shelf.join("una-a3f90001.png"), b"unos bytes").unwrap();
+    std::fs::write(shed.join("una-a3f90001.png"), b"unos bytes").unwrap();
     a_paper(&paths, "dev_a-0001");
     std::fs::write(
         paths.docs().join("dev_a-0001.md"),
@@ -477,7 +475,7 @@ fn a_folder_to_reach_never_makes_the_walk_forget_to_read_the_documents() {
 
     assert_eq!(swept.attachments, 0);
     assert!(
-        shelf.join("una-a3f90001.png").is_file(),
+        shed.join("una-a3f90001.png").is_file(),
         "the walk asked the folder about it without reading what still names it"
     );
     assert!(after.attachments_up.is_empty());
@@ -489,9 +487,7 @@ fn a_folder_we_cannot_reach_never_makes_us_walk_this_side_again() {
     a_paper(&paths, "dev_a-0001");
     let mut state = State::default();
     state.shed.insert("dev_a-0001".into());
-    state
-        .retired
-        .insert("attachments/ab/una-a3f90001.png".into());
+    state.retired.insert("attachments/una-a3f90001.png".into());
     let mut done = Already::default();
     let away = room.path().join("nowhere");
 
@@ -523,7 +519,7 @@ fn a_folder_we_cannot_reach_never_makes_us_walk_this_side_again() {
 
 #[test]
 fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
-    let all: BTreeSet<String> = ["attachments/ab/una-a3f90001.png".to_string()]
+    let all: BTreeSet<String> = ["attachments/una-a3f90001.png".to_string()]
         .into_iter()
         .collect();
     let mut done = Already::default();
@@ -532,7 +528,7 @@ fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
     assert!(done.owes_any(&all, false, true));
 
     done.attachments
-        .insert("attachments/ab/una-a3f90001.png".into());
+        .insert("attachments/una-a3f90001.png".into());
     assert!(
         done.owes_any(&all, true, true),
         "gone from here is not gone from the folder"
@@ -543,6 +539,6 @@ fn what_is_owed_is_asked_of_each_side_that_can_be_reached() {
     );
 
     done.attachments_up
-        .insert("attachments/ab/una-a3f90001.png".into());
+        .insert("attachments/una-a3f90001.png".into());
     assert!(!done.owes_any(&all, true, true));
 }

@@ -530,7 +530,7 @@ fn laid_out(
     named: &str,
     also: Option<&Path>,
 ) -> Result<Taken> {
-    write_atomic(&folder.join(named), body.as_bytes())?;
+    write_atomic(&folder.join(named), outward(body).as_bytes())?;
 
     let held = data.join("attachments");
     let mut taken = Taken::default();
@@ -560,6 +560,20 @@ fn laid_out(
         }
     }
     Ok(taken)
+}
+
+// Outside Tisty a link has to say where the copied file sits beside the document.
+fn outward(body: &str) -> String {
+    let mut out = body.to_string();
+    for one in tisty_markdown::refs::extract(body) {
+        let Some(at) = crate::attach::canonical(&one.target) else {
+            continue;
+        };
+        for written in [format!("]({})", one.target), format!("](<{}>)", one.target)] {
+            out = out.replace(&written, &format!("]({at})"));
+        }
+    }
+    out
 }
 
 pub fn referenced(root: &Path) -> Vec<String> {

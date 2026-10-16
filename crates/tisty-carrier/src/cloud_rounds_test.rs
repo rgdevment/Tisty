@@ -74,7 +74,7 @@ fn an_attachment_past_what_the_cloud_takes_stays_here_and_says_so() {
     for setting in settings() {
         let who = &setting.name;
         let (one, _) = pair(&setting);
-        let reference = "attachments/ab/grande-0123456789.bin";
+        let reference = "attachments/grande-0123456789.bin";
         let at = tisty_core::attach::resolve(reference, &one.here.data).unwrap();
         std::fs::create_dir_all(at.parent().unwrap()).unwrap();
         std::fs::File::create(&at)
@@ -309,8 +309,8 @@ fn a_move_with_an_attachment_too_big_and_a_document_changed_meanwhile_is_not_rea
     let (one, _) = pair(&setting);
     one.filed(DOC, "# Plan\n\nlo primero\n");
     one.round(Way::Both);
-    let big = tisty_core::attach::resolve("attachments/ab/grande-0123456789.bin", &one.here.data)
-        .unwrap();
+    let big =
+        tisty_core::attach::resolve("attachments/grande-0123456789.bin", &one.here.data).unwrap();
     std::fs::create_dir_all(big.parent().unwrap()).unwrap();
     std::fs::File::create(&big)
         .unwrap()

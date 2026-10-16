@@ -1273,15 +1273,23 @@ fn brought(
     ops: &mut Vec<Op>,
 ) -> String {
     let mut told = body.to_string();
-    for one in crate::refs::extract(body).into_iter().map(|one| one.target) {
-        if !crate::attach::names_an_attachment(&one) {
+    // The link as the parcel wrote it, which is also where its file sits inside the parcel.
+    for one in tisty_markdown::refs::extract(body)
+        .into_iter()
+        .map(|one| one.target)
+    {
+        let Some(packed) = crate::attach::leaf_of(&one).map(|leaf| match one.contains('/') {
+            true => one
+                .trim_start_matches('<')
+                .trim_end_matches('>')
+                .to_string(),
+            false => format!("{}/{leaf}", crate::attach::SHED),
+        }) else {
             continue;
-        }
+        };
         if !carried.contains_key(&one) {
-            let Ok(said) = crate::attach::resolve(&one, Path::new("")) else {
-                continue;
-            };
-            let Some(at) = safe(&said.to_string_lossy().replace(char::from(92), "/")) else {
+            // Not `resolve`, which reads any attachment as its flat name: an older parcel kept its shelves.
+            let Some(at) = crate::attach::decoded(&packed).and_then(|one| safe(&one)) else {
                 continue;
             };
             let from = staged.join(at);
@@ -1295,7 +1303,10 @@ fn brought(
             };
             landed.files += 1;
             ops.push(kept.told());
-            carried.insert(one.clone(), kept.at);
+            let leaf = crate::attach::leaf_of(&kept.at)
+                .unwrap_or(&kept.at)
+                .to_string();
+            carried.insert(one.clone(), leaf);
         }
         if let Some(now) = carried.get(&one)
             && *now != one

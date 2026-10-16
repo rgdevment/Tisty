@@ -20,15 +20,15 @@ pub enum Vouch {
 
 /// What a task or a document points at, lies here or in the folder, and no history answers for.
 pub fn unvouched(state: &State, named: &[String], places: &[&Path]) -> Vec<Unvouched> {
-    let wanted: BTreeSet<&str> = named
+    let wanted: BTreeSet<String> = named
         .iter()
-        .map(String::as_str)
-        .filter(|at| names_an_attachment(at) && !state.kept.contains_key(*at))
+        .filter_map(|at| crate::attach::canonical(at))
+        .filter(|at| !state.kept.contains_key(at))
         .collect();
     wanted
         .into_iter()
         .filter_map(|at| {
-            let lies = found(at, places)?;
+            let lies = found(&at, places)?;
             let bytes = std::fs::metadata(&lies).ok()?.len();
             Some(Unvouched {
                 at: at.to_string(),
@@ -48,11 +48,10 @@ pub fn vouch(at: &str, places: &[&Path]) -> crate::Result<Vouch> {
         return Ok(Vouch::Gone);
     };
     let (sha256, bytes) = hashed(&lies)?;
-    let mut parts = at.rsplit('/');
-    let (Some(leaf), Some(shelf)) = (parts.next(), parts.next()) else {
+    let Some(leaf) = crate::attach::leaf_of(at) else {
         return Ok(Vouch::Unlike);
     };
-    if !vouched(shelf, leaf, &sha256) {
+    if !vouched(leaf, &sha256) {
         return Ok(Vouch::Unlike);
     }
     Ok(Vouch::Held {

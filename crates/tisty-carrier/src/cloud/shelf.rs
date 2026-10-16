@@ -37,7 +37,6 @@ enum Sent {
 
 struct Local {
     reference: String,
-    under: String,
     leaf: String,
     at: PathBuf,
     len: u64,
@@ -140,7 +139,7 @@ impl<'a> Shelf<'a> {
 
     fn not_up_there(&self, one: &Local, round: &Round) -> bool {
         !round.buried.contains(&one.reference)
-            && attach::shelved(&one.under, &one.leaf)
+            && attach::stamped(&one.leaf)
             && (round.again
                 || self.index.spoiled(&one.reference)
                 || !self
@@ -267,7 +266,7 @@ struct Round<'r> {
 }
 
 pub fn named_well(reference: &str) -> bool {
-    placed(reference).is_some_and(|(under, leaf)| attach::shelved(under, leaf))
+    attach::names_an_attachment(reference)
 }
 
 /// Where it lies, and what it read when no history answers for it yet.
@@ -279,14 +278,14 @@ pub fn brought(
     reference: &str,
     logged: Option<&str>,
 ) -> Result<Option<Fetched>, Hitch> {
-    let Some((under, leaf)) = placed(reference).filter(|_| named_well(reference)) else {
+    let Some(leaf) = placed(reference) else {
         return Ok(None);
     };
     let target = attach::resolve(reference, data).map_err(|e| Hitch::Broke(e.to_string()))?;
     let written_down = attach::digests(data);
     let holds = |at: &Path| {
         attach::hashed(at).ok().filter(|(sha256, _)| {
-            attach::vouched(under, leaf, sha256)
+            attach::vouched(leaf, sha256)
                 && match logged {
                     Some(logged) => sha256.eq_ignore_ascii_case(logged),
                     None => attach::as_kept(&written_down, reference, sha256),
@@ -367,7 +366,7 @@ impl Attachments for Shelf<'_> {
                 pace.went(one.len);
                 continue;
             };
-            if !attach::vouched(&one.under, &one.leaf, &sha256)
+            if !attach::vouched(&one.leaf, &sha256)
                 || !attach::as_kept(avowed, &one.reference, &sha256)
             {
                 self.unsent(&one.reference, "does not hold what its name or the log say");
@@ -459,7 +458,7 @@ impl Attachments for Shelf<'_> {
             if !wanted(&round, self.index, reference, seen) {
                 continue;
             }
-            let Some((under, leaf)) = placed(reference) else {
+            let Some(leaf) = placed(reference) else {
                 continue;
             };
             let Ok(target) = attach::resolve(reference, round.data) else {
@@ -479,8 +478,7 @@ impl Attachments for Shelf<'_> {
             };
             let read = attach::hashed(&part);
             let fits = read.as_ref().is_ok_and(|(sha256, _)| {
-                attach::vouched(under, leaf, sha256)
-                    && attach::as_kept(&written_down, reference, sha256)
+                attach::vouched(leaf, sha256) && attach::as_kept(&written_down, reference, sha256)
             });
             match read {
                 Ok((sha256, bytes)) if fits && std::fs::rename(&part, &target).is_ok() => {
@@ -528,21 +526,18 @@ impl Attachments for Shelf<'_> {
     }
 }
 
-fn placed(reference: &str) -> Option<(&str, &str)> {
-    reference
-        .strip_prefix("attachments/")
-        .and_then(|rest| rest.split_once('/'))
+fn placed(reference: &str) -> Option<&str> {
+    attach::leaf_of(reference)
 }
 
 fn wanted(round: &Taking, index: &Index, reference: &str, seen: &Seen) -> bool {
-    let Some((under, leaf)) = placed(reference) else {
+    if placed(reference).is_none() {
         return false;
-    };
+    }
     let Ok(target) = attach::resolve(reference, round.data) else {
         return false;
     };
-    attach::shelved(under, leaf)
-        && !round.buried.contains(reference)
+    !round.buried.contains(reference)
         && (round
             .reachable
             .is_none_or(|named| named.contains(reference))
@@ -596,42 +591,33 @@ pub fn sweep(data: &Path) {
 fn locals(data: &Path, buried: &BTreeSet<String>) -> (Vec<Local>, Vec<PathBuf>) {
     let mut all = Vec::new();
     let mut asked = Vec::new();
-    let Ok(shelves) = std::fs::read_dir(data.join(HELD)) else {
+    let Ok(files) = std::fs::read_dir(data.join(HELD)) else {
         return (all, asked);
     };
-    for shelf in shelves.filter_map(|one| one.ok()) {
-        let Some(under) = shelf.file_name().to_str().map(str::to_string) else {
+    for file in files.filter_map(|one| one.ok()) {
+        let (Some(leaf), Ok(meta)) = (
+            file.file_name().to_str().map(str::to_string),
+            file.metadata(),
+        ) else {
             continue;
         };
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+        if let Some(real) = tisty_core::holes::marker(&leaf)
+            .then(|| tisty_core::holes::named_away(&leaf))
+            .flatten()
+        {
+            let reference = format!("{HELD}/{real}");
+            if attach::stamped(real) && !buried.contains(&reference) {
+                asked.push(data.join(HELD).join(real));
+            }
             continue;
-        };
-        for file in files.filter_map(|one| one.ok()) {
-            let (Some(leaf), Ok(meta)) = (
-                file.file_name().to_str().map(str::to_string),
-                file.metadata(),
-            ) else {
-                continue;
-            };
-            if let Some(real) = tisty_core::holes::marker(&leaf)
-                .then(|| tisty_core::holes::named_away(&leaf))
-                .flatten()
-            {
-                let reference = format!("{HELD}/{under}/{real}");
-                if attach::shelved(&under, real) && !buried.contains(&reference) {
-                    asked.push(shelf.path().join(real));
-                }
-                continue;
-            }
-            if meta.is_file() && !leaf.ends_with(".part") {
-                all.push(Local {
-                    reference: format!("{HELD}/{under}/{leaf}"),
-                    under: under.clone(),
-                    leaf,
-                    at: file.path(),
-                    len: meta.len(),
-                });
-            }
+        }
+        if meta.is_file() && !leaf.ends_with(".part") {
+            all.push(Local {
+                reference: format!("{HELD}/{leaf}"),
+                leaf,
+                at: file.path(),
+                len: meta.len(),
+            });
         }
     }
     all.sort_by(|one, other| one.reference.cmp(&other.reference));

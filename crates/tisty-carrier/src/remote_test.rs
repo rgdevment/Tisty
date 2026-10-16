@@ -304,7 +304,7 @@ fn a_long_listing_costs_a_request_per_page_and_misses_nothing() {
 #[test]
 fn a_name_with_spaces_and_accents_comes_back_as_written() {
     on_each(|remote, room| {
-        let name = "attachments/ab/fotó de playa-1a2b3c4d.png";
+        let name = "attachments/fotó de playa-1a2b3c4d.png";
         put(remote, room, name, b"imagen", Expect::Absent).unwrap();
 
         assert_eq!(

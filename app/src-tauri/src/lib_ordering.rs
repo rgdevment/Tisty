@@ -72,7 +72,7 @@ fn the_lists_arrive_once_the_welcome_is_through_and_never_a_second_time() {
 #[test]
 fn an_install_that_finds_what_an_earlier_one_left_brings_no_example_lists() {
     let desk = desk();
-    let held = desk.paths.attachments().join("ab");
+    let held = desk.paths.attachments();
     std::fs::create_dir_all(&held).unwrap();
     std::fs::write(held.join("foto.png"), b"x").unwrap();
     let mut session = Session::at(desk.paths.clone()).unwrap();

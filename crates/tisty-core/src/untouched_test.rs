@@ -43,7 +43,7 @@ impl Here {
             .append_batch(vec![
                 Op::AttachKept {
                     d: Held {
-                        at: "attachments/ab/captura-ab12.png".into(),
+                        at: "attachments/captura-ab12.png".into(),
                         sha256: "ab12".into(),
                         bytes: 10,
                     },
@@ -351,7 +351,7 @@ fn an_attachment_kept_outside_the_guide_makes_it_the_persons() {
     here.store
         .append(Op::AttachKept {
             d: Held {
-                at: "attachments/cd/foto-cd34.png".into(),
+                at: "attachments/foto-cd34.png".into(),
                 sha256: "cd34".into(),
                 bytes: 10,
             },

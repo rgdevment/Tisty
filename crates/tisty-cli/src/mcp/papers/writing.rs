@@ -891,7 +891,11 @@ fn brought_in(
             {
                 done.papers.push(plain);
             }
-            Some(one.at)
+            Some(
+                tisty_core::attach::leaf_of(&one.at)
+                    .unwrap_or(&one.at)
+                    .to_string(),
+            )
         }
     }
 }
