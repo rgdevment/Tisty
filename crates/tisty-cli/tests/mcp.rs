@@ -1298,17 +1298,16 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
         "{body}"
     );
 
-    let refused = served.call(
+    let noted = served.call(
         "write_doc",
         serde_json::json!({ "body": "a claim[^1]
 
 [^1]: the source" }),
     );
-    let why = refused["result"]["content"][0]["text"].as_str().unwrap();
-    assert_eq!(refused["result"]["isError"], true);
+    assert_ne!(noted["result"]["isError"], true, "{noted}");
     assert!(
-        why.contains("markdown"),
-        "the refusal has to say what will survive: {why}"
+        noted["result"]["structuredContent"]["turned"].is_null(),
+        "{noted}"
     );
 }
 

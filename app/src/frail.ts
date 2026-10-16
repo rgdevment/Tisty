@@ -21,7 +21,6 @@ const WHY = [
   "frailComments",
   "frailEntities",
   "frailMaths",
-  "frailNotes",
   "frailRefs",
   "frailFence",
   "frailBlocked",
@@ -220,20 +219,6 @@ const markup = (line: string): string | null => {
   return null;
 };
 
-const noted = (line: string): boolean => {
-  let at = 0;
-  for (;;) {
-    const start = line.indexOf("[^", at);
-    if (start < 0) return false;
-    at = start + 2;
-    if (start > 0 && line[start - 1] === "\\") continue;
-    const end = line.indexOf("]", at);
-    if (end < 0) return false;
-    if (end > at && line[end + 1] !== "(" && line[end + 1] !== "[") return true;
-    at = end + 1;
-  }
-};
-
 const labelled = (rest: string): [string, string] | null => {
   let at = 0;
   while (at < rest.length) {
@@ -283,7 +268,6 @@ export const frail = (whole: string): string[] => {
     if (why) seen.add(why);
     const one = plain.trim();
     if (dollared(one)) seen.add("frailMaths");
-    if (noted(one)) seen.add("frailNotes");
     if (linked(one, lines[at + 1] ?? "")) seen.add("frailRefs");
   }
 

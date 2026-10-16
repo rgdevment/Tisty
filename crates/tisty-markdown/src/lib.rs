@@ -93,6 +93,7 @@ pub enum Mark {
     Emoji { glyph: String },
     Tag { name: String },
     Ref { name: String },
+    NoteRef { label: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -123,6 +124,9 @@ pub enum Kind {
     Details {
         summary: String,
         open: bool,
+    },
+    Note {
+        label: String,
     },
 }
 

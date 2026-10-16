@@ -45,6 +45,13 @@ fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
             Event::TaskListMarker(ticked) => tick(&mut open, ticked),
             Event::Text(_) => spot(&mut open, Mark::Text, at),
             Event::Code(_) => spot(&mut open, Mark::Code, at),
+            Event::FootnoteReference(label) => spot(
+                &mut open,
+                Mark::NoteRef {
+                    label: label.to_string(),
+                },
+                at,
+            ),
             Event::InlineHtml(_) => spot(&mut open, Mark::Html, at),
             Event::InlineMath(_) | Event::DisplayMath(_) => {
                 let mark = if priced(text, &at) {
@@ -127,7 +134,8 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
     let mut options = Options::ENABLE_TABLES
         | Options::ENABLE_TASKLISTS
         | Options::ENABLE_STRIKETHROUGH
-        | Options::ENABLE_GFM;
+        | Options::ENABLE_GFM
+        | Options::ENABLE_FOOTNOTES;
     if cfg!(feature = "math") {
         options |= Options::ENABLE_MATH;
     }
@@ -149,6 +157,11 @@ pub(crate) fn plain(source: &str) -> String {
             | Event::InlineMath(words)
             | Event::DisplayMath(words) => said.push_str(&words),
             Event::SoftBreak | Event::HardBreak => said.push(' '),
+            Event::FootnoteReference(label) => {
+                said.push_str("[^");
+                said.push_str(&label);
+                said.push(']');
+            }
             _ => {}
         }
     }
@@ -236,6 +249,9 @@ fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
         Tag::TableHead => Kind::Row { head: true },
         Tag::TableRow => Kind::Row { head: false },
         Tag::TableCell => Kind::Cell,
+        Tag::FootnoteDefinition(label) => Kind::Note {
+            label: label.to_string(),
+        },
         _ => return None,
     })
 }
@@ -264,6 +280,7 @@ fn ends_block(end: TagEnd) -> bool {
             | TagEnd::TableHead
             | TagEnd::TableRow
             | TagEnd::TableCell
+            | TagEnd::FootnoteDefinition
     )
 }
 

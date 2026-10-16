@@ -143,7 +143,7 @@ describe("a block written as it reads", () => {
 
   it("pairs a section's fences as the page does, and opens them where the caret touches", () => {
     const nested = ":::details A\n\n:::tip\n\nx\n\n:::\n\ny\n\n:::\n\nfuera";
-    expect(read(state(nested, nested.length))).toBe("A\n\n:::tip\n\nx\n\n:::\n\ny\n\n\n\nfuera");
+    expect(read(state(nested, nested.length))).toBe("A\n\n\n\nx\n\n\n\ny\n\n\n\nfuera");
     expect(read(state(":::detailsTodo\n\nx\n\n:::", 16))).toBe("Todo\n\nx\n\n");
     expect(read(state(":::details A\n\nx\n\n:::", 0))).toBe(":::details A\n\nx\n\n");
     const fenced = "```\n:::details x\n```\n\ndespués";
@@ -158,6 +158,15 @@ describe("a block written as it reads", () => {
       .filter((it) => it.line === "cm-fold-body")
       .map((it) => it.from);
     expect(bodies).toHaveLength(9);
+  });
+
+  it("draws a callout written as a colon container like the one written as a quote", () => {
+    const one = state(":::tip\n\nRiega las plantas.\n\n:::\n\nfuera", 36);
+    const lines = looked(one).filter((it) => it.line);
+    expect(lines.map((it) => it.line)).toEqual(Array(5).fill("cm-callout cm-callout-tip"));
+    expect(looked(one).some((it) => it.widget === "Said")).toBe(true);
+    expect(read(one)).toBe("\n\nRiega las plantas.\n\n\n\nfuera");
+    expect(read(state(":::tip\n\nOjo\n\n:::", 0))).toContain(":::tip");
   });
 
   it("leaves code, cards and attachments exactly as written", () => {

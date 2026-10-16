@@ -60,14 +60,14 @@ export type Carding = {
   readonly onBlock?: unknown;
 };
 
-const piece = (page: Document, kind: string, said = "") => {
+export const piece = (page: Document, kind: string, said = "") => {
   const one = page.createElement("span");
   one.className = kind;
   one.textContent = said;
   return one;
 };
 
-const drawn = (page: Document, name: string) => {
+export const drawn = (page: Document, name: string) => {
   const glyph = page.createElementNS("http://www.w3.org/2000/svg", "svg");
   glyph.setAttribute("class", "glyph");
   glyph.setAttribute("viewBox", "0 0 24 24");

@@ -133,3 +133,11 @@ fn a_step_named_in_a_note_keeps_its_number_for_the_window() {
     assert!(drawn.contains("data-ref=\"#4\""));
     assert!(drawn.contains("<br>"));
 }
+
+#[test]
+fn a_footnote_is_called_where_it_is_named_and_kept_at_its_place() {
+    let drawn = page("A claim[^src] here.\n\n[^src]: The source.\n");
+    assert!(drawn.contains("<sup class=\"fnref\"><a href=\"#fn-src\">src</a></sup>"));
+    assert!(drawn.contains("<div class=\"footnote\" id=\"fn-src\""));
+    assert!(drawn.contains("The source."));
+}

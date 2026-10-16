@@ -365,7 +365,11 @@ fn a_details_block_written_on_one_line_holds_nothing_to_fold() {
 fn a_colon_fence_closes_the_container_that_opened_last() {
     let doc = read(":::details More\n\n:::tip\n\nHi\n\n:::\n\nStill hidden\n\n:::");
     assert_eq!(doc.blocks().len(), 1);
-    assert_eq!(doc.blocks()[0].inner.len(), 4);
+    assert_eq!(doc.blocks()[0].inner.len(), 2);
+    assert_eq!(
+        doc.blocks()[0].inner[0].kind,
+        tisty_markdown::Kind::Callout(tisty_markdown::Callout::Tip)
+    );
 }
 
 #[cfg(feature = "outline")]
@@ -534,5 +538,23 @@ fn a_tag_inside_a_reference_is_part_of_the_reference() {
             .filter(|(mark, _)| matches!(mark, Mark::Ref { .. }))
             .count(),
         1
+    );
+}
+
+#[cfg(feature = "details")]
+#[test]
+fn a_colon_container_named_after_a_callout_reads_as_that_callout() {
+    use tisty_markdown::{Callout, Kind};
+    let doc = read(":::tip\n\nWater the plants.\n\n:::\n\nAfter.");
+    assert_eq!(doc.blocks()[0].kind, Kind::Callout(Callout::Tip));
+    assert_eq!(doc.blocks()[0].inner[0].kind, Kind::Paragraph);
+    assert_eq!(doc.blocks()[1].kind, Kind::Paragraph);
+    assert_eq!(
+        tops(":::WARNING\n\nCareful.\n\n:::"),
+        vec![Kind::Callout(Callout::Warning)]
+    );
+    assert_eq!(
+        tops(":::recipe\n\nNot a callout.\n\n:::")[0],
+        Kind::Paragraph
     );
 }

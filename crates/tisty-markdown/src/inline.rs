@@ -176,6 +176,14 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
                 escaped(name)
             );
         }
+        Mark::NoteRef { label } => {
+            let _ = write!(
+                out,
+                "<sup class=\"fnref\"><a href=\"#fn-{0}\">{1}</a></sup>",
+                escaped(&label.to_lowercase()),
+                escaped(label)
+            );
+        }
         Mark::Break => out.push_str("<br>"),
         Mark::Html if kept.contains(&one.at.start) => out.push_str(&said.to_ascii_lowercase()),
         Mark::Html => out.push_str(&escaped(said)),

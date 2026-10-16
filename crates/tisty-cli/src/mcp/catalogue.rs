@@ -99,8 +99,8 @@ collapsible sections and cards to other documents, besides plain Markdown. Ask `
 before writing anything beyond plain words. Markdown from anywhere else is taken and turned into \
 the language on the way in — HTML into Markdown or plain words, front matter taken off, a colour \
 outside the palette back to the plain pen, an unknown icon to its word — and the answer says \
-what changed, under `turned`; tell the person when it matters. Only what has no way in, like \
-footnotes, is refused, naming it. An older Tisty's \
+what changed, under `turned`; tell the person when it matters. Footnotes are kept as they are. \
+An older Tisty's \
 `<u>`, `<mark>` and icon span are turned into the language's own words on the way in.
 
 `import_doc` brings a markdown file on this machine in as a document, turning on the way what \
