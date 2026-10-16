@@ -61,6 +61,11 @@ pub struct Span {
     pub at: Range<usize>,
 }
 
+/// A link with nowhere to go yet reads as its words, never as a way back to its own page.
+pub(crate) fn nowhere(to: &str) -> bool {
+    to.trim().is_empty()
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Mark {
     Text,

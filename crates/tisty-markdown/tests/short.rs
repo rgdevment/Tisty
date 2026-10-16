@@ -9,6 +9,14 @@ fn marks(text: &str) -> String {
 }
 
 #[test]
+fn a_link_with_no_address_yet_prints_as_its_words() {
+    let printed = marks("See [the plan]() today.\n");
+    assert!(printed.contains("the plan"));
+    assert!(!printed.contains("link"));
+    assert!(marks("See [the plan](https://a.b).\n").contains("\"href\":\"https://a.b\""));
+}
+
+#[test]
 fn a_pen_names_its_colour_after_the_closing_wall() {
     let drawn = page("Revisar ==esto=={green} y ==aquello==");
     assert!(drawn.contains("<mark data-pen=\"green\">esto</mark>"));

@@ -106,6 +106,7 @@ fn opening(mark: &Mark, out: &mut String) {
         Mark::Strong => out.push_str("<strong>"),
         Mark::Strike => out.push_str("<s>"),
         Mark::Underline => out.push_str("<u>"),
+        Mark::Link { to } if crate::nowhere(to) => out.push_str("<span>"),
         Mark::Link { to } => {
             let _ = write!(out, "<a href=\"{}\">", escaped(&safe(to)));
         }
@@ -125,6 +126,7 @@ fn shut(mark: Option<&Mark>, out: &mut String) {
         Some(Mark::Strong) => "</strong>",
         Some(Mark::Strike) => "</s>",
         Some(Mark::Underline) => "</u>",
+        Some(Mark::Link { to }) if crate::nowhere(to) => "</span>",
         Some(Mark::Link { .. }) => "</a>",
         Some(Mark::Pen { .. }) => "</mark>",
         _ => "",

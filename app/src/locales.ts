@@ -536,8 +536,6 @@ const en = {
   pageEmpty: "Nothing written yet. Click here to start.",
   titleEmpty: "Title",
   tagTimes: "{name} times in this document",
-  shaping: "Format",
-  putting: "Insert",
   outline: "Outline",
   outlineNone: "No headings yet",
   listDropSure:
@@ -2510,8 +2508,6 @@ const es: Catalog = {
   pageEmpty: "Todavía sin escribir. Haz clic aquí para empezar.",
   titleEmpty: "Título",
   tagTimes: "{name} veces en este documento",
-  shaping: "Formato",
-  putting: "Insertar",
   outline: "Índice",
   outlineNone: "Sin encabezados todavía",
   listDropSure:

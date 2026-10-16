@@ -75,6 +75,13 @@ fn a_callout_marker_alone_on_its_line_leaves_only_the_body() {
 }
 
 #[test]
+fn a_link_with_no_address_yet_reads_as_its_words() {
+    let drawn = page("See [the plan]() today.\n");
+    assert!(drawn.contains("See <span>the plan</span> today."));
+    assert!(!drawn.contains("href"));
+}
+
+#[test]
 fn an_email_in_brackets_opens_the_mail() {
     assert!(page("Write <ana@example.com>.\n").contains("href=\"mailto:ana@example.com\""));
 }
