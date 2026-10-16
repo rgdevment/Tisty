@@ -236,6 +236,22 @@ fn a_paragraph_knows_every_mark_in_it_and_where_it_sits() {
 }
 
 #[test]
+fn an_address_written_bare_is_a_link_without_the_full_stop_after_it() {
+    let link = |to: &str| Mark::Link { to: to.into() };
+    let found = marks("Ver https://x.y/a_(b) y (https://x.y/c).");
+    assert!(found.contains(&(link("https://x.y/a_(b)"), "https://x.y/a_(b)".into())));
+    assert!(found.contains(&(link("https://x.y/c"), "https://x.y/c".into())));
+
+    let named = marks("[https://x.y](https://otro.z) y `https://z.w` y xhttps://q.r");
+    let links: Vec<&Mark> = named
+        .iter()
+        .map(|(mark, _)| mark)
+        .filter(|mark| matches!(mark, Mark::Link { .. }))
+        .collect();
+    assert_eq!(links, [&link("https://otro.z")]);
+}
+
+#[test]
 fn a_single_newline_breaks_the_line_and_html_is_kept_as_it_was_written() {
     let found = marks("One\ntwo <kbd>K</kbd>");
     assert_eq!(found[1], (Mark::Break, "\n".to_string()));

@@ -13,18 +13,7 @@ const kept = (inner: string): boolean => {
   const icon = found[4];
   return !icon || known(icon) || /\p{Extended_Pictographic}/u.test(icon);
 };
-const TITLED = /\btitle="(?:[^"\\]|\\.)*"/;
-const NAMED = /^[a-z0-9#]+$/i;
-const WHY = [
-  "frailFront",
-  "frailHtml",
-  "frailComments",
-  "frailEntities",
-  "frailMaths",
-  "frailRefs",
-  "frailFence",
-  "frailBlocked",
-];
+const WHY = ["frailFront", "frailHtml"];
 
 const spacing = (said: string): number => {
   let wide = 0;
@@ -66,56 +55,12 @@ const listed = (base: number, wide: number, said: string): number => {
   return wide < base ? 0 : base;
 };
 
-const ruled = (rest: string): boolean => {
-  const mark = rest.trim()[0];
-  if (mark !== "*" && mark !== "_" && mark !== "-") return false;
-  let many = 0;
-  for (const one of rest) {
-    if (one === mark) many += 1;
-    else if (one !== " " && one !== "\t") return false;
-  }
-  return many >= 3;
-};
-
-const dashed = (line: string): boolean => {
-  const said = quoted(line)[2];
-  return said.startsWith("|") && said.includes("-") && /^[|\-: ]+$/.test(said);
-};
-
-const blocked = (line: string, next: string): boolean => {
-  const [, wide, said] = quoted(line);
-  if (wide >= 4 || ruled(said)) return false;
-  const after = bullet(said);
-  if (after === null) return false;
-  const mark = said.slice(0, after).trimEnd().length;
-  let gap = 0;
-  for (const one of said.slice(mark, after)) gap += one === "\t" ? 4 : 1;
-  if (gap >= 5) return true;
-  const rest = said.slice(after);
-  if (
-    rest.startsWith(">") ||
-    rest.startsWith("```") ||
-    rest.startsWith("~~~") ||
-    rest.startsWith("![") ||
-    bullet(rest) !== null ||
-    ruled(rest)
-  ) {
-    return true;
-  }
-  if (/^#{1,6}([ \t]|$)/.test(rest)) return true;
-  return rest.startsWith("|") && dashed(next);
-};
-
-const fenceless = (text: string): { bare: string; told: boolean; broke: boolean } => {
+const fenceless = (text: string): string => {
   const out: string[] = [];
   let open: { mark: string; many: number; held: number; room: number } | null = null;
   let base = 0;
-  let told = false;
-  let broke = false;
 
-  const lines = text.split("\n");
-  for (const [at, line] of lines.entries()) {
-    if (!open && blocked(line, lines[at + 1] ?? "")) broke = true;
+  for (const line of text.split("\n")) {
     const [deep, held, held2] = quoted(line);
     if (!open) base = listed(base, held, held2);
     const after = bullet(held2);
@@ -123,7 +68,6 @@ const fenceless = (text: string): { bare: string; told: boolean; broke: boolean 
     const said = after === null ? held2 : held2.slice(after);
     const found = wide < base + 4 ? /^(`{3,}|~{3,})(.*)$/.exec(said) : null;
     const wrong = found?.[1][0] === "`" && found[2].includes("`");
-    if (wrong && !open) told = true;
     const marker = found && !wrong ? found : null;
     if (open) {
       if (!said) continue;
@@ -135,13 +79,12 @@ const fenceless = (text: string): { bare: string; told: boolean; broke: boolean 
       open = null;
     }
     if (marker) {
-      told = told || marker[2].replace(TITLED, "").trim().split(/\s+/).filter(Boolean).length > 1;
-      open = { mark: marker[1][0], many: marker[1].length, held: deep, room: wide };
+      open = { mark: marker[1][0], many: marker[1].length, held: deep, room: Math.min(base, wide) };
       continue;
     }
     out.push(line);
   }
-  return { bare: out.join("\n"), told, broke };
+  return out.join("\n");
 };
 
 const fronted = (text: string): boolean => {
@@ -190,13 +133,6 @@ const spanless = (line: string): string => {
   return out;
 };
 
-const entity = (from: string): boolean => {
-  const shut = from.indexOf(";");
-  if (shut < 0) return false;
-  const name = from.slice(1, shut);
-  return name.length > 1 && name.length < 12 && NAMED.test(name);
-};
-
 const anchored = (said: string): boolean => {
   const open = said.lastIndexOf("[");
   return open >= 0 && !said.slice(open + 1).includes("]");
@@ -204,10 +140,9 @@ const anchored = (said: string): boolean => {
 
 const markup = (line: string): string | null => {
   for (let at = 0; at < line.length; at += 1) {
-    if (line[at] === "&" && entity(line.slice(at))) return "frailEntities";
     if (line[at] !== "<") continue;
     const rest = line.slice(at + 1);
-    if (rest.startsWith("!--")) return "frailComments";
+    if (rest.startsWith("!--")) continue;
     const end = rest.indexOf(">");
     const inner = end < 0 ? rest : rest.slice(0, end);
     if (inner.includes("://") || (inner.includes("@") && !inner.includes(" "))) continue;
@@ -219,56 +154,17 @@ const markup = (line: string): string | null => {
   return null;
 };
 
-const labelled = (rest: string): [string, string] | null => {
-  let at = 0;
-  while (at < rest.length) {
-    if (rest[at] === "\\") at += 2;
-    else if (rest[at] !== "]") at += 1;
-    else if (rest[at + 1] === ":") return [rest.slice(0, at), rest.slice(at + 2)];
-    else return null;
-  }
-  return null;
-};
-
-const linked = (line: string, next: string): boolean => {
-  if (!line.startsWith("[")) return false;
-  const found = labelled(line.slice(1));
-  if (!found) return false;
-  const [label, told] = found;
-  if (!label || label.startsWith("^")) return false;
-  return told.trim() !== "" || next.trim() !== "";
-};
-
-const dollared = (line: string): boolean => {
-  const said = line.trim();
-  if (said.startsWith("$$")) return true;
-  let at = 0;
-  for (;;) {
-    const found = said.indexOf("$$", at);
-    if (found < 0) return false;
-    if (found === 0 || said[found - 1] !== "\\") return true;
-    at = found + 2;
-  }
-};
-
 export const frail = (whole: string): string[] => {
   const text = whole.replace(/^\ufeff+/, "");
-  const said = fenceless(text);
-  const bare = said.bare.replace(/^ {4}.*$/gm, "").replace(/^\t.*$/gm, "");
+  const bare = fenceless(text)
+    .replace(/^ {4}.*$/gm, "")
+    .replace(/^\t.*$/gm, "");
   const seen = new Set<string>();
 
   if (fronted(text)) seen.add("frailFront");
-  if (said.told) seen.add("frailFence");
-  if (said.broke) seen.add("frailBlocked");
-
-  const lines = bare.split("\n");
-  for (const [at, line] of lines.entries()) {
-    const plain = spanless(line);
-    const why = markup(plain);
+  for (const line of bare.split("\n")) {
+    const why = markup(spanless(line));
     if (why) seen.add(why);
-    const one = plain.trim();
-    if (dollared(one)) seen.add("frailMaths");
-    if (linked(one, lines[at + 1] ?? "")) seen.add("frailRefs");
   }
 
   return WHY.filter((one) => seen.has(one));

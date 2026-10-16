@@ -38,8 +38,12 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail("una nota[^1]\n\n[^1]: el pie")).toEqual([]);
   });
 
-  it("sees a link by reference, whose definition is thrown away", () => {
-    expect(frail("mira [esto][uno]\n\n[uno]: https://ejemplo.org")).toContain("frailRefs");
+  it("takes the standard forms the Tisty language adopts as they come", () => {
+    expect(frail("mira [esto][uno]\n\n[uno]: https://ejemplo.org")).toEqual([]);
+    expect(frail("$$\nx^2\n$$\n\ny $a$ b")).toEqual([]);
+    expect(frail("```rust title=main.rs\nfn main() {}\n```")).toEqual([]);
+    expect(frail("- > una cita\n- ```\n  x\n  ```")).toEqual([]);
+    expect(frail("un <!-- aparte --> y &copy; 2026")).toEqual([]);
   });
 
   it("leaves an aligned table alone, now that the alignment comes back", () => {
@@ -81,7 +85,7 @@ describe("what a document brings that the editor cannot keep", () => {
   it("names every kind it finds, not only the first", () => {
     const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie\n\n[uno]: https://x.dev";
 
-    expect(frail(messy)).toEqual(["frailFront", "frailHtml", "frailRefs"]);
+    expect(frail(messy)).toEqual(["frailFront", "frailHtml"]);
   });
 
   it("sees html that plays inline in the middle of a sentence, not only html standing on its own", () => {
@@ -162,47 +166,6 @@ describe("what the agent is allowed to send opens for editing", () => {
     expect(frail("Ejemplo:\n\n\t<div>x</div>")).toEqual([]);
   });
 
-  it("tells an entity from an ampersand that only looks like one", () => {
-    expect(frail("&am;")).toContain("frailEntities");
-    expect(frail("&abcdefghijk;")).toContain("frailEntities");
-    expect(frail("&a;")).not.toContain("frailEntities");
-    expect(frail("&abcdefghijkl;")).not.toContain("frailEntities");
-    expect(frail("&no es;")).not.toContain("frailEntities");
-    expect(frail("uno & dos")).not.toContain("frailEntities");
-  });
-
-  it("sees a pair of dollars that opens maths and not one that was escaped", () => {
-    expect(frail("$$x$$")).toContain("frailMaths");
-    expect(frail("a $$x$$ b")).toContain("frailMaths");
-    expect(frail("a \\$$x b")).not.toContain("frailMaths");
-    expect(frail("cuesta 5$ y no 7$")).not.toContain("frailMaths");
-    expect(frail("a \\$$x b$$y")).toContain("frailMaths");
-  });
-
-  it("counts the gap after a bullet and calls it a block from five spaces on", () => {
-    expect(frail("-     texto")).toContain("frailBlocked");
-    expect(frail("-    texto")).not.toContain("frailBlocked");
-  });
-
-  it("sees each kind of block a list item can be hiding", () => {
-    expect(frail("- > una cita")).toContain("frailBlocked");
-    expect(frail("- ```\n- x")).toContain("frailBlocked");
-    expect(frail("- ![una imagen](x.png)")).toContain("frailBlocked");
-    expect(frail("- - una sublista")).toContain("frailBlocked");
-    expect(frail("- # un titulo")).toContain("frailBlocked");
-    expect(frail("- | a | b |\n  | --- | --- |")).toContain("frailBlocked");
-    expect(frail("- | a | b |\n  texto")).not.toContain("frailBlocked");
-    expect(frail("- texto llano")).not.toContain("frailBlocked");
-  });
-
-  it("sees a reference definition, wherever its target was written", () => {
-    expect(frail("[uno]: https://ejemplo.org")).toContain("frailRefs");
-    expect(frail("[uno]:\n  https://ejemplo.org")).toContain("frailRefs");
-    expect(frail("[uno]:")).not.toContain("frailRefs");
-    expect(frail("[^1]: una nota")).not.toContain("frailRefs");
-    expect(frail("[uno] no es una definicion")).not.toContain("frailRefs");
-  });
-
   it("takes a footnote, which the Tisty language keeps", () => {
     expect(frail("un texto[^1] con nota")).toEqual([]);
   });
@@ -228,12 +191,5 @@ describe("what the agent is allowed to send opens for editing", () => {
     expect(frail("ver <https://ejemplo.org>")).not.toContain("frailHtml");
     expect(frail("escribe a <alguien@ejemplo.org>")).not.toContain("frailHtml");
     expect(frail("[un enlace](<attachments/ab/x.png>)")).not.toContain("frailHtml");
-  });
-
-  it("only calls the line under a table a table rule", () => {
-    expect(frail("- | a | b |\n  | --- | --- |")).toContain("frailBlocked");
-    expect(frail("- | a | b |\n  ---")).not.toContain("frailBlocked");
-    expect(frail("- | a | b |\n  | x | y |")).not.toContain("frailBlocked");
-    expect(frail("- | a | b |\n  | :-: |")).toContain("frailBlocked");
   });
 });

@@ -11,12 +11,6 @@ interface Case {
 const SAID: Record<string, string> = {
   front: "frailFront",
   html: "frailHtml",
-  comments: "frailComments",
-  entities: "frailEntities",
-  maths: "frailMaths",
-  refs: "frailRefs",
-  fence: "frailFence",
-  block: "frailBlocked",
 };
 
 const corpus: Case[] = JSON.parse(

@@ -186,6 +186,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
         }
         Mark::Break => out.push_str("<br>"),
         Mark::Html if kept.contains(&one.at.start) => out.push_str(&said.to_ascii_lowercase()),
+        Mark::Html if said.starts_with("<!--") => {}
         Mark::Html => out.push_str(&escaped(said)),
         _ => {}
     }

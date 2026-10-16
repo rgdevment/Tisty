@@ -54,48 +54,29 @@ fn the_tags_an_older_tisty_wrote_come_in_its_own_words() {
 }
 
 #[test]
-fn comments_and_entities_go() {
-    let out = tidied("Hola <!-- oculto --> y &amp; y &nbsp;fin\n");
-
-    assert_eq!(out.body, "Hola  y & y  fin\n");
-    assert!(out.changed.contains(&"HTML comments"));
-    assert!(out.changed.contains(&"HTML entities"));
+fn the_standard_forms_the_language_adopts_come_in_as_they_were_written() {
+    for said in [
+        "Hola <!-- oculto --> y &amp; y &nbsp;fin\n",
+        "Ver [el sitio][uno] y [otro][dos].\n\n[uno]: https://a.example\n[dos]: <https://b.example>\n",
+        "Antes\n\n$$\n\\int_0^1 x\n$$\n\nDespues\n",
+        "$$a^2 + b^2$$\n",
+        "Ver esta formula $$x=1$$ en el medio.\n",
+        "```js showLineNumbers title=\"a.js\"\nconst a = 1;\n```\n",
+        "- # Revisar la duda\n- * No deberia mostrar eso\n1. > citado\n",
+        "Antes\n\n<!--\noculto\n-->\n\nDespues\n",
+        "esto es &amp;amp; y listo\n",
+        "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```\n\nDespues\n",
+    ] {
+        assert!(survives(said).is_ok(), "{said:?} is the premise");
+        let out = tidied(said);
+        assert_eq!(out.body, said, "nothing to fix is nothing to touch");
+        assert!(out.changed.is_empty(), "{:?}", out.changed);
+    }
 }
 
 #[test]
 fn a_line_break_written_as_a_tag_stops_being_one() {
     assert_eq!(plain("una<br>otra<br />tercera"), "unaotratercera\n");
-}
-
-#[test]
-fn links_written_by_reference_are_written_inline() {
-    let out = tidied(
-        "Ver [el sitio][uno] y [otro][dos].\n\n[uno]: https://a.example\n[dos]: <https://b.example>\n",
-    );
-
-    assert_eq!(
-        out.body,
-        "Ver [el sitio](https://a.example) y [otro](https://b.example).\n"
-    );
-    assert!(out.changed.contains(&"links written by reference"));
-    assert!(survives(&out.body).is_ok());
-}
-
-#[test]
-fn maths_between_dollars_moves_into_a_fence_that_draws() {
-    let out = tidied("Antes\n\n$$\n\\int_0^1 x\n$$\n\nDespues\n");
-
-    assert_eq!(out.body, "Antes\n\n```math\n\\int_0^1 x\n```\n\nDespues\n");
-    assert!(out.changed.contains(&"maths written between dollars"));
-    assert!(survives(&out.body).is_ok());
-}
-
-#[test]
-fn maths_on_one_line_moves_too() {
-    let out = tidied("$$a^2 + b^2$$\n");
-
-    assert_eq!(out.body, "```math\na^2 + b^2\n```\n");
-    assert!(survives(&out.body).is_ok());
 }
 
 #[test]
@@ -106,14 +87,6 @@ fn a_fence_keeps_every_byte_it_holds() {
 
     assert_eq!(out.body, said, "a fence is not text to be tidied");
     assert!(out.changed.is_empty());
-}
-
-#[test]
-fn what_a_fence_says_after_its_language_is_dropped_because_the_editor_drops_it() {
-    let out = tidied("```js showLineNumbers title=\"a.js\"\nconst a = 1;\n```\n");
-
-    assert_eq!(out.body, "```js\nconst a = 1;\n```\n");
-    assert!(survives(&out.body).is_ok());
 }
 
 #[test]
@@ -145,25 +118,6 @@ fn everything_it_hands_back_is_something_tisty_will_take() {
 }
 
 #[test]
-fn a_fence_written_in_from_the_margin_comes_back_to_it() {
-    let said = "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```\n\nDespues\n";
-    assert!(
-        survives(said).is_err(),
-        "a fence Tisty cannot see is why this matters"
-    );
-
-    let out = tidied(said);
-
-    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
-    assert!(out.body.contains("\n```sh\n"), "{:?}", out.body);
-    assert!(
-        out.body.contains("<uno> <dos>"),
-        "what it holds is untouched"
-    );
-    assert!(out.changed.contains(&"a fence written in from the margin"));
-}
-
-#[test]
 fn a_fence_written_in_that_tisty_already_takes_is_left_where_it_was() {
     let said = "Antes\n\n  ```json\n  {\"a\": 1}\n```\n\nDespues\n";
 
@@ -171,34 +125,6 @@ fn a_fence_written_in_that_tisty_already_takes_is_left_where_it_was() {
 
     assert_eq!(out.body, said, "nothing to fix is nothing to touch");
     assert!(out.changed.is_empty());
-}
-
-#[test]
-fn a_bullet_that_opens_on_a_block_keeps_its_words() {
-    for (said, want) in [
-        (
-            "- # Revisar la duda
-",
-            "- BAR# Revisar la duda
-",
-        ),
-        (
-            "- * No deberia mostrar eso
-",
-            "- BAR* No deberia mostrar eso
-",
-        ),
-        (
-            "1. > citado
-",
-            "1. BAR> citado
-",
-        ),
-    ] {
-        let out = tidied(said);
-        assert_eq!(out.body, want.replace("BAR", "\\"));
-        assert!(survives(&out.body).is_ok(), "{:?}", out.body);
-    }
 }
 
 #[test]
@@ -294,7 +220,7 @@ fn a_reference_named_inside_a_run_of_code_is_left_as_it_reads() {
 
     assert!(out.body.contains("`[texto][uno]`"), "{:?}", out.body);
     assert!(
-        out.body.contains("[texto](https://a.example)"),
+        out.body.contains("[uno]: https://a.example"),
         "{:?}",
         out.body
     );
@@ -349,43 +275,6 @@ muchas lineas en blanco
 }
 
 #[test]
-fn maths_between_dollars_inside_a_line_becomes_something_that_survives() {
-    let out = tidied(
-        "Ver esta formula $$x=1$$ en el medio.
-",
-    );
-
-    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
-    assert!(
-        out.body.contains("x=1"),
-        "the maths is still there: {:?}",
-        out.body
-    );
-    assert!(out.changed.contains(&"maths written between dollars"));
-}
-
-#[test]
-fn maths_left_open_does_not_swallow_the_paragraphs_after_it() {
-    let out = tidied(
-        "Antes
-
-$$
-x = 1
-
-Despues sin cerrar
-",
-    );
-
-    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
-    let after = out.body.split("```").last().unwrap_or_default();
-    assert!(
-        after.contains("Despues sin cerrar"),
-        "the paragraph was eaten: {:?}",
-        out.body
-    );
-}
-
-#[test]
 fn a_rule_that_merely_looks_like_front_matter_keeps_what_is_under_it() {
     let said = "---
 
@@ -402,40 +291,6 @@ Otro despues del corte.
 
     assert!(out.body.contains("Un parrafo de verdad"), "{:?}", out.body);
     assert!(!out.changed.contains(&"front matter"));
-}
-
-#[test]
-fn a_comment_that_spans_lines_is_taken_out_whole() {
-    let out = tidied(
-        "Antes
-
-<!--
-oculto
--->
-
-Despues
-",
-    );
-
-    assert!(!out.body.contains("oculto"), "{:?}", out.body);
-    assert!(!out.body.contains("-->"), "{:?}", out.body);
-    assert!(survives(&out.body).is_ok());
-}
-
-#[test]
-fn entities_written_twice_over_are_resolved_all_the_way() {
-    let out = tidied(
-        "esto es &amp;amp; y listo
-",
-    );
-
-    assert_eq!(
-        out.body,
-        "esto es & y listo
-"
-    );
-    assert!(survives(&out.body).is_ok());
-    assert_eq!(tidied(&out.body).body, out.body, "and it settles");
 }
 
 #[test]

@@ -15,17 +15,6 @@ const TAGS: [(&str, &str, &str); 8] = [
     ("strike", "~~", "~~"),
 ];
 
-const ENTITIES: [(&str, &str); 8] = [
-    ("&nbsp;", " "),
-    ("&amp;", "&"),
-    ("&lt;", "<"),
-    ("&gt;", ">"),
-    ("&quot;", "\""),
-    ("&#39;", "'"),
-    ("&apos;", "'"),
-    ("&hellip;", "…"),
-];
-
 pub fn tidied(body: &str) -> Tidied {
     let windows = body.contains("\r\n");
     let even = match windows {
@@ -60,78 +49,31 @@ pub fn tidied(body: &str) -> Tidied {
     if cut {
         note("front matter", &mut said);
     }
-    let (body, less) = uncommented(&body);
-    if less {
-        note("HTML comments", &mut said);
-    }
 
     let mut out: Vec<String> = Vec::new();
     let mut fence: Option<String> = None;
-    let mut refs: Vec<(String, String)> = Vec::new();
 
     for line in body.lines() {
         if let Some(open) = &fence {
             if line.trim_start().starts_with(open.as_str()) {
-                let shut = line.trim_start().to_string();
-                if shut != line {
-                    note("a fence written in from the margin", &mut said);
-                }
                 fence = None;
-                out.push(shut);
-                continue;
             }
             out.push(line.to_string());
             continue;
         }
         if let Some(open) = opens(line) {
-            let (kept, told) = languaged(line, &open);
-            if told {
-                note("what a fence said after its language", &mut said);
-            }
-            let bare = kept.trim_start().to_string();
-            if bare != kept {
-                note("a fence written in from the margin", &mut said);
-            }
             fence = Some(open);
-            out.push(bare);
+            out.push(line.to_string());
             continue;
         }
         let named = mended(line);
         if named.is_some() {
             note("a colour or an icon Tisty does not have", &mut said);
         }
-        let line = named.as_deref().unwrap_or(line);
-        if let Some(escaped) = unblocked(line) {
-            note("a list item that opened on a block", &mut said);
-            out.push(escaped);
-            continue;
-        }
-        if let Some((name, at)) = defined(line) {
-            refs.push((name, at));
-            note("links written by reference", &mut said);
-            continue;
-        }
-        out.push(line.to_string());
+        out.push(named.unwrap_or_else(|| line.to_string()));
     }
 
-    let mut whole = out.join("\n");
-    for (name, at) in &refs {
-        whole = whole
-            .split_inclusive('\n')
-            .map(|line| {
-                let bare = line.trim_end_matches('\n');
-                let ends = &line[bare.len()..];
-                let said: String = spans(bare)
-                    .into_iter()
-                    .map(|(coded, part)| match coded {
-                        true => part.to_string(),
-                        false => inlined(part, name, at),
-                    })
-                    .collect();
-                format!("{said}{ends}")
-            })
-            .collect();
-    }
+    let whole = out.join("\n");
 
     let mut walked = String::with_capacity(whole.len());
     let mut fenced: Option<String> = None;
@@ -153,11 +95,6 @@ pub fn tidied(body: &str) -> Tidied {
         if line.ends_with('\n') {
             walked.push('\n');
         }
-    }
-
-    let (walked, moved) = mathed(&walked);
-    if moved {
-        note("maths written between dollars", &mut said);
     }
 
     match said.is_empty() {
@@ -269,22 +206,6 @@ fn bared(
         }
         out = found;
     }
-    if out.contains("<!--") {
-        out = commentless(&out);
-        note("HTML comments", said);
-    }
-    if ENTITIES.iter().any(|(one, _)| out.contains(one)) {
-        note("HTML entities", said);
-        for _ in 0..8 {
-            let was = out.clone();
-            for (one, plain) in ENTITIES {
-                out = out.replace(one, plain);
-            }
-            if out == was {
-                break;
-            }
-        }
-    }
     if tagged(&out) {
         out = tagless(&out);
         note("HTML with nothing markdown can say", said);
@@ -296,57 +217,6 @@ fn bared(
     out
 }
 
-fn unblocked(line: &str) -> Option<String> {
-    let said = line.trim_start();
-    let wide = line.len() - said.len();
-    if wide >= 4 {
-        return None;
-    }
-    let after = bulleted(said)?;
-    let rest = &said[after..];
-    let mark = rest.chars().next()?;
-    if !matches!(mark, '#' | '>' | '-' | '*' | '+') {
-        return None;
-    }
-    if matches!(mark, '-' | '*' | '+') && bulleted(rest).is_none() {
-        return None;
-    }
-    if mark == '#' {
-        let hashes = rest.chars().take_while(|one| *one == '#').count();
-        let next = rest[hashes..].chars().next();
-        if !(1..=6).contains(&hashes) || !matches!(next, None | Some(' ') | Some('\t')) {
-            return None;
-        }
-    }
-    Some(format!(
-        "{}{}\\{}",
-        &line[..wide],
-        &said[..after],
-        &said[after..]
-    ))
-}
-
-fn bulleted(said: &str) -> Option<usize> {
-    let bytes = said.as_bytes();
-    let mut at = 0;
-    if matches!(bytes.first(), Some(b'-' | b'*' | b'+')) {
-        at = 1;
-    } else {
-        while at < bytes.len() && bytes[at].is_ascii_digit() {
-            at += 1;
-        }
-        if at == 0 || at > 9 || !matches!(bytes.get(at), Some(b'.' | b')')) {
-            return None;
-        }
-        at += 1;
-    }
-    let gap = said[at..].len() - said[at..].trim_start_matches([' ', '\t']).len();
-    match gap {
-        0 => None,
-        _ => Some(at + gap),
-    }
-}
-
 fn opens(line: &str) -> Option<String> {
     let said = line.trim_start();
     for mark in ['`', '~'] {
@@ -356,22 +226,6 @@ fn opens(line: &str) -> Option<String> {
         }
     }
     None
-}
-
-fn languaged(line: &str, open: &str) -> (String, bool) {
-    let said = line.trim_start();
-    let rest = said[open.len()..].trim();
-    let lead = &line[..line.len() - said.len()];
-    let bare = crate::docs::nameless(rest);
-    let mut words = bare.split_whitespace();
-    let first = words.next().unwrap_or_default();
-    let told = words.next().is_some();
-    let fenced = open.starts_with('`') && rest.contains('`');
-    let kept = match told || fenced {
-        true => first,
-        false => rest,
-    };
-    (format!("{lead}{open}{kept}"), told)
 }
 
 fn unfronted(body: &str) -> (String, bool) {
@@ -413,50 +267,6 @@ fn keyword(line: &str) -> bool {
         && name
             .chars()
             .all(|one| one.is_alphanumeric() || matches!(one, '_' | '-' | '.'))
-}
-
-fn defined(line: &str) -> Option<(String, String)> {
-    let said = line.trim();
-    let rest = said.strip_prefix('[')?;
-    let shut = rest.find("]:")?;
-    let name = &rest[..shut];
-    if name.is_empty() || name.starts_with('^') {
-        return None;
-    }
-    let at = rest[shut + 2..].trim();
-    let at = at.split_whitespace().next().unwrap_or_default();
-    match at.is_empty() {
-        true => None,
-        false => Some((name.to_lowercase(), at.trim_matches(['<', '>']).to_string())),
-    }
-}
-
-fn inlined(body: &str, name: &str, at: &str) -> String {
-    let mut out = String::with_capacity(body.len());
-    let mut rest = body;
-    loop {
-        let Some(found) = rest.find("][") else {
-            out.push_str(rest);
-            return out;
-        };
-        let Some(shut) = rest[found + 2..].find(']') else {
-            out.push_str(rest);
-            return out;
-        };
-        let said = &rest[found + 2..found + 2 + shut];
-        let inner = match said.is_empty() {
-            true => rest[..found].rsplit('[').next().unwrap_or_default(),
-            false => said,
-        };
-        if inner.to_lowercase() == name {
-            out.push_str(&rest[..found + 1]);
-            out.push_str(&format!("({at})"));
-            rest = &rest[found + 3 + shut..];
-        } else {
-            out.push_str(&rest[..found + 2 + shut]);
-            rest = &rest[found + 2 + shut..];
-        }
-    }
 }
 
 fn drop_of(line: &str, opens: &str) -> String {
@@ -514,61 +324,6 @@ fn opened(line: &str, tag: &str) -> Option<(usize, usize)> {
     None
 }
 
-fn coded_at(rest: &str, found: usize) -> bool {
-    let from = rest[..found].rfind('\n').map(|one| one + 1).unwrap_or(0);
-    let line = &rest[from..];
-    let ends = line.find('\n').unwrap_or(line.len());
-    let at = found - from;
-    let mut walk = 0;
-    for (coded, part) in spans(&line[..ends]) {
-        let wide = part.len();
-        if at >= walk && at < walk + wide {
-            return coded;
-        }
-        walk += wide;
-    }
-    false
-}
-
-fn uncommented(body: &str) -> (String, bool) {
-    if !body.contains("<!--") {
-        return (body.to_string(), false);
-    }
-    let mut out = String::with_capacity(body.len());
-    let mut rest = body;
-    let mut cut = false;
-    while let Some(found) = rest.find("<!--") {
-        if coded_at(rest, found) {
-            let step = found + 4;
-            out.push_str(&rest[..step]);
-            rest = &rest[step..];
-            continue;
-        }
-        out.push_str(&rest[..found]);
-        cut = true;
-        match rest[found..].find("-->") {
-            Some(ends) => rest = &rest[found + ends + 3..],
-            None => return (out, true),
-        }
-    }
-    out.push_str(rest);
-    (out, cut)
-}
-
-fn commentless(line: &str) -> String {
-    let mut out = String::with_capacity(line.len());
-    let mut rest = line;
-    while let Some(found) = rest.find("<!--") {
-        out.push_str(&rest[..found]);
-        match rest[found..].find("-->") {
-            Some(shut) => rest = &rest[found + shut + 3..],
-            None => return out,
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 fn tagged(line: &str) -> bool {
     crate::docs::markup(line).is_some()
 }
@@ -615,113 +370,6 @@ fn tagless(line: &str) -> String {
     }
     out.push_str(rest);
     out
-}
-
-fn mathed(body: &str) -> (String, bool) {
-    if !body.contains("$$") {
-        return (body.to_string(), false);
-    }
-    let mut out: Vec<String> = Vec::new();
-    let mut held: Option<Vec<String>> = None;
-    let mut fence: Option<String> = None;
-    let mut moved = false;
-
-    for line in body.lines() {
-        if let Some(open) = &fence {
-            if line.trim_start().starts_with(open.as_str()) {
-                fence = None;
-            }
-            out.push(line.to_string());
-            continue;
-        }
-        if held.is_none()
-            && let Some(open) = opens(line)
-        {
-            fence = Some(open);
-            out.push(line.to_string());
-            continue;
-        }
-        let said = line.trim();
-        match &mut held {
-            Some(inner) => {
-                if said.is_empty() {
-                    out.push("```math".into());
-                    out.append(inner);
-                    out.push("```".into());
-                    out.push(String::new());
-                    held = None;
-                    continue;
-                }
-                if said.ends_with("$$") {
-                    let last = said.trim_end_matches("$$").trim_end();
-                    if !last.is_empty() {
-                        inner.push(last.to_string());
-                    }
-                    out.push("```math".into());
-                    out.append(inner);
-                    out.push("```".into());
-                    held = None;
-                } else {
-                    inner.push(line.to_string());
-                }
-            }
-            None => match lone(said) {
-                Some(inner) => {
-                    moved = true;
-                    out.push("```math".into());
-                    if !inner.is_empty() {
-                        out.push(inner);
-                    }
-                    out.push("```".into());
-                }
-                None if said.starts_with("$$") => {
-                    moved = true;
-                    let rest = said.trim_start_matches("$$").trim();
-                    held = Some(match rest.is_empty() {
-                        true => Vec::new(),
-                        false => vec![rest.to_string()],
-                    });
-                }
-                None if said.contains("$$") => {
-                    moved = true;
-                    out.push(coded(line));
-                }
-                None => out.push(line.to_string()),
-            },
-        }
-    }
-    if let Some(inner) = held {
-        out.push("```math".into());
-        out.extend(inner);
-        out.push("```".into());
-    }
-    (out.join("\n"), moved)
-}
-
-fn coded(line: &str) -> String {
-    let mut out = String::with_capacity(line.len());
-    let mut rest = line;
-    while let Some(found) = rest.find("$$") {
-        let Some(shut) = rest[found + 2..].find("$$") else {
-            out.push_str(rest);
-            return out;
-        };
-        out.push_str(&rest[..found]);
-        let inner = &rest[found + 2..found + 2 + shut];
-        match inner.contains('`') {
-            true => out.push_str(inner.trim()),
-            false => out.push_str(&format!("`{}`", inner.trim())),
-        }
-        rest = &rest[found + 4 + shut..];
-    }
-    out.push_str(rest);
-    out
-}
-
-fn lone(said: &str) -> Option<String> {
-    let rest = said.strip_prefix("$$")?;
-    let inner = rest.strip_suffix("$$")?;
-    Some(inner.trim().to_string())
 }
 
 fn spaced(body: &str) -> String {
