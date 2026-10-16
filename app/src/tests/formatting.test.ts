@@ -163,3 +163,36 @@ describe("the keys at the edges of a block", () => {
     head.destroy();
   });
 });
+
+describe("the smaller keys", () => {
+  it("takes Home past a line's mark, and Shift+Home selects up to it", () => {
+    const editor = view("- [ ] uno dos");
+    press(editor, "Home");
+    expect(editor.state.selection.main.head).toBe(6);
+    editor.dispatch({ selection: { anchor: 13 } });
+    editor.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Home",
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(editor.state.selection.main.from).toBe(6);
+    expect(editor.state.selection.main.to).toBe(13);
+    editor.destroy();
+  });
+
+  it("still moves the caret when an arrow leaves a format with nothing typed", () => {
+    const editor = view("uno dos", 4);
+    wrapped(editor, "**");
+    press(editor, "ArrowRight");
+    expect(editor.state.sliceDoc()).toBe("uno dos");
+    expect(editor.state.selection.main.head).toBe(5);
+    wrapped(editor, "*");
+    press(editor, "ArrowLeft");
+    expect(editor.state.sliceDoc()).toBe("uno dos");
+    expect(editor.state.selection.main.head).toBe(4);
+    editor.destroy();
+  });
+});

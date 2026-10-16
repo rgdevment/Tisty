@@ -135,6 +135,14 @@ const tagged = (state: EditorState, from: number, to: number, out: Range<Decorat
 const touched = (state: EditorState, from: number, to: number) =>
   state.selection.ranges.some((one) => one.from <= to && one.to >= from);
 
+// Nested formats open together, so `***k***` never shows half its marks.
+const opened = (state: EditorState, node: SyntaxNode) => {
+  for (let one: SyntaxNode | null = node; one && INLINE.has(one.name); one = one.parent) {
+    if (touched(state, one.from, one.to)) return true;
+  }
+  return false;
+};
+
 const spaced = (state: EditorState, at: number) => (state.sliceDoc(at, at + 1) === " " ? 1 : 0);
 
 const lined = (
@@ -248,8 +256,7 @@ export const seen = (
         if (MARKS.has(node.name)) {
           const parent = node.node.parent;
           if (parent?.name === "Link" && !parent.getChild("URL")) return true;
-          if (parent && INLINE.has(parent.name) && !touched(state, parent.from, parent.to))
-            hide(node.from, node.to);
+          if (parent && INLINE.has(parent.name) && !opened(state, parent)) hide(node.from, node.to);
         }
         return true;
       },

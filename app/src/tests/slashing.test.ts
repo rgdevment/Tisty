@@ -4,7 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
 import { wrapped } from "../ui/formatting";
-import { type Asked, offered, put, SLASHED, slashing } from "../ui/slashing";
+import { type Asked, holding, offered, put, SLASHED, slashing } from "../ui/slashing";
 
 const view = (doc: string) =>
   new EditorView({
@@ -53,6 +53,14 @@ describe("the / menu in a block", () => {
     const editor = view("Leche /pan");
     put(editor, one("table"), 6, 7);
     expect(editor.state.sliceDoc()).toBe("Leche\n\n|  |  |\n| --- | --- |\n|  |  |\n\npan");
+    editor.destroy();
+  });
+
+  it("wraps what was selected when a format is picked from the bar's menu", () => {
+    const editor = view("uno dos /tres");
+    holding(editor, { from: 4, to: 7, slash: 8 });
+    put(editor, one("bold"), 8, 9);
+    expect(editor.state.sliceDoc()).toBe("uno **dos**tres");
     editor.destroy();
   });
 

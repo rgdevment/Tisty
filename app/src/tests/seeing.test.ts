@@ -50,6 +50,8 @@ describe("a block written as it reads", () => {
     expect(read(state("toca **ordenar** hoy", 9))).toBe("toca **ordenar** hoy");
     expect(read(state("toca **ordenar** hoy", 16))).toBe("toca **ordenar** hoy");
     expect(read(state("toca **ordenar** hoy", 18))).toBe("toca ordenar hoy");
+    expect(read(state("un ***k*** ya", 10))).toBe("un ***k*** ya");
+    expect(read(state("un ***k*** ya", 0))).toBe("un k ya");
     expect(read(state("el ==dato=={green} y", 6))).toBe("el ==dato=={green} y");
     expect(read(state("el ==dato=={green} y", 0))).toBe("el dato y");
     expect(read(state("un ~~no~~ y `si`", 0))).toBe("un no y si");

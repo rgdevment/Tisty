@@ -107,7 +107,26 @@ const inside = (view: EditorView) => {
   return one;
 };
 
+// An arrow out of a format with nothing typed takes the marks away and still moves the caret.
+const stepped = (view: EditorView, by: number) => {
+  const one = inside(view);
+  if (!one || one.from !== one.to) return false;
+  const open = one.from - one.mark.length;
+  const at = Math.max(
+    0,
+    Math.min(open + by, view.state.doc.length - one.mark.length - one.close.length),
+  );
+  view.dispatch({
+    changes: { from: open, to: one.to + one.close.length },
+    effects: pend.of(null),
+    selection: { anchor: at },
+  });
+  return true;
+};
+
 export const pendingKeys: KeyBinding[] = [
+  { key: "ArrowRight", run: (view) => stepped(view, 1) },
+  { key: "ArrowLeft", run: (view) => stepped(view, -1) },
   {
     // A new line ends the format where the caret is, so marks never span two lines.
     key: "Enter",

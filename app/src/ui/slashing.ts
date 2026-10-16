@@ -199,9 +199,26 @@ const onScreen = (view: EditorView, at: number) => {
   };
 };
 
+// What was selected when the menu was opened from the bar, so a format picked there wraps it.
+const held = new WeakMap<EditorView, { from: number; to: number; slash: number }>();
+
+export const holding = (view: EditorView, chosen: { from: number; to: number; slash: number }) =>
+  held.set(view, chosen);
+
 export const put = (view: EditorView, one: Slashed, from: number, to: number, asking?: Asking) => {
   const { state } = view;
   const how = one.put;
+  const chosen = held.get(view);
+  held.delete(view);
+  if (chosen?.slash === from && "wrap" in how) {
+    view.dispatch({
+      changes: { from: chosen.to, to },
+      selection: { anchor: chosen.from, head: chosen.to },
+      userEvent: "input.complete",
+    });
+    wrapped(view, how.wrap, how.close);
+    return;
+  }
   if ("ask" in how) {
     view.dispatch({ changes: { from, to }, userEvent: "input.complete" });
     const first = !view.state.sliceDoc(0, from).trim();

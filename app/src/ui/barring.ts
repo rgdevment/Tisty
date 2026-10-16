@@ -4,7 +4,7 @@ import { markup } from "../glyphs";
 import { t } from "../locales";
 import { wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
-import { pressed } from "./slashing";
+import { holding, pressed } from "./slashing";
 
 type Said = Parameters<typeof t>[0];
 
@@ -58,7 +58,21 @@ export const retyped = (view: EditorView, prefix: string): boolean => {
 const BARE = /^((> ?)+|(> ?)*([-*+] (\[[ xX]\] )?|\d+[.)] ))\s*$/;
 const LEADS = /^(?:>\s?|#{1,6}\s|[-*+]\s(?:\[[ xX]\]\s)?|\d+[.)]\s)+/;
 
+const home = (view: EditorView, extend: boolean) => {
+  const { main } = view.state.selection;
+  const line = view.state.doc.lineAt(main.head);
+  const start = line.from + (LEADS.exec(line.text)?.[0].length ?? 0);
+  if (start === line.from || main.head <= start) return false;
+  view.dispatch({
+    selection: extend ? { anchor: main.anchor, head: start } : { anchor: start },
+    scrollIntoView: true,
+  });
+  return true;
+};
+
 export const blockKeys: KeyBinding[] = [
+  // Home lands on the words, past the mark the line is drawn with, as it does on a title.
+  { key: "Home", run: (view) => home(view, false), shift: (view) => home(view, true) },
   {
     // An empty item ends the list with a blank line, so the words after it never join the last item.
     key: "Enter",
@@ -190,9 +204,10 @@ export const barred = (view: EditorView): Barred => {
     return one;
   });
   const slash = button("cm-bar-button cm-bar-more", t("insertLabel"), () => {
-    const { from } = view.state.selection.main;
+    const { from: start, to: from } = view.state.selection.main;
     const before = view.state.sliceDoc(Math.max(0, from - 1), from);
     const insert = before && !/\s/.test(before) ? " /" : "/";
+    if (start < from) holding(view, { from: start, to: from, slash: from + insert.length - 1 });
     view.dispatch({ changes: { from, insert }, selection: { anchor: from + insert.length } });
     view.focus();
     startCompletion(view);
