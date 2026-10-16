@@ -93,13 +93,18 @@ were told from being lost. Work that can be done any day gets none, and what rep
 either — a routine comes back on its own. For something already filed without one, `remind` \
 sets it, and it only ever adds, so an hour the person chose is never taken away.
 
-A document is markdown, and the editor is what has to be able to open it again: what it cannot \
-keep is refused when you write, not quietly destroyed later. Alongside plain markdown it keeps \
-four tags of its own, because it writes them itself — `<u>`, `<mark>`, a coloured \
-`<mark data-pen=\"…\">` and the icon span. Everything else in HTML is turned away.
+A document is kept in the Tisty language, the Markdown the person reads and writes in the \
+window: pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, \
+collapsible sections and cards to other documents, besides plain Markdown. Ask `language` once \
+before writing anything beyond plain words. Markdown from anywhere else is taken and turned into \
+the language on the way in — HTML into Markdown or plain words, front matter taken off, a colour \
+outside the palette back to the plain pen, an unknown icon to its word — and the answer says \
+what changed, under `turned`; tell the person when it matters. Only what has no way in, like \
+footnotes, is refused, naming it. An older Tisty's \
+`<u>`, `<mark>` and icon span are turned into the language's own words on the way in.
 
-`import_doc` brings a markdown file on this machine in as a document, tidying on the way what \
-the editor could not have held, and saying what it changed. Everything the text points at beside \
+`import_doc` brings a markdown file on this machine in as a document, turning on the way what \
+the Tisty language has no word for into what it can say, and saying what it changed. Everything the text points at beside \
 it comes in too — pictures, video, PDFs, whatever sits beside it — and the text is pointed at Tisty's own copies, because \
 a document that leans on a file outside Tisty is a document that breaks the day it moves. What \
 cannot come in has its link taken out and its words left in place, and you are told which and \
@@ -149,8 +154,6 @@ them and the window gives them no way to look one up: when you tell them what yo
 name the document by its title and, when it helps them find it, the folder it sits in. The \
 answers here are written that way already — the title in quotes, the id in brackets after \
 it — so what you read back to them is the part before the brackets.
-
-A document is kept in the Tisty language: Markdown plus a few words of Tisty's own — pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, collapsible sections, cards to other documents. Ask `language` once before writing anything beyond plain words; a colour or an icon Tisty does not know reaches the person as text to clean up.
 
 A document can be locked, and a locked one is refused every write: not `write_doc`, not `append_doc`, not `edit_doc`, not `attach`, not hanging a page off it. Its pages are shut with it — `page_doc` neither hangs one off it nor takes one out — and a page is never locked on its own. Filing it in a folder and putting it away still work: what the lock guards is what the document says and what it holds. `docs` and `read_doc` both say so, so you can see it before you try. Only the person can unlock it, from the window — there is no tool for it here, on purpose. A lock is not the archive, though neither one is written in: an archived document is finished, a locked one is guarded. Bring it back with `archive_doc` and it writes again; a lock only the person can lift, from the window.
 
@@ -485,12 +488,12 @@ pub(super) fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. Plain markdown: what the editor could not keep is refused on the way in, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — save for the pages your body does not name, whose lines are put back at the end rather than left pointing at nothing. That is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about — six is already a lot, and past 64 the rest are dropped without a word; `tags` says which are already in use.",
+            "description": "Write something down that is not work to do: a note, a summary, something to keep. In the Tisty language (`language` has it whole); Markdown from elsewhere is turned into it on the way in and the answer says what changed under `turned`, and only what has no way in is refused, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — save for the pages your body does not name, whose lines are put back at the end rather than left pointing at nothing. That is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about — six is already a lot, and past 64 the rest are dropped without a word; `tags` says which are already in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
                         "type": "string",
-                        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: the editor turns a wrapped line into a hard break, so markdown wrapped at 80 columns comes back full of backslashes. Nothing checks this on the way in"
+                        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: in the Tisty language a single newline is a line break, so markdown wrapped at 80 columns reads broken in the middle of its sentences. Nothing checks this on the way in"
                     },
                     "doc": {
                         "type": "string",
@@ -623,7 +626,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "import_doc",
             "title": "Bring a markdown file on this machine in as a document",
-            "description": "Read one markdown file from disk and keep it here as a document, tidying on the way in what Tisty's editor could not hold and saying what it changed. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling. The files on disk are left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
+            "description": "Read one markdown file from disk and keep it here as a document, turning on the way in what the Tisty language has no word for into what it can say, and saying what it changed. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling. The files on disk are left untouched. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "path": {

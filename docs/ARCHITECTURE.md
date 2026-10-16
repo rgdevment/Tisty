@@ -1074,10 +1074,12 @@ the log and is capped at `BODY_AT_MOST` = 500 KiB.
   links, tables with alignment, fenced code with its language, `[!WARNING]`
   callouts. A fenced block with language `widget` is HTML drawn in a sealed
   frame (`widget://`, no network); `mermaid` and `math` fences are drawn too.
-  When the editor meets syntax it cannot keep (front matter, footnotes,
-  reference links, raw HTML blocks) it opens the document read-only and offers a
-  conversion (`frail` in the UI, `docs::survives` for assistants; the shared
-  cases are in `fixtures/frail.json`).
+  Syntax the Tisty language has no word for (front matter, footnotes,
+  reference links, raw HTML, a colour outside the palette, an unknown icon) is
+  listed by `frail` in the UI. An assistant may send Markdown from anywhere:
+  `arriving::tidied` turns it into the language and the answer says what
+  changed, and `docs::survives` refuses only what still has no way in. The
+  shared cases are in `fixtures/frail.json`.
 
 ### Ways out
 
@@ -1309,7 +1311,7 @@ agent on that word.
 | Group | Tools |
 |---|---|
 | File and mend tasks | `propose`, `remind`, `note`, `reschedule`, `describe`, `plan`, `tick`, `untick`, `rename`, `reword_step`, `unplan`, `reword_note`, `say_done`, `say_not_doing`, `attach` |
-| Read | `catch_up`, `find`, `read`, `lists`, `tags`, `docs`, `read_doc`, `outline_doc`, `sum_up` (leaves a summary in the local cache) |
+| Read | `catch_up`, `find`, `read`, `lists`, `tags`, `language`, `docs`, `read_doc`, `outline_doc`, `sum_up` (leaves a summary in the local cache) |
 | Write documents | `write_doc`, `append_doc`, `edit_doc`, `restore_doc`, `import_doc` |
 | Organise and take out | `file_doc`, `page_doc`, `folder`, `archive_doc`, `flag_doc`, `export_doc` |
 

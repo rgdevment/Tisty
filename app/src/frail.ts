@@ -1,5 +1,18 @@
-const KEPT =
-  /^(\/(u|mark|span)|u|mark(\s+data-pen="[a-z]+")?|span\s+data-ico="(?:[a-z0-9-]+|\p{Extended_Pictographic}[^"]*)"(\s+data-hue="[a-z]+")?)$/iu;
+import { known } from "./glyphs";
+
+const HUES = "red|orange|amber|green|teal|blue|indigo|purple|pink|brown|gray";
+const KEPT = new RegExp(
+  String.raw`^(\/(u|mark|span)|u|mark(\s+data-pen="(?:yellow|${HUES})")?|span\s+data-ico="([a-z0-9-]+|\p{Extended_Pictographic}[^"]*)"(\s+data-hue="(?:${HUES})")?)$`,
+  "iu",
+);
+
+// A tag of an older Tisty is kept only while it names a colour of the palette and an icon there is.
+const kept = (inner: string): boolean => {
+  const found = KEPT.exec(inner);
+  if (!found) return false;
+  const icon = found[4];
+  return !icon || known(icon) || /\p{Extended_Pictographic}/u.test(icon);
+};
 const TITLED = /\btitle="(?:[^"\\]|\\.)*"/;
 const NAMED = /^[a-z0-9#]+$/i;
 const WHY = [
@@ -201,7 +214,7 @@ const markup = (line: string): string | null => {
     if (inner.includes("://") || (inner.includes("@") && !inner.includes(" "))) continue;
     if (line.slice(0, at).endsWith("](") && !inner.includes("<") && anchored(line.slice(0, at - 2)))
       continue;
-    if (KEPT.test(inner)) continue;
+    if (kept(inner)) continue;
     if (/^[a-z/!?]/i.test(rest)) return "frailHtml";
   }
   return null;

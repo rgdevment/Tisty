@@ -96,6 +96,11 @@ pub fn tidied(body: &str) -> Tidied {
             out.push(bare);
             continue;
         }
+        let named = mended(line);
+        if named.is_some() {
+            note("a colour or an icon Tisty does not have", &mut said);
+        }
+        let line = named.as_deref().unwrap_or(line);
         if let Some(escaped) = unblocked(line) {
             note("a list item that opened on a block", &mut said);
             out.push(escaped);
@@ -179,6 +184,26 @@ fn plainer(
             false => bared(part, said, note),
         })
         .collect()
+}
+
+// Outside code, a stray pen colour or icon becomes what the language can say instead.
+fn mended(line: &str) -> Option<String> {
+    let mut changed = false;
+    let said: String = spans(line)
+        .into_iter()
+        .map(|(coded, part)| {
+            if coded {
+                return part.to_string();
+            }
+            let mut out = part.to_string();
+            for (at, instead, _) in crate::docs::strays(part).into_iter().rev() {
+                out.replace_range(at, &instead);
+                changed = true;
+            }
+            out
+        })
+        .collect();
+    changed.then_some(said)
 }
 
 pub fn spans(line: &str) -> Vec<(bool, &str)> {

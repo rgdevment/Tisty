@@ -1270,7 +1270,7 @@ Rosa y palos de paleta." }),
 }
 
 #[test]
-fn markdown_the_editor_would_destroy_is_refused_before_it_is_written() {
+fn markdown_from_elsewhere_is_written_in_the_tisty_language_and_the_change_is_told() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
 
@@ -1280,11 +1280,32 @@ fn markdown_the_editor_would_destroy_is_refused_before_it_is_written() {
 title: notes
 ---
 
-what the thread said" }),
+what the thread said <b>loud</b> with ==a pen=={silver}" }),
     );
 
-    let why = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert_eq!(said["result"]["isError"], true);
+    assert_ne!(said["result"]["isError"], true, "{said}");
+    let turned = said["result"]["structuredContent"]["turned"].to_string();
+    assert!(turned.contains("front matter"), "{turned}");
+    let text = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("`language`"), "{text}");
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let back = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    let body = back["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap();
+    assert!(
+        body.starts_with("what the thread said **loud** with ==a pen=="),
+        "{body}"
+    );
+
+    let refused = served.call(
+        "write_doc",
+        serde_json::json!({ "body": "a claim[^1]
+
+[^1]: the source" }),
+    );
+    let why = refused["result"]["content"][0]["text"].as_str().unwrap();
+    assert_eq!(refused["result"]["isError"], true);
     assert!(
         why.contains("markdown"),
         "the refusal has to say what will survive: {why}"
@@ -3516,7 +3537,7 @@ fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
 }
 
 #[test]
-fn what_cannot_survive_the_editor_never_reaches_a_document_that_exists() {
+fn what_is_added_from_elsewhere_reaches_a_document_in_the_tisty_language() {
     let served = Served::new();
     served.cli(&["agent", "--on"]);
     let made = served.call("write_doc", serde_json::json!({ "body": "# Acta\n\nuno." }));
@@ -3525,16 +3546,23 @@ fn what_cannot_survive_the_editor_never_reaches_a_document_that_exists() {
         .unwrap()
         .to_string();
 
-    let refused = served.call(
+    let added = served.call(
         "append_doc",
-        serde_json::json!({ "doc": doc, "body": "<table><tr><td>dos</td></tr></table>" }),
+        serde_json::json!({ "doc": doc, "body": "dos <i>y</i> tres" }),
     );
 
-    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    assert_ne!(added["result"]["isError"], true, "{added}");
+    assert!(
+        added["result"]["structuredContent"]["turned"].is_array(),
+        "{added}"
+    );
     let whole = served.call("read_doc", serde_json::json!({ "doc": doc }));
-    assert_eq!(
-        whole["result"]["structuredContent"]["body"], "# Acta\n\nuno.\n",
-        "the document is untouched by a refused add"
+    assert!(
+        whole["result"]["structuredContent"]["body"]
+            .as_str()
+            .unwrap()
+            .contains("dos *y* tres"),
+        "{whole}"
     );
 }
 
