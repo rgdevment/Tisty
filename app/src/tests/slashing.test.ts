@@ -124,13 +124,16 @@ describe("the / menu in a block", () => {
 
   it("formats what is selected with the keys the menu names", () => {
     const editor = view("leche y pan");
-    const key = (init: KeyboardEventInit) =>
-      runScopeHandlers(editor, new KeyboardEvent("keydown", { ctrlKey: true, ...init }), "editor");
+    const key = (init: KeyboardEventInit, code: number) => {
+      const pressed = new KeyboardEvent("keydown", { ctrlKey: true, ...init });
+      Object.defineProperty(pressed, "keyCode", { value: code });
+      return runScopeHandlers(editor, pressed, "editor");
+    };
     editor.dispatch({ selection: { anchor: 0, head: 5 } });
-    expect(key({ key: "b" })).toBe(true);
+    expect(key({ key: "b" }, 66)).toBe(true);
     expect(editor.state.sliceDoc()).toBe("**leche** y pan");
     editor.dispatch({ selection: { anchor: 12, head: 15 } });
-    expect(key({ key: "X", shiftKey: true })).toBe(true);
+    expect(key({ key: "X", shiftKey: true }, 88)).toBe(true);
     expect(editor.state.sliceDoc()).toBe("**leche** y ~~pan~~");
     editor.destroy();
   });
