@@ -131,7 +131,7 @@ fn identity(at: &std::path::Path, told: &std::fs::Metadata) -> String {
     format!(
         "{}.{}",
         nanos(told.created()),
-        crate::desktop::changed(at).unwrap_or(0)
+        crate::desktop::known_as(at).unwrap_or_default()
     )
 }
 
