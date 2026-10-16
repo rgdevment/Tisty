@@ -551,6 +551,22 @@ describe("the document being written", () => {
     expect(store.writes[store.writes.length - 1]?.body).toBe("# Compras del mes");
   });
 
+  it("writes the words as they were read once a change to them was already kept", async () => {
+    show("a3f1-0001");
+    const editor = await screen.findByLabelText("editor");
+
+    await userEvent.type(editor, " y pan");
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\nleche y pan"), {
+      timeout: 3000,
+    });
+    await userEvent.clear(editor);
+    await userEvent.type(editor, "# Compras{enter}{enter}leche");
+
+    await waitFor(() => expect(store.bodies["a3f1-0001"]).toBe("# Compras\n\nleche"), {
+      timeout: 3000,
+    });
+  });
+
   it("hands the new title back, so the sidebar can follow", async () => {
     const kept = vi.fn();
     show("a3f1-0001", kept);

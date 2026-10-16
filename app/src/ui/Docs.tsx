@@ -361,10 +361,9 @@ export default function Docs({
     typed.current = Date.now();
     setBody(text);
     const last = lastRead.current.get(open.file);
-    const back =
-      text === shaped.current || (last !== undefined && tailless(last) === tailless(text));
+    const back = last !== undefined && tailless(last) === tailless(text);
     if (back) {
-      // Coming back to what was read is not a change, and it undoes the one waiting: a chapter
+      // Coming back to what was last read or written is not a change, and it undoes the one waiting: a chapter
       // moved and moved back inside the beat would otherwise be written in the order it passed
       // through, and the screen would show the other one.
       if (held.current?.id === open.file) {
@@ -380,6 +379,7 @@ export default function Docs({
   };
 
   const own = filed(known, open?.file);
+  const called = own?.title ?? open?.title ?? "";
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
@@ -502,7 +502,7 @@ export default function Docs({
       const blob = await blobOf(said);
       if (!blob) return;
       const where = await intoFile({
-        defaultPath: `${open.title || t("untitledDoc")}.pdf`,
+        defaultPath: `${called || t("untitledDoc")}.pdf`,
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       });
       if (!where) return;
@@ -576,7 +576,7 @@ export default function Docs({
                   if (own?.file) stood.current.set(own.file, at);
                 }}
                 reading={bolted}
-                label={open.title || t("untitledDoc")}
+                label={called || t("untitledDoc")}
                 onDoc={onDoc}
                 onTag={onTag}
                 above={
@@ -728,7 +728,7 @@ export default function Docs({
                     return;
                   }
                   docAway(which, false)
-                    .then(() => onKept({ id: open.id, title: open.title }))
+                    .then(() => onKept({ id: open.id, title: called }))
                     .catch((e) => onError(saidPlainly(e)));
                 }}
                 className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -754,7 +754,7 @@ export default function Docs({
               type="button"
               onClick={() =>
                 docAway(own.id, true)
-                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .then(() => onKept({ id: open.id, title: called }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -774,7 +774,7 @@ export default function Docs({
               type="button"
               onClick={() =>
                 docUnflag(own.id)
-                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .then(() => onKept({ id: open.id, title: called }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -798,7 +798,7 @@ export default function Docs({
                     .filter((one): one is string => typeof one === "string")
                     .map((one) => docLock(one, false)),
                 )
-                  .then(() => onKept({ id: open.id, title: open.title }))
+                  .then(() => onKept({ id: open.id, title: called }))
                   .catch((e) => onError(saidPlainly(e)))
               }
               className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
@@ -864,7 +864,7 @@ export default function Docs({
 
       {beside && open && (
         <Beside
-          title={open.title}
+          title={called}
           paper={open.file}
           body={body}
           tags={known.find((one) => one.file === open.file)?.tags ?? []}
@@ -907,7 +907,7 @@ export default function Docs({
             void viewDoc({
               id: open.id,
               file: open.file,
-              title: open.title || t("untitledDoc"),
+              title: called || t("untitledDoc"),
               place: trailed(folders, open.folder ?? null)
                 .map((one) => one.name)
                 .join(" / "),
