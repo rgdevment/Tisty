@@ -74,3 +74,24 @@ fn turning_twice_is_turning_once() {
     let once = to_tisty(body);
     assert_eq!(to_tisty(&once), once);
 }
+
+#[test]
+fn an_attachment_is_named_by_its_stamped_name_alone() {
+    assert_eq!(
+        to_tisty(
+            "![plano](<attachments/23/plano-0006bf09.png>) y [acta](attachments/ab/acta-1234abcd.pdf)"
+        ),
+        "![plano](plano-0006bf09.png) y [acta](acta-1234abcd.pdf)"
+    );
+    assert_eq!(
+        to_tisty("![p](<attachments/a1/pagina-12345678.html> \"file\")"),
+        "![p](pagina-12345678.html \"file\")"
+    );
+}
+
+#[test]
+fn a_link_that_names_no_kept_file_stays_as_it_was() {
+    let body =
+        "[web](https://x.y/z-12345678.png) ![ya](plano-0006bf09.png) ![x](<attachments/x.png>)";
+    assert_eq!(to_tisty(body), body);
+}

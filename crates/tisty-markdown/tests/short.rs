@@ -93,3 +93,21 @@ fn a_colour_written_past_a_link_is_not_the_link_pen_colour() {
     let drawn = page("[x ==a==](https://a.b){green} y");
     assert!(drawn.contains("<a href=\"https://a.b\">x <mark>a</mark></a>{green}"));
 }
+
+#[test]
+fn an_attachment_name_carries_a_stamp_of_lower_hex() {
+    use tisty_markdown::kept::{leaf_of, stamped};
+    assert!(stamped("plano-0006bf09.png") && stamped("env-36481ea0"));
+    assert!(
+        !stamped("Plano-0006bf09.png") && !stamped("plano.png") && !stamped("plano-0006bf0.png")
+    );
+    assert_eq!(
+        leaf_of("<attachments/23/plano-0006bf09.png>"),
+        Some("plano-0006bf09.png")
+    );
+    assert_eq!(
+        leaf_of("plano-0006bf09.png#arriba"),
+        Some("plano-0006bf09.png")
+    );
+    assert_eq!(leaf_of("otra/carpeta/plano-0006bf09.png"), None);
+}

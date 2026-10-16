@@ -551,20 +551,7 @@ fn bin_ledger(root: &Path) -> PathBuf {
     root.join("bin.jsonl")
 }
 
-pub const SHED: &str = "attachments";
-
-/// The name with its stamp is an attachment's one identity; an older body that still says
-/// `attachments/xx/<name>` is read by that last step, so nothing written before stops opening.
-pub fn leaf_of(reference: &str) -> Option<&str> {
-    let said = reference.trim_start_matches('<').trim_end_matches('>');
-    let said = said.split(['?', '#']).next().unwrap_or_default();
-    let leaf = match said.strip_prefix("attachments/") {
-        Some(rest) => rest.rsplit('/').next().unwrap_or_default(),
-        None if !said.contains('/') => said,
-        None => return None,
-    };
-    stamped(leaf).then_some(leaf)
-}
+pub use tisty_markdown::kept::{SHED, leaf_of, lower_hex, stamped, stamped_by};
 
 pub fn canonical(reference: &str) -> Option<String> {
     leaf_of(reference).map(|leaf| format!("{SHED}/{leaf}"))
@@ -660,28 +647,6 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
         );
     }
     gone
-}
-
-fn lower_hex(said: &str) -> bool {
-    said.bytes()
-        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-}
-
-pub fn stamped_by(leaf: &str) -> &str {
-    let stem = leaf.split('.').next().unwrap_or_default();
-    stem.rsplit('-').next().unwrap_or_default()
-}
-
-pub fn stamped(leaf: &str) -> bool {
-    let stamp = stamped_by(leaf);
-    (8..=16).contains(&stamp.len())
-        && lower_hex(stamp)
-        && leaf.len() <= 255
-        // A drive that ignores case would take another's name with only its extension in capitals.
-        && !leaf.chars().any(char::is_uppercase)
-        && !leaf.contains('/')
-        && !leaf.contains('\\')
-        && leaf.chars().all(|c| !c.is_control())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]

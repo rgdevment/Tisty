@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{Block, Mark, Span, vocab};
+use crate::{Block, Mark, Span, kept, vocab};
 
 /// Tisty's own words for what the old tags said, every other byte left as it was written.
 pub fn to_tisty(text: &str) -> String {
@@ -20,10 +20,12 @@ pub fn to_tisty(text: &str) -> String {
 fn gather(block: &Block, text: &str, edits: &mut Vec<(Range<usize>, String)>) {
     for span in &block.spans {
         let said = &text[span.at.clone()];
-        if !said.starts_with('<') {
-            continue;
-        }
+        let tagged = said.starts_with('<');
         match &span.mark {
+            Mark::Link { to: target } | Mark::Image { src: target } => {
+                linked(span, text, target, edits)
+            }
+            _ if !tagged => {}
             Mark::Pen { color } => {
                 let shut = match color {
                     Some(color) => format!("=={{{color}}}"),
@@ -76,4 +78,24 @@ fn walled(
         start + close - trail..span.at.end,
         format!("{shuts}{}", &inner[inner.len() - trail..]),
     ));
+}
+
+// An attachment is named by its stamped name alone, wherever an older body said it lay.
+fn linked(span: &Span, text: &str, target: &str, edits: &mut Vec<(Range<usize>, String)>) {
+    let Some(leaf) = kept::leaf_of(target).filter(|leaf| *leaf != target) else {
+        return;
+    };
+    let said = &text[span.at.clone()];
+    let Some(open) = said.rfind("](") else {
+        return;
+    };
+    let start = span.at.start + open + 2;
+    let rest = &text[start..span.at.end];
+    let written = match rest.strip_prefix('<') {
+        Some(inner) => inner.find('>').map(|shut| shut + 2),
+        None => rest.find([' ', ')']),
+    };
+    if let Some(written) = written {
+        edits.push((start..start + written, leaf.to_string()));
+    }
 }

@@ -7,6 +7,7 @@ mod emoji;
 pub mod fences;
 mod html;
 mod inline;
+pub mod kept;
 #[cfg(any(feature = "tags", feature = "refs"))]
 mod marks;
 #[cfg(feature = "math")]
