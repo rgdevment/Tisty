@@ -5,15 +5,13 @@ pub mod diagram;
 #[cfg(feature = "emoji")]
 mod emoji;
 pub mod fences;
-#[cfg(any(feature = "icons", feature = "pens"))]
 mod html;
-#[cfg(feature = "icons")]
-mod icons;
 mod inline;
 #[cfg(any(feature = "tags", feature = "refs"))]
 mod marks;
 #[cfg(feature = "math")]
 pub mod math;
+mod old;
 #[cfg(feature = "outline")]
 mod outline;
 mod page;
@@ -26,6 +24,7 @@ mod short;
 #[cfg(feature = "tables")]
 mod tables;
 pub mod tags;
+mod transform;
 pub mod vocab;
 mod writing;
 
@@ -34,6 +33,9 @@ pub use outline::{Head, outline};
 pub use page::html;
 pub use printed::printed;
 pub use reading::read;
+#[doc(hidden)]
+pub use reading::read_old;
+pub use transform::to_tisty;
 pub use writing::on_disk;
 
 use std::ops::Range;

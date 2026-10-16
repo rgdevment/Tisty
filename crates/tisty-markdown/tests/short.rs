@@ -48,8 +48,8 @@ fn a_name_or_hue_the_language_does_not_have_is_left_as_words() {
 
 #[test]
 fn an_icon_is_not_read_a_second_time_as_the_emoji_inside_it() {
-    let drawn = page("::star:: y <span data-ico=\"star\">:star:</span>");
-    assert_eq!(drawn.matches("data-ico=\"star\"").count(), 2);
+    let drawn = page("::star:: y ::flag red::");
+    assert_eq!(drawn.matches("data-ico=").count(), 2);
     assert!(!drawn.contains('⭐'));
 }
 
