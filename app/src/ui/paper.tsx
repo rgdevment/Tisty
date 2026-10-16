@@ -24,6 +24,8 @@ export interface Run {
   lit?: string;
   hue?: string;
   href?: string;
+  under?: boolean;
+  struck?: boolean;
 }
 
 export type Shape =
@@ -108,6 +110,8 @@ const sheet = StyleSheet.create({
     objectFit: "contain",
   },
   link: { color: "#1d4ed8", textDecoration: "underline" },
+  under: { textDecoration: "underline" },
+  struck: { textDecoration: "line-through" },
   inline: { fontFamily: "Courier", fontSize: 9.5, backgroundColor: "#f4f4f5" },
   table: {
     marginBottom: 10,
@@ -255,6 +259,8 @@ const drawn = (runs: Run[], flowing = false) =>
       run.italic ? dressed.italic : null,
       run.code ? sheet.inline : null,
       run.lit ? (pens[run.lit] ?? pens.yellow) : null,
+      run.under ? sheet.under : null,
+      run.struck ? sheet.struck : null,
       run.href ? sheet.link : null,
     ].filter((one) => one !== null);
 

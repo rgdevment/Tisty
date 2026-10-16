@@ -6,6 +6,17 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         named(text, span.at.clone(), &mut found);
     }
+    // An icon carries its own `:name:`, which is the icon's and not a second, emoji one.
+    let icons: Vec<std::ops::Range<usize>> = spans
+        .iter()
+        .filter(|one| matches!(one.mark, Mark::Icon { .. }))
+        .map(|one| one.at.clone())
+        .collect();
+    found.retain(|one| {
+        !icons
+            .iter()
+            .any(|icon| icon.start <= one.at.start && one.at.end <= icon.end)
+    });
     spans.extend(found);
 }
 

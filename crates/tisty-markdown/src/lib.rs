@@ -22,9 +22,11 @@ mod pens;
 mod printed;
 mod reading;
 pub mod refs;
+mod short;
 #[cfg(feature = "tables")]
 mod tables;
 pub mod tags;
+pub mod vocab;
 mod writing;
 
 #[cfg(feature = "outline")]
@@ -69,6 +71,7 @@ pub enum Mark {
     Break,
     Icon { name: String, hue: Option<String> },
     Pen { color: Option<String> },
+    Underline,
     Math,
     Emoji { glyph: String },
     Tag { name: String },
