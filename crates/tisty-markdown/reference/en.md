@@ -213,7 +213,7 @@ Booster due in March #rina #vet
 
 - `#Hola` is a tag; `# Hola`, with a space, is a heading.
 - Accents and case come off: `#Camión` and `#camion` are one tag, `camion`. An underscore becomes a dash: `#mi_tag` is `mi-tag`.
-- Two characters at least, one of them a letter: `#1234` is a ticket number, not a tag, and neither is `#a`. `#2026x` is a tag. A colour written in prose, like `#ffcc00` or `#fff`, is not a tag either; `#bad` still is.
+- Two characters at least, one of them a letter: `#1234` is a ticket number, not a tag, and neither is `#a`. `#2026x` is a tag.
 - A `#` stuck to what comes before it is not a tag: `C#`, `bg-#fff`, `page.html#top` and the anchor in a link's address are all left alone.
 - Nothing inside code is a tag, and neither is the `#2` in a [reference](#references) like `[[#2]]`.
 - A document keeps its first 64 tags.

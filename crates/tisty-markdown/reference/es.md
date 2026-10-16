@@ -213,7 +213,7 @@ Refuerzo en marzo #rina #veterinario
 
 - `#Hola` es una etiqueta; `# Hola`, con espacio, es un título.
 - Se quitan los acentos y las mayúsculas: `#Camión` y `#camion` son una sola etiqueta, `camion`. Un guion bajo pasa a ser guion: `#mi_etiqueta` es `mi-etiqueta`.
-- Dos caracteres como mínimo, uno de ellos una letra: `#1234` es un número de ticket, no una etiqueta, y `#a` tampoco. `#2026x` sí lo es. Un color escrito en el texto, como `#ffcc00` o `#fff`, tampoco es etiqueta; `#bad` sí lo es.
+- Dos caracteres como mínimo, uno de ellos una letra: `#1234` es un número de ticket, no una etiqueta, y `#a` tampoco. `#2026x` sí lo es.
 - Un `#` pegado a lo que va antes no es etiqueta: `C#`, `bg-#fff`, `pagina.html#arriba` y el ancla en la dirección de un enlace no cuentan.
 - Nada dentro de código es etiqueta, ni tampoco el `#2` de una [referencia](#referencias) como `[[#2]]`.
 - Un documento guarda sus primeras 64 etiquetas.

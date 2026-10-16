@@ -107,15 +107,7 @@ pub fn named(raw: &str) -> Option<String> {
 
 /// What a reader may take from writing nobody meant as a label: «#1234» is a ticket, not a tag.
 pub fn worth_reading(name: &str) -> bool {
-    name.chars().nth(1).is_some() && name.chars().any(char::is_alphabetic) && !coloured(name)
-}
-
-/// «#ffcc00» and «#fff» name a colour written in prose; «#bad» and «#dad» are still words.
-fn coloured(name: &str) -> bool {
-    let hex = matches!(name.len(), 3 | 6 | 8) && name.chars().all(|one| one.is_ascii_hexdigit());
-    let first = name.chars().next();
-    hex && (name.chars().any(|one| one.is_ascii_digit())
-        || name.chars().all(|one| Some(one) == first))
+    name.chars().nth(1).is_some() && name.chars().any(char::is_alphabetic)
 }
 
 pub fn composed(text: &str) -> String {

@@ -122,7 +122,6 @@ describe("a block written as it reads", () => {
         .map((it) => doc.slice(it.from, it.to));
     expect(tags("#Hola Mundo y #sdas")).toEqual(["#Hola", "#sdas"]);
     expect(tags("# Hola, ticket #1234, color:#fff y `#code`")).toEqual([]);
-    expect(tags("fondo #fff, borde #ffcc00 y #bad")).toEqual(["#bad"]);
   });
 
   it("draws a collapsible section as its summary over an indented body", () => {
