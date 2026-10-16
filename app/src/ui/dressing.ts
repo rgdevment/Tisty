@@ -6,6 +6,7 @@ import { t } from "../locales";
 import { named, pictured } from "../previews";
 import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, type Went, went } from "./paging";
+import { webCarded } from "./webcarding";
 import { type Lending, lend, locked } from "./widgeting";
 
 export type Reaching = Carding & {
@@ -134,7 +135,10 @@ export const worn = (
   iconed(page);
   const kept = pictures(page, live);
   const lent = widgets(page, stranger, reach);
-  if (reach && !stranger) carded(page, reach, live);
+  if (reach && !stranger) {
+    carded(page, reach, live);
+    webCarded(page, live);
+  }
   colored(page, live);
   return { lent, kept };
 };

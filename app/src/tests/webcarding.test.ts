@@ -1,0 +1,64 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const net = vi.hoisted(() => ({ kept: null as unknown, fetched: null as unknown, asked: 0 }));
+
+vi.mock("../core", () => ({
+  glimpseKept: () => Promise.resolve(net.kept),
+  glimpseFetch: () => {
+    net.asked += 1;
+    return Promise.resolve(net.fetched);
+  },
+}));
+
+import { webCarded } from "../ui/webcarding";
+
+const page = (html: string) => {
+  const doc = document.implementation.createHTMLDocument("p");
+  doc.body.innerHTML = `<article class="page">${html}</article>`;
+  return doc;
+};
+
+const settle = () => new Promise((done) => setTimeout(done, 0));
+
+beforeEach(() => {
+  net.kept = null;
+  net.fetched = null;
+  net.asked = 0;
+});
+
+describe("a web link alone in its paragraph", () => {
+  it("is drawn as a card with its host, and a link inside a sentence stays a link", async () => {
+    const doc = page(
+      '<p data-at="0-20"><a href="https://www.tisty.app/docs">Tisty</a></p><p>ver <a href="https://x.cl">x</a> hoy</p>',
+    );
+    webCarded(doc, () => true);
+    const card = doc.querySelector<HTMLAnchorElement>("a.doc-card.is-web");
+    expect(card?.getAttribute("href")).toBe("https://www.tisty.app/docs");
+    expect(card?.querySelector(".kind")?.textContent).toBe("tisty.app");
+    expect(doc.querySelectorAll("a.doc-card")).toHaveLength(1);
+    expect(card?.closest("p")?.dataset.at).toBe("0-20");
+  });
+
+  it("shows a kept preview, and asks the network only when the person presses for it", async () => {
+    net.kept = { title: "Tisty", said: "Notas y tareas" };
+    const kept = page('<p><a href="https://tisty.app">tisty.app</a></p>');
+    webCarded(kept, () => true);
+    await settle();
+    expect(kept.querySelector(".card-name")?.textContent).toBe("Tisty");
+    expect(kept.querySelector<HTMLButtonElement>(".card-edit")?.hidden).toBe(true);
+
+    net.kept = null;
+    net.fetched = { title: "Traída", shot: "data:image/png;base64,AA==" };
+    const bare = page('<p><a href="https://tisty.app">tisty.app</a></p>');
+    webCarded(bare, () => true);
+    await settle();
+    const ask = bare.querySelector<HTMLButtonElement>(".card-edit");
+    expect(ask?.hidden).toBe(false);
+    expect(net.asked).toBe(0);
+    ask?.click();
+    await settle();
+    expect(net.asked).toBe(1);
+    expect(bare.querySelector(".card-name")?.textContent).toBe("Traída");
+    expect(bare.querySelector("img.card-shot")).not.toBeNull();
+  });
+});

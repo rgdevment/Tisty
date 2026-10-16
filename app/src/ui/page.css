@@ -498,6 +498,16 @@ a.card:hover,
 .doc-card .chip.gone {
   color: var(--tisty-hue-red);
 }
+.card-tile .card-shot {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.doc-card.is-web {
+  color: inherit;
+  text-decoration: none;
+}
 .doc-card.is-page .card-tile {
   background: var(--tisty-accent-soft);
   color: var(--tisty-accent);
