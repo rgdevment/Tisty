@@ -316,6 +316,8 @@ export default function Docs({
         if (typed.current !== wrote_at) return;
         const last = lastRead.current.get(wanted.file);
         const astir = last !== undefined && tailless(last) !== tailless(text);
+        // A round that brought other things reads this one again; the same words leave the block being written open.
+        if (before === wanted.file && !astir) return;
         remembered(lastRead.current, wanted.file, text);
         setStirred(astir);
         setOpen(wanted);

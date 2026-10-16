@@ -620,6 +620,20 @@ describe("a document that moved on disk while it was open", () => {
     );
   });
 
+  it("leaves the words on screen alone when a round reads back the same ones", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn(), fresh: 0 };
+    const { rerender } = render(<Docs {...props} />);
+    const editor = await screen.findByLabelText<HTMLTextAreaElement>("editor");
+    await waitFor(() => expect(editor.value).toBe("# Compras\n\nleche"));
+    const reads = store.reads;
+
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n";
+    rerender(<Docs {...props} fresh={1} />);
+
+    await waitFor(() => expect(store.reads).toBeGreaterThan(reads));
+    expect(editor.value).toBe("# Compras\n\nleche");
+  });
+
   it("does not throw away what is still being typed", async () => {
     const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn(), fresh: 0 };
     const { rerender } = render(<Docs {...props} />);
