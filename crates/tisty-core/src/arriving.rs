@@ -87,7 +87,7 @@ pub fn tidied(body: &str) -> Tidied {
             walked.push_str(line);
             continue;
         }
-        if let Some(open) = opens(bare).filter(|_| !aside) {
+        if let Some(open) = opens(bare) {
             fenced = Some(open);
             walked.push_str(line);
             continue;
