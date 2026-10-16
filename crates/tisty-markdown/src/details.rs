@@ -1,9 +1,9 @@
-use crate::{Block, Kind};
+use crate::{Block, Callout, Kind};
 
 pub fn gather(blocks: &mut Vec<Block>, text: &str) {
     let mut at = 0;
     while at < blocks.len() {
-        let Some((summary, open)) = opened(&blocks[at], text) else {
+        let Some(head) = opened(&blocks[at], text) else {
             at += 1;
             continue;
         };
@@ -12,6 +12,23 @@ pub fn gather(blocks: &mut Vec<Block>, text: &str) {
             continue;
         };
         let mut inner: Vec<Block> = blocks.drain(at + 1..shut).collect();
+        let (summary, open) = match head {
+            Opened::Details(summary, open) => (summary, open),
+            Opened::Callout(kind) => {
+                let whole = blocks[at].at.start..blocks[at + 1].at.end;
+                blocks.splice(
+                    at..at + 2,
+                    [Block {
+                        kind: Kind::Callout(kind),
+                        at: whole,
+                        inner,
+                        spans: Vec::new(),
+                    }],
+                );
+                at += 1;
+                continue;
+            }
+        };
         let summary = match (summary.is_empty(), inner.first()) {
             (true, Some(first)) => match summoned(first, text) {
                 Some(said) => {
@@ -36,7 +53,12 @@ pub fn gather(blocks: &mut Vec<Block>, text: &str) {
     }
 }
 
-fn opened(block: &Block, text: &str) -> Option<(String, bool)> {
+enum Opened {
+    Details(String, bool),
+    Callout(Callout),
+}
+
+fn opened(block: &Block, text: &str) -> Option<Opened> {
     let said = text[block.at.clone()].trim();
     match block.kind {
         // One written whole on a single line closes itself and holds no blocks to fold.
@@ -49,14 +71,27 @@ fn opened(block: &Block, text: &str) -> Option<(String, bool)> {
             let open = attributes
                 .split_whitespace()
                 .any(|one| one == "open" || one.starts_with("open="));
-            Some((titled(rest).unwrap_or_default(), open))
+            Some(Opened::Details(titled(rest).unwrap_or_default(), open))
         }
-        Kind::Paragraph => {
-            let summary = said.strip_prefix(":::details")?;
-            (!summary.contains('\n')).then(|| (summary.trim().to_string(), false))
-        }
+        Kind::Paragraph if said.contains('\n') => None,
+        Kind::Paragraph => match said.strip_prefix(":::details") {
+            Some(summary) => Some(Opened::Details(summary.trim().to_string(), false)),
+            None => called(said.strip_prefix(":::")?).map(Opened::Callout),
+        },
         _ => None,
     }
+}
+
+// The same five kinds GitHub names in a quote, written as a colon container the way other editors do.
+fn called(said: &str) -> Option<Callout> {
+    Some(match said.trim().to_ascii_lowercase().as_str() {
+        "note" => Callout::Note,
+        "tip" => Callout::Tip,
+        "important" => Callout::Important,
+        "warning" => Callout::Warning,
+        "caution" => Callout::Caution,
+        _ => return None,
+    })
 }
 
 fn titled(said: &str) -> Option<String> {

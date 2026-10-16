@@ -180,7 +180,7 @@ Un aviso es una cita cuya primera línea nombra su tipo entre corchetes. Cinco t
 - GitHub quiere la marca sola en su línea; Tisty también acepta palabras detrás, `> [!TIP] Lleva el rollo de repuesto.`, y esas palabras pasan a ser la primera línea del aviso.
 - Un tipo que Tisty no conoce, como `[!FOO]`, deja una cita normal.
 - Dentro de un aviso cabe casi todo (listas, código, rayas, una sección) siempre que cada línea lleve su `>`.
-- Los avisos se escriben solo así. Los bloques `:::note` o `:::tip`, como los escriben otras herramientas, no son avisos en Tisty (mira la sección siguiente).
+- Los mismos cinco tipos también se pueden escribir como lo hacen otras herramientas, como un bloque entre `:::tip` y un `:::` solo; Tisty lo dibuja como el mismo aviso.
 
 ## Secciones plegables
 
@@ -199,7 +199,7 @@ Nació en 2023. Séxtuple y antirrábica cada marzo.
 - La línea que abre, `:::details` y su título, va como párrafo propio: una línea en blanco antes y otra después. Lo mismo el `:::` que cierra.
 - Sin su `:::` de cierre no es sección: las dos líneas quedan tal como están escritas.
 - Una sección empieza plegada. Sin título después de `:::details`, muestra uno vacío.
-- Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. Solo `details` dibuja algo; los demás bloques `:::palabra` muestran sus líneas tal como están escritas.
+- Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. `details` se pliega y los cinco tipos de aviso dibujan un aviso; cualquier otro bloque `:::palabra` muestra sus líneas tal como están escritas.
 - También funcionan dentro de un aviso.
 - GitHub y Obsidian muestran las dos vallas como texto y todo lo de en medio desplegado. Tisty también dibuja un bloque `<details>` escrito en HTML, como los escribe GitHub, pero eso es HTML, que queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
 

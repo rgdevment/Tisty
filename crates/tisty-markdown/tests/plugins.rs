@@ -536,3 +536,21 @@ fn a_tag_inside_a_reference_is_part_of_the_reference() {
         1
     );
 }
+
+#[cfg(feature = "details")]
+#[test]
+fn a_colon_container_named_after_a_callout_reads_as_that_callout() {
+    use tisty_markdown::{Callout, Kind};
+    let doc = read(":::tip\n\nWater the plants.\n\n:::\n\nAfter.");
+    assert_eq!(doc.blocks()[0].kind, Kind::Callout(Callout::Tip));
+    assert_eq!(doc.blocks()[0].inner[0].kind, Kind::Paragraph);
+    assert_eq!(doc.blocks()[1].kind, Kind::Paragraph);
+    assert_eq!(
+        tops(":::WARNING\n\nCareful.\n\n:::"),
+        vec![Kind::Callout(Callout::Warning)]
+    );
+    assert_eq!(
+        tops(":::recipe\n\nNot a callout.\n\n:::")[0],
+        Kind::Paragraph
+    );
+}

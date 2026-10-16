@@ -180,7 +180,7 @@ A callout is a quote whose first line names its kind in brackets. Five kinds, ea
 - GitHub wants the marker alone on its line; Tisty also takes words after it, `> [!TIP] Take the spare roll.`, and those words become the callout's first line.
 - A kind Tisty does not know, like `[!FOO]`, leaves an ordinary quote.
 - Nearly anything fits inside a callout — lists, code, rules, a section — as long as every line carries its `>`.
-- Callouts are written only this way. `:::note` or `:::tip` blocks, as other tools write them, are not callouts in Tisty (see the next section).
+- The same five kinds can also be written the way other tools write them, as a block between `:::tip` and a lone `:::`; Tisty draws it as the same callout.
 
 ## Collapsible sections
 
@@ -199,7 +199,7 @@ Born in 2023. Six-in-one and rabies every March.
 - The opening line, `:::details` and its title, stands as a paragraph of its own: a blank line before and after it. So does the closing `:::`.
 - Without its closing `:::` it is not a section: both lines stay as written.
 - A section starts folded. With no title after `:::details`, it shows an empty one.
-- Sections nest. Any `:::word` line opens a container that the next lone `:::` closes, so a section inside another, or a `:::tip` block written by another tool, never steals its closing fence. Only `details` draws something; other `:::word` blocks show their lines as written.
+- Sections nest. Any `:::word` line opens a container that the next lone `:::` closes, so a section inside another, or a `:::tip` block written by another tool, never steals its closing fence. `details` folds and the five callout kinds draw a callout; any other `:::word` block shows its lines as written.
 - They work inside a callout too.
 - GitHub and Obsidian show both fence lines as text and everything between them unfolded. Tisty also draws a `<details>` block written in HTML, the way GitHub writes them, but that is HTML, which is [outside the language](#what-is-outside-the-language).
 

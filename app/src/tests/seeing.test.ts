@@ -160,6 +160,15 @@ describe("a block written as it reads", () => {
     expect(bodies).toHaveLength(9);
   });
 
+  it("draws a callout written as a colon container like the one written as a quote", () => {
+    const one = state(":::tip\n\nRiega las plantas.\n\n:::\n\nfuera", 36);
+    const lines = looked(one).filter((it) => it.line);
+    expect(lines.map((it) => it.line)).toEqual(Array(5).fill("cm-callout cm-callout-tip"));
+    expect(looked(one).some((it) => it.widget === "Said")).toBe(true);
+    expect(read(one)).toBe("\n\nRiega las plantas.\n\n\n\nfuera");
+    expect(read(state(":::tip\n\nOjo\n\n:::", 0))).toContain(":::tip");
+  });
+
   it("leaves code, cards and attachments exactly as written", () => {
     expect(read(state("```\n**x**\n```", 0))).toBe("```\n**x**\n```");
     expect(read(state("![Rina](tisty:doc/ab12-0003)", 0))).toBe("![Rina](tisty:doc/ab12-0003)");
