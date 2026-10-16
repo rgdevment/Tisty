@@ -19,9 +19,21 @@ import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
-import { type Asking, slashing } from "./slashing";
+import { type Asking, putBlock, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
+
+// Files on the clipboard are kept as attachments; words pasted stay words, exactly as copied.
+const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
+  const files = Array.from(event.clipboardData?.files ?? []);
+  const pasted = asking?.()?.pasted;
+  if (!files.length || !pasted) return false;
+  event.preventDefault();
+  pasted(files).then((text) => {
+    if (text && view.dom.isConnected) putBlock(view, text);
+  });
+  return true;
+};
 
 export type Editing = {
   readonly view: EditorView;
@@ -163,6 +175,7 @@ export const edited = (
         syntaxHighlighting(inked),
         marked,
         slashing(asking),
+        EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

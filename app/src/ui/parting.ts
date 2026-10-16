@@ -15,3 +15,12 @@ export const closed = (text: string, from: number, end: number): string => {
   if (!rest) return `${head}${line}`;
   return `${head}${line}${line}${rest}`;
 };
+
+// A block laid at a point of the text, kept apart from what is before and after it by blank lines.
+export const laid = (text: string, at: number, block: string): string => {
+  const line = text.includes("\r\n") ? "\r\n" : "\n";
+  const head = text.slice(0, at).replace(/(?:\r?\n)+$/, "");
+  const rest = text.slice(at).replace(/^(?:\r?\n)+/, "");
+  const whole = [head, block, rest].filter(Boolean).join(`${line}${line}`);
+  return rest ? whole : `${whole}${line}`;
+};

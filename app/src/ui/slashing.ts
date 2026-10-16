@@ -13,11 +13,12 @@ import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from 
 
 type Said = Parameters<typeof t>[0];
 
-export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon";
+export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon" | "file";
 
 export type Asking = {
   readonly kinds: readonly Asked[];
   readonly tags?: readonly string[];
+  readonly pasted?: (files: readonly File[]) => Promise<string>;
   readonly ask: (
     kind: Asked,
     at: { x: number; y: number },
@@ -105,6 +106,13 @@ export const SLASHED: readonly Slashed[] = [
     icon: "emoji",
     put: { ask: "icon", block: false },
   },
+  {
+    key: "file",
+    label: "attachFile",
+    hint: "+",
+    icon: "file-add",
+    put: { ask: "file", block: true },
+  },
   { key: "mermaid", label: "diagramIt", hint: "```mermaid", icon: "graph", put: fenced("mermaid") },
   { key: "math", label: "formulaIt", hint: "```math", icon: "maths", put: fenced("math") },
   { key: "widget", label: "widgetIt", hint: "```widget", icon: "layout", put: fenced("widget") },
@@ -176,6 +184,12 @@ const spacesAfter = (state: EditorState, at: number) => {
 // Words left after the slash would join a table, a quote or a fence, so they go below it, apart.
 const closing = (state: EditorState, at: number): string =>
   state.sliceDoc(at, state.doc.lineAt(at).to).trim() ? "\n\n" : "";
+
+// Files go in as a block of their own where the caret is, apart from the words around them.
+export const putBlock = (view: EditorView, text: string) => {
+  const { from, to } = view.state.selection.main;
+  blocked(view, from, to, text, text.length, true);
+};
 
 const blocked = (
   view: EditorView,

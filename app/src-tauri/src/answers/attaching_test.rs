@@ -1,4 +1,4 @@
-use super::safe_to_open;
+use super::{pasted_name, safe_to_open};
 
 #[test]
 fn a_name_that_only_windows_reads_as_a_program_is_never_opened() {
@@ -51,4 +51,14 @@ fn the_files_a_person_actually_attaches_still_open() {
             "{name} was refused"
         );
     }
+}
+
+#[test]
+fn a_pasted_file_keeps_its_own_name_and_never_a_folder() {
+    assert_eq!(pasted_name("captura.png"), "captura.png");
+    assert_eq!(pasted_name("C:\\Users\\x\\foto.jpg"), "foto.jpg");
+    assert_eq!(pasted_name("../../etc/passwd"), "passwd");
+    assert_eq!(pasted_name(""), "pasted.png");
+    assert_eq!(pasted_name("  "), "pasted.png");
+    assert_eq!(pasted_name(".hidden"), "pasted.png");
 }

@@ -402,6 +402,8 @@ export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", {
 
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
+export const attachPasted = (name: string, bytes: Uint8Array): Promise<string> =>
+  invoke("attach_pasted", { name, bytes: Array.from(bytes) });
 
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 export const widgetLend = (body: string): Promise<string> => invoke("widget_lend", { body });

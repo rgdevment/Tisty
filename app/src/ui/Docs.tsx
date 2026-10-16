@@ -2,6 +2,8 @@ import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asPlain } from "../copying";
 import {
+  attach,
+  attachPasted,
   docAway,
   docBack,
   docBackable,
@@ -406,9 +408,34 @@ export default function Docs({
       bolted
         ? undefined
         : {
-            kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
+            kinds: leafy
+              ? ["newPage", "page", "doc", "newDoc", "icon", "file"]
+              : ["doc", "newDoc", "icon", "file"],
             tags,
+            pasted: (files) =>
+              Promise.all(
+                files.map((one) =>
+                  one.arrayBuffer().then((bytes) => attachPasted(one.name, new Uint8Array(bytes))),
+                ),
+              )
+                .then((written) => written.join("\n\n"))
+                .catch((problem) => {
+                  onError(saidPlainly(problem));
+                  return "";
+                }),
             ask: (kind, at, put, first) => {
+              if (kind === "file") {
+                pick({ multiple: true })
+                  .then((chosen) => {
+                    const paths = Array.isArray(chosen) ? chosen : chosen ? [chosen] : [];
+                    return Promise.all(paths.map((one) => attach(one, undefined, true)));
+                  })
+                  .then((written) => {
+                    if (written.length) put(written.join("\n\n"));
+                  })
+                  .catch((problem) => onError(saidPlainly(problem)));
+                return;
+              }
               // A card as a document's first words would become its title, which the core refuses.
               if (kind !== "icon" && first) return onError(t("leafNeedsTitle"));
               setPicked({ kind, at, put, file: open?.file });

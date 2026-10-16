@@ -269,7 +269,7 @@ const owned = (
       out.push(Decoration.replace({ widget: new Glyph(found[4], hue) }).range(at, end));
       continue;
     }
-    if (found[2] !== undefined && !HUES.includes(found[2])) continue;
+    if (found[2] !== undefined && found[2] !== "yellow" && !HUES.includes(found[2])) continue;
     const tail = found[3] !== undefined ? 2 : found[0].length - 2 - found[1].length;
     out.push(Decoration.replace({}).range(at, at + 2));
     out.push(Decoration.replace({}).range(end - tail, end));

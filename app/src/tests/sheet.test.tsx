@@ -1,6 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { closed, parting } from "../ui/parting";
+import { handTo } from "../dropped";
+import { closed, laid, parting } from "../ui/parting";
 import Sheet from "../ui/Sheet";
 
 const ipc = vi.hoisted(() => ({
@@ -328,6 +329,24 @@ describe("the sheet in the main window", () => {
     expect(writes[writes.length - 1]).toBe("# Compras\n\npan\n");
   });
 
+  it("lays files dropped on the page after the block they land on, or at the end", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    await loaded(await shown(view.container));
+    const room = view.container.querySelector("[data-catches-files]") as Element;
+    expect(handTo(room, "![foto](foto.png)")).toBe(true);
+    expect(writes[writes.length - 1]).toBe("# Compras\n\nleche\n\npan\n\n![foto](foto.png)\n");
+  });
+
+  it("takes no files while the document is only read", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
+    await loaded(await shown(view.container));
+    const room = view.container.querySelector("[data-catches-files]") as Element;
+    expect(handTo(room, "![foto](foto.png)")).toBe(false);
+  });
+
   it("ticks a stage from its box on the page without opening the block", async () => {
     const writes: string[] = [];
     const body = "# Plan\n\n- [ ] uno\n- [x] dos\n";
@@ -499,5 +518,14 @@ describe("a block written empty", () => {
     expect(parting("uno\r\n\r\n", false, "\r\n")).toBe("");
     expect(parting("\r\ndos", true, "\r\n")).toBe("\r\n");
     expect(parting("  ", true)).toBe("");
+  });
+});
+
+describe("a block laid at a point of the text", () => {
+  it("stands apart from the words around it, and the file still ends in a newline", () => {
+    expect(laid("uno\n\ndos\n", 4, "![a](a.png)")).toBe("uno\n\n![a](a.png)\n\ndos\n");
+    expect(laid("uno\n", 4, "![a](a.png)")).toBe("uno\n\n![a](a.png)\n");
+    expect(laid("", 0, "![a](a.png)")).toBe("![a](a.png)\n");
+    expect(laid("a\r\n\r\nb", 3, "x")).toBe("a\r\n\r\nx\r\n\r\nb");
   });
 });

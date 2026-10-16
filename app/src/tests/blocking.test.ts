@@ -63,6 +63,40 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("keeps files pasted from the clipboard as attachments, and leaves pasted words alone", async () => {
+    const { page, one } = block();
+    const pasted: string[] = [];
+    const editing = edited(
+      one,
+      "Ver",
+      () => {},
+      () => {},
+      () => ({
+        kinds: [],
+        ask: () => {},
+        pasted: (files) => {
+          pasted.push(...files.map((file) => file.name));
+          return Promise.resolve("![captura](captura.png)");
+        },
+      }),
+    );
+    const view = editing.view;
+    view.dispatch({ selection: { anchor: 3 } });
+    const paste = (files: File[]) => {
+      const event = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", { value: { files, getData: () => "" } });
+      view.contentDOM.dispatchEvent(event);
+      return event;
+    };
+    paste([]);
+    expect(pasted).toEqual([]);
+    expect(paste([new File(["x"], "captura.png")]).defaultPrevented).toBe(true);
+    await vi.waitFor(() => expect(view.state.sliceDoc()).toBe("Ver\n\n![captura](captura.png)"));
+    expect(pasted).toEqual(["captura.png"]);
+    editing.leave();
+    page.remove();
+  });
+
   it("redoes with Ctrl+Shift+Z as well as Ctrl+Y", () => {
     const { page, one } = block();
     const editing = edited(
