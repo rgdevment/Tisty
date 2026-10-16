@@ -133,11 +133,22 @@ describe("a block written as it reads", () => {
       "15:cm-fold-body",
       "16:cm-fold-body",
       "24:cm-fold-body",
-      "25:cm-fold-end",
     ]);
     expect(read(one)).toBe("Más\n\nadentro\n\n\n\nfuera");
     expect(read(state(":::details Más\n\n:::", 0, true))).toBe(":::details Más\n\n:::");
     expect(looked(state(":::\n\nsolo", 0)).some((it) => it.line)).toBe(false);
+  });
+
+  it("pairs a section's fences as the page does, and opens them where the caret touches", () => {
+    const nested = ":::details A\n\n:::tip\n\nx\n\n:::\n\ny\n\n:::\n\nfuera";
+    expect(read(state(nested, nested.length))).toBe("A\n\n:::tip\n\nx\n\n:::\n\ny\n\n\n\nfuera");
+    expect(read(state(":::detailsTodo\n\nx\n\n:::", 16))).toBe("Todo\n\nx\n\n");
+    expect(read(state(":::details A\n\nx\n\n:::", 0))).toBe(":::details A\n\nx\n\n");
+    const fenced = "```\n:::details x\n```\n\ndespués";
+    expect(looked(state(fenced, fenced.length)).some((it) => it.line?.startsWith("cm-fold"))).toBe(
+      false,
+    );
+    expect(looked(state(":::details A\nx\n\n:::", 14)).some((it) => it.widget)).toBe(false);
   });
 
   it("leaves code, cards and attachments exactly as written", () => {

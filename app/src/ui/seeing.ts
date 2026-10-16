@@ -11,7 +11,7 @@ import {
 import type { SyntaxNode } from "@lezer/common";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
-import { coded, owning } from "./formatting";
+import { coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
 import { HUES } from "./paging";
 import { waiting } from "./pending";
 
@@ -120,7 +120,7 @@ class Glyph extends WidgetType {
   }
 }
 
-const TAG = /(?<![\p{L}\p{N}#/\-_.:])#([\p{L}\p{N}][\p{L}\p{N}\p{M}_-]*)/gu;
+const TAG = new RegExp(`${TAG_EDGE}#(${TAG_WORD})`, "gu");
 
 // A tag reads as a chip once saved, so it wears one while it is written; «#1234» is a ticket, not a tag.
 const tagged = (state: EditorState, from: number, to: number, out: Range<Decoration>[]) => {
@@ -131,7 +131,6 @@ const tagged = (state: EditorState, from: number, to: number, out: Range<Decorat
   }
 };
 
-// A format opens up while any selection touches it, edges included, so a letter typed there lands where it is seen.
 class Folding extends WidgetType {
   constructor(readonly head: boolean) {
     super();
@@ -147,18 +146,29 @@ class Folding extends WidgetType {
   }
 }
 
-const FOLD = /^:::details(?: |$)/;
+// Any :::word opens a colon container, as the page reads it, so a nested one never steals its section's fence.
+const OPENS = /^:::[\p{L}\p{N}]/u;
+const DETAILS = /^:::details ?/;
 
-// A collapsible section reads as its summary over an indented body, its colon fences out of sight.
+const alone = (state: EditorState, at: number) =>
+  (at === 1 || !state.doc.line(at - 1).text.trim()) &&
+  (at === state.doc.lines || !state.doc.line(at + 1).text.trim());
+
+// A collapsible section reads as its summary over an indented body; its fences open where the caret touches them.
 const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) => {
-  let deep = 0;
+  const open: boolean[] = [];
   for (let at = 1; at <= state.doc.lines; at++) {
     const line = state.doc.line(at);
-    const head = FOLD.exec(line.text);
-    if (head) {
-      deep += 1;
+    const fence = alone(state, at) && !coded(state, line.from);
+    const hidden = !shown && !touched(state, line.from, line.to);
+    if (fence && OPENS.test(line.text)) {
+      const head = DETAILS.exec(line.text);
+      if (head && open.includes(true))
+        out.push(Decoration.line({ class: "cm-fold-body" }).range(line.from));
+      open.push(Boolean(head));
+      if (!head) continue;
       out.push(Decoration.line({ class: "cm-fold-head" }).range(line.from));
-      if (!shown)
+      if (hidden)
         out.push(
           Decoration.replace({ widget: new Folding(true) }).range(
             line.from,
@@ -167,17 +177,16 @@ const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) =>
         );
       continue;
     }
-    if (deep && line.text.trim() === ":::") {
-      deep -= 1;
-      out.push(Decoration.line({ class: "cm-fold-end" }).range(line.from));
-      if (!shown)
+    if (fence && open.length && line.text.trim() === ":::") {
+      if (open.pop() && hidden)
         out.push(Decoration.replace({ widget: new Folding(false) }).range(line.from, line.to));
       continue;
     }
-    if (deep) out.push(Decoration.line({ class: "cm-fold-body" }).range(line.from));
+    if (open.includes(true)) out.push(Decoration.line({ class: "cm-fold-body" }).range(line.from));
   }
 };
 
+// A format opens up while any selection touches it, edges included, so a letter typed there lands where it is seen.
 const touched = (state: EditorState, from: number, to: number) =>
   state.selection.ranges.some((one) => one.from <= to && one.to >= from);
 

@@ -9,7 +9,7 @@ import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view"
 import { matched } from "../finding";
 import { markup } from "../glyphs";
 import { t } from "../locales";
-import { coded, linking, wrapped } from "./formatting";
+import { coded, linking, TAG_EDGE, TAG_WORD, wrapped } from "./formatting";
 
 type Said = Parameters<typeof t>[0];
 
@@ -315,7 +315,8 @@ export const offered =
     };
   };
 
-const TAGGED = /(?:^|[\s(])#[\p{L}\p{N}_-]*$/u;
+const TAGGED = new RegExp(`${TAG_EDGE}#${TAG_WORD}$`, "u");
+const REST = /^[\p{L}\p{N}\p{M}_-]*/u;
 
 // Tags already in use are offered as a word after # is typed, so one tag is never spelled two ways.
 export const tagging =
@@ -323,17 +324,25 @@ export const tagging =
   (context: CompletionContext): CompletionResult | null => {
     const found = context.matchBefore(TAGGED);
     if (!found) return null;
-    const hash = found.from + found.text.indexOf("#");
-    const word = context.state.sliceDoc(hash + 1, context.pos);
-    if (!word || coded(context.state, hash)) return null;
+    const hash = found.from;
+    const word = found.text.slice(1);
+    if (!/\p{L}/u.test(word) || coded(context.state, hash)) return null;
     const shown = (asking?.()?.tags ?? []).filter((one) => one !== word && matched(one, word));
     if (shown.length === 0) return null;
+    const line = context.state.doc.lineAt(context.pos);
+    // The rest of the word under the caret goes too, and a space is added only where none follows.
+    const to =
+      context.pos + (REST.exec(context.state.sliceDoc(context.pos, line.to))?.[0].length ?? 0);
+    const spaced = /^[ \t]/.test(context.state.sliceDoc(to, to + 1)) ? "" : " ";
     return {
       from: hash,
+      to,
       filter: false,
-      options: shown
-        .slice(0, 30)
-        .map((one) => ({ label: `#${one}`, apply: `#${one} `, type: "tag" })),
+      options: shown.slice(0, 30).map((one) => ({
+        label: `#${one}`,
+        apply: `#${one}${spaced}`,
+        type: "tag",
+      })),
     };
   };
 

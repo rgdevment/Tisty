@@ -183,12 +183,14 @@ export default function Sheet(props: Readonly<Props>) {
   };
 
   const ticked = ([from, end]: [number, number]) => {
-    left();
+    // Like a click that opens a block, a box names bytes of the page on screen, which a block being written has moved.
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
     const now = latest.current;
-    const box = /\[[ xX]\]/.exec(now.slice(from, end));
+    const box = /^\s*(?:[-*+]|\d+[.)])\s+\[[ xX]\]/.exec(now.slice(from, end));
     if (!box) return;
-    const at = from + box.index;
-    const next = `${now.slice(0, at)}${box[0] === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
+    const at = from + box[0].length - 3;
+    const next = `${now.slice(0, at)}${now.slice(at, at + 3) === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
     written(next);
     setDrawn(next);
   };

@@ -15,6 +15,10 @@ export const coded = (state: EditorState, at: number): boolean => {
 export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
 export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
 export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
+// A tag as the page reads it: nothing that ties the # to what came before, and a letter or digit first.
+export const TAG_EDGE = String.raw`(?<![\p{L}\p{N}#/\-_.:])`;
+export const TAG_WORD = String.raw`[\p{L}\p{N}][\p{L}\p{N}\p{M}_-]*`;
+
 export const owning = () => new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu");
 
 const FORMAT: Record<string, string> = {

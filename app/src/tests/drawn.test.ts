@@ -18,6 +18,7 @@ describe("a click on a drawn page", () => {
       '<ul data-at="0-20"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>uno</li></ul>';
     expect(clicked(list, ".check")).toEqual({ kind: "tick", at: [0, 10] });
     expect(clicked(list, "li")).toEqual({ kind: "block", at: [0, 20] });
+    expect(clicked(list, ".check", true)).toBeNull();
   });
 
   it("opens a card or a tisty link as the document it names", () => {

@@ -225,8 +225,22 @@ describe("tags offered after a #", () => {
     expect(offeredTags("leche #")).toBeNull();
     expect(offeredTags("# Plan")).toBeNull();
     expect(offeredTags("color#c")).toBeNull();
-    expect(offeredTags("`#c")).toBeNull();
+    expect(offeredTags("`code #c`")).toBeNull();
     expect(offeredTags("#casa")).toBeNull();
+    expect(offeredTags("ticket #12")).toBeNull();
+    expect(offeredTags('dijo "#c')?.options).toHaveLength(2);
+  });
+
+  it("takes the rest of the word under the caret, and adds a space only where none follows", () => {
+    const at = (doc: string, pos: number) => {
+      const state = EditorState.create({ doc, extensions: [markdown()] });
+      const asking = { kinds: [], ask: () => {}, tags: ["compras", "casa", "trabajo"] };
+      return tagging(() => asking)(new CompletionContext(state, pos, false));
+    };
+    const inside = at("ver #trrk", 7);
+    expect(inside?.to).toBe(9);
+    expect(inside?.options[0].apply).toBe("#trabajo ");
+    expect(at("ver #tr hoy", 7)?.options[0].apply).toBe("#trabajo");
     expect(offeredTags("#xyz")).toBeNull();
   });
 });
